@@ -53,16 +53,45 @@ function App() {
         })),
       }));
     }
-    const defaultBoard = {
-      id: "default",
-      name: "New Soundboard",
-      slots: Array(9).fill({
-        audioData: null,
-        emoji: undefined,
-        title: undefined,
-      }),
-    };
-    return [defaultBoard];
+
+    // Try to fetch from ryo.json if localStorage is empty
+    try {
+      const defaultBoard = {
+        id: "default",
+        name: "New Soundboard",
+        slots: Array(9).fill({
+          audioData: null,
+          emoji: undefined,
+          title: undefined,
+        }),
+      };
+
+      fetch("/ryo.json")
+        .then((res) => res.json())
+        .then((data) => {
+          setBoards([data]);
+          localStorage.setItem("soundboards", JSON.stringify([data]));
+        })
+        .catch((err) => {
+          console.error("Failed to load ryo.json:", err);
+          setBoards([defaultBoard]);
+          localStorage.setItem("soundboards", JSON.stringify([defaultBoard]));
+        });
+
+      return [defaultBoard];
+    } catch (error) {
+      console.error("Error loading initial board:", error);
+      const defaultBoard = {
+        id: "default",
+        name: "New Soundboard",
+        slots: Array(9).fill({
+          audioData: null,
+          emoji: undefined,
+          title: undefined,
+        }),
+      };
+      return [defaultBoard];
+    }
   });
 
   const [playbackStates, setPlaybackStates] = useState<PlaybackState[]>(
@@ -523,6 +552,17 @@ function App() {
     };
   }, [activeBoard.slots, playbackStates]);
 
+  const reloadFromJson = async () => {
+    try {
+      const res = await fetch("/ryo.json");
+      const data = await res.json();
+      setBoards([data]);
+      localStorage.setItem("soundboards", JSON.stringify([data]));
+    } catch (err) {
+      console.error("Failed to reload ryo.json:", err);
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen">
       <div className="flex bg-gray-100 border-b px-2 h-7 items-center text-sm">
@@ -547,6 +587,9 @@ function App() {
             </DropdownMenuItem>
             <DropdownMenuItem onClick={exportBoard}>
               Export Soundboard...
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={reloadFromJson}>
+              Reload Soundboard
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
