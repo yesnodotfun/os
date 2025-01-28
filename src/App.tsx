@@ -916,7 +916,7 @@ function App() {
       {/* Main window */}
       <div
         ref={windowRef}
-        className="absolute"
+        className="md:absolute md:min-w-[800px] md:min-h-[400px] w-full h-full min-h-full max-w-[100vw] max-w-[100vw] mt-6 select-none"
         style={{
           left: windowPosition.x,
           top: windowPosition.y,
@@ -973,9 +973,9 @@ function App() {
           </div>
 
           {/* App content */}
-          <div className="flex flex-1 h-[calc(100%-2rem)]">
-            <div className="w-full md:w-64 bg-gray-100 border-r flex flex-col">
-              <div className="p-4 flex flex-col h-full">
+          <div className="flex flex-1 md:h-full h-auto flex-col md:flex-row">
+            <div className="w-full md:w-64 bg-gray-100 border-r flex flex-col h-full">
+              <div className="p-4 flex flex-col">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-lg font-semibold">Soundboards</h2>
                   <Button variant="ghost" size="icon" onClick={addNewBoard}>
@@ -1032,7 +1032,7 @@ function App() {
                 <div className="max-w-2xl mx-auto flex flex-col">
                   {isEditingTitle ? (
                     <Input
-                      className="text-3xl font-bold mb-8 text-left"
+                      className="text-3xl font-bold mb-8 text-left select-text"
                       value={activeBoard.name}
                       autoFocus
                       onChange={(e) => {
@@ -1052,7 +1052,7 @@ function App() {
                     />
                   ) : (
                     <h1
-                      className="text-3xl font-bold mb-8 text-left cursor-pointer hover:opacity-80"
+                      className="text-3xl font-bold mb-8 text-left cursor-pointer hover:opacity-80 select-text"
                       onClick={() => setIsEditingTitle(true)}
                     >
                       {activeBoard.name}
@@ -1117,7 +1117,7 @@ function App() {
                                   </Button>
                                 )}
                                 <span
-                                  className="text-base md:text-lg font-medium truncate max-w-[80px] md:max-w-[120px] cursor-text hover:bg-white/20 px-1 rounded"
+                                  className="text-base md:text-lg font-medium truncate max-w-[80px] md:max-w-[120px] cursor-text hover:bg-white/20 px-1 rounded select-text"
                                   onClick={(e) => handleTitleClick(index, e)}
                                   title={
                                     slot.title ? "Edit title" : "Add title"
