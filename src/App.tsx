@@ -54,7 +54,7 @@ function App() {
       }));
     }
 
-    // Try to fetch from ryo.json if localStorage is empty
+    // Try to fetch from soundboards.json if localStorage is empty
     try {
       const defaultBoard = {
         id: "default",
@@ -66,21 +66,31 @@ function App() {
         }),
       };
 
-      fetch("/ryo.json")
+      fetch("/soundboards.json")
         .then((res) => res.json())
         .then((data) => {
-          setBoards([data]);
-          localStorage.setItem("soundboards", JSON.stringify([data]));
+          const importedBoards = data.boards || [data];
+          const newBoards = importedBoards.map((board: Soundboard) => ({
+            ...board,
+            id: Date.now().toString() + Math.random().toString(36).slice(2),
+            slots: board.slots.map((slot) => ({
+              audioData: slot.audioData,
+              emoji: slot.emoji,
+              title: slot.title,
+            })),
+          }));
+          setBoards(newBoards);
+          localStorage.setItem("soundboards", JSON.stringify(newBoards));
         })
         .catch((err) => {
-          console.error("Failed to load ryo.json:", err);
+          console.error("Failed to load soundboards.json:", err);
           setBoards([defaultBoard]);
           localStorage.setItem("soundboards", JSON.stringify([defaultBoard]));
         });
 
       return [defaultBoard];
     } catch (error) {
-      console.error("Error loading initial board:", error);
+      console.error("Error loading initial boards:", error);
       const defaultBoard = {
         id: "default",
         name: "New Soundboard",
@@ -99,8 +109,15 @@ function App() {
   );
 
   const [activeBoardId, setActiveBoardId] = useState<string>(() => {
-    return boards[0].id;
+    return boards[0]?.id || "default";
   });
+
+  useEffect(() => {
+    // If current activeBoardId is not in boards, switch to the first board
+    if (!boards.find((b) => b.id === activeBoardId)) {
+      setActiveBoardId(boards[0]?.id || "default");
+    }
+  }, [boards, activeBoardId]);
 
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>(() => {
@@ -138,7 +155,16 @@ function App() {
   const audioRefs = useRef<(HTMLAudioElement | null)[]>(Array(9).fill(null));
   const waveformRefs = useRef<(HTMLDivElement | null)[]>(Array(9).fill(null));
 
-  const activeBoard = boards.find((b) => b.id === activeBoardId)!;
+  const activeBoard = boards.find((b) => b.id === activeBoardId) ||
+    boards[0] || {
+      id: "default",
+      name: "New Soundboard",
+      slots: Array(9).fill({
+        audioData: null,
+        emoji: undefined,
+        title: undefined,
+      }),
+    };
 
   const saveBoards = (newBoards: Soundboard[]) => {
     // Create a copy without waveform objects for localStorage
@@ -353,13 +379,14 @@ function App() {
   };
 
   const exportBoard = () => {
-    const board = boards.find((b) => b.id === activeBoardId);
     const exportData = {
-      ...board,
-      slots: board?.slots.map((slot) => ({
-        audioData: slot.audioData,
-        emoji: slot.emoji,
-        title: slot.title,
+      boards: boards.map((board) => ({
+        ...board,
+        slots: board.slots.map((slot) => ({
+          audioData: slot.audioData,
+          emoji: slot.emoji,
+          title: slot.title,
+        })),
       })),
     };
 
@@ -369,7 +396,7 @@ function App() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${board?.name || "soundboard"}.json`;
+    a.download = "soundboards.json";
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -381,22 +408,23 @@ function App() {
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const importedBoard = JSON.parse(
-          e.target?.result as string
-        ) as Soundboard;
-        const board = {
-          ...importedBoard,
-          id: Date.now().toString(),
-          slots: importedBoard.slots.map((slot) => ({
+        const importedData = JSON.parse(e.target?.result as string);
+        const importedBoards = importedData.boards || [importedData];
+
+        const newBoards = importedBoards.map((board: Soundboard) => ({
+          ...board,
+          id: Date.now().toString() + Math.random().toString(36).slice(2),
+          slots: board.slots.map((slot) => ({
             audioData: slot.audioData,
             emoji: slot.emoji,
             title: slot.title,
           })),
-        };
-        saveBoards([...boards, board]);
-        setActiveBoardId(board.id);
+        }));
+
+        saveBoards([...boards, ...newBoards]);
+        setActiveBoardId(newBoards[0].id);
       } catch (err) {
-        console.error("Failed to import soundboard:", err);
+        console.error("Failed to import soundboards:", err);
       }
     };
     reader.readAsText(file);
@@ -554,12 +582,22 @@ function App() {
 
   const reloadFromJson = async () => {
     try {
-      const res = await fetch("/ryo.json");
+      const res = await fetch("/soundboards.json");
       const data = await res.json();
-      setBoards([data]);
-      localStorage.setItem("soundboards", JSON.stringify([data]));
+      const importedBoards = data.boards || [data];
+      const newBoards = importedBoards.map((board: Soundboard) => ({
+        ...board,
+        id: Date.now().toString() + Math.random().toString(36).slice(2),
+        slots: board.slots.map((slot) => ({
+          audioData: slot.audioData,
+          emoji: slot.emoji,
+          title: slot.title,
+        })),
+      }));
+      setBoards(newBoards);
+      localStorage.setItem("soundboards", JSON.stringify(newBoards));
     } catch (err) {
-      console.error("Failed to reload ryo.json:", err);
+      console.error("Failed to reload soundboards.json:", err);
     }
   };
 
