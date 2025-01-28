@@ -698,7 +698,7 @@ function App() {
 
   const [windowSize, setWindowSize] = useState(() => {
     const saved = localStorage.getItem("windowSize");
-    return saved ? JSON.parse(saved) : { width: 800, height: 600 };
+    return saved ? JSON.parse(saved) : { width: 800, height: 500 };
   });
   const [resizeType, setResizeType] = useState<
     "" | "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw"
