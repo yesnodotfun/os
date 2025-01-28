@@ -620,9 +620,63 @@ function App() {
     }
   };
 
+  const [windowPosition, setWindowPosition] = useState(() => {
+    const saved = localStorage.getItem("windowPosition");
+    return saved ? JSON.parse(saved) : { x: 16, y: 40 };
+  });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const windowRef = useRef<HTMLDivElement>(null);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (windowRef.current) {
+      const rect = windowRef.current.getBoundingClientRect();
+      setDragOffset({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      });
+      setIsDragging(true);
+    }
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isDragging && windowRef.current) {
+        const newX = e.clientX - dragOffset.x;
+        const newY = e.clientY - dragOffset.y;
+
+        // Keep window within viewport bounds
+        const maxX = window.innerWidth - windowRef.current.offsetWidth;
+        const maxY = window.innerHeight - windowRef.current.offsetHeight;
+        const x = Math.min(Math.max(0, newX), maxX);
+        const y = Math.min(Math.max(0, newY), maxY);
+
+        setWindowPosition({ x, y });
+      }
+    };
+
+    const handleMouseUp = () => {
+      if (isDragging) {
+        setIsDragging(false);
+        localStorage.setItem("windowPosition", JSON.stringify(windowPosition));
+      }
+    };
+
+    if (isDragging) {
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isDragging, dragOffset, windowPosition]);
+
   return (
-    <div className="flex flex-col h-screen">
-      <div className="flex bg-gray-100 border-b px-2 h-7 items-center text-sm">
+    <div className="min-h-screen bg-[#666699]">
+      {/* Global menubar */}
+      <div className="fixed top-0 left-0 right-0 flex bg-system7-menubar-bg border-b-[3px] border-black px-2 h-7 items-center text-sm z-50">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -655,7 +709,7 @@ function App() {
             <Button
               variant="ghost"
               size="default"
-              className="h-6 px-2 py-1 focus-visible:ring-0 hover:bg-gray-200 active:bg-gray-900 active:text-white "
+              className="h-6 px-2 py-1 focus-visible:ring-0 hover:bg-gray-200 active:bg-gray-900 active:text-white"
             >
               Edit
             </Button>
@@ -678,7 +732,7 @@ function App() {
             <Button
               variant="ghost"
               size="default"
-              className="h-6 px-2 py-1 focus-visible:ring-0 hover:bg-gray-200 active:bg-gray-900 active:text-white "
+              className="h-6 px-2 py-1 focus-visible:ring-0 hover:bg-gray-200 active:bg-gray-900 active:text-white"
             >
               View
             </Button>
@@ -689,158 +743,192 @@ function App() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <div className="flex flex-1 flex-col md:flex-row">
-        <div className="w-full md:w-64 bg-gray-100 p-4 border-b md:border-r flex flex-col">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">Soundboards</h2>
-            <Button variant="ghost" size="icon" onClick={addNewBoard}>
-              <Plus className="w-4 h-4" />
-            </Button>
-          </div>
-          <div className="space-y-2 flex-1">
-            {boards.map((board) => (
-              <Button
-                key={board.id}
-                variant={board.id === activeBoardId ? "default" : "ghost"}
-                className="w-full justify-start text-lg"
-                onClick={() => setActiveBoardId(board.id)}
-              >
-                {board.name}
-              </Button>
-            ))}
-          </div>
-          {micPermissionGranted && (
-            <Select
-              value={selectedDeviceId}
-              onValueChange={setSelectedDeviceId}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select microphone" />
-              </SelectTrigger>
-              <SelectContent>
-                {audioDevices.map((device) => (
-                  <SelectItem key={device.deviceId} value={device.deviceId}>
-                    {device.label ||
-                      `Microphone ${device.deviceId.slice(0, 4)}...`}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-          <input
-            type="file"
-            id="import-board"
-            className="hidden"
-            accept="application/json"
-            onChange={importBoard}
-          />
-        </div>
 
-        <div className="flex-1 p-4 md:p-8">
-          <div className="max-w-2xl mx-auto h-full flex flex-col">
-            {isEditingTitle ? (
-              <Input
-                className="text-3xl font-bold mb-8 text-left"
-                value={activeBoard.name}
-                autoFocus
-                onChange={(e) => {
-                  const newBoards = boards.map((board) =>
-                    board.id === activeBoardId
-                      ? { ...board, name: e.target.value }
-                      : board
-                  );
-                  setBoards(newBoards);
-                }}
-                onBlur={(e) => updateBoardName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    updateBoardName(e.currentTarget.value);
-                  }
-                }}
-              />
-            ) : (
-              <h1
-                className="text-3xl font-bold mb-8 text-left cursor-pointer hover:opacity-80"
-                onClick={() => setIsEditingTitle(true)}
-              >
-                {activeBoard.name}
-              </h1>
-            )}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-4 flex-1">
-              {activeBoard.slots.map((slot, index) => (
-                <div key={index} className="flex flex-col gap-2 min-h-0">
-                  <Button
-                    variant={
-                      playbackStates[index].isRecording
-                        ? "destructive"
-                        : slot.audioData
-                        ? "retro"
-                        : "retro"
-                    }
-                    className="h-full w-full flex flex-col items-stretch justify-between relative p-2 md:p-4 group min-h-[4rem] md:min-h-[6rem]"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleSlotClick(index);
-                    }}
-                  >
-                    {slot.audioData && (
-                      <>
-                        <div
-                          ref={(el) => (waveformRefs.current[index] = el)}
-                          className="hidden md:block w-full h-12 flex-shrink-0"
-                        />
-                        <div className="absolute top-1 right-1 flex gap-1 z-10">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="opacity-0 group-hover:opacity-100 transition-opacity h-5 w-5 md:h-6 md:w-6 hover:bg-white/50"
-                            onClick={(e) => handleDelete(index, e)}
-                          >
-                            <X className="w-3 h-3 md:w-4 md:h-4" />
-                          </Button>
-                        </div>
-                        <div
-                          className={`absolute bottom-1 left-2 flex items-center gap-1 md:gap-2 z-10 transition-all duration-300 ease-in-out transform origin-left ${
-                            playbackStates[index].isPlaying
-                              ? "opacity-100 scale-100"
-                              : "opacity-60 scale-80"
-                          }`}
-                        >
-                          {slot.emoji ? (
-                            <span
-                              className="text-xl md:text-2xl cursor-pointer hover:opacity-80"
-                              onClick={(e) => handleEmojiClick(index, e)}
-                            >
-                              {slot.emoji}
-                            </span>
-                          ) : (
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="opacity-0 group-hover:opacity-100 transition-opacity h-5 w-5 md:h-6 md:w-6 hover:bg-white/50"
-                              onClick={(e) => handleEmojiClick(index, e)}
-                            >
-                              <SmilePlus className="w-3 h-3 md:w-4 md:h-4" />
-                            </Button>
-                          )}
-                          <span
-                            className="text-base md:text-lg font-medium truncate max-w-[80px] md:max-w-[120px] cursor-text hover:bg-white/20 px-1 rounded"
-                            onClick={(e) => handleTitleClick(index, e)}
-                            title={slot.title ? "Edit title" : "Add title"}
-                          >
-                            {slot.title || (
-                              <span className="opacity-0 group-hover:opacity-60">
-                                Add title...
-                              </span>
-                            )}
-                          </span>
-                        </div>
-                      </>
-                    )}
+      {/* Main window */}
+      <div
+        ref={windowRef}
+        className="absolute"
+        style={{
+          left: windowPosition.x,
+          top: windowPosition.y,
+          width: "calc(100% - 2rem)",
+          maxWidth: "72rem",
+          transition: isDragging ? "none" : "all 0.2s ease",
+        }}
+      >
+        <div className="bg-system7-window-bg border-[3px] border-black rounded-lg shadow-[8px_8px_0px_0px_rgba(0,0,0,0.5)] overflow-hidden">
+          {/* Title bar */}
+          <div
+            className="flex items-center flex-none h-6 mx-0 my-[0.1rem] px-[0.1rem] py-[0.2rem] bg-[linear-gradient(#000_50%,transparent_0)] bg-clip-content bg-[length:6.6666666667%_13.3333333333%] cursor-move border-b-[2px] border-black"
+            onMouseDown={handleMouseDown}
+          >
+            <span className="font-bold text-sm select-none mx-auto bg-white px-2 py-0">
+              Soundboard.app
+            </span>
+          </div>
+
+          {/* App content */}
+          <div className="flex flex-col h-[calc(100vh-11rem)]">
+            <div className="flex flex-1 flex-col md:flex-row">
+              <div className="w-full md:w-64 bg-gray-100 p-4 border-b md:border-r flex flex-col">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-lg font-semibold">Soundboards</h2>
+                  <Button variant="ghost" size="icon" onClick={addNewBoard}>
+                    <Plus className="w-4 h-4" />
                   </Button>
                 </div>
-              ))}
+                <div className="space-y-2 flex-1">
+                  {boards.map((board) => (
+                    <Button
+                      key={board.id}
+                      variant={board.id === activeBoardId ? "default" : "ghost"}
+                      className="w-full justify-start text-lg"
+                      onClick={() => setActiveBoardId(board.id)}
+                    >
+                      {board.name}
+                    </Button>
+                  ))}
+                </div>
+                {micPermissionGranted && (
+                  <Select
+                    value={selectedDeviceId}
+                    onValueChange={setSelectedDeviceId}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select microphone" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {audioDevices.map((device) => (
+                        <SelectItem
+                          key={device.deviceId}
+                          value={device.deviceId}
+                        >
+                          {device.label ||
+                            `Microphone ${device.deviceId.slice(0, 4)}...`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+                <input
+                  type="file"
+                  id="import-board"
+                  className="hidden"
+                  accept="application/json"
+                  onChange={importBoard}
+                />
+              </div>
+
+              <div className="flex-1 p-4 md:p-8">
+                <div className="max-w-2xl mx-auto h-full flex flex-col">
+                  {isEditingTitle ? (
+                    <Input
+                      className="text-3xl font-bold mb-8 text-left"
+                      value={activeBoard.name}
+                      autoFocus
+                      onChange={(e) => {
+                        const newBoards = boards.map((board) =>
+                          board.id === activeBoardId
+                            ? { ...board, name: e.target.value }
+                            : board
+                        );
+                        setBoards(newBoards);
+                      }}
+                      onBlur={(e) => updateBoardName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          updateBoardName(e.currentTarget.value);
+                        }
+                      }}
+                    />
+                  ) : (
+                    <h1
+                      className="text-3xl font-bold mb-8 text-left cursor-pointer hover:opacity-80"
+                      onClick={() => setIsEditingTitle(true)}
+                    >
+                      {activeBoard.name}
+                    </h1>
+                  )}
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-4 flex-1">
+                    {activeBoard.slots.map((slot, index) => (
+                      <div key={index} className="flex flex-col gap-2 min-h-0">
+                        <Button
+                          variant={
+                            playbackStates[index].isRecording
+                              ? "destructive"
+                              : slot.audioData
+                              ? "retro"
+                              : "retro"
+                          }
+                          className="h-full w-full flex flex-col items-stretch justify-between relative p-2 md:p-4 group min-h-[4rem] md:min-h-[6rem]"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleSlotClick(index);
+                          }}
+                        >
+                          {slot.audioData && (
+                            <>
+                              <div
+                                ref={(el) => (waveformRefs.current[index] = el)}
+                                className="hidden md:block w-full h-12 flex-shrink-0"
+                              />
+                              <div className="absolute top-1 right-1 flex gap-1 z-10">
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="opacity-0 group-hover:opacity-100 transition-opacity h-5 w-5 md:h-6 md:w-6 hover:bg-white/50"
+                                  onClick={(e) => handleDelete(index, e)}
+                                >
+                                  <X className="w-3 h-3 md:w-4 md:h-4" />
+                                </Button>
+                              </div>
+                              <div
+                                className={`absolute bottom-1 left-2 flex items-center gap-1 md:gap-2 z-10 transition-all duration-300 ease-in-out transform origin-left ${
+                                  playbackStates[index].isPlaying
+                                    ? "opacity-100 scale-100"
+                                    : "opacity-60 scale-80"
+                                }`}
+                              >
+                                {slot.emoji ? (
+                                  <span
+                                    className="text-xl md:text-2xl cursor-pointer hover:opacity-80"
+                                    onClick={(e) => handleEmojiClick(index, e)}
+                                  >
+                                    {slot.emoji}
+                                  </span>
+                                ) : (
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="opacity-0 group-hover:opacity-100 transition-opacity h-5 w-5 md:h-6 md:w-6 hover:bg-white/50"
+                                    onClick={(e) => handleEmojiClick(index, e)}
+                                  >
+                                    <SmilePlus className="w-3 h-3 md:w-4 md:h-4" />
+                                  </Button>
+                                )}
+                                <span
+                                  className="text-base md:text-lg font-medium truncate max-w-[80px] md:max-w-[120px] cursor-text hover:bg-white/20 px-1 rounded"
+                                  onClick={(e) => handleTitleClick(index, e)}
+                                  title={
+                                    slot.title ? "Edit title" : "Add title"
+                                  }
+                                >
+                                  {slot.title || (
+                                    <span className="opacity-0 group-hover:opacity-60">
+                                      Add title...
+                                    </span>
+                                  )}
+                                </span>
+                              </div>
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
