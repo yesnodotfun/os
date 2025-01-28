@@ -803,6 +803,9 @@ function App() {
     };
   }, [resizeType, resizeStart, windowSize]);
 
+  const [helpDialogOpen, setHelpDialogOpen] = useState(false);
+  const [aboutDialogOpen, setAboutDialogOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-[#666699]">
       {/* Global menubar */}
@@ -872,7 +875,79 @@ function App() {
             <DropdownMenuItem>Show Emojis</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="default"
+              className="h-6 px-2 py-1 focus-visible:ring-0 hover:bg-gray-200 active:bg-gray-900 active:text-white"
+            >
+              Help
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" sideOffset={1}>
+            <DropdownMenuItem onClick={() => setHelpDialogOpen(true)}>
+              Getting Started
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setAboutDialogOpen(true)}>
+              About
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
+
+      {/* Help Dialog */}
+      <Dialog open={helpDialogOpen} onOpenChange={setHelpDialogOpen}>
+        <DialogContent className="bg-system7-window-bg border-2 border-black rounded-lg shadow-[8px_8px_0px_0px_rgba(0,0,0,0.5)]">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold">
+              Getting Started
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p>Welcome to Soundboard.app! Here's how to use it:</p>
+            <ul className="list-disc pl-6 space-y-2">
+              <li>Click any empty slot to start recording a sound</li>
+              <li>Click again to stop recording</li>
+              <li>Click a recorded slot to play the sound</li>
+              <li>Press number keys 1-9 to quickly play sounds</li>
+              <li>
+                Add emojis and titles to your sounds by clicking the respective
+                icons
+              </li>
+              <li>
+                Create multiple soundboards using the + button in the sidebar
+              </li>
+              <li>Import and export your soundboards using the File menu</li>
+            </ul>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* About Dialog */}
+      <Dialog open={aboutDialogOpen} onOpenChange={setAboutDialogOpen}>
+        <DialogContent className="bg-system7-window-bg border-2 border-black rounded-lg shadow-[8px_8px_0px_0px_rgba(0,0,0,0.5)]">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold">
+              About Soundboard.app
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p>Version 0.10</p>
+            <p>
+              Created by{" "}
+              <a
+                href="https://ryo.lu"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline"
+              >
+                Ryo Lu
+              </a>
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Dialog */}
       <Dialog
