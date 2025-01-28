@@ -28,10 +28,10 @@ export function InputDialog({
 }: InputDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-system7-window-bg border-2 border-black rounded-lg shadow-[8px_8px_0px_0px_rgba(0,0,0,0.5)]">
+      <DialogContent className="bg-system7-window-bg border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)]">
         <DialogHeader>{title}</DialogHeader>
         <div className="p-6">
-          <p className="text-sm text-gray-500 mb-4">{description}</p>
+          <p className="text-gray-500 mb-2">{description}</p>
           <Input
             autoFocus
             value={value}
@@ -41,6 +41,7 @@ export function InputDialog({
                 onSubmit(value);
               }
             }}
+            className="shadow-none"
           />
           <DialogFooter className="mt-4">
             <Button variant="retro" onClick={() => onSubmit(value)}>
