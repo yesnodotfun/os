@@ -632,8 +632,8 @@ function App() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <div className="flex flex-1">
-        <div className="w-64 bg-gray-100 p-4 border-r flex flex-col">
+      <div className="flex flex-1 flex-col md:flex-row">
+        <div className="w-full md:w-64 bg-gray-100 p-4 border-b md:border-r flex flex-col">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold">Soundboards</h2>
             <Button variant="ghost" size="icon" onClick={addNewBoard}>
@@ -674,7 +674,7 @@ function App() {
           />
         </div>
 
-        <div className="flex-1 p-8">
+        <div className="flex-1 p-4 md:p-8">
           <div className="max-w-2xl mx-auto h-full flex flex-col">
             {isEditingTitle ? (
               <Input
@@ -704,7 +704,7 @@ function App() {
                 {activeBoard.name}
               </h1>
             )}
-            <div className="grid grid-cols-3 gap-4 flex-1">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-4 flex-1">
               {activeBoard.slots.map((slot, index) => (
                 <div key={index} className="flex flex-col gap-2 min-h-0">
                   <Button
@@ -715,27 +715,27 @@ function App() {
                         ? "retro"
                         : "retro"
                     }
-                    className="h-full w-full flex flex-col items-stretch justify-between relative p-4 group min-h-[6rem]"
+                    className="h-full w-full flex flex-col items-stretch justify-between relative p-2 md:p-4 group min-h-[4rem] md:min-h-[6rem]"
                     onClick={() => handleSlotClick(index)}
                   >
                     {slot.audioData && (
                       <>
                         <div
                           ref={(el) => (waveformRefs.current[index] = el)}
-                          className="w-full h-12 flex-shrink-0"
+                          className="hidden md:block w-full h-12 flex-shrink-0"
                         />
                         <div className="absolute top-1 right-1 flex gap-1 z-10">
                           <Button
                             size="icon"
                             variant="ghost"
-                            className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 hover:bg-white/50"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity h-5 w-5 md:h-6 md:w-6 hover:bg-white/50"
                             onClick={(e) => handleDelete(index, e)}
                           >
-                            <X className="w-4 h-4" />
+                            <X className="w-3 h-3 md:w-4 md:h-4" />
                           </Button>
                         </div>
                         <div
-                          className={`absolute bottom-1 left-2 flex items-center gap-2 z-10 transition-all duration-300 ease-in-out transform origin-left ${
+                          className={`absolute bottom-1 left-2 flex items-center gap-1 md:gap-2 z-10 transition-all duration-300 ease-in-out transform origin-left ${
                             playbackStates[index].isPlaying
                               ? "opacity-100 scale-100"
                               : "opacity-60 scale-80"
@@ -743,7 +743,7 @@ function App() {
                         >
                           {slot.emoji ? (
                             <span
-                              className="text-2xl cursor-pointer hover:opacity-80"
+                              className="text-xl md:text-2xl cursor-pointer hover:opacity-80"
                               onClick={(e) => handleEmojiClick(index, e)}
                             >
                               {slot.emoji}
@@ -752,14 +752,14 @@ function App() {
                             <Button
                               size="icon"
                               variant="ghost"
-                              className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 hover:bg-white/50"
+                              className="opacity-0 group-hover:opacity-100 transition-opacity h-5 w-5 md:h-6 md:w-6 hover:bg-white/50"
                               onClick={(e) => handleEmojiClick(index, e)}
                             >
-                              <SmilePlus className="w-4 h-4" />
+                              <SmilePlus className="w-3 h-3 md:w-4 md:h-4" />
                             </Button>
                           )}
                           <span
-                            className="text-lg font-medium truncate max-w-[120px] cursor-text hover:bg-white/20 px-1 rounded"
+                            className="text-base md:text-lg font-medium truncate max-w-[80px] md:max-w-[120px] cursor-text hover:bg-white/20 px-1 rounded"
                             onClick={(e) => handleTitleClick(index, e)}
                             title={slot.title ? "Edit title" : "Add title"}
                           >
