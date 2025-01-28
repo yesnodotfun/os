@@ -515,7 +515,7 @@ function App() {
 
     const wavesurfer = WaveSurfer.create({
       container,
-      height: 60,
+      height: 55,
       progressColor: "rgba(0, 0, 0, 1)",
       cursorColor: "transparent",
       cursorWidth: 1,
@@ -818,7 +818,7 @@ function App() {
       document.removeEventListener("mousemove", handleResize);
       document.removeEventListener("mouseup", handleResizeEnd);
     };
-  }, [resizeType, resizeStart, windowSize]);
+  }, [resizeType, resizeStart, windowSize, windowPosition]);
 
   const [helpDialogOpen, setHelpDialogOpen] = useState(false);
   const [aboutDialogOpen, setAboutDialogOpen] = useState(false);
