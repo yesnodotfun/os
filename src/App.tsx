@@ -13,6 +13,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import WaveSurfer from "wavesurfer.js";
 import { Plus, X, SmilePlus } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -531,43 +539,58 @@ function App() {
     saveBoards(newBoards);
   };
 
+  const [dialogState, setDialogState] = useState<{
+    type: "emoji" | "title" | null;
+    isOpen: boolean;
+    slotIndex: number;
+    value: string;
+  }>({
+    type: null,
+    isOpen: false,
+    slotIndex: -1,
+    value: "",
+  });
+
   const handleEmojiClick = (index: number, e: React.MouseEvent) => {
     e.stopPropagation();
-    const emoji = prompt("Enter an emoji:");
-    if (emoji) {
-      const newBoards = boards.map((board) => {
-        if (board.id === activeBoardId) {
-          const newSlots = [...board.slots];
-          newSlots[index] = {
-            ...newSlots[index],
-            emoji,
-          };
-          return { ...board, slots: newSlots };
-        }
-        return board;
-      });
-      saveBoards(newBoards);
-    }
+    setDialogState({
+      type: "emoji",
+      isOpen: true,
+      slotIndex: index,
+      value: activeBoard.slots[index].emoji || "",
+    });
   };
 
   const handleTitleClick = (index: number, e: React.MouseEvent) => {
     e.stopPropagation();
-    const slot = activeBoard.slots[index];
-    const title = prompt("Enter a title:", slot.title || "");
-    if (title !== null) {
-      const newBoards = boards.map((board) => {
-        if (board.id === activeBoardId) {
-          const newSlots = [...board.slots];
-          newSlots[index] = {
-            ...newSlots[index],
-            title,
-          };
-          return { ...board, slots: newSlots };
-        }
-        return board;
-      });
-      saveBoards(newBoards);
-    }
+    setDialogState({
+      type: "title",
+      isOpen: true,
+      slotIndex: index,
+      value: activeBoard.slots[index].title || "",
+    });
+  };
+
+  const handleDialogSubmit = () => {
+    if (!dialogState.type) return;
+
+    const newBoards = boards.map((board) => {
+      if (board.id === activeBoardId) {
+        const newSlots = [...board.slots];
+        const key = dialogState.type as keyof Pick<
+          SoundSlot,
+          "emoji" | "title"
+        >;
+        newSlots[dialogState.slotIndex] = {
+          ...newSlots[dialogState.slotIndex],
+          [key]: dialogState.value,
+        };
+        return { ...board, slots: newSlots };
+      }
+      return board;
+    });
+    saveBoards(newBoards);
+    setDialogState((prev) => ({ ...prev, isOpen: false }));
   };
 
   useEffect(() => {
@@ -850,6 +873,45 @@ function App() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      {/* Dialog */}
+      <Dialog
+        open={dialogState.isOpen}
+        onOpenChange={(open) =>
+          setDialogState((prev) => ({ ...prev, isOpen: open }))
+        }
+      >
+        <DialogContent className="bg-system7-window-bg border-2 border-black rounded-lg shadow-[8px_8px_0px_0px_rgba(0,0,0,0.5)]">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold">
+              {dialogState.type === "emoji" ? "Set Emoji" : "Set Title"}
+            </DialogTitle>
+            <DialogDescription>
+              {dialogState.type === "emoji"
+                ? "Enter an emoji for this sound slot"
+                : "Enter a title for this sound slot"}
+            </DialogDescription>
+          </DialogHeader>
+          <Input
+            autoFocus
+            value={dialogState.value}
+            onChange={(e) =>
+              setDialogState((prev) => ({ ...prev, value: e.target.value }))
+            }
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                handleDialogSubmit();
+              }
+            }}
+            className="my-4"
+          />
+          <DialogFooter>
+            <Button variant="retro" onClick={handleDialogSubmit}>
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Main window */}
       <div
