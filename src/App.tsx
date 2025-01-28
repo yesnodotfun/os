@@ -571,7 +571,7 @@ function App() {
             <Button
               variant="ghost"
               size="default"
-              className="h-6 px-2 py-1 border-none hover:bg-gray-200 active:bg-gray-900 active:text-white "
+              className="h-6 px-2 py-1 border-none hover:bg-gray-200 active:bg-gray-900 active:text-white focus-visible:ring-0"
             >
               File
             </Button>
@@ -598,7 +598,7 @@ function App() {
             <Button
               variant="ghost"
               size="default"
-              className="h-6 px-2 py-1 focus-visible:ring-0 hover:bg-gray-200"
+              className="h-6 px-2 py-1 focus-visible:ring-0 hover:bg-gray-200 active:bg-gray-900 active:text-white "
             >
               Edit
             </Button>
@@ -621,7 +621,7 @@ function App() {
             <Button
               variant="ghost"
               size="default"
-              className="h-6 px-2 py-1 focus-visible:ring-0 hover:bg-gray-200"
+              className="h-6 px-2 py-1 focus-visible:ring-0 hover:bg-gray-200 active:bg-gray-900 active:text-white "
             >
               View
             </Button>
