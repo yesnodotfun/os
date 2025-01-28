@@ -11,6 +11,7 @@ import {
   saveSelectedDeviceId,
   loadHasSeenHelp,
   saveHasSeenHelp,
+  saveSoundboards,
 } from "@/utils/storage";
 import { EmojiDialog } from "@/components/dialogs/EmojiDialog";
 import { InputDialog } from "@/components/dialogs/InputDialog";
@@ -169,6 +170,7 @@ function App() {
         }));
         setBoards([...boards, ...newBoards]);
         setActiveBoardId(newBoards[0].id);
+        saveSoundboards(newBoards);
       } catch (err) {
         console.error("Failed to import soundboards:", err);
       }
@@ -215,6 +217,7 @@ function App() {
       }));
       setBoards(newBoards);
       setActiveBoardId(newBoards[0].id);
+      saveSoundboards(newBoards);
     } catch (err) {
       console.error("Failed to reload soundboards.json:", err);
     }
