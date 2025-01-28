@@ -59,17 +59,29 @@ export function MenuBar({
             File
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" sideOffset={1}>
-          <DropdownMenuItem onClick={onNewBoard}>
+        <DropdownMenuContent align="start" sideOffset={1} className="px-0">
+          <DropdownMenuItem
+            onClick={onNewBoard}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
             New Soundboard
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={onImportBoard}>
+          <DropdownMenuItem
+            onClick={onImportBoard}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
             Import Soundboard...
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={onExportBoard}>
+          <DropdownMenuItem
+            onClick={onExportBoard}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
             Export Soundboard...
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={onReloadBoard}>
+          <DropdownMenuItem
+            onClick={onReloadBoard}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
             Reload Soundboard
           </DropdownMenuItem>
         </DropdownMenuContent>
@@ -85,14 +97,21 @@ export function MenuBar({
             Edit
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" sideOffset={1}>
-          <DropdownMenuItem onClick={onRenameBoard}>
+        <DropdownMenuContent align="start" sideOffset={1} className="px-0">
+          <DropdownMenuItem
+            onClick={onRenameBoard}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
             Rename Soundboard
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={onDeleteBoard}
             disabled={!canDeleteBoard}
-            className={!canDeleteBoard ? "text-gray-400" : ""}
+            className={
+              !canDeleteBoard
+                ? "text-gray-400 text-md h-6 px-3"
+                : "text-md h-6 px-3 active:bg-gray-900 active:text-white"
+            }
           >
             Delete Soundboard
           </DropdownMenuItem>
@@ -109,9 +128,13 @@ export function MenuBar({
             View
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" sideOffset={1}>
-          <DropdownMenuItem>Show Waveforms</DropdownMenuItem>
-          <DropdownMenuItem>Show Emojis</DropdownMenuItem>
+        <DropdownMenuContent align="start" sideOffset={1} className="px-0">
+          <DropdownMenuItem className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
+            Show Waveforms
+          </DropdownMenuItem>
+          <DropdownMenuItem className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
+            Show Emojis
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -125,11 +148,19 @@ export function MenuBar({
             Help
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" sideOffset={1}>
-          <DropdownMenuItem onClick={onShowHelp}>
+        <DropdownMenuContent align="start" sideOffset={1} className="px-0">
+          <DropdownMenuItem
+            onClick={onShowHelp}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
             Getting Started
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={onShowAbout}>About</DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={onShowAbout}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            About
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 

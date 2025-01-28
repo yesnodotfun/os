@@ -5,6 +5,55 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+interface HelpCardProps {
+  icon: string;
+  title: string;
+  description: string;
+}
+
+function HelpCard({ icon, title, description }: HelpCardProps) {
+  return (
+    <div className="p-4 bg-black/5 rounded-lg transition-colors">
+      <div className="text-xl">{icon}</div>
+      <h3 className="font-medium">{title}</h3>
+      <p className="text-gray-500 leading-[1]">{description}</p>
+    </div>
+  );
+}
+
+const HELP_ITEMS: HelpCardProps[] = [
+  {
+    icon: "🎙️",
+    title: "Record",
+    description: "Click slot to record, click again to stop",
+  },
+  {
+    icon: "▶️",
+    title: "Play",
+    description: "Click or press numbers 1-9 to play",
+  },
+  {
+    icon: "✏️",
+    title: "Customize",
+    description: "Add emojis and name your sounds",
+  },
+  {
+    icon: "🎯",
+    title: "Organize",
+    description: "Make multiple soundboards",
+  },
+  {
+    icon: "🌎",
+    title: "Export and share",
+    description: "Import download from the web",
+  },
+  {
+    icon: "🖥️",
+    title: "Modern GUI",
+    description: "Mac OS 7 style desktop design",
+  },
+];
+
 interface HelpDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -13,51 +62,16 @@ interface HelpDialogProps {
 export function HelpDialog({ isOpen, onOpenChange }: HelpDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-system7-window-bg border-2 border-black rounded-lg shadow-[8px_8px_0px_0px_rgba(0,0,0,0.5)]">
+      <DialogContent className="bg-system7-window-bg border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)] max-w-[600px]">
         <DialogHeader>
-          <DialogTitle className="text-lg font-bold">
+          <DialogTitle className="text-xl mb-2 font-normal">
             Getting Started
           </DialogTitle>
         </DialogHeader>
-        <div className="space-y-4">
-          <p>Welcome to Soundboard.app! Here's how to use it:</p>
-          <ul className="space-y-2">
-            <li className="flex items-center gap-2">
-              <span>🎬</span>
-              <span>Click any empty slot to start recording a sound</span>
-            </li>
-            <li className="flex items-center gap-2">
-              <span>✂️</span>
-              <span>Click again to stop recording</span>
-            </li>
-            <li className="flex items-center gap-2">
-              <span>🚀</span>
-              <span>Click a recorded slot to play the sound</span>
-            </li>
-            <li className="flex items-center gap-2">
-              <span>⚡️</span>
-              <span>Press number keys 1-9 to quickly play sounds</span>
-            </li>
-            <li className="flex items-center gap-2">
-              <span>✨</span>
-              <span>
-                Add emojis and titles to your sounds by clicking the respective
-                icons
-              </span>
-            </li>
-            <li className="flex items-center gap-2">
-              <span>🎯</span>
-              <span>
-                Create multiple soundboards using the + button in the sidebar
-              </span>
-            </li>
-            <li className="flex items-center gap-2">
-              <span>🔄</span>
-              <span>
-                Import and export your soundboards using the File menu
-              </span>
-            </li>
-          </ul>
+        <div className="grid grid-cols-3 gap-4">
+          {HELP_ITEMS.map((item) => (
+            <HelpCard key={item.title} {...item} />
+          ))}
         </div>
       </DialogContent>
     </Dialog>

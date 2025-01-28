@@ -8,7 +8,7 @@ interface AboutDialogProps {
 export function AboutDialog({ isOpen, onOpenChange }: AboutDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-system7-window-bg border-2 border-black rounded-lg shadow-[8px_8px_0px_0px_rgba(0,0,0,0.5)] max-w-[400px]">
+      <DialogContent className="bg-system7-window-bg border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)] max-w-[280px]">
         <DialogHeader className="text-center"></DialogHeader>
         <div className="space-y-6 text-center py-4">
           <div>
