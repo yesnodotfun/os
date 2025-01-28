@@ -82,7 +82,7 @@ export function MenuBar({
             onClick={onReloadBoard}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            Reset all boards
+            Reset All Soundboards
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -102,7 +102,7 @@ export function MenuBar({
             onClick={onRenameBoard}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            Rename board
+            Rename Soundboard
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={onDeleteBoard}
@@ -113,7 +113,7 @@ export function MenuBar({
                 : "text-md h-6 px-3 active:bg-gray-900 active:text-white"
             }
           >
-            Delete board
+            Delete Soundboard
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
