@@ -43,6 +43,23 @@ interface Soundboard {
   slots: SoundSlot[];
 }
 
+function Clock() {
+  const [time, setTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div className="ml-auto mr-2 text-sm">
+      {time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+    </div>
+  );
+}
+
 function App() {
   const [boards, setBoards] = useState<Soundboard[]>(() => {
     const saved = localStorage.getItem("soundboards");
@@ -698,7 +715,7 @@ function App() {
 
   const [windowSize, setWindowSize] = useState(() => {
     const saved = localStorage.getItem("windowSize");
-    return saved ? JSON.parse(saved) : { width: 800, height: 500 };
+    return saved ? JSON.parse(saved) : { width: 800, height: 450 };
   });
   const [resizeType, setResizeType] = useState<
     "" | "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw"
@@ -894,6 +911,7 @@ function App() {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        <Clock />
       </div>
 
       {/* Help Dialog */}
@@ -1049,8 +1067,8 @@ function App() {
 
           {/* App content - Sidebar and main content */}
           <div className="flex flex-1 md:h-full h-auto flex-col md:flex-row">
-            <div className="w-full md:w-64 bg-gray-100 md:border-r border-b md:border-b-0 flex flex-col h-full">
-              <div className="p-4 flex flex-col">
+            <div className="w-full md:w-56 bg-gray-100 md:border-r border-b md:border-b-0 flex flex-col h-full">
+              <div className="py-3 px-4 flex flex-col">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-lg font-semibold">Soundboards</h2>
                   <Button variant="ghost" size="icon" onClick={addNewBoard}>
@@ -1103,11 +1121,11 @@ function App() {
             </div>
 
             <div className="flex-1 overflow-auto">
-              <div className="p-4 md:p-8">
+              <div className="py-2 px-4 md:p-8 md:py-4">
                 <div className="max-w-2xl mx-auto flex flex-col">
                   {isEditingTitle ? (
                     <Input
-                      className="text-3xl font-bold mb-8 text-left select-text"
+                      className="text-3xl font-bold mb-4 text-left select-text"
                       value={activeBoard.name}
                       autoFocus
                       onChange={(e) => {
@@ -1127,7 +1145,7 @@ function App() {
                     />
                   ) : (
                     <h1
-                      className="text-3xl font-bold mb-8 text-left cursor-pointer hover:opacity-80 select-text"
+                      className="text-3xl font-bold mb-4 text-left cursor-pointer hover:opacity-80 select-text"
                       onClick={() => setIsEditingTitle(true)}
                     >
                       {activeBoard.name}
