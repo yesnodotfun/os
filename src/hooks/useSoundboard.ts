@@ -150,5 +150,6 @@ export const useSoundboard = () => {
     stopSound,
     handleWaveformCreate,
     setBoards,
+    setPlaybackStates,
   };
 };

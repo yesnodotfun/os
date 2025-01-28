@@ -46,6 +46,7 @@ function App() {
     playSound,
     stopSound,
     setBoards,
+    setPlaybackStates,
   } = useSoundboard();
 
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -79,6 +80,16 @@ function App() {
   } = useAudioRecorder({
     onRecordingComplete: handleRecordingComplete,
     selectedDeviceId,
+    setRecordingState: (isRecording) => {
+      if (activeSlotRef.current !== null) {
+        const newPlaybackStates = [...playbackStates];
+        newPlaybackStates[activeSlotRef.current] = {
+          ...newPlaybackStates[activeSlotRef.current],
+          isRecording,
+        };
+        setPlaybackStates(newPlaybackStates);
+      }
+    },
   });
 
   const startRecording = (index: number) => {
@@ -93,8 +104,12 @@ function App() {
           (device) => device.kind === "audioinput"
         );
         setAudioDevices(audioInputs);
-        if (audioInputs.length > 0 && !selectedDeviceId) {
-          setSelectedDeviceId(audioInputs[0].deviceId);
+
+        const defaultDevice = audioInputs.find(
+          (d) => d.deviceId === "default" || d.deviceId === selectedDeviceId
+        );
+        if (defaultDevice) {
+          setSelectedDeviceId(defaultDevice.deviceId);
         }
       });
     }
@@ -106,16 +121,17 @@ function App() {
 
   const handleSlotClick = (index: number) => {
     const slot = activeBoard.slots[index];
-    if (slot.audioData) {
+
+    if (playbackStates[index].isRecording) {
+      stopRecording();
+    } else if (slot.audioData) {
       if (playbackStates[index].isPlaying) {
         stopSound(index);
       } else {
         playSound(index);
       }
-    } else if (!playbackStates[index].isRecording) {
-      startRecording(index);
     } else {
-      stopRecording();
+      startRecording(index);
     }
   };
 

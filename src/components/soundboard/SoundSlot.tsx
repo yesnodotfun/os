@@ -30,10 +30,10 @@ export function SoundSlot({
   return (
     <div className="flex flex-col gap-2 min-h-0">
       <Button
-        variant={
-          isRecording ? "destructive" : slot.audioData ? "retro" : "retro"
-        }
-        className="h-full w-full flex flex-col items-stretch justify-between relative p-2 md:p-4 group min-h-[4rem] md:min-h-[6rem]"
+        variant="retro"
+        className={`h-full w-full flex flex-col items-stretch justify-between relative p-2 md:p-4 group min-h-[4rem] md:min-h-[6rem] focus:ring-0 rounded-md ${
+          isRecording ? "bg-destructive animate-pulse " : ""
+        }`}
         onClick={onSlotClick}
       >
         {slot.audioData && (
