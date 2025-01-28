@@ -779,16 +779,6 @@ function App() {
                     }
                     className="h-full w-full flex flex-col items-stretch justify-between relative p-2 md:p-4 group min-h-[4rem] md:min-h-[6rem]"
                     onClick={(e) => {
-                      // Ignore if it's a touch event
-                      if (
-                        e.detail === 0 ||
-                        e.nativeEvent instanceof TouchEvent
-                      ) {
-                        return;
-                      }
-                      handleSlotClick(index);
-                    }}
-                    onTouchEnd={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
                       handleSlotClick(index);
