@@ -8,6 +8,13 @@
   font-style: normal;
 }
 
+@font-face {
+  font-family: "SerenityOS-Emoji";
+  src: url("/fonts/SerenityOS-Emoji.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -61,7 +68,8 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: "ChicagoKare", system-ui, -apple-system, sans-serif;
+    font-family: "ChicagoKare", "SerenityOS-Emoji", system-ui, -apple-system,
+      sans-serif;
     -webkit-font-smoothing: none;
     font-smooth: never;
     background-image: radial-gradient(#777 1px, transparent 0);
