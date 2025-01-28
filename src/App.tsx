@@ -916,7 +916,7 @@ function App() {
       {/* Main window */}
       <div
         ref={windowRef}
-        className="md:absolute md:min-w-[800px] md:min-h-[400px] w-full h-full min-h-full max-w-[100vw] max-w-[100vw] mt-6 select-none"
+        className="md:absolute md:min-w-[800px] md:min-h-[400px] p-2 w-full h-full min-h-[calc(100vh-100px)] max-w-[100vw] max-w-[100vw] mt-6 select-none"
         style={{
           left: windowPosition.x,
           top: windowPosition.y,
@@ -972,9 +972,9 @@ function App() {
             </span>
           </div>
 
-          {/* App content */}
+          {/* App content - Sidebar and main content */}
           <div className="flex flex-1 md:h-full h-auto flex-col md:flex-row">
-            <div className="w-full md:w-64 bg-gray-100 border-r flex flex-col h-full">
+            <div className="w-full md:w-64 bg-gray-100 md:border-r border-b md:border-b-0 flex flex-col h-full">
               <div className="p-4 flex flex-col">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-lg font-semibold">Soundboards</h2>
