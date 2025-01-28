@@ -8,6 +8,7 @@ import {
   DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
 import { useEffect, useState } from "react";
+import { AboutFinderDialog } from "@/components/dialogs/AboutFinderDialog";
 
 interface MenuBarProps {
   onNewBoard: () => void;
@@ -60,8 +61,11 @@ export function MenuBar({
   showEmojis,
   onToggleEmojis,
 }: MenuBarProps) {
+  const [aboutFinderOpen, setAboutFinderOpen] = useState(false);
+
   return (
     <div className="fixed top-0 left-0 right-0 flex bg-system7-menubar-bg border-b-[2px] border-black px-2 h-7 items-center z-50">
+      {/* Apple menu */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -74,10 +78,10 @@ export function MenuBar({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" sideOffset={1} className="px-0">
           <DropdownMenuItem
-            onClick={onShowAbout}
+            onClick={() => setAboutFinderOpen(true)}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            About the Finder...
+            About This Macintosh...
           </DropdownMenuItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           <DropdownMenuItem
@@ -89,6 +93,7 @@ export function MenuBar({
         </DropdownMenuContent>
       </DropdownMenu>
 
+      {/* App-specific menus - Soundboard */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -213,6 +218,11 @@ export function MenuBar({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      <AboutFinderDialog
+        isOpen={aboutFinderOpen}
+        onOpenChange={setAboutFinderOpen}
+      />
 
       <Clock />
     </div>
