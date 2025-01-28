@@ -27,6 +27,7 @@ export const Waveform = forwardRef<HTMLDivElement, WaveformProps>(
 
         container.innerHTML = "";
         const wavesurfer = await createWaveform(container, audioData);
+        wavesurfer.setMuted(true);
         waveformRef.current = wavesurfer;
         onWaveformCreate?.(wavesurfer);
       };
