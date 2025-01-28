@@ -1009,12 +1009,12 @@ function App() {
       {/* Main window */}
       <div
         ref={windowRef}
-        className="md:absolute md:min-w-[800px] md:min-h-[400px] p-2 md:p-0 w-full h-full min-h-[calc(100vh-100px)] max-w-[100vw] max-w-[100vw] mt-6 md:mt-0 select-none"
+        className="md:absolute md:min-w-[800px] md:min-h-[400px] p-2 md:p-0 w-full h-full max-w-[100vw] max-h-[100vh] mt-6 md:mt-0 select-none"
         style={{
           left: windowPosition.x,
           top: windowPosition.y,
-          width: windowSize.width,
-          height: windowSize.height,
+          width: window.innerWidth >= 768 ? windowSize.width : "100%",
+          height: window.innerWidth >= 768 ? windowSize.height : "auto",
           transition: isDragging || resizeType ? "none" : "all 0.2s ease",
         }}
       >
