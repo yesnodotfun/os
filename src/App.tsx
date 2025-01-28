@@ -536,7 +536,7 @@ function App() {
               <Button
                 key={board.id}
                 variant={board.id === activeBoardId ? "default" : "ghost"}
-                className="w-full justify-start"
+                className="w-full justify-start text-lg"
                 onClick={() => setActiveBoardId(board.id)}
               >
                 {board.name}
