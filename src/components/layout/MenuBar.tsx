@@ -30,7 +30,7 @@ function Clock() {
   }, []);
 
   return (
-    <div className="ml-auto mr-2 text-sm">
+    <div className="ml-auto mr-2">
       {time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
     </div>
   );
@@ -48,13 +48,13 @@ export function MenuBar({
   onShowAbout,
 }: MenuBarProps) {
   return (
-    <div className="fixed top-0 left-0 right-0 flex bg-system7-menubar-bg border-b-[2px] border-black px-2 h-7 items-center text-sm z-50">
+    <div className="fixed top-0 left-0 right-0 flex bg-system7-menubar-bg border-b-[2px] border-black px-2 h-7 items-center z-50">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
             size="default"
-            className="h-6 px-2 py-1 border-none hover:bg-gray-200 active:bg-gray-900 active:text-white focus-visible:ring-0"
+            className="h-6 text-md px-2 py-1 border-none hover:bg-gray-200 active:bg-gray-900 active:text-white focus-visible:ring-0"
           >
             File
           </Button>
@@ -80,7 +80,7 @@ export function MenuBar({
           <Button
             variant="ghost"
             size="default"
-            className="h-6 px-2 py-1 focus-visible:ring-0 hover:bg-gray-200 active:bg-gray-900 active:text-white"
+            className="h-6 px-2 py-1 text-md focus-visible:ring-0 hover:bg-gray-200 active:bg-gray-900 active:text-white"
           >
             Edit
           </Button>
@@ -104,7 +104,7 @@ export function MenuBar({
           <Button
             variant="ghost"
             size="default"
-            className="h-6 px-2 py-1 focus-visible:ring-0 hover:bg-gray-200 active:bg-gray-900 active:text-white"
+            className="h-6 px-2 py-1 text-md focus-visible:ring-0 hover:bg-gray-200 active:bg-gray-900 active:text-white"
           >
             View
           </Button>
@@ -120,7 +120,7 @@ export function MenuBar({
           <Button
             variant="ghost"
             size="default"
-            className="h-6 px-2 py-1 focus-visible:ring-0 hover:bg-gray-200 active:bg-gray-900 active:text-white"
+            className="h-6 px-2 py-1 text-md focus-visible:ring-0 hover:bg-gray-200 active:bg-gray-900 active:text-white"
           >
             Help
           </Button>

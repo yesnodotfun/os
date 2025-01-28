@@ -34,7 +34,7 @@ export function BoardList({
     <div className="w-full md:w-56 bg-gray-100 md:border-r border-b md:border-b-0 flex flex-col h-full">
       <div className="py-2 md:py-3 px-4 flex flex-col h-full">
         <div className="flex justify-between items-center md:mb-4">
-          <h2 className="text-lg font-semibold">Soundboards</h2>
+          <h2 className="text-lg">Soundboards</h2>
           <Button variant="ghost" size="icon" onClick={onNewBoard}>
             <Plus className="w-4 h-4" />
           </Button>

@@ -69,7 +69,7 @@ export function WindowFrame({ children, title }: WindowFrameProps) {
           className="flex items-center flex-none h-6 mx-0 my-[0.1rem] px-[0.1rem] py-[0.2rem] bg-[linear-gradient(#000_50%,transparent_0)] bg-clip-content bg-[length:6.6666666667%_13.3333333333%] cursor-move border-b-[2px] border-black"
           onMouseDown={handleMouseDown}
         >
-          <span className="font-bold text-sm select-none mx-auto bg-white px-2 py-0">
+          <span className="select-none mx-auto bg-white px-2 py-0 h-full flex items-center justify-center">
             {title}
           </span>
         </div>
