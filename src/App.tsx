@@ -126,7 +126,6 @@ function App() {
 
   useEffect(() => {
     const getDevices = async () => {
-      await navigator.mediaDevices.getUserMedia({ audio: true }); // Request permission
       const devices = await navigator.mediaDevices.enumerateDevices();
       const audioInputs = devices.filter(
         (device) => device.kind === "audioinput"
@@ -138,8 +137,6 @@ function App() {
     };
 
     getDevices();
-
-    // Listen for device changes
     navigator.mediaDevices.addEventListener("devicechange", getDevices);
     return () =>
       navigator.mediaDevices.removeEventListener("devicechange", getDevices);
@@ -264,6 +261,14 @@ function App() {
           deviceId: selectedDeviceId ? { exact: selectedDeviceId } : undefined,
         },
       });
+
+      // After getting permission, refresh device list to show proper device names
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const audioInputs = devices.filter(
+        (device) => device.kind === "audioinput"
+      );
+      setAudioDevices(audioInputs);
+
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType: "audio/webm;codecs=opus",
       });
