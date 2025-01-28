@@ -1151,7 +1151,7 @@ function App() {
                       {activeBoard.name}
                     </h1>
                   )}
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-4 flex-1">
+                  <div className="grid grid-cols-3 gap-2 md:gap-4 flex-1">
                     {activeBoard.slots.map((slot, index) => (
                       <div key={index} className="flex flex-col gap-2 min-h-0">
                         <Button
