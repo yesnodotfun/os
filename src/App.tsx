@@ -779,6 +779,10 @@ function App() {
                     }
                     className="h-full w-full flex flex-col items-stretch justify-between relative p-2 md:p-4 group min-h-[4rem] md:min-h-[6rem]"
                     onClick={() => handleSlotClick(index)}
+                    onTouchStart={(e) => {
+                      e.preventDefault();
+                      handleSlotClick(index);
+                    }}
                   >
                     {slot.audioData && (
                       <>
