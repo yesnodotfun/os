@@ -1,50 +1,58 @@
-# React + TypeScript + Vite
+# Soundboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern soundboard application built with React, Vite, and TailwindCSS. Features a sleek UI powered by shadcn components and WaveSurfer.js for audio visualization.
 
-Currently, two official plugins are available:
+## Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- React 18.3 with TypeScript
+- Vite 6.0 for blazing fast development
+- TailwindCSS 4.0 for styling
+- shadcn/ui components
+- WaveSurfer.js for audio waveform visualization
+- Bun as package manager
 
-## Expanding the ESLint configuration
+## Getting Started
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+```bash
+# Install dependencies
+bun install
 
-- Configure the top-level `parserOptions` property like this:
+# Start development server
+bun dev
 
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+# Build for production
+bun run build
 ```
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
+## Features
 
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
+- Modern UI with Chicago Kare font
+- Audio visualization
+- Customizable sound buttons
+- Responsive design
 
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
+## Development
+
+The project uses:
+- TypeScript for type safety
+- ESLint for code quality
+- Tailwind for utility-first CSS
+- Radix UI primitives via shadcn/ui
+
+## Project Structure
+
 ```
+soundboard/
+├── src/
+│   ├── components/    # React components
+│   └── App.tsx       # Main application
+├── public/           # Static assets
+└── ...config files
+```
+
+## Scripts
+
+- `bun dev` - Start development server
+- `bun run build` - Build for production
+- `bun run lint` - Run ESLint
+- `bun run preview` - Preview production build
