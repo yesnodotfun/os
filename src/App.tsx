@@ -916,7 +916,7 @@ function App() {
       {/* Main window */}
       <div
         ref={windowRef}
-        className="md:absolute md:min-w-[800px] md:min-h-[400px] p-2 w-full h-full min-h-[calc(100vh-100px)] max-w-[100vw] max-w-[100vw] mt-6 select-none"
+        className="md:absolute md:min-w-[800px] md:min-h-[400px] p-2 md:p-0 w-full h-full min-h-[calc(100vh-100px)] max-w-[100vw] max-w-[100vw] mt-6 md:mt-0 select-none"
         style={{
           left: windowPosition.x,
           top: windowPosition.y,
