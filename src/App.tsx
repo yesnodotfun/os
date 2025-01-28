@@ -584,44 +584,79 @@ function App() {
           </DialogHeader>
           <div className="space-y-4">
             <p>Welcome to Soundboard.app! Here's how to use it:</p>
-            <ul className="list-disc pl-6 space-y-2">
-              <li>Click any empty slot to start recording a sound</li>
-              <li>Click again to stop recording</li>
-              <li>Click a recorded slot to play the sound</li>
-              <li>Press number keys 1-9 to quickly play sounds</li>
-              <li>
-                Add emojis and titles to your sounds by clicking the respective
-                icons
+            <ul className="space-y-2">
+              <li className="flex items-center gap-2">
+                <span>🎬</span>
+                <span>Click any empty slot to start recording a sound</span>
               </li>
-              <li>
-                Create multiple soundboards using the + button in the sidebar
+              <li className="flex items-center gap-2">
+                <span>✂️</span>
+                <span>Click again to stop recording</span>
               </li>
-              <li>Import and export your soundboards using the File menu</li>
+              <li className="flex items-center gap-2">
+                <span>🚀</span>
+                <span>Click a recorded slot to play the sound</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <span>⚡️</span>
+                <span>Press number keys 1-9 to quickly play sounds</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <span>✨</span>
+                <span>
+                  Add emojis and titles to your sounds by clicking the
+                  respective icons
+                </span>
+              </li>
+              <li className="flex items-center gap-2">
+                <span>🎯</span>
+                <span>
+                  Create multiple soundboards using the + button in the sidebar
+                </span>
+              </li>
+              <li className="flex items-center gap-2">
+                <span>🔄</span>
+                <span>
+                  Import and export your soundboards using the File menu
+                </span>
+              </li>
             </ul>
           </div>
         </DialogContent>
       </Dialog>
 
       <Dialog open={aboutDialogOpen} onOpenChange={setAboutDialogOpen}>
-        <DialogContent className="bg-system7-window-bg border-2 border-black rounded-lg shadow-[8px_8px_0px_0px_rgba(0,0,0,0.5)]">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold">
-              About Soundboard.app
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <p>Version 0.10</p>
-            <p>
-              Created by{" "}
-              <a
-                href="https://ryo.lu"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 hover:underline"
-              >
-                Ryo Lu
-              </a>
-            </p>
+        <DialogContent className="bg-system7-window-bg border-2 border-black rounded-lg shadow-[8px_8px_0px_0px_rgba(0,0,0,0.5)] max-w-[400px]">
+          <DialogHeader className="text-center"></DialogHeader>
+          <div className="space-y-6 text-center py-4">
+            <div>
+              <span className="text-8xl font-sans">💿</span>
+            </div>
+            <div className="space-y-0">
+              <div className="text-lg font-medium">Soundboard.app</div>
+              <p className="text-gray-500">Version 0.10</p>
+              <p>
+                Made by{" "}
+                <a
+                  href="https://ryo.lu"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-500 hover:underline"
+                >
+                  Ryo Lu
+                </a>
+              </p>
+              <p>
+                <a
+                  href="https://github.com/ryokun6/soundboard"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-500 hover:underline"
+                >
+                  Open in GitHub
+                </a>
+              </p>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
