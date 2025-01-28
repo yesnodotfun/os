@@ -33,19 +33,19 @@ const HELP_ITEMS: HelpCardProps[] = [
     description: "Add emojis and name your sounds",
   },
   {
-    icon: "🎯",
+    icon: "📂",
     title: "Organize",
     description: "Make multiple soundboards",
   },
   {
     icon: "🌎",
-    title: "Export and share",
-    description: "Import download from the web",
+    title: "Export & share",
+    description: "Or import from file downloaded",
   },
   {
     icon: "🖥️",
     title: "Modern GUI",
-    description: "Mac OS 7 style desktop design",
+    description: "System 7 style aesthetics",
   },
 ];
 
@@ -61,7 +61,7 @@ export function HelpDialog({ isOpen, onOpenChange }: HelpDialogProps) {
         <DialogHeader>Help</DialogHeader>
         <div className="p-6 pt-2">
           <p className="text-lg mb-4">Welcome to Soundboard.app</p>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {HELP_ITEMS.map((item) => (
               <HelpCard key={item.title} {...item} />
             ))}

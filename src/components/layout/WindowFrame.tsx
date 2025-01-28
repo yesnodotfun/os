@@ -22,7 +22,7 @@ export function WindowFrame({ children, title, onClose }: WindowFrameProps) {
       className="md:absolute md:min-w-[800px] md:min-h-[400px] p-2 md:p-0 w-full h-full max-w-[100vw] max-h-[100vh] mt-6 md:mt-0 select-none"
       style={{
         left: windowPosition.x,
-        top: windowPosition.y,
+        top: Math.max(30, windowPosition.y),
         width: window.innerWidth >= 768 ? windowSize.width : "100%",
         height: window.innerWidth >= 768 ? windowSize.height : "auto",
         transition: isDragging || resizeType ? "none" : "all 0.2s ease",
@@ -73,6 +73,7 @@ export function WindowFrame({ children, title, onClose }: WindowFrameProps) {
           <span className="select-none mx-auto bg-white px-2 py-0 h-full flex items-center justify-center">
             {title}
           </span>
+          <div className="mr-2 w-4 h-4" />
         </div>
 
         {/* Content */}
