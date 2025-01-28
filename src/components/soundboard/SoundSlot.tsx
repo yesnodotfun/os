@@ -82,7 +82,7 @@ export function SoundSlot({
                 onEmojiClick();
               }}
             >
-              🎙️
+              {slot.audioData ? "💿" : "🎙️"}
             </span>
           )}
           <span
