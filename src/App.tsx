@@ -673,10 +673,117 @@ function App() {
     };
   }, [isDragging, dragOffset, windowPosition]);
 
+  const [windowSize, setWindowSize] = useState(() => {
+    const saved = localStorage.getItem("windowSize");
+    return saved ? JSON.parse(saved) : { width: 800, height: 600 };
+  });
+  const [resizeType, setResizeType] = useState<
+    "" | "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw"
+  >("");
+  const [resizeStart, setResizeStart] = useState({
+    x: 0,
+    y: 0,
+    width: 0,
+    height: 0,
+    left: 0,
+    top: 0,
+  });
+
+  const handleResizeStart = (e: React.MouseEvent, type: typeof resizeType) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (windowRef.current) {
+      const rect = windowRef.current.getBoundingClientRect();
+      setResizeStart({
+        x: e.clientX,
+        y: e.clientY,
+        width: rect.width,
+        height: rect.height,
+        left: windowPosition.x,
+        top: windowPosition.y,
+      });
+      setResizeType(type);
+    }
+  };
+
+  useEffect(() => {
+    const handleResize = (e: MouseEvent) => {
+      if (resizeType && windowRef.current) {
+        e.preventDefault();
+        const deltaX = e.clientX - resizeStart.x;
+        const deltaY = e.clientY - resizeStart.y;
+        const minWidth = 400;
+        const minHeight = 300;
+        const maxWidth = window.innerWidth - 32;
+        const maxHeight = window.innerHeight - 32;
+
+        let newWidth = resizeStart.width;
+        let newHeight = resizeStart.height;
+        let newLeft = resizeStart.left;
+        let newTop = resizeStart.top;
+
+        // Handle horizontal resize
+        if (resizeType.includes("e")) {
+          newWidth = Math.min(
+            Math.max(resizeStart.width + deltaX, minWidth),
+            maxWidth
+          );
+        } else if (resizeType.includes("w")) {
+          const potentialWidth = Math.min(
+            Math.max(resizeStart.width - deltaX, minWidth),
+            maxWidth
+          );
+          if (potentialWidth !== resizeStart.width) {
+            newLeft = resizeStart.left + (resizeStart.width - potentialWidth);
+            newWidth = potentialWidth;
+          }
+        }
+
+        // Handle vertical resize
+        if (resizeType.includes("s")) {
+          newHeight = Math.min(
+            Math.max(resizeStart.height + deltaY, minHeight),
+            maxHeight
+          );
+        } else if (resizeType.includes("n")) {
+          const potentialHeight = Math.min(
+            Math.max(resizeStart.height - deltaY, minHeight),
+            maxHeight
+          );
+          if (potentialHeight !== resizeStart.height) {
+            newTop = resizeStart.top + (resizeStart.height - potentialHeight);
+            newHeight = potentialHeight;
+          }
+        }
+
+        setWindowSize({ width: newWidth, height: newHeight });
+        setWindowPosition({ x: newLeft, y: newTop });
+      }
+    };
+
+    const handleResizeEnd = () => {
+      if (resizeType) {
+        setResizeType("");
+        localStorage.setItem("windowSize", JSON.stringify(windowSize));
+        localStorage.setItem("windowPosition", JSON.stringify(windowPosition));
+      }
+    };
+
+    if (resizeType) {
+      document.addEventListener("mousemove", handleResize);
+      document.addEventListener("mouseup", handleResizeEnd);
+    }
+
+    return () => {
+      document.removeEventListener("mousemove", handleResize);
+      document.removeEventListener("mouseup", handleResizeEnd);
+    };
+  }, [resizeType, resizeStart, windowSize]);
+
   return (
     <div className="min-h-screen bg-[#666699]">
       {/* Global menubar */}
-      <div className="fixed top-0 left-0 right-0 flex bg-system7-menubar-bg border-b-[3px] border-black px-2 h-7 items-center text-sm z-50">
+      <div className="fixed top-0 left-0 right-0 flex bg-system7-menubar-bg border-b-[2px] border-black px-2 h-7 items-center text-sm z-50">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -751,12 +858,48 @@ function App() {
         style={{
           left: windowPosition.x,
           top: windowPosition.y,
-          width: "calc(100% - 2rem)",
-          maxWidth: "72rem",
-          transition: isDragging ? "none" : "all 0.2s ease",
+          width: windowSize.width,
+          height: windowSize.height,
+          transition: isDragging || resizeType ? "none" : "all 0.2s ease",
         }}
       >
-        <div className="bg-system7-window-bg border-[3px] border-black rounded-lg shadow-[8px_8px_0px_0px_rgba(0,0,0,0.5)] overflow-hidden">
+        <div className="relative h-full bg-system7-window-bg border-[2px] border-black rounded-lg shadow-[8px_8px_0px_0px_rgba(0,0,0,0.5)] overflow-hidden">
+          {/* Resize handles */}
+          <div className="absolute inset-0 pointer-events-none">
+            <div
+              className="absolute top-0 left-0 right-0 h-2 cursor-n-resize pointer-events-auto"
+              onMouseDown={(e) => handleResizeStart(e, "n")}
+            />
+            <div
+              className="absolute bottom-0 left-0 right-0 h-2 cursor-s-resize pointer-events-auto"
+              onMouseDown={(e) => handleResizeStart(e, "s")}
+            />
+            <div
+              className="absolute left-0 top-0 bottom-0 w-2 cursor-w-resize pointer-events-auto"
+              onMouseDown={(e) => handleResizeStart(e, "w")}
+            />
+            <div
+              className="absolute right-0 top-0 bottom-0 w-2 cursor-e-resize pointer-events-auto"
+              onMouseDown={(e) => handleResizeStart(e, "e")}
+            />
+            <div
+              className="absolute top-0 left-0 w-4 h-4 cursor-nw-resize pointer-events-auto"
+              onMouseDown={(e) => handleResizeStart(e, "nw")}
+            />
+            <div
+              className="absolute top-0 right-0 w-4 h-4 cursor-ne-resize pointer-events-auto"
+              onMouseDown={(e) => handleResizeStart(e, "ne")}
+            />
+            <div
+              className="absolute bottom-0 left-0 w-4 h-4 cursor-sw-resize pointer-events-auto"
+              onMouseDown={(e) => handleResizeStart(e, "sw")}
+            />
+            <div
+              className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize pointer-events-auto"
+              onMouseDown={(e) => handleResizeStart(e, "se")}
+            />
+          </div>
+
           {/* Title bar */}
           <div
             className="flex items-center flex-none h-6 mx-0 my-[0.1rem] px-[0.1rem] py-[0.2rem] bg-[linear-gradient(#000_50%,transparent_0)] bg-clip-content bg-[length:6.6666666667%_13.3333333333%] cursor-move border-b-[2px] border-black"
@@ -768,16 +911,16 @@ function App() {
           </div>
 
           {/* App content */}
-          <div className="flex flex-col h-[calc(100vh-11rem)]">
-            <div className="flex flex-1 flex-col md:flex-row">
-              <div className="w-full md:w-64 bg-gray-100 p-4 border-b md:border-r flex flex-col">
+          <div className="flex flex-1 h-[calc(100%-2rem)]">
+            <div className="w-full md:w-64 bg-gray-100 border-r flex flex-col">
+              <div className="p-4 flex flex-col h-full">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-lg font-semibold">Soundboards</h2>
                   <Button variant="ghost" size="icon" onClick={addNewBoard}>
                     <Plus className="w-4 h-4" />
                   </Button>
                 </div>
-                <div className="space-y-2 flex-1">
+                <div className="flex-1 overflow-auto space-y-2">
                   {boards.map((board) => (
                     <Button
                       key={board.id}
@@ -790,25 +933,27 @@ function App() {
                   ))}
                 </div>
                 {micPermissionGranted && (
-                  <Select
-                    value={selectedDeviceId}
-                    onValueChange={setSelectedDeviceId}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select microphone" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {audioDevices.map((device) => (
-                        <SelectItem
-                          key={device.deviceId}
-                          value={device.deviceId}
-                        >
-                          {device.label ||
-                            `Microphone ${device.deviceId.slice(0, 4)}...`}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="mt-4">
+                    <Select
+                      value={selectedDeviceId}
+                      onValueChange={setSelectedDeviceId}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select microphone" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {audioDevices.map((device) => (
+                          <SelectItem
+                            key={device.deviceId}
+                            value={device.deviceId}
+                          >
+                            {device.label ||
+                              `Microphone ${device.deviceId.slice(0, 4)}...`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 )}
                 <input
                   type="file"
@@ -818,9 +963,11 @@ function App() {
                   onChange={importBoard}
                 />
               </div>
+            </div>
 
-              <div className="flex-1 p-4 md:p-8">
-                <div className="max-w-2xl mx-auto h-full flex flex-col">
+            <div className="flex-1 overflow-auto">
+              <div className="p-4 md:p-8">
+                <div className="max-w-2xl mx-auto flex flex-col">
                   {isEditingTitle ? (
                     <Input
                       className="text-3xl font-bold mb-8 text-left"
