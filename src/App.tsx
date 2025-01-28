@@ -21,6 +21,7 @@ interface SoundSlot {
   audioData: string | null;
   waveform?: WaveSurfer;
   emoji?: string;
+  title?: string;
 }
 
 interface PlaybackState {
@@ -41,13 +42,14 @@ function App() {
       const parsed = JSON.parse(saved) as {
         id: string;
         name: string;
-        slots: { audioData: string | null; emoji?: string }[];
+        slots: { audioData: string | null; emoji?: string; title?: string }[];
       }[];
       return parsed.map((board) => ({
         ...board,
         slots: board.slots.map((slot) => ({
           audioData: slot.audioData,
           emoji: slot.emoji,
+          title: slot.title,
         })),
       }));
     }
@@ -56,7 +58,8 @@ function App() {
       name: "New Soundboard",
       slots: Array(9).fill({
         audioData: null,
-        emoji: null,
+        emoji: undefined,
+        title: undefined,
       }),
     };
     return [defaultBoard];
@@ -115,6 +118,7 @@ function App() {
       slots: board.slots.map((slot) => ({
         audioData: slot.audioData,
         emoji: slot.emoji,
+        title: slot.title,
       })),
     }));
     localStorage.setItem("soundboards", JSON.stringify(boardsForStorage));
@@ -141,7 +145,8 @@ function App() {
       name: "New Soundboard",
       slots: Array(9).fill({
         audioData: null,
-        emoji: null,
+        emoji: undefined,
+        title: undefined,
       }),
     };
     saveBoards([...boards, newBoard]);
@@ -179,6 +184,7 @@ function App() {
         newSlots[slotIndex] = {
           audioData: base64,
           emoji: board.slots[slotIndex].emoji,
+          title: board.slots[slotIndex].title,
         };
         return { ...board, slots: newSlots };
       }
@@ -319,12 +325,12 @@ function App() {
 
   const exportBoard = () => {
     const board = boards.find((b) => b.id === activeBoardId);
-    // Create a clean copy without waveform instances
     const exportData = {
       ...board,
       slots: board?.slots.map((slot) => ({
         audioData: slot.audioData,
         emoji: slot.emoji,
+        title: slot.title,
       })),
     };
 
@@ -346,8 +352,18 @@ function App() {
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const board = JSON.parse(e.target?.result as string) as Soundboard;
-        board.id = Date.now().toString(); // Ensure unique ID
+        const importedBoard = JSON.parse(
+          e.target?.result as string
+        ) as Soundboard;
+        const board = {
+          ...importedBoard,
+          id: Date.now().toString(),
+          slots: importedBoard.slots.map((slot) => ({
+            audioData: slot.audioData,
+            emoji: slot.emoji,
+            title: slot.title,
+          })),
+        };
         saveBoards([...boards, board]);
         setActiveBoardId(board.id);
       } catch (err) {
@@ -423,13 +439,14 @@ function App() {
   };
 
   const handleDelete = (index: number, e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent triggering the button click
+    e.stopPropagation();
     const newBoards = boards.map((board) => {
       if (board.id === activeBoardId) {
         const newSlots = [...board.slots];
         newSlots[index] = {
           audioData: null,
           emoji: undefined,
+          title: undefined,
         };
         return { ...board, slots: newSlots };
       }
@@ -456,6 +473,55 @@ function App() {
       saveBoards(newBoards);
     }
   };
+
+  const handleTitleClick = (index: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const slot = activeBoard.slots[index];
+    const title = prompt("Enter a title:", slot.title || "");
+    if (title !== null) {
+      const newBoards = boards.map((board) => {
+        if (board.id === activeBoardId) {
+          const newSlots = [...board.slots];
+          newSlots[index] = {
+            ...newSlots[index],
+            title,
+          };
+          return { ...board, slots: newSlots };
+        }
+        return board;
+      });
+      saveBoards(newBoards);
+    }
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Handle both numpad (97-105) and regular number keys (49-57)
+      const index =
+        e.keyCode >= 97
+          ? e.keyCode - 97 // Numpad 1-9
+          : e.keyCode - 49; // Regular 1-9
+
+      if (
+        (e.keyCode >= 97 && e.keyCode <= 105) ||
+        (e.keyCode >= 49 && e.keyCode <= 57)
+      ) {
+        const slot = activeBoard.slots[index];
+        if (slot.audioData) {
+          if (playbackStates[index].isPlaying) {
+            stopSound(index);
+          } else {
+            playSound(slot.audioData, index);
+          }
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [activeBoard.slots, playbackStates]);
 
   return (
     <div className="flex flex-col h-screen">
@@ -566,7 +632,7 @@ function App() {
         </div>
 
         <div className="flex-1 p-8">
-          <div className="max-w-2xl mx-auto">
+          <div className="max-w-2xl mx-auto h-full flex flex-col">
             {isEditingTitle ? (
               <Input
                 className="text-3xl font-bold mb-8 text-left"
@@ -595,9 +661,9 @@ function App() {
                 {activeBoard.name}
               </h1>
             )}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-4 flex-1">
               {activeBoard.slots.map((slot, index) => (
-                <div key={index} className="flex flex-col gap-2">
+                <div key={index} className="flex flex-col gap-2 min-h-0">
                   <Button
                     variant={
                       playbackStates[index].isRecording
@@ -606,7 +672,7 @@ function App() {
                         ? "retro"
                         : "retro"
                     }
-                    className="h-24 w-full flex flex-col items-stretch justify-between relative p-4 group"
+                    className="h-full w-full flex flex-col items-stretch justify-between relative p-4 group min-h-[6rem]"
                     onClick={() => handleSlotClick(index)}
                   >
                     {slot.audioData && (
@@ -619,32 +685,49 @@ function App() {
                           <Button
                             size="icon"
                             variant="ghost"
-                            className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6"
-                            onClick={(e) => handleEmojiClick(index, e)}
-                          >
-                            <SmilePlus className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 hover:bg-white/50"
                             onClick={(e) => handleDelete(index, e)}
                           >
                             <X className="w-4 h-4" />
                           </Button>
                         </div>
+                        <div
+                          className={`absolute bottom-1 left-2 flex items-center gap-2 z-10 transition-all duration-300 ease-in-out transform origin-left ${
+                            playbackStates[index].isPlaying
+                              ? "opacity-100 scale-100"
+                              : "opacity-60 scale-80"
+                          }`}
+                        >
+                          {slot.emoji ? (
+                            <span
+                              className="text-2xl cursor-pointer hover:opacity-80"
+                              onClick={(e) => handleEmojiClick(index, e)}
+                            >
+                              {slot.emoji}
+                            </span>
+                          ) : (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 hover:bg-white/50"
+                              onClick={(e) => handleEmojiClick(index, e)}
+                            >
+                              <SmilePlus className="w-4 h-4" />
+                            </Button>
+                          )}
+                          <span
+                            className="text-lg font-medium truncate max-w-[120px] cursor-text hover:bg-white/20 px-1 rounded"
+                            onClick={(e) => handleTitleClick(index, e)}
+                            title={slot.title ? "Edit title" : "Add title"}
+                          >
+                            {slot.title || (
+                              <span className="opacity-0 group-hover:opacity-60">
+                                Add title...
+                              </span>
+                            )}
+                          </span>
+                        </div>
                       </>
-                    )}
-                    {slot.emoji && (
-                      <div
-                        className={`absolute bottom-1 left-2 flex items-center gap-2 z-10 transition-all duration-300 ease-in-out ${
-                          playbackStates[index].isPlaying
-                            ? "opacity-100 scale-100"
-                            : "opacity-60 scale-80"
-                        }`}
-                      >
-                        <span className="text-2xl">{slot.emoji}</span>
-                      </div>
                     )}
                   </Button>
                 </div>
