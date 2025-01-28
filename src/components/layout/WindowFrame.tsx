@@ -4,9 +4,10 @@ import { ResizeType } from "@/types/types";
 interface WindowFrameProps {
   children: React.ReactNode;
   title: string;
+  onClose?: () => void;
 }
 
-export function WindowFrame({ children, title }: WindowFrameProps) {
+export function WindowFrame({ children, title, onClose }: WindowFrameProps) {
   const {
     windowPosition,
     windowSize,
@@ -47,10 +48,6 @@ export function WindowFrame({ children, title }: WindowFrameProps) {
             onMouseDown={(e) => handleResizeStart(e, "e" as ResizeType)}
           />
           <div
-            className="absolute top-0 left-0 w-4 h-4 cursor-nw-resize pointer-events-auto"
-            onMouseDown={(e) => handleResizeStart(e, "nw" as ResizeType)}
-          />
-          <div
             className="absolute top-0 right-0 w-4 h-4 cursor-ne-resize pointer-events-auto"
             onMouseDown={(e) => handleResizeStart(e, "ne" as ResizeType)}
           />
@@ -69,6 +66,10 @@ export function WindowFrame({ children, title }: WindowFrameProps) {
           className="flex items-center flex-none h-6 mx-0 my-[0.1rem] px-[0.1rem] py-[0.2rem] bg-[linear-gradient(#000_50%,transparent_0)] bg-clip-content bg-[length:6.6666666667%_13.3333333333%] cursor-move border-b-[2px] border-black"
           onMouseDown={handleMouseDown}
         >
+          <button
+            onClick={onClose}
+            className="ml-2 w-4 h-4 bg-white border-2 border-black hover:bg-gray-200 active:bg-gray-300 flex items-center justify-center shadow-[0_0_0_1px_white]"
+          />
           <span className="select-none mx-auto bg-white px-2 py-0 h-full flex items-center justify-center">
             {title}
           </span>

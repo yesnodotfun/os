@@ -1,9 +1,4 @@
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
 
 interface HelpCardProps {
   icon: string;
@@ -63,15 +58,14 @@ export function HelpDialog({ isOpen, onOpenChange }: HelpDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="bg-system7-window-bg border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)] max-w-[600px]">
-        <DialogHeader>
-          <DialogTitle className="text-xl mb-2 font-normal">
-            Welcome to Soundboard.app
-          </DialogTitle>
-        </DialogHeader>
-        <div className="grid grid-cols-3 gap-4">
-          {HELP_ITEMS.map((item) => (
-            <HelpCard key={item.title} {...item} />
-          ))}
+        <DialogHeader>Help</DialogHeader>
+        <div className="p-6 pt-2">
+          <p className="text-lg mb-4">Welcome to Soundboard.app</p>
+          <div className="grid grid-cols-3 gap-4">
+            {HELP_ITEMS.map((item) => (
+              <HelpCard key={item.title} {...item} />
+            ))}
+          </div>
         </div>
       </DialogContent>
     </Dialog>

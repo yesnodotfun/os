@@ -1,10 +1,4 @@
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
 
 interface EmojiDialogProps {
   isOpen: boolean;
@@ -232,25 +226,25 @@ export function EmojiDialog({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="bg-system7-window-bg border-2 border-black rounded-lg shadow-[8px_8px_0px_0px_rgba(0,0,0,0.5)]">
-        <DialogHeader>
-          <DialogTitle className="text-lg font-bold">Set Emoji</DialogTitle>
-          <DialogDescription>
+        <DialogHeader>Set Emoji</DialogHeader>
+        <div className="p-6">
+          <p className="text-sm text-gray-500 mb-4">
             Choose an emoji for this sound slot
-          </DialogDescription>
-        </DialogHeader>
-        <div className="grid grid-cols-10 gap-1 my-4 max-h-[300px] overflow-y-auto">
-          {EMOJIS.map((emoji, i) => (
-            <button
-              key={i}
-              className="p-1 text-2xl hover:bg-white/20 rounded cursor-pointer font-['SerenityOS-Emoji']"
-              onClick={() => {
-                onEmojiSelect(emoji);
-                onOpenChange(false);
-              }}
-            >
-              {emoji}
-            </button>
-          ))}
+          </p>
+          <div className="grid grid-cols-10 gap-1 max-h-[300px] overflow-y-auto">
+            {EMOJIS.map((emoji, i) => (
+              <button
+                key={i}
+                className="p-1 text-2xl hover:bg-white/20 rounded cursor-pointer font-['SerenityOS-Emoji']"
+                onClick={() => {
+                  onEmojiSelect(emoji);
+                  onOpenChange(false);
+                }}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
         </div>
       </DialogContent>
     </Dialog>

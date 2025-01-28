@@ -49,7 +49,7 @@ export function SoundGrid({
             />
           ) : (
             <h1
-              className="text-3xl font-bold mb-4 text-left cursor-pointer hover:opacity-80 select-text"
+              className="text-3xl font-bold mb-4 text-left cursor-text hover:opacity-80 select-text"
               onClick={() => setIsEditingTitle(true)}
             >
               {board.name}
