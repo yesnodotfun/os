@@ -17,6 +17,8 @@ interface SoundGridProps {
   onSlotTitleClick: (index: number) => void;
   onWaveformCreate?: (index: number, waveform: WaveSurfer) => void;
   setIsEditingTitle: (isEditing: boolean) => void;
+  showWaveforms: boolean;
+  showEmojis: boolean;
 }
 
 export function SoundGrid({
@@ -33,6 +35,8 @@ export function SoundGrid({
   onSlotTitleClick,
   onWaveformCreate,
   setIsEditingTitle,
+  showWaveforms,
+  showEmojis,
 }: SoundGridProps) {
   return (
     <div className="flex-1 overflow-auto">
@@ -72,6 +76,8 @@ export function SoundGrid({
                     ? (waveform) => onWaveformCreate(index, waveform)
                     : undefined
                 }
+                showWaveform={showWaveforms}
+                showEmoji={showEmojis}
               />
             ))}
           </div>

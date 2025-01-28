@@ -66,6 +66,8 @@ function App() {
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
   const importInputRef = useRef<HTMLInputElement>(null);
   const [isWindowOpen, setIsWindowOpen] = useState(true);
+  const [showWaveforms, setShowWaveforms] = useState(true);
+  const [showEmojis, setShowEmojis] = useState(true);
 
   const handleRecordingComplete = (base64Data: string) => {
     const activeSlot = activeSlotRef.current;
@@ -265,6 +267,12 @@ function App() {
         canDeleteBoard={boards.length > 1}
         onShowHelp={() => setHelpDialogOpen(true)}
         onShowAbout={() => setAboutDialogOpen(true)}
+        isWindowOpen={isWindowOpen}
+        onToggleWindow={() => setIsWindowOpen((prev) => !prev)}
+        showWaveforms={showWaveforms}
+        onToggleWaveforms={setShowWaveforms}
+        showEmojis={showEmojis}
+        onToggleEmojis={setShowEmojis}
       />
 
       <input
@@ -333,6 +341,8 @@ function App() {
               })
             }
             setIsEditingTitle={setIsEditingTitle}
+            showWaveforms={showWaveforms}
+            showEmojis={showEmojis}
           />
         </WindowFrame>
 

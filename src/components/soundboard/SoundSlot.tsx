@@ -14,6 +14,8 @@ interface SoundSlotProps {
   onEmojiClick: () => void;
   onTitleClick: () => void;
   onWaveformCreate?: (waveform: WaveSurfer) => void;
+  showWaveform: boolean;
+  showEmoji: boolean;
 }
 
 export function SoundSlot({
@@ -26,6 +28,8 @@ export function SoundSlot({
   onEmojiClick,
   onTitleClick,
   onWaveformCreate,
+  showWaveform,
+  showEmoji,
 }: SoundSlotProps) {
   return (
     <div className="flex flex-col gap-2 min-h-0">
@@ -36,7 +40,7 @@ export function SoundSlot({
         }`}
         onClick={onSlotClick}
       >
-        {slot.audioData && (
+        {slot.audioData && showWaveform && (
           <>
             <Waveform
               ref={waveformRef}
@@ -63,28 +67,29 @@ export function SoundSlot({
             isPlaying ? "opacity-100 scale-100" : "opacity-60 scale-80"
           }`}
         >
-          {slot.emoji ? (
-            <span
-              className="text-xl md:text-2xl cursor-pointer hover:opacity-80"
-              onClick={(e) => {
-                e.stopPropagation();
-                onEmojiClick();
-              }}
-            >
-              {slot.emoji}
-            </span>
-          ) : (
-            <span
-              role="button"
-              className="opacity-0 group-hover:opacity-100 transition-opacity text-xl md:text-2xl cursor-pointer hover:opacity-80"
-              onClick={(e) => {
-                e.stopPropagation();
-                onEmojiClick();
-              }}
-            >
-              {slot.audioData ? "💿" : "🎙️"}
-            </span>
-          )}
+          {showEmoji &&
+            (slot.emoji ? (
+              <span
+                className="text-xl md:text-2xl cursor-pointer hover:opacity-80"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEmojiClick();
+                }}
+              >
+                {slot.emoji}
+              </span>
+            ) : (
+              <span
+                role="button"
+                className="opacity-0 group-hover:opacity-100 transition-opacity text-xl md:text-2xl cursor-pointer hover:opacity-80"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEmojiClick();
+                }}
+              >
+                {slot.audioData ? "💿" : "🎙️"}
+              </span>
+            ))}
           <span
             className="text-base md:text-lg font-medium truncate max-w-[80px] md:max-w-[120px] cursor-text hover:bg-white/20 px-1 rounded select-text"
             onClick={(e) => {
