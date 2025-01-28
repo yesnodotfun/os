@@ -123,6 +123,7 @@ function App() {
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>(() => {
     return localStorage.getItem("selectedDeviceId") || "";
   });
+  const [micPermissionGranted, setMicPermissionGranted] = useState(false);
 
   useEffect(() => {
     const getDevices = async () => {
@@ -136,11 +137,14 @@ function App() {
       }
     };
 
-    getDevices();
-    navigator.mediaDevices.addEventListener("devicechange", getDevices);
-    return () =>
-      navigator.mediaDevices.removeEventListener("devicechange", getDevices);
-  }, [selectedDeviceId]);
+    // Only run if permission is granted
+    if (micPermissionGranted) {
+      getDevices();
+      navigator.mediaDevices.addEventListener("devicechange", getDevices);
+      return () =>
+        navigator.mediaDevices.removeEventListener("devicechange", getDevices);
+    }
+  }, [selectedDeviceId, micPermissionGranted]);
 
   useEffect(() => {
     localStorage.setItem("selectedDeviceId", selectedDeviceId);
@@ -262,6 +266,7 @@ function App() {
         },
       });
 
+      setMicPermissionGranted(true);
       // After getting permission, refresh device list to show proper device names
       const devices = await navigator.mediaDevices.enumerateDevices();
       const audioInputs = devices.filter(
@@ -695,19 +700,24 @@ function App() {
               </Button>
             ))}
           </div>
-          <Select value={selectedDeviceId} onValueChange={setSelectedDeviceId}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select microphone" />
-            </SelectTrigger>
-            <SelectContent>
-              {audioDevices.map((device) => (
-                <SelectItem key={device.deviceId} value={device.deviceId}>
-                  {device.label ||
-                    `Microphone ${device.deviceId.slice(0, 4)}...`}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {micPermissionGranted && (
+            <Select
+              value={selectedDeviceId}
+              onValueChange={setSelectedDeviceId}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select microphone" />
+              </SelectTrigger>
+              <SelectContent>
+                {audioDevices.map((device) => (
+                  <SelectItem key={device.deviceId} value={device.deviceId}>
+                    {device.label ||
+                      `Microphone ${device.deviceId.slice(0, 4)}...`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           <input
             type="file"
             id="import-board"
