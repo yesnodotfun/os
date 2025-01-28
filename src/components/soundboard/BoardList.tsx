@@ -32,7 +32,7 @@ export function BoardList({
 }: BoardListProps) {
   return (
     <div className="w-full md:w-56 bg-gray-100 md:border-r border-b md:border-b-0 flex flex-col h-full">
-      <div className="py-3 px-4 flex flex-col">
+      <div className="py-3 px-4 flex flex-col h-full">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold">Soundboards</h2>
           <Button variant="ghost" size="icon" onClick={onNewBoard}>
@@ -51,8 +51,9 @@ export function BoardList({
             </Button>
           ))}
         </div>
+
         {micPermissionGranted && (
-          <div className="mt-4">
+          <div className="mt-auto py-4 pb-8">
             <Select value={selectedDeviceId} onValueChange={onDeviceSelect}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select microphone" />

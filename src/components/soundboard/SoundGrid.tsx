@@ -16,6 +16,7 @@ interface SoundGridProps {
   onSlotEmojiClick: (index: number) => void;
   onSlotTitleClick: (index: number) => void;
   onWaveformCreate?: (index: number, waveform: WaveSurfer) => void;
+  setIsEditingTitle: (isEditing: boolean) => void;
 }
 
 export function SoundGrid({
@@ -31,6 +32,7 @@ export function SoundGrid({
   onSlotEmojiClick,
   onSlotTitleClick,
   onWaveformCreate,
+  setIsEditingTitle,
 }: SoundGridProps) {
   return (
     <div className="flex-1 overflow-auto">
@@ -48,7 +50,7 @@ export function SoundGrid({
           ) : (
             <h1
               className="text-3xl font-bold mb-4 text-left cursor-pointer hover:opacity-80 select-text"
-              onClick={() => onTitleChange(board.name)}
+              onClick={() => setIsEditingTitle(true)}
             >
               {board.name}
             </h1>

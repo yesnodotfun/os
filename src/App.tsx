@@ -304,6 +304,7 @@ function App() {
               value: activeBoard.slots[index].title || "",
             })
           }
+          setIsEditingTitle={setIsEditingTitle}
         />
       </WindowFrame>
 
@@ -320,28 +321,257 @@ function App() {
             </DialogTitle>
             <DialogDescription>
               {dialogState.type === "emoji"
-                ? "Enter an emoji for this sound slot"
+                ? "Choose an emoji for this sound slot"
                 : "Enter a title for this sound slot"}
             </DialogDescription>
           </DialogHeader>
-          <Input
-            autoFocus
-            value={dialogState.value}
-            onChange={(e) =>
-              setDialogState((prev) => ({ ...prev, value: e.target.value }))
-            }
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                handleDialogSubmit();
+          {dialogState.type === "emoji" ? (
+            <div className="grid grid-cols-10 gap-1 my-4 max-h-[300px] overflow-y-auto">
+              {[
+                // Popular & Audio Related
+                "🎵",
+                "🎶",
+                "🎤",
+                "🎧",
+                "🎼",
+                "🔊",
+                "🔉",
+                "🔈",
+                "🎙",
+                "📢",
+                "🎸",
+                "🎹",
+                "🎺",
+                "🎷",
+                "🥁",
+                "🎚",
+                "🎛",
+                "🔔",
+                "📣",
+                "🔕",
+
+                // Common Symbols & Actions
+                "✅",
+                "❌",
+                "⭐",
+                "💫",
+                "✨",
+                "🔥",
+                "💥",
+                "💢",
+                "💡",
+                "💭",
+                "❤️",
+                "💀",
+                "☠️",
+                "⚡",
+                "💪",
+                "👍",
+                "👎",
+                "👏",
+                "🙌",
+                "👋",
+                "💩",
+                "🎉",
+                "🎊",
+                "🌸",
+                "🌺",
+                "🌷",
+
+                // Arrows & Movement
+                "⬆️",
+                "⬇️",
+                "⬅️",
+                "➡️",
+                "↗️",
+                "↘️",
+                "↙️",
+                "↖️",
+                "↕️",
+                "↔️",
+                "🏃",
+                "🏃‍♀️",
+                "💃",
+                "🕺",
+                "🚶",
+                "🚶‍♀️",
+
+                // Common Faces
+                "😀",
+                "😄",
+                "😅",
+                "😂",
+                "🤣",
+                "😊",
+                "😇",
+                "🙂",
+                "🙃",
+                "😉",
+                "😌",
+                "😍",
+                "🥰",
+                "😘",
+                "😎",
+                "🤩",
+                "🥳",
+                "😏",
+                "😮",
+                "😱",
+                "😭",
+                "🥺",
+                "😤",
+                "😠",
+                "😡",
+                "🤬",
+                "🤯",
+                "🥴",
+                "😴",
+                "😵",
+
+                // Animals
+                "🐶",
+                "🐱",
+                "🐭",
+                "🐹",
+                "🐰",
+                "🦊",
+                "🐻",
+                "🐼",
+                "🐨",
+                "🐯",
+
+                // Objects & Tools
+                "⚙️",
+                "🔧",
+                "🔨",
+                "💻",
+                "⌨️",
+                "🖥️",
+                "📱",
+                "🔋",
+                "🔌",
+                "💾",
+                "💿",
+                "📀",
+                "🎮",
+                "🕹️",
+                "🎲",
+                "🎯",
+                "🎨",
+                "✂️",
+                "📎",
+                "📌",
+
+                // Weather & Nature
+                "☀️",
+                "🌙",
+                "⭐",
+                "☁️",
+                "🌈",
+                "🌧️",
+                "⛈️",
+                "❄️",
+                "🌪️",
+                "🔥",
+
+                // Additional Faces & Gestures
+                "🤔",
+                "🤨",
+                "🧐",
+                "🤓",
+                "😤",
+                "😫",
+                "😩",
+                "🥺",
+                "😢",
+                "😭",
+                "✌️",
+                "🤘",
+                "🤙",
+                "👆",
+                "👇",
+                "👈",
+                "👉",
+                "👊",
+                "🤛",
+                "🤜",
+
+                // Misc Symbols
+                "♠️",
+                "♣️",
+                "♥️",
+                "♦️",
+                "🔄",
+                "⏩",
+                "⏪",
+                "⏫",
+                "⏬",
+                "🔼",
+                "🔽",
+                "⏯️",
+                "⏹️",
+                "⏺️",
+                "⏏️",
+                "🎦",
+                "🔅",
+                "🔆",
+                "📶",
+                "📳",
+                "📴",
+                "♾️",
+                "♻️",
+                "⚜️",
+                "🔱",
+                "📛",
+                "🔰",
+                "⭕",
+                "✅",
+                "☑️",
+                "✔️",
+                "❌",
+                "❎",
+                "〽️",
+                "✳️",
+                "✴️",
+                "❇️",
+                "©️",
+                "®️",
+                "™️",
+              ].map((emoji, i) => (
+                <button
+                  key={i}
+                  className="p-1 text-2xl hover:bg-white/20 rounded cursor-pointer font-['SerenityOS-Emoji']"
+                  onClick={() => {
+                    updateSlot(dialogState.slotIndex, { emoji });
+                    setDialogState((prev) => ({ ...prev, isOpen: false }));
+                  }}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <Input
+              autoFocus
+              value={dialogState.value}
+              onChange={(e) =>
+                setDialogState((prev) => ({ ...prev, value: e.target.value }))
               }
-            }}
-            className="my-4"
-          />
-          <DialogFooter>
-            <Button variant="retro" onClick={handleDialogSubmit}>
-              Save
-            </Button>
-          </DialogFooter>
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleDialogSubmit();
+                }
+              }}
+              className="my-4"
+            />
+          )}
+          {dialogState.type !== "emoji" && (
+            <DialogFooter>
+              <Button variant="retro" onClick={handleDialogSubmit}>
+                Save
+              </Button>
+            </DialogFooter>
+          )}
         </DialogContent>
       </Dialog>
 
