@@ -6,7 +6,12 @@ import { SoundGrid } from "@/components/soundboard/SoundGrid";
 import { useSoundboard } from "@/hooks/useSoundboard";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 import { DialogState } from "@/types/types";
-import { loadSelectedDeviceId, saveSelectedDeviceId } from "@/utils/storage";
+import {
+  loadSelectedDeviceId,
+  saveSelectedDeviceId,
+  loadHasSeenHelp,
+  saveHasSeenHelp,
+} from "@/utils/storage";
 import { EmojiDialog } from "@/components/dialogs/EmojiDialog";
 import { InputDialog } from "@/components/dialogs/InputDialog";
 import { HelpDialog } from "@/components/dialogs/HelpDialog";
@@ -112,6 +117,13 @@ function App() {
   useEffect(() => {
     saveSelectedDeviceId(selectedDeviceId);
   }, [selectedDeviceId]);
+
+  useEffect(() => {
+    if (!loadHasSeenHelp()) {
+      setHelpDialogOpen(true);
+      saveHasSeenHelp();
+    }
+  }, []);
 
   const handleSlotClick = (index: number) => {
     const slot = activeBoard.slots[index];

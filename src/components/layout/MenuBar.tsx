@@ -70,19 +70,19 @@ export function MenuBar({
             onClick={onImportBoard}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            Import Soundboard...
+            Import Soundboards...
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={onExportBoard}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            Export Soundboard...
+            Export Soundboards...
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={onReloadBoard}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            Reload Soundboard
+            Reset all boards
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -102,7 +102,7 @@ export function MenuBar({
             onClick={onRenameBoard}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            Rename Soundboard
+            Rename board
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={onDeleteBoard}
@@ -113,7 +113,7 @@ export function MenuBar({
                 : "text-md h-6 px-3 active:bg-gray-900 active:text-white"
             }
           >
-            Delete Soundboard
+            Delete board
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -153,7 +153,7 @@ export function MenuBar({
             onClick={onShowHelp}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            Getting Started
+            Get Help
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={onShowAbout}

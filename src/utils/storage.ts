@@ -5,6 +5,7 @@ const STORAGE_KEYS = {
   WINDOW_POSITION: "windowPosition",
   WINDOW_SIZE: "windowSize",
   SELECTED_DEVICE_ID: "selectedDeviceId",
+  HAS_SEEN_HELP: "hasSeenHelp",
 } as const;
 
 export const loadSoundboards = async (): Promise<Soundboard[]> => {
@@ -86,3 +87,11 @@ export const createDefaultBoard = (): Soundboard => ({
     title: undefined,
   }),
 });
+
+export const loadHasSeenHelp = (): boolean => {
+  return localStorage.getItem(STORAGE_KEYS.HAS_SEEN_HELP) === "true";
+};
+
+export const saveHasSeenHelp = (): void => {
+  localStorage.setItem(STORAGE_KEYS.HAS_SEEN_HELP, "true");
+};
