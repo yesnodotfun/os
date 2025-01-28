@@ -10,9 +10,13 @@ export function AboutDialog({ isOpen, onOpenChange }: AboutDialogProps) {
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="bg-system7-window-bg border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)] max-w-[280px]">
         <DialogHeader>About</DialogHeader>
-        <div className="space-y-6 text-center p-6">
+        <div className="space-y-2 text-center p-6">
           <div>
-            <span className="text-8xl">💿</span>
+            <img
+              src="/icons/cdrom.png"
+              alt="CD-ROM"
+              className="w-12 h-12 mx-auto"
+            />
           </div>
           <div className="space-y-0">
             <div className="text-lg font-medium">Soundboard.app</div>
