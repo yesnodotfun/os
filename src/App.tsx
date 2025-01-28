@@ -230,7 +230,8 @@ function App() {
     slotIndex: number,
     stream: MediaStream
   ) => {
-    const blob = new Blob(chunks, { type: "audio/webm" });
+    const mimeType = mediaRecorderRef.current?.mimeType || "audio/mp4";
+    const blob = new Blob(chunks, { type: mimeType });
     const buffer = await blob.arrayBuffer();
     const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
 
@@ -267,15 +268,23 @@ function App() {
       });
 
       setMicPermissionGranted(true);
-      // After getting permission, refresh device list to show proper device names
       const devices = await navigator.mediaDevices.enumerateDevices();
       const audioInputs = devices.filter(
         (device) => device.kind === "audioinput"
       );
       setAudioDevices(audioInputs);
 
+      // Check supported mimeTypes for different browsers
+      const mimeType = MediaRecorder.isTypeSupported(
+        "audio/mp4;codecs=mp4a.40.2"
+      )
+        ? "audio/mp4;codecs=mp4a.40.2"
+        : MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : "audio/mp4";
+
       const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: "audio/webm;codecs=opus",
+        mimeType,
       });
       const chunks: BlobPart[] = [];
 
@@ -624,7 +633,7 @@ function App() {
               File
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent>
+          <DropdownMenuContent align="start" sideOffset={1}>
             <DropdownMenuItem onClick={addNewBoard}>
               New Soundboard
             </DropdownMenuItem>
@@ -651,7 +660,7 @@ function App() {
               Edit
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent>
+          <DropdownMenuContent align="start" sideOffset={1}>
             <DropdownMenuItem onClick={() => setIsEditingTitle(true)}>
               Rename Soundboard
             </DropdownMenuItem>
@@ -674,7 +683,7 @@ function App() {
               View
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent>
+          <DropdownMenuContent align="start" sideOffset={1}>
             <DropdownMenuItem>Show Waveforms</DropdownMenuItem>
             <DropdownMenuItem>Show Emojis</DropdownMenuItem>
           </DropdownMenuContent>
