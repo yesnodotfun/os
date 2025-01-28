@@ -27,7 +27,7 @@ export function WindowFrame({ children, title }: WindowFrameProps) {
         transition: isDragging || resizeType ? "none" : "all 0.2s ease",
       }}
     >
-      <div className="relative h-full bg-system7-window-bg border-[2px] border-black rounded-lg shadow-[8px_8px_0px_0px_rgba(0,0,0,0.5)] overflow-hidden">
+      <div className="relative h-full bg-system7-window-bg border-[2px] border-black rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)] overflow-hidden">
         {/* Resize handles */}
         <div className="absolute inset-0 pointer-events-none">
           <div

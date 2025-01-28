@@ -231,7 +231,7 @@ function App() {
   }, [activeBoard.slots, playbackStates, playSound, stopSound]);
 
   return (
-    <div className="min-h-screen bg-[#666699]">
+    <div className="min-h-screen bg-[#666699] bg-[radial-gradient(#777_1px,transparent_0)] bg-[length:24px_24px] bg-[-19px_-19px]">
       <MenuBar
         onNewBoard={addNewBoard}
         onImportBoard={() => importInputRef.current?.click()}
