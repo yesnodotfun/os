@@ -36,7 +36,7 @@ export function SoundGrid({
 }: SoundGridProps) {
   return (
     <div className="flex-1 overflow-auto">
-      <div className="py-2 px-4 md:p-8 md:py-4">
+      <div className="py-6 px-4 md:py-2 md:p-8 md:py-4">
         <div className="max-w-2xl mx-auto flex flex-col">
           {isEditingTitle ? (
             <Input

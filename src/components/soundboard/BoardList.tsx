@@ -32,14 +32,14 @@ export function BoardList({
 }: BoardListProps) {
   return (
     <div className="w-full md:w-56 bg-gray-100 md:border-r border-b md:border-b-0 flex flex-col h-full">
-      <div className="py-3 px-4 flex flex-col h-full">
-        <div className="flex justify-between items-center mb-4">
+      <div className="py-2 md:py-3 px-4 flex flex-col h-full">
+        <div className="flex justify-between items-center md:mb-4">
           <h2 className="text-lg font-semibold">Soundboards</h2>
           <Button variant="ghost" size="icon" onClick={onNewBoard}>
             <Plus className="w-4 h-4" />
           </Button>
         </div>
-        <div className="flex-1 overflow-auto space-y-2">
+        <div className="flex-1 overflow-auto md:space-y-2">
           {boards.map((board) => (
             <Button
               key={board.id}
