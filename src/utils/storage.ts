@@ -125,8 +125,9 @@ export interface Favorite {
 
 export const DEFAULT_FAVORITES: Favorite[] = [
   { title: "Ryo Lu", url: "https://ryo.lu" },
-  { title: "theo bleier", url: "https://tmb.sh" },
+  { title: "Theo Bleier", url: "https://tmb.sh" },
   { title: "Tyler Beauchamp", url: "https://tylerbeauchamp.net" },
+  { title: "Sam Catania", url: "https://www.samuelcatania.com" },
 ];
 
 export const loadFavorites = (): Favorite[] => {
