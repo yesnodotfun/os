@@ -130,6 +130,7 @@ export const DEFAULT_FAVORITES: Favorite[] = [
   { title: "Tyler Beauchamp", url: "https://tylerbeauchamp.net" },
   { title: "Sam Catania", url: "https://www.samuelcatania.com" },
   { title: "Stephen Wu", url: "https://wustep.me" },
+  { title: "Lucas", url: "https://www.lucasn.com" },
 ];
 
 export const loadFavorites = (): Favorite[] => {
