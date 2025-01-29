@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -9,7 +8,7 @@ import {
   DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
 import { AppProps } from "../../base/types";
-import { AboutFinderDialog } from "@/components/dialogs/AboutFinderDialog";
+import { MenuBar } from "@/components/layout/MenuBar";
 
 interface SoundboardMenuBarProps extends Omit<AppProps, "onClose"> {
   onNewBoard?: () => void;
@@ -25,23 +24,6 @@ interface SoundboardMenuBarProps extends Omit<AppProps, "onClose"> {
   onToggleWaveforms?: (show: boolean) => void;
   showEmojis?: boolean;
   onToggleEmojis?: (show: boolean) => void;
-}
-
-function Clock() {
-  const [time, setTime] = useState(new Date());
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTime(new Date());
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  return (
-    <div className="ml-auto mr-2">
-      {time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-    </div>
-  );
 }
 
 export function SoundboardMenuBar({
@@ -60,38 +42,8 @@ export function SoundboardMenuBar({
   showEmojis,
   onToggleEmojis,
 }: SoundboardMenuBarProps & { onClose: () => void }) {
-  const [aboutFinderOpen, setAboutFinderOpen] = useState(false);
-
   return (
-    <div className="fixed top-0 left-0 right-0 flex bg-system7-menubar-bg border-b-[2px] border-black px-2 h-7 items-center z-50">
-      {/* Apple menu */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="default"
-            className="h-6 text-md px-3 py-1 border-none hover:bg-gray-200 active:bg-gray-900 active:text-white focus-visible:ring-0"
-          >
-            
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" sideOffset={1} className="px-0">
-          <DropdownMenuItem
-            onClick={() => setAboutFinderOpen(true)}
-            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
-          >
-            About This Macintosh
-          </DropdownMenuItem>
-          <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
-          <DropdownMenuItem
-            onClick={onClose}
-            className="text-md h-6 px-3 active:bg-gray-900 active:text-white flex justify-between"
-          >
-            Soundboard
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-
+    <MenuBar activeApp="Soundboard" onClose={onClose}>
       {/* File Menu */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -221,13 +173,6 @@ export function SoundboardMenuBar({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-
-      <AboutFinderDialog
-        isOpen={aboutFinderOpen}
-        onOpenChange={setAboutFinderOpen}
-      />
-
-      <Clock />
-    </div>
+    </MenuBar>
   );
 }

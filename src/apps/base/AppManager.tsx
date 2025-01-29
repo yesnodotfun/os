@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { BaseApp, AppManagerState } from "./types";
+import { AppContext } from "@/contexts/AppContext";
 
 interface AppManagerProps {
   apps: BaseApp[];
@@ -42,7 +43,9 @@ export function AppManager({ apps, initialState = {} }: AppManagerProps) {
   };
 
   return (
-    <>
+    <AppContext.Provider
+      value={{ appStates, toggleApp, bringToForeground, apps }}
+    >
       {/* App Instances */}
       {apps.map((app) => {
         const isOpen = appStates[app.id]?.isOpen ?? false;
@@ -100,6 +103,6 @@ export function AppManager({ apps, initialState = {} }: AppManagerProps) {
           ))}
         </div>
       </div>
-    </>
+    </AppContext.Provider>
   );
 }
