@@ -27,7 +27,6 @@ interface SoundboardMenuBarProps extends Omit<AppProps, "onClose"> {
 }
 
 export function SoundboardMenuBar({
-  onClose,
   onNewBoard,
   onImportBoard,
   onExportBoard,
@@ -43,7 +42,7 @@ export function SoundboardMenuBar({
   onToggleEmojis,
 }: SoundboardMenuBarProps & { onClose: () => void }) {
   return (
-    <MenuBar activeApp="Soundboard" onClose={onClose}>
+    <MenuBar>
       {/* File Menu */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

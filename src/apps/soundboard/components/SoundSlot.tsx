@@ -53,7 +53,7 @@ export function SoundSlot({
               onWaveformCreate={onWaveformCreate}
               className="z-10"
             />
-            <div className="absolute top-1 right-1 flex gap-1 z-1">
+            <div className="absolute top-1 right-1 flex gap-1 z-10">
               <div
                 role="button"
                 className="hidden md:flex opacity-0 group-hover:opacity-100 transition-opacity h-5 w-5 md:h-6 md:w-6 hover:bg-white/50 rounded-md items-center justify-center cursor-pointer"

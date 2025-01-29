@@ -1,6 +1,6 @@
 import { Soundboard, WindowPosition, WindowSize } from "../types/types";
 
-const APP_STORAGE_KEYS = {
+export const APP_STORAGE_KEYS = {
   soundboard: {
     BOARDS: "soundboard:boards",
     WINDOW: "soundboard:window",
