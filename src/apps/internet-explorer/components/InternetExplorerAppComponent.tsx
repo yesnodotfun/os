@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Favorite, loadFavorites, saveFavorites } from "@/utils/storage";
 import { Plus } from "lucide-react";
 import { InputDialog } from "@/components/dialogs/InputDialog";
+import { HelpDialog } from "@/components/dialogs/HelpDialog";
+import { AboutDialog } from "@/components/dialogs/AboutDialog";
+import { helpItems, appMetadata } from "..";
 
 export function InternetExplorerAppComponent({
   isWindowOpen,
@@ -20,6 +23,8 @@ export function InternetExplorerAppComponent({
   const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [isTitleDialogOpen, setIsTitleDialogOpen] = useState(false);
   const [newFavoriteTitle, setNewFavoriteTitle] = useState("");
+  const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
+  const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
 
   useEffect(() => {
     setFavorites(loadFavorites());
@@ -103,6 +108,8 @@ export function InternetExplorerAppComponent({
           onStop={handleStop}
           onHome={handleHome}
           onClearHistory={handleClearHistory}
+          onShowHelp={() => setIsHelpDialogOpen(true)}
+          onShowAbout={() => setIsAboutDialogOpen(true)}
           isLoading={isLoading}
           favorites={favorites}
           onAddFavorite={handleAddFavorite}
@@ -182,6 +189,17 @@ export function InternetExplorerAppComponent({
         description="Enter a title for this favorite"
         value={newFavoriteTitle}
         onChange={setNewFavoriteTitle}
+      />
+      <HelpDialog
+        isOpen={isHelpDialogOpen}
+        onOpenChange={setIsHelpDialogOpen}
+        helpItems={helpItems}
+        appName="Internet Explorer"
+      />
+      <AboutDialog
+        isOpen={isAboutDialogOpen}
+        onOpenChange={setIsAboutDialogOpen}
+        metadata={appMetadata}
       />
     </WindowFrame>
   );

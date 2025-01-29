@@ -3,9 +3,22 @@ import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
 interface AboutDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
+  metadata: {
+    version: string;
+    creator: {
+      name: string;
+      url: string;
+    };
+    github: string;
+    icon: string;
+  };
 }
 
-export function AboutDialog({ isOpen, onOpenChange }: AboutDialogProps) {
+export function AboutDialog({
+  isOpen,
+  onOpenChange,
+  metadata,
+}: AboutDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="bg-system7-window-bg border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)] max-w-[280px]">
@@ -13,28 +26,28 @@ export function AboutDialog({ isOpen, onOpenChange }: AboutDialogProps) {
         <div className="space-y-2 text-center p-6">
           <div>
             <img
-              src="/icons/cdrom.png"
-              alt="CD-ROM"
+              src={metadata.icon}
+              alt="App Icon"
               className="w-12 h-12 mx-auto [image-rendering:pixelated]"
             />
           </div>
           <div className="space-y-0">
-            <div className="text-lg font-medium">Soundboard.app</div>
-            <p className="text-gray-500">Version 0.10</p>
+            <div className="text-lg font-medium">{metadata.name}</div>
+            <p className="text-gray-500">Version {metadata.version}</p>
             <p>
               Made by{" "}
               <a
-                href="https://ryo.lu"
+                href={metadata.creator.url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-500 hover:underline"
               >
-                Ryo Lu
+                {metadata.creator.name}
               </a>
             </p>
             <p>
               <a
-                href="https://github.com/ryokun6/soundboard"
+                href={metadata.github}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-500 hover:underline"

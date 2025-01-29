@@ -63,6 +63,7 @@ export function AppManager({ apps, initialState = {} }: AppManagerProps) {
               isForeground={isForeground}
               onClose={() => toggleApp(app.id)}
               className="pointer-events-auto"
+              helpItems={app.helpItems}
             />
           </div>
         ) : null;

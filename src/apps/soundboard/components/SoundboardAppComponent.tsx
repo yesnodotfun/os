@@ -18,6 +18,7 @@ import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { AppProps } from "../../base/types";
 import { SoundboardMenuBar } from "./SoundboardMenuBar";
+import { appMetadata } from "..";
 
 interface ImportedSlot {
   audioData: string | null;
@@ -35,6 +36,7 @@ export function SoundboardAppComponent({
   onClose,
   isWindowOpen,
   isForeground,
+  helpItems = [],
 }: AppProps) {
   const {
     boards,
@@ -370,10 +372,13 @@ export function SoundboardAppComponent({
           <HelpDialog
             isOpen={helpDialogOpen}
             onOpenChange={setHelpDialogOpen}
+            helpItems={helpItems}
+            appName="Soundboard.app"
           />
           <AboutDialog
             isOpen={aboutDialogOpen}
             onOpenChange={setAboutDialogOpen}
+            metadata={appMetadata}
           />
         </WindowFrame>
       )}
