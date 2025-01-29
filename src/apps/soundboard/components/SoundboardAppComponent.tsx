@@ -16,7 +16,8 @@ import { EmojiDialog } from "@/components/dialogs/EmojiDialog";
 import { InputDialog } from "@/components/dialogs/InputDialog";
 import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
-import { AppWindowProps } from "../../base/types";
+import { AppProps } from "../../base/types";
+import { SoundboardMenuBar } from "./SoundboardMenuBar";
 
 interface ImportedSlot {
   audioData: string | null;
@@ -30,7 +31,7 @@ interface ImportedBoard {
   slots: ImportedSlot[];
 }
 
-export function SoundboardWindow({ onClose }: AppWindowProps) {
+export function SoundboardAppComponent({ onClose, isWindowOpen }: AppProps) {
   const {
     boards,
     activeBoard,
@@ -62,8 +63,8 @@ export function SoundboardWindow({ onClose }: AppWindowProps) {
     useState(loadSelectedDeviceId);
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
   const importInputRef = useRef<HTMLInputElement>(null);
-  const [showWaveforms] = useState(true);
-  const [showEmojis] = useState(true);
+  const [showWaveforms, setShowWaveforms] = useState(true);
+  const [showEmojis, setShowEmojis] = useState(true);
   const activeSlotRef = useRef<number | null>(null);
 
   const handleRecordingComplete = (base64Data: string) => {
@@ -95,11 +96,6 @@ export function SoundboardWindow({ onClose }: AppWindowProps) {
     },
   });
 
-  const startRecording = (index: number) => {
-    activeSlotRef.current = index;
-    startRec();
-  };
-
   useEffect(() => {
     if (micPermissionGranted) {
       navigator.mediaDevices.enumerateDevices().then((devices) => {
@@ -128,6 +124,11 @@ export function SoundboardWindow({ onClose }: AppWindowProps) {
       saveHasSeenHelp();
     }
   }, []);
+
+  const startRecording = (index: number) => {
+    activeSlotRef.current = index;
+    startRec();
+  };
 
   const handleSlotClick = (index: number) => {
     const slot = activeBoard.slots[index];
@@ -249,90 +250,124 @@ export function SoundboardWindow({ onClose }: AppWindowProps) {
   }, [activeBoard.slots, playbackStates, playSound, stopSound]);
 
   return (
-    <WindowFrame title="Soundboard.app" onClose={onClose}>
-      <input
-        type="file"
-        ref={importInputRef}
-        className="hidden"
-        accept="application/json"
-        onChange={handleImportBoard}
-      />
-
-      <BoardList
-        boards={boards}
-        activeBoardId={activeBoardId}
-        onBoardSelect={setActiveBoardId}
+    <>
+      <SoundboardMenuBar
+        onClose={onClose}
+        isWindowOpen={isWindowOpen}
         onNewBoard={addNewBoard}
-        selectedDeviceId={selectedDeviceId}
-        onDeviceSelect={setSelectedDeviceId}
-        audioDevices={audioDevices}
-        micPermissionGranted={micPermissionGranted}
-      />
-
-      <SoundGrid
-        board={activeBoard}
-        playbackStates={playbackStates}
-        waveformRefs={waveformRefs.current}
-        isEditingTitle={isEditingTitle}
-        onTitleChange={(name) => updateBoardName(name)}
-        onTitleBlur={(name) => {
-          updateBoardName(name);
-          setIsEditingTitle(false);
-        }}
-        onTitleKeyDown={(e) => {
-          if (e.key === "Enter") {
-            updateBoardName(e.currentTarget.value);
-            setIsEditingTitle(false);
+        onImportBoard={() => importInputRef.current?.click()}
+        onExportBoard={exportBoard}
+        onReloadBoard={reloadFromJson}
+        onRenameBoard={() => setIsEditingTitle(true)}
+        onDeleteBoard={() => {
+          const newBoards = boards.filter((b) => b.id !== activeBoardId);
+          if (newBoards.length > 0) {
+            setBoards(newBoards);
+            setActiveBoardId(newBoards[0].id);
+            saveSoundboards(newBoards);
           }
         }}
-        onSlotClick={handleSlotClick}
-        onSlotDelete={deleteSlot}
-        onSlotEmojiClick={(index) =>
-          setDialogState({
-            type: "emoji",
-            isOpen: true,
-            slotIndex: index,
-            value: activeBoard.slots[index].emoji || "",
-          })
-        }
-        onSlotTitleClick={(index) =>
-          setDialogState({
-            type: "title",
-            isOpen: true,
-            slotIndex: index,
-            value: activeBoard.slots[index].title || "",
-          })
-        }
-        setIsEditingTitle={setIsEditingTitle}
+        canDeleteBoard={boards.length > 1}
+        onShowHelp={() => setHelpDialogOpen(true)}
+        onShowAbout={() => setAboutDialogOpen(true)}
         showWaveforms={showWaveforms}
+        onToggleWaveforms={setShowWaveforms}
         showEmojis={showEmojis}
+        onToggleEmojis={setShowEmojis}
       />
+      {isWindowOpen && (
+        <WindowFrame title="Soundboard.app" onClose={onClose}>
+          <input
+            type="file"
+            ref={importInputRef}
+            className="hidden"
+            accept="application/json"
+            onChange={handleImportBoard}
+          />
 
-      <EmojiDialog
-        isOpen={dialogState.isOpen && dialogState.type === "emoji"}
-        onOpenChange={(open) =>
-          setDialogState((prev) => ({ ...prev, isOpen: open }))
-        }
-        onEmojiSelect={(emoji) => {
-          updateSlot(dialogState.slotIndex, { emoji });
-          setDialogState((prev) => ({ ...prev, isOpen: false }));
-        }}
-      />
+          <BoardList
+            boards={boards}
+            activeBoardId={activeBoardId}
+            onBoardSelect={setActiveBoardId}
+            onNewBoard={addNewBoard}
+            selectedDeviceId={selectedDeviceId}
+            onDeviceSelect={setSelectedDeviceId}
+            audioDevices={audioDevices}
+            micPermissionGranted={micPermissionGranted}
+          />
 
-      <InputDialog
-        isOpen={dialogState.isOpen && dialogState.type === "title"}
-        onOpenChange={(open) =>
-          setDialogState((prev) => ({ ...prev, isOpen: open }))
-        }
-        onSubmit={handleDialogSubmit}
-        title="Set Title"
-        description="Enter a title for this sound slot"
-        value={dialogState.value}
-        onChange={(value) => setDialogState((prev) => ({ ...prev, value }))}
-      />
+          <SoundGrid
+            board={activeBoard}
+            playbackStates={playbackStates}
+            waveformRefs={waveformRefs.current}
+            isEditingTitle={isEditingTitle}
+            onTitleChange={(name) => updateBoardName(name)}
+            onTitleBlur={(name) => {
+              updateBoardName(name);
+              setIsEditingTitle(false);
+            }}
+            onTitleKeyDown={(e) => {
+              if (e.key === "Enter") {
+                updateBoardName(e.currentTarget.value);
+                setIsEditingTitle(false);
+              }
+            }}
+            onSlotClick={handleSlotClick}
+            onSlotDelete={deleteSlot}
+            onSlotEmojiClick={(index) =>
+              setDialogState({
+                type: "emoji",
+                isOpen: true,
+                slotIndex: index,
+                value: activeBoard.slots[index].emoji || "",
+              })
+            }
+            onSlotTitleClick={(index) =>
+              setDialogState({
+                type: "title",
+                isOpen: true,
+                slotIndex: index,
+                value: activeBoard.slots[index].title || "",
+              })
+            }
+            setIsEditingTitle={setIsEditingTitle}
+            showWaveforms={showWaveforms}
+            showEmojis={showEmojis}
+          />
 
-      <HelpDialog isOpen={helpDialogOpen} onOpenChange={setHelpDialogOpen} />
-      <AboutDialog isOpen={aboutDialogOpen} onOpenChange={setAboutDialogOpen} />
-    </WindowFrame>
+          <EmojiDialog
+            isOpen={dialogState.isOpen && dialogState.type === "emoji"}
+            onOpenChange={(open) =>
+              setDialogState((prev) => ({ ...prev, isOpen: open }))
+            }
+            onEmojiSelect={(emoji) => {
+              updateSlot(dialogState.slotIndex, { emoji });
+              setDialogState((prev) => ({ ...prev, isOpen: false }));
+            }}
+          />
+
+          <InputDialog
+            isOpen={dialogState.isOpen && dialogState.type === "title"}
+            onOpenChange={(open) =>
+              setDialogState((prev) => ({ ...prev, isOpen: open }))
+            }
+            onSubmit={handleDialogSubmit}
+            title="Set Title"
+            description="Enter a title for this sound slot"
+            value={dialogState.value}
+            onChange={(value) => setDialogState((prev) => ({ ...prev, value }))}
+          />
+
+          <HelpDialog
+            isOpen={helpDialogOpen}
+            onOpenChange={setHelpDialogOpen}
+          />
+          <AboutDialog
+            isOpen={aboutDialogOpen}
+            onOpenChange={setAboutDialogOpen}
+          />
+        </WindowFrame>
+      )}
+    </>
   );
 }

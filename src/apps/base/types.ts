@@ -1,21 +1,16 @@
 import React from "react";
 
-export interface AppMenuBarProps {
-  onToggleWindow: () => void;
-  isWindowOpen: boolean;
-}
-
-export interface AppWindowProps {
+export interface AppProps {
   onClose: () => void;
+  isWindowOpen: boolean;
 }
 
 export interface BaseApp {
   id: string;
   name: string;
-  icon: string;
+  icon: string | { type: "image"; src: string };
   description: string;
-  MenuBar: React.ComponentType<AppMenuBarProps>;
-  Window: React.ComponentType<AppWindowProps>;
+  component: React.ComponentType<AppProps>;
 }
 
 export interface AppState {

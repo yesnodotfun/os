@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -8,10 +8,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
-import { AppMenuBarProps } from "../../base/types";
+import { AppProps } from "../../base/types";
 import { AboutFinderDialog } from "@/components/dialogs/AboutFinderDialog";
 
-interface SoundboardMenuBarProps extends AppMenuBarProps {
+interface SoundboardMenuBarProps extends Omit<AppProps, "onClose"> {
   onNewBoard?: () => void;
   onImportBoard?: () => void;
   onExportBoard?: () => void;
@@ -27,8 +27,25 @@ interface SoundboardMenuBarProps extends AppMenuBarProps {
   onToggleEmojis?: (show: boolean) => void;
 }
 
+function Clock() {
+  const [time, setTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div className="ml-auto mr-2">
+      {time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+    </div>
+  );
+}
+
 export function SoundboardMenuBar({
-  onToggleWindow,
+  onClose,
   onNewBoard,
   onImportBoard,
   onExportBoard,
@@ -42,11 +59,11 @@ export function SoundboardMenuBar({
   onToggleWaveforms,
   showEmojis,
   onToggleEmojis,
-}: SoundboardMenuBarProps) {
+}: SoundboardMenuBarProps & { onClose: () => void }) {
   const [aboutFinderOpen, setAboutFinderOpen] = useState(false);
 
   return (
-    <>
+    <div className="fixed top-0 left-0 right-0 flex bg-system7-menubar-bg border-b-[2px] border-black px-2 h-7 items-center z-50">
       {/* Apple menu */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -67,7 +84,7 @@ export function SoundboardMenuBar({
           </DropdownMenuItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           <DropdownMenuItem
-            onClick={onToggleWindow}
+            onClick={onClose}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white flex justify-between"
           >
             Soundboard
@@ -209,6 +226,8 @@ export function SoundboardMenuBar({
         isOpen={aboutFinderOpen}
         onOpenChange={setAboutFinderOpen}
       />
-    </>
+
+      <Clock />
+    </div>
   );
 }

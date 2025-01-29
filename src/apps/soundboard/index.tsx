@@ -1,13 +1,10 @@
-import React from "react";
 import { BaseApp } from "../base/types";
-import { SoundboardMenuBar } from "./components/SoundboardMenuBar";
-import { SoundboardWindow } from "./components/SoundboardWindow";
+import { SoundboardAppComponent } from "./components/SoundboardAppComponent";
 
 export const SoundboardApp: BaseApp = {
   id: "soundboard",
   name: "Soundboard",
-  icon: "🎵",
+  icon: { type: "image", src: "/icons/cdrom.png" },
   description: "A simple soundboard app",
-  MenuBar: SoundboardMenuBar,
-  Window: SoundboardWindow,
+  component: SoundboardAppComponent,
 };

@@ -1,4 +1,3 @@
-import React from "react";
 import { AppManager } from "./apps/base/AppManager";
 import { SoundboardApp } from "./apps/soundboard";
 
