@@ -128,6 +128,7 @@ export const DEFAULT_FAVORITES: Favorite[] = [
   { title: "Theo Bleier", url: "https://tmb.sh" },
   { title: "Tyler Beauchamp", url: "https://tylerbeauchamp.net" },
   { title: "Sam Catania", url: "https://www.samuelcatania.com" },
+  { title: "Stephen Wu", url: "https://wustep.me" },
 ];
 
 export const loadFavorites = (): Favorite[] => {
