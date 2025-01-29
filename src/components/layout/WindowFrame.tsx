@@ -1,13 +1,22 @@
 import { useWindowManager } from "@/hooks/useWindowManager";
 import { ResizeType } from "@/types/types";
+import { APP_STORAGE_KEYS } from "@/utils/storage";
 
 interface WindowFrameProps {
   children: React.ReactNode;
   title: string;
   onClose?: () => void;
+  isForeground?: boolean;
+  appId: keyof typeof APP_STORAGE_KEYS;
 }
 
-export function WindowFrame({ children, title, onClose }: WindowFrameProps) {
+export function WindowFrame({
+  children,
+  title,
+  onClose,
+  isForeground = true,
+  appId,
+}: WindowFrameProps) {
   const {
     windowPosition,
     windowSize,
@@ -15,7 +24,7 @@ export function WindowFrame({ children, title, onClose }: WindowFrameProps) {
     resizeType,
     handleMouseDown,
     handleResizeStart,
-  } = useWindowManager();
+  } = useWindowManager({ appId });
 
   return (
     <div
@@ -63,7 +72,11 @@ export function WindowFrame({ children, title, onClose }: WindowFrameProps) {
 
         {/* Title bar */}
         <div
-          className="flex items-center flex-none h-6 mx-0 my-[0.1rem] px-[0.1rem] py-[0.2rem] bg-[linear-gradient(#000_50%,transparent_0)] bg-clip-content bg-[length:6.6666666667%_13.3333333333%] cursor-move border-b-[2px] border-black"
+          className={`flex items-center flex-none h-6 mx-0 my-[0.1rem] px-[0.1rem] py-[0.2rem] ${
+            isForeground
+              ? "bg-[linear-gradient(#000_50%,transparent_0)] bg-clip-content bg-[length:6.6666666667%_13.3333333333%]"
+              : "bg-white"
+          } cursor-move border-b-[2px] border-black`}
           onMouseDown={handleMouseDown}
         >
           <button

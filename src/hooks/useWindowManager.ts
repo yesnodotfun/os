@@ -6,16 +6,21 @@ import {
   ResizeStart,
 } from "../types/types";
 import {
-  loadWindowPosition,
-  saveWindowPosition,
-  loadWindowSize,
-  saveWindowSize,
+  loadWindowState,
+  saveWindowState,
+  APP_STORAGE_KEYS,
 } from "../utils/storage";
 
-export const useWindowManager = () => {
-  const [windowPosition, setWindowPosition] =
-    useState<WindowPosition>(loadWindowPosition);
-  const [windowSize, setWindowSize] = useState<WindowSize>(loadWindowSize);
+interface UseWindowManagerProps {
+  appId: keyof typeof APP_STORAGE_KEYS;
+}
+
+export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
+  const initialState = loadWindowState(appId);
+  const [windowPosition, setWindowPosition] = useState<WindowPosition>(
+    initialState.position
+  );
+  const [windowSize, setWindowSize] = useState<WindowSize>(initialState.size);
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [resizeType, setResizeType] = useState<ResizeType>("");
@@ -123,12 +128,11 @@ export const useWindowManager = () => {
     const handleMouseUp = () => {
       if (isDragging) {
         setIsDragging(false);
-        saveWindowPosition(windowPosition);
+        saveWindowState(appId, { position: windowPosition, size: windowSize });
       }
       if (resizeType) {
         setResizeType("");
-        saveWindowPosition(windowPosition);
-        saveWindowSize(windowSize);
+        saveWindowState(appId, { position: windowPosition, size: windowSize });
       }
     };
 
@@ -148,6 +152,7 @@ export const useWindowManager = () => {
     resizeStart,
     windowPosition,
     windowSize,
+    appId,
   ]);
 
   return {

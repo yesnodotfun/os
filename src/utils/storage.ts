@@ -1,15 +1,47 @@
 import { Soundboard, WindowPosition, WindowSize } from "../types/types";
 
-const STORAGE_KEYS = {
-  SOUNDBOARDS: "soundboards",
-  WINDOW_POSITION: "windowPosition",
-  WINDOW_SIZE: "windowSize",
-  SELECTED_DEVICE_ID: "selectedDeviceId",
-  HAS_SEEN_HELP: "hasSeenHelp",
+const APP_STORAGE_KEYS = {
+  soundboard: {
+    BOARDS: "soundboard:boards",
+    WINDOW: "soundboard:window",
+    SELECTED_DEVICE_ID: "soundboard:selectedDeviceId",
+    HAS_SEEN_HELP: "soundboard:hasSeenHelp",
+  },
+  "internet-explorer": {
+    WINDOW: "internet-explorer:window",
+    HISTORY: "internet-explorer:history",
+  },
 } as const;
 
+interface WindowState {
+  position: WindowPosition;
+  size: WindowSize;
+}
+
+const DEFAULT_WINDOW_STATE: WindowState = {
+  position: { x: 16, y: 40 },
+  size: { width: 800, height: 450 },
+};
+
+export const loadWindowState = (
+  appId: keyof typeof APP_STORAGE_KEYS
+): WindowState => {
+  const key = APP_STORAGE_KEYS[appId].WINDOW;
+  const saved = localStorage.getItem(key);
+  return saved ? JSON.parse(saved) : DEFAULT_WINDOW_STATE;
+};
+
+export const saveWindowState = (
+  appId: keyof typeof APP_STORAGE_KEYS,
+  state: WindowState
+): void => {
+  const key = APP_STORAGE_KEYS[appId].WINDOW;
+  localStorage.setItem(key, JSON.stringify(state));
+};
+
+// Soundboard specific storage
 export const loadSoundboards = async (): Promise<Soundboard[]> => {
-  const saved = localStorage.getItem(STORAGE_KEYS.SOUNDBOARDS);
+  const saved = localStorage.getItem(APP_STORAGE_KEYS.soundboard.BOARDS);
   if (saved) {
     return JSON.parse(saved);
   }
@@ -47,35 +79,22 @@ export const saveSoundboards = (boards: Soundboard[]): void => {
     })),
   }));
   localStorage.setItem(
-    STORAGE_KEYS.SOUNDBOARDS,
+    APP_STORAGE_KEYS.soundboard.BOARDS,
     JSON.stringify(boardsForStorage)
   );
 };
 
-export const loadWindowPosition = (): WindowPosition => {
-  const saved = localStorage.getItem(STORAGE_KEYS.WINDOW_POSITION);
-  return saved ? JSON.parse(saved) : { x: 16, y: 40 };
-};
-
-export const saveWindowPosition = (position: WindowPosition): void => {
-  localStorage.setItem(STORAGE_KEYS.WINDOW_POSITION, JSON.stringify(position));
-};
-
-export const loadWindowSize = (): WindowSize => {
-  const saved = localStorage.getItem(STORAGE_KEYS.WINDOW_SIZE);
-  return saved ? JSON.parse(saved) : { width: 800, height: 450 };
-};
-
-export const saveWindowSize = (size: WindowSize): void => {
-  localStorage.setItem(STORAGE_KEYS.WINDOW_SIZE, JSON.stringify(size));
-};
-
 export const loadSelectedDeviceId = (): string => {
-  return localStorage.getItem(STORAGE_KEYS.SELECTED_DEVICE_ID) || "";
+  return (
+    localStorage.getItem(APP_STORAGE_KEYS.soundboard.SELECTED_DEVICE_ID) || ""
+  );
 };
 
 export const saveSelectedDeviceId = (deviceId: string): void => {
-  localStorage.setItem(STORAGE_KEYS.SELECTED_DEVICE_ID, deviceId);
+  localStorage.setItem(
+    APP_STORAGE_KEYS.soundboard.SELECTED_DEVICE_ID,
+    deviceId
+  );
 };
 
 export const createDefaultBoard = (): Soundboard => ({
@@ -89,9 +108,11 @@ export const createDefaultBoard = (): Soundboard => ({
 });
 
 export const loadHasSeenHelp = (): boolean => {
-  return localStorage.getItem(STORAGE_KEYS.HAS_SEEN_HELP) === "true";
+  return (
+    localStorage.getItem(APP_STORAGE_KEYS.soundboard.HAS_SEEN_HELP) === "true"
+  );
 };
 
 export const saveHasSeenHelp = (): void => {
-  localStorage.setItem(STORAGE_KEYS.HAS_SEEN_HELP, "true");
+  localStorage.setItem(APP_STORAGE_KEYS.soundboard.HAS_SEEN_HELP, "true");
 };

@@ -3,6 +3,8 @@ import React from "react";
 export interface AppProps {
   onClose: () => void;
   isWindowOpen: boolean;
+  isForeground?: boolean;
+  className?: string;
 }
 
 export interface BaseApp {
@@ -16,6 +18,7 @@ export interface BaseApp {
 export interface AppState {
   isOpen: boolean;
   position?: { x: number; y: number };
+  isForeground?: boolean;
 }
 
 export interface AppManagerState {

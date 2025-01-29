@@ -1,7 +1,8 @@
 import { AppManager } from "./apps/base/AppManager";
 import { SoundboardApp } from "./apps/soundboard";
+import { InternetExplorerApp } from "./apps/internet-explorer";
 
-const apps = [SoundboardApp];
+const apps = [SoundboardApp, InternetExplorerApp];
 
 function App() {
   return (

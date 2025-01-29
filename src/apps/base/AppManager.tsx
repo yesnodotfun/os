@@ -9,14 +9,36 @@ interface AppManagerProps {
 export function AppManager({ apps, initialState = {} }: AppManagerProps) {
   const [appStates, setAppStates] = useState<AppManagerState>(initialState);
 
+  const bringToForeground = (appId: string) => {
+    setAppStates((prev) => {
+      const newStates = { ...prev };
+      Object.keys(newStates).forEach((id) => {
+        newStates[id] = { ...newStates[id], isForeground: id === appId };
+      });
+      return newStates;
+    });
+  };
+
   const toggleApp = (appId: string) => {
     setAppStates((prev) => ({
       ...prev,
       [appId]: {
         ...prev[appId],
         isOpen: !prev[appId]?.isOpen,
+        isForeground: true,
       },
     }));
+
+    // Set all other apps to background
+    setAppStates((prev) => {
+      const newStates = { ...prev };
+      Object.keys(newStates).forEach((id) => {
+        if (id !== appId) {
+          newStates[id] = { ...newStates[id], isForeground: false };
+        }
+      });
+      return newStates;
+    });
   };
 
   return (
@@ -24,14 +46,23 @@ export function AppManager({ apps, initialState = {} }: AppManagerProps) {
       {/* App Instances */}
       {apps.map((app) => {
         const isOpen = appStates[app.id]?.isOpen ?? false;
+        const isForeground = appStates[app.id]?.isForeground ?? false;
         const AppComponent = app.component;
-        return (
-          <AppComponent
+        return isOpen ? (
+          <div
             key={app.id}
-            isWindowOpen={isOpen}
-            onClose={() => toggleApp(app.id)}
-          />
-        );
+            style={{ zIndex: isForeground ? 50 : 10 }}
+            className="absolute"
+            onClick={() => !isForeground && bringToForeground(app.id)}
+          >
+            <AppComponent
+              isWindowOpen={isOpen}
+              isForeground={isForeground}
+              onClose={() => toggleApp(app.id)}
+              className="pointer-events-auto"
+            />
+          </div>
+        ) : null;
       })}
 
       <div className="fixed inset-0 min-h-screen bg-[#666699] bg-[radial-gradient(#777_1px,transparent_0)] bg-[length:24px_24px] bg-[-19px_-19px] z-[-1]">

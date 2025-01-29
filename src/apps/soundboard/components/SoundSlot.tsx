@@ -51,8 +51,9 @@ export function SoundSlot({
               audioData={slot.audioData}
               isPlaying={isPlaying}
               onWaveformCreate={onWaveformCreate}
+              className="z-10"
             />
-            <div className="absolute top-1 right-1 flex gap-1 z-10">
+            <div className="absolute top-1 right-1 flex gap-1 z-1">
               <div
                 role="button"
                 className="hidden md:flex opacity-0 group-hover:opacity-100 transition-opacity h-5 w-5 md:h-6 md:w-6 hover:bg-white/50 rounded-md items-center justify-center cursor-pointer"
@@ -67,7 +68,7 @@ export function SoundSlot({
           </>
         )}
         <div
-          className={`absolute bottom-1 left-2 flex items-center gap-1 md:gap-2 z-10 transition-all duration-300 ease-in-out transform origin-left ${
+          className={`left-2 flex items-center gap-1 md:gap-2 transition-all duration-300 ease-in-out transform origin-left ${
             isPlaying ? "opacity-100 scale-100" : "opacity-60 scale-80"
           }`}
         >

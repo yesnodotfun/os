@@ -31,7 +31,11 @@ interface ImportedBoard {
   slots: ImportedSlot[];
 }
 
-export function SoundboardAppComponent({ onClose, isWindowOpen }: AppProps) {
+export function SoundboardAppComponent({
+  onClose,
+  isWindowOpen,
+  isForeground,
+}: AppProps) {
   const {
     boards,
     activeBoard,
@@ -276,7 +280,12 @@ export function SoundboardAppComponent({ onClose, isWindowOpen }: AppProps) {
         onToggleEmojis={setShowEmojis}
       />
       {isWindowOpen && (
-        <WindowFrame title="Soundboard.app" onClose={onClose}>
+        <WindowFrame
+          title="Soundboard"
+          onClose={onClose}
+          isForeground={isForeground}
+          appId="soundboard"
+        >
           <input
             type="file"
             ref={importInputRef}

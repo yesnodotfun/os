@@ -2,13 +2,12 @@
 
 ## To-do features
 
-- [ ] Add an abstraction to allow multiple apps, eg. "Soundboard.app" is just one of the apps.
-- [ ] Apps show up in the desktop as DesktopIcons, and can show up in the Apple menu.
-- [ ] Add a new app for "Assistant"
+- [x] Add an abstraction to allow multiple apps, eg. "Soundboard.app" is just one of the apps.
+- [x] Apps show up in the desktop as DesktopIcons, and can show up in the Apple menu.
+- [ ] Add a new app for "Internet Explorer"
 
-
-# Ideas
-refactor the app to prepare for multi-app world. add a "app" abstraction
-- make Soundboard.app one of the apps
-- available apps show up in the desktop as icons, and also in the MenuBar
-- separate out SoundboardApp out of App.tsx
+## App architecture
+- New apps are defined in src/apps/[app-name]/index.tsx
+- App components are defined in src/apps/[app-name]/components/[component-name].tsx
+- Apps are imported and registered in src/App.tsx
+- AppManager.tsx is the main entry point for the app, and is responsible for rendering the apps and managing the state of the apps.
