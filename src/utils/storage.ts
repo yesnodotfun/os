@@ -1,4 +1,5 @@
 import { Soundboard, WindowPosition, WindowSize } from "../types/types";
+import { AppManagerState } from "../apps/base/types";
 
 export const APP_STORAGE_KEYS = {
   soundboard: {
@@ -143,4 +144,15 @@ export const saveFavorites = (favorites: Favorite[]): void => {
     APP_STORAGE_KEYS["internet-explorer"].FAVORITES,
     JSON.stringify(favorites)
   );
+};
+
+const APP_STATE_KEY = "app:state";
+
+export const loadAppState = (): AppManagerState => {
+  const saved = localStorage.getItem(APP_STATE_KEY);
+  return saved ? JSON.parse(saved) : {};
+};
+
+export const saveAppState = (state: AppManagerState): void => {
+  localStorage.setItem(APP_STATE_KEY, JSON.stringify(state));
 };

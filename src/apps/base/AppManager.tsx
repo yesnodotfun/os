@@ -1,15 +1,21 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BaseApp, AppManagerState } from "./types";
 import { AppContext } from "@/contexts/AppContext";
 import { MenuBar } from "@/components/layout/MenuBar";
+import { loadAppState, saveAppState } from "@/utils/storage";
 
 interface AppManagerProps {
   apps: BaseApp[];
-  initialState?: AppManagerState;
 }
 
-export function AppManager({ apps, initialState = {} }: AppManagerProps) {
-  const [appStates, setAppStates] = useState<AppManagerState>(initialState);
+export function AppManager({ apps }: AppManagerProps) {
+  const [appStates, setAppStates] = useState<AppManagerState>(() =>
+    loadAppState()
+  );
+
+  useEffect(() => {
+    saveAppState(appStates);
+  }, [appStates]);
 
   const bringToForeground = (appId: string) => {
     setAppStates((prev) => {

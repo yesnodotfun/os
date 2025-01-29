@@ -5,12 +5,7 @@ import { InternetExplorerApp } from "./apps/internet-explorer";
 const apps = [SoundboardApp, InternetExplorerApp];
 
 function App() {
-  return (
-    <AppManager
-      apps={apps}
-      initialState={{ soundboard: { isOpen: true, isForeground: true } }}
-    />
-  );
+  return <AppManager apps={apps} />;
 }
 
 export default App;
