@@ -35,7 +35,7 @@ export function SoundSlot({
     <div className="flex flex-col gap-2 min-h-0">
       <Button
         variant="retro"
-        className={`h-full w-full flex flex-col items-stretch justify-between relative p-2 md:p-2 group min-h-[4rem] md:min-h-[6rem] focus:outline-none focus:ring-0 ${
+        className={`h-full w-full flex flex-col items-stretch justify-between relative p-2 md:p-2 group min-h-[106px] md:min-h-[110px] focus:outline-none focus:ring-0 ${
           isRecording ? "bg-destructive animate-pulse" : ""
         } ${
           isPlaying

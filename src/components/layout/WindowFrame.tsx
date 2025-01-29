@@ -37,7 +37,11 @@ export function WindowFrame({
         transition: isDragging || resizeType ? "none" : "all 0.2s ease",
       }}
     >
-      <div className="relative h-full bg-system7-window-bg border-[2px] border-black rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)] overflow-hidden">
+      <div
+        className={`relative h-full bg-system7-window-bg border-[2px] border-black rounded-lg ${
+          isForeground ? "shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)]" : ""
+        } overflow-hidden`}
+      >
         {/* Resize handles */}
         <div className="absolute inset-0 pointer-events-none">
           <div
@@ -74,16 +78,22 @@ export function WindowFrame({
         <div
           className={`flex items-center flex-none h-6 mx-0 my-[0.1rem] px-[0.1rem] py-[0.2rem] ${
             isForeground
-              ? "bg-[linear-gradient(#000_50%,transparent_0)] bg-clip-content bg-[length:6.6666666667%_13.3333333333%]"
-              : "bg-white"
-          } cursor-move border-b-[2px] border-black`}
+              ? "bg-[linear-gradient(#000_50%,transparent_0)] bg-clip-content bg-[length:6.6666666667%_13.3333333333%] border-b-black"
+              : "bg-white border-b-gray-400"
+          } cursor-move border-b-[2px]`}
           onMouseDown={handleMouseDown}
         >
           <button
             onClick={onClose}
-            className="ml-2 w-4 h-4 bg-white border-2 border-black hover:bg-gray-200 active:bg-gray-300 flex items-center justify-center shadow-[0_0_0_1px_white]"
+            className={`ml-2 w-4 h-4 bg-white border-2 border-black hover:bg-gray-200 active:bg-gray-300 flex items-center justify-center shadow-[0_0_0_1px_white] ${
+              !isForeground && "invisible"
+            }`}
           />
-          <span className="select-none mx-auto bg-white px-2 py-0 h-full flex items-center justify-center">
+          <span
+            className={`select-none mx-auto bg-white px-2 py-0 h-full flex items-center justify-center ${
+              !isForeground && "text-gray-500"
+            }`}
+          >
             {title}
           </span>
           <div className="mr-2 w-4 h-4" />

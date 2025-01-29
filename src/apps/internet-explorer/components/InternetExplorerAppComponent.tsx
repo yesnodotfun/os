@@ -2,6 +2,7 @@ import { useState } from "react";
 import { AppProps } from "../../base/types";
 import { WindowFrame } from "@/components/layout/WindowFrame";
 import { Input } from "@/components/ui/input";
+import { InternetExplorerMenuBar } from "./InternetExplorerMenuBar";
 
 export function InternetExplorerAppComponent({
   isWindowOpen,
@@ -31,6 +32,23 @@ export function InternetExplorerAppComponent({
     );
   };
 
+  const handleRefresh = () => {
+    handleNavigate();
+  };
+
+  const handleStop = () => {
+    setIsLoading(false);
+  };
+
+  const handleHome = () => {
+    setUrl("https://ryo.lu");
+    setCurrentUrl("https://ryo.lu");
+  };
+
+  const handleClearHistory = () => {
+    // TODO: Implement history clearing when history feature is added
+  };
+
   if (!isWindowOpen) return null;
 
   return (
@@ -41,6 +59,15 @@ export function InternetExplorerAppComponent({
       appId="internet-explorer"
     >
       <div className="flex flex-col h-full w-full">
+        <InternetExplorerMenuBar
+          isWindowOpen={isWindowOpen}
+          isForeground={isForeground}
+          onRefresh={handleRefresh}
+          onStop={handleStop}
+          onHome={handleHome}
+          onClearHistory={handleClearHistory}
+          isLoading={isLoading}
+        />
         <div className="flex gap-2 p-1 bg-gray-100 border-b border-black items-center">
           <Input
             value={url}
