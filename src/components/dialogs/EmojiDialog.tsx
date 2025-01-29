@@ -225,7 +225,7 @@ export function EmojiDialog({
 }: EmojiDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-system7-window-bg border-2 border-black rounded-lg shadow-[8px_8px_0px_0px_rgba(0,0,0,0.5)]">
+      <DialogContent className="bg-system7-window-bg border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)]">
         <DialogHeader>Set Emoji</DialogHeader>
         <div className="p-4 pt-0">
           <p className="text-gray-500 mb-4">
