@@ -24,6 +24,7 @@ export interface BaseApp {
     description: string;
   }>;
   metadata?: {
+    name: string;
     version: string;
     creator: {
       name: string;

@@ -4,6 +4,7 @@ interface AboutDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   metadata: {
+    name: string;
     version: string;
     creator: {
       name: string;
