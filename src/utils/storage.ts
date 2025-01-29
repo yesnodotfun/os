@@ -10,6 +10,7 @@ export const APP_STORAGE_KEYS = {
   "internet-explorer": {
     WINDOW: "internet-explorer:window",
     HISTORY: "internet-explorer:history",
+    FAVORITES: "internet-explorer:favorites",
   },
 } as const;
 
@@ -115,4 +116,28 @@ export const loadHasSeenHelp = (): boolean => {
 
 export const saveHasSeenHelp = (): void => {
   localStorage.setItem(APP_STORAGE_KEYS.soundboard.HAS_SEEN_HELP, "true");
+};
+
+export interface Favorite {
+  title: string;
+  url: string;
+}
+
+export const DEFAULT_FAVORITES: Favorite[] = [
+  { title: "Ryo.lu", url: "https://ryo.lu" },
+  { title: "TMB.sh", url: "https://tmb.sh" },
+];
+
+export const loadFavorites = (): Favorite[] => {
+  const saved = localStorage.getItem(
+    APP_STORAGE_KEYS["internet-explorer"].FAVORITES
+  );
+  return saved ? JSON.parse(saved) : DEFAULT_FAVORITES;
+};
+
+export const saveFavorites = (favorites: Favorite[]): void => {
+  localStorage.setItem(
+    APP_STORAGE_KEYS["internet-explorer"].FAVORITES,
+    JSON.stringify(favorites)
+  );
 };

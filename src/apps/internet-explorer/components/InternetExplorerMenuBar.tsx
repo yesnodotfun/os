@@ -17,6 +17,10 @@ interface InternetExplorerMenuBarProps extends Omit<AppProps, "onClose"> {
   onShowHelp?: () => void;
   onShowAbout?: () => void;
   isLoading?: boolean;
+  favorites?: Array<{ title: string; url: string }>;
+  onAddFavorite?: () => void;
+  onClearFavorites?: () => void;
+  onNavigateToFavorite?: (url: string) => void;
 }
 
 export function InternetExplorerMenuBar({
@@ -27,6 +31,10 @@ export function InternetExplorerMenuBar({
   onShowHelp,
   onShowAbout,
   isLoading,
+  favorites = [],
+  onAddFavorite,
+  onClearFavorites,
+  onNavigateToFavorite,
 }: InternetExplorerMenuBarProps) {
   return (
     <MenuBar>
@@ -87,6 +95,48 @@ export function InternetExplorerMenuBar({
           >
             Stop
           </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* Favorites Menu */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="default"
+            className="h-6 px-2 py-1 text-md focus-visible:ring-0 hover:bg-gray-200 active:bg-gray-900 active:text-white"
+          >
+            Favorites
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" sideOffset={1} className="px-0">
+          <DropdownMenuItem
+            onClick={onAddFavorite}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            Add to Favorites
+          </DropdownMenuItem>
+          {favorites.length > 0 && (
+            <>
+              <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
+              {favorites.map((favorite) => (
+                <DropdownMenuItem
+                  key={favorite.url}
+                  onClick={() => onNavigateToFavorite?.(favorite.url)}
+                  className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+                >
+                  {favorite.title}
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
+              <DropdownMenuItem
+                onClick={onClearFavorites}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+              >
+                Clear Favorites
+              </DropdownMenuItem>
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 
