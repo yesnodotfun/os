@@ -6,7 +6,10 @@ const apps = [SoundboardApp, InternetExplorerApp];
 
 function App() {
   return (
-    <AppManager apps={apps} initialState={{ soundboard: { isOpen: true } }} />
+    <AppManager
+      apps={apps}
+      initialState={{ soundboard: { isOpen: true, isForeground: true } }}
+    />
   );
 }
 

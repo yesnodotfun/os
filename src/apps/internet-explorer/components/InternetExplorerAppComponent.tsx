@@ -6,6 +6,7 @@ import { InternetExplorerMenuBar } from "./InternetExplorerMenuBar";
 import { Button } from "@/components/ui/button";
 import { Favorite, loadFavorites, saveFavorites } from "@/utils/storage";
 import { Plus } from "lucide-react";
+import { InputDialog } from "@/components/dialogs/InputDialog";
 
 export function InternetExplorerAppComponent({
   isWindowOpen,
@@ -17,6 +18,8 @@ export function InternetExplorerAppComponent({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [favorites, setFavorites] = useState<Favorite[]>([]);
+  const [isTitleDialogOpen, setIsTitleDialogOpen] = useState(false);
+  const [newFavoriteTitle, setNewFavoriteTitle] = useState("");
 
   useEffect(() => {
     setFavorites(loadFavorites());
@@ -37,15 +40,19 @@ export function InternetExplorerAppComponent({
   };
 
   const handleAddFavorite = () => {
-    const title = window.prompt(
-      "Enter a title for this favorite:",
-      new URL(currentUrl).hostname
-    );
-    if (!title) return;
+    setNewFavoriteTitle(new URL(currentUrl).hostname);
+    setIsTitleDialogOpen(true);
+  };
 
-    const newFavorites = [...favorites, { title, url: currentUrl }];
+  const handleTitleSubmit = () => {
+    if (!newFavoriteTitle) return;
+    const newFavorites = [
+      ...favorites,
+      { title: newFavoriteTitle, url: currentUrl },
+    ];
     setFavorites(newFavorites);
     saveFavorites(newFavorites);
+    setIsTitleDialogOpen(false);
   };
 
   const handleClearFavorites = () => {
@@ -167,6 +174,15 @@ export function InternetExplorerAppComponent({
           />
         )}
       </div>
+      <InputDialog
+        isOpen={isTitleDialogOpen}
+        onOpenChange={setIsTitleDialogOpen}
+        onSubmit={handleTitleSubmit}
+        title="Add Favorite"
+        description="Enter a title for this favorite"
+        value={newFavoriteTitle}
+        onChange={setNewFavoriteTitle}
+      />
     </WindowFrame>
   );
 }

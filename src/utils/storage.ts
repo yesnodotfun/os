@@ -21,7 +21,7 @@ interface WindowState {
 
 const DEFAULT_WINDOW_STATE: WindowState = {
   position: { x: 16, y: 40 },
-  size: { width: 800, height: 450 },
+  size: { width: 800, height: 475 },
 };
 
 export const loadWindowState = (
