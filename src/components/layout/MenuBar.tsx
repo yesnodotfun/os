@@ -81,7 +81,7 @@ export function MenuBar({
             onClick={() => setAboutFinderOpen(true)}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            About This Macintosh...
+            About This Macintosh
           </DropdownMenuItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           <DropdownMenuItem
@@ -149,7 +149,7 @@ export function MenuBar({
             onClick={onRenameBoard}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            Rename Soundboard...
+            Rename Soundboard
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={onDeleteBoard}
@@ -208,13 +208,14 @@ export function MenuBar({
             onClick={onShowHelp}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            Get Help...
+            Get Help
           </DropdownMenuItem>
+          <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           <DropdownMenuItem
             onClick={onShowAbout}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            About Soundboard.app...
+            About Soundboard
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
