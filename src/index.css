@@ -15,6 +15,20 @@
   font-style: normal;
 }
 
+@font-face {
+  font-family: "Geneva-9";
+  src: url("/fonts/geneva-9.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Geneva-12";
+  src: url("/fonts/geneva-12.otf") format("opentype");
+  font-weight: normal;
+  font-style: normal;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

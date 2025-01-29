@@ -125,12 +125,13 @@ export interface Favorite {
 }
 
 export const DEFAULT_FAVORITES: Favorite[] = [
-  { title: "Ryo Lu", url: "https://ryo.lu" },
+  { title: "NewJeans", url: "https://newjeans.kr" },
   { title: "Theo Bleier", url: "https://tmb.sh" },
   { title: "Tyler Beauchamp", url: "https://tylerbeauchamp.net" },
   { title: "Sam Catania", url: "https://www.samuelcatania.com" },
   { title: "Stephen Wu", url: "https://wustep.me" },
   { title: "Lucas", url: "https://www.lucasn.com" },
+  { title: "Ryo Lu", url: "https://ryo.lu" },
 ];
 
 export const loadFavorites = (): Favorite[] => {
