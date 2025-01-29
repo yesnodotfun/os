@@ -15,7 +15,11 @@ export function DesktopIcon({
       onDoubleClick={onToggleWindow}
     >
       <div className="text-4xl group-hover:scale-105 transition-transform">
-        <img src="/icons/cdrom.png" alt="CD-ROM" className="w-8 h-8" />
+        <img
+          src="/icons/cdrom.png"
+          alt="CD-ROM"
+          className="w-8 h-8 [image-rendering:pixelated]"
+        />
       </div>
       <div
         className={cn(

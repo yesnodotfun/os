@@ -18,7 +18,7 @@ export function AboutFinderDialog({
             <img
               src="/icons/mac.png"
               alt="Happy Mac"
-              className="w-12 h-12 mx-auto"
+              className="w-12 h-12 mx-auto [image-rendering:pixelated]"
             />
           </div>
           <div className="space-y-0">

@@ -15,7 +15,7 @@ export function AboutDialog({ isOpen, onOpenChange }: AboutDialogProps) {
             <img
               src="/icons/cdrom.png"
               alt="CD-ROM"
-              className="w-12 h-12 mx-auto"
+              className="w-12 h-12 mx-auto [image-rendering:pixelated]"
             />
           </div>
           <div className="space-y-0">
