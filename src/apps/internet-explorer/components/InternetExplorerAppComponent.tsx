@@ -101,116 +101,118 @@ export function InternetExplorerAppComponent({
   if (!isWindowOpen) return null;
 
   return (
-    <WindowFrame
-      title="Internet Explorer"
-      onClose={onClose}
-      isForeground={isForeground}
-      appId="internet-explorer"
-    >
-      <div className="flex flex-col h-full w-full">
-        <InternetExplorerMenuBar
-          isWindowOpen={isWindowOpen}
-          isForeground={isForeground}
-          onRefresh={handleRefresh}
-          onStop={handleStop}
-          onFocusUrlInput={handleGoToUrl}
-          onHome={handleHome}
-          onClearHistory={handleClearHistory}
-          onShowHelp={() => setIsHelpDialogOpen(true)}
-          onShowAbout={() => setIsAboutDialogOpen(true)}
-          isLoading={isLoading}
-          favorites={favorites}
-          onAddFavorite={handleAddFavorite}
-          onClearFavorites={handleClearFavorites}
-          onNavigateToFavorite={handleNavigate}
-          onClose={onClose}
-        />
-        <div className="flex flex-col gap-1 p-1 bg-gray-100 border-b border-black">
-          <div className="flex gap-2 items-center">
-            <Input
-              ref={urlInputRef}
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleNavigate()}
-              placeholder="Enter URL..."
-              className="flex-1 shadow-none border-black"
-            />
-            <img
-              src={
-                isLoading
-                  ? "/icons/ie-loader-animated.png"
-                  : "/icons/ie-loader.png"
-              }
-              alt="Internet Explorer"
-              className="w-10 h-10"
-            />
-          </div>
-          <div className="flex gap-1 items-center group">
-            {favorites.map((favorite, index) => (
+    <>
+      <InternetExplorerMenuBar
+        isWindowOpen={isWindowOpen}
+        isForeground={isForeground}
+        onRefresh={handleRefresh}
+        onStop={handleStop}
+        onFocusUrlInput={handleGoToUrl}
+        onHome={handleHome}
+        onClearHistory={handleClearHistory}
+        onShowHelp={() => setIsHelpDialogOpen(true)}
+        onShowAbout={() => setIsAboutDialogOpen(true)}
+        isLoading={isLoading}
+        favorites={favorites}
+        onAddFavorite={handleAddFavorite}
+        onClearFavorites={handleClearFavorites}
+        onNavigateToFavorite={handleNavigate}
+        onClose={onClose}
+      />
+      <WindowFrame
+        title="Internet Explorer"
+        onClose={onClose}
+        isForeground={isForeground}
+        appId="internet-explorer"
+      >
+        <div className="flex flex-col h-full w-full">
+          <div className="flex flex-col gap-1 p-1 bg-gray-100 border-b border-black">
+            <div className="flex gap-2 items-center">
+              <Input
+                ref={urlInputRef}
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleNavigate()}
+                placeholder="Enter URL..."
+                className="flex-1 shadow-none border-black"
+              />
+              <img
+                src={
+                  isLoading
+                    ? "/icons/ie-loader-animated.png"
+                    : "/icons/ie-loader.png"
+                }
+                alt="Internet Explorer"
+                className="w-10 h-10"
+              />
+            </div>
+            <div className="flex gap-1 items-center group">
+              {favorites.map((favorite, index) => (
+                <Button
+                  key={index}
+                  variant="ghost"
+                  size="sm"
+                  className="whitespace-nowrap hover:bg-gray-200"
+                  onClick={() => handleNavigate(favorite.url)}
+                >
+                  <img
+                    src="/icons/ie-site.png"
+                    alt="Site"
+                    className="w-4 h-4 mr-1"
+                  />
+                  {favorite.title}
+                </Button>
+              ))}
               <Button
-                key={index}
                 variant="ghost"
-                size="sm"
-                className="whitespace-nowrap hover:bg-gray-200"
-                onClick={() => handleNavigate(favorite.url)}
+                size="icon"
+                onClick={handleAddFavorite}
+                className="h-8 w-8 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
               >
-                <img
-                  src="/icons/ie-site.png"
-                  alt="Site"
-                  className="w-4 h-4 mr-1"
-                />
-                {favorite.title}
+                <Plus className="h-4 w-4" />
               </Button>
-            ))}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleAddFavorite}
-              className="h-8 w-8 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
+            </div>
           </div>
-        </div>
-        {error ? (
-          <div className="flex flex-col items-center justify-center h-full p-4 bg-white text-center">
-            <img
-              src="/icons/error.png"
-              alt="Error"
-              className="w-16 h-16 mb-4"
+          {error ? (
+            <div className="flex flex-col items-center justify-center h-full p-4 bg-white text-center">
+              <img
+                src="/icons/error.png"
+                alt="Error"
+                className="w-16 h-16 mb-4"
+              />
+              <p className="text-red-600">{error}</p>
+            </div>
+          ) : (
+            <iframe
+              src={currentUrl}
+              className="flex-1 w-full h-full border-0"
+              sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+              onLoad={() => setIsLoading(false)}
+              onError={handleIframeError}
             />
-            <p className="text-red-600">{error}</p>
-          </div>
-        ) : (
-          <iframe
-            src={currentUrl}
-            className="flex-1 w-full h-full border-0"
-            sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-            onLoad={() => setIsLoading(false)}
-            onError={handleIframeError}
-          />
-        )}
-      </div>
-      <InputDialog
-        isOpen={isTitleDialogOpen}
-        onOpenChange={setIsTitleDialogOpen}
-        onSubmit={handleTitleSubmit}
-        title="Add Favorite"
-        description="Enter a title for this favorite"
-        value={newFavoriteTitle}
-        onChange={setNewFavoriteTitle}
-      />
-      <HelpDialog
-        isOpen={isHelpDialogOpen}
-        onOpenChange={setIsHelpDialogOpen}
-        helpItems={helpItems}
-        appName="Internet Explorer"
-      />
-      <AboutDialog
-        isOpen={isAboutDialogOpen}
-        onOpenChange={setIsAboutDialogOpen}
-        metadata={appMetadata}
-      />
-    </WindowFrame>
+          )}
+        </div>
+        <InputDialog
+          isOpen={isTitleDialogOpen}
+          onOpenChange={setIsTitleDialogOpen}
+          onSubmit={handleTitleSubmit}
+          title="Add Favorite"
+          description="Enter a title for this favorite"
+          value={newFavoriteTitle}
+          onChange={setNewFavoriteTitle}
+        />
+        <HelpDialog
+          isOpen={isHelpDialogOpen}
+          onOpenChange={setIsHelpDialogOpen}
+          helpItems={helpItems}
+          appName="Internet Explorer"
+        />
+        <AboutDialog
+          isOpen={isAboutDialogOpen}
+          onOpenChange={setIsAboutDialogOpen}
+          metadata={appMetadata}
+        />
+      </WindowFrame>
+    </>
   );
 }

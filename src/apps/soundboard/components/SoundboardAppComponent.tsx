@@ -281,107 +281,105 @@ export function SoundboardAppComponent({
         showEmojis={showEmojis}
         onToggleEmojis={setShowEmojis}
       />
-      {isWindowOpen && (
-        <WindowFrame
-          title="Soundboard"
-          onClose={onClose}
-          isForeground={isForeground}
-          appId="soundboard"
-        >
-          <input
-            type="file"
-            ref={importInputRef}
-            className="hidden"
-            accept="application/json"
-            onChange={handleImportBoard}
-          />
+      <WindowFrame
+        title="Soundboard"
+        onClose={onClose}
+        isForeground={isForeground}
+        appId="soundboard"
+      >
+        <input
+          type="file"
+          ref={importInputRef}
+          className="hidden"
+          accept="application/json"
+          onChange={handleImportBoard}
+        />
 
-          <BoardList
-            boards={boards}
-            activeBoardId={activeBoardId}
-            onBoardSelect={setActiveBoardId}
-            onNewBoard={addNewBoard}
-            selectedDeviceId={selectedDeviceId}
-            onDeviceSelect={setSelectedDeviceId}
-            audioDevices={audioDevices}
-            micPermissionGranted={micPermissionGranted}
-          />
+        <BoardList
+          boards={boards}
+          activeBoardId={activeBoardId}
+          onBoardSelect={setActiveBoardId}
+          onNewBoard={addNewBoard}
+          selectedDeviceId={selectedDeviceId}
+          onDeviceSelect={setSelectedDeviceId}
+          audioDevices={audioDevices}
+          micPermissionGranted={micPermissionGranted}
+        />
 
-          <SoundGrid
-            board={activeBoard}
-            playbackStates={playbackStates}
-            waveformRefs={waveformRefs.current}
-            isEditingTitle={isEditingTitle}
-            onTitleChange={(name) => updateBoardName(name)}
-            onTitleBlur={(name) => {
-              updateBoardName(name);
+        <SoundGrid
+          board={activeBoard}
+          playbackStates={playbackStates}
+          waveformRefs={waveformRefs.current}
+          isEditingTitle={isEditingTitle}
+          onTitleChange={(name) => updateBoardName(name)}
+          onTitleBlur={(name) => {
+            updateBoardName(name);
+            setIsEditingTitle(false);
+          }}
+          onTitleKeyDown={(e) => {
+            if (e.key === "Enter") {
+              updateBoardName(e.currentTarget.value);
               setIsEditingTitle(false);
-            }}
-            onTitleKeyDown={(e) => {
-              if (e.key === "Enter") {
-                updateBoardName(e.currentTarget.value);
-                setIsEditingTitle(false);
-              }
-            }}
-            onSlotClick={handleSlotClick}
-            onSlotDelete={deleteSlot}
-            onSlotEmojiClick={(index) =>
-              setDialogState({
-                type: "emoji",
-                isOpen: true,
-                slotIndex: index,
-                value: activeBoard.slots[index].emoji || "",
-              })
             }
-            onSlotTitleClick={(index) =>
-              setDialogState({
-                type: "title",
-                isOpen: true,
-                slotIndex: index,
-                value: activeBoard.slots[index].title || "",
-              })
-            }
-            setIsEditingTitle={setIsEditingTitle}
-            showWaveforms={showWaveforms}
-            showEmojis={showEmojis}
-          />
+          }}
+          onSlotClick={handleSlotClick}
+          onSlotDelete={deleteSlot}
+          onSlotEmojiClick={(index) =>
+            setDialogState({
+              type: "emoji",
+              isOpen: true,
+              slotIndex: index,
+              value: activeBoard.slots[index].emoji || "",
+            })
+          }
+          onSlotTitleClick={(index) =>
+            setDialogState({
+              type: "title",
+              isOpen: true,
+              slotIndex: index,
+              value: activeBoard.slots[index].title || "",
+            })
+          }
+          setIsEditingTitle={setIsEditingTitle}
+          showWaveforms={showWaveforms}
+          showEmojis={showEmojis}
+        />
 
-          <EmojiDialog
-            isOpen={dialogState.isOpen && dialogState.type === "emoji"}
-            onOpenChange={(open) =>
-              setDialogState((prev) => ({ ...prev, isOpen: open }))
-            }
-            onEmojiSelect={(emoji) => {
-              updateSlot(dialogState.slotIndex, { emoji });
-              setDialogState((prev) => ({ ...prev, isOpen: false }));
-            }}
-          />
+        <EmojiDialog
+          isOpen={dialogState.isOpen && dialogState.type === "emoji"}
+          onOpenChange={(open) =>
+            setDialogState((prev) => ({ ...prev, isOpen: open }))
+          }
+          onEmojiSelect={(emoji) => {
+            updateSlot(dialogState.slotIndex, { emoji });
+            setDialogState((prev) => ({ ...prev, isOpen: false }));
+          }}
+        />
 
-          <InputDialog
-            isOpen={dialogState.isOpen && dialogState.type === "title"}
-            onOpenChange={(open) =>
-              setDialogState((prev) => ({ ...prev, isOpen: open }))
-            }
-            onSubmit={handleDialogSubmit}
-            title="Set Title"
-            description="Enter a title for this sound slot"
-            value={dialogState.value}
-            onChange={(value) => setDialogState((prev) => ({ ...prev, value }))}
-          />
+        <InputDialog
+          isOpen={dialogState.isOpen && dialogState.type === "title"}
+          onOpenChange={(open) =>
+            setDialogState((prev) => ({ ...prev, isOpen: open }))
+          }
+          onSubmit={handleDialogSubmit}
+          title="Set Title"
+          description="Enter a title for this sound slot"
+          value={dialogState.value}
+          onChange={(value) => setDialogState((prev) => ({ ...prev, value }))}
+        />
 
-          <HelpDialog
-            isOpen={helpDialogOpen}
-            onOpenChange={setHelpDialogOpen}
-            helpItems={helpItems}
-            appName="Soundboard.app"
-          />
-          <AboutDialog
-            isOpen={aboutDialogOpen}
-            onOpenChange={setAboutDialogOpen}
-            metadata={appMetadata}
-          />
-        </WindowFrame>
-      )}
+        <HelpDialog
+          isOpen={helpDialogOpen}
+          onOpenChange={setHelpDialogOpen}
+          helpItems={helpItems}
+          appName="Soundboard.app"
+        />
+        <AboutDialog
+          isOpen={aboutDialogOpen}
+          onOpenChange={setAboutDialogOpen}
+          metadata={appMetadata}
+        />
+      </WindowFrame>
     </>
   );
 }

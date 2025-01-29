@@ -14,23 +14,8 @@ export const helpItems = [
   },
   {
     icon: "🔄",
-    title: "Refresh",
-    description: "Reload the current page",
-  },
-  {
-    icon: "🏠",
-    title: "Home",
-    description: "Return to the home page",
-  },
-  {
-    icon: "⏹️",
-    title: "Stop",
-    description: "Stop loading the current page",
-  },
-  {
-    icon: "🖥️",
-    title: "Classic",
-    description: "Windows 98 style aesthetics",
+    title: "Load and refresh",
+    description: "Open iframable websites",
   },
 ];
 
