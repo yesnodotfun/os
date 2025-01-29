@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { BaseApp, AppManagerState } from "./types";
 import { AppContext } from "@/contexts/AppContext";
+import { MenuBar } from "@/components/layout/MenuBar";
 
 interface AppManagerProps {
   apps: BaseApp[];
@@ -46,6 +47,7 @@ export function AppManager({ apps, initialState = {} }: AppManagerProps) {
     <AppContext.Provider
       value={{ appStates, toggleApp, bringToForeground, apps }}
     >
+      <MenuBar />
       {/* App Instances */}
       {apps.map((app) => {
         const isOpen = appStates[app.id]?.isOpen ?? false;

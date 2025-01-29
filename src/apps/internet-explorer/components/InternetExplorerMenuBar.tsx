@@ -12,6 +12,7 @@ import { MenuBar } from "@/components/layout/MenuBar";
 interface InternetExplorerMenuBarProps extends Omit<AppProps, "onClose"> {
   onRefresh?: () => void;
   onStop?: () => void;
+  onGoToUrl?: () => void;
   onHome?: () => void;
   onClearHistory?: () => void;
   onShowHelp?: () => void;
@@ -21,13 +22,14 @@ interface InternetExplorerMenuBarProps extends Omit<AppProps, "onClose"> {
   onAddFavorite?: () => void;
   onClearFavorites?: () => void;
   onNavigateToFavorite?: (url: string) => void;
+  onFocusUrlInput?: () => void;
+  onClose?: () => void;
 }
 
 export function InternetExplorerMenuBar({
   onRefresh,
   onStop,
   onHome,
-  onClearHistory,
   onShowHelp,
   onShowAbout,
   isLoading,
@@ -35,6 +37,8 @@ export function InternetExplorerMenuBar({
   onAddFavorite,
   onClearFavorites,
   onNavigateToFavorite,
+  onFocusUrlInput,
+  onClose,
 }: InternetExplorerMenuBarProps) {
   return (
     <MenuBar>
@@ -51,17 +55,18 @@ export function InternetExplorerMenuBar({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" sideOffset={1} className="px-0">
           <DropdownMenuItem
-            onClick={onHome}
+            onClick={onFocusUrlInput}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            Home
+            Go to URL
           </DropdownMenuItem>
+
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           <DropdownMenuItem
-            onClick={onClearHistory}
+            onClick={onClose}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            Clear History
+            Close Window
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -111,10 +116,17 @@ export function InternetExplorerMenuBar({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" sideOffset={1} className="px-0">
           <DropdownMenuItem
+            onClick={onHome}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            Go Home
+          </DropdownMenuItem>
+          <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
+          <DropdownMenuItem
             onClick={onAddFavorite}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            Add to Favorites
+            Add to Favorites...
           </DropdownMenuItem>
           {favorites.length > 0 && (
             <>
@@ -133,7 +145,7 @@ export function InternetExplorerMenuBar({
                 onClick={onClearFavorites}
                 className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
               >
-                Clear Favorites
+                Clear Favorites...
               </DropdownMenuItem>
             </>
           )}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { AppProps } from "../../base/types";
 import { WindowFrame } from "@/components/layout/WindowFrame";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,8 @@ export function InternetExplorerAppComponent({
   const [newFavoriteTitle, setNewFavoriteTitle] = useState("");
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
+
+  const urlInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setFavorites(loadFavorites());
@@ -82,6 +84,11 @@ export function InternetExplorerAppComponent({
     setIsLoading(false);
   };
 
+  const handleGoToUrl = () => {
+    urlInputRef.current?.focus();
+    urlInputRef.current?.select();
+  };
+
   const handleHome = () => {
     setUrl("https://ryo.lu");
     setCurrentUrl("https://ryo.lu");
@@ -106,6 +113,7 @@ export function InternetExplorerAppComponent({
           isForeground={isForeground}
           onRefresh={handleRefresh}
           onStop={handleStop}
+          onFocusUrlInput={handleGoToUrl}
           onHome={handleHome}
           onClearHistory={handleClearHistory}
           onShowHelp={() => setIsHelpDialogOpen(true)}
@@ -115,10 +123,12 @@ export function InternetExplorerAppComponent({
           onAddFavorite={handleAddFavorite}
           onClearFavorites={handleClearFavorites}
           onNavigateToFavorite={handleNavigate}
+          onClose={onClose}
         />
         <div className="flex flex-col gap-1 p-1 bg-gray-100 border-b border-black">
           <div className="flex gap-2 items-center">
             <Input
+              ref={urlInputRef}
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleNavigate()}
