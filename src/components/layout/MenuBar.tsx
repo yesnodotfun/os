@@ -129,7 +129,7 @@ function DefaultMenuItems() {
 export function MenuBar({ children }: MenuBarProps) {
   const { apps, appStates } = useAppContext();
   const hasActiveApp = Object.values(appStates).some(
-    (state) => state?.isForeground
+    (state) => state?.isForeground && state?.isOpen
   );
 
   return (
