@@ -185,7 +185,7 @@ export function InternetExplorerAppComponent({
           ) : (
             <iframe
               src={currentUrl}
-              className="flex-1 w-full h-full border-0"
+              className="flex-1 w-full h-full min-h-[400px] border-0"
               sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
               onLoad={() => setIsLoading(false)}
               onError={handleIframeError}
