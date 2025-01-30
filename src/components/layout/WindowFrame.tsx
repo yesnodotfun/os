@@ -47,8 +47,8 @@ export function WindowFrame({
         minWidth:
           window.innerWidth >= 768 ? windowConstraints.minWidth : "100%",
         minHeight: windowConstraints.minHeight,
-        maxWidth: windowConstraints.maxWidth || "100vw",
-        maxHeight: windowConstraints.maxHeight || "100vh",
+        maxWidth: windowConstraints.maxWidth || undefined,
+        maxHeight: windowConstraints.maxHeight || undefined,
         transition: isDragging || resizeType ? "none" : "all 0.2s ease",
       }}
     >

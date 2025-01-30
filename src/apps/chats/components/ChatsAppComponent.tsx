@@ -91,7 +91,10 @@ export function ChatsAppComponent({
           minWidth: window.innerWidth >= 768 ? 260 : 320,
           minHeight: window.innerWidth >= 768 ? 400 : 300,
           maxWidth: window.innerWidth >= 768 ? 260 : 320,
-          maxHeight: window.innerWidth >= 768 ? 800 : "100vh",
+          maxHeight:
+            window.innerWidth >= 768
+              ? 800
+              : (window.visualViewport?.height ?? window.innerHeight) - 25,
         }}
       >
         <div className="flex flex-col h-full bg-[#c0c0c0] p-2 w-[320px] md:w-[260px] max-w-full">
@@ -152,6 +155,11 @@ export function ChatsAppComponent({
               placeholder="Type a message..."
               className="flex-1 border-2 border-gray-800 text-xs font-['Geneva-12'] antialiased h-8"
               autoFocus
+              onFocus={(e) => e.currentTarget.classList.add("input--focused")}
+              onBlur={(e) => e.currentTarget.classList.remove("input--focused")}
+              onTouchStart={(e) => {
+                e.preventDefault();
+              }}
             />
             {isLoading ? (
               <Button

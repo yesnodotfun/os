@@ -25,16 +25,6 @@ export function AppManager({ apps }: AppManagerProps) {
       });
       return newStates;
     });
-    // Set all other apps to background
-    setAppStates((prev) => {
-      const newStates = { ...prev };
-      Object.keys(newStates).forEach((id) => {
-        if (id !== appId) {
-          newStates[id] = { ...newStates[id], isForeground: false };
-        }
-      });
-      return newStates;
-    });
   };
 
   const toggleApp = (appId: string) => {
