@@ -36,6 +36,7 @@ export function ChatsAppComponent({
     setMessages: setAiMessages,
   } = useChat({
     initialMessages: loadChatMessages() || [initialMessage],
+    experimental_throttle: 50,
   });
   const [messages, setMessages] = useState(aiMessages);
   const [isFocused, setIsFocused] = useState(false);

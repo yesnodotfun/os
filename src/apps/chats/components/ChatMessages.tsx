@@ -58,74 +58,97 @@ export function ChatMessages({
         viewportRef.current = viewport;
       }}
     >
-      <AnimatePresence>
+      <AnimatePresence initial={false}>
         <motion.div
-          layout
+          layout="position"
           className="flex flex-col gap-1"
           transition={{
-            type: "spring",
-            stiffness: 300,
-            damping: 20,
+            layout: {
+              type: "spring",
+              bounce: 0.1415,
+              duration: 1,
+            },
           }}
         >
           {messages.map((message) => (
             <motion.div
-              key={message.id}
-              initial={{
-                opacity: 0,
-                x: message.role === "user" ? 20 : -20,
-                scale: 0.9,
-              }}
-              animate={{
-                opacity: 1,
-                x: 0,
-                scale: 1,
-              }}
-              style={{
-                transformOrigin:
-                  message.role === "user" ? "bottom right" : "bottom left",
-              }}
-              transition={{
-                type: "spring",
-                stiffness: 500,
-                damping: 30,
-              }}
+              key={
+                message.id ||
+                `${message.role}-${message.content.substring(0, 10)}`
+              }
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2 }}
               className={`flex flex-col ${
                 message.role === "user" ? "items-end" : "items-start"
               }`}
             >
-              <motion.div className="text-[16px] text-gray-500 mb-0.5 font-['Geneva-9'] mb-[-2px]">
+              <div className="text-[16px] text-gray-500 mb-0.5 font-['Geneva-9'] mb-[-2px]">
                 {message.role === "user" ? "You" : "Ryo"}{" "}
                 <span className="text-gray-400">
-                  {new Date().toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
+                  {message.createdAt ? (
+                    new Date(message.createdAt).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  ) : (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  )}
                 </span>
-              </motion.div>
+              </div>
+
               <motion.div
                 style={{
                   fontFamily:
                     "Geneva-12, SerenityOS-Emoji, system-ui, -apple-system, sans-serif",
                 }}
-                className={`max-w-[90%] p-1.5 px-2 rounded leading-snug text-[12px] antialiased ${
+                className={`max-w-[90%] p-1.5 px-2 rounded leading-snug text-[12px] antialiased break-words ${
                   message.role === "user"
                     ? "bg-yellow-200 text-black"
                     : "bg-blue-200 text-black"
                 }`}
               >
-                <div className="break-words">{message.content}</div>
+                {message.role === "assistant" ? (
+                  <motion.div layout="position">
+                    {message.content.split("").map((char, idx) => (
+                      <motion.span
+                        key={idx}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{
+                          duration: 0.15,
+                          delay: idx * 0.02,
+                          ease: "easeOut",
+                        }}
+                      >
+                        {char}
+                      </motion.span>
+                    ))}
+                  </motion.div>
+                ) : (
+                  message.content
+                )}
               </motion.div>
             </motion.div>
           ))}
           {isLoading && (
-            <motion.div className="flex items-center gap-2 text-gray-500 font-['Geneva-9'] text-[16px] antialiased h-[12px]">
+            <motion.div
+              layout
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 12 }}
+              transition={{ duration: 0.2 }}
+              className="flex items-center gap-2 text-gray-500 font-['Geneva-9'] text-[16px] antialiased h-[12px]"
+            >
               <Loader2 className="h-3 w-3 animate-spin" />
               Thinking...
             </motion.div>
           )}
           {error && (
-            <motion.div className="flex items-center gap-2 text-red-600 font-['Geneva-9'] text-[16px] antialiased h-[12px]">
+            <motion.div
+              layout
+              className="flex items-center gap-2 text-red-600 font-['Geneva-9'] text-[16px] antialiased h-[12px]"
+            >
               <AlertCircle className="h-3 w-3" />
               <span>{error.message}</span>
               {onRetry && (
