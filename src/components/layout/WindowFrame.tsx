@@ -44,7 +44,8 @@ export function WindowFrame({
         top: Math.max(30, windowPosition.y),
         width: window.innerWidth >= 768 ? windowSize.width : "100%",
         height: window.innerWidth >= 768 ? windowSize.height : "auto",
-        minWidth: windowConstraints.minWidth,
+        minWidth:
+          window.innerWidth >= 768 ? windowConstraints.minWidth : "100%",
         minHeight: windowConstraints.minHeight,
         maxWidth: windowConstraints.maxWidth,
         maxHeight: windowConstraints.maxHeight,
