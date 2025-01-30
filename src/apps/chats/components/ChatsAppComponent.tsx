@@ -50,15 +50,17 @@ export function ChatsAppComponent({
                     message.role === "user" ? "items-end" : "items-start"
                   }`}
                 >
-                  <div className="text-xs text-gray-500 mb-0.5">
-                    {message.role === "user" ? "You" : "Ryo"} •{" "}
-                    {new Date().toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                  <div className="text-[16px] text-gray-500 mb-0.5 font-['Geneva-9']">
+                    {message.role === "user" ? "You" : "Ryo"}{" "}
+                    <span className="text-gray-400">
+                      {new Date().toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
                   </div>
                   <div
-                    className={`max-w-[90%] p-1.5 px-2 rounded leading-snug ${
+                    className={`max-w-[90%] p-1.5 px-2 rounded leading-snug text-xs font-['Geneva-12'] antialiased ${
                       message.role === "user"
                         ? "bg-yellow-200 text-black"
                         : "bg-blue-200 text-black"
@@ -75,11 +77,11 @@ export function ChatsAppComponent({
               value={input}
               onChange={handleInputChange}
               placeholder="Type a message..."
-              className="flex-1 border-2 border-gray-800"
+              className="flex-1 border-2 border-gray-800 text-xs font-['Geneva-12'] antialiased"
             />
             <Button
               type="submit"
-              className="bg-blue-500 hover:bg-blue-600 text-white border-2 border-gray-800"
+              className="bg-blue-500 hover:bg-blue-600 text-white text-lg border-2 border-gray-800"
             >
               Send
             </Button>
