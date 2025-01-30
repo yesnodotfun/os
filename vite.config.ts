@@ -6,6 +6,9 @@ import path from "path";
 
 // https://vite.dev/config/
 export default defineConfig({
+  server: {
+    port: process.env.PORT as unknown as number,
+  },
   plugins: [react(), tailwindcss(), vercel()],
   resolve: {
     alias: {

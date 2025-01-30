@@ -8,47 +8,16 @@ import { ChatsMenuBar } from "./ChatsMenuBar";
 import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { helpItems, appMetadata } from "..";
-
-interface Message {
-  id: string;
-  text: string;
-  sender: "user" | "assistant";
-  timestamp: Date;
-}
+import { useChat } from "ai/react";
 
 export function ChatsAppComponent({
   isWindowOpen,
   onClose,
   isForeground,
 }: AppProps) {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [inputValue, setInputValue] = useState("");
+  const { messages, input, handleInputChange, handleSubmit } = useChat();
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
-
-  const handleSendMessage = async () => {
-    if (!inputValue.trim()) return;
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      text: inputValue,
-      sender: "user",
-      timestamp: new Date(),
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
-    setInputValue("");
-
-    // TODO: Implement AI response
-    const aiMessage: Message = {
-      id: (Date.now() + 1).toString(),
-      text: "I'm Ryo, your AI assistant. How can I help you today?",
-      sender: "assistant",
-      timestamp: new Date(),
-    };
-
-    setMessages((prev) => [...prev, aiMessage]);
-  };
 
   if (!isWindowOpen) return null;
 
@@ -78,44 +47,43 @@ export function ChatsAppComponent({
                 <div
                   key={message.id}
                   className={`flex flex-col ${
-                    message.sender === "user" ? "items-end" : "items-start"
+                    message.role === "user" ? "items-end" : "items-start"
                   }`}
                 >
                   <div className="text-sm text-gray-500 mb-1">
-                    {message.sender === "user" ? "You" : "Ryo"} •{" "}
-                    {message.timestamp.toLocaleTimeString([], {
+                    {message.role === "user" ? "You" : "Ryo"} •{" "}
+                    {new Date().toLocaleTimeString([], {
                       hour: "2-digit",
                       minute: "2-digit",
                     })}
                   </div>
                   <div
                     className={`max-w-[80%] p-2 rounded ${
-                      message.sender === "user"
+                      message.role === "user"
                         ? "bg-yellow-200 text-black"
                         : "bg-blue-200 text-black"
                     }`}
                   >
-                    <div className="break-words">{message.text}</div>
+                    <div className="break-words">{message.content}</div>
                   </div>
                 </div>
               ))}
             </div>
           </ScrollArea>
-          <div className="flex gap-2">
+          <form onSubmit={handleSubmit} className="flex gap-2">
             <Input
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+              value={input}
+              onChange={handleInputChange}
               placeholder="Type a message..."
               className="flex-1 border-2 border-gray-800"
             />
             <Button
-              onClick={handleSendMessage}
+              type="submit"
               className="bg-blue-500 hover:bg-blue-600 text-white border-2 border-gray-800"
             >
               Send
             </Button>
-          </div>
+          </form>
         </div>
         <HelpDialog
           isOpen={isHelpDialogOpen}
