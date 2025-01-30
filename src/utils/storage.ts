@@ -1,5 +1,6 @@
 import { Soundboard, WindowPosition, WindowSize } from "../types/types";
 import { AppManagerState } from "../apps/base/types";
+import { Message } from "ai";
 
 export const APP_STORAGE_KEYS = {
   soundboard: {
@@ -203,4 +204,24 @@ export const loadAppState = (): AppManagerState => {
 
 export const saveAppState = (state: AppManagerState): void => {
   localStorage.setItem(APP_STATE_KEY, JSON.stringify(state));
+};
+
+// Chat specific storage
+export const loadChatMessages = (): Message[] | null => {
+  const saved = localStorage.getItem(APP_STORAGE_KEYS.chats.MESSAGES);
+  if (!saved) return null;
+  const messages = JSON.parse(saved);
+  return messages.map(
+    (msg: Omit<Message, "createdAt"> & { createdAt: string }) => ({
+      ...msg,
+      createdAt: new Date(msg.createdAt),
+    })
+  );
+};
+
+export const saveChatMessages = (messages: Message[]): void => {
+  localStorage.setItem(
+    APP_STORAGE_KEYS.chats.MESSAGES,
+    JSON.stringify(messages)
+  );
 };

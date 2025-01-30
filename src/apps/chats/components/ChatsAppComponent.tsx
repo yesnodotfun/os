@@ -10,6 +10,7 @@ import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { helpItems, appMetadata } from "..";
 import { useChat } from "ai/react";
 import { ArrowUp, Loader2, Square } from "lucide-react";
+import { loadChatMessages, saveChatMessages } from "@/utils/storage";
 
 export function ChatsAppComponent({
   isWindowOpen,
@@ -32,13 +33,14 @@ export function ChatsAppComponent({
     stop,
     setMessages: setAiMessages,
   } = useChat({
-    initialMessages: [initialMessage],
+    initialMessages: loadChatMessages() || [initialMessage],
   });
   const [messages, setMessages] = useState(aiMessages);
   const [isFocused, setIsFocused] = useState(false);
 
   useEffect(() => {
     setMessages(aiMessages);
+    saveChatMessages(aiMessages);
   }, [aiMessages]);
 
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
@@ -71,6 +73,7 @@ export function ChatsAppComponent({
 
   const clearChats = () => {
     setAiMessages([initialMessage]);
+    saveChatMessages([initialMessage]);
   };
 
   if (!isWindowOpen) return null;
