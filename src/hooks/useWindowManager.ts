@@ -78,8 +78,8 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
         e.preventDefault();
         const deltaX = e.clientX - resizeStart.x;
         const deltaY = e.clientY - resizeStart.y;
-        const minWidth = 400;
-        const minHeight = 300;
+        const minWidth = 260;
+        const minHeight = 400;
         const maxWidth = window.innerWidth - 32;
         const maxHeight = window.innerHeight - 32;
 
