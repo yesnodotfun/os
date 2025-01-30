@@ -9,13 +9,15 @@ import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { helpItems, appMetadata } from "..";
 import { useChat } from "ai/react";
+import { ArrowUp, Loader2, Square } from "lucide-react";
 
 export function ChatsAppComponent({
   isWindowOpen,
   onClose,
   isForeground,
 }: AppProps) {
-  const { messages, input, handleInputChange, handleSubmit } = useChat();
+  const { messages, input, handleInputChange, handleSubmit, isLoading, stop } =
+    useChat();
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
 
@@ -70,6 +72,12 @@ export function ChatsAppComponent({
                   </div>
                 </div>
               ))}
+              {isLoading && (
+                <div className="flex items-center gap-2 text-xs text-gray-500 font-['Geneva-12']">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Thinking...
+                </div>
+              )}
             </div>
           </ScrollArea>
           <form onSubmit={handleSubmit} className="flex gap-2">
@@ -77,14 +85,25 @@ export function ChatsAppComponent({
               value={input}
               onChange={handleInputChange}
               placeholder="Type a message..."
-              className="flex-1 border-2 border-gray-800 text-xs font-['Geneva-12'] antialiased"
+              className="flex-1 border-2 border-gray-800 text-xs font-['Geneva-12'] antialiased h-8"
+              disabled={isLoading}
             />
-            <Button
-              type="submit"
-              className="bg-blue-500 hover:bg-blue-600 text-white text-lg border-2 border-gray-800"
-            >
-              Send
-            </Button>
+            {isLoading ? (
+              <Button
+                type="button"
+                onClick={() => stop()}
+                className="bg-black hover:bg-black/80 text-white text-xs border-2 border-gray-800 w-8 h-8 p-0 flex items-center justify-center"
+              >
+                <Square className="h-4 w-4" fill="currentColor" />
+              </Button>
+            ) : (
+              <Button
+                type="submit"
+                className="bg-black hover:bg-black/80 text-white text-xs border-2 border-gray-800 w-8 h-8 p-0 flex items-center justify-center"
+              >
+                <ArrowUp className="h-4 w-4" />
+              </Button>
+            )}
           </form>
         </div>
         <HelpDialog
