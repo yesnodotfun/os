@@ -11,7 +11,7 @@ interface WindowFrameProps {
   windowConstraints?: {
     minWidth?: number;
     minHeight?: number;
-    maxWidth?: number;
+    maxWidth?: number | string;
     maxHeight?: number | string;
   };
 }
@@ -22,10 +22,7 @@ export function WindowFrame({
   onClose,
   isForeground = true,
   appId,
-  windowConstraints = {
-    minWidth: 800,
-    minHeight: 400,
-  },
+  windowConstraints = {},
 }: WindowFrameProps) {
   const {
     windowPosition,

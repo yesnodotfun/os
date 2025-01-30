@@ -152,8 +152,9 @@ export function ChatsAppComponent({
               placeholder="Type a message..."
               className="flex-1 border-2 border-gray-800 text-xs font-['Geneva-12'] antialiased h-8"
               autoFocus
-              onFocus={(e) => e.currentTarget.classList.add("input--focused")}
-              onBlur={(e) => e.currentTarget.classList.remove("input--focused")}
+              onFocus={(e) => {
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
               onTouchStart={(e) => {
                 e.preventDefault();
               }}

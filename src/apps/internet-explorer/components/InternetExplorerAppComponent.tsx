@@ -133,7 +133,7 @@ export function InternetExplorerAppComponent({
         windowConstraints={{
           minWidth: 260,
           minHeight: 400,
-          maxWidth: undefined,
+          maxWidth: "100vw",
           maxHeight: undefined,
         }}
       >
