@@ -77,10 +77,17 @@ export function ChatsAppComponent({
               {messages.map((message) => (
                 <div
                   key={message.id}
-                  className={`flex ${
-                    message.sender === "user" ? "justify-end" : "justify-start"
+                  className={`flex flex-col ${
+                    message.sender === "user" ? "items-end" : "items-start"
                   }`}
                 >
+                  <div className="text-sm text-gray-500 mb-1">
+                    {message.sender === "user" ? "You" : "Ryo"} •{" "}
+                    {message.timestamp.toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </div>
                   <div
                     className={`max-w-[80%] p-2 rounded ${
                       message.sender === "user"
@@ -88,13 +95,7 @@ export function ChatsAppComponent({
                         : "bg-blue-200 text-black"
                     }`}
                   >
-                    <div className="text-sm font-bold">
-                      {message.sender === "user" ? "You" : "Ryo"}
-                    </div>
                     <div className="break-words">{message.text}</div>
-                    <div className="text-xs text-gray-600 mt-1">
-                      {message.timestamp.toLocaleTimeString()}
-                    </div>
                   </div>
                 </div>
               ))}
