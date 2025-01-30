@@ -43,12 +43,12 @@ export function WindowFrame({
         left: windowPosition.x,
         top: Math.max(30, windowPosition.y),
         width: window.innerWidth >= 768 ? windowSize.width : "100%",
-        height: window.innerWidth >= 768 ? windowSize.height : "auto",
+        height: windowSize.height,
         minWidth:
           window.innerWidth >= 768 ? windowConstraints.minWidth : "100%",
         minHeight: windowConstraints.minHeight,
-        maxWidth: windowConstraints.maxWidth,
-        maxHeight: windowConstraints.maxHeight,
+        maxWidth: windowConstraints.maxWidth || "100vw",
+        maxHeight: windowConstraints.maxHeight || "100vh",
         transition: isDragging || resizeType ? "none" : "all 0.2s ease",
       }}
     >
