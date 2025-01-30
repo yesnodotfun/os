@@ -38,7 +38,7 @@ export function WindowFrame({
 
   return (
     <div
-      className="md:absolute p-2 md:p-0 w-full h-full max-w-[100vw] max-h-[100vh] mt-6 md:mt-0 select-none"
+      className="md:absolute p-2 md:p-0 w-full h-full  mt-6 md:mt-0 select-none"
       style={{
         left: windowPosition.x,
         top: Math.max(30, windowPosition.y),

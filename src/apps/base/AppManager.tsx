@@ -77,7 +77,7 @@ export function AppManager({ apps }: AppManagerProps) {
         ) : null;
       })}
 
-      <div className="fixed inset-0 min-h-screen bg-[#666699] bg-[radial-gradient(#777_1px,transparent_0)] bg-[length:24px_24px] bg-[-19px_-19px] z-[-1]">
+      <div className="absolute inset-0 min-h-screen bg-[#666699] bg-[radial-gradient(#777_1px,transparent_0)] bg-[length:24px_24px] bg-[-19px_-19px] z-[-1]">
         {/* Desktop  */}
         <div className="pt-8 p-4 grid grid-cols-auto-fit-100 gap-4 justify-end">
           {apps.map((app) => (
