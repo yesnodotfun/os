@@ -16,8 +16,29 @@ export function ChatsAppComponent({
   onClose,
   isForeground,
 }: AppProps) {
-  const { messages, input, handleInputChange, handleSubmit, isLoading, stop } =
-    useChat();
+  const {
+    messages: aiMessages,
+    input,
+    handleInputChange,
+    handleSubmit,
+    isLoading,
+    stop,
+  } = useChat({
+    initialMessages: [
+      {
+        id: "1",
+        role: "assistant",
+        content: "👋 hey! i'm ryo. ask me anything!",
+        createdAt: new Date(),
+      },
+    ],
+  });
+  const [messages, setMessages] = useState(aiMessages);
+
+  useEffect(() => {
+    setMessages(aiMessages);
+  }, [aiMessages]);
+
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
   const [scrollLockedToBottom, setScrollLockedToBottom] = useState(true);
