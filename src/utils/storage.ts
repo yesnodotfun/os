@@ -13,6 +13,11 @@ export const APP_STORAGE_KEYS = {
     HISTORY: "internet-explorer:history",
     FAVORITES: "internet-explorer:favorites",
   },
+  chats: {
+    WINDOW: "chats:window",
+    MESSAGES: "chats:messages",
+    HAS_SEEN_HELP: "chats:hasSeenHelp",
+  },
 } as const;
 
 interface WindowState {

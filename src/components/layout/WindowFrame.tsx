@@ -8,6 +8,12 @@ interface WindowFrameProps {
   onClose?: () => void;
   isForeground?: boolean;
   appId: keyof typeof APP_STORAGE_KEYS;
+  windowConstraints?: {
+    minWidth?: number;
+    minHeight?: number;
+    maxWidth?: number;
+    maxHeight?: number;
+  };
 }
 
 export function WindowFrame({
@@ -16,6 +22,10 @@ export function WindowFrame({
   onClose,
   isForeground = true,
   appId,
+  windowConstraints = {
+    minWidth: 800,
+    minHeight: 400,
+  },
 }: WindowFrameProps) {
   const {
     windowPosition,
@@ -28,17 +38,21 @@ export function WindowFrame({
 
   return (
     <div
-      className="md:absolute md:min-w-[800px] md:min-h-[400px] p-2 md:p-0 w-full h-full max-w-[100vw] max-h-[100vh] mt-6 md:mt-0 select-none"
+      className="md:absolute p-2 md:p-0 w-full h-full max-w-[100vw] max-h-[100vh] mt-6 md:mt-0 select-none"
       style={{
         left: windowPosition.x,
         top: Math.max(30, windowPosition.y),
         width: window.innerWidth >= 768 ? windowSize.width : "100%",
         height: window.innerWidth >= 768 ? windowSize.height : "auto",
+        minWidth: windowConstraints.minWidth,
+        minHeight: windowConstraints.minHeight,
+        maxWidth: windowConstraints.maxWidth,
+        maxHeight: windowConstraints.maxHeight,
         transition: isDragging || resizeType ? "none" : "all 0.2s ease",
       }}
     >
       <div
-        className={`relative h-full bg-system7-window-bg border-[2px] border-black rounded-lg ${
+        className={`relative h-full flex flex-col bg-system7-window-bg border-[2px] border-black rounded-lg ${
           isForeground ? "shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)]" : ""
         } overflow-hidden`}
       >
@@ -76,7 +90,7 @@ export function WindowFrame({
 
         {/* Title bar */}
         <div
-          className={`flex items-center flex-none h-6 mx-0 my-[0.1rem] px-[0.1rem] py-[0.2rem] ${
+          className={`flex items-center shrink-0 h-6 mx-0 my-[0.1rem] px-[0.1rem] py-[0.2rem] ${
             isForeground
               ? "bg-[linear-gradient(#000_50%,transparent_0)] bg-clip-content bg-[length:6.6666666667%_13.3333333333%] border-b-black"
               : "bg-white border-b-gray-400"
@@ -100,7 +114,7 @@ export function WindowFrame({
         </div>
 
         {/* Content */}
-        <div className="flex flex-1 md:h-full h-auto flex-col md:flex-row">
+        <div className="flex flex-1 min-h-0 flex-col md:flex-row">
           {children}
         </div>
       </div>

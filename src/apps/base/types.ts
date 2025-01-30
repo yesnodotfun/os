@@ -13,11 +13,17 @@ export interface AppProps {
 }
 
 export interface BaseApp {
-  id: string;
+  id: "soundboard" | "internet-explorer" | "chats";
   name: string;
   icon: string | { type: "image"; src: string };
   description: string;
   component: React.ComponentType<AppProps>;
+  windowConstraints?: {
+    minWidth?: number;
+    minHeight?: number;
+    maxWidth?: number;
+    maxHeight?: number;
+  };
   helpItems?: Array<{
     icon: string;
     title: string;
