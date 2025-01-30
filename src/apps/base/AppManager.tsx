@@ -99,7 +99,7 @@ export function AppManager({ apps }: AppManagerProps) {
                 )}
               </div>
               <span
-                className={`text-center px-1.5 ${
+                className={`text-center px-1.5 font-['Geneva-12'] antialiased text-[12px] ${
                   appStates[app.id]?.isOpen ?? false
                     ? "bg-black text-white"
                     : "bg-white text-black"

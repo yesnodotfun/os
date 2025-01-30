@@ -127,18 +127,57 @@ export const saveHasSeenHelp = (): void => {
 export interface Favorite {
   title: string;
   url: string;
+  favicon?: string;
 }
 
 export const DEFAULT_FAVORITES: Favorite[] = [
-  { title: "NewJeans", url: "https://newjeans.kr" },
-  { title: "Theo", url: "https://tmb.sh" },
-  { title: "Tyler", url: "https://tylerbeauchamp.net" },
-  { title: "Sam", url: "https://www.samuelcatania.com" },
-  { title: "Stephen", url: "https://wustep.me" },
-  { title: "Lucas", url: "https://www.lucasn.com" },
-  { title: "Ryo", url: "https://ryo.lu" },
-  { title: "Frank", url: "https://okfrank.co" },
-  { title: "Modi", url: "https://www.akm.io" },
+  {
+    title: "NewJeans",
+    url: "https://newjeans.kr",
+    favicon: "https://www.google.com/s2/favicons?domain=newjeans.kr&sz=32",
+  },
+  {
+    title: "Theo",
+    url: "https://tmb.sh",
+    favicon: "https://www.google.com/s2/favicons?domain=tmb.sh&sz=32",
+  },
+  {
+    title: "Tyler",
+    url: "https://tylerbeauchamp.net",
+    favicon:
+      "https://www.google.com/s2/favicons?domain=tylerbeauchamp.net&sz=32",
+  },
+  {
+    title: "Sam",
+    url: "https://www.samuelcatania.com",
+    favicon:
+      "https://www.google.com/s2/favicons?domain=www.samuelcatania.com&sz=32",
+  },
+  {
+    title: "Stephen",
+    url: "https://wustep.me",
+    favicon: "https://www.google.com/s2/favicons?domain=wustep.me&sz=32",
+  },
+  {
+    title: "Lucas",
+    url: "https://www.lucasn.com",
+    favicon: "https://www.google.com/s2/favicons?domain=www.lucasn.com&sz=32",
+  },
+  {
+    title: "Ryo",
+    url: "https://ryo.lu",
+    favicon: "https://www.google.com/s2/favicons?domain=ryo.lu&sz=32",
+  },
+  {
+    title: "Frank",
+    url: "https://okfrank.co",
+    favicon: "https://www.google.com/s2/favicons?domain=okfrank.co&sz=32",
+  },
+  {
+    title: "Modi",
+    url: "https://www.akm.io",
+    favicon: "https://www.google.com/s2/favicons?domain=www.akm.io&sz=32",
+  },
 ];
 
 export const loadFavorites = (): Favorite[] => {

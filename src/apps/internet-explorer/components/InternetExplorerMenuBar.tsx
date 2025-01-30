@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { AppProps } from "../../base/types";
 import { MenuBar } from "@/components/layout/MenuBar";
+import { Favorite } from "@/utils/storage";
 
 interface InternetExplorerMenuBarProps extends Omit<AppProps, "onClose"> {
   onRefresh?: () => void;
@@ -18,7 +19,7 @@ interface InternetExplorerMenuBarProps extends Omit<AppProps, "onClose"> {
   onShowHelp?: () => void;
   onShowAbout?: () => void;
   isLoading?: boolean;
-  favorites?: Array<{ title: string; url: string }>;
+  favorites?: Favorite[];
   onAddFavorite?: () => void;
   onClearFavorites?: () => void;
   onNavigateToFavorite?: (url: string) => void;
@@ -135,8 +136,16 @@ export function InternetExplorerMenuBar({
                 <DropdownMenuItem
                   key={favorite.url}
                   onClick={() => onNavigateToFavorite?.(favorite.url)}
-                  className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+                  className="text-md h-6 px-3 active:bg-gray-900 active:text-white flex items-center gap-2"
                 >
+                  <img
+                    src={favorite.favicon || "/icons/ie-site.png"}
+                    alt=""
+                    className="w-4 h-4"
+                    onError={(e) => {
+                      e.currentTarget.src = "/icons/ie-site.png";
+                    }}
+                  />
                   {favorite.title}
                 </DropdownMenuItem>
               ))}

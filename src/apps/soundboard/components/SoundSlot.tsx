@@ -96,7 +96,7 @@ export function SoundSlot({
               </span>
             ))}
           <span
-            className="text-base md:text-lg font-medium truncate max-w-[80px] md:max-w-[120px] cursor-text hover:bg-white/20 px-1 rounded select-text"
+            className="text-[14px] antialiased truncate max-w-[80px] md:max-w-[120px] cursor-text hover:bg-white/20 px-1 rounded select-text font-['Geneva-12']"
             onClick={(e) => {
               e.stopPropagation();
               onTitleClick();

@@ -55,7 +55,13 @@ export function InternetExplorerAppComponent({
     if (!newFavoriteTitle) return;
     const newFavorites = [
       ...favorites,
-      { title: newFavoriteTitle, url: currentUrl },
+      {
+        title: newFavoriteTitle,
+        url: currentUrl,
+        favicon: `https://www.google.com/s2/favicons?domain=${
+          new URL(currentUrl).hostname
+        }&sz=32`,
+      },
     ];
     setFavorites(newFavorites);
     saveFavorites(newFavorites);
@@ -152,21 +158,24 @@ export function InternetExplorerAppComponent({
                 className="w-10 h-10"
               />
             </div>
-            <div className="flex gap-1 items-center group">
+            <div className="flex gap-0 items-center group">
               {favorites.map((favorite, index) => (
                 <Button
                   key={index}
                   variant="ghost"
                   size="sm"
-                  className="whitespace-nowrap hover:bg-gray-200"
+                  className="whitespace-nowrap hover:bg-gray-200 font-['Geneva-12'] antialiased text-[10px] gap-1 px-1 mr-1 w-content min-w-[60px] max-w-[120px]"
                   onClick={() => handleNavigate(favorite.url)}
                 >
                   <img
-                    src="/icons/ie-site.png"
+                    src={favorite.favicon || "/icons/ie-site.png"}
                     alt="Site"
                     className="w-4 h-4 mr-1"
+                    onError={(e) => {
+                      e.currentTarget.src = "/icons/ie-site.png";
+                    }}
                   />
-                  {favorite.title}
+                  <span className="truncate">{favorite.title}</span>
                 </Button>
               ))}
               <Button
