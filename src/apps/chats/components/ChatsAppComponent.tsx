@@ -91,10 +91,10 @@ export function ChatsAppComponent({
           minWidth: window.innerWidth >= 768 ? 260 : 320,
           minHeight: window.innerWidth >= 768 ? 400 : 300,
           maxWidth: window.innerWidth >= 768 ? 260 : 320,
-          maxHeight: 800,
+          maxHeight: window.innerWidth >= 768 ? 800 : "100vh",
         }}
       >
-        <div className="flex flex-col h-full bg-[#c0c0c0] p-2 w-full max-w-full">
+        <div className="flex flex-col h-full bg-[#c0c0c0] p-2 w-[320px] md:w-[260px] max-w-full">
           <ScrollArea
             className="flex-1 bg-white border-2 border-gray-800 rounded mb-2 p-2 h-full w-full"
             onScroll={handleScroll}

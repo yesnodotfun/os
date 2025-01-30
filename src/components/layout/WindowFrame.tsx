@@ -12,7 +12,7 @@ interface WindowFrameProps {
     minWidth?: number;
     minHeight?: number;
     maxWidth?: number;
-    maxHeight?: number;
+    maxHeight?: number | string;
   };
 }
 
