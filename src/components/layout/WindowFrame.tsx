@@ -43,7 +43,7 @@ export function WindowFrame({
         left: windowPosition.x,
         top: Math.max(30, windowPosition.y),
         width: window.innerWidth >= 768 ? windowSize.width : "100%",
-        height: windowSize.height,
+        height: Math.max(windowSize.height, windowConstraints.minHeight || 0),
         minWidth:
           window.innerWidth >= 768 ? windowConstraints.minWidth : "100%",
         minHeight: windowConstraints.minHeight,

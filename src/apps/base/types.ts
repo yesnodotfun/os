@@ -19,10 +19,10 @@ export interface BaseApp {
   description: string;
   component: React.ComponentType<AppProps>;
   windowConstraints?: {
-    minWidth?: number;
-    minHeight?: number;
-    maxWidth?: number;
-    maxHeight?: number;
+    minWidth?: number | string;
+    minHeight?: number | string;
+    maxWidth?: number | string;
+    maxHeight?: number | string;
   };
   helpItems?: Array<{
     icon: string;

@@ -286,7 +286,10 @@ export function SoundboardAppComponent({
         onClose={onClose}
         isForeground={isForeground}
         appId="soundboard"
-        windowConstraints={{ minWidth: 600, minHeight: 475 }}
+        windowConstraints={{
+          minWidth: 600,
+          minHeight: window.innerWidth >= 768 ? 475 : 600,
+        }}
       >
         <input
           type="file"
