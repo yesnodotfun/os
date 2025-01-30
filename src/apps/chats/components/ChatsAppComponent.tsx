@@ -151,7 +151,6 @@ export function ChatsAppComponent({
               onChange={handleInputChange}
               placeholder="Type a message..."
               className="flex-1 border-2 border-gray-800 text-xs font-['Geneva-12'] antialiased h-8"
-              autoFocus
               onFocus={(e) => {
                 window.scrollTo({ top: 0, behavior: "smooth" });
               }}
