@@ -67,7 +67,7 @@ export function InternetExplorerMenuBar({
             onClick={onClose}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            Close Window
+            Close
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

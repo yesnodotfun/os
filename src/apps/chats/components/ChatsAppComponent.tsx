@@ -16,6 +16,13 @@ export function ChatsAppComponent({
   onClose,
   isForeground,
 }: AppProps) {
+  const initialMessage = {
+    id: "1",
+    role: "assistant" as const,
+    content: "👋 hey! i'm ryo. ask me anything!",
+    createdAt: new Date(),
+  };
+
   const {
     messages: aiMessages,
     input,
@@ -23,15 +30,9 @@ export function ChatsAppComponent({
     handleSubmit,
     isLoading,
     stop,
+    setMessages: setAiMessages,
   } = useChat({
-    initialMessages: [
-      {
-        id: "1",
-        role: "assistant",
-        content: "👋 hey! i'm ryo. ask me anything!",
-        createdAt: new Date(),
-      },
-    ],
+    initialMessages: [initialMessage],
   });
   const [messages, setMessages] = useState(aiMessages);
 
@@ -67,6 +68,10 @@ export function ChatsAppComponent({
     }
   }, [messages, isLoading]);
 
+  const clearChats = () => {
+    setAiMessages([initialMessage]);
+  };
+
   if (!isWindowOpen) return null;
 
   return (
@@ -75,6 +80,7 @@ export function ChatsAppComponent({
         onClose={onClose}
         onShowHelp={() => setIsHelpDialogOpen(true)}
         onShowAbout={() => setIsAboutDialogOpen(true)}
+        onClearChats={clearChats}
       />
       <WindowFrame
         title="Chats"

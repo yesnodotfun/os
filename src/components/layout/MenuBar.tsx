@@ -46,11 +46,13 @@ function DefaultMenuItems() {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" sideOffset={1} className="px-0">
           <DropdownMenuItem className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
-            New Folder
+            New Finder Window
           </DropdownMenuItem>
           <DropdownMenuItem className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
-            Open
+            New Folder
           </DropdownMenuItem>
+
+          <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           <DropdownMenuItem className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
             Close
           </DropdownMenuItem>

@@ -12,12 +12,14 @@ interface ChatsMenuBarProps {
   onClose: () => void;
   onShowHelp: () => void;
   onShowAbout: () => void;
+  onClearChats: () => void;
 }
 
 export function ChatsMenuBar({
   onClose,
   onShowHelp,
   onShowAbout,
+  onClearChats,
 }: ChatsMenuBarProps) {
   return (
     <MenuBar>
@@ -33,6 +35,13 @@ export function ChatsMenuBar({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" sideOffset={1} className="px-0">
+          <DropdownMenuItem
+            onClick={onClearChats}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            Clear Chats
+          </DropdownMenuItem>
+          <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           <DropdownMenuItem
             onClick={onClose}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
