@@ -35,6 +35,7 @@ export function ChatsAppComponent({
     initialMessages: [initialMessage],
   });
   const [messages, setMessages] = useState(aiMessages);
+  const [isFocused, setIsFocused] = useState(false);
 
   useEffect(() => {
     setMessages(aiMessages);
@@ -150,10 +151,13 @@ export function ChatsAppComponent({
               value={input}
               onChange={handleInputChange}
               placeholder="Type a message..."
-              className="flex-1 border-2 border-gray-800 text-xs font-['Geneva-12'] antialiased h-8"
-              onFocus={(e) => {
-                window.scrollTo({ top: 0, behavior: "smooth" });
+              className={`flex-1 border-2 border-gray-800 text-xs font-['Geneva-12'] antialiased h-8 ${
+                isFocused ? "input--focused" : ""
+              }`}
+              onFocus={() => {
+                setIsFocused(true);
               }}
+              onBlur={() => setIsFocused(false)}
               onTouchStart={(e) => {
                 e.preventDefault();
               }}
