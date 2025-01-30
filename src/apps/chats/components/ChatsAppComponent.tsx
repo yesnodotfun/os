@@ -91,13 +91,7 @@ export function ChatsAppComponent({
           minWidth: window.innerWidth >= 768 ? 260 : 320,
           minHeight: window.innerWidth >= 768 ? 400 : 300,
           maxWidth: window.innerWidth >= 768 ? 260 : 320,
-          maxHeight:
-            window.innerWidth >= 768
-              ? 800
-              : Math.max(
-                  (window.visualViewport?.height ?? window.innerHeight) - 45,
-                  365
-                ),
+          maxHeight: window.innerWidth >= 768 ? 800 : 365,
         }}
       >
         <div className="flex flex-col h-full bg-[#c0c0c0] p-2 w-[320px] md:w-[260px] max-w-full">
