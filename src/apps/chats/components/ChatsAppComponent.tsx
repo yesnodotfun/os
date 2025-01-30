@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { AppProps } from "../../base/types";
 import { WindowFrame } from "@/components/layout/WindowFrame";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,31 @@ export function ChatsAppComponent({
     useChat();
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
+  const [scrollLockedToBottom, setScrollLockedToBottom] = useState(true);
+  const viewportRef = useRef<HTMLElement | null>(null);
+
+  const scrollToBottom = (viewport: HTMLElement) => {
+    if (!scrollLockedToBottom) return;
+    viewport.scrollTop = viewport.scrollHeight;
+  };
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const viewport = e.currentTarget.querySelector(
+      "[data-radix-scroll-area-viewport]"
+    ) as HTMLElement;
+    if (!viewport) return;
+
+    const isAtBottom =
+      viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 10;
+    setScrollLockedToBottom(isAtBottom);
+  };
+
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (viewport && scrollLockedToBottom) {
+      scrollToBottom(viewport);
+    }
+  }, [messages, isLoading]);
 
   if (!isWindowOpen) return null;
 
@@ -43,7 +68,16 @@ export function ChatsAppComponent({
         }}
       >
         <div className="flex flex-col h-full bg-[#c0c0c0] p-2 w-full max-w-full">
-          <ScrollArea className="flex-1 bg-white border-2 border-gray-800 rounded mb-2 p-2 h-full w-full">
+          <ScrollArea
+            className="flex-1 bg-white border-2 border-gray-800 rounded mb-2 p-2 h-full w-full"
+            onScroll={handleScroll}
+            ref={(ref) => {
+              const viewport = ref?.querySelector(
+                "[data-radix-scroll-area-viewport]"
+              ) as HTMLElement;
+              viewportRef.current = viewport;
+            }}
+          >
             <div className="flex flex-col gap-1">
               {messages.map((message) => (
                 <div
@@ -52,7 +86,7 @@ export function ChatsAppComponent({
                     message.role === "user" ? "items-end" : "items-start"
                   }`}
                 >
-                  <div className="text-[16px] text-gray-500 mb-0.5 font-['Geneva-9']">
+                  <div className="text-[16px] text-gray-500 mb-0.5 font-['Geneva-9'] mb-[-2px]">
                     {message.role === "user" ? "You" : "Ryo"}{" "}
                     <span className="text-gray-400">
                       {new Date().toLocaleTimeString([], {
@@ -62,7 +96,11 @@ export function ChatsAppComponent({
                     </span>
                   </div>
                   <div
-                    className={`max-w-[90%] p-1.5 px-2 rounded leading-snug text-xs font-['Geneva-12'] antialiased ${
+                    style={{
+                      fontFamily:
+                        "Geneva-12, SerenityOS-Emoji, system-ui, -apple-system, sans-serif",
+                    }}
+                    className={`max-w-[90%] p-1.5 px-2 rounded leading-snug text-[12px] antialiased ${
                       message.role === "user"
                         ? "bg-yellow-200 text-black"
                         : "bg-blue-200 text-black"
@@ -73,7 +111,7 @@ export function ChatsAppComponent({
                 </div>
               ))}
               {isLoading && (
-                <div className="flex items-center gap-2 text-xs text-gray-500 font-['Geneva-12']">
+                <div className="flex items-center gap-2 text-xs text-gray-500 font-['Geneva-9'] text-[16px] antialiased">
                   <Loader2 className="h-3 w-3 animate-spin" />
                   Thinking...
                 </div>
@@ -86,7 +124,7 @@ export function ChatsAppComponent({
               onChange={handleInputChange}
               placeholder="Type a message..."
               className="flex-1 border-2 border-gray-800 text-xs font-['Geneva-12'] antialiased h-8"
-              disabled={isLoading}
+              autoFocus
             />
             {isLoading ? (
               <Button
