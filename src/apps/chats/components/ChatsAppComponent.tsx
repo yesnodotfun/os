@@ -40,9 +40,9 @@ export function ChatsAppComponent({
           maxHeight: 800,
         }}
       >
-        <div className="flex flex-col h-full bg-[#c0c0c0] p-2">
-          <ScrollArea className="flex-1 bg-white border-2 border-gray-800 rounded mb-2 p-2 h-full">
-            <div className="flex flex-col gap-2">
+        <div className="flex flex-col h-full bg-[#c0c0c0] p-2 w-full max-w-full">
+          <ScrollArea className="flex-1 bg-white border-2 border-gray-800 rounded mb-2 p-2 h-full w-full">
+            <div className="flex flex-col gap-1">
               {messages.map((message) => (
                 <div
                   key={message.id}
@@ -50,7 +50,7 @@ export function ChatsAppComponent({
                     message.role === "user" ? "items-end" : "items-start"
                   }`}
                 >
-                  <div className="text-sm text-gray-500 mb-1">
+                  <div className="text-xs text-gray-500 mb-0.5">
                     {message.role === "user" ? "You" : "Ryo"} •{" "}
                     {new Date().toLocaleTimeString([], {
                       hour: "2-digit",
@@ -58,7 +58,7 @@ export function ChatsAppComponent({
                     })}
                   </div>
                   <div
-                    className={`max-w-[80%] p-2 rounded ${
+                    className={`max-w-[90%] p-1.5 px-2 rounded leading-snug ${
                       message.role === "user"
                         ? "bg-yellow-200 text-black"
                         : "bg-blue-200 text-black"
