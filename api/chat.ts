@@ -5,6 +5,7 @@ import { streamText } from "ai";
 export const maxDuration = 30;
 export const runtime = "edge";
 export const edge = true;
+export const stream = true;
 export const config = {
   runtime: "edge",
 };
