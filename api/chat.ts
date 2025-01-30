@@ -1,5 +1,5 @@
 import { openai } from "@ai-sdk/openai";
-import { streamText } from "ai";
+import { smoothStream, streamText } from "ai";
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -29,6 +29,7 @@ export default async function handler(req: Request) {
       messages,
       temperature: 0.7,
       maxTokens: 1000,
+      experimental_transform: smoothStream(),
     });
 
     return result.toDataStreamResponse();
