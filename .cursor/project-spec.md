@@ -5,8 +5,8 @@
 - [x] Add an abstraction to allow multiple apps, eg. "Soundboard.app" is just one of the apps.
 - [x] Apps show up in the desktop as DesktopIcons, and can show up in the Apple menu.
 - [x] Add a new app for "Internet Explorer"
-- [ ] Refactor the Apple Menu out of the SoundboardMenuBar.tsx into a new layout component
-- [ ] Clean up MenuBar.tsx to show default menu bar with no app specific menu items when no app is active
+- [x] Refactor the Apple Menu out of the SoundboardMenuBar.tsx into a new layout component
+- [x] Clean up MenuBar.tsx to show default menu bar with no app specific menu items when no app is active
 
 ## App architecture
 - New apps are defined in src/apps/[app-name]/index.tsx

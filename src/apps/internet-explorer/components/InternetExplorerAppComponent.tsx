@@ -11,8 +11,12 @@ import {
   loadLastUrl,
   saveLastUrl,
   DEFAULT_URL,
+  HistoryEntry,
+  loadHistory,
+  addToHistory,
+  APP_STORAGE_KEYS,
 } from "@/utils/storage";
-import { Plus } from "lucide-react";
+import { Plus, ArrowLeft, ArrowRight } from "lucide-react";
 import { InputDialog } from "@/components/dialogs/InputDialog";
 import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
@@ -28,18 +32,28 @@ export function InternetExplorerAppComponent({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [favorites, setFavorites] = useState<Favorite[]>([]);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
   const [isTitleDialogOpen, setIsTitleDialogOpen] = useState(false);
   const [newFavoriteTitle, setNewFavoriteTitle] = useState("");
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
+  const [isNavigatingHistory, setIsNavigatingHistory] = useState(false);
 
   const urlInputRef = useRef<HTMLInputElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
     setFavorites(loadFavorites());
+    const loadedHistory = loadHistory();
+    setHistory(loadedHistory);
+    // Set initial history index to most recent entry if exists
+    if (loadedHistory.length > 0) {
+      setHistoryIndex(0);
+    }
   }, []);
 
-  const handleNavigate = (targetUrl = url) => {
+  const handleNavigate = (targetUrl = url, addToHistoryStack = true) => {
     setIsLoading(true);
     setError(null);
     const newUrl = targetUrl.startsWith("http")
@@ -47,11 +61,53 @@ export function InternetExplorerAppComponent({
       : `https://${targetUrl}`;
     setUrl(targetUrl);
     saveLastUrl(targetUrl);
-    setCurrentUrl(
+
+    const finalUrl =
       newUrl === currentUrl
         ? `${newUrl}${newUrl.includes("?") ? "&" : "?"}_t=${Date.now()}`
-        : newUrl
-    );
+        : newUrl;
+    setCurrentUrl(finalUrl);
+
+    if (addToHistoryStack && !isNavigatingHistory) {
+      const newEntry = {
+        url: newUrl,
+        title: new URL(newUrl).hostname,
+        favicon: `https://www.google.com/s2/favicons?domain=${
+          new URL(newUrl).hostname
+        }&sz=32`,
+        timestamp: Date.now(),
+      };
+
+      // Add new entry to the beginning of history
+      setHistory((prev) => [newEntry, ...prev]);
+      setHistoryIndex(0);
+      addToHistory(newEntry);
+    }
+  };
+
+  const handleNavigateWithHistory = (targetUrl: string) => {
+    setIsNavigatingHistory(false);
+    handleNavigate(targetUrl, true);
+  };
+
+  const handleGoBack = () => {
+    if (historyIndex < history.length - 1) {
+      setIsNavigatingHistory(true);
+      const nextIndex = historyIndex + 1;
+      setHistoryIndex(nextIndex);
+      handleNavigate(history[nextIndex].url, false);
+      setIsNavigatingHistory(false);
+    }
+  };
+
+  const handleGoForward = () => {
+    if (historyIndex > 0) {
+      setIsNavigatingHistory(true);
+      const nextIndex = historyIndex - 1;
+      setHistoryIndex(nextIndex);
+      handleNavigate(history[nextIndex].url, false);
+      setIsNavigatingHistory(false);
+    }
   };
 
   const handleAddFavorite = () => {
@@ -110,7 +166,11 @@ export function InternetExplorerAppComponent({
   };
 
   const handleClearHistory = () => {
-    // TODO: Implement history clearing when history feature is added
+    if (window.confirm("Are you sure you want to clear all history?")) {
+      setHistory([]);
+      setHistoryIndex(-1);
+      localStorage.removeItem(APP_STORAGE_KEYS["internet-explorer"].HISTORY);
+    }
   };
 
   if (!isWindowOpen) return null;
@@ -124,14 +184,20 @@ export function InternetExplorerAppComponent({
         onStop={handleStop}
         onFocusUrlInput={handleGoToUrl}
         onHome={handleHome}
-        onClearHistory={handleClearHistory}
         onShowHelp={() => setIsHelpDialogOpen(true)}
         onShowAbout={() => setIsAboutDialogOpen(true)}
         isLoading={isLoading}
         favorites={favorites}
+        history={history}
         onAddFavorite={handleAddFavorite}
         onClearFavorites={handleClearFavorites}
-        onNavigateToFavorite={handleNavigate}
+        onNavigateToFavorite={handleNavigateWithHistory}
+        onNavigateToHistory={handleNavigateWithHistory}
+        onGoBack={handleGoBack}
+        onGoForward={handleGoForward}
+        canGoBack={historyIndex < history.length - 1}
+        canGoForward={historyIndex > 0}
+        onClearHistory={handleClearHistory}
         onClose={onClose}
       />
       <WindowFrame
@@ -148,6 +214,26 @@ export function InternetExplorerAppComponent({
         <div className="flex flex-col h-full w-full">
           <div className="flex flex-col gap-1 p-1 bg-gray-100 border-b border-black">
             <div className="flex gap-2 items-center">
+              <div className="flex gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleGoBack}
+                  disabled={historyIndex >= history.length - 1}
+                  className="h-8 w-8"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleGoForward}
+                  disabled={historyIndex <= 0}
+                  className="h-8 w-8"
+                >
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </div>
               <Input
                 ref={urlInputRef}
                 value={url}
@@ -207,10 +293,23 @@ export function InternetExplorerAppComponent({
             </div>
           ) : (
             <iframe
+              ref={iframeRef}
               src={currentUrl}
               className="flex-1 w-full h-full min-h-[400px] border-0"
               sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-              onLoad={() => setIsLoading(false)}
+              onLoad={() => {
+                setIsLoading(false);
+                if (iframeRef.current?.contentDocument?.title) {
+                  const title = iframeRef.current.contentDocument.title;
+                  if (!isNavigatingHistory) {
+                    const updatedHistory = [...history];
+                    if (updatedHistory[historyIndex]) {
+                      updatedHistory[historyIndex].title = title;
+                      setHistory(updatedHistory);
+                    }
+                  }
+                }
+              }}
               onError={handleIframeError}
             />
           )}

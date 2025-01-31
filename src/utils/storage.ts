@@ -132,6 +132,13 @@ export interface Favorite {
   favicon?: string;
 }
 
+export interface HistoryEntry {
+  url: string;
+  title: string;
+  favicon?: string;
+  timestamp: number;
+}
+
 export const DEFAULT_FAVORITES: Favorite[] = [
   {
     title: "NewJeans",
@@ -244,4 +251,26 @@ export const loadLastUrl = (): string => {
 
 export const saveLastUrl = (url: string): void => {
   localStorage.setItem(APP_STORAGE_KEYS["internet-explorer"].LAST_URL, url);
+};
+
+export const loadHistory = (): HistoryEntry[] => {
+  const saved = localStorage.getItem(
+    APP_STORAGE_KEYS["internet-explorer"].HISTORY
+  );
+  return saved ? JSON.parse(saved) : [];
+};
+
+export const saveHistory = (history: HistoryEntry[]): void => {
+  localStorage.setItem(
+    APP_STORAGE_KEYS["internet-explorer"].HISTORY,
+    JSON.stringify(history)
+  );
+};
+
+export const addToHistory = (entry: Omit<HistoryEntry, "timestamp">): void => {
+  const history = loadHistory();
+  const newEntry = { ...entry, timestamp: Date.now() };
+  history.unshift(newEntry);
+  // Keep only last 100 entries
+  saveHistory(history.slice(0, 100));
 };

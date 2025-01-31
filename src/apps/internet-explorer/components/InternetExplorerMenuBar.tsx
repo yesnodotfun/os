@@ -8,23 +8,29 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { AppProps } from "../../base/types";
 import { MenuBar } from "@/components/layout/MenuBar";
-import { Favorite } from "@/utils/storage";
+import { Favorite, HistoryEntry } from "@/utils/storage";
 
 interface InternetExplorerMenuBarProps extends Omit<AppProps, "onClose"> {
   onRefresh?: () => void;
   onStop?: () => void;
   onGoToUrl?: () => void;
   onHome?: () => void;
-  onClearHistory?: () => void;
   onShowHelp?: () => void;
   onShowAbout?: () => void;
   isLoading?: boolean;
   favorites?: Favorite[];
+  history?: HistoryEntry[];
   onAddFavorite?: () => void;
   onClearFavorites?: () => void;
   onNavigateToFavorite?: (url: string) => void;
+  onNavigateToHistory?: (url: string) => void;
   onFocusUrlInput?: () => void;
   onClose?: () => void;
+  onGoBack?: () => void;
+  onGoForward?: () => void;
+  canGoBack?: boolean;
+  canGoForward?: boolean;
+  onClearHistory?: () => void;
 }
 
 export function InternetExplorerMenuBar({
@@ -35,11 +41,18 @@ export function InternetExplorerMenuBar({
   onShowAbout,
   isLoading,
   favorites = [],
+  history = [],
   onAddFavorite,
   onClearFavorites,
   onNavigateToFavorite,
+  onNavigateToHistory,
   onFocusUrlInput,
   onClose,
+  onGoBack,
+  onGoForward,
+  canGoBack,
+  canGoForward,
+  onClearHistory,
 }: InternetExplorerMenuBarProps) {
   return (
     <MenuBar>
@@ -155,6 +168,77 @@ export function InternetExplorerMenuBar({
                 className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
               >
                 Clear Favorites...
+              </DropdownMenuItem>
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* History Menu */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="default"
+            className="h-6 px-2 py-1 text-md focus-visible:ring-0 hover:bg-gray-200 active:bg-gray-900 active:text-white"
+          >
+            History
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align="start"
+          sideOffset={1}
+          className="px-0 max-h-[400px] overflow-y-auto"
+        >
+          <DropdownMenuItem
+            onClick={onGoBack}
+            disabled={!canGoBack}
+            className={
+              !canGoBack
+                ? "text-gray-400 text-md h-6 px-3"
+                : "text-md h-6 px-3 active:bg-gray-900 active:text-white"
+            }
+          >
+            Back
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={onGoForward}
+            disabled={!canGoForward}
+            className={
+              !canGoForward
+                ? "text-gray-400 text-md h-6 px-3"
+                : "text-md h-6 px-3 active:bg-gray-900 active:text-white"
+            }
+          >
+            Forward
+          </DropdownMenuItem>
+
+          {history.length > 0 && (
+            <>
+              <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
+              {history.slice(0, 10).map((entry) => (
+                <DropdownMenuItem
+                  key={entry.url + entry.timestamp}
+                  onClick={() => onNavigateToHistory?.(entry.url)}
+                  className="text-md h-6 px-3 active:bg-gray-900 active:text-white flex items-center gap-2"
+                >
+                  <img
+                    src={entry.favicon || "/icons/ie-site.png"}
+                    alt=""
+                    className="w-4 h-4"
+                    onError={(e) => {
+                      e.currentTarget.src = "/icons/ie-site.png";
+                    }}
+                  />
+                  <span className="truncate">{entry.title}</span>
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
+              <DropdownMenuItem
+                onClick={onClearHistory}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+              >
+                Clear History...
               </DropdownMenuItem>
             </>
           )}
