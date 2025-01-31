@@ -111,8 +111,8 @@ export function ChatsAppComponent({
           isOpen={isClearDialogOpen}
           onOpenChange={setIsClearDialogOpen}
           onConfirm={confirmClearChats}
-          title="Clear Chat History"
-          description="Are you sure you want to clear all chat messages? This action cannot be undone."
+          title="Clear Chats"
+          description="Are you sure you want to clear all chats? This action cannot be undone."
         />
       </WindowFrame>
     </>

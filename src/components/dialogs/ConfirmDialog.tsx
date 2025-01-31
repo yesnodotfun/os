@@ -35,7 +35,14 @@ export function ConfirmDialog({
       >
         <DialogHeader>{title}</DialogHeader>
         <div className="p-4 px-6">
-          <p className="text-gray-500 mb-2 leading-tight">{description}</p>
+          <div className="flex gap-3 items-start">
+            <img
+              src="/icons/warn.png"
+              alt="Warning"
+              className="w-[32px] h-[32px] mt-0.5 [image-rendering:pixelated]"
+            />
+            <p className="text-gray-900 mb-2 leading-tight">{description}</p>
+          </div>
           <DialogFooter className="mt-4 flex flex-col gap-1 sm:flex-row">
             <Button
               variant="retro"

@@ -151,6 +151,11 @@ export const DEFAULT_FAVORITES: Favorite[] = [
     favicon: "https://www.google.com/s2/favicons?domain=play.ryo.lu&sz=32",
   },
   {
+    title: "HyperCards",
+    url: "https://hcsimulator.com",
+    favicon: "https://www.google.com/s2/favicons?domain=hcsimulator.com&sz=32",
+  },
+  {
     title: "Theo",
     url: "https://tmb.sh",
     favicon: "https://www.google.com/s2/favicons?domain=tmb.sh&sz=32",
