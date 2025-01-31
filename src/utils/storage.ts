@@ -178,6 +178,11 @@ export const DEFAULT_FAVORITES: Favorite[] = [
     favicon: "https://www.google.com/s2/favicons?domain=wustep.me&sz=32",
   },
   {
+    title: "Andrew",
+    url: "https://www.andrewl.ee",
+    favicon: "https://www.google.com/s2/favicons?domain=www.andrewl.ee&sz=32",
+  },
+  {
     title: "Lucas",
     url: "https://www.lucasn.com",
     favicon: "https://www.google.com/s2/favicons?domain=www.lucasn.com&sz=32",
