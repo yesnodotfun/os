@@ -1,5 +1,5 @@
 import { Message } from "ai";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, Trash2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ interface ChatMessagesProps {
   isLoading: boolean;
   error?: Error;
   onRetry?: () => void;
+  onClear?: () => void;
 }
 
 export function ChatMessages({
@@ -17,6 +18,7 @@ export function ChatMessages({
   isLoading,
   error,
   onRetry,
+  onClear,
 }: ChatMessagesProps) {
   const [scrollLockedToBottom, setScrollLockedToBottom] = useState(true);
   const viewportRef = useRef<HTMLElement | null>(null);
@@ -92,7 +94,7 @@ export function ChatMessages({
                 <span className="text-gray-400">
                   {message.createdAt ? (
                     new Date(message.createdAt).toLocaleTimeString([], {
-                      hour: "2-digit",
+                      hour: "numeric",
                       minute: "2-digit",
                     })
                   ) : (
@@ -162,9 +164,28 @@ export function ChatMessages({
                   size="sm"
                   variant="link"
                   onClick={onRetry}
-                  className="m-0 p-0 text-[16px] h-0"
+                  className="m-0 p-0 text-[16px] h-0 text-amber-600"
                 >
                   Reload
+                </Button>
+              )}
+            </motion.div>
+          )}
+          {messages.length > 20 && (
+            <motion.div
+              layout
+              className="flex items-center gap-2 text-amber-600 font-['Geneva-9'] text-[16px] antialiased h-[12px]"
+            >
+              <Trash2 className="h-3 w-3" />
+              <span>Messages getting long!</span>
+              {onClear && (
+                <Button
+                  size="sm"
+                  variant="link"
+                  onClick={onClear}
+                  className="m-0 p-0 text-[16px] h-0 text-amber-600"
+                >
+                  Clear
                 </Button>
               )}
             </motion.div>

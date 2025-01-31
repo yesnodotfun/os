@@ -26,7 +26,7 @@ function Clock() {
 
   return (
     <div className="ml-auto mr-2">
-      {time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+      {time.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
     </div>
   );
 }

@@ -4,7 +4,14 @@ import { WindowFrame } from "@/components/layout/WindowFrame";
 import { Input } from "@/components/ui/input";
 import { InternetExplorerMenuBar } from "./InternetExplorerMenuBar";
 import { Button } from "@/components/ui/button";
-import { Favorite, loadFavorites, saveFavorites } from "@/utils/storage";
+import {
+  Favorite,
+  loadFavorites,
+  saveFavorites,
+  loadLastUrl,
+  saveLastUrl,
+  DEFAULT_URL,
+} from "@/utils/storage";
 import { Plus } from "lucide-react";
 import { InputDialog } from "@/components/dialogs/InputDialog";
 import { HelpDialog } from "@/components/dialogs/HelpDialog";
@@ -16,7 +23,7 @@ export function InternetExplorerAppComponent({
   onClose,
   isForeground,
 }: AppProps) {
-  const [url, setUrl] = useState("https://ryo.lu");
+  const [url, setUrl] = useState(() => loadLastUrl());
   const [currentUrl, setCurrentUrl] = useState(url);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,6 +46,7 @@ export function InternetExplorerAppComponent({
       ? targetUrl
       : `https://${targetUrl}`;
     setUrl(targetUrl);
+    saveLastUrl(targetUrl);
     setCurrentUrl(
       newUrl === currentUrl
         ? `${newUrl}${newUrl.includes("?") ? "&" : "?"}_t=${Date.now()}`
@@ -96,8 +104,9 @@ export function InternetExplorerAppComponent({
   };
 
   const handleHome = () => {
-    setUrl("https://ryo.lu");
-    setCurrentUrl("https://ryo.lu");
+    setUrl(DEFAULT_URL);
+    saveLastUrl(DEFAULT_URL);
+    setCurrentUrl(DEFAULT_URL);
   };
 
   const handleClearHistory = () => {
@@ -134,7 +143,6 @@ export function InternetExplorerAppComponent({
           minWidth: 260,
           minHeight: 400,
           maxWidth: "100vw",
-          maxHeight: undefined,
         }}
       >
         <div className="flex flex-col h-full w-full">

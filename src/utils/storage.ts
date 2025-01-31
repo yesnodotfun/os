@@ -13,6 +13,7 @@ export const APP_STORAGE_KEYS = {
     WINDOW: "internet-explorer:window",
     HISTORY: "internet-explorer:history",
     FAVORITES: "internet-explorer:favorites",
+    LAST_URL: "internet-explorer:last-url",
   },
   chats: {
     WINDOW: "chats:window",
@@ -224,4 +225,17 @@ export const saveChatMessages = (messages: Message[]): void => {
     APP_STORAGE_KEYS.chats.MESSAGES,
     JSON.stringify(messages)
   );
+};
+
+export const DEFAULT_URL = "https://ryo.lu";
+
+export const loadLastUrl = (): string => {
+  return (
+    localStorage.getItem(APP_STORAGE_KEYS["internet-explorer"].LAST_URL) ||
+    DEFAULT_URL
+  );
+};
+
+export const saveLastUrl = (url: string): void => {
+  localStorage.setItem(APP_STORAGE_KEYS["internet-explorer"].LAST_URL, url);
 };

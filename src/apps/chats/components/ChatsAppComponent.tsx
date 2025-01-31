@@ -79,6 +79,7 @@ export function ChatsAppComponent({
             isLoading={isLoading}
             error={error}
             onRetry={reload}
+            onClear={clearChats}
           />
           <ChatInput
             input={input}
