@@ -9,12 +9,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { AppProps } from "../../base/types";
 import { MenuBar } from "@/components/layout/MenuBar";
+import { useState, useEffect } from "react";
 
 interface SoundboardMenuBarProps extends Omit<AppProps, "onClose"> {
+  onClose: () => void;
   onNewBoard?: () => void;
   onImportBoard?: () => void;
   onExportBoard?: () => void;
   onReloadBoard?: () => void;
+  onReloadAllSounds?: () => void;
   onRenameBoard?: () => void;
   onDeleteBoard?: () => void;
   canDeleteBoard?: boolean;
@@ -31,6 +34,7 @@ export function SoundboardMenuBar({
   onImportBoard,
   onExportBoard,
   onReloadBoard,
+  onReloadAllSounds,
   onRenameBoard,
   onDeleteBoard,
   canDeleteBoard,
@@ -40,7 +44,31 @@ export function SoundboardMenuBar({
   onToggleWaveforms,
   showEmojis,
   onToggleEmojis,
-}: SoundboardMenuBarProps & { onClose: () => void }) {
+  onClose,
+}: SoundboardMenuBarProps) {
+  const [isOptionPressed, setIsOptionPressed] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Alt") {
+        setIsOptionPressed(true);
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === "Alt") {
+        setIsOptionPressed(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, []);
+
   return (
     <MenuBar>
       {/* File Menu */}
@@ -74,12 +102,26 @@ export function SoundboardMenuBar({
           >
             Export Soundboards...
           </DropdownMenuItem>
-          <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           <DropdownMenuItem
             onClick={onReloadBoard}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            Reset All Soundboards
+            Reset Soundboards
+          </DropdownMenuItem>
+          {isOptionPressed && (
+            <DropdownMenuItem
+              onClick={onReloadAllSounds}
+              className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+            >
+              Load Special Soundboards
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
+          <DropdownMenuItem
+            onClick={onClose}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            Close
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

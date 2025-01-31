@@ -233,6 +233,28 @@ export function SoundboardAppComponent({
     }
   };
 
+  const reloadFromAllSounds = async () => {
+    try {
+      const res = await fetch("/all-sounds.json");
+      const data = await res.json();
+      const importedBoards = data.boards || [data];
+      const newBoards = importedBoards.map((board: ImportedBoard) => ({
+        ...board,
+        id: Date.now().toString() + Math.random().toString(36).slice(2),
+        slots: board.slots.map((slot: ImportedSlot) => ({
+          audioData: slot.audioData,
+          emoji: slot.emoji,
+          title: slot.title,
+        })),
+      }));
+      setBoards(newBoards);
+      setActiveBoardId(newBoards[0].id);
+      saveSoundboards(newBoards);
+    } catch (err) {
+      console.error("Failed to reload all-sounds.json:", err);
+    }
+  };
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const index = e.keyCode >= 97 ? e.keyCode - 97 : e.keyCode - 49;
@@ -252,7 +274,9 @@ export function SoundboardAppComponent({
     };
 
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
   }, [activeBoard.slots, playbackStates, playSound, stopSound]);
 
   return (
@@ -264,6 +288,7 @@ export function SoundboardAppComponent({
         onImportBoard={() => importInputRef.current?.click()}
         onExportBoard={exportBoard}
         onReloadBoard={reloadFromJson}
+        onReloadAllSounds={reloadFromAllSounds}
         onRenameBoard={() => setIsEditingTitle(true)}
         onDeleteBoard={() => {
           const newBoards = boards.filter((b) => b.id !== activeBoardId);
