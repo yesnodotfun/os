@@ -146,6 +146,11 @@ export const DEFAULT_FAVORITES: Favorite[] = [
     favicon: "https://www.google.com/s2/favicons?domain=newjeans.kr&sz=32",
   },
   {
+    title: "Particle Simulator",
+    url: "https://play.ryo.lu",
+    favicon: "https://www.google.com/s2/favicons?domain=play.ryo.lu&sz=32",
+  },
+  {
     title: "Theo",
     url: "https://tmb.sh",
     favicon: "https://www.google.com/s2/favicons?domain=tmb.sh&sz=32",
