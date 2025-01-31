@@ -76,12 +76,16 @@ export function ChatMessages({
                 message.id ||
                 `${message.role}-${message.content.substring(0, 10)}`
               }
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               transition={{ duration: 0.2 }}
-              className={`flex flex-col ${
+              className={`flex flex-col  z-10 ${
                 message.role === "user" ? "items-end" : "items-start"
               }`}
+              style={{
+                transformOrigin:
+                  message.role === "user" ? "bottom right" : "bottom left",
+              }}
             >
               <div className="text-[16px] text-gray-500 mb-0.5 font-['Geneva-9'] mb-[-2px]">
                 {message.role === "user" ? "You" : "Ryo"}{" "}
@@ -98,11 +102,12 @@ export function ChatMessages({
               </div>
 
               <motion.div
+                layout="position"
                 style={{
                   fontFamily:
                     "Geneva-12, SerenityOS-Emoji, system-ui, -apple-system, sans-serif",
                 }}
-                className={`max-w-[90%] p-1.5 px-2 rounded leading-snug text-[12px] antialiased break-words ${
+                className={`max-w-[90%] min-h-[12px] p-1.5 px-2 rounded leading-snug text-[12px] antialiased break-words ${
                   message.role === "user"
                     ? "bg-yellow-200 text-black"
                     : "bg-blue-200 text-black"
@@ -110,18 +115,18 @@ export function ChatMessages({
               >
                 {message.role === "assistant" ? (
                   <motion.div layout="position">
-                    {message.content.split("").map((char, idx) => (
+                    {message.content.split(" ").map((word, idx) => (
                       <motion.span
                         key={idx}
-                        initial={{ opacity: 0, y: 10 }}
+                        initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{
                           duration: 0.15,
-                          delay: idx * 0.02,
+                          delay: idx * 0.05,
                           ease: "easeOut",
                         }}
                       >
-                        {char}
+                        {word}{" "}
                       </motion.span>
                     ))}
                   </motion.div>
@@ -134,11 +139,12 @@ export function ChatMessages({
           {isLoading && (
             <motion.div
               layout
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 12 }}
+              initial={{ opacity: 0, y: 20, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.9 }}
               transition={{ duration: 0.2 }}
-              className="flex items-center gap-2 text-gray-500 font-['Geneva-9'] text-[16px] antialiased h-[12px]"
+              className="flex items-center gap-2 text-gray-500 font-['Geneva-9'] text-[16px] antialiased h-[12px] z-1"
+              style={{ transformOrigin: "bottom left" }}
             >
               <Loader2 className="h-3 w-3 animate-spin" />
               Thinking...
