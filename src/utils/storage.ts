@@ -144,6 +144,11 @@ export const DEFAULT_FAVORITES: Favorite[] = [
     favicon: "https://www.google.com/s2/favicons?domain=tmb.sh&sz=32",
   },
   {
+    title: "Ian",
+    url: "https://shaoruu.io",
+    favicon: "https://www.google.com/s2/favicons?domain=shaoruu.io&sz=32",
+  },
+  {
     title: "Tyler",
     url: "https://tylerbeauchamp.net",
     favicon:
@@ -165,15 +170,16 @@ export const DEFAULT_FAVORITES: Favorite[] = [
     url: "https://www.lucasn.com",
     favicon: "https://www.google.com/s2/favicons?domain=www.lucasn.com&sz=32",
   },
-  {
-    title: "Ryo",
-    url: "https://ryo.lu",
-    favicon: "https://www.google.com/s2/favicons?domain=ryo.lu&sz=32",
-  },
+
   {
     title: "Frank",
     url: "https://okfrank.co",
     favicon: "https://www.google.com/s2/favicons?domain=okfrank.co&sz=32",
+  },
+  {
+    title: "Ryo",
+    url: "https://ryo.lu",
+    favicon: "https://www.google.com/s2/favicons?domain=ryo.lu&sz=32",
   },
   {
     title: "Modi",

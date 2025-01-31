@@ -24,7 +24,9 @@ export function AboutFinderDialog({
           <div className="space-y-0">
             <div className="text-lg font-medium">ryOS</div>
             <p className="text-gray-500">System Software 7.0</p>
-            <p className="text-gray-500">© Apple Computer, Inc. 1983-1991</p>
+            <p className="text-gray-500">
+              © Ryo Lu, 1992-{new Date().getFullYear()}
+            </p>
             <p className="text-gray-500">Total Memory: 8,192K</p>
             <p className="text-gray-500">Largest Unused Block: 4,096K</p>
           </div>
