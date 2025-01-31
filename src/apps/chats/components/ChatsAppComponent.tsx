@@ -1,16 +1,14 @@
 import { useState, useEffect } from "react";
 import { AppProps } from "../../base/types";
 import { WindowFrame } from "@/components/layout/WindowFrame";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { ChatsMenuBar } from "./ChatsMenuBar";
 import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { helpItems, appMetadata } from "..";
 import { useChat } from "ai/react";
-import { ArrowUp, Square } from "lucide-react";
 import { loadChatMessages, saveChatMessages } from "@/utils/storage";
 import { ChatMessages } from "./ChatMessages";
+import { ChatInput } from "./ChatInput";
 
 export function ChatsAppComponent({
   isWindowOpen,
@@ -39,7 +37,6 @@ export function ChatsAppComponent({
     experimental_throttle: 50,
   });
   const [messages, setMessages] = useState(aiMessages);
-  const [isFocused, setIsFocused] = useState(false);
 
   useEffect(() => {
     setMessages(aiMessages);
@@ -83,39 +80,13 @@ export function ChatsAppComponent({
             error={error}
             onRetry={reload}
           />
-          <form onSubmit={handleSubmit} className="flex gap-2">
-            <Input
-              value={input}
-              onChange={handleInputChange}
-              placeholder="Type a message..."
-              className={`flex-1 border-2 border-gray-800 text-xs font-['Geneva-12'] antialiased h-8 ${
-                isFocused ? "input--focused" : ""
-              }`}
-              onFocus={() => {
-                setIsFocused(true);
-              }}
-              onBlur={() => setIsFocused(false)}
-              onTouchStart={(e) => {
-                e.preventDefault();
-              }}
-            />
-            {isLoading ? (
-              <Button
-                type="button"
-                onClick={() => stop()}
-                className="bg-black hover:bg-black/80 text-white text-xs border-2 border-gray-800 w-8 h-8 p-0 flex items-center justify-center"
-              >
-                <Square className="h-4 w-4" fill="currentColor" />
-              </Button>
-            ) : (
-              <Button
-                type="submit"
-                className="bg-black hover:bg-black/80 text-white text-xs border-2 border-gray-800 w-8 h-8 p-0 flex items-center justify-center"
-              >
-                <ArrowUp className="h-4 w-4" />
-              </Button>
-            )}
-          </form>
+          <ChatInput
+            input={input}
+            isLoading={isLoading}
+            onInputChange={handleInputChange}
+            onSubmit={handleSubmit}
+            onStop={stop}
+          />
         </div>
         <HelpDialog
           isOpen={isHelpDialogOpen}
