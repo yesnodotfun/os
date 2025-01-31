@@ -5,7 +5,8 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
+import { useSound, Sounds } from "@/hooks/useSound";
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -23,6 +24,14 @@ export function ConfirmDialog({
   description,
 }: ConfirmDialogProps) {
   const confirmButtonRef = useRef<HTMLButtonElement>(null);
+  const { play: playAlertSound } = useSound(Sounds.ALERT_SOSUMI);
+
+  // Play sound when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      playAlertSound();
+    }
+  }, [isOpen, playAlertSound]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>

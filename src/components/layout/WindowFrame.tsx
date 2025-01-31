@@ -2,6 +2,9 @@ import { useWindowManager } from "@/hooks/useWindowManager";
 import { ResizeType } from "@/types/types";
 import { APP_STORAGE_KEYS } from "@/utils/storage";
 import { useAppContext } from "@/contexts/AppContext";
+import { useSound, Sounds } from "@/hooks/useSound";
+import { useEffect, useState, useCallback } from "react";
+import { cn } from "@/lib/utils";
 
 interface WindowFrameProps {
   children: React.ReactNode;
@@ -25,7 +28,39 @@ export function WindowFrame({
   appId,
   windowConstraints = {},
 }: WindowFrameProps) {
+  const [isOpen, setIsOpen] = useState(true);
+  const [isVisible, setIsVisible] = useState(true);
+  const [isInitialMount, setIsInitialMount] = useState(true);
   const { bringToForeground } = useAppContext();
+  const { play: playWindowOpen } = useSound(Sounds.WINDOW_OPEN);
+  const { play: playWindowClose } = useSound(Sounds.WINDOW_CLOSE);
+
+  useEffect(() => {
+    playWindowOpen();
+    // Remove initial mount state after animation
+    const timer = setTimeout(() => setIsInitialMount(false), 200);
+    return () => clearTimeout(timer);
+  }, []); // Play sound when component mounts
+
+  const handleTransitionEnd = useCallback(
+    (e: React.TransitionEvent) => {
+      if (
+        e.target === e.currentTarget &&
+        !isOpen &&
+        e.propertyName === "opacity"
+      ) {
+        setIsVisible(false);
+        onClose?.();
+      }
+    },
+    [isOpen, onClose]
+  );
+
+  const handleClose = () => {
+    playWindowClose();
+    setIsOpen(false);
+  };
+
   const {
     windowPosition,
     windowSize,
@@ -52,9 +87,16 @@ export function WindowFrame({
     }
   };
 
+  if (!isVisible) return null;
+
   return (
     <div
-      className="md:absolute p-2 md:p-0 w-full h-full  mt-6 md:mt-0 select-none"
+      className={cn(
+        "md:absolute p-2 md:p-0 w-full h-full mt-6 md:mt-0 select-none",
+        "transition-all duration-200 ease-in-out",
+        isInitialMount && "animate-in fade-in-0 zoom-in-95 duration-200"
+      )}
+      onTransitionEnd={handleTransitionEnd}
       style={{
         left: windowPosition.x,
         top: Math.max(30, windowPosition.y),
@@ -65,13 +107,17 @@ export function WindowFrame({
         minHeight: windowConstraints.minHeight,
         maxWidth: windowConstraints.maxWidth || undefined,
         maxHeight: windowConstraints.maxHeight || undefined,
-        transition: isDragging || resizeType ? "none" : "all 0.2s ease",
+        transition: isDragging || resizeType ? "none" : undefined,
+        transform: !isInitialMount && !isOpen ? "scale(0.95)" : undefined,
+        opacity: !isInitialMount && !isOpen ? 0 : undefined,
+        transformOrigin: "center",
       }}
     >
       <div
-        className={`relative h-full flex flex-col bg-system7-window-bg border-[2px] border-black rounded-lg ${
+        className={cn(
+          "relative h-full flex flex-col bg-system7-window-bg border-[2px] border-black rounded-lg overflow-hidden",
           isForeground ? "shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)]" : ""
-        } overflow-hidden`}
+        )}
       >
         {/* Resize handles */}
         <div className="absolute inset-0 pointer-events-none">
@@ -129,7 +175,7 @@ export function WindowFrame({
           onMouseDown={handleMouseDown}
         >
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className={`ml-2 w-4 h-4 bg-white border-2 border-black hover:bg-gray-200 active:bg-gray-300 flex items-center justify-center shadow-[0_0_0_1px_white] ${
               !isForeground && "invisible"
             }`}

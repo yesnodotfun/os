@@ -1,10 +1,34 @@
 import * as React from "react";
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import { Check, ChevronRight, Circle } from "lucide-react";
+import { useSound, Sounds } from "@/hooks/useSound";
 
 import { cn } from "@/lib/utils";
 
-const DropdownMenu = DropdownMenuPrimitive.Root;
+const DropdownMenu = ({
+  children,
+  ...props
+}: DropdownMenuPrimitive.DropdownMenuProps) => {
+  const { play: playMenuOpen } = useSound(Sounds.MENU_OPEN);
+  const { play: playMenuClose } = useSound(Sounds.MENU_CLOSE);
+
+  return (
+    <DropdownMenuPrimitive.Root
+      onOpenChange={(open) => {
+        if (open) {
+          playMenuOpen();
+        } else {
+          playMenuClose();
+        }
+        props.onOpenChange?.(open);
+      }}
+      {...props}
+    >
+      {children}
+    </DropdownMenuPrimitive.Root>
+  );
+};
+DropdownMenu.displayName = DropdownMenuPrimitive.Root.displayName;
 
 const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger;
 
