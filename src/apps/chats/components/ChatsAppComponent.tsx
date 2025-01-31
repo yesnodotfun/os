@@ -4,6 +4,7 @@ import { WindowFrame } from "@/components/layout/WindowFrame";
 import { ChatsMenuBar } from "./ChatsMenuBar";
 import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
+import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { helpItems, appMetadata } from "..";
 import { useChat } from "ai/react";
 import { loadChatMessages, saveChatMessages } from "@/utils/storage";
@@ -45,10 +46,16 @@ export function ChatsAppComponent({
 
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
+  const [isClearDialogOpen, setIsClearDialogOpen] = useState(false);
 
   const clearChats = () => {
+    setIsClearDialogOpen(true);
+  };
+
+  const confirmClearChats = () => {
     setAiMessages([initialMessage]);
     saveChatMessages([initialMessage]);
+    setIsClearDialogOpen(false);
   };
 
   if (!isWindowOpen) return null;
@@ -99,6 +106,13 @@ export function ChatsAppComponent({
           isOpen={isAboutDialogOpen}
           onOpenChange={setIsAboutDialogOpen}
           metadata={appMetadata}
+        />
+        <ConfirmDialog
+          isOpen={isClearDialogOpen}
+          onOpenChange={setIsClearDialogOpen}
+          onConfirm={confirmClearChats}
+          title="Clear Chat History"
+          description="Are you sure you want to clear all chat messages? This action cannot be undone."
         />
       </WindowFrame>
     </>

@@ -20,6 +20,7 @@ import { Plus, ArrowLeft, ArrowRight } from "lucide-react";
 import { InputDialog } from "@/components/dialogs/InputDialog";
 import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
+import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { helpItems, appMetadata } from "..";
 
 export function InternetExplorerAppComponent({
@@ -39,6 +40,9 @@ export function InternetExplorerAppComponent({
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
   const [isNavigatingHistory, setIsNavigatingHistory] = useState(false);
+  const [isClearFavoritesDialogOpen, setClearFavoritesDialogOpen] =
+    useState(false);
+  const [isClearHistoryDialogOpen, setClearHistoryDialogOpen] = useState(false);
 
   const urlInputRef = useRef<HTMLInputElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -133,10 +137,13 @@ export function InternetExplorerAppComponent({
   };
 
   const handleClearFavorites = () => {
-    if (window.confirm("Are you sure you want to clear all favorites?")) {
-      setFavorites([]);
-      saveFavorites([]);
-    }
+    setClearFavoritesDialogOpen(true);
+  };
+
+  const confirmClearFavorites = () => {
+    setFavorites([]);
+    saveFavorites([]);
+    setClearFavoritesDialogOpen(false);
   };
 
   const handleIframeError = () => {
@@ -166,11 +173,14 @@ export function InternetExplorerAppComponent({
   };
 
   const handleClearHistory = () => {
-    if (window.confirm("Are you sure you want to clear all history?")) {
-      setHistory([]);
-      setHistoryIndex(-1);
-      localStorage.removeItem(APP_STORAGE_KEYS["internet-explorer"].HISTORY);
-    }
+    setClearHistoryDialogOpen(true);
+  };
+
+  const confirmClearHistory = () => {
+    setHistory([]);
+    setHistoryIndex(-1);
+    localStorage.removeItem(APP_STORAGE_KEYS["internet-explorer"].HISTORY);
+    setClearHistoryDialogOpen(false);
   };
 
   if (!isWindowOpen) return null;
@@ -333,6 +343,20 @@ export function InternetExplorerAppComponent({
           isOpen={isAboutDialogOpen}
           onOpenChange={setIsAboutDialogOpen}
           metadata={appMetadata}
+        />
+        <ConfirmDialog
+          isOpen={isClearFavoritesDialogOpen}
+          onOpenChange={setClearFavoritesDialogOpen}
+          onConfirm={confirmClearFavorites}
+          title="Clear Favorites"
+          description="Are you sure you want to clear all favorites?"
+        />
+        <ConfirmDialog
+          isOpen={isClearHistoryDialogOpen}
+          onOpenChange={setClearHistoryDialogOpen}
+          onConfirm={confirmClearHistory}
+          title="Clear History"
+          description="Are you sure you want to clear all history?"
         />
       </WindowFrame>
     </>
