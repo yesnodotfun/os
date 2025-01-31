@@ -1,6 +1,7 @@
 import { useWindowManager } from "@/hooks/useWindowManager";
 import { ResizeType } from "@/types/types";
 import { APP_STORAGE_KEYS } from "@/utils/storage";
+import { useAppContext } from "@/contexts/AppContext";
 
 interface WindowFrameProps {
   children: React.ReactNode;
@@ -24,14 +25,32 @@ export function WindowFrame({
   appId,
   windowConstraints = {},
 }: WindowFrameProps) {
+  const { bringToForeground } = useAppContext();
   const {
     windowPosition,
     windowSize,
     isDragging,
     resizeType,
-    handleMouseDown,
+    handleMouseDown: handleMouseDownBase,
     handleResizeStart,
   } = useWindowManager({ appId });
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLElement>) => {
+    handleMouseDownBase(e);
+    if (!isForeground) {
+      bringToForeground(appId);
+    }
+  };
+
+  const handleResizeStartWithForeground = (
+    e: React.MouseEvent,
+    type: ResizeType
+  ) => {
+    handleResizeStart(e, type);
+    if (!isForeground) {
+      bringToForeground(appId);
+    }
+  };
 
   return (
     <div
@@ -58,31 +77,45 @@ export function WindowFrame({
         <div className="absolute inset-0 pointer-events-none">
           <div
             className="absolute top-0 left-0 right-0 h-2 cursor-n-resize pointer-events-auto"
-            onMouseDown={(e) => handleResizeStart(e, "n" as ResizeType)}
+            onMouseDown={(e) =>
+              handleResizeStartWithForeground(e, "n" as ResizeType)
+            }
           />
           <div
             className="absolute bottom-0 left-0 right-0 h-2 cursor-s-resize pointer-events-auto"
-            onMouseDown={(e) => handleResizeStart(e, "s" as ResizeType)}
+            onMouseDown={(e) =>
+              handleResizeStartWithForeground(e, "s" as ResizeType)
+            }
           />
           <div
             className="absolute left-0 top-0 bottom-0 w-2 cursor-w-resize pointer-events-auto"
-            onMouseDown={(e) => handleResizeStart(e, "w" as ResizeType)}
+            onMouseDown={(e) =>
+              handleResizeStartWithForeground(e, "w" as ResizeType)
+            }
           />
           <div
             className="absolute right-0 top-0 bottom-0 w-2 cursor-e-resize pointer-events-auto"
-            onMouseDown={(e) => handleResizeStart(e, "e" as ResizeType)}
+            onMouseDown={(e) =>
+              handleResizeStartWithForeground(e, "e" as ResizeType)
+            }
           />
           <div
             className="absolute top-0 right-0 w-4 h-4 cursor-ne-resize pointer-events-auto"
-            onMouseDown={(e) => handleResizeStart(e, "ne" as ResizeType)}
+            onMouseDown={(e) =>
+              handleResizeStartWithForeground(e, "ne" as ResizeType)
+            }
           />
           <div
             className="absolute bottom-0 left-0 w-4 h-4 cursor-sw-resize pointer-events-auto"
-            onMouseDown={(e) => handleResizeStart(e, "sw" as ResizeType)}
+            onMouseDown={(e) =>
+              handleResizeStartWithForeground(e, "sw" as ResizeType)
+            }
           />
           <div
             className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize pointer-events-auto"
-            onMouseDown={(e) => handleResizeStart(e, "se" as ResizeType)}
+            onMouseDown={(e) =>
+              handleResizeStartWithForeground(e, "se" as ResizeType)
+            }
           />
         </div>
 
