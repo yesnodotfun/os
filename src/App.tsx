@@ -3,8 +3,15 @@ import { SoundboardApp } from "./apps/soundboard";
 import { InternetExplorerApp } from "./apps/internet-explorer";
 import { ChatsApp } from "./apps/chats";
 import { TextEditApp } from "./apps/textedit";
+import ControlPanelsApp from "./apps/control-panels";
 
-const apps = [SoundboardApp, InternetExplorerApp, ChatsApp, TextEditApp];
+const apps = [
+  SoundboardApp,
+  InternetExplorerApp,
+  ChatsApp,
+  TextEditApp,
+  ControlPanelsApp,
+];
 
 function App() {
   return <AppManager apps={apps} />;

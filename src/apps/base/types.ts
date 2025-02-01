@@ -13,7 +13,12 @@ export interface AppProps {
 }
 
 export interface BaseApp {
-  id: "soundboard" | "internet-explorer" | "chats" | "textedit";
+  id:
+    | "soundboard"
+    | "internet-explorer"
+    | "chats"
+    | "textedit"
+    | "control-panels";
   name: string;
   icon: string | { type: "image"; src: string };
   description: string;

@@ -25,6 +25,10 @@ export const APP_STORAGE_KEYS = {
     CONTENT: "textedit:content",
     HAS_SEEN_HELP: "textedit:hasSeenHelp",
   },
+  "control-panels": {
+    WINDOW: "control-panels:window",
+    HAS_SEEN_HELP: "control-panels:hasSeenHelp",
+  },
 } as const;
 
 interface WindowState {
@@ -67,6 +71,11 @@ export const loadWindowState = (
       return {
         position: { x: 112, y: 160 },
         size: { width: 800, height: 475 },
+      };
+    case "control-panels":
+      return {
+        position: { x: 144, y: 200 },
+        size: { width: 480, height: 400 },
       };
     default:
       return DEFAULT_WINDOW_STATE;
