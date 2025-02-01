@@ -67,119 +67,138 @@ export function TextEditAppComponent({
       >
         <div className="flex flex-col h-full w-full bg-white">
           <div className="flex bg-[#c0c0c0] border-b border-black w-full">
-            <div className="flex">
-              <button
-                onClick={() => editor?.chain().focus().toggleBold().run()}
-                className="w-6 h-6 flex items-center justify-center"
-              >
-                <img
-                  src={`/icons/text-editor/bold-${
-                    editor?.isActive("bold") ? "depressed" : "off"
-                  }.png`}
-                  alt="Bold"
-                  className="w-4 h-4"
-                />
-              </button>
-              <button
-                onClick={() => editor?.chain().focus().toggleItalic().run()}
-                className="w-6 h-6 flex items-center justify-center"
-              >
-                <img
-                  src={`/icons/text-editor/italic-${
-                    editor?.isActive("italic") ? "depressed" : "off"
-                  }.png`}
-                  alt="Italic"
-                  className="w-4 h-4"
-                />
-              </button>
-              <button
-                onClick={() => editor?.chain().focus().toggleUnderline().run()}
-                className="w-6 h-6 flex items-center justify-center"
-              >
-                <img
-                  src={`/icons/text-editor/underline-${
-                    editor?.isActive("underline") ? "depressed" : "off"
-                  }.png`}
-                  alt="Underline"
-                  className="w-4 h-4"
-                />
-              </button>
-              <div className="w-px h-6 bg-black" />
-              <button
-                onClick={() =>
-                  editor?.chain().focus().setTextAlign("left").run()
-                }
-                className="w-6 h-6 flex items-center justify-center"
-              >
-                <img
-                  src={`/icons/text-editor/align-left-${
-                    editor?.isActive({ textAlign: "left" })
-                      ? "depressed"
-                      : "off"
-                  }.png`}
-                  alt="Align Left"
-                  className="w-4 h-4"
-                />
-              </button>
-              <button
-                onClick={() =>
-                  editor?.chain().focus().setTextAlign("center").run()
-                }
-                className="w-6 h-6 flex items-center justify-center"
-              >
-                <img
-                  src={`/icons/text-editor/align-center-${
-                    editor?.isActive({ textAlign: "center" })
-                      ? "depressed"
-                      : "off"
-                  }.png`}
-                  alt="Align Center"
-                  className="w-4 h-4"
-                />
-              </button>
-              <button
-                onClick={() =>
-                  editor?.chain().focus().setTextAlign("right").run()
-                }
-                className="w-6 h-6 flex items-center justify-center"
-              >
-                <img
-                  src={`/icons/text-editor/align-right-${
-                    editor?.isActive({ textAlign: "right" })
-                      ? "depressed"
-                      : "off"
-                  }.png`}
-                  alt="Align Right"
-                  className="w-4 h-4"
-                />
-              </button>
-              <div className="w-px h-6 bg-black" />
-              <button
-                onClick={() => editor?.chain().focus().toggleBulletList().run()}
-                className="w-6 h-6 flex items-center justify-center"
-              >
-                <img
-                  src={`/icons/text-editor/unordered-list-${
-                    editor?.isActive("bulletList") ? "depressed" : "off"
-                  }.png`}
-                  alt="Bullet List"
-                  className="w-4 h-4"
-                />
-              </button>
-              <button
-                onClick={() =>
-                  editor?.chain().focus().toggleOrderedList().run()
-                }
-                className="w-6 h-6 flex items-center justify-center"
-              >
-                <img
-                  src={`/icons/text-editor/ordered-list-${
-                    editor?.isActive("orderedList") ? "depressed" : "off"
-                  }.png`}
-                  alt="Ordered List"
-                  className="w-4 h-4"
-                />
-              </button>
+            <div className="flex px-1 py-1 gap-x-1">
+              {/* Text style group */}
+              <div className="flex">
+                <button
+                  onClick={() => editor?.chain().focus().toggleBold().run()}
+                  className="w-[26px] h-[22px] flex items-center justify-center"
+                >
+                  <img
+                    src={`/icons/text-editor/bold-${
+                      editor?.isActive("bold") ? "depressed" : "off"
+                    }.png`}
+                    alt="Bold"
+                    className="w-[26px] h-[22px]"
+                  />
+                </button>
+                <button
+                  onClick={() => editor?.chain().focus().toggleItalic().run()}
+                  className="w-[26px] h-[22px] flex items-center justify-center"
+                >
+                  <img
+                    src={`/icons/text-editor/italic-${
+                      editor?.isActive("italic") ? "depressed" : "off"
+                    }.png`}
+                    alt="Italic"
+                    className="w-[26px] h-[22px]"
+                  />
+                </button>
+                <button
+                  onClick={() =>
+                    editor?.chain().focus().toggleUnderline().run()
+                  }
+                  className="w-[26px] h-[22px] flex items-center justify-center"
+                >
+                  <img
+                    src={`/icons/text-editor/underline-${
+                      editor?.isActive("underline") ? "depressed" : "off"
+                    }.png`}
+                    alt="Underline"
+                    className="w-[26px] h-[22px]"
+                  />
+                </button>
+              </div>
+
+              {/* Divider */}
+              <div className="w-[1px] h-[22px] bg-[#808080] shadow-[1px_0_0_#ffffff]" />
+
+              {/* Alignment group */}
+              <div className="flex">
+                <button
+                  onClick={() =>
+                    editor?.chain().focus().setTextAlign("left").run()
+                  }
+                  className="w-[26px] h-[22px] flex items-center justify-center"
+                >
+                  <img
+                    src={`/icons/text-editor/align-left-${
+                      editor?.isActive({ textAlign: "left" })
+                        ? "depressed"
+                        : "off"
+                    }.png`}
+                    alt="Align Left"
+                    className="w-[26px] h-[22px]"
+                  />
+                </button>
+                <button
+                  onClick={() =>
+                    editor?.chain().focus().setTextAlign("center").run()
+                  }
+                  className="w-[26px] h-[22px] flex items-center justify-center"
+                >
+                  <img
+                    src={`/icons/text-editor/align-center-${
+                      editor?.isActive({ textAlign: "center" })
+                        ? "depressed"
+                        : "off"
+                    }.png`}
+                    alt="Align Center"
+                    className="w-[26px] h-[22px]"
+                  />
+                </button>
+                <button
+                  onClick={() =>
+                    editor?.chain().focus().setTextAlign("right").run()
+                  }
+                  className="w-[26px] h-[22px] flex items-center justify-center"
+                >
+                  <img
+                    src={`/icons/text-editor/align-right-${
+                      editor?.isActive({ textAlign: "right" })
+                        ? "depressed"
+                        : "off"
+                    }.png`}
+                    alt="Align Right"
+                    className="w-[26px] h-[22px]"
+                  />
+                </button>
+              </div>
+
+              {/* Divider */}
+              <div className="w-[1px] h-[22px] bg-[#808080] shadow-[1px_0_0_#ffffff]" />
+
+              {/* List group */}
+              <div className="flex">
+                <button
+                  onClick={() =>
+                    editor?.chain().focus().toggleBulletList().run()
+                  }
+                  className="w-[26px] h-[22px] flex items-center justify-center"
+                >
+                  <img
+                    src={`/icons/text-editor/unordered-list-${
+                      editor?.isActive("bulletList") ? "depressed" : "off"
+                    }.png`}
+                    alt="Bullet List"
+                    className="w-[26px] h-[22px]"
+                  />
+                </button>
+                <button
+                  onClick={() =>
+                    editor?.chain().focus().toggleOrderedList().run()
+                  }
+                  className="w-[26px] h-[22px] flex items-center justify-center"
+                >
+                  <img
+                    src={`/icons/text-editor/ordered-list-${
+                      editor?.isActive("orderedList") ? "depressed" : "off"
+                    }.png`}
+                    alt="Ordered List"
+                    className="w-[26px] h-[22px]"
+                  />
+                </button>
+              </div>
             </div>
           </div>
           <EditorContent

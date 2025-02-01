@@ -62,5 +62,17 @@ module.exports = {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [
+    require("tailwindcss-animate"),
+    function ({ addBase }) {
+      addBase({
+        img: {
+          "image-rendering": "pixelated",
+        },
+      });
+    },
+  ],
+  corePlugins: {
+    preflight: true,
+  },
 };
