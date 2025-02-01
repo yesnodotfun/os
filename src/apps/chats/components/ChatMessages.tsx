@@ -4,6 +4,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { AnimatePresence, motion } from "framer-motion";
+import { useChatSynth } from "@/hooks/useChatSynth";
 
 interface ChatMessagesProps {
   messages: Message[];
@@ -22,6 +23,7 @@ export function ChatMessages({
 }: ChatMessagesProps) {
   const [scrollLockedToBottom, setScrollLockedToBottom] = useState(true);
   const viewportRef = useRef<HTMLElement | null>(null);
+  const { playNote } = useChatSynth();
 
   const scrollToBottom = useCallback(
     (viewport: HTMLElement) => {
@@ -126,6 +128,11 @@ export function ChatMessages({
                           duration: 0.15,
                           delay: idx * 0.05,
                           ease: "easeOut",
+                          onComplete: () => {
+                            if (idx % 2 === 0) {
+                              playNote();
+                            }
+                          },
                         }}
                       >
                         {word}{" "}
