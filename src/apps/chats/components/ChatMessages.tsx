@@ -6,6 +6,26 @@ import { Button } from "@/components/ui/button";
 import { AnimatePresence, motion } from "framer-motion";
 import { useChatSynth } from "@/hooks/useChatSynth";
 
+// Helper function to segment text properly for CJK and emojis
+const segmentText = (text: string): string[] => {
+  // Match:
+  // 1. Emoji sequences (including ZWJ sequences)
+  // 2. CJK characters
+  // 3. Regular words
+  // 4. Remaining individual characters
+  return (
+    text.match(
+      /\p{Emoji_Presentation}|\p{Extended_Pictographic}|[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]|[a-zA-Z0-9]+|./gu
+    ) || [text]
+  );
+};
+
+// Helper function to check if text contains only emojis
+const isEmojiOnly = (text: string): boolean => {
+  const emojiRegex = /^[\p{Emoji_Presentation}\p{Extended_Pictographic}\s]+$/u;
+  return emojiRegex.test(text);
+};
+
 interface ChatMessagesProps {
   messages: Message[];
   isLoading: boolean;
@@ -119,12 +139,14 @@ export function ChatMessages({
               >
                 {message.role === "assistant" ? (
                   <motion.div layout="position" className="select-text">
-                    {message.content.split(" ").map((word, idx) => (
+                    {segmentText(message.content).map((segment, idx) => (
                       <motion.span
                         key={idx}
                         initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="select-text"
+                        className={`select-text ${
+                          isEmojiOnly(message.content) ? "text-[24px]" : ""
+                        }`}
                         style={{ userSelect: "text" }}
                         transition={{
                           duration: 0.15,
@@ -137,12 +159,17 @@ export function ChatMessages({
                           },
                         }}
                       >
-                        {word}{" "}
+                        {segment}
                       </motion.span>
                     ))}
                   </motion.div>
                 ) : (
-                  <span className="select-text" style={{ userSelect: "text" }}>
+                  <span
+                    className={`select-text ${
+                      isEmojiOnly(message.content) ? "text-[24px]" : ""
+                    }`}
+                    style={{ userSelect: "text" }}
+                  >
                     {message.content}
                   </span>
                 )}
