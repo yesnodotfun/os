@@ -63,7 +63,7 @@ export function AppManager({ apps }: AppManagerProps) {
           <div
             key={app.id}
             style={{ zIndex: isForeground ? 50 : 10 }}
-            className="absolute"
+            className="absolute inset-x-0 md:inset-x-auto w-full md:w-auto"
             onClick={() => !isForeground && bringToForeground(app.id)}
           >
             <AppComponent

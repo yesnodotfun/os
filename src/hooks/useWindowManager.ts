@@ -33,25 +33,42 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
     top: 0,
   });
 
-  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    setDragOffset({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-    });
-    setIsDragging(true);
-  }, []);
+  const isMobile = window.innerWidth < 768;
+
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent<HTMLElement> | React.TouchEvent<HTMLElement>) => {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const clientX =
+        "touches" in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+      const clientY =
+        "touches" in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
+
+      setDragOffset({
+        x: clientX - rect.left,
+        y: clientY - rect.top,
+      });
+      setIsDragging(true);
+    },
+    []
+  );
 
   const handleResizeStart = useCallback(
-    (e: React.MouseEvent, type: ResizeType) => {
+    (e: React.MouseEvent | React.TouchEvent, type: ResizeType) => {
+      if (isMobile) return; // Disable resizing on mobile
+
       e.stopPropagation();
       e.preventDefault();
       const rect = (
         e.currentTarget.parentElement as HTMLElement
       ).getBoundingClientRect();
+      const clientX =
+        "touches" in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+      const clientY =
+        "touches" in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
+
       setResizeStart({
-        x: e.clientX,
-        y: e.clientY,
+        x: clientX,
+        y: clientY,
         width: rect.width,
         height: rect.height,
         left: windowPosition.x,
@@ -59,25 +76,40 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
       });
       setResizeType(type);
     },
-    [windowPosition]
+    [windowPosition, isMobile]
   );
 
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
+    const handleMove = (e: MouseEvent | TouchEvent) => {
       if (isDragging) {
-        const newX = e.clientX - dragOffset.x;
-        const newY = e.clientY - dragOffset.y;
-        const maxX = window.innerWidth - windowSize.width;
-        const maxY = window.innerHeight - windowSize.height;
-        const x = Math.min(Math.max(0, newX), maxX);
-        const y = Math.min(Math.max(0, newY), maxY);
-        setWindowPosition({ x, y });
+        const clientX =
+          "touches" in e ? e.touches[0].clientX : (e as MouseEvent).clientX;
+        const clientY =
+          "touches" in e ? e.touches[0].clientY : (e as MouseEvent).clientY;
+
+        const newX = clientX - dragOffset.x;
+        const newY = clientY - dragOffset.y;
+
+        if (isMobile) {
+          // On mobile, only allow vertical dragging and keep window full width
+          setWindowPosition({ x: 0, y: Math.max(0, newY) });
+        } else {
+          const maxX = window.innerWidth - windowSize.width;
+          const maxY = window.innerHeight - windowSize.height;
+          const x = Math.min(Math.max(0, newX), maxX);
+          const y = Math.min(Math.max(0, newY), maxY);
+          setWindowPosition({ x, y });
+        }
       }
 
-      if (resizeType) {
+      if (resizeType && !isMobile) {
         e.preventDefault();
-        const deltaX = e.clientX - resizeStart.x;
-        const deltaY = e.clientY - resizeStart.y;
+        const clientX =
+          "touches" in e ? e.touches[0].clientX : (e as MouseEvent).clientX;
+        const clientY =
+          "touches" in e ? e.touches[0].clientY : (e as MouseEvent).clientY;
+        const deltaX = clientX - resizeStart.x;
+        const deltaY = clientY - resizeStart.y;
         const minWidth = 260;
         const minHeight = 400;
         const maxWidth = window.innerWidth - 32;
@@ -125,7 +157,7 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
       }
     };
 
-    const handleMouseUp = () => {
+    const handleEnd = () => {
       if (isDragging) {
         setIsDragging(false);
         saveWindowState(appId, { position: windowPosition, size: windowSize });
@@ -137,13 +169,18 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
     };
 
     if (isDragging || resizeType) {
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
+      // Add both mouse and touch event listeners
+      document.addEventListener("mousemove", handleMove);
+      document.addEventListener("mouseup", handleEnd);
+      document.addEventListener("touchmove", handleMove);
+      document.addEventListener("touchend", handleEnd);
     }
 
     return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
+      document.removeEventListener("mousemove", handleMove);
+      document.removeEventListener("mouseup", handleEnd);
+      document.removeEventListener("touchmove", handleMove);
+      document.removeEventListener("touchend", handleEnd);
     };
   }, [
     isDragging,
@@ -153,6 +190,7 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
     windowPosition,
     windowSize,
     appId,
+    isMobile,
   ]);
 
   return {

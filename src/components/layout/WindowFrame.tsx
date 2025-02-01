@@ -70,7 +70,9 @@ export function WindowFrame({
     handleResizeStart,
   } = useWindowManager({ appId });
 
-  const handleMouseDown = (e: React.MouseEvent<HTMLElement>) => {
+  const handleMouseDown = (
+    e: React.MouseEvent<HTMLElement> | React.TouchEvent<HTMLElement>
+  ) => {
     handleMouseDownBase(e);
     if (!isForeground) {
       bringToForeground(appId);
@@ -92,14 +94,14 @@ export function WindowFrame({
   return (
     <div
       className={cn(
-        "md:absolute p-2 md:p-0 w-full h-full mt-6 md:mt-0 select-none",
+        "absolute p-2 md:p-0 w-full h-full mt-6 md:mt-0 select-none",
         "transition-all duration-200 ease-in-out",
         isInitialMount && "animate-in fade-in-0 zoom-in-95 duration-200"
       )}
       onTransitionEnd={handleTransitionEnd}
       style={{
         left: windowPosition.x,
-        top: Math.max(30, windowPosition.y),
+        top: Math.max(0, windowPosition.y),
         width: window.innerWidth >= 768 ? windowSize.width : "100%",
         height: Math.max(windowSize.height, windowConstraints.minHeight || 0),
         minWidth:
@@ -221,6 +223,7 @@ export function WindowFrame({
               : "bg-white border-b-gray-400"
           } cursor-move border-b-[2px]`}
           onMouseDown={handleMouseDown}
+          onTouchStart={handleMouseDown}
         >
           <button
             onClick={handleClose}

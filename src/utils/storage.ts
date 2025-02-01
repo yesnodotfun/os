@@ -36,11 +36,6 @@ interface WindowState {
   size: WindowSize;
 }
 
-const DEFAULT_WINDOW_STATE: WindowState = {
-  position: { x: 16, y: 40 },
-  size: { width: 800, height: 475 },
-};
-
 export const loadWindowState = (
   appId: keyof typeof APP_STORAGE_KEYS
 ): WindowState => {
@@ -50,35 +45,41 @@ export const loadWindowState = (
     return JSON.parse(saved);
   }
 
+  const isMobile = window.innerWidth < 768;
+  const mobileY = 40; // Fixed Y position for mobile to account for menu bar
+
   // Default window positions and sizes for specific apps
   switch (appId) {
     case "textedit":
       return {
-        position: { x: 16, y: 40 },
-        size: { width: 520, height: 475 },
+        position: { x: isMobile ? 0 : 16, y: isMobile ? mobileY : 40 },
+        size: { width: isMobile ? window.innerWidth : 520, height: 475 },
       };
     case "internet-explorer":
       return {
-        position: { x: 48, y: 80 },
-        size: { width: 800, height: 475 },
+        position: { x: isMobile ? 0 : 48, y: isMobile ? mobileY : 80 },
+        size: { width: isMobile ? window.innerWidth : 800, height: 475 },
       };
     case "chats":
       return {
-        position: { x: 80, y: 120 },
-        size: { width: 280, height: 475 },
+        position: { x: isMobile ? 0 : 80, y: isMobile ? mobileY : 120 },
+        size: { width: isMobile ? window.innerWidth : 280, height: 475 },
       };
     case "soundboard":
       return {
-        position: { x: 112, y: 160 },
-        size: { width: 800, height: 475 },
+        position: { x: isMobile ? 0 : 112, y: isMobile ? mobileY : 160 },
+        size: { width: isMobile ? window.innerWidth : 800, height: 475 },
       };
     case "control-panels":
       return {
-        position: { x: 144, y: 200 },
-        size: { width: 480, height: 400 },
+        position: { x: isMobile ? 0 : 144, y: isMobile ? mobileY : 200 },
+        size: { width: isMobile ? window.innerWidth : 480, height: 400 },
       };
     default:
-      return DEFAULT_WINDOW_STATE;
+      return {
+        position: { x: isMobile ? 0 : 16, y: isMobile ? mobileY : 40 },
+        size: { width: isMobile ? window.innerWidth : 800, height: 475 },
+      };
   }
 };
 
