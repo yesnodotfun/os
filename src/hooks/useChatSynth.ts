@@ -1,23 +1,42 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import * as Tone from "tone";
 
-// Initialize synth outside hook to keep it persistent across renders
-const synth = new Tone.PolySynth(Tone.Synth, {
-  oscillator: {
-    type: "triangle",
-  },
-  envelope: {
-    attack: 0.005,
-    decay: 0.1,
-    sustain: 0.1,
-    release: 0.1,
-  },
+// Initialize effects and synth outside hook to keep them persistent across renders
+const filter = new Tone.Filter({
+  frequency: 2000,
+  type: "lowpass",
+  rolloff: -12,
 }).toDestination();
 
-synth.volume.value = -24;
+const tremolo = new Tone.Tremolo({
+  frequency: 0.8,
+  depth: 0.3,
+})
+  .connect(filter)
+  .start();
 
-const notes = ["C5", "E5", "G5"];
-const minTimeBetweenNotes = 0.1;
+const reverb = new Tone.Reverb({
+  decay: 1.5,
+  wet: 0.3,
+}).connect(tremolo);
+
+const synth = new Tone.PolySynth(Tone.Synth, {
+  oscillator: {
+    type: "triangle8", // richer harmonic content
+  },
+  envelope: {
+    attack: 0.01,
+    decay: 0.2,
+    sustain: 0.2,
+    release: 0.3,
+  },
+}).connect(reverb);
+
+synth.volume.value = -12;
+
+// Pentatonic scale for an exotic jungle feel
+const notes = ["C4", "D4", "F4", "G4", "A4", "C5", "D5"];
+const minTimeBetweenNotes = 0.12; // Slightly longer for more organic feel
 
 export function useChatSynth() {
   const [isInitialized, setIsInitialized] = useState(false);
