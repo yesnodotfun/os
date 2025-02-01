@@ -93,6 +93,10 @@ export function InternetExplorerAppComponent({
       const initialUrl = loadLastUrl();
       const initialYear = loadWaybackYear();
 
+      // Keep loading state true during initial navigation
+      setIsLoading(true);
+      navigationInProgressRef.current = true;
+
       // First set the navigation state without triggering navigation
       setNavigation({
         url: initialUrl,
@@ -119,7 +123,7 @@ export function InternetExplorerAppComponent({
         }));
       }
 
-      setIsLoading(false);
+      // Don't set isLoading to false here - let the iframe load handler handle it
     };
 
     initializeState();
