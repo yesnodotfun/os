@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ArrowUp, Square } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { AudioInputButton } from "@/components/ui/audio-input-button";
 
 interface ChatInputProps {
   input: string;
@@ -20,16 +21,38 @@ export function ChatInput({
   onStop,
 }: ChatInputProps) {
   const [isFocused, setIsFocused] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+
+  const handleTranscriptionComplete = (text: string) => {
+    setIsTranscribing(false);
+    const inputEvent = {
+      target: { value: text },
+    } as React.ChangeEvent<HTMLInputElement>;
+    onInputChange(inputEvent);
+    // Automatically submit after transcription
+    const submitEvent = new Event(
+      "submit"
+    ) as unknown as React.FormEvent<HTMLFormElement>;
+    onSubmit(submitEvent);
+  };
+
+  const handleTranscriptionStart = () => {
+    setIsTranscribing(true);
+  };
 
   return (
     <form onSubmit={onSubmit} className="flex gap-1">
       <AnimatePresence mode="popLayout" initial={false}>
-        <motion.div layout className="flex-1" transition={{ duration: 0.15 }}>
+        <motion.div
+          layout
+          className="flex-1 relative"
+          transition={{ duration: 0.15 }}
+        >
           <Input
             value={input}
             onChange={onInputChange}
             placeholder="Type a message..."
-            className={`w-full border-1 border-gray-800 text-xs font-['Geneva-12'] antialiased h-8 ${
+            className={`w-full border-1 border-gray-800 text-xs font-['Geneva-12'] antialiased h-8 pr-8 ${
               isFocused ? "input--focused" : ""
             }`}
             onFocus={() => setIsFocused(true)}
@@ -38,7 +61,17 @@ export function ChatInput({
               e.preventDefault();
             }}
           />
+          <div className="absolute right-1.5 top-1/2 -translate-y-1/2 w-[22px] h-[22px] flex items-center justify-center">
+            <AudioInputButton
+              onTranscriptionComplete={handleTranscriptionComplete}
+              onTranscriptionStart={handleTranscriptionStart}
+              isLoading={isTranscribing}
+              silenceThreshold={500}
+              className="w-full h-full flex items-center justify-center"
+            />
+          </div>
         </motion.div>
+
         {isLoading ? (
           <motion.div
             key="stop"

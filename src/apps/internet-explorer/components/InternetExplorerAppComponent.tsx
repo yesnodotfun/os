@@ -177,10 +177,8 @@ export function InternetExplorerAppComponent({
 
   // Update iframe load handler
   const handleIframeLoad = () => {
-    // Only clear loading if there's no navigation in progress
-    if (!navigationInProgressRef.current) {
-      setIsLoading(false);
-    }
+    setIsLoading(false);
+    navigationInProgressRef.current = false;
   };
 
   const handleNavigate = async (
@@ -191,6 +189,12 @@ export function InternetExplorerAppComponent({
     setIsLoading(true);
     navigationInProgressRef.current = true;
     setError(null);
+
+    // Add a timeout to clear loading state after 10 seconds
+    const loadingTimeout = setTimeout(() => {
+      setIsLoading(false);
+      navigationInProgressRef.current = false;
+    }, 10000);
 
     let newUrl = targetUrl.startsWith("http")
       ? targetUrl
@@ -205,6 +209,7 @@ export function InternetExplorerAppComponent({
       if (year !== "current") {
         const waybackUrl = await getWaybackUrl(newUrl, year);
         if (!waybackUrl) {
+          clearTimeout(loadingTimeout);
           setIsLoading(false);
           navigationInProgressRef.current = false;
           return;
@@ -236,13 +241,11 @@ export function InternetExplorerAppComponent({
         addToHistory(newEntry);
       }
     } catch (error) {
+      clearTimeout(loadingTimeout);
       setError(`Failed to navigate: ${error}`);
       setIsLoading(false);
-    }
-    // Clear navigation in progress after a short delay to handle quick loads
-    setTimeout(() => {
       navigationInProgressRef.current = false;
-    }, 100);
+    }
   };
 
   const handleNavigateWithHistory = async (

@@ -17,6 +17,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { AudioInputButton } from "@/components/ui/audio-input-button";
 
 // Function to get a filename from content
 const getFilenameFromContent = (html: string): string => {
@@ -154,6 +155,7 @@ export function TextEditAppComponent({
 }: AppProps) {
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const editor = useEditor({
@@ -177,6 +179,29 @@ export function TextEditAppComponent({
       localStorage.setItem(APP_STORAGE_KEYS.textedit.CONTENT, editor.getHTML());
     },
   });
+
+  const handleTranscriptionComplete = (text: string) => {
+    setIsTranscribing(false);
+    if (editor) {
+      // If editor is not focused, focus it first
+      if (!editor.isFocused) {
+        editor.commands.focus();
+      }
+
+      // If there's no selection (cursor position), move to the end and add a new paragraph
+      if (editor.state.selection.empty && editor.state.selection.anchor === 0) {
+        editor.commands.setTextSelection(editor.state.doc.content.size);
+        editor.commands.insertContent("\n");
+      }
+
+      // Insert the transcribed text at current cursor position
+      editor.commands.insertContent(text);
+    }
+  };
+
+  const handleTranscriptionStart = () => {
+    setIsTranscribing(true);
+  };
 
   useEffect(() => {
     if (editor) {
@@ -508,6 +533,19 @@ export function TextEditAppComponent({
                     className="w-[26px] h-[22px]"
                   />
                 </button>
+              </div>
+
+              {/* Divider */}
+              <div className="w-[1px] h-[22px] bg-[#808080] shadow-[1px_0_0_#ffffff]" />
+
+              {/* Voice transcription */}
+              <div className="flex">
+                <AudioInputButton
+                  onTranscriptionComplete={handleTranscriptionComplete}
+                  onTranscriptionStart={handleTranscriptionStart}
+                  isLoading={isTranscribing}
+                  className="w-[26px] h-[22px] flex items-center justify-center"
+                />
               </div>
             </div>
           </div>
