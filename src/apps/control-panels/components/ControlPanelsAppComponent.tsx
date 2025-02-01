@@ -37,36 +37,20 @@ export function ControlPanelsAppComponent({
       >
         <div className="flex flex-col h-full bg-[#c0c0c0] p-2 w-full">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 p-4">
-            <div className="flex flex-col items-center p-4 bg-white shadow-md hover:bg-gray-50 cursor-pointer">
-              <img
-                src="/icons/control-panels/appearance-manager/icon.png"
-                alt="Appearance"
-                className="w-12 h-12 mb-2"
-              />
+            <div className="flex flex-col items-center p-4 bg-[#E3E3E3] border-t-2 border-l-2 border-[#FFFFFF] border-b-2 border-r-2 border-[#888888] hover:brightness-95 cursor-pointer">
+              <span className="text-4xl mb-2">🎨</span>
               <span className="text-sm">Appearance</span>
             </div>
-            <div className="flex flex-col items-center p-4 bg-white shadow-md hover:bg-gray-50 cursor-pointer">
-              <img
-                src="/icons/control-panels/sound-manager/icon.png"
-                alt="Sound"
-                className="w-12 h-12 mb-2"
-              />
+            <div className="flex flex-col items-center p-4 bg-[#E3E3E3] border-t-2 border-l-2 border-[#FFFFFF] border-b-2 border-r-2 border-[#888888] hover:brightness-95 cursor-pointer">
+              <span className="text-4xl mb-2">🔊</span>
               <span className="text-sm">Sound</span>
             </div>
-            <div className="flex flex-col items-center p-4 bg-white shadow-md hover:bg-gray-50 cursor-pointer">
-              <img
-                src="/icons/control-panels/keyboard/icon.png"
-                alt="Keyboard"
-                className="w-12 h-12 mb-2"
-              />
+            <div className="flex flex-col items-center p-4 bg-[#E3E3E3] border-t-2 border-l-2 border-[#FFFFFF] border-b-2 border-r-2 border-[#888888] hover:brightness-95 cursor-pointer">
+              <span className="text-4xl mb-2">⌨️</span>
               <span className="text-sm">Keyboard</span>
             </div>
-            <div className="flex flex-col items-center p-4 bg-white shadow-md hover:bg-gray-50 cursor-pointer">
-              <img
-                src="/icons/control-panels/location/icon.png"
-                alt="Location"
-                className="w-12 h-12 mb-2"
-              />
+            <div className="flex flex-col items-center p-4 bg-[#E3E3E3] border-t-2 border-l-2 border-[#FFFFFF] border-b-2 border-r-2 border-[#888888] hover:brightness-95 cursor-pointer">
+              <span className="text-4xl mb-2">📍</span>
               <span className="text-sm">Location</span>
             </div>
           </div>
