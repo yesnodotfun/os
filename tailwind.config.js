@@ -60,10 +60,48 @@ module.exports = {
           5: "hsl(var(--chart-5))",
         },
       },
+      typography: {
+        DEFAULT: {
+          css: {
+            p: {
+              marginTop: "0.5em",
+              marginBottom: "0.5em",
+            },
+            ul: {
+              listStyleType: "disc",
+              listStylePosition: "outside",
+              marginLeft: "1.5em",
+              marginTop: "0.5em",
+              marginBottom: "0.5em",
+            },
+            ol: {
+              listStyleType: "decimal",
+              listStylePosition: "outside",
+              marginLeft: "1.5em",
+              marginTop: "0.5em",
+              marginBottom: "0.5em",
+            },
+            "ul li, ol li": {
+              marginTop: "0.25em",
+              marginBottom: "0.25em",
+              padding: 0,
+            },
+            "> ul > li p": {
+              marginTop: "0.25em",
+              marginBottom: "0.25em",
+            },
+            "> ol > li p": {
+              marginTop: "0.25em",
+              marginBottom: "0.25em",
+            },
+          },
+        },
+      },
     },
   },
   plugins: [
     require("tailwindcss-animate"),
+    require("@tailwindcss/typography"),
     function ({ addBase }) {
       addBase({
         img: {

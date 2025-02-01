@@ -10,6 +10,13 @@ import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { appMetadata, helpItems } from "..";
 import { APP_STORAGE_KEYS } from "@/utils/storage";
+import { SlashCommands } from "../extensions/SlashCommands";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export function TextEditAppComponent({
   isWindowOpen,
@@ -26,12 +33,14 @@ export function TextEditAppComponent({
       TextAlign.configure({
         types: ["heading", "paragraph"],
       }),
+      SlashCommands,
     ],
     content: "",
     autofocus: true,
     editorProps: {
       attributes: {
-        class: "prose prose-sm max-w-none focus:outline-none p-4",
+        class:
+          "prose prose-sm prose-neutral max-w-none focus:outline-none p-4 [&>ul]:list-disc [&>ol]:list-decimal [&>*]:my-1 [&>p]:leading-5 [&>h1]:mt-3 [&>h1]:mb-2 [&>h2]:mt-2 [&>h2]:mb-1 [&>ul]:my-1 [&>ol]:my-1 [&>ul>li]:my-0.5 [&>ol>li]:my-0.5 [&>ul]:pl-0 [&>ol]:pl-4 [&>ul>li>p]:my-0 [&>ol>li>p]:my-0 [&>ul>li]:pl-0 [&>ol>li]:pl-0 [&>ul>li]:marker:text-neutral-900 [&>ol>li]:marker:text-neutral-900 min-h-full",
       },
     },
     onUpdate: ({ editor }) => {
@@ -108,6 +117,87 @@ export function TextEditAppComponent({
                     className="w-[26px] h-[22px]"
                   />
                 </button>
+              </div>
+
+              {/* Divider */}
+              <div className="w-[1px] h-[22px] bg-[#808080] shadow-[1px_0_0_#ffffff]" />
+
+              {/* Heading selector */}
+              <div className="flex">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="w-[120px] h-[22px] flex items-center justify-between px-2 bg-white border border-[#808080] text-sm">
+                      {editor?.isActive("heading", { level: 1 })
+                        ? "Heading 1"
+                        : editor?.isActive("heading", { level: 2 })
+                        ? "Heading 2"
+                        : editor?.isActive("heading", { level: 3 })
+                        ? "Heading 3"
+                        : "Normal Text"}
+                      <span className="ml-1">▼</span>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-[120px]">
+                    <DropdownMenuItem
+                      onClick={() =>
+                        editor?.chain().focus().setParagraph().run()
+                      }
+                      className={`text-sm h-6 px-2 ${
+                        editor?.isActive("paragraph") ? "bg-gray-200" : ""
+                      }`}
+                    >
+                      Normal Text
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() =>
+                        editor
+                          ?.chain()
+                          .focus()
+                          .toggleHeading({ level: 1 })
+                          .run()
+                      }
+                      className={`text-sm h-6 px-2 ${
+                        editor?.isActive("heading", { level: 1 })
+                          ? "bg-gray-200"
+                          : ""
+                      }`}
+                    >
+                      Heading 1
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() =>
+                        editor
+                          ?.chain()
+                          .focus()
+                          .toggleHeading({ level: 2 })
+                          .run()
+                      }
+                      className={`text-sm h-6 px-2 ${
+                        editor?.isActive("heading", { level: 2 })
+                          ? "bg-gray-200"
+                          : ""
+                      }`}
+                    >
+                      Heading 2
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() =>
+                        editor
+                          ?.chain()
+                          .focus()
+                          .toggleHeading({ level: 3 })
+                          .run()
+                      }
+                      className={`text-sm h-6 px-2 ${
+                        editor?.isActive("heading", { level: 3 })
+                          ? "bg-gray-200"
+                          : ""
+                      }`}
+                    >
+                      Heading 3
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
 
               {/* Divider */}
@@ -203,7 +293,7 @@ export function TextEditAppComponent({
           </div>
           <EditorContent
             editor={editor}
-            className="flex-1 overflow-auto w-full"
+            className="flex-1 overflow-auto w-full h-full"
           />
         </div>
         <HelpDialog

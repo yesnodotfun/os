@@ -6,6 +6,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
+  DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 
@@ -116,72 +117,111 @@ export function TextEditMenuBar({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" sideOffset={1} className="px-0">
-          <DropdownMenuItem
-            onClick={() => editor?.chain().focus().toggleBold().run()}
-            className={`text-md h-6 px-3 active:bg-gray-900 active:text-white ${
-              editor?.isActive("bold") ? "bg-gray-200" : ""
-            }`}
+          <DropdownMenuCheckboxItem
+            checked={editor?.isActive("bold")}
+            onCheckedChange={() => editor?.chain().focus().toggleBold().run()}
+            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
           >
-            Bold
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => editor?.chain().focus().toggleItalic().run()}
-            className={`text-md h-6 px-3 active:bg-gray-900 active:text-white ${
-              editor?.isActive("italic") ? "bg-gray-200" : ""
-            }`}
+            <span>Bold</span>
+          </DropdownMenuCheckboxItem>
+          <DropdownMenuCheckboxItem
+            checked={editor?.isActive("italic")}
+            onCheckedChange={() => editor?.chain().focus().toggleItalic().run()}
+            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
           >
-            Italic
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => editor?.chain().focus().toggleUnderline().run()}
-            className={`text-md h-6 px-3 active:bg-gray-900 active:text-white ${
-              editor?.isActive("underline") ? "bg-gray-200" : ""
-            }`}
+            <span>Italic</span>
+          </DropdownMenuCheckboxItem>
+          <DropdownMenuCheckboxItem
+            checked={editor?.isActive("underline")}
+            onCheckedChange={() =>
+              editor?.chain().focus().toggleUnderline().run()
+            }
+            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
           >
-            Underline
-          </DropdownMenuItem>
+            <span>Underline</span>
+          </DropdownMenuCheckboxItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
-          <DropdownMenuItem
-            onClick={() => editor?.chain().focus().setTextAlign("left").run()}
-            className={`text-md h-6 px-3 active:bg-gray-900 active:text-white ${
-              editor?.isActive({ textAlign: "left" }) ? "bg-gray-200" : ""
-            }`}
+          <DropdownMenuCheckboxItem
+            checked={editor?.isActive("paragraph")}
+            onCheckedChange={() => editor?.chain().focus().setParagraph().run()}
+            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
           >
-            Align Left
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => editor?.chain().focus().setTextAlign("center").run()}
-            className={`text-md h-6 px-3 active:bg-gray-900 active:text-white ${
-              editor?.isActive({ textAlign: "center" }) ? "bg-gray-200" : ""
-            }`}
+            <span>Normal Text</span>
+          </DropdownMenuCheckboxItem>
+          <DropdownMenuCheckboxItem
+            checked={editor?.isActive("heading", { level: 1 })}
+            onCheckedChange={() =>
+              editor?.chain().focus().toggleHeading({ level: 1 }).run()
+            }
+            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
           >
-            Align Center
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => editor?.chain().focus().setTextAlign("right").run()}
-            className={`text-md h-6 px-3 active:bg-gray-900 active:text-white ${
-              editor?.isActive({ textAlign: "right" }) ? "bg-gray-200" : ""
-            }`}
+            <span>Heading 1</span>
+          </DropdownMenuCheckboxItem>
+          <DropdownMenuCheckboxItem
+            checked={editor?.isActive("heading", { level: 2 })}
+            onCheckedChange={() =>
+              editor?.chain().focus().toggleHeading({ level: 2 }).run()
+            }
+            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
           >
-            Align Right
-          </DropdownMenuItem>
+            <span>Heading 2</span>
+          </DropdownMenuCheckboxItem>
+          <DropdownMenuCheckboxItem
+            checked={editor?.isActive("heading", { level: 3 })}
+            onCheckedChange={() =>
+              editor?.chain().focus().toggleHeading({ level: 3 }).run()
+            }
+            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
+          >
+            <span>Heading 3</span>
+          </DropdownMenuCheckboxItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
-          <DropdownMenuItem
-            onClick={() => editor?.chain().focus().toggleBulletList().run()}
-            className={`text-md h-6 px-3 active:bg-gray-900 active:text-white ${
-              editor?.isActive("bulletList") ? "bg-gray-200" : ""
-            }`}
+          <DropdownMenuCheckboxItem
+            checked={editor?.isActive({ textAlign: "left" })}
+            onCheckedChange={() =>
+              editor?.chain().focus().setTextAlign("left").run()
+            }
+            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
           >
-            Bullet List
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => editor?.chain().focus().toggleOrderedList().run()}
-            className={`text-md h-6 px-3 active:bg-gray-900 active:text-white ${
-              editor?.isActive("orderedList") ? "bg-gray-200" : ""
-            }`}
+            <span>Align Left</span>
+          </DropdownMenuCheckboxItem>
+          <DropdownMenuCheckboxItem
+            checked={editor?.isActive({ textAlign: "center" })}
+            onCheckedChange={() =>
+              editor?.chain().focus().setTextAlign("center").run()
+            }
+            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
           >
-            Numbered List
-          </DropdownMenuItem>
+            <span>Align Center</span>
+          </DropdownMenuCheckboxItem>
+          <DropdownMenuCheckboxItem
+            checked={editor?.isActive({ textAlign: "right" })}
+            onCheckedChange={() =>
+              editor?.chain().focus().setTextAlign("right").run()
+            }
+            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
+          >
+            <span>Align Right</span>
+          </DropdownMenuCheckboxItem>
+          <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
+          <DropdownMenuCheckboxItem
+            checked={editor?.isActive("bulletList")}
+            onCheckedChange={() =>
+              editor?.chain().focus().toggleBulletList().run()
+            }
+            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
+          >
+            <span>Bullet List</span>
+          </DropdownMenuCheckboxItem>
+          <DropdownMenuCheckboxItem
+            checked={editor?.isActive("orderedList")}
+            onCheckedChange={() =>
+              editor?.chain().focus().toggleOrderedList().run()
+            }
+            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
+          >
+            <span>Numbered List</span>
+          </DropdownMenuCheckboxItem>
         </DropdownMenuContent>
       </DropdownMenu>
 

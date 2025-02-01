@@ -22,6 +22,11 @@ export const helpItems = [
     title: "Save",
     description: "Auto-saves your work",
   },
+  {
+    icon: "⚡",
+    title: "Slash Commands",
+    description: "Type / to access quick formatting commands",
+  },
 ];
 
 export const appMetadata = {
