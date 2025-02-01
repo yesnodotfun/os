@@ -7,6 +7,9 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
   DropdownMenuCheckboxItem,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 
@@ -16,6 +19,9 @@ interface TextEditMenuBarProps {
   onShowHelp: () => void;
   onShowAbout: () => void;
   isWindowOpen: boolean;
+  onNewFile: () => void;
+  onImportFile: () => void;
+  onExportFile: (format: "html" | "md" | "txt") => void;
 }
 
 export function TextEditMenuBar({
@@ -23,6 +29,9 @@ export function TextEditMenuBar({
   onClose,
   onShowHelp,
   onShowAbout,
+  onNewFile,
+  onImportFile,
+  onExportFile,
 }: TextEditMenuBarProps) {
   return (
     <MenuBar>
@@ -37,6 +46,44 @@ export function TextEditMenuBar({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" sideOffset={1} className="px-0">
+          <DropdownMenuItem
+            onClick={onNewFile}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            New File
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={onImportFile}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            Import File...
+          </DropdownMenuItem>
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
+              Export As...
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent>
+              <DropdownMenuItem
+                onClick={() => onExportFile("html")}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+              >
+                HTML
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onExportFile("md")}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+              >
+                Markdown
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onExportFile("txt")}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+              >
+                Plain Text
+              </DropdownMenuItem>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+          <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           <DropdownMenuItem
             onClick={onClose}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"

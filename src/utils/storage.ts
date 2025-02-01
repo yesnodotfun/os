@@ -172,7 +172,7 @@ export const DEFAULT_FAVORITES: Favorite[] = [
     year: "current",
   },
   {
-    title: "Particle Simulator",
+    title: "PS7",
     url: "https://play.ryo.lu",
     favicon: "https://www.google.com/s2/favicons?domain=play.ryo.lu&sz=32",
     year: "current",
@@ -184,15 +184,15 @@ export const DEFAULT_FAVORITES: Favorite[] = [
     year: "current",
   },
   {
-    title: "Theo",
-    url: "https://tmb.sh",
-    favicon: "https://www.google.com/s2/favicons?domain=tmb.sh&sz=32",
+    title: "Stephen",
+    url: "https://wustep.me",
+    favicon: "https://www.google.com/s2/favicons?domain=wustep.me&sz=32",
     year: "current",
   },
   {
-    title: "Ian",
-    url: "https://shaoruu.io",
-    favicon: "https://www.google.com/s2/favicons?domain=shaoruu.io&sz=32",
+    title: "Frank",
+    url: "https://okfrank.co",
+    favicon: "https://www.google.com/s2/favicons?domain=okfrank.co&sz=32",
     year: "current",
   },
   {
@@ -203,6 +203,12 @@ export const DEFAULT_FAVORITES: Favorite[] = [
     year: "current",
   },
   {
+    title: "Ian",
+    url: "https://shaoruu.io",
+    favicon: "https://www.google.com/s2/favicons?domain=shaoruu.io&sz=32",
+    year: "current",
+  },
+  {
     title: "Sam",
     url: "https://www.samuelcatania.com",
     favicon:
@@ -210,15 +216,9 @@ export const DEFAULT_FAVORITES: Favorite[] = [
     year: "current",
   },
   {
-    title: "Stephen",
-    url: "https://wustep.me",
-    favicon: "https://www.google.com/s2/favicons?domain=wustep.me&sz=32",
-    year: "current",
-  },
-  {
-    title: "Andrew",
-    url: "https://www.andrewl.ee",
-    favicon: "https://www.google.com/s2/favicons?domain=www.andrewl.ee&sz=32",
+    title: "Modi",
+    url: "https://www.akm.io",
+    favicon: "https://www.google.com/s2/favicons?domain=www.akm.io&sz=32",
     year: "current",
   },
   {
@@ -228,16 +228,15 @@ export const DEFAULT_FAVORITES: Favorite[] = [
     year: "current",
   },
   {
-    title: "Frank",
-    url: "https://okfrank.co",
-    favicon: "https://www.google.com/s2/favicons?domain=okfrank.co&sz=32",
+    title: "Andrew",
+    url: "https://www.andrewl.ee",
+    favicon: "https://www.google.com/s2/favicons?domain=www.andrewl.ee&sz=32",
     year: "current",
   },
-
   {
-    title: "Modi",
-    url: "https://www.akm.io",
-    favicon: "https://www.google.com/s2/favicons?domain=www.akm.io&sz=32",
+    title: "Theo",
+    url: "https://tmb.sh",
+    favicon: "https://www.google.com/s2/favicons?domain=tmb.sh&sz=32",
     year: "current",
   },
 ];
@@ -287,8 +286,8 @@ export const saveChatMessages = (messages: Message[]): void => {
   );
 };
 
-export const DEFAULT_URL = "https://ryo.lu";
-export const DEFAULT_YEAR = "current";
+export const DEFAULT_URL = "https://apple.com";
+export const DEFAULT_YEAR = "2002";
 
 export const loadLastUrl = (): string => {
   return (

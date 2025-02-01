@@ -482,12 +482,7 @@ export function InternetExplorerAppComponent({
                           e.currentTarget.src = "/icons/ie-site.png";
                         }}
                       />
-                      <span className="truncate">
-                        {favorite.title}
-                        {favorite.year &&
-                          favorite.year !== "current" &&
-                          ` (${favorite.year})`}
-                      </span>
+                      <span className="truncate">{favorite.title}</span>
                     </Button>
                   ))}
                 </div>

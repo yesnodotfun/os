@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { createRoot } from "react-dom/client";
 import { useState, useEffect } from "react";
+import { Check } from "lucide-react";
 
 interface CommandItem {
   title: string;
@@ -20,9 +21,11 @@ interface CommandItem {
 const SlashMenuContent = ({
   items,
   onCommand,
+  editor,
 }: {
   items: CommandItem[];
   onCommand: (command: CommandItem) => void;
+  editor: Editor;
 }) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
 
@@ -30,6 +33,25 @@ const SlashMenuContent = ({
   useEffect(() => {
     setSelectedIndex(0);
   }, [items]);
+
+  const isActive = (item: CommandItem) => {
+    switch (item.title) {
+      case "Text":
+        return editor.isActive("paragraph");
+      case "Heading 1":
+        return editor.isActive("heading", { level: 1 });
+      case "Heading 2":
+        return editor.isActive("heading", { level: 2 });
+      case "Heading 3":
+        return editor.isActive("heading", { level: 3 });
+      case "Bullet List":
+        return editor.isActive("bulletList");
+      case "Numbered List":
+        return editor.isActive("orderedList");
+      default:
+        return false;
+    }
+  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -60,23 +82,26 @@ const SlashMenuContent = ({
   }, [items, selectedIndex, onCommand]);
 
   return (
-    <>
+    <div>
       {items.map((item, index) => (
-        <div
+        <button
           key={index}
           role="menuitem"
           onClick={() => onCommand(item)}
           onMouseEnter={() => setSelectedIndex(index)}
-          className={`h-8 px-2 py-1.5 text-sm rounded-sm cursor-default select-none outline-none ${
-            index === selectedIndex
-              ? "bg-accent text-accent-foreground"
-              : "text-foreground hover:bg-accent hover:text-accent-foreground"
+          className={`relative flex w-full items-center h-8 px-2 text-sm ${
+            index === selectedIndex ? "bg-gray-100" : ""
           }`}
         >
           {item.title}
-        </div>
+          {isActive(item) && (
+            <span className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
+              <Check className="h-4 w-4" />
+            </span>
+          )}
+        </button>
       ))}
-    </>
+    </div>
   );
 };
 
@@ -121,27 +146,6 @@ const commands: CommandItem[] = [
     description: "Create a numbered list",
     command: (editor: Editor) => {
       editor.chain().focus().toggleOrderedList().run();
-    },
-  },
-  {
-    title: "Bold",
-    description: "Make text bold",
-    command: (editor: Editor) => {
-      editor.chain().focus().toggleBold().run();
-    },
-  },
-  {
-    title: "Italic",
-    description: "Make text italic",
-    command: (editor: Editor) => {
-      editor.chain().focus().toggleItalic().run();
-    },
-  },
-  {
-    title: "Underline",
-    description: "Make text underlined",
-    command: (editor: Editor) => {
-      editor.chain().focus().toggleUnderline().run();
     },
   },
 ];
@@ -206,6 +210,7 @@ const suggestion: Partial<SuggestionOptions> = {
             >
               <SlashMenuContent
                 items={props.items}
+                editor={props.editor}
                 onCommand={(command: CommandItem) => {
                   props.command({ command });
                   cleanup();
@@ -235,6 +240,7 @@ const suggestion: Partial<SuggestionOptions> = {
             >
               <SlashMenuContent
                 items={props.items}
+                editor={props.editor}
                 onCommand={(command: CommandItem) => {
                   props.command({ command });
                   cleanup();
