@@ -119,46 +119,94 @@ export function WindowFrame({
           isForeground ? "shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)]" : ""
         )}
       >
-        {/* Resize handles */}
-        <div className="absolute inset-0 pointer-events-none">
+        {/* Resize handles - positioned outside main content */}
+        <div className="absolute -top-2 -left-2 -right-2 -bottom-2 pointer-events-none z-50">
+          {/* Top resize handle */}
           <div
-            className="absolute top-0 left-0 right-0 h-2 cursor-n-resize pointer-events-auto"
+            className={cn(
+              "absolute left-8 cursor-n-resize pointer-events-auto transition-[top,height]",
+              resizeType?.includes("n") ? "top-[-100px] h-[200px]" : "top-0 h-4"
+            )}
+            style={{ right: resizeType?.includes("e") ? "32px" : "32px" }}
             onMouseDown={(e) =>
               handleResizeStartWithForeground(e, "n" as ResizeType)
             }
           />
+
+          {/* Bottom resize handle */}
           <div
-            className="absolute bottom-0 left-0 right-0 h-2 cursor-s-resize pointer-events-auto"
+            className={cn(
+              "absolute left-8 cursor-s-resize pointer-events-auto transition-[bottom,height]",
+              resizeType?.includes("s")
+                ? "bottom-[-100px] h-[200px]"
+                : "bottom-0 h-4"
+            )}
+            style={{ right: resizeType?.includes("e") ? "32px" : "32px" }}
             onMouseDown={(e) =>
               handleResizeStartWithForeground(e, "s" as ResizeType)
             }
           />
+
+          {/* Left resize handle */}
           <div
-            className="absolute left-0 top-0 bottom-0 w-2 cursor-w-resize pointer-events-auto"
+            className={cn(
+              "absolute top-8 cursor-w-resize pointer-events-auto transition-[left,width]",
+              resizeType?.includes("w")
+                ? "left-[-100px] w-[200px]"
+                : "left-0 w-4"
+            )}
+            style={{ bottom: resizeType?.includes("s") ? "32px" : "32px" }}
             onMouseDown={(e) =>
               handleResizeStartWithForeground(e, "w" as ResizeType)
             }
           />
+
+          {/* Right resize handle */}
           <div
-            className="absolute right-0 top-0 bottom-0 w-2 cursor-e-resize pointer-events-auto"
+            className={cn(
+              "absolute top-8 cursor-e-resize pointer-events-auto transition-[right,width]",
+              resizeType?.includes("e")
+                ? "right-[-100px] w-[200px]"
+                : "right-0 w-4"
+            )}
+            style={{ bottom: resizeType?.includes("s") ? "32px" : "32px" }}
             onMouseDown={(e) =>
               handleResizeStartWithForeground(e, "e" as ResizeType)
             }
           />
+
+          {/* Corner resize handles */}
           <div
-            className="absolute top-0 right-0 w-4 h-4 cursor-ne-resize pointer-events-auto"
+            className={cn(
+              "absolute cursor-ne-resize pointer-events-auto transition-all",
+              resizeType === "ne"
+                ? "top-[-100px] right-[-100px] w-[200px] h-[200px]"
+                : "top-0 right-0 w-8 h-8"
+            )}
             onMouseDown={(e) =>
               handleResizeStartWithForeground(e, "ne" as ResizeType)
             }
           />
+
           <div
-            className="absolute bottom-0 left-0 w-4 h-4 cursor-sw-resize pointer-events-auto"
+            className={cn(
+              "absolute cursor-sw-resize pointer-events-auto transition-all",
+              resizeType === "sw"
+                ? "bottom-[-100px] left-[-100px] w-[200px] h-[200px]"
+                : "bottom-0 left-0 w-8 h-8"
+            )}
             onMouseDown={(e) =>
               handleResizeStartWithForeground(e, "sw" as ResizeType)
             }
           />
+
           <div
-            className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize pointer-events-auto"
+            className={cn(
+              "absolute cursor-se-resize pointer-events-auto transition-all",
+              resizeType === "se"
+                ? "bottom-[-100px] right-[-100px] w-[200px] h-[200px]"
+                : "bottom-0 right-0 w-8 h-8"
+            )}
             onMouseDown={(e) =>
               handleResizeStartWithForeground(e, "se" as ResizeType)
             }

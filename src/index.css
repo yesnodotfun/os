@@ -48,7 +48,6 @@
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
     --border: 0 0% 0%;
-    --input: 0 0% 89.8%;
     --ring: 0 0% 0%;
     --radius: 0px;
   }
@@ -108,4 +107,22 @@
 
 .input--focused {
   animation: blink_input_opacity_to_prevent_scrolling_when_focus 0.01s;
+}
+
+@keyframes progress-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-progress-indeterminate {
+  animation: progress-indeterminate 1.5s ease-in-out infinite;
+  background: linear-gradient(90deg, transparent, #3b82f6, transparent);
+  width: 50%;
 }

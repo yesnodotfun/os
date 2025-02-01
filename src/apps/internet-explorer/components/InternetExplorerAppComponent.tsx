@@ -5,6 +5,13 @@ import { Input } from "@/components/ui/input";
 import { InternetExplorerMenuBar } from "./InternetExplorerMenuBar";
 import { Button } from "@/components/ui/button";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Favorite,
   loadFavorites,
   saveFavorites,
@@ -16,7 +23,7 @@ import {
   addToHistory,
   APP_STORAGE_KEYS,
 } from "@/utils/storage";
-import { Plus, ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { InputDialog } from "@/components/dialogs/InputDialog";
 import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
@@ -35,6 +42,7 @@ export function InternetExplorerAppComponent({
   const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
+  const [selectedYear, setSelectedYear] = useState<string>("current");
   const [isTitleDialogOpen, setIsTitleDialogOpen] = useState(false);
   const [newFavoriteTitle, setNewFavoriteTitle] = useState("");
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
@@ -43,9 +51,16 @@ export function InternetExplorerAppComponent({
   const [isClearFavoritesDialogOpen, setClearFavoritesDialogOpen] =
     useState(false);
   const [isClearHistoryDialogOpen, setClearHistoryDialogOpen] = useState(false);
+  const [hasMoreToScroll, setHasMoreToScroll] = useState(false);
 
   const urlInputRef = useRef<HTMLInputElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const favoritesContainerRef = useRef<HTMLDivElement>(null);
+
+  const years = Array.from(
+    { length: new Date().getFullYear() - 1995 + 1 },
+    (_, i) => (1995 + i).toString()
+  );
 
   useEffect(() => {
     setFavorites(loadFavorites());
@@ -57,12 +72,79 @@ export function InternetExplorerAppComponent({
     }
   }, []);
 
-  const handleNavigate = (targetUrl = url, addToHistoryStack = true) => {
+  useEffect(() => {
+    const checkScroll = () => {
+      const container = favoritesContainerRef.current;
+      if (container) {
+        const hasMore =
+          container.scrollWidth > container.clientWidth &&
+          container.scrollLeft < container.scrollWidth - container.clientWidth;
+        setHasMoreToScroll(hasMore);
+      }
+    };
+
+    const container = favoritesContainerRef.current;
+    if (container) {
+      container.addEventListener("scroll", checkScroll);
+      // Also check on resize
+      window.addEventListener("resize", checkScroll);
+      // Initial check
+      checkScroll();
+    }
+
+    return () => {
+      if (container) {
+        container.removeEventListener("scroll", checkScroll);
+        window.removeEventListener("resize", checkScroll);
+      }
+    };
+  }, [favorites]); // Re-run when favorites change
+
+  useEffect(() => {
+    if (currentUrl && currentUrl !== DEFAULT_URL) {
+      handleNavigate(url, false);
+    }
+  }, [selectedYear]);
+
+  const getWaybackUrl = async (targetUrl: string, year: string) => {
+    if (year === "current") return targetUrl;
+
+    try {
+      const timestamp = `${year}0101`;
+      const response = await fetch(
+        `https://archive.org/wayback/available?url=${targetUrl}&timestamp=${timestamp}`
+      );
+      const data = await response.json();
+
+      if (data.archived_snapshots?.closest?.available) {
+        return data.archived_snapshots.closest.url;
+      } else {
+        setError(`No archived version found for ${targetUrl} from ${year}`);
+        return null;
+      }
+    } catch (error) {
+      setError(`Failed to fetch archived version: ${error}`);
+      return null;
+    }
+  };
+
+  const handleNavigate = async (targetUrl = url, addToHistoryStack = true) => {
     setIsLoading(true);
     setError(null);
-    const newUrl = targetUrl.startsWith("http")
+
+    let newUrl = targetUrl.startsWith("http")
       ? targetUrl
       : `https://${targetUrl}`;
+
+    if (selectedYear !== "current") {
+      const waybackUrl = await getWaybackUrl(newUrl, selectedYear);
+      if (!waybackUrl) {
+        setIsLoading(false);
+        return;
+      }
+      newUrl = waybackUrl;
+    }
+
     setUrl(targetUrl);
     saveLastUrl(targetUrl);
 
@@ -82,7 +164,6 @@ export function InternetExplorerAppComponent({
         timestamp: Date.now(),
       };
 
-      // Add new entry to the beginning of history
       setHistory((prev) => [newEntry, ...prev]);
       setHistoryIndex(0);
       addToHistory(newEntry);
@@ -248,81 +329,80 @@ export function InternetExplorerAppComponent({
                 ref={urlInputRef}
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleNavigate()}
-                placeholder="Enter URL..."
-                className="flex-1 shadow-none border-black"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleNavigate();
+                  }
+                }}
+                className="flex-1"
+                placeholder="Enter URL"
               />
-              <img
-                src={
-                  isLoading
-                    ? "/icons/ie-loader-animated.png"
-                    : "/icons/ie-loader.png"
-                }
-                alt="Internet Explorer"
-                className="w-10 h-10"
-              />
+              <div className="flex items-center gap-2">
+                <Select value={selectedYear} onValueChange={setSelectedYear}>
+                  <SelectTrigger className="w-[100px]">
+                    <SelectValue placeholder="Year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="current">Current</SelectItem>
+                    {years.reverse().map((year) => (
+                      <SelectItem key={year} value={year}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div className="flex gap-0 items-center group">
-              {favorites.map((favorite, index) => (
-                <Button
-                  key={index}
-                  variant="ghost"
-                  size="sm"
-                  className="whitespace-nowrap hover:bg-gray-200 font-['Geneva-12'] antialiased text-[10px] gap-1 px-1 mr-1 w-content min-w-[60px] max-w-[120px]"
-                  onClick={() => handleNavigate(favorite.url)}
-                >
-                  <img
-                    src={favorite.favicon || "/icons/ie-site.png"}
-                    alt="Site"
-                    className="w-4 h-4 mr-1"
-                    onError={(e) => {
-                      e.currentTarget.src = "/icons/ie-site.png";
-                    }}
-                  />
-                  <span className="truncate">{favorite.title}</span>
-                </Button>
-              ))}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleAddFavorite}
-                className="h-8 w-8 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+            <div className="relative">
+              <div
+                ref={favoritesContainerRef}
+                className="overflow-x-auto scrollbar-none relative"
               >
-                <Plus className="h-4 w-4" />
-              </Button>
+                <div className="flex items-center min-w-full ">
+                  {favorites.map((favorite, index) => (
+                    <Button
+                      key={index}
+                      variant="ghost"
+                      size="sm"
+                      className="whitespace-nowrap hover:bg-gray-200 font-['Geneva-12'] antialiased text-[10px] gap-1 px-1 mr-1 w-content min-w-[60px] max-w-[120px] flex-shrink-0"
+                      onClick={() => handleNavigate(favorite.url)}
+                    >
+                      <img
+                        src={favorite.favicon || "/icons/ie-site.png"}
+                        alt="Site"
+                        className="w-4 h-4 mr-1"
+                        onError={(e) => {
+                          e.currentTarget.src = "/icons/ie-site.png";
+                        }}
+                      />
+                      <span className="truncate">{favorite.title}</span>
+                    </Button>
+                  ))}
+                </div>
+              </div>
+              {favorites.length > 0 && hasMoreToScroll && (
+                <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-gray-100 to-transparent pointer-events-none" />
+              )}
             </div>
           </div>
-          {error ? (
-            <div className="flex flex-col items-center justify-center h-full p-4 bg-white text-center">
-              <img
-                src="/icons/error.png"
-                alt="Error"
-                className="w-16 h-16 mb-4"
+          <div className="flex-1 relative">
+            {isLoading && (
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gray-100 overflow-hidden z-50">
+                <div className="h-full bg-blue-500 animate-progress-indeterminate" />
+              </div>
+            )}
+            {error ? (
+              <div className="p-4 text-red-500">{error}</div>
+            ) : (
+              <iframe
+                ref={iframeRef}
+                src={currentUrl}
+                className="w-full h-full"
+                onLoad={() => setIsLoading(false)}
+                onError={handleIframeError}
               />
-              <p className="text-red-600">{error}</p>
-            </div>
-          ) : (
-            <iframe
-              ref={iframeRef}
-              src={currentUrl}
-              className="flex-1 w-full h-full min-h-[400px] border-0"
-              sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-              onLoad={() => {
-                setIsLoading(false);
-                if (iframeRef.current?.contentDocument?.title) {
-                  const title = iframeRef.current.contentDocument.title;
-                  if (!isNavigatingHistory) {
-                    const updatedHistory = [...history];
-                    if (updatedHistory[historyIndex]) {
-                      updatedHistory[historyIndex].title = title;
-                      setHistory(updatedHistory);
-                    }
-                  }
-                }
-              }}
-              onError={handleIframeError}
-            />
-          )}
+            )}
+          </div>
         </div>
         <InputDialog
           isOpen={isTitleDialogOpen}
