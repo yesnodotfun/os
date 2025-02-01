@@ -22,8 +22,8 @@ interface InternetExplorerMenuBarProps extends Omit<AppProps, "onClose"> {
   history?: HistoryEntry[];
   onAddFavorite?: () => void;
   onClearFavorites?: () => void;
-  onNavigateToFavorite?: (url: string) => void;
-  onNavigateToHistory?: (url: string) => void;
+  onNavigateToFavorite?: (url: string, year?: string) => void;
+  onNavigateToHistory?: (url: string, year?: string) => void;
   onFocusUrlInput?: () => void;
   onClose?: () => void;
   onGoBack?: () => void;
@@ -148,7 +148,9 @@ export function InternetExplorerMenuBar({
               {favorites.map((favorite) => (
                 <DropdownMenuItem
                   key={favorite.url}
-                  onClick={() => onNavigateToFavorite?.(favorite.url)}
+                  onClick={() =>
+                    onNavigateToFavorite?.(favorite.url, favorite.year)
+                  }
                   className="text-md h-6 px-3 active:bg-gray-900 active:text-white flex items-center gap-2"
                 >
                   <img
@@ -160,6 +162,11 @@ export function InternetExplorerMenuBar({
                     }}
                   />
                   {favorite.title}
+                  {favorite.year && favorite.year !== "current" && (
+                    <span className="text-xs text-gray-500">
+                      ({favorite.year})
+                    </span>
+                  )}
                 </DropdownMenuItem>
               ))}
               <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
@@ -219,7 +226,7 @@ export function InternetExplorerMenuBar({
               {history.slice(0, 10).map((entry) => (
                 <DropdownMenuItem
                   key={entry.url + entry.timestamp}
-                  onClick={() => onNavigateToHistory?.(entry.url)}
+                  onClick={() => onNavigateToHistory?.(entry.url, entry.year)}
                   className="text-md h-6 px-3 active:bg-gray-900 active:text-white flex items-center gap-2"
                 >
                   <img
@@ -230,7 +237,14 @@ export function InternetExplorerMenuBar({
                       e.currentTarget.src = "/icons/ie-site.png";
                     }}
                   />
-                  <span className="truncate">{entry.title}</span>
+                  <span className="truncate">
+                    {entry.title}
+                    {entry.year && entry.year !== "current" && (
+                      <span className="text-xs text-gray-500 ml-1">
+                        ({entry.year})
+                      </span>
+                    )}
+                  </span>
                 </DropdownMenuItem>
               ))}
               <DropdownMenuSeparator className="h-[2px] bg-black my-1" />

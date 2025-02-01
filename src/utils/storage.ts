@@ -135,6 +135,7 @@ export interface Favorite {
   title: string;
   url: string;
   favicon?: string;
+  year?: string;
 }
 
 export interface HistoryEntry {
@@ -142,76 +143,102 @@ export interface HistoryEntry {
   title: string;
   favicon?: string;
   timestamp: number;
+  year?: string;
 }
 
 export const DEFAULT_FAVORITES: Favorite[] = [
   {
+    title: "Apple",
+    url: "https://apple.com",
+    favicon: "https://www.google.com/s2/favicons?domain=apple.com&sz=32",
+    year: "2002",
+  },
+  {
+    title: "Notion",
+    url: "https://notion.so",
+    favicon: "https://www.google.com/s2/favicons?domain=notion.so&sz=32",
+    year: "2019",
+  },
+  {
     title: "NewJeans",
     url: "https://newjeans.kr",
     favicon: "https://www.google.com/s2/favicons?domain=newjeans.kr&sz=32",
+    year: "current",
+  },
+  {
+    title: "Ryo",
+    url: "https://ryo.lu",
+    favicon: "https://www.google.com/s2/favicons?domain=ryo.lu&sz=32",
+    year: "current",
   },
   {
     title: "Particle Simulator",
     url: "https://play.ryo.lu",
     favicon: "https://www.google.com/s2/favicons?domain=play.ryo.lu&sz=32",
+    year: "current",
   },
   {
     title: "HyperCards",
     url: "https://hcsimulator.com",
     favicon: "https://www.google.com/s2/favicons?domain=hcsimulator.com&sz=32",
+    year: "current",
   },
   {
     title: "Theo",
     url: "https://tmb.sh",
     favicon: "https://www.google.com/s2/favicons?domain=tmb.sh&sz=32",
+    year: "current",
   },
   {
     title: "Ian",
     url: "https://shaoruu.io",
     favicon: "https://www.google.com/s2/favicons?domain=shaoruu.io&sz=32",
+    year: "current",
   },
   {
     title: "Tyler",
     url: "https://tylerbeauchamp.net",
     favicon:
       "https://www.google.com/s2/favicons?domain=tylerbeauchamp.net&sz=32",
+    year: "current",
   },
   {
     title: "Sam",
     url: "https://www.samuelcatania.com",
     favicon:
       "https://www.google.com/s2/favicons?domain=www.samuelcatania.com&sz=32",
+    year: "current",
   },
   {
     title: "Stephen",
     url: "https://wustep.me",
     favicon: "https://www.google.com/s2/favicons?domain=wustep.me&sz=32",
+    year: "current",
   },
   {
     title: "Andrew",
     url: "https://www.andrewl.ee",
     favicon: "https://www.google.com/s2/favicons?domain=www.andrewl.ee&sz=32",
+    year: "current",
   },
   {
     title: "Lucas",
     url: "https://www.lucasn.com",
     favicon: "https://www.google.com/s2/favicons?domain=www.lucasn.com&sz=32",
+    year: "current",
   },
-
   {
     title: "Frank",
     url: "https://okfrank.co",
     favicon: "https://www.google.com/s2/favicons?domain=okfrank.co&sz=32",
+    year: "current",
   },
-  {
-    title: "Ryo",
-    url: "https://ryo.lu",
-    favicon: "https://www.google.com/s2/favicons?domain=ryo.lu&sz=32",
-  },
+
   {
     title: "Modi",
     url: "https://www.akm.io",
     favicon: "https://www.google.com/s2/favicons?domain=www.akm.io&sz=32",
+    year: "current",
   },
 ];
 
@@ -260,7 +287,8 @@ export const saveChatMessages = (messages: Message[]): void => {
   );
 };
 
-export const DEFAULT_URL = "https://ryo.lu";
+export const DEFAULT_URL = "https://notion.so";
+export const DEFAULT_YEAR = "2019";
 
 export const loadLastUrl = (): string => {
   return (
@@ -293,4 +321,20 @@ export const addToHistory = (entry: Omit<HistoryEntry, "timestamp">): void => {
   history.unshift(newEntry);
   // Keep only last 100 entries
   saveHistory(history.slice(0, 100));
+};
+
+// Add new functions for wayback year
+export const loadWaybackYear = (): string => {
+  return (
+    localStorage.getItem(
+      APP_STORAGE_KEYS["internet-explorer"].LAST_URL + ":year"
+    ) || DEFAULT_YEAR
+  );
+};
+
+export const saveWaybackYear = (year: string): void => {
+  localStorage.setItem(
+    APP_STORAGE_KEYS["internet-explorer"].LAST_URL + ":year",
+    year
+  );
 };

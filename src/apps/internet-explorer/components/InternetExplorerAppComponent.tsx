@@ -18,10 +18,13 @@ import {
   loadLastUrl,
   saveLastUrl,
   DEFAULT_URL,
+  DEFAULT_YEAR,
   HistoryEntry,
   loadHistory,
   addToHistory,
   APP_STORAGE_KEYS,
+  loadWaybackYear,
+  saveWaybackYear,
 } from "@/utils/storage";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { InputDialog } from "@/components/dialogs/InputDialog";
@@ -30,19 +33,30 @@ import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { helpItems, appMetadata } from "..";
 
+interface NavigationState {
+  url: string;
+  year: string;
+  currentUrl: string | null;
+}
+
 export function InternetExplorerAppComponent({
   isWindowOpen,
   onClose,
   isForeground,
 }: AppProps) {
-  const [url, setUrl] = useState(() => loadLastUrl());
-  const [currentUrl, setCurrentUrl] = useState(url);
-  const [isLoading, setIsLoading] = useState(false);
+  const initialUrl = loadLastUrl();
+  const initialYear = loadWaybackYear();
+
+  const [navigation, setNavigation] = useState<NavigationState>({
+    url: initialUrl,
+    year: initialYear,
+    currentUrl: null,
+  });
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
-  const [selectedYear, setSelectedYear] = useState<string>("current");
   const [isTitleDialogOpen, setIsTitleDialogOpen] = useState(false);
   const [newFavoriteTitle, setNewFavoriteTitle] = useState("");
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
@@ -58,18 +72,25 @@ export function InternetExplorerAppComponent({
   const favoritesContainerRef = useRef<HTMLDivElement>(null);
 
   const years = Array.from(
-    { length: new Date().getFullYear() - 1995 + 1 },
-    (_, i) => (1995 + i).toString()
+    { length: new Date().getFullYear() - 1996 },
+    (_, i) => (1996 + i).toString()
   );
 
+  // Effect to persist navigation state
+  useEffect(() => {
+    saveLastUrl(navigation.url);
+    saveWaybackYear(navigation.year);
+  }, [navigation.url, navigation.year]);
+
+  // Effect to load initial state
   useEffect(() => {
     setFavorites(loadFavorites());
     const loadedHistory = loadHistory();
     setHistory(loadedHistory);
-    // Set initial history index to most recent entry if exists
     if (loadedHistory.length > 0) {
       setHistoryIndex(0);
     }
+    handleNavigate(navigation.url, true);
   }, []);
 
   useEffect(() => {
@@ -100,12 +121,6 @@ export function InternetExplorerAppComponent({
     };
   }, [favorites]); // Re-run when favorites change
 
-  useEffect(() => {
-    if (currentUrl && currentUrl !== DEFAULT_URL) {
-      handleNavigate(url, false);
-    }
-  }, [selectedYear]);
-
   const getWaybackUrl = async (targetUrl: string, year: string) => {
     if (year === "current") return targetUrl;
 
@@ -128,7 +143,11 @@ export function InternetExplorerAppComponent({
     }
   };
 
-  const handleNavigate = async (targetUrl = url, addToHistoryStack = true) => {
+  const handleNavigate = async (
+    targetUrl: string = navigation.url,
+    addToHistoryStack = true,
+    year: string = navigation.year
+  ) => {
     setIsLoading(true);
     setError(null);
 
@@ -136,8 +155,8 @@ export function InternetExplorerAppComponent({
       ? targetUrl
       : `https://${targetUrl}`;
 
-    if (selectedYear !== "current") {
-      const waybackUrl = await getWaybackUrl(newUrl, selectedYear);
+    if (year !== "current") {
+      const waybackUrl = await getWaybackUrl(newUrl, year);
       if (!waybackUrl) {
         setIsLoading(false);
         return;
@@ -145,23 +164,25 @@ export function InternetExplorerAppComponent({
       newUrl = waybackUrl;
     }
 
-    setUrl(targetUrl);
-    saveLastUrl(targetUrl);
-
-    const finalUrl =
-      newUrl === currentUrl
-        ? `${newUrl}${newUrl.includes("?") ? "&" : "?"}_t=${Date.now()}`
-        : newUrl;
-    setCurrentUrl(finalUrl);
+    // Update navigation state atomically
+    setNavigation((prev) => ({
+      url: targetUrl,
+      year: year,
+      currentUrl:
+        newUrl === prev.currentUrl
+          ? `${newUrl}${newUrl.includes("?") ? "&" : "?"}_t=${Date.now()}`
+          : newUrl,
+    }));
 
     if (addToHistoryStack && !isNavigatingHistory) {
       const newEntry = {
-        url: newUrl,
+        url: targetUrl,
         title: new URL(newUrl).hostname,
         favicon: `https://www.google.com/s2/favicons?domain=${
           new URL(newUrl).hostname
         }&sz=32`,
         timestamp: Date.now(),
+        year: year !== "current" ? year : undefined,
       };
 
       setHistory((prev) => [newEntry, ...prev]);
@@ -170,9 +191,12 @@ export function InternetExplorerAppComponent({
     }
   };
 
-  const handleNavigateWithHistory = (targetUrl: string) => {
+  const handleNavigateWithHistory = async (
+    targetUrl: string,
+    year?: string
+  ) => {
     setIsNavigatingHistory(false);
-    handleNavigate(targetUrl, true);
+    handleNavigate(targetUrl, true, year || navigation.year);
   };
 
   const handleGoBack = () => {
@@ -180,7 +204,8 @@ export function InternetExplorerAppComponent({
       setIsNavigatingHistory(true);
       const nextIndex = historyIndex + 1;
       setHistoryIndex(nextIndex);
-      handleNavigate(history[nextIndex].url, false);
+      const entry = history[nextIndex];
+      handleNavigate(entry.url, false, entry.year || "current");
       setIsNavigatingHistory(false);
     }
   };
@@ -190,13 +215,16 @@ export function InternetExplorerAppComponent({
       setIsNavigatingHistory(true);
       const nextIndex = historyIndex - 1;
       setHistoryIndex(nextIndex);
-      handleNavigate(history[nextIndex].url, false);
+      const entry = history[nextIndex];
+      handleNavigate(entry.url, false, entry.year || "current");
       setIsNavigatingHistory(false);
     }
   };
 
   const handleAddFavorite = () => {
-    setNewFavoriteTitle(new URL(currentUrl).hostname);
+    setNewFavoriteTitle(
+      new URL(navigation.currentUrl || navigation.url).hostname
+    );
     setIsTitleDialogOpen(true);
   };
 
@@ -206,10 +234,11 @@ export function InternetExplorerAppComponent({
       ...favorites,
       {
         title: newFavoriteTitle,
-        url: currentUrl,
+        url: navigation.url,
         favicon: `https://www.google.com/s2/favicons?domain=${
-          new URL(currentUrl).hostname
+          new URL(navigation.currentUrl || navigation.url).hostname
         }&sz=32`,
+        year: navigation.year !== "current" ? navigation.year : undefined,
       },
     ];
     setFavorites(newFavorites);
@@ -230,7 +259,9 @@ export function InternetExplorerAppComponent({
   const handleIframeError = () => {
     setIsLoading(false);
     setError(
-      `Cannot access ${currentUrl}. The website might be blocking access or requires authentication.`
+      `Cannot access ${
+        navigation.currentUrl || navigation.url
+      }. The website might be blocking access or requires authentication.`
     );
   };
 
@@ -248,9 +279,7 @@ export function InternetExplorerAppComponent({
   };
 
   const handleHome = () => {
-    setUrl(DEFAULT_URL);
-    saveLastUrl(DEFAULT_URL);
-    setCurrentUrl(DEFAULT_URL);
+    handleNavigate(DEFAULT_URL, true, DEFAULT_YEAR);
   };
 
   const handleClearHistory = () => {
@@ -282,7 +311,9 @@ export function InternetExplorerAppComponent({
         history={history}
         onAddFavorite={handleAddFavorite}
         onClearFavorites={handleClearFavorites}
-        onNavigateToFavorite={handleNavigateWithHistory}
+        onNavigateToFavorite={(url, year) =>
+          handleNavigateWithHistory(url, year)
+        }
         onNavigateToHistory={handleNavigateWithHistory}
         onGoBack={handleGoBack}
         onGoForward={handleGoForward}
@@ -327,8 +358,10 @@ export function InternetExplorerAppComponent({
               </div>
               <Input
                 ref={urlInputRef}
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
+                value={navigation.url}
+                onChange={(e) =>
+                  setNavigation((prev) => ({ ...prev, url: e.target.value }))
+                }
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     handleNavigate();
@@ -338,7 +371,12 @@ export function InternetExplorerAppComponent({
                 placeholder="Enter URL"
               />
               <div className="flex items-center gap-2">
-                <Select value={selectedYear} onValueChange={setSelectedYear}>
+                <Select
+                  value={navigation.year}
+                  onValueChange={(year) =>
+                    handleNavigate(navigation.url, true, year)
+                  }
+                >
                   <SelectTrigger className="w-[100px]">
                     <SelectValue placeholder="Year" />
                   </SelectTrigger>
@@ -365,7 +403,9 @@ export function InternetExplorerAppComponent({
                       variant="ghost"
                       size="sm"
                       className="whitespace-nowrap hover:bg-gray-200 font-['Geneva-12'] antialiased text-[10px] gap-1 px-1 mr-1 w-content min-w-[60px] max-w-[120px] flex-shrink-0"
-                      onClick={() => handleNavigate(favorite.url)}
+                      onClick={() =>
+                        handleNavigateWithHistory(favorite.url, favorite.year)
+                      }
                     >
                       <img
                         src={favorite.favicon || "/icons/ie-site.png"}
@@ -375,7 +415,12 @@ export function InternetExplorerAppComponent({
                           e.currentTarget.src = "/icons/ie-site.png";
                         }}
                       />
-                      <span className="truncate">{favorite.title}</span>
+                      <span className="truncate">
+                        {favorite.title}
+                        {favorite.year &&
+                          favorite.year !== "current" &&
+                          ` (${favorite.year})`}
+                      </span>
                     </Button>
                   ))}
                 </div>
@@ -396,7 +441,7 @@ export function InternetExplorerAppComponent({
             ) : (
               <iframe
                 ref={iframeRef}
-                src={currentUrl}
+                src={navigation.currentUrl || ""}
                 className="w-full h-full"
                 onLoad={() => setIsLoading(false)}
                 onError={handleIframeError}
