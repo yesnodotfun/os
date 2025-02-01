@@ -42,7 +42,35 @@ export const loadWindowState = (
 ): WindowState => {
   const key = APP_STORAGE_KEYS[appId].WINDOW;
   const saved = localStorage.getItem(key);
-  return saved ? JSON.parse(saved) : DEFAULT_WINDOW_STATE;
+  if (saved) {
+    return JSON.parse(saved);
+  }
+
+  // Default window positions and sizes for specific apps
+  switch (appId) {
+    case "textedit":
+      return {
+        position: { x: 16, y: 40 },
+        size: { width: 520, height: 475 },
+      };
+    case "internet-explorer":
+      return {
+        position: { x: 48, y: 80 },
+        size: { width: 800, height: 475 },
+      };
+    case "chats":
+      return {
+        position: { x: 80, y: 120 },
+        size: { width: 280, height: 475 },
+      };
+    case "soundboard":
+      return {
+        position: { x: 112, y: 160 },
+        size: { width: 800, height: 475 },
+      };
+    default:
+      return DEFAULT_WINDOW_STATE;
+  }
 };
 
 export const saveWindowState = (

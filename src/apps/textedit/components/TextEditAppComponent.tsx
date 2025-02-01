@@ -289,6 +289,10 @@ export function TextEditAppComponent({
         onClose={onClose}
         isForeground={isForeground}
         appId="textedit"
+        windowConstraints={{
+          minWidth: 520,
+          minHeight: 400,
+        }}
       >
         <div className="flex flex-col h-full w-full bg-white">
           <div className="flex bg-[#c0c0c0] border-b border-black w-full">
