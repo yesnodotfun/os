@@ -20,6 +20,11 @@ export const APP_STORAGE_KEYS = {
     MESSAGES: "chats:messages",
     HAS_SEEN_HELP: "chats:hasSeenHelp",
   },
+  textedit: {
+    WINDOW: "textedit:window",
+    CONTENT: "textedit:content",
+    HAS_SEEN_HELP: "textedit:hasSeenHelp",
+  },
 } as const;
 
 interface WindowState {
