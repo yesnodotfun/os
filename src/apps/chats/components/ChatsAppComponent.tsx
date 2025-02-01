@@ -74,13 +74,13 @@ export function ChatsAppComponent({
         isForeground={isForeground}
         appId="chats"
         windowConstraints={{
-          minWidth: window.innerWidth >= 768 ? 260 : 320,
-          minHeight: window.innerWidth >= 768 ? 300 : 300,
-          maxWidth: window.innerWidth >= 768 ? 260 : 320,
-          maxHeight: window.innerWidth >= 768 ? 800 : 365,
+          minWidth: 320,
+          minHeight: 300,
+          maxWidth: window.innerWidth - 20,
+          maxHeight: window.innerHeight - 40,
         }}
       >
-        <div className="flex flex-col h-full bg-[#c0c0c0] p-2 w-[320px] md:w-[260px] max-w-full">
+        <div className="flex flex-col h-full bg-[#c0c0c0] p-2 w-full">
           <ChatMessages
             messages={messages}
             isLoading={isLoading}

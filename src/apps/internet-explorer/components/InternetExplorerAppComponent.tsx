@@ -164,23 +164,11 @@ export function InternetExplorerAppComponent({
   const getWaybackUrl = async (targetUrl: string, year: string) => {
     if (year === "current") return targetUrl;
 
-    try {
-      const timestamp = `${year}0101`;
-      const response = await fetch(
-        `https://archive.org/wayback/available?url=${targetUrl}&timestamp=${timestamp}`
-      );
-      const data = await response.json();
-
-      if (data.archived_snapshots?.closest?.available) {
-        return data.archived_snapshots.closest.url;
-      } else {
-        setError(`No archived version found for ${targetUrl} from ${year}`);
-        return null;
-      }
-    } catch (error) {
-      setError(`Failed to fetch archived version: ${error}`);
-      return null;
-    }
+    // Directly construct the wayback URL without checking availability
+    const formattedUrl = targetUrl.startsWith("http")
+      ? targetUrl
+      : `https://${targetUrl}`;
+    return `https://web.archive.org/web/${year}0101/${formattedUrl}`;
   };
 
   // Update iframe load handler
