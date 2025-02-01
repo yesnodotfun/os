@@ -287,8 +287,8 @@ export const saveChatMessages = (messages: Message[]): void => {
   );
 };
 
-export const DEFAULT_URL = "https://notion.so";
-export const DEFAULT_YEAR = "2019";
+export const DEFAULT_URL = "https://apple.com";
+export const DEFAULT_YEAR = "2002";
 
 export const loadLastUrl = (): string => {
   return (

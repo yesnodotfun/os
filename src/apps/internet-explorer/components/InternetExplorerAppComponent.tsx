@@ -71,27 +71,49 @@ export function InternetExplorerAppComponent({
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const favoritesContainerRef = useRef<HTMLDivElement>(null);
 
+  // Add a ref to track navigation in progress
+  const navigationInProgressRef = useRef(false);
+
   const years = Array.from(
     { length: new Date().getFullYear() - 1996 },
     (_, i) => (1996 + i).toString()
   );
 
+  // Effect to load initial state and start initial navigation
+  useEffect(() => {
+    const initializeState = async () => {
+      setFavorites(loadFavorites());
+      const loadedHistory = loadHistory();
+      setHistory(loadedHistory);
+      if (loadedHistory.length > 0) {
+        setHistoryIndex(0);
+      }
+
+      // Start initial navigation with the loaded URL and year
+      const initialUrl = loadLastUrl();
+      const initialYear = loadWaybackYear();
+
+      // Set initial navigation state
+      setNavigation({
+        url: initialUrl,
+        year: initialYear,
+        currentUrl: null,
+      });
+
+      // Perform initial navigation
+      await handleNavigate(initialUrl, true, initialYear);
+    };
+
+    initializeState();
+  }, []); // Only run on mount
+
   // Effect to persist navigation state
   useEffect(() => {
-    saveLastUrl(navigation.url);
-    saveWaybackYear(navigation.year);
-  }, [navigation.url, navigation.year]);
-
-  // Effect to load initial state
-  useEffect(() => {
-    setFavorites(loadFavorites());
-    const loadedHistory = loadHistory();
-    setHistory(loadedHistory);
-    if (loadedHistory.length > 0) {
-      setHistoryIndex(0);
+    if (navigation.url && navigation.year) {
+      saveLastUrl(navigation.url);
+      saveWaybackYear(navigation.year);
     }
-    handleNavigate(navigation.url, true);
-  }, []);
+  }, [navigation.url, navigation.year]);
 
   useEffect(() => {
     const checkScroll = () => {
@@ -143,52 +165,74 @@ export function InternetExplorerAppComponent({
     }
   };
 
+  // Update iframe load handler
+  const handleIframeLoad = () => {
+    // Only clear loading if there's no navigation in progress
+    if (!navigationInProgressRef.current) {
+      setIsLoading(false);
+    }
+  };
+
   const handleNavigate = async (
     targetUrl: string = navigation.url,
     addToHistoryStack = true,
     year: string = navigation.year
   ) => {
     setIsLoading(true);
+    navigationInProgressRef.current = true;
     setError(null);
 
     let newUrl = targetUrl.startsWith("http")
       ? targetUrl
       : `https://${targetUrl}`;
 
-    if (year !== "current") {
-      const waybackUrl = await getWaybackUrl(newUrl, year);
-      if (!waybackUrl) {
-        setIsLoading(false);
-        return;
+    // Store original URL info before potentially converting to wayback URL
+    const originalUrlInfo = new URL(newUrl);
+    const originalHostname = originalUrlInfo.hostname;
+    const originalFavicon = `https://www.google.com/s2/favicons?domain=${originalHostname}&sz=32`;
+
+    try {
+      if (year !== "current") {
+        const waybackUrl = await getWaybackUrl(newUrl, year);
+        if (!waybackUrl) {
+          setIsLoading(false);
+          navigationInProgressRef.current = false;
+          return;
+        }
+        newUrl = waybackUrl;
       }
-      newUrl = waybackUrl;
-    }
 
-    // Update navigation state atomically
-    setNavigation((prev) => ({
-      url: targetUrl,
-      year: year,
-      currentUrl:
-        newUrl === prev.currentUrl
-          ? `${newUrl}${newUrl.includes("?") ? "&" : "?"}_t=${Date.now()}`
-          : newUrl,
-    }));
-
-    if (addToHistoryStack && !isNavigatingHistory) {
-      const newEntry = {
+      // Update navigation state atomically
+      setNavigation((prev) => ({
         url: targetUrl,
-        title: new URL(newUrl).hostname,
-        favicon: `https://www.google.com/s2/favicons?domain=${
-          new URL(newUrl).hostname
-        }&sz=32`,
-        timestamp: Date.now(),
-        year: year !== "current" ? year : undefined,
-      };
+        year: year,
+        currentUrl:
+          newUrl === prev.currentUrl
+            ? `${newUrl}${newUrl.includes("?") ? "&" : "?"}_t=${Date.now()}`
+            : newUrl,
+      }));
 
-      setHistory((prev) => [newEntry, ...prev]);
-      setHistoryIndex(0);
-      addToHistory(newEntry);
+      if (addToHistoryStack && !isNavigatingHistory) {
+        const newEntry = {
+          url: targetUrl,
+          title: originalHostname,
+          favicon: originalFavicon,
+          timestamp: Date.now(),
+          year: year !== "current" ? year : undefined,
+        };
+
+        setHistory((prev) => [newEntry, ...prev]);
+        setHistoryIndex(0);
+        addToHistory(newEntry);
+      }
+    } catch (error) {
+      setError(`Failed to navigate: ${error}`);
+      setIsLoading(false);
     }
+    // Clear navigation in progress after a short delay to handle quick loads
+    setTimeout(() => {
+      navigationInProgressRef.current = false;
+    }, 100);
   };
 
   const handleNavigateWithHistory = async (
@@ -258,6 +302,7 @@ export function InternetExplorerAppComponent({
 
   const handleIframeError = () => {
     setIsLoading(false);
+    navigationInProgressRef.current = false;
     setError(
       `Cannot access ${
         navigation.currentUrl || navigation.url
@@ -271,6 +316,10 @@ export function InternetExplorerAppComponent({
 
   const handleStop = () => {
     setIsLoading(false);
+    navigationInProgressRef.current = false;
+    if (iframeRef.current) {
+      iframeRef.current.src = "about:blank";
+    }
   };
 
   const handleGoToUrl = () => {
@@ -443,7 +492,7 @@ export function InternetExplorerAppComponent({
                 ref={iframeRef}
                 src={navigation.currentUrl || ""}
                 className="w-full h-full"
-                onLoad={() => setIsLoading(false)}
+                onLoad={handleIframeLoad}
                 onError={handleIframeError}
               />
             )}
