@@ -93,21 +93,39 @@ export function InternetExplorerAppComponent({
       const initialUrl = loadLastUrl();
       const initialYear = loadWaybackYear();
 
-      // Set initial navigation state
+      // First set the navigation state without triggering navigation
       setNavigation({
         url: initialUrl,
         year: initialYear,
         currentUrl: null,
       });
 
-      // Perform initial navigation
-      await handleNavigate(initialUrl, true, initialYear);
+      // Then explicitly trigger navigation after state is set
+      if (initialYear !== "current") {
+        const waybackUrl = await getWaybackUrl(initialUrl, initialYear);
+        if (waybackUrl) {
+          setNavigation((prev) => ({
+            ...prev,
+            currentUrl: waybackUrl,
+          }));
+        }
+      } else {
+        // For current year, just use the URL directly
+        setNavigation((prev) => ({
+          ...prev,
+          currentUrl: initialUrl.startsWith("http")
+            ? initialUrl
+            : `https://${initialUrl}`,
+        }));
+      }
+
+      setIsLoading(false);
     };
 
     initializeState();
   }, []); // Only run on mount
 
-  // Effect to persist navigation state
+  // Effect to persist navigation state - but don't trigger navigation
   useEffect(() => {
     if (navigation.url && navigation.year) {
       saveLastUrl(navigation.url);
