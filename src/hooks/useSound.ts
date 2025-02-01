@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef } from "react";
 
-export function useSound(soundPath: string) {
+export function useSound(soundPath: string, volume: number = 0.3) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     // Pre-load the audio when the hook is initialized
     audioRef.current = new Audio(soundPath);
+    audioRef.current.volume = volume;
     audioRef.current.load();
 
     // Cleanup on unmount
@@ -15,7 +16,7 @@ export function useSound(soundPath: string) {
         audioRef.current = null;
       }
     };
-  }, [soundPath]);
+  }, [soundPath, volume]);
 
   const play = useCallback(() => {
     if (!audioRef.current) {
@@ -25,6 +26,7 @@ export function useSound(soundPath: string) {
     const playPromise = async () => {
       try {
         audioRef.current!.currentTime = 0;
+        audioRef.current!.volume = volume;
         await audioRef.current!.play();
       } catch (error) {
         console.error("Error playing sound:", error);
@@ -32,7 +34,7 @@ export function useSound(soundPath: string) {
     };
 
     playPromise();
-  }, []);
+  }, [volume]);
 
   return { play };
 }

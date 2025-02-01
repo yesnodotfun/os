@@ -91,9 +91,9 @@ export function ChatMessages({
                   message.role === "user" ? "bottom right" : "bottom left",
               }}
             >
-              <div className="text-[16px] text-gray-500 mb-0.5 font-['Geneva-9'] mb-[-2px]">
+              <div className="text-[16px] text-gray-500 mb-0.5 font-['Geneva-9'] mb-[-2px] select-text">
                 {message.role === "user" ? "You" : "Ryo"}{" "}
-                <span className="text-gray-400">
+                <span className="text-gray-400 select-text">
                   {message.createdAt ? (
                     new Date(message.createdAt).toLocaleTimeString([], {
                       hour: "numeric",
@@ -111,19 +111,21 @@ export function ChatMessages({
                   fontFamily:
                     "Geneva-12, SerenityOS-Emoji, system-ui, -apple-system, sans-serif",
                 }}
-                className={`max-w-[90%] min-h-[12px] p-1.5 px-2 rounded leading-snug text-[12px] antialiased break-words ${
+                className={`max-w-[90%] min-h-[12px] p-1.5 px-2 rounded leading-snug text-[12px] antialiased break-words select-text ${
                   message.role === "user"
                     ? "bg-yellow-200 text-black"
                     : "bg-blue-200 text-black"
                 }`}
               >
                 {message.role === "assistant" ? (
-                  <motion.div layout="position">
+                  <motion.div layout="position" className="select-text">
                     {message.content.split(" ").map((word, idx) => (
                       <motion.span
                         key={idx}
                         initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
+                        className="select-text"
+                        style={{ userSelect: "text" }}
                         transition={{
                           duration: 0.15,
                           delay: idx * 0.05,
@@ -140,7 +142,9 @@ export function ChatMessages({
                     ))}
                   </motion.div>
                 ) : (
-                  message.content
+                  <span className="select-text" style={{ userSelect: "text" }}>
+                    {message.content}
+                  </span>
                 )}
               </motion.div>
             </motion.div>
