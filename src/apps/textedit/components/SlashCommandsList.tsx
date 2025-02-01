@@ -1,9 +1,4 @@
-import React, {
-  forwardRef,
-  useEffect,
-  useImperativeHandle,
-  useState,
-} from "react";
+import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
 import { Editor } from "@tiptap/react";
 
 interface CommandItem {

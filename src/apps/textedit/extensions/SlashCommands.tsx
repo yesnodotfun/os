@@ -7,7 +7,6 @@ import { Editor } from "@tiptap/react";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { createRoot } from "react-dom/client";
 import { useState, useEffect } from "react";
@@ -61,7 +60,7 @@ const SlashMenuContent = ({
   }, [items, selectedIndex, onCommand]);
 
   return (
-    <div className="p-1">
+    <>
       {items.map((item, index) => (
         <div
           key={index}
@@ -77,7 +76,7 @@ const SlashMenuContent = ({
           {item.title}
         </div>
       ))}
-    </div>
+    </>
   );
 };
 
@@ -249,6 +248,8 @@ const suggestion: Partial<SuggestionOptions> = {
       onKeyDown: (props: { event: KeyboardEvent }) => {
         if (props.event.key === "Escape") {
           cleanup();
+          // Ensure editor regains focus after menu dismissal
+          props.event.preventDefault();
           return true;
         }
         return false;
