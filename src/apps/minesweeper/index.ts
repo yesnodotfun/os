@@ -39,12 +39,6 @@ export const MinesweeperApp: BaseApp = {
   icon: { type: "image", src: "/icons/minesweeper.png" },
   description: "Classic Minesweeper game",
   component: MinesweeperAppComponent,
-  windowConstraints: {
-    minWidth: 280,
-    maxWidth: 320,
-    minHeight: 300,
-    maxHeight: 400,
-  },
   helpItems,
   metadata: appMetadata,
 };

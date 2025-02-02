@@ -5,6 +5,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useSound, Sounds } from "@/hooks/useSound";
 import { useEffect, useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
+import { getWindowConfig } from "@/config/windowConfig";
 
 interface WindowFrameProps {
   children: React.ReactNode;
@@ -28,6 +29,20 @@ export function WindowFrame({
   appId,
   windowConstraints = {},
 }: WindowFrameProps) {
+  const config = getWindowConfig(appId);
+  const defaultConstraints = {
+    minWidth: config.minSize?.width,
+    minHeight: config.minSize?.height,
+    maxWidth: config.maxSize?.width,
+    maxHeight: config.maxSize?.height,
+  };
+
+  // Merge provided constraints with defaults from config
+  const mergedConstraints = {
+    ...defaultConstraints,
+    ...windowConstraints,
+  };
+
   const [isOpen, setIsOpen] = useState(true);
   const [isVisible, setIsVisible] = useState(true);
   const [isInitialMount, setIsInitialMount] = useState(true);
@@ -107,12 +122,12 @@ export function WindowFrame({
       setIsFullHeight(false);
       setWindowSize((prev) => ({
         ...prev,
-        height: windowConstraints.minHeight || 400,
+        height: mergedConstraints.minHeight || 400,
       }));
     } else {
       // Set to full height
       setIsFullHeight(true);
-      maximizeWindowHeight(windowConstraints.maxHeight);
+      maximizeWindowHeight(mergedConstraints.maxHeight);
     }
   };
 
@@ -130,12 +145,12 @@ export function WindowFrame({
         left: windowPosition.x,
         top: Math.max(0, windowPosition.y),
         width: window.innerWidth >= 768 ? windowSize.width : "100%",
-        height: Math.max(windowSize.height, windowConstraints.minHeight || 0),
+        height: Math.max(windowSize.height, mergedConstraints.minHeight || 0),
         minWidth:
-          window.innerWidth >= 768 ? windowConstraints.minWidth : "100%",
-        minHeight: windowConstraints.minHeight,
-        maxWidth: windowConstraints.maxWidth || undefined,
-        maxHeight: windowConstraints.maxHeight || undefined,
+          window.innerWidth >= 768 ? mergedConstraints.minWidth : "100%",
+        minHeight: mergedConstraints.minHeight,
+        maxWidth: mergedConstraints.maxWidth || undefined,
+        maxHeight: mergedConstraints.maxHeight || undefined,
         transition: isDragging || resizeType ? "none" : undefined,
         transform: !isInitialMount && !isOpen ? "scale(0.95)" : undefined,
         opacity: !isInitialMount && !isOpen ? 0 : undefined,

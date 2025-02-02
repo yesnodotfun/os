@@ -48,8 +48,4 @@ export const TextEditApp: BaseApp = {
   component: TextEditAppComponent,
   helpItems,
   metadata: appMetadata,
-  windowConstraints: {
-    minWidth: 400,
-    minHeight: 300,
-  },
 };

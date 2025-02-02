@@ -39,10 +39,6 @@ export const FinderApp: BaseApp = {
     src: "/icons/mac.png",
   },
   component: FinderAppComponent,
-  windowConstraints: {
-    minWidth: 400,
-    minHeight: 300,
-  },
   helpItems,
   metadata: appMetadata,
 };

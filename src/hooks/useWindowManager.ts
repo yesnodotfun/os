@@ -89,12 +89,8 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
         y: clientY - rect.top,
       });
       setIsDragging(true);
-
-      // Start playing move sound in a loop
-      playMoveMoving();
-      moveAudioRef.current = setInterval(playMoveMoving, 300);
     },
-    [playMoveMoving]
+    []
   );
 
   const handleResizeStart = useCallback(
@@ -139,6 +135,12 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
         const newX = clientX - dragOffset.x;
         const newY = clientY - dragOffset.y;
         const menuBarHeight = 30;
+
+        // Start playing move sound in a loop when actual movement starts
+        if (!moveAudioRef.current) {
+          playMoveMoving();
+          moveAudioRef.current = setInterval(playMoveMoving, 300);
+        }
 
         if (isMobile) {
           // On mobile, only allow vertical dragging and keep window full width

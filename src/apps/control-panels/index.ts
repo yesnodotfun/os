@@ -36,12 +36,6 @@ const app: BaseApp = {
   },
   description: "System settings and configuration",
   component: ControlPanelsAppComponent,
-  windowConstraints: {
-    minWidth: 280,
-    maxWidth: 800,
-    minHeight: 300,
-    maxHeight: window.innerHeight - 40,
-  },
   helpItems,
   metadata: appMetadata,
 };
