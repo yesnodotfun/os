@@ -31,6 +31,7 @@ export function MinesweeperAppComponent({
   );
   const [gameOver, setGameOver] = useState(false);
   const [gameWon, setGameWon] = useState(false);
+  const [remainingMines, setRemainingMines] = useState(MINES_COUNT);
 
   function initializeBoard(): CellContent[][] {
     const board = Array(BOARD_SIZE)
@@ -109,6 +110,9 @@ export function MinesweeperAppComponent({
     const newBoard = [...gameBoard.map((row) => [...row])];
     newBoard[row][col].isFlagged = !newBoard[row][col].isFlagged;
     setGameBoard(newBoard);
+    setRemainingMines((prev) =>
+      newBoard[row][col].isFlagged ? prev - 1 : prev + 1
+    );
   }
 
   function revealCell(board: CellContent[][], row: number, col: number) {
@@ -159,6 +163,7 @@ export function MinesweeperAppComponent({
     setGameOver(false);
     setGameWon(false);
     setIsNewGameDialogOpen(false);
+    setRemainingMines(MINES_COUNT);
   }
 
   if (!isWindowOpen) return null;
@@ -177,24 +182,24 @@ export function MinesweeperAppComponent({
         isForeground={isForeground}
         appId="minesweeper"
         windowConstraints={{
-          minWidth: 310,
-          maxWidth: 310,
-          minHeight: 405,
-          maxHeight: 405,
+          minWidth: 270,
+          maxWidth: 270,
+          minHeight: 350,
+          maxHeight: 350,
         }}
       >
-        <div className="flex flex-col h-full bg-[#c0c0c0] p-2 w-full">
-          <div className="mb-2 flex justify-between items-center px-2 py-1 bg-[#c0c0c0] border-2 border-gray-800 border-r-[3px] border-b-[3px]">
-            <div className="bg-black text-red-600 font-[ChicagoKare] text-xl px-2 py-1 border border-t-gray-800 border-l-gray-800 border-r-white border-b-white">
-              {MINES_COUNT} mines
+        <div className="flex flex-col h-full bg-[#c0c0c0] p-1.5 w-full">
+          <div className="mb-1.5 flex justify-between items-center px-2 py-1 bg-[#c0c0c0] ">
+            <div className="bg-black text-red-600 font-[ChicagoKare] text-lg px-2 py-0.5 border border-t-gray-800 border-l-gray-800 border-r-white border-b-white">
+              {remainingMines} left
             </div>
             <Button
               variant="default"
               size="sm"
               onClick={() => setIsNewGameDialogOpen(true)}
-              className="px-3 py-2 text-2xl leading-none h-auto border-2 border-t-white border-l-white border-r-gray-800 border-b-gray-800 bg-[#c0c0c0] hover:bg-[#d0d0d0]"
+              className="px-2 py-1 text-xl leading-none h-auto bg-[#c0c0c0] hover:bg-[#d0d0d0]"
             >
-              {gameOver ? "😵" : gameWon ? "😎" : "🙂"}
+              {gameOver ? "💀" : gameWon ? "😎" : "🙂"}
             </Button>
           </div>
           <div className="grid grid-cols-9 gap-0 bg-gray-800 p-[1px] border-2 border-t-gray-800 border-l-gray-800 border-r-white border-b-white">
@@ -202,7 +207,7 @@ export function MinesweeperAppComponent({
               row.map((cell, colIndex) => (
                 <button
                   key={`${rowIndex}-${colIndex}`}
-                  className={`w-8 h-8 flex items-center justify-center text-sm font-bold rounded-none
+                  className={`w-7 h-7 flex items-center justify-center text-sm font-bold rounded-none
                     ${
                       cell.isRevealed
                         ? "bg-[#d1d1d1] border border-t-gray-600 border-l-gray-600 border-r-[#f0f0f0] border-b-[#f0f0f0]"
