@@ -81,6 +81,11 @@ export const Sounds = {
   BUTTON_CLICK: "/sounds/ButtonClickDown.mp3",
   MENU_OPEN: "/sounds/MenuOpen.mp3",
   MENU_CLOSE: "/sounds/MenuClose.mp3",
+  // Window movement and resize sounds
+  WINDOW_MOVE_MOVING: "/sounds/WindowMoveMoving.mp3",
+  WINDOW_MOVE_STOP: "/sounds/WindowMoveStop.mp3",
+  WINDOW_RESIZE_RESIZING: "/sounds/WindowResizeResizing.mp3",
+  WINDOW_RESIZE_STOP: "/sounds/WindowResizeStop.mp3",
   // Minesweeper sounds
   CLICK: "/sounds/Click.mp3",
   ALERT_BONK: "/sounds/AlertBonk.mp3",

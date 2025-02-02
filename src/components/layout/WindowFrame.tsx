@@ -34,6 +34,7 @@ export function WindowFrame({
   const { bringToForeground } = useAppContext();
   const { play: playWindowOpen } = useSound(Sounds.WINDOW_OPEN);
   const { play: playWindowClose } = useSound(Sounds.WINDOW_CLOSE);
+  const [isFullHeight, setIsFullHeight] = useState(false);
 
   useEffect(() => {
     playWindowOpen();
@@ -69,7 +70,16 @@ export function WindowFrame({
     handleMouseDown: handleMouseDownBase,
     handleResizeStart,
     maximizeWindowHeight,
+    setWindowSize,
   } = useWindowManager({ appId });
+
+  // Track window height changes
+  useEffect(() => {
+    const menuBarHeight = 30;
+    const maxPossibleHeight = window.innerHeight - menuBarHeight;
+    // Consider window at full height if it's within 5px of max height (to account for rounding)
+    setIsFullHeight(Math.abs(windowSize.height - maxPossibleHeight) < 5);
+  }, [windowSize.height]);
 
   const handleMouseDown = (
     e: React.MouseEvent<HTMLElement> | React.TouchEvent<HTMLElement>
@@ -92,7 +102,18 @@ export function WindowFrame({
 
   const handleDoubleClickResize = (e: React.MouseEvent) => {
     e.stopPropagation();
-    maximizeWindowHeight(windowConstraints.maxHeight);
+    if (isFullHeight) {
+      // Restore to default height using window's minHeight constraint
+      setIsFullHeight(false);
+      setWindowSize((prev) => ({
+        ...prev,
+        height: windowConstraints.minHeight || 400,
+      }));
+    } else {
+      // Set to full height
+      setIsFullHeight(true);
+      maximizeWindowHeight(windowConstraints.maxHeight);
+    }
   };
 
   if (!isVisible) return null;

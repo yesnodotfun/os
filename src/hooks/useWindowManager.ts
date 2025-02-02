@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   WindowPosition,
   WindowSize,
@@ -10,6 +10,7 @@ import {
   saveWindowState,
   APP_STORAGE_KEYS,
 } from "../utils/storage";
+import { useSound, Sounds } from "./useSound";
 
 interface UseWindowManagerProps {
   appId: keyof typeof APP_STORAGE_KEYS;
@@ -43,6 +44,14 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
   });
 
   const isMobile = window.innerWidth < 768;
+
+  const { play: playMoveMoving } = useSound(Sounds.WINDOW_MOVE_MOVING);
+  const { play: playMoveStop } = useSound(Sounds.WINDOW_MOVE_STOP);
+  const { play: playResizeResizing } = useSound(Sounds.WINDOW_RESIZE_RESIZING);
+  const { play: playResizeStop } = useSound(Sounds.WINDOW_RESIZE_STOP);
+
+  const moveAudioRef = useRef<NodeJS.Timeout | null>(null);
+  const resizeAudioRef = useRef<NodeJS.Timeout | null>(null);
 
   const maximizeWindowHeight = useCallback(
     (maxHeightConstraint?: number | string) => {
@@ -80,13 +89,17 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
         y: clientY - rect.top,
       });
       setIsDragging(true);
+
+      // Start playing move sound in a loop
+      playMoveMoving();
+      moveAudioRef.current = setInterval(playMoveMoving, 300);
     },
-    []
+    [playMoveMoving]
   );
 
   const handleResizeStart = useCallback(
     (e: React.MouseEvent | React.TouchEvent, type: ResizeType) => {
-      if (isMobile && type !== "s") return; // Only allow bottom resizing on mobile
+      if (isMobile && type !== "s") return;
 
       e.stopPropagation();
       e.preventDefault();
@@ -107,8 +120,12 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
         top: windowPosition.y,
       });
       setResizeType(type);
+
+      // Start playing resize sound in a loop
+      playResizeResizing();
+      resizeAudioRef.current = setInterval(playResizeResizing, 300);
     },
-    [windowPosition, isMobile]
+    [windowPosition, isMobile, playResizeResizing]
   );
 
   useEffect(() => {
@@ -217,15 +234,26 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
       if (isDragging) {
         setIsDragging(false);
         saveWindowState(appId, { position: windowPosition, size: windowSize });
+        // Stop move sound loop and play stop sound
+        if (moveAudioRef.current) {
+          clearInterval(moveAudioRef.current);
+          moveAudioRef.current = null;
+          playMoveStop();
+        }
       }
       if (resizeType) {
         setResizeType("");
         saveWindowState(appId, { position: windowPosition, size: windowSize });
+        // Stop resize sound loop and play stop sound
+        if (resizeAudioRef.current) {
+          clearInterval(resizeAudioRef.current);
+          resizeAudioRef.current = null;
+          playResizeStop();
+        }
       }
     };
 
     if (isDragging || resizeType) {
-      // Add both mouse and touch event listeners
       document.addEventListener("mousemove", handleMove);
       document.addEventListener("mouseup", handleEnd);
       document.addEventListener("touchmove", handleMove);
@@ -237,6 +265,13 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
       document.removeEventListener("mouseup", handleEnd);
       document.removeEventListener("touchmove", handleMove);
       document.removeEventListener("touchend", handleEnd);
+      // Clean up any ongoing sound loops
+      if (moveAudioRef.current) {
+        clearInterval(moveAudioRef.current);
+      }
+      if (resizeAudioRef.current) {
+        clearInterval(resizeAudioRef.current);
+      }
     };
   }, [
     isDragging,
@@ -247,6 +282,8 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
     windowSize,
     appId,
     isMobile,
+    playMoveStop,
+    playResizeStop,
   ]);
 
   return {
