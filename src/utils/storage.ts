@@ -309,16 +309,7 @@ export const loadAppState = (): AppManagerState => {
   if (saved) {
     return JSON.parse(saved);
   }
-
-  // Initialize default state for all apps
-  return {
-    soundboard: { isOpen: false, isForeground: false },
-    "internet-explorer": { isOpen: false, isForeground: false },
-    chats: { isOpen: false, isForeground: false },
-    textedit: { isOpen: false, isForeground: false },
-    "control-panels": { isOpen: false, isForeground: false },
-    minesweeper: { isOpen: false, isForeground: false },
-  };
+  return {};
 };
 
 export const saveAppState = (state: AppManagerState): void => {
