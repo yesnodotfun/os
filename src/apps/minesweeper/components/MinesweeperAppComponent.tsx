@@ -184,25 +184,40 @@ export function MinesweeperAppComponent({
         windowConstraints={{
           minWidth: 270,
           maxWidth: 270,
-          minHeight: 350,
-          maxHeight: 350,
+          minHeight: 360,
+          maxHeight: 360,
         }}
       >
         <div className="flex flex-col h-full bg-[#c0c0c0] p-1.5 w-full">
-          <div className="mb-1.5 flex justify-between items-center px-2 py-1 bg-[#c0c0c0] ">
-            <div className="bg-black text-red-600 font-[ChicagoKare] text-lg px-2 py-0.5 border border-t-gray-800 border-l-gray-800 border-r-white border-b-white">
-              {remainingMines} left
+          <div className="mb-1.5 flex justify-between items-center gap-2 py-1 bg-[#c0c0c0]">
+            <div className="flex-1 bg-[#8a9a8a] text-[#1a2a1a] font-[ChicagoKare] text-lg px-2 py-0.5 border border-t-gray-800 border-l-gray-800 border-r-white border-b-white shadow-inner [text-shadow:1px_1px_0px_rgba(0,0,0,0.2)] h-[48px] flex items-center">
+              <div className="flex items-center justify-between font-[Geneva-9] text-sm relative w-full">
+                <div className="flex flex-col items-start w-[80px]">
+                  <span className="font-[ChicagoKare] text-lg leading-none">
+                    {remainingMines}
+                  </span>
+                  <span className="text-[16px] mt-[-6px]">Remaining</span>
+                </div>
+                <div className="flex flex-col items-center absolute left-1/2 -translate-x-1/2">
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={() => setIsNewGameDialogOpen(true)}
+                    className="aspect-square h-[34px] flex items-center justify-center text-xl leading-none bg-[#c0c0c0] hover:bg-[#d0d0d0] border-2 border-t-white border-l-white border-r-gray-800 border-b-gray-800 active:border active:border-gray-600 shadow-none p-0 font-[SerenityOS-Emoji]"
+                  >
+                    {gameOver ? "💀" : gameWon ? "😎" : "🙂"}
+                  </Button>
+                </div>
+                <div className="flex flex-col items-end w-[80px]">
+                  <span className="font-[ChicagoKare] text-lg leading-none">
+                    {MINES_COUNT}
+                  </span>
+                  <span className="text-[16px] mt-[-6px]">Total</span>
+                </div>
+              </div>
             </div>
-            <Button
-              variant="default"
-              size="sm"
-              onClick={() => setIsNewGameDialogOpen(true)}
-              className="px-2 py-1 text-xl leading-none h-auto bg-[#c0c0c0] hover:bg-[#d0d0d0]"
-            >
-              {gameOver ? "💀" : gameWon ? "😎" : "🙂"}
-            </Button>
           </div>
-          <div className="grid grid-cols-9 gap-0 bg-gray-800 p-[1px] border-2 border-t-gray-800 border-l-gray-800 border-r-white border-b-white">
+          <div className="grid grid-cols-9 gap-0 bg-gray-800 p-[1px] border border-t-gray-800 border-l-gray-800 border-r-white border-b-white">
             {gameBoard.map((row, rowIndex) =>
               row.map((cell, colIndex) => (
                 <button

@@ -126,3 +126,16 @@
   background: linear-gradient(90deg, transparent, #3b82f6, transparent);
   width: 50%;
 }
+
+@keyframes marquee {
+  0% {
+    transform: translateX(120px);
+  }
+  100% {
+    transform: translateX(-120px);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 2s linear infinite;
+}
