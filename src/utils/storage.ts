@@ -306,10 +306,20 @@ const APP_STATE_KEY = "app:state";
 
 export const loadAppState = (): AppManagerState => {
   const saved = localStorage.getItem(APP_STATE_KEY);
+  // Initialize with default state for all possible apps
+  const defaultState: AppManagerState = Object.keys(APP_STORAGE_KEYS).reduce(
+    (acc, appId) => ({
+      ...acc,
+      [appId]: { isOpen: false },
+    }),
+    {}
+  );
+
   if (saved) {
-    return JSON.parse(saved);
+    // Merge saved state with default state
+    return { ...defaultState, ...JSON.parse(saved) };
   }
-  return {};
+  return defaultState;
 };
 
 export const saveAppState = (state: AppManagerState): void => {
