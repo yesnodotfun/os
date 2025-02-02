@@ -14,10 +14,16 @@ export const appMetadata: BaseApp["metadata"] = {
 
 export const helpItems: BaseApp["helpItems"] = [
   {
-    icon: "🎮",
-    title: "How to Play",
+    icon: "🖱️",
+    title: "Desktop Controls",
     description:
       "Left click to reveal a cell. Right click to place a flag. Avoid the mines!",
+  },
+  {
+    icon: "📱",
+    title: "Mobile Controls",
+    description:
+      "Tap to reveal a cell. Long press (hold) to place a flag. Same rules apply!",
   },
   {
     icon: "📖",

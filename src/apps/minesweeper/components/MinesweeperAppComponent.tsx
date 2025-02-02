@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { AppProps } from "../../base/types";
 import { WindowFrame } from "@/components/layout/WindowFrame";
 import { MinesweeperMenuBar } from "./MinesweeperMenuBar";
@@ -18,6 +18,108 @@ type CellContent = {
   isFlagged: boolean;
   neighborMines: number;
 };
+
+function useLongPress(
+  onLongPress: (e: React.TouchEvent | React.MouseEvent) => void,
+  onClick: () => void,
+  { shouldPreventDefault = true, delay = 500 } = {}
+) {
+  const [longPressTriggered, setLongPressTriggered] = useState(false);
+  const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout>();
+
+  const start = useCallback(
+    (e: React.TouchEvent | React.MouseEvent) => {
+      if (shouldPreventDefault && e.target) {
+        e.preventDefault();
+      }
+      const timer = setTimeout(() => {
+        onLongPress(e);
+        setLongPressTriggered(true);
+      }, delay);
+      setTimeoutId(timer);
+    },
+    [onLongPress, delay, shouldPreventDefault]
+  );
+
+  const clear = useCallback(
+    (e: React.TouchEvent | React.MouseEvent, shouldTriggerClick = true) => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      setTimeoutId(undefined);
+      if (shouldTriggerClick && !longPressTriggered && onClick) {
+        onClick();
+      }
+      setLongPressTriggered(false);
+    },
+    [onClick, timeoutId, longPressTriggered]
+  );
+
+  return {
+    onMouseDown: (e: React.MouseEvent) => start(e),
+    onTouchStart: (e: React.TouchEvent) => start(e),
+    onMouseUp: (e: React.MouseEvent) => clear(e),
+    onMouseLeave: (e: React.MouseEvent) => clear(e, false),
+    onTouchEnd: (e: React.TouchEvent) => clear(e),
+  };
+}
+
+type CellProps = {
+  cell: CellContent;
+  rowIndex: number;
+  colIndex: number;
+  onCellClick: (row: number, col: number) => void;
+  onCellRightClick: (
+    e: React.MouseEvent | React.TouchEvent,
+    row: number,
+    col: number
+  ) => void;
+  disabled: boolean;
+};
+
+function Cell({
+  cell,
+  rowIndex,
+  colIndex,
+  onCellClick,
+  onCellRightClick,
+  disabled,
+}: CellProps) {
+  const longPressHandlers = useLongPress(
+    (e) => onCellRightClick(e, rowIndex, colIndex),
+    () => onCellClick(rowIndex, colIndex),
+    { delay: 500 }
+  );
+
+  return (
+    <button
+      key={`${rowIndex}-${colIndex}`}
+      className={`w-7 h-7 flex items-center justify-center text-sm font-bold rounded-none select-none touch-none
+        ${
+          cell.isRevealed
+            ? "bg-[#d1d1d1] border border-t-gray-600 border-l-gray-600 border-r-[#f0f0f0] border-b-[#f0f0f0]"
+            : "bg-[#c0c0c0] border-2 border-t-white border-l-white border-r-gray-800 border-b-gray-800 hover:bg-[#d0d0d0] active:border active:border-gray-600"
+        }`}
+      {...longPressHandlers}
+      onContextMenu={(e) => onCellRightClick(e, rowIndex, colIndex)}
+      disabled={disabled}
+    >
+      {cell.isRevealed ? (
+        cell.isMine ? (
+          "💣"
+        ) : cell.neighborMines > 0 ? (
+          <span
+            className={`text-${getNumberColor(cell.neighborMines)} text-lg`}
+          >
+            {cell.neighborMines}
+          </span>
+        ) : null
+      ) : cell.isFlagged ? (
+        "🚩"
+      ) : null}
+    </button>
+  );
+}
 
 export function MinesweeperAppComponent({
   isWindowOpen,
@@ -112,8 +214,14 @@ export function MinesweeperAppComponent({
     checkWinCondition(newBoard);
   }
 
-  function handleCellRightClick(e: React.MouseEvent, row: number, col: number) {
-    e.preventDefault();
+  function handleCellRightClick(
+    e: React.MouseEvent | React.TouchEvent,
+    row: number,
+    col: number
+  ) {
+    if (e instanceof MouseEvent || "button" in e) {
+      e.preventDefault();
+    }
     if (gameOver || gameWon || gameBoard[row][col].isRevealed) return;
 
     playFlag();
@@ -234,36 +342,15 @@ export function MinesweeperAppComponent({
           <div className="grid grid-cols-9 gap-0 bg-gray-800 p-[1px] border border-t-gray-800 border-l-gray-800 border-r-white border-b-white  max-w-[250px] m-auto">
             {gameBoard.map((row, rowIndex) =>
               row.map((cell, colIndex) => (
-                <button
+                <Cell
                   key={`${rowIndex}-${colIndex}`}
-                  className={`w-7 h-7 flex items-center justify-center text-sm font-bold rounded-none
-                    ${
-                      cell.isRevealed
-                        ? "bg-[#d1d1d1] border border-t-gray-600 border-l-gray-600 border-r-[#f0f0f0] border-b-[#f0f0f0]"
-                        : "bg-[#c0c0c0] border-2 border-t-white border-l-white border-r-gray-800 border-b-gray-800 hover:bg-[#d0d0d0] active:border active:border-gray-600"
-                    }`}
-                  onClick={() => handleCellClick(rowIndex, colIndex)}
-                  onContextMenu={(e) =>
-                    handleCellRightClick(e, rowIndex, colIndex)
-                  }
+                  cell={cell}
+                  rowIndex={rowIndex}
+                  colIndex={colIndex}
+                  onCellClick={handleCellClick}
+                  onCellRightClick={handleCellRightClick}
                   disabled={gameOver || gameWon}
-                >
-                  {cell.isRevealed ? (
-                    cell.isMine ? (
-                      "💣"
-                    ) : cell.neighborMines > 0 ? (
-                      <span
-                        className={`text-${getNumberColor(
-                          cell.neighborMines
-                        )} text-lg`}
-                      >
-                        {cell.neighborMines}
-                      </span>
-                    ) : null
-                  ) : cell.isFlagged ? (
-                    "🚩"
-                  ) : null}
-                </button>
+                />
               ))
             )}
           </div>
