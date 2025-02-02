@@ -7,6 +7,7 @@ import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { helpItems, appMetadata } from "..";
+import { useSound } from "@/hooks/useSound";
 
 const BOARD_SIZE = 9;
 const MINES_COUNT = 10;
@@ -32,6 +33,12 @@ export function MinesweeperAppComponent({
   const [gameOver, setGameOver] = useState(false);
   const [gameWon, setGameWon] = useState(false);
   const [remainingMines, setRemainingMines] = useState(MINES_COUNT);
+
+  // Add sound effects
+  const { play: playClick } = useSound("/sounds/Click.mp3", 0.3);
+  const { play: playMineHit } = useSound("/sounds/AlertBonk.mp3", 0.3);
+  const { play: playGameWin } = useSound("/sounds/AlertIndigo.mp3", 0.3);
+  const { play: playFlag } = useSound("/sounds/ButtonClickDown.mp3", 0.3);
 
   function initializeBoard(): CellContent[][] {
     const board = Array(BOARD_SIZE)
@@ -93,11 +100,13 @@ export function MinesweeperAppComponent({
 
     if (newBoard[row][col].isMine) {
       // Game Over
+      playMineHit();
       revealAllMines(newBoard);
       setGameOver(true);
       return;
     }
 
+    playClick();
     revealCell(newBoard, row, col);
     setGameBoard(newBoard);
     checkWinCondition(newBoard);
@@ -107,6 +116,7 @@ export function MinesweeperAppComponent({
     e.preventDefault();
     if (gameOver || gameWon || gameBoard[row][col].isRevealed) return;
 
+    playFlag();
     const newBoard = [...gameBoard.map((row) => [...row])];
     newBoard[row][col].isFlagged = !newBoard[row][col].isFlagged;
     setGameBoard(newBoard);
@@ -154,6 +164,7 @@ export function MinesweeperAppComponent({
       row.every((cell) => cell.isMine || cell.isRevealed)
     );
     if (allNonMinesRevealed) {
+      playGameWin();
       setGameWon(true);
     }
   }

@@ -306,7 +306,19 @@ const APP_STATE_KEY = "app:state";
 
 export const loadAppState = (): AppManagerState => {
   const saved = localStorage.getItem(APP_STATE_KEY);
-  return saved ? JSON.parse(saved) : {};
+  if (saved) {
+    return JSON.parse(saved);
+  }
+
+  // Initialize default state for all apps
+  return {
+    soundboard: { isOpen: false, isForeground: false },
+    "internet-explorer": { isOpen: false, isForeground: false },
+    chats: { isOpen: false, isForeground: false },
+    textedit: { isOpen: false, isForeground: false },
+    "control-panels": { isOpen: false, isForeground: false },
+    minesweeper: { isOpen: false, isForeground: false },
+  };
 };
 
 export const saveAppState = (state: AppManagerState): void => {
