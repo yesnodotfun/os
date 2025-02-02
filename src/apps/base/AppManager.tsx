@@ -9,6 +9,9 @@ interface AppManagerProps {
   apps: BaseApp[];
 }
 
+const BASE_Z_INDEX = 1;
+const FOREGROUND_Z_INDEX_OFFSET = 1;
+
 export function AppManager({ apps }: AppManagerProps) {
   const [appStates, setAppStates] = useState<AppManagerState>(() =>
     loadAppState()
@@ -18,12 +21,38 @@ export function AppManager({ apps }: AppManagerProps) {
     saveAppState(appStates);
   }, [appStates]);
 
+  const getZIndexForApp = (appId: string) => {
+    const index = appStates.windowOrder.indexOf(appId);
+    if (index === -1) return BASE_Z_INDEX;
+    return BASE_Z_INDEX + (index + 1) * FOREGROUND_Z_INDEX_OFFSET;
+  };
+
   const bringToForeground = (appId: string) => {
     setAppStates((prev) => {
       const newStates = { ...prev };
-      Object.keys(newStates).forEach((id) => {
-        newStates[id] = { ...newStates[id], isForeground: id === appId };
+
+      // If appId is empty, just remove foreground state from all windows
+      if (!appId) {
+        Object.keys(newStates.apps).forEach((id) => {
+          newStates.apps[id] = { ...newStates.apps[id], isForeground: false };
+        });
+        return newStates;
+      }
+
+      // Remove appId from current position and add to end of windowOrder
+      newStates.windowOrder = [
+        ...newStates.windowOrder.filter((id) => id !== appId),
+        appId,
+      ];
+
+      // Update foreground states
+      Object.keys(newStates.apps).forEach((id) => {
+        newStates.apps[id] = {
+          ...newStates.apps[id],
+          isForeground: id === appId,
+        };
       });
+
       return newStates;
     });
   };
@@ -31,13 +60,29 @@ export function AppManager({ apps }: AppManagerProps) {
   const toggleApp = (appId: string) => {
     setAppStates((prev) => {
       const newStates = { ...prev };
-      // Update all apps' foreground state and the target app's open state
-      Object.keys(newStates).forEach((id) => {
-        newStates[id] = {
-          ...newStates[id],
-          isForeground: id === appId,
-          ...(id === appId && { isOpen: !prev[appId]?.isOpen }),
-        };
+      const isCurrentlyOpen = prev.apps[appId]?.isOpen;
+
+      if (!isCurrentlyOpen) {
+        // Add to end of windowOrder when opening
+        newStates.windowOrder = [...prev.windowOrder, appId];
+      } else {
+        // Remove from windowOrder when closing
+        newStates.windowOrder = prev.windowOrder.filter((id) => id !== appId);
+      }
+
+      Object.keys(newStates.apps).forEach((id) => {
+        if (id === appId) {
+          newStates.apps[id] = {
+            ...newStates.apps[id],
+            isOpen: !isCurrentlyOpen,
+            isForeground: !isCurrentlyOpen,
+          };
+        } else {
+          newStates.apps[id] = {
+            ...newStates.apps[id],
+            isForeground: false,
+          };
+        }
       });
       return newStates;
     });
@@ -45,18 +90,24 @@ export function AppManager({ apps }: AppManagerProps) {
 
   return (
     <AppContext.Provider
-      value={{ appStates, toggleApp, bringToForeground, apps }}
+      value={{
+        appStates: appStates.apps,
+        toggleApp,
+        bringToForeground,
+        apps,
+      }}
     >
       <MenuBar />
       {/* App Instances */}
       {apps.map((app) => {
-        const isOpen = appStates[app.id]?.isOpen ?? false;
-        const isForeground = appStates[app.id]?.isForeground ?? false;
+        const isOpen = appStates.apps[app.id]?.isOpen ?? false;
+        const isForeground = appStates.apps[app.id]?.isForeground ?? false;
+        const zIndex = getZIndexForApp(app.id);
         const AppComponent = app.component;
         return isOpen ? (
           <div
             key={app.id}
-            style={{ zIndex: isForeground ? 50 : 10 }}
+            style={{ zIndex }}
             className="absolute inset-x-0 md:inset-x-auto w-full md:w-auto"
             onClick={() => !isForeground && bringToForeground(app.id)}
           >
@@ -71,7 +122,7 @@ export function AppManager({ apps }: AppManagerProps) {
         ) : null;
       })}
 
-      <Desktop apps={apps} appStates={appStates} toggleApp={toggleApp} />
+      <Desktop apps={apps} toggleApp={toggleApp} appStates={appStates} />
     </AppContext.Provider>
   );
 }

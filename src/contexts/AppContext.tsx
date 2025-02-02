@@ -1,8 +1,8 @@
 import { createContext, useContext } from "react";
-import { AppManagerState, BaseApp } from "@/apps/base/types";
+import { BaseApp, AppState } from "@/apps/base/types";
 
 interface AppContextType {
-  appStates: AppManagerState;
+  appStates: { [appId: string]: AppState };
   toggleApp: (appId: string) => void;
   bringToForeground: (appId: string) => void;
   apps: BaseApp[];

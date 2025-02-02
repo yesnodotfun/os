@@ -1,7 +1,5 @@
-import { useState, useEffect } from "react";
-import { AppleMenu } from "./AppleMenu";
-import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
+import { MenuBar } from "@/components/layout/MenuBar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,30 +8,20 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
-interface MenuBarProps {
-  children?: React.ReactNode;
+interface FinderMenuBarProps {
+  onClose: () => void;
+  onShowHelp: () => void;
+  onShowAbout: () => void;
 }
 
-function Clock() {
-  const [time, setTime] = useState(new Date());
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTime(new Date());
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
+export function FinderMenuBar({
+  onClose,
+  onShowHelp,
+  onShowAbout,
+}: FinderMenuBarProps) {
   return (
-    <div className="ml-auto mr-2">
-      {time.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
-    </div>
-  );
-}
-
-function DefaultMenuItems() {
-  return (
-    <>
+    <MenuBar>
+      {/* File Menu */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -51,14 +39,17 @@ function DefaultMenuItems() {
           <DropdownMenuItem className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
             New Folder
           </DropdownMenuItem>
-
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
-          <DropdownMenuItem className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
+          <DropdownMenuItem
+            onClick={onClose}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
             Close
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
+      {/* Edit Menu */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -93,6 +84,7 @@ function DefaultMenuItems() {
         </DropdownMenuContent>
       </DropdownMenu>
 
+      {/* View Menu */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -124,21 +116,34 @@ function DefaultMenuItems() {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-    </>
-  );
-}
 
-export function MenuBar({ children }: MenuBarProps) {
-  const { apps, appStates } = useAppContext();
-  const hasActiveApp = Object.values(appStates).some(
-    (state) => state?.isForeground && state?.isOpen
-  );
-
-  return (
-    <div className="fixed top-0 left-0 right-0 flex bg-system7-menubar-bg border-b-[2px] border-black px-2 h-7 items-center">
-      <AppleMenu apps={apps} />
-      {hasActiveApp ? children : <DefaultMenuItems />}
-      <Clock />
-    </div>
+      {/* Help Menu */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="default"
+            className="h-6 text-md px-2 py-1 border-none hover:bg-gray-200 active:bg-gray-900 active:text-white focus-visible:ring-0"
+          >
+            Help
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" sideOffset={1} className="px-0">
+          <DropdownMenuItem
+            onClick={onShowHelp}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            Finder Help
+          </DropdownMenuItem>
+          <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
+          <DropdownMenuItem
+            onClick={onShowAbout}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            About Finder
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </MenuBar>
   );
 }

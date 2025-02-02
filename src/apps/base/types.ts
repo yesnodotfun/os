@@ -19,7 +19,8 @@ export interface BaseApp {
     | "chats"
     | "textedit"
     | "control-panels"
-    | "minesweeper";
+    | "minesweeper"
+    | "finder";
   name: string;
   icon: string | { type: "image"; src: string };
   description: string;
@@ -54,5 +55,8 @@ export interface AppState {
 }
 
 export interface AppManagerState {
-  [appId: string]: AppState;
+  windowOrder: string[];
+  apps: {
+    [appId: string]: AppState;
+  };
 }

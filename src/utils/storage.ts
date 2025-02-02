@@ -1,5 +1,5 @@
 import { Soundboard, WindowPosition, WindowSize } from "../types/types";
-import { AppManagerState } from "../apps/base/types";
+import { AppManagerState, AppState } from "../apps/base/types";
 import { Message } from "ai";
 
 export const APP_STORAGE_KEYS = {
@@ -28,10 +28,15 @@ export const APP_STORAGE_KEYS = {
   "control-panels": {
     WINDOW: "control-panels:window",
     HAS_SEEN_HELP: "control-panels:hasSeenHelp",
+    DESKTOP_VISIBLE: "control-panels:desktop-visible",
   },
   minesweeper: {
     WINDOW: "minesweeper:window",
     HAS_SEEN_HELP: "minesweeper:hasSeenHelp",
+  },
+  finder: {
+    WINDOW: "finder:window",
+    CURRENT_PATH: "finder:current-path",
   },
 } as const;
 
@@ -83,6 +88,11 @@ export const loadWindowState = (
       return {
         position: { x: isMobile ? 0 : 176, y: isMobile ? mobileY : 240 },
         size: { width: isMobile ? window.innerWidth : 305, height: 400 },
+      };
+    case "finder":
+      return {
+        position: { x: isMobile ? 0 : 208, y: isMobile ? mobileY : 280 },
+        size: { width: isMobile ? window.innerWidth : 400, height: 400 },
       };
     default:
       return {
@@ -304,20 +314,62 @@ export const saveFavorites = (favorites: Favorite[]): void => {
 
 const APP_STATE_KEY = "app:state";
 
+interface OldAppState {
+  isOpen: boolean;
+  position?: { x: number; y: number };
+  isForeground?: boolean;
+  zIndex?: number;
+}
+
+interface OldAppManagerState {
+  [appId: string]: OldAppState;
+}
+
 export const loadAppState = (): AppManagerState => {
   const saved = localStorage.getItem(APP_STATE_KEY);
   // Initialize with default state for all possible apps
-  const defaultState: AppManagerState = Object.keys(APP_STORAGE_KEYS).reduce(
-    (acc, appId) => ({
-      ...acc,
-      [appId]: { isOpen: false },
-    }),
-    {}
-  );
+  const defaultState: AppManagerState = {
+    windowOrder: [],
+    apps: Object.keys(APP_STORAGE_KEYS).reduce(
+      (acc, appId) => ({
+        ...acc,
+        [appId]: { isOpen: false },
+      }),
+      {} as { [appId: string]: AppState }
+    ),
+  };
 
   if (saved) {
+    const parsedState = JSON.parse(saved) as
+      | OldAppManagerState
+      | AppManagerState;
+    // Handle migration from old format to new format
+    if (!("windowOrder" in parsedState)) {
+      const oldState = parsedState as OldAppManagerState;
+      return {
+        windowOrder: Object.entries(oldState)
+          .filter(([, state]) => state.isOpen)
+          .sort((a, b) => (a[1].zIndex || 0) - (b[1].zIndex || 0))
+          .map(([id]) => id),
+        apps: Object.entries(oldState).reduce(
+          (acc, [id, state]) => ({
+            ...acc,
+            [id]: {
+              isOpen: state.isOpen,
+              position: state.position,
+              isForeground: state.isForeground,
+            },
+          }),
+          {} as { [appId: string]: AppState }
+        ),
+      };
+    }
     // Merge saved state with default state
-    return { ...defaultState, ...JSON.parse(saved) };
+    const newState = parsedState as AppManagerState;
+    return {
+      windowOrder: newState.windowOrder,
+      apps: { ...defaultState.apps, ...newState.apps },
+    };
   }
   return defaultState;
 };
@@ -396,4 +448,35 @@ export const saveWaybackYear = (year: string): void => {
     APP_STORAGE_KEYS["internet-explorer"].LAST_URL + ":year",
     year
   );
+};
+
+// Desktop icon visibility state
+const DESKTOP_ICONS_KEY = "desktop:icons";
+
+interface DesktopIconState {
+  [appId: string]: {
+    visible: boolean;
+  };
+}
+
+const DEFAULT_DESKTOP_ICONS: DesktopIconState = {
+  soundboard: { visible: true },
+  "internet-explorer": { visible: true },
+  chats: { visible: true },
+  textedit: { visible: true },
+  "control-panels": { visible: false },
+  minesweeper: { visible: true },
+  finder: { visible: true },
+};
+
+export const loadDesktopIconState = (): DesktopIconState => {
+  const saved = localStorage.getItem(DESKTOP_ICONS_KEY);
+  if (saved) {
+    return { ...DEFAULT_DESKTOP_ICONS, ...JSON.parse(saved) };
+  }
+  return DEFAULT_DESKTOP_ICONS;
+};
+
+export const saveDesktopIconState = (state: DesktopIconState): void => {
+  localStorage.setItem(DESKTOP_ICONS_KEY, JSON.stringify(state));
 };

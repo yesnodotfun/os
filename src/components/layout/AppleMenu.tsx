@@ -9,9 +9,10 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { AboutFinderDialog } from "@/components/dialogs/AboutFinderDialog";
+import { BaseApp } from "@/apps/base/types";
 
 interface AppleMenuProps {
-  apps: { id: string; name: string }[];
+  apps: BaseApp[];
 }
 
 export function AppleMenu({ apps }: AppleMenuProps) {
@@ -51,8 +52,19 @@ export function AppleMenu({ apps }: AppleMenuProps) {
             <DropdownMenuItem
               key={app.id}
               onClick={() => handleAppClick(app.id)}
-              className="text-md h-6 px-3 active:bg-gray-900 active:text-white flex justify-between"
+              className="text-md h-6 px-3 active:bg-gray-900 active:text-white flex items-center gap-2"
             >
+              {typeof app.icon === "string" ? (
+                <div className="w-4 h-4 flex items-center justify-center">
+                  {app.icon}
+                </div>
+              ) : (
+                <img
+                  src={app.icon.src}
+                  alt=""
+                  className="w-4 h-4 [image-rendering:pixelated]"
+                />
+              )}
               {app.name}
             </DropdownMenuItem>
           ))}

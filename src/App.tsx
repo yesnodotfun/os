@@ -5,6 +5,7 @@ import { ChatsApp } from "./apps/chats";
 import { TextEditApp } from "./apps/textedit";
 import ControlPanelsApp from "./apps/control-panels";
 import { MinesweeperApp } from "./apps/minesweeper";
+import { FinderApp } from "./apps/finder";
 
 const apps = [
   SoundboardApp,
@@ -13,6 +14,7 @@ const apps = [
   TextEditApp,
   ControlPanelsApp,
   MinesweeperApp,
+  FinderApp,
 ];
 
 function App() {
