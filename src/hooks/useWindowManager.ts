@@ -17,9 +17,18 @@ interface UseWindowManagerProps {
 
 export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
   const initialState = loadWindowState(appId);
-  const [windowPosition, setWindowPosition] = useState<WindowPosition>(
-    initialState.position
-  );
+  const adjustedPosition = { ...initialState.position };
+
+  // Ensure window is visible within viewport
+  if (adjustedPosition.x + initialState.size.width > window.innerWidth) {
+    adjustedPosition.x = Math.max(
+      0,
+      window.innerWidth - initialState.size.width
+    );
+  }
+
+  const [windowPosition, setWindowPosition] =
+    useState<WindowPosition>(adjustedPosition);
   const [windowSize, setWindowSize] = useState<WindowSize>(initialState.size);
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });

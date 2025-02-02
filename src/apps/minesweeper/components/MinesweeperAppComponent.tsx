@@ -199,7 +199,7 @@ export function MinesweeperAppComponent({
           maxHeight: 360,
         }}
       >
-        <div className="flex flex-col h-full bg-[#c0c0c0] p-1.5 w-full">
+        <div className="flex flex-col h-full bg-[#c0c0c0] p-1.5 w-full max-w-[270px]">
           <div className="mb-1.5 flex justify-between items-center gap-2 py-1 bg-[#c0c0c0]">
             <div className="flex-1 bg-[#8a9a8a] text-[#1a2a1a] font-[ChicagoKare] text-lg px-2 py-0.5 border border-t-gray-800 border-l-gray-800 border-r-white border-b-white shadow-inner [text-shadow:1px_1px_0px_rgba(0,0,0,0.2)] h-[48px] flex items-center">
               <div className="flex items-center justify-between font-[Geneva-9] text-sm relative w-full">
@@ -214,7 +214,7 @@ export function MinesweeperAppComponent({
                     variant="default"
                     size="sm"
                     onClick={() => setIsNewGameDialogOpen(true)}
-                    className="aspect-square h-[34px] flex items-center justify-center text-xl leading-none bg-[#c0c0c0] hover:bg-[#d0d0d0] border-2 border-t-white border-l-white border-r-gray-800 border-b-gray-800 active:border active:border-gray-600 shadow-none p-0 font-[SerenityOS-Emoji]"
+                    className="aspect-square h-[34px] flex items-center justify-center text-xl leading-none bg-[#c0c0c0] hover:bg-[#d0d0d0] border-2 border-t-white border-l-white border-r-gray-800 border-b-gray-800 active:border active:border-gray-600 shadow-none p-0"
                   >
                     {gameOver ? "💀" : gameWon ? "😎" : "🙂"}
                   </Button>
