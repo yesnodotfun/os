@@ -44,6 +44,29 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
 
   const isMobile = window.innerWidth < 768;
 
+  const maximizeWindowHeight = useCallback(
+    (maxHeightConstraint?: number | string) => {
+      const menuBarHeight = 30;
+      const maxPossibleHeight = window.innerHeight - menuBarHeight;
+      const maxHeight = maxHeightConstraint
+        ? typeof maxHeightConstraint === "string"
+          ? parseInt(maxHeightConstraint)
+          : maxHeightConstraint
+        : maxPossibleHeight;
+      const newHeight = Math.min(maxPossibleHeight, maxHeight);
+
+      setWindowSize((prev) => ({
+        ...prev,
+        height: newHeight,
+      }));
+      setWindowPosition((prev) => ({
+        ...prev,
+        y: menuBarHeight,
+      }));
+    },
+    []
+  );
+
   const handleMouseDown = useCallback(
     (e: React.MouseEvent<HTMLElement> | React.TouchEvent<HTMLElement>) => {
       const rect = e.currentTarget.getBoundingClientRect();
@@ -233,5 +256,8 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
     resizeType,
     handleMouseDown,
     handleResizeStart,
+    setWindowSize,
+    setWindowPosition,
+    maximizeWindowHeight,
   };
 };

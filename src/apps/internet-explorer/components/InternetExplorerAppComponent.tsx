@@ -168,11 +168,17 @@ export function InternetExplorerAppComponent({
   const getWaybackUrl = async (targetUrl: string, year: string) => {
     if (year === "current") return targetUrl;
 
+    // Get current date for month and day
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+
     // Directly construct the wayback URL without checking availability
     const formattedUrl = targetUrl.startsWith("http")
       ? targetUrl
       : `https://${targetUrl}`;
-    return `https://web.archive.org/web/${year}0101/${formattedUrl}`;
+
+    return `https://web.archive.org/web/${year}${month}${day}/${formattedUrl}`;
   };
 
   // Update iframe load handler

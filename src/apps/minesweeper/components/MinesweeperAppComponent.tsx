@@ -42,7 +42,7 @@ function useLongPress(
   );
 
   const clear = useCallback(
-    (e: React.TouchEvent | React.MouseEvent, shouldTriggerClick = true) => {
+    (_: React.TouchEvent | React.MouseEvent, shouldTriggerClick = true) => {
       if (timeoutId) {
         clearTimeout(timeoutId);
       }

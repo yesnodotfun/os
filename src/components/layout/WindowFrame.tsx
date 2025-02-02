@@ -68,6 +68,7 @@ export function WindowFrame({
     resizeType,
     handleMouseDown: handleMouseDownBase,
     handleResizeStart,
+    maximizeWindowHeight,
   } = useWindowManager({ appId });
 
   const handleMouseDown = (
@@ -87,6 +88,11 @@ export function WindowFrame({
     if (!isForeground) {
       bringToForeground(appId);
     }
+  };
+
+  const handleDoubleClickResize = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    maximizeWindowHeight(windowConstraints.maxHeight);
   };
 
   if (!isVisible) return null;
@@ -133,6 +139,7 @@ export function WindowFrame({
             onMouseDown={(e) =>
               handleResizeStartWithForeground(e, "n" as ResizeType)
             }
+            onDoubleClick={handleDoubleClickResize}
           />
 
           {/* Bottom resize handle */}
@@ -147,6 +154,7 @@ export function WindowFrame({
             onMouseDown={(e) =>
               handleResizeStartWithForeground(e, "s" as ResizeType)
             }
+            onDoubleClick={handleDoubleClickResize}
           />
 
           {/* Left resize handle */}
