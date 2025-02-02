@@ -315,7 +315,7 @@ export function TextEditAppComponent({
         isForeground={isForeground}
         appId="textedit"
         windowConstraints={{
-          minWidth: 520,
+          minWidth: 420,
           minHeight: 400,
         }}
       >

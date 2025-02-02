@@ -196,7 +196,6 @@ export function MinesweeperAppComponent({
           minWidth: 270,
           maxWidth: 270,
           minHeight: 360,
-          maxHeight: 360,
         }}
       >
         <div className="flex flex-col h-full bg-[#c0c0c0] p-1.5 w-full">

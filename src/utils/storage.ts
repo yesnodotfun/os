@@ -55,43 +55,43 @@ export const loadWindowState = (
   }
 
   const isMobile = window.innerWidth < 768;
-  const mobileY = 40; // Fixed Y position for mobile to account for menu bar
+  const mobileY = 28; // Fixed Y position for mobile to account for menu bar
 
   // Default window positions and sizes for specific apps
   switch (appId) {
     case "textedit":
       return {
         position: { x: isMobile ? 0 : 16, y: isMobile ? mobileY : 40 },
-        size: { width: isMobile ? window.innerWidth : 520, height: 475 },
+        size: { width: isMobile ? window.innerWidth : 420, height: 475 },
       };
     case "internet-explorer":
       return {
-        position: { x: isMobile ? 0 : 48, y: isMobile ? mobileY : 80 },
-        size: { width: isMobile ? window.innerWidth : 800, height: 475 },
+        position: { x: isMobile ? 0 : 48, y: isMobile ? mobileY : 60 },
+        size: { width: isMobile ? window.innerWidth : 800, height: 600 },
       };
     case "chats":
       return {
-        position: { x: isMobile ? 0 : 80, y: isMobile ? mobileY : 120 },
-        size: { width: isMobile ? window.innerWidth : 280, height: 475 },
+        position: { x: isMobile ? 0 : 80, y: isMobile ? mobileY : 80 },
+        size: { width: isMobile ? window.innerWidth : 280, height: 360 },
       };
     case "soundboard":
       return {
-        position: { x: isMobile ? 0 : 112, y: isMobile ? mobileY : 160 },
+        position: { x: isMobile ? 0 : 112, y: isMobile ? mobileY : 100 },
         size: { width: isMobile ? window.innerWidth : 800, height: 475 },
       };
     case "control-panels":
       return {
-        position: { x: isMobile ? 0 : 144, y: isMobile ? mobileY : 200 },
+        position: { x: isMobile ? 0 : 144, y: isMobile ? mobileY : 120 },
         size: { width: isMobile ? window.innerWidth : 480, height: 400 },
       };
     case "minesweeper":
       return {
-        position: { x: isMobile ? 0 : 176, y: isMobile ? mobileY : 240 },
-        size: { width: isMobile ? window.innerWidth : 305, height: 400 },
+        position: { x: isMobile ? 0 : 176, y: isMobile ? mobileY : 140 },
+        size: { width: isMobile ? window.innerWidth : 305, height: 360 },
       };
     case "finder":
       return {
-        position: { x: isMobile ? 0 : 208, y: isMobile ? mobileY : 280 },
+        position: { x: isMobile ? 0 : 208, y: isMobile ? mobileY : 160 },
         size: { width: isMobile ? window.innerWidth : 400, height: 400 },
       };
     default:

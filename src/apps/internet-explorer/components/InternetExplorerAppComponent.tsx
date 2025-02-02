@@ -439,11 +439,11 @@ export function InternetExplorerAppComponent({
                     handleNavigate(navigation.url, true, year)
                   }
                 >
-                  <SelectTrigger className="w-[100px]">
+                  <SelectTrigger>
                     <SelectValue placeholder="Year" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="current">Current</SelectItem>
+                    <SelectItem value="current">Now</SelectItem>
                     {years.reverse().map((year) => (
                       <SelectItem key={year} value={year}>
                         {year}
