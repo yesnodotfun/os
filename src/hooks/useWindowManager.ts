@@ -122,8 +122,8 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
         const deltaY = clientY - resizeStart.y;
         const minWidth = 260;
         const minHeight = 400;
-        const maxWidth = window.innerWidth - 32;
-        const maxHeight = window.innerHeight - 32;
+        const maxWidth = window.innerWidth;
+        const maxHeight = window.innerHeight;
         const menuBarHeight = 30;
 
         let newWidth = resizeStart.width;
@@ -132,35 +132,46 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
         let newTop = resizeStart.top;
 
         if (resizeType.includes("e")) {
+          const maxPossibleWidth = maxWidth - resizeStart.left;
           newWidth = Math.min(
             Math.max(resizeStart.width + deltaX, minWidth),
-            maxWidth
+            maxPossibleWidth
           );
         } else if (resizeType.includes("w")) {
+          const maxPossibleWidth = resizeStart.width + resizeStart.left;
           const potentialWidth = Math.min(
             Math.max(resizeStart.width - deltaX, minWidth),
-            maxWidth
+            maxPossibleWidth
           );
           if (potentialWidth !== resizeStart.width) {
-            newLeft = resizeStart.left + (resizeStart.width - potentialWidth);
+            newLeft = Math.max(
+              0,
+              resizeStart.left + (resizeStart.width - potentialWidth)
+            );
             newWidth = potentialWidth;
           }
         }
 
         if (resizeType.includes("s")) {
+          const maxPossibleHeight = maxHeight - resizeStart.top;
           newHeight = Math.min(
             Math.max(resizeStart.height + deltaY, minHeight),
-            maxHeight
+            maxPossibleHeight
           );
         } else if (resizeType.includes("n")) {
+          const maxPossibleHeight =
+            resizeStart.height + (resizeStart.top - menuBarHeight);
           const potentialHeight = Math.min(
             Math.max(resizeStart.height - deltaY, minHeight),
-            maxHeight
+            maxPossibleHeight
           );
           if (potentialHeight !== resizeStart.height) {
             newTop = Math.max(
               menuBarHeight,
-              resizeStart.top + (resizeStart.height - potentialHeight)
+              Math.min(
+                resizeStart.top + (resizeStart.height - potentialHeight),
+                maxHeight - minHeight
+              )
             );
             newHeight = potentialHeight;
           }

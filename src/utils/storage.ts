@@ -67,12 +67,12 @@ export const loadWindowState = (
     case "internet-explorer":
       return {
         position: { x: isMobile ? 0 : 48, y: isMobile ? mobileY : 60 },
-        size: { width: isMobile ? window.innerWidth : 800, height: 600 },
+        size: { width: isMobile ? window.innerWidth : 730, height: 600 },
       };
     case "chats":
       return {
         position: { x: isMobile ? 0 : 80, y: isMobile ? mobileY : 80 },
-        size: { width: isMobile ? window.innerWidth : 280, height: 360 },
+        size: { width: isMobile ? window.innerWidth : 316, height: 360 },
       };
     case "soundboard":
       return {
