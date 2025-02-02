@@ -177,34 +177,36 @@ export function MinesweeperAppComponent({
         isForeground={isForeground}
         appId="minesweeper"
         windowConstraints={{
-          minWidth: 280,
-          maxWidth: 320,
-          minHeight: 300,
-          maxHeight: 400,
+          minWidth: 310,
+          maxWidth: 310,
+          minHeight: 405,
+          maxHeight: 405,
         }}
       >
         <div className="flex flex-col h-full bg-[#c0c0c0] p-2 w-full">
-          <div className="mb-2 flex justify-between items-center px-2 py-1 bg-white border-t border-l border-white border-r border-b border-gray-800">
-            <div>Mines: {MINES_COUNT}</div>
+          <div className="mb-2 flex justify-between items-center px-2 py-1 bg-[#c0c0c0] border-2 border-gray-800 border-r-[3px] border-b-[3px]">
+            <div className="bg-black text-red-600 font-[ChicagoKare] text-xl px-2 py-1 border border-t-gray-800 border-l-gray-800 border-r-white border-b-white">
+              {MINES_COUNT} mines
+            </div>
             <Button
               variant="default"
               size="sm"
               onClick={() => setIsNewGameDialogOpen(true)}
-              className="px-2 py-1"
+              className="px-3 py-2 text-2xl leading-none h-auto border-2 border-t-white border-l-white border-r-gray-800 border-b-gray-800 bg-[#c0c0c0] hover:bg-[#d0d0d0]"
             >
               {gameOver ? "😵" : gameWon ? "😎" : "🙂"}
             </Button>
           </div>
-          <div className="grid grid-cols-9 gap-0 bg-gray-800 p-[1px]">
+          <div className="grid grid-cols-9 gap-0 bg-gray-800 p-[1px] border-2 border-t-gray-800 border-l-gray-800 border-r-white border-b-white">
             {gameBoard.map((row, rowIndex) =>
               row.map((cell, colIndex) => (
                 <button
                   key={`${rowIndex}-${colIndex}`}
-                  className={`w-8 h-8 flex items-center justify-center text-sm font-bold
+                  className={`w-8 h-8 flex items-center justify-center text-sm font-bold rounded-none
                     ${
                       cell.isRevealed
-                        ? "bg-[#c0c0c0] border border-gray-400"
-                        : "bg-[#c0c0c0] border-t border-l border-white border-r border-b border-gray-800 hover:bg-[#d0d0d0]"
+                        ? "bg-[#d1d1d1] border border-t-gray-600 border-l-gray-600 border-r-[#f0f0f0] border-b-[#f0f0f0]"
+                        : "bg-[#c0c0c0] border-2 border-t-white border-l-white border-r-gray-800 border-b-gray-800 hover:bg-[#d0d0d0] active:border active:border-gray-600"
                     }`}
                   onClick={() => handleCellClick(rowIndex, colIndex)}
                   onContextMenu={(e) =>
@@ -217,7 +219,9 @@ export function MinesweeperAppComponent({
                       "💣"
                     ) : cell.neighborMines > 0 ? (
                       <span
-                        className={`text-${getNumberColor(cell.neighborMines)}`}
+                        className={`text-${getNumberColor(
+                          cell.neighborMines
+                        )} text-lg`}
                       >
                         {cell.neighborMines}
                       </span>
@@ -233,13 +237,21 @@ export function MinesweeperAppComponent({
         <HelpDialog
           isOpen={isHelpDialogOpen}
           onOpenChange={setIsHelpDialogOpen}
-          helpItems={helpItems}
+          helpItems={helpItems || []}
           appName="Minesweeper"
         />
         <AboutDialog
           isOpen={isAboutDialogOpen}
           onOpenChange={setIsAboutDialogOpen}
-          metadata={appMetadata}
+          metadata={
+            appMetadata || {
+              name: "Minesweeper",
+              version: "1.0.0",
+              creator: { name: "Ryo", url: "https://github.com/ryokun6" },
+              github: "https://github.com/ryokun6/soundboard",
+              icon: "/icons/minesweeper.png",
+            }
+          }
         />
         <ConfirmDialog
           isOpen={isNewGameDialogOpen}

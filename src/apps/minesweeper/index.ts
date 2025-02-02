@@ -6,9 +6,9 @@ export const appMetadata: BaseApp["metadata"] = {
   version: "1.0.0",
   creator: {
     name: "Ryo",
-    url: "https://github.com/ryoid",
+    url: "https://github.com/ryokun6",
   },
-  github: "https://github.com/ryoid/soundboard",
+  github: "https://github.com/ryokun6/soundboard",
   icon: "/icons/minesweeper.png",
 };
 
