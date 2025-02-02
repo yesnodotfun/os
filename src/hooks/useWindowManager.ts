@@ -63,7 +63,7 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
 
   const handleResizeStart = useCallback(
     (e: React.MouseEvent | React.TouchEvent, type: ResizeType) => {
-      if (isMobile) return; // Disable resizing on mobile
+      if (isMobile && type !== "s") return; // Only allow bottom resizing on mobile
 
       e.stopPropagation();
       e.preventDefault();
@@ -112,7 +112,7 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
         }
       }
 
-      if (resizeType && !isMobile) {
+      if (resizeType && (resizeType === "s" || !isMobile)) {
         e.preventDefault();
         const clientX =
           "touches" in e ? e.touches[0].clientX : (e as MouseEvent).clientX;
@@ -131,24 +131,26 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
         let newLeft = resizeStart.left;
         let newTop = resizeStart.top;
 
-        if (resizeType.includes("e")) {
-          const maxPossibleWidth = maxWidth - resizeStart.left;
-          newWidth = Math.min(
-            Math.max(resizeStart.width + deltaX, minWidth),
-            maxPossibleWidth
-          );
-        } else if (resizeType.includes("w")) {
-          const maxPossibleWidth = resizeStart.width + resizeStart.left;
-          const potentialWidth = Math.min(
-            Math.max(resizeStart.width - deltaX, minWidth),
-            maxPossibleWidth
-          );
-          if (potentialWidth !== resizeStart.width) {
-            newLeft = Math.max(
-              0,
-              resizeStart.left + (resizeStart.width - potentialWidth)
+        if (!isMobile) {
+          if (resizeType.includes("e")) {
+            const maxPossibleWidth = maxWidth - resizeStart.left;
+            newWidth = Math.min(
+              Math.max(resizeStart.width + deltaX, minWidth),
+              maxPossibleWidth
             );
-            newWidth = potentialWidth;
+          } else if (resizeType.includes("w")) {
+            const maxPossibleWidth = resizeStart.width + resizeStart.left;
+            const potentialWidth = Math.min(
+              Math.max(resizeStart.width - deltaX, minWidth),
+              maxPossibleWidth
+            );
+            if (potentialWidth !== resizeStart.width) {
+              newLeft = Math.max(
+                0,
+                resizeStart.left + (resizeStart.width - potentialWidth)
+              );
+              newWidth = potentialWidth;
+            }
           }
         }
 
@@ -158,7 +160,7 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
             Math.max(resizeStart.height + deltaY, minHeight),
             maxPossibleHeight
           );
-        } else if (resizeType.includes("n")) {
+        } else if (resizeType.includes("n") && !isMobile) {
           const maxPossibleHeight =
             resizeStart.height + (resizeStart.top - menuBarHeight);
           const potentialHeight = Math.min(
@@ -175,6 +177,12 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
             );
             newHeight = potentialHeight;
           }
+        }
+
+        if (isMobile) {
+          // Keep window full width on mobile
+          newWidth = window.innerWidth;
+          newLeft = 0;
         }
 
         setWindowSize({ width: newWidth, height: newHeight });

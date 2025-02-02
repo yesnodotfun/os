@@ -7,7 +7,7 @@ import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { helpItems, appMetadata } from "..";
-import { useSound } from "@/hooks/useSound";
+import { useSound, Sounds } from "@/hooks/useSound";
 
 const BOARD_SIZE = 9;
 const MINES_COUNT = 10;
@@ -137,10 +137,10 @@ export function MinesweeperAppComponent({
   const [remainingMines, setRemainingMines] = useState(MINES_COUNT);
 
   // Add sound effects
-  const { play: playClick } = useSound("/sounds/Click.mp3", 0.3);
-  const { play: playMineHit } = useSound("/sounds/AlertBonk.mp3", 0.3);
-  const { play: playGameWin } = useSound("/sounds/AlertIndigo.mp3", 0.3);
-  const { play: playFlag } = useSound("/sounds/ButtonClickDown.mp3", 0.3);
+  const { play: playClick } = useSound(Sounds.CLICK, 0.3);
+  const { play: playMineHit } = useSound(Sounds.ALERT_BONK, 0.3);
+  const { play: playGameWin } = useSound(Sounds.ALERT_INDIGO, 0.3);
+  const { play: playFlag } = useSound(Sounds.BUTTON_CLICK, 0.3);
 
   function initializeBoard(): CellContent[][] {
     const board = Array(BOARD_SIZE)
