@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { SoundSlot as SoundSlotType } from "@/types/types";
-import { X } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { Waveform } from "./Waveform";
 import type WaveSurfer from "wavesurfer.js";
 
@@ -62,7 +62,7 @@ export function SoundSlot({
                   onDelete();
                 }}
               >
-                <X className="w-3 h-3 md:w-4 md:h-4" />
+                <Trash2 className="w-3 h-3 md:w-4 md:h-4" />
               </div>
             </div>
           </>
