@@ -4,6 +4,7 @@ import { InternetExplorerApp } from "./apps/internet-explorer";
 import { ChatsApp } from "./apps/chats";
 import { TextEditApp } from "./apps/textedit";
 import ControlPanelsApp from "./apps/control-panels";
+import { MinesweeperApp } from "./apps/minesweeper";
 
 const apps = [
   SoundboardApp,
@@ -11,6 +12,7 @@ const apps = [
   ChatsApp,
   TextEditApp,
   ControlPanelsApp,
+  MinesweeperApp,
 ];
 
 function App() {

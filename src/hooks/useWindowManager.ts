@@ -89,15 +89,16 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
 
         const newX = clientX - dragOffset.x;
         const newY = clientY - dragOffset.y;
+        const menuBarHeight = 30;
 
         if (isMobile) {
           // On mobile, only allow vertical dragging and keep window full width
-          setWindowPosition({ x: 0, y: Math.max(0, newY) });
+          setWindowPosition({ x: 0, y: Math.max(menuBarHeight, newY) });
         } else {
           const maxX = window.innerWidth - windowSize.width;
           const maxY = window.innerHeight - windowSize.height;
           const x = Math.min(Math.max(0, newX), maxX);
-          const y = Math.min(Math.max(0, newY), maxY);
+          const y = Math.min(Math.max(menuBarHeight, newY), maxY);
           setWindowPosition({ x, y });
         }
       }
@@ -114,6 +115,7 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
         const minHeight = 400;
         const maxWidth = window.innerWidth - 32;
         const maxHeight = window.innerHeight - 32;
+        const menuBarHeight = 30;
 
         let newWidth = resizeStart.width;
         let newHeight = resizeStart.height;
@@ -147,13 +149,16 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
             maxHeight
           );
           if (potentialHeight !== resizeStart.height) {
-            newTop = resizeStart.top + (resizeStart.height - potentialHeight);
+            newTop = Math.max(
+              menuBarHeight,
+              resizeStart.top + (resizeStart.height - potentialHeight)
+            );
             newHeight = potentialHeight;
           }
         }
 
         setWindowSize({ width: newWidth, height: newHeight });
-        setWindowPosition({ x: newLeft, y: newTop });
+        setWindowPosition({ x: newLeft, y: Math.max(menuBarHeight, newTop) });
       }
     };
 

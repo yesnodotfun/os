@@ -29,6 +29,10 @@ export const APP_STORAGE_KEYS = {
     WINDOW: "control-panels:window",
     HAS_SEEN_HELP: "control-panels:hasSeenHelp",
   },
+  minesweeper: {
+    WINDOW: "minesweeper:window",
+    HAS_SEEN_HELP: "minesweeper:hasSeenHelp",
+  },
 } as const;
 
 interface WindowState {
@@ -74,6 +78,11 @@ export const loadWindowState = (
       return {
         position: { x: isMobile ? 0 : 144, y: isMobile ? mobileY : 200 },
         size: { width: isMobile ? window.innerWidth : 480, height: 400 },
+      };
+    case "minesweeper":
+      return {
+        position: { x: isMobile ? 0 : 176, y: isMobile ? mobileY : 240 },
+        size: { width: isMobile ? window.innerWidth : 320, height: 400 },
       };
     default:
       return {

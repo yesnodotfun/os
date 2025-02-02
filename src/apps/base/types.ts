@@ -18,7 +18,8 @@ export interface BaseApp {
     | "internet-explorer"
     | "chats"
     | "textedit"
-    | "control-panels";
+    | "control-panels"
+    | "minesweeper";
   name: string;
   icon: string | { type: "image"; src: string };
   description: string;
