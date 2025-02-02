@@ -17,7 +17,7 @@ const tremolo = new Tone.Tremolo({
 
 const reverb = new Tone.Reverb({
   decay: 1.5,
-  wet: 0.3,
+  wet: 0.6,
 }).connect(tremolo);
 
 const synth = new Tone.PolySynth(Tone.Synth, {
@@ -36,7 +36,7 @@ synth.volume.value = -12;
 
 // Pentatonic scale for an exotic jungle feel
 const notes = ["C4", "D4", "F4", "G4", "A4", "C5", "D5"];
-const minTimeBetweenNotes = 0.12; // Slightly longer for more organic feel
+const minTimeBetweenNotes = 0.1; // Slightly longer for more organic feel
 
 export function useChatSynth() {
   const [isInitialized, setIsInitialized] = useState(false);

@@ -304,7 +304,6 @@ export const loadFavorites = (): Favorite[] => {
   );
   return saved ? JSON.parse(saved) : DEFAULT_FAVORITES;
 };
-
 export const saveFavorites = (favorites: Favorite[]): void => {
   localStorage.setItem(
     APP_STORAGE_KEYS["internet-explorer"].FAVORITES,
@@ -466,7 +465,7 @@ const DEFAULT_DESKTOP_ICONS: DesktopIconState = {
   textedit: { visible: true },
   "control-panels": { visible: false },
   minesweeper: { visible: true },
-  finder: { visible: true },
+  finder: { visible: false },
 };
 
 export const loadDesktopIconState = (): DesktopIconState => {

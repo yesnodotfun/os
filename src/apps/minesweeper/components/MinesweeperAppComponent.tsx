@@ -199,15 +199,15 @@ export function MinesweeperAppComponent({
           maxHeight: 360,
         }}
       >
-        <div className="flex flex-col h-full bg-[#c0c0c0] p-1.5 w-full max-w-[270px]">
+        <div className="flex flex-col h-full bg-[#c0c0c0] p-1.5 w-full">
           <div className="mb-1.5 flex justify-between items-center gap-2 py-1 bg-[#c0c0c0]">
             <div className="flex-1 bg-[#8a9a8a] text-[#1a2a1a] font-[ChicagoKare] text-lg px-2 py-0.5 border border-t-gray-800 border-l-gray-800 border-r-white border-b-white shadow-inner [text-shadow:1px_1px_0px_rgba(0,0,0,0.2)] h-[48px] flex items-center">
               <div className="flex items-center justify-between font-[Geneva-9] text-sm relative w-full">
                 <div className="flex flex-col items-start w-[80px]">
-                  <span className="font-[ChicagoKare] text-lg leading-none">
+                  <span className="font-[ChicagoKare] text-lg leading-none mt-1">
                     {remainingMines}
                   </span>
-                  <span className="text-[16px] mt-[-6px]">Remaining</span>
+                  <span className="text-[16px] mt-[-6px]">Left</span>
                 </div>
                 <div className="flex flex-col items-center absolute left-1/2 -translate-x-1/2">
                   <Button
@@ -220,7 +220,7 @@ export function MinesweeperAppComponent({
                   </Button>
                 </div>
                 <div className="flex flex-col items-end w-[80px]">
-                  <span className="font-[ChicagoKare] text-lg leading-none">
+                  <span className="font-[ChicagoKare] text-lg leading-none mt-1">
                     {MINES_COUNT}
                   </span>
                   <span className="text-[16px] mt-[-6px]">Total</span>
@@ -228,7 +228,7 @@ export function MinesweeperAppComponent({
               </div>
             </div>
           </div>
-          <div className="grid grid-cols-9 gap-0 bg-gray-800 p-[1px] border border-t-gray-800 border-l-gray-800 border-r-white border-b-white">
+          <div className="grid grid-cols-9 gap-0 bg-gray-800 p-[1px] border border-t-gray-800 border-l-gray-800 border-r-white border-b-white  max-w-[250px] mx-auto">
             {gameBoard.map((row, rowIndex) =>
               row.map((cell, colIndex) => (
                 <button

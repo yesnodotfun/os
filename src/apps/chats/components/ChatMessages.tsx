@@ -212,18 +212,18 @@ export function ChatMessages({
           {messages.length > 20 && (
             <motion.div
               layout
-              className="flex items-center gap-2 text-amber-600 font-['Geneva-9'] text-[16px] antialiased h-[12px]"
+              className="flex items-center gap-2 text-orange-600 font-['Geneva-9'] text-[16px] antialiased h-[12px]"
             >
               <Trash2 className="h-3 w-3" />
-              <span>Messages getting long!</span>
+              <span>Start a new conversation?</span>
               {onClear && (
                 <Button
                   size="sm"
                   variant="link"
                   onClick={onClear}
-                  className="m-0 p-0 text-[16px] h-0 text-amber-600"
+                  className="m-0 p-0 text-[16px] h-0 text-orange-600"
                 >
-                  Clear
+                  New chat
                 </Button>
               )}
             </motion.div>
