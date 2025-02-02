@@ -87,7 +87,7 @@ export const loadWindowState = (
     case "minesweeper":
       return {
         position: { x: isMobile ? 0 : 176, y: isMobile ? mobileY : 140 },
-        size: { width: isMobile ? window.innerWidth : 305, height: 360 },
+        size: { width: isMobile ? window.innerWidth : 305, height: 380 },
       };
     case "finder":
       return {

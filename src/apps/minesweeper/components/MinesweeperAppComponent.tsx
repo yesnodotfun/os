@@ -231,7 +231,7 @@ export function MinesweeperAppComponent({
               </div>
             </div>
           </div>
-          <div className="grid grid-cols-9 gap-0 bg-gray-800 p-[1px] border border-t-gray-800 border-l-gray-800 border-r-white border-b-white  max-w-[250px] mx-auto">
+          <div className="grid grid-cols-9 gap-0 bg-gray-800 p-[1px] border border-t-gray-800 border-l-gray-800 border-r-white border-b-white  max-w-[250px] m-auto">
             {gameBoard.map((row, rowIndex) =>
               row.map((cell, colIndex) => (
                 <button
