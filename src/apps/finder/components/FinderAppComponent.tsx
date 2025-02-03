@@ -1,9 +1,10 @@
 import { WindowFrame } from "@/components/layout/WindowFrame";
 import { FinderMenuBar, ViewType, SortType } from "./FinderMenuBar";
 import { AppProps } from "@/apps/base/types";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
+import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { FileList } from "./FileList";
 import { useFileSystem } from "../hooks/useFileSystem";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,7 @@ export function FinderAppComponent({
 }: AppProps) {
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
+  const [isEmptyTrashDialogOpen, setIsEmptyTrashDialogOpen] = useState(false);
   const [viewType, setViewType] = useState<ViewType>("small");
   const [sortType, setSortType] = useState<SortType>("name");
   const pathInputRef = useRef<HTMLInputElement>(null);
@@ -30,7 +32,23 @@ export function FinderAppComponent({
     handleFileSelect,
     navigateUp,
     navigateToPath,
+    moveToTrash,
+    emptyTrash,
+    trashItems,
+    navigateBack,
+    navigateForward,
+    canNavigateBack,
+    canNavigateForward,
   } = useFileSystem();
+
+  // Handle initial path from launch event
+  useEffect(() => {
+    const initialPath = localStorage.getItem("app_finder_initialPath");
+    if (initialPath) {
+      navigateToPath(initialPath);
+      localStorage.removeItem("app_finder_initialPath");
+    }
+  }, [navigateToPath]);
 
   const sortedFiles = [...files].sort((a, b) => {
     switch (sortType) {
@@ -57,6 +75,15 @@ export function FinderAppComponent({
     }
   });
 
+  const handleEmptyTrash = () => {
+    setIsEmptyTrashDialogOpen(true);
+  };
+
+  const confirmEmptyTrash = () => {
+    emptyTrash();
+    setIsEmptyTrashDialogOpen(false);
+  };
+
   if (!isWindowOpen) return null;
 
   return (
@@ -69,6 +96,15 @@ export function FinderAppComponent({
         onViewTypeChange={setViewType}
         sortType={sortType}
         onSortTypeChange={setSortType}
+        selectedFile={selectedFile}
+        onMoveToTrash={moveToTrash}
+        onEmptyTrash={handleEmptyTrash}
+        isTrashEmpty={trashItems.length === 0}
+        onNavigateBack={navigateBack}
+        onNavigateForward={navigateForward}
+        canNavigateBack={canNavigateBack()}
+        canNavigateForward={canNavigateForward()}
+        onNavigateToPath={navigateToPath}
       />
       <WindowFrame
         appId="finder"
@@ -166,6 +202,13 @@ export function FinderAppComponent({
           github: "https://github.com/ryoid/soundboard",
           icon: "🔍",
         }}
+      />
+      <ConfirmDialog
+        isOpen={isEmptyTrashDialogOpen}
+        onOpenChange={setIsEmptyTrashDialogOpen}
+        onConfirm={confirmEmptyTrash}
+        title="Empty Trash"
+        description="Are you sure you want to empty the Trash? This action cannot be undone."
       />
     </>
   );

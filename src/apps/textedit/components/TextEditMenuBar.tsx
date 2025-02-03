@@ -22,6 +22,7 @@ interface TextEditMenuBarProps {
   onNewFile: () => void;
   onImportFile: () => void;
   onExportFile: (format: "html" | "md" | "txt") => void;
+  onSave: () => void;
 }
 
 export function TextEditMenuBar({
@@ -32,6 +33,7 @@ export function TextEditMenuBar({
   onNewFile,
   onImportFile,
   onExportFile,
+  onSave,
 }: TextEditMenuBarProps) {
   return (
     <MenuBar>
@@ -56,7 +58,13 @@ export function TextEditMenuBar({
             onClick={onImportFile}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            Import File...
+            Open...
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={onSave}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            Save...
           </DropdownMenuItem>
           <DropdownMenuSub>
             <DropdownMenuSubTrigger className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
@@ -193,7 +201,7 @@ export function TextEditMenuBar({
             onCheckedChange={() => editor?.chain().focus().setParagraph().run()}
             className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
           >
-            <span>Normal Text</span>
+            <span>Text</span>
           </DropdownMenuCheckboxItem>
           <DropdownMenuCheckboxItem
             checked={editor?.isActive("heading", { level: 1 })}

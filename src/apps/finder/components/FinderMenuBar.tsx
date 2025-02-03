@@ -8,6 +8,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
+import { FileItem } from "./FileList";
 
 export type ViewType = "small" | "large" | "list";
 export type SortType = "name" | "date" | "size" | "kind";
@@ -20,6 +21,15 @@ interface FinderMenuBarProps {
   onViewTypeChange: (viewType: ViewType) => void;
   sortType: SortType;
   onSortTypeChange: (sortType: SortType) => void;
+  selectedFile?: FileItem;
+  onMoveToTrash?: (file: FileItem) => void;
+  onEmptyTrash?: () => void;
+  isTrashEmpty?: boolean;
+  onNavigateBack?: () => void;
+  onNavigateForward?: () => void;
+  canNavigateBack?: boolean;
+  canNavigateForward?: boolean;
+  onNavigateToPath?: (path: string) => void;
 }
 
 export function FinderMenuBar({
@@ -30,7 +40,27 @@ export function FinderMenuBar({
   onViewTypeChange,
   sortType,
   onSortTypeChange,
+  selectedFile,
+  onMoveToTrash,
+  onEmptyTrash,
+  isTrashEmpty = true,
+  onNavigateBack,
+  onNavigateForward,
+  canNavigateBack = false,
+  canNavigateForward = false,
+  onNavigateToPath,
 }: FinderMenuBarProps) {
+  const canMoveToTrash =
+    selectedFile &&
+    onMoveToTrash &&
+    selectedFile.path !== "/Trash" &&
+    !selectedFile.path.startsWith("/Trash/") &&
+    // Prevent root folders from being moved to trash
+    selectedFile.path !== "/Applications" &&
+    selectedFile.path !== "/Documents" &&
+    // Prevent applications from being moved to trash
+    !selectedFile.path.startsWith("/Applications/");
+
   return (
     <MenuBar>
       {/* File Menu */}
@@ -50,6 +80,21 @@ export function FinderMenuBar({
           </DropdownMenuItem>
           <DropdownMenuItem className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
             New Folder
+          </DropdownMenuItem>
+          <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
+          <DropdownMenuItem
+            onClick={() => canMoveToTrash && onMoveToTrash(selectedFile!)}
+            disabled={!canMoveToTrash}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Move to Trash
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={onEmptyTrash}
+            disabled={isTrashEmpty}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Empty Trash...
           </DropdownMenuItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           <DropdownMenuItem
@@ -158,6 +203,73 @@ export function FinderMenuBar({
           >
             <span>by Kind</span>
           </DropdownMenuCheckboxItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* Go Menu */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="default"
+            className="h-6 text-md px-2 py-1 border-none hover:bg-gray-200 active:bg-gray-900 active:text-white focus-visible:ring-0"
+          >
+            Go
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" sideOffset={1} className="px-0">
+          <DropdownMenuItem
+            onClick={onNavigateBack}
+            disabled={!canNavigateBack}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Back
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={onNavigateForward}
+            disabled={!canNavigateForward}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Forward
+          </DropdownMenuItem>
+          <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
+          <DropdownMenuItem
+            onClick={() => onNavigateToPath?.("/Documents")}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white flex items-center gap-2"
+          >
+            <img
+              src="/icons/documents.png"
+              alt=""
+              className="w-4 h-4 [image-rendering:pixelated]"
+            />
+            Documents
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => onNavigateToPath?.("/Applications")}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white flex items-center gap-2"
+          >
+            <img
+              src="/icons/applications.png"
+              alt=""
+              className="w-4 h-4 [image-rendering:pixelated]"
+            />
+            Applications
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => onNavigateToPath?.("/Trash")}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white flex items-center gap-2"
+          >
+            <img
+              src={
+                isTrashEmpty
+                  ? "/icons/trash-empty.png"
+                  : "/icons/trash-full.png"
+              }
+              alt=""
+              className="w-4 h-4 [image-rendering:pixelated]"
+            />
+            Trash
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 

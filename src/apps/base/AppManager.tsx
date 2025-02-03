@@ -91,10 +91,16 @@ export function AppManager({ apps }: AppManagerProps) {
 
   // Listen for app launch events from Finder
   useEffect(() => {
-    const handleAppLaunch = (event: CustomEvent<{ appId: AppId }>) => {
-      const { appId } = event.detail;
+    const handleAppLaunch = (
+      event: CustomEvent<{ appId: AppId; initialPath?: string }>
+    ) => {
+      const { appId, initialPath } = event.detail;
       if (!appStates.apps[appId]?.isOpen) {
         toggleApp(appId);
+        // Store initialPath in localStorage for the app to pick up
+        if (initialPath) {
+          localStorage.setItem(`app_${appId}_initialPath`, initialPath);
+        }
       } else {
         bringToForeground(appId);
       }

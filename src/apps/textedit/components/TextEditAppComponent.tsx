@@ -8,6 +8,8 @@ import { WindowFrame } from "@/components/layout/WindowFrame";
 import { TextEditMenuBar } from "./TextEditMenuBar";
 import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
+import { InputDialog } from "@/components/dialogs/InputDialog";
+import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { appMetadata, helpItems } from "..";
 import { APP_STORAGE_KEYS } from "@/utils/storage";
 import { SlashCommands } from "../extensions/SlashCommands";
@@ -149,6 +151,42 @@ const htmlToPlainText = (html: string): string => {
     .trim();
 };
 
+// Function to convert Markdown to HTML
+const markdownToHtml = (markdown: string): string => {
+  let html = markdown;
+
+  // Convert headings
+  html = html.replace(/^### (.*$)/gm, "<h3>$1</h3>");
+  html = html.replace(/^## (.*$)/gm, "<h2>$1</h2>");
+  html = html.replace(/^# (.*$)/gm, "<h1>$1</h1>");
+
+  // Convert bold and italic
+  html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+  html = html.replace(/\*([^*]+)\*/g, "<em>$1</em>");
+  html = html.replace(/_([^_]+)_/g, "<u>$1</u>");
+
+  // Convert lists
+  html = html.replace(/^\s*[-*+]\s+(.*)$/gm, "<ul><li>$1</li></ul>");
+  html = html.replace(/^\s*\d+\.\s+(.*)$/gm, "<ol><li>$1</li></ol>");
+
+  // Merge adjacent list items
+  html = html.replace(/<\/ul>\s*<ul>/g, "");
+  html = html.replace(/<\/ol>\s*<ol>/g, "");
+
+  // Convert code blocks
+  html = html.replace(/```([^`]*?)```/gs, "<pre><code>$1</code></pre>");
+  html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
+
+  // Convert paragraphs (lines not starting with special characters)
+  html = html.replace(/^(?![#<*_\s*-+\d.])(.*$)/gm, "<p>$1</p>");
+
+  // Clean up empty paragraphs and normalize whitespace
+  html = html.replace(/<p>\s*<\/p>/g, "");
+  html = html.trim();
+
+  return html;
+};
+
 export function TextEditAppComponent({
   isWindowOpen,
   onClose,
@@ -157,6 +195,11 @@ export function TextEditAppComponent({
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
+  const [isConfirmNewDialogOpen, setIsConfirmNewDialogOpen] = useState(false);
+  const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
+  const [saveFileName, setSaveFileName] = useState("");
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const editor = useEditor({
@@ -177,9 +220,100 @@ export function TextEditAppComponent({
       },
     },
     onUpdate: ({ editor }) => {
-      localStorage.setItem(APP_STORAGE_KEYS.textedit.CONTENT, editor.getHTML());
+      const content = editor.getHTML();
+      // Always save to localStorage for recovery
+      localStorage.setItem(APP_STORAGE_KEYS.textedit.CONTENT, content);
+      setHasUnsavedChanges(true);
+
+      // If file was opened from filesystem, auto-save it
+      if (currentFilePath?.startsWith("/Documents/")) {
+        // Debounce the save to avoid too many events
+        const timeoutId = setTimeout(() => {
+          window.dispatchEvent(
+            new CustomEvent("saveFile", {
+              detail: {
+                name: currentFilePath.split("/").pop() || "Untitled",
+                path: currentFilePath,
+                content: content,
+                icon: "/icons/file-text.png",
+                isDirectory: false,
+              },
+            })
+          );
+          setHasUnsavedChanges(false);
+        }, 500); // 500ms debounce
+
+        return () => clearTimeout(timeoutId);
+      }
     },
   });
+
+  useEffect(() => {
+    // Handle file opening from Finder
+    const handleFileOpenFromFinder = (
+      event: CustomEvent<{ path: string; content: string }>
+    ) => {
+      if (editor && event.detail.path.startsWith("/Documents/")) {
+        // Clear any existing content
+        editor.commands.clearContent();
+
+        // Convert markdown to HTML if it's a markdown file
+        const content = event.detail.path.endsWith(".md")
+          ? markdownToHtml(event.detail.content)
+          : event.detail.content;
+
+        editor.commands.setContent(content);
+        setCurrentFilePath(event.detail.path);
+        setHasUnsavedChanges(false);
+        // Store in localStorage for recovery
+        localStorage.setItem(APP_STORAGE_KEYS.textedit.CONTENT, content);
+      }
+    };
+
+    window.addEventListener(
+      "openFile",
+      handleFileOpenFromFinder as EventListener
+    );
+
+    // Check for pending file open
+    const pendingFileOpen = localStorage.getItem("pending_file_open");
+    if (pendingFileOpen && editor) {
+      try {
+        const { path, content } = JSON.parse(pendingFileOpen);
+        if (path.startsWith("/Documents/")) {
+          editor.commands.clearContent();
+          editor.commands.setContent(content);
+          setCurrentFilePath(path);
+          setHasUnsavedChanges(false);
+          localStorage.setItem(APP_STORAGE_KEYS.textedit.CONTENT, content);
+        }
+      } catch (e) {
+        console.error("Failed to parse pending file open data:", e);
+      } finally {
+        localStorage.removeItem("pending_file_open");
+      }
+    }
+
+    return () => {
+      window.removeEventListener(
+        "openFile",
+        handleFileOpenFromFinder as EventListener
+      );
+    };
+  }, [editor]);
+
+  // Load content from localStorage only if no file is currently open
+  useEffect(() => {
+    if (editor && !currentFilePath) {
+      const savedContent = localStorage.getItem(
+        APP_STORAGE_KEYS.textedit.CONTENT
+      );
+      if (savedContent) {
+        editor.commands.setContent(savedContent);
+        editor.commands.focus("end");
+      }
+    }
+  }, [editor, currentFilePath]);
 
   const handleTranscriptionComplete = (text: string) => {
     setIsTranscribing(false);
@@ -204,28 +338,62 @@ export function TextEditAppComponent({
     setIsTranscribing(true);
   };
 
-  useEffect(() => {
-    if (editor) {
-      const savedContent = localStorage.getItem(
-        APP_STORAGE_KEYS.textedit.CONTENT
-      );
-      if (savedContent) {
-        editor.commands.setContent(savedContent);
-        // Move cursor to end after setting content
-        editor.commands.focus("end");
-      }
-    }
-  }, [editor]);
-
   const handleNewFile = () => {
-    if (editor) {
-      editor.commands.clearContent();
-      localStorage.removeItem(APP_STORAGE_KEYS.textedit.CONTENT);
+    if (editor && hasUnsavedChanges) {
+      setIsConfirmNewDialogOpen(true);
+    } else {
+      createNewFile();
     }
   };
 
-  const handleImportFile = () => {
-    fileInputRef.current?.click();
+  const createNewFile = () => {
+    if (editor) {
+      editor.commands.clearContent();
+      localStorage.removeItem(APP_STORAGE_KEYS.textedit.CONTENT);
+      setCurrentFilePath(null);
+      setHasUnsavedChanges(false);
+    }
+  };
+
+  const handleSave = () => {
+    if (!editor) return;
+
+    if (!currentFilePath) {
+      setIsSaveDialogOpen(true);
+      setSaveFileName(getFilenameFromContent(editor.getHTML()) || "Untitled");
+    } else {
+      // File already exists, just save it
+      localStorage.setItem(APP_STORAGE_KEYS.textedit.CONTENT, editor.getHTML());
+      setHasUnsavedChanges(false);
+    }
+  };
+
+  const handleSaveSubmit = (fileName: string) => {
+    if (!editor) return;
+
+    const content = editor.getHTML();
+    const filePath = `/Documents/${fileName}${
+      fileName.includes(".") ? "" : ".txt"
+    }`;
+
+    // Update the simulated filesystem by dispatching an event
+    window.dispatchEvent(
+      new CustomEvent("saveFile", {
+        detail: {
+          name: fileName,
+          path: filePath,
+          content: content,
+          icon: "/icons/file-text.png",
+          isDirectory: false,
+        },
+      })
+    );
+
+    // Save the file
+    localStorage.setItem(APP_STORAGE_KEYS.textedit.CONTENT, content);
+    setCurrentFilePath(filePath);
+    setHasUnsavedChanges(false);
+    setIsSaveDialogOpen(false);
   };
 
   const handleFileSelect = async (
@@ -235,15 +403,19 @@ export function TextEditAppComponent({
     if (file && editor) {
       const text = await file.text();
 
-      // If it's an HTML file, set the content directly
+      // Convert content based on file type
+      let content;
       if (file.name.endsWith(".html")) {
-        editor.commands.setContent(text);
+        content = text;
+      } else if (file.name.endsWith(".md")) {
+        content = markdownToHtml(text);
       } else {
-        // For other file types, set as plain text within a paragraph
-        editor.commands.setContent(`<p>${text}</p>`);
+        content = `<p>${text}</p>`;
       }
 
+      editor.commands.setContent(content);
       localStorage.setItem(APP_STORAGE_KEYS.textedit.CONTENT, editor.getHTML());
+      setCurrentFilePath(`/Documents/${file.name}`);
     }
     // Reset the input
     if (fileInputRef.current) {
@@ -293,6 +465,18 @@ export function TextEditAppComponent({
     URL.revokeObjectURL(url);
   };
 
+  const handleImportFile = () => {
+    // Launch Finder with a specific target path
+    window.dispatchEvent(
+      new CustomEvent("launchApp", {
+        detail: {
+          appId: "finder",
+          initialPath: "/Documents", // Add initialPath to the launch event
+        },
+      })
+    );
+  };
+
   return (
     <>
       <input
@@ -311,9 +495,16 @@ export function TextEditAppComponent({
         onNewFile={handleNewFile}
         onImportFile={handleImportFile}
         onExportFile={handleExportFile}
+        onSave={handleSave}
       />
       <WindowFrame
-        title="TextEdit"
+        title={
+          currentFilePath
+            ? `TextEdit - ${currentFilePath.split("/").pop()}${
+                hasUnsavedChanges ? " •" : ""
+              }`
+            : `TextEdit - Untitled${hasUnsavedChanges ? " •" : ""}`
+        }
         onClose={onClose}
         isForeground={isForeground}
         appId="textedit"
@@ -558,6 +749,25 @@ export function TextEditAppComponent({
             className="flex-1 overflow-auto w-full h-full"
           />
         </div>
+        <InputDialog
+          isOpen={isSaveDialogOpen}
+          onOpenChange={setIsSaveDialogOpen}
+          onSubmit={handleSaveSubmit}
+          title="Save File"
+          description="Enter a name for your file"
+          value={saveFileName}
+          onChange={setSaveFileName}
+        />
+        <ConfirmDialog
+          isOpen={isConfirmNewDialogOpen}
+          onOpenChange={setIsConfirmNewDialogOpen}
+          onConfirm={() => {
+            createNewFile();
+            setIsConfirmNewDialogOpen(false);
+          }}
+          title="Discard Changes"
+          description="Do you want to discard your changes and create a new file?"
+        />
         <HelpDialog
           isOpen={isHelpDialogOpen}
           onOpenChange={setIsHelpDialogOpen}
