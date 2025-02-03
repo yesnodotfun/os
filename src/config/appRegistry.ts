@@ -9,12 +9,12 @@ import { FinderApp } from "@/apps/finder";
 // Registry of all available apps
 export const appRegistry = {
   [FinderApp.id]: FinderApp,
+  [ControlPanelsApp.id]: ControlPanelsApp,
   [SoundboardApp.id]: SoundboardApp,
   [InternetExplorerApp.id]: InternetExplorerApp,
   [ChatsApp.id]: ChatsApp,
   [TextEditApp.id]: TextEditApp,
   [MinesweeperApp.id]: MinesweeperApp,
-  [ControlPanelsApp.id]: ControlPanelsApp,
 } as const;
 
 // Type for app IDs

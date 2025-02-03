@@ -372,6 +372,28 @@ export function useFileSystem(initialPath: string = "/") {
     saveTrashItems([]);
   }
 
+  function saveFile(file: FileItem) {
+    if (!file.content) return;
+
+    const newDoc: Document = {
+      name: file.name,
+      content: file.content,
+    };
+
+    const newDocs = [...documents];
+    const existingIndex = newDocs.findIndex((doc) => doc.name === newDoc.name);
+
+    if (existingIndex >= 0) {
+      newDocs[existingIndex] = newDoc;
+    } else {
+      newDocs.push(newDoc);
+    }
+
+    setDocuments(newDocs);
+    saveDocuments(newDocs);
+    loadFiles(); // Refresh file list
+  }
+
   return {
     currentPath,
     files,
@@ -390,5 +412,6 @@ export function useFileSystem(initialPath: string = "/") {
     navigateForward,
     canNavigateBack,
     canNavigateForward,
+    saveFile,
   };
 }
