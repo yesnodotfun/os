@@ -172,7 +172,7 @@ export function TextEditAppComponent({
     editorProps: {
       attributes: {
         class:
-          "prose prose-sm prose-neutral max-w-none focus:outline-none p-4 [&>ul]:list-disc [&>ol]:list-decimal [&>*]:my-1 [&>p]:leading-5 [&>h1]:mt-3 [&>h1]:mb-2 [&>h2]:mt-2 [&>h2]:mb-1 [&>ul]:my-1 [&>ol]:my-1 [&>ul>li]:my-0.5 [&>ol>li]:my-0.5 [&>ul]:pl-0 [&>ol]:pl-4 [&>ul>li>p]:my-0 [&>ol>li>p]:my-0 [&>ul>li]:pl-0 [&>ol>li]:pl-0 [&>ul>li]:marker:text-neutral-900 [&>ol>li]:marker:text-neutral-900 min-h-full",
+          "prose prose-sm prose-neutral max-w-none focus:outline-none p-4 [&>ul]:list-disc [&>ol]:list-decimal [&>*]:my-1 [&>p]:leading-5 [&>h1]:mt-3 [&>h1]:mb-2 [&>h2]:mt-2 [&>h2]:mb-1 [&>ul]:my-1 [&>ol]:my-1 [&>ul>li]:my-0.5 [&>ol>li]:my-0.5 [&>ul]:pl-0 [&>ol]:pl-4 [&>ul>li>p]:my-0 [&>ol>li>p]:my-0 [&>ul>li]:pl-0 [&>ol>li]:pl-0 [&>ul>li]:marker:text-neutral-900 [&>ol>li]:marker:text-neutral-900 min-h-full [&>p]:font-['Geneva-12'] [&>p]:text-[12px] [&>ul>li]:font-['Geneva-12'] [&>ol>li]:font-['Geneva-12'] [&>ul>li]:text-[12px] [&>ol>li]:text-[12px] antialiased",
       },
     },
     onUpdate: ({ editor }) => {
@@ -210,6 +210,8 @@ export function TextEditAppComponent({
       );
       if (savedContent) {
         editor.commands.setContent(savedContent);
+        // Move cursor to end after setting content
+        editor.commands.focus("end");
       }
     }
   }, [editor]);
@@ -378,7 +380,7 @@ export function TextEditAppComponent({
                         ? "Heading 2"
                         : editor?.isActive("heading", { level: 3 })
                         ? "Heading 3"
-                        : "Normal Text"}
+                        : "Text"}
                       <span className="ml-1">▼</span>
                     </button>
                   </DropdownMenuTrigger>
