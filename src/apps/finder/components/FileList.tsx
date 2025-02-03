@@ -5,6 +5,8 @@ export interface FileItem {
   isDirectory: boolean;
   path: string;
   icon?: string;
+  appId?: string; // For application files
+  content?: string; // For document files
 }
 
 interface FileListProps {

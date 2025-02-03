@@ -4,6 +4,7 @@ import { AppContext } from "@/contexts/AppContext";
 import { MenuBar } from "@/components/layout/MenuBar";
 import { Desktop } from "@/components/layout/Desktop";
 import { loadAppState, saveAppState } from "@/utils/storage";
+import { AppId, getAppComponent } from "@/config/appRegistry";
 
 interface AppManagerProps {
   apps: BaseApp[];
@@ -21,13 +22,13 @@ export function AppManager({ apps }: AppManagerProps) {
     saveAppState(appStates);
   }, [appStates]);
 
-  const getZIndexForApp = (appId: string) => {
+  const getZIndexForApp = (appId: AppId) => {
     const index = appStates.windowOrder.indexOf(appId);
     if (index === -1) return BASE_Z_INDEX;
     return BASE_Z_INDEX + (index + 1) * FOREGROUND_Z_INDEX_OFFSET;
   };
 
-  const bringToForeground = (appId: string) => {
+  const bringToForeground = (appId: AppId) => {
     setAppStates((prev) => {
       const newStates = { ...prev };
 
@@ -57,7 +58,7 @@ export function AppManager({ apps }: AppManagerProps) {
     });
   };
 
-  const toggleApp = (appId: string) => {
+  const toggleApp = (appId: AppId) => {
     setAppStates((prev) => {
       const newStates = { ...prev };
       const isCurrentlyOpen = prev.apps[appId]?.isOpen;
@@ -88,6 +89,23 @@ export function AppManager({ apps }: AppManagerProps) {
     });
   };
 
+  // Listen for app launch events from Finder
+  useEffect(() => {
+    const handleAppLaunch = (event: CustomEvent<{ appId: AppId }>) => {
+      const { appId } = event.detail;
+      if (!appStates.apps[appId]?.isOpen) {
+        toggleApp(appId);
+      } else {
+        bringToForeground(appId);
+      }
+    };
+
+    window.addEventListener("launchApp", handleAppLaunch as EventListener);
+    return () => {
+      window.removeEventListener("launchApp", handleAppLaunch as EventListener);
+    };
+  }, [appStates]);
+
   return (
     <AppContext.Provider
       value={{
@@ -100,21 +118,23 @@ export function AppManager({ apps }: AppManagerProps) {
       <MenuBar />
       {/* App Instances */}
       {apps.map((app) => {
-        const isOpen = appStates.apps[app.id]?.isOpen ?? false;
-        const isForeground = appStates.apps[app.id]?.isForeground ?? false;
-        const zIndex = getZIndexForApp(app.id);
-        const AppComponent = app.component;
+        const appId = app.id as AppId;
+        const isOpen = appStates.apps[appId]?.isOpen ?? false;
+        const isForeground = appStates.apps[appId]?.isForeground ?? false;
+        const zIndex = getZIndexForApp(appId);
+        const AppComponent = getAppComponent(appId);
+
         return isOpen ? (
           <div
-            key={app.id}
+            key={appId}
             style={{ zIndex }}
             className="absolute inset-x-0 md:inset-x-auto w-full md:w-auto"
-            onClick={() => !isForeground && bringToForeground(app.id)}
+            onClick={() => !isForeground && bringToForeground(appId)}
           >
             <AppComponent
               isWindowOpen={isOpen}
               isForeground={isForeground}
-              onClose={() => toggleApp(app.id)}
+              onClose={() => toggleApp(appId)}
               className="pointer-events-auto"
               helpItems={app.helpItems}
             />

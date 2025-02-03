@@ -1,12 +1,14 @@
 import { WindowFrame } from "@/components/layout/WindowFrame";
 import { FinderMenuBar } from "./FinderMenuBar";
 import { AppProps } from "@/apps/base/types";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { FileList } from "./FileList";
 import { useFileSystem } from "../hooks/useFileSystem";
 import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 export function FinderAppComponent({
   onClose,
@@ -15,6 +17,7 @@ export function FinderAppComponent({
 }: AppProps) {
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
+  const pathInputRef = useRef<HTMLInputElement>(null);
   const {
     currentPath,
     files,
@@ -24,6 +27,7 @@ export function FinderAppComponent({
     handleFileOpen,
     handleFileSelect,
     navigateUp,
+    navigateToPath,
   } = useFileSystem();
 
   if (!isWindowOpen) return null;
@@ -41,19 +45,34 @@ export function FinderAppComponent({
         onClose={onClose}
         isForeground={isForeground}
       >
-        <div className="flex flex-col h-full bg-white">
-          <div className="flex items-center gap-2 p-2 border-b">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={navigateUp}
-              disabled={currentPath === "/"}
-              className="text-lg px-2 py-0"
-            >
-              ⬅️
-            </Button>
-            <div className="flex-1 text-sm font-mono truncate">
-              {currentPath}
+        <div className="flex flex-col h-full w-full bg-white">
+          <div className="flex flex-col gap-1 p-1 bg-gray-100 border-b border-black">
+            <div className="flex gap-2 items-center">
+              <div className="flex gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={navigateUp}
+                  disabled={currentPath === "/"}
+                  className="h-8 w-8"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+              </div>
+              <Input
+                ref={pathInputRef}
+                value={currentPath}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  navigateToPath(e.target.value)
+                }
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    navigateToPath((e.target as HTMLInputElement).value);
+                  }
+                }}
+                className="flex-1"
+                placeholder="Enter path"
+              />
             </div>
           </div>
           <div className="flex-1 overflow-auto">
