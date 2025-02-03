@@ -48,19 +48,13 @@ export const createAudioFromBase64 = (base64Data: string): HTMLAudioElement => {
 };
 
 export const getSupportedMimeType = (): string => {
-  // Safari supports mp4 with AAC codec
-  if (MediaRecorder.isTypeSupported("audio/mp4;codecs=mp4a.40.2")) {
-    return "audio/mp4;codecs=mp4a.40.2";
-  }
-  // Chrome and Firefox support webm with opus
-  if (MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) {
-    return "audio/webm;codecs=opus";
-  }
-  // Fallback for Safari without codec specification
-  if (MediaRecorder.isTypeSupported("audio/mp4")) {
+  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
+  if (isSafari) {
     return "audio/mp4";
   }
-  // Last resort fallback
+
+  // Chrome, Firefox, and other browsers support webm with opus
   return "audio/webm";
 };
 
