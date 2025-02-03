@@ -82,7 +82,7 @@ export function ChatMessages({
         viewportRef.current = viewport;
       }}
     >
-      <AnimatePresence initial={false}>
+      <AnimatePresence initial={false} mode="popLayout">
         <motion.div
           layout="position"
           className="flex flex-col gap-1"
