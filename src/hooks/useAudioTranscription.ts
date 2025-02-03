@@ -121,7 +121,6 @@ export function useAudioTranscription({
         }
       } catch (error) {
         const err = error instanceof Error ? error : new Error("Unknown error");
-        console.error("Error transcribing audio:", err.message);
         onError?.(err);
       }
     },
@@ -163,10 +162,6 @@ export function useAudioTranscription({
     // Only update silence state if we have consecutive silent frames
     if (currentIsSilent) {
       silentFramesCountRef.current = (silentFramesCountRef.current || 0) + 1;
-      console.log(
-        "Silent frame detected, count:",
-        silentFramesCountRef.current
-      );
     } else {
       silentFramesCountRef.current = 0;
     }
@@ -177,15 +172,6 @@ export function useAudioTranscription({
 
     const recordingDuration = Date.now() - recordingStartTimeRef.current;
     const currentlyRecording = mediaRecorderRef.current?.state === "recording";
-
-    console.log("Recording state:", {
-      isRecording,
-      currentlyRecording,
-      recordingDuration,
-      isConsistentlySilent,
-      silenceStartTime: silenceStartRef.current,
-      mediaRecorderState: mediaRecorderRef.current?.state,
-    });
 
     // Send debug state on every analysis
     onDebugState?.({
@@ -200,33 +186,15 @@ export function useAudioTranscription({
     if (recordingDuration >= minRecordingDuration) {
       if (isConsistentlySilent && !silenceStartRef.current) {
         silenceStartRef.current = Date.now();
-        console.log("Starting silence timer at:", silenceStartRef.current);
       } else if (isConsistentlySilent && silenceStartRef.current) {
         const silenceDuration = Date.now() - silenceStartRef.current;
-        console.log(
-          "Current silence duration:",
-          silenceDuration,
-          "threshold:",
-          silenceThreshold
-        );
         if (silenceDuration >= silenceThreshold) {
-          console.log(
-            "Silence threshold reached, attempting to stop recording"
-          );
           if (currentlyRecording) {
-            console.log("Stopping recording...");
             mediaRecorderRef.current?.requestData();
             stopRecording();
-          } else {
-            console.log("Could not stop recording:", {
-              isRecording,
-              currentlyRecording,
-              hasMediaRecorder: !!mediaRecorderRef.current,
-            });
           }
         }
       } else if (!isConsistentlySilent && silenceStartRef.current) {
-        console.log("Resetting silence timer");
         silenceStartRef.current = null;
       }
     }
@@ -301,7 +269,6 @@ export function useAudioTranscription({
       setIsRecording(true);
     } catch (error) {
       const err = error instanceof Error ? error : new Error("Unknown error");
-      console.error("Error accessing microphone:", err.message);
       onError?.(err);
     }
   }, [sendAudioForTranscription, analyzeFrequencies, onError]);

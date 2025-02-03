@@ -116,12 +116,8 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
         top: windowPosition.y,
       });
       setResizeType(type);
-
-      // Start playing resize sound in a loop
-      playResizeResizing();
-      resizeAudioRef.current = setInterval(playResizeResizing, 300);
     },
-    [windowPosition, isMobile, playResizeResizing]
+    [windowPosition, isMobile]
   );
 
   useEffect(() => {
@@ -229,6 +225,15 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
 
         setWindowSize({ width: newWidth, height: newHeight });
         setWindowPosition({ x: newLeft, y: Math.max(menuBarHeight, newTop) });
+
+        // Start playing resize sound when actual movement starts
+        if (
+          !resizeAudioRef.current &&
+          (Math.abs(deltaX) > 2 || Math.abs(deltaY) > 2)
+        ) {
+          playResizeResizing();
+          resizeAudioRef.current = setInterval(playResizeResizing, 300);
+        }
       }
     };
 
