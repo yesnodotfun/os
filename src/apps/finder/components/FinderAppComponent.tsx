@@ -8,7 +8,7 @@ import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { FileList } from "./FileList";
 import { useFileSystem } from "../hooks/useFileSystem";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { appMetadata, helpItems } from "../index";
 import { calculateStorageSpace } from "@/utils/storage";
@@ -21,8 +21,14 @@ export function FinderAppComponent({
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
   const [isEmptyTrashDialogOpen, setIsEmptyTrashDialogOpen] = useState(false);
-  const [viewType, setViewType] = useState<ViewType>("small");
-  const [sortType, setSortType] = useState<SortType>("name");
+  const [viewType, setViewType] = useState<ViewType>(() => {
+    const savedViewType = localStorage.getItem("finder_view_type");
+    return (savedViewType as ViewType) || "small";
+  });
+  const [sortType, setSortType] = useState<SortType>(() => {
+    const savedSortType = localStorage.getItem("finder_sort_type");
+    return (savedSortType as SortType) || "name";
+  });
   const pathInputRef = useRef<HTMLInputElement>(null);
   const {
     currentPath,
@@ -63,6 +69,15 @@ export function FinderAppComponent({
       localStorage.removeItem("app_finder_initialPath");
     }
   }, [navigateToPath]);
+
+  // Save view and sort preferences when they change
+  useEffect(() => {
+    localStorage.setItem("finder_view_type", viewType);
+  }, [viewType]);
+
+  useEffect(() => {
+    localStorage.setItem("finder_sort_type", sortType);
+  }, [sortType]);
 
   const sortedFiles = [...files].sort((a, b) => {
     switch (sortType) {
@@ -137,11 +152,29 @@ export function FinderAppComponent({
                 <Button
                   variant="ghost"
                   size="icon"
+                  onClick={navigateBack}
+                  disabled={!canNavigateBack()}
+                  className="h-8 w-8"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={navigateForward}
+                  disabled={!canNavigateForward()}
+                  className="h-8 w-8"
+                >
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={navigateUp}
                   disabled={currentPath === "/"}
                   className="h-8 w-8"
                 >
-                  <ArrowLeft className="h-4 w-4" />
+                  <ArrowLeft className="h-4 w-4 rotate-90" />
                 </Button>
               </div>
               <Input

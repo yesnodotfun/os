@@ -17,33 +17,10 @@ interface TrashItem extends FileItem {
 
 const DOCUMENTS: Document[] = [
   {
-    name: "Welcome.md",
-    content: `# Welcome to ryOS
-
-This is a web-based recreation of the classic Mac OS System 7 interface. ryOS includes several built-in applications:
-
-- Finder: Browse and manage your files
-- TextEdit: Create and edit documents
-- Soundboard: Create and play custom soundboards
-- Control Panels: Customize system settings
-- Minesweeper: Classic puzzle game
-- Internet Explorer: Browse the web
-- Chats: Chat with AI assistant
-
-## Getting Started
-
-- Click on any application icon to launch it
-- Use the Apple menu (🍎) in the top-left to access system functions
-- Files are automatically saved to your browser's storage
-- Drag windows to move them, click and drag window edges to resize
-
-Enjoy exploring ryOS!`,
-  },
-  {
     name: "README.md",
     content: `# ryOS
 
-A web-based operating system experience inspired by classic Mac OS System 7. Built with modern web technologies including React, Vite, TailwindCSS, and shadcn/ui components.
+A web-based operating system experience inspired by classic Mac OS System 7. Built using Cursor with modern web technologies including React, Vite, TailwindCSS, and shadcn/ui components.
 
 ## Features
 
@@ -52,26 +29,110 @@ A web-based operating system experience inspired by classic Mac OS System 7. Bui
 - File system with Documents and Applications folders
 - Multiple built-in applications
 - Local storage persistence
-- Modern audio features with WaveSurfer.js
+- Modern audio features with WaveSurfer.js and Tone.js
 - Responsive design for all screen sizes
+
+## Built-in Applications
+
+- **Finder**: Browse and manage your files
+- **TextEdit**: Create and edit documents
+- **Soundboard**: Create and play custom soundboards
+- **Control Panels**: Customize system settings
+- **Minesweeper**: Classic puzzle game
+- **Internet Explorer**: Browse the web
+- **Chats**: Chat with AI assistant
+
+## Getting Started
+
+- Double-click on any app icon to launch it
+- Use the **Apple menu (🍎)** in the top-left to access system functions
+- Files are automatically saved to your browser's storage
+- Drag windows to move them, click and drag window edges to resize
 
 ## Technical Details
 
 - Built with React 18 and TypeScript
-- Vite for fast development
+- Vite for fast development and bundling
 - TailwindCSS for styling
 - shadcn/ui components
 - Bun as package manager
 
-Visit https://github.com/ryoid/soundboard for more information.`,
+Visit https://github.com/ryokun6/soundboard for more information.`,
   },
   {
-    name: "Notes.md",
-    content: `# Quick Notes
+    name: "Quick Tips.md",
+    content: `# Quick Tips
 
-- Use the menu bar for new files, saving, moving, deleting, and more
-- Documents are automatically saved to browser storage
-- Use TextEdit for creating and editing documents`,
+## Using Apps
+- Launch apps from the Finder, Desktop, or Apple menu
+- Multiple apps can run simultaneously
+- Windows can be moved, resized, and minimized
+- Use Control Panels to customize your experience
+
+## Finder
+- Browse files in Documents, Applications, and Trash
+- Navigate with back/forward buttons or path bar
+- Sort files by name, kind, size, or date
+- Multiple view options (icons, list)
+- Move files to Trash and empty when needed
+- Monitor available storage space
+
+## TextEdit
+- Create and edit rich text documents
+- Format text with bold, italic, and underline
+- Align text and create ordered/unordered lists
+- Use slash commands (/) for quick formatting
+- Record audio input for dictation
+- Auto-saves your work
+- Export documents when needed
+
+## Soundboard
+- Create multiple custom soundboards
+- Record sounds directly from your microphone
+- Customize with emojis and titles
+- Play sounds with clicks or number keys (1-9)
+- View sound waveforms
+- Import/export soundboards for sharing
+- Auto-saves your recordings
+
+## Control Panels
+- Customize system appearance
+- Adjust sound settings
+- Configure keyboard preferences
+- Manage location settings
+- Changes save automatically
+- Classic System 7 style interface
+
+## Minesweeper
+- Classic puzzle game with modern features
+- Left-click to reveal cells
+- Right-click to flag mines
+- Sound effects for actions
+- Track remaining mines
+- Start new game anytime
+
+## Internet Explorer
+- Browse web content
+- Time travel feature to see historical dates
+- Add websites to favorites
+- Modern browsing experience
+- Classic System 7 style interface
+
+## Chat with Ryo
+- Chat with Ryo (AI version)
+- Get help with system features
+- Ask about design and concepts
+- Natural conversation interface
+- Modern AI-powered assistance
+
+## Tips & Tricks
+- Use keyboard shortcuts for efficiency
+- Right-click for context menus
+- Drag windows to organize workspace
+- All changes save automatically
+- Files persist between sessions
+- Export important data locally
+`,
   },
 ];
 

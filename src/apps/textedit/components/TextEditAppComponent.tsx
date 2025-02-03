@@ -26,35 +26,6 @@ import { AudioInputButton } from "@/components/ui/audio-input-button";
 import { ChevronDown } from "lucide-react";
 import { useLaunchApp } from "@/hooks/useLaunchApp";
 
-// Function to get a filename from content
-const getFilenameFromContent = (html: string): string => {
-  // Try to find the first heading
-  const headingMatch = html.match(/<h[1-3][^>]*>(.*?)<\/h[1-3]>/i);
-  if (headingMatch) {
-    return headingMatch[1]
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-") // Replace non-alphanumeric chars with hyphens
-      .replace(/^-+|-+$/g, ""); // Remove leading/trailing hyphens
-  }
-
-  // If no heading, try to get first line of text
-  const textMatch = html
-    .replace(/<[^>]+>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 30);
-
-  if (textMatch) {
-    return textMatch
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "");
-  }
-
-  // Fallback to default name
-  return "document";
-};
-
 // Function to convert HTML to Markdown
 const htmlToMarkdown = (html: string): string => {
   let markdown = html;
@@ -227,7 +198,6 @@ export function TextEditAppComponent({
       SlashCommands,
     ],
     content: "",
-    autofocus: true,
     editorProps: {
       attributes: {
         class:
@@ -236,7 +206,6 @@ export function TextEditAppComponent({
     },
     onUpdate: ({ editor }) => {
       // Store both HTML and JSON to preserve whitespace
-      const content = editor.getHTML();
       const jsonContent = editor.getJSON();
       // Always save to localStorage for recovery
       localStorage.setItem(
@@ -254,34 +223,15 @@ export function TextEditAppComponent({
           icon: "/icons/file-text.png",
           isDirectory: false,
         });
-      } else {
-        // For new files, generate a filename and save to Documents
-        const fileName = `${getFilenameFromContent(content) || "Untitled"}.txt`;
-        const filePath = `/Documents/${fileName}`;
-        saveFile({
-          name: fileName,
-          path: filePath,
-          content: JSON.stringify(jsonContent),
-          icon: "/icons/file-text.png",
-          isDirectory: false,
-        });
-        setCurrentFilePath(filePath);
       }
 
-      // Store the current file path for next time
-      if (currentFilePath) {
-        localStorage.setItem(
-          APP_STORAGE_KEYS.textedit.LAST_FILE_PATH,
-          currentFilePath
-        );
-      }
-      setHasUnsavedChanges(false);
+      setHasUnsavedChanges(true);
     },
   });
 
   // Initial load - try to restore last opened file or pending content
   useEffect(() => {
-    if (editor) {
+    if (editor && !hasUnsavedChanges) {
       const lastFilePath = localStorage.getItem(
         APP_STORAGE_KEYS.textedit.LAST_FILE_PATH
       );
@@ -289,7 +239,7 @@ export function TextEditAppComponent({
       if (lastFilePath?.startsWith("/Documents/")) {
         // Try to restore the last opened file
         const file = files.find((f) => f.path === lastFilePath);
-        if (file?.content) {
+        if (file?.content && !currentFilePath) {
           try {
             const jsonContent = JSON.parse(file.content);
             editor.commands.setContent(jsonContent);
@@ -316,11 +266,10 @@ export function TextEditAppComponent({
             // Fallback to treating content as HTML if not JSON
             editor.commands.setContent(savedContent);
           }
-          editor.commands.focus("end");
         }
       }
     }
-  }, [editor, files, currentFilePath]);
+  }, [editor, files, currentFilePath, hasUnsavedChanges]);
 
   // Check for pending file open when window becomes active
   useEffect(() => {
@@ -444,9 +393,9 @@ export function TextEditAppComponent({
 
     if (!currentFilePath) {
       setIsSaveDialogOpen(true);
-      setSaveFileName(getFilenameFromContent(editor.getHTML()) || "Untitled");
+      setSaveFileName("");
     } else {
-      const content = editor.getHTML();
+      const content = JSON.stringify(editor.getJSON());
       const fileName = currentFilePath.split("/").pop() || "Untitled";
 
       saveFile({
@@ -471,7 +420,7 @@ export function TextEditAppComponent({
   const handleSaveSubmit = (fileName: string) => {
     if (!editor) return;
 
-    const content = editor.getHTML();
+    const content = JSON.stringify(editor.getJSON());
     const filePath = `/Documents/${fileName}${
       fileName.includes(".") ? "" : ".txt"
     }`;
@@ -527,7 +476,6 @@ export function TextEditAppComponent({
     let content: string;
     let mimeType: string;
     let extension: string;
-    let filename = getFilenameFromContent(html);
 
     switch (format) {
       case "md":
@@ -548,8 +496,10 @@ export function TextEditAppComponent({
         break;
     }
 
-    // Use the generated filename, fallback to 'document' if empty
-    filename = filename || "document";
+    // Use "Untitled" as default name for unsaved files
+    const filename = currentFilePath
+      ? removeFileExtension(currentFilePath.split("/").pop() || "")
+      : "Untitled";
 
     const blob = new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);

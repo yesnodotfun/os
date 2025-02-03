@@ -43,8 +43,8 @@ export const appRegistry = {
   [SoundboardApp.id]: {
     ...SoundboardApp,
     windowConfig: {
-      defaultSize: { width: 800, height: 475 },
-      minSize: { width: 400, height: 300 },
+      defaultSize: { width: 650, height: 475 },
+      minSize: { width: 550, height: 375 },
     } as WindowConstraints,
   },
   [InternetExplorerApp.id]: {
