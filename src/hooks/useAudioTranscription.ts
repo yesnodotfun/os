@@ -129,7 +129,7 @@ export function useAudioTranscription({
   );
 
   const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current && isRecording) {
+    if (mediaRecorderRef.current) {
       if (silenceTimeoutRef.current) {
         clearTimeout(silenceTimeoutRef.current);
       }
@@ -142,13 +142,15 @@ export function useAudioTranscription({
 
       // Stop the media recorder
       try {
-        mediaRecorderRef.current.stop();
+        if (mediaRecorderRef.current.state === "recording") {
+          mediaRecorderRef.current.stop();
+          setIsRecording(false);
+        }
       } catch (error) {
         console.error("Error stopping media recorder:", error);
       }
-      setIsRecording(false);
     }
-  }, [isRecording]);
+  }, []);
 
   const analyzeFrequencies = useCallback(() => {
     if (!analyserRef.current) return;
@@ -161,6 +163,10 @@ export function useAudioTranscription({
     // Only update silence state if we have consecutive silent frames
     if (currentIsSilent) {
       silentFramesCountRef.current = (silentFramesCountRef.current || 0) + 1;
+      console.log(
+        "Silent frame detected, count:",
+        silentFramesCountRef.current
+      );
     } else {
       silentFramesCountRef.current = 0;
     }
@@ -170,6 +176,16 @@ export function useAudioTranscription({
     setIsSilent(isConsistentlySilent);
 
     const recordingDuration = Date.now() - recordingStartTimeRef.current;
+    const currentlyRecording = mediaRecorderRef.current?.state === "recording";
+
+    console.log("Recording state:", {
+      isRecording,
+      currentlyRecording,
+      recordingDuration,
+      isConsistentlySilent,
+      silenceStartTime: silenceStartRef.current,
+      mediaRecorderState: mediaRecorderRef.current?.state,
+    });
 
     // Send debug state on every analysis
     onDebugState?.({
@@ -184,15 +200,33 @@ export function useAudioTranscription({
     if (recordingDuration >= minRecordingDuration) {
       if (isConsistentlySilent && !silenceStartRef.current) {
         silenceStartRef.current = Date.now();
+        console.log("Starting silence timer at:", silenceStartRef.current);
       } else if (isConsistentlySilent && silenceStartRef.current) {
         const silenceDuration = Date.now() - silenceStartRef.current;
+        console.log(
+          "Current silence duration:",
+          silenceDuration,
+          "threshold:",
+          silenceThreshold
+        );
         if (silenceDuration >= silenceThreshold) {
-          if (isRecording && mediaRecorderRef.current) {
-            mediaRecorderRef.current.requestData();
+          console.log(
+            "Silence threshold reached, attempting to stop recording"
+          );
+          if (currentlyRecording) {
+            console.log("Stopping recording...");
+            mediaRecorderRef.current?.requestData();
             stopRecording();
+          } else {
+            console.log("Could not stop recording:", {
+              isRecording,
+              currentlyRecording,
+              hasMediaRecorder: !!mediaRecorderRef.current,
+            });
           }
         }
       } else if (!isConsistentlySilent && silenceStartRef.current) {
+        console.log("Resetting silence timer");
         silenceStartRef.current = null;
       }
     }
