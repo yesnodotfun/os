@@ -1,6 +1,6 @@
 import { BaseApp } from "@/apps/base/types";
 import { AppManagerState } from "@/apps/base/types";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { loadDesktopIconState } from "@/utils/storage";
 import { FileIcon } from "@/apps/finder/components/FileIcon";
 
@@ -30,6 +30,29 @@ export function Desktop({
 }: DesktopProps) {
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
   const [desktopIconState] = useState(() => loadDesktopIconState());
+  const [currentWallpaper, setCurrentWallpaper] = useState(wallpaperPath);
+
+  // Listen for wallpaper changes
+  useEffect(() => {
+    const handleWallpaperChange = (e: CustomEvent<string>) => {
+      setCurrentWallpaper(e.detail);
+    };
+
+    window.addEventListener(
+      "wallpaperChange",
+      handleWallpaperChange as EventListener
+    );
+    return () =>
+      window.removeEventListener(
+        "wallpaperChange",
+        handleWallpaperChange as EventListener
+      );
+  }, []);
+
+  // Update currentWallpaper when prop changes
+  useEffect(() => {
+    setCurrentWallpaper(wallpaperPath);
+  }, [wallpaperPath]);
 
   const getWallpaperStyles = (path: string): DesktopStyles => {
     const isTiled = path.includes("/wallpapers/tiles/");
@@ -44,7 +67,7 @@ export function Desktop({
 
   // Merge wallpaper styles with provided desktop styles
   const finalStyles = {
-    ...getWallpaperStyles(wallpaperPath),
+    ...getWallpaperStyles(currentWallpaper),
     ...desktopStyles,
   };
 
