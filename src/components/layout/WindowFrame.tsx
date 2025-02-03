@@ -271,6 +271,8 @@ export function WindowFrame({
         >
           <button
             onClick={handleClose}
+            onMouseDown={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
             className={`ml-2 w-4 h-4 bg-white border-2 border-black hover:bg-gray-200 active:bg-gray-300 flex items-center justify-center shadow-[0_0_0_1px_white] ${
               !isForeground && "invisible"
             }`}

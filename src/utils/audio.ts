@@ -9,7 +9,8 @@ export const createWaveform = async (
   for (let i = 0; i < binary.length; i++) {
     bytes[i] = binary.charCodeAt(i);
   }
-  const blob = new Blob([bytes], { type: "audio/webm" });
+  const mimeType = getSupportedMimeType();
+  const blob = new Blob([bytes], { type: mimeType });
 
   const wavesurfer = WaveSurfer.create({
     container,
@@ -41,18 +42,26 @@ export const createAudioFromBase64 = (base64Data: string): HTMLAudioElement => {
   for (let i = 0; i < binary.length; i++) {
     bytes[i] = binary.charCodeAt(i);
   }
-  const blob = new Blob([bytes], { type: "audio/webm" });
+  const mimeType = getSupportedMimeType();
+  const blob = new Blob([bytes], { type: mimeType });
   return new Audio(URL.createObjectURL(blob));
 };
 
 export const getSupportedMimeType = (): string => {
+  // Safari supports mp4 with AAC codec
   if (MediaRecorder.isTypeSupported("audio/mp4;codecs=mp4a.40.2")) {
     return "audio/mp4;codecs=mp4a.40.2";
   }
+  // Chrome and Firefox support webm with opus
   if (MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) {
     return "audio/webm;codecs=opus";
   }
-  return "audio/mp4";
+  // Fallback for Safari without codec specification
+  if (MediaRecorder.isTypeSupported("audio/mp4")) {
+    return "audio/mp4";
+  }
+  // Last resort fallback
+  return "audio/webm";
 };
 
 export const base64FromBlob = async (blob: Blob): Promise<string> => {

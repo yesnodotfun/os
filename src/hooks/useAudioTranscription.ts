@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from "react";
+import { getSupportedMimeType } from "@/utils/audio";
 
 // Constants
 const DEFAULT_SILENCE_THRESHOLD = 1000; // ms
@@ -42,16 +43,6 @@ export interface UseAudioTranscriptionProps {
   minRecordingDuration?: number; // Minimum recording duration in ms
 }
 
-const getSupportedMimeType = () => {
-  for (const format of SUPPORTED_AUDIO_FORMATS) {
-    if (MediaRecorder.isTypeSupported(format.mimeType)) {
-      console.log("Found supported audio type:", format.mimeType);
-      return format;
-    }
-  }
-  throw new Error("No supported audio MIME types found");
-};
-
 const analyzeAudioData = (analyser: AnalyserNode): AudioAnalysis => {
   const dataArray = new Uint8Array(analyser.frequencyBinCount);
   analyser.getByteFrequencyData(dataArray);
@@ -90,9 +81,6 @@ export function useAudioTranscription({
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number>();
-  const mimeTypeRef = useRef<(typeof SUPPORTED_AUDIO_FORMATS)[number] | null>(
-    null
-  );
 
   // Refs for silence detection
   const silenceStartRef = useRef<number | null>(null);
@@ -101,16 +89,15 @@ export function useAudioTranscription({
 
   const sendAudioForTranscription = useCallback(
     async (chunks: Blob[]) => {
-      if (chunks.length === 0 || !mimeTypeRef.current) return;
+      if (chunks.length === 0) return;
 
       try {
         // Validate audio content
         const totalSize = chunks.reduce((sum, chunk) => sum + chunk.size, 0);
         if (totalSize === 0) return;
 
-        const audioBlob = new Blob(chunks, {
-          type: mimeTypeRef.current.mimeType,
-        });
+        const mimeType = getSupportedMimeType();
+        const audioBlob = new Blob(chunks, { type: mimeType });
 
         // Validate blob
         if (!audioBlob.size) {
@@ -120,11 +107,9 @@ export function useAudioTranscription({
         onTranscriptionStart?.();
 
         const formData = new FormData();
-        formData.append(
-          "audio",
-          audioBlob,
-          `recording.${mimeTypeRef.current.extension}`
-        );
+        // Extract extension from MIME type (e.g., "audio/webm;codecs=opus" -> "webm")
+        const extension = mimeType.split(";")[0].split("/")[1];
+        formData.append("audio", audioBlob, `recording.${extension}`);
 
         const response = await fetch("/api/audio-transcribe", {
           method: "POST",
@@ -226,15 +211,9 @@ export function useAudioTranscription({
       // Start frequency analysis
       analyzeFrequencies();
 
-      const supportedType = getSupportedMimeType();
-      if (!supportedType) {
-        throw new Error("No supported audio type found");
-      }
-      mimeTypeRef.current = supportedType;
-      console.log("Using MIME type:", supportedType.mimeType);
-
+      const mimeType = getSupportedMimeType();
       const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: supportedType.mimeType,
+        mimeType,
         audioBitsPerSecond: 32000,
       });
       mediaRecorderRef.current = mediaRecorder;
