@@ -13,14 +13,6 @@ const DEFAULT_AUDIO_CONFIG = {
   noiseSuppression: true,
 } as const;
 
-const SUPPORTED_AUDIO_FORMATS = [
-  { mimeType: "audio/webm", extension: "webm" },
-  { mimeType: "audio/mp3", extension: "mp3" },
-  { mimeType: "audio/mpeg", extension: "mpeg" },
-  { mimeType: "audio/ogg", extension: "ogg" },
-  { mimeType: "audio/wav", extension: "wav" },
-] as const;
-
 // Types
 type AudioAnalysis = {
   frequencies: number[];
