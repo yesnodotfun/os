@@ -1,7 +1,7 @@
 import { Soundboard, WindowPosition, WindowSize } from "../types/types";
 import { AppManagerState, AppState } from "../apps/base/types";
 import { Message } from "ai";
-import { getWindowConfig, getMobileWindowSize } from "../config/windowConfig";
+import { getWindowConfig, getMobileWindowSize } from "../config/appRegistry";
 
 export const APP_STORAGE_KEYS = {
   soundboard: {
@@ -67,7 +67,7 @@ export const loadWindowState = (
         ? mobileY
         : 40 + Object.keys(APP_STORAGE_KEYS).indexOf(appId) * 20,
     },
-    size: isMobile ? getMobileWindowSize(config) : config.defaultSize,
+    size: isMobile ? getMobileWindowSize(appId) : config.defaultSize,
   };
 };
 

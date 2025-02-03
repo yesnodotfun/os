@@ -28,12 +28,6 @@ export function ControlPanelsAppComponent({
         onClose={onClose}
         isForeground={isForeground}
         appId="control-panels"
-        windowConstraints={{
-          minWidth: 280,
-          maxWidth: 800,
-          minHeight: 300,
-          maxHeight: window.innerHeight - 40,
-        }}
       >
         <div className="flex flex-col h-full bg-[#c0c0c0] p-2 w-full">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 p-4">

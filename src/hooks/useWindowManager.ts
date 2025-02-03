@@ -11,6 +11,7 @@ import {
   APP_STORAGE_KEYS,
 } from "../utils/storage";
 import { useSound, Sounds } from "./useSound";
+import { getWindowConfig } from "@/config/appRegistry";
 
 interface UseWindowManagerProps {
   appId: keyof typeof APP_STORAGE_KEYS;
@@ -18,6 +19,7 @@ interface UseWindowManagerProps {
 
 export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
   const initialState = loadWindowState(appId);
+  const config = getWindowConfig(appId);
   const adjustedPosition = { ...initialState.position };
 
   // Ensure window is visible within viewport
@@ -158,8 +160,8 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
           "touches" in e ? e.touches[0].clientY : (e as MouseEvent).clientY;
         const deltaX = clientX - resizeStart.x;
         const deltaY = clientY - resizeStart.y;
-        const minWidth = 260;
-        const minHeight = 400;
+        const minWidth = config.minSize?.width || 260;
+        const minHeight = config.minSize?.height || 200;
         const maxWidth = window.innerWidth;
         const maxHeight = window.innerHeight;
         const menuBarHeight = 30;
@@ -291,6 +293,7 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
     isMobile,
     playMoveStop,
     playResizeStop,
+    config,
   ]);
 
   return {

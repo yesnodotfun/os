@@ -85,9 +85,6 @@ export function ChatsAppComponent({
         isForeground={isForeground}
         appId="chats"
         windowConstraints={{
-          minWidth: 280,
-          maxWidth: 320,
-          minHeight: 300,
           maxHeight: window.innerWidth <= 768 ? 360 : undefined,
         }}
       >

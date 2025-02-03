@@ -5,7 +5,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useSound, Sounds } from "@/hooks/useSound";
 import { useEffect, useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
-import { getWindowConfig } from "@/config/windowConfig";
+import { getWindowConfig } from "@/config/appRegistry";
 
 interface WindowFrameProps {
   children: React.ReactNode;

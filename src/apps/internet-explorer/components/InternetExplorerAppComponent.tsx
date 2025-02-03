@@ -395,11 +395,6 @@ export function InternetExplorerAppComponent({
         onClose={onClose}
         isForeground={isForeground}
         appId="internet-explorer"
-        windowConstraints={{
-          minWidth: 260,
-          minHeight: 400,
-          maxWidth: "100vw",
-        }}
       >
         <div className="flex flex-col h-full w-full">
           <div className="flex flex-col gap-1 p-1 bg-gray-100 border-b border-black">

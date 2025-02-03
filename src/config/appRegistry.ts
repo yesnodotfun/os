@@ -6,15 +6,76 @@ import { MinesweeperApp } from "@/apps/minesweeper";
 import { SoundboardApp } from "@/apps/soundboard";
 import { FinderApp } from "@/apps/finder";
 
-// Registry of all available apps
+export interface WindowSize {
+  width: number;
+  height: number;
+}
+
+export interface WindowConstraints {
+  minSize?: WindowSize;
+  maxSize?: WindowSize;
+  defaultSize: WindowSize;
+  mobileDefaultSize?: WindowSize;
+}
+
+// Default window constraints for any app not specified
+const defaultWindowConstraints: WindowConstraints = {
+  defaultSize: { width: 730, height: 475 },
+  minSize: { width: 300, height: 200 },
+};
+
+// Registry of all available apps with their window configurations
 export const appRegistry = {
-  [FinderApp.id]: FinderApp,
-  [ControlPanelsApp.id]: ControlPanelsApp,
-  [SoundboardApp.id]: SoundboardApp,
-  [InternetExplorerApp.id]: InternetExplorerApp,
-  [ChatsApp.id]: ChatsApp,
-  [TextEditApp.id]: TextEditApp,
-  [MinesweeperApp.id]: MinesweeperApp,
+  [FinderApp.id]: {
+    ...FinderApp,
+    windowConfig: {
+      defaultSize: { width: 400, height: 300 },
+      minSize: { width: 300, height: 200 },
+    } as WindowConstraints,
+  },
+  [ControlPanelsApp.id]: {
+    ...ControlPanelsApp,
+    windowConfig: {
+      defaultSize: { width: 480, height: 400 },
+      minSize: { width: 320, height: 240 },
+    } as WindowConstraints,
+  },
+  [SoundboardApp.id]: {
+    ...SoundboardApp,
+    windowConfig: {
+      defaultSize: { width: 800, height: 475 },
+      minSize: { width: 400, height: 300 },
+    } as WindowConstraints,
+  },
+  [InternetExplorerApp.id]: {
+    ...InternetExplorerApp,
+    windowConfig: {
+      defaultSize: { width: 730, height: 600 },
+      minSize: { width: 400, height: 300 },
+    } as WindowConstraints,
+  },
+  [ChatsApp.id]: {
+    ...ChatsApp,
+    windowConfig: {
+      defaultSize: { width: 316, height: 360 },
+      minSize: { width: 280, height: 320 },
+    } as WindowConstraints,
+  },
+  [TextEditApp.id]: {
+    ...TextEditApp,
+    windowConfig: {
+      defaultSize: { width: 420, height: 475 },
+      minSize: { width: 300, height: 200 },
+    } as WindowConstraints,
+  },
+  [MinesweeperApp.id]: {
+    ...MinesweeperApp,
+    windowConfig: {
+      defaultSize: { width: 305, height: 380 },
+      minSize: { width: 305, height: 380 },
+      maxSize: { width: 305, height: 380 },
+    } as WindowConstraints,
+  },
 } as const;
 
 // Type for app IDs
@@ -52,4 +113,21 @@ export const getAppMetadata = (appId: AppId) => {
 // Helper function to get app component
 export const getAppComponent = (appId: AppId) => {
   return appRegistry[appId].component;
+};
+
+// Helper function to get window configuration
+export const getWindowConfig = (appId: AppId): WindowConstraints => {
+  return appRegistry[appId].windowConfig || defaultWindowConstraints;
+};
+
+// Helper function to get mobile window size
+export const getMobileWindowSize = (appId: AppId): WindowSize => {
+  const config = getWindowConfig(appId);
+  if (config.mobileDefaultSize) {
+    return config.mobileDefaultSize;
+  }
+  return {
+    width: window.innerWidth,
+    height: config.defaultSize.height,
+  };
 };

@@ -312,7 +312,6 @@ export function SoundboardAppComponent({
         isForeground={isForeground}
         appId="soundboard"
         windowConstraints={{
-          minWidth: 600,
           minHeight: window.innerWidth >= 768 ? 475 : 625,
         }}
       >
