@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
+import { loadUISoundsEnabled } from "@/utils/storage";
 
 // Global audio cache to store preloaded sounds
 const audioCache = new Map<string, HTMLAudioElement>();
@@ -40,6 +41,11 @@ export function useSound(soundPath: string, volume: number = 0.3) {
   }, [soundPath, volume]);
 
   const play = useCallback(() => {
+    // Check if UI sounds are enabled
+    if (!loadUISoundsEnabled()) {
+      return;
+    }
+
     const audio = audioRef.current;
     if (!audio) {
       return;

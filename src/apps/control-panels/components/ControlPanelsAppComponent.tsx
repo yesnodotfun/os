@@ -9,15 +9,23 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { WallpaperPicker } from "./WallpaperPicker";
 import { AppProps } from "@/apps/base/types";
 import {
   loadUISoundsEnabled,
   saveUISoundsEnabled,
-  loadChatSynthEnabled,
-  saveChatSynthEnabled,
   clearAllAppStates,
+  loadSynthPreset,
+  saveSynthPreset,
 } from "@/utils/storage";
+import { SYNTH_PRESETS } from "@/hooks/useChatSynth";
 
 type PhotoCategory =
   | "3d_graphics"
@@ -127,12 +135,12 @@ export function ControlPanelsAppComponent({
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
   const [uiSoundsEnabled, setUiSoundsEnabled] = useState(true);
-  const [chatSynthEnabled, setChatSynthEnabled] = useState(true);
+  const [synthPreset, setSynthPreset] = useState("classic");
   const [resetMessage, setResetMessage] = useState("");
 
   useEffect(() => {
     setUiSoundsEnabled(loadUISoundsEnabled());
-    setChatSynthEnabled(loadChatSynthEnabled());
+    setSynthPreset(loadSynthPreset() || "classic");
   }, []);
 
   const handleUISoundsChange = (enabled: boolean) => {
@@ -140,9 +148,9 @@ export function ControlPanelsAppComponent({
     saveUISoundsEnabled(enabled);
   };
 
-  const handleChatSynthChange = (enabled: boolean) => {
-    setChatSynthEnabled(enabled);
-    saveChatSynthEnabled(enabled);
+  const handleSynthPresetChange = (value: string) => {
+    setSynthPreset(value);
+    saveSynthPreset(value);
   };
 
   const handleResetAll = () => {
@@ -198,11 +206,22 @@ export function ControlPanelsAppComponent({
                   />
                 </div>
                 <div className="flex items-center justify-between">
-                  <Label>Chat Synthesizer</Label>
-                  <Switch
-                    checked={chatSynthEnabled}
-                    onCheckedChange={handleChatSynthChange}
-                  />
+                  <Label>Chat synth</Label>
+                  <Select
+                    value={synthPreset}
+                    onValueChange={handleSynthPresetChange}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Select a preset" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(SYNTH_PRESETS).map(([key, preset]) => (
+                        <SelectItem key={key} value={key}>
+                          {preset.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </TabsContent>

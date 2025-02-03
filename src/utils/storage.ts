@@ -534,3 +534,13 @@ export const clearAllAppStates = (): void => {
     });
   });
 };
+
+const SYNTH_PRESET_KEY = "synthPreset";
+
+export function loadSynthPreset(): string | null {
+  return localStorage.getItem(SYNTH_PRESET_KEY);
+}
+
+export function saveSynthPreset(preset: string): void {
+  localStorage.setItem(SYNTH_PRESET_KEY, preset);
+}
