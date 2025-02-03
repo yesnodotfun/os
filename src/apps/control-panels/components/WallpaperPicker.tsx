@@ -1,5 +1,11 @@
 import { useState, useEffect } from "react";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useWallpaper } from "@/hooks/useWallpaper";
 
@@ -196,26 +202,35 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
     }
   }, [currentWallpaper]);
 
-  return (
-    <Tabs
-      value={selectedCategory}
-      onValueChange={(value) =>
-        setSelectedCategory(value as typeof selectedCategory)
-      }
-    >
-      <TabsList>
-        <TabsTrigger value="tiles">Tiled Patterns</TabsTrigger>
-        {PHOTO_CATEGORIES.map((category) => (
-          <TabsTrigger key={category} value={category}>
-            {category
-              .split("_")
-              .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-              .join(" ")}
-          </TabsTrigger>
-        ))}
-      </TabsList>
+  const formatCategoryLabel = (category: string) => {
+    return category
+      .split("_")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  };
 
-      <ScrollArea className="h-full mt-2 p-2">
+  return (
+    <div className="space-y-4">
+      <Select
+        value={selectedCategory}
+        onValueChange={(value) =>
+          setSelectedCategory(value as typeof selectedCategory)
+        }
+      >
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder="Select a category" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="tiles">Tiled Patterns</SelectItem>
+          {PHOTO_CATEGORIES.map((category) => (
+            <SelectItem key={category} value={category}>
+              {formatCategoryLabel(category)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <ScrollArea className="h-full">
         <div
           className={`grid gap-2 ${
             selectedCategory === "tiles"
@@ -264,6 +279,6 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
           )}
         </div>
       </ScrollArea>
-    </Tabs>
+    </div>
   );
 }

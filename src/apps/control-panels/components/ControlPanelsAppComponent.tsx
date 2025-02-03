@@ -3,12 +3,12 @@ import { WindowFrame } from "@/components/layout/WindowFrame";
 import { ControlPanelsMenuBar } from "./ControlPanelsMenuBar";
 import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
+import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { helpItems, appMetadata } from "..";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Select,
   SelectContent,
@@ -134,9 +134,9 @@ export function ControlPanelsAppComponent({
 }: AppProps) {
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
+  const [isConfirmResetOpen, setIsConfirmResetOpen] = useState(false);
   const [uiSoundsEnabled, setUiSoundsEnabled] = useState(true);
   const [synthPreset, setSynthPreset] = useState("classic");
-  const [resetMessage, setResetMessage] = useState("");
 
   useEffect(() => {
     setUiSoundsEnabled(loadUISoundsEnabled());
@@ -154,11 +154,12 @@ export function ControlPanelsAppComponent({
   };
 
   const handleResetAll = () => {
+    setIsConfirmResetOpen(true);
+  };
+
+  const handleConfirmReset = () => {
     clearAllAppStates();
-    setResetMessage(
-      "All app states have been reset. Please restart the application."
-    );
-    setTimeout(() => setResetMessage(""), 5000);
+    window.location.reload();
   };
 
   if (!isWindowOpen) return null;
@@ -176,17 +177,32 @@ export function ControlPanelsAppComponent({
         isForeground={isForeground}
         appId="control-panels"
       >
-        <div className="flex flex-col h-full bg-[#c0c0c0] p-4 w-full">
-          <Tabs defaultValue="appearance" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-4">
-              <TabsTrigger value="appearance">Appearance</TabsTrigger>
-              <TabsTrigger value="sound">Sound</TabsTrigger>
-              <TabsTrigger value="general">General</TabsTrigger>
+        <div className="flex flex-col h-full bg-[#E3E3E3] p-4 w-full">
+          <Tabs defaultValue="appearance" className="w-full antialiased">
+            <TabsList className="flex w-full h-6 space-x-0.5 bg-[#E3E3E3] border-b border-[#808080] shadow-none">
+              <TabsTrigger
+                value="appearance"
+                className="relative flex-1 h-6 px-2 -mb-[1px] rounded-t bg-[#D4D4D4] data-[state=active]:bg-[#E3E3E3] border border-[#808080] data-[state=active]:border-b-[#E3E3E3] data-[state=active]:border-b-0 antialiased shadow-none!"
+              >
+                Appearance
+              </TabsTrigger>
+              <TabsTrigger
+                value="sound"
+                className="relative flex-1 h-6 px-2 -mb-[1px] rounded-t bg-[#D4D4D4] data-[state=active]:bg-[#E3E3E3] border border-[#808080] data-[state=active]:border-b-[#E3E3E3] data-[state=active]:border-b-0 antialiased shadow-none!"
+              >
+                Sound
+              </TabsTrigger>
+              <TabsTrigger
+                value="general"
+                className="relative flex-1 h-6 px-2 -mb-[1px] rounded-t bg-[#D4D4D4] data-[state=active]:bg-[#E3E3E3] border border-[#808080] data-[state=active]:border-b-[#E3E3E3] data-[state=active]:border-b-0 antialiased shadow-none!"
+              >
+                General
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent
               value="appearance"
-              className="p-4 bg-[#E3E3E3] border border-[#888888] overflow-x-hidden"
+              className="mt-0 p-4 bg-[#E3E3E3] border border-t-0 border-[#808080]"
             >
               <div className="space-y-4">
                 <WallpaperPicker />
@@ -195,56 +211,57 @@ export function ControlPanelsAppComponent({
 
             <TabsContent
               value="sound"
-              className="p-4 bg-[#E3E3E3] border border-[#888888]"
+              className="mt-0 p-4 bg-[#E3E3E3] border border-t-0 border-[#808080]"
             >
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label>UI Sounds</Label>
-                  <Switch
-                    checked={uiSoundsEnabled}
-                    onCheckedChange={handleUISoundsChange}
-                  />
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label>UI Sounds</Label>
+                    <Switch
+                      checked={uiSoundsEnabled}
+                      onCheckedChange={handleUISoundsChange}
+                      className="data-[state=checked]:bg-[#000000]"
+                    />
+                  </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <Label>Chat synth</Label>
-                  <Select
-                    value={synthPreset}
-                    onValueChange={handleSynthPresetChange}
-                  >
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Select a preset" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(SYNTH_PRESETS).map(([key, preset]) => (
-                        <SelectItem key={key} value={key}>
-                          {preset.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label>Chat synth</Label>
+                    <Select
+                      value={synthPreset}
+                      onValueChange={handleSynthPresetChange}
+                    >
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Select a preset" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(SYNTH_PRESETS).map(([key, preset]) => (
+                          <SelectItem key={key} value={key}>
+                            {preset.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
             </TabsContent>
 
             <TabsContent
               value="general"
-              className="p-4 bg-[#E3E3E3] border border-[#888888]"
+              className="mt-0 p-4 bg-[#E3E3E3] border border-t-0 border-[#808080]"
             >
               <div className="space-y-4">
-                <div>
-                  <Button variant="destructive" onClick={handleResetAll}>
+                <div className="space-y-2">
+                  <Button variant="retro" onClick={handleResetAll}>
                     Reset All App States
                   </Button>
-                  <p className="text-sm text-gray-500 mt-2">
-                    This will clear all saved settings and states. You'll need
-                    to restart the application.
+                  <p className="text-[11px] text-gray-600 font-['Geneva-12']">
+                    This will clear all saved settings, documents, and states.
+                    You'll need to restart the application.
                   </p>
                 </div>
-                {resetMessage && (
-                  <Alert>
-                    <AlertDescription>{resetMessage}</AlertDescription>
-                  </Alert>
-                )}
               </div>
             </TabsContent>
           </Tabs>
@@ -260,6 +277,13 @@ export function ControlPanelsAppComponent({
           isOpen={isAboutDialogOpen}
           onOpenChange={setIsAboutDialogOpen}
           metadata={appMetadata}
+        />
+        <ConfirmDialog
+          isOpen={isConfirmResetOpen}
+          onOpenChange={setIsConfirmResetOpen}
+          onConfirm={handleConfirmReset}
+          title="Reset All App States"
+          description="Are you sure you want to reset all app states? This will clear all saved settings, documents, and states. The application will reload after reset."
         />
       </WindowFrame>
     </>

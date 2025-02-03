@@ -49,8 +49,12 @@ export function ConfirmDialog({
               src="/icons/warn.png"
               alt="Warning"
               className="w-[32px] h-[32px] mt-0.5 [image-rendering:pixelated]"
+              width={32}
+              height={32}
             />
-            <p className="text-gray-900 mb-2 leading-tight">{description}</p>
+            <p className="text-gray-900 mb-2 leading-tight font-[Geneva-12] antialiased text-[12px]">
+              {description}
+            </p>
           </div>
           <DialogFooter className="mt-4 flex flex-col gap-1 sm:flex-row">
             <Button

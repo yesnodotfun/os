@@ -528,8 +528,9 @@ export const saveChatSynthEnabled = (enabled: boolean): void => {
 };
 
 export const clearAllAppStates = (): void => {
-  Object.values(APP_STORAGE_KEYS).forEach((keyGroup) => {
-    Object.values(keyGroup).forEach((key) => {
+  // Clear all app-related items from local storage
+  Object.values(APP_STORAGE_KEYS).forEach((appKeys) => {
+    Object.values(appKeys).forEach((key) => {
       localStorage.removeItem(key);
     });
   });

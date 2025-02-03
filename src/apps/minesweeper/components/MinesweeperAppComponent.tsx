@@ -322,7 +322,11 @@ export function MinesweeperAppComponent({
                   <Button
                     variant="default"
                     size="sm"
-                    onClick={() => setIsNewGameDialogOpen(true)}
+                    onClick={() =>
+                      gameOver || gameWon
+                        ? startNewGame()
+                        : setIsNewGameDialogOpen(true)
+                    }
                     className="aspect-square h-[34px] flex items-center justify-center text-xl leading-none bg-[#c0c0c0] hover:bg-[#d0d0d0] border-2 border-t-white border-l-white border-r-gray-800 border-b-gray-800 active:border active:border-gray-600 shadow-none p-0"
                   >
                     {gameOver ? "💀" : gameWon ? "😎" : "🙂"}

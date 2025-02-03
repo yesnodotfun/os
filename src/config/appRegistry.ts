@@ -65,15 +65,15 @@ export const appRegistry = {
   [MinesweeperApp.id]: {
     ...MinesweeperApp,
     windowConfig: {
-      defaultSize: { width: 305, height: 380 },
-      minSize: { width: 305, height: 380 },
-      maxSize: { width: 305, height: 380 },
+      defaultSize: { width: 305, height: 400 },
+      minSize: { width: 305, height: 400 },
+      maxSize: { width: 305, height: 400 },
     } as WindowConstraints,
   },
   [ControlPanelsApp.id]: {
     ...ControlPanelsApp,
     windowConfig: {
-      defaultSize: { width: 365, height: 420 },
+      defaultSize: { width: 365, height: 400 },
       minSize: { width: 320, height: 240 },
     } as WindowConstraints,
   },
