@@ -22,18 +22,23 @@ export function ChatInput({
 }: ChatInputProps) {
   const [isFocused, setIsFocused] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const [transcriptionError, setTranscriptionError] = useState<string | null>(
+    null
+  );
 
   const handleTranscriptionComplete = (text: string) => {
     setIsTranscribing(false);
+    setTranscriptionError(null);
+
+    if (!text) {
+      setTranscriptionError("No transcription text received");
+      return;
+    }
+
     const inputEvent = {
-      target: { value: text },
+      target: { value: input + (input.length > 0 ? " " : "") + text.trim() },
     } as React.ChangeEvent<HTMLInputElement>;
     onInputChange(inputEvent);
-    // Automatically submit after transcription
-    const submitEvent = new Event(
-      "submit"
-    ) as unknown as React.FormEvent<HTMLFormElement>;
-    onSubmit(submitEvent);
   };
 
   const handleTranscriptionStart = () => {
@@ -69,6 +74,11 @@ export function ChatInput({
               silenceThreshold={500}
               className="w-full h-full flex items-center justify-center"
             />
+            {transcriptionError && (
+              <div className="absolute top-full mt-1 right-0 bg-red-100 text-red-600 text-xs p-1 rounded shadow-sm">
+                {transcriptionError}
+              </div>
+            )}
           </div>
         </motion.div>
 
