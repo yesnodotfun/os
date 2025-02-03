@@ -18,6 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { AudioInputButton } from "@/components/ui/audio-input-button";
+import { ChevronDown } from "lucide-react";
 
 // Function to get a filename from content
 const getFilenameFromContent = (html: string): string => {
@@ -373,18 +374,18 @@ export function TextEditAppComponent({
               <div className="flex">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="w-[120px] h-[22px] flex items-center justify-between px-2 bg-white border border-[#808080] text-sm">
+                    <button className="w-[80px] h-[22px] flex items-center justify-between px-2 bg-white border border-[#808080] text-sm">
                       {editor?.isActive("heading", { level: 1 })
-                        ? "Heading 1"
+                        ? "H1"
                         : editor?.isActive("heading", { level: 2 })
-                        ? "Heading 2"
+                        ? "H2"
                         : editor?.isActive("heading", { level: 3 })
-                        ? "Heading 3"
+                        ? "H3"
                         : "Text"}
-                      <span className="ml-1">▼</span>
+                      <ChevronDown className="ml-1 h-3 w-3" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-[120px]">
+                  <DropdownMenuContent align="start" className="w-[80px]">
                     <DropdownMenuItem
                       onClick={() =>
                         editor?.chain().focus().setParagraph().run()
@@ -393,7 +394,7 @@ export function TextEditAppComponent({
                         editor?.isActive("paragraph") ? "bg-gray-200" : ""
                       }`}
                     >
-                      Normal Text
+                      Text
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() =>
@@ -409,7 +410,7 @@ export function TextEditAppComponent({
                           : ""
                       }`}
                     >
-                      Heading 1
+                      H1
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() =>
@@ -425,7 +426,7 @@ export function TextEditAppComponent({
                           : ""
                       }`}
                     >
-                      Heading 2
+                      H2
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() =>
@@ -441,7 +442,7 @@ export function TextEditAppComponent({
                           : ""
                       }`}
                     >
-                      Heading 3
+                      H3
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
