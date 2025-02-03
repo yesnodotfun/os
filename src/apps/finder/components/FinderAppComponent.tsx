@@ -10,6 +10,7 @@ import { useFileSystem } from "../hooks/useFileSystem";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { appMetadata, helpItems } from "../index";
 
 export function FinderAppComponent({
   onClose,
@@ -171,37 +172,12 @@ export function FinderAppComponent({
         isOpen={isHelpDialogOpen}
         onOpenChange={setIsHelpDialogOpen}
         appName="Finder"
-        helpItems={[
-          {
-            icon: "🔍",
-            title: "Browse Files",
-            description: "Navigate through your files and folders",
-          },
-          {
-            icon: "📁",
-            title: "Create Folders",
-            description: "Organize your files with new folders",
-          },
-          {
-            icon: "🗑️",
-            title: "Delete Files",
-            description: "Remove unwanted files and folders",
-          },
-        ]}
+        helpItems={helpItems}
       />
       <AboutDialog
         isOpen={isAboutDialogOpen}
         onOpenChange={setIsAboutDialogOpen}
-        metadata={{
-          name: "Finder",
-          version: "1.0.0",
-          creator: {
-            name: "Ryo",
-            url: "https://github.com/ryoid",
-          },
-          github: "https://github.com/ryoid/soundboard",
-          icon: "🔍",
-        }}
+        metadata={appMetadata}
       />
       <ConfirmDialog
         isOpen={isEmptyTrashDialogOpen}

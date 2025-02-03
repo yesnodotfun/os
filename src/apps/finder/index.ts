@@ -1,6 +1,17 @@
 import { BaseApp } from "../base/types";
 import { FinderAppComponent } from "./components/FinderAppComponent";
 
+export const appMetadata = {
+  name: "Finder",
+  version: "1.0.0",
+  creator: {
+    name: "Ryo",
+    url: "https://github.com/ryokun6",
+  },
+  github: "https://github.com/ryokun6/soundboard",
+  icon: "/icons/mac.png",
+};
+
 export const helpItems = [
   {
     icon: "🔍",
@@ -18,17 +29,6 @@ export const helpItems = [
     description: "Remove unwanted files and folders",
   },
 ];
-
-export const appMetadata = {
-  name: "Finder",
-  version: "1.0.0",
-  creator: {
-    name: "Ryo",
-    url: "https://github.com/ryoid",
-  },
-  github: "https://github.com/ryoid/soundboard",
-  icon: "🔍",
-};
 
 export const FinderApp: BaseApp = {
   id: "finder",
