@@ -89,7 +89,7 @@ export function ChatInput({
               onTranscriptionComplete={handleTranscriptionComplete}
               onTranscriptionStart={handleTranscriptionStart}
               isLoading={isTranscribing}
-              silenceThreshold={2000}
+              silenceThreshold={1200}
               className="w-full h-full flex items-center justify-center"
             />
             {transcriptionError && (

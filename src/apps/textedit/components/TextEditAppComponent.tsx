@@ -548,6 +548,7 @@ export function TextEditAppComponent({
                   onTranscriptionStart={handleTranscriptionStart}
                   isLoading={isTranscribing}
                   className="w-[26px] h-[22px] flex items-center justify-center"
+                  silenceThreshold={10000}
                 />
               </div>
             </div>

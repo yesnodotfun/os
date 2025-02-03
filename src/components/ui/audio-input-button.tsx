@@ -15,7 +15,7 @@ export function AudioInputButton({
   onTranscriptionStart,
   isLoading = false,
   className = "",
-  silenceThreshold = 2000,
+  silenceThreshold = 1000,
 }: AudioInputButtonProps) {
   const { isRecording, frequencies, isSilent, startRecording, stopRecording } =
     useAudioTranscription({
