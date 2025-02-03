@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { appMetadata, helpItems } from "../index";
+import { calculateStorageSpace } from "@/utils/storage";
 
 export function FinderAppComponent({
   onClose,
@@ -41,6 +42,18 @@ export function FinderAppComponent({
     canNavigateBack,
     canNavigateForward,
   } = useFileSystem();
+
+  // Add storage space state
+  const [storageSpace, setStorageSpace] = useState(calculateStorageSpace());
+
+  // Update storage space periodically
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setStorageSpace(calculateStorageSpace());
+    }, 5000); // Update every 5 seconds
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Handle initial path from launch event
   useEffect(() => {
@@ -165,6 +178,15 @@ export function FinderAppComponent({
                 viewType={viewType}
               />
             )}
+          </div>
+          <div className="flex items-center justify-between px-2 py-1 text-[10px] font-[Geneva-12] antialiased bg-gray-100 border-t border-gray-300">
+            <span>
+              {sortedFiles.length} item{sortedFiles.length !== 1 ? "s" : ""}
+            </span>
+            <span>
+              {Math.round((storageSpace.available / 1024 / 1024) * 10) / 10} MB
+              available
+            </span>
           </div>
         </div>
       </WindowFrame>

@@ -25,6 +25,7 @@ export const APP_STORAGE_KEYS = {
     WINDOW: "textedit:window",
     CONTENT: "textedit:content",
     HAS_SEEN_HELP: "textedit:hasSeenHelp",
+    LAST_FILE_PATH: "textedit:last-file-path",
   },
   "control-panels": {
     WINDOW: "control-panels:window",
@@ -446,4 +447,34 @@ export const loadDesktopIconState = (): DesktopIconState => {
 
 export const saveDesktopIconState = (state: DesktopIconState): void => {
   localStorage.setItem(DESKTOP_ICONS_KEY, JSON.stringify(state));
+};
+
+export const calculateStorageSpace = () => {
+  let total = 0;
+  let used = 0;
+
+  try {
+    // Estimate total space (typical quota is around 10MB)
+    total = 10 * 1024 * 1024; // 10MB in bytes
+
+    // Calculate used space
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key) {
+        const value = localStorage.getItem(key);
+        if (value) {
+          used += value.length * 2; // Multiply by 2 for UTF-16 encoding
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Error calculating storage space:", error);
+  }
+
+  return {
+    total,
+    used,
+    available: total - used,
+    percentUsed: Math.round((used / total) * 100),
+  };
 };

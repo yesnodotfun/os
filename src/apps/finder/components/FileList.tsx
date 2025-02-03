@@ -45,17 +45,17 @@ export function FileList({
       <div className="font-[Geneva-12] antialiased">
         <Table>
           <TableHeader>
-            <TableRow className="text-[10px] border-none">
-              <TableHead className="font-semibold bg-gray-100/50">
+            <TableRow className="text-[9px] border-none font-normal">
+              <TableHead className="font-normal bg-gray-100/50 h-[28px]">
                 Name
               </TableHead>
-              <TableHead className="font-semibold bg-gray-100/50">
+              <TableHead className="font-normal bg-gray-100/50 h-[28px]">
                 Type
               </TableHead>
-              <TableHead className="font-semibold bg-gray-100/50">
+              <TableHead className="font-normal bg-gray-100/50 h-[28px]">
                 Size
               </TableHead>
-              <TableHead className="font-semibold bg-gray-100/50">
+              <TableHead className="font-normal bg-gray-100/50 h-[28px]">
                 Modified
               </TableHead>
             </TableRow>
@@ -67,7 +67,7 @@ export function FileList({
                 className={`border-none hover:bg-gray-100/50 transition-colors cursor-default ${
                   selectedFile?.path === file.path
                     ? "bg-black text-white hover:bg-black"
-                    : "odd:bg-gray-50/50"
+                    : "odd:bg-gray-200/50"
                 }`}
                 onClick={() => onFileSelect(file)}
                 onDoubleClick={() => handleFileOpen(file)}

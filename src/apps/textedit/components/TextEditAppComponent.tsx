@@ -15,6 +15,7 @@ import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { appMetadata, helpItems } from "..";
 import { APP_STORAGE_KEYS } from "@/utils/storage";
 import { SlashCommands } from "../extensions/SlashCommands";
+import { useFileSystem } from "@/apps/finder/hooks/useFileSystem";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +24,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { AudioInputButton } from "@/components/ui/audio-input-button";
 import { ChevronDown } from "lucide-react";
+import { useLaunchApp } from "@/hooks/useLaunchApp";
 
 // Function to get a filename from content
 const getFilenameFromContent = (html: string): string => {
@@ -208,6 +210,8 @@ export function TextEditAppComponent({
   const [saveFileName, setSaveFileName] = useState("");
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { files, handleFileOpen } = useFileSystem("/Documents");
+  const launchApp = useLaunchApp();
 
   const editor = useEditor({
     extensions: [
@@ -235,64 +239,38 @@ export function TextEditAppComponent({
       // Always save to localStorage for recovery
       localStorage.setItem(APP_STORAGE_KEYS.textedit.CONTENT, content);
       setHasUnsavedChanges(true);
-
-      // If file was opened from filesystem, auto-save it
-      if (currentFilePath?.startsWith("/Documents/")) {
-        // Debounce the save to avoid too many events
-        const timeoutId = setTimeout(() => {
-          window.dispatchEvent(
-            new CustomEvent("saveFile", {
-              detail: {
-                name: currentFilePath.split("/").pop() || "Untitled",
-                path: currentFilePath,
-                content: content,
-                icon: "/icons/file-text.png",
-                isDirectory: false,
-              },
-            })
-          );
-          setHasUnsavedChanges(false);
-        }, 500); // 500ms debounce
-
-        return () => clearTimeout(timeoutId);
-      }
     },
   });
 
+  // Initial load - try to restore last opened file or pending content
   useEffect(() => {
-    // Handle file opening from Finder
-    const handleFileOpenFromFinder = (
-      event: CustomEvent<{ path: string; content: string }>
-    ) => {
-      if (editor && event.detail.path.startsWith("/Documents/")) {
-        // Clear any existing content
-        editor.commands.clearContent();
-
-        // Convert markdown to HTML if it's a markdown file
-        const content = event.detail.path.endsWith(".md")
-          ? markdownToHtml(event.detail.content)
-          : event.detail.content;
-
-        editor.commands.setContent(content);
-        setCurrentFilePath(event.detail.path);
-        setHasUnsavedChanges(false);
-        // Store in localStorage for recovery
-        localStorage.setItem(APP_STORAGE_KEYS.textedit.CONTENT, content);
-      }
-    };
-
-    window.addEventListener(
-      "openFile",
-      handleFileOpenFromFinder as EventListener
-    );
-
-    return () => {
-      window.removeEventListener(
-        "openFile",
-        handleFileOpenFromFinder as EventListener
+    if (editor) {
+      const lastFilePath = localStorage.getItem(
+        APP_STORAGE_KEYS.textedit.LAST_FILE_PATH
       );
-    };
-  }, [editor]);
+
+      if (lastFilePath?.startsWith("/Documents/")) {
+        const file = files.find((f) => f.path === lastFilePath);
+        if (file?.content) {
+          const content = lastFilePath.endsWith(".md")
+            ? markdownToHtml(file.content)
+            : file.content;
+          editor.commands.setContent(content);
+          setCurrentFilePath(lastFilePath);
+          setHasUnsavedChanges(false);
+        }
+      } else {
+        // If no last file, load pending content if any
+        const savedContent = localStorage.getItem(
+          APP_STORAGE_KEYS.textedit.CONTENT
+        );
+        if (savedContent) {
+          editor.commands.setContent(savedContent);
+          editor.commands.focus("end");
+        }
+      }
+    }
+  }, [editor, files]);
 
   // Check for pending file open when window becomes active
   useEffect(() => {
@@ -313,6 +291,12 @@ export function TextEditAppComponent({
               editor.commands.setContent(processedContent);
               setCurrentFilePath(path);
               setHasUnsavedChanges(false);
+              // Store the file path for next time
+              localStorage.setItem(
+                APP_STORAGE_KEYS.textedit.LAST_FILE_PATH,
+                path
+              );
+              // Store content in case app crashes
               localStorage.setItem(
                 APP_STORAGE_KEYS.textedit.CONTENT,
                 processedContent
@@ -327,19 +311,6 @@ export function TextEditAppComponent({
       }
     }
   }, [isForeground, editor]);
-
-  // Load content from localStorage only if no file is currently open
-  useEffect(() => {
-    if (editor && !currentFilePath) {
-      const savedContent = localStorage.getItem(
-        APP_STORAGE_KEYS.textedit.CONTENT
-      );
-      if (savedContent) {
-        editor.commands.setContent(savedContent);
-        editor.commands.focus("end");
-      }
-    }
-  }, [editor, currentFilePath]);
 
   const handleTranscriptionComplete = (text: string) => {
     setIsTranscribing(false);
@@ -376,6 +347,7 @@ export function TextEditAppComponent({
     if (editor) {
       editor.commands.clearContent();
       localStorage.removeItem(APP_STORAGE_KEYS.textedit.CONTENT);
+      localStorage.removeItem(APP_STORAGE_KEYS.textedit.LAST_FILE_PATH);
       setCurrentFilePath(null);
       setHasUnsavedChanges(false);
 
@@ -391,6 +363,12 @@ export function TextEditAppComponent({
             editor.commands.setContent(processedContent);
             setCurrentFilePath(path);
             setHasUnsavedChanges(false);
+            // Store the file path for next time
+            localStorage.setItem(
+              APP_STORAGE_KEYS.textedit.LAST_FILE_PATH,
+              path
+            );
+            // Store content in case app crashes
             localStorage.setItem(
               APP_STORAGE_KEYS.textedit.CONTENT,
               processedContent
@@ -412,8 +390,25 @@ export function TextEditAppComponent({
       setIsSaveDialogOpen(true);
       setSaveFileName(getFilenameFromContent(editor.getHTML()) || "Untitled");
     } else {
-      // File already exists, just save it
-      localStorage.setItem(APP_STORAGE_KEYS.textedit.CONTENT, editor.getHTML());
+      const content = editor.getHTML();
+      const fileName = currentFilePath.split("/").pop() || "Untitled";
+
+      // Use handleFileOpen to save the file
+      handleFileOpen({
+        name: fileName,
+        path: currentFilePath,
+        content: content,
+        icon: "/icons/file-text.png",
+        isDirectory: false,
+      });
+
+      // Store content in case app crashes
+      localStorage.setItem(APP_STORAGE_KEYS.textedit.CONTENT, content);
+      // Store the file path for next time
+      localStorage.setItem(
+        APP_STORAGE_KEYS.textedit.LAST_FILE_PATH,
+        currentFilePath
+      );
       setHasUnsavedChanges(false);
     }
   };
@@ -426,21 +421,19 @@ export function TextEditAppComponent({
       fileName.includes(".") ? "" : ".txt"
     }`;
 
-    // Update the simulated filesystem by dispatching an event
-    window.dispatchEvent(
-      new CustomEvent("saveFile", {
-        detail: {
-          name: fileName,
-          path: filePath,
-          content: content,
-          icon: "/icons/file-text.png",
-          isDirectory: false,
-        },
-      })
-    );
+    // Use handleFileOpen to save the file
+    handleFileOpen({
+      name: fileName,
+      path: filePath,
+      content: content,
+      icon: "/icons/file-text.png",
+      isDirectory: false,
+    });
 
-    // Save the file
+    // Store content in case app crashes
     localStorage.setItem(APP_STORAGE_KEYS.textedit.CONTENT, content);
+    // Store the file path for next time
+    localStorage.setItem(APP_STORAGE_KEYS.textedit.LAST_FILE_PATH, filePath);
     setCurrentFilePath(filePath);
     setHasUnsavedChanges(false);
     setIsSaveDialogOpen(false);
@@ -516,15 +509,7 @@ export function TextEditAppComponent({
   };
 
   const handleImportFile = () => {
-    // Launch Finder with a specific target path
-    window.dispatchEvent(
-      new CustomEvent("launchApp", {
-        detail: {
-          appId: "finder",
-          initialPath: "/Documents", // Add initialPath to the launch event
-        },
-      })
-    );
+    launchApp("finder", { initialPath: "/Documents" });
   };
 
   return (

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { FileItem } from "../components/FileList";
 import { APP_STORAGE_KEYS } from "@/utils/storage";
 import { getNonFinderApps } from "@/config/appRegistry";
+import { useLaunchApp } from "@/hooks/useLaunchApp";
 
 // Sample documents
 interface Document {
@@ -106,6 +107,7 @@ export function useFileSystem(initialPath: string = "/") {
   const [trashItems, setTrashItems] = useState<TrashItem[]>(loadTrashItems());
   const [history, setHistory] = useState<string[]>([initialPath]);
   const [historyIndex, setHistoryIndex] = useState(0);
+  const launchApp = useLaunchApp();
 
   useEffect(() => {
     // Listen for file save events
@@ -221,23 +223,24 @@ export function useFileSystem(initialPath: string = "/") {
     // Handle opening files based on their location
     if (file.path.startsWith("/Applications/")) {
       // Launch the corresponding app
-      const appState = localStorage.getItem(
-        APP_STORAGE_KEYS[file.appId as keyof typeof APP_STORAGE_KEYS]?.WINDOW
-      );
-      if (!appState) {
-        // Set initial window state if not exists
-        localStorage.setItem(
-          APP_STORAGE_KEYS[file.appId as keyof typeof APP_STORAGE_KEYS]?.WINDOW,
-          JSON.stringify({
-            position: { x: 100, y: 100 },
-            size: { width: 600, height: 400 },
-          })
+      if (file.appId) {
+        const appState = localStorage.getItem(
+          APP_STORAGE_KEYS[file.appId as keyof typeof APP_STORAGE_KEYS]?.WINDOW
         );
+        if (!appState) {
+          // Set initial window state if not exists
+          localStorage.setItem(
+            APP_STORAGE_KEYS[file.appId as keyof typeof APP_STORAGE_KEYS]
+              ?.WINDOW,
+            JSON.stringify({
+              position: { x: 100, y: 100 },
+              size: { width: 600, height: 400 },
+            })
+          );
+        }
+        // Dispatch app launch event
+        launchApp(file.appId);
       }
-      // Dispatch app launch event
-      window.dispatchEvent(
-        new CustomEvent("launchApp", { detail: { appId: file.appId } })
-      );
     } else if (file.path.startsWith("/Documents/")) {
       // Open document in TextEdit
       if (file.content) {
@@ -265,9 +268,7 @@ export function useFileSystem(initialPath: string = "/") {
         );
 
         // Launch TextEdit
-        window.dispatchEvent(
-          new CustomEvent("launchApp", { detail: { appId: "textedit" } })
-        );
+        launchApp("textedit");
       }
     }
   }
