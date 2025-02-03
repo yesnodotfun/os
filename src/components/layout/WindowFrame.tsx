@@ -278,7 +278,7 @@ export function WindowFrame({
             }`}
           />
           <span
-            className={`select-none mx-auto bg-white px-2 py-0 h-full flex items-center justify-center ${
+            className={`select-none mx-auto bg-white px-2 py-0 h-full flex items-center justify-center max-w-[80%] truncate ${
               !isForeground && "text-gray-500"
             }`}
           >

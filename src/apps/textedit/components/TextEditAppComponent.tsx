@@ -187,6 +187,11 @@ const markdownToHtml = (markdown: string): string => {
   return html;
 };
 
+// Function to remove file extension
+const removeFileExtension = (filename: string): string => {
+  return filename.replace(/\.[^/.]+$/, "");
+};
+
 export function TextEditAppComponent({
   isWindowOpen,
   onClose,
@@ -275,25 +280,6 @@ export function TextEditAppComponent({
       handleFileOpenFromFinder as EventListener
     );
 
-    // Check for pending file open
-    const pendingFileOpen = localStorage.getItem("pending_file_open");
-    if (pendingFileOpen && editor) {
-      try {
-        const { path, content } = JSON.parse(pendingFileOpen);
-        if (path.startsWith("/Documents/")) {
-          editor.commands.clearContent();
-          editor.commands.setContent(content);
-          setCurrentFilePath(path);
-          setHasUnsavedChanges(false);
-          localStorage.setItem(APP_STORAGE_KEYS.textedit.CONTENT, content);
-        }
-      } catch (e) {
-        console.error("Failed to parse pending file open data:", e);
-      } finally {
-        localStorage.removeItem("pending_file_open");
-      }
-    }
-
     return () => {
       window.removeEventListener(
         "openFile",
@@ -301,6 +287,40 @@ export function TextEditAppComponent({
       );
     };
   }, [editor]);
+
+  // Check for pending file open when window becomes active
+  useEffect(() => {
+    if (isForeground && editor) {
+      const pendingFileOpen = localStorage.getItem("pending_file_open");
+      if (pendingFileOpen) {
+        try {
+          const { path, content } = JSON.parse(pendingFileOpen);
+          if (path.startsWith("/Documents/")) {
+            // If there are unsaved changes, prompt the user
+            if (hasUnsavedChanges) {
+              setIsConfirmNewDialogOpen(true);
+            } else {
+              editor.commands.clearContent();
+              const processedContent = path.endsWith(".md")
+                ? markdownToHtml(content)
+                : content;
+              editor.commands.setContent(processedContent);
+              setCurrentFilePath(path);
+              setHasUnsavedChanges(false);
+              localStorage.setItem(
+                APP_STORAGE_KEYS.textedit.CONTENT,
+                processedContent
+              );
+            }
+          }
+        } catch (e) {
+          console.error("Failed to parse pending file open data:", e);
+        } finally {
+          localStorage.removeItem("pending_file_open");
+        }
+      }
+    }
+  }, [isForeground, editor]);
 
   // Load content from localStorage only if no file is currently open
   useEffect(() => {
@@ -352,6 +372,30 @@ export function TextEditAppComponent({
       localStorage.removeItem(APP_STORAGE_KEYS.textedit.CONTENT);
       setCurrentFilePath(null);
       setHasUnsavedChanges(false);
+
+      // Check if there's a pending file to open after creating new file
+      const pendingFileOpen = localStorage.getItem("pending_file_open");
+      if (pendingFileOpen) {
+        try {
+          const { path, content } = JSON.parse(pendingFileOpen);
+          if (path.startsWith("/Documents/")) {
+            const processedContent = path.endsWith(".md")
+              ? markdownToHtml(content)
+              : content;
+            editor.commands.setContent(processedContent);
+            setCurrentFilePath(path);
+            setHasUnsavedChanges(false);
+            localStorage.setItem(
+              APP_STORAGE_KEYS.textedit.CONTENT,
+              processedContent
+            );
+          }
+        } catch (e) {
+          console.error("Failed to parse pending file open data:", e);
+        } finally {
+          localStorage.removeItem("pending_file_open");
+        }
+      }
     }
   };
 
@@ -500,10 +544,8 @@ export function TextEditAppComponent({
       <WindowFrame
         title={
           currentFilePath
-            ? `TextEdit - ${currentFilePath.split("/").pop()}${
-                hasUnsavedChanges ? " •" : ""
-              }`
-            : `TextEdit - Untitled${hasUnsavedChanges ? " •" : ""}`
+            ? `${removeFileExtension(currentFilePath.split("/").pop() || "")}`
+            : `Untitled${hasUnsavedChanges ? " •" : ""}`
         }
         onClose={onClose}
         isForeground={isForeground}
