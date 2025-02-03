@@ -2,10 +2,11 @@ import { useState, useRef, useCallback } from "react";
 import { getSupportedMimeType } from "@/utils/audio";
 
 // Constants
-const DEFAULT_SILENCE_THRESHOLD = 1000; // ms
+const DEFAULT_SILENCE_THRESHOLD = 2000; // ms
 const DEFAULT_MIN_RECORDING_DURATION = 1000; // ms
-const DEFAULT_VOLUME_SILENCE_THRESHOLD = 0.08;
+const DEFAULT_VOLUME_SILENCE_THRESHOLD = 0.05; // Lowered from 0.08 to be more sensitive
 const DEFAULT_FFT_SIZE = 256;
+const CONSECUTIVE_SILENT_FRAMES_THRESHOLD = 3; // Number of consecutive silent frames needed
 const DEFAULT_AUDIO_CONFIG = {
   channelCount: 1,
   sampleRate: 16000,
@@ -78,6 +79,7 @@ export function useAudioTranscription({
   const silenceStartRef = useRef<number | null>(null);
   const silenceTimeoutRef = useRef<NodeJS.Timeout>();
   const recordingStartTimeRef = useRef<number>(0);
+  const silentFramesCountRef = useRef<number>(0);
 
   const sendAudioForTranscription = useCallback(
     async (chunks: Blob[]) => {
@@ -132,7 +134,18 @@ export function useAudioTranscription({
         clearTimeout(silenceTimeoutRef.current);
       }
       silenceStartRef.current = null;
-      mediaRecorderRef.current.stop();
+
+      // Ensure we stop the frequency analysis
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+
+      // Stop the media recorder
+      try {
+        mediaRecorderRef.current.stop();
+      } catch (error) {
+        console.error("Error stopping media recorder:", error);
+      }
       setIsRecording(false);
     }
   }, [isRecording]);
@@ -144,13 +157,23 @@ export function useAudioTranscription({
       analyzeAudioData(analyserRef.current);
 
     setFrequencies(newFrequencies);
-    setIsSilent(currentIsSilent);
+
+    // Only update silence state if we have consecutive silent frames
+    if (currentIsSilent) {
+      silentFramesCountRef.current = (silentFramesCountRef.current || 0) + 1;
+    } else {
+      silentFramesCountRef.current = 0;
+    }
+
+    const isConsistentlySilent =
+      silentFramesCountRef.current >= CONSECUTIVE_SILENT_FRAMES_THRESHOLD;
+    setIsSilent(isConsistentlySilent);
 
     const recordingDuration = Date.now() - recordingStartTimeRef.current;
 
     // Send debug state on every analysis
     onDebugState?.({
-      isSilent: currentIsSilent,
+      isSilent: isConsistentlySilent,
       silenceDuration: silenceStartRef.current
         ? Date.now() - silenceStartRef.current
         : null,
@@ -159,9 +182,9 @@ export function useAudioTranscription({
     });
 
     if (recordingDuration >= minRecordingDuration) {
-      if (currentIsSilent && !silenceStartRef.current) {
+      if (isConsistentlySilent && !silenceStartRef.current) {
         silenceStartRef.current = Date.now();
-      } else if (currentIsSilent && silenceStartRef.current) {
+      } else if (isConsistentlySilent && silenceStartRef.current) {
         const silenceDuration = Date.now() - silenceStartRef.current;
         if (silenceDuration >= silenceThreshold) {
           if (isRecording && mediaRecorderRef.current) {
@@ -169,7 +192,7 @@ export function useAudioTranscription({
             stopRecording();
           }
         }
-      } else if (!currentIsSilent && silenceStartRef.current) {
+      } else if (!isConsistentlySilent && silenceStartRef.current) {
         silenceStartRef.current = null;
       }
     }
@@ -197,8 +220,10 @@ export function useAudioTranscription({
       source.connect(analyserRef.current);
       analyserRef.current.fftSize = DEFAULT_FFT_SIZE;
 
-      // Reset chunks
+      // Reset chunks and counters
       chunksRef.current = [];
+      silentFramesCountRef.current = 0;
+      silenceStartRef.current = null;
 
       // Start frequency analysis
       analyzeFrequencies();
@@ -210,8 +235,9 @@ export function useAudioTranscription({
       });
       mediaRecorderRef.current = mediaRecorder;
 
+      // Request data more frequently and ensure we get the final chunk
       mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
+        if (e.data && e.data.size > 0) {
           chunksRef.current.push(e.data);
         }
       };
@@ -220,28 +246,31 @@ export function useAudioTranscription({
         // Immediately send audio for transcription
         const currentChunks = [...chunksRef.current];
         chunksRef.current = [];
-        await sendAudioForTranscription(currentChunks);
 
-        // Clean up
+        // Clean up first
         if (animationFrameRef.current) {
           cancelAnimationFrame(animationFrameRef.current);
         }
         if (audioContextRef.current) {
-          audioContextRef.current.close();
+          await audioContextRef.current.close();
         }
         stream.getTracks().forEach((track) => track.stop());
         setFrequencies([0, 0, 0, 0]);
         setIsSilent(true);
+
+        // Then send for transcription
+        await sendAudioForTranscription(currentChunks);
       };
 
-      mediaRecorder.start(100); // Collect data more frequently
+      // Start recording with smaller timeslice for more frequent data collection
+      mediaRecorder.start(50); // Collect data every 50ms
       setIsRecording(true);
     } catch (error) {
       const err = error instanceof Error ? error : new Error("Unknown error");
       console.error("Error accessing microphone:", err.message);
       onError?.(err);
     }
-  }, [sendAudioForTranscription]);
+  }, [sendAudioForTranscription, analyzeFrequencies, onError]);
 
   return {
     isRecording,

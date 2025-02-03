@@ -11,6 +11,7 @@ interface ChatInputProps {
   onInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   onStop: () => void;
+  onDirectMessageSubmit?: (message: string) => void;
 }
 
 export function ChatInput({
@@ -19,6 +20,7 @@ export function ChatInput({
   onInputChange,
   onSubmit,
   onStop,
+  onDirectMessageSubmit,
 }: ChatInputProps) {
   const [isFocused, setIsFocused] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -35,10 +37,26 @@ export function ChatInput({
       return;
     }
 
-    const inputEvent = {
-      target: { value: input + (input.length > 0 ? " " : "") + text.trim() },
-    } as React.ChangeEvent<HTMLInputElement>;
-    onInputChange(inputEvent);
+    // Submit the transcribed text directly if the function is available
+    if (onDirectMessageSubmit) {
+      onDirectMessageSubmit(text.trim());
+    } else {
+      // Fallback to form submission
+      const transcriptionEvent = {
+        target: { value: text.trim() },
+      } as React.ChangeEvent<HTMLInputElement>;
+      onInputChange(transcriptionEvent);
+
+      const submitEvent = new Event(
+        "submit"
+      ) as unknown as React.FormEvent<HTMLFormElement>;
+      onSubmit(submitEvent);
+
+      const clearEvent = {
+        target: { value: "" },
+      } as React.ChangeEvent<HTMLInputElement>;
+      onInputChange(clearEvent);
+    }
   };
 
   const handleTranscriptionStart = () => {
@@ -71,7 +89,7 @@ export function ChatInput({
               onTranscriptionComplete={handleTranscriptionComplete}
               onTranscriptionStart={handleTranscriptionStart}
               isLoading={isTranscribing}
-              silenceThreshold={500}
+              silenceThreshold={2000}
               className="w-full h-full flex items-center justify-center"
             />
             {transcriptionError && (

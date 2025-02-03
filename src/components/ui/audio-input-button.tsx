@@ -15,7 +15,7 @@ export function AudioInputButton({
   onTranscriptionStart,
   isLoading = false,
   className = "",
-  silenceThreshold = 1000,
+  silenceThreshold = 2000,
 }: AudioInputButtonProps) {
   const { isRecording, frequencies, isSilent, startRecording, stopRecording } =
     useAudioTranscription({
@@ -25,7 +25,12 @@ export function AudioInputButton({
       onTranscriptionStart: () => {
         onTranscriptionStart?.();
       },
+      onError: (error) => {
+        console.error("Audio transcription error:", error);
+        onTranscriptionComplete(""); // This will trigger the error UI in ChatInput
+      },
       silenceThreshold,
+      minRecordingDuration: 500, // Ensure we get at least 0.5s of audio
     });
 
   return (

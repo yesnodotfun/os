@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { AppProps } from "../../base/types";
 import { WindowFrame } from "@/components/layout/WindowFrame";
 import { ChatsMenuBar } from "./ChatsMenuBar";
@@ -33,6 +33,7 @@ export function ChatsAppComponent({
     error,
     stop,
     setMessages: setAiMessages,
+    append,
   } = useChat({
     initialMessages: loadChatMessages() || [initialMessage],
     experimental_throttle: 50,
@@ -43,6 +44,16 @@ export function ChatsAppComponent({
     setMessages(aiMessages);
     saveChatMessages(aiMessages);
   }, [aiMessages]);
+
+  const handleDirectMessageSubmit = useCallback(
+    (message: string) => {
+      append({
+        content: message,
+        role: "user",
+      });
+    },
+    [append]
+  );
 
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
@@ -94,6 +105,7 @@ export function ChatsAppComponent({
             onInputChange={handleInputChange}
             onSubmit={handleSubmit}
             onStop={stop}
+            onDirectMessageSubmit={handleDirectMessageSubmit}
           />
         </div>
         <HelpDialog
