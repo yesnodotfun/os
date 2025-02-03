@@ -6,18 +6,30 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
+  DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
+
+export type ViewType = "small" | "large" | "list";
+export type SortType = "name" | "date" | "size" | "kind";
 
 interface FinderMenuBarProps {
   onClose: () => void;
   onShowHelp: () => void;
   onShowAbout: () => void;
+  viewType: ViewType;
+  onViewTypeChange: (viewType: ViewType) => void;
+  sortType: SortType;
+  onSortTypeChange: (sortType: SortType) => void;
 }
 
 export function FinderMenuBar({
   onClose,
   onShowHelp,
   onShowAbout,
+  viewType,
+  onViewTypeChange,
+  sortType,
+  onSortTypeChange,
 }: FinderMenuBarProps) {
   return (
     <MenuBar>
@@ -96,24 +108,56 @@ export function FinderMenuBar({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" sideOffset={1} className="px-0">
-          <DropdownMenuItem className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
-            by Small Icon
-          </DropdownMenuItem>
-          <DropdownMenuItem className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
-            by Icon
-          </DropdownMenuItem>
-          <DropdownMenuItem className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
-            by Name
-          </DropdownMenuItem>
-          <DropdownMenuItem className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
-            by Date
-          </DropdownMenuItem>
-          <DropdownMenuItem className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
-            by Size
-          </DropdownMenuItem>
-          <DropdownMenuItem className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
-            by Kind
-          </DropdownMenuItem>
+          <DropdownMenuCheckboxItem
+            checked={viewType === "small"}
+            onCheckedChange={() => onViewTypeChange("small")}
+            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
+          >
+            <span>by Small Icon</span>
+          </DropdownMenuCheckboxItem>
+          <DropdownMenuCheckboxItem
+            checked={viewType === "large"}
+            onCheckedChange={() => onViewTypeChange("large")}
+            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
+          >
+            <span>by Icon</span>
+          </DropdownMenuCheckboxItem>
+          <DropdownMenuCheckboxItem
+            checked={viewType === "list"}
+            onCheckedChange={() => onViewTypeChange("list")}
+            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
+          >
+            <span>by List</span>
+          </DropdownMenuCheckboxItem>
+          <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
+          <DropdownMenuCheckboxItem
+            checked={sortType === "name"}
+            onCheckedChange={() => onSortTypeChange("name")}
+            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
+          >
+            <span>by Name</span>
+          </DropdownMenuCheckboxItem>
+          <DropdownMenuCheckboxItem
+            checked={sortType === "date"}
+            onCheckedChange={() => onSortTypeChange("date")}
+            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
+          >
+            <span>by Date</span>
+          </DropdownMenuCheckboxItem>
+          <DropdownMenuCheckboxItem
+            checked={sortType === "size"}
+            onCheckedChange={() => onSortTypeChange("size")}
+            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
+          >
+            <span>by Size</span>
+          </DropdownMenuCheckboxItem>
+          <DropdownMenuCheckboxItem
+            checked={sortType === "kind"}
+            onCheckedChange={() => onSortTypeChange("kind")}
+            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
+          >
+            <span>by Kind</span>
+          </DropdownMenuCheckboxItem>
         </DropdownMenuContent>
       </DropdownMenu>
 

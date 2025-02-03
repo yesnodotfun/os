@@ -1,5 +1,5 @@
 import { WindowFrame } from "@/components/layout/WindowFrame";
-import { FinderMenuBar } from "./FinderMenuBar";
+import { FinderMenuBar, ViewType, SortType } from "./FinderMenuBar";
 import { AppProps } from "@/apps/base/types";
 import { useState, useRef } from "react";
 import { HelpDialog } from "@/components/dialogs/HelpDialog";
@@ -17,6 +17,8 @@ export function FinderAppComponent({
 }: AppProps) {
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
+  const [viewType, setViewType] = useState<ViewType>("small");
+  const [sortType, setSortType] = useState<SortType>("name");
   const pathInputRef = useRef<HTMLInputElement>(null);
   const {
     currentPath,
@@ -30,6 +32,31 @@ export function FinderAppComponent({
     navigateToPath,
   } = useFileSystem();
 
+  const sortedFiles = [...files].sort((a, b) => {
+    switch (sortType) {
+      case "name":
+        return a.name.localeCompare(b.name);
+      case "kind": {
+        // Sort by directory first, then by file extension
+        if (a.isDirectory && !b.isDirectory) return -1;
+        if (!a.isDirectory && b.isDirectory) return 1;
+        const extA = a.name.split(".").pop() || "";
+        const extB = b.name.split(".").pop() || "";
+        return extA.localeCompare(extB) || a.name.localeCompare(b.name);
+      }
+      case "size":
+        // For now, directories are considered smaller than files
+        if (a.isDirectory && !b.isDirectory) return -1;
+        if (!a.isDirectory && b.isDirectory) return 1;
+        return 0;
+      case "date":
+        // We'll need to add date metadata to FileItem to properly implement this
+        return 0;
+      default:
+        return 0;
+    }
+  });
+
   if (!isWindowOpen) return null;
 
   return (
@@ -38,10 +65,18 @@ export function FinderAppComponent({
         onClose={onClose}
         onShowHelp={() => setIsHelpDialogOpen(true)}
         onShowAbout={() => setIsAboutDialogOpen(true)}
+        viewType={viewType}
+        onViewTypeChange={setViewType}
+        sortType={sortType}
+        onSortTypeChange={setSortType}
       />
       <WindowFrame
         appId="finder"
-        title="Finder"
+        title={
+          currentPath === "/"
+            ? "Macintosh HD"
+            : currentPath.split("/").filter(Boolean).pop() || "Finder"
+        }
         onClose={onClose}
         isForeground={isForeground}
       >
@@ -86,10 +121,11 @@ export function FinderAppComponent({
               </div>
             ) : (
               <FileList
-                files={files}
+                files={sortedFiles}
                 onFileOpen={handleFileOpen}
                 onFileSelect={handleFileSelect}
                 selectedFile={selectedFile}
+                viewType={viewType}
               />
             )}
           </div>

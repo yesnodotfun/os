@@ -2,9 +2,11 @@ interface FileIconProps {
   name: string;
   isDirectory: boolean;
   icon?: string;
-  onDoubleClick?: () => void;
+  onDoubleClick?: (event: React.MouseEvent<HTMLDivElement>) => void;
   isSelected?: boolean;
-  onClick?: () => void;
+  onClick?: (event: React.MouseEvent<HTMLDivElement>) => void;
+  size?: "small" | "large";
+  className?: string;
 }
 
 export function FileIcon({
@@ -14,6 +16,8 @@ export function FileIcon({
   onDoubleClick,
   isSelected,
   onClick,
+  size = "small",
+  className,
 }: FileIconProps) {
   const getIconPath = () => {
     if (icon) return icon;
@@ -23,28 +27,45 @@ export function FileIcon({
     return "/icons/file.png";
   };
 
+  const sizeClasses = {
+    small: {
+      container: "w-[80px]",
+      icon: "w-12 h-12",
+      image: "w-[32px] h-[32px]",
+      text: "text-[10px] max-w-[90px]",
+    },
+    large: {
+      container: "w-24",
+      icon: "w-16 h-16",
+      image: "w-12 h-12",
+      text: "text-[12px] max-w-[96px]",
+    },
+  };
+
+  const sizes = sizeClasses[size];
+
   return (
     <div
-      className="flex flex-col items-center justify-start cursor-pointer w-[80px] gap-1"
+      className={`flex flex-col items-center justify-start cursor-pointer gap-1 ${sizes.container} ${className}`}
       onDoubleClick={onDoubleClick}
       onClick={onClick}
     >
       <div
-        className={`w-12 h-12 flex items-center justify-center ${
+        className={`flex items-center justify-center ${sizes.icon} ${
           isSelected ? "brightness-65 contrast-100" : ""
         }`}
       >
         <img
           src={getIconPath()}
           alt={isDirectory ? "Directory" : "File"}
-          className="w-[32px] h-[32px] object-contain"
+          className={`object-contain ${sizes.image}`}
           style={{ imageRendering: "pixelated" }}
         />
       </div>
       <span
-        className={`text-center px-1 max-w-[90px] font-['Geneva-12'] antialiased text-[10px] line-clamp-2 break-words ${
-          isSelected ? "bg-black text-white" : "bg-white text-black"
-        }`}
+        className={`text-center px-1 font-['Geneva-12'] antialiased line-clamp-2 break-words ${
+          sizes.text
+        } ${isSelected ? "bg-black text-white" : "bg-white text-black"}`}
       >
         {name}
       </span>

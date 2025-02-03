@@ -3,6 +3,7 @@ import { AppManagerState } from "@/apps/base/types";
 import { useState } from "react";
 import { loadDesktopIconState } from "@/utils/storage";
 import { useAppContext } from "@/contexts/AppContext";
+import { FileIcon } from "@/apps/finder/components/FileIcon";
 
 interface DesktopProps {
   apps: BaseApp[];
@@ -15,7 +16,10 @@ export function Desktop({ apps, toggleApp }: DesktopProps) {
   const [desktopIconState] = useState(() => loadDesktopIconState());
   const { bringToForeground } = useAppContext();
 
-  const handleIconClick = (appId: string, event: React.MouseEvent) => {
+  const handleIconClick = (
+    appId: string,
+    event: React.MouseEvent<HTMLDivElement>
+  ) => {
     event.stopPropagation();
     setSelectedAppId(appId);
   };
@@ -36,43 +40,20 @@ export function Desktop({ apps, toggleApp }: DesktopProps) {
           {apps.map(
             (app) =>
               desktopIconState[app.id]?.visible && (
-                <div
+                <FileIcon
                   key={app.id}
-                  className="flex flex-col items-center justify-center cursor-pointer w-24 h-24"
+                  name={app.name}
+                  isDirectory={false}
+                  icon={typeof app.icon === "string" ? undefined : app.icon.src}
                   onClick={(e) => handleIconClick(app.id, e)}
-                  onDoubleClick={() => {
+                  onDoubleClick={(e) => {
+                    e.stopPropagation();
                     toggleApp(app.id);
                     setSelectedAppId(null);
                   }}
-                >
-                  <div
-                    className={`w-16 h-16 flex items-center justify-center ${
-                      selectedAppId === app.id
-                        ? "brightness-65 contrast-100 "
-                        : ""
-                    }`}
-                  >
-                    {typeof app.icon === "string" ? (
-                      app.icon
-                    ) : (
-                      <img
-                        src={app.icon.src}
-                        alt={app.name}
-                        className="w-12 h-12 object-contain"
-                        style={{ imageRendering: "pixelated" }}
-                      />
-                    )}
-                  </div>
-                  <span
-                    className={`text-center px-1.5 font-['Geneva-12'] antialiased text-[12px] max-w-full truncate ${
-                      selectedAppId === app.id
-                        ? "bg-black text-white"
-                        : "bg-white text-black"
-                    }`}
-                  >
-                    {app.name}
-                  </span>
-                </div>
+                  isSelected={selectedAppId === app.id}
+                  size="large"
+                />
               )
           )}
         </div>
