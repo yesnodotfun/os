@@ -16,17 +16,61 @@ interface TrashItem extends FileItem {
 
 const DOCUMENTS: Document[] = [
   {
-    name: "Welcome.txt",
-    content: "Welcome to your Mac OS Classic experience!",
+    name: "Welcome.md",
+    content: `# Welcome to ryOS
+
+This is a web-based recreation of the classic Mac OS System 7 interface. ryOS includes several built-in applications:
+
+- Finder: Browse and manage your files
+- TextEdit: Create and edit documents
+- Soundboard: Create and play custom soundboards
+- Control Panels: Customize system settings
+- Minesweeper: Classic puzzle game
+- Internet Explorer: Browse the web
+- Chats: Chat with AI assistant
+
+## Getting Started
+
+- Click on any application icon to launch it
+- Use the Apple menu (🍎) in the top-left to access system functions
+- Files are automatically saved to your browser's storage
+- Drag windows to move them, click and drag window edges to resize
+
+Enjoy exploring ryOS!`,
   },
   {
     name: "README.md",
-    content:
-      "# Mac OS Classic\n\nThis is a web-based recreation of the classic Mac OS interface.",
+    content: `# ryOS
+
+A web-based operating system experience inspired by classic Mac OS System 7. Built with modern web technologies including React, Vite, TailwindCSS, and shadcn/ui components.
+
+## Features
+
+- Classic System 7 UI with Chicago Kare font
+- Window management (drag, resize, minimize)
+- File system with Documents and Applications folders
+- Multiple built-in applications
+- Local storage persistence
+- Modern audio features with WaveSurfer.js
+- Responsive design for all screen sizes
+
+## Technical Details
+
+- Built with React 18 and TypeScript
+- Vite for fast development
+- TailwindCSS for styling
+- shadcn/ui components
+- Bun as package manager
+
+Visit https://github.com/ryoid/soundboard for more information.`,
   },
   {
-    name: "Notes.txt",
-    content: "Important notes and reminders go here.",
+    name: "Notes.md",
+    content: `# Quick Notes
+
+- Use the menu bar for new files, saving, moving, deleting, and more
+- Documents are automatically saved to browser storage
+- Use TextEdit for creating and editing documents`,
   },
 ];
 

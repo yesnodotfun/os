@@ -148,6 +148,13 @@ const commands: CommandItem[] = [
       editor.chain().focus().toggleOrderedList().run();
     },
   },
+  {
+    title: "Task List",
+    description: "Create a checklist with checkboxes",
+    command: (editor: Editor) => {
+      editor.chain().focus().toggleTaskList().run();
+    },
+  },
 ];
 
 const suggestion: Partial<SuggestionOptions> = {

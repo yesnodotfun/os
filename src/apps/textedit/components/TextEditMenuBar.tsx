@@ -277,6 +277,15 @@ export function TextEditMenuBar({
           >
             <span>Numbered List</span>
           </DropdownMenuCheckboxItem>
+          <DropdownMenuCheckboxItem
+            checked={editor?.isActive("taskList")}
+            onCheckedChange={() =>
+              editor?.chain().focus().toggleTaskList().run()
+            }
+            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
+          >
+            <span>Task List</span>
+          </DropdownMenuCheckboxItem>
         </DropdownMenuContent>
       </DropdownMenu>
 

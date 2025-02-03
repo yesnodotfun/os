@@ -1,6 +1,6 @@
-# Soundboard
+# ryOS — Web-based Desktop Environment
 
-A modern soundboard application built with React, Vite, and TailwindCSS. Features a sleek UI powered by shadcn components and WaveSurfer.js for audio visualization.
+A modern web-based desktop environment inspired by classic macOS, built with React and modern web technologies. Features multiple built-in applications and a familiar desktop interface. Works on all devices—including mobile, tablet, and desktop.
 
 ## Tech Stack
 
@@ -8,7 +8,7 @@ A modern soundboard application built with React, Vite, and TailwindCSS. Feature
 - Vite 6.0 for blazing fast development
 - TailwindCSS 4.0 for styling
 - shadcn/ui components
-- WaveSurfer.js for audio waveform visualization
+- Framer Motion for animations
 - Bun as package manager
 
 ## Getting Started
@@ -26,35 +26,62 @@ bun run build
 
 ## Features
 
-- Modern UI with Chicago Kare font and System 7-inspired design
-- Audio visualization with WaveSurfer.js
-- Multiple soundboard support with import/export functionality
-- Customizable sound buttons with emojis and titles
-- Keyboard shortcuts (1-9) for quick sound playback
-- Microphone input device selection
-- Responsive design for desktop and mobile
+### Desktop Environment
+
+- Authentic macOS-style window management
+- Multiple resizable and draggable windows
+- Desktop icons and dock
+- Window minimize/maximize controls
+- Menu bar with application-specific menus
+
+### Built-in Applications
+
+- **Finder**: File system navigation and management
+- **Text Editor**: Rich text editing with Tiptap
+- **Chat**: AI-powered chat interface using OpenAI
+- **Minesweeper**: Classic game implementation
+- More applications coming soon!
+
+### Core Features
+
+- Window management system with z-index handling
+- Application state management
 - Local storage persistence
-- Drag and resize window support
-
-## Development
-
-The project uses:
-- TypeScript for type safety
-- ESLint for code quality
-- Tailwind for utility-first CSS
-- Radix UI primitives via shadcn/ui
-- Lucide icons
+- Keyboard shortcuts
+- Dark mode support
+- Responsive design
 
 ## Project Structure
 
 ```
-soundboard/
+project/
 ├── src/
-│   ├── components/    # React components
-│   └── App.tsx       # Main application
-├── public/           # Static assets and soundboard presets
+│   ├── apps/           # Individual applications
+│   │   ├── base/       # Base app functionality
+│   │   ├── finder/     # File system app
+│   │   ├── textedit/   # Text editor app
+│   │   ├── chats/      # Chat application
+│   │   └── minesweeper/# Game implementation
+│   ├── components/     # Shared React components
+│   │   ├── layout/     # Core layout components
+│   │   ├── ui/         # shadcn/ui components
+│   │   └── dialogs/    # System dialogs
+│   └── utils/         # Shared utilities
+├── api/               # Backend API endpoints
+├── public/           # Static assets
 └── ...config files
 ```
+
+## Development
+
+The project uses:
+
+- TypeScript for type safety
+- ESLint for code quality
+- Tailwind for utility-first CSS
+- shadcn/ui components built on Radix UI primitives
+- Lucide icons
+- Vercel for deployment
 
 ## Scripts
 
@@ -63,24 +90,6 @@ soundboard/
 - `bun run lint` - Run ESLint
 - `bun run preview` - Preview production build
 
-## Features in Detail
+## Contributing
 
-### Soundboard Management
-- Create multiple soundboards
-- Import/Export soundboards as JSON
-- Rename and delete soundboards
-- Reload from preset JSON file
-
-### Sound Slots
-- Record audio directly from microphone
-- Play/Stop with click or number keys
-- Add custom emojis and titles
-- Visualize audio waveforms
-- Delete individual sounds
-
-### UI/UX
-- System 7-inspired window design
-- Draggable and resizable window
-- Responsive layout for all screen sizes
-- Dark mode support
-- Keyboard shortcuts for quick access
+Contributions are welcome! Please feel free to submit a Pull Request.
