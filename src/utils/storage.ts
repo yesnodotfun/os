@@ -534,6 +534,52 @@ export const clearAllAppStates = (): void => {
       localStorage.removeItem(key);
     });
   });
+
+  // Reinitialize with default values
+  // Default wallpaper
+  localStorage.setItem(
+    APP_STORAGE_KEYS["control-panels"].WALLPAPER,
+    "/wallpapers/tiles/french_blue_dark.png"
+  );
+
+  // Default UI sounds enabled
+  localStorage.setItem(
+    APP_STORAGE_KEYS["control-panels"].UI_SOUNDS_ENABLED,
+    "true"
+  );
+
+  // Default synth preset
+  localStorage.setItem(
+    APP_STORAGE_KEYS["control-panels"].CHAT_SYNTH_ENABLED,
+    "classic"
+  );
+
+  // Default desktop icons visibility
+  localStorage.setItem(
+    DESKTOP_ICONS_KEY,
+    JSON.stringify(DEFAULT_DESKTOP_ICONS)
+  );
+
+  // Default URL for Internet Explorer
+  localStorage.setItem(
+    APP_STORAGE_KEYS["internet-explorer"].LAST_URL,
+    DEFAULT_URL
+  );
+
+  // Default soundboard
+  saveSoundboards([createDefaultBoard()]);
+
+  // Default app state
+  saveAppState({
+    windowOrder: [],
+    apps: Object.keys(APP_STORAGE_KEYS).reduce(
+      (acc, appId) => ({
+        ...acc,
+        [appId]: { isOpen: false },
+      }),
+      {} as { [appId: string]: AppState }
+    ),
+  });
 };
 
 const SYNTH_PRESET_KEY = "synthPreset";

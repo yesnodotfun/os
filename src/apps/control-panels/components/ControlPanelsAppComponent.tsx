@@ -259,7 +259,6 @@ export function ControlPanelsAppComponent({
                   </Button>
                   <p className="text-[11px] text-gray-600 font-['Geneva-12']">
                     This will clear all saved settings, documents, and states.
-                    You'll need to restart the application.
                   </p>
                 </div>
               </div>
