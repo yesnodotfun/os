@@ -4,16 +4,49 @@ import { useState } from "react";
 import { loadDesktopIconState } from "@/utils/storage";
 import { FileIcon } from "@/apps/finder/components/FileIcon";
 
+interface DesktopStyles {
+  backgroundImage?: string;
+  backgroundSize?: string;
+  backgroundRepeat?: string;
+  backgroundPosition?: string;
+  transition?: string;
+}
+
 interface DesktopProps {
   apps: BaseApp[];
   appStates: AppManagerState;
   toggleApp: (appId: string) => void;
   onClick?: () => void;
+  desktopStyles?: DesktopStyles;
+  wallpaperPath: string;
 }
 
-export function Desktop({ apps, toggleApp, onClick }: DesktopProps) {
+export function Desktop({
+  apps,
+  toggleApp,
+  onClick,
+  desktopStyles,
+  wallpaperPath,
+}: DesktopProps) {
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
   const [desktopIconState] = useState(() => loadDesktopIconState());
+
+  const getWallpaperStyles = (path: string): DesktopStyles => {
+    const isTiled = path.includes("/wallpapers/tiles/");
+    return {
+      backgroundImage: `url(${path})`,
+      backgroundSize: isTiled ? "64px 64px" : "cover",
+      backgroundRepeat: isTiled ? "repeat" : "no-repeat",
+      backgroundPosition: "center",
+      transition: "background-image 0.3s ease-in-out",
+    };
+  };
+
+  // Merge wallpaper styles with provided desktop styles
+  const finalStyles = {
+    ...getWallpaperStyles(wallpaperPath),
+    ...desktopStyles,
+  };
 
   const handleIconClick = (
     appId: string,
@@ -25,9 +58,7 @@ export function Desktop({ apps, toggleApp, onClick }: DesktopProps) {
 
   const handleFinderOpen = (e: React.MouseEvent<HTMLDivElement>) => {
     e.stopPropagation();
-    // Store initial path for Finder
     localStorage.setItem("app_finder_initialPath", "/");
-    // Find and open Finder app
     const finderApp = apps.find((app) => app.id === "finder");
     if (finderApp) {
       toggleApp(finderApp.id);
@@ -37,8 +68,9 @@ export function Desktop({ apps, toggleApp, onClick }: DesktopProps) {
 
   return (
     <div
-      className="absolute inset-0 min-h-screen h-full bg-[#666699] bg-[radial-gradient(#777_1px,transparent_0)] bg-[length:24px_24px] bg-[-19px_-19px] z-[-1]"
+      className="absolute inset-0 min-h-screen h-full z-[-1] desktop-background"
       onClick={onClick}
+      style={finalStyles}
     >
       <div className="pt-8 p-4 flex flex-col items-end h-[calc(100%-2rem)]">
         <div className="flex flex-col flex-wrap-reverse justify-start gap-1 content-start h-full">

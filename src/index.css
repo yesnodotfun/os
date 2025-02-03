@@ -87,9 +87,6 @@
       sans-serif;
     -webkit-font-smoothing: none;
     font-smooth: never;
-    background-image: radial-gradient(#777 1px, transparent 0);
-    background-size: 24px 24px;
-    background-position: -19px -19px;
     overflow: hidden;
     position: fixed;
     inset: 0;

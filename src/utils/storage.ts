@@ -31,6 +31,9 @@ export const APP_STORAGE_KEYS = {
     WINDOW: "control-panels:window",
     HAS_SEEN_HELP: "control-panels:hasSeenHelp",
     DESKTOP_VISIBLE: "control-panels:desktop-visible",
+    WALLPAPER: "control-panels:wallpaper",
+    UI_SOUNDS_ENABLED: "control-panels:ui-sounds-enabled",
+    CHAT_SYNTH_ENABLED: "control-panels:chat-synth-enabled",
   },
   minesweeper: {
     WINDOW: "minesweeper:window",
@@ -477,4 +480,57 @@ export const calculateStorageSpace = () => {
     available: total - used,
     percentUsed: Math.round((used / total) * 100),
   };
+};
+
+// Add new functions for control panel settings
+export const loadWallpaper = (): string => {
+  return (
+    localStorage.getItem(APP_STORAGE_KEYS["control-panels"].WALLPAPER) ||
+    "/wallpapers/tiles/french_blue_dark.png"
+  );
+};
+
+export const saveWallpaper = (wallpaperUrl: string): void => {
+  localStorage.setItem(
+    APP_STORAGE_KEYS["control-panels"].WALLPAPER,
+    wallpaperUrl
+  );
+};
+
+export const loadUISoundsEnabled = (): boolean => {
+  return (
+    localStorage.getItem(
+      APP_STORAGE_KEYS["control-panels"].UI_SOUNDS_ENABLED
+    ) !== "false"
+  );
+};
+
+export const saveUISoundsEnabled = (enabled: boolean): void => {
+  localStorage.setItem(
+    APP_STORAGE_KEYS["control-panels"].UI_SOUNDS_ENABLED,
+    enabled.toString()
+  );
+};
+
+export const loadChatSynthEnabled = (): boolean => {
+  return (
+    localStorage.getItem(
+      APP_STORAGE_KEYS["control-panels"].CHAT_SYNTH_ENABLED
+    ) !== "false"
+  );
+};
+
+export const saveChatSynthEnabled = (enabled: boolean): void => {
+  localStorage.setItem(
+    APP_STORAGE_KEYS["control-panels"].CHAT_SYNTH_ENABLED,
+    enabled.toString()
+  );
+};
+
+export const clearAllAppStates = (): void => {
+  Object.values(APP_STORAGE_KEYS).forEach((keyGroup) => {
+    Object.values(keyGroup).forEach((key) => {
+      localStorage.removeItem(key);
+    });
+  });
 };

@@ -5,6 +5,7 @@ import { MenuBar } from "@/components/layout/MenuBar";
 import { Desktop } from "@/components/layout/Desktop";
 import { loadAppState, saveAppState } from "@/utils/storage";
 import { AppId, getAppComponent } from "@/config/appRegistry";
+import { useWallpaper } from "@/hooks/useWallpaper";
 
 interface AppManagerProps {
   apps: BaseApp[];
@@ -17,6 +18,7 @@ export function AppManager({ apps }: AppManagerProps) {
   const [appStates, setAppStates] = useState<AppManagerState>(() =>
     loadAppState()
   );
+  const { currentWallpaper } = useWallpaper();
 
   useEffect(() => {
     saveAppState(appStates);
@@ -148,7 +150,12 @@ export function AppManager({ apps }: AppManagerProps) {
         ) : null;
       })}
 
-      <Desktop apps={apps} toggleApp={toggleApp} appStates={appStates} />
+      <Desktop
+        apps={apps}
+        toggleApp={toggleApp}
+        appStates={appStates}
+        wallpaperPath={currentWallpaper}
+      />
     </AppContext.Provider>
   );
 }

@@ -33,13 +33,7 @@ export const appRegistry = {
       minSize: { width: 300, height: 200 },
     } as WindowConstraints,
   },
-  [ControlPanelsApp.id]: {
-    ...ControlPanelsApp,
-    windowConfig: {
-      defaultSize: { width: 480, height: 400 },
-      minSize: { width: 320, height: 240 },
-    } as WindowConstraints,
-  },
+
   [SoundboardApp.id]: {
     ...SoundboardApp,
     windowConfig: {
@@ -74,6 +68,13 @@ export const appRegistry = {
       defaultSize: { width: 305, height: 380 },
       minSize: { width: 305, height: 380 },
       maxSize: { width: 305, height: 380 },
+    } as WindowConstraints,
+  },
+  [ControlPanelsApp.id]: {
+    ...ControlPanelsApp,
+    windowConfig: {
+      defaultSize: { width: 480, height: 400 },
+      minSize: { width: 320, height: 240 },
     } as WindowConstraints,
   },
 } as const;
