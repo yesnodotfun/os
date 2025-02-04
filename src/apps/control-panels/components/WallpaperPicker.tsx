@@ -216,7 +216,6 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
         onValueChange={(value) =>
           setSelectedCategory(value as typeof selectedCategory)
         }
-        className="shrink-0"
       >
         <SelectTrigger className="w-full">
           <SelectValue placeholder="Select a category" />
