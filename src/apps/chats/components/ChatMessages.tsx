@@ -270,7 +270,7 @@ export function ChatMessages({
               )}
             </motion.div>
           )}
-          {messages.length > 20 && (
+          {messages.length > 25 && (
             <motion.div
               layout
               className="flex items-center gap-2 text-orange-600 font-['Geneva-9'] text-[16px] antialiased h-[12px]"

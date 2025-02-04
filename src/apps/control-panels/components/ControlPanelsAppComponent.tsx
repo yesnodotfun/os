@@ -411,7 +411,7 @@ export function ControlPanelsAppComponent({
                   </Button>
                   <p className="text-[11px] text-gray-600 font-['Geneva-12'] antialiased">
                     This will clear all documents from the virtual file system
-                    saved in your browser session.
+                    saved in your browser local storage.
                   </p>
                 </div>
               </div>
