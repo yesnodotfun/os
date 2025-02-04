@@ -210,12 +210,13 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 flex flex-col h-full">
       <Select
         value={selectedCategory}
         onValueChange={(value) =>
           setSelectedCategory(value as typeof selectedCategory)
         }
+        className="shrink-0"
       >
         <SelectTrigger className="w-full">
           <SelectValue placeholder="Select a category" />
@@ -230,12 +231,12 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
         </SelectContent>
       </Select>
 
-      <ScrollArea className="h-full">
+      <ScrollArea className="flex-1 h-[200px]">
         <div
           className={`grid gap-2 ${
             selectedCategory === "tiles"
-              ? "grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12 2xl:grid-cols-14"
-              : "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8"
+              ? "grid-cols-8 lg:grid-cols-10 xl:grid-cols-12 2xl:grid-cols-14"
+              : "grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8"
           }`}
         >
           {selectedCategory === "tiles" ? (

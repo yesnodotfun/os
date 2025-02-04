@@ -178,7 +178,7 @@ export function ControlPanelsAppComponent({
         appId="control-panels"
       >
         <div className="flex flex-col h-full bg-[#E3E3E3] p-4 w-full">
-          <Tabs defaultValue="appearance" className="w-full antialiased">
+          <Tabs defaultValue="appearance" className="w-full h-full antialiased">
             <TabsList className="flex w-full h-6 space-x-0.5 bg-[#E3E3E3] border-b border-[#808080] shadow-none">
               <TabsTrigger
                 value="appearance"
@@ -202,59 +202,58 @@ export function ControlPanelsAppComponent({
 
             <TabsContent
               value="appearance"
-              className="mt-0 p-4 bg-[#E3E3E3] border border-t-0 border-[#808080]"
+              className="mt-0 p-4 bg-[#E3E3E3] border border-t-0 border-[#808080] h-[calc(100%-2rem)]"
             >
-              <div className="space-y-4">
+              <div className="space-y-4 h-full">
                 <WallpaperPicker />
               </div>
             </TabsContent>
 
             <TabsContent
               value="sound"
-              className="mt-0 p-4 bg-[#E3E3E3] border border-t-0 border-[#808080]"
+              className="mt-0 p-4 bg-[#E3E3E3] border border-t-0 border-[#808080] h-[calc(100%-2rem)]"
             >
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label>UI Sounds</Label>
-                    <Switch
-                      checked={uiSoundsEnabled}
-                      onCheckedChange={handleUISoundsChange}
-                      className="data-[state=checked]:bg-[#000000]"
-                    />
-                  </div>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label>Chat synth</Label>
+                  <Select
+                    value={synthPreset}
+                    onValueChange={handleSynthPresetChange}
+                  >
+                    <SelectTrigger className="w-[120px]">
+                      <SelectValue placeholder="Select a preset" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(SYNTH_PRESETS).map(([key, preset]) => (
+                        <SelectItem key={key} value={key}>
+                          {preset.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label>Chat synth</Label>
-                    <Select
-                      value={synthPreset}
-                      onValueChange={handleSynthPresetChange}
-                    >
-                      <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Select a preset" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(SYNTH_PRESETS).map(([key, preset]) => (
-                          <SelectItem key={key} value={key}>
-                            {preset.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div className="flex items-center justify-between">
+                  <Label>UI Sounds</Label>
+                  <Switch
+                    checked={uiSoundsEnabled}
+                    onCheckedChange={handleUISoundsChange}
+                    className="data-[state=checked]:bg-[#000000]"
+                  />
                 </div>
               </div>
             </TabsContent>
 
             <TabsContent
               value="general"
-              className="mt-0 p-4 bg-[#E3E3E3] border border-t-0 border-[#808080]"
+              className="mt-0 p-4 bg-[#E3E3E3] border border-t-0 border-[#808080] h-[calc(100%-2rem)]"
             >
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Button variant="retro" onClick={handleResetAll}>
+                  <Button
+                    variant="retro"
+                    onClick={handleResetAll}
+                    className="w-full"
+                  >
                     Reset All App States
                   </Button>
                   <p className="text-[11px] text-gray-600 font-['Geneva-12']">
@@ -281,7 +280,7 @@ export function ControlPanelsAppComponent({
           isOpen={isConfirmResetOpen}
           onOpenChange={setIsConfirmResetOpen}
           onConfirm={handleConfirmReset}
-          title="Reset All App States"
+          title="Reset All"
           description="Are you sure you want to reset all app states? This will clear all saved settings, documents, and states. The application will reload after reset."
         />
       </WindowFrame>
