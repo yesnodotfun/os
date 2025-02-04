@@ -384,8 +384,7 @@ export function ControlPanelsAppComponent({
                     />
                   </div>
                   <p className="text-[11px] text-gray-600 font-['Geneva-12'] antialiased">
-                    Backup or restore all app settings and documents. Backups
-                    are compressed to save space.
+                    Backup or restore all app settings and documents.
                   </p>
                 </div>
 
@@ -395,7 +394,7 @@ export function ControlPanelsAppComponent({
                     onClick={handleResetAll}
                     className="w-full"
                   >
-                    Reset All App States
+                    Reset All App Settings
                   </Button>
                   <p className="text-[11px] text-gray-600 font-['Geneva-12'] antialiased">
                     This will clear all saved settings and states.
@@ -411,7 +410,8 @@ export function ControlPanelsAppComponent({
                     Format File System
                   </Button>
                   <p className="text-[11px] text-gray-600 font-['Geneva-12'] antialiased">
-                    This will clear all documents from the file system.
+                    This will clear all documents from the virtual file system
+                    saved in your browser session.
                   </p>
                 </div>
               </div>
