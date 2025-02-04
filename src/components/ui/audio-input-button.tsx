@@ -1,11 +1,12 @@
 import { Mic, Loader2 } from "lucide-react";
 import { useAudioTranscription } from "@/hooks/useAudioTranscription";
 import { AudioBars } from "./audio-bars";
-import { forwardRef } from "react";
+import { forwardRef, useEffect } from "react";
 
 interface AudioInputButtonProps {
   onTranscriptionComplete: (text: string) => void;
   onTranscriptionStart?: () => void;
+  onRecordingStateChange?: (recording: boolean) => void;
   isLoading?: boolean;
   className?: string;
   silenceThreshold?: number;
@@ -19,6 +20,7 @@ export const AudioInputButton = forwardRef<
     {
       onTranscriptionComplete,
       onTranscriptionStart,
+      onRecordingStateChange,
       isLoading = false,
       className = "",
       silenceThreshold = 1000,
@@ -45,6 +47,10 @@ export const AudioInputButton = forwardRef<
       silenceThreshold,
       minRecordingDuration: 500, // Ensure we get at least 0.5s of audio
     });
+
+    useEffect(() => {
+      onRecordingStateChange?.(isRecording);
+    }, [isRecording, onRecordingStateChange]);
 
     return (
       <div className="relative">

@@ -68,7 +68,7 @@ type CellProps = {
   cell: CellContent;
   rowIndex: number;
   colIndex: number;
-  onCellClick: (row: number, col: number) => void;
+  onCellClick: (row: number, col: number, isDoubleClick?: boolean) => void;
   onCellRightClick: (
     e: React.MouseEvent | React.TouchEvent,
     row: number,
@@ -87,9 +87,16 @@ function Cell({
 }: CellProps) {
   const longPressHandlers = useLongPress(
     (e) => onCellRightClick(e, rowIndex, colIndex),
-    () => onCellClick(rowIndex, colIndex),
+    () => onCellClick(rowIndex, colIndex, false),
     { delay: 500 }
   );
+
+  const handleDoubleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (cell.isRevealed && cell.neighborMines > 0) {
+      onCellClick(rowIndex, colIndex, true);
+    }
+  };
 
   return (
     <button
@@ -102,6 +109,7 @@ function Cell({
         }`}
       {...longPressHandlers}
       onContextMenu={(e) => onCellRightClick(e, rowIndex, colIndex)}
+      onDoubleClick={handleDoubleClick}
       disabled={disabled}
     >
       {cell.isRevealed ? (
@@ -195,10 +203,73 @@ export function MinesweeperAppComponent({
     return board;
   }
 
-  function handleCellClick(row: number, col: number) {
+  function handleCellClick(
+    row: number,
+    col: number,
+    isDoubleClick: boolean = false
+  ) {
     if (gameOver || gameWon || gameBoard[row][col].isFlagged) return;
 
     const newBoard = [...gameBoard.map((row) => [...row])];
+
+    if (
+      isDoubleClick &&
+      newBoard[row][col].isRevealed &&
+      newBoard[row][col].neighborMines > 0
+    ) {
+      // Check if the number of flags around matches the number
+      let flagCount = 0;
+      for (let i = -1; i <= 1; i++) {
+        for (let j = -1; j <= 1; j++) {
+          const newRow = row + i;
+          const newCol = col + j;
+          if (
+            newRow >= 0 &&
+            newRow < BOARD_SIZE &&
+            newCol >= 0 &&
+            newCol < BOARD_SIZE &&
+            newBoard[newRow][newCol].isFlagged
+          ) {
+            flagCount++;
+          }
+        }
+      }
+
+      // If flags match the number, reveal all non-flagged adjacent cells
+      if (flagCount === newBoard[row][col].neighborMines) {
+        playClick();
+        let hitMine = false;
+        for (let i = -1; i <= 1; i++) {
+          for (let j = -1; j <= 1; j++) {
+            const newRow = row + i;
+            const newCol = col + j;
+            if (
+              newRow >= 0 &&
+              newRow < BOARD_SIZE &&
+              newCol >= 0 &&
+              newCol < BOARD_SIZE &&
+              !newBoard[newRow][newCol].isFlagged &&
+              !newBoard[newRow][newCol].isRevealed
+            ) {
+              if (newBoard[newRow][newCol].isMine) {
+                hitMine = true;
+              }
+              revealCell(newBoard, newRow, newCol);
+            }
+          }
+        }
+
+        if (hitMine) {
+          playMineHit();
+          revealAllMines(newBoard);
+          setGameOver(true);
+          return;
+        }
+      }
+      setGameBoard(newBoard);
+      checkWinCondition(newBoard);
+      return;
+    }
 
     if (newBoard[row][col].isMine) {
       // Game Over

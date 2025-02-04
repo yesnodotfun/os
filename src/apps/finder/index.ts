@@ -15,18 +15,39 @@ export const appMetadata = {
 export const helpItems = [
   {
     icon: "🔍",
-    title: "Browse Files",
-    description: "Navigate through your files and folders",
+    title: "Browse & Navigate",
+    description:
+      "Navigate files using Back/Forward buttons and access quick locations from the Go menu",
   },
   {
     icon: "📁",
-    title: "Create Folders",
-    description: "Organize your files with new folders",
+    title: "File Management",
+    description:
+      "Create new folders, move files to Trash, and organize your content",
+  },
+  {
+    icon: "👀",
+    title: "View & Sort",
+    description:
+      "Switch between Icon views and sort files by name, kind, size, or date",
+  },
+  {
+    icon: "📍",
+    title: "Quick Access",
+    description:
+      "Quickly access Documents, Applications, and Trash from the Go menu",
   },
   {
     icon: "🗑️",
-    title: "Delete Files",
-    description: "Remove unwanted files and folders",
+    title: "Trash",
+    description:
+      "Move unwanted files to Trash and permanently delete them when emptying",
+  },
+  {
+    icon: "💾",
+    title: "Storage Info",
+    description:
+      "View available storage space and item count at the bottom of the window",
   },
 ];
 

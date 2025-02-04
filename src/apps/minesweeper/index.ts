@@ -17,19 +17,18 @@ export const helpItems: BaseApp["helpItems"] = [
     icon: "🖱️",
     title: "Desktop Controls",
     description:
-      "Left click to reveal a cell. Right click to place a flag. Avoid the mines!",
+      "Left click to reveal, right click to flag, double click numbers to reveal adjacent cells.",
   },
   {
     icon: "📱",
     title: "Mobile Controls",
-    description:
-      "Tap to reveal a cell. Long press (hold) to place a flag. Same rules apply!",
+    description: "Tap to reveal, long press to flag.",
   },
   {
     icon: "📖",
     title: "Game Rules",
     description:
-      "Numbers show how many mines are adjacent to a cell. Flag all mines to win!",
+      "Numbers show adjacent mines. Flag all mines to win. Double click numbers after flagging neighbors.",
   },
 ];
 

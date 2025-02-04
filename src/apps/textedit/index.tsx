@@ -4,28 +4,36 @@ import { TextEditAppComponent } from "./components/TextEditAppComponent";
 export const helpItems = [
   {
     icon: "📝",
-    title: "Edit",
-    description: "Type and format your text",
+    title: "Basic Editing",
+    description: "Type, copy, cut, paste, and undo/redo your text",
   },
   {
     icon: "🎨",
-    title: "Format",
-    description: "Bold, italic, underline, and align text",
+    title: "Text Formatting",
+    description:
+      "Style with bold, italic, underline, headings, and text alignment",
   },
   {
     icon: "📋",
-    title: "Lists",
-    description: "Create ordered and unordered lists",
+    title: "Lists & Organization",
+    description: "Create bullet, numbered, and task lists to organize content",
   },
   {
     icon: "💾",
-    title: "Save",
-    description: "Auto-saves your work",
+    title: "File Management",
+    description:
+      "Create, open, save, and export files (HTML, MD, TXT) with auto-save",
+  },
+  {
+    icon: "🎤",
+    title: "Voice Input",
+    description:
+      "Dictate text using voice transcription for hands-free editing",
   },
   {
     icon: "⚡",
-    title: "Slash Commands",
-    description: "Type / to access quick formatting commands",
+    title: "Quick Commands",
+    description: "Type / to access formatting and editing shortcuts",
   },
 ];
 

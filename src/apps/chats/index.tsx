@@ -5,17 +5,18 @@ export const helpItems = [
   {
     icon: "💬",
     title: "Chat",
-    description: "Type your message and press Enter to send",
+    description:
+      "Type your message and press Enter or click Send to chat with Ryo",
   },
   {
-    icon: "🤖",
-    title: "AI Assistant",
-    description: "Chat with Ryo, your personal AI assistant",
+    icon: "🎤",
+    title: "Voice",
+    description: "Hold Space or tap microphone button to record voice",
   },
   {
-    icon: "📝",
-    title: "History",
-    description: "View your chat history",
+    icon: "🎵",
+    title: "Sounds",
+    description: "Chat synthesizer plays retro sounds while typing",
   },
 ];
 

@@ -26,6 +26,7 @@ export function ChatInput({
 }: ChatInputProps) {
   const [isFocused, setIsFocused] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
   const [transcriptionError, setTranscriptionError] = useState<string | null>(
     null
   );
@@ -39,6 +40,7 @@ export function ChatInput({
 
   const handleTranscriptionComplete = (text: string) => {
     setIsTranscribing(false);
+    setIsRecording(false);
     setTranscriptionError(null);
 
     if (!text) {
@@ -70,6 +72,10 @@ export function ChatInput({
 
   const handleTranscriptionStart = () => {
     setIsTranscribing(true);
+  };
+
+  const handleRecordingStateChange = (recording: boolean) => {
+    setIsRecording(recording);
   };
 
   useEffect(() => {
@@ -114,9 +120,13 @@ export function ChatInput({
             value={input}
             onChange={onInputChange}
             placeholder={
-              isFocused || isTouchDevice
+              isRecording
+                ? "Recording..."
+                : isTranscribing
+                ? "Transcribing..."
+                : isFocused || isTouchDevice
                 ? "Type a message..."
-                : "Type or hold 'space' to chat..."
+                : "Type or press 'space' to talk..."
             }
             className={`w-full border-1 border-gray-800 text-xs font-['Geneva-12'] antialiased h-8 pr-8 ${
               isFocused ? "input--focused" : ""
@@ -132,6 +142,7 @@ export function ChatInput({
               ref={audioButtonRef}
               onTranscriptionComplete={handleTranscriptionComplete}
               onTranscriptionStart={handleTranscriptionStart}
+              onRecordingStateChange={handleRecordingStateChange}
               isLoading={isTranscribing}
               silenceThreshold={1200}
               className="w-full h-full flex items-center justify-center"
