@@ -59,7 +59,7 @@ export const appRegistry = {
     ...TextEditApp,
     windowConfig: {
       defaultSize: { width: 420, height: 475 },
-      minSize: { width: 300, height: 200 },
+      minSize: { width: 368, height: 200 },
     } as WindowConstraints,
   },
   [MinesweeperApp.id]: {

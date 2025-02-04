@@ -99,6 +99,7 @@ export function ChatsAppComponent({
           <ChatInput
             input={input}
             isLoading={isLoading}
+            isForeground={isForeground}
             onInputChange={handleInputChange}
             onSubmit={handleSubmit}
             onStop={stop}

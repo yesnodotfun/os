@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ArrowUp, Square } from "lucide-react";
@@ -8,6 +8,7 @@ import { AudioInputButton } from "@/components/ui/audio-input-button";
 interface ChatInputProps {
   input: string;
   isLoading: boolean;
+  isForeground?: boolean;
   onInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   onStop: () => void;
@@ -17,6 +18,7 @@ interface ChatInputProps {
 export function ChatInput({
   input,
   isLoading,
+  isForeground = false,
   onInputChange,
   onSubmit,
   onStop,
@@ -27,6 +29,13 @@ export function ChatInput({
   const [transcriptionError, setTranscriptionError] = useState<string | null>(
     null
   );
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
+  const audioButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    // Check if device has touch capability
+    setIsTouchDevice("ontouchstart" in window || navigator.maxTouchPoints > 0);
+  }, []);
 
   const handleTranscriptionComplete = (text: string) => {
     setIsTranscribing(false);
@@ -63,6 +72,36 @@ export function ChatInput({
     setIsTranscribing(true);
   };
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.code === "Space" &&
+        !e.repeat &&
+        isForeground &&
+        !isFocused &&
+        !isTranscribing
+      ) {
+        e.preventDefault();
+        audioButtonRef.current?.click();
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code === "Space" && isForeground && !isFocused && isTranscribing) {
+        e.preventDefault();
+        audioButtonRef.current?.click();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, [isForeground, isFocused, isTranscribing]);
+
   return (
     <form onSubmit={onSubmit} className="flex gap-1">
       <AnimatePresence mode="popLayout" initial={false}>
@@ -74,7 +113,11 @@ export function ChatInput({
           <Input
             value={input}
             onChange={onInputChange}
-            placeholder="Type a message..."
+            placeholder={
+              isFocused || isTouchDevice
+                ? "Type a message..."
+                : "Type or hold 'space' to chat..."
+            }
             className={`w-full border-1 border-gray-800 text-xs font-['Geneva-12'] antialiased h-8 pr-8 ${
               isFocused ? "input--focused" : ""
             }`}
@@ -86,6 +129,7 @@ export function ChatInput({
           />
           <div className="absolute right-1.5 top-1/2 -translate-y-1/2 w-[22px] h-[22px] flex items-center justify-center">
             <AudioInputButton
+              ref={audioButtonRef}
               onTranscriptionComplete={handleTranscriptionComplete}
               onTranscriptionStart={handleTranscriptionStart}
               isLoading={isTranscribing}

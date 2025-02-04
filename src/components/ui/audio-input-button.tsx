@@ -1,6 +1,7 @@
 import { Mic, Loader2 } from "lucide-react";
 import { useAudioTranscription } from "@/hooks/useAudioTranscription";
 import { AudioBars } from "./audio-bars";
+import { forwardRef } from "react";
 
 interface AudioInputButtonProps {
   onTranscriptionComplete: (text: string) => void;
@@ -10,15 +11,27 @@ interface AudioInputButtonProps {
   silenceThreshold?: number;
 }
 
-export function AudioInputButton({
-  onTranscriptionComplete,
-  onTranscriptionStart,
-  isLoading = false,
-  className = "",
-  silenceThreshold = 1000,
-}: AudioInputButtonProps) {
-  const { isRecording, frequencies, isSilent, startRecording, stopRecording } =
-    useAudioTranscription({
+export const AudioInputButton = forwardRef<
+  HTMLButtonElement,
+  AudioInputButtonProps
+>(
+  (
+    {
+      onTranscriptionComplete,
+      onTranscriptionStart,
+      isLoading = false,
+      className = "",
+      silenceThreshold = 1000,
+    },
+    ref
+  ) => {
+    const {
+      isRecording,
+      frequencies,
+      isSilent,
+      startRecording,
+      stopRecording,
+    } = useAudioTranscription({
       onTranscriptionComplete: (text) => {
         onTranscriptionComplete(text);
       },
@@ -33,26 +46,28 @@ export function AudioInputButton({
       minRecordingDuration: 500, // Ensure we get at least 0.5s of audio
     });
 
-  return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={isRecording ? stopRecording : startRecording}
-        className={className}
-        disabled={isLoading}
-      >
-        {isLoading ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : isRecording ? (
-          <AudioBars
-            frequencies={frequencies}
-            color="black"
-            isSilent={isSilent}
-          />
-        ) : (
-          <Mic className="h-4 w-4" />
-        )}
-      </button>
-    </div>
-  );
-}
+    return (
+      <div className="relative">
+        <button
+          ref={ref}
+          type="button"
+          onClick={isRecording ? stopRecording : startRecording}
+          className={className}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : isRecording ? (
+            <AudioBars
+              frequencies={frequencies}
+              color="black"
+              isSilent={isSilent}
+            />
+          ) : (
+            <Mic className="h-4 w-4" />
+          )}
+        </button>
+      </div>
+    );
+  }
+);

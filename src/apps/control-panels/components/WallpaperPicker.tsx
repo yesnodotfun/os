@@ -9,6 +9,37 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useWallpaper } from "@/hooks/useWallpaper";
 
+interface WallpaperItemProps {
+  path: string;
+  isSelected: boolean;
+  onClick: () => void;
+  isTile?: boolean;
+}
+
+function WallpaperItem({
+  path,
+  isSelected,
+  onClick,
+  isTile = false,
+}: WallpaperItemProps) {
+  return (
+    <div
+      className={`w-full ${
+        isTile ? "aspect-square" : "aspect-video"
+      } border-2 cursor-pointer hover:opacity-90 ${
+        isSelected ? "ring-2 ring-black border-white" : "border-transparent"
+      }`}
+      style={{
+        backgroundImage: `url(${path})`,
+        backgroundSize: isTile ? "64px 64px" : "cover",
+        backgroundPosition: isTile ? undefined : "center",
+        backgroundRepeat: isTile ? "repeat" : undefined,
+      }}
+      onClick={onClick}
+    />
+  );
+}
+
 type PhotoCategory =
   | "3d_graphics"
   | "convergency"
@@ -232,41 +263,26 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
 
       <ScrollArea className="flex-1 h-[200px]">
         <div
-          className={`grid gap-2 ${
+          className={`grid gap-2 p-1 ${
             selectedCategory === "tiles" ? "grid-cols-8" : "grid-cols-3"
           }`}
         >
           {selectedCategory === "tiles" ? (
             TILE_WALLPAPERS.map((path) => (
-              <div
+              <WallpaperItem
                 key={path}
-                className={`w-full aspect-square border cursor-pointer hover:opacity-90 ${
-                  currentWallpaper === path
-                    ? "border-[#000000]"
-                    : "border-transparent"
-                }`}
-                style={{
-                  backgroundImage: `url(${path})`,
-                  backgroundSize: "64px 64px",
-                  backgroundRepeat: "repeat",
-                }}
+                path={path}
+                isSelected={currentWallpaper === path}
                 onClick={() => handleWallpaperSelect(path)}
+                isTile
               />
             ))
           ) : PHOTO_WALLPAPERS[selectedCategory] ? (
             PHOTO_WALLPAPERS[selectedCategory].map((path) => (
-              <div
+              <WallpaperItem
                 key={path}
-                className={`w-full aspect-video border-2 cursor-pointer hover:opacity-90 ${
-                  currentWallpaper === path
-                    ? "border-[#000000]"
-                    : "border-transparent"
-                }`}
-                style={{
-                  backgroundImage: `url(${path})`,
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                }}
+                path={path}
+                isSelected={currentWallpaper === path}
                 onClick={() => handleWallpaperSelect(path)}
               />
             ))
