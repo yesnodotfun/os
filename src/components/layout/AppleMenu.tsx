@@ -45,7 +45,7 @@ export function AppleMenu({ apps }: AppleMenuProps) {
             onClick={() => setAboutFinderOpen(true)}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            About This Macintosh
+            About This Computer
           </DropdownMenuItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           {apps.map((app) => (
