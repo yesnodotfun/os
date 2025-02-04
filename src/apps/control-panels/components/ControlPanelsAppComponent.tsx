@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { WindowFrame } from "@/components/layout/WindowFrame";
 import { ControlPanelsMenuBar } from "./ControlPanelsMenuBar";
 import { HelpDialog } from "@/components/dialogs/HelpDialog";
@@ -141,6 +141,7 @@ export function ControlPanelsAppComponent({
   const [uiSoundsEnabled, setUiSoundsEnabled] = useState(true);
   const [typingSynthEnabled, setTypingSynthEnabled] = useState(true);
   const [synthPreset, setSynthPreset] = useState("classic");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setUiSoundsEnabled(loadUISoundsEnabled());
@@ -170,6 +171,98 @@ export function ControlPanelsAppComponent({
   const handleConfirmReset = () => {
     clearAllAppStates();
     window.location.reload();
+  };
+
+  const handleBackup = async () => {
+    const backup: {
+      localStorage: Record<string, string | null>;
+      timestamp: string;
+    } = {
+      localStorage: {},
+      timestamp: new Date().toISOString(),
+    };
+
+    // Backup all localStorage data
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key) {
+        backup.localStorage[key] = localStorage.getItem(key);
+      }
+    }
+
+    // Compress the data
+    const jsonString = JSON.stringify(backup);
+    const compressedData = await new Blob([jsonString])
+      .arrayBuffer()
+      .then((buffer) => {
+        const stream = new Blob([buffer]).stream();
+        const compressedStream = stream.pipeThrough(
+          new CompressionStream("gzip")
+        );
+        return new Response(compressedStream).blob();
+      });
+
+    // Create and download compressed file
+    const url = URL.createObjectURL(compressedData);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `macOS-backup-${new Date().toISOString().split("T")[0]}.gz`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleRestore = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        let data: string;
+
+        if (file.name.endsWith(".gz")) {
+          // Handle compressed file
+          const arrayBuffer = e.target?.result as ArrayBuffer;
+          const decompressedStream = new Response(
+            arrayBuffer
+          ).body?.pipeThrough(new DecompressionStream("gzip"));
+
+          if (!decompressedStream) {
+            throw new Error("Failed to decompress backup file");
+          }
+
+          const decompressedResponse = new Response(decompressedStream);
+          data = await decompressedResponse.text();
+        } else {
+          // Handle uncompressed JSON file for backward compatibility
+          data = e.target?.result as string;
+        }
+
+        const backup = JSON.parse(data);
+
+        // Restore localStorage data
+        if (backup.localStorage) {
+          Object.entries(backup.localStorage).forEach(([key, value]) => {
+            if (value !== null) {
+              localStorage.setItem(key, value as string);
+            }
+          });
+        }
+
+        window.location.reload();
+      } catch (err) {
+        alert("Failed to restore backup. Invalid backup file.");
+        console.error("Backup restore failed:", err);
+      }
+    };
+
+    if (file.name.endsWith(".gz")) {
+      reader.readAsArrayBuffer(file);
+    } else {
+      reader.readAsText(file);
+    }
   };
 
   if (!isWindowOpen) return null;
@@ -267,6 +360,36 @@ export function ControlPanelsAppComponent({
             >
               <div className="space-y-4">
                 <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <Button
+                      variant="retro"
+                      onClick={handleBackup}
+                      className="flex-1"
+                    >
+                      Backup
+                    </Button>
+                    <Button
+                      variant="retro"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex-1"
+                    >
+                      Restore
+                    </Button>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleRestore}
+                      accept=".json,.gz"
+                      className="hidden"
+                    />
+                  </div>
+                  <p className="text-[11px] text-gray-600 font-['Geneva-12'] antialiased">
+                    Backup or restore all app settings and documents. Backups
+                    are compressed to save space.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
                   <Button
                     variant="retro"
                     onClick={handleResetAll}
@@ -274,7 +397,7 @@ export function ControlPanelsAppComponent({
                   >
                     Reset All App States
                   </Button>
-                  <p className="text-[11px] text-gray-600 font-['Geneva-12']">
+                  <p className="text-[11px] text-gray-600 font-['Geneva-12'] antialiased">
                     This will clear all saved settings and states.
                   </p>
                 </div>
@@ -287,7 +410,7 @@ export function ControlPanelsAppComponent({
                   >
                     Format File System
                   </Button>
-                  <p className="text-[11px] text-gray-600 font-['Geneva-12']">
+                  <p className="text-[11px] text-gray-600 font-['Geneva-12'] antialiased">
                     This will clear all documents from the file system.
                   </p>
                 </div>

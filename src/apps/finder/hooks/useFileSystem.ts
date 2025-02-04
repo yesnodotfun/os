@@ -170,8 +170,13 @@ export function useFileSystem(initialPath: string = "/") {
   const [historyIndex, setHistoryIndex] = useState(0);
   const launchApp = useLaunchApp();
 
+  // Load files whenever path, documents, or trash items change
   useEffect(() => {
-    // Listen for file save events
+    loadFiles();
+  }, [currentPath]);
+
+  // Listen for file save events
+  useEffect(() => {
     const handleFileSave = (event: CustomEvent<FileItem>) => {
       if (!event.detail.content) return;
 
@@ -180,31 +185,40 @@ export function useFileSystem(initialPath: string = "/") {
         content: event.detail.content,
       };
 
-      const newDocs = [...documents];
-      const existingIndex = newDocs.findIndex(
-        (doc) => doc.name === newDoc.name
-      );
+      setDocuments((prevDocs) => {
+        const newDocs = [...prevDocs];
+        const existingIndex = newDocs.findIndex(
+          (doc) => doc.name === newDoc.name
+        );
 
-      if (existingIndex >= 0) {
-        newDocs[existingIndex] = newDoc;
-      } else {
-        newDocs.push(newDoc);
-      }
+        if (existingIndex >= 0) {
+          newDocs[existingIndex] = newDoc;
+        } else {
+          newDocs.push(newDoc);
+        }
 
-      setDocuments(newDocs);
-      saveDocuments(newDocs);
-      loadFiles(); // Refresh file list
+        saveDocuments(newDocs);
+        return newDocs;
+      });
     };
 
     window.addEventListener("saveFile", handleFileSave as EventListener);
     return () => {
       window.removeEventListener("saveFile", handleFileSave as EventListener);
     };
+  }, []); // Remove documents dependency
+
+  // Save documents to localStorage whenever they change
+  useEffect(() => {
+    saveDocuments(documents);
+    loadFiles();
   }, [documents]);
 
+  // Save trash items to localStorage whenever they change
   useEffect(() => {
+    saveTrashItems(trashItems);
     loadFiles();
-  }, [currentPath, documents, trashItems]);
+  }, [trashItems]);
 
   async function loadFiles() {
     setIsLoading(true);
@@ -441,18 +455,20 @@ export function useFileSystem(initialPath: string = "/") {
       content: file.content,
     };
 
-    const newDocs = [...documents];
-    const existingIndex = newDocs.findIndex((doc) => doc.name === newDoc.name);
+    setDocuments((prevDocs) => {
+      const newDocs = [...prevDocs];
+      const existingIndex = newDocs.findIndex(
+        (doc) => doc.name === newDoc.name
+      );
 
-    if (existingIndex >= 0) {
-      newDocs[existingIndex] = newDoc;
-    } else {
-      newDocs.push(newDoc);
-    }
+      if (existingIndex >= 0) {
+        newDocs[existingIndex] = newDoc;
+      } else {
+        newDocs.push(newDoc);
+      }
 
-    setDocuments(newDocs);
-    saveDocuments(newDocs);
-    loadFiles(); // Refresh file list
+      return newDocs;
+    });
   }
 
   return {

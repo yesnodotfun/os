@@ -282,20 +282,39 @@ export function TextEditAppComponent({
         try {
           const { path, content } = JSON.parse(pendingFileOpen);
           if (path.startsWith("/Documents/")) {
-            // If there are unsaved changes, prompt the user
-            if (hasUnsavedChanges) {
+            // Only show discard changes warning if we have unsaved changes in an untitled document
+            if (hasUnsavedChanges && !currentFilePath) {
               setIsConfirmNewDialogOpen(true);
             } else {
               editor.commands.clearContent();
               try {
+                // First try to parse as JSON (for documents saved by TextEdit)
                 const jsonContent = JSON.parse(content);
                 editor.commands.setContent(jsonContent);
+                // Save the file to ensure it's registered for autosaving
+                const fileName = path.split("/").pop() || "Untitled";
+                saveFile({
+                  name: fileName,
+                  path: path,
+                  content: content,
+                  icon: "/icons/file-text.png",
+                  isDirectory: false,
+                });
               } catch {
-                // Fallback to treating content as HTML/MD if not JSON
+                // If not JSON, process as plain text or markdown
                 const processedContent = path.endsWith(".md")
                   ? markdownToHtml(content)
                   : content;
                 editor.commands.setContent(processedContent);
+                // Save the processed content
+                const fileName = path.split("/").pop() || "Untitled";
+                saveFile({
+                  name: fileName,
+                  path: path,
+                  content: JSON.stringify(editor.getJSON()),
+                  icon: "/icons/file-text.png",
+                  isDirectory: false,
+                });
               }
               setCurrentFilePath(path);
               setHasUnsavedChanges(false);
@@ -401,13 +420,17 @@ export function TextEditAppComponent({
       const content = JSON.stringify(editor.getJSON());
       const fileName = currentFilePath.split("/").pop() || "Untitled";
 
-      saveFile({
-        name: fileName,
-        path: currentFilePath,
-        content: content,
-        icon: "/icons/file-text.png",
-        isDirectory: false,
+      // Dispatch saveFile event instead of directly calling saveFile
+      const saveEvent = new CustomEvent("saveFile", {
+        detail: {
+          name: fileName,
+          path: currentFilePath,
+          content: content,
+          icon: "/icons/file-text.png",
+          isDirectory: false,
+        },
       });
+      window.dispatchEvent(saveEvent);
 
       // Store content in case app crashes
       localStorage.setItem(APP_STORAGE_KEYS.textedit.CONTENT, content);
@@ -428,13 +451,17 @@ export function TextEditAppComponent({
       fileName.includes(".") ? "" : ".txt"
     }`;
 
-    saveFile({
-      name: fileName,
-      path: filePath,
-      content: content,
-      icon: "/icons/file-text.png",
-      isDirectory: false,
+    // Dispatch saveFile event instead of directly calling saveFile
+    const saveEvent = new CustomEvent("saveFile", {
+      detail: {
+        name: fileName,
+        path: filePath,
+        content: content,
+        icon: "/icons/file-text.png",
+        isDirectory: false,
+      },
     });
+    window.dispatchEvent(saveEvent);
 
     // Store content in case app crashes
     localStorage.setItem(APP_STORAGE_KEYS.textedit.CONTENT, content);
@@ -462,17 +489,21 @@ export function TextEditAppComponent({
         content = `<p>${text}</p>`;
       }
 
-      // Save the file to the Documents directory
-      const filePath = `/Documents/${file.name}`;
-      saveFile({
-        name: file.name,
-        path: filePath,
-        content: text,
-        icon: "/icons/file-text.png",
-        isDirectory: false,
-      });
-
       editor.commands.setContent(content);
+      const filePath = `/Documents/${file.name}`;
+
+      // Dispatch saveFile event instead of directly calling saveFile
+      const saveEvent = new CustomEvent("saveFile", {
+        detail: {
+          name: file.name,
+          path: filePath,
+          content: JSON.stringify(editor.getJSON()),
+          icon: "/icons/file-text.png",
+          isDirectory: false,
+        },
+      });
+      window.dispatchEvent(saveEvent);
+
       setCurrentFilePath(filePath);
       setHasUnsavedChanges(false);
       // Store content in case app crashes
@@ -572,7 +603,21 @@ export function TextEditAppComponent({
       } else {
         editor.commands.clearContent();
         editor.commands.setContent(content);
-        setCurrentFilePath(`/Documents/${file.name}`);
+        const filePath = `/Documents/${file.name}`;
+
+        // Dispatch saveFile event instead of directly calling saveFile
+        const saveEvent = new CustomEvent("saveFile", {
+          detail: {
+            name: file.name,
+            path: filePath,
+            content: JSON.stringify(editor.getJSON()),
+            icon: "/icons/file-text.png",
+            isDirectory: false,
+          },
+        });
+        window.dispatchEvent(saveEvent);
+
+        setCurrentFilePath(filePath);
         setHasUnsavedChanges(false);
         // Store content in case app crashes
         localStorage.setItem(
@@ -582,7 +627,7 @@ export function TextEditAppComponent({
         // Store the file path for next time
         localStorage.setItem(
           APP_STORAGE_KEYS.textedit.LAST_FILE_PATH,
-          `/Documents/${file.name}`
+          filePath
         );
       }
     }
