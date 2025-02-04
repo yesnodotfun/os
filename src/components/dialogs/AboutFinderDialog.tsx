@@ -78,7 +78,7 @@ export function AboutFinderDialog({
                     Largest Unused Block: {(32 - totalUsedMemory).toFixed(1)}MB
                   </div>
                   <div className="text-[10px] text-gray-500  mt-2  font-['Geneva-12'] antialiased text-[10px]">
-                    ™ & © Ryo Lu. 1992-{new Date().getFullYear()}
+                    © Ryo Lu. 1992-{new Date().getFullYear()}
                   </div>
                 </div>
               </div>
@@ -90,7 +90,7 @@ export function AboutFinderDialog({
               {memoryUsage.map((app, index) => (
                 <div className="flex flex-row gap-1" key={index}>
                   <div className="flex justify-between w-full">
-                    <div className="w-1/3">{app.name}</div>
+                    <div className="w-1/2 truncate">{app.name}</div>
                     <div className="w-1/3">{app.memoryMB.toFixed(1)} MB</div>
                   </div>
                   <div className="h-2 bg-gray-200 w-full ">
