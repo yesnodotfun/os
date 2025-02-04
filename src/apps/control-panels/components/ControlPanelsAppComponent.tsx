@@ -162,6 +162,7 @@ export function ControlPanelsAppComponent({
   const handleSynthPresetChange = (value: string) => {
     setSynthPreset(value);
     saveSynthPreset(value);
+    window.location.reload();
   };
 
   const handleResetAll = () => {
@@ -316,7 +317,7 @@ export function ControlPanelsAppComponent({
               value="sound"
               className="mt-0 p-4 bg-[#E3E3E3] border border-t-0 border-[#808080] h-[calc(100%-2rem)]"
             >
-              <div className="space-y-2">
+              <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <Label>UI Sounds</Label>
                   <Switch
@@ -334,7 +335,12 @@ export function ControlPanelsAppComponent({
                   />
                 </div>
                 <div className="flex items-center justify-between">
-                  <Label>Chat synth</Label>
+                  <div className="flex flex-col gap-1">
+                    <Label>Chat synth</Label>
+                    <Label className="text-[11px] text-gray-600 font-['Geneva-12'] antialiased">
+                      This will reload the application to apply the new preset.
+                    </Label>
+                  </div>
                   <Select
                     value={synthPreset}
                     onValueChange={handleSynthPresetChange}
