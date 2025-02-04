@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import * as Tone from "tone";
-import { loadSynthPreset, saveSynthPreset } from "@/utils/storage";
+import { loadSynthPreset } from "@/utils/storage";
 
 export type SynthPreset = {
   name: string;
@@ -145,7 +145,7 @@ const minTimeBetweenNotes = 0.1;
 
 export function useChatSynth() {
   const [isInitialized, setIsInitialized] = useState(false);
-  const [currentPreset, setCurrentPreset] = useState<string>(
+  const [currentPreset] = useState<string>(
     () => loadSynthPreset() || "classic"
   );
   const lastNoteTimeRef = useRef(0);
@@ -183,8 +183,6 @@ export function useChatSynth() {
         synthRef.current.dispose();
       }
       synthRef.current = createSynth(SYNTH_PRESETS[presetKey]);
-      setCurrentPreset(presetKey);
-      saveSynthPreset(presetKey);
       console.log("Preset changed to", presetKey);
     }
   }, []);
