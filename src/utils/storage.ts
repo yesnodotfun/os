@@ -34,6 +34,8 @@ export const APP_STORAGE_KEYS = {
     WALLPAPER: "control-panels:wallpaper",
     UI_SOUNDS_ENABLED: "control-panels:ui-sounds-enabled",
     CHAT_SYNTH_ENABLED: "control-panels:chat-synth-enabled",
+    TYPING_SYNTH_ENABLED: "control-panels:typing-synth-enabled",
+    SYNTH_PRESET: "control-panels:synth-preset",
   },
   minesweeper: {
     WINDOW: "minesweeper:window",
@@ -523,6 +525,21 @@ export const loadChatSynthEnabled = (): boolean => {
 export const saveChatSynthEnabled = (enabled: boolean): void => {
   localStorage.setItem(
     APP_STORAGE_KEYS["control-panels"].CHAT_SYNTH_ENABLED,
+    enabled.toString()
+  );
+};
+
+export const loadTypingSynthEnabled = (): boolean => {
+  return (
+    localStorage.getItem(
+      APP_STORAGE_KEYS["control-panels"].TYPING_SYNTH_ENABLED
+    ) !== "false"
+  );
+};
+
+export const saveTypingSynthEnabled = (enabled: boolean): void => {
+  localStorage.setItem(
+    APP_STORAGE_KEYS["control-panels"].TYPING_SYNTH_ENABLED,
     enabled.toString()
   );
 };

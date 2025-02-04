@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { ArrowUp, Square } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AudioInputButton } from "@/components/ui/audio-input-button";
+import { useChatSynth } from "@/hooks/useChatSynth";
+import { loadTypingSynthEnabled } from "@/utils/storage";
 
 interface ChatInputProps {
   input: string;
@@ -31,12 +33,27 @@ export function ChatInput({
     null
   );
   const [isTouchDevice, setIsTouchDevice] = useState(false);
+  const [lastTypingTime, setLastTypingTime] = useState(0);
   const audioButtonRef = useRef<HTMLButtonElement>(null);
+  const { playNote } = useChatSynth();
 
   useEffect(() => {
     // Check if device has touch capability
     setIsTouchDevice("ontouchstart" in window || navigator.maxTouchPoints > 0);
   }, []);
+
+  const handleInputChangeWithSound = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    onInputChange(e);
+
+    // Only play sound if typing synth is enabled and enough time has passed
+    const now = Date.now();
+    if (loadTypingSynthEnabled() && now - lastTypingTime > 50) {
+      playNote();
+      setLastTypingTime(now);
+    }
+  };
 
   const handleTranscriptionComplete = (text: string) => {
     setIsTranscribing(false);
@@ -118,7 +135,7 @@ export function ChatInput({
         >
           <Input
             value={input}
-            onChange={onInputChange}
+            onChange={handleInputChangeWithSound}
             placeholder={
               isRecording
                 ? "Recording..."

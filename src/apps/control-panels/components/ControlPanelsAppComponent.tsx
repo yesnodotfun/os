@@ -24,6 +24,8 @@ import {
   clearAllAppStates,
   loadSynthPreset,
   saveSynthPreset,
+  loadTypingSynthEnabled,
+  saveTypingSynthEnabled,
 } from "@/utils/storage";
 import { SYNTH_PRESETS } from "@/hooks/useChatSynth";
 
@@ -137,16 +139,23 @@ export function ControlPanelsAppComponent({
   const [isConfirmResetOpen, setIsConfirmResetOpen] = useState(false);
   const [isConfirmFormatOpen, setIsConfirmFormatOpen] = useState(false);
   const [uiSoundsEnabled, setUiSoundsEnabled] = useState(true);
+  const [typingSynthEnabled, setTypingSynthEnabled] = useState(true);
   const [synthPreset, setSynthPreset] = useState("classic");
 
   useEffect(() => {
     setUiSoundsEnabled(loadUISoundsEnabled());
+    setTypingSynthEnabled(loadTypingSynthEnabled());
     setSynthPreset(loadSynthPreset() || "classic");
   }, []);
 
   const handleUISoundsChange = (enabled: boolean) => {
     setUiSoundsEnabled(enabled);
     saveUISoundsEnabled(enabled);
+  };
+
+  const handleTypingSynthChange = (enabled: boolean) => {
+    setTypingSynthEnabled(enabled);
+    saveTypingSynthEnabled(enabled);
   };
 
   const handleSynthPresetChange = (value: string) => {
@@ -220,6 +229,14 @@ export function ControlPanelsAppComponent({
                   <Switch
                     checked={uiSoundsEnabled}
                     onCheckedChange={handleUISoundsChange}
+                    className="data-[state=checked]:bg-[#000000]"
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label>Typing Synth</Label>
+                  <Switch
+                    checked={typingSynthEnabled}
+                    onCheckedChange={handleTypingSynthChange}
                     className="data-[state=checked]:bg-[#000000]"
                   />
                 </div>
