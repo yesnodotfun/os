@@ -185,6 +185,7 @@ export function TextEditAppComponent({
   const { files, saveFile } = useFileSystem("/Documents");
   const launchApp = useLaunchApp();
   const { play: playButtonClick } = useSound(Sounds.BUTTON_CLICK);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
 
   const editor = useEditor({
     extensions: [
@@ -518,6 +519,61 @@ export function TextEditAppComponent({
     launchApp("finder", { initialPath: "/Documents" });
   };
 
+  // Function to handle dropped files
+  const handleFileDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(false);
+
+    const file = e.dataTransfer.files[0];
+    if (file && editor) {
+      // Only accept text and markdown files
+      if (!file.type.startsWith("text/") && !file.name.endsWith(".md")) {
+        return;
+      }
+
+      const text = await file.text();
+
+      // Convert content based on file type
+      let content;
+      if (file.name.endsWith(".html")) {
+        content = text;
+      } else if (file.name.endsWith(".md")) {
+        content = markdownToHtml(text);
+      } else {
+        content = `<p>${text}</p>`;
+      }
+
+      // If there are unsaved changes, prompt the user
+      if (hasUnsavedChanges) {
+        setIsConfirmNewDialogOpen(true);
+        // Store the dropped file temporarily
+        localStorage.setItem(
+          "pending_file_open",
+          JSON.stringify({
+            path: `/Documents/${file.name}`,
+            content: content,
+          })
+        );
+      } else {
+        editor.commands.clearContent();
+        editor.commands.setContent(content);
+        setCurrentFilePath(`/Documents/${file.name}`);
+        setHasUnsavedChanges(false);
+        // Store content in case app crashes
+        localStorage.setItem(
+          APP_STORAGE_KEYS.textedit.CONTENT,
+          JSON.stringify(editor.getJSON())
+        );
+        // Store the file path for next time
+        localStorage.setItem(
+          APP_STORAGE_KEYS.textedit.LAST_FILE_PATH,
+          `/Documents/${file.name}`
+        );
+      }
+    }
+  };
+
   return (
     <>
       <input
@@ -548,7 +604,31 @@ export function TextEditAppComponent({
         isForeground={isForeground}
         appId="textedit"
       >
-        <div className="flex flex-col h-full w-full bg-white">
+        <div
+          className={`flex flex-col h-full w-full bg-white relative ${
+            isDraggingOver
+              ? "after:absolute after:inset-0 after:bg-black/20"
+              : ""
+          }`}
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!isDraggingOver) setIsDraggingOver(true);
+          }}
+          onDragLeave={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            // Check if we're leaving to a child element
+            const relatedTarget = e.relatedTarget as Node | null;
+            if (e.currentTarget.contains(relatedTarget)) {
+              return;
+            }
+            setIsDraggingOver(false);
+          }}
+          onDragEnd={() => setIsDraggingOver(false)}
+          onMouseLeave={() => setIsDraggingOver(false)}
+          onDrop={handleFileDrop}
+        >
           <div className="flex bg-[#c0c0c0] border-b border-black w-full">
             <div className="flex px-1 py-1 gap-x-1">
               {/* Text style group */}

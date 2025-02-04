@@ -13,7 +13,7 @@ import { FileItem } from "./FileList";
 export type ViewType = "small" | "large" | "list";
 export type SortType = "name" | "date" | "size" | "kind";
 
-interface FinderMenuBarProps {
+export interface FinderMenuBarProps {
   onClose: () => void;
   onShowHelp: () => void;
   onShowAbout: () => void;
@@ -30,6 +30,9 @@ interface FinderMenuBarProps {
   canNavigateBack?: boolean;
   canNavigateForward?: boolean;
   onNavigateToPath?: (path: string) => void;
+  onImportFile?: () => void;
+  onRename?: () => void;
+  onDuplicate?: () => void;
 }
 
 export function FinderMenuBar({
@@ -49,6 +52,9 @@ export function FinderMenuBar({
   canNavigateBack = false,
   canNavigateForward = false,
   onNavigateToPath,
+  onImportFile,
+  onRename,
+  onDuplicate,
 }: FinderMenuBarProps) {
   const canMoveToTrash =
     selectedFile &&
@@ -60,6 +66,9 @@ export function FinderMenuBar({
     selectedFile.path !== "/Documents" &&
     // Prevent applications from being moved to trash
     !selectedFile.path.startsWith("/Applications/");
+
+  const canRename = selectedFile && onRename && canMoveToTrash;
+  const canDuplicate = selectedFile && onDuplicate && !selectedFile.isDirectory;
 
   return (
     <MenuBar>
@@ -80,6 +89,27 @@ export function FinderMenuBar({
           </DropdownMenuItem>
           <DropdownMenuItem className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
             New Folder
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={onImportFile}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            Import File...
+          </DropdownMenuItem>
+          <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
+          <DropdownMenuItem
+            onClick={onRename}
+            disabled={!canRename}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Rename...
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={onDuplicate}
+            disabled={!canDuplicate}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Duplicate
           </DropdownMenuItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           <DropdownMenuItem

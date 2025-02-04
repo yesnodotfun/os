@@ -12,6 +12,7 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { appMetadata, helpItems } from "../index";
 import { calculateStorageSpace } from "@/utils/storage";
+import { InputDialog } from "@/components/dialogs/InputDialog";
 
 export function FinderAppComponent({
   onClose,
@@ -21,15 +22,19 @@ export function FinderAppComponent({
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
   const [isEmptyTrashDialogOpen, setIsEmptyTrashDialogOpen] = useState(false);
-  const [viewType, setViewType] = useState<ViewType>(() => {
-    const savedViewType = localStorage.getItem("finder_view_type");
-    return (savedViewType as ViewType) || "small";
-  });
-  const [sortType, setSortType] = useState<SortType>(() => {
-    const savedSortType = localStorage.getItem("finder_sort_type");
-    return (savedSortType as SortType) || "name";
-  });
+  const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
+  const [renameValue, setRenameValue] = useState("");
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const [viewType, setViewType] = useState<ViewType>(
+    (localStorage.getItem("finder_view_type") as ViewType) || "list"
+  );
+  const [sortType, setSortType] = useState<SortType>(
+    (localStorage.getItem("finder_sort_type") as SortType) || "name"
+  );
   const pathInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [storageSpace, setStorageSpace] = useState(calculateStorageSpace());
+
   const {
     currentPath,
     files,
@@ -47,10 +52,8 @@ export function FinderAppComponent({
     navigateForward,
     canNavigateBack,
     canNavigateForward,
+    saveFile,
   } = useFileSystem();
-
-  // Add storage space state
-  const [storageSpace, setStorageSpace] = useState(calculateStorageSpace());
 
   // Update storage space periodically
   useEffect(() => {
@@ -113,6 +116,112 @@ export function FinderAppComponent({
     setIsEmptyTrashDialogOpen(false);
   };
 
+  // Function to handle file drops
+  const handleFileDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(false);
+
+    // Only allow drops in the Documents directory
+    if (currentPath !== "/Documents") {
+      return;
+    }
+
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      // Only accept text and markdown files
+      if (!file.type.startsWith("text/") && !file.name.endsWith(".md")) {
+        return;
+      }
+
+      const text = await file.text();
+
+      // Save the file to the virtual filesystem
+      saveFile({
+        name: file.name,
+        path: `/Documents/${file.name}`,
+        content: text,
+        icon: "/icons/file-text.png",
+        isDirectory: false,
+      });
+    }
+  };
+
+  const handleImportFile = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileInputChange = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Only accept text and markdown files
+      if (!file.type.startsWith("text/") && !file.name.endsWith(".md")) {
+        return;
+      }
+
+      const text = await file.text();
+
+      // Save the file to the virtual filesystem
+      saveFile({
+        name: file.name,
+        path: `${currentPath}/${file.name}`,
+        content: text,
+        icon: "/icons/file-text.png",
+        isDirectory: false,
+      });
+
+      // Clear the input
+      e.target.value = "";
+    }
+  };
+
+  const handleRename = () => {
+    if (!selectedFile) return;
+    setRenameValue(selectedFile.name);
+    setIsRenameDialogOpen(true);
+  };
+
+  const handleRenameSubmit = (newName: string) => {
+    if (!selectedFile || !newName) return;
+
+    const oldPath = selectedFile.path;
+    const newPath = `${currentPath}/${newName}`;
+
+    // Save the file with the new name
+    saveFile({
+      ...selectedFile,
+      name: newName,
+      path: newPath,
+    });
+
+    // Delete the old file if the name is different
+    if (oldPath !== newPath) {
+      moveToTrash(selectedFile);
+    }
+
+    setIsRenameDialogOpen(false);
+  };
+
+  const handleDuplicate = () => {
+    if (!selectedFile) return;
+
+    // Create a copy name by adding " (copy)" before the extension
+    const ext = selectedFile.name.includes(".")
+      ? `.${selectedFile.name.split(".").pop()}`
+      : "";
+    const baseName = selectedFile.name.replace(ext, "");
+    const copyName = `${baseName} (copy)${ext}`;
+
+    // Save the duplicate file
+    saveFile({
+      ...selectedFile,
+      name: copyName,
+      path: `${currentPath}/${copyName}`,
+    });
+  };
+
   if (!isWindowOpen) return null;
 
   return (
@@ -134,6 +243,16 @@ export function FinderAppComponent({
         canNavigateBack={canNavigateBack()}
         canNavigateForward={canNavigateForward()}
         onNavigateToPath={navigateToPath}
+        onImportFile={handleImportFile}
+        onRename={handleRename}
+        onDuplicate={handleDuplicate}
+      />
+      <input
+        type="file"
+        ref={fileInputRef}
+        className="hidden"
+        accept=".txt,.md,text/*"
+        onChange={handleFileInputChange}
       />
       <WindowFrame
         appId="finder"
@@ -145,7 +264,33 @@ export function FinderAppComponent({
         onClose={onClose}
         isForeground={isForeground}
       >
-        <div className="flex flex-col h-full w-full bg-white">
+        <div
+          className={`flex flex-col h-full w-full bg-white relative ${
+            isDraggingOver && currentPath === "/Documents"
+              ? "after:absolute after:inset-0 after:bg-black/20"
+              : ""
+          }`}
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!isDraggingOver && currentPath === "/Documents") {
+              setIsDraggingOver(true);
+            }
+          }}
+          onDragLeave={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            // Check if we're leaving to a child element
+            const relatedTarget = e.relatedTarget as Node | null;
+            if (e.currentTarget.contains(relatedTarget)) {
+              return;
+            }
+            setIsDraggingOver(false);
+          }}
+          onDragEnd={() => setIsDraggingOver(false)}
+          onMouseLeave={() => setIsDraggingOver(false)}
+          onDrop={handleFileDrop}
+        >
           <div className="flex flex-col gap-1 p-1 bg-gray-100 border-b border-black">
             <div className="flex gap-2 items-center">
               <div className="flex gap-1">
@@ -240,6 +385,15 @@ export function FinderAppComponent({
         onConfirm={confirmEmptyTrash}
         title="Empty Trash"
         description="Are you sure you want to empty the Trash? This action cannot be undone."
+      />
+      <InputDialog
+        isOpen={isRenameDialogOpen}
+        onOpenChange={setIsRenameDialogOpen}
+        onSubmit={handleRenameSubmit}
+        title="Rename File"
+        description="Enter a new name for the file"
+        value={renameValue}
+        onChange={setRenameValue}
       />
     </>
   );

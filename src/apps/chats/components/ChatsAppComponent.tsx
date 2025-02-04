@@ -5,11 +5,13 @@ import { ChatsMenuBar } from "./ChatsMenuBar";
 import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
+import { InputDialog } from "@/components/dialogs/InputDialog";
 import { helpItems, appMetadata } from "..";
 import { useChat } from "ai/react";
 import { loadChatMessages, saveChatMessages } from "@/utils/storage";
 import { ChatMessages } from "./ChatMessages";
 import { ChatInput } from "./ChatInput";
+import { useFileSystem } from "@/apps/finder/hooks/useFileSystem";
 
 export function ChatsAppComponent({
   isWindowOpen,
@@ -58,6 +60,9 @@ export function ChatsAppComponent({
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
   const [isClearDialogOpen, setIsClearDialogOpen] = useState(false);
+  const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
+  const [saveFileName, setSaveFileName] = useState("");
+  const { saveFile } = useFileSystem();
 
   const clearChats = () => {
     setIsClearDialogOpen(true);
@@ -69,6 +74,39 @@ export function ChatsAppComponent({
     setIsClearDialogOpen(false);
   };
 
+  const handleSaveTranscript = () => {
+    setIsSaveDialogOpen(true);
+    setSaveFileName(`chat-${new Date().toISOString().split("T")[0]}.md`);
+  };
+
+  const handleSaveSubmit = (fileName: string) => {
+    const transcript = messages
+      .map((msg) => {
+        const time = msg.createdAt
+          ? new Date(msg.createdAt).toLocaleTimeString([], {
+              hour: "numeric",
+              minute: "2-digit",
+            })
+          : "";
+        return `**${msg.role === "user" ? "You" : "Ryo"}** (${time}):\n${
+          msg.content
+        }\n`;
+      })
+      .join("\n");
+
+    saveFile({
+      name: fileName.endsWith(".md") ? fileName : `${fileName}.md`,
+      path: `/Documents/${
+        fileName.endsWith(".md") ? fileName : `${fileName}.md`
+      }`,
+      content: transcript,
+      icon: "/icons/file-text.png",
+      isDirectory: false,
+    });
+
+    setIsSaveDialogOpen(false);
+  };
+
   if (!isWindowOpen) return null;
 
   return (
@@ -78,6 +116,7 @@ export function ChatsAppComponent({
         onShowHelp={() => setIsHelpDialogOpen(true)}
         onShowAbout={() => setIsAboutDialogOpen(true)}
         onClearChats={clearChats}
+        onSaveTranscript={handleSaveTranscript}
       />
       <WindowFrame
         title="Chats"
@@ -123,6 +162,15 @@ export function ChatsAppComponent({
           onConfirm={confirmClearChats}
           title="Clear Chats"
           description="Are you sure you want to clear all chats? This action cannot be undone."
+        />
+        <InputDialog
+          isOpen={isSaveDialogOpen}
+          onOpenChange={setIsSaveDialogOpen}
+          onSubmit={handleSaveSubmit}
+          title="Save Transcript"
+          description="Enter a name for your transcript file"
+          value={saveFileName}
+          onChange={setSaveFileName}
         />
       </WindowFrame>
     </>
