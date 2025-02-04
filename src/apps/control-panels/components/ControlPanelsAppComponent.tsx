@@ -206,7 +206,7 @@ export function ControlPanelsAppComponent({
     const url = URL.createObjectURL(compressedData);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `macOS-backup-${new Date().toISOString().split("T")[0]}.gz`;
+    a.download = `ryOS-backup-${new Date().toISOString().split("T")[0]}.gz`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
