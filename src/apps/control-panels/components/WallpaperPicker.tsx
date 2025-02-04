@@ -233,9 +233,7 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
       <ScrollArea className="flex-1 h-[200px]">
         <div
           className={`grid gap-2 ${
-            selectedCategory === "tiles"
-              ? "grid-cols-8 lg:grid-cols-10 xl:grid-cols-12 2xl:grid-cols-14"
-              : "grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8"
+            selectedCategory === "tiles" ? "grid-cols-8" : "grid-cols-3"
           }`}
         >
           {selectedCategory === "tiles" ? (

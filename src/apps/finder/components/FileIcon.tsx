@@ -1,3 +1,5 @@
+import { useSound, Sounds } from "@/hooks/useSound";
+
 interface FileIconProps {
   name: string;
   isDirectory: boolean;
@@ -19,6 +21,8 @@ export function FileIcon({
   size = "small",
   className,
 }: FileIconProps) {
+  const { play: playClick } = useSound(Sounds.BUTTON_CLICK, 0.3);
+
   const getIconPath = () => {
     if (icon) return icon;
     if (isDirectory) return "/icons/directory.png";
@@ -48,7 +52,10 @@ export function FileIcon({
     <div
       className={`flex flex-col items-center justify-start cursor-pointer gap-1 ${sizes.container} ${className}`}
       onDoubleClick={onDoubleClick}
-      onClick={onClick}
+      onClick={(e) => {
+        playClick();
+        onClick?.(e);
+      }}
     >
       <div
         className={`flex items-center justify-center ${sizes.icon} ${

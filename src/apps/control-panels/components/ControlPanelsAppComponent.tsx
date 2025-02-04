@@ -204,7 +204,7 @@ export function ControlPanelsAppComponent({
               value="appearance"
               className="mt-0 p-4 bg-[#E3E3E3] border border-t-0 border-[#808080] h-[calc(100%-2rem)]"
             >
-              <div className="space-y-4 h-full">
+              <div className="space-y-2 h-full">
                 <WallpaperPicker />
               </div>
             </TabsContent>
@@ -213,7 +213,15 @@ export function ControlPanelsAppComponent({
               value="sound"
               className="mt-0 p-4 bg-[#E3E3E3] border border-t-0 border-[#808080] h-[calc(100%-2rem)]"
             >
-              <div className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>UI Sounds</Label>
+                  <Switch
+                    checked={uiSoundsEnabled}
+                    onCheckedChange={handleUISoundsChange}
+                    className="data-[state=checked]:bg-[#000000]"
+                  />
+                </div>
                 <div className="flex items-center justify-between">
                   <Label>Chat synth</Label>
                   <Select
@@ -232,14 +240,6 @@ export function ControlPanelsAppComponent({
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex items-center justify-between">
-                  <Label>UI Sounds</Label>
-                  <Switch
-                    checked={uiSoundsEnabled}
-                    onCheckedChange={handleUISoundsChange}
-                    className="data-[state=checked]:bg-[#000000]"
-                  />
-                </div>
               </div>
             </TabsContent>
 
@@ -247,7 +247,7 @@ export function ControlPanelsAppComponent({
               value="general"
               className="mt-0 p-4 bg-[#E3E3E3] border border-t-0 border-[#808080] h-[calc(100%-2rem)]"
             >
-              <div className="space-y-4">
+              <div className="space-y-2">
                 <div className="space-y-2">
                   <Button
                     variant="retro"

@@ -25,6 +25,7 @@ import {
 import { AudioInputButton } from "@/components/ui/audio-input-button";
 import { ChevronDown } from "lucide-react";
 import { useLaunchApp } from "@/hooks/useLaunchApp";
+import { useSound, Sounds } from "@/hooks/useSound";
 
 // Function to convert HTML to Markdown
 const htmlToMarkdown = (html: string): string => {
@@ -183,6 +184,7 @@ export function TextEditAppComponent({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { files, saveFile } = useFileSystem("/Documents");
   const launchApp = useLaunchApp();
+  const { play: playButtonClick } = useSound(Sounds.BUTTON_CLICK);
 
   const editor = useEditor({
     extensions: [
@@ -552,7 +554,10 @@ export function TextEditAppComponent({
               {/* Text style group */}
               <div className="flex">
                 <button
-                  onClick={() => editor?.chain().focus().toggleBold().run()}
+                  onClick={() => {
+                    playButtonClick();
+                    editor?.chain().focus().toggleBold().run();
+                  }}
                   className="w-[26px] h-[22px] flex items-center justify-center"
                 >
                   <img
@@ -564,7 +569,10 @@ export function TextEditAppComponent({
                   />
                 </button>
                 <button
-                  onClick={() => editor?.chain().focus().toggleItalic().run()}
+                  onClick={() => {
+                    playButtonClick();
+                    editor?.chain().focus().toggleItalic().run();
+                  }}
                   className="w-[26px] h-[22px] flex items-center justify-center"
                 >
                   <img
@@ -576,9 +584,10 @@ export function TextEditAppComponent({
                   />
                 </button>
                 <button
-                  onClick={() =>
-                    editor?.chain().focus().toggleUnderline().run()
-                  }
+                  onClick={() => {
+                    playButtonClick();
+                    editor?.chain().focus().toggleUnderline().run();
+                  }}
                   className="w-[26px] h-[22px] flex items-center justify-center"
                 >
                   <img
@@ -678,9 +687,10 @@ export function TextEditAppComponent({
               {/* Alignment group */}
               <div className="flex">
                 <button
-                  onClick={() =>
-                    editor?.chain().focus().setTextAlign("left").run()
-                  }
+                  onClick={() => {
+                    playButtonClick();
+                    editor?.chain().focus().setTextAlign("left").run();
+                  }}
                   className="w-[26px] h-[22px] flex items-center justify-center"
                 >
                   <img
@@ -694,9 +704,10 @@ export function TextEditAppComponent({
                   />
                 </button>
                 <button
-                  onClick={() =>
-                    editor?.chain().focus().setTextAlign("center").run()
-                  }
+                  onClick={() => {
+                    playButtonClick();
+                    editor?.chain().focus().setTextAlign("center").run();
+                  }}
                   className="w-[26px] h-[22px] flex items-center justify-center"
                 >
                   <img
@@ -710,9 +721,10 @@ export function TextEditAppComponent({
                   />
                 </button>
                 <button
-                  onClick={() =>
-                    editor?.chain().focus().setTextAlign("right").run()
-                  }
+                  onClick={() => {
+                    playButtonClick();
+                    editor?.chain().focus().setTextAlign("right").run();
+                  }}
                   className="w-[26px] h-[22px] flex items-center justify-center"
                 >
                   <img
@@ -733,9 +745,10 @@ export function TextEditAppComponent({
               {/* List group */}
               <div className="flex">
                 <button
-                  onClick={() =>
-                    editor?.chain().focus().toggleBulletList().run()
-                  }
+                  onClick={() => {
+                    playButtonClick();
+                    editor?.chain().focus().toggleBulletList().run();
+                  }}
                   className="w-[26px] h-[22px] flex items-center justify-center"
                 >
                   <img
@@ -747,9 +760,10 @@ export function TextEditAppComponent({
                   />
                 </button>
                 <button
-                  onClick={() =>
-                    editor?.chain().focus().toggleOrderedList().run()
-                  }
+                  onClick={() => {
+                    playButtonClick();
+                    editor?.chain().focus().toggleOrderedList().run();
+                  }}
                   className="w-[26px] h-[22px] flex items-center justify-center"
                 >
                   <img
