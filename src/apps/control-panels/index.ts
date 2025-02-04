@@ -21,10 +21,10 @@ export const appMetadata = {
   version: "1.0.0",
   creator: {
     name: "System",
-    url: "https://github.com/ryoid",
+    url: "https://github.com/ryokun6",
   },
-  github: "https://github.com/ryoid/soundboard",
-  icon: "/icons/control-panels/icon.png",
+  github: "https://github.com/ryokun6/soundboard",
+  icon: "/icons/control-panels/appearance-manager/app.png",
 };
 
 const app: BaseApp = {

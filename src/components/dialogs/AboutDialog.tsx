@@ -24,7 +24,7 @@ export function AboutDialog({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="bg-system7-window-bg border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)] max-w-[280px]">
         <DialogHeader>About</DialogHeader>
-        <div className="space-y-2 text-center p-6">
+        <div className="space-y-2 text-center p-4 pb-8">
           <div>
             <img
               src={metadata.icon}

@@ -135,6 +135,7 @@ export function ControlPanelsAppComponent({
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
   const [isConfirmResetOpen, setIsConfirmResetOpen] = useState(false);
+  const [isConfirmFormatOpen, setIsConfirmFormatOpen] = useState(false);
   const [uiSoundsEnabled, setUiSoundsEnabled] = useState(true);
   const [synthPreset, setSynthPreset] = useState("classic");
 
@@ -178,25 +179,25 @@ export function ControlPanelsAppComponent({
         appId="control-panels"
       >
         <div className="flex flex-col h-full bg-[#E3E3E3] p-4 w-full">
-          <Tabs defaultValue="appearance" className="w-full h-full antialiased">
+          <Tabs defaultValue="appearance" className="w-full h-full">
             <TabsList className="flex w-full h-6 space-x-0.5 bg-[#E3E3E3] border-b border-[#808080] shadow-none">
               <TabsTrigger
                 value="appearance"
-                className="relative flex-1 h-6 px-2 -mb-[1px] rounded-t bg-[#D4D4D4] data-[state=active]:bg-[#E3E3E3] border border-[#808080] data-[state=active]:border-b-[#E3E3E3] data-[state=active]:border-b-0 antialiased shadow-none!"
+                className="relative flex-1 h-6 px-2 -mb-[1px] rounded-t bg-[#D4D4D4] data-[state=active]:bg-[#E3E3E3] border border-[#808080] data-[state=active]:border-b-[#E3E3E3] data-[state=active]:border-b-0 shadow-none! text-[16px]"
               >
                 Appearance
               </TabsTrigger>
               <TabsTrigger
                 value="sound"
-                className="relative flex-1 h-6 px-2 -mb-[1px] rounded-t bg-[#D4D4D4] data-[state=active]:bg-[#E3E3E3] border border-[#808080] data-[state=active]:border-b-[#E3E3E3] data-[state=active]:border-b-0 antialiased shadow-none!"
+                className="relative flex-1 h-6 px-2 -mb-[1px] rounded-t bg-[#D4D4D4] data-[state=active]:bg-[#E3E3E3] border border-[#808080] data-[state=active]:border-b-[#E3E3E3] data-[state=active]:border-b-0 shadow-none! text-[16px]"
               >
                 Sound
               </TabsTrigger>
               <TabsTrigger
-                value="general"
-                className="relative flex-1 h-6 px-2 -mb-[1px] rounded-t bg-[#D4D4D4] data-[state=active]:bg-[#E3E3E3] border border-[#808080] data-[state=active]:border-b-[#E3E3E3] data-[state=active]:border-b-0 antialiased shadow-none!"
+                value="system"
+                className="relative flex-1 h-6 px-2 -mb-[1px] rounded-t bg-[#D4D4D4] data-[state=active]:bg-[#E3E3E3] border border-[#808080] data-[state=active]:border-b-[#E3E3E3] data-[state=active]:border-b-0 shadow-none! text-[16px]"
               >
-                General
+                System
               </TabsTrigger>
             </TabsList>
 
@@ -244,10 +245,10 @@ export function ControlPanelsAppComponent({
             </TabsContent>
 
             <TabsContent
-              value="general"
+              value="system"
               className="mt-0 p-4 bg-[#E3E3E3] border border-t-0 border-[#808080] h-[calc(100%-2rem)]"
             >
-              <div className="space-y-2">
+              <div className="space-y-4">
                 <div className="space-y-2">
                   <Button
                     variant="retro"
@@ -257,7 +258,20 @@ export function ControlPanelsAppComponent({
                     Reset All App States
                   </Button>
                   <p className="text-[11px] text-gray-600 font-['Geneva-12']">
-                    This will clear all saved settings, documents, and states.
+                    This will clear all saved settings and states.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Button
+                    variant="retro"
+                    onClick={() => setIsConfirmFormatOpen(true)}
+                    className="w-full"
+                  >
+                    Format File System
+                  </Button>
+                  <p className="text-[11px] text-gray-600 font-['Geneva-12']">
+                    This will clear all documents from the file system.
                   </p>
                 </div>
               </div>
@@ -281,7 +295,17 @@ export function ControlPanelsAppComponent({
           onOpenChange={setIsConfirmResetOpen}
           onConfirm={handleConfirmReset}
           title="Reset All"
-          description="Are you sure you want to reset all app states? This will clear all saved settings, documents, and states. The application will reload after reset."
+          description="Are you sure you want to reset all app states? This will clear all saved settings and states. The application will reload after reset."
+        />
+        <ConfirmDialog
+          isOpen={isConfirmFormatOpen}
+          onOpenChange={setIsConfirmFormatOpen}
+          onConfirm={() => {
+            localStorage.setItem("documents", JSON.stringify([]));
+            window.location.reload();
+          }}
+          title="Format File System"
+          description="Are you sure you want to format the file system? This will permanently delete all documents. The application will reload after format."
         />
       </WindowFrame>
     </>

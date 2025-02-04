@@ -58,7 +58,7 @@ export const appRegistry = {
   [TextEditApp.id]: {
     ...TextEditApp,
     windowConfig: {
-      defaultSize: { width: 420, height: 475 },
+      defaultSize: { width: 368, height: 475 },
       minSize: { width: 368, height: 200 },
     } as WindowConstraints,
   },

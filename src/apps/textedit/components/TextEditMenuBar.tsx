@@ -12,6 +12,7 @@ import {
   DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import React from "react";
 
 interface TextEditMenuBarProps {
   editor: Editor | null;
@@ -23,6 +24,9 @@ interface TextEditMenuBarProps {
   onImportFile: () => void;
   onExportFile: (format: "html" | "md" | "txt") => void;
   onSave: () => void;
+  hasUnsavedChanges: boolean;
+  currentFilePath: string | null;
+  handleFileSelect: (event: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 export function TextEditMenuBar({
@@ -34,9 +38,21 @@ export function TextEditMenuBar({
   onImportFile,
   onExportFile,
   onSave,
+  hasUnsavedChanges,
+  currentFilePath,
+  handleFileSelect,
 }: TextEditMenuBarProps) {
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
   return (
     <MenuBar>
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileSelect}
+        accept=".txt,.html,.md"
+        className="hidden"
+      />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -61,10 +77,23 @@ export function TextEditMenuBar({
             Open...
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={onSave}
+            onClick={() => fileInputRef.current?.click()}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            Save...
+            Import...
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            disabled={!hasUnsavedChanges && currentFilePath !== null}
+            onClick={onSave}
+            className={`text-md h-6 px-3 active:bg-gray-900 active:text-white ${
+              !hasUnsavedChanges && currentFilePath ? "text-gray-500" : ""
+            }`}
+          >
+            {currentFilePath
+              ? hasUnsavedChanges
+                ? "Save..."
+                : "Autosaved"
+              : "Save..."}
           </DropdownMenuItem>
           <DropdownMenuSub>
             <DropdownMenuSubTrigger className="text-md h-6 px-3 active:bg-gray-900 active:text-white">

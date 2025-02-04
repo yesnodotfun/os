@@ -462,9 +462,23 @@ export function TextEditAppComponent({
         content = `<p>${text}</p>`;
       }
 
+      // Save the file to the Documents directory
+      const filePath = `/Documents/${file.name}`;
+      saveFile({
+        name: file.name,
+        path: filePath,
+        content: text,
+        icon: "/icons/file-text.png",
+        isDirectory: false,
+      });
+
       editor.commands.setContent(content);
+      setCurrentFilePath(filePath);
+      setHasUnsavedChanges(false);
+      // Store content in case app crashes
       localStorage.setItem(APP_STORAGE_KEYS.textedit.CONTENT, editor.getHTML());
-      setCurrentFilePath(`/Documents/${file.name}`);
+      // Store the file path for next time
+      localStorage.setItem(APP_STORAGE_KEYS.textedit.LAST_FILE_PATH, filePath);
     }
     // Reset the input
     if (fileInputRef.current) {
@@ -593,6 +607,9 @@ export function TextEditAppComponent({
         onImportFile={handleImportFile}
         onExportFile={handleExportFile}
         onSave={handleSave}
+        hasUnsavedChanges={hasUnsavedChanges}
+        currentFilePath={currentFilePath}
+        handleFileSelect={handleFileSelect}
       />
       <WindowFrame
         title={
