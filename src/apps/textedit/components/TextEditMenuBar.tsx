@@ -70,17 +70,12 @@ export function TextEditMenuBar({
           >
             New File
           </DropdownMenuItem>
+          <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           <DropdownMenuItem
             onClick={onImportFile}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
             Open...
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => fileInputRef.current?.click()}
-            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
-          >
-            Import...
           </DropdownMenuItem>
           <DropdownMenuItem
             disabled={!hasUnsavedChanges && currentFilePath !== null}
@@ -94,6 +89,13 @@ export function TextEditMenuBar({
                 ? "Save..."
                 : "Autosaved"
               : "Save..."}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
+          <DropdownMenuItem
+            onClick={() => fileInputRef.current?.click()}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            Import from Device...
           </DropdownMenuItem>
           <DropdownMenuSub>
             <DropdownMenuSubTrigger className="text-md h-6 px-3 active:bg-gray-900 active:text-white">

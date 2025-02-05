@@ -74,7 +74,17 @@ export function ChatsAppComponent({
 
   const handleSaveTranscript = () => {
     setIsSaveDialogOpen(true);
-    setSaveFileName(`chat-${new Date().toISOString().split("T")[0]}.md`);
+    const now = new Date();
+    const date = now.toISOString().split("T")[0];
+    const time = now
+      .toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      })
+      .toLowerCase()
+      .replace(":", "-");
+    setSaveFileName(`chat-${date}-${time}.md`);
   };
 
   const handleSaveSubmit = (fileName: string) => {
