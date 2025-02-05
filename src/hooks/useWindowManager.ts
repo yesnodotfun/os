@@ -101,9 +101,12 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
 
       e.stopPropagation();
       e.preventDefault();
-      const rect = (
-        e.currentTarget.parentElement as HTMLElement
-      ).getBoundingClientRect();
+
+      // Find the actual window container element (two levels up from the resize handle)
+      const windowElement = e.currentTarget.parentElement?.parentElement
+        ?.parentElement as HTMLElement;
+      const rect = windowElement.getBoundingClientRect();
+
       const clientX =
         "touches" in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
       const clientY =
@@ -158,8 +161,10 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
           "touches" in e ? e.touches[0].clientX : (e as MouseEvent).clientX;
         const clientY =
           "touches" in e ? e.touches[0].clientY : (e as MouseEvent).clientY;
+
         const deltaX = clientX - resizeStart.x;
         const deltaY = clientY - resizeStart.y;
+
         const minWidth = config.minSize?.width || 260;
         const minHeight = config.minSize?.height || 200;
         const maxWidth = window.innerWidth;
