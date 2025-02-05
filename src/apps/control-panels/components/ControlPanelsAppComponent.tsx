@@ -207,7 +207,13 @@ export function ControlPanelsAppComponent({
     const url = URL.createObjectURL(compressedData);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `ryOS-backup-${new Date().toISOString().split("T")[0]}.gz`;
+    const timestamp = new Date()
+      .toISOString()
+      .replace(/[:.]/g, "-")
+      .split("T")
+      .join("-")
+      .slice(0, -5);
+    a.download = `ryOS-backup-${timestamp}.gz`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
