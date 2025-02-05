@@ -22,9 +22,11 @@ export interface FinderMenuBarProps {
   sortType: SortType;
   onSortTypeChange: (sortType: SortType) => void;
   selectedFile?: FileItem;
-  onMoveToTrash?: (file: FileItem) => void;
-  onEmptyTrash?: () => void;
-  isTrashEmpty?: boolean;
+  onMoveToTrash: (file: FileItem) => void;
+  onEmptyTrash: () => void;
+  onRestore: () => void;
+  isTrashEmpty: boolean;
+  isInTrash: boolean;
   onNavigateBack?: () => void;
   onNavigateForward?: () => void;
   canNavigateBack?: boolean;
@@ -46,7 +48,9 @@ export function FinderMenuBar({
   selectedFile,
   onMoveToTrash,
   onEmptyTrash,
-  isTrashEmpty = true,
+  onRestore,
+  isTrashEmpty,
+  isInTrash,
   onNavigateBack,
   onNavigateForward,
   canNavigateBack = false,
@@ -58,7 +62,6 @@ export function FinderMenuBar({
 }: FinderMenuBarProps) {
   const canMoveToTrash =
     selectedFile &&
-    onMoveToTrash &&
     selectedFile.path !== "/Trash" &&
     !selectedFile.path.startsWith("/Trash/") &&
     // Prevent root folders from being moved to trash
@@ -112,13 +115,22 @@ export function FinderMenuBar({
             Duplicate
           </DropdownMenuItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
-          <DropdownMenuItem
-            onClick={() => canMoveToTrash && onMoveToTrash(selectedFile!)}
-            disabled={!canMoveToTrash}
-            className="text-md h-6 px-3 active:bg-gray-900 active:text-white disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Move to Trash
-          </DropdownMenuItem>
+          {isInTrash ? (
+            <DropdownMenuItem
+              onClick={onRestore}
+              className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+            >
+              Put Back
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem
+              onClick={() => canMoveToTrash && onMoveToTrash(selectedFile!)}
+              disabled={!canMoveToTrash}
+              className="text-md h-6 px-3 active:bg-gray-900 active:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Move to Trash
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem
             onClick={onEmptyTrash}
             disabled={isTrashEmpty}

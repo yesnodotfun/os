@@ -471,6 +471,22 @@ export function useFileSystem(initialPath: string = "/") {
     });
   }
 
+  function renameFile(oldName: string, newName: string) {
+    setDocuments((prevDocs) => {
+      const newDocs = [...prevDocs];
+      const existingIndex = newDocs.findIndex((doc) => doc.name === oldName);
+
+      if (existingIndex >= 0) {
+        newDocs[existingIndex] = {
+          ...newDocs[existingIndex],
+          name: newName,
+        };
+      }
+
+      return newDocs;
+    });
+  }
+
   return {
     currentPath,
     files,
@@ -490,5 +506,7 @@ export function useFileSystem(initialPath: string = "/") {
     canNavigateBack,
     canNavigateForward,
     saveFile,
+    setSelectedFile,
+    renameFile,
   };
 }

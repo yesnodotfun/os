@@ -46,6 +46,7 @@ export function FinderAppComponent({
     navigateUp,
     navigateToPath,
     moveToTrash,
+    restoreFromTrash,
     emptyTrash,
     trashItems,
     navigateBack,
@@ -53,6 +54,7 @@ export function FinderAppComponent({
     canNavigateBack,
     canNavigateForward,
     saveFile,
+    renameFile,
   } = useFileSystem();
 
   // Update storage space periodically
@@ -186,21 +188,16 @@ export function FinderAppComponent({
   const handleRenameSubmit = (newName: string) => {
     if (!selectedFile || !newName) return;
 
-    const oldPath = selectedFile.path;
-    const newPath = `${currentPath}/${newName}`;
-
-    // Save the file with the new name
-    saveFile({
-      ...selectedFile,
-      name: newName,
-      path: newPath,
-    });
-
-    // Delete the old file if the name is different
-    if (oldPath !== newPath) {
-      moveToTrash(selectedFile);
+    // Only proceed if the name actually changed
+    if (selectedFile.name === newName) {
+      setIsRenameDialogOpen(false);
+      return;
     }
 
+    // Rename the file
+    renameFile(selectedFile.name, newName);
+
+    // Close dialog
     setIsRenameDialogOpen(false);
   };
 
@@ -222,6 +219,11 @@ export function FinderAppComponent({
     });
   };
 
+  const handleRestore = () => {
+    if (!selectedFile) return;
+    restoreFromTrash(selectedFile);
+  };
+
   if (!isWindowOpen) return null;
 
   return (
@@ -237,7 +239,12 @@ export function FinderAppComponent({
         selectedFile={selectedFile}
         onMoveToTrash={moveToTrash}
         onEmptyTrash={handleEmptyTrash}
+        onRestore={handleRestore}
         isTrashEmpty={trashItems.length === 0}
+        isInTrash={Boolean(
+          selectedFile?.path === "/Trash" ||
+            selectedFile?.path.startsWith("/Trash/")
+        )}
         onNavigateBack={navigateBack}
         onNavigateForward={navigateForward}
         canNavigateBack={canNavigateBack()}
