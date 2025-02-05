@@ -164,16 +164,21 @@ export function WindowFrame({
         )}
       >
         {/* Resize handles - positioned outside main content */}
-        <div className="absolute -top-2 -left-2 -right-2 -bottom-2 pointer-events-none z-50">
+        <div className="absolute -top-4 -left-4 -right-4 -bottom-4 pointer-events-none z-50">
           {/* Top resize handle */}
           <div
             className={cn(
-              "absolute left-8 cursor-n-resize pointer-events-auto transition-[top,height]",
-              resizeType?.includes("n") ? "top-[-100px] h-[200px]" : "top-0 h-4"
+              "absolute left-0 right-0 cursor-n-resize pointer-events-auto transition-[top,height]",
+              resizeType?.includes("n")
+                ? "top-[-100px] h-[200px]"
+                : "-top-4 h-12", // Extend 16px above window
+              "md:hidden"
             )}
-            style={{ right: resizeType?.includes("e") ? "32px" : "32px" }}
             onMouseDown={(e) =>
               handleResizeStartWithForeground(e, "n" as ResizeType)
+            }
+            onTouchStart={(e) =>
+              handleResizeStartWithForeground(e as any, "n" as ResizeType)
             }
             onDoubleClick={handleDoubleClickResize}
           />
@@ -181,14 +186,17 @@ export function WindowFrame({
           {/* Bottom resize handle */}
           <div
             className={cn(
-              "absolute left-8 cursor-s-resize pointer-events-auto transition-[bottom,height]",
+              "absolute left-0 right-0 cursor-s-resize pointer-events-auto transition-[bottom,height]",
               resizeType?.includes("s")
                 ? "bottom-[-100px] h-[200px]"
-                : "bottom-0 h-4"
+                : "-bottom-4 h-12", // Extend 16px below window
+              "md:hidden"
             )}
-            style={{ right: resizeType?.includes("e") ? "32px" : "32px" }}
             onMouseDown={(e) =>
               handleResizeStartWithForeground(e, "s" as ResizeType)
+            }
+            onTouchStart={(e) =>
+              handleResizeStartWithForeground(e as any, "s" as ResizeType)
             }
             onDoubleClick={handleDoubleClickResize}
           />

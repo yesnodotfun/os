@@ -97,7 +97,7 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
 
   const handleResizeStart = useCallback(
     (e: React.MouseEvent | React.TouchEvent, type: ResizeType) => {
-      if (isMobile && type !== "s") return;
+      if (isMobile && !type.match(/^[ns]$/)) return;
 
       e.stopPropagation();
       e.preventDefault();
@@ -152,7 +152,7 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
         }
       }
 
-      if (resizeType && (resizeType === "s" || !isMobile)) {
+      if (resizeType && (resizeType.match(/^[ns]$/) || !isMobile)) {
         e.preventDefault();
         const clientX =
           "touches" in e ? e.touches[0].clientX : (e as MouseEvent).clientX;
