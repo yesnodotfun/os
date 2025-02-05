@@ -10,6 +10,8 @@ A modern web-based desktop environment inspired by classic macOS, built with Rea
 - shadcn/ui components
 - Framer Motion for animations
 - Bun as package manager
+- WaveSurfer.js for audio visualization
+- Tone.js for audio synthesis
 
 ## Getting Started
 
@@ -33,14 +35,29 @@ bun run build
 - Desktop icons and dock
 - Window minimize/maximize controls
 - Menu bar with application-specific menus
+- Customizable wallpapers (tiled patterns and photos)
+- System-wide sound effects
+- Local storage persistence
 
 ### Built-in Applications
 
 - **Finder**: File system navigation and management
-- **Text Editor**: Rich text editing with Tiptap
+- **Text Editor**: Rich text editing with markdown support
+- **Soundboard**: Create and manage custom soundboards
+  - Record audio from microphone
+  - Multiple soundboards support
+  - Waveform visualization
+  - Keyboard shortcuts (1-9)
+  - Import/export functionality
+  - Emoji and title customization
+- **Control Panels**: System settings
+  - Appearance customization
+  - Sound settings
+  - System management
+  - Backup and restore
 - **Chat**: AI-powered chat interface using OpenAI
 - **Minesweeper**: Classic game implementation
-- More applications coming soon!
+- **Internet Explorer**: Classic web browser experience
 
 ### Core Features
 
@@ -50,6 +67,10 @@ bun run build
 - Keyboard shortcuts
 - Dark mode support
 - Responsive design
+- File system with Documents and Applications
+- System-wide audio controls
+- Import/Export functionality
+- Backup and restore capabilities
 
 ## Project Structure
 
@@ -60,12 +81,14 @@ project/
 │   │   ├── base/       # Base app functionality
 │   │   ├── finder/     # File system app
 │   │   ├── textedit/   # Text editor app
+│   │   ├── soundboard/ # Audio recording app
 │   │   ├── chats/      # Chat application
 │   │   └── minesweeper/# Game implementation
 │   ├── components/     # Shared React components
 │   │   ├── layout/     # Core layout components
 │   │   ├── ui/         # shadcn/ui components
 │   │   └── dialogs/    # System dialogs
+│   ├── hooks/         # Custom React hooks
 │   └── utils/         # Shared utilities
 ├── api/               # Backend API endpoints
 ├── public/           # Static assets

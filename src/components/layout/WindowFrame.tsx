@@ -106,7 +106,7 @@ export function WindowFrame({
   };
 
   const handleResizeStartWithForeground = (
-    e: React.MouseEvent,
+    e: React.MouseEvent | React.TouchEvent,
     type: ResizeType
   ) => {
     handleResizeStart(e, type);
@@ -171,14 +171,13 @@ export function WindowFrame({
               "absolute left-0 right-0 cursor-n-resize pointer-events-auto transition-[top,height]",
               resizeType?.includes("n")
                 ? "top-[-100px] h-[200px]"
-                : "-top-4 h-12", // Extend 16px above window
-              "md:hidden"
+                : "-top-4 h-10" // 64px for all screen sizes
             )}
             onMouseDown={(e) =>
               handleResizeStartWithForeground(e, "n" as ResizeType)
             }
             onTouchStart={(e) =>
-              handleResizeStartWithForeground(e as any, "n" as ResizeType)
+              handleResizeStartWithForeground(e, "n" as ResizeType)
             }
             onDoubleClick={handleDoubleClickResize}
           />
@@ -189,14 +188,13 @@ export function WindowFrame({
               "absolute left-0 right-0 cursor-s-resize pointer-events-auto transition-[bottom,height]",
               resizeType?.includes("s")
                 ? "bottom-[-100px] h-[200px]"
-                : "-bottom-4 h-12", // Extend 16px below window
-              "md:hidden"
+                : "-bottom-4 h-10" // 64px for all screen sizes
             )}
             onMouseDown={(e) =>
               handleResizeStartWithForeground(e, "s" as ResizeType)
             }
             onTouchStart={(e) =>
-              handleResizeStartWithForeground(e as any, "s" as ResizeType)
+              handleResizeStartWithForeground(e, "s" as ResizeType)
             }
             onDoubleClick={handleDoubleClickResize}
           />
@@ -207,7 +205,7 @@ export function WindowFrame({
               "absolute top-8 cursor-w-resize pointer-events-auto transition-[left,width]",
               resizeType?.includes("w")
                 ? "left-[-100px] w-[200px]"
-                : "left-0 w-4"
+                : "-left-4 w-10"
             )}
             style={{ bottom: resizeType?.includes("s") ? "32px" : "32px" }}
             onMouseDown={(e) =>
@@ -221,7 +219,7 @@ export function WindowFrame({
               "absolute top-8 cursor-e-resize pointer-events-auto transition-[right,width]",
               resizeType?.includes("e")
                 ? "right-[-100px] w-[200px]"
-                : "right-0 w-4"
+                : "-right-4 w-10"
             )}
             style={{ bottom: resizeType?.includes("s") ? "32px" : "32px" }}
             onMouseDown={(e) =>

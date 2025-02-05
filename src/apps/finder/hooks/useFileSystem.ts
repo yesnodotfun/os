@@ -20,7 +20,7 @@ const DOCUMENTS: Document[] = [
     name: "README.md",
     content: `# ryOS
 
-A web-based operating system experience inspired by classic Mac OS System 7. Built using Cursor with modern web technologies including React, Vite, TailwindCSS, and shadcn/ui components.
+A web-based operating system experience inspired by classic Mac OS System 7. Built using modern web technologies including React, Vite, TailwindCSS, and shadcn/ui components.
 
 ## Features
 
@@ -31,13 +31,24 @@ A web-based operating system experience inspired by classic Mac OS System 7. Bui
 - Local storage persistence
 - Modern audio features with WaveSurfer.js and Tone.js
 - Responsive design for all screen sizes
+- System-wide sound effects and themes
+- Backup and restore functionality
 
 ## Built-in Applications
 
 - **Finder**: Browse and manage your files
 - **TextEdit**: Create and edit documents
 - **Soundboard**: Create and play custom soundboards
+  - Record from microphone
+  - Multiple soundboards
+  - Waveform visualization
+  - Keyboard shortcuts
+  - Import/Export support
 - **Control Panels**: Customize system settings
+  - Appearance themes
+  - Sound settings
+  - System management
+  - Backup/Restore
 - **Minesweeper**: Classic puzzle game
 - **Internet Explorer**: Browse the web
 - **Chats**: Chat with AI assistant
@@ -48,6 +59,7 @@ A web-based operating system experience inspired by classic Mac OS System 7. Bui
 - Use the **Apple menu (🍎)** in the top-left to access system functions
 - Files are automatically saved to your browser's storage
 - Drag windows to move them, click and drag window edges to resize
+- Use Control Panels to customize your experience
 
 ## Technical Details
 
@@ -56,6 +68,8 @@ A web-based operating system experience inspired by classic Mac OS System 7. Bui
 - TailwindCSS for styling
 - shadcn/ui components
 - Bun as package manager
+- WaveSurfer.js for audio visualization
+- Tone.js for audio synthesis
 
 Visit https://github.com/ryokun6/soundboard for more information.`,
   },
@@ -91,17 +105,26 @@ Visit https://github.com/ryokun6/soundboard for more information.`,
 - Record sounds directly from your microphone
 - Customize with emojis and titles
 - Play sounds with clicks or number keys (1-9)
-- View sound waveforms
+- View sound waveforms with WaveSurfer.js
 - Import/export soundboards for sharing
 - Auto-saves your recordings
+- Choose input device
+- Toggle waveform/emoji display
 
 ## Control Panels
 - Customize system appearance
+  - Choose from tiled patterns or photos
+  - Multiple categories of wallpapers
+  - Real-time preview
 - Adjust sound settings
-- Configure keyboard preferences
-- Manage location settings
-- Changes save automatically
-- Classic System 7 style interface
+  - Enable/disable UI sounds
+  - Configure typing synthesis
+  - Choose synth presets
+- Manage system
+  - Backup all settings
+  - Restore from backup
+  - Reset to defaults
+  - Format file system
 
 ## Minesweeper
 - Classic puzzle game with modern features
@@ -132,6 +155,8 @@ Visit https://github.com/ryokun6/soundboard for more information.`,
 - All changes save automatically
 - Files persist between sessions
 - Export important data locally
+- Customize system sounds and appearance
+- Regular backups recommended
 `,
   },
 ];
