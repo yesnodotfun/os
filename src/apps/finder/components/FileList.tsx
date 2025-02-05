@@ -1,5 +1,6 @@
 import { FileIcon } from "./FileIcon";
 import { ViewType } from "./FinderMenuBar";
+import { useSound, Sounds } from "@/hooks/useSound";
 import {
   Table,
   TableBody,
@@ -35,9 +36,17 @@ export function FileList({
   selectedFile,
   viewType = "small",
 }: FileListProps) {
+  const { play: playClick } = useSound(Sounds.BUTTON_CLICK, 0.3);
+
   const handleFileOpen = (file: FileItem) => {
+    playClick();
     onFileOpen(file);
     onFileSelect(null as unknown as FileItem); // Clear selection with proper typing
+  };
+
+  const handleFileSelect = (file: FileItem) => {
+    playClick();
+    onFileSelect(file);
   };
 
   if (viewType === "list") {
@@ -69,7 +78,7 @@ export function FileList({
                     ? "bg-black text-white hover:bg-black"
                     : "odd:bg-gray-200/50"
                 }`}
-                onClick={() => onFileSelect(file)}
+                onClick={() => handleFileSelect(file)}
                 onDoubleClick={() => handleFileOpen(file)}
               >
                 <TableCell className="flex items-center gap-2">
@@ -130,7 +139,7 @@ export function FileList({
           isDirectory={file.isDirectory}
           icon={file.icon}
           onDoubleClick={() => handleFileOpen(file)}
-          onClick={() => onFileSelect(file)}
+          onClick={() => handleFileSelect(file)}
           isSelected={selectedFile?.path === file.path}
           size={viewType}
         />
