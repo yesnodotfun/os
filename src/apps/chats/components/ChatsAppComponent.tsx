@@ -11,7 +11,6 @@ import { useChat } from "ai/react";
 import { loadChatMessages, saveChatMessages } from "@/utils/storage";
 import { ChatMessages } from "./ChatMessages";
 import { ChatInput } from "./ChatInput";
-import { useFileSystem } from "@/apps/finder/hooks/useFileSystem";
 
 export function ChatsAppComponent({
   isWindowOpen,
@@ -62,7 +61,6 @@ export function ChatsAppComponent({
   const [isClearDialogOpen, setIsClearDialogOpen] = useState(false);
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const [saveFileName, setSaveFileName] = useState("");
-  const { saveFile } = useFileSystem();
 
   const clearChats = () => {
     setIsClearDialogOpen(true);
@@ -94,15 +92,21 @@ export function ChatsAppComponent({
       })
       .join("\n");
 
-    saveFile({
-      name: fileName.endsWith(".md") ? fileName : `${fileName}.md`,
-      path: `/Documents/${
-        fileName.endsWith(".md") ? fileName : `${fileName}.md`
-      }`,
-      content: transcript,
-      icon: "/icons/file-text.png",
-      isDirectory: false,
+    const finalFileName = fileName.endsWith(".md")
+      ? fileName
+      : `${fileName}.md`;
+    const filePath = `/Documents/${finalFileName}`;
+
+    const saveEvent = new CustomEvent("saveFile", {
+      detail: {
+        name: finalFileName,
+        path: filePath,
+        content: transcript,
+        icon: "/icons/file-text.png",
+        isDirectory: false,
+      },
     });
+    window.dispatchEvent(saveEvent);
 
     setIsSaveDialogOpen(false);
   };

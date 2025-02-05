@@ -219,13 +219,17 @@ export function TextEditAppComponent({
       if (currentFilePath) {
         // If we have a current file path, autosave to that location
         const fileName = currentFilePath.split("/").pop() || "Untitled";
-        saveFile({
-          name: fileName,
-          path: currentFilePath,
-          content: JSON.stringify(jsonContent),
-          icon: "/icons/file-text.png",
-          isDirectory: false,
+        // Dispatch saveFile event instead of directly calling saveFile
+        const saveEvent = new CustomEvent("saveFile", {
+          detail: {
+            name: fileName,
+            path: currentFilePath,
+            content: JSON.stringify(jsonContent),
+            icon: "/icons/file-text.png",
+            isDirectory: false,
+          },
         });
+        window.dispatchEvent(saveEvent);
       }
 
       setHasUnsavedChanges(true);
