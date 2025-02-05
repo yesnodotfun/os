@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useWallpaper } from "@/hooks/useWallpaper";
+import { useSound, Sounds } from "@/hooks/useSound";
 
 interface WallpaperItemProps {
   path: string;
@@ -22,6 +23,13 @@ function WallpaperItem({
   onClick,
   isTile = false,
 }: WallpaperItemProps) {
+  const { play: playClick } = useSound(Sounds.BUTTON_CLICK, 0.3);
+
+  const handleClick = () => {
+    playClick();
+    onClick();
+  };
+
   return (
     <div
       className={`w-full ${
@@ -35,7 +43,7 @@ function WallpaperItem({
         backgroundPosition: isTile ? undefined : "center",
         backgroundRepeat: isTile ? "repeat" : undefined,
       }}
-      onClick={onClick}
+      onClick={handleClick}
     />
   );
 }
@@ -197,6 +205,7 @@ interface WallpaperPickerProps {
 
 export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
   const { currentWallpaper, setWallpaper } = useWallpaper();
+  const { play: playClick } = useSound(Sounds.BUTTON_CLICK, 0.3);
   const [selectedCategory, setSelectedCategory] = useState<
     "tiles" | PhotoCategory
   >(() => {
@@ -214,6 +223,7 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
 
   const handleWallpaperSelect = (path: string) => {
     setWallpaper(path);
+    playClick();
     if (onSelect) {
       onSelect(path);
     }
