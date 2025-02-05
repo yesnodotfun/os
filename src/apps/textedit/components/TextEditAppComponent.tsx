@@ -670,308 +670,310 @@ export function TextEditAppComponent({
         isForeground={isForeground}
         appId="textedit"
       >
-        <div
-          className={`flex flex-col h-full w-full bg-white relative ${
-            isDraggingOver
-              ? "after:absolute after:inset-0 after:bg-black/20"
-              : ""
-          }`}
-          onDragOver={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            if (!isDraggingOver) setIsDraggingOver(true);
-          }}
-          onDragLeave={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            // Check if we're leaving to a child element
-            const relatedTarget = e.relatedTarget as Node | null;
-            if (e.currentTarget.contains(relatedTarget)) {
-              return;
-            }
-            setIsDraggingOver(false);
-          }}
-          onDragEnd={() => setIsDraggingOver(false)}
-          onMouseLeave={() => setIsDraggingOver(false)}
-          onDrop={handleFileDrop}
-        >
-          <div className="flex bg-[#c0c0c0] border-b border-black w-full">
-            <div className="flex px-1 py-1 gap-x-1">
-              {/* Text style group */}
-              <div className="flex">
-                <button
-                  onClick={() => {
-                    playButtonClick();
-                    editor?.chain().focus().toggleBold().run();
-                  }}
-                  className="w-[26px] h-[22px] flex items-center justify-center"
-                >
-                  <img
-                    src={`/icons/text-editor/bold-${
-                      editor?.isActive("bold") ? "depressed" : "off"
-                    }.png`}
-                    alt="Bold"
-                    className="w-[26px] h-[22px]"
-                  />
-                </button>
-                <button
-                  onClick={() => {
-                    playButtonClick();
-                    editor?.chain().focus().toggleItalic().run();
-                  }}
-                  className="w-[26px] h-[22px] flex items-center justify-center"
-                >
-                  <img
-                    src={`/icons/text-editor/italic-${
-                      editor?.isActive("italic") ? "depressed" : "off"
-                    }.png`}
-                    alt="Italic"
-                    className="w-[26px] h-[22px]"
-                  />
-                </button>
-                <button
-                  onClick={() => {
-                    playButtonClick();
-                    editor?.chain().focus().toggleUnderline().run();
-                  }}
-                  className="w-[26px] h-[22px] flex items-center justify-center"
-                >
-                  <img
-                    src={`/icons/text-editor/underline-${
-                      editor?.isActive("underline") ? "depressed" : "off"
-                    }.png`}
-                    alt="Underline"
-                    className="w-[26px] h-[22px]"
-                  />
-                </button>
-              </div>
+        <div className="flex flex-col h-full w-full">
+          <div
+            className={`flex-1 flex flex-col bg-white relative min-h-0 ${
+              isDraggingOver
+                ? "after:absolute after:inset-0 after:bg-black/20"
+                : ""
+            }`}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (!isDraggingOver) setIsDraggingOver(true);
+            }}
+            onDragLeave={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              // Check if we're leaving to a child element
+              const relatedTarget = e.relatedTarget as Node | null;
+              if (e.currentTarget.contains(relatedTarget)) {
+                return;
+              }
+              setIsDraggingOver(false);
+            }}
+            onDragEnd={() => setIsDraggingOver(false)}
+            onMouseLeave={() => setIsDraggingOver(false)}
+            onDrop={handleFileDrop}
+          >
+            <div className="flex bg-[#c0c0c0] border-b border-black w-full flex-shrink-0">
+              <div className="flex px-1 py-1 gap-x-1">
+                {/* Text style group */}
+                <div className="flex">
+                  <button
+                    onClick={() => {
+                      playButtonClick();
+                      editor?.chain().focus().toggleBold().run();
+                    }}
+                    className="w-[26px] h-[22px] flex items-center justify-center"
+                  >
+                    <img
+                      src={`/icons/text-editor/bold-${
+                        editor?.isActive("bold") ? "depressed" : "off"
+                      }.png`}
+                      alt="Bold"
+                      className="w-[26px] h-[22px]"
+                    />
+                  </button>
+                  <button
+                    onClick={() => {
+                      playButtonClick();
+                      editor?.chain().focus().toggleItalic().run();
+                    }}
+                    className="w-[26px] h-[22px] flex items-center justify-center"
+                  >
+                    <img
+                      src={`/icons/text-editor/italic-${
+                        editor?.isActive("italic") ? "depressed" : "off"
+                      }.png`}
+                      alt="Italic"
+                      className="w-[26px] h-[22px]"
+                    />
+                  </button>
+                  <button
+                    onClick={() => {
+                      playButtonClick();
+                      editor?.chain().focus().toggleUnderline().run();
+                    }}
+                    className="w-[26px] h-[22px] flex items-center justify-center"
+                  >
+                    <img
+                      src={`/icons/text-editor/underline-${
+                        editor?.isActive("underline") ? "depressed" : "off"
+                      }.png`}
+                      alt="Underline"
+                      className="w-[26px] h-[22px]"
+                    />
+                  </button>
+                </div>
 
-              {/* Divider */}
-              <div className="w-[1px] h-[22px] bg-[#808080] shadow-[1px_0_0_#ffffff]" />
+                {/* Divider */}
+                <div className="w-[1px] h-[22px] bg-[#808080] shadow-[1px_0_0_#ffffff]" />
 
-              {/* Heading selector */}
-              <div className="flex">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button className="w-[80px] h-[22px] flex items-center justify-between px-2 bg-white border border-[#808080] text-sm">
-                      {editor?.isActive("heading", { level: 1 })
-                        ? "H1"
-                        : editor?.isActive("heading", { level: 2 })
-                        ? "H2"
-                        : editor?.isActive("heading", { level: 3 })
-                        ? "H3"
-                        : "Text"}
-                      <ChevronDown className="ml-1 h-3 w-3" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-[80px]">
-                    <DropdownMenuItem
-                      onClick={() =>
-                        editor?.chain().focus().setParagraph().run()
-                      }
-                      className={`text-sm h-6 px-2 ${
-                        editor?.isActive("paragraph") ? "bg-gray-200" : ""
-                      }`}
-                    >
-                      Text
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() =>
-                        editor
-                          ?.chain()
-                          .focus()
-                          .toggleHeading({ level: 1 })
-                          .run()
-                      }
-                      className={`text-sm h-6 px-2 ${
-                        editor?.isActive("heading", { level: 1 })
-                          ? "bg-gray-200"
-                          : ""
-                      }`}
-                    >
-                      H1
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() =>
-                        editor
-                          ?.chain()
-                          .focus()
-                          .toggleHeading({ level: 2 })
-                          .run()
-                      }
-                      className={`text-sm h-6 px-2 ${
-                        editor?.isActive("heading", { level: 2 })
-                          ? "bg-gray-200"
-                          : ""
-                      }`}
-                    >
-                      H2
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() =>
-                        editor
-                          ?.chain()
-                          .focus()
-                          .toggleHeading({ level: 3 })
-                          .run()
-                      }
-                      className={`text-sm h-6 px-2 ${
-                        editor?.isActive("heading", { level: 3 })
-                          ? "bg-gray-200"
-                          : ""
-                      }`}
-                    >
-                      H3
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+                {/* Heading selector */}
+                <div className="flex">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="w-[80px] h-[22px] flex items-center justify-between px-2 bg-white border border-[#808080] text-sm">
+                        {editor?.isActive("heading", { level: 1 })
+                          ? "H1"
+                          : editor?.isActive("heading", { level: 2 })
+                          ? "H2"
+                          : editor?.isActive("heading", { level: 3 })
+                          ? "H3"
+                          : "Text"}
+                        <ChevronDown className="ml-1 h-3 w-3" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-[80px]">
+                      <DropdownMenuItem
+                        onClick={() =>
+                          editor?.chain().focus().setParagraph().run()
+                        }
+                        className={`text-sm h-6 px-2 ${
+                          editor?.isActive("paragraph") ? "bg-gray-200" : ""
+                        }`}
+                      >
+                        Text
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() =>
+                          editor
+                            ?.chain()
+                            .focus()
+                            .toggleHeading({ level: 1 })
+                            .run()
+                        }
+                        className={`text-sm h-6 px-2 ${
+                          editor?.isActive("heading", { level: 1 })
+                            ? "bg-gray-200"
+                            : ""
+                        }`}
+                      >
+                        H1
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() =>
+                          editor
+                            ?.chain()
+                            .focus()
+                            .toggleHeading({ level: 2 })
+                            .run()
+                        }
+                        className={`text-sm h-6 px-2 ${
+                          editor?.isActive("heading", { level: 2 })
+                            ? "bg-gray-200"
+                            : ""
+                        }`}
+                      >
+                        H2
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() =>
+                          editor
+                            ?.chain()
+                            .focus()
+                            .toggleHeading({ level: 3 })
+                            .run()
+                        }
+                        className={`text-sm h-6 px-2 ${
+                          editor?.isActive("heading", { level: 3 })
+                            ? "bg-gray-200"
+                            : ""
+                        }`}
+                      >
+                        H3
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
 
-              {/* Divider */}
-              <div className="w-[1px] h-[22px] bg-[#808080] shadow-[1px_0_0_#ffffff]" />
+                {/* Divider */}
+                <div className="w-[1px] h-[22px] bg-[#808080] shadow-[1px_0_0_#ffffff]" />
 
-              {/* Alignment group */}
-              <div className="flex">
-                <button
-                  onClick={() => {
-                    playButtonClick();
-                    editor?.chain().focus().setTextAlign("left").run();
-                  }}
-                  className="w-[26px] h-[22px] flex items-center justify-center"
-                >
-                  <img
-                    src={`/icons/text-editor/align-left-${
-                      editor?.isActive({ textAlign: "left" })
-                        ? "depressed"
-                        : "off"
-                    }.png`}
-                    alt="Align Left"
-                    className="w-[26px] h-[22px]"
+                {/* Alignment group */}
+                <div className="flex">
+                  <button
+                    onClick={() => {
+                      playButtonClick();
+                      editor?.chain().focus().setTextAlign("left").run();
+                    }}
+                    className="w-[26px] h-[22px] flex items-center justify-center"
+                  >
+                    <img
+                      src={`/icons/text-editor/align-left-${
+                        editor?.isActive({ textAlign: "left" })
+                          ? "depressed"
+                          : "off"
+                      }.png`}
+                      alt="Align Left"
+                      className="w-[26px] h-[22px]"
+                    />
+                  </button>
+                  <button
+                    onClick={() => {
+                      playButtonClick();
+                      editor?.chain().focus().setTextAlign("center").run();
+                    }}
+                    className="w-[26px] h-[22px] flex items-center justify-center"
+                  >
+                    <img
+                      src={`/icons/text-editor/align-center-${
+                        editor?.isActive({ textAlign: "center" })
+                          ? "depressed"
+                          : "off"
+                      }.png`}
+                      alt="Align Center"
+                      className="w-[26px] h-[22px]"
+                    />
+                  </button>
+                  <button
+                    onClick={() => {
+                      playButtonClick();
+                      editor?.chain().focus().setTextAlign("right").run();
+                    }}
+                    className="w-[26px] h-[22px] flex items-center justify-center"
+                  >
+                    <img
+                      src={`/icons/text-editor/align-right-${
+                        editor?.isActive({ textAlign: "right" })
+                          ? "depressed"
+                          : "off"
+                      }.png`}
+                      alt="Align Right"
+                      className="w-[26px] h-[22px]"
+                    />
+                  </button>
+                </div>
+
+                {/* Divider */}
+                <div className="w-[1px] h-[22px] bg-[#808080] shadow-[1px_0_0_#ffffff]" />
+
+                {/* List group */}
+                <div className="flex">
+                  <button
+                    onClick={() => {
+                      playButtonClick();
+                      editor?.chain().focus().toggleBulletList().run();
+                    }}
+                    className="w-[26px] h-[22px] flex items-center justify-center"
+                  >
+                    <img
+                      src={`/icons/text-editor/unordered-list-${
+                        editor?.isActive("bulletList") ? "depressed" : "off"
+                      }.png`}
+                      alt="Bullet List"
+                      className="w-[26px] h-[22px]"
+                    />
+                  </button>
+                  <button
+                    onClick={() => {
+                      playButtonClick();
+                      editor?.chain().focus().toggleOrderedList().run();
+                    }}
+                    className="w-[26px] h-[22px] flex items-center justify-center"
+                  >
+                    <img
+                      src={`/icons/text-editor/ordered-list-${
+                        editor?.isActive("orderedList") ? "depressed" : "off"
+                      }.png`}
+                      alt="Ordered List"
+                      className="w-[26px] h-[22px]"
+                    />
+                  </button>
+                </div>
+
+                {/* Divider */}
+                <div className="w-[1px] h-[22px] bg-[#808080] shadow-[1px_0_0_#ffffff]" />
+
+                {/* Voice transcription */}
+                <div className="flex">
+                  <AudioInputButton
+                    onTranscriptionComplete={handleTranscriptionComplete}
+                    onTranscriptionStart={handleTranscriptionStart}
+                    isLoading={isTranscribing}
+                    className="w-[26px] h-[22px] flex items-center justify-center"
+                    silenceThreshold={10000}
                   />
-                </button>
-                <button
-                  onClick={() => {
-                    playButtonClick();
-                    editor?.chain().focus().setTextAlign("center").run();
-                  }}
-                  className="w-[26px] h-[22px] flex items-center justify-center"
-                >
-                  <img
-                    src={`/icons/text-editor/align-center-${
-                      editor?.isActive({ textAlign: "center" })
-                        ? "depressed"
-                        : "off"
-                    }.png`}
-                    alt="Align Center"
-                    className="w-[26px] h-[22px]"
-                  />
-                </button>
-                <button
-                  onClick={() => {
-                    playButtonClick();
-                    editor?.chain().focus().setTextAlign("right").run();
-                  }}
-                  className="w-[26px] h-[22px] flex items-center justify-center"
-                >
-                  <img
-                    src={`/icons/text-editor/align-right-${
-                      editor?.isActive({ textAlign: "right" })
-                        ? "depressed"
-                        : "off"
-                    }.png`}
-                    alt="Align Right"
-                    className="w-[26px] h-[22px]"
-                  />
-                </button>
-              </div>
-
-              {/* Divider */}
-              <div className="w-[1px] h-[22px] bg-[#808080] shadow-[1px_0_0_#ffffff]" />
-
-              {/* List group */}
-              <div className="flex">
-                <button
-                  onClick={() => {
-                    playButtonClick();
-                    editor?.chain().focus().toggleBulletList().run();
-                  }}
-                  className="w-[26px] h-[22px] flex items-center justify-center"
-                >
-                  <img
-                    src={`/icons/text-editor/unordered-list-${
-                      editor?.isActive("bulletList") ? "depressed" : "off"
-                    }.png`}
-                    alt="Bullet List"
-                    className="w-[26px] h-[22px]"
-                  />
-                </button>
-                <button
-                  onClick={() => {
-                    playButtonClick();
-                    editor?.chain().focus().toggleOrderedList().run();
-                  }}
-                  className="w-[26px] h-[22px] flex items-center justify-center"
-                >
-                  <img
-                    src={`/icons/text-editor/ordered-list-${
-                      editor?.isActive("orderedList") ? "depressed" : "off"
-                    }.png`}
-                    alt="Ordered List"
-                    className="w-[26px] h-[22px]"
-                  />
-                </button>
-              </div>
-
-              {/* Divider */}
-              <div className="w-[1px] h-[22px] bg-[#808080] shadow-[1px_0_0_#ffffff]" />
-
-              {/* Voice transcription */}
-              <div className="flex">
-                <AudioInputButton
-                  onTranscriptionComplete={handleTranscriptionComplete}
-                  onTranscriptionStart={handleTranscriptionStart}
-                  isLoading={isTranscribing}
-                  className="w-[26px] h-[22px] flex items-center justify-center"
-                  silenceThreshold={10000}
-                />
+                </div>
               </div>
             </div>
+            <EditorContent
+              editor={editor}
+              className="flex-1 overflow-y-auto w-full min-h-0"
+            />
           </div>
-          <EditorContent
-            editor={editor}
-            className="flex-1 overflow-auto w-full h-full"
+          <InputDialog
+            isOpen={isSaveDialogOpen}
+            onOpenChange={setIsSaveDialogOpen}
+            onSubmit={handleSaveSubmit}
+            title="Save File"
+            description="Enter a name for your file"
+            value={saveFileName}
+            onChange={setSaveFileName}
+          />
+          <ConfirmDialog
+            isOpen={isConfirmNewDialogOpen}
+            onOpenChange={setIsConfirmNewDialogOpen}
+            onConfirm={() => {
+              createNewFile();
+              setIsConfirmNewDialogOpen(false);
+            }}
+            title="Discard Changes"
+            description="Do you want to discard your changes and create a new file?"
+          />
+          <HelpDialog
+            isOpen={isHelpDialogOpen}
+            onOpenChange={setIsHelpDialogOpen}
+            helpItems={helpItems}
+            appName="TextEdit"
+          />
+          <AboutDialog
+            isOpen={isAboutDialogOpen}
+            onOpenChange={setIsAboutDialogOpen}
+            metadata={appMetadata}
           />
         </div>
-        <InputDialog
-          isOpen={isSaveDialogOpen}
-          onOpenChange={setIsSaveDialogOpen}
-          onSubmit={handleSaveSubmit}
-          title="Save File"
-          description="Enter a name for your file"
-          value={saveFileName}
-          onChange={setSaveFileName}
-        />
-        <ConfirmDialog
-          isOpen={isConfirmNewDialogOpen}
-          onOpenChange={setIsConfirmNewDialogOpen}
-          onConfirm={() => {
-            createNewFile();
-            setIsConfirmNewDialogOpen(false);
-          }}
-          title="Discard Changes"
-          description="Do you want to discard your changes and create a new file?"
-        />
-        <HelpDialog
-          isOpen={isHelpDialogOpen}
-          onOpenChange={setIsHelpDialogOpen}
-          helpItems={helpItems}
-          appName="TextEdit"
-        />
-        <AboutDialog
-          isOpen={isAboutDialogOpen}
-          onOpenChange={setIsAboutDialogOpen}
-          metadata={appMetadata}
-        />
       </WindowFrame>
     </>
   );
