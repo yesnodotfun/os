@@ -139,7 +139,7 @@ export function ControlPanelsAppComponent({
   const [isConfirmResetOpen, setIsConfirmResetOpen] = useState(false);
   const [isConfirmFormatOpen, setIsConfirmFormatOpen] = useState(false);
   const [uiSoundsEnabled, setUiSoundsEnabled] = useState(true);
-  const [typingSynthEnabled, setTypingSynthEnabled] = useState(true);
+  const [typingSynthEnabled, setTypingSynthEnabled] = useState(false);
   const [synthPreset, setSynthPreset] = useState("classic");
   const fileInputRef = useRef<HTMLInputElement>(null);
 

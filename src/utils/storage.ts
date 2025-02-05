@@ -530,11 +530,10 @@ export const saveChatSynthEnabled = (enabled: boolean): void => {
 };
 
 export const loadTypingSynthEnabled = (): boolean => {
-  return (
-    localStorage.getItem(
-      APP_STORAGE_KEYS["control-panels"].TYPING_SYNTH_ENABLED
-    ) !== "false"
+  const value = localStorage.getItem(
+    APP_STORAGE_KEYS["control-panels"].TYPING_SYNTH_ENABLED
   );
+  return value === "true";
 };
 
 export const saveTypingSynthEnabled = (enabled: boolean): void => {
