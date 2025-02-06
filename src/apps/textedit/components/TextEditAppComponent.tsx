@@ -418,8 +418,19 @@ export function TextEditAppComponent({
     if (!editor) return;
 
     if (!currentFilePath) {
+      // Get the first line of content and use it as suggested filename
+      const content = editor.getHTML();
+      const firstLine = content
+        .split("\n")[0] // Get first line
+        .replace(/<[^>]+>/g, "") // Remove HTML tags
+        .split("-")[0] // Split by - and take first part
+        .trim() // Remove whitespace
+        .replace(/[^a-zA-Z0-9\s-]/g, "") // Remove special characters
+        .replace(/\s+/g, "-") // Replace spaces with hyphens
+        .substring(0, 50); // Limit length
+
       setIsSaveDialogOpen(true);
-      setSaveFileName("");
+      setSaveFileName(`${firstLine || "Untitled"}.md`);
     } else {
       const content = JSON.stringify(editor.getJSON());
       const fileName = currentFilePath.split("/").pop() || "Untitled";
@@ -452,7 +463,7 @@ export function TextEditAppComponent({
 
     const content = JSON.stringify(editor.getJSON());
     const filePath = `/Documents/${fileName}${
-      fileName.includes(".") ? "" : ".txt"
+      fileName.endsWith(".md") ? "" : ".md"
     }`;
 
     // Dispatch saveFile event instead of directly calling saveFile
