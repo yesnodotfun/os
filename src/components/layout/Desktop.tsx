@@ -1,8 +1,8 @@
 import { BaseApp } from "@/apps/base/types";
 import { AppManagerState } from "@/apps/base/types";
 import { useState, useEffect } from "react";
-import { loadDesktopIconState } from "@/utils/storage";
 import { FileIcon } from "@/apps/finder/components/FileIcon";
+import { getAppIconPath } from "@/config/appRegistry";
 
 interface DesktopStyles {
   backgroundImage?: string;
@@ -29,7 +29,6 @@ export function Desktop({
   wallpaperPath,
 }: DesktopProps) {
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
-  const [desktopIconState] = useState(() => loadDesktopIconState());
   const [currentWallpaper, setCurrentWallpaper] = useState(wallpaperPath);
 
   // Listen for wallpaper changes
@@ -109,25 +108,24 @@ export function Desktop({
             isSelected={selectedAppId === "macintosh-hd"}
             size="large"
           />
-          {apps.map(
-            (app) =>
-              desktopIconState[app.id]?.visible && (
-                <FileIcon
-                  key={app.id}
-                  name={app.name}
-                  isDirectory={false}
-                  icon={typeof app.icon === "string" ? undefined : app.icon.src}
-                  onClick={(e) => handleIconClick(app.id, e)}
-                  onDoubleClick={(e) => {
-                    e.stopPropagation();
-                    toggleApp(app.id);
-                    setSelectedAppId(null);
-                  }}
-                  isSelected={selectedAppId === app.id}
-                  size="large"
-                />
-              )
-          )}
+          {apps
+            .filter((app) => app.id !== "finder" && app.id !== "control-panels")
+            .map((app) => (
+              <FileIcon
+                key={app.id}
+                name={app.name}
+                isDirectory={false}
+                icon={getAppIconPath(app.id)}
+                onClick={(e) => handleIconClick(app.id, e)}
+                onDoubleClick={(e) => {
+                  e.stopPropagation();
+                  toggleApp(app.id);
+                  setSelectedAppId(null);
+                }}
+                isSelected={selectedAppId === app.id}
+                size="large"
+              />
+            ))}
         </div>
       </div>
     </div>
