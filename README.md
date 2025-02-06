@@ -43,6 +43,12 @@ bun run build
 
 - **Finder**: File system navigation and management
 - **Text Editor**: Rich text editing with markdown support
+- **MacPaint**: Classic bitmap graphics editor
+  - Drawing tools (pencil, brush, eraser)
+  - Shape tools (rectangle, oval, line)
+  - Fill patterns and colors
+  - Selection and move tools
+  - Undo/redo support
 - **Soundboard**: Create and manage custom soundboards
   - Record audio from microphone
   - Multiple soundboards support
