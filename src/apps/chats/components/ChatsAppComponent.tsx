@@ -83,7 +83,8 @@ export function ChatsAppComponent({
         hour12: true,
       })
       .toLowerCase()
-      .replace(":", "-");
+      .replace(":", "-")
+      .replace(" ", "");
     setSaveFileName(`chat-${date}-${time}.md`);
   };
 
