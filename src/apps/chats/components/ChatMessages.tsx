@@ -110,6 +110,8 @@ export function ChatMessages({
     }
   }, [messages, isLoading, scrollLockedToBottom, scrollToBottom]);
 
+  const isUrgentMessage = (content: string) => content.startsWith("!!!!");
+
   return (
     <ScrollArea
       className="flex-1 bg-white border-2 border-gray-800 rounded mb-2 p-2 h-full w-full"
@@ -142,7 +144,7 @@ export function ChatMessages({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.2 }}
-              className={`flex flex-col  z-10 ${
+              className={`flex flex-col z-10 ${
                 message.role === "user" ? "items-end" : "items-start"
               }`}
               style={{
@@ -170,6 +172,23 @@ export function ChatMessages({
                   fontFamily:
                     "Geneva-12, SerenityOS-Emoji, system-ui, -apple-system, sans-serif",
                 }}
+                animate={
+                  isUrgentMessage(message.content)
+                    ? {
+                        backgroundColor: [
+                          "#fecaca",
+                          message.role === "user" ? "#fef08a" : "#bfdbfe",
+                          "#fecaca",
+                          message.role === "user" ? "#fef08a" : "#bfdbfe",
+                        ],
+                        transition: {
+                          duration: 2,
+                          times: [0, 0.3, 0.6, 1],
+                          ease: "easeInOut",
+                        },
+                      }
+                    : {}
+                }
                 className={`max-w-[90%] min-h-[12px] p-1.5 px-2 rounded leading-snug text-[12px] antialiased break-words select-text ${
                   message.role === "user"
                     ? "bg-yellow-200 text-black"
