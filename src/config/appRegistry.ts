@@ -5,6 +5,7 @@ import ControlPanelsApp from "@/apps/control-panels";
 import { MinesweeperApp } from "@/apps/minesweeper";
 import { SoundboardApp } from "@/apps/soundboard";
 import { FinderApp } from "@/apps/finder";
+import { PaintApp } from "@/apps/paint";
 
 export interface WindowSize {
   width: number;
@@ -33,7 +34,6 @@ export const appRegistry = {
       minSize: { width: 300, height: 200 },
     } as WindowConstraints,
   },
-
   [SoundboardApp.id]: {
     ...SoundboardApp,
     windowConfig: {
@@ -60,6 +60,14 @@ export const appRegistry = {
     windowConfig: {
       defaultSize: { width: 368, height: 475 },
       minSize: { width: 368, height: 200 },
+    } as WindowConstraints,
+  },
+
+  [PaintApp.id]: {
+    ...PaintApp,
+    windowConfig: {
+      defaultSize: { width: 640, height: 480 },
+      minSize: { width: 400, height: 300 },
     } as WindowConstraints,
   },
   [MinesweeperApp.id]: {

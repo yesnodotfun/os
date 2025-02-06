@@ -45,6 +45,10 @@ export const APP_STORAGE_KEYS = {
     WINDOW: "finder:window",
     CURRENT_PATH: "finder:current-path",
   },
+  paint: {
+    WINDOW: "paint:window",
+    HAS_SEEN_HELP: "paint:hasSeenHelp",
+  },
 } as const;
 
 interface WindowState {
@@ -440,12 +444,13 @@ const DEFAULT_DESKTOP_ICONS: DesktopIconState = {
   "control-panels": { visible: false },
   minesweeper: { visible: true },
   finder: { visible: false },
+  paint: { visible: true },
 };
 
 export const loadDesktopIconState = (): DesktopIconState => {
-  const saved = localStorage.getItem(DESKTOP_ICONS_KEY);
+  const saved = localStorage.getItem("desktop:icons");
   if (saved) {
-    return { ...DEFAULT_DESKTOP_ICONS, ...JSON.parse(saved) };
+    return JSON.parse(saved);
   }
   return DEFAULT_DESKTOP_ICONS;
 };
@@ -544,58 +549,53 @@ export const saveTypingSynthEnabled = (enabled: boolean): void => {
 };
 
 export const clearAllAppStates = (): void => {
-  // Clear all app-related items from local storage
-  Object.values(APP_STORAGE_KEYS).forEach((appKeys) => {
-    Object.values(appKeys).forEach((key) => {
-      localStorage.removeItem(key);
-    });
-  });
+  // Clear all app-specific storage
+  localStorage.removeItem(APP_STORAGE_KEYS.soundboard.BOARDS);
+  localStorage.removeItem(APP_STORAGE_KEYS.soundboard.WINDOW);
+  localStorage.removeItem(APP_STORAGE_KEYS.soundboard.SELECTED_DEVICE_ID);
+  localStorage.removeItem(APP_STORAGE_KEYS.soundboard.HAS_SEEN_HELP);
 
-  // Reinitialize with default values
-  // Default wallpaper
-  localStorage.setItem(
-    APP_STORAGE_KEYS["control-panels"].WALLPAPER,
-    "/wallpapers/tiles/french_blue_dark.png"
+  localStorage.removeItem(APP_STORAGE_KEYS["internet-explorer"].WINDOW);
+  localStorage.removeItem(APP_STORAGE_KEYS["internet-explorer"].HISTORY);
+  localStorage.removeItem(APP_STORAGE_KEYS["internet-explorer"].FAVORITES);
+  localStorage.removeItem(APP_STORAGE_KEYS["internet-explorer"].LAST_URL);
+
+  localStorage.removeItem(APP_STORAGE_KEYS.chats.WINDOW);
+  localStorage.removeItem(APP_STORAGE_KEYS.chats.MESSAGES);
+  localStorage.removeItem(APP_STORAGE_KEYS.chats.HAS_SEEN_HELP);
+
+  localStorage.removeItem(APP_STORAGE_KEYS.textedit.WINDOW);
+  localStorage.removeItem(APP_STORAGE_KEYS.textedit.CONTENT);
+  localStorage.removeItem(APP_STORAGE_KEYS.textedit.HAS_SEEN_HELP);
+  localStorage.removeItem(APP_STORAGE_KEYS.textedit.LAST_FILE_PATH);
+
+  localStorage.removeItem(APP_STORAGE_KEYS["control-panels"].WINDOW);
+  localStorage.removeItem(APP_STORAGE_KEYS["control-panels"].HAS_SEEN_HELP);
+  localStorage.removeItem(APP_STORAGE_KEYS["control-panels"].DESKTOP_VISIBLE);
+  localStorage.removeItem(APP_STORAGE_KEYS["control-panels"].WALLPAPER);
+  localStorage.removeItem(APP_STORAGE_KEYS["control-panels"].UI_SOUNDS_ENABLED);
+  localStorage.removeItem(
+    APP_STORAGE_KEYS["control-panels"].CHAT_SYNTH_ENABLED
   );
-
-  // Default UI sounds enabled
-  localStorage.setItem(
-    APP_STORAGE_KEYS["control-panels"].UI_SOUNDS_ENABLED,
-    "true"
+  localStorage.removeItem(
+    APP_STORAGE_KEYS["control-panels"].TYPING_SYNTH_ENABLED
   );
+  localStorage.removeItem(APP_STORAGE_KEYS["control-panels"].SYNTH_PRESET);
 
-  // Default synth preset
-  localStorage.setItem(
-    APP_STORAGE_KEYS["control-panels"].CHAT_SYNTH_ENABLED,
-    "classic"
-  );
+  localStorage.removeItem(APP_STORAGE_KEYS.minesweeper.WINDOW);
+  localStorage.removeItem(APP_STORAGE_KEYS.minesweeper.HAS_SEEN_HELP);
 
-  // Default desktop icons visibility
-  localStorage.setItem(
-    DESKTOP_ICONS_KEY,
-    JSON.stringify(DEFAULT_DESKTOP_ICONS)
-  );
+  localStorage.removeItem(APP_STORAGE_KEYS.finder.WINDOW);
+  localStorage.removeItem(APP_STORAGE_KEYS.finder.CURRENT_PATH);
 
-  // Default URL for Internet Explorer
-  localStorage.setItem(
-    APP_STORAGE_KEYS["internet-explorer"].LAST_URL,
-    DEFAULT_URL
-  );
+  localStorage.removeItem(APP_STORAGE_KEYS.paint.WINDOW);
+  localStorage.removeItem(APP_STORAGE_KEYS.paint.HAS_SEEN_HELP);
 
-  // Default soundboard
-  saveSoundboards([createDefaultBoard()]);
+  // Clear desktop icon state
+  localStorage.removeItem("desktop:icons");
 
-  // Default app state
-  saveAppState({
-    windowOrder: [],
-    apps: Object.keys(APP_STORAGE_KEYS).reduce(
-      (acc, appId) => ({
-        ...acc,
-        [appId]: { isOpen: false },
-      }),
-      {} as { [appId: string]: AppState }
-    ),
-  });
+  // Clear app manager state
+  localStorage.removeItem("app:state");
 };
 
 const SYNTH_PRESET_KEY = "synthPreset";

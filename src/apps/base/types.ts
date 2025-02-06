@@ -20,7 +20,8 @@ export interface BaseApp {
     | "textedit"
     | "control-panels"
     | "minesweeper"
-    | "finder";
+    | "finder"
+    | "paint";
   name: string;
   icon: string | { type: "image"; src: string };
   description: string;
