@@ -611,7 +611,11 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
       setIsTyping(false);
     };
 
-    const startDrawing = (event: React.MouseEvent<HTMLCanvasElement>) => {
+    const startDrawing = (
+      event:
+        | React.MouseEvent<HTMLCanvasElement>
+        | React.TouchEvent<HTMLCanvasElement>
+    ) => {
       const canvas = canvasRef.current;
       if (!canvas || !contextRef.current) return;
 
@@ -721,7 +725,11 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
       );
     };
 
-    const draw = (event: React.MouseEvent<HTMLCanvasElement>) => {
+    const draw = (
+      event:
+        | React.MouseEvent<HTMLCanvasElement>
+        | React.TouchEvent<HTMLCanvasElement>
+    ) => {
       if (!contextRef.current || !canvasRef.current) return;
 
       const point = getCanvasPoint(event);
@@ -835,7 +843,11 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
       }
     };
 
-    const stopDrawing = (event: React.MouseEvent<HTMLCanvasElement>) => {
+    const stopDrawing = (
+      event:
+        | React.MouseEvent<HTMLCanvasElement>
+        | React.TouchEvent<HTMLCanvasElement>
+    ) => {
       const canvas = canvasRef.current;
       if (!canvas || !contextRef.current) return;
 
@@ -939,20 +951,16 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
               onMouseUp={stopDrawing}
               onMouseLeave={stopDrawing}
               onTouchStart={(e) => {
-                e.preventDefault(); // Prevent default touch behavior
-                startDrawing(
-                  e as unknown as React.MouseEvent<HTMLCanvasElement>
-                );
+                e.preventDefault();
+                startDrawing(e);
               }}
               onTouchMove={(e) => {
                 e.preventDefault();
-                draw(e as unknown as React.MouseEvent<HTMLCanvasElement>);
+                draw(e);
               }}
               onTouchEnd={(e) => {
                 e.preventDefault();
-                stopDrawing(
-                  e as unknown as React.MouseEvent<HTMLCanvasElement>
-                );
+                stopDrawing(e);
               }}
             />
             {isTyping && textPosition && (
