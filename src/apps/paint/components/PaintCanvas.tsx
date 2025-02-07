@@ -65,6 +65,7 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
     const dragStartRef = useRef<Point | null>(null);
     const dashOffsetRef = useRef(0);
     const animationFrameRef = useRef<number>();
+    const touchStartRef = useRef<Point | null>(null);
 
     // Handle canvas resize
     useEffect(() => {
@@ -621,6 +622,11 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
 
       const point = getCanvasPoint(event);
 
+      // Store touch start position for tap detection
+      if ("touches" in event) {
+        touchStartRef.current = point;
+      }
+
       // Handle selection tool click
       if (selectedTool === "rect-select") {
         // If clicking outside selection, clear it
@@ -851,9 +857,26 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
       const canvas = canvasRef.current;
       if (!canvas || !contextRef.current) return;
 
+      const point = getCanvasPoint(event);
+
+      // Handle tap for bucket fill
+      if (
+        selectedTool === "bucket" &&
+        touchStartRef.current &&
+        "changedTouches" in event
+      ) {
+        const dx = point.x - touchStartRef.current.x;
+        const dy = point.y - touchStartRef.current.y;
+        // If the touch hasn't moved much (tap detection)
+        if (Math.abs(dx) < 5 && Math.abs(dy) < 5) {
+          floodFill(Math.floor(point.x), Math.floor(point.y));
+          saveToHistory();
+        }
+      }
+      touchStartRef.current = null;
+
       // Handle selection completion
       if (selectedTool === "rect-select" && startPointRef.current) {
-        const point = getCanvasPoint(event);
         const width = point.x - startPointRef.current.x;
         const height = point.y - startPointRef.current.y;
 
