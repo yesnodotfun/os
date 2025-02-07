@@ -13,11 +13,15 @@ interface PaintCanvasProps {
   strokeWidth: number;
   onCanUndoChange: (canUndo: boolean) => void;
   onCanRedoChange: (canRedo: boolean) => void;
+  onContentChange?: () => void;
 }
 
 interface PaintCanvasRef {
   undo: () => void;
   redo: () => void;
+  clear: () => void;
+  exportCanvas: () => string;
+  importImage: (dataUrl: string) => void;
 }
 
 interface Point {
@@ -41,6 +45,7 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
       strokeWidth,
       onCanUndoChange,
       onCanRedoChange,
+      onContentChange,
     },
     ref
   ) => {
@@ -60,6 +65,70 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
     const dragStartRef = useRef<Point | null>(null);
     const dashOffsetRef = useRef(0);
     const animationFrameRef = useRef<number>();
+
+    // Handle canvas resize
+    useEffect(() => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      const resizeObserver = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          const { width, height } = entry.contentRect;
+
+          // Store current canvas content
+          const tempCanvas = document.createElement("canvas");
+          const tempContext = tempCanvas.getContext("2d");
+          if (tempContext && contextRef.current) {
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            tempContext.drawImage(canvas, 0, 0);
+          }
+
+          // Update canvas size
+          canvas.width = width;
+          canvas.height = height;
+
+          // Restore context properties
+          const context = canvas.getContext("2d");
+          if (context) {
+            context.lineCap = "round";
+            context.lineJoin = "round";
+            context.lineWidth = strokeWidth;
+            contextRef.current = context;
+
+            // Restore pattern if exists
+            if (patternRef.current) {
+              const pattern = context.createPattern(
+                patternRef.current,
+                "repeat"
+              );
+              if (pattern) {
+                context.strokeStyle = pattern;
+                context.fillStyle = pattern;
+              }
+            }
+
+            // Restore canvas content
+            if (tempContext) {
+              context.drawImage(
+                tempCanvas,
+                0,
+                0,
+                tempCanvas.width,
+                tempCanvas.height,
+                0,
+                0,
+                width,
+                height
+              );
+            }
+          }
+        }
+      });
+
+      resizeObserver.observe(canvas);
+      return () => resizeObserver.disconnect();
+    }, [strokeWidth]);
 
     // Handle ESC key
     const handleKeyDown = useCallback(
@@ -137,34 +206,37 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
       const canvas = canvasRef.current;
       if (!canvas) return;
 
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
+      // Only set up the canvas dimensions and context once
+      if (!contextRef.current) {
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
 
-      const context = canvas.getContext("2d");
-      if (!context) return;
+        const context = canvas.getContext("2d");
+        if (!context) return;
 
-      context.lineCap = "round";
-      context.lineJoin = "round";
-      context.lineWidth = strokeWidth;
-      contextRef.current = context;
+        context.lineCap = "round";
+        context.lineJoin = "round";
+        context.lineWidth = strokeWidth;
+        contextRef.current = context;
 
-      // Load the pattern image
+        // Save initial canvas state
+        saveToHistory();
+      }
+
+      // Load and update the pattern
       const patternNum = selectedPattern.split("-")[1];
       const img = new Image();
       img.src = `/patterns/Property 1=${patternNum}.svg`;
       img.onload = () => {
         patternRef.current = img;
-        if (context && img) {
-          const pattern = context.createPattern(img, "repeat");
+        if (contextRef.current && img) {
+          const pattern = contextRef.current.createPattern(img, "repeat");
           if (pattern) {
-            context.strokeStyle = pattern;
-            context.fillStyle = pattern;
+            contextRef.current.strokeStyle = pattern;
+            contextRef.current.fillStyle = pattern;
           }
         }
       };
-
-      // Save initial canvas state
-      saveToHistory();
     }, [selectedPattern]);
 
     useEffect(() => {
@@ -196,6 +268,7 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
       // Update undo/redo availability
       onCanUndoChange(historyIndexRef.current > 0);
       onCanRedoChange(historyIndexRef.current < historyRef.current.length - 1);
+      onContentChange?.();
     };
 
     useImperativeHandle(ref, () => ({
@@ -222,6 +295,55 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
             historyIndexRef.current < historyRef.current.length - 1
           );
         }
+      },
+      clear: () => {
+        if (!contextRef.current || !canvasRef.current) return;
+        contextRef.current.clearRect(
+          0,
+          0,
+          canvasRef.current.width,
+          canvasRef.current.height
+        );
+        saveToHistory();
+        onContentChange?.();
+      },
+      exportCanvas: () => {
+        if (!canvasRef.current) return "";
+        return canvasRef.current.toDataURL("image/png");
+      },
+      importImage: (dataUrl: string) => {
+        if (!contextRef.current || !canvasRef.current) return;
+        const img = new Image();
+        img.crossOrigin = "anonymous"; // Add this to handle CORS
+        img.onload = () => {
+          if (!contextRef.current || !canvasRef.current) return;
+          contextRef.current.clearRect(
+            0,
+            0,
+            canvasRef.current.width,
+            canvasRef.current.height
+          );
+          // Calculate scaling to fit the image while maintaining aspect ratio
+          const scale = Math.min(
+            canvasRef.current.width / img.width,
+            canvasRef.current.height / img.height
+          );
+          const x = (canvasRef.current.width - img.width * scale) / 2;
+          const y = (canvasRef.current.height - img.height * scale) / 2;
+          contextRef.current.drawImage(
+            img,
+            x,
+            y,
+            img.width * scale,
+            img.height * scale
+          );
+          saveToHistory();
+          onContentChange?.();
+        };
+        img.onerror = (e) => {
+          console.error("Error loading image:", e);
+        };
+        img.src = dataUrl;
       },
     }));
 
@@ -350,7 +472,7 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
       context.save();
 
       // Set up text rendering
-      context.font = `${Math.max(12, strokeWidth * 12)}px Geneva-12`;
+      context.font = `16px Geneva-12`;
       context.textBaseline = "top";
 
       // Create pattern for text fill
@@ -432,7 +554,10 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
       }
 
       if (selectedTool === "text") {
-        setTextPosition(point);
+        if (!isTyping) {
+          // Only set new position when starting new text input
+          setTextPosition(point);
+        }
         setIsTyping(true);
         // Focus the input after a short delay to ensure it's mounted
         setTimeout(() => {
@@ -684,38 +809,52 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
     };
 
     return (
-      <div className="relative w-full h-full">
-        <canvas
-          ref={canvasRef}
-          className={`w-full h-full ${
-            selectedTool === "rect-select"
-              ? "cursor-crosshair"
-              : selection
-              ? "cursor-move"
-              : "cursor-crosshair"
-          }`}
-          onMouseDown={startDrawing}
-          onMouseMove={draw}
-          onMouseUp={stopDrawing}
-          onMouseLeave={stopDrawing}
-        />
-        {isTyping && textPosition && (
-          <input
-            ref={textInputRef}
-            type="text"
-            className="absolute bg-transparent border-none outline-none font-['Geneva-12'] text-black pointer-events-auto"
-            style={{
-              left: `${textPosition.x}px`,
-              top: `${textPosition.y}px`,
-              fontSize: `${Math.max(12, strokeWidth * 12)}px`,
-              minWidth: "100px",
-              padding: 0,
-              margin: 0,
-            }}
-            onKeyDown={handleTextInput}
-            onBlur={handleTextBlur}
-          />
-        )}
+      <div className="relative w-full h-full overflow-hidden">
+        <div className="w-full h-full flex items-center justify-center bg-white">
+          <div
+            className="relative w-full h-full"
+            style={{ aspectRatio: "4/3" }}
+          >
+            <canvas
+              ref={canvasRef}
+              style={{
+                imageRendering: "pixelated",
+                width: "100%",
+                height: "100%",
+                objectFit: "contain",
+              }}
+              className={`${
+                selectedTool === "rect-select"
+                  ? "cursor-crosshair"
+                  : selection
+                  ? "cursor-move"
+                  : "cursor-crosshair"
+              }`}
+              onMouseDown={startDrawing}
+              onMouseMove={draw}
+              onMouseUp={stopDrawing}
+              onMouseLeave={stopDrawing}
+            />
+            {isTyping && textPosition && (
+              <input
+                ref={textInputRef}
+                type="text"
+                className="absolute bg-transparent border-none outline-none font-['Geneva-12'] antialiased text-black pointer-events-auto"
+                style={{
+                  left: `${textPosition.x}px`,
+                  top: `${textPosition.y}px`,
+                  fontSize: `16px`,
+                  minWidth: "100px",
+                  padding: 0,
+                  margin: 0,
+                  transform: "translateZ(0)",
+                }}
+                onKeyDown={handleTextInput}
+                onBlur={handleTextBlur}
+              />
+            )}
+          </div>
+        </div>
       </div>
     );
   }

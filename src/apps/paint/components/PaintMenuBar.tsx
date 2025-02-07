@@ -1,4 +1,5 @@
-import { Button } from "@/components/ui/button";
+import React from "react";
+import { MenuBar } from "@/components/layout/MenuBar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -6,45 +7,61 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { AppProps } from "../../base/types";
-import { MenuBar } from "@/components/layout/MenuBar";
+import { Button } from "@/components/ui/button";
 
-interface PaintMenuBarProps extends Omit<AppProps, "onClose"> {
-  onNew?: () => void;
-  onOpen?: () => void;
-  onSave?: () => void;
-  onSaveAs?: () => void;
-  onUndo?: () => void;
-  onRedo?: () => void;
-  onClear?: () => void;
-  onShowHelp?: () => void;
-  onShowAbout?: () => void;
-  onClose?: () => void;
-  canUndo?: boolean;
-  canRedo?: boolean;
+interface PaintMenuBarProps {
+  isWindowOpen: boolean;
+  isForeground: boolean;
+  onClose: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
+  onUndo: () => void;
+  onRedo: () => void;
+  onClear: () => void;
+  onShowHelp: () => void;
+  onShowAbout: () => void;
+  onNewFile: () => void;
+  onSave: () => void;
+  onImportFile: () => void;
+  onExportFile: () => void;
+  hasUnsavedChanges: boolean;
+  currentFilePath: string | null;
+  handleFileSelect: (event: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 export function PaintMenuBar({
-  onNew,
-  onOpen,
-  onSave,
-  onSaveAs,
+  onClose,
+  onShowHelp,
+  onShowAbout,
+  canUndo,
+  canRedo,
   onUndo,
   onRedo,
   onClear,
-  onShowHelp,
-  onShowAbout,
-  onClose,
-  canUndo = false,
-  canRedo = false,
+  onNewFile,
+  onSave,
+  onImportFile,
+  onExportFile,
+  hasUnsavedChanges,
+  currentFilePath,
+  handleFileSelect,
 }: PaintMenuBarProps) {
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
   return (
     <MenuBar>
-      {/* File Menu */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileSelect}
+        accept=".png,.jpg,.jpeg"
+        className="hidden"
+      />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
+            size="default"
             className="h-6 text-md px-2 py-1 border-none hover:bg-gray-200 active:bg-gray-900 active:text-white focus-visible:ring-0"
           >
             File
@@ -52,29 +69,43 @@ export function PaintMenuBar({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" sideOffset={1} className="px-0">
           <DropdownMenuItem
-            onClick={onNew}
+            onClick={onNewFile}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            New <span className="ml-auto">⌘N</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={onOpen}
-            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
-          >
-            Open... <span className="ml-auto">⌘O</span>
+            New File
           </DropdownMenuItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           <DropdownMenuItem
-            onClick={onSave}
+            onClick={onImportFile}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            Save <span className="ml-auto">⌘S</span>
+            Open...
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={onSaveAs}
+            disabled={!hasUnsavedChanges && currentFilePath !== null}
+            onClick={onSave}
+            className={`text-md h-6 px-3 active:bg-gray-900 active:text-white ${
+              !hasUnsavedChanges && currentFilePath ? "text-gray-500" : ""
+            }`}
+          >
+            {currentFilePath
+              ? hasUnsavedChanges
+                ? "Save..."
+                : "Autosaved"
+              : "Save..."}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
+          <DropdownMenuItem
+            onClick={() => fileInputRef.current?.click()}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            Save As...
+            Import from Device...
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={onExportFile}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            Export...
           </DropdownMenuItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           <DropdownMenuItem
@@ -86,12 +117,12 @@ export function PaintMenuBar({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Edit Menu */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
-            className="h-6 px-2 py-1 text-md focus-visible:ring-0 hover:bg-gray-200 active:bg-gray-900 active:text-white"
+            size="default"
+            className="h-6 text-md px-2 py-1 border-none hover:bg-gray-200 active:bg-gray-900 active:text-white focus-visible:ring-0"
           >
             Edit
           </Button>
@@ -100,41 +131,37 @@ export function PaintMenuBar({
           <DropdownMenuItem
             onClick={onUndo}
             disabled={!canUndo}
-            className={
-              !canUndo
-                ? "text-gray-400 text-md h-6 px-3"
-                : "text-md h-6 px-3 active:bg-gray-900 active:text-white"
-            }
+            className={`text-md h-6 px-3 active:bg-gray-900 active:text-white ${
+              !canUndo ? "text-gray-500" : ""
+            }`}
           >
-            Undo <span className="ml-auto">⌘Z</span>
+            Undo
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={onRedo}
             disabled={!canRedo}
-            className={
-              !canRedo
-                ? "text-gray-400 text-md h-6 px-3"
-                : "text-md h-6 px-3 active:bg-gray-900 active:text-white"
-            }
+            className={`text-md h-6 px-3 active:bg-gray-900 active:text-white ${
+              !canRedo ? "text-gray-500" : ""
+            }`}
           >
-            Redo <span className="ml-auto">⇧⌘Z</span>
+            Redo
           </DropdownMenuItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           <DropdownMenuItem
             onClick={onClear}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            Clear <span className="ml-auto">⌫</span>
+            Clear
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Help Menu */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
-            className="h-6 px-2 py-1 text-md focus-visible:ring-0 hover:bg-gray-200 active:bg-gray-900 active:text-white"
+            size="default"
+            className="h-6 text-md px-2 py-1 border-none hover:bg-gray-200 active:bg-gray-900 active:text-white focus-visible:ring-0"
           >
             Help
           </Button>

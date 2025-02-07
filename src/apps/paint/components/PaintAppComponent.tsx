@@ -8,12 +8,13 @@ import { WindowFrame } from "@/components/layout/WindowFrame";
 import { AppProps } from "../../base/types";
 import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
+import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { helpItems, appMetadata } from "..";
 
 export const PaintAppComponent: React.FC<AppProps> = ({
   isWindowOpen,
   onClose,
-  isForeground,
+  isForeground = false,
 }) => {
   const [selectedTool, setSelectedTool] = useState<string>("pencil");
   const [selectedPattern, setSelectedPattern] = useState<string>("pattern-1");
@@ -22,7 +23,16 @@ export const PaintAppComponent: React.FC<AppProps> = ({
   const [canRedo, setCanRedo] = useState(false);
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
-  const canvasRef = useRef<{ undo: () => void; redo: () => void }>();
+  const [isConfirmNewDialogOpen, setIsConfirmNewDialogOpen] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
+  const canvasRef = useRef<{
+    undo: () => void;
+    redo: () => void;
+    clear: () => void;
+    exportCanvas: () => string;
+    importImage: (dataUrl: string) => void;
+  }>();
 
   const handleUndo = () => {
     canvasRef.current?.undo();
@@ -33,8 +43,66 @@ export const PaintAppComponent: React.FC<AppProps> = ({
   };
 
   const handleClear = () => {
-    // TODO: Implement clear functionality
-    console.log("Clear");
+    canvasRef.current?.clear();
+  };
+
+  const handleNewFile = () => {
+    if (hasUnsavedChanges) {
+      setIsConfirmNewDialogOpen(true);
+      return;
+    }
+    handleClear();
+    setCurrentFilePath(null);
+    setHasUnsavedChanges(false);
+  };
+
+  const handleSave = () => {
+    if (!canvasRef.current) return;
+
+    const dataUrl = canvasRef.current.exportCanvas();
+    const a = document.createElement("a");
+    a.href = dataUrl;
+    a.download = currentFilePath || "untitled.png";
+    a.click();
+    setHasUnsavedChanges(false);
+  };
+
+  const handleImportFile = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/png,image/jpeg";
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const dataUrl = event.target?.result as string;
+          canvasRef.current?.importImage(dataUrl);
+          setCurrentFilePath(file.name);
+          setHasUnsavedChanges(false);
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+    input.click();
+  };
+
+  const handleExportFile = () => {
+    handleSave();
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const dataUrl = e.target?.result as string;
+        canvasRef.current?.importImage(dataUrl);
+        setCurrentFilePath(file.name);
+        setHasUnsavedChanges(false);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   if (!isWindowOpen) return null;
@@ -52,6 +120,13 @@ export const PaintAppComponent: React.FC<AppProps> = ({
         onClear={handleClear}
         onShowHelp={() => setIsHelpDialogOpen(true)}
         onShowAbout={() => setIsAboutDialogOpen(true)}
+        onNewFile={handleNewFile}
+        onSave={handleSave}
+        onImportFile={handleImportFile}
+        onExportFile={handleExportFile}
+        hasUnsavedChanges={hasUnsavedChanges}
+        currentFilePath={currentFilePath}
+        handleFileSelect={handleFileSelect}
       />
       <WindowFrame
         title="MacPaint"
@@ -96,6 +171,9 @@ export const PaintAppComponent: React.FC<AppProps> = ({
                       canvasRef.current = {
                         undo: ref.undo,
                         redo: ref.redo,
+                        clear: ref.clear,
+                        exportCanvas: ref.exportCanvas,
+                        importImage: ref.importImage,
                       };
                     }
                   }}
@@ -104,6 +182,7 @@ export const PaintAppComponent: React.FC<AppProps> = ({
                   strokeWidth={strokeWidth}
                   onCanUndoChange={setCanUndo}
                   onCanRedoChange={setCanRedo}
+                  onContentChange={() => setHasUnsavedChanges(true)}
                 />
               </div>
 
@@ -143,6 +222,18 @@ export const PaintAppComponent: React.FC<AppProps> = ({
           isOpen={isAboutDialogOpen}
           onOpenChange={setIsAboutDialogOpen}
           metadata={appMetadata}
+        />
+        <ConfirmDialog
+          isOpen={isConfirmNewDialogOpen}
+          onOpenChange={setIsConfirmNewDialogOpen}
+          onConfirm={() => {
+            handleClear();
+            setCurrentFilePath(null);
+            setHasUnsavedChanges(false);
+            setIsConfirmNewDialogOpen(false);
+          }}
+          title="Discard Changes"
+          description="You have unsaved changes. Create new file anyway?"
         />
       </WindowFrame>
     </>
