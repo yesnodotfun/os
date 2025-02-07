@@ -441,14 +441,23 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
     }));
 
     const getCanvasPoint = (
-      event: React.MouseEvent<HTMLCanvasElement>
+      event:
+        | React.MouseEvent<HTMLCanvasElement>
+        | React.TouchEvent<HTMLCanvasElement>
     ): Point => {
       const canvas = canvasRef.current;
       if (!canvas) return { x: 0, y: 0 };
       const rect = canvas.getBoundingClientRect();
+
+      // Handle both mouse and touch events
+      const clientX =
+        "touches" in event ? event.touches[0].clientX : event.clientX;
+      const clientY =
+        "touches" in event ? event.touches[0].clientY : event.clientY;
+
       return {
-        x: event.clientX - rect.left,
-        y: event.clientY - rect.top,
+        x: clientX - rect.left,
+        y: clientY - rect.top,
       };
     };
 
@@ -916,6 +925,7 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
                 width: "100%",
                 height: "100%",
                 objectFit: "contain",
+                touchAction: "none", // Prevent default touch actions like scrolling
               }}
               className={`${
                 selectedTool === "rect-select"
@@ -928,6 +938,22 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
               onMouseMove={draw}
               onMouseUp={stopDrawing}
               onMouseLeave={stopDrawing}
+              onTouchStart={(e) => {
+                e.preventDefault(); // Prevent default touch behavior
+                startDrawing(
+                  e as unknown as React.MouseEvent<HTMLCanvasElement>
+                );
+              }}
+              onTouchMove={(e) => {
+                e.preventDefault();
+                draw(e as unknown as React.MouseEvent<HTMLCanvasElement>);
+              }}
+              onTouchEnd={(e) => {
+                e.preventDefault();
+                stopDrawing(
+                  e as unknown as React.MouseEvent<HTMLCanvasElement>
+                );
+              }}
             />
             {isTyping && textPosition && (
               <input
