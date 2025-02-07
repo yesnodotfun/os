@@ -15,14 +15,12 @@ export const PaintPatternPalette: React.FC<PaintPatternPaletteProps> = ({
 
   return (
     <ScrollArea className="w-full h-[72px]">
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(32px,1fr))] grid-rows-2 gap-1 p-1 h-full">
+      <div className="grid grid-flow-col auto-cols-[28px] grid-rows-2 gap-0 h-full">
         {patterns.map((num) => (
           <button
             key={num}
-            className={`aspect-square border hover:border-blue-500 ${
-              selectedPattern === `pattern-${num}`
-                ? "border-blue-500"
-                : "border-gray-300"
+            className={`aspect-square hover:opacity-70 border-1 border-black ${
+              selectedPattern === `pattern-${num}` ? "" : "border-gray-800"
             }`}
             onClick={() => onPatternSelect(`pattern-${num}`)}
           >

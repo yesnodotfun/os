@@ -59,19 +59,26 @@ export const PaintAppComponent: React.FC<AppProps> = ({
         isForeground={isForeground}
         appId="paint"
       >
-        <div className="flex flex-col h-full bg-[#c0c0c0] p-2 w-full min-h-0">
-          <div className="flex flex-1 gap-2 w-full min-h-0">
+        <div
+          className="flex flex-col h-full p-1 w-full min-h-0"
+          style={{
+            backgroundImage: 'url("/patterns/Property 1=7.svg")',
+            backgroundRepeat: "repeat",
+            backgroundColor: "#c0c0c0",
+          }}
+        >
+          <div className="flex flex-1 gap-4 w-full min-h-0 p-2">
             {/* Left Toolbar */}
-            <div className="flex flex-col gap-2 w-[84px] shrink-0">
+            <div className="flex flex-col gap-2 w-[84px] shrink-0 ">
               {/* Tools */}
-              <div className="bg-white border border-black p-1.5">
+              <div className="bg-white border border-black w-full shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)]">
                 <PaintToolbar
                   selectedTool={selectedTool}
                   onToolSelect={setSelectedTool}
                 />
               </div>
               {/* Stroke Width */}
-              <div className="bg-white border border-black">
+              <div className="bg-white border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)]">
                 <PaintStrokeSettings
                   strokeWidth={strokeWidth}
                   onStrokeWidthChange={setStrokeWidth}
@@ -82,7 +89,7 @@ export const PaintAppComponent: React.FC<AppProps> = ({
             {/* Main Content Area */}
             <div className="flex flex-col flex-1 gap-2 min-h-0">
               {/* Canvas */}
-              <div className="flex-1 bg-white overflow-hidden min-h-0 border border-black">
+              <div className="flex-1 bg-white overflow-hidden min-h-0 border border-black border-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)]">
                 <PaintCanvas
                   ref={(ref) => {
                     if (ref) {
@@ -101,9 +108,9 @@ export const PaintAppComponent: React.FC<AppProps> = ({
               </div>
 
               {/* Pattern Area */}
-              <div className="h-[88px] bg-white border border-black flex gap-2 p-1.5">
+              <div className="h-[58px] pl-3 bg-white border-black flex gap-3 items-center border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)]">
                 {/* Selected Pattern Preview */}
-                <div className="w-[72px] h-[72px] border border-black">
+                <div className="w-[36px] h-[32px] border border-black">
                   <img
                     src={`/patterns/Property 1=${
                       selectedPattern.split("-")[1]

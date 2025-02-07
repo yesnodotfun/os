@@ -13,24 +13,37 @@ interface PaintToolbarProps {
 }
 
 const tools = [
-  { id: "pencil", icon: "/icons/macpaint/pencil.png", label: "Pencil" },
+  // Selection tools
+  { id: "select", icon: "/icons/macpaint/lasso.png", label: "Select" },
+  {
+    id: "rect-select",
+    icon: "/icons/macpaint/select.png",
+    label: "Rectangle Select",
+  },
+
+  // Text and eraser
+  { id: "hand", icon: "/icons/macpaint/hand.png", label: "Hand" },
+
+  { id: "text", icon: "/icons/macpaint/text.png", label: "Text" },
+
+  // Fill and spray
+  { id: "bucket", icon: "/icons/macpaint/bucket.png", label: "Fill Color" },
+  { id: "spray", icon: "/icons/macpaint/spray.png", label: "Spray" },
+
+  // Drawing tools
   { id: "brush", icon: "/icons/macpaint/brush.png", label: "Brush" },
-  { id: "eraser", icon: "/icons/macpaint/eraser.png", label: "Eraser" },
+  { id: "pencil", icon: "/icons/macpaint/pencil.png", label: "Pencil" },
+
+  // Shapes
   { id: "line", icon: "/icons/macpaint/line.png", label: "Line" },
+  { id: "eraser", icon: "/icons/macpaint/eraser.png", label: "Eraser" },
+
   {
     id: "rectangle",
     icon: "/icons/macpaint/rectangle.png",
     label: "Rectangle",
   },
-  {
-    id: "filled-rectangle",
-    icon: "/icons/macpaint/rectangle.png",
-    label: "Filled Rectangle",
-  },
   { id: "oval", icon: "/icons/macpaint/oval.png", label: "Oval" },
-  { id: "filled-oval", icon: "/icons/macpaint/oval.png", label: "Filled Oval" },
-  { id: "text", icon: "/icons/macpaint/text.png", label: "Text" },
-  { id: "select", icon: "/icons/macpaint/lasso.png", label: "Select" },
 ];
 
 export const PaintToolbar: React.FC<PaintToolbarProps> = ({
@@ -39,21 +52,25 @@ export const PaintToolbar: React.FC<PaintToolbarProps> = ({
 }) => {
   return (
     <TooltipProvider>
-      <div className="grid grid-cols-2 gap-1">
+      <div className="grid grid-cols-2 gap-0">
         {tools.map((tool) => (
           <Tooltip key={tool.id}>
             <TooltipTrigger asChild>
               <Button
                 variant={selectedTool === tool.id ? "secondary" : "ghost"}
-                className={`w-10 h-10 p-1 ${
-                  selectedTool === tool.id ? "bg-gray-200" : ""
+                className={`p-1 border-1 ${
+                  selectedTool === tool.id ? "bg-black" : ""
                 }`}
                 onClick={() => onToolSelect(tool.id)}
               >
                 <img
                   src={tool.icon}
                   alt={tool.label}
-                  className="w-6 h-6 object-contain"
+                  className={`w-[36px] h-[36px] object-contain ${
+                    selectedTool === tool.id
+                      ? "invert brightness-0"
+                      : "mix-blend-multiply"
+                  }`}
                 />
               </Button>
             </TooltipTrigger>
