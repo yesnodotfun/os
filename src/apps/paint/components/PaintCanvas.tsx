@@ -130,18 +130,68 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
       return () => resizeObserver.disconnect();
     }, [strokeWidth]);
 
-    // Handle ESC key
+    // Handle ESC key and shortcuts
     const handleKeyDown = useCallback(
       (event: KeyboardEvent) => {
+        // Handle selection escape
         if (event.key === "Escape" && selection) {
           // Restore canvas to state before selection
           if (lastImageRef.current && contextRef.current) {
             contextRef.current.putImageData(lastImageRef.current, 0, 0);
           }
           setSelection(null);
+          return;
+        }
+
+        // Handle undo/redo shortcuts
+        const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
+        const cmdKey = isMac ? event.metaKey : event.ctrlKey;
+
+        if (cmdKey && !event.altKey) {
+          if (event.shiftKey && event.key.toLowerCase() === "z") {
+            // Cmd/Ctrl+Shift+Z - Redo
+            event.preventDefault();
+            if (historyIndexRef.current < historyRef.current.length - 1) {
+              historyIndexRef.current++;
+              const imageData = historyRef.current[historyIndexRef.current];
+              if (contextRef.current && imageData) {
+                contextRef.current.putImageData(imageData, 0, 0);
+              }
+              onCanUndoChange(true);
+              onCanRedoChange(
+                historyIndexRef.current < historyRef.current.length - 1
+              );
+            }
+          } else if (!event.shiftKey && event.key.toLowerCase() === "z") {
+            // Cmd/Ctrl+Z - Undo
+            event.preventDefault();
+            if (historyIndexRef.current > 0) {
+              historyIndexRef.current--;
+              const imageData = historyRef.current[historyIndexRef.current];
+              if (contextRef.current && imageData) {
+                contextRef.current.putImageData(imageData, 0, 0);
+              }
+              onCanUndoChange(historyIndexRef.current > 0);
+              onCanRedoChange(true);
+            }
+          } else if (!event.shiftKey && event.key.toLowerCase() === "y") {
+            // Cmd/Ctrl+Y - Alternative Redo
+            event.preventDefault();
+            if (historyIndexRef.current < historyRef.current.length - 1) {
+              historyIndexRef.current++;
+              const imageData = historyRef.current[historyIndexRef.current];
+              if (contextRef.current && imageData) {
+                contextRef.current.putImageData(imageData, 0, 0);
+              }
+              onCanUndoChange(true);
+              onCanRedoChange(
+                historyIndexRef.current < historyRef.current.length - 1
+              );
+            }
+          }
         }
       },
-      [selection]
+      [selection, onCanUndoChange, onCanRedoChange]
     );
 
     useEffect(() => {
@@ -245,9 +295,52 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
       }
     }, [strokeWidth]);
 
+    // Helper to check if two ImageData objects are different
+    const hasCanvasChanged = (
+      prevImageData: ImageData,
+      newImageData: ImageData
+    ) => {
+      if (
+        prevImageData.width !== newImageData.width ||
+        prevImageData.height !== newImageData.height
+      ) {
+        return true;
+      }
+
+      // Compare pixel data
+      const prevData = prevImageData.data;
+      const newData = newImageData.data;
+      const length = prevData.length;
+
+      // Only check every 4th pixel (RGBA) for performance
+      for (let i = 0; i < length; i += 16) {
+        if (prevData[i] !== newData[i]) {
+          return true;
+        }
+      }
+      return false;
+    };
+
     const saveToHistory = () => {
       const canvas = canvasRef.current;
       if (!canvas || !contextRef.current) return;
+
+      const newImageData = contextRef.current.getImageData(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+      );
+
+      // Check if there are any states in history
+      if (historyIndexRef.current >= 0) {
+        const prevImageData = historyRef.current[historyIndexRef.current];
+
+        // Only save if the canvas has actually changed
+        if (!hasCanvasChanged(prevImageData, newImageData)) {
+          return;
+        }
+      }
 
       // Remove any redo states
       historyRef.current = historyRef.current.slice(
@@ -255,14 +348,14 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
         historyIndexRef.current + 1
       );
 
+      // Limit history size to prevent memory issues (keep last 50 states)
+      if (historyRef.current.length >= 50) {
+        historyRef.current = historyRef.current.slice(-49);
+        historyIndexRef.current = Math.min(historyIndexRef.current, 48);
+      }
+
       // Add current state to history
-      const imageData = contextRef.current.getImageData(
-        0,
-        0,
-        canvas.width,
-        canvas.height
-      );
-      historyRef.current.push(imageData);
+      historyRef.current.push(newImageData);
       historyIndexRef.current++;
 
       // Update undo/redo availability
@@ -463,6 +556,7 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
 
       // Put the modified image data back
       context.putImageData(imageData, 0, 0);
+      saveToHistory();
     };
 
     const renderText = (text: string) => {
