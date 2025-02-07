@@ -29,12 +29,12 @@ export const helpItems = [
 
 export const appMetadata = {
   name: "MacPaint",
-  version: "1.0.0",
+  version: "1.0.4",
   creator: {
-    name: "System 7",
-    url: "https://github.com/yourusername/paint",
+    name: "Ryo Lu",
+    url: "https://github.com/ryokun6",
   },
-  github: "https://github.com/yourusername/paint",
+  github: "https://github.com/ryokun6/soundboard",
   icon: "/icons/paint.png",
 };
 
