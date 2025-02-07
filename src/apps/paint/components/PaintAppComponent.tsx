@@ -67,7 +67,7 @@ export const PaintAppComponent: React.FC<AppProps> = ({
             backgroundColor: "#c0c0c0",
           }}
         >
-          <div className="flex flex-1 gap-2 w-full min-h-0 px-2">
+          <div className="flex flex-1 gap-2 w-full min-h-0 px-1">
             {/* Left Toolbar */}
             <div className="flex flex-col gap-2 w-[84px] shrink-0">
               {/* Tools */}
