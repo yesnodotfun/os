@@ -19,7 +19,7 @@ export const PaintPatternPalette: React.FC<PaintPatternPaletteProps> = ({
         {patterns.map((num) => (
           <button
             key={num}
-            className={`aspect-square hover:opacity-70 border-1 border-black ${
+            className={` hover:opacity-70 border-1 border-black ${
               selectedPattern === `pattern-${num}` ? "" : "border-gray-800"
             }`}
             onClick={() => onPatternSelect(`pattern-${num}`)}
