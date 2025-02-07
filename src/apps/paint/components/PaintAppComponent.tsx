@@ -2,7 +2,8 @@ import React, { useState, useRef } from "react";
 import { PaintToolbar } from "./PaintToolbar";
 import { PaintCanvas } from "./PaintCanvas";
 import { PaintMenuBar } from "./PaintMenuBar";
-import { PaintColorPalette } from "./PaintColorPalette";
+import { PaintPatternPalette } from "./PaintPatternPalette";
+import { PaintStrokeSettings } from "./PaintStrokeSettings";
 import { WindowFrame } from "@/components/layout/WindowFrame";
 import { AppProps } from "../../base/types";
 import { HelpDialog } from "@/components/dialogs/HelpDialog";
@@ -15,7 +16,8 @@ export const PaintAppComponent: React.FC<AppProps> = ({
   isForeground,
 }) => {
   const [selectedTool, setSelectedTool] = useState<string>("pencil");
-  const [selectedColor, setSelectedColor] = useState<string>("#000000");
+  const [selectedPattern, setSelectedPattern] = useState<string>("pattern-1");
+  const [strokeWidth, setStrokeWidth] = useState<number>(1);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
@@ -59,36 +61,69 @@ export const PaintAppComponent: React.FC<AppProps> = ({
       >
         <div className="flex flex-col h-full bg-[#c0c0c0] p-2 w-full min-h-0">
           <div className="flex flex-1 gap-2 w-full min-h-0">
-            <div className="flex flex-col gap-1 p-1.5 w-[84px] shrink-0 bg-white min-h-0 overflow-y-auto border border-black">
-              <div className="space-y-1">
+            {/* Left Toolbar */}
+            <div className="flex flex-col gap-2 w-[84px] shrink-0">
+              {/* Tools */}
+              <div className="bg-white border border-black p-1.5">
                 <PaintToolbar
                   selectedTool={selectedTool}
                   onToolSelect={setSelectedTool}
                 />
-                <PaintColorPalette
-                  selectedColor={selectedColor}
-                  onColorSelect={setSelectedColor}
+              </div>
+              {/* Stroke Width */}
+              <div className="bg-white border border-black">
+                <PaintStrokeSettings
+                  strokeWidth={strokeWidth}
+                  onStrokeWidthChange={setStrokeWidth}
                 />
               </div>
             </div>
-            <div className="flex-1 bg-white overflow-hidden min-h-0 border border-black">
-              <PaintCanvas
-                ref={(ref) => {
-                  if (ref) {
-                    canvasRef.current = {
-                      undo: ref.undo,
-                      redo: ref.redo,
-                    };
-                  }
-                }}
-                selectedTool={selectedTool}
-                selectedColor={selectedColor}
-                onCanUndoChange={setCanUndo}
-                onCanRedoChange={setCanRedo}
-              />
+
+            {/* Main Content Area */}
+            <div className="flex flex-col flex-1 gap-2 min-h-0">
+              {/* Canvas */}
+              <div className="flex-1 bg-white overflow-hidden min-h-0 border border-black">
+                <PaintCanvas
+                  ref={(ref) => {
+                    if (ref) {
+                      canvasRef.current = {
+                        undo: ref.undo,
+                        redo: ref.redo,
+                      };
+                    }
+                  }}
+                  selectedTool={selectedTool}
+                  selectedPattern={selectedPattern}
+                  strokeWidth={strokeWidth}
+                  onCanUndoChange={setCanUndo}
+                  onCanRedoChange={setCanRedo}
+                />
+              </div>
+
+              {/* Pattern Area */}
+              <div className="h-[88px] bg-white border border-black flex gap-2 p-1.5">
+                {/* Selected Pattern Preview */}
+                <div className="w-[72px] h-[72px] border border-black">
+                  <img
+                    src={`/patterns/Property 1=${
+                      selectedPattern.split("-")[1]
+                    }.svg`}
+                    alt="Selected Pattern"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                {/* Pattern Palette */}
+                <div className="flex-1 h-full">
+                  <PaintPatternPalette
+                    selectedPattern={selectedPattern}
+                    onPatternSelect={setSelectedPattern}
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </div>
+
         <HelpDialog
           isOpen={isHelpDialogOpen}
           onOpenChange={setIsHelpDialogOpen}

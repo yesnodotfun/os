@@ -1,191 +1,155 @@
 import React, {
   useEffect,
   useRef,
-  useState,
   forwardRef,
   useImperativeHandle,
 } from "react";
 
 interface PaintCanvasProps {
   selectedTool: string;
-  selectedColor: string;
-  onCanUndoChange?: (canUndo: boolean) => void;
-  onCanRedoChange?: (canRedo: boolean) => void;
+  selectedPattern: string;
+  strokeWidth: number;
+  onCanUndoChange: (canUndo: boolean) => void;
+  onCanRedoChange: (canRedo: boolean) => void;
 }
 
-interface DrawState {
-  imageData: ImageData;
-  timestamp: number;
-}
-
-export interface PaintCanvasRef {
+interface PaintCanvasRef {
   undo: () => void;
   redo: () => void;
 }
 
 export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
-  ({ selectedTool, selectedColor, onCanUndoChange, onCanRedoChange }, ref) => {
+  ({ selectedPattern, strokeWidth, onCanUndoChange, onCanRedoChange }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [isDrawing, setIsDrawing] = useState(false);
-    const [lastX, setLastX] = useState(0);
-    const [lastY, setLastY] = useState(0);
-    const undoStack = useRef<DrawState[]>([]);
-    const currentStateIndex = useRef(-1);
-
-    useImperativeHandle(ref, () => ({
-      undo,
-      redo,
-    }));
+    const contextRef = useRef<CanvasRenderingContext2D | null>(null);
+    const isDrawing = useRef(false);
+    const historyRef = useRef<ImageData[]>([]);
+    const historyIndexRef = useRef(-1);
+    const patternRef = useRef<HTMLImageElement | null>(null);
 
     useEffect(() => {
       const canvas = canvasRef.current;
       if (!canvas) return;
 
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
 
-      // Set canvas size to match parent
-      const resizeCanvas = () => {
-        const parent = canvas.parentElement;
-        if (!parent) return;
-        canvas.width = parent.clientWidth;
-        canvas.height = parent.clientHeight;
+      const context = canvas.getContext("2d");
+      if (!context) return;
 
-        // Fill with white background
-        ctx.fillStyle = "white";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      context.lineCap = "round";
+      context.lineJoin = "round";
+      context.lineWidth = strokeWidth;
+      contextRef.current = context;
 
-        // Save initial state
-        saveState();
+      // Load the pattern image
+      const patternNum = selectedPattern.split("-")[1];
+      const img = new Image();
+      img.src = `/patterns/Property 1=${patternNum}.svg`;
+      img.onload = () => {
+        patternRef.current = img;
+        if (context && img) {
+          const pattern = context.createPattern(img, "repeat");
+          if (pattern) {
+            context.strokeStyle = pattern;
+            context.fillStyle = pattern;
+          }
+        }
       };
 
-      resizeCanvas();
-      window.addEventListener("resize", resizeCanvas);
-      return () => window.removeEventListener("resize", resizeCanvas);
-    }, []);
+      // Save initial canvas state
+      saveToHistory();
+    }, [selectedPattern]);
 
-    const saveState = () => {
+    useEffect(() => {
+      if (contextRef.current) {
+        contextRef.current.lineWidth = strokeWidth;
+      }
+    }, [strokeWidth]);
+
+    const saveToHistory = () => {
       const canvas = canvasRef.current;
-      if (!canvas) return;
+      if (!canvas || !contextRef.current) return;
 
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-
-      // Remove any states after current index if we're in middle of undo stack
-      undoStack.current = undoStack.current.slice(
+      // Remove any redo states
+      historyRef.current = historyRef.current.slice(
         0,
-        currentStateIndex.current + 1
+        historyIndexRef.current + 1
       );
 
-      // Add new state
-      undoStack.current.push({
-        imageData: ctx.getImageData(0, 0, canvas.width, canvas.height),
-        timestamp: Date.now(),
-      });
-      currentStateIndex.current = undoStack.current.length - 1;
-
-      // Limit undo stack size
-      if (undoStack.current.length > 50) {
-        undoStack.current.shift();
-        currentStateIndex.current--;
-      }
+      // Add current state to history
+      const imageData = contextRef.current.getImageData(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+      );
+      historyRef.current.push(imageData);
+      historyIndexRef.current++;
 
       // Update undo/redo availability
-      onCanUndoChange?.(currentStateIndex.current > 0);
-      onCanRedoChange?.(
-        currentStateIndex.current < undoStack.current.length - 1
-      );
+      onCanUndoChange(historyIndexRef.current > 0);
+      onCanRedoChange(historyIndexRef.current < historyRef.current.length - 1);
     };
 
-    const undo = () => {
-      if (currentStateIndex.current <= 0) return;
+    useImperativeHandle(ref, () => ({
+      undo: () => {
+        if (historyIndexRef.current > 0) {
+          historyIndexRef.current--;
+          const imageData = historyRef.current[historyIndexRef.current];
+          if (contextRef.current && imageData) {
+            contextRef.current.putImageData(imageData, 0, 0);
+          }
+          onCanUndoChange(historyIndexRef.current > 0);
+          onCanRedoChange(true);
+        }
+      },
+      redo: () => {
+        if (historyIndexRef.current < historyRef.current.length - 1) {
+          historyIndexRef.current++;
+          const imageData = historyRef.current[historyIndexRef.current];
+          if (contextRef.current && imageData) {
+            contextRef.current.putImageData(imageData, 0, 0);
+          }
+          onCanUndoChange(true);
+          onCanRedoChange(
+            historyIndexRef.current < historyRef.current.length - 1
+          );
+        }
+      },
+    }));
 
+    const startDrawing = (event: React.MouseEvent<HTMLCanvasElement>) => {
       const canvas = canvasRef.current;
-      if (!canvas) return;
-
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-
-      currentStateIndex.current--;
-      const previousState = undoStack.current[currentStateIndex.current];
-      ctx.putImageData(previousState.imageData, 0, 0);
-
-      // Update undo/redo availability
-      onCanUndoChange?.(currentStateIndex.current > 0);
-      onCanRedoChange?.(
-        currentStateIndex.current < undoStack.current.length - 1
-      );
-    };
-
-    const redo = () => {
-      if (currentStateIndex.current >= undoStack.current.length - 1) return;
-
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-
-      currentStateIndex.current++;
-      const nextState = undoStack.current[currentStateIndex.current];
-      ctx.putImageData(nextState.imageData, 0, 0);
-
-      // Update undo/redo availability
-      onCanUndoChange?.(currentStateIndex.current > 0);
-      onCanRedoChange?.(
-        currentStateIndex.current < undoStack.current.length - 1
-      );
-    };
-
-    const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
+      if (!canvas || !contextRef.current) return;
 
       const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
 
-      setIsDrawing(true);
-      setLastX(x);
-      setLastY(y);
+      contextRef.current.beginPath();
+      contextRef.current.moveTo(x, y);
+      isDrawing.current = true;
     };
 
-    const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
-      if (!isDrawing) return;
+    const draw = (event: React.MouseEvent<HTMLCanvasElement>) => {
+      if (!isDrawing.current || !contextRef.current || !canvasRef.current)
+        return;
 
       const canvas = canvasRef.current;
-      if (!canvas) return;
-
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-
       const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
 
-      ctx.strokeStyle = selectedColor;
-      ctx.lineWidth = selectedTool === "brush" ? 3 : 1;
-      ctx.lineCap = "round";
-
-      if (selectedTool === "eraser") {
-        ctx.strokeStyle = "white";
-        ctx.lineWidth = 10;
-      }
-
-      ctx.beginPath();
-      ctx.moveTo(lastX, lastY);
-      ctx.lineTo(x, y);
-      ctx.stroke();
-
-      setLastX(x);
-      setLastY(y);
+      contextRef.current.lineTo(x, y);
+      contextRef.current.stroke();
     };
 
     const stopDrawing = () => {
-      if (isDrawing) {
-        setIsDrawing(false);
-        saveState();
-      }
+      if (!isDrawing.current) return;
+
+      isDrawing.current = false;
+      saveToHistory();
     };
 
     return (
@@ -195,7 +159,7 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
         onMouseDown={startDrawing}
         onMouseMove={draw}
         onMouseUp={stopDrawing}
-        onMouseOut={stopDrawing}
+        onMouseLeave={stopDrawing}
       />
     );
   }
