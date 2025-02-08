@@ -173,15 +173,83 @@ const saveDocuments = (docs: Document[]) => {
   localStorage.setItem("documents", JSON.stringify(docs));
 };
 
-// Load images from localStorage
-const loadImages = (): Document[] => {
-  const savedImages = localStorage.getItem("images");
-  return savedImages ? JSON.parse(savedImages) : [];
+// Add these helper functions at the top of the file
+const MAX_CHUNK_SIZE = 512 * 1024; // 512KB chunks for Safari compatibility
+
+function saveChunkedData(key: string, data: string) {
+  try {
+    // Clear any existing chunks
+    const chunkKeys = Object.keys(localStorage).filter((k) =>
+      k.startsWith(`${key}_chunk_`)
+    );
+    chunkKeys.forEach((k) => localStorage.removeItem(k));
+
+    // Split data into chunks
+    const numChunks = Math.ceil(data.length / MAX_CHUNK_SIZE);
+    for (let i = 0; i < numChunks; i++) {
+      const chunk = data.substr(i * MAX_CHUNK_SIZE, MAX_CHUNK_SIZE);
+      localStorage.setItem(`${key}_chunk_${i}`, chunk);
+    }
+    // Store metadata
+    localStorage.setItem(`${key}_chunks`, numChunks.toString());
+    return true;
+  } catch (e) {
+    console.error("Error saving chunked data:", e);
+    return false;
+  }
+}
+
+function loadChunkedData(key: string): string | null {
+  try {
+    const numChunks = parseInt(localStorage.getItem(`${key}_chunks`) || "0");
+    if (numChunks === 0) return null;
+
+    let data = "";
+    for (let i = 0; i < numChunks; i++) {
+      const chunk = localStorage.getItem(`${key}_chunk_${i}`);
+      if (chunk === null) return null;
+      data += chunk;
+    }
+    return data;
+  } catch (e) {
+    console.error("Error loading chunked data:", e);
+    return null;
+  }
+}
+
+// Modify the saveImages function to use chunking
+const saveImages = (images: Document[]) => {
+  try {
+    const imagesJson = JSON.stringify(images);
+    if (imagesJson.length > MAX_CHUNK_SIZE) {
+      // Use chunking for large data
+      if (!saveChunkedData("images", imagesJson)) {
+        console.error("Failed to save chunked images data");
+      }
+    } else {
+      // Use regular localStorage for small data
+      localStorage.setItem("images", imagesJson);
+    }
+  } catch (e) {
+    console.error("Error saving images:", e);
+  }
 };
 
-// Save images to localStorage
-const saveImages = (images: Document[]) => {
-  localStorage.setItem("images", JSON.stringify(images));
+// Modify the loadImages function to handle chunks
+const loadImages = (): Document[] => {
+  try {
+    // Try loading chunked data first
+    const chunkedData = loadChunkedData("images");
+    if (chunkedData) {
+      return JSON.parse(chunkedData);
+    }
+    // Fall back to regular localStorage
+    const savedImages = localStorage.getItem("images");
+    return savedImages ? JSON.parse(savedImages) : [];
+  } catch (e) {
+    console.error("Error loading images:", e);
+    return [];
+  }
 };
 
 // Load trash items from localStorage

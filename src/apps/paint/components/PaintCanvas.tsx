@@ -54,7 +54,9 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
     const isDrawing = useRef(false);
     const historyRef = useRef<ImageData[]>([]);
     const historyIndexRef = useRef(-1);
-    const patternRef = useRef<HTMLImageElement | null>(null);
+    const patternRef = useRef<HTMLCanvasElement | HTMLImageElement | null>(
+      null
+    );
     const startPointRef = useRef<Point | null>(null);
     const lastImageRef = useRef<ImageData | null>(null);
     const [isTyping, setIsTyping] = useState(false);
@@ -279,17 +281,40 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
       // Load and update the pattern
       const patternNum = selectedPattern.split("-")[1];
       const img = new Image();
-      img.src = `/patterns/Property 1=${patternNum}.svg`;
+      img.crossOrigin = "anonymous"; // Add cross-origin attribute before setting src
+
       img.onload = () => {
-        patternRef.current = img;
-        if (contextRef.current && img) {
-          const pattern = contextRef.current.createPattern(img, "repeat");
-          if (pattern) {
-            contextRef.current.strokeStyle = pattern;
-            contextRef.current.fillStyle = pattern;
-          }
+        // Create a temporary canvas to draw the pattern
+        const patternCanvas = document.createElement("canvas");
+        const patternContext = patternCanvas.getContext("2d");
+        if (!patternContext || !contextRef.current) return;
+
+        // Set pattern canvas size to match the pattern size
+        patternCanvas.width = img.width;
+        patternCanvas.height = img.height;
+
+        // Draw the pattern onto the temporary canvas
+        patternContext.drawImage(img, 0, 0);
+
+        // Store the pattern canvas instead of the image
+        patternRef.current = patternCanvas;
+
+        // Create pattern from the temporary canvas
+        const pattern = contextRef.current.createPattern(
+          patternCanvas,
+          "repeat"
+        );
+        if (pattern) {
+          contextRef.current.strokeStyle = pattern;
+          contextRef.current.fillStyle = pattern;
         }
       };
+
+      img.onerror = (e) => {
+        console.error("Error loading pattern:", e);
+      };
+
+      img.src = `/patterns/Property 1=${patternNum}.svg`;
     }, [selectedPattern]);
 
     useEffect(() => {
@@ -405,62 +430,110 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
       },
       exportCanvas: () => {
         if (!canvasRef.current) return "";
-        return canvasRef.current.toDataURL("image/png");
+
+        try {
+          // Create a temporary canvas to handle potential tainted canvas issues
+          const tempCanvas = document.createElement("canvas");
+          const tempCtx = tempCanvas.getContext("2d");
+          if (!tempCtx) return "";
+
+          // Match dimensions
+          tempCanvas.width = canvasRef.current.width;
+          tempCanvas.height = canvasRef.current.height;
+
+          // Draw the original canvas content onto the temp canvas
+          tempCtx.drawImage(canvasRef.current, 0, 0);
+
+          // Try to get the PNG data with a quality setting that works better in Safari
+          return tempCanvas.toDataURL("image/png", 0.92);
+        } catch (e) {
+          console.error("Failed to export canvas:", e);
+          // Fallback to JPEG with lower quality if PNG fails
+          try {
+            return canvasRef.current.toDataURL("image/jpeg", 0.85);
+          } catch (e) {
+            console.error("Failed to export canvas as JPEG:", e);
+            return "";
+          }
+        }
       },
       importImage: (dataUrl: string) => {
         if (!contextRef.current || !canvasRef.current) return;
 
         const img = new Image();
-        img.crossOrigin = "anonymous"; // Handle CORS
 
-        img.onload = () => {
-          if (!contextRef.current || !canvasRef.current) return;
+        // Create a blob URL to avoid CORS issues in Safari
+        const processImage = () => {
+          try {
+            // Convert data URL to blob
+            const byteString = atob(dataUrl.split(",")[1]);
+            const mimeString = dataUrl
+              .split(",")[0]
+              .split(":")[1]
+              .split(";")[0];
+            const ab = new ArrayBuffer(byteString.length);
+            const ia = new Uint8Array(ab);
+            for (let i = 0; i < byteString.length; i++) {
+              ia[i] = byteString.charCodeAt(i);
+            }
+            const blob = new Blob([ab], { type: mimeString });
+            const blobUrl = URL.createObjectURL(blob);
 
-          // Store original canvas dimensions
-          const originalWidth = canvasRef.current.width;
-          const originalHeight = canvasRef.current.height;
+            img.src = blobUrl;
 
-          // Clear the canvas first
-          contextRef.current.clearRect(0, 0, originalWidth, originalHeight);
+            // Clean up the blob URL after the image loads
+            img.onload = () => {
+              if (!contextRef.current || !canvasRef.current) return;
+              URL.revokeObjectURL(blobUrl);
 
-          // Calculate scaling to fit the image while maintaining aspect ratio
-          const scale = Math.min(
-            originalWidth / img.width,
-            originalHeight / img.height
-          );
+              // Store original canvas dimensions
+              const originalWidth = canvasRef.current.width;
+              const originalHeight = canvasRef.current.height;
 
-          // Calculate centered position
-          const x = (originalWidth - img.width * scale) / 2;
-          const y = (originalHeight - img.height * scale) / 2;
+              // Clear the canvas first
+              contextRef.current.clearRect(0, 0, originalWidth, originalHeight);
 
-          // Use better image rendering for scaling
-          contextRef.current.imageSmoothingEnabled = true;
-          contextRef.current.imageSmoothingQuality = "high";
+              // Calculate scaling to fit the image while maintaining aspect ratio
+              const scale = Math.min(
+                originalWidth / img.width,
+                originalHeight / img.height
+              );
 
-          // Draw the image
-          contextRef.current.drawImage(
-            img,
-            x,
-            y,
-            img.width * scale,
-            img.height * scale
-          );
+              // Calculate centered position
+              const x = (originalWidth - img.width * scale) / 2;
+              const y = (originalHeight - img.height * scale) / 2;
 
-          // Reset image smoothing to maintain pixel art style for drawing
-          contextRef.current.imageSmoothingEnabled = false;
+              // Use better image rendering for scaling
+              contextRef.current.imageSmoothingEnabled = true;
+              contextRef.current.imageSmoothingQuality = "high";
 
-          saveToHistory();
-          onContentChange?.();
+              // Draw the image
+              contextRef.current.drawImage(
+                img,
+                x,
+                y,
+                img.width * scale,
+                img.height * scale
+              );
+
+              // Reset image smoothing to maintain pixel art style for drawing
+              contextRef.current.imageSmoothingEnabled = false;
+
+              saveToHistory();
+              onContentChange?.();
+            };
+          } catch (e) {
+            console.error("Error processing image:", e);
+            // Fallback to direct data URL if blob creation fails
+            img.src = dataUrl;
+          }
         };
 
         img.onerror = (e) => {
           console.error("Error loading image:", e);
-          // The parent component will show the error alert
         };
 
-        // Enable tainted canvas operations
-        img.crossOrigin = "anonymous";
-        img.src = dataUrl;
+        processImage();
       },
     }));
 
@@ -619,7 +692,7 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
       context.font = `16px Geneva-12`;
       context.textBaseline = "top";
 
-      // Create pattern for text fill
+      // Create pattern from the pattern canvas
       const pattern = context.createPattern(patternRef.current, "repeat");
       if (pattern) {
         context.fillStyle = pattern;
