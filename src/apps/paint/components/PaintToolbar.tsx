@@ -58,7 +58,7 @@ export const PaintToolbar: React.FC<PaintToolbarProps> = ({
             <TooltipTrigger asChild>
               <Button
                 variant={selectedTool === tool.id ? "secondary" : "ghost"}
-                className={`p-1 border-1 ${
+                className={`p-1 border-1 transition-none ${
                   selectedTool === tool.id ? "invert border-white" : ""
                 }`}
                 onClick={() => onToolSelect(tool.id)}
