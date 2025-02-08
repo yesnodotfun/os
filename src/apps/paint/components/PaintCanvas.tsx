@@ -78,7 +78,9 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
 
           // Store current canvas content
           const tempCanvas = document.createElement("canvas");
-          const tempContext = tempCanvas.getContext("2d");
+          const tempContext = tempCanvas.getContext("2d", {
+            willReadFrequently: true,
+          });
           if (tempContext && contextRef.current) {
             tempCanvas.width = canvas.width;
             tempCanvas.height = canvas.height;
@@ -90,7 +92,7 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
           canvas.height = height;
 
           // Restore context properties
-          const context = canvas.getContext("2d");
+          const context = canvas.getContext("2d", { willReadFrequently: true });
           if (context) {
             context.lineCap = "round";
             context.lineJoin = "round";
@@ -262,7 +264,7 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
         canvas.width = canvas.offsetWidth;
         canvas.height = canvas.offsetHeight;
 
-        const context = canvas.getContext("2d");
+        const context = canvas.getContext("2d", { willReadFrequently: true });
         if (!context) return;
 
         context.lineCap = "round";
@@ -451,10 +453,25 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
       const rect = canvas.getBoundingClientRect();
 
       // Handle both mouse and touch events
-      const clientX =
-        "touches" in event ? event.touches[0].clientX : event.clientX;
-      const clientY =
-        "touches" in event ? event.touches[0].clientY : event.clientY;
+      let clientX: number;
+      let clientY: number;
+
+      if ("touches" in event) {
+        // For touchend/touchcancel, touches list will be empty, so use changedTouches
+        if (event.touches.length === 0 && event.changedTouches?.length > 0) {
+          clientX = event.changedTouches[0].clientX;
+          clientY = event.changedTouches[0].clientY;
+        } else if (event.touches.length > 0) {
+          clientX = event.touches[0].clientX;
+          clientY = event.touches[0].clientY;
+        } else {
+          // If no touch data available, return the last known point or a default
+          return startPointRef.current || { x: 0, y: 0 };
+        }
+      } else {
+        clientX = event.clientX;
+        clientY = event.clientY;
+      }
 
       return {
         x: clientX - rect.left,
@@ -482,7 +499,9 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
       const tempCanvas = document.createElement("canvas");
       tempCanvas.width = canvas.width;
       tempCanvas.height = canvas.height;
-      const tempContext = tempCanvas.getContext("2d");
+      const tempContext = tempCanvas.getContext("2d", {
+        willReadFrequently: true,
+      });
       if (!tempContext) return;
 
       // Fill the temporary canvas with the pattern
@@ -625,6 +644,11 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
       // Store touch start position for tap detection
       if ("touches" in event) {
         touchStartRef.current = point;
+        // Execute bucket fill immediately on touch for better responsiveness
+        if (selectedTool === "bucket") {
+          floodFill(Math.floor(point.x), Math.floor(point.y));
+          return; // Remove this return to allow history to be saved
+        }
       }
 
       // Handle selection tool click
@@ -681,9 +705,9 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
         return;
       }
 
-      if (selectedTool === "bucket") {
+      // Handle bucket fill for mouse click
+      if (selectedTool === "bucket" && !("touches" in event)) {
         floodFill(Math.floor(point.x), Math.floor(point.y));
-        saveToHistory();
         return;
       }
 
@@ -846,6 +870,14 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
       } else if (!["line", "rectangle", "oval"].includes(selectedTool)) {
         contextRef.current.lineTo(point.x, point.y);
         contextRef.current.stroke();
+
+        // For touch events, save history more frequently to ensure smoother undo/redo
+        if (
+          "touches" in event &&
+          !["line", "rectangle", "oval"].includes(selectedTool)
+        ) {
+          saveToHistory();
+        }
       }
     };
 
@@ -859,20 +891,13 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
 
       const point = getCanvasPoint(event);
 
-      // Handle tap for bucket fill
-      if (
-        selectedTool === "bucket" &&
-        touchStartRef.current &&
-        "changedTouches" in event
-      ) {
-        const dx = point.x - touchStartRef.current.x;
-        const dy = point.y - touchStartRef.current.y;
-        // If the touch hasn't moved much (tap detection)
-        if (Math.abs(dx) < 5 && Math.abs(dy) < 5) {
-          floodFill(Math.floor(point.x), Math.floor(point.y));
+      // Always save history for touch events that modified the canvas
+      if ("touches" in event) {
+        if (selectedTool === "bucket" || isDrawing.current) {
           saveToHistory();
         }
       }
+
       touchStartRef.current = null;
 
       // Handle selection completion
@@ -946,6 +971,71 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
       }
     };
 
+    // Unified pointer event handlers
+    const handlePointerDown = useCallback(
+      (
+        event:
+          | React.MouseEvent<HTMLCanvasElement>
+          | React.TouchEvent<HTMLCanvasElement>
+      ) => {
+        event.preventDefault();
+        startDrawing(event);
+      },
+      [startDrawing]
+    );
+
+    const handlePointerMove = useCallback(
+      (
+        event:
+          | React.MouseEvent<HTMLCanvasElement>
+          | React.TouchEvent<HTMLCanvasElement>
+      ) => {
+        event.preventDefault();
+        draw(event);
+      },
+      [draw]
+    );
+
+    const handlePointerUp = useCallback(
+      (
+        event:
+          | React.MouseEvent<HTMLCanvasElement>
+          | React.TouchEvent<HTMLCanvasElement>
+      ) => {
+        event.preventDefault();
+        stopDrawing(event);
+      },
+      [stopDrawing]
+    );
+
+    useEffect(() => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      const touchStartHandler = (e: TouchEvent) =>
+        handlePointerDown(e as unknown as React.TouchEvent<HTMLCanvasElement>);
+      const touchMoveHandler = (e: TouchEvent) =>
+        handlePointerMove(e as unknown as React.TouchEvent<HTMLCanvasElement>);
+      const touchEndHandler = (e: TouchEvent) =>
+        handlePointerUp(e as unknown as React.TouchEvent<HTMLCanvasElement>);
+
+      canvas.addEventListener("touchstart", touchStartHandler, {
+        passive: false,
+      });
+      canvas.addEventListener("touchmove", touchMoveHandler, {
+        passive: false,
+      });
+      canvas.addEventListener("touchend", touchEndHandler, {
+        passive: false,
+      });
+
+      return () => {
+        canvas.removeEventListener("touchstart", touchStartHandler);
+        canvas.removeEventListener("touchmove", touchMoveHandler);
+        canvas.removeEventListener("touchend", touchEndHandler);
+      };
+    }, [handlePointerDown, handlePointerMove, handlePointerUp]);
+
     return (
       <div className="relative w-full h-full overflow-hidden">
         <div className="w-full h-full flex items-center justify-center bg-white">
@@ -969,22 +1059,10 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
                   ? "cursor-move"
                   : "cursor-crosshair"
               }`}
-              onMouseDown={startDrawing}
-              onMouseMove={draw}
-              onMouseUp={stopDrawing}
-              onMouseLeave={stopDrawing}
-              onTouchStart={(e) => {
-                e.preventDefault();
-                startDrawing(e);
-              }}
-              onTouchMove={(e) => {
-                e.preventDefault();
-                draw(e);
-              }}
-              onTouchEnd={(e) => {
-                e.preventDefault();
-                stopDrawing(e);
-              }}
+              onMouseDown={handlePointerDown}
+              onMouseMove={handlePointerMove}
+              onMouseUp={handlePointerUp}
+              onMouseLeave={handlePointerUp}
             />
             {isTyping && textPosition && (
               <input
