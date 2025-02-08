@@ -40,7 +40,7 @@ export const PaintAppComponent: React.FC<AppProps> = ({
     exportCanvas: () => string;
     importImage: (dataUrl: string) => void;
   }>();
-  const { files } = useFileSystem("/Images");
+  const { files, saveFile } = useFileSystem("/Images");
   const launchApp = useLaunchApp();
 
   // Initial load - try to restore last opened image
@@ -128,7 +128,16 @@ export const PaintAppComponent: React.FC<AppProps> = ({
       const content = canvasRef.current.exportCanvas();
       const fileName = currentFilePath.split("/").pop() || "untitled.png";
 
-      // Dispatch saveFile event
+      // Save using useFileSystem hook
+      saveFile({
+        name: fileName,
+        path: currentFilePath,
+        content: content,
+        icon: "/icons/image.png",
+        isDirectory: false,
+      });
+
+      // Also emit the saveFile event for Finder to refresh
       const saveEvent = new CustomEvent("saveFile", {
         detail: {
           name: fileName,
@@ -156,7 +165,16 @@ export const PaintAppComponent: React.FC<AppProps> = ({
       fileName.endsWith(".png") ? "" : ".png"
     }`;
 
-    // Dispatch saveFile event
+    // Save using useFileSystem hook
+    saveFile({
+      name: fileName,
+      path: filePath,
+      content: content,
+      icon: "/icons/image.png",
+      isDirectory: false,
+    });
+
+    // Also emit the saveFile event for Finder to refresh
     const saveEvent = new CustomEvent("saveFile", {
       detail: {
         name: fileName,
@@ -188,9 +206,12 @@ export const PaintAppComponent: React.FC<AppProps> = ({
       const reader = new FileReader();
       reader.onload = (e) => {
         const dataUrl = e.target?.result as string;
+        setIsLoadingFile(true);
         canvasRef.current?.importImage(dataUrl);
-        setCurrentFilePath(file.name);
-        setHasUnsavedChanges(false);
+        setIsLoadingFile(false);
+        // Set suggested file name but open save dialog
+        setSaveFileName(file.name);
+        setIsSaveDialogOpen(true);
       };
       reader.readAsDataURL(file);
     }
