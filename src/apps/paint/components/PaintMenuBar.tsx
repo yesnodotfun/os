@@ -42,7 +42,6 @@ export function PaintMenuBar({
   onSave,
   onImportFile,
   onExportFile,
-  hasUnsavedChanges,
   currentFilePath,
   handleFileSelect,
 }: PaintMenuBarProps) {
@@ -82,17 +81,10 @@ export function PaintMenuBar({
             Open...
           </DropdownMenuItem>
           <DropdownMenuItem
-            disabled={!hasUnsavedChanges && currentFilePath !== null}
             onClick={onSave}
-            className={`text-md h-6 px-3 active:bg-gray-900 active:text-white ${
-              !hasUnsavedChanges && currentFilePath ? "text-gray-500" : ""
-            }`}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            {currentFilePath
-              ? hasUnsavedChanges
-                ? "Save"
-                : "Saved"
-              : "Save..."}
+            {currentFilePath ? "Save" : "Save..."}
           </DropdownMenuItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           <DropdownMenuItem
@@ -105,7 +97,7 @@ export function PaintMenuBar({
             onClick={onExportFile}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            Export...
+            Export
           </DropdownMenuItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           <DropdownMenuItem
