@@ -90,8 +90,8 @@ export function PaintMenuBar({
           >
             {currentFilePath
               ? hasUnsavedChanges
-                ? "Save..."
-                : "Autosaved"
+                ? "Save"
+                : "Saved"
               : "Save..."}
           </DropdownMenuItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />

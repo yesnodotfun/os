@@ -68,6 +68,7 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
     const dashOffsetRef = useRef(0);
     const animationFrameRef = useRef<number>();
     const touchStartRef = useRef<Point | null>(null);
+    const [isLoadingFile] = useState(false);
 
     // Handle canvas resize
     useEffect(() => {
@@ -349,7 +350,7 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
       return false;
     };
 
-    const saveToHistory = () => {
+    const saveToHistory = useCallback(() => {
       const canvas = canvasRef.current;
       if (!canvas || !contextRef.current) return;
 
@@ -389,8 +390,18 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
       // Update undo/redo availability
       onCanUndoChange(historyIndexRef.current > 0);
       onCanRedoChange(historyIndexRef.current < historyRef.current.length - 1);
-      onContentChange?.();
-    };
+
+      // Notify content change
+      if (!isLoadingFile) {
+        onContentChange?.();
+      }
+    }, [
+      onCanUndoChange,
+      onCanRedoChange,
+      onContentChange,
+      hasCanvasChanged,
+      isLoadingFile,
+    ]);
 
     useImperativeHandle(ref, () => ({
       undo: () => {
@@ -402,6 +413,9 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
           }
           onCanUndoChange(historyIndexRef.current > 0);
           onCanRedoChange(true);
+          if (!isLoadingFile) {
+            onContentChange?.();
+          }
         }
       },
       redo: () => {
@@ -415,6 +429,9 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
           onCanRedoChange(
             historyIndexRef.current < historyRef.current.length - 1
           );
+          if (!isLoadingFile) {
+            onContentChange?.();
+          }
         }
       },
       clear: () => {
@@ -426,7 +443,6 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
           canvasRef.current.height
         );
         saveToHistory();
-        onContentChange?.();
       },
       exportCanvas: () => {
         if (!canvasRef.current) return "";
@@ -571,6 +587,15 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
         x: clientX - rect.left,
         y: clientY - rect.top,
       };
+    };
+
+    const isPointInSelection = (point: Point, sel: Selection): boolean => {
+      return (
+        point.x >= sel.startX &&
+        point.x <= sel.startX + sel.width &&
+        point.y >= sel.startY &&
+        point.y <= sel.startY + sel.height
+      );
     };
 
     const floodFill = (startX: number, startY: number) => {
@@ -725,30 +750,59 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
       setIsTyping(false);
     };
 
-    const startDrawing = (
-      event:
-        | React.MouseEvent<HTMLCanvasElement>
-        | React.TouchEvent<HTMLCanvasElement>
-    ) => {
-      const canvas = canvasRef.current;
-      if (!canvas || !contextRef.current) return;
+    const startDrawing = useCallback(
+      (
+        event:
+          | React.MouseEvent<HTMLCanvasElement>
+          | React.TouchEvent<HTMLCanvasElement>
+      ) => {
+        const canvas = canvasRef.current;
+        if (!canvas || !contextRef.current) return;
 
-      const point = getCanvasPoint(event);
+        const point = getCanvasPoint(event);
 
-      // Store touch start position for tap detection
-      if ("touches" in event) {
-        touchStartRef.current = point;
-        // Execute bucket fill immediately on touch for better responsiveness
-        if (selectedTool === "bucket") {
-          floodFill(Math.floor(point.x), Math.floor(point.y));
-          return; // Remove this return to allow history to be saved
+        // Store touch start position for tap detection
+        if ("touches" in event) {
+          touchStartRef.current = point;
+          // Execute bucket fill immediately on touch for better responsiveness
+          if (selectedTool === "bucket") {
+            floodFill(Math.floor(point.x), Math.floor(point.y));
+            return;
+          }
         }
-      }
 
-      // Handle selection tool click
-      if (selectedTool === "rect-select") {
-        // If clicking outside selection, clear it
-        if (selection && !isPointInSelection(point, selection)) {
+        // Handle selection tool click
+        if (selectedTool === "rect-select") {
+          // If clicking outside selection, clear it
+          if (selection && !isPointInSelection(point, selection)) {
+            // Restore canvas to state before selection
+            if (lastImageRef.current) {
+              contextRef.current.putImageData(lastImageRef.current, 0, 0);
+            }
+            setSelection(null);
+          }
+
+          // If clicking inside existing selection, prepare for drag
+          if (selection && isPointInSelection(point, selection)) {
+            setIsDraggingSelection(true);
+            dragStartRef.current = point;
+            return;
+          }
+
+          // Start new selection
+          startPointRef.current = point;
+          // Store the current canvas state before starting new selection
+          lastImageRef.current = contextRef.current.getImageData(
+            0,
+            0,
+            canvas.width,
+            canvas.height
+          );
+          return;
+        }
+
+        // Clear any existing selection when starting to draw with other tools
+        if (selection) {
           // Restore canvas to state before selection
           if (lastImageRef.current) {
             contextRef.current.putImageData(lastImageRef.current, 0, 0);
@@ -756,72 +810,283 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
           setSelection(null);
         }
 
-        // If clicking inside existing selection, prepare for drag
-        if (selection && isPointInSelection(point, selection)) {
-          setIsDraggingSelection(true);
+        if (selectedTool === "text") {
+          if (!isTyping) {
+            // Only set new position when starting new text input
+            setTextPosition(point);
+          }
+          setIsTyping(true);
+          // Focus the input after a short delay to ensure it's mounted
+          setTimeout(() => {
+            if (textInputRef.current) {
+              textInputRef.current.focus();
+            }
+          }, 0);
+          return;
+        }
+
+        // Handle bucket fill for mouse click
+        if (selectedTool === "bucket" && !("touches" in event)) {
+          floodFill(Math.floor(point.x), Math.floor(point.y));
+          return;
+        }
+
+        if (["line", "rectangle", "oval"].includes(selectedTool)) {
+          // Store the current canvas state for shape preview
+          lastImageRef.current = contextRef.current.getImageData(
+            0,
+            0,
+            canvas.width,
+            canvas.height
+          );
+          startPointRef.current = point;
+        } else {
+          // Set up context based on tool
+          if (selectedTool === "eraser") {
+            contextRef.current.globalCompositeOperation = "destination-out";
+            contextRef.current.strokeStyle = "#FFFFFF"; // Use white color for eraser
+          } else {
+            contextRef.current.globalCompositeOperation = "source-over";
+            // Restore pattern for drawing tools
+            if (patternRef.current) {
+              const pattern = contextRef.current.createPattern(
+                patternRef.current,
+                "repeat"
+              );
+              if (pattern) {
+                contextRef.current.strokeStyle = pattern;
+              }
+            }
+          }
+
+          contextRef.current.beginPath();
+          contextRef.current.moveTo(point.x, point.y);
+        }
+
+        isDrawing.current = true;
+      },
+      [
+        selectedTool,
+        selection,
+        isTyping,
+        floodFill,
+        isPointInSelection,
+        setSelection,
+        setTextPosition,
+        setIsTyping,
+      ]
+    );
+
+    const draw = useCallback(
+      (
+        event:
+          | React.MouseEvent<HTMLCanvasElement>
+          | React.TouchEvent<HTMLCanvasElement>
+      ) => {
+        if (!contextRef.current || !canvasRef.current) return;
+
+        const point = getCanvasPoint(event);
+
+        // Handle selection dragging
+        if (isDraggingSelection && selection && dragStartRef.current) {
+          const dx = point.x - dragStartRef.current.x;
+          const dy = point.y - dragStartRef.current.y;
+
+          setSelection((prev) => {
+            if (!prev) return null;
+            return {
+              ...prev,
+              startX: prev.startX + dx,
+              startY: prev.startY + dy,
+            };
+          });
+
           dragStartRef.current = point;
           return;
         }
 
-        // Start new selection
-        startPointRef.current = point;
-        // Store the current canvas state before starting new selection
-        lastImageRef.current = contextRef.current.getImageData(
-          0,
-          0,
-          canvas.width,
-          canvas.height
-        );
-        return;
-      }
-
-      // Clear any existing selection when starting to draw with other tools
-      if (selection) {
-        // Restore canvas to state before selection
-        if (lastImageRef.current) {
+        // Handle selection drawing
+        if (
+          selectedTool === "rect-select" &&
+          startPointRef.current &&
+          lastImageRef.current
+        ) {
           contextRef.current.putImageData(lastImageRef.current, 0, 0);
+
+          const width = point.x - startPointRef.current.x;
+          const height = point.y - startPointRef.current.y;
+
+          // Draw selection rectangle
+          contextRef.current.save();
+          contextRef.current.strokeStyle = "#000";
+          contextRef.current.lineWidth = 1; // Force 1px width for selection
+          contextRef.current.setLineDash([5, 5]);
+          contextRef.current.strokeRect(
+            startPointRef.current.x,
+            startPointRef.current.y,
+            width,
+            height
+          );
+          contextRef.current.restore();
+          return;
         }
-        setSelection(null);
-      }
 
-      if (selectedTool === "text") {
-        if (!isTyping) {
-          // Only set new position when starting new text input
-          setTextPosition(point);
-        }
-        setIsTyping(true);
-        // Focus the input after a short delay to ensure it's mounted
-        setTimeout(() => {
-          if (textInputRef.current) {
-            textInputRef.current.focus();
-          }
-        }, 0);
-        return;
-      }
+        if (!isDrawing.current) return;
 
-      // Handle bucket fill for mouse click
-      if (selectedTool === "bucket" && !("touches" in event)) {
-        floodFill(Math.floor(point.x), Math.floor(point.y));
-        return;
-      }
+        if (
+          ["line", "rectangle", "oval"].includes(selectedTool) &&
+          startPointRef.current &&
+          lastImageRef.current
+        ) {
+          // Restore the canvas state before drawing the new preview
+          contextRef.current.putImageData(lastImageRef.current, 0, 0);
 
-      if (["line", "rectangle", "oval"].includes(selectedTool)) {
-        // Store the current canvas state for shape preview
-        lastImageRef.current = contextRef.current.getImageData(
-          0,
-          0,
-          canvas.width,
-          canvas.height
-        );
-        startPointRef.current = point;
-      } else {
-        // Set up context based on tool
-        if (selectedTool === "eraser") {
-          contextRef.current.globalCompositeOperation = "destination-out";
-          contextRef.current.strokeStyle = "#FFFFFF"; // Use white color for eraser
-        } else {
+          // Set up context for shape drawing
           contextRef.current.globalCompositeOperation = "source-over";
-          // Restore pattern for drawing tools
+          if (patternRef.current) {
+            const pattern = contextRef.current.createPattern(
+              patternRef.current,
+              "repeat"
+            );
+            if (pattern) {
+              contextRef.current.strokeStyle = pattern;
+            }
+          }
+
+          // Draw the preview shape
+          contextRef.current.beginPath();
+
+          if (selectedTool === "line") {
+            contextRef.current.moveTo(
+              startPointRef.current.x,
+              startPointRef.current.y
+            );
+            contextRef.current.lineTo(point.x, point.y);
+          } else if (selectedTool === "rectangle") {
+            const width = point.x - startPointRef.current.x;
+            const height = point.y - startPointRef.current.y;
+            contextRef.current.rect(
+              startPointRef.current.x,
+              startPointRef.current.y,
+              width,
+              height
+            );
+          } else if (selectedTool === "oval") {
+            const centerX = (startPointRef.current.x + point.x) / 2;
+            const centerY = (startPointRef.current.y + point.y) / 2;
+            const radiusX = Math.abs(point.x - startPointRef.current.x) / 2;
+            const radiusY = Math.abs(point.y - startPointRef.current.y) / 2;
+
+            // Draw ellipse
+            contextRef.current.ellipse(
+              centerX,
+              centerY,
+              radiusX,
+              radiusY,
+              0,
+              0,
+              2 * Math.PI
+            );
+          }
+
+          contextRef.current.stroke();
+        } else if (!["line", "rectangle", "oval"].includes(selectedTool)) {
+          contextRef.current.lineTo(point.x, point.y);
+          contextRef.current.stroke();
+
+          // For touch events, save history more frequently to ensure smoother undo/redo
+          if (
+            "touches" in event &&
+            !["line", "rectangle", "oval"].includes(selectedTool)
+          ) {
+            saveToHistory();
+          }
+        }
+      },
+      [
+        selectedTool,
+        isDraggingSelection,
+        selection,
+        setSelection,
+        saveToHistory,
+      ]
+    );
+
+    const stopDrawing = useCallback(
+      (
+        event:
+          | React.MouseEvent<HTMLCanvasElement>
+          | React.TouchEvent<HTMLCanvasElement>
+      ) => {
+        const canvas = canvasRef.current;
+        if (!canvas || !contextRef.current) return;
+
+        const point = getCanvasPoint(event);
+
+        // Always save history for touch events that modified the canvas
+        if ("touches" in event) {
+          if (selectedTool === "bucket" || isDrawing.current) {
+            saveToHistory();
+          }
+        }
+
+        touchStartRef.current = null;
+
+        // Handle selection completion
+        if (selectedTool === "rect-select" && startPointRef.current) {
+          const width = point.x - startPointRef.current.x;
+          const height = point.y - startPointRef.current.y;
+
+          const startX = Math.min(point.x, startPointRef.current.x);
+          const startY = Math.min(point.y, startPointRef.current.y);
+          const absWidth = Math.abs(width);
+          const absHeight = Math.abs(height);
+
+          // Only set selection if there's an actual area selected
+          if (absWidth > 0 && absHeight > 0) {
+            // Restore the canvas state before capturing selection
+            if (lastImageRef.current) {
+              contextRef.current.putImageData(lastImageRef.current, 0, 0);
+            }
+
+            // Store selection data
+            const selectionImageData = contextRef.current.getImageData(
+              startX,
+              startY,
+              absWidth,
+              absHeight
+            );
+
+            setSelection({
+              startX,
+              startY,
+              width: absWidth,
+              height: absHeight,
+              imageData: selectionImageData,
+            });
+          } else {
+            // If no selection was made, restore the canvas state
+            if (lastImageRef.current) {
+              contextRef.current.putImageData(lastImageRef.current, 0, 0);
+            }
+            setSelection(null);
+          }
+        }
+
+        // Reset dragging state
+        if (isDraggingSelection) {
+          setIsDraggingSelection(false);
+          dragStartRef.current = null;
+          saveToHistory();
+        }
+
+        isDrawing.current = false;
+        startPointRef.current = null;
+
+        // Reset composite operation after erasing
+        if (contextRef.current && selectedTool === "eraser") {
+          contextRef.current.globalCompositeOperation = "source-over";
+          // Restore pattern
           if (patternRef.current) {
             const pattern = contextRef.current.createPattern(
               patternRef.current,
@@ -833,237 +1098,32 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
           }
         }
 
-        contextRef.current.beginPath();
-        contextRef.current.moveTo(point.x, point.y);
-      }
-
-      isDrawing.current = true;
-    };
-
-    const isPointInSelection = (point: Point, sel: Selection): boolean => {
-      return (
-        point.x >= sel.startX &&
-        point.x <= sel.startX + sel.width &&
-        point.y >= sel.startY &&
-        point.y <= sel.startY + sel.height
-      );
-    };
-
-    const draw = (
-      event:
-        | React.MouseEvent<HTMLCanvasElement>
-        | React.TouchEvent<HTMLCanvasElement>
-    ) => {
-      if (!contextRef.current || !canvasRef.current) return;
-
-      const point = getCanvasPoint(event);
-
-      // Handle selection dragging
-      if (isDraggingSelection && selection && dragStartRef.current) {
-        const dx = point.x - dragStartRef.current.x;
-        const dy = point.y - dragStartRef.current.y;
-
-        setSelection((prev) => {
-          if (!prev) return null;
-          return {
-            ...prev,
-            startX: prev.startX + dx,
-            startY: prev.startY + dy,
-          };
-        });
-
-        dragStartRef.current = point;
-        return;
-      }
-
-      // Handle selection drawing
-      if (
-        selectedTool === "rect-select" &&
-        startPointRef.current &&
-        lastImageRef.current
-      ) {
-        contextRef.current.putImageData(lastImageRef.current, 0, 0);
-
-        const width = point.x - startPointRef.current.x;
-        const height = point.y - startPointRef.current.y;
-
-        // Draw selection rectangle
-        contextRef.current.save();
-        contextRef.current.strokeStyle = "#000";
-        contextRef.current.lineWidth = 1; // Force 1px width for selection
-        contextRef.current.setLineDash([5, 5]);
-        contextRef.current.strokeRect(
-          startPointRef.current.x,
-          startPointRef.current.y,
-          width,
-          height
-        );
-        contextRef.current.restore();
-        return;
-      }
-
-      if (!isDrawing.current) return;
-
-      if (
-        ["line", "rectangle", "oval"].includes(selectedTool) &&
-        startPointRef.current &&
-        lastImageRef.current
-      ) {
-        // Restore the canvas state before drawing the new preview
-        contextRef.current.putImageData(lastImageRef.current, 0, 0);
-
-        // Set up context for shape drawing
-        contextRef.current.globalCompositeOperation = "source-over";
-        if (patternRef.current) {
-          const pattern = contextRef.current.createPattern(
-            patternRef.current,
-            "repeat"
-          );
-          if (pattern) {
-            contextRef.current.strokeStyle = pattern;
-          }
-        }
-
-        // Draw the preview shape
-        contextRef.current.beginPath();
-
-        if (selectedTool === "line") {
-          contextRef.current.moveTo(
-            startPointRef.current.x,
-            startPointRef.current.y
-          );
-          contextRef.current.lineTo(point.x, point.y);
-        } else if (selectedTool === "rectangle") {
-          const width = point.x - startPointRef.current.x;
-          const height = point.y - startPointRef.current.y;
-          contextRef.current.rect(
-            startPointRef.current.x,
-            startPointRef.current.y,
-            width,
-            height
-          );
-        } else if (selectedTool === "oval") {
-          const centerX = (startPointRef.current.x + point.x) / 2;
-          const centerY = (startPointRef.current.y + point.y) / 2;
-          const radiusX = Math.abs(point.x - startPointRef.current.x) / 2;
-          const radiusY = Math.abs(point.y - startPointRef.current.y) / 2;
-
-          // Draw ellipse
-          contextRef.current.ellipse(
-            centerX,
-            centerY,
-            radiusX,
-            radiusY,
-            0,
-            0,
-            2 * Math.PI
-          );
-        }
-
-        contextRef.current.stroke();
-      } else if (!["line", "rectangle", "oval"].includes(selectedTool)) {
-        contextRef.current.lineTo(point.x, point.y);
-        contextRef.current.stroke();
-
-        // For touch events, save history more frequently to ensure smoother undo/redo
+        // Save history for all drawing operations when they complete
         if (
-          "touches" in event &&
-          !["line", "rectangle", "oval"].includes(selectedTool)
+          isDrawing.current &&
+          !isDraggingSelection &&
+          selectedTool !== "rect-select"
         ) {
           saveToHistory();
         }
-      }
-    };
 
-    const stopDrawing = (
-      event:
-        | React.MouseEvent<HTMLCanvasElement>
-        | React.TouchEvent<HTMLCanvasElement>
-    ) => {
-      const canvas = canvasRef.current;
-      if (!canvas || !contextRef.current) return;
-
-      const point = getCanvasPoint(event);
-
-      // Always save history for touch events that modified the canvas
-      if ("touches" in event) {
-        if (selectedTool === "bucket" || isDrawing.current) {
+        // Also save history for shape tools when they complete
+        if (
+          ["line", "rectangle", "oval"].includes(selectedTool) &&
+          startPointRef.current &&
+          lastImageRef.current
+        ) {
           saveToHistory();
         }
-      }
-
-      touchStartRef.current = null;
-
-      // Handle selection completion
-      if (selectedTool === "rect-select" && startPointRef.current) {
-        const width = point.x - startPointRef.current.x;
-        const height = point.y - startPointRef.current.y;
-
-        const startX = Math.min(point.x, startPointRef.current.x);
-        const startY = Math.min(point.y, startPointRef.current.y);
-        const absWidth = Math.abs(width);
-        const absHeight = Math.abs(height);
-
-        // Only set selection if there's an actual area selected
-        if (absWidth > 0 && absHeight > 0) {
-          // Restore the canvas state before capturing selection
-          if (lastImageRef.current) {
-            contextRef.current.putImageData(lastImageRef.current, 0, 0);
-          }
-
-          // Store selection data
-          const selectionImageData = contextRef.current.getImageData(
-            startX,
-            startY,
-            absWidth,
-            absHeight
-          );
-
-          setSelection({
-            startX,
-            startY,
-            width: absWidth,
-            height: absHeight,
-            imageData: selectionImageData,
-          });
-        } else {
-          // If no selection was made, restore the canvas state
-          if (lastImageRef.current) {
-            contextRef.current.putImageData(lastImageRef.current, 0, 0);
-          }
-          setSelection(null);
-        }
-      }
-
-      // Reset dragging state
-      if (isDraggingSelection) {
-        setIsDraggingSelection(false);
-        dragStartRef.current = null;
-        saveToHistory();
-      }
-
-      isDrawing.current = false;
-      startPointRef.current = null;
-
-      // Reset composite operation after erasing
-      if (contextRef.current && selectedTool === "eraser") {
-        contextRef.current.globalCompositeOperation = "source-over";
-        // Restore pattern
-        if (patternRef.current) {
-          const pattern = contextRef.current.createPattern(
-            patternRef.current,
-            "repeat"
-          );
-          if (pattern) {
-            contextRef.current.strokeStyle = pattern;
-          }
-        }
-      }
-
-      if (!isDraggingSelection && selectedTool !== "rect-select") {
-        saveToHistory();
-      }
-    };
+      },
+      [
+        selectedTool,
+        isDraggingSelection,
+        setSelection,
+        setIsDraggingSelection,
+        saveToHistory,
+      ]
+    );
 
     // Unified pointer event handlers
     const handlePointerDown = useCallback(

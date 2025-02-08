@@ -85,6 +85,49 @@ export const PaintAppComponent: React.FC<AppProps> = ({
     }
   }, [isForeground, hasUnsavedChanges, currentFilePath]);
 
+  // Auto-save effect
+  useEffect(() => {
+    if (!canvasRef.current) return;
+
+    if (hasUnsavedChanges && currentFilePath && !isLoadingFile) {
+      const timeoutId = setTimeout(() => {
+        if (!canvasRef.current) return;
+
+        const content = canvasRef.current.exportCanvas();
+        const fileName = currentFilePath.split("/").pop() || "untitled.png";
+
+        // Save using useFileSystem hook
+        saveFile({
+          name: fileName,
+          path: currentFilePath,
+          content: content,
+          icon: "/icons/image.png",
+          isDirectory: false,
+        });
+
+        // Also emit the saveFile event for Finder to refresh
+        const saveEvent = new CustomEvent("saveFile", {
+          detail: {
+            name: fileName,
+            path: currentFilePath,
+            content: content,
+            icon: "/icons/image.png",
+            isDirectory: false,
+          },
+        });
+        window.dispatchEvent(saveEvent);
+
+        localStorage.setItem(
+          APP_STORAGE_KEYS.paint.LAST_FILE_PATH,
+          currentFilePath
+        );
+        setHasUnsavedChanges(false);
+      }, 2000); // Auto-save after 2 seconds of no changes
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [hasUnsavedChanges, currentFilePath, saveFile, isLoadingFile]);
+
   const handleFileOpen = (path: string, content: string) => {
     setIsLoadingFile(true);
     canvasRef.current?.importImage(content);
@@ -106,10 +149,11 @@ export const PaintAppComponent: React.FC<AppProps> = ({
   const handleClear = () => {
     canvasRef.current?.clear();
     localStorage.removeItem(APP_STORAGE_KEYS.paint.LAST_FILE_PATH);
+    setHasUnsavedChanges(false);
   };
 
   const handleNewFile = () => {
-    if (hasUnsavedChanges && currentFilePath) {
+    if (hasUnsavedChanges) {
       setIsConfirmNewDialogOpen(true);
       return;
     }
@@ -197,7 +241,18 @@ export const PaintAppComponent: React.FC<AppProps> = ({
   };
 
   const handleExportFile = () => {
-    handleSave();
+    if (!canvasRef.current) return;
+
+    const content = canvasRef.current.exportCanvas();
+    const fileName = currentFilePath?.split("/").pop() || "untitled.png";
+
+    // Create a temporary link element to trigger download
+    const link = document.createElement("a");
+    link.download = fileName;
+    link.href = content;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
