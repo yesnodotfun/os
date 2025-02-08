@@ -136,12 +136,12 @@ export const PaintAppComponent: React.FC<AppProps> = ({
   const handleFileOpen = (path: string, content: string) => {
     const img = new Image();
     img.onload = () => {
-      // Calculate dimensions maintaining aspect ratio with max width of 800px
+      // Calculate dimensions maintaining aspect ratio with max width of 589px
       let newWidth = img.width;
       let newHeight = img.height;
-      if (newWidth > 800) {
-        const ratio = 800 / newWidth;
-        newWidth = 800;
+      if (newWidth > 589) {
+        const ratio = 589 / newWidth;
+        newWidth = 589;
         newHeight = Math.round(img.height * ratio);
       }
       setCanvasWidth(newWidth);
@@ -284,12 +284,12 @@ export const PaintAppComponent: React.FC<AppProps> = ({
         const dataUrl = e.target?.result as string;
         const img = new Image();
         img.onload = () => {
-          // Calculate dimensions maintaining aspect ratio with max width of 800px
+          // Calculate dimensions maintaining aspect ratio with max width of 589px
           let newWidth = img.width;
           let newHeight = img.height;
-          if (newWidth > 800) {
-            const ratio = 800 / newWidth;
-            newWidth = 800;
+          if (newWidth > 589) {
+            const ratio = 589 / newWidth;
+            newWidth = 589;
             newHeight = Math.round(img.height * ratio);
           }
           setCanvasWidth(newWidth);

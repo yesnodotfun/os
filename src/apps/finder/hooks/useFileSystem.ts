@@ -174,7 +174,7 @@ const saveDocuments = (docs: Document[]) => {
 };
 
 // Add these helper functions at the top of the file
-const MAX_CHUNK_SIZE = 512 * 1024; // 512KB chunks for Safari compatibility
+const MAX_CHUNK_SIZE = 2 * 1024 * 1024; // 2MB chunks for Safari compatibility
 
 function saveChunkedData(key: string, data: string) {
   try {
