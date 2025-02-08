@@ -22,6 +22,9 @@ interface PaintCanvasRef {
   clear: () => void;
   exportCanvas: () => string;
   importImage: (dataUrl: string) => void;
+  cut: () => void;
+  copy: () => void;
+  paste: () => void;
 }
 
 interface Point {
@@ -403,155 +406,216 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
       isLoadingFile,
     ]);
 
-    useImperativeHandle(ref, () => ({
-      undo: () => {
-        if (historyIndexRef.current > 0) {
-          historyIndexRef.current--;
-          const imageData = historyRef.current[historyIndexRef.current];
-          if (contextRef.current && imageData) {
-            contextRef.current.putImageData(imageData, 0, 0);
-          }
-          onCanUndoChange(historyIndexRef.current > 0);
-          onCanRedoChange(true);
-          if (!isLoadingFile) {
-            onContentChange?.();
-          }
-        }
-      },
-      redo: () => {
-        if (historyIndexRef.current < historyRef.current.length - 1) {
-          historyIndexRef.current++;
-          const imageData = historyRef.current[historyIndexRef.current];
-          if (contextRef.current && imageData) {
-            contextRef.current.putImageData(imageData, 0, 0);
-          }
-          onCanUndoChange(true);
-          onCanRedoChange(
-            historyIndexRef.current < historyRef.current.length - 1
-          );
-          if (!isLoadingFile) {
-            onContentChange?.();
-          }
-        }
-      },
-      clear: () => {
-        if (!contextRef.current || !canvasRef.current) return;
-        contextRef.current.clearRect(
+    // Clipboard methods
+    const copySelectionToClipboard = useCallback(() => {
+      if (!contextRef.current || !canvasRef.current) return;
+
+      let imageData: ImageData;
+      if (selection && selection.imageData) {
+        // If there's a selection, copy just that
+        imageData = selection.imageData;
+      } else {
+        // If no selection, copy entire canvas
+        imageData = contextRef.current.getImageData(
           0,
           0,
           canvasRef.current.width,
           canvasRef.current.height
         );
-        saveToHistory();
-      },
-      exportCanvas: () => {
-        if (!canvasRef.current) return "";
+      }
 
-        try {
-          // Create a temporary canvas to handle potential tainted canvas issues
-          const tempCanvas = document.createElement("canvas");
-          const tempCtx = tempCanvas.getContext("2d");
-          if (!tempCtx) return "";
+      // Create a temporary canvas to convert the image data to a data URL
+      const tempCanvas = document.createElement("canvas");
+      tempCanvas.width = imageData.width;
+      tempCanvas.height = imageData.height;
+      const tempCtx = tempCanvas.getContext("2d");
+      if (!tempCtx) return;
 
-          // Match dimensions
-          tempCanvas.width = canvasRef.current.width;
-          tempCanvas.height = canvasRef.current.height;
+      tempCtx.putImageData(imageData, 0, 0);
+      tempCanvas.toBlob((blob) => {
+        if (blob) {
+          const item = new ClipboardItem({ "image/png": blob });
+          navigator.clipboard.write([item]).catch(console.error);
+        }
+      });
+    }, [selection]);
 
-          // Draw the original canvas content onto the temp canvas
-          tempCtx.drawImage(canvasRef.current, 0, 0);
+    const handlePaste = useCallback(async () => {
+      if (!contextRef.current || !canvasRef.current) return;
 
-          // Try to get the PNG data with a quality setting that works better in Safari
-          return tempCanvas.toDataURL("image/png", 0.92);
-        } catch (e) {
-          console.error("Failed to export canvas:", e);
-          // Fallback to JPEG with lower quality if PNG fails
-          try {
-            return canvasRef.current.toDataURL("image/jpeg", 0.85);
-          } catch (e) {
-            console.error("Failed to export canvas as JPEG:", e);
-            return "";
+      try {
+        const clipboardItems = await navigator.clipboard.read();
+        for (const clipboardItem of clipboardItems) {
+          for (const type of clipboardItem.types) {
+            if (type.startsWith("image/")) {
+              const blob = await clipboardItem.getType(type);
+              const img = new Image();
+              img.src = URL.createObjectURL(blob);
+              await new Promise((resolve) => {
+                img.onload = () => {
+                  if (!contextRef.current || !canvasRef.current) return;
+
+                  // If there's a selection, paste into the selection area
+                  if (selection) {
+                    contextRef.current.drawImage(
+                      img,
+                      selection.startX,
+                      selection.startY,
+                      selection.width,
+                      selection.height
+                    );
+                  } else {
+                    // If no selection, paste at center
+                    const x = (canvasRef.current.width - img.width) / 2;
+                    const y = (canvasRef.current.height - img.height) / 2;
+                    contextRef.current.drawImage(img, x, y);
+                  }
+                  saveToHistory();
+                  if (onContentChange) onContentChange();
+                  resolve(null);
+                };
+              });
+              URL.revokeObjectURL(img.src);
+              break;
+            }
           }
         }
-      },
-      importImage: (dataUrl: string) => {
-        if (!contextRef.current || !canvasRef.current) return;
+      } catch (err) {
+        console.error("Failed to read clipboard contents: ", err);
+      }
+    }, [selection, saveToHistory, onContentChange]);
 
-        const img = new Image();
+    const clearSelection = useCallback(() => {
+      if (!contextRef.current || !selection) return;
 
-        // Create a blob URL to avoid CORS issues in Safari
-        const processImage = () => {
-          try {
-            // Convert data URL to blob
-            const byteString = atob(dataUrl.split(",")[1]);
-            const mimeString = dataUrl
-              .split(",")[0]
-              .split(":")[1]
-              .split(";")[0];
-            const ab = new ArrayBuffer(byteString.length);
-            const ia = new Uint8Array(ab);
-            for (let i = 0; i < byteString.length; i++) {
-              ia[i] = byteString.charCodeAt(i);
+      // Fill selection area with white
+      contextRef.current.save();
+      contextRef.current.fillStyle = "#FFFFFF";
+      contextRef.current.fillRect(
+        selection.startX,
+        selection.startY,
+        selection.width,
+        selection.height
+      );
+      contextRef.current.restore();
+
+      saveToHistory();
+      if (onContentChange) onContentChange();
+    }, [selection, saveToHistory, onContentChange]);
+
+    // Expose methods via ref
+    useImperativeHandle(
+      ref,
+      () => ({
+        undo: () => {
+          if (historyIndexRef.current > 0) {
+            historyIndexRef.current--;
+            const imageData = historyRef.current[historyIndexRef.current];
+            if (contextRef.current && imageData) {
+              contextRef.current.putImageData(imageData, 0, 0);
             }
-            const blob = new Blob([ab], { type: mimeString });
-            const blobUrl = URL.createObjectURL(blob);
-
-            img.src = blobUrl;
-
-            // Clean up the blob URL after the image loads
-            img.onload = () => {
-              if (!contextRef.current || !canvasRef.current) return;
-              URL.revokeObjectURL(blobUrl);
-
-              // Store original canvas dimensions
-              const originalWidth = canvasRef.current.width;
-              const originalHeight = canvasRef.current.height;
-
-              // Clear the canvas first
-              contextRef.current.clearRect(0, 0, originalWidth, originalHeight);
-
-              // Calculate scaling to fit the image while maintaining aspect ratio
-              const scale = Math.min(
-                originalWidth / img.width,
-                originalHeight / img.height
-              );
-
-              // Calculate centered position
-              const x = (originalWidth - img.width * scale) / 2;
-              const y = (originalHeight - img.height * scale) / 2;
-
-              // Use better image rendering for scaling
-              contextRef.current.imageSmoothingEnabled = true;
-              contextRef.current.imageSmoothingQuality = "high";
-
-              // Draw the image
-              contextRef.current.drawImage(
-                img,
-                x,
-                y,
-                img.width * scale,
-                img.height * scale
-              );
-
-              // Reset image smoothing to maintain pixel art style for drawing
-              contextRef.current.imageSmoothingEnabled = false;
-
-              saveToHistory();
-              onContentChange?.();
-            };
-          } catch (e) {
-            console.error("Error processing image:", e);
-            // Fallback to direct data URL if blob creation fails
-            img.src = dataUrl;
+            onCanUndoChange(historyIndexRef.current > 0);
+            onCanRedoChange(true);
           }
-        };
+        },
+        redo: () => {
+          if (historyIndexRef.current < historyRef.current.length - 1) {
+            historyIndexRef.current++;
+            const imageData = historyRef.current[historyIndexRef.current];
+            if (contextRef.current && imageData) {
+              contextRef.current.putImageData(imageData, 0, 0);
+            }
+            onCanUndoChange(true);
+            onCanRedoChange(
+              historyIndexRef.current < historyRef.current.length - 1
+            );
+          }
+        },
+        clear: () => {
+          if (!contextRef.current || !canvasRef.current) return;
+          contextRef.current.fillStyle = "#FFFFFF";
+          contextRef.current.fillRect(
+            0,
+            0,
+            canvasRef.current.width,
+            canvasRef.current.height
+          );
+          saveToHistory();
+        },
+        exportCanvas: () => canvasRef.current?.toDataURL() || "",
+        importImage: (dataUrl: string) => {
+          const img = new Image();
+          img.src = dataUrl;
+          img.onload = () => {
+            if (!contextRef.current || !canvasRef.current) return;
 
-        img.onerror = (e) => {
-          console.error("Error loading image:", e);
-        };
+            // Calculate dimensions to maintain aspect ratio
+            const canvas = canvasRef.current;
+            const ctx = contextRef.current;
 
-        processImage();
-      },
-    }));
+            // Clear the canvas first
+            ctx.fillStyle = "#FFFFFF";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Calculate dimensions maintaining aspect ratio
+            const canvasRatio = canvas.width / canvas.height;
+            const imageRatio = img.width / img.height;
+
+            let drawWidth = canvas.width;
+            let drawHeight = canvas.height;
+            let x = 0;
+            let y = 0;
+
+            if (canvasRatio > imageRatio) {
+              // Canvas is wider than image ratio
+              drawWidth = canvas.height * imageRatio;
+              x = (canvas.width - drawWidth) / 2;
+            } else {
+              // Canvas is taller than image ratio
+              drawHeight = canvas.width / imageRatio;
+              y = (canvas.height - drawHeight) / 2;
+            }
+
+            // Draw the image centered and scaled
+            contextRef.current.drawImage(img, x, y, drawWidth, drawHeight);
+            saveToHistory();
+          };
+        },
+        cut: () => {
+          copySelectionToClipboard();
+          clearSelection();
+        },
+        copy: copySelectionToClipboard,
+        paste: handlePaste,
+      }),
+      [copySelectionToClipboard, clearSelection, handlePaste, saveToHistory]
+    );
+
+    // Add keyboard shortcuts for clipboard operations
+    useEffect(() => {
+      const handleClipboardShortcuts = (e: KeyboardEvent) => {
+        const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
+        const cmdKey = isMac ? e.metaKey : e.ctrlKey;
+
+        if (cmdKey && !e.shiftKey && !e.altKey) {
+          if (e.key.toLowerCase() === "x") {
+            e.preventDefault();
+            copySelectionToClipboard();
+            clearSelection();
+          } else if (e.key.toLowerCase() === "c") {
+            e.preventDefault();
+            copySelectionToClipboard();
+          } else if (e.key.toLowerCase() === "v") {
+            e.preventDefault();
+            handlePaste();
+          }
+        }
+      };
+
+      window.addEventListener("keydown", handleClipboardShortcuts);
+      return () =>
+        window.removeEventListener("keydown", handleClipboardShortcuts);
+    }, [copySelectionToClipboard, clearSelection, handlePaste]);
 
     const getCanvasPoint = (
       event:

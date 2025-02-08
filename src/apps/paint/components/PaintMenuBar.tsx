@@ -27,6 +27,9 @@ interface PaintMenuBarProps {
   hasUnsavedChanges: boolean;
   currentFilePath: string | null;
   handleFileSelect: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onCut: () => void;
+  onCopy: () => void;
+  onPaste: () => void;
 }
 
 export function PaintMenuBar({
@@ -44,6 +47,9 @@ export function PaintMenuBar({
   onExportFile,
   currentFilePath,
   handleFileSelect,
+  onCut,
+  onCopy,
+  onPaste,
 }: PaintMenuBarProps) {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -137,6 +143,25 @@ export function PaintMenuBar({
             }`}
           >
             Redo
+          </DropdownMenuItem>
+          <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
+          <DropdownMenuItem
+            onClick={onCut}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            Cut
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={onCopy}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            Copy
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={onPaste}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            Paste
           </DropdownMenuItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           <DropdownMenuItem

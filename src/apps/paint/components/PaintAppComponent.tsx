@@ -39,6 +39,9 @@ export const PaintAppComponent: React.FC<AppProps> = ({
     clear: () => void;
     exportCanvas: () => string;
     importImage: (dataUrl: string) => void;
+    cut: () => void;
+    copy: () => void;
+    paste: () => void;
   }>();
   const { files, saveFile } = useFileSystem("/Images");
   const launchApp = useLaunchApp();
@@ -272,6 +275,18 @@ export const PaintAppComponent: React.FC<AppProps> = ({
     }
   };
 
+  const handleCut = () => {
+    canvasRef.current?.cut();
+  };
+
+  const handleCopy = () => {
+    canvasRef.current?.copy();
+  };
+
+  const handlePaste = () => {
+    canvasRef.current?.paste();
+  };
+
   if (!isWindowOpen) return null;
 
   return (
@@ -294,6 +309,9 @@ export const PaintAppComponent: React.FC<AppProps> = ({
         hasUnsavedChanges={hasUnsavedChanges}
         currentFilePath={currentFilePath}
         handleFileSelect={handleFileSelect}
+        onCut={handleCut}
+        onCopy={handleCopy}
+        onPaste={handlePaste}
       />
       <WindowFrame
         title={
@@ -345,6 +363,9 @@ export const PaintAppComponent: React.FC<AppProps> = ({
                         clear: ref.clear,
                         exportCanvas: ref.exportCanvas,
                         importImage: ref.importImage,
+                        cut: ref.cut,
+                        copy: ref.copy,
+                        paste: ref.paste,
                       };
                     }
                   }}
