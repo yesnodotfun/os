@@ -635,9 +635,20 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
         canvas.height
       );
 
-      // Stack for flood fill
-      const stack: Point[] = [];
-      stack.push({ x: startX, y: startY });
+      // Performance optimization: Check if we're trying to fill with the same color
+      const targetPos = (startY * canvas.width + startX) * 4;
+      if (
+        pixels[targetPos] === patternData.data[targetPos] &&
+        pixels[targetPos + 1] === patternData.data[targetPos + 1] &&
+        pixels[targetPos + 2] === patternData.data[targetPos + 2] &&
+        pixels[targetPos + 3] === patternData.data[targetPos + 3]
+      ) {
+        return; // No need to fill if the colors are the same
+      }
+
+      // Performance optimization: Limit the maximum area to fill (e.g., 80% of canvas)
+      const maxPixels = Math.floor(canvas.width * canvas.height * 0.8);
+      let filledPixels = 0;
 
       // Helper to check if a pixel matches the start color
       const matchesStart = (pos: number) => {
@@ -655,50 +666,82 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
         pixels[pos + 1] = patternData.data[pos + 1];
         pixels[pos + 2] = patternData.data[pos + 2];
         pixels[pos + 3] = patternData.data[pos + 3];
+        filledPixels++;
       };
 
-      while (stack.length > 0) {
-        const { x, y } = stack.pop()!;
-        const pos = (y * canvas.width + x) * 4;
+      // Scanline stack for flood fill (more efficient than pixel stack)
+      interface ScanLine {
+        y: number;
+        leftX: number;
+        rightX: number;
+        direction: number; // 1 for up, -1 for down
+      }
+      const scanlines: ScanLine[] = [];
 
-        if (!matchesStart(pos)) continue;
+      // Add initial scanline
+      scanlines.push({
+        y: startY,
+        leftX: startX,
+        rightX: startX,
+        direction: 1,
+      });
+      scanlines.push({
+        y: startY,
+        leftX: startX,
+        rightX: startX,
+        direction: -1,
+      });
 
-        let leftX = x;
-        let rightX = x;
+      while (scanlines.length > 0 && filledPixels < maxPixels) {
+        const { y, leftX, rightX, direction } = scanlines.pop()!;
+        const newY = y + direction;
 
-        // Find the leftmost and rightmost pixels of the same color
-        while (
-          leftX > 0 &&
-          matchesStart((y * canvas.width + (leftX - 1)) * 4)
-        ) {
-          leftX--;
+        // Skip if we're out of bounds
+        if (newY < 0 || newY >= canvas.height) continue;
+
+        // Find the extents of the current scanline
+        let x1 = leftX;
+        let x2 = rightX;
+
+        // Extend left
+        while (x1 > 0 && matchesStart((y * canvas.width + (x1 - 1)) * 4)) {
+          x1--;
         }
+
+        // Extend right
         while (
-          rightX < canvas.width - 1 &&
-          matchesStart((y * canvas.width + (rightX + 1)) * 4)
+          x2 < canvas.width - 1 &&
+          matchesStart((y * canvas.width + (x2 + 1)) * 4)
         ) {
-          rightX++;
+          x2++;
         }
 
-        // Fill the line and check pixels above and below
-        for (let i = leftX; i <= rightX; i++) {
-          const currentPos = (y * canvas.width + i) * 4;
-          setPixel(currentPos);
+        // Fill the current scanline
+        for (let x = x1; x <= x2; x++) {
+          setPixel((y * canvas.width + x) * 4);
+        }
 
-          // Check pixel above
-          if (y > 0) {
-            const abovePos = ((y - 1) * canvas.width + i) * 4;
-            if (matchesStart(abovePos)) {
-              stack.push({ x: i, y: y - 1 });
-            }
+        // Look for new scanlines above/below
+        let inRange = false;
+        for (let x = x1; x <= x2; x++) {
+          const newPos = (newY * canvas.width + x) * 4;
+          const matchesNow = matchesStart(newPos);
+
+          if (!inRange && matchesNow) {
+            scanlines.push({
+              y: newY,
+              leftX: x,
+              rightX: x,
+              direction: direction,
+            });
+            inRange = true;
+          } else if (inRange && !matchesNow) {
+            scanlines[scanlines.length - 1].rightX = x - 1;
+            inRange = false;
           }
-          // Check pixel below
-          if (y < canvas.height - 1) {
-            const belowPos = ((y + 1) * canvas.width + i) * 4;
-            if (matchesStart(belowPos)) {
-              stack.push({ x: i, y: y + 1 });
-            }
-          }
+        }
+        if (inRange) {
+          scanlines[scanlines.length - 1].rightX = x2;
         }
       }
 
