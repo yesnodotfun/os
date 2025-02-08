@@ -66,8 +66,9 @@ export const appRegistry = {
   [PaintApp.id]: {
     ...PaintApp,
     windowConfig: {
-      defaultSize: { width: 720, height: 480 },
-      minSize: { width: 400, height: 300 },
+      defaultSize: { width: 713, height: 480 },
+      minSize: { width: 400, height: 400 },
+      maxSize: { width: 713, height: 535 },
     } as WindowConstraints,
   },
   [MinesweeperApp.id]: {
