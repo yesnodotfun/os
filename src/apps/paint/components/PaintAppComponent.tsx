@@ -70,7 +70,8 @@ export const PaintAppComponent: React.FC<AppProps> = ({
   const handleImportFile = () => {
     const input = document.createElement("input");
     input.type = "file";
-    input.accept = "image/png,image/jpeg";
+    input.accept =
+      "image/png,image/jpeg,image/gif,image/webp,image/bmp,image/svg+xml,image/x-icon";
     input.onchange = (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
