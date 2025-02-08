@@ -58,11 +58,25 @@ export const PaintAppComponent: React.FC<AppProps> = ({
       if (lastFilePath?.startsWith("/Images/")) {
         const file = files.find((f) => f.path === lastFilePath);
         if (file?.content && !currentFilePath) {
-          setIsLoadingFile(true);
-          canvasRef.current.importImage(file.content);
-          setCurrentFilePath(lastFilePath);
-          setHasUnsavedChanges(false);
-          setIsLoadingFile(false);
+          const img = new Image();
+          img.onload = () => {
+            // Calculate dimensions maintaining aspect ratio with max width of 589px
+            let newWidth = img.width;
+            let newHeight = img.height;
+            if (newWidth > 589) {
+              const ratio = 589 / newWidth;
+              newWidth = 589;
+              newHeight = Math.round(img.height * ratio);
+            }
+            setCanvasWidth(newWidth);
+            setCanvasHeight(newHeight);
+            setIsLoadingFile(true);
+            canvasRef.current?.importImage(file.content as string);
+            setCurrentFilePath(lastFilePath);
+            setHasUnsavedChanges(false);
+            setIsLoadingFile(false);
+          };
+          img.src = file.content as string;
         }
       }
     }
