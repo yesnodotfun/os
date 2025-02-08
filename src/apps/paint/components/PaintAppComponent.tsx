@@ -32,6 +32,7 @@ export const PaintAppComponent: React.FC<AppProps> = ({
   const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const [saveFileName, setSaveFileName] = useState("");
+  const [isLoadingFile, setIsLoadingFile] = useState(false);
   const canvasRef = useRef<{
     undo: () => void;
     redo: () => void;
@@ -39,7 +40,7 @@ export const PaintAppComponent: React.FC<AppProps> = ({
     exportCanvas: () => string;
     importImage: (dataUrl: string) => void;
   }>();
-  const { files, saveFile } = useFileSystem("/Images");
+  const { files } = useFileSystem("/Images");
   const launchApp = useLaunchApp();
 
   // Initial load - try to restore last opened image
@@ -52,9 +53,11 @@ export const PaintAppComponent: React.FC<AppProps> = ({
       if (lastFilePath?.startsWith("/Images/")) {
         const file = files.find((f) => f.path === lastFilePath);
         if (file?.content && !currentFilePath) {
+          setIsLoadingFile(true);
           canvasRef.current.importImage(file.content);
           setCurrentFilePath(lastFilePath);
           setHasUnsavedChanges(false);
+          setIsLoadingFile(false);
         }
       }
     }
@@ -68,23 +71,29 @@ export const PaintAppComponent: React.FC<AppProps> = ({
         try {
           const { path, content } = JSON.parse(pendingFileOpen);
           if (path.startsWith("/Images/")) {
-            if (hasUnsavedChanges) {
+            if (hasUnsavedChanges && currentFilePath) {
               setIsConfirmNewDialogOpen(true);
             } else {
-              canvasRef.current.importImage(content);
-              setCurrentFilePath(path);
-              setHasUnsavedChanges(false);
-              localStorage.setItem(APP_STORAGE_KEYS.paint.LAST_FILE_PATH, path);
+              handleFileOpen(path, content);
             }
           }
         } catch (e) {
           console.error("Failed to parse pending file open data:", e);
-        } finally {
           localStorage.removeItem("pending_file_open");
         }
       }
     }
-  }, [isForeground, hasUnsavedChanges]);
+  }, [isForeground, hasUnsavedChanges, currentFilePath]);
+
+  const handleFileOpen = (path: string, content: string) => {
+    setIsLoadingFile(true);
+    canvasRef.current?.importImage(content);
+    setCurrentFilePath(path);
+    setHasUnsavedChanges(false);
+    localStorage.setItem(APP_STORAGE_KEYS.paint.LAST_FILE_PATH, path);
+    setIsLoadingFile(false);
+    localStorage.removeItem("pending_file_open");
+  };
 
   const handleUndo = () => {
     canvasRef.current?.undo();
@@ -96,10 +105,11 @@ export const PaintAppComponent: React.FC<AppProps> = ({
 
   const handleClear = () => {
     canvasRef.current?.clear();
+    localStorage.removeItem(APP_STORAGE_KEYS.paint.LAST_FILE_PATH);
   };
 
   const handleNewFile = () => {
-    if (hasUnsavedChanges) {
+    if (hasUnsavedChanges && currentFilePath) {
       setIsConfirmNewDialogOpen(true);
       return;
     }
@@ -267,7 +277,11 @@ export const PaintAppComponent: React.FC<AppProps> = ({
                   strokeWidth={strokeWidth}
                   onCanUndoChange={setCanUndo}
                   onCanRedoChange={setCanRedo}
-                  onContentChange={() => setHasUnsavedChanges(true)}
+                  onContentChange={() => {
+                    if (!isLoadingFile) {
+                      setHasUnsavedChanges(true);
+                    }
+                  }}
                 />
               </div>
 
@@ -325,6 +339,21 @@ export const PaintAppComponent: React.FC<AppProps> = ({
           setCurrentFilePath(null);
           setHasUnsavedChanges(false);
           setIsConfirmNewDialogOpen(false);
+          localStorage.removeItem(APP_STORAGE_KEYS.paint.LAST_FILE_PATH);
+
+          // Check if there's a pending file to open after creating new file
+          const pendingFileOpen = localStorage.getItem("pending_file_open");
+          if (pendingFileOpen) {
+            try {
+              const { path, content } = JSON.parse(pendingFileOpen);
+              if (path.startsWith("/Images/")) {
+                handleFileOpen(path, content);
+              }
+            } catch (e) {
+              console.error("Failed to parse pending file open data:", e);
+              localStorage.removeItem("pending_file_open");
+            }
+          }
         }}
         title="Discard Changes"
         description="You have unsaved changes. Create new file anyway?"

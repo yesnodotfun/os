@@ -19,6 +19,7 @@ export interface FileItem {
   content?: string; // For document files
   size?: number; // File size in bytes
   modifiedAt?: Date; // Last modified date
+  type?: string;
 }
 
 interface FileListProps {
@@ -27,6 +28,28 @@ interface FileListProps {
   onFileSelect: (file: FileItem) => void;
   selectedFile?: FileItem;
   viewType?: ViewType;
+}
+
+// Helper function to get human-readable file type
+function getHumanReadableType(file: FileItem): string {
+  if (file.isDirectory) return "Folder";
+  if (file.appId) return "Application";
+  if (!file.type) return "Document";
+
+  switch (file.type) {
+    case "image":
+      return "Image";
+    case "markdown":
+      return "Markdown Document";
+    case "text":
+      return "Text Document";
+    case "application":
+      return "Application";
+    case "directory":
+      return "Folder";
+    default:
+      return file.type.charAt(0).toUpperCase() + file.type.slice(1);
+  }
 }
 
 export function FileList({
@@ -83,12 +106,7 @@ export function FileList({
               >
                 <TableCell className="flex items-center gap-2">
                   <img
-                    src={
-                      file.icon ||
-                      (file.isDirectory
-                        ? "/icons/directory.png"
-                        : "/icons/file.png")
-                    }
+                    src={file.icon}
                     alt={file.isDirectory ? "Directory" : "File"}
                     className={`w-4 h-4 ${
                       selectedFile?.path === file.path ? "invert" : ""
@@ -97,13 +115,7 @@ export function FileList({
                   />
                   {file.name}
                 </TableCell>
-                <TableCell>
-                  {file.isDirectory
-                    ? "Folder"
-                    : file.appId
-                    ? "Application"
-                    : "Document"}
-                </TableCell>
+                <TableCell>{getHumanReadableType(file)}</TableCell>
                 <TableCell>
                   {file.size
                     ? file.size < 1024
@@ -115,11 +127,7 @@ export function FileList({
                 </TableCell>
                 <TableCell>
                   {file.modifiedAt
-                    ? file.modifiedAt.toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                      })
+                    ? new Date(file.modifiedAt).toLocaleDateString()
                     : "--"}
                 </TableCell>
               </TableRow>
@@ -131,7 +139,7 @@ export function FileList({
   }
 
   return (
-    <div className="grid grid-cols-[repeat(auto-fill,minmax(100px,1fr))] gap-2 p-4">
+    <div className="grid grid-cols-[repeat(auto-fill,minmax(80px,1fr))] gap-2 p-2">
       {files.map((file) => (
         <FileIcon
           key={file.path}
@@ -141,7 +149,7 @@ export function FileList({
           onDoubleClick={() => handleFileOpen(file)}
           onClick={() => handleFileSelect(file)}
           isSelected={selectedFile?.path === file.path}
-          size={viewType}
+          size={viewType === "large" ? "large" : "small"}
         />
       ))}
     </div>

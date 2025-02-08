@@ -3,6 +3,25 @@ import { AppManagerState, AppState } from "../apps/base/types";
 import { Message } from "ai";
 import { getWindowConfig, getMobileWindowSize } from "../config/appRegistry";
 
+interface Document {
+  name: string;
+  content: string;
+  type?: string;
+  modifiedAt?: Date;
+  size?: number;
+}
+
+interface TrashItem {
+  name: string;
+  content?: string;
+  type?: string;
+  isDirectory: boolean;
+  originalPath: string;
+  deletedAt: number;
+  modifiedAt?: Date;
+  size?: number;
+}
+
 export const APP_STORAGE_KEYS = {
   soundboard: {
     BOARDS: "soundboard:boards",
@@ -44,6 +63,9 @@ export const APP_STORAGE_KEYS = {
   finder: {
     WINDOW: "finder:window",
     CURRENT_PATH: "finder:current-path",
+    DOCUMENTS: "finder:documents",
+    IMAGES: "finder:images",
+    TRASH: "finder:trash",
   },
   paint: {
     WINDOW: "paint:window" as const,
@@ -608,3 +630,44 @@ export function loadSynthPreset(): string | null {
 export function saveSynthPreset(preset: string): void {
   localStorage.setItem(SYNTH_PRESET_KEY, preset);
 }
+
+export const loadDocuments = (): Document[] => {
+  const saved = localStorage.getItem(APP_STORAGE_KEYS.finder.DOCUMENTS);
+  if (saved) {
+    return JSON.parse(saved);
+  }
+  return [
+    {
+      name: "README.md",
+      content: `# ryOS\n\nA web-based operating system experience...`,
+      type: "markdown",
+    },
+    {
+      name: "Quick Tips.md",
+      content: `# Quick Tips\n\n## Using Apps...`,
+      type: "markdown",
+    },
+  ];
+};
+
+export const saveDocuments = (docs: Document[]): void => {
+  localStorage.setItem(APP_STORAGE_KEYS.finder.DOCUMENTS, JSON.stringify(docs));
+};
+
+export const loadImages = (): Document[] => {
+  const saved = localStorage.getItem(APP_STORAGE_KEYS.finder.IMAGES);
+  return saved ? JSON.parse(saved) : [];
+};
+
+export const saveImages = (images: Document[]): void => {
+  localStorage.setItem(APP_STORAGE_KEYS.finder.IMAGES, JSON.stringify(images));
+};
+
+export const loadTrashItems = (): TrashItem[] => {
+  const saved = localStorage.getItem(APP_STORAGE_KEYS.finder.TRASH);
+  return saved ? JSON.parse(saved) : [];
+};
+
+export const saveTrashItems = (items: TrashItem[]): void => {
+  localStorage.setItem(APP_STORAGE_KEYS.finder.TRASH, JSON.stringify(items));
+};

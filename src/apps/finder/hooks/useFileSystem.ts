@@ -8,6 +8,7 @@ import { useLaunchApp } from "@/hooks/useLaunchApp";
 interface Document {
   name: string;
   content: string;
+  type?: string;
 }
 
 interface TrashItem extends FileItem {
@@ -194,6 +195,42 @@ const saveTrashItems = (items: TrashItem[]) => {
   localStorage.setItem("trash_items", JSON.stringify(items));
 };
 
+// Helper function to detect file type
+function getFileType(fileName: string): string {
+  const ext = fileName.split(".").pop()?.toLowerCase() || "";
+  switch (ext) {
+    case "png":
+    case "jpg":
+    case "jpeg":
+    case "gif":
+    case "webp":
+    case "bmp":
+      return "image";
+    case "md":
+      return "markdown";
+    case "txt":
+      return "text";
+    default:
+      return "unknown";
+  }
+}
+
+// Helper function to get file icon based on type
+function getFileIcon(fileName: string, isDirectory: boolean): string {
+  if (isDirectory) return "/icons/directory.png";
+
+  const type = getFileType(fileName);
+  switch (type) {
+    case "image":
+      return "/icons/image.png";
+    case "markdown":
+    case "text":
+      return "/icons/file-text.png";
+    default:
+      return "/icons/file.png";
+  }
+}
+
 export function useFileSystem(initialPath: string = "/") {
   const [currentPath, setCurrentPath] = useState(initialPath);
   const [files, setFiles] = useState<FileItem[]>([]);
@@ -220,8 +257,10 @@ export function useFileSystem(initialPath: string = "/") {
       const newDoc: Document = {
         name: event.detail.name,
         content: event.detail.content,
+        type: event.detail.type || getFileType(event.detail.name),
       };
 
+      // Only save to one location based on the file path
       if (event.detail.path.startsWith("/Images/")) {
         setImages((prevImages) => {
           const newImages = [...prevImages];
@@ -238,7 +277,14 @@ export function useFileSystem(initialPath: string = "/") {
           saveImages(newImages);
           return newImages;
         });
-      } else {
+
+        // Remove from documents if it exists there
+        setDocuments((prevDocs) => {
+          const newDocs = prevDocs.filter((doc) => doc.name !== newDoc.name);
+          saveDocuments(newDocs);
+          return newDocs;
+        });
+      } else if (event.detail.path.startsWith("/Documents/")) {
         setDocuments((prevDocs) => {
           const newDocs = [...prevDocs];
           const existingIndex = newDocs.findIndex(
@@ -253,6 +299,15 @@ export function useFileSystem(initialPath: string = "/") {
 
           saveDocuments(newDocs);
           return newDocs;
+        });
+
+        // Remove from images if it exists there
+        setImages((prevImages) => {
+          const newImages = prevImages.filter(
+            (img) => img.name !== newDoc.name
+          );
+          saveImages(newImages);
+          return newImages;
         });
       }
     };
@@ -296,18 +351,21 @@ export function useFileSystem(initialPath: string = "/") {
             isDirectory: true,
             path: "/Applications",
             icon: "/icons/applications.png",
+            type: "directory",
           },
           {
             name: "Documents",
             isDirectory: true,
             path: "/Documents",
             icon: "/icons/documents.png",
+            type: "directory",
           },
           {
             name: "Images",
             isDirectory: true,
             path: "/Images",
             icon: "/icons/images.png",
+            type: "directory",
           },
           {
             name: "Trash",
@@ -317,6 +375,7 @@ export function useFileSystem(initialPath: string = "/") {
               trashItems.length > 0
                 ? "/icons/trash-full.png"
                 : "/icons/trash-empty.png",
+            type: "directory",
           },
         ];
       }
@@ -328,6 +387,7 @@ export function useFileSystem(initialPath: string = "/") {
           path: `/Applications/${app.name}`,
           icon: app.icon,
           appId: app.id,
+          type: "application",
         }));
       }
       // Documents directory
@@ -336,8 +396,9 @@ export function useFileSystem(initialPath: string = "/") {
           name: doc.name,
           isDirectory: false,
           path: `/Documents/${doc.name}`,
-          icon: "/icons/file-text.png",
+          icon: getFileIcon(doc.name, false),
           content: doc.content,
+          type: doc.type || getFileType(doc.name),
         }));
       }
       // Images directory
@@ -346,8 +407,9 @@ export function useFileSystem(initialPath: string = "/") {
           name: img.name,
           isDirectory: false,
           path: `/Images/${img.name}`,
-          icon: "/icons/image.png",
+          icon: getFileIcon(img.name, false),
           content: img.content,
+          type: img.type || getFileType(img.name),
         }));
       }
       // Trash directory
@@ -355,6 +417,8 @@ export function useFileSystem(initialPath: string = "/") {
         simulatedFiles = trashItems.map((item) => ({
           ...item,
           path: `/Trash/${item.name}`,
+          icon: getFileIcon(item.name, item.isDirectory),
+          type: item.type || getFileType(item.name),
         }));
       }
 
@@ -529,6 +593,7 @@ export function useFileSystem(initialPath: string = "/") {
       const newDoc: Document = {
         name: trashItem.name,
         content: trashItem.content || "",
+        type: trashItem.type || getFileType(trashItem.name),
       };
       const newDocs = [...documents, newDoc];
       setDocuments(newDocs);
@@ -554,8 +619,10 @@ export function useFileSystem(initialPath: string = "/") {
     const newDoc: Document = {
       name: file.name,
       content: file.content,
+      type: file.type || getFileType(file.name),
     };
 
+    // Only save to one location based on the file path
     if (file.path.startsWith("/Images/")) {
       setImages((prevImages) => {
         const newImages = [...prevImages];
@@ -569,9 +636,17 @@ export function useFileSystem(initialPath: string = "/") {
           newImages.push(newDoc);
         }
 
+        saveImages(newImages);
         return newImages;
       });
-    } else {
+
+      // Remove from documents if it exists there
+      setDocuments((prevDocs) => {
+        const newDocs = prevDocs.filter((doc) => doc.name !== newDoc.name);
+        saveDocuments(newDocs);
+        return newDocs;
+      });
+    } else if (file.path.startsWith("/Documents/")) {
       setDocuments((prevDocs) => {
         const newDocs = [...prevDocs];
         const existingIndex = newDocs.findIndex(
@@ -584,7 +659,15 @@ export function useFileSystem(initialPath: string = "/") {
           newDocs.push(newDoc);
         }
 
+        saveDocuments(newDocs);
         return newDocs;
+      });
+
+      // Remove from images if it exists there
+      setImages((prevImages) => {
+        const newImages = prevImages.filter((img) => img.name !== newDoc.name);
+        saveImages(newImages);
+        return newImages;
       });
     }
   }
