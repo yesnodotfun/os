@@ -268,6 +268,12 @@ export function useFileSystem(initialPath: string = "/") {
             icon: "/icons/documents.png",
           },
           {
+            name: "Images",
+            isDirectory: true,
+            path: "/Images",
+            icon: "/icons/images.png",
+          },
+          {
             name: "Trash",
             isDirectory: true,
             path: "/Trash",
@@ -297,6 +303,18 @@ export function useFileSystem(initialPath: string = "/") {
           icon: "/icons/file-text.png",
           content: doc.content,
         }));
+      }
+      // Images directory
+      else if (currentPath === "/Images") {
+        simulatedFiles = documents
+          .filter((doc) => doc.name.match(/\.(png|jpe?g|gif|webp|bmp)$/i))
+          .map((doc) => ({
+            name: doc.name,
+            isDirectory: false,
+            path: `/Images/${doc.name}`,
+            icon: "/icons/image.png",
+            content: doc.content,
+          }));
       }
       // Trash directory
       else if (currentPath === "/Trash") {
@@ -370,6 +388,30 @@ export function useFileSystem(initialPath: string = "/") {
         // Launch TextEdit
         launchApp("textedit");
       }
+    } else if (file.path.startsWith("/Images/")) {
+      // Launch Paint app with the image
+      const paintState = localStorage.getItem(APP_STORAGE_KEYS.paint.WINDOW);
+      if (!paintState) {
+        localStorage.setItem(
+          APP_STORAGE_KEYS.paint.WINDOW,
+          JSON.stringify({
+            position: { x: 100, y: 100 },
+            size: { width: 713, height: 480 },
+          })
+        );
+      }
+
+      // Store the file content temporarily
+      localStorage.setItem(
+        "pending_file_open",
+        JSON.stringify({
+          path: file.path,
+          content: file.content,
+        })
+      );
+
+      // Launch Paint
+      launchApp("paint");
     }
   }
 

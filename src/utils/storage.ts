@@ -46,8 +46,9 @@ export const APP_STORAGE_KEYS = {
     CURRENT_PATH: "finder:current-path",
   },
   paint: {
-    WINDOW: "paint:window",
-    HAS_SEEN_HELP: "paint:hasSeenHelp",
+    WINDOW: "paint:window" as const,
+    HAS_SEEN_HELP: "paint:hasSeenHelp" as const,
+    LAST_FILE_PATH: "paint:lastFilePath" as const,
   },
 } as const;
 

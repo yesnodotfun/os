@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { PaintToolbar } from "./PaintToolbar";
 import { PaintCanvas } from "./PaintCanvas";
 import { PaintMenuBar } from "./PaintMenuBar";
@@ -9,7 +9,11 @@ import { AppProps } from "../../base/types";
 import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
+import { InputDialog } from "@/components/dialogs/InputDialog";
 import { helpItems, appMetadata } from "..";
+import { useFileSystem } from "@/apps/finder/hooks/useFileSystem";
+import { useLaunchApp } from "@/hooks/useLaunchApp";
+import { APP_STORAGE_KEYS } from "@/utils/storage";
 
 export const PaintAppComponent: React.FC<AppProps> = ({
   isWindowOpen,
@@ -26,6 +30,8 @@ export const PaintAppComponent: React.FC<AppProps> = ({
   const [isConfirmNewDialogOpen, setIsConfirmNewDialogOpen] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
+  const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
+  const [saveFileName, setSaveFileName] = useState("");
   const canvasRef = useRef<{
     undo: () => void;
     redo: () => void;
@@ -33,6 +39,52 @@ export const PaintAppComponent: React.FC<AppProps> = ({
     exportCanvas: () => string;
     importImage: (dataUrl: string) => void;
   }>();
+  const { files, saveFile } = useFileSystem("/Images");
+  const launchApp = useLaunchApp();
+
+  // Initial load - try to restore last opened image
+  useEffect(() => {
+    if (canvasRef.current) {
+      const lastFilePath = localStorage.getItem(
+        APP_STORAGE_KEYS.paint.LAST_FILE_PATH
+      );
+
+      if (lastFilePath?.startsWith("/Images/")) {
+        const file = files.find((f) => f.path === lastFilePath);
+        if (file?.content && !currentFilePath) {
+          canvasRef.current.importImage(file.content);
+          setCurrentFilePath(lastFilePath);
+          setHasUnsavedChanges(false);
+        }
+      }
+    }
+  }, [files, currentFilePath]);
+
+  // Check for pending file open when window becomes active
+  useEffect(() => {
+    if (isForeground && canvasRef.current) {
+      const pendingFileOpen = localStorage.getItem("pending_file_open");
+      if (pendingFileOpen) {
+        try {
+          const { path, content } = JSON.parse(pendingFileOpen);
+          if (path.startsWith("/Images/")) {
+            if (hasUnsavedChanges) {
+              setIsConfirmNewDialogOpen(true);
+            } else {
+              canvasRef.current.importImage(content);
+              setCurrentFilePath(path);
+              setHasUnsavedChanges(false);
+              localStorage.setItem(APP_STORAGE_KEYS.paint.LAST_FILE_PATH, path);
+            }
+          }
+        } catch (e) {
+          console.error("Failed to parse pending file open data:", e);
+        } finally {
+          localStorage.removeItem("pending_file_open");
+        }
+      }
+    }
+  }, [isForeground, hasUnsavedChanges]);
 
   const handleUndo = () => {
     canvasRef.current?.undo();
@@ -59,33 +111,61 @@ export const PaintAppComponent: React.FC<AppProps> = ({
   const handleSave = () => {
     if (!canvasRef.current) return;
 
-    const dataUrl = canvasRef.current.exportCanvas();
-    const a = document.createElement("a");
-    a.href = dataUrl;
-    a.download = currentFilePath || "untitled.png";
-    a.click();
+    if (!currentFilePath) {
+      setIsSaveDialogOpen(true);
+      setSaveFileName("untitled.png");
+    } else {
+      const content = canvasRef.current.exportCanvas();
+      const fileName = currentFilePath.split("/").pop() || "untitled.png";
+
+      // Dispatch saveFile event
+      const saveEvent = new CustomEvent("saveFile", {
+        detail: {
+          name: fileName,
+          path: currentFilePath,
+          content: content,
+          icon: "/icons/image.png",
+          isDirectory: false,
+        },
+      });
+      window.dispatchEvent(saveEvent);
+
+      localStorage.setItem(
+        APP_STORAGE_KEYS.paint.LAST_FILE_PATH,
+        currentFilePath
+      );
+      setHasUnsavedChanges(false);
+    }
+  };
+
+  const handleSaveSubmit = (fileName: string) => {
+    if (!canvasRef.current) return;
+
+    const content = canvasRef.current.exportCanvas();
+    const filePath = `/Images/${fileName}${
+      fileName.endsWith(".png") ? "" : ".png"
+    }`;
+
+    // Dispatch saveFile event
+    const saveEvent = new CustomEvent("saveFile", {
+      detail: {
+        name: fileName,
+        path: filePath,
+        content: content,
+        icon: "/icons/image.png",
+        isDirectory: false,
+      },
+    });
+    window.dispatchEvent(saveEvent);
+
+    localStorage.setItem(APP_STORAGE_KEYS.paint.LAST_FILE_PATH, filePath);
+    setCurrentFilePath(filePath);
     setHasUnsavedChanges(false);
+    setIsSaveDialogOpen(false);
   };
 
   const handleImportFile = () => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept =
-      "image/png,image/jpeg,image/gif,image/webp,image/bmp,image/svg+xml,image/x-icon";
-    input.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          const dataUrl = event.target?.result as string;
-          canvasRef.current?.importImage(dataUrl);
-          setCurrentFilePath(file.name);
-          setHasUnsavedChanges(false);
-        };
-        reader.readAsDataURL(file);
-      }
-    };
-    input.click();
+    launchApp("finder", { initialPath: "/Images" });
   };
 
   const handleExportFile = () => {
@@ -130,7 +210,11 @@ export const PaintAppComponent: React.FC<AppProps> = ({
         handleFileSelect={handleFileSelect}
       />
       <WindowFrame
-        title="MacPaint"
+        title={
+          currentFilePath
+            ? currentFilePath.split("/").pop() || "Untitled"
+            : `Untitled${hasUnsavedChanges ? " •" : ""}`
+        }
         onClose={onClose}
         isForeground={isForeground}
         appId="paint"
@@ -212,31 +296,39 @@ export const PaintAppComponent: React.FC<AppProps> = ({
             </div>
           </div>
         </div>
-
-        <HelpDialog
-          isOpen={isHelpDialogOpen}
-          onOpenChange={setIsHelpDialogOpen}
-          helpItems={helpItems}
-          appName="MacPaint"
-        />
-        <AboutDialog
-          isOpen={isAboutDialogOpen}
-          onOpenChange={setIsAboutDialogOpen}
-          metadata={appMetadata}
-        />
-        <ConfirmDialog
-          isOpen={isConfirmNewDialogOpen}
-          onOpenChange={setIsConfirmNewDialogOpen}
-          onConfirm={() => {
-            handleClear();
-            setCurrentFilePath(null);
-            setHasUnsavedChanges(false);
-            setIsConfirmNewDialogOpen(false);
-          }}
-          title="Discard Changes"
-          description="You have unsaved changes. Create new file anyway?"
-        />
       </WindowFrame>
+      <InputDialog
+        isOpen={isSaveDialogOpen}
+        onOpenChange={setIsSaveDialogOpen}
+        onSubmit={handleSaveSubmit}
+        title="Save Image"
+        description="Enter a name for your image"
+        value={saveFileName}
+        onChange={setSaveFileName}
+      />
+      <HelpDialog
+        isOpen={isHelpDialogOpen}
+        onOpenChange={setIsHelpDialogOpen}
+        helpItems={helpItems}
+        appName="MacPaint"
+      />
+      <AboutDialog
+        isOpen={isAboutDialogOpen}
+        onOpenChange={setIsAboutDialogOpen}
+        metadata={appMetadata}
+      />
+      <ConfirmDialog
+        isOpen={isConfirmNewDialogOpen}
+        onOpenChange={setIsConfirmNewDialogOpen}
+        onConfirm={() => {
+          handleClear();
+          setCurrentFilePath(null);
+          setHasUnsavedChanges(false);
+          setIsConfirmNewDialogOpen(false);
+        }}
+        title="Discard Changes"
+        description="You have unsaved changes. Create new file anyway?"
+      />
     </>
   );
 };

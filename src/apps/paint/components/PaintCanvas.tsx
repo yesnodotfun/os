@@ -409,23 +409,35 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
       },
       importImage: (dataUrl: string) => {
         if (!contextRef.current || !canvasRef.current) return;
+
         const img = new Image();
-        img.crossOrigin = "anonymous"; // Add this to handle CORS
+        img.crossOrigin = "anonymous"; // Handle CORS
+
         img.onload = () => {
           if (!contextRef.current || !canvasRef.current) return;
-          contextRef.current.clearRect(
-            0,
-            0,
-            canvasRef.current.width,
-            canvasRef.current.height
-          );
+
+          // Store original canvas dimensions
+          const originalWidth = canvasRef.current.width;
+          const originalHeight = canvasRef.current.height;
+
+          // Clear the canvas first
+          contextRef.current.clearRect(0, 0, originalWidth, originalHeight);
+
           // Calculate scaling to fit the image while maintaining aspect ratio
           const scale = Math.min(
-            canvasRef.current.width / img.width,
-            canvasRef.current.height / img.height
+            originalWidth / img.width,
+            originalHeight / img.height
           );
-          const x = (canvasRef.current.width - img.width * scale) / 2;
-          const y = (canvasRef.current.height - img.height * scale) / 2;
+
+          // Calculate centered position
+          const x = (originalWidth - img.width * scale) / 2;
+          const y = (originalHeight - img.height * scale) / 2;
+
+          // Use better image rendering for scaling
+          contextRef.current.imageSmoothingEnabled = true;
+          contextRef.current.imageSmoothingQuality = "high";
+
+          // Draw the image
           contextRef.current.drawImage(
             img,
             x,
@@ -433,12 +445,21 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
             img.width * scale,
             img.height * scale
           );
+
+          // Reset image smoothing to maintain pixel art style for drawing
+          contextRef.current.imageSmoothingEnabled = false;
+
           saveToHistory();
           onContentChange?.();
         };
+
         img.onerror = (e) => {
           console.error("Error loading image:", e);
+          // The parent component will show the error alert
         };
+
+        // Enable tainted canvas operations
+        img.crossOrigin = "anonymous";
         img.src = dataUrl;
       },
     }));
