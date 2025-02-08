@@ -14,6 +14,8 @@ interface PaintCanvasProps {
   onCanUndoChange: (canUndo: boolean) => void;
   onCanRedoChange: (canRedo: boolean) => void;
   onContentChange?: () => void;
+  canvasWidth?: number;
+  canvasHeight?: number;
 }
 
 interface PaintCanvasRef {
@@ -49,6 +51,8 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
       onCanUndoChange,
       onCanRedoChange,
       onContentChange,
+      canvasWidth = 589,
+      canvasHeight = 418,
     },
     ref
   ) => {
@@ -267,8 +271,8 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
 
       // Only set up the canvas dimensions and context once
       if (!contextRef.current) {
-        canvas.width = canvas.offsetWidth;
-        canvas.height = canvas.offsetHeight;
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
 
         const context = canvas.getContext("2d", { willReadFrequently: true });
         if (!context) return;
@@ -277,6 +281,10 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
         context.lineJoin = "round";
         context.lineWidth = strokeWidth;
         contextRef.current = context;
+
+        // Fill canvas with white background initially
+        context.fillStyle = "#FFFFFF";
+        context.fillRect(0, 0, canvas.width, canvas.height);
 
         // Save initial canvas state
         saveToHistory();
@@ -549,7 +557,6 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
           img.onload = () => {
             if (!contextRef.current || !canvasRef.current) return;
 
-            // Calculate dimensions to maintain aspect ratio
             const canvas = canvasRef.current;
             const ctx = contextRef.current;
 
@@ -557,27 +564,8 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
             ctx.fillStyle = "#FFFFFF";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Calculate dimensions maintaining aspect ratio
-            const canvasRatio = canvas.width / canvas.height;
-            const imageRatio = img.width / img.height;
-
-            let drawWidth = canvas.width;
-            let drawHeight = canvas.height;
-            let x = 0;
-            let y = 0;
-
-            if (canvasRatio > imageRatio) {
-              // Canvas is wider than image ratio
-              drawWidth = canvas.height * imageRatio;
-              x = (canvas.width - drawWidth) / 2;
-            } else {
-              // Canvas is taller than image ratio
-              drawHeight = canvas.width / imageRatio;
-              y = (canvas.height - drawHeight) / 2;
-            }
-
-            // Draw the image centered and scaled
-            contextRef.current.drawImage(img, x, y, drawWidth, drawHeight);
+            // Draw the image at the canvas dimensions (which are already scaled)
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
             saveToHistory();
           };
         },
@@ -1298,11 +1286,17 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
     }, [handlePointerDown, handlePointerMove, handlePointerUp]);
 
     return (
-      <div className="relative w-full h-full overflow-hidden">
-        <div className="w-full h-full flex items-center justify-center bg-white">
+      <div className="relative w-full h-full overflow-auto">
+        <div
+          className="bg-white"
+          style={{
+            minWidth: `${canvasWidth}px`,
+            minHeight: `${canvasHeight}px`,
+          }}
+        >
           <div
-            className="relative w-full h-full"
-            style={{ aspectRatio: "4/3" }}
+            className="relative"
+            style={{ width: `${canvasWidth}px`, height: `${canvasHeight}px` }}
           >
             <canvas
               ref={canvasRef}
@@ -1310,7 +1304,6 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
                 imageRendering: "pixelated",
                 width: "100%",
                 height: "100%",
-                objectFit: "contain",
                 touchAction: "none", // Prevent default touch actions like scrolling
               }}
               className={`${

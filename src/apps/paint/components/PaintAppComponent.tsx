@@ -33,6 +33,8 @@ export const PaintAppComponent: React.FC<AppProps> = ({
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const [saveFileName, setSaveFileName] = useState("");
   const [isLoadingFile, setIsLoadingFile] = useState(false);
+  const [canvasWidth, setCanvasWidth] = useState(589);
+  const [canvasHeight, setCanvasHeight] = useState(418);
   const canvasRef = useRef<{
     undo: () => void;
     redo: () => void;
@@ -132,13 +134,27 @@ export const PaintAppComponent: React.FC<AppProps> = ({
   }, [hasUnsavedChanges, currentFilePath, saveFile, isLoadingFile]);
 
   const handleFileOpen = (path: string, content: string) => {
-    setIsLoadingFile(true);
-    canvasRef.current?.importImage(content);
-    setCurrentFilePath(path);
-    setHasUnsavedChanges(false);
-    localStorage.setItem(APP_STORAGE_KEYS.paint.LAST_FILE_PATH, path);
-    setIsLoadingFile(false);
-    localStorage.removeItem("pending_file_open");
+    const img = new Image();
+    img.onload = () => {
+      // Calculate dimensions maintaining aspect ratio with max width of 800px
+      let newWidth = img.width;
+      let newHeight = img.height;
+      if (newWidth > 800) {
+        const ratio = 800 / newWidth;
+        newWidth = 800;
+        newHeight = Math.round(img.height * ratio);
+      }
+      setCanvasWidth(newWidth);
+      setCanvasHeight(newHeight);
+      setIsLoadingFile(true);
+      canvasRef.current?.importImage(content);
+      setCurrentFilePath(path);
+      setHasUnsavedChanges(false);
+      localStorage.setItem(APP_STORAGE_KEYS.paint.LAST_FILE_PATH, path);
+      setIsLoadingFile(false);
+      localStorage.removeItem("pending_file_open");
+    };
+    img.src = content;
   };
 
   const handleUndo = () => {
@@ -153,6 +169,8 @@ export const PaintAppComponent: React.FC<AppProps> = ({
     canvasRef.current?.clear();
     localStorage.removeItem(APP_STORAGE_KEYS.paint.LAST_FILE_PATH);
     setHasUnsavedChanges(false);
+    setCanvasWidth(589);
+    setCanvasHeight(418);
   };
 
   const handleNewFile = () => {
@@ -264,12 +282,26 @@ export const PaintAppComponent: React.FC<AppProps> = ({
       const reader = new FileReader();
       reader.onload = (e) => {
         const dataUrl = e.target?.result as string;
-        setIsLoadingFile(true);
-        canvasRef.current?.importImage(dataUrl);
-        setIsLoadingFile(false);
-        // Set suggested file name but open save dialog
-        setSaveFileName(file.name);
-        setIsSaveDialogOpen(true);
+        const img = new Image();
+        img.onload = () => {
+          // Calculate dimensions maintaining aspect ratio with max width of 800px
+          let newWidth = img.width;
+          let newHeight = img.height;
+          if (newWidth > 800) {
+            const ratio = 800 / newWidth;
+            newWidth = 800;
+            newHeight = Math.round(img.height * ratio);
+          }
+          setCanvasWidth(newWidth);
+          setCanvasHeight(newHeight);
+          setIsLoadingFile(true);
+          canvasRef.current?.importImage(dataUrl);
+          setIsLoadingFile(false);
+          // Set suggested file name but open save dialog
+          setSaveFileName(file.name);
+          setIsSaveDialogOpen(true);
+        };
+        img.src = dataUrl;
       };
       reader.readAsDataURL(file);
     }
@@ -353,7 +385,7 @@ export const PaintAppComponent: React.FC<AppProps> = ({
             {/* Main Content Area */}
             <div className="flex flex-col flex-1 gap-2 min-h-0 min-w-0">
               {/* Canvas */}
-              <div className="flex-1 bg-white min-h-0 min-w-0 border border-black border-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)]">
+              <div className="flex-1 bg-white min-h-0 min-w-0 border border-black border-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)] overflow-auto">
                 <PaintCanvas
                   ref={(ref) => {
                     if (ref) {
@@ -379,6 +411,8 @@ export const PaintAppComponent: React.FC<AppProps> = ({
                       setHasUnsavedChanges(true);
                     }
                   }}
+                  canvasWidth={canvasWidth}
+                  canvasHeight={canvasHeight}
                 />
               </div>
 
