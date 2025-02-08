@@ -66,7 +66,7 @@ export const appRegistry = {
   [PaintApp.id]: {
     ...PaintApp,
     windowConfig: {
-      defaultSize: { width: 640, height: 480 },
+      defaultSize: { width: 720, height: 480 },
       minSize: { width: 400, height: 300 },
     } as WindowConstraints,
   },

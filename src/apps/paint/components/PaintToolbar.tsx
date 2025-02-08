@@ -59,23 +59,21 @@ export const PaintToolbar: React.FC<PaintToolbarProps> = ({
               <Button
                 variant={selectedTool === tool.id ? "secondary" : "ghost"}
                 className={`p-1 border-1 ${
-                  selectedTool === tool.id ? "bg-black" : ""
+                  selectedTool === tool.id ? "invert border-white" : ""
                 }`}
                 onClick={() => onToolSelect(tool.id)}
               >
                 <img
                   src={tool.icon}
                   alt={tool.label}
-                  className={`w-[36px] h-[36px] object-contain ${
-                    selectedTool === tool.id
-                      ? "invert brightness-0"
-                      : "mix-blend-multiply"
-                  }`}
+                  className="w-[36px] h-[36px] object-contain mix-blend-multiply"
                 />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>
-              <p>{tool.label}</p>
+            <TooltipContent side="right" sideOffset={2}>
+              <p className="font-['Geneva-12'] text-[12px] antialiased">
+                {tool.label}
+              </p>
             </TooltipContent>
           </Tooltip>
         ))}
