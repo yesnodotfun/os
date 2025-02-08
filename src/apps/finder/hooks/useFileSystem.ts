@@ -172,6 +172,17 @@ const saveDocuments = (docs: Document[]) => {
   localStorage.setItem("documents", JSON.stringify(docs));
 };
 
+// Load images from localStorage
+const loadImages = (): Document[] => {
+  const savedImages = localStorage.getItem("images");
+  return savedImages ? JSON.parse(savedImages) : [];
+};
+
+// Save images to localStorage
+const saveImages = (images: Document[]) => {
+  localStorage.setItem("images", JSON.stringify(images));
+};
+
 // Load trash items from localStorage
 const loadTrashItems = (): TrashItem[] => {
   const savedTrash = localStorage.getItem("trash_items");
@@ -190,6 +201,7 @@ export function useFileSystem(initialPath: string = "/") {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>();
   const [documents, setDocuments] = useState(loadDocuments());
+  const [images, setImages] = useState(loadImages());
   const [trashItems, setTrashItems] = useState<TrashItem[]>(loadTrashItems());
   const [history, setHistory] = useState<string[]>([initialPath]);
   const [historyIndex, setHistoryIndex] = useState(0);
@@ -210,34 +222,58 @@ export function useFileSystem(initialPath: string = "/") {
         content: event.detail.content,
       };
 
-      setDocuments((prevDocs) => {
-        const newDocs = [...prevDocs];
-        const existingIndex = newDocs.findIndex(
-          (doc) => doc.name === newDoc.name
-        );
+      if (event.detail.path.startsWith("/Images/")) {
+        setImages((prevImages) => {
+          const newImages = [...prevImages];
+          const existingIndex = newImages.findIndex(
+            (img) => img.name === newDoc.name
+          );
 
-        if (existingIndex >= 0) {
-          newDocs[existingIndex] = newDoc;
-        } else {
-          newDocs.push(newDoc);
-        }
+          if (existingIndex >= 0) {
+            newImages[existingIndex] = newDoc;
+          } else {
+            newImages.push(newDoc);
+          }
 
-        saveDocuments(newDocs);
-        return newDocs;
-      });
+          saveImages(newImages);
+          return newImages;
+        });
+      } else {
+        setDocuments((prevDocs) => {
+          const newDocs = [...prevDocs];
+          const existingIndex = newDocs.findIndex(
+            (doc) => doc.name === newDoc.name
+          );
+
+          if (existingIndex >= 0) {
+            newDocs[existingIndex] = newDoc;
+          } else {
+            newDocs.push(newDoc);
+          }
+
+          saveDocuments(newDocs);
+          return newDocs;
+        });
+      }
     };
 
     window.addEventListener("saveFile", handleFileSave as EventListener);
     return () => {
       window.removeEventListener("saveFile", handleFileSave as EventListener);
     };
-  }, []); // Remove documents dependency
+  }, []); // Keep empty dependency array
 
   // Save documents to localStorage whenever they change
   useEffect(() => {
     saveDocuments(documents);
     loadFiles();
   }, [documents]);
+
+  // Save images to localStorage whenever they change
+  useEffect(() => {
+    saveImages(images);
+    loadFiles();
+  }, [images]);
 
   // Save trash items to localStorage whenever they change
   useEffect(() => {
@@ -306,15 +342,13 @@ export function useFileSystem(initialPath: string = "/") {
       }
       // Images directory
       else if (currentPath === "/Images") {
-        simulatedFiles = documents
-          .filter((doc) => doc.name.match(/\.(png|jpe?g|gif|webp|bmp)$/i))
-          .map((doc) => ({
-            name: doc.name,
-            isDirectory: false,
-            path: `/Images/${doc.name}`,
-            icon: "/icons/image.png",
-            content: doc.content,
-          }));
+        simulatedFiles = images.map((img) => ({
+          name: img.name,
+          isDirectory: false,
+          path: `/Images/${img.name}`,
+          icon: "/icons/image.png",
+          content: img.content,
+        }));
       }
       // Trash directory
       else if (currentPath === "/Trash") {
@@ -522,20 +556,37 @@ export function useFileSystem(initialPath: string = "/") {
       content: file.content,
     };
 
-    setDocuments((prevDocs) => {
-      const newDocs = [...prevDocs];
-      const existingIndex = newDocs.findIndex(
-        (doc) => doc.name === newDoc.name
-      );
+    if (file.path.startsWith("/Images/")) {
+      setImages((prevImages) => {
+        const newImages = [...prevImages];
+        const existingIndex = newImages.findIndex(
+          (img) => img.name === newDoc.name
+        );
 
-      if (existingIndex >= 0) {
-        newDocs[existingIndex] = newDoc;
-      } else {
-        newDocs.push(newDoc);
-      }
+        if (existingIndex >= 0) {
+          newImages[existingIndex] = newDoc;
+        } else {
+          newImages.push(newDoc);
+        }
 
-      return newDocs;
-    });
+        return newImages;
+      });
+    } else {
+      setDocuments((prevDocs) => {
+        const newDocs = [...prevDocs];
+        const existingIndex = newDocs.findIndex(
+          (doc) => doc.name === newDoc.name
+        );
+
+        if (existingIndex >= 0) {
+          newDocs[existingIndex] = newDoc;
+        } else {
+          newDocs.push(newDoc);
+        }
+
+        return newDocs;
+      });
+    }
   }
 
   function renameFile(oldName: string, newName: string) {
