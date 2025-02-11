@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { AudioInputButton } from "@/components/ui/audio-input-button";
 import { useChatSynth } from "@/hooks/useChatSynth";
 import { loadTypingSynthEnabled } from "@/utils/storage";
+import { useSound, Sounds } from "@/hooks/useSound";
 import {
   Tooltip,
   TooltipContent,
@@ -44,6 +45,7 @@ export function ChatInput({
   const [lastTypingTime, setLastTypingTime] = useState(0);
   const audioButtonRef = useRef<HTMLButtonElement>(null);
   const { playNote } = useChatSynth();
+  const { play: playNudgeSound } = useSound(Sounds.MSN_NUDGE);
 
   useEffect(() => {
     // Check if device has touch capability
@@ -101,6 +103,11 @@ export function ChatInput({
 
   const handleRecordingStateChange = (recording: boolean) => {
     setIsRecording(recording);
+  };
+
+  const handleNudgeClick = () => {
+    playNudgeSound();
+    onNudge?.();
   };
 
   useEffect(() => {
@@ -169,7 +176,7 @@ export function ChatInput({
                   <div className="relative">
                     <button
                       type="button"
-                      onClick={onNudge}
+                      onClick={handleNudgeClick}
                       className="w-[22px] h-[22px] flex items-center justify-center"
                       disabled={isLoading}
                     >

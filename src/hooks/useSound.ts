@@ -96,6 +96,7 @@ export const Sounds = {
   CLICK: "/sounds/Click.mp3",
   ALERT_BONK: "/sounds/AlertBonk.mp3",
   ALERT_INDIGO: "/sounds/AlertIndigo.mp3",
+  MSN_NUDGE: "/sounds/MSNNudge.mp3",
 } as const;
 
 // Preload all predefined sounds
