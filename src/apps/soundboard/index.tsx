@@ -10,7 +10,7 @@ export const helpItems = [
   {
     icon: "▶️",
     title: "Play",
-    description: "Click or press numbers 1-9 to play",
+    description: "Click or push numbers 1-9 to play",
   },
   {
     icon: "✏️",
