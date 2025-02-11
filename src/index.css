@@ -9,6 +9,13 @@
 }
 
 @font-face {
+  font-family: "ArkPixel";
+  src: url("/fonts/ark-pixel-zh_tw.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
   font-family: "SerenityOS-Emoji";
   src: url("/fonts/SerenityOS-Emoji.ttf") format("truetype");
   font-weight: normal;
@@ -83,8 +90,8 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: "ChicagoKare", "SerenityOS-Emoji", system-ui, -apple-system,
-      sans-serif;
+    font-family: "ChicagoKare", "ArkPixel", "SerenityOS-Emoji", system-ui,
+      -apple-system, sans-serif;
     -webkit-font-smoothing: none;
     font-smooth: never;
     overflow: hidden;
@@ -135,4 +142,13 @@
 
 .animate-marquee {
   animation: marquee 2s linear infinite;
+}
+
+@layer utilities {
+  .font-geneva-12 {
+    font-family: "Geneva-12", "ArkPixel", "SerenityOS-Emoji", system-ui,
+      -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    font-smooth: always;
+  }
 }

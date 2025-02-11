@@ -343,7 +343,7 @@ export function ControlPanelsAppComponent({
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col gap-1">
                     <Label>Chat synth</Label>
-                    <Label className="text-[11px] text-gray-600 font-['Geneva-12'] antialiased">
+                    <Label className="text-[11px] text-gray-600 font-geneva-12">
                       This will reload the application to apply the new preset.
                     </Label>
                   </div>
@@ -395,7 +395,7 @@ export function ControlPanelsAppComponent({
                       className="hidden"
                     />
                   </div>
-                  <p className="text-[11px] text-gray-600 font-['Geneva-12'] antialiased">
+                  <p className="text-[11px] text-gray-600 font-geneva-12">
                     Backup or restore all app settings and documents.
                   </p>
                 </div>
@@ -408,7 +408,7 @@ export function ControlPanelsAppComponent({
                   >
                     Reset All App Settings
                   </Button>
-                  <p className="text-[11px] text-gray-600 font-['Geneva-12'] antialiased">
+                  <p className="text-[11px] text-gray-600 font-geneva-12">
                     This will clear all saved settings and states.
                   </p>
                 </div>
@@ -421,7 +421,7 @@ export function ControlPanelsAppComponent({
                   >
                     Format File System
                   </Button>
-                  <p className="text-[11px] text-gray-600 font-['Geneva-12'] antialiased">
+                  <p className="text-[11px] text-gray-600 font-geneva-12">
                     This will clear all documents from the virtual file system
                     saved in your browser local storage.
                   </p>

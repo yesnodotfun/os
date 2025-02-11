@@ -52,7 +52,7 @@ export function ConfirmDialog({
               width={32}
               height={32}
             />
-            <p className="text-gray-900 mb-2 leading-tight font-[Geneva-12] antialiased text-[12px]">
+            <p className="text-gray-900 mb-2 leading-tight font-geneva-12 text-[12px]">
               {description}
             </p>
           </div>

@@ -70,14 +70,14 @@ export function AboutFinderDialog({
                 <div>ryOS 8.0</div>
               </div>
 
-              <div className="space-y-4 font-['Geneva-12'] antialiased text-[10px]">
+              <div className="space-y-4 font-geneva-12 text-[10px]">
                 <div>
                   <div>Built-in Memory: 32MB</div>
                   <div>Virtual Memory: Off</div>
                   <div>
                     Largest Unused Block: {(32 - totalUsedMemory).toFixed(1)}MB
                   </div>
-                  <div className="text-[10px] text-gray-500  mt-2  font-['Geneva-12'] antialiased text-[10px]">
+                  <div className="text-[10px] text-gray-500  mt-2  font-geneva-12 text-[10px]">
                     © Ryo Lu. 1992-{new Date().getFullYear()}
                   </div>
                 </div>
@@ -86,7 +86,7 @@ export function AboutFinderDialog({
             <hr className="border-gray-300" />
 
             {/* Memory usage bars */}
-            <div className="space-y-2 font-['Geneva-12'] antialiased text-[10px] p-2 px-4 pb-4">
+            <div className="space-y-2 font-geneva-12 text-[10px] p-2 px-4 pb-4">
               {memoryUsage.map((app, index) => (
                 <div className="flex flex-row gap-1" key={index}>
                   <div className="flex justify-between w-full">

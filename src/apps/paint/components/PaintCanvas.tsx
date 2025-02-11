@@ -1322,7 +1322,7 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
               <input
                 ref={textInputRef}
                 type="text"
-                className="absolute bg-transparent border-none outline-none font-['Geneva-12'] antialiased text-black pointer-events-auto"
+                className="absolute bg-transparent border-none outline-none font-geneva-12 text-black pointer-events-auto"
                 style={{
                   left: `${textPosition.x}px`,
                   top: `${textPosition.y}px`,

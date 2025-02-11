@@ -168,10 +168,6 @@ export function ChatMessages({
 
               <motion.div
                 layout="position"
-                style={{
-                  fontFamily:
-                    "Geneva-12, SerenityOS-Emoji, system-ui, -apple-system, sans-serif",
-                }}
                 animate={
                   isUrgentMessage(message.content)
                     ? {
@@ -190,7 +186,7 @@ export function ChatMessages({
                       }
                     : {}
                 }
-                className={`max-w-[90%] min-h-[12px] p-1.5 px-2 rounded leading-snug text-[12px] antialiased break-words select-text ${
+                className={`max-w-[90%] min-h-[12px] p-1.5 px-2 rounded leading-snug text-[12px] font-geneva-12 break-words select-text ${
                   message.role === "user"
                     ? "bg-yellow-200 text-black"
                     : "bg-blue-200 text-black"

@@ -160,7 +160,7 @@ export function ChatInput({
                 ? "Type a message..."
                 : "Type or press 'space' to talk..."
             }
-            className={`w-full border-1 border-gray-800 text-xs font-['Geneva-12'] antialiased h-8 pr-16 ${
+            className={`w-full border-1 border-gray-800 text-xs font-geneva-12 h-8 pr-16 ${
               isFocused ? "input--focused" : ""
             }`}
             onFocus={() => setIsFocused(true)}

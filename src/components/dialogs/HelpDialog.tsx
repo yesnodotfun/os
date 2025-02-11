@@ -11,9 +11,7 @@ function HelpCard({ icon, title, description }: HelpCardProps) {
     <div className="p-4 bg-black/5 rounded-lg transition-colors">
       <div className="text-xl">{icon}</div>
       <h3 className="font-medium">{title}</h3>
-      <p className="text-gray-700  font-['Geneva-12'] antialiased text-[10px]">
-        {description}
-      </p>
+      <p className="text-gray-700  font-geneva-12 text-[10px]">{description}</p>
     </div>
   );
 }

@@ -32,7 +32,7 @@ export function AboutDialog({
               className="w-12 h-12 mx-auto [image-rendering:pixelated]"
             />
           </div>
-          <div className="space-y-0 font-['Geneva-12'] text-[10px] antialiased">
+          <div className="space-y-0 font-geneva-12 text-[10px]">
             <div className="text-lg font-medium font-['ChicagoKare']">
               {metadata.name}
             </div>

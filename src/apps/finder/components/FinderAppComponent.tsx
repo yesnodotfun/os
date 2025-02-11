@@ -364,7 +364,7 @@ export function FinderAppComponent({
               />
             )}
           </div>
-          <div className="flex items-center justify-between px-2 py-1 text-[10px] font-[Geneva-12] antialiased bg-gray-100 border-t border-gray-300">
+          <div className="flex items-center justify-between px-2 py-1 text-[10px] font-geneva-12 bg-gray-100 border-t border-gray-300">
             <span>
               {sortedFiles.length} item{sortedFiles.length !== 1 ? "s" : ""}
             </span>

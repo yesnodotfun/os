@@ -74,7 +74,7 @@ export function FileList({
 
   if (viewType === "list") {
     return (
-      <div className="font-[Geneva-12] antialiased">
+      <div className="font-geneva-12">
         <Table>
           <TableHeader>
             <TableRow className="text-[9px] border-none font-normal">

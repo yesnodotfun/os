@@ -465,7 +465,7 @@ export function InternetExplorerAppComponent({
                       key={index}
                       variant="ghost"
                       size="sm"
-                      className="whitespace-nowrap hover:bg-gray-200 font-['Geneva-12'] antialiased text-[10px] gap-1 px-1 mr-1 w-content min-w-[60px] max-w-[120px] flex-shrink-0"
+                      className="whitespace-nowrap hover:bg-gray-200 font-geneva-12 text-[10px] gap-1 px-1 mr-1 w-content min-w-[60px] max-w-[120px] flex-shrink-0"
                       onClick={() =>
                         handleNavigateWithHistory(favorite.url, favorite.year)
                       }

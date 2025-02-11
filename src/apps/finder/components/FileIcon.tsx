@@ -70,7 +70,7 @@ export function FileIcon({
         />
       </div>
       <span
-        className={`text-center px-1 font-['Geneva-12'] antialiased break-words truncate ${
+        className={`text-center px-1 font-geneva-12 break-words truncate ${
           sizes.text
         } ${isSelected ? "bg-black text-white" : "bg-white text-black"}`}
       >
