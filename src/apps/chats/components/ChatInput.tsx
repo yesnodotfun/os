@@ -180,7 +180,7 @@ export function ChatInput({
                       className="w-[22px] h-[22px] flex items-center justify-center"
                       disabled={isLoading}
                     >
-                      <Hand className="h-4 w-4" />
+                      <Hand className="h-4 w-4 -rotate-40" />
                     </button>
                   </div>
                 </TooltipTrigger>
@@ -189,15 +189,26 @@ export function ChatInput({
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
-            <AudioInputButton
-              ref={audioButtonRef}
-              onTranscriptionComplete={handleTranscriptionComplete}
-              onTranscriptionStart={handleTranscriptionStart}
-              onRecordingStateChange={handleRecordingStateChange}
-              isLoading={isTranscribing}
-              silenceThreshold={1200}
-              className="w-[22px] h-[22px] flex items-center justify-center"
-            />
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="relative">
+                    <AudioInputButton
+                      ref={audioButtonRef}
+                      onTranscriptionComplete={handleTranscriptionComplete}
+                      onTranscriptionStart={handleTranscriptionStart}
+                      onRecordingStateChange={handleRecordingStateChange}
+                      isLoading={isTranscribing}
+                      silenceThreshold={1200}
+                      className="w-[22px] h-[22px] flex items-center justify-center"
+                    />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Push to talk</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             {transcriptionError && (
               <div className="absolute top-full mt-1 right-0 bg-red-100 text-red-600 text-xs p-1 rounded shadow-sm">
                 {transcriptionError}
