@@ -60,7 +60,7 @@ export function ChatsAppComponent({
   const handleNudge = useCallback(() => {
     setIsShaking(true);
     setTimeout(() => setIsShaking(false), 400);
-    handleDirectMessageSubmit("👋 *nudged you*");
+    handleDirectMessageSubmit("👋 *nudge sent*");
   }, [handleDirectMessageSubmit]);
 
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
