@@ -13,6 +13,7 @@ interface WindowFrameProps {
   onClose?: () => void;
   isForeground?: boolean;
   appId: keyof typeof APP_STORAGE_KEYS;
+  isShaking?: boolean;
   windowConstraints?: {
     minWidth?: number;
     minHeight?: number;
@@ -26,6 +27,7 @@ export function WindowFrame({
   title,
   onClose,
   isForeground = true,
+  isShaking = false,
   appId,
   windowConstraints = {},
 }: WindowFrameProps) {
@@ -138,7 +140,8 @@ export function WindowFrame({
       className={cn(
         "absolute p-2 md:p-0 w-full h-full md:mt-0 select-none",
         "transition-all duration-200 ease-in-out",
-        isInitialMount && "animate-in fade-in-0 zoom-in-95 duration-200"
+        isInitialMount && "animate-in fade-in-0 zoom-in-95 duration-200",
+        isShaking && "animate-shake"
       )}
       onTransitionEnd={handleTransitionEnd}
       style={{

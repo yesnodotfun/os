@@ -71,9 +71,7 @@ export const PaintToolbar: React.FC<PaintToolbarProps> = ({
               </Button>
             </TooltipTrigger>
             <TooltipContent side="right" sideOffset={2}>
-              <p className="font-['Geneva-12'] text-[12px] antialiased">
-                {tool.label}
-              </p>
+              <p>{tool.label}</p>
             </TooltipContent>
           </Tooltip>
         ))}

@@ -1,11 +1,17 @@
 import { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ArrowUp, Square } from "lucide-react";
+import { ArrowUp, Square, Hand } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AudioInputButton } from "@/components/ui/audio-input-button";
 import { useChatSynth } from "@/hooks/useChatSynth";
 import { loadTypingSynthEnabled } from "@/utils/storage";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface ChatInputProps {
   input: string;
@@ -15,6 +21,7 @@ interface ChatInputProps {
   onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   onStop: () => void;
   onDirectMessageSubmit?: (message: string) => void;
+  onNudge?: () => void;
 }
 
 export function ChatInput({
@@ -25,6 +32,7 @@ export function ChatInput({
   onSubmit,
   onStop,
   onDirectMessageSubmit,
+  onNudge,
 }: ChatInputProps) {
   const [isFocused, setIsFocused] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -145,7 +153,7 @@ export function ChatInput({
                 ? "Type a message..."
                 : "Type or press 'space' to talk..."
             }
-            className={`w-full border-1 border-gray-800 text-xs font-['Geneva-12'] antialiased h-8 pr-8 ${
+            className={`w-full border-1 border-gray-800 text-xs font-['Geneva-12'] antialiased h-8 pr-16 ${
               isFocused ? "input--focused" : ""
             }`}
             onFocus={() => setIsFocused(true)}
@@ -154,7 +162,26 @@ export function ChatInput({
               e.preventDefault();
             }}
           />
-          <div className="absolute right-1.5 top-1/2 -translate-y-1/2 w-[22px] h-[22px] flex items-center justify-center">
+          <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={onNudge}
+                      className="w-[22px] h-[22px] flex items-center justify-center"
+                      disabled={isLoading}
+                    >
+                      <Hand className="h-4 w-4" />
+                    </button>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Send a nudge</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             <AudioInputButton
               ref={audioButtonRef}
               onTranscriptionComplete={handleTranscriptionComplete}
@@ -162,7 +189,7 @@ export function ChatInput({
               onRecordingStateChange={handleRecordingStateChange}
               isLoading={isTranscribing}
               silenceThreshold={1200}
-              className="w-full h-full flex items-center justify-center"
+              className="w-[22px] h-[22px] flex items-center justify-center"
             />
             {transcriptionError && (
               <div className="absolute top-full mt-1 right-0 bg-red-100 text-red-600 text-xs p-1 rounded shadow-sm">

@@ -40,6 +40,7 @@ export function ChatsAppComponent({
     experimental_throttle: 50,
   });
   const [messages, setMessages] = useState(aiMessages);
+  const [isShaking, setIsShaking] = useState(false);
 
   useEffect(() => {
     setMessages(aiMessages);
@@ -55,6 +56,12 @@ export function ChatsAppComponent({
     },
     [append]
   );
+
+  const handleNudge = useCallback(() => {
+    setIsShaking(true);
+    setTimeout(() => setIsShaking(false), 400);
+    handleDirectMessageSubmit("👋 *nudged you*");
+  }, [handleDirectMessageSubmit]);
 
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
@@ -138,6 +145,7 @@ export function ChatsAppComponent({
         onClose={onClose}
         isForeground={isForeground}
         appId="chats"
+        isShaking={isShaking}
         windowConstraints={{
           maxHeight: window.innerWidth <= 768 ? 360 : undefined,
         }}
@@ -158,6 +166,7 @@ export function ChatsAppComponent({
             onSubmit={handleSubmit}
             onStop={stop}
             onDirectMessageSubmit={handleDirectMessageSubmit}
+            onNudge={handleNudge}
           />
         </div>
         <HelpDialog
