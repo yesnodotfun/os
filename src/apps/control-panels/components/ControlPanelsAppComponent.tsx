@@ -129,6 +129,23 @@ Object.entries(PHOTO_WALLPAPERS).forEach(([category, photos]) => {
   );
 });
 
+// Add new type and storage functions
+type DisplayMode = "color" | "monotone";
+
+const loadDisplayMode = (): DisplayMode => {
+  return (localStorage.getItem("displayMode") as DisplayMode) || "color";
+};
+
+const saveDisplayMode = (mode: DisplayMode) => {
+  localStorage.setItem("displayMode", mode);
+  // Apply the filter to the root element
+  if (mode === "monotone") {
+    document.documentElement.style.filter = "grayscale(100%)";
+  } else {
+    document.documentElement.style.filter = "none";
+  }
+};
+
 export function ControlPanelsAppComponent({
   isWindowOpen,
   onClose,
@@ -141,12 +158,14 @@ export function ControlPanelsAppComponent({
   const [uiSoundsEnabled, setUiSoundsEnabled] = useState(true);
   const [typingSynthEnabled, setTypingSynthEnabled] = useState(false);
   const [synthPreset, setSynthPreset] = useState("classic");
+  const [displayMode, setDisplayMode] = useState<DisplayMode>("color");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setUiSoundsEnabled(loadUISoundsEnabled());
     setTypingSynthEnabled(loadTypingSynthEnabled());
     setSynthPreset(loadSynthPreset() || "classic");
+    setDisplayMode(loadDisplayMode());
   }, []);
 
   const handleUISoundsChange = (enabled: boolean) => {
@@ -272,6 +291,12 @@ export function ControlPanelsAppComponent({
     }
   };
 
+  // Add display mode handler
+  const handleDisplayModeChange = (value: DisplayMode) => {
+    setDisplayMode(value);
+    saveDisplayMode(value);
+  };
+
   if (!isWindowOpen) return null;
 
   return (
@@ -314,7 +339,27 @@ export function ControlPanelsAppComponent({
               value="appearance"
               className="mt-0 p-4 bg-[#E3E3E3] border border-t-0 border-[#808080] h-[calc(100%-2rem)]"
             >
-              <div className="space-y-2 h-full">
+              <div className="space-y-4 h-full">
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col gap-1">
+                    <Label>Display</Label>
+                    <Label className="text-[11px] text-gray-600 font-geneva-12">
+                      Choose between color or monotone display
+                    </Label>
+                  </div>
+                  <Select
+                    value={displayMode}
+                    onValueChange={handleDisplayModeChange}
+                  >
+                    <SelectTrigger className="w-[120px]">
+                      <SelectValue placeholder="Select display mode" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="color">Color</SelectItem>
+                      <SelectItem value="monotone">Monotone</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <WallpaperPicker />
               </div>
             </TabsContent>
