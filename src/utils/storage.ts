@@ -626,6 +626,7 @@ export const clearAllAppStates = (): void => {
 
   localStorage.removeItem(APP_STORAGE_KEYS.paint.WINDOW);
   localStorage.removeItem(APP_STORAGE_KEYS.paint.HAS_SEEN_HELP);
+  localStorage.removeItem(APP_STORAGE_KEYS.paint.LAST_FILE_PATH);
 
   localStorage.removeItem(APP_STORAGE_KEYS.videos.WINDOW);
   localStorage.removeItem(APP_STORAGE_KEYS.videos.HAS_SEEN_HELP);
@@ -640,6 +641,12 @@ export const clearAllAppStates = (): void => {
 
   // Clear app manager state
   localStorage.removeItem("app:state");
+
+  // Clear synth preset
+  localStorage.removeItem("synthPreset");
+
+  // Clear display mode
+  localStorage.removeItem("displayMode");
 };
 
 const SYNTH_PRESET_KEY = "synthPreset";
