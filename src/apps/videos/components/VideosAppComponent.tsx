@@ -584,7 +584,7 @@ export function VideosAppComponent({
           onOpenChange={setIsAddDialogOpen}
           onSubmit={addVideo}
           title="Add Video"
-          description="Enter a YouTube video URL"
+          description="Enter YouTube, Vimeo, or a video URL"
           value={urlInput}
           onChange={setUrlInput}
         />
