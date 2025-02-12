@@ -16,17 +16,17 @@ interface TrashItem extends FileItem {
   deletedAt: number;
 }
 
-const DOCUMENTS: Document[] = [
+export const DOCUMENTS: Document[] = [
   {
     name: "README.md",
-    content: `# ryOS
+    content: `# ryOS 8.2
 
 A web-based operating system experience inspired by classic Mac OS System 7. Built using modern web technologies including React, Vite, TailwindCSS, and shadcn/ui components.
 
 ## Features
 
-- Classic System 7 UI with Chicago Kare font
-- Window management (drag, resize, minimize)
+- Classic System 7 UI with authentic typography
+- Window management (drag, resize, maximize)
 - File system with Documents and Applications folders
 - Multiple built-in applications
 - Local storage persistence
@@ -40,19 +40,11 @@ A web-based operating system experience inspired by classic Mac OS System 7. Bui
 - **Finder**: Browse and manage your files
 - **TextEdit**: Create and edit documents
 - **Soundboard**: Create and play custom soundboards
-  - Record from microphone
-  - Multiple soundboards
-  - Waveform visualization
-  - Keyboard shortcuts
-  - Import/Export support
-- **Control Panels**: Customize system settings
-  - Appearance themes
-  - Sound settings
-  - System management
-  - Backup/Restore
+- **Control Panels**: Customize ryOS system settings
 - **Minesweeper**: Classic puzzle game
-- **Internet Explorer**: Browse the web
+- **Internet Explorer**: Browse the web with time travel
 - **Chats**: Chat with AI assistant
+- **Videos**: Make video playlists and watch them
 
 ## Getting Started
 
@@ -148,6 +140,11 @@ Visit https://github.com/ryokun6/soundboard for more information.`,
 - Ask about design and concepts
 - Natural conversation interface
 - Modern AI-powered assistance
+
+## Videos
+- Make video playlists and watch them
+- Add videos to favorites
+- VHS-style video player interface
 
 ## Tips & Tricks
 - Use keyboard shortcuts for efficiency
