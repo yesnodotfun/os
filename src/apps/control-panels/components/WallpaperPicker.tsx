@@ -200,7 +200,14 @@ Object.entries(PHOTO_WALLPAPERS).forEach(([category, photos]) => {
 const PHOTO_CATEGORIES = Object.keys(PHOTO_WALLPAPERS) as PhotoCategory[];
 
 // Add display mode type and storage functions
-type DisplayMode = "color" | "monotone";
+type DisplayMode =
+  | "color"
+  | "monotone"
+  | "crt"
+  | "sepia"
+  | "high-contrast"
+  | "dream"
+  | "invert";
 
 const loadDisplayMode = (): DisplayMode => {
   return (localStorage.getItem("displayMode") as DisplayMode) || "color";
@@ -208,10 +215,35 @@ const loadDisplayMode = (): DisplayMode => {
 
 const saveDisplayMode = (mode: DisplayMode) => {
   localStorage.setItem("displayMode", mode);
-  if (mode === "monotone") {
-    document.documentElement.style.filter = "grayscale(100%)";
-  } else {
-    document.documentElement.style.filter = "none";
+  const root = document.documentElement;
+
+  // Reset all filters and effects first
+  root.style.filter = "none";
+  root.classList.remove("crt-effect");
+
+  switch (mode) {
+    case "monotone":
+      root.style.filter = "grayscale(100%)";
+      break;
+    case "crt":
+      root.style.filter = "brightness(1.1) contrast(1.2) saturate(1.2)";
+      root.classList.add("crt-effect");
+      break;
+    case "sepia":
+      root.style.filter = "sepia(0.8)";
+      break;
+    case "high-contrast":
+      root.style.filter = "contrast(1.5) brightness(1.1)";
+      break;
+    case "dream":
+      root.style.filter =
+        "brightness(1.1) contrast(0.9) saturate(1.5) blur(1px)";
+      break;
+    case "invert":
+      root.style.filter = "invert(1)";
+      break;
+    default:
+      root.style.filter = "none";
   }
 };
 
@@ -299,12 +331,17 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
         </div>
 
         <Select value={displayMode} onValueChange={handleDisplayModeChange}>
-          <SelectTrigger className="w-[90px]">
+          <SelectTrigger className="w-[120px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="color">Color</SelectItem>
             <SelectItem value="monotone">Mono</SelectItem>
+            <SelectItem value="crt">CRT</SelectItem>
+            <SelectItem value="sepia">Sepia</SelectItem>
+            <SelectItem value="high-contrast">High Contrast</SelectItem>
+            <SelectItem value="dream">Dream</SelectItem>
+            <SelectItem value="invert">Invert</SelectItem>
           </SelectContent>
         </Select>
       </div>
