@@ -34,7 +34,9 @@ export function HelpDialog({
       <DialogContent className="bg-system7-window-bg border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)] max-w-[600px]">
         <DialogHeader>Help</DialogHeader>
         <div className="p-6 pt-2">
-          <p className="text-lg mb-4">Welcome to {appName}</p>
+          <p className="text-2xl mb-4 font-apple-garamond">
+            Welcome to {appName}
+          </p>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {helpItems.map((item) => (
               <HelpCard key={item.title} {...item} />

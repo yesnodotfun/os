@@ -33,7 +33,7 @@ export function AboutDialog({
             />
           </div>
           <div className="space-y-0 font-geneva-12 text-[10px]">
-            <div className="text-xl font-medium font-apple-garamond">
+            <div className="text-2xl font-medium font-apple-garamond">
               {metadata.name}
             </div>
             <p className="text-gray-500">Version {metadata.version}</p>

@@ -305,10 +305,7 @@ export function VideosAppComponent({
             {videos.length > 0 ? (
               <div className="w-full h-full overflow-hidden relative">
                 <div
-                  className={cn(
-                    "w-full scale-[1.05]",
-                    !isSafari && "pointer-events-none"
-                  )}
+                  className={cn("w-full", !isSafari && "pointer-events-none")}
                   style={{ height: "calc(100% + 120px)", marginTop: "-60px" }}
                 >
                   <ReactPlayer
