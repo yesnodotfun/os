@@ -224,9 +224,10 @@ const saveDisplayMode = (mode: DisplayMode) => {
   switch (mode) {
     case "monotone":
       root.style.filter = "grayscale(100%)";
+      root.classList.add("crt-effect");
       break;
     case "crt":
-      root.style.filter = "brightness(1.1) contrast(1.2) saturate(1.2)";
+      root.style.filter = "brightness(1.05) contrast(1.05) saturate(1.05)";
       root.classList.add("crt-effect");
       break;
     case "sepia":
@@ -257,6 +258,12 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
   const [displayMode, setDisplayMode] = useState<DisplayMode>(() =>
     loadDisplayMode()
   );
+
+  // Apply display mode effect on mount
+  useEffect(() => {
+    saveDisplayMode(displayMode);
+  }, []);
+
   const [selectedCategory, setSelectedCategory] = useState<
     "tiles" | PhotoCategory
   >(() => {
