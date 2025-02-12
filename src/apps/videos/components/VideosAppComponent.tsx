@@ -545,7 +545,7 @@ export function VideosAppComponent({
                       "active:brightness-50"
                     )}
                   >
-                    →
+                    {loopCurrent ? "↺" : "→"}
                   </button>
                 </div>
                 <button
