@@ -25,6 +25,18 @@ export const helpItems = [
     description:
       "Use File > Save to save your artwork, or File > Save As to save it with a new name.",
   },
+  {
+    icon: "🔲",
+    title: "Patterns",
+    description:
+      "Choose from various patterns in the bottom palette to fill shapes and areas.",
+  },
+  {
+    icon: "⭕",
+    title: "Shapes",
+    description:
+      "Draw rectangles, ovals, and lines using the shape tools in the toolbar.",
+  },
 ];
 
 export const appMetadata = {

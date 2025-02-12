@@ -400,7 +400,7 @@ export function SoundboardAppComponent({
           isOpen={helpDialogOpen}
           onOpenChange={setHelpDialogOpen}
           helpItems={helpItems}
-          appName="Soundboard.app"
+          appName="Soundboard"
         />
         <AboutDialog
           isOpen={aboutDialogOpen}

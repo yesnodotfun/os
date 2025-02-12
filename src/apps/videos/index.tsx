@@ -23,6 +23,11 @@ export const helpItems = [
     description: "Randomize playlist order",
   },
   {
+    icon: "📝",
+    title: "Playlist",
+    description: "Manage and organize your video playlist",
+  },
+  {
     icon: "🎨",
     title: "Retro UI",
     description: "Classic QuickTime player aesthetics",
