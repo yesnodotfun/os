@@ -85,6 +85,7 @@ export const APP_STORAGE_KEYS = {
     WINDOW: "pc:window" as const,
     HAS_SEEN_HELP: "pc:hasSeenHelp" as const,
     SAVE_STATE: "pc:saveState" as const,
+    GAMES: "pc:games" as const,
   },
 } as const;
 
@@ -820,4 +821,66 @@ export const saveIsShuffled = (isShuffled: boolean): void => {
     APP_STORAGE_KEYS.videos.IS_SHUFFLED,
     isShuffled.toString()
   );
+};
+
+// PC Games storage
+export interface Game {
+  id: string;
+  name: string;
+  path: string;
+  image: string;
+}
+
+const DEFAULT_GAMES: Game[] = [
+  {
+    id: "doom",
+    name: "Doom",
+    path: "https://cdn.dos.zone/custom/dos/doom.jsdos",
+    image:
+      "https://dos.zone/images/containers/assets/backgrounds/doom_1.jpg/4f71dd317326a9a9722bdd9cd2151390.webp",
+  },
+  {
+    id: "simcity",
+    name: "SimCity",
+    path: "https://cdn.dos.zone/original/2X/7/744842062905f72648a4d492ccc2526d039b3702.jsdos",
+    image:
+      "https://dos.zone/images/http/original/2X/6/692603ba9ff06c30e6d1c4bf736b3edbdfa1be77.jpeg/66fbbcbbceb4871a5c59ab65c95d9881.webp",
+  },
+  {
+    id: "simcity2000",
+    name: "SimCity 2000",
+    path: "https://cdn.dos.zone/original/2X/b/b1ed3b93829bdff0c9062c5642767825dd52baf1.jsdos",
+    image:
+      "https://dos.zone/images/http/original/2X/4/41f12cbd023b7732e669b6ade8e811bb5e7c28b1.jpeg/082780351bd2601b6da9741b2ed45eed.webp",
+  },
+  {
+    id: "ageofempires",
+    name: "Age of Empires",
+    path: "https://cdn.dos.zone/custom/dos/aoe-nic.jsdos",
+    image:
+      "https://dos.zone/images/containers/assets/backgrounds/aoe.jpg/8e9b9790eb7b714952713aafc169c802.webp",
+  },
+  {
+    id: "ageofempires2",
+    name: "Age of Empires II",
+    path: "https://br.cdn.dos.zone/published/br.clfmbm.AgeOfEmpires2eng.jsdos",
+    image:
+      "https://dos.zone/images/containers/assets/backgrounds/clfmbm.ss_9ccf9acb373b3e26f9e42a053147845561b2c224.1920x1080.jpg/6d8639336a03258300ab31f690f569ba.webp",
+  },
+  {
+    id: "princeofpersia",
+    name: "Prince of Persia",
+    path: "https://cdn.dos.zone/original/2X/1/1179a7c9e05b1679333ed6db08e7884f6e86c155.jsdos",
+    image:
+      "https://dos.zone/images/http/original/2X/9/9c5f757776e4e9891e063c3e935889ec857dce92.jpeg/66435bae6f294c35ad3c7de8a48f90cf.webp",
+  },
+];
+
+export const loadGames = (): Game[] => {
+  const saved = localStorage.getItem(APP_STORAGE_KEYS.pc.GAMES);
+  return saved ? JSON.parse(saved) : DEFAULT_GAMES;
+};
+
+export const saveGames = (games: Game[]): void => {
+  localStorage.setItem(APP_STORAGE_KEYS.pc.GAMES, JSON.stringify(games));
 };

@@ -1,5 +1,5 @@
 import { BaseApp } from "../base/types";
-import { PCAppComponent } from "./components/PcAppComponent";
+import { PcAppComponent } from "./components/PcAppComponent";
 
 export const appMetadata = {
   name: "Virtual PC",
@@ -35,7 +35,7 @@ export const PcApp: BaseApp = {
   name: "Virtual PC",
   icon: { type: "image", src: "/icons/pc.png" },
   description: "DOSBox Emulator",
-  component: PCAppComponent,
+  component: PcAppComponent,
   windowConstraints: {
     minWidth: 640,
     minHeight: 480,

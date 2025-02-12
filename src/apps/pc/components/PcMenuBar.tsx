@@ -6,7 +6,11 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Game, loadGames } from "@/utils/storage";
 
 interface PcMenuBarProps {
   onClose: () => void;
@@ -15,7 +19,8 @@ interface PcMenuBarProps {
   onSaveState: () => void;
   onLoadState: () => void;
   onReset: () => void;
-  onLoadGame: () => void;
+  onLoadGame: (game: Game) => void;
+  selectedGame: Game;
 }
 
 export function PcMenuBar({
@@ -26,7 +31,10 @@ export function PcMenuBar({
   onLoadState,
   onReset,
   onLoadGame,
+  selectedGame,
 }: PcMenuBarProps) {
+  const availableGames = loadGames();
+
   return (
     <MenuBar>
       <DropdownMenu>
@@ -40,12 +48,24 @@ export function PcMenuBar({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" sideOffset={1} className="px-0">
-          <DropdownMenuItem
-            onClick={onLoadGame}
-            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
-          >
-            Load Game
-          </DropdownMenuItem>
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
+              Load Game
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className="px-0">
+              {availableGames.map((game) => (
+                <DropdownMenuItem
+                  key={game.id}
+                  onClick={() => onLoadGame(game)}
+                  className={`text-md h-6 px-3 active:bg-gray-900 active:text-white ${
+                    selectedGame.id === game.id ? "bg-gray-100" : ""
+                  }`}
+                >
+                  {game.name}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           <DropdownMenuItem
             onClick={onSaveState}

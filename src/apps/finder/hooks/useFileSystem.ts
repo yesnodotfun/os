@@ -34,6 +34,7 @@ A web-based operating system experience inspired by classic Mac OS System 7. Bui
 - Responsive design for all screen sizes
 - System-wide sound effects and themes
 - Backup and restore functionality
+- Virtual PC with classic games
 
 ## Built-in Applications
 
@@ -45,6 +46,7 @@ A web-based operating system experience inspired by classic Mac OS System 7. Bui
 - **Internet Explorer**: Browse the web with time travel
 - **Chats**: Chat with AI assistant
 - **Videos**: Make video playlists and watch them
+- **Virtual PC**: Play classic PC games like Doom and SimCity
 
 ## Getting Started
 
@@ -53,6 +55,7 @@ A web-based operating system experience inspired by classic Mac OS System 7. Bui
 - Files are automatically saved to your browser's storage
 - Drag windows to move them, click and drag window edges to resize
 - Use Control Panels to customize your experience
+- Launch PC Emulator from Applications folder to play classic games
 
 ## Technical Details
 
@@ -63,6 +66,7 @@ A web-based operating system experience inspired by classic Mac OS System 7. Bui
 - Bun as package manager
 - WaveSurfer.js for audio visualization
 - Tone.js for audio synthesis
+- Virtual PC Emulator powered by DOSBox
 
 Visit https://github.com/ryokun6/soundboard for more information.`,
   },
@@ -145,6 +149,16 @@ Visit https://github.com/ryokun6/soundboard for more information.`,
 - Make video playlists and watch them
 - Add videos to favorites
 - VHS-style video player interface
+
+## PC Emulator
+- Play classic PC games like Doom and SimCity
+- Launch from Applications folder
+- Use keyboard shortcuts for game controls
+- Save game progress automatically
+- Switch between multiple games
+- Adjust emulator settings in Control Panels
+- Import/export game saves
+- Full-screen mode available
 
 ## Tips & Tricks
 - Use keyboard shortcuts for efficiency

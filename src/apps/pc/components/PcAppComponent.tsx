@@ -6,6 +6,7 @@ import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { helpItems, appMetadata } from "..";
+import { Game, loadGames } from "@/utils/storage";
 
 // Type declarations for js-dos v8
 declare global {
@@ -41,7 +42,7 @@ interface DosProps {
   stop: () => Promise<void>;
 }
 
-export function PCAppComponent({
+export function PcAppComponent({
   isWindowOpen,
   onClose,
   isForeground,
@@ -51,6 +52,12 @@ export function PCAppComponent({
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isScriptLoaded, setIsScriptLoaded] = useState(false);
+  const [selectedGame, setSelectedGame] = useState<Game>(() => {
+    const games = loadGames();
+    return games[0];
+  });
+  const [pendingGame, setPendingGame] = useState<Game | null>(null);
+  const [isGameRunning, setIsGameRunning] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const dosPropsRef = useRef<DosProps | null>(null);
   const scriptRef = useRef<HTMLScriptElement | null>(null);
@@ -68,6 +75,11 @@ export function PCAppComponent({
         setTimeout(() => {
           console.log("Checking if Dos function is available:", !!window.Dos);
           setIsScriptLoaded(true);
+          // If there was a pending game load, try loading it now
+          if (pendingGame) {
+            handleLoadGame(pendingGame);
+            setPendingGame(null);
+          }
         }, 1000);
       };
       script.onerror = (error) => {
@@ -84,7 +96,7 @@ export function PCAppComponent({
         dosPropsRef.current = null;
       }
     };
-  }, []);
+  }, [pendingGame]);
 
   useEffect(() => {
     // Cleanup dosbox instance when window is closed
@@ -94,22 +106,31 @@ export function PCAppComponent({
     }
   }, [isWindowOpen]);
 
-  const handleLoadGame = () => {
+  const handleLoadGame = async (game: Game) => {
+    setSelectedGame(game);
+    setIsGameRunning(true);
     if (!containerRef.current) {
       console.error("Container ref is null");
       return;
     }
     if (!window.Dos) {
       console.error("Dos function is not available");
+      if (!isScriptLoaded) {
+        console.log("Script not loaded yet, queuing game load...");
+        setPendingGame(game);
+        return;
+      }
       return;
     }
     if (!isScriptLoaded) {
-      console.error("Script is not fully loaded yet");
+      console.log("Script not fully loaded yet, queuing game load...");
+      setPendingGame(game);
       return;
     }
 
     try {
       console.log("Starting game load...");
+      console.log("Selected game:", game);
       console.log("Container dimensions:", {
         width: containerRef.current.offsetWidth,
         height: containerRef.current.offsetHeight,
@@ -119,17 +140,18 @@ export function PCAppComponent({
       // Stop existing instance if any
       if (dosPropsRef.current) {
         console.log("Stopping existing instance...");
-        dosPropsRef.current.stop();
+        await dosPropsRef.current.stop();
         dosPropsRef.current = null;
       }
 
-      // Clear container
+      // Clear container and wait for next tick
       containerRef.current.innerHTML = "";
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Start new instance
       console.log("Creating new Dos instance...");
       const options: DosOptions = {
-        url: "/games/doom.jsdos",
+        url: game.path,
         theme: "dark",
         renderAspect: "4/3",
         renderBackend: "webgl",
@@ -153,7 +175,7 @@ export function PCAppComponent({
             // Reset the emulator state
             if (containerRef.current) {
               containerRef.current.innerHTML = "";
-              handleLoadGame();
+              handleLoadGame(selectedGame);
             }
           }
         },
@@ -192,7 +214,7 @@ export function PCAppComponent({
         dosPropsRef.current = null;
       }
       containerRef.current.innerHTML = "";
-      handleLoadGame();
+      setIsGameRunning(false);
     }
     setIsResetDialogOpen(false);
   };
@@ -209,6 +231,7 @@ export function PCAppComponent({
         onLoadState={handleLoadState}
         onReset={() => setIsResetDialogOpen(true)}
         onLoadGame={handleLoadGame}
+        selectedGame={selectedGame}
       />
       <WindowFrame
         title="Virtual PC"
@@ -218,15 +241,40 @@ export function PCAppComponent({
       >
         <div className="flex flex-col h-full w-full bg-black">
           <div className="flex-1 relative h-full">
+            {/* Always keep the DOSBox container in DOM but hide when not in use */}
             <div
               id="dosbox"
               ref={containerRef}
-              className="w-full h-full"
+              className={`w-[640px] h-[480px] ${
+                isGameRunning ? "block" : "hidden"
+              }`}
               style={{ minHeight: "400px", position: "relative" }}
             />
             {isLoading && (
               <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
-                <div className="text-white">Loading game...</div>
+                <div className="text-white">Loading {selectedGame.name}...</div>
+              </div>
+            )}
+            {!isGameRunning && (
+              <div className="p-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 overflow-y-auto">
+                {loadGames().map((game) => (
+                  <button
+                    key={game.id}
+                    onClick={() => handleLoadGame(game)}
+                    className="group relative aspect-video rounded-lg overflow-hidden bg-gray-800 hover:bg-gray-700 transition-colors"
+                  >
+                    <img
+                      src={game.image}
+                      alt={game.name}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <span className="text-white text-lg font-medium">
+                        {game.name}
+                      </span>
+                    </div>
+                  </button>
+                ))}
               </div>
             )}
           </div>

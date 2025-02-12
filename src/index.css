@@ -190,6 +190,24 @@
   animation: scanline 10s linear infinite;
 }
 
+#dosbox > div > div.absolute.right-10.bottom-10 > div {
+  display: flex;
+  position: absolute;
+  width: 200px;
+  flex-direction: row;
+  color: #ffffff;
+  top: 12px;
+  left: 12px;
+  text-shadow: 0 0 4px #000;
+  font-family: Geneva-12, Geneva, Tahoma, sans-serif;
+  font-smooth: always;
+  -webkit-font-smoothing: antialiased;
+}
+
+#dosbox > div > div.absolute.right-10.bottom-10 > div > svg {
+  display: none;
+}
+
 @keyframes scanline {
   0% {
     background-position: 0 0;

@@ -90,8 +90,9 @@ export const appRegistry = {
   [PcApp.id]: {
     ...PcApp,
     windowConfig: {
-      defaultSize: { width: 590, height: 480 },
-      minSize: { width: 590, height: 480 },
+      defaultSize: { width: 645, height: 511 },
+      minSize: { width: 645, height: 511 },
+      maxSize: { width: 645, height: 511 },
     } as WindowConstraints,
   },
   [ControlPanelsApp.id]: {
