@@ -165,7 +165,14 @@ export function ControlPanelsAppComponent({
     setUiSoundsEnabled(loadUISoundsEnabled());
     setTypingSynthEnabled(loadTypingSynthEnabled());
     setSynthPreset(loadSynthPreset() || "classic");
-    setDisplayMode(loadDisplayMode());
+    const mode = loadDisplayMode();
+    setDisplayMode(mode);
+    // Apply the display mode on initial load
+    if (mode === "monotone") {
+      document.documentElement.style.filter = "grayscale(100%)";
+    } else {
+      document.documentElement.style.filter = "none";
+    }
   }, []);
 
   const handleUISoundsChange = (enabled: boolean) => {
@@ -292,9 +299,9 @@ export function ControlPanelsAppComponent({
   };
 
   // Add display mode handler
-  const handleDisplayModeChange = (value: DisplayMode) => {
-    setDisplayMode(value);
-    saveDisplayMode(value);
+  const handleDisplayModeChange = (mode: DisplayMode) => {
+    setDisplayMode(mode);
+    saveDisplayMode(mode);
   };
 
   if (!isWindowOpen) return null;
