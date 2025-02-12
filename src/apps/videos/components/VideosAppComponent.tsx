@@ -71,6 +71,13 @@ export function VideosAppComponent({
 
   const [playAfterAdd, setPlayAfterAdd] = useState(false);
 
+  // Auto-play when window opens
+  useEffect(() => {
+    if (isWindowOpen && videos.length > 0) {
+      setIsPlaying(true);
+    }
+  }, [isWindowOpen, videos.length]);
+
   // Save state to storage whenever it changes
   useEffect(() => {
     savePlaylist(videos);
