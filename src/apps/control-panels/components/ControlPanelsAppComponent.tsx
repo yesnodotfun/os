@@ -448,7 +448,7 @@ export function ControlPanelsAppComponent({
           onOpenChange={setIsConfirmResetOpen}
           onConfirm={handleConfirmReset}
           title="Reset All Settings"
-          description="Are you sure you want to reset all settings? This will clear all saved settings and restore default states. ryOS will reload after reset."
+          description="Are you sure you want to reset all settings? This will clear all saved settings and restore default states. ryOS will restart after reset."
         />
         <ConfirmDialog
           isOpen={isConfirmFormatOpen}
@@ -458,7 +458,7 @@ export function ControlPanelsAppComponent({
             window.location.reload();
           }}
           title="Format File System"
-          description="Are you sure you want to format the file system? This will permanently delete all documents. ryOS will reload after format."
+          description="Are you sure you want to format the file system? This will permanently delete all documents. ryOS will restart after format."
         />
       </WindowFrame>
     </>

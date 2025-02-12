@@ -716,17 +716,17 @@ const DEFAULT_VIDEOS: Video[] = [
   {
     id: "GYLUSHZl8M0",
     url: "https://www.youtube.com/watch?v=GYLUSHZl8M0",
-    title: "ditto",
+    title: "ditto - peace",
   },
   {
     id: "pSUydWEqKwE",
     url: "https://www.youtube.com/watch?v=pSUydWEqKwE",
-    title: "NewJeans 'Ditto' (side A)",
+    title: "NewJeans - 'Ditto' (side A)",
   },
   {
     id: "ZncbtRo7RXs",
     url: "https://www.youtube.com/watch?v=ZncbtRo7RXs",
-    title: "NewJeans 'Supernatural' (Part.1)",
+    title: "NewJeans - 'Supernatural' (Part.1)",
   },
   {
     id: "L_OgLK3fmc8",
@@ -736,22 +736,22 @@ const DEFAULT_VIDEOS: Video[] = [
   {
     id: "Q3K0TOvTOno",
     url: "https://www.youtube.com/watch?v=Q3K0TOvTOno",
-    title: "NewJeans 'How Sweet'",
+    title: "NewJeans - 'How Sweet'",
   },
   {
     id: "FonjL7DQAUQ",
     url: "https://www.youtube.com/watch?v=FonjL7DQAUQ",
-    title: "deca joins 海浪",
-  },
-  {
-    id: "jKnLSg83Nqc",
-    url: "https://www.youtube.com/watch?v=jKnLSg83Nqc",
-    title: "Crush 'ㅠ.ㅠ (You)'",
+    title: "deca joins - 海浪",
   },
   {
     id: "_wgeHqXr4Hc",
     url: "https://www.youtube.com/watch?v=_wgeHqXr4Hc",
-    title: "Crush '나를 위해 (For Days to Come)'",
+    title: "Crush - '나를 위해 (For Days to Come)'",
+  },
+  {
+    id: "DskqpUrvlmw",
+    url: "https://www.youtube.com/watch?v=DskqpUrvlmw",
+    title: "STAYC(스테이씨) - 'GPT'",
   },
 ];
 

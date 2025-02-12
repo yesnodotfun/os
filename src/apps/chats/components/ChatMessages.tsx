@@ -281,7 +281,7 @@ export function ChatMessages({
                   onClick={onRetry}
                   className="m-0 p-0 text-[16px] h-0 text-amber-600"
                 >
-                  Reload
+                  Try again
                 </Button>
               )}
             </motion.div>
