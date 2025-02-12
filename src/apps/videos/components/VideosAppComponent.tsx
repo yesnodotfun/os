@@ -71,12 +71,16 @@ export function VideosAppComponent({
 
   const [playAfterAdd, setPlayAfterAdd] = useState(false);
 
-  // Auto-play when window opens
+  const [isSafari] = useState(() =>
+    /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
+  );
+
+  // Auto-play when window opens (except Safari)
   useEffect(() => {
-    if (isWindowOpen && videos.length > 0) {
+    if (isWindowOpen && videos.length > 0 && !isSafari) {
       setIsPlaying(true);
     }
-  }, [isWindowOpen, videos.length]);
+  }, [isWindowOpen, videos.length, isSafari]);
 
   // Save state to storage whenever it changes
   useEffect(() => {
@@ -302,7 +306,10 @@ export function VideosAppComponent({
               <div className="w-full h-full overflow-hidden relative">
                 <iframe
                   ref={playerRef}
-                  className="w-full scale-[1.05] pointer-events-none"
+                  className={cn(
+                    "w-full scale-[1.05]",
+                    !isSafari && "pointer-events-none"
+                  )}
                   style={{ height: "calc(100% + 120px)", marginTop: "-60px" }}
                   src={`https://www.youtube.com/embed/${
                     videos[currentIndex].id
@@ -312,12 +319,14 @@ export function VideosAppComponent({
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
                 />
-                {/* Clickable overlay */}
-                <div
-                  className="absolute inset-0 cursor-pointer"
-                  onClick={togglePlay}
-                  aria-label={isPlaying ? "Pause" : "Play"}
-                />
+                {/* Clickable overlay - only show for non-Safari browsers */}
+                {!isSafari && (
+                  <div
+                    className="absolute inset-0 cursor-pointer"
+                    onClick={togglePlay}
+                    aria-label={isPlaying ? "Pause" : "Play"}
+                  />
+                )}
               </div>
             ) : (
               <div className="flex items-center justify-center h-full text-gray-400 font-geneva-12 text-sm">
@@ -497,7 +506,7 @@ export function VideosAppComponent({
                   <button
                     onClick={toggleShuffle}
                     className={cn(
-                      "text-[9px] font-bold flex items-center justify-center focus:outline-none relative w-[45px] h-[20px] bg-[url('/assets/videos/switch.png')] bg-no-repeat bg-center font-geneva-12 text-black",
+                      "text-[9px] flex items-center justify-center focus:outline-none relative w-[45px] h-[20px] bg-[url('/assets/videos/switch.png')] bg-no-repeat bg-center font-geneva-12 text-black",
                       isShuffled && "brightness-75"
                     )}
                   >
@@ -506,7 +515,7 @@ export function VideosAppComponent({
                   <button
                     onClick={() => setLoopAll(!loopAll)}
                     className={cn(
-                      "text-[9px] font-bold flex items-center justify-center focus:outline-none relative w-[45px] h-[20px] bg-[url('/assets/videos/switch.png')] bg-no-repeat bg-center font-geneva-12 text-black",
+                      "text-[9px] flex items-center justify-center focus:outline-none relative w-[45px] h-[20px] bg-[url('/assets/videos/switch.png')] bg-no-repeat bg-center font-geneva-12 text-black",
                       loopAll && "brightness-75"
                     )}
                   >
@@ -515,7 +524,7 @@ export function VideosAppComponent({
                   <button
                     onClick={() => setLoopCurrent(!loopCurrent)}
                     className={cn(
-                      "text-[9px] font-bold flex items-center justify-center focus:outline-none relative w-[45px] h-[20px] bg-[url('/assets/videos/switch.png')] bg-no-repeat bg-center font-geneva-12 text-black",
+                      "text-[9px] flex items-center justify-center focus:outline-none relative w-[45px] h-[20px] bg-[url('/assets/videos/switch.png')] bg-no-repeat bg-center font-geneva-12 text-black",
                       loopCurrent && "brightness-75"
                     )}
                   >
@@ -524,7 +533,7 @@ export function VideosAppComponent({
                 </div>
                 <button
                   onClick={() => setIsAddDialogOpen(true)}
-                  className="text-[9px] font-bold flex items-center justify-center focus:outline-none relative w-[45px] h-[20px] bg-[url('/assets/videos/switch.png')] bg-no-repeat bg-center font-geneva-12 text-black"
+                  className="text-[9px] flex items-center justify-center focus:outline-none relative w-[45px] h-[20px] bg-[url('/assets/videos/switch.png')] bg-no-repeat bg-center font-geneva-12 text-black"
                 >
                   ADD
                 </button>
