@@ -122,9 +122,9 @@ function AnimatedTitle({
       <AnimatePresence mode="popLayout" initial={false}>
         <motion.div
           key={title}
-          initial={{ y: yOffset, opacity: 0, filter: "blur(5px)" }}
-          animate={{ y: 0, opacity: 1, filter: "blur(0px)" }}
-          exit={{ y: yOffset, opacity: 0, filter: "blur(5px)" }}
+          initial={{ y: yOffset, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: yOffset, opacity: 0 }}
           transition={{
             y: {
               type: "spring",
@@ -132,9 +132,6 @@ function AnimatedTitle({
               damping: 30,
             },
             opacity: {
-              duration: 0.2,
-            },
-            filter: {
               duration: 0.2,
             },
           }}

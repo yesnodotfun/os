@@ -343,8 +343,8 @@ export function ControlPanelsAppComponent({
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col gap-1">
                     <Label>Chat synth</Label>
-                    <Label className="text-[11px] text-gray-600 font-geneva-12">
-                      This will reload the application to apply the new preset.
+                    <Label className="text-[11px] text-gray-600 font-geneva-12 pr-1">
+                      ryOS will restart to apply new settings
                     </Label>
                   </div>
                   <Select
@@ -406,10 +406,11 @@ export function ControlPanelsAppComponent({
                     onClick={handleResetAll}
                     className="w-full"
                   >
-                    Reset All App Settings
+                    Reset All Settings
                   </Button>
                   <p className="text-[11px] text-gray-600 font-geneva-12">
-                    This will clear all saved settings and states.
+                    This will clear all saved settings and restore default
+                    states.
                   </p>
                 </div>
 
@@ -446,8 +447,8 @@ export function ControlPanelsAppComponent({
           isOpen={isConfirmResetOpen}
           onOpenChange={setIsConfirmResetOpen}
           onConfirm={handleConfirmReset}
-          title="Reset All"
-          description="Are you sure you want to reset all app states? This will clear all saved settings and states. The application will reload after reset."
+          title="Reset All Settings"
+          description="Are you sure you want to reset all settings? This will clear all saved settings and restore default states. ryOS will reload after reset."
         />
         <ConfirmDialog
           isOpen={isConfirmFormatOpen}
@@ -457,7 +458,7 @@ export function ControlPanelsAppComponent({
             window.location.reload();
           }}
           title="Format File System"
-          description="Are you sure you want to format the file system? This will permanently delete all documents. The application will reload after format."
+          description="Are you sure you want to format the file system? This will permanently delete all documents. ryOS will reload after format."
         />
       </WindowFrame>
     </>

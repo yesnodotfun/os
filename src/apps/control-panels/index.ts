@@ -4,15 +4,21 @@ import { ControlPanelsAppComponent } from "./components/ControlPanelsAppComponen
 export const helpItems = [
   {
     icon: "🎨",
-    title: "Overview",
+    title: "Appearance",
     description:
-      "Control Panels lets you customize various system settings including appearance, sound, keyboard, and location preferences.",
+      "Customize your desktop wallpaper with a variety of beautiful photos and patterns",
+  },
+  {
+    icon: "🔊",
+    title: "Sound",
+    description:
+      "Configure UI sounds, typing synth, and chat synthesizer settings",
   },
   {
     icon: "⚙️",
-    title: "Using Control Panels",
+    title: "System",
     description:
-      "Click on any panel icon to open its specific settings. Changes are saved automatically.",
+      "Backup/restore settings, reset preferences, or format the virtual file system",
   },
 ];
 
