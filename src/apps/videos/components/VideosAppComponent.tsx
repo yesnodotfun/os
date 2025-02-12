@@ -22,6 +22,7 @@ import {
   loadIsShuffled,
   saveIsShuffled,
 } from "@/utils/storage";
+import { Button } from "@/components/ui/button";
 
 interface Video {
   id: string;
@@ -272,7 +273,9 @@ export function VideosAppComponent({
         }}
         onShufflePlaylist={toggleShuffle}
         onToggleLoopAll={() => setLoopAll(!loopAll)}
+        onToggleLoopCurrent={() => setLoopCurrent(!loopCurrent)}
         isLoopAll={loopAll}
+        isLoopCurrent={loopCurrent}
         onTogglePlay={togglePlay}
         onNext={() => {
           if (currentIndex < videos.length - 1) {
@@ -517,46 +520,38 @@ export function VideosAppComponent({
               {/* Right Side: Mode Switches */}
               <div className="flex items-center gap-2">
                 <div className="flex gap-0">
-                  <button
+                  <Button
                     onClick={toggleShuffle}
-                    className={cn(
-                      "text-[9px] flex items-center justify-center focus:outline-none relative w-[45px] h-[20px] bg-[url('/assets/videos/switch.png')] bg-no-repeat bg-center font-geneva-12 text-black",
-                      isShuffled ? "brightness-60" : "hover:brightness-90",
-                      "active:brightness-50"
-                    )}
+                    variant="player"
+                    data-state={isShuffled ? "on" : "off"}
+                    className="h-[22px] px-2"
                   >
                     SHUFFLE
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={() => setLoopAll(!loopAll)}
-                    className={cn(
-                      "text-[9px] flex items-center justify-center focus:outline-none relative w-[45px] h-[20px] bg-[url('/assets/videos/switch.png')] bg-no-repeat bg-center font-geneva-12 text-black",
-                      loopAll ? "brightness-60" : "hover:brightness-90",
-                      "active:brightness-50"
-                    )}
+                    variant="player"
+                    data-state={loopAll ? "on" : "off"}
+                    className="h-[22px] px-2"
                   >
                     REPEAT
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={() => setLoopCurrent(!loopCurrent)}
-                    className={cn(
-                      "text-[9px] flex items-center justify-center focus:outline-none relative w-[45px] h-[20px] bg-[url('/assets/videos/switch.png')] bg-no-repeat bg-center font-geneva-12 text-black",
-                      loopCurrent ? "brightness-60" : "hover:brightness-90",
-                      "active:brightness-50"
-                    )}
+                    variant="player"
+                    data-state={loopCurrent ? "on" : "off"}
+                    className="h-[22px] px-2"
                   >
                     {loopCurrent ? "↺" : "→"}
-                  </button>
+                  </Button>
                 </div>
-                <button
+                <Button
                   onClick={() => setIsAddDialogOpen(true)}
-                  className={cn(
-                    "text-[9px] flex items-center justify-center focus:outline-none relative w-[45px] h-[20px] bg-[url('/assets/videos/switch.png')] bg-no-repeat bg-center font-geneva-12 text-black",
-                    "hover:brightness-90 active:brightness-50"
-                  )}
+                  variant="player"
+                  className="h-[22px] px-2"
                 >
                   ADD
-                </button>
+                </Button>
               </div>
             </div>
           </div>

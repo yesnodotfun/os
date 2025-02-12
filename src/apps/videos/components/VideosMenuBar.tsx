@@ -25,12 +25,14 @@ interface VideosMenuBarProps {
   onClearPlaylist: () => void;
   onShufflePlaylist: () => void;
   onToggleLoopAll: () => void;
+  onToggleLoopCurrent: () => void;
   onTogglePlay: () => void;
   onNext: () => void;
   onPrevious: () => void;
   onAddVideo: () => void;
   onOpenVideo: () => void;
   isLoopAll: boolean;
+  isLoopCurrent: boolean;
   isPlaying: boolean;
   isShuffled: boolean;
 }
@@ -45,12 +47,14 @@ export function VideosMenuBar({
   onClearPlaylist,
   onShufflePlaylist,
   onToggleLoopAll,
+  onToggleLoopCurrent,
   onTogglePlay,
   onNext,
   onPrevious,
   onAddVideo,
   onOpenVideo,
   isLoopAll,
+  isLoopCurrent,
   isPlaying,
   isShuffled,
 }: VideosMenuBarProps) {
@@ -119,19 +123,27 @@ export function VideosMenuBar({
           </DropdownMenuItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           <DropdownMenuItem
-            onClick={onToggleLoopAll}
-            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
-          >
-            <span className={cn(!isLoopAll && "pl-4")}>
-              {isLoopAll ? "✓ Repeat" : "Repeat"}
-            </span>
-          </DropdownMenuItem>
-          <DropdownMenuItem
             onClick={onShufflePlaylist}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
             <span className={cn(!isShuffled && "pl-4")}>
               {isShuffled ? "✓ Shuffle" : "Shuffle"}
+            </span>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={onToggleLoopAll}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            <span className={cn(!isLoopAll && "pl-4")}>
+              {isLoopAll ? "✓ Repeat All" : "Repeat All"}
+            </span>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={onToggleLoopCurrent}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            <span className={cn(!isLoopCurrent && "pl-4")}>
+              {isLoopCurrent ? "✓ Repeat One" : "Repeat One"}
             </span>
           </DropdownMenuItem>
         </DropdownMenuContent>
