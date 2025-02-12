@@ -91,8 +91,8 @@ export const appRegistry = {
   [VideosApp.id]: {
     ...VideosApp,
     windowConfig: {
-      defaultSize: { width: 800, height: 600 },
-      minSize: { width: 400, height: 300 },
+      defaultSize: { width: 400, height: 400 },
+      minSize: { width: 400, height: 340 },
     } as WindowConstraints,
   },
 } as const;

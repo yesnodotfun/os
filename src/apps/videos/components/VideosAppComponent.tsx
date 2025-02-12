@@ -7,6 +7,7 @@ import { VideosMenuBar } from "./VideosMenuBar";
 import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { InputDialog } from "@/components/dialogs/InputDialog";
+import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { helpItems, appMetadata } from "..";
 import {
   loadPlaylist,
@@ -27,6 +28,25 @@ interface Video {
   title: string;
 }
 
+interface VideoInfo {
+  title: string;
+}
+
+async function fetchVideoInfo(videoId: string): Promise<VideoInfo> {
+  const response = await fetch(
+    `https://www.youtube.com/oembed?url=http://www.youtube.com/watch?v=${videoId}&format=json`
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch video info");
+  }
+
+  const data = await response.json();
+  return {
+    title: data.title,
+  };
+}
+
 export function VideosAppComponent({
   isWindowOpen,
   onClose,
@@ -41,13 +61,15 @@ export function VideosAppComponent({
   const [originalOrder, setOriginalOrder] = useState<Video[]>([]);
   const [urlInput, setUrlInput] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const playerRef = useRef<HTMLIFrameElement>(null);
-
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
+  const [isConfirmClearOpen, setIsConfirmClearOpen] = useState(false);
+  const playerRef = useRef<HTMLIFrameElement>(null);
 
   const [elapsedTime, setElapsedTime] = useState(0);
   const timeIntervalRef = useRef<number>();
+
+  const [playAfterAdd, setPlayAfterAdd] = useState(false);
 
   // Save state to storage whenever it changes
   useEffect(() => {
@@ -108,52 +130,30 @@ export function VideosAppComponent({
     return match && match[7].length === 11 ? match[7] : null;
   };
 
-  const addVideo = async () => {
-    const videoId = extractVideoId(urlInput);
-    if (videoId) {
-      try {
-        // Fetch video title using oEmbed API
-        const response = await fetch(
-          `https://www.youtube.com/oembed?url=http://www.youtube.com/watch?v=${videoId}&format=json`
-        );
-        const data = await response.json();
-
-        const newVideo: Video = {
-          id: videoId,
-          url: urlInput,
-          title: data.title,
-        };
-        setVideos((prev) => {
-          const newVideos = [...prev, newVideo];
-          // If this is the first video, set it as current and play
-          if (prev.length === 0) {
-            setCurrentIndex(0);
-            setIsPlaying(true);
-          }
-          return newVideos;
-        });
-        setUrlInput("");
-        setIsAddDialogOpen(false);
-      } catch (error) {
-        console.error("Error fetching video title:", error);
-        // Fallback to default title if fetch fails
-        const newVideo: Video = {
-          id: videoId,
-          url: urlInput,
-          title: `Video ${videos.length + 1}`,
-        };
-        setVideos((prev) => {
-          const newVideos = [...prev, newVideo];
-          // If this is the first video, set it as current and play
-          if (prev.length === 0) {
-            setCurrentIndex(0);
-            setIsPlaying(true);
-          }
-          return newVideos;
-        });
-        setUrlInput("");
-        setIsAddDialogOpen(false);
+  const addVideo = async (url: string) => {
+    try {
+      const videoId = extractVideoId(url);
+      if (!videoId) {
+        throw new Error("Invalid YouTube URL");
       }
+
+      const videoInfo = await fetchVideoInfo(videoId);
+      const newVideo: Video = {
+        id: videoId,
+        url,
+        title: videoInfo.title,
+      };
+
+      setVideos((prev) => [...prev, newVideo]);
+      if (playAfterAdd) {
+        setCurrentIndex(videos.length);
+        setIsPlaying(true);
+        setPlayAfterAdd(false);
+      }
+      setUrlInput("");
+    } catch (error) {
+      console.error("Failed to add video:", error);
+      // Handle error (show notification, etc.)
     }
   };
 
@@ -251,13 +251,31 @@ export function VideosAppComponent({
           setIsPlaying(true);
         }}
         onClearPlaylist={() => {
-          setVideos([]);
-          setCurrentIndex(0);
-          setIsPlaying(false);
+          setIsConfirmClearOpen(true);
         }}
         onShufflePlaylist={toggleShuffle}
         onToggleLoopAll={() => setLoopAll(!loopAll)}
         isLoopAll={loopAll}
+        onTogglePlay={() => setIsPlaying(!isPlaying)}
+        onNext={() => {
+          if (currentIndex < videos.length - 1) {
+            setCurrentIndex(currentIndex + 1);
+            setIsPlaying(true);
+          }
+        }}
+        onPrevious={() => {
+          if (currentIndex > 0) {
+            setCurrentIndex(currentIndex - 1);
+            setIsPlaying(true);
+          }
+        }}
+        onAddVideo={() => setIsAddDialogOpen(true)}
+        onOpenVideo={() => {
+          setIsAddDialogOpen(true);
+          // We'll set a flag to play immediately after adding
+          setPlayAfterAdd(true);
+        }}
+        isPlaying={isPlaying}
       />
       <WindowFrame
         title="Videos"
@@ -289,8 +307,14 @@ export function VideosAppComponent({
                 />
               </div>
             ) : (
-              <div className="flex items-center justify-center h-full text-gray-400">
-                Add videos to get started
+              <div className="flex items-center justify-center h-full text-gray-400 font-geneva-12 text-sm">
+                <a
+                  onClick={() => setIsAddDialogOpen(true)}
+                  className="text-[#ff00ff] hover:underline cursor-pointer"
+                >
+                  Add videos
+                </a>
+                &nbsp;to get started
               </div>
             )}
           </div>
@@ -300,97 +324,100 @@ export function VideosAppComponent({
             {/* LCD Display */}
             <div className="bg-black py-2 px-4 flex items-center justify-between w-full">
               <div className="flex items-center gap-8">
-                <div className="text-[#ff00ff] font-geneva-12 text-xs">
+                <div
+                  className={cn(
+                    "font-geneva-12 text-[10px] transition-colors duration-300",
+                    isPlaying ? "text-[#ff00ff]" : "text-gray-600"
+                  )}
+                >
                   <div>Track</div>
                   <div className="text-xl">
                     {String(currentIndex + 1).padStart(2, "0")}
                   </div>
                 </div>
-                <div className="text-[#ff00ff] font-geneva-12 text-xs">
-                  <div>Elapsed Time</div>
+                <div
+                  className={cn(
+                    "font-geneva-12 text-[10px] transition-colors duration-300",
+                    isPlaying ? "text-[#ff00ff]" : "text-gray-600"
+                  )}
+                >
+                  <div>Time</div>
                   <div className="text-xl">{formatTime(elapsedTime)}</div>
                 </div>
               </div>
-              <div className="relative overflow-hidden flex-1 px-8">
+              <div className="relative overflow-hidden flex-1 px-2">
+                <div
+                  className={cn(
+                    "font-geneva-12 text-[10px] transition-colors duration-300 mb-[3px] pl-2",
+                    isPlaying ? "text-[#ff00ff]" : "text-gray-600"
+                  )}
+                >
+                  Title
+                </div>
                 {videos.length > 0 && (
-                  <div className="flex whitespace-nowrap">
-                    <motion.div
-                      initial={{ x: "0%" }}
-                      animate={isPlaying ? { x: "-100%" } : { x: "0%" }}
-                      transition={{
-                        duration: 20,
-                        ease: "linear",
-                        repeat: Infinity,
-                        repeatType: "loop",
-                      }}
-                      className="shrink-0 text-[#ff00ff] font-geneva-12 px-2"
-                    >
-                      {videos[currentIndex].title}
-                    </motion.div>
-                    <motion.div
-                      initial={{ x: "0%" }}
-                      animate={isPlaying ? { x: "-100%" } : { x: "0%" }}
-                      transition={{
-                        duration: 20,
-                        ease: "linear",
-                        repeat: Infinity,
-                        repeatType: "loop",
-                      }}
-                      className="shrink-0 text-[#ff00ff] font-geneva-12 px-2"
-                      aria-hidden
-                    >
-                      {videos[currentIndex].title}
-                    </motion.div>
+                  <div className="relative overflow-hidden">
+                    <div className="flex whitespace-nowrap">
+                      <motion.div
+                        initial={{ x: "0%" }}
+                        animate={{ x: isPlaying ? "-100%" : "0%" }}
+                        transition={
+                          isPlaying
+                            ? {
+                                duration: 20,
+                                ease: "linear",
+                                repeat: Infinity,
+                                repeatType: "loop",
+                              }
+                            : {
+                                duration: 0.3,
+                              }
+                        }
+                        className={cn(
+                          "shrink-0 font-geneva-12 px-2 transition-colors duration-300",
+                          isPlaying ? "text-[#ff00ff]" : "text-gray-600",
+                          !isPlaying && "opacity-50"
+                        )}
+                      >
+                        {videos[currentIndex].title}
+                      </motion.div>
+                      <motion.div
+                        initial={{ x: "0%" }}
+                        animate={{ x: isPlaying ? "-100%" : "0%" }}
+                        transition={
+                          isPlaying
+                            ? {
+                                duration: 20,
+                                ease: "linear",
+                                repeat: Infinity,
+                                repeatType: "loop",
+                              }
+                            : {
+                                duration: 0.3,
+                              }
+                        }
+                        className={cn(
+                          "shrink-0 font-geneva-12 px-2 transition-colors duration-300",
+                          isPlaying ? "text-[#ff00ff]" : "text-gray-600",
+                          !isPlaying && "opacity-50"
+                        )}
+                        aria-hidden
+                      >
+                        {videos[currentIndex].title}
+                      </motion.div>
+                    </div>
+                    {/* Fade effects */}
+                    {isPlaying && (
+                      <div className="absolute left-0 top-0 h-full w-4 bg-gradient-to-r from-black to-transparent" />
+                    )}
+                    <div className="absolute right-0 top-0 h-full w-4 bg-gradient-to-l from-black to-transparent" />
                   </div>
                 )}
-                {/* Fade effects */}
-                <div className="absolute left-0 top-0 h-full w-8 bg-gradient-to-r from-black to-transparent" />
-                <div className="absolute right-0 top-0 h-full w-8 bg-gradient-to-l from-black to-transparent" />
               </div>
             </div>
 
             {/* All Controls in One Row */}
             <div className="flex items-center justify-between">
-              {/* Left Side: Mode Switches */}
-              <div className="flex gap-2">
-                <div className="flex gap-0">
-                  <button
-                    onClick={toggleShuffle}
-                    className={cn(
-                      "text-[9px] font-bold flex items-center justify-center focus:outline-none relative w-[45px] h-[20px] bg-[url('/assets/videos/switch.png')] bg-no-repeat bg-center font-geneva-12 text-black",
-                      isShuffled && "brightness-75"
-                    )}
-                  >
-                    SHUFFLE
-                  </button>
-                  <button
-                    onClick={() => setLoopAll(!loopAll)}
-                    className={cn(
-                      "text-[9px] font-bold flex items-center justify-center focus:outline-none relative w-[45px] h-[20px] bg-[url('/assets/videos/switch.png')] bg-no-repeat bg-center font-geneva-12 text-black",
-                      loopAll && "brightness-75"
-                    )}
-                  >
-                    REPEAT
-                  </button>
-                  <button
-                    onClick={() => setLoopCurrent(!loopCurrent)}
-                    className={cn(
-                      "text-[9px] font-bold flex items-center justify-center focus:outline-none relative w-[45px] h-[20px] bg-[url('/assets/videos/switch.png')] bg-no-repeat bg-center font-geneva-12 text-black",
-                      loopCurrent && "brightness-75"
-                    )}
-                  >
-                    →
-                  </button>
-                </div>
-                <button
-                  onClick={() => setIsAddDialogOpen(true)}
-                  className="text-[9px] font-bold flex items-center justify-center focus:outline-none relative w-[45px] h-[20px] bg-[url('/assets/videos/switch.png')] bg-no-repeat bg-center font-geneva-12 text-black"
-                >
-                  ADD
-                </button>
-              </div>
-
-              {/* Right Side: Playback Controls */}
+              {/* Left Side: Playback Controls */}
               <div className="flex items-center gap-2">
                 <div className="flex gap-0">
                   <button
@@ -438,11 +465,7 @@ export function VideosAppComponent({
                   </button>
                 </div>
                 <button
-                  onClick={() => {
-                    setVideos([]);
-                    setCurrentIndex(0);
-                    setIsPlaying(false);
-                  }}
+                  onClick={() => setIsConfirmClearOpen(true)}
                   className="flex items-center justify-center focus:outline-none"
                 >
                   <img
@@ -452,6 +475,45 @@ export function VideosAppComponent({
                     height={22}
                     className="pointer-events-none"
                   />
+                </button>
+              </div>
+
+              {/* Right Side: Mode Switches */}
+              <div className="flex items-center gap-2">
+                <div className="flex gap-0">
+                  <button
+                    onClick={toggleShuffle}
+                    className={cn(
+                      "text-[9px] font-bold flex items-center justify-center focus:outline-none relative w-[45px] h-[20px] bg-[url('/assets/videos/switch.png')] bg-no-repeat bg-center font-geneva-12 text-black",
+                      isShuffled && "brightness-75"
+                    )}
+                  >
+                    SHUFFLE
+                  </button>
+                  <button
+                    onClick={() => setLoopAll(!loopAll)}
+                    className={cn(
+                      "text-[9px] font-bold flex items-center justify-center focus:outline-none relative w-[45px] h-[20px] bg-[url('/assets/videos/switch.png')] bg-no-repeat bg-center font-geneva-12 text-black",
+                      loopAll && "brightness-75"
+                    )}
+                  >
+                    REPEAT
+                  </button>
+                  <button
+                    onClick={() => setLoopCurrent(!loopCurrent)}
+                    className={cn(
+                      "text-[9px] font-bold flex items-center justify-center focus:outline-none relative w-[45px] h-[20px] bg-[url('/assets/videos/switch.png')] bg-no-repeat bg-center font-geneva-12 text-black",
+                      loopCurrent && "brightness-75"
+                    )}
+                  >
+                    →
+                  </button>
+                </div>
+                <button
+                  onClick={() => setIsAddDialogOpen(true)}
+                  className="text-[9px] font-bold flex items-center justify-center focus:outline-none relative w-[45px] h-[20px] bg-[url('/assets/videos/switch.png')] bg-no-repeat bg-center font-geneva-12 text-black"
+                >
+                  ADD
                 </button>
               </div>
             </div>
@@ -467,6 +529,18 @@ export function VideosAppComponent({
           isOpen={isAboutDialogOpen}
           onOpenChange={setIsAboutDialogOpen}
           metadata={appMetadata}
+        />
+        <ConfirmDialog
+          isOpen={isConfirmClearOpen}
+          onOpenChange={setIsConfirmClearOpen}
+          onConfirm={() => {
+            setVideos([]);
+            setCurrentIndex(0);
+            setIsPlaying(false);
+            setIsConfirmClearOpen(false);
+          }}
+          title="Clear Playlist"
+          description="Are you sure you want to clear the entire playlist? This action cannot be undone."
         />
         <InputDialog
           isOpen={isAddDialogOpen}

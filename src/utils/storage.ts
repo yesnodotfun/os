@@ -620,6 +620,9 @@ export const clearAllAppStates = (): void => {
 
   localStorage.removeItem(APP_STORAGE_KEYS.finder.WINDOW);
   localStorage.removeItem(APP_STORAGE_KEYS.finder.CURRENT_PATH);
+  localStorage.removeItem(APP_STORAGE_KEYS.finder.DOCUMENTS);
+  localStorage.removeItem(APP_STORAGE_KEYS.finder.IMAGES);
+  localStorage.removeItem(APP_STORAGE_KEYS.finder.TRASH);
 
   localStorage.removeItem(APP_STORAGE_KEYS.paint.WINDOW);
   localStorage.removeItem(APP_STORAGE_KEYS.paint.HAS_SEEN_HELP);
@@ -697,9 +700,27 @@ export interface Video {
   title: string;
 }
 
+const DEFAULT_VIDEOS: Video[] = [
+  {
+    id: "Q3K0TOvTOno",
+    url: "https://www.youtube.com/watch?v=Q3K0TOvTOno&pp=ygUSbmV3amVhbnMgaG93IHN3ZWV0",
+    title: "NewJeans (뉴진스) 'How Sweet' Official MV",
+  },
+  {
+    id: "ZncbtRo7RXs",
+    url: "https://www.youtube.com/watch?v=ZncbtRo7RXs&pp=ygUWbmV3amVhbnMgc3VwZXIgbmF0dXJhbA%3D%3D",
+    title: "NewJeans (뉴진스) 'Supernatural' Official MV (Part.1)",
+  },
+  {
+    id: "pSUydWEqKwE",
+    url: "https://www.youtube.com/watch?v=pSUydWEqKwE&pp=ygUObmV3amVhbnMgZGl0dG8%3D",
+    title: "NewJeans (뉴진스) 'Ditto' Official MV (side A)",
+  },
+];
+
 export const loadPlaylist = (): Video[] => {
   const saved = localStorage.getItem(APP_STORAGE_KEYS.videos.PLAYLIST);
-  return saved ? JSON.parse(saved) : [];
+  return saved ? JSON.parse(saved) : DEFAULT_VIDEOS;
 };
 
 export const savePlaylist = (playlist: Video[]): void => {
