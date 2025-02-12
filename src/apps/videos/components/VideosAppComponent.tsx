@@ -330,6 +330,7 @@ export function VideosAppComponent({
   isForeground,
 }: AppProps) {
   const { play: playVideoTape } = useSound(Sounds.VIDEO_TAPE);
+  const { play: playButtonClick } = useSound(Sounds.BUTTON_CLICK);
   const loadedPlaylist = loadPlaylist();
   const [videos, setVideos] = useState<Video[]>(loadedPlaylist);
   const [currentIndex, setCurrentIndex] = useState(loadCurrentIndex());
@@ -377,6 +378,7 @@ export function VideosAppComponent({
 
   const nextVideo = () => {
     if (videos.length === 0) return;
+    playButtonClick();
     updateCurrentIndex((prev: number) => {
       if (prev === videos.length - 1) {
         if (loopAll) {
@@ -393,6 +395,7 @@ export function VideosAppComponent({
 
   const previousVideo = () => {
     if (videos.length === 0) return;
+    playButtonClick();
     updateCurrentIndex((prev: number) => {
       if (prev === 0) {
         if (loopAll) {
@@ -485,8 +488,10 @@ export function VideosAppComponent({
         setCurrentIndex(videos.length);
         setIsPlaying(true);
         setPlayAfterAdd(false);
+        playVideoTape();
       }
       setUrlInput("");
+      setIsAddDialogOpen(false);
     } catch (error) {
       console.error("Failed to add video:", error);
     }
@@ -570,6 +575,7 @@ export function VideosAppComponent({
         }}
         onNext={() => {
           if (currentIndex < videos.length - 1) {
+            playButtonClick();
             setCurrentIndex(currentIndex + 1);
             setIsPlaying(true);
             showStatus("NEXT ⏭");
@@ -577,6 +583,7 @@ export function VideosAppComponent({
         }}
         onPrevious={() => {
           if (currentIndex > 0) {
+            playButtonClick();
             setCurrentIndex(currentIndex - 1);
             setIsPlaying(true);
             showStatus("PREV ⏮");
@@ -584,8 +591,8 @@ export function VideosAppComponent({
         }}
         onAddVideo={() => setIsAddDialogOpen(true)}
         onOpenVideo={() => {
-          setIsAddDialogOpen(true);
           setPlayAfterAdd(true);
+          setIsAddDialogOpen(true);
         }}
         isPlaying={isPlaying}
         isShuffled={isShuffled}
