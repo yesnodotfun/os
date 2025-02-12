@@ -526,7 +526,7 @@ export const calculateStorageSpace = () => {
 export const loadWallpaper = (): string => {
   return (
     localStorage.getItem(APP_STORAGE_KEYS["control-panels"].WALLPAPER) ||
-    "/wallpapers/photos/landscapes/palace_on_lake_in_jaipur.jpg"
+    "/wallpapers/photos/nostalgia/galway_bay.jpg"
   );
 };
 
