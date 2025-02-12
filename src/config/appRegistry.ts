@@ -63,13 +63,19 @@ export const appRegistry = {
       minSize: { width: 368, height: 200 },
     } as WindowConstraints,
   },
-
   [PaintApp.id]: {
     ...PaintApp,
     windowConfig: {
       defaultSize: { width: 713, height: 480 },
       minSize: { width: 400, height: 400 },
       maxSize: { width: 713, height: 535 },
+    } as WindowConstraints,
+  },
+  [VideosApp.id]: {
+    ...VideosApp,
+    windowConfig: {
+      defaultSize: { width: 400, height: 397 },
+      minSize: { width: 400, height: 340 },
     } as WindowConstraints,
   },
   [MinesweeperApp.id]: {
@@ -86,13 +92,6 @@ export const appRegistry = {
       defaultSize: { width: 365, height: 400 },
       minSize: { width: 320, height: 400 },
       maxSize: { width: 365, height: 600 },
-    } as WindowConstraints,
-  },
-  [VideosApp.id]: {
-    ...VideosApp,
-    windowConfig: {
-      defaultSize: { width: 400, height: 400 },
-      minSize: { width: 400, height: 340 },
     } as WindowConstraints,
   },
 } as const;

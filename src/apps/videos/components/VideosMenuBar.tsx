@@ -157,7 +157,7 @@ export function VideosMenuBar({
                   key={video.id}
                   onClick={() => onPlayVideo(index)}
                   className={cn(
-                    "text-md h-6 px-3 active:bg-gray-900 active:text-white max-w-[300px] truncate",
+                    "text-md h-6 px-3 active:bg-gray-900 active:text-white max-w-[220px] truncate",
                     index === currentIndex && "bg-gray-200"
                   )}
                 >

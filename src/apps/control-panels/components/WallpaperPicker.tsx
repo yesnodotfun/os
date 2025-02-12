@@ -199,6 +199,22 @@ Object.entries(PHOTO_WALLPAPERS).forEach(([category, photos]) => {
 
 const PHOTO_CATEGORIES = Object.keys(PHOTO_WALLPAPERS) as PhotoCategory[];
 
+// Add display mode type and storage functions
+type DisplayMode = "color" | "monotone";
+
+const loadDisplayMode = (): DisplayMode => {
+  return (localStorage.getItem("displayMode") as DisplayMode) || "color";
+};
+
+const saveDisplayMode = (mode: DisplayMode) => {
+  localStorage.setItem("displayMode", mode);
+  if (mode === "monotone") {
+    document.documentElement.style.filter = "grayscale(100%)";
+  } else {
+    document.documentElement.style.filter = "none";
+  }
+};
+
 interface WallpaperPickerProps {
   onSelect?: (path: string) => void;
 }
@@ -206,6 +222,9 @@ interface WallpaperPickerProps {
 export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
   const { currentWallpaper, setWallpaper } = useWallpaper();
   const { play: playClick } = useSound(Sounds.BUTTON_CLICK, 0.3);
+  const [displayMode, setDisplayMode] = useState<DisplayMode>(() =>
+    loadDisplayMode()
+  );
   const [selectedCategory, setSelectedCategory] = useState<
     "tiles" | PhotoCategory
   >(() => {
@@ -250,26 +269,45 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
       .join(" ");
   };
 
+  const handleDisplayModeChange = (mode: DisplayMode) => {
+    setDisplayMode(mode);
+    saveDisplayMode(mode);
+  };
+
   return (
     <div className="space-y-4 flex flex-col h-full">
-      <Select
-        value={selectedCategory}
-        onValueChange={(value) =>
-          setSelectedCategory(value as typeof selectedCategory)
-        }
-      >
-        <SelectTrigger className="w-full">
-          <SelectValue placeholder="Select a category" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="tiles">Tiled Patterns</SelectItem>
-          {PHOTO_CATEGORIES.map((category) => (
-            <SelectItem key={category} value={category}>
-              {formatCategoryLabel(category)}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <div className="flex items-center gap-2">
+        <div className="flex-[3]">
+          <Select
+            value={selectedCategory}
+            onValueChange={(value) =>
+              setSelectedCategory(value as typeof selectedCategory)
+            }
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select a category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="tiles">Tiled Patterns</SelectItem>
+              {PHOTO_CATEGORIES.map((category) => (
+                <SelectItem key={category} value={category}>
+                  {formatCategoryLabel(category)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <Select value={displayMode} onValueChange={handleDisplayModeChange}>
+          <SelectTrigger className="w-[90px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="color">Color</SelectItem>
+            <SelectItem value="monotone">Mono</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
       <ScrollArea className="flex-1 h-[200px]">
         <div

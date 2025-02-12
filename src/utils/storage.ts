@@ -716,6 +716,16 @@ const DEFAULT_VIDEOS: Video[] = [
     url: "https://www.youtube.com/watch?v=pSUydWEqKwE&pp=ygUObmV3amVhbnMgZGl0dG8%3D",
     title: "NewJeans (뉴진스) 'Ditto' Official MV (side A)",
   },
+  {
+    id: "YYyskjq1vSc",
+    url: "https://www.youtube.com/watch?v=YYyskjq1vSc&list=RDYYyskjq1vSc&index=1&pp=8AUB",
+    title: "NJZ(엔제이지) - New Jeans (2025)",
+  },
+  {
+    id: "L_OgLK3fmc8",
+    url: "https://www.youtube.com/watch?v=L_OgLK3fmc8",
+    title: "딘(DEAN) & 하니(HANNI) - Skrr (A.I. cover)",
+  },
 ];
 
 export const loadPlaylist = (): Video[] => {
@@ -740,7 +750,8 @@ export const saveCurrentIndex = (index: number): void => {
 };
 
 export const loadIsLoopAll = (): boolean => {
-  return localStorage.getItem(APP_STORAGE_KEYS.videos.IS_LOOP_ALL) === "true";
+  const saved = localStorage.getItem(APP_STORAGE_KEYS.videos.IS_LOOP_ALL);
+  return saved === null ? true : saved === "true";
 };
 
 export const saveIsLoopAll = (isLoopAll: boolean): void => {
