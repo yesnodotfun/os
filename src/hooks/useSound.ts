@@ -1,82 +1,132 @@
 import { useCallback, useEffect, useRef } from "react";
 import { loadUISoundsEnabled } from "@/utils/storage";
 
-// Global audio cache to store preloaded sounds
-const audioCache = new Map<string, HTMLAudioElement>();
+// Global audio context and cache
+let audioContext: AudioContext | null = null;
+const audioBufferCache = new Map<string, AudioBuffer>();
+const activeSources = new Set<AudioBufferSourceNode>();
+
+// Initialize audio context
+const getAudioContext = () => {
+  if (!audioContext) {
+    audioContext = new AudioContext();
+  }
+  return audioContext;
+};
 
 // Preload a single sound and add it to cache
-const preloadSound = (
-  soundPath: string,
-  volume: number = 0.3
-): HTMLAudioElement => {
-  if (audioCache.has(soundPath)) {
-    return audioCache.get(soundPath)!;
+const preloadSound = async (soundPath: string): Promise<AudioBuffer> => {
+  if (audioBufferCache.has(soundPath)) {
+    return audioBufferCache.get(soundPath)!;
   }
 
-  const audio = new Audio(soundPath);
-  audio.volume = volume;
-  audio.load();
-  audioCache.set(soundPath, audio);
-  return audio;
+  try {
+    const response = await fetch(soundPath);
+    const arrayBuffer = await response.arrayBuffer();
+    const audioBuffer = await getAudioContext().decodeAudioData(arrayBuffer);
+    audioBufferCache.set(soundPath, audioBuffer);
+    return audioBuffer;
+  } catch (error) {
+    console.error("Error loading sound:", error);
+    throw error;
+  }
 };
 
 // Preload multiple sounds at once
-export const preloadSounds = (sounds: string[]) => {
-  sounds.forEach((soundPath) => preloadSound(soundPath));
+export const preloadSounds = async (sounds: string[]) => {
+  await Promise.all(sounds.map(preloadSound));
 };
 
 export function useSound(soundPath: string, volume: number = 0.3) {
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const gainNodeRef = useRef<GainNode | null>(null);
 
   useEffect(() => {
-    // Use cached audio or create new one
-    audioRef.current = preloadSound(soundPath, volume);
+    // Create gain node for volume control
+    gainNodeRef.current = getAudioContext().createGain();
+    gainNodeRef.current.gain.value = volume;
 
-    // No need to cleanup from cache, just pause the current instance
+    // Connect to destination
+    gainNodeRef.current.connect(getAudioContext().destination);
+
     return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
+      if (gainNodeRef.current) {
+        gainNodeRef.current.disconnect();
       }
     };
-  }, [soundPath, volume]);
+  }, [volume]);
 
-  const play = useCallback(() => {
+  const play = useCallback(async () => {
     // Check if UI sounds are enabled
     if (!loadUISoundsEnabled()) {
       return;
     }
 
-    const audio = audioRef.current;
-    if (!audio) {
-      return;
+    try {
+      const audioBuffer = await preloadSound(soundPath);
+      const source = getAudioContext().createBufferSource();
+      source.buffer = audioBuffer;
+
+      // Connect to gain node
+      source.connect(gainNodeRef.current!);
+
+      // Set volume
+      gainNodeRef.current!.gain.value = volume;
+
+      // Play the sound
+      source.start(0);
+
+      // Add to active sources
+      activeSources.add(source);
+
+      // Clean up when done
+      source.onended = () => {
+        activeSources.delete(source);
+      };
+    } catch (error) {
+      console.error("Error playing sound:", error);
     }
-
-    const playPromise = async () => {
-      try {
-        // Create a new audio instance from the cached one if it's currently playing
-        if (!audio.paused && audio.currentTime > 0) {
-          const newAudio = audioCache
-            .get(soundPath)
-            ?.cloneNode(true) as HTMLAudioElement;
-          if (newAudio) {
-            newAudio.volume = volume;
-            await newAudio.play();
-            return;
-          }
-        }
-
-        audio.currentTime = 0;
-        audio.volume = volume;
-        await audio.play();
-      } catch (error) {
-        console.error("Error playing sound:", error);
-      }
-    };
-
-    playPromise();
   }, [volume, soundPath]);
 
-  return { play };
+  // Additional control methods
+  const stop = useCallback(() => {
+    if (gainNodeRef.current) {
+      gainNodeRef.current.gain.value = 0;
+    }
+  }, []);
+
+  const fadeOut = useCallback(
+    (duration: number = 0.5) => {
+      if (gainNodeRef.current) {
+        gainNodeRef.current.gain.setValueAtTime(
+          volume,
+          getAudioContext().currentTime
+        );
+        gainNodeRef.current.gain.linearRampToValueAtTime(
+          0,
+          getAudioContext().currentTime + duration
+        );
+      }
+    },
+    [volume]
+  );
+
+  const fadeIn = useCallback(
+    (duration: number = 0.5) => {
+      if (gainNodeRef.current) {
+        gainNodeRef.current.gain.setValueAtTime(
+          0,
+          getAudioContext().currentTime
+        );
+        gainNodeRef.current.gain.linearRampToValueAtTime(
+          volume,
+          getAudioContext().currentTime + duration
+        );
+      }
+    },
+    [volume]
+  );
+
+  return { play, stop, fadeOut, fadeIn };
 }
 
 // Predefined sound paths for easy access
