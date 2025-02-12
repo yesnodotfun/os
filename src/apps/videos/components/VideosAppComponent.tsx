@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import ReactPlayer from "react-player";
 import { cn } from "@/lib/utils";
 import { AppProps } from "../../base/types";
 import { WindowFrame } from "@/components/layout/WindowFrame";
@@ -86,24 +87,25 @@ export function VideosAppComponent({
   onClose,
   isForeground,
 }: AppProps) {
-  const [videos, setVideos] = useState<Video[]>(loadPlaylist());
+  const loadedPlaylist = loadPlaylist();
+  const [videos, setVideos] = useState<Video[]>(loadedPlaylist);
   const [currentIndex, setCurrentIndex] = useState(loadCurrentIndex());
   const [isPlaying, setIsPlaying] = useState(false);
   const [loopCurrent, setLoopCurrent] = useState(loadIsLoopCurrent());
   const [loopAll, setLoopAll] = useState(loadIsLoopAll());
   const [isShuffled, setIsShuffled] = useState(loadIsShuffled());
-  const [originalOrder, setOriginalOrder] = useState<Video[]>([]);
+  const [originalOrder] = useState<Video[]>(loadedPlaylist);
   const [urlInput, setUrlInput] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
   const [isConfirmClearOpen, setIsConfirmClearOpen] = useState(false);
-  const playerRef = useRef<HTMLIFrameElement>(null);
-
+  const playerRef = useRef<ReactPlayer>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
-  const timeIntervalRef = useRef<number>();
-
   const [playAfterAdd, setPlayAfterAdd] = useState(false);
+  const [isSafari] = useState(() =>
+    /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
+  );
 
   // Save state to storage whenever it changes
   useEffect(() => {
@@ -126,28 +128,18 @@ export function VideosAppComponent({
     saveIsShuffled(isShuffled);
   }, [isShuffled]);
 
-  // Add time tracking
-  useEffect(() => {
-    if (isPlaying) {
-      timeIntervalRef.current = window.setInterval(() => {
-        setElapsedTime((prev) => prev + 1);
-      }, 1000);
-    } else {
-      if (timeIntervalRef.current) {
-        window.clearInterval(timeIntervalRef.current);
-      }
-    }
-    return () => {
-      if (timeIntervalRef.current) {
-        window.clearInterval(timeIntervalRef.current);
-      }
-    };
-  }, [isPlaying]);
-
   // Reset elapsed time when changing tracks
   useEffect(() => {
     setElapsedTime(0);
   }, [currentIndex]);
+
+  // Replace the existing useEffect for shuffle initialization
+  useEffect(() => {
+    if (isShuffled && videos.length > 0) {
+      const shuffled = [...videos].sort(() => Math.random() - 0.5);
+      setVideos(shuffled);
+    }
+  }, []); // Only run once on mount
 
   const formatTime = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60);
@@ -187,26 +179,11 @@ export function VideosAppComponent({
       setUrlInput("");
     } catch (error) {
       console.error("Failed to add video:", error);
-      // Handle error (show notification, etc.)
     }
   };
 
   const togglePlay = () => {
-    if (playerRef.current) {
-      if (isPlaying) {
-        playerRef.current.contentWindow?.postMessage(
-          '{"event":"command","func":"pauseVideo","args":""}',
-          "*"
-        );
-        setElapsedTime(0);
-      } else {
-        playerRef.current.contentWindow?.postMessage(
-          '{"event":"command","func":"playVideo","args":""}',
-          "*"
-        );
-      }
-      setIsPlaying(!isPlaying);
-    }
+    setIsPlaying(!isPlaying);
   };
 
   const nextVideo = () => {
@@ -233,49 +210,45 @@ export function VideosAppComponent({
     setIsPlaying(true);
   };
 
+  // Replace the existing toggleShuffle function
   const toggleShuffle = () => {
     if (!isShuffled) {
-      setOriginalOrder(videos);
       const shuffled = [...videos].sort(() => Math.random() - 0.5);
       setVideos(shuffled);
     } else {
-      setVideos(originalOrder);
+      setVideos([...originalOrder]);
     }
     setIsShuffled(!isShuffled);
   };
 
   const handleVideoEnd = () => {
     if (loopCurrent) {
-      if (playerRef.current) {
-        playerRef.current.contentWindow?.postMessage(
-          '{"event":"command","func":"seekTo","args":"0"}',
-          "*"
-        );
-        playerRef.current.contentWindow?.postMessage(
-          '{"event":"command","func":"playVideo","args":""}',
-          "*"
-        );
-      }
+      playerRef.current?.seekTo(0);
+      setIsPlaying(true);
     } else {
       nextVideo();
     }
   };
 
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      try {
-        const data = JSON.parse(event.data);
-        // YouTube player state 0 means video ended
-        if (data.event === "onStateChange" && data.info === 0) {
-          handleVideoEnd();
-        }
-      } catch {
-        // Ignore invalid JSON messages
-      }
-    };
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
-  }, [loopCurrent]);
+  const handleProgress = (state: { playedSeconds: number }) => {
+    setElapsedTime(Math.floor(state.playedSeconds));
+  };
+
+  // Add new handlers for YouTube player state sync
+  const handlePlay = () => {
+    setIsPlaying(true);
+  };
+
+  const handlePause = () => {
+    setIsPlaying(false);
+  };
+
+  const handleReady = () => {
+    // If we want to start playing immediately after loading
+    if (isPlaying) {
+      playerRef.current?.seekTo(0);
+    }
+  };
 
   if (!isWindowOpen) return null;
 
@@ -297,7 +270,7 @@ export function VideosAppComponent({
         onShufflePlaylist={toggleShuffle}
         onToggleLoopAll={() => setLoopAll(!loopAll)}
         isLoopAll={loopAll}
-        onTogglePlay={() => setIsPlaying(!isPlaying)}
+        onTogglePlay={togglePlay}
         onNext={() => {
           if (currentIndex < videos.length - 1) {
             setCurrentIndex(currentIndex + 1);
@@ -313,7 +286,6 @@ export function VideosAppComponent({
         onAddVideo={() => setIsAddDialogOpen(true)}
         onOpenVideo={() => {
           setIsAddDialogOpen(true);
-          // We'll set a flag to play immediately after adding
           setPlayAfterAdd(true);
         }}
         isPlaying={isPlaying}
@@ -328,24 +300,49 @@ export function VideosAppComponent({
           <div className="flex-1 relative">
             {videos.length > 0 ? (
               <div className="w-full h-full overflow-hidden relative">
-                <iframe
-                  ref={playerRef}
-                  className="w-full scale-[1.05] pointer-events-none"
-                  style={{ height: "calc(100% + 120px)", marginTop: "-60px" }}
-                  src={`https://www.youtube.com/embed/${
-                    videos[currentIndex].id
-                  }?enablejsapi=1&autoplay=${
-                    isPlaying ? 1 : 0
-                  }&controls=0&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&fs=0&disablekb=1&playsinline=1`}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-                {/* Clickable overlay - show for all browsers */}
                 <div
-                  className="absolute inset-0 cursor-pointer"
-                  onClick={togglePlay}
-                  aria-label={isPlaying ? "Pause" : "Play"}
-                />
+                  className={cn(
+                    "w-full scale-[1.05]",
+                    !isSafari && "pointer-events-none"
+                  )}
+                  style={{ height: "calc(100% + 120px)", marginTop: "-60px" }}
+                >
+                  <ReactPlayer
+                    ref={playerRef}
+                    url={videos[currentIndex].url}
+                    playing={isPlaying}
+                    controls={false}
+                    width="100%"
+                    height="100%"
+                    onEnded={handleVideoEnd}
+                    onProgress={handleProgress}
+                    onPlay={handlePlay}
+                    onPause={handlePause}
+                    onReady={handleReady}
+                    loop={loopCurrent}
+                    config={{
+                      youtube: {
+                        playerVars: {
+                          modestbranding: 1,
+                          rel: 0,
+                          showinfo: 0,
+                          iv_load_policy: 3,
+                          fs: 0,
+                          disablekb: 1,
+                          playsinline: 1,
+                        },
+                      },
+                    }}
+                  />
+                </div>
+                {/* Clickable overlay - only show for non-Safari browsers */}
+                {!isSafari && (
+                  <div
+                    className="absolute inset-0 cursor-pointer"
+                    onClick={togglePlay}
+                    aria-label={isPlaying ? "Pause" : "Play"}
+                  />
+                )}
               </div>
             ) : (
               <div className="flex items-center justify-center h-full text-gray-400 font-geneva-12 text-sm">

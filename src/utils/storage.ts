@@ -702,29 +702,44 @@ export interface Video {
 
 const DEFAULT_VIDEOS: Video[] = [
   {
-    id: "Q3K0TOvTOno",
-    url: "https://www.youtube.com/watch?v=Q3K0TOvTOno&pp=ygUSbmV3amVhbnMgaG93IHN3ZWV0",
-    title: "NewJeans (뉴진스) 'How Sweet' Official MV",
-  },
-  {
-    id: "ZncbtRo7RXs",
-    url: "https://www.youtube.com/watch?v=ZncbtRo7RXs&pp=ygUWbmV3amVhbnMgc3VwZXIgbmF0dXJhbA%3D%3D",
-    title: "NewJeans (뉴진스) 'Supernatural' Official MV (Part.1)",
+    id: "YYyskjq1vSc",
+    url: "https://www.youtube.com/watch?v=YYyskjq1vSc",
+    title: "NJZ(엔제이지) - New Jeans (2025)",
   },
   {
     id: "pSUydWEqKwE",
-    url: "https://www.youtube.com/watch?v=pSUydWEqKwE&pp=ygUObmV3amVhbnMgZGl0dG8%3D",
+    url: "https://www.youtube.com/watch?v=pSUydWEqKwE",
     title: "NewJeans (뉴진스) 'Ditto' Official MV (side A)",
   },
   {
-    id: "YYyskjq1vSc",
-    url: "https://www.youtube.com/watch?v=YYyskjq1vSc&list=RDYYyskjq1vSc&index=1&pp=8AUB",
-    title: "NJZ(엔제이지) - New Jeans (2025)",
+    id: "ZncbtRo7RXs",
+    url: "https://www.youtube.com/watch?v=ZncbtRo7RXs",
+    title: "NewJeans (뉴진스) 'Supernatural' Official MV (Part.1)",
   },
   {
     id: "L_OgLK3fmc8",
     url: "https://www.youtube.com/watch?v=L_OgLK3fmc8",
     title: "딘(DEAN) & 하니(HANNI) - Skrr (A.I. cover)",
+  },
+  {
+    id: "Q3K0TOvTOno",
+    url: "https://www.youtube.com/watch?v=Q3K0TOvTOno",
+    title: "NewJeans (뉴진스) 'How Sweet'",
+  },
+  {
+    id: "FonjL7DQAUQ",
+    url: "https://www.youtube.com/watch?v=FonjL7DQAUQ",
+    title: "deca joins | 海浪",
+  },
+  {
+    id: "jKnLSg83Nqc",
+    url: "https://www.youtube.com/watch?v=jKnLSg83Nqc",
+    title: "Crush (크러쉬) - 'ㅠ.ㅠ (You)'",
+  },
+  {
+    id: "_wgeHqXr4Hc",
+    url: "https://www.youtube.com/watch?v=_wgeHqXr4Hc",
+    title: "Crush (크러쉬) - '나를 위해 (For Days to Come)'",
   },
 ];
 
@@ -775,7 +790,8 @@ export const saveIsLoopCurrent = (isLoopCurrent: boolean): void => {
 };
 
 export const loadIsShuffled = (): boolean => {
-  return localStorage.getItem(APP_STORAGE_KEYS.videos.IS_SHUFFLED) === "true";
+  const saved = localStorage.getItem(APP_STORAGE_KEYS.videos.IS_SHUFFLED);
+  return saved === null ? true : saved === "true";
 };
 
 export const saveIsShuffled = (isShuffled: boolean): void => {
