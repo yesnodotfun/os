@@ -187,6 +187,121 @@ function AnimatedTitle({
   );
 }
 
+function WhiteNoiseEffect() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const animationFrameRef = useRef<number>();
+  const [brightness, setBrightness] = useState(0);
+  const [scanLineOffset, setScanLineOffset] = useState(0);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const drawNoise = () => {
+      const imageData = ctx.createImageData(canvas.width, canvas.height);
+      const data = imageData.data;
+
+      for (let i = 0; i < data.length; i += 4) {
+        const value = Math.random() * 255 * brightness;
+        data[i] = value; // R
+        data[i + 1] = value; // G
+        data[i + 2] = value; // B
+        data[i + 3] = 255; // A
+      }
+
+      // Add scan lines
+      for (let y = 0; y < canvas.height; y += 2) {
+        for (let x = 0; x < canvas.width; x++) {
+          const i = (y * canvas.width + x) * 4;
+          data[i] *= 0.8; // R
+          data[i + 1] *= 0.8; // G
+          data[i + 2] *= 0.8; // B
+        }
+      }
+
+      ctx.putImageData(imageData, 0, 0);
+      animationFrameRef.current = requestAnimationFrame(drawNoise);
+    };
+
+    const resizeCanvas = () => {
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
+    };
+
+    resizeCanvas();
+    window.addEventListener("resize", resizeCanvas);
+    drawNoise();
+
+    return () => {
+      window.removeEventListener("resize", resizeCanvas);
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, [brightness]);
+
+  // Animate brightness
+  useEffect(() => {
+    const duration = 1000; // 1 second animation
+    const startTime = Date.now();
+    const startBrightness = brightness;
+    const targetBrightness = 1;
+
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const easeOut = 1 - Math.pow(1 - progress, 3); // Cubic ease out
+      setBrightness(
+        startBrightness + (targetBrightness - startBrightness) * easeOut
+      );
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+
+    animate();
+  }, []);
+
+  // Animate scan lines
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setScanLineOffset((prev) => (prev + 1) % 2);
+    }, 100);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="absolute inset-0 pointer-events-none">
+      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
+      <div
+        className="absolute inset-0"
+        style={{
+          background: "rgba(0,0,0,0.1)",
+          opacity: 1 - brightness,
+          transition: "opacity 0.05s linear",
+        }}
+      />
+      <div
+        className="absolute inset-0"
+        style={{
+          background: `linear-gradient(
+            to bottom,
+            rgba(0,0,0,0.1) 0%,
+            rgba(0,0,0,0.1) 50%,
+            rgba(0,0,0,0.1) 100%
+          )`,
+          transform: `translateY(${scanLineOffset}px)`,
+          transition: "transform 0.1s linear",
+        }}
+      />
+    </div>
+  );
+}
+
 export function VideosAppComponent({
   isWindowOpen,
   onClose,
@@ -457,6 +572,23 @@ export function VideosAppComponent({
                       },
                     }}
                   />
+                  <AnimatePresence>
+                    {!isPlaying && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 1.15 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 1.15 }}
+                        transition={{
+                          duration: 0.2,
+                          delay: 0.1,
+                          ease: [0.4, 0, 0.2, 1],
+                        }}
+                        className="absolute inset-0"
+                      >
+                        <WhiteNoiseEffect />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
                 {/* Clickable overlay - only show for non-Safari browsers */}
                 {!isSafari && (
