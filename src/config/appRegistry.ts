@@ -7,6 +7,7 @@ import { SoundboardApp } from "@/apps/soundboard";
 import { FinderApp } from "@/apps/finder";
 import { PaintApp } from "@/apps/paint";
 import { VideosApp } from "@/apps/videos";
+import { PcApp } from "@/apps/pc";
 
 export interface WindowSize {
   width: number;
@@ -84,6 +85,13 @@ export const appRegistry = {
       defaultSize: { width: 305, height: 400 },
       minSize: { width: 305, height: 400 },
       maxSize: { width: 305, height: 400 },
+    } as WindowConstraints,
+  },
+  [PcApp.id]: {
+    ...PcApp,
+    windowConfig: {
+      defaultSize: { width: 590, height: 480 },
+      minSize: { width: 590, height: 480 },
     } as WindowConstraints,
   },
   [ControlPanelsApp.id]: {

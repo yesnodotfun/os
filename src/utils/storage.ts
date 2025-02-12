@@ -81,6 +81,11 @@ export const APP_STORAGE_KEYS = {
     IS_LOOP_CURRENT: "videos:isLoopCurrent" as const,
     IS_SHUFFLED: "videos:isShuffled" as const,
   },
+  pc: {
+    WINDOW: "pc:window" as const,
+    HAS_SEEN_HELP: "pc:hasSeenHelp" as const,
+    SAVE_STATE: "pc:saveState" as const,
+  },
 } as const;
 
 interface WindowState {
@@ -635,6 +640,10 @@ export const clearAllAppStates = (): void => {
   localStorage.removeItem(APP_STORAGE_KEYS.videos.IS_LOOP_ALL);
   localStorage.removeItem(APP_STORAGE_KEYS.videos.IS_LOOP_CURRENT);
   localStorage.removeItem(APP_STORAGE_KEYS.videos.IS_SHUFFLED);
+
+  localStorage.removeItem(APP_STORAGE_KEYS.pc.WINDOW);
+  localStorage.removeItem(APP_STORAGE_KEYS.pc.HAS_SEEN_HELP);
+  localStorage.removeItem(APP_STORAGE_KEYS.pc.SAVE_STATE);
 
   // Clear desktop icon state
   localStorage.removeItem("desktop:icons");

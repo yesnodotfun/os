@@ -22,7 +22,8 @@ export interface BaseApp {
     | "minesweeper"
     | "finder"
     | "paint"
-    | "videos";
+    | "videos"
+    | "pc";
   name: string;
   icon: string | { type: "image"; src: string };
   description: string;
