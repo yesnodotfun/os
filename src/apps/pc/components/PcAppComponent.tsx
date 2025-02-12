@@ -8,43 +8,7 @@ import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { helpItems, appMetadata } from "..";
 import { Game, loadGames } from "@/utils/storage";
 import { motion } from "framer-motion";
-
-// Type declarations for js-dos v8
-declare global {
-  interface Window {
-    Dos: (container: HTMLElement, options: DosOptions) => DosProps;
-  }
-}
-
-type DosEvent =
-  | "emu-ready"
-  | "ci-ready"
-  | "bnd-play"
-  | "open-key"
-  | "fullscreen-change"
-  | "exit";
-
-interface DosOptions {
-  url: string;
-  onload?: () => void;
-  onerror?: (error: Error) => void;
-  theme?: string;
-  renderAspect?: string;
-  renderBackend?: string;
-  imageRendering?: string;
-  mouseCapture?: boolean;
-  workerThread?: boolean;
-  autoStart?: boolean;
-  kiosk?: boolean;
-  onEvent?: (event: DosEvent, arg?: unknown) => void;
-}
-
-interface DosProps {
-  stop: () => Promise<void>;
-  setMouseCapture: (capture: boolean) => void;
-  setFullScreen: (fullScreen: boolean) => void;
-  setRenderAspect: (aspect: string) => void;
-}
+import { useJsDos, DosProps, DosEvent } from "../hooks/useJsDos";
 
 export function PcAppComponent({
   isWindowOpen,
@@ -55,7 +19,7 @@ export function PcAppComponent({
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isScriptLoaded, setIsScriptLoaded] = useState(false);
+  const { isScriptLoaded } = useJsDos();
   const [selectedGame, setSelectedGame] = useState<Game>(() => {
     const games = loadGames();
     return games[0];
@@ -67,52 +31,56 @@ export function PcAppComponent({
   const [currentRenderAspect, setCurrentRenderAspect] = useState("4/3");
   const containerRef = useRef<HTMLDivElement>(null);
   const dosPropsRef = useRef<DosProps | null>(null);
-  const scriptRef = useRef<HTMLScriptElement | null>(null);
-
-  useEffect(() => {
-    // Only load script if it hasn't been loaded yet
-    if (!scriptRef.current && !window.Dos) {
-      console.log("Loading js-dos script...");
-      const script = document.createElement("script");
-      script.src = "https://v8.js-dos.com/latest/js-dos.js";
-      script.async = true;
-      script.onload = () => {
-        console.log("js-dos script loaded successfully");
-        // Wait a bit to ensure the script is fully initialized
-        setTimeout(() => {
-          console.log("Checking if Dos function is available:", !!window.Dos);
-          setIsScriptLoaded(true);
-          // If there was a pending game load, try loading it now
-          if (pendingGame) {
-            console.log("Loading pending game:", pendingGame);
-            handleLoadGame(pendingGame);
-            setPendingGame(null);
-          }
-        }, 1000);
-      };
-      script.onerror = (error) => {
-        console.error("Failed to load js-dos script:", error);
-      };
-      scriptRef.current = script;
-      document.body.appendChild(script);
-    }
-
-    return () => {
-      // Cleanup dosbox instance if it exists
-      if (dosPropsRef.current) {
-        dosPropsRef.current.stop();
-        dosPropsRef.current = null;
-      }
-    };
-  }, [pendingGame]);
 
   useEffect(() => {
     // Cleanup dosbox instance when window is closed
     if (!isWindowOpen && dosPropsRef.current) {
-      dosPropsRef.current.stop();
-      dosPropsRef.current = null;
+      console.log("Stopping dosbox instance...");
+      dosPropsRef.current
+        .stop()
+        .then(() => {
+          console.log("Dosbox instance stopped");
+          dosPropsRef.current = null;
+          setIsGameRunning(false);
+          // Clear the container
+          if (containerRef.current) {
+            containerRef.current.innerHTML = "";
+          }
+        })
+        .catch((error) => {
+          console.error("Error stopping dosbox:", error);
+          // Force cleanup even if stop fails
+          dosPropsRef.current = null;
+          setIsGameRunning(false);
+          if (containerRef.current) {
+            containerRef.current.innerHTML = "";
+          }
+        });
     }
   }, [isWindowOpen]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (dosPropsRef.current) {
+        console.log("Cleaning up dosbox instance on unmount...");
+        dosPropsRef.current.stop().catch(console.error);
+        dosPropsRef.current = null;
+        if (containerRef.current) {
+          containerRef.current.innerHTML = "";
+        }
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    // If there's a pending game and the script is loaded, try loading it
+    if (isScriptLoaded && pendingGame) {
+      console.log("Loading pending game:", pendingGame);
+      handleLoadGame(pendingGame);
+      setPendingGame(null);
+    }
+  }, [isScriptLoaded, pendingGame]);
 
   const handleSetMouseCapture = (capture: boolean) => {
     setIsMouseCaptured(capture);
@@ -179,7 +147,7 @@ export function PcAppComponent({
 
       // Start new instance
       console.log("Creating new Dos instance...");
-      const options: DosOptions = {
+      const options = {
         url: game.path,
         theme: "dark",
         renderAspect: currentRenderAspect,
@@ -236,10 +204,11 @@ export function PcAppComponent({
     console.log("Load state not available in v8");
   };
 
-  const handleReset = () => {
+  const handleReset = async () => {
     if (containerRef.current) {
       if (dosPropsRef.current) {
-        dosPropsRef.current.stop();
+        console.log("Stopping dosbox instance before reset...");
+        await dosPropsRef.current.stop();
         dosPropsRef.current = null;
       }
       containerRef.current.innerHTML = "";
@@ -298,32 +267,65 @@ export function PcAppComponent({
                     <div className="font-apple-garamond text-white text-lg">
                       Virtual PC
                     </div>
-                    <div className="font-geneva-12 text-gray-400 text-[12px]">
-                      {loadGames().length} PROGRAMS AVAILABLE
+                    <div className="font-geneva-12 text-gray-400 text-[12px] flex items-center gap-2">
+                      {isScriptLoaded ? (
+                        `${loadGames().length} PROGRAMS AVAILABLE`
+                      ) : (
+                        <>
+                          <div className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                          LOADING EMULATOR
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
 
                 {/* Game Grid */}
-                <div className="flex-1 p-4 overflow-y-auto">
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4">
+                <div className="flex-1 p-4 overflow-y-auto flex justify-center items-center">
+                  <div
+                    className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 transition-opacity duration-300 ${
+                      !isScriptLoaded
+                        ? "opacity-50 pointer-events-none"
+                        : "opacity-100"
+                    }`}
+                  >
                     {loadGames().map((game) => (
                       <motion.button
                         key={game.id}
                         onClick={() => handleLoadGame(game)}
-                        className="group relative aspect-video rounded-xl overflow-hidden bg-[#2a2a2a] hover:bg-[#3a3a3a] transition-colors"
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
+                        className="group relative aspect-video rounded overflow-hidden bg-[#2a2a2a] hover:bg-[#3a3a3a] transition-all duration-200 shadow-[0_4px_12px_rgba(0,0,0,0.5)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.7)] border border-[#3a3a3a] hover:border-[#4a4a4a] w-full"
+                        style={{ aspectRatio: "16/9" }}
+                        whileHover={{
+                          scale: 1.05,
+                          y: -2,
+                          transition: {
+                            duration: 0.08,
+                            ease: "linear",
+                          },
+                        }}
+                        whileTap={{
+                          scale: 0.95,
+                          y: 0,
+                          transition: {
+                            type: "spring",
+                            duration: 0.15,
+                          },
+                        }}
                       >
-                        <img
-                          src={game.image}
-                          alt={game.name}
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
-                          <span className="text-white font-geneva-12 text-[16px]">
-                            {game.name}
-                          </span>
+                        <div className="relative w-full h-full">
+                          <img
+                            src={game.image}
+                            alt={game.name}
+                            className="w-full h-full object-cover"
+                            width={320}
+                            height={180}
+                            loading="lazy"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
+                            <span className="text-white font-geneva-12 text-[12px]">
+                              {game.name}
+                            </span>
+                          </div>
                         </div>
                       </motion.button>
                     ))}
