@@ -464,7 +464,10 @@ export function VideosAppComponent({
                 <div className="flex gap-0">
                   <button
                     onClick={previousVideo}
-                    className="flex items-center justify-center disabled:opacity-50 focus:outline-none"
+                    className={cn(
+                      "flex items-center justify-center disabled:opacity-50 focus:outline-none",
+                      "hover:brightness-75 active:brightness-50"
+                    )}
                     disabled={videos.length === 0}
                   >
                     <img
@@ -477,7 +480,10 @@ export function VideosAppComponent({
                   </button>
                   <button
                     onClick={togglePlay}
-                    className="flex items-center justify-center disabled:opacity-50 focus:outline-none"
+                    className={cn(
+                      "flex items-center justify-center disabled:opacity-50 focus:outline-none",
+                      "hover:brightness-75 active:brightness-50"
+                    )}
                     disabled={videos.length === 0}
                   >
                     <img
@@ -494,7 +500,10 @@ export function VideosAppComponent({
                   </button>
                   <button
                     onClick={nextVideo}
-                    className="flex items-center justify-center disabled:opacity-50 focus:outline-none"
+                    className={cn(
+                      "flex items-center justify-center disabled:opacity-50 focus:outline-none",
+                      "hover:brightness-75 active:brightness-50"
+                    )}
                     disabled={videos.length === 0}
                   >
                     <img
@@ -515,7 +524,8 @@ export function VideosAppComponent({
                     onClick={toggleShuffle}
                     className={cn(
                       "text-[9px] flex items-center justify-center focus:outline-none relative w-[45px] h-[20px] bg-[url('/assets/videos/switch.png')] bg-no-repeat bg-center font-geneva-12 text-black",
-                      isShuffled && "brightness-75"
+                      isShuffled ? "brightness-60" : "hover:brightness-90",
+                      "active:brightness-50"
                     )}
                   >
                     SHUFFLE
@@ -524,7 +534,8 @@ export function VideosAppComponent({
                     onClick={() => setLoopAll(!loopAll)}
                     className={cn(
                       "text-[9px] flex items-center justify-center focus:outline-none relative w-[45px] h-[20px] bg-[url('/assets/videos/switch.png')] bg-no-repeat bg-center font-geneva-12 text-black",
-                      loopAll && "brightness-75"
+                      loopAll ? "brightness-60" : "hover:brightness-90",
+                      "active:brightness-50"
                     )}
                   >
                     REPEAT
@@ -533,7 +544,8 @@ export function VideosAppComponent({
                     onClick={() => setLoopCurrent(!loopCurrent)}
                     className={cn(
                       "text-[9px] flex items-center justify-center focus:outline-none relative w-[45px] h-[20px] bg-[url('/assets/videos/switch.png')] bg-no-repeat bg-center font-geneva-12 text-black",
-                      loopCurrent && "brightness-75"
+                      loopCurrent ? "brightness-60" : "hover:brightness-90",
+                      "active:brightness-50"
                     )}
                   >
                     →
@@ -541,7 +553,10 @@ export function VideosAppComponent({
                 </div>
                 <button
                   onClick={() => setIsAddDialogOpen(true)}
-                  className="text-[9px] flex items-center justify-center focus:outline-none relative w-[45px] h-[20px] bg-[url('/assets/videos/switch.png')] bg-no-repeat bg-center font-geneva-12 text-black"
+                  className={cn(
+                    "text-[9px] flex items-center justify-center focus:outline-none relative w-[45px] h-[20px] bg-[url('/assets/videos/switch.png')] bg-no-repeat bg-center font-geneva-12 text-black",
+                    "hover:brightness-90 active:brightness-50"
+                  )}
                 >
                   ADD
                 </button>
