@@ -423,8 +423,8 @@ export function ControlPanelsAppComponent({
                     Format File System
                   </Button>
                   <p className="text-[11px] text-gray-600 font-geneva-12">
-                    This will clear all documents from the virtual file system
-                    saved in your browser local storage.
+                    This will clear all documents (except sample documents) and
+                    images. ryOS will restart after format.
                   </p>
                 </div>
               </div>
@@ -454,11 +454,158 @@ export function ControlPanelsAppComponent({
           isOpen={isConfirmFormatOpen}
           onOpenChange={setIsConfirmFormatOpen}
           onConfirm={() => {
-            localStorage.setItem("documents", JSON.stringify([]));
+            // Keep only sample documents
+            const sampleDocs = [
+              {
+                name: "README.md",
+                content: `# ryOS
+
+A web-based operating system experience inspired by classic Mac OS System 7. Built using modern web technologies including React, Vite, TailwindCSS, and shadcn/ui components.
+
+## Features
+
+- Classic System 7 UI with Chicago Kare font
+- Window management (drag, resize, minimize)
+- File system with Documents and Applications folders
+- Multiple built-in applications
+- Local storage persistence
+- Modern audio features with WaveSurfer.js and Tone.js
+- Responsive design for all screen sizes
+- System-wide sound effects and themes
+- Backup and restore functionality
+
+## Built-in Applications
+
+- **Finder**: Browse and manage your files
+- **TextEdit**: Create and edit documents
+- **Soundboard**: Create and play custom soundboards
+  - Record from microphone
+  - Multiple soundboards
+  - Waveform visualization
+  - Keyboard shortcuts
+  - Import/Export support
+- **Control Panels**: Customize system settings
+  - Appearance themes
+  - Sound settings
+  - System management
+  - Backup/Restore
+- **Minesweeper**: Classic puzzle game
+- **Internet Explorer**: Browse the web
+- **Chats**: Chat with AI assistant
+
+## Getting Started
+
+- Double-click on any app icon to launch it
+- Use the **Apple menu (🍎)** in the top-left to access system functions
+- Files are automatically saved to your browser's storage
+- Drag windows to move them, click and drag window edges to resize
+- Use Control Panels to customize your experience
+
+## Technical Details
+
+- Built with React 18 and TypeScript
+- Vite for fast development and bundling
+- TailwindCSS for styling
+- shadcn/ui components
+- Bun as package manager
+- WaveSurfer.js for audio visualization
+- Tone.js for audio synthesis
+
+Visit https://github.com/ryokun6/soundboard for more information.`,
+              },
+              {
+                name: "Quick Tips.md",
+                content: `# Quick Tips
+
+## Using Apps
+- Launch apps from the Finder, Desktop, or Apple menu
+- Multiple apps can run simultaneously
+- Windows can be moved, resized, and minimized
+- Use Control Panels to customize your experience
+
+## Finder
+- Browse files in Documents, Applications, and Trash
+- Navigate with back/forward buttons or path bar
+- Sort files by name, kind, size, or date
+- Multiple view options (icons, list)
+- Move files to Trash and empty when needed
+- Monitor available storage space
+
+## TextEdit
+- Create and edit rich text documents
+- Format text with bold, italic, and underline
+- Align text and create ordered/unordered lists
+- Use slash commands (/) for quick formatting
+- Record audio input for dictation
+- Auto-saves your work
+- Export documents when needed
+
+## Soundboard
+- Create multiple custom soundboards
+- Record sounds directly from your microphone
+- Customize with emojis and titles
+- Play sounds with clicks or number keys (1-9)
+- View sound waveforms with WaveSurfer.js
+- Import/export soundboards for sharing
+- Auto-saves your recordings
+- Choose input device
+- Toggle waveform/emoji display
+
+## Control Panels
+- Customize system appearance
+  - Choose from tiled patterns or photos
+  - Multiple categories of wallpapers
+  - Real-time preview
+- Adjust sound settings
+  - Enable/disable UI sounds
+  - Configure typing synthesis
+  - Choose synth presets
+- Manage system
+  - Backup all settings
+  - Restore from backup
+  - Reset to defaults
+  - Format file system
+
+## Minesweeper
+- Classic puzzle game with modern features
+- Left-click to reveal cells
+- Right-click to flag mines
+- Sound effects for actions
+- Track remaining mines
+- Start new game anytime
+
+## Internet Explorer
+- Browse web content
+- Time travel feature to see historical dates
+- Add websites to favorites
+- Modern browsing experience
+- Classic System 7 style interface
+
+## Chat with Ryo
+- Chat with Ryo (AI version)
+- Get help with system features
+- Ask about design and concepts
+- Natural conversation interface
+- Modern AI-powered assistance
+
+## Tips & Tricks
+- Use keyboard shortcuts for efficiency
+- Right-click for context menus
+- Drag windows to organize workspace
+- All changes save automatically
+- Files persist between sessions
+- Export important data locally
+- Customize system sounds and appearance
+- Regular backups recommended
+`,
+              },
+            ];
+            localStorage.setItem("documents", JSON.stringify(sampleDocs));
+            localStorage.setItem("images", JSON.stringify([]));
             window.location.reload();
           }}
           title="Format File System"
-          description="Are you sure you want to format the file system? This will permanently delete all documents. ryOS will restart after format."
+          description="Are you sure you want to format the file system? This will permanently delete all documents (except sample documents) and images. ryOS will restart after format."
         />
       </WindowFrame>
     </>
