@@ -1,8 +1,3 @@
----
-description: 
-globs: 
----
-
 # Project Rules
 
 ## Environment
@@ -23,8 +18,11 @@ These are custom implementations (not shadcn):
 - `audio-bars`
 - `volume-bar`
 
+## General folder structure
+
 ## App architecture
-- Apps are defined in src/apps/[app-name]/index.tsx
+
+- New apps are defined in src/apps/[app-name]/index.tsx
 - App components are defined in src/apps/[app-name]/components/[component-name].tsx
-- Apps are imported in App.tsx and registered in src/config/appRegistry.ts
+- Apps are imported and registered in src/App.tsx
 - AppManager.tsx is the main entry point for the app, and is responsible for rendering the apps and managing the state of the apps.
