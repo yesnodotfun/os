@@ -65,9 +65,9 @@ export function AboutFinderDialog({
                 <img
                   src="/icons/mac-classic.png"
                   alt="Happy Mac"
-                  className="w-10 h-10 mb-2 [image-rendering:pixelated]"
+                  className="w-10 h-10 mb-0 [image-rendering:pixelated]"
                 />
-                <div>ryOS 8.0</div>
+                <div className="font-apple-garamond text-xl">ryOS 8.2</div>
               </div>
 
               <div className="space-y-4 font-geneva-12 text-[10px]">

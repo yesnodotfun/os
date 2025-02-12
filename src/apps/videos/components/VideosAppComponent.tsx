@@ -235,8 +235,14 @@ export function VideosAppComponent({
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      if (event.data === "ended") {
-        handleVideoEnd();
+      try {
+        const data = JSON.parse(event.data);
+        // YouTube player state 0 means video ended
+        if (data.event === "onStateChange" && data.info === 0) {
+          handleVideoEnd();
+        }
+      } catch {
+        // Ignore invalid JSON messages
       }
     };
     window.addEventListener("message", handleMessage);

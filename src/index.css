@@ -36,6 +36,13 @@
   font-style: normal;
 }
 
+@font-face {
+  font-family: "AppleGaramond";
+  src: url("/fonts/AppleGaramond.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -148,6 +155,12 @@
   .font-geneva-12 {
     font-family: "Geneva-12", "ArkPixel", "SerenityOS-Emoji", system-ui,
       -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    font-smooth: always;
+  }
+
+  .font-apple-garamond {
+    font-family: "AppleGaramond", "Georgia", "Palatino", serif;
     -webkit-font-smoothing: antialiased;
     font-smooth: always;
   }
