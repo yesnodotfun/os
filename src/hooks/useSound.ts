@@ -147,6 +147,8 @@ export const Sounds = {
   ALERT_BONK: "/sounds/AlertBonk.mp3",
   ALERT_INDIGO: "/sounds/AlertIndigo.mp3",
   MSN_NUDGE: "/sounds/MSNNudge.mp3",
+  // Video player sounds
+  VIDEO_TAPE: "/sounds/VideoTapeIn.mp3",
 } as const;
 
 // Preload all predefined sounds

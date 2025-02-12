@@ -23,6 +23,7 @@ import {
   saveIsShuffled,
 } from "@/utils/storage";
 import { Button } from "@/components/ui/button";
+import { useSound, Sounds } from "@/hooks/useSound";
 
 interface Video {
   id: string;
@@ -328,6 +329,7 @@ export function VideosAppComponent({
   onClose,
   isForeground,
 }: AppProps) {
+  const { play: playVideoTape } = useSound(Sounds.VIDEO_TAPE);
   const loadedPlaylist = loadPlaylist();
   const [videos, setVideos] = useState<Video[]>(loadedPlaylist);
   const [currentIndex, setCurrentIndex] = useState(loadCurrentIndex());
@@ -493,6 +495,7 @@ export function VideosAppComponent({
   const togglePlay = () => {
     setIsPlaying(!isPlaying);
     showStatus(isPlaying ? "PAUSED ⏸" : "PLAY ▶");
+    playVideoTape();
   };
 
   const toggleShuffle = () => {
@@ -551,6 +554,7 @@ export function VideosAppComponent({
         onPlayVideo={(index) => {
           setCurrentIndex(index);
           setIsPlaying(true);
+          playVideoTape();
         }}
         onClearPlaylist={() => {
           setIsConfirmClearOpen(true);
@@ -560,7 +564,10 @@ export function VideosAppComponent({
         onToggleLoopCurrent={() => setLoopCurrent(!loopCurrent)}
         isLoopAll={loopAll}
         isLoopCurrent={loopCurrent}
-        onTogglePlay={togglePlay}
+        onTogglePlay={() => {
+          togglePlay();
+          playVideoTape();
+        }}
         onNext={() => {
           if (currentIndex < videos.length - 1) {
             setCurrentIndex(currentIndex + 1);
