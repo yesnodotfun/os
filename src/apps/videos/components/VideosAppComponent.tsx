@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { AppProps } from "../../base/types";
 import { WindowFrame } from "@/components/layout/WindowFrame";
@@ -47,6 +47,40 @@ async function fetchVideoInfo(videoId: string): Promise<VideoInfo> {
   };
 }
 
+function AnimatedDigit({ digit }: { digit: string }) {
+  return (
+    <div className="relative w-[0.6em] h-[28px] overflow-hidden inline-block">
+      <AnimatePresence mode="popLayout" initial={false}>
+        <motion.div
+          key={digit}
+          initial={{ y: -30 }}
+          animate={{ y: 0 }}
+          exit={{ y: 30 }}
+          transition={{
+            type: "spring",
+            stiffness: 300,
+            damping: 30,
+          }}
+          className="absolute inset-0 flex justify-center"
+        >
+          {digit}
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function AnimatedNumber({ number }: { number: number }) {
+  const digits = String(number).padStart(2, "0").split("");
+  return (
+    <div className="flex">
+      {digits.map((digit, index) => (
+        <AnimatedDigit key={index} digit={digit} />
+      ))}
+    </div>
+  );
+}
+
 export function VideosAppComponent({
   isWindowOpen,
   onClose,
@@ -70,17 +104,6 @@ export function VideosAppComponent({
   const timeIntervalRef = useRef<number>();
 
   const [playAfterAdd, setPlayAfterAdd] = useState(false);
-
-  const [isSafari] = useState(() =>
-    /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
-  );
-
-  // Auto-play when window opens (except Safari)
-  useEffect(() => {
-    if (isWindowOpen && videos.length > 0 && !isSafari) {
-      setIsPlaying(true);
-    }
-  }, [isWindowOpen, videos.length, isSafari]);
 
   // Save state to storage whenever it changes
   useEffect(() => {
@@ -175,6 +198,7 @@ export function VideosAppComponent({
           '{"event":"command","func":"pauseVideo","args":""}',
           "*"
         );
+        setElapsedTime(0);
       } else {
         playerRef.current.contentWindow?.postMessage(
           '{"event":"command","func":"playVideo","args":""}',
@@ -306,10 +330,7 @@ export function VideosAppComponent({
               <div className="w-full h-full overflow-hidden relative">
                 <iframe
                   ref={playerRef}
-                  className={cn(
-                    "w-full scale-[1.05]",
-                    !isSafari && "pointer-events-none"
-                  )}
+                  className="w-full scale-[1.05] pointer-events-none"
                   style={{ height: "calc(100% + 120px)", marginTop: "-60px" }}
                   src={`https://www.youtube.com/embed/${
                     videos[currentIndex].id
@@ -319,14 +340,12 @@ export function VideosAppComponent({
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
                 />
-                {/* Clickable overlay - only show for non-Safari browsers */}
-                {!isSafari && (
-                  <div
-                    className="absolute inset-0 cursor-pointer"
-                    onClick={togglePlay}
-                    aria-label={isPlaying ? "Pause" : "Play"}
-                  />
-                )}
+                {/* Clickable overlay - show for all browsers */}
+                <div
+                  className="absolute inset-0 cursor-pointer"
+                  onClick={togglePlay}
+                  aria-label={isPlaying ? "Pause" : "Play"}
+                />
               </div>
             ) : (
               <div className="flex items-center justify-center h-full text-gray-400 font-geneva-12 text-sm">
@@ -354,7 +373,7 @@ export function VideosAppComponent({
                 >
                   <div>Track</div>
                   <div className="text-xl">
-                    {String(currentIndex + 1).padStart(2, "0")}
+                    <AnimatedNumber number={currentIndex + 1} />
                   </div>
                 </div>
                 <div
