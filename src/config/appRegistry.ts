@@ -72,6 +72,14 @@ export const appRegistry = {
       minSize: { width: 400, height: 340 },
     } as WindowConstraints,
   },
+  [PcApp.id]: {
+    ...PcApp,
+    windowConfig: {
+      defaultSize: { width: 645, height: 511 },
+      minSize: { width: 645, height: 511 },
+      maxSize: { width: 645, height: 511 },
+    } as WindowConstraints,
+  },
   [TextEditApp.id]: {
     ...TextEditApp,
     windowConfig: {
@@ -85,14 +93,6 @@ export const appRegistry = {
       defaultSize: { width: 305, height: 400 },
       minSize: { width: 305, height: 400 },
       maxSize: { width: 305, height: 400 },
-    } as WindowConstraints,
-  },
-  [PcApp.id]: {
-    ...PcApp,
-    windowConfig: {
-      defaultSize: { width: 645, height: 511 },
-      minSize: { width: 645, height: 511 },
-      maxSize: { width: 645, height: 511 },
     } as WindowConstraints,
   },
   [ControlPanelsApp.id]: {
