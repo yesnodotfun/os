@@ -7,6 +7,7 @@ import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { helpItems, appMetadata } from "..";
 import { Game, loadGames } from "@/utils/storage";
+import { motion } from "framer-motion";
 
 // Type declarations for js-dos v8
 declare global {
@@ -40,6 +41,9 @@ interface DosOptions {
 
 interface DosProps {
   stop: () => Promise<void>;
+  setMouseCapture: (capture: boolean) => void;
+  setFullScreen: (fullScreen: boolean) => void;
+  setRenderAspect: (aspect: string) => void;
 }
 
 export function PcAppComponent({
@@ -58,6 +62,9 @@ export function PcAppComponent({
   });
   const [pendingGame, setPendingGame] = useState<Game | null>(null);
   const [isGameRunning, setIsGameRunning] = useState(false);
+  const [isMouseCaptured, setIsMouseCaptured] = useState(true);
+  const [isFullScreen, setIsFullScreen] = useState(false);
+  const [currentRenderAspect, setCurrentRenderAspect] = useState("4/3");
   const containerRef = useRef<HTMLDivElement>(null);
   const dosPropsRef = useRef<DosProps | null>(null);
   const scriptRef = useRef<HTMLScriptElement | null>(null);
@@ -77,6 +84,7 @@ export function PcAppComponent({
           setIsScriptLoaded(true);
           // If there was a pending game load, try loading it now
           if (pendingGame) {
+            console.log("Loading pending game:", pendingGame);
             handleLoadGame(pendingGame);
             setPendingGame(null);
           }
@@ -105,6 +113,27 @@ export function PcAppComponent({
       dosPropsRef.current = null;
     }
   }, [isWindowOpen]);
+
+  const handleSetMouseCapture = (capture: boolean) => {
+    setIsMouseCaptured(capture);
+    if (dosPropsRef.current) {
+      dosPropsRef.current.setMouseCapture(capture);
+    }
+  };
+
+  const handleSetFullScreen = (fullScreen: boolean) => {
+    setIsFullScreen(fullScreen);
+    if (dosPropsRef.current) {
+      dosPropsRef.current.setFullScreen(fullScreen);
+    }
+  };
+
+  const handleSetRenderAspect = (aspect: string) => {
+    setCurrentRenderAspect(aspect);
+    if (dosPropsRef.current) {
+      dosPropsRef.current.setRenderAspect(aspect);
+    }
+  };
 
   const handleLoadGame = async (game: Game) => {
     setSelectedGame(game);
@@ -153,10 +182,10 @@ export function PcAppComponent({
       const options: DosOptions = {
         url: game.path,
         theme: "dark",
-        renderAspect: "4/3",
+        renderAspect: currentRenderAspect,
         renderBackend: "webgl",
         imageRendering: "pixelated",
-        mouseCapture: true,
+        mouseCapture: isMouseCaptured,
         workerThread: true,
         autoStart: true,
         kiosk: true,
@@ -232,6 +261,12 @@ export function PcAppComponent({
         onReset={() => setIsResetDialogOpen(true)}
         onLoadGame={handleLoadGame}
         selectedGame={selectedGame}
+        onSetMouseCapture={handleSetMouseCapture}
+        onSetFullScreen={handleSetFullScreen}
+        onSetRenderAspect={handleSetRenderAspect}
+        isMouseCaptured={isMouseCaptured}
+        isFullScreen={isFullScreen}
+        currentRenderAspect={currentRenderAspect}
       />
       <WindowFrame
         title="Virtual PC"
@@ -239,42 +274,61 @@ export function PcAppComponent({
         isForeground={isForeground}
         appId="pc"
       >
-        <div className="flex flex-col h-full w-full bg-black">
+        <div className="flex flex-col h-full w-full bg-[#1a1a1a]">
           <div className="flex-1 relative h-full">
             {/* Always keep the DOSBox container in DOM but hide when not in use */}
             <div
               id="dosbox"
               ref={containerRef}
-              className={`w-[640px] h-[480px] ${
-                isGameRunning ? "block" : "hidden"
-              }`}
+              className={`w-full h-full ${isGameRunning ? "block" : "hidden"}`}
               style={{ minHeight: "400px", position: "relative" }}
             />
             {isLoading && (
               <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
-                <div className="text-white">Loading {selectedGame.name}...</div>
+                <div className="text-white font-geneva-12 text-xl">
+                  Loading {selectedGame.name}...
+                </div>
               </div>
             )}
             {!isGameRunning && (
-              <div className="p-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 overflow-y-auto">
-                {loadGames().map((game) => (
-                  <button
-                    key={game.id}
-                    onClick={() => handleLoadGame(game)}
-                    className="group relative aspect-video rounded-lg overflow-hidden bg-gray-800 hover:bg-gray-700 transition-colors"
-                  >
-                    <img
-                      src={game.image}
-                      alt={game.name}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <span className="text-white text-lg font-medium">
-                        {game.name}
-                      </span>
+              <div className="flex flex-col h-full">
+                {/* Retro Display Header */}
+                <div className="bg-black px-4 py-2 border-b border-[#3a3a3a]">
+                  <div className="flex items-center justify-between">
+                    <div className="font-apple-garamond text-white text-lg">
+                      Virtual PC
                     </div>
-                  </button>
-                ))}
+                    <div className="font-geneva-12 text-gray-400 text-[12px]">
+                      {loadGames().length} PROGRAMS AVAILABLE
+                    </div>
+                  </div>
+                </div>
+
+                {/* Game Grid */}
+                <div className="flex-1 p-4 overflow-y-auto">
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4">
+                    {loadGames().map((game) => (
+                      <motion.button
+                        key={game.id}
+                        onClick={() => handleLoadGame(game)}
+                        className="group relative aspect-video rounded-xl overflow-hidden bg-[#2a2a2a] hover:bg-[#3a3a3a] transition-colors"
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        <img
+                          src={game.image}
+                          alt={game.name}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
+                          <span className="text-white font-geneva-12 text-[16px]">
+                            {game.name}
+                          </span>
+                        </div>
+                      </motion.button>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
           </div>

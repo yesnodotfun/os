@@ -21,6 +21,12 @@ interface PcMenuBarProps {
   onReset: () => void;
   onLoadGame: (game: Game) => void;
   selectedGame: Game;
+  onSetMouseCapture: (capture: boolean) => void;
+  onSetFullScreen: (fullScreen: boolean) => void;
+  onSetRenderAspect: (aspect: string) => void;
+  isMouseCaptured: boolean;
+  isFullScreen: boolean;
+  currentRenderAspect: string;
 }
 
 export function PcMenuBar({
@@ -32,8 +38,15 @@ export function PcMenuBar({
   onReset,
   onLoadGame,
   selectedGame,
+  onSetMouseCapture,
+  onSetFullScreen,
+  onSetRenderAspect,
+  isMouseCaptured,
+  isFullScreen,
+  currentRenderAspect,
 }: PcMenuBarProps) {
   const availableGames = loadGames();
+  const renderAspects = ["AsIs", "1/1", "5/4", "4/3", "16/10", "16/9", "Fit"];
 
   return (
     <MenuBar>
@@ -93,6 +106,51 @@ export function PcMenuBar({
           >
             Close
           </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="default"
+            className="h-6 px-2 py-1 text-md focus-visible:ring-0 hover:bg-gray-200 active:bg-gray-900 active:text-white"
+          >
+            Controls
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" sideOffset={1} className="px-0">
+          <DropdownMenuItem
+            onClick={() => onSetMouseCapture(!isMouseCaptured)}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            Mouse Capture {isMouseCaptured ? "✓" : ""}
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => onSetFullScreen(!isFullScreen)}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            Full Screen {isFullScreen ? "✓" : ""}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
+              Render Aspect
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className="px-0">
+              {renderAspects.map((aspect) => (
+                <DropdownMenuItem
+                  key={aspect}
+                  onClick={() => onSetRenderAspect(aspect)}
+                  className={`text-md h-6 px-3 active:bg-gray-900 active:text-white ${
+                    currentRenderAspect === aspect ? "bg-gray-100" : ""
+                  }`}
+                >
+                  {aspect}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
         </DropdownMenuContent>
       </DropdownMenu>
 

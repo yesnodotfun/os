@@ -874,6 +874,27 @@ const DEFAULT_GAMES: Game[] = [
     image:
       "https://dos.zone/images/http/original/2X/9/9c5f757776e4e9891e063c3e935889ec857dce92.jpeg/66435bae6f294c35ad3c7de8a48f90cf.webp",
   },
+  {
+    id: "aladdin",
+    name: "Aladdin",
+    path: "https://cdn.dos.zone/original/2X/6/64ae157f1baa4317f626ccbc74364d9da87d5558.jsdos",
+    image:
+      "https://dos.zone/images/http/original/2X/0/0c804843419df5ca544296ed56b41967b0c6a0d9.gif/7847075ce59afcb0c973b259f6e92946.webp",
+  },
+  {
+    id: "oregontrail",
+    name: "The Oregon Trail",
+    path: "https://cdn.dos.zone/original/2X/5/53e616496b4da1d95136e235ad90c9cc3f3f760d.jsdos",
+    image:
+      "https://dos.zone/images/http/original/2X/1/1df856616f960f116e21b33a2fa104bd86f6ee33.jpeg/4756dbf35d654c8815b708c03cc0df22.webp",
+  },
+  {
+    id: "commandandconquer",
+    name: "Command & Conquer",
+    path: "https://cdn.dos.zone/custom/dos/cc_gdi_novid.jsdos",
+    image:
+      "https://dos.zone/images/http/original/2X/a/ae3116154ac2b9725465dc1fe59fa39507886432.png/7bf1bed5bf22f0a6ecc8c7fb43d74591.webp",
+  },
 ];
 
 export const loadGames = (): Game[] => {
