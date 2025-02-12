@@ -302,6 +302,27 @@ function WhiteNoiseEffect() {
   );
 }
 
+function StatusDisplay({ message }: { message: string }) {
+  return (
+    <div className="absolute top-4 left-4 pointer-events-none">
+      <div className="relative">
+        <div className="font-geneva-12 text-white text-xl relative z-10">
+          {message}
+        </div>
+        <div
+          className="font-geneva-12 text-black text-xl absolute inset-0"
+          style={{
+            WebkitTextStroke: "3px black",
+            textShadow: "none",
+          }}
+        >
+          {message}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function VideosAppComponent({
   isWindowOpen,
   onClose,
@@ -326,9 +347,19 @@ export function VideosAppComponent({
   const playerRef = useRef<ReactPlayer>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [playAfterAdd, setPlayAfterAdd] = useState(false);
-  const [isSafari] = useState(() =>
-    /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
-  );
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const statusTimeoutRef = useRef<NodeJS.Timeout>();
+
+  // Function to show status message
+  const showStatus = (message: string) => {
+    setStatusMessage(message);
+    if (statusTimeoutRef.current) {
+      clearTimeout(statusTimeoutRef.current);
+    }
+    statusTimeoutRef.current = setTimeout(() => {
+      setStatusMessage(null);
+    }, 2000);
+  };
 
   // Update animation direction before changing currentIndex
   const updateCurrentIndex = (
@@ -346,9 +377,13 @@ export function VideosAppComponent({
     if (videos.length === 0) return;
     updateCurrentIndex((prev: number) => {
       if (prev === videos.length - 1) {
-        if (loopAll) return 0;
+        if (loopAll) {
+          showStatus("REPEATING PLAYLIST");
+          return 0;
+        }
         return prev;
       }
+      showStatus("NEXT ⏭");
       return prev + 1;
     });
     setIsPlaying(true);
@@ -358,9 +393,13 @@ export function VideosAppComponent({
     if (videos.length === 0) return;
     updateCurrentIndex((prev: number) => {
       if (prev === 0) {
-        if (loopAll) return videos.length - 1;
+        if (loopAll) {
+          showStatus("REPEATING PLAYLIST");
+          return videos.length - 1;
+        }
         return prev;
       }
+      showStatus("PREV ⏮");
       return prev - 1;
     });
     setIsPlaying(true);
@@ -439,6 +478,7 @@ export function VideosAppComponent({
       };
 
       setVideos((prev) => [...prev, newVideo]);
+      showStatus("VIDEO ADDED");
       if (playAfterAdd) {
         setCurrentIndex(videos.length);
         setIsPlaying(true);
@@ -452,11 +492,12 @@ export function VideosAppComponent({
 
   const togglePlay = () => {
     setIsPlaying(!isPlaying);
+    showStatus(isPlaying ? "PAUSED ⏸" : "PLAY ▶");
   };
 
-  // Replace the existing toggleShuffle function
   const toggleShuffle = () => {
     setIsShuffled(!isShuffled);
+    showStatus(isShuffled ? "SHUFFLE OFF" : "SHUFFLE ON");
   };
 
   const handleVideoEnd = () => {
@@ -488,6 +529,15 @@ export function VideosAppComponent({
     }
   };
 
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (statusTimeoutRef.current) {
+        clearTimeout(statusTimeoutRef.current);
+      }
+    };
+  }, []);
+
   if (!isWindowOpen) return null;
 
   return (
@@ -515,12 +565,14 @@ export function VideosAppComponent({
           if (currentIndex < videos.length - 1) {
             setCurrentIndex(currentIndex + 1);
             setIsPlaying(true);
+            showStatus("NEXT ⏭");
           }
         }}
         onPrevious={() => {
           if (currentIndex > 0) {
             setCurrentIndex(currentIndex - 1);
             setIsPlaying(true);
+            showStatus("PREV ⏮");
           }
         }}
         onAddVideo={() => setIsAddDialogOpen(true)}
@@ -542,7 +594,7 @@ export function VideosAppComponent({
             {videos.length > 0 ? (
               <div className="w-full h-full overflow-hidden relative">
                 <div
-                  className={cn("w-full", !isSafari && "pointer-events-none")}
+                  className="w-full pointer-events-none"
                   style={{ height: "calc(100% + 140px)", marginTop: "-70px" }}
                 >
                   <ReactPlayer
@@ -590,14 +642,25 @@ export function VideosAppComponent({
                     )}
                   </AnimatePresence>
                 </div>
-                {/* Clickable overlay - only show for non-Safari browsers */}
-                {!isSafari && (
-                  <div
-                    className="absolute inset-0 cursor-pointer"
-                    onClick={togglePlay}
-                    aria-label={isPlaying ? "Pause" : "Play"}
-                  />
-                )}
+                {/* Clickable overlay for all browsers */}
+                <div
+                  className="absolute inset-0 cursor-pointer"
+                  onClick={togglePlay}
+                  aria-label={isPlaying ? "Pause" : "Play"}
+                />
+                {/* Status Display */}
+                <AnimatePresence>
+                  {statusMessage && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <StatusDisplay message={statusMessage} />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             ) : (
               <div className="flex items-center justify-center h-full text-gray-400 font-geneva-12 text-sm">
