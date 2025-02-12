@@ -32,6 +32,7 @@ interface VideosMenuBarProps {
   onOpenVideo: () => void;
   isLoopAll: boolean;
   isPlaying: boolean;
+  isShuffled: boolean;
 }
 
 export function VideosMenuBar({
@@ -51,6 +52,7 @@ export function VideosMenuBar({
   onOpenVideo,
   isLoopAll,
   isPlaying,
+  isShuffled,
 }: VideosMenuBarProps) {
   return (
     <MenuBar>
@@ -82,7 +84,7 @@ export function VideosMenuBar({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Playback Menu */}
+      {/* Controls Menu */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -90,7 +92,7 @@ export function VideosMenuBar({
             size="default"
             className="h-6 px-2 py-1 text-md focus-visible:ring-0 hover:bg-gray-200 active:bg-gray-900 active:text-white"
           >
-            Playback
+            Controls
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" sideOffset={1} className="px-0">
@@ -120,13 +122,17 @@ export function VideosMenuBar({
             onClick={onToggleLoopAll}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            {isLoopAll ? "✓ " : ""}Loop All
+            <span className={cn(!isLoopAll && "pl-4")}>
+              {isLoopAll ? "✓ Repeat" : "Repeat"}
+            </span>
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={onShufflePlaylist}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            Shuffle
+            <span className={cn(!isShuffled && "pl-4")}>
+              {isShuffled ? "✓ Shuffle" : "Shuffle"}
+            </span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -149,6 +155,12 @@ export function VideosMenuBar({
           >
             Add to Playlist...
           </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={onClearPlaylist}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            Clear Playlist
+          </DropdownMenuItem>
           {videos.length > 0 && (
             <>
               <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
@@ -162,20 +174,18 @@ export function VideosMenuBar({
                   )}
                 >
                   <div className="flex items-center w-full truncate">
-                    <span className="flex-none mr-1">
-                      {index === currentIndex ? "▶ " : ""}
+                    <span
+                      className={cn(
+                        "flex-none",
+                        index === currentIndex ? "mr-1" : "pl-5"
+                      )}
+                    >
+                      {index === currentIndex ? "♪ " : ""}
                     </span>
                     <span className="truncate">{video.title}</span>
                   </div>
                 </DropdownMenuItem>
               ))}
-              <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
-              <DropdownMenuItem
-                onClick={onClearPlaylist}
-                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
-              >
-                Clear Playlist
-              </DropdownMenuItem>
             </>
           )}
         </DropdownMenuContent>

@@ -94,7 +94,7 @@ export function VideosAppComponent({
   const [loopCurrent, setLoopCurrent] = useState(loadIsLoopCurrent());
   const [loopAll, setLoopAll] = useState(loadIsLoopAll());
   const [isShuffled, setIsShuffled] = useState(loadIsShuffled());
-  const [originalOrder] = useState<Video[]>(loadedPlaylist);
+  const [originalOrder, setOriginalOrder] = useState<Video[]>(loadedPlaylist);
   const [urlInput, setUrlInput] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
@@ -135,11 +135,20 @@ export function VideosAppComponent({
 
   // Replace the existing useEffect for shuffle initialization
   useEffect(() => {
-    if (isShuffled && videos.length > 0) {
+    if (isShuffled) {
       const shuffled = [...videos].sort(() => Math.random() - 0.5);
       setVideos(shuffled);
+    } else {
+      setVideos([...originalOrder]);
     }
-  }, []); // Only run once on mount
+  }, [isShuffled]); // Run when shuffle state changes
+
+  // Keep original order in sync with new additions
+  useEffect(() => {
+    if (!isShuffled) {
+      setOriginalOrder(videos);
+    }
+  }, [videos, isShuffled]);
 
   const formatTime = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60);
@@ -212,12 +221,6 @@ export function VideosAppComponent({
 
   // Replace the existing toggleShuffle function
   const toggleShuffle = () => {
-    if (!isShuffled) {
-      const shuffled = [...videos].sort(() => Math.random() - 0.5);
-      setVideos(shuffled);
-    } else {
-      setVideos([...originalOrder]);
-    }
     setIsShuffled(!isShuffled);
   };
 
@@ -289,6 +292,7 @@ export function VideosAppComponent({
           setPlayAfterAdd(true);
         }}
         isPlaying={isPlaying}
+        isShuffled={isShuffled}
       />
       <WindowFrame
         title="Videos"
@@ -502,18 +506,6 @@ export function VideosAppComponent({
                     />
                   </button>
                 </div>
-                <button
-                  onClick={() => setIsConfirmClearOpen(true)}
-                  className="flex items-center justify-center focus:outline-none"
-                >
-                  <img
-                    src="/assets/videos/clear.png"
-                    alt="Clear"
-                    width={32}
-                    height={22}
-                    className="pointer-events-none"
-                  />
-                </button>
               </div>
 
               {/* Right Side: Mode Switches */}
