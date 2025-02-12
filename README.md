@@ -49,6 +49,13 @@ bun run build
   - Fill patterns and colors
   - Selection and move tools
   - Undo/redo support
+- **Videos**: Retro-style YouTube playlist player
+  - Add and manage YouTube videos
+  - Playlist management
+  - Shuffle and repeat modes
+  - LCD display with scrolling titles
+  - Classic CD player controls
+  - Local storage persistence
 - **Soundboard**: Create and manage custom soundboards
   - Record audio from microphone
   - Multiple soundboards support
@@ -87,6 +94,7 @@ project/
 │   │   ├── base/       # Base app functionality
 │   │   ├── finder/     # File system app
 │   │   ├── textedit/   # Text editor app
+│   │   ├── videos/     # YouTube playlist app
 │   │   ├── soundboard/ # Audio recording app
 │   │   ├── chats/      # Chat application
 │   │   └── minesweeper/# Game implementation
