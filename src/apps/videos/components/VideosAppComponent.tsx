@@ -49,19 +49,35 @@ async function fetchVideoInfo(videoId: string): Promise<VideoInfo> {
   };
 }
 
-function AnimatedDigit({ digit }: { digit: string }) {
+function AnimatedDigit({
+  digit,
+  direction,
+}: {
+  digit: string;
+  direction: "next" | "prev";
+}) {
+  const yOffset = direction === "next" ? 30 : -30;
+
   return (
     <div className="relative w-[0.6em] h-[28px] overflow-hidden inline-block">
       <AnimatePresence mode="popLayout" initial={false}>
         <motion.div
           key={digit}
-          initial={{ y: -30 }}
-          animate={{ y: 0 }}
-          exit={{ y: 30 }}
+          initial={{ y: yOffset, opacity: 0, filter: "blur(5px)" }}
+          animate={{ y: 0, opacity: 1, filter: "blur(0px)" }}
+          exit={{ y: yOffset, opacity: 0, filter: "blur(5px)" }}
           transition={{
-            type: "spring",
-            stiffness: 300,
-            damping: 30,
+            y: {
+              type: "spring",
+              stiffness: 300,
+              damping: 30,
+            },
+            opacity: {
+              duration: 0.2,
+            },
+            filter: {
+              duration: 0.2,
+            },
           }}
           className="absolute inset-0 flex justify-center"
         >
@@ -73,12 +89,106 @@ function AnimatedDigit({ digit }: { digit: string }) {
 }
 
 function AnimatedNumber({ number }: { number: number }) {
+  const [prevNumber, setPrevNumber] = useState(number);
+  const direction = number > prevNumber ? "next" : "prev";
+
+  useEffect(() => {
+    setPrevNumber(number);
+  }, [number]);
+
   const digits = String(number).padStart(2, "0").split("");
   return (
     <div className="flex">
       {digits.map((digit, index) => (
-        <AnimatedDigit key={index} digit={digit} />
+        <AnimatedDigit key={index} digit={digit} direction={direction} />
       ))}
+    </div>
+  );
+}
+
+function AnimatedTitle({
+  title,
+  direction,
+  isPlaying,
+}: {
+  title: string;
+  direction: "next" | "prev";
+  isPlaying: boolean;
+}) {
+  const yOffset = direction === "next" ? 30 : -30;
+
+  return (
+    <div className="relative h-[22px] mb-[3px] overflow-hidden">
+      <AnimatePresence mode="popLayout" initial={false}>
+        <motion.div
+          key={title}
+          initial={{ y: yOffset, opacity: 0, filter: "blur(5px)" }}
+          animate={{ y: 0, opacity: 1, filter: "blur(0px)" }}
+          exit={{ y: yOffset, opacity: 0, filter: "blur(5px)" }}
+          transition={{
+            y: {
+              type: "spring",
+              stiffness: 300,
+              damping: 30,
+            },
+            opacity: {
+              duration: 0.2,
+            },
+            filter: {
+              duration: 0.2,
+            },
+          }}
+          className="absolute inset-0 flex whitespace-nowrap"
+        >
+          <motion.div
+            initial={{ x: "0%" }}
+            animate={{ x: isPlaying ? "-100%" : "0%" }}
+            transition={
+              isPlaying
+                ? {
+                    duration: 20,
+                    ease: "linear",
+                    repeat: Infinity,
+                    repeatType: "loop",
+                  }
+                : {
+                    duration: 0.3,
+                  }
+            }
+            className={cn(
+              "shrink-0 font-geneva-12 px-2 transition-colors duration-300",
+              isPlaying ? "text-[#ff00ff]" : "text-gray-600",
+              !isPlaying && "opacity-50"
+            )}
+          >
+            {title}
+          </motion.div>
+          <motion.div
+            initial={{ x: "0%" }}
+            animate={{ x: isPlaying ? "-100%" : "0%" }}
+            transition={
+              isPlaying
+                ? {
+                    duration: 20,
+                    ease: "linear",
+                    repeat: Infinity,
+                    repeatType: "loop",
+                  }
+                : {
+                    duration: 0.3,
+                  }
+            }
+            className={cn(
+              "shrink-0 font-geneva-12 px-2 transition-colors duration-300",
+              isPlaying ? "text-[#ff00ff]" : "text-gray-600",
+              !isPlaying && "opacity-50"
+            )}
+            aria-hidden
+          >
+            {title}
+          </motion.div>
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }
@@ -91,6 +201,9 @@ export function VideosAppComponent({
   const loadedPlaylist = loadPlaylist();
   const [videos, setVideos] = useState<Video[]>(loadedPlaylist);
   const [currentIndex, setCurrentIndex] = useState(loadCurrentIndex());
+  const [animationDirection, setAnimationDirection] = useState<"next" | "prev">(
+    "next"
+  );
   const [isPlaying, setIsPlaying] = useState(false);
   const [loopCurrent, setLoopCurrent] = useState(loadIsLoopCurrent());
   const [loopAll, setLoopAll] = useState(loadIsLoopAll());
@@ -107,6 +220,42 @@ export function VideosAppComponent({
   const [isSafari] = useState(() =>
     /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
   );
+
+  // Update animation direction before changing currentIndex
+  const updateCurrentIndex = (
+    indexOrUpdater: number | ((prev: number) => number)
+  ) => {
+    const newIndex =
+      typeof indexOrUpdater === "number"
+        ? indexOrUpdater
+        : indexOrUpdater(currentIndex);
+    setAnimationDirection(newIndex > currentIndex ? "next" : "prev");
+    setCurrentIndex(newIndex);
+  };
+
+  const nextVideo = () => {
+    if (videos.length === 0) return;
+    updateCurrentIndex((prev: number) => {
+      if (prev === videos.length - 1) {
+        if (loopAll) return 0;
+        return prev;
+      }
+      return prev + 1;
+    });
+    setIsPlaying(true);
+  };
+
+  const previousVideo = () => {
+    if (videos.length === 0) return;
+    updateCurrentIndex((prev: number) => {
+      if (prev === 0) {
+        if (loopAll) return videos.length - 1;
+        return prev;
+      }
+      return prev - 1;
+    });
+    setIsPlaying(true);
+  };
 
   // Save state to storage whenever it changes
   useEffect(() => {
@@ -194,30 +343,6 @@ export function VideosAppComponent({
 
   const togglePlay = () => {
     setIsPlaying(!isPlaying);
-  };
-
-  const nextVideo = () => {
-    if (videos.length === 0) return;
-    setCurrentIndex((prev) => {
-      if (prev === videos.length - 1) {
-        if (loopAll) return 0;
-        return prev;
-      }
-      return prev + 1;
-    });
-    setIsPlaying(true);
-  };
-
-  const previousVideo = () => {
-    if (videos.length === 0) return;
-    setCurrentIndex((prev) => {
-      if (prev === 0) {
-        if (loopAll) return videos.length - 1;
-        return prev;
-      }
-      return prev - 1;
-    });
-    setIsPlaying(true);
   };
 
   // Replace the existing toggleShuffle function
@@ -398,55 +523,11 @@ export function VideosAppComponent({
                 </div>
                 {videos.length > 0 && (
                   <div className="relative overflow-hidden">
-                    <div className="flex whitespace-nowrap">
-                      <motion.div
-                        initial={{ x: "0%" }}
-                        animate={{ x: isPlaying ? "-100%" : "0%" }}
-                        transition={
-                          isPlaying
-                            ? {
-                                duration: 20,
-                                ease: "linear",
-                                repeat: Infinity,
-                                repeatType: "loop",
-                              }
-                            : {
-                                duration: 0.3,
-                              }
-                        }
-                        className={cn(
-                          "shrink-0 font-geneva-12 px-2 transition-colors duration-300",
-                          isPlaying ? "text-[#ff00ff]" : "text-gray-600",
-                          !isPlaying && "opacity-50"
-                        )}
-                      >
-                        {videos[currentIndex].title}
-                      </motion.div>
-                      <motion.div
-                        initial={{ x: "0%" }}
-                        animate={{ x: isPlaying ? "-100%" : "0%" }}
-                        transition={
-                          isPlaying
-                            ? {
-                                duration: 20,
-                                ease: "linear",
-                                repeat: Infinity,
-                                repeatType: "loop",
-                              }
-                            : {
-                                duration: 0.3,
-                              }
-                        }
-                        className={cn(
-                          "shrink-0 font-geneva-12 px-2 transition-colors duration-300",
-                          isPlaying ? "text-[#ff00ff]" : "text-gray-600",
-                          !isPlaying && "opacity-50"
-                        )}
-                        aria-hidden
-                      >
-                        {videos[currentIndex].title}
-                      </motion.div>
-                    </div>
+                    <AnimatedTitle
+                      title={videos[currentIndex].title}
+                      direction={animationDirection}
+                      isPlaying={isPlaying}
+                    />
                     {/* Fade effects */}
                     {isPlaying && (
                       <div className="absolute left-0 top-0 h-full w-4 bg-gradient-to-r from-black to-transparent" />
