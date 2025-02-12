@@ -721,37 +721,37 @@ const DEFAULT_VIDEOS: Video[] = [
   {
     id: "pSUydWEqKwE",
     url: "https://www.youtube.com/watch?v=pSUydWEqKwE",
-    title: "NewJeans - 'Ditto' (side A)",
+    title: "NewJeans (뉴진스) - Ditto (side A)",
   },
   {
     id: "ZncbtRo7RXs",
     url: "https://www.youtube.com/watch?v=ZncbtRo7RXs",
-    title: "NewJeans - 'Supernatural' (Part.1)",
-  },
-  {
-    id: "L_OgLK3fmc8",
-    url: "https://www.youtube.com/watch?v=L_OgLK3fmc8",
-    title: "DEAN & 하니 - Skrr (A.I. cover)",
+    title: "NewJeans (뉴진스) - Supernatural (Part.1)",
   },
   {
     id: "Q3K0TOvTOno",
     url: "https://www.youtube.com/watch?v=Q3K0TOvTOno",
-    title: "NewJeans - 'How Sweet'",
+    title: "NewJeans (뉴진스) - How Sweet",
   },
   {
     id: "FonjL7DQAUQ",
     url: "https://www.youtube.com/watch?v=FonjL7DQAUQ",
-    title: "deca joins - 海浪",
+    title: "deca joins - 海浪 (Waves)",
+  },
+  {
+    id: "Rk6aQvlmsWo",
+    url: "https://www.youtube.com/watch?v=Rk6aQvlmsWo",
+    title: "grentperez & Ruel - Dandelion",
   },
   {
     id: "_wgeHqXr4Hc",
     url: "https://www.youtube.com/watch?v=_wgeHqXr4Hc",
-    title: "Crush - '나를 위해 (For Days to Come)'",
+    title: "Crush - 나를 위해 (For Days to Come)",
   },
   {
     id: "DskqpUrvlmw",
     url: "https://www.youtube.com/watch?v=DskqpUrvlmw",
-    title: "STAYC(스테이씨) - 'GPT'",
+    title: "STAYC (스테이씨) - GPT",
   },
 ];
 

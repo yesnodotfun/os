@@ -63,9 +63,9 @@ function AnimatedDigit({
       <AnimatePresence mode="popLayout" initial={false}>
         <motion.div
           key={digit}
-          initial={{ y: yOffset, opacity: 0, filter: "blur(5px)" }}
-          animate={{ y: 0, opacity: 1, filter: "blur(0px)" }}
-          exit={{ y: yOffset, opacity: 0, filter: "blur(5px)" }}
+          initial={{ y: yOffset, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: yOffset, opacity: 0 }}
           transition={{
             y: {
               type: "spring",
@@ -73,9 +73,6 @@ function AnimatedDigit({
               damping: 30,
             },
             opacity: {
-              duration: 0.2,
-            },
-            filter: {
               duration: 0.2,
             },
           }}
@@ -431,7 +428,7 @@ export function VideosAppComponent({
               <div className="w-full h-full overflow-hidden relative">
                 <div
                   className={cn("w-full", !isSafari && "pointer-events-none")}
-                  style={{ height: "calc(100% + 120px)", marginTop: "-60px" }}
+                  style={{ height: "calc(100% + 140px)", marginTop: "-70px" }}
                 >
                   <ReactPlayer
                     ref={playerRef}
