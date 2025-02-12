@@ -21,7 +21,8 @@ export interface BaseApp {
     | "control-panels"
     | "minesweeper"
     | "finder"
-    | "paint";
+    | "paint"
+    | "videos";
   name: string;
   icon: string | { type: "image"; src: string };
   description: string;

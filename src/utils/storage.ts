@@ -72,6 +72,15 @@ export const APP_STORAGE_KEYS = {
     HAS_SEEN_HELP: "paint:hasSeenHelp" as const,
     LAST_FILE_PATH: "paint:lastFilePath" as const,
   },
+  videos: {
+    WINDOW: "videos:window" as const,
+    HAS_SEEN_HELP: "videos:hasSeenHelp" as const,
+    PLAYLIST: "videos:playlist" as const,
+    CURRENT_INDEX: "videos:currentIndex" as const,
+    IS_LOOP_ALL: "videos:isLoopAll" as const,
+    IS_LOOP_CURRENT: "videos:isLoopCurrent" as const,
+    IS_SHUFFLED: "videos:isShuffled" as const,
+  },
 } as const;
 
 interface WindowState {
@@ -468,6 +477,7 @@ const DEFAULT_DESKTOP_ICONS: DesktopIconState = {
   minesweeper: { visible: true },
   finder: { visible: false },
   paint: { visible: true },
+  videos: { visible: true },
 };
 
 export const loadDesktopIconState = (): DesktopIconState => {
@@ -614,6 +624,14 @@ export const clearAllAppStates = (): void => {
   localStorage.removeItem(APP_STORAGE_KEYS.paint.WINDOW);
   localStorage.removeItem(APP_STORAGE_KEYS.paint.HAS_SEEN_HELP);
 
+  localStorage.removeItem(APP_STORAGE_KEYS.videos.WINDOW);
+  localStorage.removeItem(APP_STORAGE_KEYS.videos.HAS_SEEN_HELP);
+  localStorage.removeItem(APP_STORAGE_KEYS.videos.PLAYLIST);
+  localStorage.removeItem(APP_STORAGE_KEYS.videos.CURRENT_INDEX);
+  localStorage.removeItem(APP_STORAGE_KEYS.videos.IS_LOOP_ALL);
+  localStorage.removeItem(APP_STORAGE_KEYS.videos.IS_LOOP_CURRENT);
+  localStorage.removeItem(APP_STORAGE_KEYS.videos.IS_SHUFFLED);
+
   // Clear desktop icon state
   localStorage.removeItem("desktop:icons");
 
@@ -670,4 +688,67 @@ export const loadTrashItems = (): TrashItem[] => {
 
 export const saveTrashItems = (items: TrashItem[]): void => {
   localStorage.setItem(APP_STORAGE_KEYS.finder.TRASH, JSON.stringify(items));
+};
+
+// Videos playlist storage
+export interface Video {
+  id: string;
+  url: string;
+  title: string;
+}
+
+export const loadPlaylist = (): Video[] => {
+  const saved = localStorage.getItem(APP_STORAGE_KEYS.videos.PLAYLIST);
+  return saved ? JSON.parse(saved) : [];
+};
+
+export const savePlaylist = (playlist: Video[]): void => {
+  localStorage.setItem(
+    APP_STORAGE_KEYS.videos.PLAYLIST,
+    JSON.stringify(playlist)
+  );
+};
+
+export const loadCurrentIndex = (): number => {
+  const saved = localStorage.getItem(APP_STORAGE_KEYS.videos.CURRENT_INDEX);
+  return saved ? parseInt(saved) : 0;
+};
+
+export const saveCurrentIndex = (index: number): void => {
+  localStorage.setItem(APP_STORAGE_KEYS.videos.CURRENT_INDEX, index.toString());
+};
+
+export const loadIsLoopAll = (): boolean => {
+  return localStorage.getItem(APP_STORAGE_KEYS.videos.IS_LOOP_ALL) === "true";
+};
+
+export const saveIsLoopAll = (isLoopAll: boolean): void => {
+  localStorage.setItem(
+    APP_STORAGE_KEYS.videos.IS_LOOP_ALL,
+    isLoopAll.toString()
+  );
+};
+
+export const loadIsLoopCurrent = (): boolean => {
+  return (
+    localStorage.getItem(APP_STORAGE_KEYS.videos.IS_LOOP_CURRENT) === "true"
+  );
+};
+
+export const saveIsLoopCurrent = (isLoopCurrent: boolean): void => {
+  localStorage.setItem(
+    APP_STORAGE_KEYS.videos.IS_LOOP_CURRENT,
+    isLoopCurrent.toString()
+  );
+};
+
+export const loadIsShuffled = (): boolean => {
+  return localStorage.getItem(APP_STORAGE_KEYS.videos.IS_SHUFFLED) === "true";
+};
+
+export const saveIsShuffled = (isShuffled: boolean): void => {
+  localStorage.setItem(
+    APP_STORAGE_KEYS.videos.IS_SHUFFLED,
+    isShuffled.toString()
+  );
 };

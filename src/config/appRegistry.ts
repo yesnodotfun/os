@@ -6,6 +6,7 @@ import { MinesweeperApp } from "@/apps/minesweeper";
 import { SoundboardApp } from "@/apps/soundboard";
 import { FinderApp } from "@/apps/finder";
 import { PaintApp } from "@/apps/paint";
+import { VideosApp } from "@/apps/videos";
 
 export interface WindowSize {
   width: number;
@@ -85,6 +86,13 @@ export const appRegistry = {
       defaultSize: { width: 365, height: 400 },
       minSize: { width: 320, height: 400 },
       maxSize: { width: 365, height: 600 },
+    } as WindowConstraints,
+  },
+  [VideosApp.id]: {
+    ...VideosApp,
+    windowConfig: {
+      defaultSize: { width: 800, height: 600 },
+      minSize: { width: 400, height: 300 },
     } as WindowConstraints,
   },
 } as const;
