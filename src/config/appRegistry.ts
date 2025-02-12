@@ -56,13 +56,6 @@ export const appRegistry = {
       minSize: { width: 280, height: 320 },
     } as WindowConstraints,
   },
-  [TextEditApp.id]: {
-    ...TextEditApp,
-    windowConfig: {
-      defaultSize: { width: 368, height: 475 },
-      minSize: { width: 368, height: 200 },
-    } as WindowConstraints,
-  },
   [PaintApp.id]: {
     ...PaintApp,
     windowConfig: {
@@ -76,6 +69,13 @@ export const appRegistry = {
     windowConfig: {
       defaultSize: { width: 400, height: 458 },
       minSize: { width: 400, height: 340 },
+    } as WindowConstraints,
+  },
+  [TextEditApp.id]: {
+    ...TextEditApp,
+    windowConfig: {
+      defaultSize: { width: 368, height: 475 },
+      minSize: { width: 368, height: 200 },
     } as WindowConstraints,
   },
   [MinesweeperApp.id]: {
