@@ -704,42 +704,47 @@ const DEFAULT_VIDEOS: Video[] = [
   {
     id: "YYyskjq1vSc",
     url: "https://www.youtube.com/watch?v=YYyskjq1vSc",
-    title: "NJZ(엔제이지) - New Jeans (2025)",
+    title: "NJZ - New Jeans (2025)",
+  },
+  {
+    id: "GYLUSHZl8M0",
+    url: "https://www.youtube.com/watch?v=GYLUSHZl8M0",
+    title: "ditto",
   },
   {
     id: "pSUydWEqKwE",
     url: "https://www.youtube.com/watch?v=pSUydWEqKwE",
-    title: "NewJeans (뉴진스) 'Ditto' Official MV (side A)",
+    title: "NewJeans 'Ditto' (side A)",
   },
   {
     id: "ZncbtRo7RXs",
     url: "https://www.youtube.com/watch?v=ZncbtRo7RXs",
-    title: "NewJeans (뉴진스) 'Supernatural' Official MV (Part.1)",
+    title: "NewJeans 'Supernatural' (Part.1)",
   },
   {
     id: "L_OgLK3fmc8",
     url: "https://www.youtube.com/watch?v=L_OgLK3fmc8",
-    title: "딘(DEAN) & 하니(HANNI) - Skrr (A.I. cover)",
+    title: "DEAN & 하니 - Skrr (A.I. cover)",
   },
   {
     id: "Q3K0TOvTOno",
     url: "https://www.youtube.com/watch?v=Q3K0TOvTOno",
-    title: "NewJeans (뉴진스) 'How Sweet'",
+    title: "NewJeans 'How Sweet'",
   },
   {
     id: "FonjL7DQAUQ",
     url: "https://www.youtube.com/watch?v=FonjL7DQAUQ",
-    title: "deca joins | 海浪",
+    title: "deca joins 海浪",
   },
   {
     id: "jKnLSg83Nqc",
     url: "https://www.youtube.com/watch?v=jKnLSg83Nqc",
-    title: "Crush (크러쉬) - 'ㅠ.ㅠ (You)'",
+    title: "Crush 'ㅠ.ㅠ (You)'",
   },
   {
     id: "_wgeHqXr4Hc",
     url: "https://www.youtube.com/watch?v=_wgeHqXr4Hc",
-    title: "Crush (크러쉬) - '나를 위해 (For Days to Come)'",
+    title: "Crush '나를 위해 (For Days to Come)'",
   },
 ];
 
