@@ -55,7 +55,7 @@ A web-based operating system experience inspired by classic Mac OS System 7. Bui
 - Files are automatically saved to your browser's storage
 - Drag windows to move them, click and drag window edges to resize
 - Use Control Panels to customize your experience
-- Launch PC Emulator from Applications folder to play classic games
+- Launch Virtual PC from Applications folder to play classic games
 
 ## Technical Details
 
@@ -150,7 +150,7 @@ Visit https://github.com/ryokun6/soundboard for more information.`,
 - Add videos to favorites
 - VHS-style video player interface
 
-## PC Emulator
+## Virtual PC
 - Play classic PC games like Doom and SimCity
 - Launch from Applications folder
 - Use keyboard shortcuts for game controls
