@@ -6,6 +6,7 @@ import React, {
   useState,
   useCallback,
 } from "react";
+import { motion } from "framer-motion";
 
 interface PaintCanvasProps {
   selectedTool: string;
@@ -76,6 +77,7 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
     const animationFrameRef = useRef<number>();
     const touchStartRef = useRef<Point | null>(null);
     const [isLoadingFile] = useState(false);
+    const containerRef = useRef<HTMLDivElement>(null);
 
     // Handle canvas resize
     useEffect(() => {
@@ -186,20 +188,20 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
               }
               onCanUndoChange(historyIndexRef.current > 0);
               onCanRedoChange(true);
-            }
-          } else if (!event.shiftKey && event.key.toLowerCase() === "y") {
-            // Cmd/Ctrl+Y - Alternative Redo
-            event.preventDefault();
-            if (historyIndexRef.current < historyRef.current.length - 1) {
-              historyIndexRef.current++;
-              const imageData = historyRef.current[historyIndexRef.current];
-              if (contextRef.current && imageData) {
-                contextRef.current.putImageData(imageData, 0, 0);
+            } else if (!event.shiftKey && event.key.toLowerCase() === "y") {
+              // Cmd/Ctrl+Y - Alternative Redo
+              event.preventDefault();
+              if (historyIndexRef.current < historyRef.current.length - 1) {
+                historyIndexRef.current++;
+                const imageData = historyRef.current[historyIndexRef.current];
+                if (contextRef.current && imageData) {
+                  contextRef.current.putImageData(imageData, 0, 0);
+                }
+                onCanUndoChange(true);
+                onCanRedoChange(
+                  historyIndexRef.current < historyRef.current.length - 1
+                );
               }
-              onCanUndoChange(true);
-              onCanRedoChange(
-                historyIndexRef.current < historyRef.current.length - 1
-              );
             }
           }
         }
@@ -856,6 +858,9 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
 
         const point = getCanvasPoint(event);
 
+        // Don't handle panning here anymore, let Framer Motion handle it
+        if (selectedTool === "hand") return;
+
         // Store touch start position for tap detection
         if ("touches" in event) {
           touchStartRef.current = point;
@@ -981,6 +986,9 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
         if (!contextRef.current || !canvasRef.current) return;
 
         const point = getCanvasPoint(event);
+
+        // Don't handle panning here anymore, let Framer Motion handle it
+        if (selectedTool === "hand") return;
 
         // Handle selection dragging
         if (isDraggingSelection && selection && dragStartRef.current) {
@@ -1115,6 +1123,9 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
       ) => {
         const canvas = canvasRef.current;
         if (!canvas || !contextRef.current) return;
+
+        // Don't handle panning here anymore, let Framer Motion handle it
+        if (selectedTool === "hand") return;
 
         const point = getCanvasPoint(event);
 
@@ -1286,12 +1297,35 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
     }, [handlePointerDown, handlePointerMove, handlePointerUp]);
 
     return (
-      <div className="relative w-full h-full overflow-auto">
-        <div
+      <div
+        ref={containerRef}
+        className="relative w-full h-full overflow-auto"
+        style={{
+          cursor:
+            selectedTool === "hand"
+              ? "grab"
+              : selectedTool === "rect-select"
+              ? "crosshair"
+              : selection
+              ? "move"
+              : "crosshair",
+        }}
+      >
+        <motion.div
           className="bg-white"
           style={{
             minWidth: `${canvasWidth}px`,
             minHeight: `${canvasHeight}px`,
+          }}
+          drag={selectedTool === "hand"}
+          dragConstraints={containerRef}
+          dragElastic={0.2}
+          dragMomentum={true}
+          dragTransition={{
+            bounceStiffness: 300,
+            bounceDamping: 20,
+            min: 0,
+            max: 100,
           }}
         >
           <div
@@ -1304,7 +1338,7 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
                 imageRendering: "pixelated",
                 width: "100%",
                 height: "100%",
-                touchAction: "none", // Prevent default touch actions like scrolling
+                touchAction: selectedTool === "hand" ? "none" : "none",
               }}
               className={`${
                 selectedTool === "rect-select"
@@ -1337,7 +1371,7 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
               />
             )}
           </div>
-        </div>
+        </motion.div>
       </div>
     );
   }
