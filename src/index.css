@@ -171,6 +171,32 @@
   position: relative;
 }
 
+/* Shimmer effect */
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.shimmer {
+  background-image: linear-gradient(
+    90deg,
+    rgba(128, 128, 128, 0.6) 0%,
+    rgba(128, 128, 128, 0.6) 25%,
+    #fff 40%,
+    rgba(128, 128, 128, 0.6) 75%,
+    rgba(128, 128, 128, 0.6) 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 2s infinite linear;
+}
+
 .crt-effect::before {
   content: "";
   position: fixed;
@@ -188,6 +214,12 @@
   pointer-events: none;
   z-index: 9999;
   animation: scanline 10s linear infinite;
+}
+
+#dosbox canvas {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain;
 }
 
 #dosbox > div > div.absolute.right-10.bottom-10 > div {

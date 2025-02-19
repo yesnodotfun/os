@@ -10,15 +10,6 @@ import { Game, loadGames } from "@/utils/storage";
 import { motion } from "framer-motion";
 import { useJsDos, DosProps, DosEvent } from "../hooks/useJsDos";
 
-// Add global styles for DOSBox canvas
-const dosboxStyles = `
-  #dosbox canvas {
-    width: 100% !important;
-    height: 100% !important;
-    object-fit: contain;
-  }
-`;
-
 export function PcAppComponent({
   isWindowOpen,
   onClose,
@@ -35,7 +26,7 @@ export function PcAppComponent({
   });
   const [pendingGame, setPendingGame] = useState<Game | null>(null);
   const [isGameRunning, setIsGameRunning] = useState(false);
-  const [isMouseCaptured, setIsMouseCaptured] = useState(true);
+  const [isMouseCaptured, setIsMouseCaptured] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [currentRenderAspect, setCurrentRenderAspect] = useState("4/3");
   const [mouseSensitivity, setMouseSensitivity] = useState(1.0);
@@ -181,13 +172,11 @@ export function PcAppComponent({
             console.log("Emulator is ready");
           } else if (event === "ci-ready") {
             console.log("Command interface is ready");
-            // Hide loading screen when game is actually ready to play
             setIsLoading(false);
           } else if (event === "bnd-play") {
             console.log("Play button clicked");
           } else if (event === "exit") {
             console.log("Program terminated:", arg);
-            // Reset the emulator state
             if (containerRef.current) {
               containerRef.current.innerHTML = "";
               handleLoadGame(selectedGame);
@@ -239,7 +228,6 @@ export function PcAppComponent({
 
   return (
     <>
-      <style>{dosboxStyles}</style>
       <PcMenuBar
         onClose={onClose}
         onShowHelp={() => setIsHelpDialogOpen(true)}
@@ -275,8 +263,10 @@ export function PcAppComponent({
             />
             {isLoading && (
               <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
-                <div className="text-white font-geneva-12 text-xl">
-                  Loading {selectedGame.name}...
+                <div className="px-4 py-2 rounded bg-black/50 backdrop-blur-sm">
+                  <div className="font-geneva-12 text-sm shimmer">
+                    Loading {selectedGame.name}...
+                  </div>
                 </div>
               </div>
             )}
