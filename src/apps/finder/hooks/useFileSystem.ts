@@ -4,6 +4,105 @@ import { APP_STORAGE_KEYS } from "@/utils/storage";
 import { getNonFinderApps } from "@/config/appRegistry";
 import { useLaunchApp } from "@/hooks/useLaunchApp";
 
+// Database setup
+const DB_NAME = "ryOS";
+const DB_VERSION = 1;
+
+// Store names
+const STORES = {
+  DOCUMENTS: "documents",
+  IMAGES: "images",
+  TRASH: "trash",
+} as const;
+
+// Database initialization
+const initDB = (): Promise<IDBDatabase> => {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+
+    request.onupgradeneeded = (event) => {
+      const db = (event.target as IDBOpenDBRequest).result;
+
+      // Create stores if they don't exist
+      if (!db.objectStoreNames.contains(STORES.DOCUMENTS)) {
+        db.createObjectStore(STORES.DOCUMENTS, { keyPath: "name" });
+      }
+      if (!db.objectStoreNames.contains(STORES.IMAGES)) {
+        db.createObjectStore(STORES.IMAGES, { keyPath: "name" });
+      }
+      if (!db.objectStoreNames.contains(STORES.TRASH)) {
+        db.createObjectStore(STORES.TRASH, { keyPath: "name" });
+      }
+    };
+  });
+};
+
+// Generic CRUD operations
+const dbOperations = {
+  async getAll<T>(storeName: string): Promise<T[]> {
+    const db = await initDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(storeName, "readonly");
+      const store = transaction.objectStore(storeName);
+      const request = store.getAll();
+
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  },
+
+  async get<T>(storeName: string, key: string): Promise<T | undefined> {
+    const db = await initDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(storeName, "readonly");
+      const store = transaction.objectStore(storeName);
+      const request = store.get(key);
+
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  },
+
+  async put<T>(storeName: string, item: T): Promise<void> {
+    const db = await initDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(storeName, "readwrite");
+      const store = transaction.objectStore(storeName);
+      const request = store.put(item);
+
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  },
+
+  async delete(storeName: string, key: string): Promise<void> {
+    const db = await initDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(storeName, "readwrite");
+      const store = transaction.objectStore(storeName);
+      const request = store.delete(key);
+
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  },
+
+  async clear(storeName: string): Promise<void> {
+    const db = await initDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(storeName, "readwrite");
+      const store = transaction.objectStore(storeName);
+      const request = store.clear();
+
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  },
+};
+
 // Sample documents
 interface Document {
   name: string;
@@ -173,105 +272,18 @@ Visit https://github.com/ryokun6/soundboard for more information.`,
   },
 ];
 
-// Load documents from localStorage
-const loadDocuments = (): Document[] => {
-  const savedDocs = localStorage.getItem("documents");
-  return savedDocs ? JSON.parse(savedDocs) : DOCUMENTS;
-};
-
-// Save documents to localStorage
-const saveDocuments = (docs: Document[]) => {
-  localStorage.setItem("documents", JSON.stringify(docs));
-};
-
-// Add these helper functions at the top of the file
-const MAX_CHUNK_SIZE = 2 * 1024 * 1024; // 2MB chunks for Safari compatibility
-
-function saveChunkedData(key: string, data: string) {
+// Initialize database with sample documents if empty
+const initializeDatabase = async () => {
   try {
-    // Clear any existing chunks
-    const chunkKeys = Object.keys(localStorage).filter((k) =>
-      k.startsWith(`${key}_chunk_`)
-    );
-    chunkKeys.forEach((k) => localStorage.removeItem(k));
-
-    // Split data into chunks
-    const numChunks = Math.ceil(data.length / MAX_CHUNK_SIZE);
-    for (let i = 0; i < numChunks; i++) {
-      const chunk = data.substr(i * MAX_CHUNK_SIZE, MAX_CHUNK_SIZE);
-      localStorage.setItem(`${key}_chunk_${i}`, chunk);
-    }
-    // Store metadata
-    localStorage.setItem(`${key}_chunks`, numChunks.toString());
-    return true;
-  } catch (e) {
-    console.error("Error saving chunked data:", e);
-    return false;
-  }
-}
-
-function loadChunkedData(key: string): string | null {
-  try {
-    const numChunks = parseInt(localStorage.getItem(`${key}_chunks`) || "0");
-    if (numChunks === 0) return null;
-
-    let data = "";
-    for (let i = 0; i < numChunks; i++) {
-      const chunk = localStorage.getItem(`${key}_chunk_${i}`);
-      if (chunk === null) return null;
-      data += chunk;
-    }
-    return data;
-  } catch (e) {
-    console.error("Error loading chunked data:", e);
-    return null;
-  }
-}
-
-// Modify the saveImages function to use chunking
-const saveImages = (images: Document[]) => {
-  try {
-    const imagesJson = JSON.stringify(images);
-    if (imagesJson.length > MAX_CHUNK_SIZE) {
-      // Use chunking for large data
-      if (!saveChunkedData("images", imagesJson)) {
-        console.error("Failed to save chunked images data");
+    const existingDocs = await dbOperations.getAll<Document>(STORES.DOCUMENTS);
+    if (existingDocs.length === 0) {
+      for (const doc of DOCUMENTS) {
+        await dbOperations.put(STORES.DOCUMENTS, doc);
       }
-    } else {
-      // Use regular localStorage for small data
-      localStorage.setItem("images", imagesJson);
     }
-  } catch (e) {
-    console.error("Error saving images:", e);
+  } catch (error) {
+    console.error("Error initializing database:", error);
   }
-};
-
-// Modify the loadImages function to handle chunks
-const loadImages = (): Document[] => {
-  try {
-    // Try loading chunked data first
-    const chunkedData = loadChunkedData("images");
-    if (chunkedData) {
-      return JSON.parse(chunkedData);
-    }
-    // Fall back to regular localStorage
-    const savedImages = localStorage.getItem("images");
-    return savedImages ? JSON.parse(savedImages) : [];
-  } catch (e) {
-    console.error("Error loading images:", e);
-    return [];
-  }
-};
-
-// Load trash items from localStorage
-const loadTrashItems = (): TrashItem[] => {
-  const savedTrash = localStorage.getItem("trash_items");
-  return savedTrash ? JSON.parse(savedTrash) : [];
-};
-
-// Save trash items to localStorage
-const saveTrashItems = (items: TrashItem[]) => {
-  localStorage.setItem("trash_items", JSON.stringify(items));
 };
 
 // Helper function to detect file type
@@ -316,21 +328,42 @@ export function useFileSystem(initialPath: string = "/") {
   const [selectedFile, setSelectedFile] = useState<FileItem>();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>();
-  const [documents, setDocuments] = useState(loadDocuments());
-  const [images, setImages] = useState(loadImages());
-  const [trashItems, setTrashItems] = useState<TrashItem[]>(loadTrashItems());
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [images, setImages] = useState<Document[]>([]);
+  const [trashItems, setTrashItems] = useState<TrashItem[]>([]);
   const [history, setHistory] = useState<string[]>([initialPath]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const launchApp = useLaunchApp();
 
+  // Initialize database and load data
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        await initializeDatabase();
+        const [docs, imgs, trash] = await Promise.all([
+          dbOperations.getAll<Document>(STORES.DOCUMENTS),
+          dbOperations.getAll<Document>(STORES.IMAGES),
+          dbOperations.getAll<TrashItem>(STORES.TRASH),
+        ]);
+        setDocuments(docs);
+        setImages(imgs);
+        setTrashItems(trash);
+      } catch (err) {
+        console.error("Error loading data:", err);
+        setError("Failed to load data");
+      }
+    };
+    loadData();
+  }, []);
+
   // Load files whenever path, documents, or trash items change
   useEffect(() => {
     loadFiles();
-  }, [currentPath]);
+  }, [currentPath, documents, images, trashItems]);
 
   // Listen for file save events
   useEffect(() => {
-    const handleFileSave = (event: CustomEvent<FileItem>) => {
+    const handleFileSave = async (event: CustomEvent<FileItem>) => {
       if (!event.detail.content) return;
 
       const newDoc: Document = {
@@ -339,81 +372,58 @@ export function useFileSystem(initialPath: string = "/") {
         type: event.detail.type || getFileType(event.detail.name),
       };
 
-      // Only save to one location based on the file path
-      if (event.detail.path.startsWith("/Images/")) {
-        setImages((prevImages) => {
-          const newImages = [...prevImages];
-          const existingIndex = newImages.findIndex(
-            (img) => img.name === newDoc.name
+      try {
+        // Only save to one location based on the file path
+        if (event.detail.path.startsWith("/Images/")) {
+          await dbOperations.put(STORES.IMAGES, newDoc);
+          await dbOperations.delete(STORES.DOCUMENTS, newDoc.name);
+          setImages((prev) => {
+            const newImages = [...prev];
+            const existingIndex = newImages.findIndex(
+              (img) => img.name === newDoc.name
+            );
+            if (existingIndex >= 0) {
+              newImages[existingIndex] = newDoc;
+            } else {
+              newImages.push(newDoc);
+            }
+            return newImages;
+          });
+          setDocuments((prev) =>
+            prev.filter((doc) => doc.name !== newDoc.name)
           );
-
-          if (existingIndex >= 0) {
-            newImages[existingIndex] = newDoc;
-          } else {
-            newImages.push(newDoc);
-          }
-
-          saveImages(newImages);
-          return newImages;
-        });
-
-        // Remove from documents if it exists there
-        setDocuments((prevDocs) => {
-          const newDocs = prevDocs.filter((doc) => doc.name !== newDoc.name);
-          saveDocuments(newDocs);
-          return newDocs;
-        });
-      } else if (event.detail.path.startsWith("/Documents/")) {
-        setDocuments((prevDocs) => {
-          const newDocs = [...prevDocs];
-          const existingIndex = newDocs.findIndex(
-            (doc) => doc.name === newDoc.name
-          );
-
-          if (existingIndex >= 0) {
-            newDocs[existingIndex] = newDoc;
-          } else {
-            newDocs.push(newDoc);
-          }
-
-          saveDocuments(newDocs);
-          return newDocs;
-        });
-
-        // Remove from images if it exists there
-        setImages((prevImages) => {
-          const newImages = prevImages.filter(
-            (img) => img.name !== newDoc.name
-          );
-          saveImages(newImages);
-          return newImages;
-        });
+        } else if (event.detail.path.startsWith("/Documents/")) {
+          await dbOperations.put(STORES.DOCUMENTS, newDoc);
+          await dbOperations.delete(STORES.IMAGES, newDoc.name);
+          setDocuments((prev) => {
+            const newDocs = [...prev];
+            const existingIndex = newDocs.findIndex(
+              (doc) => doc.name === newDoc.name
+            );
+            if (existingIndex >= 0) {
+              newDocs[existingIndex] = newDoc;
+            } else {
+              newDocs.push(newDoc);
+            }
+            return newDocs;
+          });
+          setImages((prev) => prev.filter((img) => img.name !== newDoc.name));
+        }
+      } catch (err) {
+        console.error("Error saving file:", err);
+        setError("Failed to save file");
       }
     };
 
-    window.addEventListener("saveFile", handleFileSave as EventListener);
-    return () => {
-      window.removeEventListener("saveFile", handleFileSave as EventListener);
+    const eventListener = (event: Event) => {
+      handleFileSave(event as CustomEvent<FileItem>);
     };
-  }, []); // Keep empty dependency array
 
-  // Save documents to localStorage whenever they change
-  useEffect(() => {
-    saveDocuments(documents);
-    loadFiles();
-  }, [documents]);
-
-  // Save images to localStorage whenever they change
-  useEffect(() => {
-    saveImages(images);
-    loadFiles();
-  }, [images]);
-
-  // Save trash items to localStorage whenever they change
-  useEffect(() => {
-    saveTrashItems(trashItems);
-    loadFiles();
-  }, [trashItems]);
+    window.addEventListener("saveFile", eventListener);
+    return () => {
+      window.removeEventListener("saveFile", eventListener);
+    };
+  }, []);
 
   async function loadFiles() {
     setIsLoading(true);
@@ -638,7 +648,7 @@ export function useFileSystem(initialPath: string = "/") {
     return historyIndex < history.length - 1;
   }
 
-  function moveToTrash(file: FileItem) {
+  async function moveToTrash(file: FileItem) {
     if (file.path === "/Trash" || file.path.startsWith("/Trash/")) return;
 
     const trashItem: TrashItem = {
@@ -647,52 +657,59 @@ export function useFileSystem(initialPath: string = "/") {
       deletedAt: Date.now(),
     };
 
-    const newTrashItems = [...trashItems, trashItem];
-    setTrashItems(newTrashItems);
-    saveTrashItems(newTrashItems);
+    try {
+      await dbOperations.put(STORES.TRASH, trashItem);
+      setTrashItems((prev) => [...prev, trashItem]);
 
-    // Remove from documents if it's a document
-    if (file.path.startsWith("/Documents/")) {
-      const newDocs = documents.filter((doc) => doc.name !== file.name);
-      setDocuments(newDocs);
-      saveDocuments(newDocs);
+      // Remove from documents if it's a document
+      if (file.path.startsWith("/Documents/")) {
+        await dbOperations.delete(STORES.DOCUMENTS, file.name);
+        setDocuments((prev) => prev.filter((doc) => doc.name !== file.name));
+      }
+    } catch (err) {
+      console.error("Error moving to trash:", err);
+      setError("Failed to move file to trash");
     }
-
-    loadFiles();
   }
 
-  function restoreFromTrash(file: FileItem) {
+  async function restoreFromTrash(file: FileItem) {
     if (!file.path.startsWith("/Trash/")) return;
 
     const trashItem = trashItems.find((item) => item.name === file.name);
     if (!trashItem) return;
 
-    // Restore to original location
-    if (trashItem.originalPath.startsWith("/Documents/")) {
-      const newDoc: Document = {
-        name: trashItem.name,
-        content: trashItem.content || "",
-        type: trashItem.type || getFileType(trashItem.name),
-      };
-      const newDocs = [...documents, newDoc];
-      setDocuments(newDocs);
-      saveDocuments(newDocs);
+    try {
+      // Restore to original location
+      if (trashItem.originalPath.startsWith("/Documents/")) {
+        const newDoc: Document = {
+          name: trashItem.name,
+          content: trashItem.content || "",
+          type: trashItem.type || getFileType(trashItem.name),
+        };
+        await dbOperations.put(STORES.DOCUMENTS, newDoc);
+        setDocuments((prev) => [...prev, newDoc]);
+      }
+
+      // Remove from trash
+      await dbOperations.delete(STORES.TRASH, file.name);
+      setTrashItems((prev) => prev.filter((item) => item.name !== file.name));
+    } catch (err) {
+      console.error("Error restoring from trash:", err);
+      setError("Failed to restore file from trash");
     }
-
-    // Remove from trash
-    const newTrashItems = trashItems.filter((item) => item.name !== file.name);
-    setTrashItems(newTrashItems);
-    saveTrashItems(newTrashItems);
-
-    loadFiles();
   }
 
-  function emptyTrash() {
-    setTrashItems([]);
-    saveTrashItems([]);
+  async function emptyTrash() {
+    try {
+      await dbOperations.clear(STORES.TRASH);
+      setTrashItems([]);
+    } catch (err) {
+      console.error("Error emptying trash:", err);
+      setError("Failed to empty trash");
+    }
   }
 
-  function saveFile(file: FileItem) {
+  async function saveFile(file: FileItem) {
     if (!file.content) return;
 
     const newDoc: Document = {
@@ -701,70 +718,67 @@ export function useFileSystem(initialPath: string = "/") {
       type: file.type || getFileType(file.name),
     };
 
-    // Only save to one location based on the file path
-    if (file.path.startsWith("/Images/")) {
-      setImages((prevImages) => {
-        const newImages = [...prevImages];
-        const existingIndex = newImages.findIndex(
-          (img) => img.name === newDoc.name
-        );
-
-        if (existingIndex >= 0) {
-          newImages[existingIndex] = newDoc;
-        } else {
-          newImages.push(newDoc);
-        }
-
-        saveImages(newImages);
-        return newImages;
-      });
-
-      // Remove from documents if it exists there
-      setDocuments((prevDocs) => {
-        const newDocs = prevDocs.filter((doc) => doc.name !== newDoc.name);
-        saveDocuments(newDocs);
-        return newDocs;
-      });
-    } else if (file.path.startsWith("/Documents/")) {
-      setDocuments((prevDocs) => {
-        const newDocs = [...prevDocs];
-        const existingIndex = newDocs.findIndex(
-          (doc) => doc.name === newDoc.name
-        );
-
-        if (existingIndex >= 0) {
-          newDocs[existingIndex] = newDoc;
-        } else {
-          newDocs.push(newDoc);
-        }
-
-        saveDocuments(newDocs);
-        return newDocs;
-      });
-
-      // Remove from images if it exists there
-      setImages((prevImages) => {
-        const newImages = prevImages.filter((img) => img.name !== newDoc.name);
-        saveImages(newImages);
-        return newImages;
-      });
+    try {
+      // Only save to one location based on the file path
+      if (file.path.startsWith("/Images/")) {
+        await dbOperations.put(STORES.IMAGES, newDoc);
+        await dbOperations.delete(STORES.DOCUMENTS, newDoc.name);
+        setImages((prev) => {
+          const newImages = [...prev];
+          const existingIndex = newImages.findIndex(
+            (img) => img.name === newDoc.name
+          );
+          if (existingIndex >= 0) {
+            newImages[existingIndex] = newDoc;
+          } else {
+            newImages.push(newDoc);
+          }
+          return newImages;
+        });
+        setDocuments((prev) => prev.filter((doc) => doc.name !== newDoc.name));
+      } else if (file.path.startsWith("/Documents/")) {
+        await dbOperations.put(STORES.DOCUMENTS, newDoc);
+        await dbOperations.delete(STORES.IMAGES, newDoc.name);
+        setDocuments((prev) => {
+          const newDocs = [...prev];
+          const existingIndex = newDocs.findIndex(
+            (doc) => doc.name === newDoc.name
+          );
+          if (existingIndex >= 0) {
+            newDocs[existingIndex] = newDoc;
+          } else {
+            newDocs.push(newDoc);
+          }
+          return newDocs;
+        });
+        setImages((prev) => prev.filter((img) => img.name !== newDoc.name));
+      }
+    } catch (err) {
+      console.error("Error saving file:", err);
+      setError("Failed to save file");
     }
   }
 
-  function renameFile(oldName: string, newName: string) {
-    setDocuments((prevDocs) => {
-      const newDocs = [...prevDocs];
-      const existingIndex = newDocs.findIndex((doc) => doc.name === oldName);
-
-      if (existingIndex >= 0) {
-        newDocs[existingIndex] = {
-          ...newDocs[existingIndex],
-          name: newName,
-        };
+  async function renameFile(oldName: string, newName: string) {
+    try {
+      const doc = await dbOperations.get<Document>(STORES.DOCUMENTS, oldName);
+      if (doc) {
+        const newDoc = { ...doc, name: newName };
+        await dbOperations.put(STORES.DOCUMENTS, newDoc);
+        await dbOperations.delete(STORES.DOCUMENTS, oldName);
+        setDocuments((prev) => {
+          const newDocs = [...prev];
+          const existingIndex = newDocs.findIndex((d) => d.name === oldName);
+          if (existingIndex >= 0) {
+            newDocs[existingIndex] = newDoc;
+          }
+          return newDocs;
+        });
       }
-
-      return newDocs;
-    });
+    } catch (err) {
+      console.error("Error renaming file:", err);
+      setError("Failed to rename file");
+    }
   }
 
   return {

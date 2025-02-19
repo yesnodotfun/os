@@ -24,9 +24,11 @@ interface PcMenuBarProps {
   onSetMouseCapture: (capture: boolean) => void;
   onSetFullScreen: (fullScreen: boolean) => void;
   onSetRenderAspect: (aspect: string) => void;
+  onSetMouseSensitivity: (sensitivity: number) => void;
   isMouseCaptured: boolean;
   isFullScreen: boolean;
   currentRenderAspect: string;
+  mouseSensitivity: number;
 }
 
 export function PcMenuBar({
@@ -41,12 +43,15 @@ export function PcMenuBar({
   onSetMouseCapture,
   onSetFullScreen,
   onSetRenderAspect,
+  onSetMouseSensitivity,
   isMouseCaptured,
   isFullScreen,
   currentRenderAspect,
+  mouseSensitivity,
 }: PcMenuBarProps) {
   const availableGames = loadGames();
   const renderAspects = ["AsIs", "1/1", "5/4", "4/3", "16/10", "16/9", "Fit"];
+  const sensitivityOptions = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
 
   return (
     <MenuBar>
@@ -132,6 +137,25 @@ export function PcMenuBar({
           >
             Full Screen {isFullScreen ? "✓" : ""}
           </DropdownMenuItem>
+          <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
+              Mouse Sensitivity
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className="px-0">
+              {sensitivityOptions.map((sensitivity) => (
+                <DropdownMenuItem
+                  key={sensitivity}
+                  onClick={() => onSetMouseSensitivity(sensitivity)}
+                  className={`text-md h-6 px-3 active:bg-gray-900 active:text-white ${
+                    mouseSensitivity === sensitivity ? "bg-gray-100" : ""
+                  }`}
+                >
+                  {sensitivity}x
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           <DropdownMenuSub>
             <DropdownMenuSubTrigger className="text-md h-6 px-3 active:bg-gray-900 active:text-white">

@@ -10,6 +10,15 @@ import { Game, loadGames } from "@/utils/storage";
 import { motion } from "framer-motion";
 import { useJsDos, DosProps, DosEvent } from "../hooks/useJsDos";
 
+// Add global styles for DOSBox canvas
+const dosboxStyles = `
+  #dosbox canvas {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain;
+  }
+`;
+
 export function PcAppComponent({
   isWindowOpen,
   onClose,
@@ -29,6 +38,7 @@ export function PcAppComponent({
   const [isMouseCaptured, setIsMouseCaptured] = useState(true);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [currentRenderAspect, setCurrentRenderAspect] = useState("4/3");
+  const [mouseSensitivity, setMouseSensitivity] = useState(1.0);
   const containerRef = useRef<HTMLDivElement>(null);
   const dosPropsRef = useRef<DosProps | null>(null);
 
@@ -103,6 +113,13 @@ export function PcAppComponent({
     }
   };
 
+  const handleSetMouseSensitivity = (sensitivity: number) => {
+    setMouseSensitivity(sensitivity);
+    if (dosPropsRef.current) {
+      dosPropsRef.current.setMouseSensitivity(sensitivity);
+    }
+  };
+
   const handleLoadGame = async (game: Game) => {
     setSelectedGame(game);
     setIsGameRunning(true);
@@ -154,6 +171,7 @@ export function PcAppComponent({
         renderBackend: "webgl",
         imageRendering: "pixelated",
         mouseCapture: isMouseCaptured,
+        mouseSensitivity: mouseSensitivity,
         workerThread: true,
         autoStart: true,
         kiosk: true,
@@ -221,6 +239,7 @@ export function PcAppComponent({
 
   return (
     <>
+      <style>{dosboxStyles}</style>
       <PcMenuBar
         onClose={onClose}
         onShowHelp={() => setIsHelpDialogOpen(true)}
@@ -233,9 +252,11 @@ export function PcAppComponent({
         onSetMouseCapture={handleSetMouseCapture}
         onSetFullScreen={handleSetFullScreen}
         onSetRenderAspect={handleSetRenderAspect}
+        onSetMouseSensitivity={handleSetMouseSensitivity}
         isMouseCaptured={isMouseCaptured}
         isFullScreen={isFullScreen}
         currentRenderAspect={currentRenderAspect}
+        mouseSensitivity={mouseSensitivity}
       />
       <WindowFrame
         title="Virtual PC"
