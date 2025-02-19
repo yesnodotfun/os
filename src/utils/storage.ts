@@ -724,6 +724,11 @@ const DEFAULT_VIDEOS: Video[] = [
     title: "NJZ - New Jeans (2025)",
   },
   {
+    id: "m7Ct6cR_NS4",
+    url: "https://www.youtube.com/watch?v=m7Ct6cR_NS4",
+    title: "1TEAM - 습관적 VIBE",
+  },
+  {
     id: "GYLUSHZl8M0",
     url: "https://www.youtube.com/watch?v=GYLUSHZl8M0",
     title: "ditto - peace",
