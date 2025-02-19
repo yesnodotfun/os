@@ -234,6 +234,7 @@
   font-family: Geneva-12, Geneva, Tahoma, sans-serif;
   font-smooth: always;
   -webkit-font-smoothing: antialiased;
+  font-size: 12px;
 }
 
 #dosbox > div > div.absolute.right-10.bottom-10 > div > svg {

@@ -136,7 +136,7 @@ export function PcMenuBar({
             onClick={() => onSetMouseCapture(!isMouseCaptured)}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            Capture Mouse
+            Toggle Mouse Capture
           </DropdownMenuItem>
           <DropdownMenuSub>
             <DropdownMenuSubTrigger className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
