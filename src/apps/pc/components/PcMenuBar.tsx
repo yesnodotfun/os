@@ -125,19 +125,19 @@ export function PcMenuBar({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" sideOffset={1} className="px-0">
+        <DropdownMenuItem
+            onClick={() => onSetFullScreen(!isFullScreen)}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            Full Screen
+          </DropdownMenuItem>
+          <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           <DropdownMenuItem
             onClick={() => onSetMouseCapture(!isMouseCaptured)}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            Mouse Capture {isMouseCaptured ? "✓" : ""}
+            Capture Mouse
           </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => onSetFullScreen(!isFullScreen)}
-            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
-          >
-            Full Screen {isFullScreen ? "✓" : ""}
-          </DropdownMenuItem>
-          <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           <DropdownMenuSub>
             <DropdownMenuSubTrigger className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
               Mouse Sensitivity
@@ -159,7 +159,7 @@ export function PcMenuBar({
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           <DropdownMenuSub>
             <DropdownMenuSubTrigger className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
-              Render Aspect
+              Aspect Ratio
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent className="px-0">
               {renderAspects.map((aspect) => (

@@ -781,6 +781,31 @@ export function useFileSystem(initialPath: string = "/") {
     }
   }
 
+  async function formatFileSystem() {
+    try {
+      // Clear all stores except DOCUMENTS (which will be reset to sample documents)
+      await Promise.all([
+        dbOperations.clear(STORES.IMAGES),
+        dbOperations.clear(STORES.TRASH)
+      ]);
+
+      // Reset documents to sample documents
+      await dbOperations.clear(STORES.DOCUMENTS);
+      for (const doc of DOCUMENTS) {
+        await dbOperations.put(STORES.DOCUMENTS, doc);
+      }
+
+      // Update state
+      setDocuments(DOCUMENTS);
+      setImages([]);
+      setTrashItems([]);
+      setError(undefined);
+    } catch (err) {
+      console.error("Error formatting file system:", err);
+      setError("Failed to format file system");
+    }
+  }
+
   return {
     currentPath,
     files,
@@ -802,5 +827,6 @@ export function useFileSystem(initialPath: string = "/") {
     saveFile,
     setSelectedFile,
     renameFile,
+    formatFileSystem,
   };
 }

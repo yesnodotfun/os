@@ -35,6 +35,7 @@ export interface DosProps {
   setMouseCapture: (capture: boolean) => void;
   setFullScreen: (fullScreen: boolean) => void;
   setRenderAspect: (aspect: string) => void;
+  setMouseSensitivity: (sensitivity: number) => void;
 }
 
 // Module-level variables to track script state

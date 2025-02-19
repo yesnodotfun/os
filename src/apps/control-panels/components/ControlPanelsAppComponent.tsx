@@ -28,7 +28,7 @@ import {
   saveTypingSynthEnabled,
 } from "@/utils/storage";
 import { SYNTH_PRESETS } from "@/hooks/useChatSynth";
-import { DOCUMENTS } from "@/apps/finder/hooks/useFileSystem";
+import { useFileSystem } from "@/apps/finder/hooks/useFileSystem";
 
 type PhotoCategory =
   | "3d_graphics"
@@ -143,6 +143,7 @@ export function ControlPanelsAppComponent({
   const [typingSynthEnabled, setTypingSynthEnabled] = useState(false);
   const [synthPreset, setSynthPreset] = useState("classic");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { formatFileSystem } = useFileSystem();
 
   useEffect(() => {
     setUiSoundsEnabled(loadUISoundsEnabled());
@@ -454,9 +455,8 @@ export function ControlPanelsAppComponent({
         <ConfirmDialog
           isOpen={isConfirmFormatOpen}
           onOpenChange={setIsConfirmFormatOpen}
-          onConfirm={() => {
-            localStorage.setItem("documents", JSON.stringify(DOCUMENTS));
-            localStorage.setItem("images", JSON.stringify([]));
+          onConfirm={async () => {
+            await formatFileSystem();
             window.location.reload();
           }}
           title="Format File System"
