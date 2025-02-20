@@ -14,6 +14,7 @@ import { helpItems, appMetadata } from "..";
 import { useFileSystem } from "@/apps/finder/hooks/useFileSystem";
 import { useLaunchApp } from "@/hooks/useLaunchApp";
 import { APP_STORAGE_KEYS } from "@/utils/storage";
+import { Filter } from "./PaintFiltersMenu";
 
 export const PaintAppComponent: React.FC<AppProps> = ({
   isWindowOpen,
@@ -44,6 +45,7 @@ export const PaintAppComponent: React.FC<AppProps> = ({
     cut: () => void;
     copy: () => void;
     paste: () => void;
+    applyFilter: (filter: Filter) => void;
   }>();
   const { files, saveFile } = useFileSystem("/Images");
   const launchApp = useLaunchApp();
@@ -358,6 +360,9 @@ export const PaintAppComponent: React.FC<AppProps> = ({
         onCut={handleCut}
         onCopy={handleCopy}
         onPaste={handlePaste}
+        onApplyFilter={(filter) => {
+          canvasRef.current?.applyFilter(filter);
+        }}
       />
       <WindowFrame
         title={
@@ -412,6 +417,7 @@ export const PaintAppComponent: React.FC<AppProps> = ({
                         cut: ref.cut,
                         copy: ref.copy,
                         paste: ref.paste,
+                        applyFilter: ref.applyFilter,
                       };
                     }
                   }}

@@ -7,6 +7,7 @@ import React, {
   useCallback,
 } from "react";
 import { motion } from "framer-motion";
+import { Filter } from "./PaintFiltersMenu";
 
 interface PaintCanvasProps {
   selectedTool: string;
@@ -28,6 +29,7 @@ interface PaintCanvasRef {
   cut: () => void;
   copy: () => void;
   paste: () => void;
+  applyFilter: (filter: Filter) => void;
 }
 
 interface Point {
@@ -163,40 +165,41 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
         const cmdKey = isMac ? event.metaKey : event.ctrlKey;
 
         if (cmdKey && !event.altKey) {
-          if (event.shiftKey && event.key.toLowerCase() === "z") {
-            // Cmd/Ctrl+Shift+Z - Redo
+          if (event.key.toLowerCase() === "z") {
+            event.preventDefault();
+            if (event.shiftKey) {
+              // Cmd/Ctrl+Shift+Z - Redo
+              if (historyIndexRef.current < historyRef.current.length - 1) {
+                historyIndexRef.current++;
+                const imageData = historyRef.current[historyIndexRef.current];
+                if (contextRef.current && imageData) {
+                  contextRef.current.putImageData(imageData, 0, 0);
+                  onCanUndoChange(true);
+                  onCanRedoChange(
+                    historyIndexRef.current < historyRef.current.length - 1
+                  );
+                }
+              }
+            } else {
+              // Cmd/Ctrl+Z - Undo
+              if (historyIndexRef.current > 0) {
+                historyIndexRef.current--;
+                const imageData = historyRef.current[historyIndexRef.current];
+                if (contextRef.current && imageData) {
+                  contextRef.current.putImageData(imageData, 0, 0);
+                  onCanUndoChange(historyIndexRef.current > 0);
+                  onCanRedoChange(true);
+                }
+              }
+            }
+          } else if (event.key.toLowerCase() === "y" && !event.shiftKey) {
+            // Cmd/Ctrl+Y - Alternative Redo
             event.preventDefault();
             if (historyIndexRef.current < historyRef.current.length - 1) {
               historyIndexRef.current++;
               const imageData = historyRef.current[historyIndexRef.current];
               if (contextRef.current && imageData) {
                 contextRef.current.putImageData(imageData, 0, 0);
-              }
-              onCanUndoChange(true);
-              onCanRedoChange(
-                historyIndexRef.current < historyRef.current.length - 1
-              );
-            }
-          } else if (!event.shiftKey && event.key.toLowerCase() === "z") {
-            // Cmd/Ctrl+Z - Undo
-            event.preventDefault();
-            if (historyIndexRef.current > 0) {
-              historyIndexRef.current--;
-              const imageData = historyRef.current[historyIndexRef.current];
-              if (contextRef.current && imageData) {
-                contextRef.current.putImageData(imageData, 0, 0);
-              }
-              onCanUndoChange(historyIndexRef.current > 0);
-              onCanRedoChange(true);
-            } else if (!event.shiftKey && event.key.toLowerCase() === "y") {
-              // Cmd/Ctrl+Y - Alternative Redo
-              event.preventDefault();
-              if (historyIndexRef.current < historyRef.current.length - 1) {
-                historyIndexRef.current++;
-                const imageData = historyRef.current[historyIndexRef.current];
-                if (contextRef.current && imageData) {
-                  contextRef.current.putImageData(imageData, 0, 0);
-                }
                 onCanUndoChange(true);
                 onCanRedoChange(
                   historyIndexRef.current < historyRef.current.length - 1
@@ -337,32 +340,6 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
       }
     }, [strokeWidth]);
 
-    // Helper to check if two ImageData objects are different
-    const hasCanvasChanged = (
-      prevImageData: ImageData,
-      newImageData: ImageData
-    ) => {
-      if (
-        prevImageData.width !== newImageData.width ||
-        prevImageData.height !== newImageData.height
-      ) {
-        return true;
-      }
-
-      // Compare pixel data
-      const prevData = prevImageData.data;
-      const newData = newImageData.data;
-      const length = prevData.length;
-
-      // Only check every 4th pixel (RGBA) for performance
-      for (let i = 0; i < length; i += 16) {
-        if (prevData[i] !== newData[i]) {
-          return true;
-        }
-      }
-      return false;
-    };
-
     const saveToHistory = useCallback(() => {
       const canvas = canvasRef.current;
       if (!canvas || !contextRef.current) return;
@@ -374,31 +351,21 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
         canvas.height
       );
 
-      // Check if there are any states in history
-      if (historyIndexRef.current >= 0) {
-        const prevImageData = historyRef.current[historyIndexRef.current];
-
-        // Only save if the canvas has actually changed
-        if (!hasCanvasChanged(prevImageData, newImageData)) {
-          return;
-        }
-      }
-
       // Remove any redo states
       historyRef.current = historyRef.current.slice(
         0,
         historyIndexRef.current + 1
       );
 
-      // Limit history size to prevent memory issues (keep last 50 states)
-      if (historyRef.current.length >= 50) {
-        historyRef.current = historyRef.current.slice(-49);
-        historyIndexRef.current = Math.min(historyIndexRef.current, 48);
-      }
-
       // Add current state to history
       historyRef.current.push(newImageData);
       historyIndexRef.current++;
+
+      // Limit history size to prevent memory issues (keep last 50 states)
+      if (historyRef.current.length > 50) {
+        historyRef.current = historyRef.current.slice(-50);
+        historyIndexRef.current = Math.min(historyIndexRef.current, 49);
+      }
 
       // Update undo/redo availability
       onCanUndoChange(historyIndexRef.current > 0);
@@ -408,13 +375,7 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
       if (!isLoadingFile) {
         onContentChange?.();
       }
-    }, [
-      onCanUndoChange,
-      onCanRedoChange,
-      onContentChange,
-      hasCanvasChanged,
-      isLoadingFile,
-    ]);
+    }, [onCanUndoChange, onCanRedoChange, onContentChange, isLoadingFile]);
 
     // Clipboard methods
     const copySelectionToClipboard = useCallback(() => {
@@ -523,9 +484,9 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
             const imageData = historyRef.current[historyIndexRef.current];
             if (contextRef.current && imageData) {
               contextRef.current.putImageData(imageData, 0, 0);
+              onCanUndoChange(historyIndexRef.current > 0);
+              onCanRedoChange(true);
             }
-            onCanUndoChange(historyIndexRef.current > 0);
-            onCanRedoChange(true);
           }
         },
         redo: () => {
@@ -534,11 +495,11 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
             const imageData = historyRef.current[historyIndexRef.current];
             if (contextRef.current && imageData) {
               contextRef.current.putImageData(imageData, 0, 0);
+              onCanUndoChange(true);
+              onCanRedoChange(
+                historyIndexRef.current < historyRef.current.length - 1
+              );
             }
-            onCanUndoChange(true);
-            onCanRedoChange(
-              historyIndexRef.current < historyRef.current.length - 1
-            );
           }
         },
         clear: () => {
@@ -577,8 +538,15 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
         },
         copy: copySelectionToClipboard,
         paste: handlePaste,
+        applyFilter: (filter: Filter) => {
+          if (canvasRef.current) {
+            saveToHistory();
+            filter.apply(canvasRef.current);
+            onContentChange?.();
+          }
+        },
       }),
-      [copySelectionToClipboard, clearSelection, handlePaste, saveToHistory]
+      [onCanUndoChange, onCanRedoChange]
     );
 
     // Add keyboard shortcuts for clipboard operations

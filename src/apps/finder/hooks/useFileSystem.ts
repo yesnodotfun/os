@@ -666,6 +666,11 @@ export function useFileSystem(initialPath: string = "/") {
         await dbOperations.delete(STORES.DOCUMENTS, file.name);
         setDocuments((prev) => prev.filter((doc) => doc.name !== file.name));
       }
+      // Remove from images if it's an image
+      else if (file.path.startsWith("/Images/")) {
+        await dbOperations.delete(STORES.IMAGES, file.name);
+        setImages((prev) => prev.filter((img) => img.name !== file.name));
+      }
     } catch (err) {
       console.error("Error moving to trash:", err);
       setError("Failed to move file to trash");
@@ -688,6 +693,16 @@ export function useFileSystem(initialPath: string = "/") {
         };
         await dbOperations.put(STORES.DOCUMENTS, newDoc);
         setDocuments((prev) => [...prev, newDoc]);
+      }
+      // Restore to images if it was originally an image
+      else if (trashItem.originalPath.startsWith("/Images/")) {
+        const newImage: Document = {
+          name: trashItem.name,
+          content: trashItem.content || "",
+          type: trashItem.type || getFileType(trashItem.name),
+        };
+        await dbOperations.put(STORES.IMAGES, newImage);
+        setImages((prev) => [...prev, newImage]);
       }
 
       // Remove from trash
@@ -786,7 +801,7 @@ export function useFileSystem(initialPath: string = "/") {
       // Clear all stores except DOCUMENTS (which will be reset to sample documents)
       await Promise.all([
         dbOperations.clear(STORES.IMAGES),
-        dbOperations.clear(STORES.TRASH)
+        dbOperations.clear(STORES.TRASH),
       ]);
 
       // Reset documents to sample documents
