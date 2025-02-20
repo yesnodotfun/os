@@ -29,7 +29,7 @@ export const appMetadata = {
     name: "System",
     url: "https://github.com/ryokun6",
   },
-  github: "https://github.com/ryokun6/soundboard",
+  github: "https://github.com/ryokun6/ryos",
   icon: "/icons/control-panels/appearance-manager/app.png",
 };
 

@@ -39,7 +39,7 @@ const finderMetadata = {
     name: "Ryo",
     url: "https://github.com/ryokun6",
   },
-  github: "https://github.com/ryokun6/soundboard",
+  github: "https://github.com/ryokun6/ryos",
   icon: "/icons/mac.png",
 };
 

@@ -123,7 +123,6 @@ export const DOCUMENTS: Document[] = [
 A web-based operating system experience inspired by classic Mac OS System 7. Built using modern web technologies including React, Vite, TailwindCSS, and shadcn/ui components.
 
 ## Features
-
 - Classic System 7 UI with authentic typography
 - Window management (drag, resize, maximize)
 - File system with Documents and Applications folders
@@ -136,7 +135,6 @@ A web-based operating system experience inspired by classic Mac OS System 7. Bui
 - Virtual PC with classic games
 
 ## Built-in Applications
-
 - **Finder**: Browse and manage your files
 - **TextEdit**: Create and edit documents
 - **Soundboard**: Create and play custom soundboards
@@ -148,7 +146,6 @@ A web-based operating system experience inspired by classic Mac OS System 7. Bui
 - **Virtual PC**: Play classic PC games like Doom and SimCity
 
 ## Getting Started
-
 - Double-click on any app icon to launch it
 - Use the **Apple menu (🍎)** in the top-left to access system functions
 - Files are automatically saved to your browser's storage
@@ -157,7 +154,6 @@ A web-based operating system experience inspired by classic Mac OS System 7. Bui
 - Launch Virtual PC from Applications folder to play classic games
 
 ## Technical Details
-
 - Built with React 18 and TypeScript
 - Vite for fast development and bundling
 - TailwindCSS for styling
@@ -167,7 +163,7 @@ A web-based operating system experience inspired by classic Mac OS System 7. Bui
 - Tone.js for audio synthesis
 - Virtual PC Emulator powered by DOSBox
 
-Visit https://github.com/ryokun6/soundboard for more information.`,
+Visit https://github.com/ryokun6/ryos for more information.`,
   },
   {
     name: "Quick Tips.md",

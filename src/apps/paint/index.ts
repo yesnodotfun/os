@@ -46,7 +46,7 @@ export const appMetadata = {
     name: "Ryo Lu",
     url: "https://github.com/ryokun6",
   },
-  github: "https://github.com/ryokun6/soundboard",
+  github: "https://github.com/ryokun6/ryos",
   icon: "/icons/paint.png",
 };
 
