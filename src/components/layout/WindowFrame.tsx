@@ -6,6 +6,9 @@ import { useSound, Sounds } from "@/hooks/useSound";
 import { useEffect, useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { getWindowConfig } from "@/config/appRegistry";
+import { useSwipeNavigation } from "@/hooks/useSwipeNavigation";
+import { AppId } from "@/config/appRegistry";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 interface WindowFrameProps {
   children: React.ReactNode;
@@ -48,10 +51,27 @@ export function WindowFrame({
   const [isOpen, setIsOpen] = useState(true);
   const [isVisible, setIsVisible] = useState(true);
   const [isInitialMount, setIsInitialMount] = useState(true);
-  const { bringToForeground } = useAppContext();
+  const { bringToForeground, navigateToNextApp, navigateToPreviousApp } =
+    useAppContext();
   const { play: playWindowOpen } = useSound(Sounds.WINDOW_OPEN);
   const { play: playWindowClose } = useSound(Sounds.WINDOW_CLOSE);
   const [isFullHeight, setIsFullHeight] = useState(false);
+  const isMobile = useIsMobile();
+
+  // Setup swipe navigation for mobile
+  const {
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd,
+    isSwiping,
+    swipeDirection,
+  } = useSwipeNavigation({
+    currentAppId: appId as AppId,
+    isActive: isMobile && isForeground,
+    onSwipeLeft: (currentAppId) => navigateToNextApp(currentAppId),
+    onSwipeRight: (currentAppId) => navigateToPreviousApp(currentAppId),
+    threshold: 100,
+  });
 
   useEffect(() => {
     playWindowOpen();
@@ -134,6 +154,20 @@ export function WindowFrame({
   };
 
   if (!isVisible) return null;
+
+  // Calculate dynamic style for swipe animation feedback
+  const getSwipeStyle = () => {
+    if (!isMobile || !isSwiping || !swipeDirection) {
+      return {};
+    }
+
+    // Apply a slight translation effect during swipe
+    const translateAmount = swipeDirection === "left" ? -10 : 10;
+    return {
+      transform: `translateX(${translateAmount}px)`,
+      transition: "transform 0.1s ease",
+    };
+  };
 
   return (
     <div
@@ -268,6 +302,10 @@ export function WindowFrame({
             "w-full h-full flex flex-col bg-system7-window-bg border-[2px] border-black rounded-lg overflow-hidden",
             isForeground ? "shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)]" : ""
           )}
+          onTouchStart={isMobile ? handleTouchStart : undefined}
+          onTouchMove={isMobile ? handleTouchMove : undefined}
+          onTouchEnd={isMobile ? handleTouchEnd : undefined}
+          style={getSwipeStyle()}
         >
           {/* Title bar */}
           <div

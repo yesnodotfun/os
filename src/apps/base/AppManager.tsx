@@ -112,6 +112,36 @@ export function AppManager({ apps }: AppManagerProps) {
     });
   };
 
+  // Navigation methods for mobile swipe gestures
+  const navigateToNextApp = (currentAppId: AppId) => {
+    const { windowOrder } = appStates;
+    if (windowOrder.length <= 1) return; // No other windows to navigate to
+
+    const currentIndex = windowOrder.indexOf(currentAppId);
+    if (currentIndex === -1) return;
+
+    // Get the next window in the stack (or wrap to the first one)
+    const nextIndex = (currentIndex + 1) % windowOrder.length;
+    const nextAppId = windowOrder[nextIndex];
+
+    bringToForeground(nextAppId);
+  };
+
+  const navigateToPreviousApp = (currentAppId: AppId) => {
+    const { windowOrder } = appStates;
+    if (windowOrder.length <= 1) return; // No other windows to navigate to
+
+    const currentIndex = windowOrder.indexOf(currentAppId);
+    if (currentIndex === -1) return;
+
+    // Get the previous window in the stack (or wrap to the last one)
+    const prevIndex =
+      (currentIndex - 1 + windowOrder.length) % windowOrder.length;
+    const prevAppId = windowOrder[prevIndex];
+
+    bringToForeground(prevAppId);
+  };
+
   // Listen for app launch events from Finder
   useEffect(() => {
     const handleAppLaunch = (
@@ -142,6 +172,8 @@ export function AppManager({ apps }: AppManagerProps) {
         toggleApp,
         bringToForeground,
         apps,
+        navigateToNextApp,
+        navigateToPreviousApp,
       }}
     >
       <MenuBar />
