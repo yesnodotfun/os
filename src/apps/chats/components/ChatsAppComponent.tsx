@@ -1797,9 +1797,10 @@ export function ChatsAppComponent({
     setMessages(aiMessages);
     saveChatMessages(aiMessages);
 
-    // Process messages for TextEdit markup and apply edits
+    // Skip heavy TextEdit processing if we only have the initial message (after clearing chats)
+    // or if no TextEdit context exists
     if (
-      aiMessages.length > 0 &&
+      aiMessages.length > 1 && // Only process if we have more than just the initial message
       !isProcessingEdits.current &&
       textEditContext
     ) {
@@ -1812,7 +1813,7 @@ export function ChatsAppComponent({
 
       // Skip if already processed
       if (processedMessageIds.current.has(lastMessage.id)) {
-        console.log("Skipping already processed message:", lastMessage.id);
+        // Removed repetitive console.log to prevent infinite logging
         return;
       }
 
@@ -2114,9 +2115,23 @@ export function ChatsAppComponent({
   };
 
   const confirmClearChats = () => {
-    setAiMessages([initialMessage]);
-    saveChatMessages([initialMessage]);
+    // Close the dialog first to improve perceived performance
     setIsClearDialogOpen(false);
+
+    // Use requestAnimationFrame to avoid layout thrashing
+    requestAnimationFrame(() => {
+      // Mark all messages as processed to prevent any lingering processing
+      aiMessages.forEach((msg) => {
+        processedMessageIds.current.add(msg.id);
+      });
+
+      // Reset the processing flag just in case
+      isProcessingEdits.current = false;
+
+      // Reset to initial state
+      setAiMessages([initialMessage]);
+      saveChatMessages([initialMessage]);
+    });
   };
 
   const handleSaveTranscript = () => {
@@ -2168,6 +2183,20 @@ export function ChatsAppComponent({
 
     setIsSaveDialogOpen(false);
   };
+
+  // Add this right after other useEffect hooks, before the conditional return
+
+  // Cleanup function to ensure we don't have any hanging operations
+  useEffect(() => {
+    return () => {
+      // Reset processing flag on unmount
+      isProcessingEdits.current = false;
+
+      // Clear any timers or async operations here if needed
+
+      console.log("Chat component unmounted, cleanup complete");
+    };
+  }, []);
 
   if (!isWindowOpen) return null;
 
