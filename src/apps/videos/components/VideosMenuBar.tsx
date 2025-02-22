@@ -35,6 +35,7 @@ interface VideosMenuBarProps {
   isLoopCurrent: boolean;
   isPlaying: boolean;
   isShuffled: boolean;
+  onFullScreen: () => void;
 }
 
 export function VideosMenuBar({
@@ -57,6 +58,7 @@ export function VideosMenuBar({
   isLoopCurrent,
   isPlaying,
   isShuffled,
+  onFullScreen,
 }: VideosMenuBarProps) {
   return (
     <MenuBar>
@@ -120,6 +122,12 @@ export function VideosMenuBar({
             disabled={videos.length === 0}
           >
             Next
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={onFullScreen}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            Full Screen
           </DropdownMenuItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           <DropdownMenuItem

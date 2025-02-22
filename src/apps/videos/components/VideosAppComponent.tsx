@@ -537,6 +537,44 @@ export function VideosAppComponent({
     }
   };
 
+  const handleFullScreen = () => {
+    try {
+      // First try to get the iframe element
+      const playerElement = playerRef.current?.getInternalPlayer();
+
+      // For YouTube videos, the player is inside an iframe
+      if (playerElement) {
+        // Try to find the iframe element
+        const iframe = playerElement.getIframe
+          ? playerElement.getIframe()
+          : playerElement;
+
+        if (iframe && iframe.requestFullscreen) {
+          iframe.requestFullscreen();
+          showStatus("FULLSCREEN");
+          return;
+        }
+      }
+
+      // Fallback: try to find the iframe directly in the DOM
+      const playerContainer = document.querySelector(".react-player iframe");
+      if (playerContainer && playerContainer.requestFullscreen) {
+        playerContainer.requestFullscreen();
+        showStatus("FULLSCREEN");
+        return;
+      }
+
+      // Last resort: make the container fullscreen
+      const container = document.querySelector(".react-player");
+      if (container && container.requestFullscreen) {
+        container.requestFullscreen();
+        showStatus("FULLSCREEN");
+      }
+    } catch (error) {
+      console.error("Fullscreen error:", error);
+    }
+  };
+
   // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
@@ -596,6 +634,7 @@ export function VideosAppComponent({
         }}
         isPlaying={isPlaying}
         isShuffled={isShuffled}
+        onFullScreen={handleFullScreen}
       />
       <WindowFrame
         title="Videos"
