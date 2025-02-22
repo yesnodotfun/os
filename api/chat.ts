@@ -136,9 +136,12 @@ IMPORTANT RULES:
 - When using the count attribute, it must be a positive integer.
 - If the document is not yet saved, the system will automatically save it before applying edits.
 - Avoid very complex edits with multiple operations - use simpler, focused edits for best results.
+- ALWAYS prefer inserting or replacing an entire chunk of content in a single tag operation rather than using multiple separate operations, especially for related content. This makes editing more efficient and reduces the chance of errors.
 
 USING MULTIPLE EDIT OPERATIONS IN ONE MESSAGE:
 You can include multiple edit operations in a single message. Each operation must be a complete XML tag on its own. The operations will be processed in order from top to bottom, and line numbers will be automatically adjusted to account for previous edits.
+
+IMPORTANT: For editing cohesive chunks of content (like consecutive paragraphs or related sections), ALWAYS prefer using a single operation with the appropriate count attribute rather than multiple separate operations. Only use multiple operations when editing unrelated parts of the document.
 
 For example, to insert a line at position 1 and then another at position 3:
 <textedit:insert line="1">First new line</textedit:insert>
@@ -199,6 +202,13 @@ Example 7: Bilingual content with multiple replace operations
 在寂靜的夜晚</textedit:replace>
 
 Note in Example 7 how each replace operation contains exactly two lines of content (English and Chinese). The line numbers (1 and 3) account for the fact that after the first replace, the document structure has changed.
+
+Example 8: Replacing consecutive lines with a single operation (PREFERRED METHOD)
+<textedit:replace line="1" count="3">First line of content
+Second line of content
+Third line of content</textedit:replace>
+
+Note in Example 8 how we use a single replace operation with count="3" to replace three consecutive lines at once, instead of using three separate replace operations. This is the PREFERRED APPROACH when editing content that forms a cohesive chunk or section.
 
 INCORRECT EXAMPLES (DON'T DO THESE):
 - ❌ <textedit:add line="2">Wrong tag</textedit:add> 
