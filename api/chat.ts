@@ -61,6 +61,13 @@ EDITING INSTRUCTIONS:
    <textedit:replace line="X" count="Y">New content with
 multiple lines</textedit:replace>
 
+   IMPORTANT FOR REPLACE OPERATIONS:
+   - When replacing with multi-line content, each line in your replacement will become a separate line in the document.
+   - The count attribute specifies how many existing lines to replace, not how many lines are in your replacement.
+   - If your replacement has more lines than the count, additional lines will be inserted.
+   - If your replacement has fewer lines than the count, some lines will be deleted.
+   - Line breaks in your content are preserved exactly as written.
+
 3. Delete line(s):
    <textedit:delete line="X"/>
    Or delete multiple lines:
@@ -82,6 +89,33 @@ IMPORTANT RULES:
 - When using the count attribute, it must be a positive integer.
 - If the document is not yet saved, the system will automatically save it before applying edits.
 - Avoid very complex edits with multiple operations - use simpler, focused edits for best results.
+
+USING MULTIPLE EDIT OPERATIONS IN ONE MESSAGE:
+You can include multiple edit operations in a single message. Each operation must be a complete XML tag on its own. The operations will be processed in order from top to bottom, and line numbers will be automatically adjusted to account for previous edits.
+
+For example, to insert a line at position 1 and then another at position 3:
+<textedit:insert line="1">First new line</textedit:insert>
+<textedit:insert line="3">Second new line</textedit:insert>
+
+The system will:
+1. Insert "First new line" at line 1
+2. Automatically adjust the line numbers of the document
+3. Insert "Second new line" at what is now line 3 (after the adjustment)
+
+IMPORTANT FOR MULTIPLE OPERATIONS:
+- Each operation must be a complete, properly formatted XML tag.
+- Operations are processed in order from top to bottom.
+- Line numbers are automatically adjusted after each operation.
+- For replace operations with multi-line content, be aware that the line count will change, affecting subsequent operations.
+- If you're doing multiple replace operations on consecutive lines, remember that the line numbers will shift after each operation.
+- When in doubt, use simpler operations or break complex edits into separate messages.
+
+Example of multiple replace operations:
+<textedit:replace line="1" count="1">New first line</textedit:replace>
+<textedit:replace line="2" count="1">New second line</textedit:replace>
+<textedit:replace line="3" count="1">New third line</textedit:replace>
+
+This will replace the first three lines of the document in sequence.
 
 WORKING WITH THE CURRENT DOCUMENT:
 The document currently has ${textEditContext.content.split("\n").length} lines.
@@ -106,21 +140,34 @@ Example 5: Append to the end of the document
       textEditContext.content.split("\n").length + 1
     }">New line at the end of the document</textedit:insert>
 
-Example 6: Multiple insertions with future line numbers
-<textedit:insert line="100">This will add empty lines and insert at line 100</textedit:insert>
-<textedit:insert line="102">This will be inserted at line 102, accounting for the previous insertion</textedit:insert>
+Example 6: Multiple operations in one message
+<textedit:insert line="1">New first line</textedit:insert>
+<textedit:replace line="3">Replace what is now line 3</textedit:replace>
+<textedit:delete line="5"/>
+
+Example 7: Bilingual content with multiple replace operations
+<textedit:replace line="1" count="1">how sweet
+多麼甜美</textedit:replace>
+<textedit:replace line="3" count="1">in the quiet of the night
+在寂靜的夜晚</textedit:replace>
+
+Note in Example 7 how each replace operation contains exactly two lines of content (English and Chinese). The line numbers (1 and 3) account for the fact that after the first replace, the document structure has changed.
 
 INCORRECT EXAMPLES (DON'T DO THESE):
 - ❌ <textedit:add line="2">Wrong tag</textedit:add> 
 - ❌ <textedit:insert line="2"/>Don't use self-closing tags for insert
 - ❌ <textedit:insert line=2>Quotes are required around attribute values</textedit:insert>
 - ❌ <textedit:insert line="2" content="content">Don't put content as an attribute</textedit:insert>
+- ❌ <textedit:insert line="1"><textedit:replace line="2">Nested tags don't work</textedit:replace></textedit:insert>
 
 TROUBLESHOOTING:
 - If the update doesn't seem to work, try using simple, single operations rather than multiple complex ones.
 - If you see an error message about saving the document, the document probably hasn't been saved yet. The system will attempt to save it automatically.
 - If you're trying to edit a document that was just created, wait a moment for TextEdit to register the file before attempting edits.
 - The document may need to reload after edits - this happens automatically.
+- Make sure each XML tag is complete and properly formatted.
+- Ensure there are no nested tags - each operation should be a separate tag.
+- Check that line numbers are valid for the current document state.
 
 After applying these edits, you will see a note in your message saying the document has been updated.`;
   }

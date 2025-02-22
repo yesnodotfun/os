@@ -97,6 +97,49 @@ const parseTextEditMarkup = (message: string) => {
   }[] = [];
 
   try {
+    // Trim message to ensure clean parsing
+    if (!message || typeof message !== "string") {
+      console.warn("Invalid message format for parsing");
+      return edits;
+    }
+
+    const trimmedMessage = message.trim();
+
+    // Log the original message for debugging
+    console.log(
+      "Parsing TextEdit markup from message:",
+      trimmedMessage.substring(0, 100) + "..."
+    );
+
+    // First, check if we have equal number of opening and closing tags
+    const openingInsertTags = (
+      trimmedMessage.match(/<textedit:insert[^>]*>/g) || []
+    ).length;
+    const closingInsertTags = (
+      trimmedMessage.match(/<\/textedit:insert>/g) || []
+    ).length;
+    const selfClosingDeleteTags = (
+      trimmedMessage.match(/<textedit:delete[^>]*\/>/g) || []
+    ).length;
+    const openingReplaceTags = (
+      trimmedMessage.match(/<textedit:replace[^>]*>/g) || []
+    ).length;
+    const closingReplaceTags = (
+      trimmedMessage.match(/<\/textedit:replace>/g) || []
+    ).length;
+
+    console.log(`Tag check: 
+      - Insert: ${openingInsertTags} opening, ${closingInsertTags} closing
+      - Replace: ${openingReplaceTags} opening, ${closingReplaceTags} closing
+      - Delete: ${selfClosingDeleteTags} self-closing`);
+
+    if (
+      openingInsertTags !== closingInsertTags ||
+      openingReplaceTags !== closingReplaceTags
+    ) {
+      console.warn("Unbalanced XML tags detected, may get incomplete results");
+    }
+
     // Regular expressions to match the XML tags - more robust with whitespace handling
     const insertRegex =
       /<textedit:insert\s+line\s*=\s*"(\d+)"\s*>([\s\S]*?)<\/textedit:insert>/g;
@@ -105,50 +148,57 @@ const parseTextEditMarkup = (message: string) => {
     const deleteRegex =
       /<textedit:delete\s+line\s*=\s*"(\d+)"(?:\s+count\s*=\s*"(\d+)")?\s*\/>/g;
 
-    // Process inserts with additional validation
-    let match;
-    while ((match = insertRegex.exec(message)) !== null) {
-      const lineNumber = parseInt(match[1], 10);
-      if (lineNumber > 0) {
-        // Ensure line numbers are positive
-        edits.push({
-          type: "insert",
+    // Reset the lastIndex property for all regex patterns
+    insertRegex.lastIndex = 0;
+    replaceRegex.lastIndex = 0;
+    deleteRegex.lastIndex = 0;
+
+    // Find all insertions
+    const allInsertions = Array.from(trimmedMessage.matchAll(insertRegex))
+      .map((match) => {
+        const lineNumber = parseInt(match[1], 10);
+        return {
+          type: "insert" as const,
           line: lineNumber,
           content: match[2],
-        });
-      }
-    }
+        };
+      })
+      .filter((edit) => edit.line > 0);
 
-    // Process replaces with additional validation
-    while ((match = replaceRegex.exec(message)) !== null) {
-      const lineNumber = parseInt(match[1], 10);
-      const count = match[2] ? parseInt(match[2], 10) : 1;
-
-      if (lineNumber > 0 && count > 0) {
-        // Ensure line numbers and count are positive
-        edits.push({
-          type: "replace",
+    // Find all replacements
+    const allReplacements = Array.from(trimmedMessage.matchAll(replaceRegex))
+      .map((match) => {
+        const lineNumber = parseInt(match[1], 10);
+        const count = match[2] ? parseInt(match[2], 10) : 1;
+        return {
+          type: "replace" as const,
           line: lineNumber,
           count: count,
           content: match[3],
-        });
-      }
-    }
+        };
+      })
+      .filter((edit) => edit.line > 0 && (edit.count || 1) > 0);
 
-    // Process deletes with additional validation
-    while ((match = deleteRegex.exec(message)) !== null) {
-      const lineNumber = parseInt(match[1], 10);
-      const count = match[2] ? parseInt(match[2], 10) : 1;
-
-      if (lineNumber > 0 && count > 0) {
-        // Ensure line numbers and count are positive
-        edits.push({
-          type: "delete",
+    // Find all deletions
+    const allDeletions = Array.from(trimmedMessage.matchAll(deleteRegex))
+      .map((match) => {
+        const lineNumber = parseInt(match[1], 10);
+        const count = match[2] ? parseInt(match[2], 10) : 1;
+        return {
+          type: "delete" as const,
           line: lineNumber,
           count: count,
-        });
-      }
-    }
+        };
+      })
+      .filter((edit) => edit.line > 0 && (edit.count || 1) > 0);
+
+    // Add all edits to the result array
+    edits.push(...allInsertions, ...allReplacements, ...allDeletions);
+
+    console.log(`Successfully parsed:
+      - ${allInsertions.length} insertions
+      - ${allReplacements.length} replacements
+      - ${allDeletions.length} deletions`);
 
     // Log the edits for debugging
     if (edits.length > 0) {
@@ -156,6 +206,8 @@ const parseTextEditMarkup = (message: string) => {
         "Detected TextEdit markup edits:",
         JSON.stringify(edits, null, 2)
       );
+    } else {
+      console.warn("No valid edits found despite matching regex patterns");
     }
   } catch (error) {
     console.error("Error parsing TextEdit markup:", error);
@@ -178,6 +230,7 @@ const applyTextEditChanges = (content: string, edits: TextEditOperation[]) => {
 
   // Split content into lines for easier processing
   const lines = content.split("\n");
+  console.log(`Document has ${lines.length} lines before applying edits`);
 
   // Create a copy of edits to avoid modifying the original array
   const editsCopy = [...edits];
@@ -190,56 +243,137 @@ const applyTextEditChanges = (content: string, edits: TextEditOperation[]) => {
   // Apply each edit and track line number changes
   for (let i = 0; i < editsCopy.length; i++) {
     const edit = editsCopy[i];
-    const lineIndex = edit.line - 1; // Convert to 0-indexed
+    let lineIndex = edit.line - 1; // Convert to 0-indexed, make mutable
 
     // Track how many lines were added or removed by this edit
     let lineCountChange = 0;
 
+    // Validate line numbers before applying edits
+    if (
+      edit.type === "insert" &&
+      (lineIndex < 0 || lineIndex > lines.length + 1)
+    ) {
+      console.warn(
+        `Invalid insert line number ${edit.line} (document has ${lines.length} lines)`
+      );
+      continue;
+    } else if (
+      (edit.type === "replace" || edit.type === "delete") &&
+      (lineIndex < 0 || lineIndex >= lines.length)
+    ) {
+      console.warn(
+        `Invalid ${edit.type} line number ${edit.line} (document has ${lines.length} lines)`
+      );
+      continue;
+    }
+
+    console.log(`Applying edit #${i + 1}: ${edit.type} at line ${edit.line}`);
+
     switch (edit.type) {
       case "insert":
-        if (lineIndex >= 0 && edit.content) {
+        if (edit.content) {
           const newLines = edit.content.split("\n");
+          console.log(
+            `Inserting ${newLines.length} line(s) at line ${edit.line} (index ${lineIndex})`
+          );
+          console.log(`Original document has ${lines.length} lines`);
 
-          // If trying to insert beyond the end of the document, add empty lines to fill the gap
+          // Adjust lineIndex if it's beyond the current document length
           if (lineIndex > lines.length) {
             console.log(
-              `Inserting at future line ${edit.line}, adding ${
-                lineIndex - lines.length
-              } empty lines`
+              `Adjusting lineIndex from ${lineIndex} to ${lines.length} (end of document)`
             );
-            // Add empty lines to reach the desired position
-            const emptyLinesToAdd = lineIndex - lines.length;
-            for (let j = 0; j < emptyLinesToAdd; j++) {
-              lines.push("");
-            }
+            lineIndex = lines.length;
           }
 
-          // Now insert at the specified position (which is now valid)
-          lines.splice(Math.min(lineIndex, lines.length), 0, ...newLines);
+          // Show what the insertion point looks like
+          if (lineIndex < lines.length) {
+            console.log(`Inserting before: "${lines[lineIndex]}"`);
+          } else {
+            console.log(`Inserting at end of document`);
+          }
+
+          // Insert the new lines at the specified index
+          lines.splice(lineIndex, 0, ...newLines);
 
           // Track how many lines were added
           lineCountChange = newLines.length;
+          console.log(`After insert, document now has ${lines.length} lines`);
+
+          // Log a snippet of the document after insertion
+          console.log(
+            `Document after insert: "${lines
+              .slice(
+                Math.max(0, lineIndex - 1),
+                Math.min(lineIndex + newLines.length + 1, lines.length)
+              )
+              .join("\n")}"`
+          );
+        } else {
+          console.warn(`Insert operation at line ${edit.line} has no content`);
         }
         break;
 
       case "replace":
-        if (lineIndex >= 0 && lineIndex < lines.length && edit.content) {
+        if (edit.content) {
           const count = Math.min(edit.count || 1, lines.length - lineIndex);
           const newLines = edit.content.split("\n");
+          console.log(
+            `Replacing ${count} line(s) at line ${edit.line} with ${newLines.length} new line(s)`
+          );
+          console.log(`Content to replace with: "${edit.content}"`);
+          console.log(
+            `Lines being replaced: "${lines
+              .slice(lineIndex, lineIndex + count)
+              .join("\n")}"`
+          );
+
+          // Detailed logging of the replacement operation
+          console.log(`Before replace: Document has ${lines.length} lines`);
+          console.log(
+            `Replace at index ${lineIndex} (line ${edit.line}), count: ${count}`
+          );
+          console.log(`New content has ${newLines.length} lines`);
+
+          // Ensure we're not trying to replace beyond the end of the document
+          if (lineIndex >= lines.length) {
+            console.warn(
+              `Replace operation at line ${edit.line} is beyond end of document (${lines.length} lines)`
+            );
+            // Adjust to replace the last line instead
+            lineIndex = Math.max(0, lines.length - 1);
+            console.log(
+              `Adjusted replace to operate on line ${lineIndex + 1} instead`
+            );
+          }
+
+          // Perform the replacement
           lines.splice(lineIndex, count, ...newLines);
 
           // Track how many lines were added or removed
           lineCountChange = newLines.length - count;
+          console.log(`Line count change: ${lineCountChange}`);
+          console.log(`After replace: Document now has ${lines.length} lines`);
+          console.log(
+            `Document content after replace: "${lines
+              .slice(0, Math.min(5, lines.length))
+              .join("\n")}${lines.length > 5 ? "..." : ""}"`
+          );
+        } else {
+          console.warn(`Replace operation at line ${edit.line} has no content`);
         }
         break;
 
       case "delete":
-        if (lineIndex >= 0 && lineIndex < lines.length) {
+        {
           const count = Math.min(edit.count || 1, lines.length - lineIndex);
+          console.log(`Deleting ${count} line(s) at line ${edit.line}`);
+
           lines.splice(lineIndex, count);
 
           // Track how many lines were removed
           lineCountChange = -count;
+          console.log(`After delete, document now has ${lines.length} lines`);
         }
         break;
     }
@@ -252,21 +386,372 @@ const applyTextEditChanges = (content: string, edits: TextEditOperation[]) => {
 
       // Update line numbers for all subsequent edits
       for (let j = i + 1; j < editsCopy.length; j++) {
-        // Only adjust if the edit is at or after the current edit's line
-        if (editsCopy[j].line >= edit.line) {
+        // Only adjust if the edit is AFTER the current edit's line
+        // For insertions, this means line numbers greater than the insertion point
+        // For replacements and deletions, this means line numbers greater than the last line affected
+        const adjustmentThreshold =
+          edit.type === "replace" || edit.type === "delete"
+            ? edit.line + (edit.count || 1) - 1 // Last line affected by replace/delete
+            : edit.line; // Line at which insertion occurred
+
+        if (editsCopy[j].line > adjustmentThreshold) {
+          const originalLine = editsCopy[j].line;
           editsCopy[j].line += lineCountChange;
           console.log(
-            `Adjusted edit at original line ${
-              editsCopy[j].line - lineCountChange
-            } to new line ${editsCopy[j].line}`
+            `Adjusted edit #${j + 1} (${
+              editsCopy[j].type
+            }) from line ${originalLine} to new line ${editsCopy[j].line}`
           );
+
+          // Validate the adjusted line number
+          if (editsCopy[j].line <= 0) {
+            console.warn(
+              `Edit #${j + 1} has invalid line number after adjustment: ${
+                editsCopy[j].line
+              }, setting to 1`
+            );
+            editsCopy[j].line = 1;
+          } else if (
+            editsCopy[j].type !== "insert" &&
+            editsCopy[j].line > lines.length
+          ) {
+            console.warn(
+              `Edit #${j + 1} (${editsCopy[j].type}) has line number ${
+                editsCopy[j].line
+              } after adjustment, but document only has ${lines.length} lines`
+            );
+            // For non-insert operations, we need to ensure the line exists
+            if (
+              editsCopy[j].type === "replace" ||
+              editsCopy[j].type === "delete"
+            ) {
+              console.warn(
+                `Adjusting edit #${j + 1} line number to ${lines.length}`
+              );
+              editsCopy[j].line = Math.max(1, lines.length);
+            }
+          }
         }
       }
     }
   }
 
+  console.log(`Final document has ${lines.length} lines after all edits`);
+
   // Join lines back into a single string
   return lines.join("\n");
+};
+
+// Test function to diagnose replace operations
+const testReplaceOperations = () => {
+  console.log("=== TESTING REPLACE OPERATIONS ===");
+
+  // Original content
+  const originalContent =
+    "how sweet\n多麼甜美\nin the quiet of the night, thoughts take flight\n在寂靜的夜晚，思緒翱翔\nwhispers of dreams, in the soft moonlight\n夢的呢喃，在柔和的月光下";
+  console.log("Original content:", originalContent);
+
+  // Test message with multiple replace operations - fixed to use proper line numbers
+  const testMessage = `<textedit:replace line="1" count="2">how sweet
+多麼甜美</textedit:replace>
+<textedit:replace line="3" count="2">in the quiet of the night, thoughts take flight
+在寂靜的夜晚，思緒翱翔</textedit:replace>
+<textedit:replace line="5" count="2">whispers of dreams, in the soft moonlight
+夢的呢喃，在柔和的月光下</textedit:replace>`;
+
+  console.log("Test message:", testMessage);
+
+  // Parse the edits
+  const edits = parseTextEditMarkup(testMessage);
+  console.log("Parsed edits:", JSON.stringify(edits, null, 2));
+
+  // Apply the edits
+  const newContent = applyTextEditChanges(originalContent, edits);
+  console.log("New content:", newContent);
+
+  // Test the document structure creation
+  try {
+    // Get current content as JSON
+    const contentJson = localStorage.getItem(APP_STORAGE_KEYS.textedit.CONTENT);
+    if (contentJson) {
+      console.log("Testing document structure creation...");
+      const paragraphs = newContent.split("\n");
+      console.log("Paragraphs:", paragraphs);
+
+      // Create a simple document structure
+      const testDoc = {
+        type: "doc",
+        content: paragraphs.map((paragraph) => ({
+          type: "paragraph",
+          content: paragraph.trim()
+            ? [{ type: "text", text: paragraph }]
+            : [{ type: "text", text: " " }], // Use space for empty paragraphs
+        })),
+      };
+
+      console.log("Test document structure:", JSON.stringify(testDoc, null, 2));
+
+      // This would normally update localStorage, but we're just testing
+      console.log("Document structure test complete");
+    }
+  } catch (error) {
+    console.error("Error testing document structure:", error);
+  }
+
+  console.log("=== TEST COMPLETE ===");
+  return newContent;
+};
+
+// Helper function to test with user's specific content
+const testWithUserContent = (content: string) => {
+  console.log("=== TESTING WITH USER CONTENT ===");
+  console.log("Original content:", content);
+
+  // Test message with multiple replace operations for bilingual content
+  const testMessage = `<textedit:replace line="1" count="2">how sweet
+多麼甜美</textedit:replace>
+<textedit:replace line="3" count="2">in the quiet of the night, thoughts take flight
+在寂靜的夜晚，思緒翱翔</textedit:replace>
+<textedit:replace line="5" count="2">whispers of dreams, in the soft moonlight
+夢的呢喃，在柔和的月光下</textedit:replace>`;
+
+  // Parse the edits
+  const edits = parseTextEditMarkup(testMessage);
+  console.log("Parsed edits:", JSON.stringify(edits, null, 2));
+
+  // Apply the edits
+  const newContent = applyTextEditChanges(content, edits);
+  console.log("New content:", newContent);
+
+  // Test updating the document
+  try {
+    // Create a document structure
+    const paragraphs = newContent.split("\n");
+    const testDoc = {
+      type: "doc",
+      content: paragraphs.map((paragraph) => ({
+        type: "paragraph",
+        content: paragraph.trim()
+          ? [{ type: "text", text: paragraph }]
+          : [{ type: "text", text: " " }], // Use space for empty paragraphs
+      })),
+    };
+
+    console.log("Document structure:", JSON.stringify(testDoc, null, 2));
+
+    // This would normally update the document
+    console.log("Test complete - document structure is valid");
+    return testDoc;
+  } catch (error) {
+    console.error("Error creating document structure:", error);
+    return null;
+  }
+};
+
+// Expose test functions to window for debugging
+// @ts-expect-error - Intentionally exposing function to window for debugging
+window.testReplaceOperations = testReplaceOperations;
+// @ts-expect-error - Intentionally exposing function to window for debugging
+window.testWithUserContent = testWithUserContent;
+
+// Uncomment to run the test
+// window.addEventListener('load', () => setTimeout(testReplaceOperations, 2000));
+
+// Add a markdown parser function
+const parseMarkdown = (text: string): ContentNode[] => {
+  // Simple markdown parsing for common elements
+  // This is a basic implementation - you might want to use a more robust markdown parser
+
+  // Process the text line by line
+  const lines = text.split("\n");
+  const nodes: ContentNode[] = [];
+
+  let inCodeBlock = false;
+  let codeBlockContent = "";
+  let codeBlockLanguage = "";
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    // Check for code blocks
+    if (line.startsWith("```")) {
+      if (!inCodeBlock) {
+        // Start of code block
+        inCodeBlock = true;
+        codeBlockLanguage = line.slice(3).trim();
+        codeBlockContent = "";
+        continue;
+      } else {
+        // End of code block
+        inCodeBlock = false;
+        nodes.push({
+          type: "codeBlock",
+          attrs: { language: codeBlockLanguage || "text" },
+          content: [{ type: "text", text: codeBlockContent }],
+        });
+        continue;
+      }
+    }
+
+    // If we're in a code block, add the line to the code block content
+    if (inCodeBlock) {
+      codeBlockContent += (codeBlockContent ? "\n" : "") + line;
+      continue;
+    }
+
+    // Check for headings (# Heading)
+    const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
+    if (headingMatch) {
+      const level = headingMatch[1].length;
+      const content = headingMatch[2];
+      nodes.push({
+        type: "heading",
+        attrs: { level },
+        content: [{ type: "text", text: content }],
+      });
+      continue;
+    }
+
+    // Check for horizontal rule
+    if (line.match(/^(\*{3,}|-{3,}|_{3,})$/)) {
+      nodes.push({
+        type: "horizontalRule",
+      });
+      continue;
+    }
+
+    // Skip processing if the line is empty
+    if (!line.trim()) {
+      nodes.push({
+        type: "paragraph",
+        content: [{ type: "text", text: " " }],
+      });
+      continue;
+    }
+
+    // Process the line for inline formatting
+    const inlineContent = processInlineMarkdown(line);
+
+    nodes.push({
+      type: "paragraph",
+      content:
+        inlineContent.length > 0
+          ? inlineContent
+          : [{ type: "text", text: line }],
+    });
+  }
+
+  // If we ended while still in a code block, add it
+  if (inCodeBlock) {
+    nodes.push({
+      type: "codeBlock",
+      attrs: { language: codeBlockLanguage || "text" },
+      content: [{ type: "text", text: codeBlockContent }],
+    });
+  }
+
+  return nodes;
+};
+
+// Helper function to process inline markdown formatting
+const processInlineMarkdown = (text: string): TextNode[] => {
+  const result: TextNode[] = [];
+
+  // Regular expressions for inline formatting
+  const patterns = [
+    { regex: /\*\*(.+?)\*\*/g, mark: "bold" }, // **bold**
+    { regex: /\*(.+?)\*/g, mark: "italic" }, // *italic*
+    { regex: /_(.+?)_/g, mark: "italic" }, // _italic_
+    { regex: /`(.+?)`/g, mark: "code" }, // `code`
+    { regex: /~~(.+?)~~/g, mark: "strike" }, // ~~strikethrough~~
+    { regex: /\[(.+?)\]\((.+?)\)/g, mark: "link" }, // [text](url)
+  ];
+
+  // Find all matches for all patterns
+  const allMatches: Array<{
+    start: number;
+    end: number;
+    content: string;
+    mark: string;
+    url?: string;
+  }> = [];
+
+  patterns.forEach((pattern) => {
+    let match;
+    while ((match = pattern.regex.exec(text)) !== null) {
+      // For links, we need to store the URL as well
+      if (pattern.mark === "link") {
+        allMatches.push({
+          start: match.index,
+          end: match.index + match[0].length,
+          content: match[1], // Link text
+          mark: pattern.mark,
+          url: match[2], // Link URL
+        });
+      } else {
+        allMatches.push({
+          start: match.index,
+          end: match.index + match[0].length,
+          content: match[1],
+          mark: pattern.mark,
+        });
+      }
+    }
+  });
+
+  // Sort matches by start position
+  allMatches.sort((a, b) => a.start - b.start);
+
+  // Check for overlapping matches and remove inner matches
+  for (let i = 0; i < allMatches.length - 1; i++) {
+    for (let j = i + 1; j < allMatches.length; j++) {
+      if (allMatches[j].start < allMatches[i].end) {
+        // Matches overlap, remove the later one
+        allMatches.splice(j, 1);
+        j--;
+      }
+    }
+  }
+
+  // Process the text with the non-overlapping matches
+  let currentPosition = 0;
+
+  for (const match of allMatches) {
+    // Add any text before this match
+    if (match.start > currentPosition) {
+      result.push({
+        type: "text",
+        text: text.substring(currentPosition, match.start),
+      });
+    }
+
+    // Add the formatted text
+    if (match.mark === "link") {
+      result.push({
+        type: "text",
+        marks: [{ type: "link", attrs: { href: match.url } }],
+        text: match.content,
+      });
+    } else {
+      result.push({
+        type: "text",
+        marks: [{ type: match.mark }],
+        text: match.content,
+      });
+    }
+
+    currentPosition = match.end;
+  }
+
+  // Add any remaining text
+  if (currentPosition < text.length) {
+    result.push({
+      type: "text",
+      text: text.substring(currentPosition),
+    });
+  }
+
+  return result;
 };
 
 // Function to update TextEdit content in localStorage
@@ -288,63 +773,32 @@ const updateTextEditContent = (newContent: string) => {
 
     if (!jsonContent.content) return false;
 
-    // Split the new content into paragraphs
-    const paragraphs = newContent.split("\n");
+    // Parse markdown content into document nodes
+    const markdownNodes = parseMarkdown(newContent);
 
     // Create a deep clone of the original structure to preserve all properties
     const updatedContent = JSON.parse(JSON.stringify(originalStructure));
 
-    // Replace only the text content while preserving the structure
-    if (Array.isArray(updatedContent.content)) {
-      // If we have fewer paragraphs than the original, remove excess items
-      while (updatedContent.content.length > paragraphs.length) {
-        updatedContent.content.pop();
-      }
-
-      // Update existing paragraphs
-      for (
-        let i = 0;
-        i < Math.min(paragraphs.length, updatedContent.content.length);
-        i++
-      ) {
-        const paragraph = paragraphs[i];
-        // Preserve the original paragraph structure but update the text
-        if (
-          updatedContent.content[i].type === "paragraph" &&
-          Array.isArray(updatedContent.content[i].content)
-        ) {
-          // Update existing text node or create one if empty
-          if (updatedContent.content[i].content.length > 0) {
-            updatedContent.content[i].content[0].text = paragraph;
-            // Ensure the text node has a type property if it's missing
-            if (!updatedContent.content[i].content[0].type) {
-              updatedContent.content[i].content[0].type = "text";
-            }
-          } else if (paragraph.trim()) {
-            updatedContent.content[i].content.push({
-              type: "text",
-              text: paragraph,
-            });
-          }
-        }
-      }
-
-      // Add new paragraphs if needed
-      for (let i = updatedContent.content.length; i < paragraphs.length; i++) {
-        const paragraph = paragraphs[i];
-        updatedContent.content.push({
-          type: "paragraph",
-          content: paragraph.trim() ? [{ type: "text", text: paragraph }] : [],
-        });
-      }
-    }
+    // Replace content with markdown-processed nodes
+    updatedContent.content = markdownNodes;
 
     // Convert to JSON string
     const jsonString = JSON.stringify(updatedContent);
 
     console.log("Prepared updated content for TextEdit", {
       filePath: currentFilePath,
-      paragraphs: paragraphs.length,
+      contentNodes: markdownNodes.length,
+      contentStructure: {
+        type: updatedContent.type,
+        contentLength: updatedContent.content?.length || 0,
+        // Log a sample of the content structure
+        sample: updatedContent.content
+          ?.slice(0, 3)
+          .map((node: ContentNode) => ({
+            type: node.type,
+            contentLength: node.content?.length || 0,
+          })),
+      },
     });
 
     // Update the document in TextEdit directly using the same event it uses
@@ -455,7 +909,6 @@ const updateTextEditContent = (newContent: string) => {
 
 // Function to clean XML markup from a message
 const cleanTextEditMarkup = (message: string) => {
-  let cleanedMessage = message;
   let editCount = 0;
 
   // Count the number of edits
@@ -471,65 +924,14 @@ const cleanTextEditMarkup = (message: string) => {
   // Log the edit count for debugging
   console.log(`Cleaning message with ${editCount} edits`);
 
-  // Remove all TextEdit XML tags
-  cleanedMessage = cleanedMessage.replace(
-    /<textedit:insert[^>]*>[\s\S]*?<\/textedit:insert>/g,
-    ""
-  );
-  cleanedMessage = cleanedMessage.replace(
-    /<textedit:replace[^>]*>[\s\S]*?<\/textedit:replace>/g,
-    ""
-  );
-  cleanedMessage = cleanedMessage.replace(/<textedit:delete[^>]*\/>/g, "");
-
-  // Normalize line endings
-  cleanedMessage = cleanedMessage.replace(/\r\n/g, "\n");
-
-  // First clean up all existing status messages using a single comprehensive regex
-  // This handles all possible status message formats at once
-  cleanedMessage = cleanedMessage.replace(
-    /[\r\n]*(?:\n\n|\s)*(?:\*document updated with \d+ (?:operation|operations)\*|_\[(?:TextEdit document updated with \d+ (?:operation|operations)|Processing TextEdit document updates\.\.\.|Saving TextEdit document before applying edits\.\.\.|Error: .*?)\]_)$/g,
-    ""
-  );
-
-  // Double-check with individual cleaners for any messages that might have been missed
-  cleanedMessage = cleanedMessage.replace(
-    /[\r\n][\r\n]*\*document updated with.*?\*/g,
-    ""
-  );
-  cleanedMessage = cleanedMessage.replace(
-    /[\r\n][\r\n]*_\[TextEdit document updated.*?\]_/g,
-    ""
-  );
-  cleanedMessage = cleanedMessage.replace(
-    /[\r\n][\r\n]*_\[Processing TextEdit.*?\]_/g,
-    ""
-  );
-  cleanedMessage = cleanedMessage.replace(
-    /[\r\n][\r\n]*_\[Saving TextEdit.*?\]_/g,
-    ""
-  );
-  cleanedMessage = cleanedMessage.replace(/[\r\n][\r\n]*_\[Error:.*?\]_/g, "");
-
-  // Clean any inline status messages without newlines
-  cleanedMessage = cleanedMessage.replace(/\*document updated with.*?\*$/g, "");
-  cleanedMessage = cleanedMessage.replace(
-    /_\[TextEdit document updated.*?\]_$/g,
-    ""
-  );
-  cleanedMessage = cleanedMessage.replace(/_\[Processing TextEdit.*?\]_$/g, "");
-  cleanedMessage = cleanedMessage.replace(/_\[Saving TextEdit.*?\]_$/g, "");
-  cleanedMessage = cleanedMessage.replace(/_\[Error:.*?\]_$/g, "");
-
-  // Trim consecutive empty lines and whitespace
-  cleanedMessage = cleanedMessage.replace(/\n{3,}/g, "\n\n");
-  cleanedMessage = cleanedMessage.trim();
+  // Remove all TextEdit XML tags and their content completely
+  let cleanedMessage = "";
 
   // Add a note that edits were applied
   const hasAppliedEdits = editCount > 0;
   if (hasAppliedEdits) {
     const operationText = editCount === 1 ? "operation" : "operations";
-    cleanedMessage += `\n\n*document updated with ${editCount} ${operationText}*`;
+    cleanedMessage = `*document updated with ${editCount} ${operationText}*`;
     console.log(`Added success message: ${editCount} ${operationText}`);
   }
 
@@ -624,6 +1026,103 @@ const ensureDocumentSaved = async (content: string): Promise<string | null> => {
     console.error("Failed to create new document");
     return null;
   }
+};
+
+// Add this test function for multiple insertions
+const testMultipleInsertions = () => {
+  console.log("=== TESTING MULTIPLE INSERTIONS ===");
+
+  // Original content
+  const originalContent = "Line 1\nLine 2\nLine 3";
+  console.log("Original content:", originalContent);
+
+  // Test message with multiple insert operations
+  const testMessage = `<textedit:insert line="1">New first line</textedit:insert>
+<textedit:insert line="3">New third line</textedit:insert>
+<textedit:insert line="5">New fifth line</textedit:insert>`;
+
+  console.log("Test message:", testMessage);
+
+  // Parse the edits
+  const edits = parseTextEditMarkup(testMessage);
+  console.log("Parsed edits:", JSON.stringify(edits, null, 2));
+
+  // Apply the edits
+  const newContent = applyTextEditChanges(originalContent, edits);
+  console.log("New content:", newContent);
+
+  console.log("=== TEST COMPLETE ===");
+  return newContent;
+};
+
+// Expose test function to window for debugging
+// @ts-expect-error - Intentionally exposing function to window for debugging
+window.testMultipleInsertions = testMultipleInsertions;
+
+// Test function to validate line number adjustments after edits
+const testLineNumberAdjustments = () => {
+  console.log("=== TESTING LINE NUMBER ADJUSTMENTS ===");
+
+  // Original content
+  const originalContent = "Line 1\nLine 2\nLine 3\nLine 4\nLine 5";
+  console.log("Original content:", originalContent);
+
+  // Multiple edits that should trigger line number adjustments
+  // We'll insert at line 2, then replace line 4 (which should now be line 5 after the insertion)
+  const testMessage = `<textedit:insert line="2">New Line A\nNew Line B</textedit:insert>
+<textedit:replace line="4" count="1">This Line Was Replaced</textedit:replace>`;
+
+  console.log("Test message:", testMessage);
+
+  // Parse the edits
+  const edits = parseTextEditMarkup(testMessage);
+  console.log("Parsed edits:", JSON.stringify(edits, null, 2));
+
+  // Expected line numbers after adjustment
+  console.log(
+    "Expected: second edit should adjust from line 4 to line 6 after insertion"
+  );
+
+  // Apply the edits
+  const newContent = applyTextEditChanges(originalContent, edits);
+  console.log("New content:", newContent);
+
+  // Expected result:
+  // Line 1
+  // New Line A
+  // New Line B
+  // Line 2
+  // Line 3
+  // This Line Was Replaced
+  // Line 5
+
+  const expectedContent =
+    "Line 1\nNew Line A\nNew Line B\nLine 2\nLine 3\nThis Line Was Replaced\nLine 5";
+  console.log(
+    "Test result:",
+    newContent === expectedContent ? "PASSED" : "FAILED"
+  );
+
+  if (newContent !== expectedContent) {
+    console.log("Expected:", expectedContent);
+    console.log("Actual:", newContent);
+  }
+
+  console.log("=== TEST COMPLETE ===");
+  return newContent;
+};
+
+// Expose test function to window for debugging
+// @ts-expect-error - Intentionally exposing function to window for debugging
+window.testLineNumberAdjustments = testLineNumberAdjustments;
+
+// Add experimental tests to window for development
+// @ts-expect-error - Intentionally exposing functions to window for debugging
+window.tests = {
+  testReplaceOperations,
+  testWithUserContent,
+  testMultipleInsertions,
+  testLineNumberAdjustments,
 };
 
 export function ChatsAppComponent({
@@ -835,15 +1334,6 @@ export function ChatsAppComponent({
     ) {
       const lastMessage = aiMessages[aiMessages.length - 1];
 
-      // Log for debugging
-      console.log("Checking message for processing:", {
-        id: lastMessage.id,
-        role: lastMessage.role,
-        contentStart: lastMessage.content.substring(0, 50) + "...",
-        processed: processedMessageIds.current.has(lastMessage.id),
-        createdAt: lastMessage.createdAt,
-      });
-
       // Skip if this isn't an assistant message or it's already being processed
       if (lastMessage.role !== "assistant" || isProcessingEdits.current) {
         return;
@@ -890,6 +1380,31 @@ export function ChatsAppComponent({
         return;
       }
 
+      // Check if this is a streaming message that's still receiving content
+      if (isLoading) {
+        console.log(
+          "Message is still streaming, waiting for complete content before processing"
+        );
+        return;
+      }
+
+      // Count the number of opening and closing tags to ensure we have complete markup
+      const openTags = (
+        lastMessage.content.match(/<textedit:(insert|replace|delete)/g) || []
+      ).length;
+      const closeTags = (
+        lastMessage.content.match(
+          /<\/textedit:(insert|replace)>|<textedit:delete[^>]*\/>/g
+        ) || []
+      ).length;
+
+      if (openTags !== closeTags) {
+        console.log(
+          `Incomplete XML tags detected: ${openTags} opening vs ${closeTags} closing - waiting for complete message`
+        );
+        return;
+      }
+
       // If we got here, this message needs processing
       console.log("Processing TextEdit markup in message:", lastMessage.id);
       const edits = parseTextEditMarkup(lastMessage.content);
@@ -906,7 +1421,7 @@ export function ChatsAppComponent({
 
       // Show a temporary "processing" message to the user
       const updatedMessages = [...aiMessages];
-      const processingMsg = `${lastMessage.content}\n\n_[Processing TextEdit document updates...]_`;
+      const processingMsg = `${lastMessage.content}\n\n_*Making edits to document...*`;
       updatedMessages[updatedMessages.length - 1] = {
         ...lastMessage,
         content: processingMsg,
@@ -1096,7 +1611,7 @@ export function ChatsAppComponent({
         }
       })();
     }
-  }, [aiMessages, textEditContext, setAiMessages]);
+  }, [aiMessages, textEditContext, setAiMessages, isLoading]);
 
   const handleDirectMessageSubmit = useCallback(
     (message: string) => {
