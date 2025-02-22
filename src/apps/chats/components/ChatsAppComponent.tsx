@@ -27,14 +27,33 @@ interface TextNode {
 
 interface ContentNode {
   type: string;
-  content?: TextNode[];
-  // Using Record instead of any for better type safety
+  content?: Array<TextNode | ContentNode>;
+  attrs?: NodeAttributes;
   [key: string]: unknown;
 }
 
 interface TextEditContent {
   content?: ContentNode[];
   // Using Record instead of any for better type safety
+  [key: string]: unknown;
+}
+
+// Define additional types for document formatting
+interface FormattingPatterns {
+  nodeTypes: Record<string, number>;
+  headingLevels: Set<number>;
+  hasBulletLists: boolean;
+  hasNumberedLists: boolean;
+  hasCodeBlocks: boolean;
+  codeLanguages: Set<string>;
+  hasTaskLists: boolean;
+  hasRichTextFormatting: boolean;
+}
+
+interface NodeAttributes {
+  level?: number;
+  language?: string;
+  checked?: boolean;
   [key: string]: unknown;
 }
 
@@ -46,21 +65,174 @@ const extractTextFromTextEditContent = (content: string): string => {
 
     return jsonContent.content
       .map((node: ContentNode) => {
-        if (
-          (node.type === "paragraph" || node.type === "heading") &&
-          node.content
-        ) {
-          return node.content
-            .map((textNode: TextNode) => textNode.text || "")
-            .join("");
+        // Convert different node types to their text representation
+        let level: number;
+        let language: string;
+        let isChecked: boolean | undefined;
+        let checkMark: string;
+
+        switch (node.type) {
+          case "paragraph":
+            return extractTextFromContentNode(node);
+
+          case "heading":
+            level = (node.attrs as NodeAttributes)?.level || 1;
+            return "#".repeat(level) + " " + extractTextFromContentNode(node);
+
+          case "codeBlock":
+            language = (node.attrs as NodeAttributes)?.language || "";
+            return (
+              "```" +
+              language +
+              "\n" +
+              extractTextFromContentNode(node) +
+              "\n```"
+            );
+
+          case "horizontalRule":
+            return "---";
+
+          case "bulletList":
+            if (!node.content) return "";
+            return node.content
+              .filter((item): item is ContentNode => "type" in item) // Filter to ensure we only have ContentNodes
+              .map((item: ContentNode) => {
+                // Process each list item
+                if (item.type === "listItem" && item.content) {
+                  // Get the first paragraph of the list item
+                  const paragraph = item.content.find(
+                    (n): n is ContentNode =>
+                      "type" in n && n.type === "paragraph"
+                  );
+                  if (paragraph) {
+                    return "- " + extractTextFromContentNode(paragraph);
+                  }
+                }
+                return "- ";
+              })
+              .join("\n");
+
+          case "orderedList":
+            if (!node.content) return "";
+            return node.content
+              .filter((item): item is ContentNode => "type" in item) // Filter to ensure we only have ContentNodes
+              .map((item: ContentNode, i: number) => {
+                // Process each list item
+                if (item.type === "listItem" && item.content) {
+                  // Get the first paragraph of the list item
+                  const paragraph = item.content.find(
+                    (n): n is ContentNode =>
+                      "type" in n && n.type === "paragraph"
+                  );
+                  if (paragraph) {
+                    return `${i + 1}. ` + extractTextFromContentNode(paragraph);
+                  }
+                }
+                return `${i + 1}. `;
+              })
+              .join("\n");
+
+          case "taskList":
+          case "taskItem":
+            isChecked = (node.attrs as NodeAttributes)?.checked;
+            checkMark = isChecked ? "[x]" : "[ ]";
+
+            if (node.type === "taskList" && node.content) {
+              return node.content
+                .filter((item): item is ContentNode => "type" in item) // Filter to ensure we only have ContentNodes
+                .map((item: ContentNode) => {
+                  const itemChecked = (item.attrs as NodeAttributes)?.checked;
+                  const itemMark = itemChecked ? "[x]" : "[ ]";
+
+                  const paragraph = item.content?.find(
+                    (n): n is ContentNode =>
+                      "type" in n && n.type === "paragraph"
+                  );
+
+                  if (paragraph) {
+                    return (
+                      "- " +
+                      itemMark +
+                      " " +
+                      extractTextFromContentNode(paragraph)
+                    );
+                  }
+                  return "- " + itemMark + " ";
+                })
+                .join("\n");
+            } else if (node.type === "taskItem" && node.content) {
+              const paragraph = node.content.find(
+                (n): n is ContentNode => "type" in n && n.type === "paragraph"
+              );
+
+              if (paragraph) {
+                return (
+                  "- " + checkMark + " " + extractTextFromContentNode(paragraph)
+                );
+              }
+              return "- " + checkMark + " ";
+            }
+            return "";
+
+          case "blockquote":
+            if (!node.content) return "";
+            return node.content
+              .filter((item): item is ContentNode => "type" in item) // Filter to ensure we only have ContentNodes
+              .map((n: ContentNode) => "> " + extractTextFromContentNode(n))
+              .join("\n");
+
+          default:
+            return extractTextFromContentNode(node);
         }
-        return "";
       })
       .join("\n");
-  } catch {
-    // If not valid JSON, return as is
+  } catch (error) {
+    console.error("Error extracting text from TextEdit content:", error);
+    // If not valid JSON or other error, return as is
     return content;
   }
+};
+
+// Helper function to extract text from a content node
+const extractTextFromContentNode = (node: ContentNode): string => {
+  if (!node.content) return "";
+
+  return node.content
+    .map((textNode: TextNode) => {
+      let text = textNode.text || "";
+
+      // If this node has marks, add appropriate markdown formatting
+      if (
+        textNode.marks &&
+        Array.isArray(textNode.marks) &&
+        textNode.marks.length > 0
+      ) {
+        textNode.marks.forEach((mark) => {
+          switch (mark.type) {
+            case "bold":
+              text = `**${text}**`;
+              break;
+            case "italic":
+              text = `*${text}*`;
+              break;
+            case "code":
+              text = `\`${text}\``;
+              break;
+            case "strike":
+              text = `~~${text}~~`;
+              break;
+            case "link":
+              if (mark.attrs && mark.attrs.href) {
+                text = `[${text}](${mark.attrs.href})`;
+              }
+              break;
+          }
+        });
+      }
+
+      return text;
+    })
+    .join("");
 };
 
 // Helper function to truncate filename
@@ -569,16 +741,21 @@ const parseMarkdown = (text: string): ContentNode[] => {
   let inCodeBlock = false;
   let codeBlockContent = "";
   let codeBlockLanguage = "";
+  let inBulletList = false;
+  let bulletListItems: ContentNode[] = [];
+  let inOrderedList = false;
+  let orderedListItems: ContentNode[] = [];
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
+    const trimmedLine = line.trim();
 
     // Check for code blocks
-    if (line.startsWith("```")) {
+    if (trimmedLine.startsWith("```")) {
       if (!inCodeBlock) {
         // Start of code block
         inCodeBlock = true;
-        codeBlockLanguage = line.slice(3).trim();
+        codeBlockLanguage = trimmedLine.slice(3).trim();
         codeBlockContent = "";
         continue;
       } else {
@@ -599,29 +776,126 @@ const parseMarkdown = (text: string): ContentNode[] => {
       continue;
     }
 
+    // Check for task list items
+    const taskListMatch = trimmedLine.match(/^[-*]\s+\[([ xX])\]\s+(.+)$/);
+    if (taskListMatch) {
+      const isChecked = taskListMatch[1].toLowerCase() === "x";
+      const taskText = taskListMatch[2];
+
+      nodes.push({
+        type: "taskItem",
+        attrs: { checked: isChecked },
+        content: [
+          {
+            type: "paragraph",
+            content: [{ type: "text", text: taskText }],
+          },
+        ],
+      });
+      continue;
+    }
+
+    // Check for bullet list items
+    if (trimmedLine.match(/^[-*]\s+(.+)$/)) {
+      const bulletContent = trimmedLine.replace(/^[-*]\s+/, "");
+
+      if (!inBulletList) {
+        // Start a new bullet list
+        inBulletList = true;
+        bulletListItems = [];
+      }
+
+      // Add this item to the bullet list
+      bulletListItems.push({
+        type: "listItem",
+        content: [
+          {
+            type: "paragraph",
+            content: processInlineMarkdown(bulletContent),
+          },
+        ],
+      });
+      continue;
+    } else if (inBulletList) {
+      // End of bullet list
+      nodes.push({
+        type: "bulletList",
+        content: bulletListItems,
+      });
+      inBulletList = false;
+      bulletListItems = [];
+    }
+
+    // Check for ordered list items
+    const orderedListMatch = trimmedLine.match(/^(\d+)[.)]\s+(.+)$/);
+    if (orderedListMatch) {
+      const itemContent = orderedListMatch[2];
+
+      if (!inOrderedList) {
+        // Start a new ordered list
+        inOrderedList = true;
+        orderedListItems = [];
+      }
+
+      // Add this item to the ordered list
+      orderedListItems.push({
+        type: "listItem",
+        content: [
+          {
+            type: "paragraph",
+            content: processInlineMarkdown(itemContent),
+          },
+        ],
+      });
+      continue;
+    } else if (inOrderedList) {
+      // End of ordered list
+      nodes.push({
+        type: "orderedList",
+        content: orderedListItems,
+      });
+      inOrderedList = false;
+      orderedListItems = [];
+    }
+
     // Check for headings (# Heading)
-    const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
+    const headingMatch = trimmedLine.match(/^(#{1,6})\s+(.+)$/);
     if (headingMatch) {
       const level = headingMatch[1].length;
       const content = headingMatch[2];
       nodes.push({
         type: "heading",
         attrs: { level },
-        content: [{ type: "text", text: content }],
+        content: processInlineMarkdown(content),
       });
       continue;
     }
 
     // Check for horizontal rule
-    if (line.match(/^(\*{3,}|-{3,}|_{3,})$/)) {
+    if (trimmedLine.match(/^(\*{3,}|-{3,}|_{3,})$/)) {
       nodes.push({
         type: "horizontalRule",
       });
       continue;
     }
 
+    // Check for blockquotes
+    if (trimmedLine.startsWith(">")) {
+      const quoteContent = trimmedLine.substring(1).trim();
+      nodes.push({
+        type: "blockquote",
+        content: [
+          {
+            type: "paragraph",
+            content: processInlineMarkdown(quoteContent),
+          },
+        ],
+      });
+      continue;
+    }
+
     // Skip processing if the line is empty
-    if (!line.trim()) {
+    if (!trimmedLine) {
       nodes.push({
         type: "paragraph",
         content: [{ type: "text", text: " " }],
@@ -630,14 +904,29 @@ const parseMarkdown = (text: string): ContentNode[] => {
     }
 
     // Process the line for inline formatting
-    const inlineContent = processInlineMarkdown(line);
+    const inlineContent = processInlineMarkdown(trimmedLine);
 
     nodes.push({
       type: "paragraph",
       content:
         inlineContent.length > 0
           ? inlineContent
-          : [{ type: "text", text: line }],
+          : [{ type: "text", text: trimmedLine }],
+    });
+  }
+
+  // Add any remaining lists
+  if (inBulletList && bulletListItems.length > 0) {
+    nodes.push({
+      type: "bulletList",
+      content: bulletListItems,
+    });
+  }
+
+  if (inOrderedList && orderedListItems.length > 0) {
+    nodes.push({
+      type: "orderedList",
+      content: orderedListItems,
     });
   }
 
@@ -773,8 +1062,24 @@ const updateTextEditContent = (newContent: string) => {
 
     if (!jsonContent.content) return false;
 
-    // Parse markdown content into document nodes
-    const markdownNodes = parseMarkdown(newContent);
+    // Analyze original structure to preserve formatting patterns
+    const formattingPatterns = analyzeDocumentFormatting(jsonContent);
+    console.log("Detected formatting patterns:", {
+      nodeTypes: formattingPatterns.nodeTypes,
+      headingLevels: Array.from(formattingPatterns.headingLevels),
+      hasBulletLists: formattingPatterns.hasBulletLists,
+      hasNumberedLists: formattingPatterns.hasNumberedLists,
+      hasCodeBlocks: formattingPatterns.hasCodeBlocks,
+      codeLanguages: Array.from(formattingPatterns.codeLanguages),
+      hasTaskLists: formattingPatterns.hasTaskLists,
+      hasRichTextFormatting: formattingPatterns.hasRichTextFormatting,
+    });
+
+    // Parse markdown content into document nodes, with formatting awareness
+    const markdownNodes = parseMarkdownWithFormattingPreservation(
+      newContent,
+      formattingPatterns
+    );
 
     // Create a deep clone of the original structure to preserve all properties
     const updatedContent = JSON.parse(JSON.stringify(originalStructure));
@@ -791,13 +1096,6 @@ const updateTextEditContent = (newContent: string) => {
       contentStructure: {
         type: updatedContent.type,
         contentLength: updatedContent.content?.length || 0,
-        // Log a sample of the content structure
-        sample: updatedContent.content
-          ?.slice(0, 3)
-          .map((node: ContentNode) => ({
-            type: node.type,
-            contentLength: node.content?.length || 0,
-          })),
       },
     });
 
@@ -905,6 +1203,179 @@ const updateTextEditContent = (newContent: string) => {
     console.error("Error details:", error);
   }
   return false;
+};
+
+// Function to analyze document structure for formatting patterns
+const analyzeDocumentFormatting = (
+  document: TextEditContent
+): FormattingPatterns => {
+  const patterns: FormattingPatterns = {
+    nodeTypes: {},
+    headingLevels: new Set<number>(),
+    hasBulletLists: false,
+    hasNumberedLists: false,
+    hasCodeBlocks: false,
+    codeLanguages: new Set<string>(),
+    hasTaskLists: false,
+    hasRichTextFormatting: false,
+  };
+
+  if (!document.content) return patterns;
+
+  // Analyze document structure to identify formatting patterns
+  document.content.forEach((node: ContentNode) => {
+    // Track node type frequencies
+    patterns.nodeTypes[node.type] = (patterns.nodeTypes[node.type] || 0) + 1;
+
+    // Track specific formatting elements
+    const attrs = (node.attrs as NodeAttributes) || {};
+
+    if (node.type === "heading" && attrs.level) {
+      patterns.headingLevels.add(attrs.level);
+    }
+
+    if (node.type === "bulletList") {
+      patterns.hasBulletLists = true;
+    }
+
+    if (node.type === "orderedList") {
+      patterns.hasNumberedLists = true;
+    }
+
+    if (node.type === "codeBlock" && attrs.language) {
+      patterns.hasCodeBlocks = true;
+      patterns.codeLanguages.add(attrs.language);
+    }
+
+    if (node.type === "taskList" || node.type === "taskItem") {
+      patterns.hasTaskLists = true;
+    }
+
+    // Check for rich text in content nodes
+    if (node.content) {
+      node.content.forEach((textNode: TextNode) => {
+        if (
+          textNode.marks &&
+          Array.isArray(textNode.marks) &&
+          textNode.marks.length > 0
+        ) {
+          patterns.hasRichTextFormatting = true;
+        }
+      });
+    }
+  });
+
+  // Convert sets to arrays for easier logging/handling
+  return {
+    ...patterns,
+    // These will be converted back to arrays for logging but kept as sets for processing
+  };
+};
+
+// Enhanced markdown parser that preserves formatting based on document analysis
+const parseMarkdownWithFormattingPreservation = (
+  text: string,
+  formattingPatterns: FormattingPatterns
+): ContentNode[] => {
+  // Start with the basic markdown parser
+  const baseNodes = parseMarkdown(text);
+
+  // Now enhance the nodes based on detected formatting patterns
+  const enhancedNodes = baseNodes.map((node) => {
+    // Apply formatting enhancements based on node type
+    if (node.type === "paragraph" && formattingPatterns.hasRichTextFormatting) {
+      // For paragraphs, we want to enhance with rich text if the original had it
+      return enhanceParagraphWithRichText(node);
+    }
+
+    // Other node types can have specific enhancements added here
+
+    return node;
+  });
+
+  // Add any special node types that might be missing from basic markdown parsing
+  if (
+    formattingPatterns.hasTaskLists &&
+    !enhancedNodes.some((n) => n.type === "taskList" || n.type === "taskItem")
+  ) {
+    // Look for potential task list items in paragraphs and convert them
+    convertPotentialTaskListItems(enhancedNodes);
+  }
+
+  return enhancedNodes;
+};
+
+// Helper function to enhance paragraphs with rich text formatting
+const enhanceParagraphWithRichText = (node: ContentNode): ContentNode => {
+  // If node already has rich text formatting, leave it as is
+  if (
+    node.content?.some(
+      (c) => c.marks && Array.isArray(c.marks) && c.marks.length > 0
+    )
+  ) {
+    return node;
+  }
+
+  // Otherwise, try to detect and apply common markdown patterns within the paragraph text
+  if (
+    node.content &&
+    node.content.length === 1 &&
+    typeof node.content[0].text === "string"
+  ) {
+    const text = node.content[0].text;
+    const inlineContent = processInlineMarkdown(text);
+
+    if (
+      inlineContent.length > 1 ||
+      (inlineContent.length === 1 && inlineContent[0].marks)
+    ) {
+      // We detected some inline formatting, apply it
+      return {
+        ...node,
+        content: inlineContent,
+      };
+    }
+  }
+
+  return node;
+};
+
+// Helper function to detect and convert potential task list items
+const convertPotentialTaskListItems = (nodes: ContentNode[]): void => {
+  for (let i = 0; i < nodes.length; i++) {
+    const node = nodes[i];
+    if (
+      node.type === "paragraph" &&
+      node.content &&
+      node.content.length === 1
+    ) {
+      const textNode = node.content[0] as TextNode;
+      const text = textNode.text || "";
+
+      // Check for common task list patterns like "- [ ] Task" or "- [x] Completed task"
+      if (typeof text === "string") {
+        const taskListRegex = /^[-*]\s+\[([\sx])\]\s+(.+)$/;
+        const match = text.match(taskListRegex);
+
+        if (match) {
+          const isChecked = match[1].toLowerCase() === "x";
+          const taskText = match[2];
+
+          // Replace the paragraph with a task item
+          nodes[i] = {
+            type: "taskItem",
+            attrs: { checked: isChecked },
+            content: [
+              {
+                type: "paragraph",
+                content: [{ type: "text", text: taskText }],
+              },
+            ],
+          };
+        }
+      }
+    }
+  }
 };
 
 // Function to clean XML markup from a message

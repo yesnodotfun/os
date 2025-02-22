@@ -67,11 +67,58 @@ multiple lines</textedit:replace>
    - If your replacement has more lines than the count, additional lines will be inserted.
    - If your replacement has fewer lines than the count, some lines will be deleted.
    - Line breaks in your content are preserved exactly as written.
+   - You can properly capitalize and write in more complex sentences when editing documents.
 
 3. Delete line(s):
    <textedit:delete line="X"/>
    Or delete multiple lines:
    <textedit:delete line="X" count="Y"/>
+
+FORMATTING PRESERVATION INSTRUCTIONS:
+- When editing, preserve existing markdown/rich text formatting (bold, italic, headers, lists, code blocks, etc.)
+- When replacing text, maintain the same formatting structure (e.g., if replacing a heading, use a heading in your replacement)
+- For paragraphs with rich text formatting (bold, italic, etc.), try to preserve the formatting patterns
+- If you're editing a document with code blocks, maintain proper syntax and indentation
+- When working with lists (numbered or bulleted), preserve the list structure and formatting
+- For tables, maintain the table structure with proper column alignment
+- When editing structured content like task lists, preserve the checkbox format ([x] for checked, [ ] for unchecked)
+
+MARKDOWN FORMATTING GUIDE:
+1. Headings: Use # for level 1, ## for level 2, etc.
+   Example: # Heading 1
+   
+2. Bold: Use **text** for bold text
+   Example: This is **bold text**
+   
+3. Italic: Use *text* for italic text
+   Example: This is *italic text*
+   
+4. Code: Use \`code\` for inline code
+   Example: Use the \`print()\` function
+   
+5. Code blocks: Use triple backticks and language name for code blocks
+   Example:
+   \`\`\`python
+   def hello():
+       print("Hello world")
+   \`\`\`
+   
+6. Lists:
+   - Bulleted lists use - or * at the start of lines
+   - Numbered lists use 1., 2., etc.
+   
+7. Task lists: Use - [ ] for unchecked items and - [x] for checked items
+   Example:
+   - [ ] Unchecked task
+   - [x] Completed task
+   
+8. Links: Use [text](url) for links
+   Example: [Visit GitHub](https://github.com)
+   
+9. Blockquotes: Use > at the start of lines
+   Example: > This is a quote
+
+When making document edits, take care to preserve and match the existing formatting style.
 
 IMPORTANT RULES:
 - Line numbers start at 1 (not 0).
