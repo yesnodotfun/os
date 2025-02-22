@@ -3,7 +3,7 @@ import { ResizeType } from "@/types/types";
 import { APP_STORAGE_KEYS } from "@/utils/storage";
 import { useAppContext } from "@/contexts/AppContext";
 import { useSound, Sounds } from "@/hooks/useSound";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { getWindowConfig } from "@/config/appRegistry";
 import { useSwipeNavigation } from "@/hooks/useSwipeNavigation";
@@ -40,6 +40,7 @@ export function WindowFrame({
     minHeight: config.minSize?.height,
     maxWidth: config.maxSize?.width,
     maxHeight: config.maxSize?.height,
+    defaultSize: config.defaultSize,
   };
 
   // Merge provided constraints with defaults from config
@@ -56,7 +57,11 @@ export function WindowFrame({
   const { play: playWindowOpen } = useSound(Sounds.WINDOW_OPEN);
   const { play: playWindowClose } = useSound(Sounds.WINDOW_CLOSE);
   const [isFullHeight, setIsFullHeight] = useState(false);
+  const [isMaximized, setIsMaximized] = useState(false);
   const isMobile = useIsMobile();
+  const lastTapTimeRef = useRef<number>(0);
+  // Keep track of window size before maximizing to restore it later
+  const previousSizeRef = useRef({ width: 0, height: 0 });
 
   // Setup swipe navigation for mobile
   const {
@@ -108,9 +113,10 @@ export function WindowFrame({
     handleResizeStart,
     maximizeWindowHeight,
     setWindowSize,
+    setWindowPosition,
   } = useWindowManager({ appId });
 
-  // Track window height changes
+  // No longer track maximized state based on window dimensions
   useEffect(() => {
     const menuBarHeight = 30;
     const maxPossibleHeight = window.innerHeight - menuBarHeight;
@@ -137,19 +143,107 @@ export function WindowFrame({
     }
   };
 
-  const handleDoubleClickResize = (e: React.MouseEvent) => {
+  // This function only maximizes height (for bottom resize handle)
+  const handleHeightOnlyMaximize = (e: React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation();
+
+    // If window is already fully maximized, do nothing - let handleFullMaximize handle the restoration
+    if (isMaximized) return;
+
     if (isFullHeight) {
-      // Restore to default height using window's minHeight constraint
+      // Restore to default height from app's configuration
       setIsFullHeight(false);
       setWindowSize((prev) => ({
         ...prev,
-        height: mergedConstraints.minHeight || 400,
+        height: mergedConstraints.defaultSize.height,
       }));
     } else {
       // Set to full height
       setIsFullHeight(true);
       maximizeWindowHeight(mergedConstraints.maxHeight);
+    }
+  };
+
+  // This function maximizes both width and height (for titlebar)
+  const handleFullMaximize = (e: React.MouseEvent | React.TouchEvent) => {
+    e.stopPropagation();
+
+    // Toggle the maximized state directly
+    const newMaximizedState = !isMaximized;
+    setIsMaximized(newMaximizedState);
+
+    if (!newMaximizedState) {
+      // Restoring to default size
+      const defaultSize = mergedConstraints.defaultSize;
+
+      setWindowSize({
+        width: defaultSize.width,
+        height: defaultSize.height,
+      });
+
+      // Center the window if we're restoring from a maximized state
+      if (window.innerWidth >= 768) {
+        setWindowPosition({
+          x: Math.max(0, (window.innerWidth - defaultSize.width) / 2),
+          y: Math.max(30, (window.innerHeight - defaultSize.height) / 2),
+        });
+      }
+    } else {
+      // Maximizing the window
+      // Save current size before maximizing
+      previousSizeRef.current = {
+        width: windowSize.width,
+        height: windowSize.height,
+      };
+
+      // Set to full width and height
+      const menuBarHeight = 30;
+      const maxPossibleHeight = window.innerHeight - menuBarHeight;
+      const maxHeight = mergedConstraints.maxHeight
+        ? typeof mergedConstraints.maxHeight === "string"
+          ? parseInt(mergedConstraints.maxHeight)
+          : mergedConstraints.maxHeight
+        : maxPossibleHeight;
+      const newHeight = Math.min(maxPossibleHeight, maxHeight);
+
+      // For width we use the full window width on mobile, otherwise respect constraints
+      let newWidth = window.innerWidth;
+      if (window.innerWidth >= 768) {
+        const maxWidth = mergedConstraints.maxWidth
+          ? typeof mergedConstraints.maxWidth === "string"
+            ? parseInt(mergedConstraints.maxWidth)
+            : mergedConstraints.maxWidth
+          : window.innerWidth;
+        newWidth = Math.min(window.innerWidth, maxWidth);
+      }
+
+      setWindowSize({
+        width: newWidth,
+        height: newHeight,
+      });
+
+      // Position at top of screen
+      setWindowPosition({
+        x: window.innerWidth >= 768 ? (window.innerWidth - newWidth) / 2 : 0,
+        y: menuBarHeight,
+      });
+    }
+  };
+
+  // Handle double tap for titlebar
+  const handleTitleBarTap = (e: React.TouchEvent) => {
+    e.stopPropagation();
+    const now = Date.now();
+    const timeSinceLastTap = now - lastTapTimeRef.current;
+
+    // Check if this is a double tap (less than 300ms between taps)
+    if (timeSinceLastTap < 300 && timeSinceLastTap > 0) {
+      handleFullMaximize(e);
+      // Reset to prevent triple-tap
+      lastTapTimeRef.current = 0;
+    } else {
+      // Update last tap time
+      lastTapTimeRef.current = now;
     }
   };
 
@@ -211,7 +305,7 @@ export function WindowFrame({
             onTouchStart={(e) =>
               handleResizeStartWithForeground(e, "n" as ResizeType)
             }
-            onDoubleClick={handleDoubleClickResize}
+            onDoubleClick={handleHeightOnlyMaximize}
           />
 
           {/* Bottom resize handle */}
@@ -228,7 +322,7 @@ export function WindowFrame({
             onTouchStart={(e) =>
               handleResizeStartWithForeground(e, "s" as ResizeType)
             }
-            onDoubleClick={handleDoubleClickResize}
+            onDoubleClick={handleHeightOnlyMaximize}
           />
 
           {/* Left resize handle */}
@@ -329,6 +423,8 @@ export function WindowFrame({
               className={`select-none mx-auto bg-white px-2 py-0 h-full flex items-center justify-center max-w-[80%] truncate ${
                 !isForeground && "text-gray-500"
               }`}
+              onDoubleClick={handleFullMaximize}
+              onTouchStart={handleTitleBarTap}
             >
               {title}
             </span>
