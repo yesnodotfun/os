@@ -46,6 +46,83 @@ if user replied with '👋 *nudge sent*', give the user a random tip of wisdom, 
   // Add TextEdit content if available
   if (textEditContext && textEditContext.fileName && textEditContext.content) {
     prompt += `\n\nThe user currently has a TextEdit document open called "${textEditContext.fileName}". Here's the content of the document:\n\n${textEditContext.content}\n\nYou can reference this document when the user asks about it. If they ask you to help with the document, you can suggest edits or provide feedback based on the content.`;
+
+    prompt += `\n\nYou can directly edit this TextEdit document using special XML tags in your messages. The chat will parse these tags and apply the changes to the document automatically. Important: Line numbers start at 1, not 0. Be precise with line numbers.
+
+EDITING INSTRUCTIONS:
+
+1. Insert text at a specific line:
+   <textedit:insert line="X">New content</textedit:insert>
+   NOTE: Do NOT use <textedit:add> - the correct tag is <textedit:insert>
+
+2. Replace text at a specific line:
+   <textedit:replace line="X">New content</textedit:replace>
+   Or replace multiple lines:
+   <textedit:replace line="X" count="Y">New content with
+multiple lines</textedit:replace>
+
+3. Delete line(s):
+   <textedit:delete line="X"/>
+   Or delete multiple lines:
+   <textedit:delete line="X" count="Y"/>
+
+IMPORTANT RULES:
+- Line numbers start at 1 (not 0).
+- Use valid line numbers that exist in the document.
+- For inserts, you can specify any line from 1 to the total number of lines+1 (to append at the end).
+- If you specify a line number beyond the end of the document for insertion (e.g., line 20 in a 10-line document), empty lines will be added to fill the gap.
+- When using multiple edit operations, line numbers are processed in order and automatically adjusted to account for previous insertions or deletions.
+- For deletes and replaces, only specify existing lines (1 to total lines).
+- If edits don't work, double-check your line numbers.
+- Make sure the XML tags are properly closed and formatted.
+- Quotes around attribute values are required (use line="1" not line=1).
+- The XML tags must be exactly as shown - don't add extra spaces or attributes.
+- Self-closing tag format (<tag/>) is ONLY valid for delete operations, not for insert or replace.
+- For insert and replace, content must be placed between opening and closing tags, not as attributes.
+- When using the count attribute, it must be a positive integer.
+- If the document is not yet saved, the system will automatically save it before applying edits.
+- Avoid very complex edits with multiple operations - use simpler, focused edits for best results.
+
+WORKING WITH THE CURRENT DOCUMENT:
+The document currently has ${textEditContext.content.split("\n").length} lines.
+
+EXAMPLES USING THE ACTUAL DOCUMENT:
+
+Example 1: Insert a new line at position 2 (between the first and second lines)
+<textedit:insert line="2">New line inserted between lines 1 and 2</textedit:insert>
+
+Example 2: Replace the first line
+<textedit:replace line="1">This replaces the first line</textedit:replace>
+
+Example 3: Replace the first two lines with new content
+<textedit:replace line="1" count="2">New first line
+New second line</textedit:replace>
+
+Example 4: Delete the last line
+<textedit:delete line="${textEditContext.content.split("\n").length}"/>
+
+Example 5: Append to the end of the document
+<textedit:insert line="${
+      textEditContext.content.split("\n").length + 1
+    }">New line at the end of the document</textedit:insert>
+
+Example 6: Multiple insertions with future line numbers
+<textedit:insert line="100">This will add empty lines and insert at line 100</textedit:insert>
+<textedit:insert line="102">This will be inserted at line 102, accounting for the previous insertion</textedit:insert>
+
+INCORRECT EXAMPLES (DON'T DO THESE):
+- ❌ <textedit:add line="2">Wrong tag</textedit:add> 
+- ❌ <textedit:insert line="2"/>Don't use self-closing tags for insert
+- ❌ <textedit:insert line=2>Quotes are required around attribute values</textedit:insert>
+- ❌ <textedit:insert line="2" content="content">Don't put content as an attribute</textedit:insert>
+
+TROUBLESHOOTING:
+- If the update doesn't seem to work, try using simple, single operations rather than multiple complex ones.
+- If you see an error message about saving the document, the document probably hasn't been saved yet. The system will attempt to save it automatically.
+- If you're trying to edit a document that was just created, wait a moment for TextEdit to register the file before attempting edits.
+- The document may need to reload after edits - this happens automatically.
+
+After applying these edits, you will see a note in your message saying the document has been updated.`;
   }
 
   return prompt;

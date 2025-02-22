@@ -278,6 +278,111 @@ export function TextEditAppComponent({
     }
   }, [editor, files, currentFilePath, hasUnsavedChanges]);
 
+  // Add listeners for external document updates (like from Chat app)
+  useEffect(() => {
+    // Listen for direct content update requests
+    const handleUpdateEditorContent = (e: CustomEvent) => {
+      if (editor && e.detail?.path === currentFilePath && e.detail?.content) {
+        try {
+          // Try to parse the content as JSON
+          const jsonContent = JSON.parse(e.detail.content);
+
+          // Keep the current cursor position if possible
+          const { from, to } = editor.state.selection;
+
+          // Update the content
+          editor.commands.setContent(jsonContent);
+
+          // Try to restore cursor position
+          if (from && to && from === to) {
+            try {
+              editor.commands.setTextSelection(
+                Math.min(from, editor.state.doc.content.size)
+              );
+            } catch (e) {
+              console.log("Could not restore cursor position", e);
+            }
+          }
+
+          // Make sure we don't mark this as an unsaved change
+          setHasUnsavedChanges(false);
+
+          console.log("Editor content updated from external source");
+        } catch (error) {
+          console.error("Failed to update editor content:", error);
+        }
+      }
+    };
+
+    // Handle content changed notifications
+    const handleContentChanged = (e: CustomEvent) => {
+      if (editor && e.detail?.path === currentFilePath) {
+        // Reload content from localStorage
+        const savedContent = localStorage.getItem(
+          APP_STORAGE_KEYS.textedit.CONTENT
+        );
+        if (savedContent) {
+          try {
+            const jsonContent = JSON.parse(savedContent);
+            editor.commands.setContent(jsonContent);
+            setHasUnsavedChanges(false);
+            console.log(
+              "Editor content reloaded from localStorage after content changed event"
+            );
+          } catch (error) {
+            console.error("Failed to reload content:", error);
+          }
+        }
+      }
+    };
+
+    // Handle document updated notifications
+    const handleDocumentUpdated = (e: CustomEvent) => {
+      if (editor && e.detail?.path === currentFilePath && e.detail?.content) {
+        try {
+          const jsonContent = JSON.parse(e.detail.content);
+          editor.commands.setContent(jsonContent);
+          setHasUnsavedChanges(false);
+          console.log("Editor content updated after document updated event");
+        } catch (error) {
+          console.error(
+            "Failed to update editor with document updated event:",
+            error
+          );
+        }
+      }
+    };
+
+    // Set up event listeners
+    window.addEventListener(
+      "updateEditorContent",
+      handleUpdateEditorContent as EventListener
+    );
+    window.addEventListener(
+      "contentChanged",
+      handleContentChanged as EventListener
+    );
+    window.addEventListener(
+      "documentUpdated",
+      handleDocumentUpdated as EventListener
+    );
+
+    return () => {
+      window.removeEventListener(
+        "updateEditorContent",
+        handleUpdateEditorContent as EventListener
+      );
+      window.removeEventListener(
+        "contentChanged",
+        handleContentChanged as EventListener
+      );
+      window.removeEventListener(
+        "documentUpdated",
+        handleDocumentUpdated as EventListener
+      );
+    };
+  }, [editor, currentFilePath]);
+
   // Check for pending file open when window becomes active
   useEffect(() => {
     if (isForeground && editor) {
