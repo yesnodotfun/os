@@ -955,10 +955,8 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
 
         const point = getCanvasPoint(event);
 
-        // Don't handle panning here anymore, let Framer Motion handle it
         if (selectedTool === "hand") return;
 
-        // Handle selection dragging
         if (isDraggingSelection && selection && dragStartRef.current) {
           const dx = point.x - dragStartRef.current.x;
           const dy = point.y - dragStartRef.current.y;
@@ -976,7 +974,6 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
           return;
         }
 
-        // Handle selection drawing
         if (
           selectedTool === "rect-select" &&
           startPointRef.current &&
@@ -987,10 +984,9 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
           const width = point.x - startPointRef.current.x;
           const height = point.y - startPointRef.current.y;
 
-          // Draw selection rectangle
           contextRef.current.save();
           contextRef.current.strokeStyle = "#000";
-          contextRef.current.lineWidth = 1; // Force 1px width for selection
+          contextRef.current.lineWidth = 1;
           contextRef.current.setLineDash([5, 5]);
           contextRef.current.strokeRect(
             startPointRef.current.x,
@@ -1009,10 +1005,8 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
           startPointRef.current &&
           lastImageRef.current
         ) {
-          // Restore the canvas state before drawing the new preview
           contextRef.current.putImageData(lastImageRef.current, 0, 0);
 
-          // Set up context for shape drawing
           contextRef.current.globalCompositeOperation = "source-over";
           if (patternRef.current) {
             const pattern = contextRef.current.createPattern(
@@ -1024,7 +1018,6 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
             }
           }
 
-          // Draw the preview shape
           contextRef.current.beginPath();
 
           if (selectedTool === "line") {
@@ -1048,7 +1041,6 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
             const radiusX = Math.abs(point.x - startPointRef.current.x) / 2;
             const radiusY = Math.abs(point.y - startPointRef.current.y) / 2;
 
-            // Draw ellipse
             contextRef.current.ellipse(
               centerX,
               centerY,
@@ -1064,23 +1056,9 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
         } else if (!["line", "rectangle", "oval"].includes(selectedTool)) {
           contextRef.current.lineTo(point.x, point.y);
           contextRef.current.stroke();
-
-          // For touch events, save history more frequently to ensure smoother undo/redo
-          if (
-            "touches" in event &&
-            !["line", "rectangle", "oval"].includes(selectedTool)
-          ) {
-            saveToHistory();
-          }
         }
       },
-      [
-        selectedTool,
-        isDraggingSelection,
-        selection,
-        setSelection,
-        saveToHistory,
-      ]
+      [selectedTool, isDraggingSelection, selection, setSelection]
     );
 
     const stopDrawing = useCallback(
@@ -1092,21 +1070,12 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
         const canvas = canvasRef.current;
         if (!canvas || !contextRef.current) return;
 
-        // Don't handle panning here anymore, let Framer Motion handle it
         if (selectedTool === "hand") return;
 
         const point = getCanvasPoint(event);
 
-        // Always save history for touch events that modified the canvas
-        if ("touches" in event) {
-          if (selectedTool === "bucket" || isDrawing.current) {
-            saveToHistory();
-          }
-        }
-
         touchStartRef.current = null;
 
-        // Handle selection completion
         if (selectedTool === "rect-select" && startPointRef.current) {
           const width = point.x - startPointRef.current.x;
           const height = point.y - startPointRef.current.y;
@@ -1116,14 +1085,11 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
           const absWidth = Math.abs(width);
           const absHeight = Math.abs(height);
 
-          // Only set selection if there's an actual area selected
           if (absWidth > 0 && absHeight > 0) {
-            // Restore the canvas state before capturing selection
             if (lastImageRef.current) {
               contextRef.current.putImageData(lastImageRef.current, 0, 0);
             }
 
-            // Store selection data
             const selectionImageData = contextRef.current.getImageData(
               startX,
               startY,
@@ -1139,7 +1105,6 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
               imageData: selectionImageData,
             });
           } else {
-            // If no selection was made, restore the canvas state
             if (lastImageRef.current) {
               contextRef.current.putImageData(lastImageRef.current, 0, 0);
             }
@@ -1147,20 +1112,24 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
           }
         }
 
-        // Reset dragging state
         if (isDraggingSelection) {
           setIsDraggingSelection(false);
           dragStartRef.current = null;
+        }
+
+        if (
+          isDrawing.current ||
+          isDraggingSelection ||
+          selectedTool === "bucket"
+        ) {
           saveToHistory();
         }
 
         isDrawing.current = false;
         startPointRef.current = null;
 
-        // Reset composite operation after erasing
         if (contextRef.current && selectedTool === "eraser") {
           contextRef.current.globalCompositeOperation = "source-over";
-          // Restore pattern
           if (patternRef.current) {
             const pattern = contextRef.current.createPattern(
               patternRef.current,
@@ -1170,24 +1139,6 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
               contextRef.current.strokeStyle = pattern;
             }
           }
-        }
-
-        // Save history for all drawing operations when they complete
-        if (
-          isDrawing.current &&
-          !isDraggingSelection &&
-          selectedTool !== "rect-select"
-        ) {
-          saveToHistory();
-        }
-
-        // Also save history for shape tools when they complete
-        if (
-          ["line", "rectangle", "oval"].includes(selectedTool) &&
-          startPointRef.current &&
-          lastImageRef.current
-        ) {
-          saveToHistory();
         }
       },
       [
@@ -1307,6 +1258,7 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
                 width: "100%",
                 height: "100%",
                 touchAction: selectedTool === "hand" ? "none" : "none",
+                cursor: selectedTool === "hand" ? "grab" : "crosshair",
               }}
               className={`${
                 selectedTool === "rect-select"
