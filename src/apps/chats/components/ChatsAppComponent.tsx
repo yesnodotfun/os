@@ -1622,8 +1622,10 @@ export function ChatsAppComponent({
   const initialMessagesLoaded = useRef(false);
   // Add ref to track the timestamp when the component was mounted
   const componentMountedAt = useRef(new Date());
+  // Add this new reference at the top of the component, near other useRef declarations
+  const lastTextEditContextRef = useRef<string | null>(null);
 
-  // Check for TextEdit content when needed
+  // Update the useEffect that watches for TextEdit context changes
   useEffect(() => {
     const updateTextEditContext = () => {
       if (isTextEditOpen) {
@@ -1640,14 +1642,44 @@ export function ChatsAppComponent({
           const content = localStorage.getItem(
             APP_STORAGE_KEYS.textedit.CONTENT
           );
-          if (content) {
-            const extractedText = extractTextFromTextEditContent(content);
-            setTextEditContext({
-              fileName,
-              content: extractedText,
-            });
-          } else {
-            setTextEditContext(null);
+
+          // Check if content is new/changed to avoid unnecessary processing
+          const contentChanged =
+            content && content !== lastTextEditContextRef.current;
+
+          if (content && contentChanged) {
+            // Save the content reference to avoid redundant processing
+            lastTextEditContextRef.current = content;
+
+            // Use lightweight processing on mobile
+            if (window.innerWidth <= 768) {
+              // For mobile: simpler, immediate processing to avoid UI freezes
+              try {
+                const extractedText = extractTextFromTextEditContent(content);
+                setTextEditContext({
+                  fileName,
+                  content: extractedText,
+                });
+              } catch (error) {
+                console.error(
+                  "Error extracting TextEdit content on mobile:",
+                  error
+                );
+              }
+            } else {
+              // For desktop: use requestAnimationFrame for smoother UI
+              requestAnimationFrame(() => {
+                try {
+                  const extractedText = extractTextFromTextEditContent(content);
+                  setTextEditContext({
+                    fileName,
+                    content: extractedText,
+                  });
+                } catch (error) {
+                  console.error("Error extracting TextEdit content:", error);
+                }
+              });
+            }
           }
         } catch (error) {
           console.error("Error accessing TextEdit content:", error);
@@ -1682,10 +1714,11 @@ export function ChatsAppComponent({
     window.addEventListener("storage", handleStorageChange);
     window.addEventListener("saveFile", handleSaveFile as EventListener);
 
-    // Also poll for changes every 2 seconds as a fallback
-    // This helps catch changes that might not trigger storage events
-    const intervalId = setInterval(updateTextEditContext, 2000);
+    // Use a more efficient polling approach - less frequent on mobile
+    const pollInterval = window.innerWidth <= 768 ? 3000 : 2000;
+    const intervalId = setInterval(updateTextEditContext, pollInterval);
 
+    // Cleanup function
     return () => {
       window.removeEventListener("storage", handleStorageChange);
       window.removeEventListener("saveFile", handleSaveFile as EventListener);
@@ -1797,6 +1830,15 @@ export function ChatsAppComponent({
     setMessages(aiMessages);
     saveChatMessages(aiMessages);
 
+    // Skip TextEdit processing if we're on mobile and the app seems to be in a vulnerable state
+    const isMobile = window.innerWidth <= 768;
+    const isVulnerable = aiMessages.length <= 1 || isLoading;
+
+    // For mobile devices, use a simplified approach to reduce freezing
+    if (isMobile && isVulnerable) {
+      return; // Skip processing completely in vulnerable states on mobile
+    }
+
     // Skip heavy TextEdit processing if we only have the initial message (after clearing chats)
     // or if no TextEdit context exists
     if (
@@ -1827,14 +1869,29 @@ export function ChatsAppComponent({
         return;
       }
 
-      // First check if the message actually contains XML markup tags
-      const containsMarkup = /<textedit:(insert|replace|delete)/i.test(
-        lastMessage.content
-      );
+      // On mobile, do quick format detection first to avoid unnecessary processing
+      if (isMobile) {
+        // First check if the message actually contains XML markup tags - quick scan
+        const containsMarkup = /<textedit:(insert|replace|delete)/i.test(
+          lastMessage.content
+        );
 
-      if (!containsMarkup) {
-        // No markup, no processing needed
-        return;
+        if (!containsMarkup) {
+          // No markup, mark as processed and skip
+          processedMessageIds.current.add(lastMessage.id);
+          return;
+        }
+      } else {
+        // Standard non-mobile flow
+        // First check if the message actually contains XML markup tags
+        const containsMarkup = /<textedit:(insert|replace|delete)/i.test(
+          lastMessage.content
+        );
+
+        if (!containsMarkup) {
+          // No markup, no processing needed
+          return;
+        }
       }
 
       // Check for status messages that indicate processing already happened
