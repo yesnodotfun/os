@@ -2115,28 +2115,31 @@ export function ChatsAppComponent({
   };
 
   const confirmClearChats = () => {
-    // Close the dialog first to improve perceived performance
-    setIsClearDialogOpen(false);
+    try {
+      // Set a flag to block processing for a bit
+      isProcessingEdits.current = true;
 
-    // Use requestAnimationFrame to avoid layout thrashing
-    requestAnimationFrame(() => {
-      // Mark all messages as processed to prevent any lingering processing
-      aiMessages.forEach((msg) => {
-        processedMessageIds.current.add(msg.id);
-      });
+      // Close dialog immediately
+      setIsClearDialogOpen(false);
 
-      // Reset the processing flag just in case
-      isProcessingEdits.current = false;
-
-      // Reset to initial state
+      // Reset to initial state - only use the hook's methods
       setAiMessages([initialMessage]);
       saveChatMessages([initialMessage]);
 
-      // Clear the chat input state by simulating a synthetic event
+      // Reset input state
       handleInputChange({
         target: { value: "" },
       } as React.ChangeEvent<HTMLInputElement>);
-    });
+
+      // Use a timer to release the processing block and log completion
+      setTimeout(() => {
+        isProcessingEdits.current = false;
+        console.log("Chat cleared successfully");
+      }, 1000); // Keep block a bit longer to ensure everything settles
+    } catch (error) {
+      console.error("Error clearing chats:", error);
+      isProcessingEdits.current = false;
+    }
   };
 
   const handleSaveTranscript = () => {
