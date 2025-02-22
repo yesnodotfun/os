@@ -12,49 +12,6 @@ const parseMarkdown = (text: string): { type: string; content: string }[] => {
   let currentIndex = 0;
 
   while (currentIndex < text.length) {
-    // Check for document edit commands
-    const appendMatch = text
-      .slice(currentIndex)
-      .match(/^\[append\](.*?)\[\/append\]/);
-    if (appendMatch) {
-      tokens.push({ type: "text", content: "appended: " });
-      tokens.push({ type: "italic", content: appendMatch[1].trim() });
-      currentIndex += appendMatch[0].length;
-      continue;
-    }
-
-    const replaceMatch = text
-      .slice(currentIndex)
-      .match(/^\[replace\](.*?)\[\/replace\](.*?)\[\/replace\]/);
-    if (replaceMatch) {
-      tokens.push({ type: "text", content: "replaced " });
-      tokens.push({ type: "italic", content: replaceMatch[1].trim() });
-      tokens.push({ type: "text", content: " with " });
-      tokens.push({ type: "italic", content: replaceMatch[2].trim() });
-      currentIndex += replaceMatch[0].length;
-      continue;
-    }
-
-    const insertMatch = text
-      .slice(currentIndex)
-      .match(/^\[insert at="(.*?)"\](.*?)\[\/insert\]/);
-    if (insertMatch) {
-      tokens.push({ type: "text", content: `inserted at ${insertMatch[1]}: ` });
-      tokens.push({ type: "italic", content: insertMatch[2].trim() });
-      currentIndex += insertMatch[0].length;
-      continue;
-    }
-
-    const deleteMatch = text
-      .slice(currentIndex)
-      .match(/^\[delete\](.*?)\[\/delete\]/);
-    if (deleteMatch) {
-      tokens.push({ type: "text", content: "deleted: " });
-      tokens.push({ type: "italic", content: deleteMatch[1].trim() });
-      currentIndex += deleteMatch[0].length;
-      continue;
-    }
-
     // Check for bold text (**text**)
     const boldMatch = text.slice(currentIndex).match(/^\*\*(.*?)\*\*/);
     if (boldMatch) {

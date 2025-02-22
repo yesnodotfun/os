@@ -21,11 +21,6 @@ import { FileText } from "lucide-react";
 // Define types for TextEdit content structure
 interface TextNode {
   text?: string;
-  bold?: boolean;
-  italic?: boolean;
-  strike?: boolean;
-  code?: boolean;
-  link?: string;
   // Using Record instead of any for better type safety
   [key: string]: unknown;
 }
@@ -33,10 +28,6 @@ interface TextNode {
 interface ContentNode {
   type: string;
   content?: TextNode[];
-  attrs?: {
-    level?: number;
-    [key: string]: unknown;
-  };
   // Using Record instead of any for better type safety
   [key: string]: unknown;
 }
@@ -59,27 +50,9 @@ const extractTextFromTextEditContent = (content: string): string => {
           (node.type === "paragraph" || node.type === "heading") &&
           node.content
         ) {
-          // Handle markdown formatting
-          let text = node.content
-            .map((textNode: TextNode) => {
-              let nodeText = textNode.text || "";
-              // Preserve markdown formatting
-              if (textNode.bold) nodeText = `**${nodeText}**`;
-              if (textNode.italic) nodeText = `*${nodeText}*`;
-              if (textNode.strike) nodeText = `~~${nodeText}~~`;
-              if (textNode.code) nodeText = `\`${nodeText}\``;
-              if (textNode.link) nodeText = `[${nodeText}](${textNode.link})`;
-              return nodeText;
-            })
+          return node.content
+            .map((textNode: TextNode) => textNode.text || "")
             .join("");
-
-          // Add heading markdown if it's a heading
-          if (node.type === "heading") {
-            const level = node.attrs?.level || 1;
-            text = `${"#".repeat(level)} ${text}`;
-          }
-
-          return text;
         }
         return "";
       })
@@ -90,299 +63,28 @@ const extractTextFromTextEditContent = (content: string): string => {
   }
 };
 
-// Helper function to parse document edit commands from chat response
-const parseDocumentEdits = (
-  content: string
-): {
-  edits: Array<{
-    type: "append" | "replace" | "insert" | "delete";
-    content: string;
-    oldContent?: string;
-    position?: string;
-  }>;
-  hasEdits: boolean;
-} => {
-  const edits: Array<{
-    type: "append" | "replace" | "insert" | "delete";
-    content: string;
-    oldContent?: string;
-    position?: string;
-  }> = [];
+// Helper function to truncate filename
+const truncateFilename = (filename: string, maxLength: number = 20): string => {
+  if (filename.length <= maxLength) return filename;
 
-  // Check for any edit commands
-  const hasEdits = /\[(append|replace|insert|delete)[^\]]*\].*?\[\/\1\]/gs.test(
-    content
+  // Get file extension
+  const lastDotIndex = filename.lastIndexOf(".");
+  const extension = lastDotIndex !== -1 ? filename.slice(lastDotIndex) : "";
+
+  // Calculate how much of the name we can keep
+  const nameLength = maxLength - extension.length - 3; // 3 for the ellipsis
+
+  if (nameLength <= 0) {
+    // If the extension is too long, just truncate the whole thing
+    return filename.slice(0, maxLength - 3) + "...";
+  }
+
+  // Truncate the name part but keep the extension
+  const namePart = filename.slice(
+    0,
+    lastDotIndex !== -1 ? lastDotIndex : filename.length
   );
-
-  // Parse append commands
-  const appendRegex = /\[append\](.*?)\[\/append\]/gs;
-  let match;
-  while ((match = appendRegex.exec(content)) !== null) {
-    edits.push({
-      type: "append",
-      content: match[1].trim(),
-    });
-  }
-
-  // Parse replace commands
-  const replaceRegex = /\[replace\](.*?)\[\/replace\](.*?)\[\/replace\]/gs;
-  while ((match = replaceRegex.exec(content)) !== null) {
-    edits.push({
-      type: "replace",
-      oldContent: match[1].trim(),
-      content: match[2].trim(),
-    });
-  }
-
-  // Parse insert commands
-  const insertRegex = /\[insert at="(.*?)"\](.*?)\[\/insert\]/gs;
-  while ((match = insertRegex.exec(content)) !== null) {
-    edits.push({
-      type: "insert",
-      position: match[1].trim(),
-      content: match[2].trim(),
-    });
-  }
-
-  // Parse delete commands
-  const deleteRegex = /\[delete\](.*?)\[\/delete\]/gs;
-  while ((match = deleteRegex.exec(content)) !== null) {
-    edits.push({
-      type: "delete",
-      content: match[1].trim(),
-    });
-  }
-
-  return {
-    edits,
-    hasEdits,
-  };
-};
-
-// Helper function to apply document edits
-const applyDocumentEdits = (
-  content: string,
-  edits: Array<{
-    type: "append" | "replace" | "insert" | "delete";
-    content: string;
-    oldContent?: string;
-    position?: string;
-  }>
-): string => {
-  let result = content;
-
-  for (const edit of edits) {
-    let lines: string[];
-    let insertIndex: number;
-
-    switch (edit.type) {
-      case "append":
-        if (result) {
-          // Split into lines and check if the content already exists
-          lines = result.split("\n");
-          const contentExists = lines.some(
-            (line) => line.trim() === edit.content.trim()
-          );
-          if (!contentExists) {
-            result += "\n" + edit.content;
-          }
-        } else {
-          result = edit.content;
-        }
-        break;
-      case "replace":
-        if (edit.oldContent) {
-          // Split into lines and replace only exact matches
-          lines = result.split("\n");
-          let hasReplaced = false;
-          const newLines = lines.map((line) => {
-            // Only replace if the line exactly matches the old content (after trimming)
-            if (!hasReplaced && line.trim() === edit.oldContent?.trim()) {
-              hasReplaced = true;
-              // Check if the new content already exists elsewhere
-              const contentExists = lines.some(
-                (l) => l.trim() === edit.content.trim()
-              );
-              return contentExists ? line : edit.content;
-            }
-            return line;
-          });
-          result = newLines.join("\n");
-        }
-        break;
-      case "insert":
-        lines = result.split("\n");
-        insertIndex =
-          edit.position === "beginning"
-            ? 0
-            : edit.position === "end"
-            ? lines.length
-            : parseInt(edit.position || "0", 10);
-
-        if (
-          !isNaN(insertIndex) &&
-          insertIndex >= 0 &&
-          insertIndex <= lines.length
-        ) {
-          // Check if the content already exists anywhere in the document
-          const contentExists = lines.some(
-            (line) => line.trim() === edit.content.trim()
-          );
-          if (!contentExists) {
-            lines.splice(insertIndex, 0, edit.content);
-            result = lines.join("\n");
-          }
-        }
-        break;
-      case "delete":
-        // Split into lines and remove only exact matches
-        lines = result.split("\n");
-        result = lines
-          .filter((line) => line.trim() !== edit.content.trim())
-          .join("\n");
-        break;
-    }
-  }
-
-  return result;
-};
-
-// Add this function to handle document edits
-const handleDocumentEdits = (content: string) => {
-  const { edits, hasEdits } = parseDocumentEdits(content);
-  if (!hasEdits) return;
-
-  try {
-    // Get current content
-    const currentContent = localStorage.getItem(
-      APP_STORAGE_KEYS.textedit.CONTENT
-    );
-    if (!currentContent) return;
-
-    // Parse current content as JSON
-    const jsonContent = JSON.parse(currentContent) as TextEditContent;
-    if (!jsonContent.content) return;
-
-    // Extract text from current content
-    const currentText = extractTextFromTextEditContent(currentContent);
-
-    // Apply edits
-    const newText = applyDocumentEdits(currentText, edits);
-
-    // Convert new text back to JSON format while preserving markdown
-    const newContent = {
-      type: "doc",
-      content: newText
-        .split("\n")
-        .filter((line) => line.trim() !== "") // Remove empty lines
-        .map((text) => {
-          // Check if it's a heading
-          const headingMatch = text.match(/^(#{1,6})\s+(.+)$/);
-          if (headingMatch) {
-            const level = headingMatch[1].length;
-            const headingText = headingMatch[2];
-            return {
-              type: "heading",
-              attrs: { level },
-              content: [
-                {
-                  type: "text",
-                  text: headingText,
-                },
-              ],
-            };
-          }
-
-          // Parse markdown formatting
-          const content: TextNode[] = [];
-          let currentText = text;
-
-          // Handle bold
-          currentText = currentText.replace(/\*\*(.*?)\*\*/g, (_, text) => {
-            content.push({ type: "text", text, bold: true });
-            return "";
-          });
-
-          // Handle italic
-          currentText = currentText.replace(/\*(.*?)\*/g, (_, text) => {
-            content.push({ type: "text", text, italic: true });
-            return "";
-          });
-
-          // Handle strike
-          currentText = currentText.replace(/~~(.*?)~~/g, (_, text) => {
-            content.push({ type: "text", text, strike: true });
-            return "";
-          });
-
-          // Handle code
-          currentText = currentText.replace(/`(.*?)`/g, (_, text) => {
-            content.push({ type: "text", text, code: true });
-            return "";
-          });
-
-          // Handle links
-          currentText = currentText.replace(
-            /\[(.*?)\]\((.*?)\)/g,
-            (_, text, href) => {
-              content.push({ type: "text", text, link: href });
-              return "";
-            }
-          );
-
-          // Add any remaining text
-          if (currentText) {
-            content.push({ type: "text", text: currentText });
-          }
-
-          return {
-            type: "paragraph",
-            content,
-          };
-        }),
-    };
-
-    // If there's no content, add an empty paragraph to maintain valid structure
-    if (newContent.content.length === 0) {
-      newContent.content = [
-        {
-          type: "paragraph",
-          content: [
-            {
-              type: "text",
-              text: " ",
-            },
-          ],
-        },
-      ];
-    }
-
-    // Save new content
-    localStorage.setItem(
-      APP_STORAGE_KEYS.textedit.CONTENT,
-      JSON.stringify(newContent)
-    );
-
-    // Dispatch event to notify TextEdit of changes
-    const contentChangeEvent = new CustomEvent("textEditContentChange", {
-      detail: {
-        content: JSON.stringify(newContent),
-      },
-    });
-    window.dispatchEvent(contentChangeEvent);
-  } catch (error) {
-    console.error("Error applying document edits:", error);
-  }
-};
-
-// Add this helper function at the top of the file
-const truncateFileName = (fileName: string, maxLength: number = 20): string => {
-  if (fileName.length <= maxLength) return fileName;
-  const extension = fileName.split(".").pop() || "";
-  const nameWithoutExt = fileName.slice(0, -(extension.length + 1));
-  const truncatedName =
-    nameWithoutExt.slice(0, maxLength - extension.length - 3) + "...";
-  return `${truncatedName}.${extension}`;
+  return namePart.slice(0, nameLength) + "..." + extension;
 };
 
 export function ChatsAppComponent({
@@ -564,13 +266,7 @@ export function ChatsAppComponent({
   useEffect(() => {
     setMessages(aiMessages);
     saveChatMessages(aiMessages);
-
-    // Check for document edits in the latest assistant message
-    const lastMessage = aiMessages[aiMessages.length - 1];
-    if (lastMessage?.role === "assistant") {
-      handleDocumentEdits(lastMessage.content);
-    }
-  }, [aiMessages, setAiMessages, textEditContext]);
+  }, [aiMessages]);
 
   const handleDirectMessageSubmit = useCallback(
     (message: string) => {
@@ -702,7 +398,7 @@ export function ChatsAppComponent({
               <FileText className="w-3 h-3" />
               <span>
                 Using{" "}
-                <strong>{truncateFileName(textEditContext.fileName)}</strong>
+                <strong>{truncateFilename(textEditContext.fileName)}</strong>
               </span>
             </div>
           )}

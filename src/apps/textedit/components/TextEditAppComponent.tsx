@@ -648,32 +648,6 @@ export function TextEditAppComponent({
     }
   };
 
-  // Add this useEffect after the existing ones
-  useEffect(() => {
-    const handleContentChange = (e: CustomEvent<{ content: string }>) => {
-      if (editor && e.detail?.content) {
-        try {
-          const jsonContent = JSON.parse(e.detail.content);
-          editor.commands.setContent(jsonContent);
-        } catch (error) {
-          console.error("Error updating TextEdit content:", error);
-        }
-      }
-    };
-
-    window.addEventListener(
-      "textEditContentChange",
-      handleContentChange as EventListener
-    );
-
-    return () => {
-      window.removeEventListener(
-        "textEditContentChange",
-        handleContentChange as EventListener
-      );
-    };
-  }, [editor]);
-
   return (
     <>
       <input
