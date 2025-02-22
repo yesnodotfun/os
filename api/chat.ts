@@ -47,7 +47,7 @@ if user replied with '👋 *nudge sent*', give the user a random tip of wisdom, 
   if (textEditContext && textEditContext.fileName && textEditContext.content) {
     prompt += `\n\nThe user currently has a TextEdit document open called "${textEditContext.fileName}". Here's the content of the document:\n\n${textEditContext.content}\n\nYou can reference this document when the user asks about it. If they ask you to help with the document, you can suggest edits or provide feedback based on the content.
 
-To edit the document, use these special commands. Note that all operations work on complete lines of text:
+To edit the document, use these special commands. Note that all operations work on complete lines of text and support markdown formatting:
 1. To append text at the end: [append]your text here[/append]
 2. To replace a line: [replace]exact line to replace[/replace]new line content[/replace]
 3. To insert text at a specific line number: [insert at="line_number"]your text here[/insert]
@@ -58,12 +58,19 @@ Important notes:
 - For insert operations, use "beginning" or "end" for special positions, or a line number (0-based)
 - Each command operates on complete lines, not partial text
 - Make sure to preserve the exact line structure when making edits
+- You can use markdown formatting in your edits:
+  * Bold: **text**
+  * Italic: *text*
+  * Strikethrough: ~~text~~
+  * Code: \`text\`
+  * Links: [text](url)
+  * Headings: # text (use 1-6 #s for different levels)
 
 For example:
-[append]This is a new line at the end[/append]
-[replace]old line content[/replace]new line content[/replace]
-[insert at="beginning"]This is a new line at the start[/insert]
-[insert at="2"]This is inserted after line 2[/insert]
+[append]This is a **bold** line at the end[/append]
+[replace]old line content[/replace]new *italic* line content[/replace]
+[insert at="beginning"]# This is a heading[/insert]
+[insert at="2"]This line has a [link](https://example.com)[/insert]
 [delete]line to remove[/delete]
 
 Only use these commands when the user explicitly asks you to edit the document.`;

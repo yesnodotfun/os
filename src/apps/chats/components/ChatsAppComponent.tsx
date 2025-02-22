@@ -93,18 +93,26 @@ const extractTextFromTextEditContent = (content: string): string => {
 // Helper function to parse document edit commands from chat response
 const parseDocumentEdits = (
   content: string
-): Array<{
-  type: "append" | "replace" | "insert" | "delete";
-  content: string;
-  oldContent?: string;
-  position?: string;
-}> => {
+): {
+  edits: Array<{
+    type: "append" | "replace" | "insert" | "delete";
+    content: string;
+    oldContent?: string;
+    position?: string;
+  }>;
+  hasEdits: boolean;
+} => {
   const edits: Array<{
     type: "append" | "replace" | "insert" | "delete";
     content: string;
     oldContent?: string;
     position?: string;
   }> = [];
+
+  // Check for any edit commands
+  const hasEdits = /\[(append|replace|insert|delete)[^\]]*\].*?\[\/\1\]/gs.test(
+    content
+  );
 
   // Parse append commands
   const appendRegex = /\[append\](.*?)\[\/append\]/gs;
@@ -145,7 +153,10 @@ const parseDocumentEdits = (
     });
   }
 
-  return edits;
+  return {
+    edits,
+    hasEdits,
+  };
 };
 
 // Helper function to apply document edits
@@ -167,7 +178,14 @@ const applyDocumentEdits = (
     switch (edit.type) {
       case "append":
         if (result) {
-          result += "\n" + edit.content;
+          // Split into lines and check if the content already exists
+          lines = result.split("\n");
+          const contentExists = lines.some(
+            (line) => line.trim() === edit.content.trim()
+          );
+          if (!contentExists) {
+            result += "\n" + edit.content;
+          }
         } else {
           result = edit.content;
         }
@@ -176,10 +194,16 @@ const applyDocumentEdits = (
         if (edit.oldContent) {
           // Split into lines and replace only exact matches
           lines = result.split("\n");
+          let hasReplaced = false;
           const newLines = lines.map((line) => {
-            // Only replace if the line exactly matches the old content
-            if (line.trim() === edit.oldContent?.trim()) {
-              return edit.content;
+            // Only replace if the line exactly matches the old content (after trimming)
+            if (!hasReplaced && line.trim() === edit.oldContent?.trim()) {
+              hasReplaced = true;
+              // Check if the new content already exists elsewhere
+              const contentExists = lines.some(
+                (l) => l.trim() === edit.content.trim()
+              );
+              return contentExists ? line : edit.content;
             }
             return line;
           });
@@ -200,11 +224,11 @@ const applyDocumentEdits = (
           insertIndex >= 0 &&
           insertIndex <= lines.length
         ) {
-          // Check if the line already exists to prevent duplicates
-          const lineExists = lines.some(
+          // Check if the content already exists anywhere in the document
+          const contentExists = lines.some(
             (line) => line.trim() === edit.content.trim()
           );
-          if (!lineExists) {
+          if (!contentExists) {
             lines.splice(insertIndex, 0, edit.content);
             result = lines.join("\n");
           }
@@ -225,8 +249,8 @@ const applyDocumentEdits = (
 
 // Add this function to handle document edits
 const handleDocumentEdits = (content: string) => {
-  const edits = parseDocumentEdits(content);
-  if (edits.length === 0) return;
+  const { edits, hasEdits } = parseDocumentEdits(content);
+  if (!hasEdits) return;
 
   try {
     // Get current content
@@ -546,7 +570,7 @@ export function ChatsAppComponent({
     if (lastMessage?.role === "assistant") {
       handleDocumentEdits(lastMessage.content);
     }
-  }, [aiMessages]);
+  }, [aiMessages, setAiMessages, textEditContext]);
 
   const handleDirectMessageSubmit = useCallback(
     (message: string) => {
