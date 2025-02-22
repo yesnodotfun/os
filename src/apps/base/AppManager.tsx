@@ -56,6 +56,16 @@ export function AppManager({ apps }: AppManagerProps) {
         };
       });
 
+      // Dispatch a custom event for app foreground changes
+      const appStateChangeEvent = new CustomEvent("appStateChange", {
+        detail: {
+          appId,
+          isOpen: newStates.apps[appId]?.isOpen || false,
+          isForeground: true,
+        },
+      });
+      window.dispatchEvent(appStateChangeEvent);
+
       return newStates;
     });
   };
@@ -87,6 +97,17 @@ export function AppManager({ apps }: AppManagerProps) {
           };
         }
       });
+
+      // Dispatch a custom event for app state changes
+      const appStateChangeEvent = new CustomEvent("appStateChange", {
+        detail: {
+          appId,
+          isOpen: !isCurrentlyOpen,
+          isForeground: !isCurrentlyOpen,
+        },
+      });
+      window.dispatchEvent(appStateChangeEvent);
+
       return newStates;
     });
   };

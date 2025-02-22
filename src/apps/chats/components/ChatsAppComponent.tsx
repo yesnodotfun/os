@@ -8,9 +8,60 @@ import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { InputDialog } from "@/components/dialogs/InputDialog";
 import { helpItems, appMetadata } from "..";
 import { useChat } from "ai/react";
-import { loadChatMessages, saveChatMessages } from "@/utils/storage";
+import {
+  loadChatMessages,
+  saveChatMessages,
+  APP_STORAGE_KEYS,
+} from "@/utils/storage";
 import { ChatMessages } from "./ChatMessages";
 import { ChatInput } from "./ChatInput";
+import { useAppContext } from "@/contexts/AppContext";
+import { FileText } from "lucide-react";
+
+// Define types for TextEdit content structure
+interface TextNode {
+  text?: string;
+  // Using Record instead of any for better type safety
+  [key: string]: unknown;
+}
+
+interface ContentNode {
+  type: string;
+  content?: TextNode[];
+  // Using Record instead of any for better type safety
+  [key: string]: unknown;
+}
+
+interface TextEditContent {
+  content?: ContentNode[];
+  // Using Record instead of any for better type safety
+  [key: string]: unknown;
+}
+
+// Helper function to extract text from TextEdit JSON content
+const extractTextFromTextEditContent = (content: string): string => {
+  try {
+    const jsonContent = JSON.parse(content) as TextEditContent;
+    if (!jsonContent.content) return "";
+
+    return jsonContent.content
+      .map((node: ContentNode) => {
+        if (
+          (node.type === "paragraph" || node.type === "heading") &&
+          node.content
+        ) {
+          return node.content
+            .map((textNode: TextNode) => textNode.text || "")
+            .join("");
+        }
+        return "";
+      })
+      .join("\n");
+  } catch {
+    // If not valid JSON, return as is
+    return content;
+  }
+};
 
 export function ChatsAppComponent({
   isWindowOpen,
@@ -24,11 +75,144 @@ export function ChatsAppComponent({
     createdAt: new Date(),
   };
 
+  const { appStates } = useAppContext();
+  const isTextEditOpen = appStates["textedit"]?.isOpen || false;
+  const [textEditContext, setTextEditContext] = useState<{
+    fileName: string;
+    content: string;
+  } | null>(null);
+
+  // Check for TextEdit content when needed
+  useEffect(() => {
+    const updateTextEditContext = () => {
+      if (isTextEditOpen) {
+        try {
+          // Get the current file path
+          const lastFilePath = localStorage.getItem(
+            APP_STORAGE_KEYS.textedit.LAST_FILE_PATH
+          );
+          const fileName = lastFilePath
+            ? lastFilePath.split("/").pop() || "Untitled"
+            : "Untitled";
+
+          // Get the document content
+          const content = localStorage.getItem(
+            APP_STORAGE_KEYS.textedit.CONTENT
+          );
+          if (content) {
+            const extractedText = extractTextFromTextEditContent(content);
+            setTextEditContext({
+              fileName,
+              content: extractedText,
+            });
+          } else {
+            setTextEditContext(null);
+          }
+        } catch (error) {
+          console.error("Error accessing TextEdit content:", error);
+          setTextEditContext(null);
+        }
+      } else {
+        setTextEditContext(null);
+      }
+    };
+
+    // Initial update
+    updateTextEditContext();
+
+    // Listen for storage events to detect TextEdit content changes
+    const handleStorageChange = (e: StorageEvent) => {
+      if (
+        e.key === APP_STORAGE_KEYS.textedit.CONTENT ||
+        e.key === APP_STORAGE_KEYS.textedit.LAST_FILE_PATH
+      ) {
+        updateTextEditContext();
+      }
+    };
+
+    // Listen for custom saveFile events which TextEdit dispatches when saving
+    const handleSaveFile = (e: CustomEvent) => {
+      if (e.detail?.path?.startsWith("/Documents/")) {
+        updateTextEditContext();
+      }
+    };
+
+    // Set up event listeners
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("saveFile", handleSaveFile as EventListener);
+
+    // Also poll for changes every 2 seconds as a fallback
+    // This helps catch changes that might not trigger storage events
+    const intervalId = setInterval(updateTextEditContext, 2000);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("saveFile", handleSaveFile as EventListener);
+      clearInterval(intervalId);
+    };
+  }, [isTextEditOpen]);
+
+  // Listen for app state changes
+  useEffect(() => {
+    const handleAppStateChange = (
+      e: CustomEvent<{
+        appId: string;
+        isOpen: boolean;
+        isForeground: boolean;
+      }>
+    ) => {
+      if (e.detail?.appId === "textedit") {
+        // If TextEdit app state changed, check if it's now open or closed
+        const isNowOpen = e.detail.isOpen;
+        if (isNowOpen !== isTextEditOpen) {
+          // Force a re-check of the TextEdit context
+          setTimeout(() => {
+            if (isNowOpen) {
+              // TextEdit was just opened, wait a moment for it to initialize
+              setTimeout(() => {
+                const content = localStorage.getItem(
+                  APP_STORAGE_KEYS.textedit.CONTENT
+                );
+                const lastFilePath = localStorage.getItem(
+                  APP_STORAGE_KEYS.textedit.LAST_FILE_PATH
+                );
+
+                if (content && lastFilePath) {
+                  const fileName = lastFilePath.split("/").pop() || "Untitled";
+                  const extractedText = extractTextFromTextEditContent(content);
+                  setTextEditContext({
+                    fileName,
+                    content: extractedText,
+                  });
+                }
+              }, 500);
+            } else {
+              // TextEdit was closed, clear the context
+              setTextEditContext(null);
+            }
+          }, 0);
+        }
+      }
+    };
+
+    window.addEventListener(
+      "appStateChange",
+      handleAppStateChange as EventListener
+    );
+
+    return () => {
+      window.removeEventListener(
+        "appStateChange",
+        handleAppStateChange as EventListener
+      );
+    };
+  }, [isTextEditOpen]);
+
   const {
     messages: aiMessages,
     input,
     handleInputChange,
-    handleSubmit,
+    handleSubmit: originalHandleSubmit,
     isLoading,
     reload,
     error,
@@ -38,7 +222,20 @@ export function ChatsAppComponent({
   } = useChat({
     initialMessages: loadChatMessages() || [initialMessage],
     experimental_throttle: 50,
+    body: textEditContext ? { textEditContext } : undefined,
   });
+
+  // Wrap handleSubmit to include textEditContext
+  const handleSubmit = useCallback(
+    (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      originalHandleSubmit(e, {
+        body: textEditContext ? { textEditContext } : undefined,
+      });
+    },
+    [originalHandleSubmit, textEditContext]
+  );
+
   const [messages, setMessages] = useState(aiMessages);
   const [isShaking, setIsShaking] = useState(false);
 
@@ -49,12 +246,15 @@ export function ChatsAppComponent({
 
   const handleDirectMessageSubmit = useCallback(
     (message: string) => {
-      append({
-        content: message,
-        role: "user",
-      });
+      append(
+        {
+          content: message,
+          role: "user",
+        },
+        { body: textEditContext ? { textEditContext } : undefined }
+      );
     },
-    [append]
+    [append, textEditContext]
   );
 
   const handleNudge = useCallback(() => {
@@ -158,6 +358,7 @@ export function ChatsAppComponent({
             onRetry={reload}
             onClear={clearChats}
           />
+
           <ChatInput
             input={input}
             isLoading={isLoading}
@@ -168,6 +369,14 @@ export function ChatsAppComponent({
             onDirectMessageSubmit={handleDirectMessageSubmit}
             onNudge={handleNudge}
           />
+          {textEditContext && (
+            <div className="font-geneva-12 flex items-center gap-1 text-[10px] text-gray-600 mt-1 px-0 py-0.5">
+              <FileText className="w-3 h-3" />
+              <span>
+                With context from: <strong>{textEditContext.fileName}</strong>
+              </span>
+            </div>
+          )}
         </div>
         <HelpDialog
           isOpen={isHelpDialogOpen}
