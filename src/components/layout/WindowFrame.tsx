@@ -160,21 +160,16 @@ export function WindowFrame({
         transformOrigin: "center",
       }}
     >
-      <div
-        className={cn(
-          "relative h-full flex flex-col bg-system7-window-bg border-[2px] border-black rounded-lg overflow-hidden",
-          isForeground ? "shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)]" : ""
-        )}
-      >
+      <div className="relative w-full h-full">
         {/* Resize handles - positioned outside main content */}
-        <div className="absolute -top-4 -left-4 -right-4 -bottom-4 pointer-events-none z-50">
+        <div className="absolute -top-2 -left-2 -right-2 -bottom-2 pointer-events-none z-50">
           {/* Top resize handle */}
           <div
             className={cn(
               "absolute left-0 right-0 cursor-n-resize pointer-events-auto transition-[top,height]",
               resizeType?.includes("n")
                 ? "top-[-100px] h-[200px]"
-                : "-top-4 h-10" // 64px for all screen sizes
+                : "-top-2 h-6" // reduced from h-10
             )}
             onMouseDown={(e) =>
               handleResizeStartWithForeground(e, "n" as ResizeType)
@@ -191,7 +186,7 @@ export function WindowFrame({
               "absolute left-0 right-0 cursor-s-resize pointer-events-auto transition-[bottom,height]",
               resizeType?.includes("s")
                 ? "bottom-[-100px] h-[200px]"
-                : "-bottom-4 h-10" // 64px for all screen sizes
+                : "-bottom-2 h-6" // reduced from h-10
             )}
             onMouseDown={(e) =>
               handleResizeStartWithForeground(e, "s" as ResizeType)
@@ -208,7 +203,7 @@ export function WindowFrame({
               "absolute top-8 cursor-w-resize pointer-events-auto transition-[left,width]",
               resizeType?.includes("w")
                 ? "left-[-100px] w-[200px]"
-                : "-left-4 w-10"
+                : "-left-2 w-6" // reduced from w-10
             )}
             style={{ bottom: resizeType?.includes("s") ? "32px" : "32px" }}
             onMouseDown={(e) =>
@@ -222,7 +217,7 @@ export function WindowFrame({
               "absolute top-8 cursor-e-resize pointer-events-auto transition-[right,width]",
               resizeType?.includes("e")
                 ? "right-[-100px] w-[200px]"
-                : "-right-4 w-10"
+                : "-right-2 w-6" // reduced from w-10
             )}
             style={{ bottom: resizeType?.includes("s") ? "32px" : "32px" }}
             onMouseDown={(e) =>
@@ -236,7 +231,7 @@ export function WindowFrame({
               "absolute cursor-ne-resize pointer-events-auto transition-all",
               resizeType === "ne"
                 ? "top-[-100px] right-[-100px] w-[200px] h-[200px]"
-                : "top-0 right-0 w-8 h-8"
+                : "top-0 right-0 w-6 h-6" // reduced from w-8 h-8
             )}
             onMouseDown={(e) =>
               handleResizeStartWithForeground(e, "ne" as ResizeType)
@@ -248,7 +243,7 @@ export function WindowFrame({
               "absolute cursor-sw-resize pointer-events-auto transition-all",
               resizeType === "sw"
                 ? "bottom-[-100px] left-[-100px] w-[200px] h-[200px]"
-                : "bottom-0 left-0 w-8 h-8"
+                : "bottom-0 left-0 w-6 h-6" // reduced from w-8 h-8
             )}
             onMouseDown={(e) =>
               handleResizeStartWithForeground(e, "sw" as ResizeType)
@@ -260,7 +255,7 @@ export function WindowFrame({
               "absolute cursor-se-resize pointer-events-auto transition-all",
               resizeType === "se"
                 ? "bottom-[-100px] right-[-100px] w-[200px] h-[200px]"
-                : "bottom-0 right-0 w-8 h-8"
+                : "bottom-0 right-0 w-6 h-6" // reduced from w-8 h-8
             )}
             onMouseDown={(e) =>
               handleResizeStartWithForeground(e, "se" as ResizeType)
@@ -268,37 +263,44 @@ export function WindowFrame({
           />
         </div>
 
-        {/* Title bar */}
         <div
-          className={`flex items-center shrink-0 h-6 min-h-6 mx-0 my-[0.1rem] px-[0.1rem] py-[0.2rem] ${
-            isForeground
-              ? "bg-[linear-gradient(#000_50%,transparent_0)] bg-clip-content bg-[length:6.6666666667%_13.3333333333%] border-b-black"
-              : "bg-white border-b-gray-400"
-          } cursor-move border-b-[2px]`}
-          onMouseDown={handleMouseDown}
-          onTouchStart={handleMouseDown}
+          className={cn(
+            "w-full h-full flex flex-col bg-system7-window-bg border-[2px] border-black rounded-lg overflow-hidden",
+            isForeground ? "shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)]" : ""
+          )}
         >
-          <button
-            onClick={handleClose}
-            onMouseDown={(e) => e.stopPropagation()}
-            onTouchStart={(e) => e.stopPropagation()}
-            className={`ml-2 w-4 h-4 bg-white border-2 border-black hover:bg-gray-200 active:bg-gray-300 flex items-center justify-center shadow-[0_0_0_1px_white] ${
-              !isForeground && "invisible"
-            }`}
-          />
-          <span
-            className={`select-none mx-auto bg-white px-2 py-0 h-full flex items-center justify-center max-w-[80%] truncate ${
-              !isForeground && "text-gray-500"
-            }`}
+          {/* Title bar */}
+          <div
+            className={`flex items-center shrink-0 h-6 min-h-6 mx-0 my-[0.1rem] px-[0.1rem] py-[0.2rem] ${
+              isForeground
+                ? "bg-[linear-gradient(#000_50%,transparent_0)] bg-clip-content bg-[length:6.6666666667%_13.3333333333%] border-b-black"
+                : "bg-white border-b-gray-400"
+            } cursor-move border-b-[2px]`}
+            onMouseDown={handleMouseDown}
+            onTouchStart={handleMouseDown}
           >
-            {title}
-          </span>
-          <div className="mr-2 w-4 h-4" />
-        </div>
+            <button
+              onClick={handleClose}
+              onMouseDown={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
+              className={`ml-2 w-4 h-4 bg-white border-2 border-black hover:bg-gray-200 active:bg-gray-300 flex items-center justify-center shadow-[0_0_0_1px_white] ${
+                !isForeground && "invisible"
+              }`}
+            />
+            <span
+              className={`select-none mx-auto bg-white px-2 py-0 h-full flex items-center justify-center max-w-[80%] truncate ${
+                !isForeground && "text-gray-500"
+              }`}
+            >
+              {title}
+            </span>
+            <div className="mr-2 w-4 h-4" />
+          </div>
 
-        {/* Content */}
-        <div className="flex flex-1 min-h-0 flex-col md:flex-row">
-          {children}
+          {/* Content */}
+          <div className="flex flex-1 min-h-0 flex-col md:flex-row">
+            {children}
+          </div>
         </div>
       </div>
     </div>
