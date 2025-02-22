@@ -21,6 +21,11 @@ import { FileText } from "lucide-react";
 // Define types for TextEdit content structure
 interface TextNode {
   text?: string;
+  bold?: boolean;
+  italic?: boolean;
+  strike?: boolean;
+  code?: boolean;
+  link?: string;
   // Using Record instead of any for better type safety
   [key: string]: unknown;
 }
@@ -28,6 +33,10 @@ interface TextNode {
 interface ContentNode {
   type: string;
   content?: TextNode[];
+  attrs?: {
+    level?: number;
+    [key: string]: unknown;
+  };
   // Using Record instead of any for better type safety
   [key: string]: unknown;
 }
@@ -50,9 +59,27 @@ const extractTextFromTextEditContent = (content: string): string => {
           (node.type === "paragraph" || node.type === "heading") &&
           node.content
         ) {
-          return node.content
-            .map((textNode: TextNode) => textNode.text || "")
+          // Handle markdown formatting
+          let text = node.content
+            .map((textNode: TextNode) => {
+              let nodeText = textNode.text || "";
+              // Preserve markdown formatting
+              if (textNode.bold) nodeText = `**${nodeText}**`;
+              if (textNode.italic) nodeText = `*${nodeText}*`;
+              if (textNode.strike) nodeText = `~~${nodeText}~~`;
+              if (textNode.code) nodeText = `\`${nodeText}\``;
+              if (textNode.link) nodeText = `[${nodeText}](${textNode.link})`;
+              return nodeText;
+            })
             .join("");
+
+          // Add heading markdown if it's a heading
+          if (node.type === "heading") {
+            const level = node.attrs?.level || 1;
+            text = `${"#".repeat(level)} ${text}`;
+          }
+
+          return text;
         }
         return "";
       })
@@ -218,22 +245,77 @@ const handleDocumentEdits = (content: string) => {
     // Apply edits
     const newText = applyDocumentEdits(currentText, edits);
 
-    // Convert new text back to JSON format while preserving structure
-    // Filter out empty lines and ensure each paragraph has content
+    // Convert new text back to JSON format while preserving markdown
     const newContent = {
       type: "doc",
       content: newText
         .split("\n")
         .filter((line) => line.trim() !== "") // Remove empty lines
-        .map((text) => ({
-          type: "paragraph",
-          content: [
-            {
-              type: "text",
-              text: text.trim(), // Ensure text is not empty
-            },
-          ],
-        })),
+        .map((text) => {
+          // Check if it's a heading
+          const headingMatch = text.match(/^(#{1,6})\s+(.+)$/);
+          if (headingMatch) {
+            const level = headingMatch[1].length;
+            const headingText = headingMatch[2];
+            return {
+              type: "heading",
+              attrs: { level },
+              content: [
+                {
+                  type: "text",
+                  text: headingText,
+                },
+              ],
+            };
+          }
+
+          // Parse markdown formatting
+          const content: TextNode[] = [];
+          let currentText = text;
+
+          // Handle bold
+          currentText = currentText.replace(/\*\*(.*?)\*\*/g, (_, text) => {
+            content.push({ type: "text", text, bold: true });
+            return "";
+          });
+
+          // Handle italic
+          currentText = currentText.replace(/\*(.*?)\*/g, (_, text) => {
+            content.push({ type: "text", text, italic: true });
+            return "";
+          });
+
+          // Handle strike
+          currentText = currentText.replace(/~~(.*?)~~/g, (_, text) => {
+            content.push({ type: "text", text, strike: true });
+            return "";
+          });
+
+          // Handle code
+          currentText = currentText.replace(/`(.*?)`/g, (_, text) => {
+            content.push({ type: "text", text, code: true });
+            return "";
+          });
+
+          // Handle links
+          currentText = currentText.replace(
+            /\[(.*?)\]\((.*?)\)/g,
+            (_, text, href) => {
+              content.push({ type: "text", text, link: href });
+              return "";
+            }
+          );
+
+          // Add any remaining text
+          if (currentText) {
+            content.push({ type: "text", text: currentText });
+          }
+
+          return {
+            type: "paragraph",
+            content,
+          };
+        }),
     };
 
     // If there's no content, add an empty paragraph to maintain valid structure
