@@ -2131,6 +2131,11 @@ export function ChatsAppComponent({
       // Reset to initial state
       setAiMessages([initialMessage]);
       saveChatMessages([initialMessage]);
+
+      // Clear the chat input state by simulating a synthetic event
+      handleInputChange({
+        target: { value: "" },
+      } as React.ChangeEvent<HTMLInputElement>);
     });
   };
 
