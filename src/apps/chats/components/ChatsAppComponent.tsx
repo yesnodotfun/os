@@ -63,6 +63,222 @@ const extractTextFromTextEditContent = (content: string): string => {
   }
 };
 
+// Helper function to parse document edit commands from chat response
+const parseDocumentEdits = (
+  content: string
+): Array<{
+  type: "append" | "replace" | "insert" | "delete";
+  content: string;
+  oldContent?: string;
+  position?: string;
+}> => {
+  const edits: Array<{
+    type: "append" | "replace" | "insert" | "delete";
+    content: string;
+    oldContent?: string;
+    position?: string;
+  }> = [];
+
+  // Parse append commands
+  const appendRegex = /\[append\](.*?)\[\/append\]/gs;
+  let match;
+  while ((match = appendRegex.exec(content)) !== null) {
+    edits.push({
+      type: "append",
+      content: match[1].trim(),
+    });
+  }
+
+  // Parse replace commands
+  const replaceRegex = /\[replace\](.*?)\[\/replace\](.*?)\[\/replace\]/gs;
+  while ((match = replaceRegex.exec(content)) !== null) {
+    edits.push({
+      type: "replace",
+      oldContent: match[1].trim(),
+      content: match[2].trim(),
+    });
+  }
+
+  // Parse insert commands
+  const insertRegex = /\[insert at="(.*?)"\](.*?)\[\/insert\]/gs;
+  while ((match = insertRegex.exec(content)) !== null) {
+    edits.push({
+      type: "insert",
+      position: match[1].trim(),
+      content: match[2].trim(),
+    });
+  }
+
+  // Parse delete commands
+  const deleteRegex = /\[delete\](.*?)\[\/delete\]/gs;
+  while ((match = deleteRegex.exec(content)) !== null) {
+    edits.push({
+      type: "delete",
+      content: match[1].trim(),
+    });
+  }
+
+  return edits;
+};
+
+// Helper function to apply document edits
+const applyDocumentEdits = (
+  content: string,
+  edits: Array<{
+    type: "append" | "replace" | "insert" | "delete";
+    content: string;
+    oldContent?: string;
+    position?: string;
+  }>
+): string => {
+  let result = content;
+
+  for (const edit of edits) {
+    let lines: string[];
+    let insertIndex: number;
+
+    switch (edit.type) {
+      case "append":
+        if (result) {
+          result += "\n" + edit.content;
+        } else {
+          result = edit.content;
+        }
+        break;
+      case "replace":
+        if (edit.oldContent) {
+          // Split into lines and replace only exact matches
+          lines = result.split("\n");
+          const newLines = lines.map((line) => {
+            // Only replace if the line exactly matches the old content
+            if (line.trim() === edit.oldContent?.trim()) {
+              return edit.content;
+            }
+            return line;
+          });
+          result = newLines.join("\n");
+        }
+        break;
+      case "insert":
+        lines = result.split("\n");
+        insertIndex =
+          edit.position === "beginning"
+            ? 0
+            : edit.position === "end"
+            ? lines.length
+            : parseInt(edit.position || "0", 10);
+
+        if (
+          !isNaN(insertIndex) &&
+          insertIndex >= 0 &&
+          insertIndex <= lines.length
+        ) {
+          // Check if the line already exists to prevent duplicates
+          const lineExists = lines.some(
+            (line) => line.trim() === edit.content.trim()
+          );
+          if (!lineExists) {
+            lines.splice(insertIndex, 0, edit.content);
+            result = lines.join("\n");
+          }
+        }
+        break;
+      case "delete":
+        // Split into lines and remove only exact matches
+        lines = result.split("\n");
+        result = lines
+          .filter((line) => line.trim() !== edit.content.trim())
+          .join("\n");
+        break;
+    }
+  }
+
+  return result;
+};
+
+// Add this function to handle document edits
+const handleDocumentEdits = (content: string) => {
+  const edits = parseDocumentEdits(content);
+  if (edits.length === 0) return;
+
+  try {
+    // Get current content
+    const currentContent = localStorage.getItem(
+      APP_STORAGE_KEYS.textedit.CONTENT
+    );
+    if (!currentContent) return;
+
+    // Parse current content as JSON
+    const jsonContent = JSON.parse(currentContent) as TextEditContent;
+    if (!jsonContent.content) return;
+
+    // Extract text from current content
+    const currentText = extractTextFromTextEditContent(currentContent);
+
+    // Apply edits
+    const newText = applyDocumentEdits(currentText, edits);
+
+    // Convert new text back to JSON format while preserving structure
+    // Filter out empty lines and ensure each paragraph has content
+    const newContent = {
+      type: "doc",
+      content: newText
+        .split("\n")
+        .filter((line) => line.trim() !== "") // Remove empty lines
+        .map((text) => ({
+          type: "paragraph",
+          content: [
+            {
+              type: "text",
+              text: text.trim(), // Ensure text is not empty
+            },
+          ],
+        })),
+    };
+
+    // If there's no content, add an empty paragraph to maintain valid structure
+    if (newContent.content.length === 0) {
+      newContent.content = [
+        {
+          type: "paragraph",
+          content: [
+            {
+              type: "text",
+              text: " ",
+            },
+          ],
+        },
+      ];
+    }
+
+    // Save new content
+    localStorage.setItem(
+      APP_STORAGE_KEYS.textedit.CONTENT,
+      JSON.stringify(newContent)
+    );
+
+    // Dispatch event to notify TextEdit of changes
+    const contentChangeEvent = new CustomEvent("textEditContentChange", {
+      detail: {
+        content: JSON.stringify(newContent),
+      },
+    });
+    window.dispatchEvent(contentChangeEvent);
+  } catch (error) {
+    console.error("Error applying document edits:", error);
+  }
+};
+
+// Add this helper function at the top of the file
+const truncateFileName = (fileName: string, maxLength: number = 20): string => {
+  if (fileName.length <= maxLength) return fileName;
+  const extension = fileName.split(".").pop() || "";
+  const nameWithoutExt = fileName.slice(0, -(extension.length + 1));
+  const truncatedName =
+    nameWithoutExt.slice(0, maxLength - extension.length - 3) + "...";
+  return `${truncatedName}.${extension}`;
+};
+
 export function ChatsAppComponent({
   isWindowOpen,
   onClose,
@@ -242,6 +458,12 @@ export function ChatsAppComponent({
   useEffect(() => {
     setMessages(aiMessages);
     saveChatMessages(aiMessages);
+
+    // Check for document edits in the latest assistant message
+    const lastMessage = aiMessages[aiMessages.length - 1];
+    if (lastMessage?.role === "assistant") {
+      handleDocumentEdits(lastMessage.content);
+    }
   }, [aiMessages]);
 
   const handleDirectMessageSubmit = useCallback(
@@ -373,7 +595,8 @@ export function ChatsAppComponent({
             <div className="font-geneva-12 flex items-center gap-1 text-[10px] text-gray-600 mt-1 px-0 py-0.5">
               <FileText className="w-3 h-3" />
               <span>
-                With context from: <strong>{textEditContext.fileName}</strong>
+                Using{" "}
+                <strong>{truncateFileName(textEditContext.fileName)}</strong>
               </span>
             </div>
           )}
