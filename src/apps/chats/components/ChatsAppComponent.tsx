@@ -1872,21 +1872,17 @@ export function ChatsAppComponent({
 
     // Skip heavy TextEdit processing if we only have the initial message (after clearing chats)
     // or if no TextEdit context exists
-    if (
-      aiMessages.length > 1 && // Only process if we have more than just the initial message
-      !isProcessingEdits.current &&
-      textEditContext
-    ) {
+    if (aiMessages.length > 1) {
+      // Only process if we have more than just the initial message
       const lastMessage = aiMessages[aiMessages.length - 1];
 
-      // Skip if this isn't an assistant message or it's already being processed
-      if (lastMessage.role !== "assistant" || isProcessingEdits.current) {
+      // Skip if this isn't an assistant message
+      if (lastMessage.role !== "assistant") {
         return;
       }
 
-      // Skip if already processed
-      if (processedMessageIds.current.has(lastMessage.id)) {
-        // Removed repetitive console.log to prevent infinite logging
+      // Skip if already processed and not streaming
+      if (processedMessageIds.current.has(lastMessage.id) && !isLoading) {
         return;
       }
 
@@ -1900,55 +1896,100 @@ export function ChatsAppComponent({
         return;
       }
 
-      // On mobile, do quick format detection first to avoid unnecessary processing
-      if (isMobile) {
-        // First check if the message actually contains XML markup tags - quick scan
-        const containsMarkup = /<textedit:(insert|replace|delete)/i.test(
-          lastMessage.content
-        );
+      // Quick check for XML markup tags
+      const containsMarkup = /<textedit:(insert|replace|delete)/i.test(
+        lastMessage.content
+      );
 
-        if (!containsMarkup) {
-          // No markup, mark as processed and skip
+      if (!containsMarkup) {
+        // No markup, mark as processed and skip
+        if (!isLoading) {
           processedMessageIds.current.add(lastMessage.id);
-          return;
         }
-      } else {
-        // Standard non-mobile flow
-        // First check if the message actually contains XML markup tags
-        const containsMarkup = /<textedit:(insert|replace|delete)/i.test(
-          lastMessage.content
-        );
-
-        if (!containsMarkup) {
-          // No markup, no processing needed
-          return;
-        }
-      }
-
-      // Check for status messages that indicate processing already happened
-      const hasStatusMessage =
-        lastMessage.content.includes("*document updated with") ||
-        lastMessage.content.includes("[TextEdit document updated with") ||
-        lastMessage.content.includes("[Processing TextEdit document") ||
-        lastMessage.content.includes("[Saving TextEdit document") ||
-        lastMessage.content.includes("[Error:");
-
-      if (hasStatusMessage) {
-        // Already has a status message, mark as processed and skip
-        processedMessageIds.current.add(lastMessage.id);
-        console.log("Skipping message with existing status:", lastMessage.id);
         return;
       }
 
-      // Check if this is a streaming message that's still receiving content
+      // Clean the message content immediately if it contains markup
+      const cleanedMessage = cleanTextEditMarkup(lastMessage.content);
+      const updatedMessages = [...aiMessages];
+      updatedMessages[updatedMessages.length - 1] = {
+        ...lastMessage,
+        content: cleanedMessage || lastMessage.content,
+      };
+      setMessages(updatedMessages);
+
+      // If we're streaming, check for complete tags and execute replace operations
       if (isLoading) {
-        console.log(
-          "Message is still streaming, waiting for complete content before processing"
-        );
+        // Check for complete tags
+        const openTags = (
+          lastMessage.content.match(/<textedit:(insert|replace|delete)/g) || []
+        ).length;
+        const closeTags = (
+          lastMessage.content.match(
+            /<\/textedit:(insert|replace)>|<textedit:delete[^>]*\/>/g
+          ) || []
+        ).length;
+
+        if (openTags > 0 && openTags === closeTags) {
+          console.log(
+            "Complete tags detected during streaming, executing only replace operations immediately"
+          );
+
+          // Parse all edits
+          const allEdits = parseTextEditMarkup(lastMessage.content);
+
+          // Only execute replace operations during streaming
+          const replaceEdits = allEdits.filter(
+            (edit) => edit.type === "replace"
+          );
+          const otherEdits = allEdits.filter((edit) => edit.type !== "replace");
+
+          if (replaceEdits.length > 0 && textEditContext) {
+            // Only execute replace edits during streaming
+            const currentContent =
+              getCurrentTextEditContent() || textEditContext.content;
+            const newContent = applyTextEditChanges(
+              currentContent,
+              replaceEdits
+            );
+
+            // Try to update the document with replace changes
+            const updated = updateTextEditContent(newContent);
+            if (updated) {
+              // Update local context
+              setTextEditContext({
+                ...textEditContext,
+                content: newContent,
+              });
+
+              // Mark as processed if there are no other operations pending
+              if (otherEdits.length === 0) {
+                processedMessageIds.current.add(lastMessage.id);
+              }
+            }
+          } else if (replaceEdits.length === 0 && otherEdits.length === 0) {
+            // No edits found but tags were complete
+            processedMessageIds.current.add(lastMessage.id);
+          }
+        }
         return;
       }
 
-      // Count the number of opening and closing tags to ensure we have complete markup
+      // Skip full processing if already processed, no TextEdit context exists, or processing is in progress
+      if (
+        processedMessageIds.current.has(lastMessage.id) ||
+        !textEditContext ||
+        isProcessingEdits.current
+      ) {
+        return;
+      }
+
+      // Skip the rest of processing if still streaming
+      if (isLoading) {
+        return;
+      }
+
+      // Only proceed with full edit processing if we have complete markup
       const openTags = (
         lastMessage.content.match(/<textedit:(insert|replace|delete)/g) || []
       ).length;
@@ -1971,24 +2012,12 @@ export function ChatsAppComponent({
 
       if (edits.length === 0) {
         console.log("No valid edits found in message, skipping");
+        processedMessageIds.current.add(lastMessage.id);
         return;
       }
 
-      console.log("Found TextEdit markup edits:", edits);
-
       // Set processing flag immediately to prevent race conditions
       isProcessingEdits.current = true;
-
-      // Show a temporary "processing" message to the user
-      const updatedMessages = [...aiMessages];
-      // Clean the message first before showing processing status
-      const cleanedMessage = cleanTextEditMarkup(lastMessage.content);
-      const processingMsg = `${cleanedMessage}\n\n_*Making edits to document...*_`;
-      updatedMessages[updatedMessages.length - 1] = {
-        ...lastMessage,
-        content: processingMsg,
-      };
-      setMessages(updatedMessages);
 
       // Get the most current content before applying edits
       const currentContent =
@@ -1997,6 +2026,7 @@ export function ChatsAppComponent({
       // Handle the document saving and editing process
       (async () => {
         let updated = false; // Declare at higher scope
+        const updatedMessages = [...aiMessages]; // Declare here for use in the async function
         try {
           // Check if there's a current file path, if not, save the document first
           const currentFilePath = localStorage.getItem(
@@ -2007,7 +2037,9 @@ export function ChatsAppComponent({
             console.log("No file path found - saving document before editing");
 
             // Show saving message to user
-            const savingMsg = `${cleanedMessage}\n\n_[Saving TextEdit document before applying edits...]_`;
+            const savingMsg = `${cleanTextEditMarkup(
+              lastMessage.content
+            )}\n\n_[Saving TextEdit document before applying edits...]_`;
             updatedMessages[updatedMessages.length - 1] = {
               ...lastMessage,
               content: savingMsg,
@@ -2020,7 +2052,9 @@ export function ChatsAppComponent({
             if (!savedFilePath) {
               console.error("Failed to save document before editing");
               // Show error message to user
-              const errorMsg = `${cleanedMessage}\n\n_[Error: Could not save TextEdit document before editing. Please save the document manually first.]_`;
+              const errorMsg = `${cleanTextEditMarkup(
+                lastMessage.content
+              )}\n\n_[Error: Could not save TextEdit document before editing. Please save the document manually first.]_`;
               updatedMessages[updatedMessages.length - 1] = {
                 ...lastMessage,
                 content: errorMsg,
@@ -2113,7 +2147,9 @@ export function ChatsAppComponent({
             // Update the message to indicate failure
             updatedMessages[updatedMessages.length - 1] = {
               ...lastMessage,
-              content: `${cleanedMessage}\n\n_[Error: Failed to update TextEdit document. Please try saving your document first then try editing again.]_`,
+              content: `${cleanTextEditMarkup(
+                lastMessage.content
+              )}\n\n_[Error: Failed to update TextEdit document. Please try saving your document first then try editing again.]_`,
             };
             setAiMessages(updatedMessages);
             setMessages(updatedMessages);
@@ -2122,7 +2158,11 @@ export function ChatsAppComponent({
           const error = err instanceof Error ? err : new Error(String(err));
           console.error("Error during TextEdit document update:", error);
           // Show error message to user
-          const errorMsg = `${cleanedMessage}\n\n_[Error: Could not update TextEdit document: ${error.message}]_`;
+          const errorMsg = `${cleanTextEditMarkup(
+            lastMessage.content
+          )}\n\n_[Error: Could not update TextEdit document: ${
+            error.message
+          }]_`;
           updatedMessages[updatedMessages.length - 1] = {
             ...lastMessage,
             content: errorMsg,
