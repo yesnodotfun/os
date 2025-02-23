@@ -10,29 +10,41 @@ const DialogClose = DialogPrimitive.Close;
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, ...props }, ref) => (
-  <DialogPortal>
-    <DialogPrimitive.Overlay 
-      className="fixed inset-0 z-50 bg-black/30 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
-    />
-    <DialogPrimitive.Content
-      ref={ref}
-      className={cn(
-        "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-0 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 origin-center sm:rounded-lg",
-        className
-      )}
-      onEscapeKeyDown={() => {
-        document.body.style.removeProperty("pointer-events");
-      }}
-      onPointerDownOutside={() => {
-        document.body.style.removeProperty("pointer-events");
-      }}
-      {...props}
-    >
-      {children}
-    </DialogPrimitive.Content>
-  </DialogPortal>
-));
+>(({ className, children, ...props }, ref) => {
+  // Function to clean up pointer-events
+  const cleanupPointerEvents = React.useCallback(() => {
+    // Use RAF to ensure this runs after animations complete
+    requestAnimationFrame(() => {
+      document.body.style.removeProperty("pointer-events");
+    });
+  }, []);
+
+  // Cleanup on unmount
+  React.useEffect(() => {
+    return () => cleanupPointerEvents();
+  }, [cleanupPointerEvents]);
+
+  return (
+    <DialogPortal>
+      <DialogPrimitive.Overlay 
+        className="fixed inset-0 z-50 bg-black/30 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
+      />
+      <DialogPrimitive.Content
+        ref={ref}
+        className={cn(
+          "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-0 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 origin-center sm:rounded-lg",
+          className
+        )}
+        onEscapeKeyDown={cleanupPointerEvents}
+        onPointerDownOutside={cleanupPointerEvents}
+        onCloseAutoFocus={cleanupPointerEvents}
+        {...props}
+      >
+        {children}
+      </DialogPrimitive.Content>
+    </DialogPortal>
+  );
+});
 DialogContent.displayName = DialogPrimitive.Content.displayName;
 
 const DialogHeader = ({
