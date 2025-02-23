@@ -1,5 +1,6 @@
 import { openai } from "@ai-sdk/openai";
 import { smoothStream, streamText } from "ai";
+import { SystemState } from "../src/utils/storage";
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -9,38 +10,6 @@ export const stream = true;
 export const config = {
   runtime: "edge",
 };
-
-interface SystemState {
-  openApps: string[];
-  foregroundApp: string | null;
-  video: {
-    currentVideo: {
-      id: string;
-      url: string;
-      title: string;
-    } | null;
-    isPlaying: boolean;
-    currentIndex: number;
-    isLoopAll: boolean;
-    isLoopCurrent: boolean;
-    isShuffled: boolean;
-  };
-  browser: {
-    currentUrl: string;
-    currentYear: string;
-    history: Array<{
-      url: string;
-      title: string;
-      favicon?: string;
-      timestamp: number;
-      year?: string;
-    }>;
-  };
-  textEdit: {
-    currentFilePath: string | null;
-    hasUnsavedChanges: boolean;
-  };
-}
 
 const generateSystemPrompt = (
   textEditContext?: {
