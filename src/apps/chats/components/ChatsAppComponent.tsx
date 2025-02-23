@@ -1381,31 +1381,51 @@ const convertPotentialTaskListItems = (nodes: ContentNode[]): void => {
 
 // Function to clean XML markup from a message
 const cleanTextEditMarkup = (message: string) => {
-  let editCount = 0;
+  const editDescriptions: string[] = [];
 
-  // Count the number of edits
-  const insertMatches =
-    message.match(/<textedit:insert[^>]*>[\s\S]*?<\/textedit:insert>/g) || [];
-  const replaceMatches =
-    message.match(/<textedit:replace[^>]*>[\s\S]*?<\/textedit:replace>/g) || [];
-  const deleteMatches = message.match(/<textedit:delete[^>]*\/>/g) || [];
+  // Parse the edits to get more detailed information
+  const edits = parseTextEditMarkup(message);
 
-  editCount =
-    insertMatches.length + replaceMatches.length + deleteMatches.length;
+  // Group edits by type for better summarization
+  const insertions = edits.filter((edit) => edit.type === "insert");
+  const replacements = edits.filter((edit) => edit.type === "replace");
+  const deletions = edits.filter((edit) => edit.type === "delete");
 
-  // Log the edit count for debugging
-  console.log(`Cleaning message with ${editCount} edits`);
-
-  // Remove all TextEdit XML tags and their content completely
-  let cleanedMessage = "";
-
-  // Add a note that edits were applied
-  const hasAppliedEdits = editCount > 0;
-  if (hasAppliedEdits) {
-    const operationText = editCount === 1 ? "operation" : "operations";
-    cleanedMessage = `*document updated with ${editCount} ${operationText}*`;
-    console.log(`Added success message: ${editCount} ${operationText}`);
+  // Create human-readable descriptions
+  if (insertions.length > 0) {
+    const lines = insertions.map((edit) => `line ${edit.line}`).join(", ");
+    editDescriptions.push(`*inserted at ${lines}*`);
   }
+
+  if (replacements.length > 0) {
+    const lines = replacements
+      .map((edit) => {
+        const count =
+          edit.count && edit.count > 1
+            ? ` to ${edit.line + edit.count - 1}`
+            : "";
+        return `line${count} ${edit.line}`;
+      })
+      .join(", ");
+    editDescriptions.push(`*replaced content at ${lines}*`);
+  }
+
+  if (deletions.length > 0) {
+    const lines = deletions
+      .map((edit) => {
+        const count =
+          edit.count && edit.count > 1
+            ? ` to ${edit.line + edit.count - 1}`
+            : "";
+        return `line${count} ${edit.line}`;
+      })
+      .join(", ");
+    editDescriptions.push(`*deleted ${lines}*`);
+  }
+
+  // Combine all descriptions
+  const cleanedMessage =
+    editDescriptions.length > 0 ? editDescriptions.join(", ") : "";
 
   return cleanedMessage;
 };
@@ -1961,7 +1981,9 @@ export function ChatsAppComponent({
 
       // Show a temporary "processing" message to the user
       const updatedMessages = [...aiMessages];
-      const processingMsg = `${lastMessage.content}\n\n_*Making edits to document...*`;
+      // Clean the message first before showing processing status
+      const cleanedMessage = cleanTextEditMarkup(lastMessage.content);
+      const processingMsg = `${cleanedMessage}\n\n_*Making edits to document...*_`;
       updatedMessages[updatedMessages.length - 1] = {
         ...lastMessage,
         content: processingMsg,
@@ -1974,6 +1996,7 @@ export function ChatsAppComponent({
 
       // Handle the document saving and editing process
       (async () => {
+        let updated = false; // Declare at higher scope
         try {
           // Check if there's a current file path, if not, save the document first
           const currentFilePath = localStorage.getItem(
@@ -1984,7 +2007,7 @@ export function ChatsAppComponent({
             console.log("No file path found - saving document before editing");
 
             // Show saving message to user
-            const savingMsg = `${lastMessage.content}\n\n_[Saving TextEdit document before applying edits...]_`;
+            const savingMsg = `${cleanedMessage}\n\n_[Saving TextEdit document before applying edits...]_`;
             updatedMessages[updatedMessages.length - 1] = {
               ...lastMessage,
               content: savingMsg,
@@ -1997,7 +2020,7 @@ export function ChatsAppComponent({
             if (!savedFilePath) {
               console.error("Failed to save document before editing");
               // Show error message to user
-              const errorMsg = `${lastMessage.content}\n\n_[Error: Could not save TextEdit document before editing. Please save the document manually first.]_`;
+              const errorMsg = `${cleanedMessage}\n\n_[Error: Could not save TextEdit document before editing. Please save the document manually first.]_`;
               updatedMessages[updatedMessages.length - 1] = {
                 ...lastMessage,
                 content: errorMsg,
@@ -2039,7 +2062,7 @@ export function ChatsAppComponent({
           );
 
           // Update TextEdit content in localStorage
-          const updated = updateTextEditContent(newContent);
+          updated = updateTextEditContent(newContent);
 
           if (updated) {
             console.log("TextEdit document updated successfully");
@@ -2090,7 +2113,7 @@ export function ChatsAppComponent({
             // Update the message to indicate failure
             updatedMessages[updatedMessages.length - 1] = {
               ...lastMessage,
-              content: `${lastMessage.content}\n\n_[Error: Failed to update TextEdit document. Please try saving your document first then try editing again.]_`,
+              content: `${cleanedMessage}\n\n_[Error: Failed to update TextEdit document. Please try saving your document first then try editing again.]_`,
             };
             setAiMessages(updatedMessages);
             setMessages(updatedMessages);
@@ -2099,7 +2122,7 @@ export function ChatsAppComponent({
           const error = err instanceof Error ? err : new Error(String(err));
           console.error("Error during TextEdit document update:", error);
           // Show error message to user
-          const errorMsg = `${lastMessage.content}\n\n_[Error: Could not update TextEdit document: ${error.message}]_`;
+          const errorMsg = `${cleanedMessage}\n\n_[Error: Could not update TextEdit document: ${error.message}]_`;
           updatedMessages[updatedMessages.length - 1] = {
             ...lastMessage,
             content: errorMsg,
@@ -2114,12 +2137,13 @@ export function ChatsAppComponent({
           const currentMessage = updatedMessages[updatedMessages.length - 1];
           const currentContent = currentMessage.content;
 
-          // Only add error message if no status message exists yet
+          // Only add error message if no success or error message exists yet AND the update wasn't successful
           if (
             !currentContent.includes("*document updated with") &&
             !currentContent.includes("[Error:") &&
             !currentContent.includes("[Processing TextEdit document") &&
-            !currentContent.includes("[Saving TextEdit document")
+            !currentContent.includes("[Saving TextEdit document") &&
+            !updated // Only add error if update wasn't successful
           ) {
             console.log("Adding error status to message ID:", lastMessage.id);
 
