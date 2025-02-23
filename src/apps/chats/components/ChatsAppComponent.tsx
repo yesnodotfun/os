@@ -2191,29 +2191,34 @@ export function ChatsAppComponent({
 
   const confirmClearChats = () => {
     try {
+      // Close dialog first and wait for it to complete
+      setIsClearDialogOpen(false);
+
       // Set a flag to block processing for a bit
       isProcessingEdits.current = true;
 
-      // Close dialog immediately
-      setIsClearDialogOpen(false);
-
-      // Reset to initial state - only use the hook's methods
-      setAiMessages([initialMessage]);
-      saveChatMessages([initialMessage]);
-
-      // Reset input state
-      handleInputChange({
-        target: { value: "" },
-      } as React.ChangeEvent<HTMLInputElement>);
-
-      // Use a timer to release the processing block and log completion
+      // Reset to initial state after a short delay to ensure dialog is closed
       setTimeout(() => {
+        // Reset to initial state - only use the hook's methods
+        setAiMessages([initialMessage]);
+        saveChatMessages([initialMessage]);
+
+        // Reset input state
+        handleInputChange({
+          target: { value: "" },
+        } as React.ChangeEvent<HTMLInputElement>);
+
+        // Release the processing block and log completion
         isProcessingEdits.current = false;
         console.log("Chat cleared successfully");
-      }, 1000); // Keep block a bit longer to ensure everything settles
+
+        // Ensure any lingering pointer-events styles are cleaned up
+        document.body.style.removeProperty("pointer-events");
+      }, 100);
     } catch (error) {
       console.error("Error clearing chats:", error);
       isProcessingEdits.current = false;
+      document.body.style.removeProperty("pointer-events");
     }
   };
 
