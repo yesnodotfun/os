@@ -60,6 +60,9 @@ export function WindowFrame({
   const [isMaximized, setIsMaximized] = useState(false);
   const isMobile = useIsMobile();
   const lastTapTimeRef = useRef<number>(0);
+  const doubleTapTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isProcessingTapRef = useRef(false);
+  const lastToggleTimeRef = useRef<number>(0);
   // Keep track of window size before maximizing to restore it later
   const previousSizeRef = useRef({ width: 0, height: 0 });
 
@@ -168,6 +171,13 @@ export function WindowFrame({
   const handleFullMaximize = (e: React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation();
 
+    const now = Date.now();
+    // Add cooldown to prevent rapid toggling (300ms)
+    if (now - lastToggleTimeRef.current < 300) {
+      return;
+    }
+    lastToggleTimeRef.current = now;
+
     // Toggle the maximized state directly
     const newMaximizedState = !isMaximized;
     setIsMaximized(newMaximizedState);
@@ -231,21 +241,60 @@ export function WindowFrame({
   };
 
   // Handle double tap for titlebar
-  const handleTitleBarTap = (e: React.TouchEvent) => {
-    e.stopPropagation();
-    const now = Date.now();
-    const timeSinceLastTap = now - lastTapTimeRef.current;
+  const handleTitleBarTap = useCallback(
+    (e: React.TouchEvent) => {
+      // Don't stop propagation by default, only if we detect a double tap
+      e.preventDefault();
 
-    // Check if this is a double tap (less than 300ms between taps)
-    if (timeSinceLastTap < 300 && timeSinceLastTap > 0) {
-      handleFullMaximize(e);
-      // Reset to prevent triple-tap
-      lastTapTimeRef.current = 0;
-    } else {
-      // Update last tap time
-      lastTapTimeRef.current = now;
-    }
-  };
+      const now = Date.now();
+
+      // If we're currently processing a tap or in cooldown, ignore this tap
+      if (isProcessingTapRef.current || now - lastToggleTimeRef.current < 300) {
+        return;
+      }
+
+      const timeSinceLastTap = now - lastTapTimeRef.current;
+
+      // Clear any existing timeout
+      if (doubleTapTimeoutRef.current) {
+        clearTimeout(doubleTapTimeoutRef.current);
+        doubleTapTimeoutRef.current = null;
+      }
+
+      // Check if this is a double tap (less than 300ms between taps)
+      if (timeSinceLastTap < 300 && timeSinceLastTap > 0) {
+        // Only stop propagation if we detect a double tap
+        e.stopPropagation();
+        isProcessingTapRef.current = true;
+        handleFullMaximize(e);
+        // Reset the last tap time
+        lastTapTimeRef.current = 0;
+
+        // Reset processing flag after a delay that matches our cooldown
+        setTimeout(() => {
+          isProcessingTapRef.current = false;
+        }, 300);
+      } else {
+        // Set timeout to reset last tap time if no second tap occurs
+        doubleTapTimeoutRef.current = setTimeout(() => {
+          lastTapTimeRef.current = 0;
+        }, 300);
+
+        // Update last tap time
+        lastTapTimeRef.current = now;
+      }
+    },
+    [handleFullMaximize]
+  );
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (doubleTapTimeoutRef.current) {
+        clearTimeout(doubleTapTimeoutRef.current);
+      }
+    };
+  }, []);
 
   if (!isVisible) return null;
 
@@ -424,7 +473,12 @@ export function WindowFrame({
                 !isForeground && "text-gray-500"
               }`}
               onDoubleClick={handleFullMaximize}
-              onTouchStart={handleTitleBarTap}
+              onTouchStart={(e) => {
+                handleTitleBarTap(e);
+                // Allow the event to bubble up to the titlebar for drag handling
+                handleMouseDown(e);
+              }}
+              onTouchMove={(e) => e.preventDefault()}
             >
               {title}
             </span>
