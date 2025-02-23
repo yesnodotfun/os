@@ -197,35 +197,80 @@ export function ChatMessages({
                     layout="position"
                     className="select-text whitespace-pre-wrap"
                   >
-                    {segmentText(message.content).map((segment, idx) => (
-                      <motion.span
-                        key={idx}
-                        initial={{ opacity: 0, y: 12 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className={`select-text ${
-                          isEmojiOnly(message.content) ? "text-[24px]" : ""
-                        } ${
-                          segment.type === "bold"
-                            ? "font-bold"
-                            : segment.type === "italic"
-                            ? "italic"
-                            : ""
-                        }`}
-                        style={{ userSelect: "text" }}
-                        transition={{
-                          duration: 0.15,
-                          delay: idx * 0.05,
-                          ease: "easeOut",
-                          onComplete: () => {
-                            if (idx % 2 === 0) {
-                              playNote();
+                    {(() => {
+                      // Check for XML tags and their completeness
+                      const hasXmlTags =
+                        /<textedit:(insert|replace|delete)/i.test(
+                          message.content
+                        );
+                      if (hasXmlTags) {
+                        // Count opening and closing tags
+                        const openTags = (
+                          message.content.match(
+                            /<textedit:(insert|replace|delete)/g
+                          ) || []
+                        ).length;
+                        const closeTags = (
+                          message.content.match(
+                            /<\/textedit:(insert|replace)>|<textedit:delete[^>]*\/>/g
+                          ) || []
+                        ).length;
+
+                        // If tags are incomplete, show *editing*
+                        if (openTags !== closeTags) {
+                          return (
+                            <motion.span
+                              initial={{ opacity: 1 }}
+                              animate={{ opacity: 1 }}
+                              transition={{ duration: 0 }}
+                              className="select-text italic"
+                            >
+                              editing...
+                            </motion.span>
+                          );
+                        }
+                      }
+
+                      return segmentText(message.content).map(
+                        (segment, idx) => (
+                          <motion.span
+                            key={idx}
+                            initial={
+                              hasXmlTags
+                                ? { opacity: 1, y: 0 }
+                                : { opacity: 0, y: 12 }
                             }
-                          },
-                        }}
-                      >
-                        {segment.content}
-                      </motion.span>
-                    ))}
+                            animate={{ opacity: 1, y: 0 }}
+                            className={`select-text ${
+                              isEmojiOnly(message.content) ? "text-[24px]" : ""
+                            } ${
+                              segment.type === "bold"
+                                ? "font-bold"
+                                : segment.type === "italic"
+                                ? "italic"
+                                : ""
+                            }`}
+                            style={{ userSelect: "text" }}
+                            transition={
+                              hasXmlTags
+                                ? { duration: 0 }
+                                : {
+                                    duration: 0.15,
+                                    delay: idx * 0.05,
+                                    ease: "easeOut",
+                                    onComplete: () => {
+                                      if (idx % 2 === 0) {
+                                        playNote();
+                                      }
+                                    },
+                                  }
+                            }
+                          >
+                            {segment.content}
+                          </motion.span>
+                        )
+                      );
+                    })()}
                   </motion.div>
                 ) : (
                   <span

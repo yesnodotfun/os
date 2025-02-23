@@ -1962,10 +1962,24 @@ export function ChatsAppComponent({
                 content: newContent,
               });
 
+              // Keep the message cleaned after the replace operation
+              const cleanedMessage = cleanTextEditMarkup(lastMessage.content);
+              const updatedMessages = [...aiMessages];
+              updatedMessages[updatedMessages.length - 1] = {
+                ...lastMessage,
+                content: cleanedMessage,
+              };
+              setMessages(updatedMessages);
+              setAiMessages(updatedMessages);
+
               // Mark as processed if there are no other operations pending
               if (otherEdits.length === 0) {
                 processedMessageIds.current.add(lastMessage.id);
+                stop(); // Stop streaming since we're done with all edits
               }
+            } else if (replaceEdits.length === 0 && otherEdits.length === 0) {
+              // No edits found but tags were complete
+              processedMessageIds.current.add(lastMessage.id);
             }
           } else if (replaceEdits.length === 0 && otherEdits.length === 0) {
             // No edits found but tags were complete
@@ -2025,8 +2039,8 @@ export function ChatsAppComponent({
 
       // Handle the document saving and editing process
       (async () => {
-        let updated = false; // Declare at higher scope
-        const updatedMessages = [...aiMessages]; // Declare here for use in the async function
+        let updated = false;
+        const updatedMessages = [...aiMessages];
         try {
           // Check if there's a current file path, if not, save the document first
           const currentFilePath = localStorage.getItem(
@@ -2141,26 +2155,14 @@ export function ChatsAppComponent({
                 );
               }
             }, 500);
-          } else {
-            console.error("Failed to update TextEdit document");
-
-            // Update the message to indicate failure
-            updatedMessages[updatedMessages.length - 1] = {
-              ...lastMessage,
-              content: `${cleanTextEditMarkup(
-                lastMessage.content
-              )}\n\n_[Error: Failed to update TextEdit document. Please try saving your document first then try editing again.]_`,
-            };
-            setAiMessages(updatedMessages);
-            setMessages(updatedMessages);
           }
         } catch (err) {
-          const error = err instanceof Error ? err : new Error(String(err));
-          console.error("Error during TextEdit document update:", error);
+          console.error("Error handling TextEdit markup:", err);
           // Show error message to user
+          const error = err instanceof Error ? err : new Error(String(err));
           const errorMsg = `${cleanTextEditMarkup(
             lastMessage.content
-          )}\n\n_[Error: Could not update TextEdit document: ${
+          )}\n\n_[Error: Failed to update TextEdit document: ${
             error.message
           }]_`;
           updatedMessages[updatedMessages.length - 1] = {
@@ -2169,53 +2171,11 @@ export function ChatsAppComponent({
           };
           setAiMessages(updatedMessages);
           setMessages(updatedMessages);
-        } finally {
-          // Add this message ID to the set of processed messages to prevent reprocessing
-          processedMessageIds.current.add(lastMessage.id);
-
-          // Get the most up-to-date content from the messages array
-          const currentMessage = updatedMessages[updatedMessages.length - 1];
-          const currentContent = currentMessage.content;
-
-          // Only add error message if no success or error message exists yet AND the update wasn't successful
-          if (
-            !currentContent.includes("*document updated with") &&
-            !currentContent.includes("[Error:") &&
-            !currentContent.includes("[Processing TextEdit document") &&
-            !currentContent.includes("[Saving TextEdit document") &&
-            !updated // Only add error if update wasn't successful
-          ) {
-            console.log("Adding error status to message ID:", lastMessage.id);
-
-            // Clean any existing status messages before adding the error
-            let cleanContent = currentContent;
-            cleanContent = cleanContent.replace(/\n\n_\[.*?\]_$/, "");
-
-            const errorMsg = `${cleanContent}\n\n_[Error: Document update process was interrupted]_`;
-
-            // Create a new message array to avoid reference issues
-            const finalMessages = [...updatedMessages];
-            finalMessages[finalMessages.length - 1] = {
-              ...currentMessage,
-              content: errorMsg,
-            };
-
-            // Update both message states at once to avoid duplication
-            setAiMessages(finalMessages);
-            setMessages(finalMessages);
-          }
-
-          // Reset processing flag with a delay
-          setTimeout(() => {
-            isProcessingEdits.current = false;
-            console.log(
-              "TextEdit processing flag reset - safe to process new edits"
-            );
-          }, 800);
+          isProcessingEdits.current = false;
         }
       })();
     }
-  }, [aiMessages, textEditContext, setAiMessages, isLoading]);
+  }, [aiMessages, textEditContext, setAiMessages, isLoading, stop]);
 
   const handleDirectMessageSubmit = useCallback(
     (message: string) => {
