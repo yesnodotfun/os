@@ -910,3 +910,112 @@ export const loadGames = (): Game[] => {
 export const saveGames = (games: Game[]): void => {
   localStorage.setItem(APP_STORAGE_KEYS.pc.GAMES, JSON.stringify(games));
 };
+
+// System state helper functions
+export interface SystemState {
+  openApps: string[];
+  foregroundApp: string | null;
+  video: {
+    currentVideo: Video | null;
+    isPlaying: boolean;
+    currentIndex: number;
+    isLoopAll: boolean;
+    isLoopCurrent: boolean;
+    isShuffled: boolean;
+  };
+  browser: {
+    currentUrl: string;
+    currentYear: string;
+    history: HistoryEntry[];
+  };
+  textEdit: {
+    currentFilePath: string | null;
+    hasUnsavedChanges: boolean;
+  };
+}
+
+export const getSystemState = (): SystemState => {
+  // Get app state
+  const appState = loadAppState();
+  const openApps = appState.windowOrder;
+  const foregroundApp =
+    Object.entries(appState.apps).find(
+      ([, state]) => state.isForeground
+    )?.[0] || null;
+
+  // Get video state
+  const playlist = loadPlaylist();
+  const currentIndex = loadCurrentIndex();
+  const currentVideo = playlist[currentIndex] || null;
+
+  // Get browser state
+  const currentUrl = loadLastUrl();
+  const currentYear = loadWaybackYear();
+  const history = loadHistory();
+
+  // Get TextEdit state
+  const textEditFilePath = localStorage.getItem(
+    APP_STORAGE_KEYS.textedit.LAST_FILE_PATH
+  );
+  const textEditContent = localStorage.getItem(
+    APP_STORAGE_KEYS.textedit.CONTENT
+  );
+  const hasUnsavedChanges = Boolean(textEditContent && !textEditFilePath);
+
+  return {
+    openApps,
+    foregroundApp,
+    video: {
+      currentVideo,
+      isPlaying: false, // This is a runtime state, can't be determined from storage
+      currentIndex,
+      isLoopAll: loadIsLoopAll(),
+      isLoopCurrent: loadIsLoopCurrent(),
+      isShuffled: loadIsShuffled(),
+    },
+    browser: {
+      currentUrl,
+      currentYear,
+      history,
+    },
+    textEdit: {
+      currentFilePath: textEditFilePath,
+      hasUnsavedChanges,
+    },
+  };
+};
+
+// Helper function to check if an app is currently open
+export const isAppOpen = (appId: keyof typeof APP_STORAGE_KEYS): boolean => {
+  const appState = loadAppState();
+  return appState.apps[appId]?.isOpen || false;
+};
+
+// Helper function to check if an app is in the foreground
+export const isAppInForeground = (
+  appId: keyof typeof APP_STORAGE_KEYS
+): boolean => {
+  const appState = loadAppState();
+  return appState.apps[appId]?.isForeground || false;
+};
+
+// Helper function to get current video playback info
+export const getCurrentVideoInfo = () => {
+  const playlist = loadPlaylist();
+  const currentIndex = loadCurrentIndex();
+  return {
+    currentVideo: playlist[currentIndex] || null,
+    isLoopAll: loadIsLoopAll(),
+    isLoopCurrent: loadIsLoopCurrent(),
+    isShuffled: loadIsShuffled(),
+  };
+};
+
+// Helper function to get current browser state
+export const getCurrentBrowserState = () => {
+  return {
+    currentUrl: loadLastUrl(),
+    currentYear: loadWaybackYear(),
+    history: loadHistory(),
+  };
+};

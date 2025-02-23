@@ -12,6 +12,7 @@ import {
   loadChatMessages,
   saveChatMessages,
   APP_STORAGE_KEYS,
+  getSystemState,
 } from "@/utils/storage";
 import { ChatMessages } from "./ChatMessages";
 import { ChatInput } from "./ChatInput";
@@ -1796,7 +1797,12 @@ export function ChatsAppComponent({
   } = useChat({
     initialMessages: loadChatMessages() || [initialMessage],
     experimental_throttle: 50,
-    body: textEditContext ? { textEditContext } : undefined,
+    body: textEditContext
+      ? {
+          textEditContext,
+          systemState: getSystemState(),
+        }
+      : undefined,
   });
 
   // Mark initial messages as loaded after the first render
@@ -1812,12 +1818,17 @@ export function ChatsAppComponent({
     }
   }, [aiMessages]);
 
-  // Wrap handleSubmit to include textEditContext
+  // Wrap handleSubmit to include textEditContext and systemState
   const handleSubmit = useCallback(
     (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
       originalHandleSubmit(e, {
-        body: textEditContext ? { textEditContext } : undefined,
+        body: textEditContext
+          ? {
+              textEditContext,
+              systemState: getSystemState(),
+            }
+          : undefined,
       });
     },
     [originalHandleSubmit, textEditContext]
@@ -2149,7 +2160,14 @@ export function ChatsAppComponent({
           content: message,
           role: "user",
         },
-        { body: textEditContext ? { textEditContext } : undefined }
+        {
+          body: textEditContext
+            ? {
+                textEditContext,
+                systemState: getSystemState(),
+              }
+            : undefined,
+        }
       );
     },
     [append, textEditContext]
