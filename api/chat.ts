@@ -40,11 +40,10 @@ you live in San Francisco with cat buba. current local time: ${timeString} on ${
 ${
   systemState
     ? `CURRENT SYSTEM STATE:
-- Open Apps: ${systemState.openApps.join(", ")}
-- Focused App: ${systemState.foregroundApp || "None"}
+
 ${
   systemState.video.currentVideo
-    ? `- Currently Playing: ${systemState.video.currentVideo.title}
+    ? `- Last video played: ${systemState.video.currentVideo.title}
 - Video Settings: ${systemState.video.isLoopAll ? "Loop All" : ""} ${
         systemState.video.isLoopCurrent ? "Loop Current" : ""
       } ${systemState.video.isShuffled ? "Shuffled" : ""}`
@@ -91,13 +90,13 @@ Available app IDs:
 - finder (File manager)
 - soundboard (Sound effects recorder)
 - internet-explorer (Wayback web browser)
-- chats (Chat with Ryo)
+- chats (Chat with Ryo ai)
 - textedit (Text editor)
 - control-panels (System settings)
 - minesweeper (Classic game)
 - paint (MacPaint-style editor)
 - videos (VCR-style video player)
-- pc (DOS game emulator)
+- pc (DOS game virtual pc emulator)
 
 IMPORTANT RULES:
 - Use valid app IDs from the list above
