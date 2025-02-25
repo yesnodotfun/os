@@ -15,7 +15,7 @@ export const appMetadata = {
 export const helpItems = [
   {
     icon: "🎮",
-    title: "DOSBox Emulator",
+    title: "PC Emulator",
     description: "Run classic DOS games and applications in your browser",
   },
   {

@@ -845,18 +845,18 @@ const DEFAULT_GAMES: Game[] = [
       "https://dos.zone/images/containers/assets/backgrounds/doom_1.jpg/4f71dd317326a9a9722bdd9cd2151390.webp",
   },
   {
-    id: "simcity",
-    name: "SimCity",
-    path: "https://cdn.dos.zone/original/2X/7/744842062905f72648a4d492ccc2526d039b3702.jsdos",
-    image:
-      "https://dos.zone/images/http/original/2X/6/692603ba9ff06c30e6d1c4bf736b3edbdfa1be77.jpeg/66fbbcbbceb4871a5c59ab65c95d9881.webp",
-  },
-  {
     id: "simcity2000",
     name: "SimCity 2000",
     path: "https://cdn.dos.zone/original/2X/b/b1ed3b93829bdff0c9062c5642767825dd52baf1.jsdos",
     image:
       "https://dos.zone/images/http/original/2X/4/41f12cbd023b7732e669b6ade8e811bb5e7c28b1.jpeg/082780351bd2601b6da9741b2ed45eed.webp",
+  },
+  {
+    id: "mario",
+    name: "Mario & Luigi",
+    path: "https://cdn.dos.zone/custom/dos/mario-luigi.jsdos",
+    image:
+      "https://dos.zone/images/http/original/2X/8/8e82677e3744f3d72049b6a8042412066312198e.png/cf6f1f35180540104cdb09ae7d909ca2.webp",
   },
   {
     id: "ageofempires",
