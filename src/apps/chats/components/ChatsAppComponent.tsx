@@ -1464,7 +1464,7 @@ const cleanTextEditMarkup = (message: string) => {
         return `line ${edit.line}${count}`;
       })
       .join(", ");
-    editDescriptions.push(`*replaced content at ${lines}*`);
+    editDescriptions.push(`*replaced ${lines}*`);
   }
 
   if (deletions.length > 0) {
