@@ -1461,7 +1461,7 @@ const cleanTextEditMarkup = (message: string) => {
           edit.count && edit.count > 1
             ? ` to ${edit.line + edit.count - 1}`
             : "";
-        return `line${count} ${edit.line}`;
+        return `line ${edit.line}${count}`;
       })
       .join(", ");
     editDescriptions.push(`*replaced content at ${lines}*`);
@@ -1474,7 +1474,7 @@ const cleanTextEditMarkup = (message: string) => {
           edit.count && edit.count > 1
             ? ` to ${edit.line + edit.count - 1}`
             : "";
-        return `line${count} ${edit.line}`;
+        return `line ${edit.line}${count}`;
       })
       .join(", ");
     editDescriptions.push(`*deleted ${lines}*`);
