@@ -1,5 +1,5 @@
 import { Message } from "ai";
-import { Loader2, AlertCircle, Trash2 } from "lucide-react";
+import { Loader2, AlertCircle, MessageSquare, Copy, Check } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
@@ -83,14 +83,23 @@ export function ChatMessages({
   const [scrollLockedToBottom, setScrollLockedToBottom] = useState(true);
   const viewportRef = useRef<HTMLElement | null>(null);
   const { playNote } = useChatSynth();
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+  const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
+  const previousMessagesLength = useRef(messages.length);
+  const hasScrolled = useRef(false);
+  const wasAtBottom = useRef(true);
 
-  const scrollToBottom = useCallback(
-    (viewport: HTMLElement) => {
-      if (!scrollLockedToBottom) return;
-      viewport.scrollTop = viewport.scrollHeight;
-    },
-    [scrollLockedToBottom]
-  );
+  const copyMessage = async (message: Message) => {
+    await navigator.clipboard.writeText(message.content);
+    setCopiedMessageId(
+      message.id || `${message.role}-${message.content.substring(0, 10)}`
+    );
+    setTimeout(() => setCopiedMessageId(null), 2000);
+  };
+
+  const scrollToBottom = useCallback((viewport: HTMLElement) => {
+    viewport.scrollTop = viewport.scrollHeight;
+  }, []);
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const viewport = e.currentTarget.querySelector(
@@ -98,16 +107,38 @@ export function ChatMessages({
     ) as HTMLElement;
     if (!viewport) return;
 
+    hasScrolled.current = true;
     const isAtBottom =
       viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 10;
-    setScrollLockedToBottom(isAtBottom);
+
+    // If we were at bottom and scrolled up, unlock
+    if (wasAtBottom.current && !isAtBottom) {
+      setScrollLockedToBottom(false);
+    }
+    // If we're at bottom, lock and remember we were at bottom
+    if (isAtBottom) {
+      setScrollLockedToBottom(true);
+      wasAtBottom.current = true;
+    }
   };
 
+  // Initial scroll to bottom and handle new messages
   useEffect(() => {
     const viewport = viewportRef.current;
-    if (viewport && scrollLockedToBottom) {
+    if (!viewport) return;
+
+    // Always scroll to bottom on initial load
+    if (!hasScrolled.current) {
+      scrollToBottom(viewport);
+      return;
+    }
+
+    // For subsequent updates, only scroll if locked to bottom
+    if (scrollLockedToBottom) {
       scrollToBottom(viewport);
     }
+
+    previousMessagesLength.current = messages.length;
   }, [messages, isLoading, scrollLockedToBottom, scrollToBottom]);
 
   const isUrgentMessage = (content: string) => content.startsWith("!!!!");
@@ -151,8 +182,39 @@ export function ChatMessages({
                 transformOrigin:
                   message.role === "user" ? "bottom right" : "bottom left",
               }}
+              onMouseEnter={() =>
+                setHoveredMessageId(
+                  message.id ||
+                    `${message.role}-${message.content.substring(0, 10)}`
+                )
+              }
+              onMouseLeave={() => setHoveredMessageId(null)}
             >
-              <div className="text-[16px] text-gray-500 mb-0.5 font-['Geneva-9'] mb-[-2px] select-text">
+              <div className="text-[16px] text-gray-500 mb-0.5 font-['Geneva-9'] mb-[-2px] select-text flex items-center gap-2">
+                {message.role === "user" && (
+                  <motion.button
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{
+                      opacity:
+                        hoveredMessageId ===
+                        (message.id ||
+                          `${message.role}-${message.content.substring(0, 10)}`)
+                          ? 1
+                          : 0,
+                      scale: 1,
+                    }}
+                    className="h-3 w-3 text-gray-400 hover:text-gray-600 transition-colors"
+                    onClick={() => copyMessage(message)}
+                  >
+                    {copiedMessageId ===
+                    (message.id ||
+                      `${message.role}-${message.content.substring(0, 10)}`) ? (
+                      <Check className="h-3 w-3" />
+                    ) : (
+                      <Copy className="h-3 w-3" />
+                    )}
+                  </motion.button>
+                )}
                 {message.role === "user" ? "You" : "Ryo"}{" "}
                 <span className="text-gray-400 select-text">
                   {message.createdAt ? (
@@ -164,6 +226,30 @@ export function ChatMessages({
                     <Loader2 className="h-3 w-3 animate-spin" />
                   )}
                 </span>
+                {message.role === "assistant" && (
+                  <motion.button
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{
+                      opacity:
+                        hoveredMessageId ===
+                        (message.id ||
+                          `${message.role}-${message.content.substring(0, 10)}`)
+                          ? 1
+                          : 0,
+                      scale: 1,
+                    }}
+                    className="h-3 w-3 text-gray-400 hover:text-gray-600 transition-colors"
+                    onClick={() => copyMessage(message)}
+                  >
+                    {copiedMessageId ===
+                    (message.id ||
+                      `${message.role}-${message.content.substring(0, 10)}`) ? (
+                      <Check className="h-3 w-3" />
+                    ) : (
+                      <Copy className="h-3 w-3" />
+                    )}
+                  </motion.button>
+                )}
               </div>
 
               <motion.div
@@ -337,16 +423,16 @@ export function ChatMessages({
           {messages.length > 25 && (
             <motion.div
               layout
-              className="flex items-center gap-2 text-orange-600 font-['Geneva-9'] text-[16px] antialiased h-[12px]"
+              className="flex items-center gap-2 text-gray-500 font-['Geneva-9'] text-[16px] antialiased h-[12px]"
             >
-              <Trash2 className="h-3 w-3" />
+              <MessageSquare className="h-3 w-3" />
               <span>Start a new conversation?</span>
               {onClear && (
                 <Button
                   size="sm"
                   variant="link"
                   onClick={onClear}
-                  className="m-0 p-0 text-[16px] h-0 text-orange-600"
+                  className="m-0 p-0 text-[16px] h-0 text-gray-500 hover:text-gray-700"
                 >
                   New chat
                 </Button>
