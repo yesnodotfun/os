@@ -23,6 +23,7 @@ interface ChatInputProps {
   onStop: () => void;
   onDirectMessageSubmit?: (message: string) => void;
   onNudge?: () => void;
+  previousMessages?: string[];
 }
 
 export function ChatInput({
@@ -34,6 +35,7 @@ export function ChatInput({
   onStop,
   onDirectMessageSubmit,
   onNudge,
+  previousMessages = [],
 }: ChatInputProps) {
   const [isFocused, setIsFocused] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -43,6 +45,7 @@ export function ChatInput({
   );
   const [isTouchDevice, setIsTouchDevice] = useState(false);
   const [lastTypingTime, setLastTypingTime] = useState(0);
+  const [historyIndex, setHistoryIndex] = useState(-1);
   const audioButtonRef = useRef<HTMLButtonElement>(null);
   const { playNote } = useChatSynth();
   const { play: playNudgeSound } = useSound(Sounds.MSN_NUDGE);
@@ -52,10 +55,45 @@ export function ChatInput({
     setIsTouchDevice("ontouchstart" in window || navigator.maxTouchPoints > 0);
   }, []);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "ArrowUp" && previousMessages.length > 0) {
+        e.preventDefault();
+        const nextIndex = historyIndex + 1;
+        if (nextIndex < previousMessages.length) {
+          setHistoryIndex(nextIndex);
+          const event = {
+            target: { value: previousMessages[nextIndex] },
+          } as React.ChangeEvent<HTMLInputElement>;
+          onInputChange(event);
+        }
+      } else if (e.key === "ArrowDown" && historyIndex > -1) {
+        e.preventDefault();
+        const nextIndex = historyIndex - 1;
+        setHistoryIndex(nextIndex);
+        const event = {
+          target: {
+            value: nextIndex === -1 ? "" : previousMessages[nextIndex],
+          },
+        } as React.ChangeEvent<HTMLInputElement>;
+        onInputChange(event);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [historyIndex, previousMessages, onInputChange]);
+
+  // Reset history index when input changes manually
+  useEffect(() => {
+    setHistoryIndex(-1);
+  }, [input]);
+
   const handleInputChangeWithSound = (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
     onInputChange(e);
+    setHistoryIndex(-1); // Reset history index when typing
 
     // Only play sound if typing synth is enabled and enough time has passed
     const now = Date.now();

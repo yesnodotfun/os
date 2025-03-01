@@ -90,11 +90,31 @@ export function ChatMessages({
   const wasAtBottom = useRef(true);
 
   const copyMessage = async (message: Message) => {
-    await navigator.clipboard.writeText(message.content);
-    setCopiedMessageId(
-      message.id || `${message.role}-${message.content.substring(0, 10)}`
-    );
-    setTimeout(() => setCopiedMessageId(null), 2000);
+    try {
+      await navigator.clipboard.writeText(message.content);
+      setCopiedMessageId(
+        message.id || `${message.role}-${message.content.substring(0, 10)}`
+      );
+      setTimeout(() => setCopiedMessageId(null), 2000);
+    } catch (err) {
+      console.error("Failed to copy message:", err);
+      // Fallback to older method if clipboard API fails
+      try {
+        const textarea = document.createElement("textarea");
+        textarea.value = message.content;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+
+        setCopiedMessageId(
+          message.id || `${message.role}-${message.content.substring(0, 10)}`
+        );
+        setTimeout(() => setCopiedMessageId(null), 2000);
+      } catch (fallbackErr) {
+        console.error("Fallback copy failed:", fallbackErr);
+      }
+    }
   };
 
   const scrollToBottom = useCallback((viewport: HTMLElement) => {

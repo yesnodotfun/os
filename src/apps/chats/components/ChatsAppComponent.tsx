@@ -2456,6 +2456,13 @@ export function ChatsAppComponent({
             onStop={stop}
             onDirectMessageSubmit={handleDirectMessageSubmit}
             onNudge={handleNudge}
+            previousMessages={Array.from(
+              new Set(
+                messages
+                  .filter((msg) => msg.role === "user")
+                  .map((msg) => msg.content)
+              )
+            ).reverse()}
           />
           {textEditContext && (
             <div className="font-geneva-12 flex items-center gap-1 text-[10px] text-gray-600 mt-1 px-0 py-0.5">
