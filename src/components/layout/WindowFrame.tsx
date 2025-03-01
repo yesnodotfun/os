@@ -445,9 +445,6 @@ export function WindowFrame({
             "w-full h-full flex flex-col bg-system7-window-bg border-[2px] border-black rounded-lg overflow-hidden",
             isForeground ? "shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)]" : ""
           )}
-          onTouchStart={isMobile ? handleTouchStart : undefined}
-          onTouchMove={isMobile ? handleTouchMove : undefined}
-          onTouchEnd={isMobile ? handleTouchEnd : undefined}
           style={getSwipeStyle()}
         >
           {/* Title bar */}
@@ -458,16 +455,37 @@ export function WindowFrame({
                 : "bg-white border-b-gray-400"
             } cursor-move border-b-[2px]`}
             onMouseDown={handleMouseDown}
-            onTouchStart={handleMouseDown}
+            onTouchStart={(e: React.TouchEvent<HTMLElement>) => {
+              handleMouseDown(e);
+              if (isMobile) {
+                handleTouchStart(e);
+              }
+            }}
+            onTouchMove={(e: React.TouchEvent<HTMLElement>) => {
+              if (isMobile) {
+                handleTouchMove(e);
+              }
+            }}
+            onTouchEnd={() => {
+              if (isMobile) {
+                handleTouchEnd();
+              }
+            }}
           >
-            <button
+            <div
               onClick={handleClose}
               onMouseDown={(e) => e.stopPropagation()}
               onTouchStart={(e) => e.stopPropagation()}
-              className={`ml-2 w-4 h-4 bg-white border-2 border-black hover:bg-gray-200 active:bg-gray-300 flex items-center justify-center shadow-[0_0_0_1px_white] ${
-                !isForeground && "invisible"
-              }`}
-            />
+              className="relative ml-2 w-4 h-4"
+            >
+              <div className="absolute inset-0 -m-2" />{" "}
+              {/* Larger click area */}
+              <div
+                className={`w-4 h-4 bg-white border-2 border-black hover:bg-gray-200 active:bg-gray-300 flex items-center justify-center shadow-[0_0_0_1px_white] ${
+                  !isForeground && "invisible"
+                }`}
+              />
+            </div>
             <span
               className={`select-none mx-auto bg-white px-2 py-0 h-full flex items-center justify-center max-w-[80%] truncate ${
                 !isForeground && "text-gray-500"
