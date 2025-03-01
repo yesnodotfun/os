@@ -231,45 +231,48 @@ export function ChatMessages({
                         }
                       }
 
-                      return segmentText(message.content).map(
-                        (segment, idx) => (
-                          <motion.span
-                            key={idx}
-                            initial={
-                              hasXmlTags
-                                ? { opacity: 1, y: 0 }
-                                : { opacity: 0, y: 12 }
-                            }
-                            animate={{ opacity: 1, y: 0 }}
-                            className={`select-text ${
-                              isEmojiOnly(message.content) ? "text-[24px]" : ""
-                            } ${
-                              segment.type === "bold"
-                                ? "font-bold"
-                                : segment.type === "italic"
-                                ? "italic"
-                                : ""
-                            }`}
-                            style={{ userSelect: "text" }}
-                            transition={
-                              hasXmlTags
-                                ? { duration: 0 }
-                                : {
-                                    duration: 0.15,
-                                    delay: idx * 0.05,
-                                    ease: "easeOut",
-                                    onComplete: () => {
-                                      if (idx % 2 === 0) {
-                                        playNote();
-                                      }
-                                    },
-                                  }
-                            }
-                          >
-                            {segment.content}
-                          </motion.span>
-                        )
-                      );
+                      // Remove "!!!!" prefix and following space from urgent messages
+                      const displayContent = isUrgentMessage(message.content)
+                        ? message.content.slice(4).trimStart()
+                        : message.content;
+
+                      return segmentText(displayContent).map((segment, idx) => (
+                        <motion.span
+                          key={idx}
+                          initial={
+                            hasXmlTags
+                              ? { opacity: 1, y: 0 }
+                              : { opacity: 0, y: 12 }
+                          }
+                          animate={{ opacity: 1, y: 0 }}
+                          className={`select-text ${
+                            isEmojiOnly(message.content) ? "text-[24px]" : ""
+                          } ${
+                            segment.type === "bold"
+                              ? "font-bold"
+                              : segment.type === "italic"
+                              ? "italic"
+                              : ""
+                          }`}
+                          style={{ userSelect: "text" }}
+                          transition={
+                            hasXmlTags
+                              ? { duration: 0 }
+                              : {
+                                  duration: 0.15,
+                                  delay: idx * 0.05,
+                                  ease: "easeOut",
+                                  onComplete: () => {
+                                    if (idx % 2 === 0) {
+                                      playNote();
+                                    }
+                                  },
+                                }
+                          }
+                        >
+                          {segment.content}
+                        </motion.span>
+                      ));
                     })()}
                   </motion.div>
                 ) : (

@@ -476,7 +476,7 @@ export function WindowFrame({
               onClick={handleClose}
               onMouseDown={(e) => e.stopPropagation()}
               onTouchStart={(e) => e.stopPropagation()}
-              className="relative ml-2 w-4 h-4"
+              className="relative ml-2 w-4 h-4 cursor-default"
             >
               <div className="absolute inset-0 -m-2" />{" "}
               {/* Larger click area */}
