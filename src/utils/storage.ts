@@ -126,6 +126,15 @@ export const saveWindowState = (
   localStorage.setItem(key, JSON.stringify(state));
 };
 
+// Add this new helper function to save window position and size together
+export const saveWindowPositionAndSize = (
+  appId: keyof typeof APP_STORAGE_KEYS,
+  position: WindowPosition,
+  size: WindowSize
+): void => {
+  saveWindowState(appId, { position, size });
+};
+
 // Soundboard specific storage
 export const loadSoundboards = async (): Promise<Soundboard[]> => {
   const saved = localStorage.getItem(APP_STORAGE_KEYS.soundboard.BOARDS);

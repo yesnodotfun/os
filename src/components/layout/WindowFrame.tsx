@@ -9,6 +9,7 @@ import { getWindowConfig } from "@/config/appRegistry";
 import { useSwipeNavigation } from "@/hooks/useSwipeNavigation";
 import { AppId } from "@/config/appRegistry";
 import { useIsMobile } from "@/hooks/useIsMobile";
+import { saveWindowPositionAndSize } from "@/utils/storage";
 
 interface WindowFrameProps {
   children: React.ReactNode;
@@ -186,6 +187,11 @@ export function WindowFrame({
       // Restoring to default size
       const defaultSize = mergedConstraints.defaultSize;
 
+      const newPosition = {
+        x: Math.max(0, (window.innerWidth - defaultSize.width) / 2),
+        y: Math.max(30, (window.innerHeight - defaultSize.height) / 2),
+      };
+
       setWindowSize({
         width: defaultSize.width,
         height: defaultSize.height,
@@ -193,11 +199,15 @@ export function WindowFrame({
 
       // Center the window if we're restoring from a maximized state
       if (window.innerWidth >= 768) {
-        setWindowPosition({
-          x: Math.max(0, (window.innerWidth - defaultSize.width) / 2),
-          y: Math.max(30, (window.innerHeight - defaultSize.height) / 2),
-        });
+        setWindowPosition(newPosition);
       }
+
+      // Save the new window state to localStorage
+      saveWindowPositionAndSize(
+        appId,
+        window.innerWidth >= 768 ? newPosition : windowPosition,
+        defaultSize
+      );
     } else {
       // Maximizing the window
       // Save current size before maximizing
@@ -227,16 +237,23 @@ export function WindowFrame({
         newWidth = Math.min(window.innerWidth, maxWidth);
       }
 
-      setWindowSize({
+      const newSize = {
         width: newWidth,
         height: newHeight,
-      });
+      };
 
-      // Position at top of screen
-      setWindowPosition({
+      const newPosition = {
         x: window.innerWidth >= 768 ? (window.innerWidth - newWidth) / 2 : 0,
         y: menuBarHeight,
-      });
+      };
+
+      setWindowSize(newSize);
+
+      // Position at top of screen
+      setWindowPosition(newPosition);
+
+      // Save the new window state to localStorage
+      saveWindowPositionAndSize(appId, newPosition, newSize);
     }
   };
 
@@ -487,7 +504,7 @@ export function WindowFrame({
               />
             </div>
             <span
-              className={`select-none mx-auto bg-white px-2 py-0 h-full flex items-center justify-center max-w-[80%] truncate ${
+              className={`select-none mx-auto bg-white px-2 py-0 h-full flex items-center whitespace-nowrap overflow-hidden text-ellipsis max-w-[80%] ${
                 !isForeground && "text-gray-500"
               }`}
               onDoubleClick={handleFullMaximize}
@@ -498,7 +515,7 @@ export function WindowFrame({
               }}
               onTouchMove={(e) => e.preventDefault()}
             >
-              {title}
+              <span className="truncate">{title}</span>
             </span>
             <div className="mr-2 w-4 h-4" />
           </div>
