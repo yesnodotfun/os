@@ -117,14 +117,52 @@ export function PhotoBoothComponent({
     /iPad|iPhone|iPod/.test(navigator.userAgent) ||
     (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
+  // Detect Chrome
+  const isChrome =
+    /Chrome/.test(navigator.userAgent) && !/Edge/.test(navigator.userAgent);
+
   useEffect(() => {
     // Print device info on mount
     console.log("Device info:", {
       userAgent: navigator.userAgent,
       isIOS,
+      isChrome,
       isSecureContext: window.isSecureContext,
     });
   }, []);
+
+  // Force visibility refresh for Chrome
+  useEffect(() => {
+    if (!isChrome || !videoRef.current || !stream) return;
+
+    console.log("Applying Chrome-specific visibility fixes");
+
+    // Force visibility in Chrome by cycling CSS properties
+    const forceVisibility = () => {
+      if (!videoRef.current) return;
+
+      // Force visibility by manipulating CSS properties
+      videoRef.current.style.visibility = "hidden";
+      videoRef.current.style.display = "none";
+
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.style.visibility = "visible";
+          videoRef.current.style.display = "block";
+
+          // Some Chrome versions need this nudge
+          videoRef.current.style.opacity = "0.99";
+          setTimeout(() => {
+            if (videoRef.current) videoRef.current.style.opacity = "1";
+          }, 50);
+        }
+      }, 50);
+    };
+
+    // Apply fix after a delay to let rendering settle
+    setTimeout(forceVisibility, 300);
+    setTimeout(forceVisibility, 1000);
+  }, [stream, isChrome]);
 
   // Add event listener for the video element to handle Safari initialization
   useEffect(() => {
@@ -191,6 +229,53 @@ export function PhotoBoothComponent({
     }
   }, [photos]);
 
+  // Fix playback issues on Chrome in production
+  useEffect(() => {
+    if (!stream || !videoRef.current) return;
+
+    console.log("Stream connected, verifying video display");
+
+    // Force video element to reinitialize
+    const videoEl = videoRef.current;
+
+    // Enhanced play function with logging
+    const forceVideoPlay = () => {
+      if (!videoEl) return;
+
+      // Display detailed info about video element
+      console.log("Video element status:", {
+        videoWidth: videoEl.videoWidth,
+        videoHeight: videoEl.videoHeight,
+        paused: videoEl.paused,
+        readyState: videoEl.readyState,
+        networkState: videoEl.networkState,
+      });
+
+      // In Chrome, detaching and reattaching can help
+      const currentStream = videoEl.srcObject;
+      videoEl.srcObject = null;
+
+      // Force layout reflow
+      void videoEl.offsetHeight;
+
+      // Reattach stream and force play
+      setTimeout(() => {
+        if (videoEl && currentStream) {
+          videoEl.srcObject = currentStream;
+          videoEl
+            .play()
+            .then(() => console.log("Video forced to play successfully"))
+            .catch((err) => console.error("Force play failed:", err));
+        }
+      }, 50);
+    };
+
+    // Call immediately and again after a delay
+    forceVideoPlay();
+    setTimeout(forceVideoPlay, 1000);
+  }, [stream]);
+
+  // Modify startCamera for Chrome production
   const startCamera = async () => {
     try {
       setCameraError(null);
@@ -250,6 +335,19 @@ export function PhotoBoothComponent({
         mediaStream.getVideoTracks().length
       );
 
+      // Verify track settings - this helps debug Chrome-specific issues
+      const videoTrack = mediaStream.getVideoTracks()[0];
+      if (videoTrack) {
+        console.log("Video track:", videoTrack.label);
+
+        try {
+          const settings = videoTrack.getSettings();
+          console.log("Track settings:", settings);
+        } catch (e) {
+          console.warn("Couldn't read track settings:", e);
+        }
+      }
+
       if (videoRef.current) {
         // Set essential attributes first
         videoRef.current.setAttribute("playsinline", "true");
@@ -262,7 +360,10 @@ export function PhotoBoothComponent({
           videoRef.current.srcObject = null;
         }
 
-        // Set srcObject with small delay to ensure DOM has updated
+        // Chrome can be sensitive to timing - use direct assignment first
+        videoRef.current.srcObject = mediaStream;
+
+        // Then also try after a timeout
         setTimeout(() => {
           if (videoRef.current) {
             console.log("Setting video source object");
@@ -489,13 +590,12 @@ export function PhotoBoothComponent({
                   autoPlay
                   playsInline
                   muted
-                  className={`w-full h-full object-cover transform scale-x-[-1] ${
-                    isIOS ? "z-[1]" : ""
-                  }`}
+                  className={`w-full h-full object-cover z-10 opacity-100`}
                   style={{
                     filter: selectedEffect.filter,
-                    transform: "scaleX(-1)", // Explicit transform for iOS
-                    WebkitTransform: "scaleX(-1)", // For older iOS browsers
+                    transform: "scaleX(-1)",
+                    WebkitTransform: "scaleX(-1)",
+                    display: "block",
                   }}
                   onError={(e) => {
                     console.error("Video error:", e);
@@ -654,9 +754,11 @@ export function PhotoBoothComponent({
                               autoPlay
                               playsInline
                               muted
-                              className="w-full h-full object-cover transform scale-x-[-1]"
+                              className="w-full h-full object-cover"
                               style={{
                                 filter: effect.filter,
+                                transform: "scaleX(-1)",
+                                WebkitTransform: "scaleX(-1)",
                               }}
                               ref={(el) => {
                                 if (el && videoRef.current?.srcObject) {
