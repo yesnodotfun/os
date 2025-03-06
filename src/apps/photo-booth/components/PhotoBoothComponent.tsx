@@ -7,7 +7,7 @@ import { helpItems, appMetadata } from "..";
 import { PhotoBoothMenuBar } from "./PhotoBoothMenuBar";
 import { APP_STORAGE_KEYS } from "@/utils/storage";
 import { AppProps } from "../../base/types";
-import { Circle, Camera, X, Images } from "lucide-react";
+import { Camera, Images, ZapOff, Ban, Timer } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSound, Sounds } from "@/hooks/useSound";
 
@@ -39,6 +39,8 @@ export function PhotoBoothComponent({
   const [showPhotoStrip, setShowPhotoStrip] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [isLoadingCamera, setIsLoadingCamera] = useState(false);
   const [selectedEffect, setSelectedEffect] = useState<Effect>(
     effects.find((effect) => effect.name === "Normal") || effects[0]
   );
@@ -81,6 +83,8 @@ export function PhotoBoothComponent({
 
   const startCamera = async () => {
     try {
+      setCameraError(null);
+      setIsLoadingCamera(true);
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "user" },
         audio: false,
@@ -91,11 +95,18 @@ export function PhotoBoothComponent({
       }
     } catch (error) {
       console.error("Error accessing camera:", error);
+      setCameraError(
+        error instanceof DOMException && error.name === "NotAllowedError"
+          ? "Camera permission denied"
+          : "Could not access camera"
+      );
+    } finally {
+      setIsLoadingCamera(false);
     }
   };
 
   const takePhoto = () => {
-    if (!videoRef.current) return;
+    if (!videoRef.current || !stream) return;
 
     // Trigger flash effect
     setIsFlashing(true);
@@ -206,18 +217,54 @@ export function PhotoBoothComponent({
         isForeground={isForeground}
         appId="photo-booth"
       >
-        <div className="flex flex-col h-full bg-white">
-          <div className="flex-1 flex flex-col items-center justify-center relative">
-            <div className="relative w-full h-full">
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                className="w-full h-full object-cover transform scale-x-[-1]"
-                style={{
-                  filter: selectedEffect.filter,
-                }}
-              />
+        <div className="flex flex-col w-full h-full bg-neutral-500 max-h-full overflow-hidden">
+          {/* Camera view area - takes available space but doesn't overflow */}
+          <div className="flex-1 min-h-0 relative">
+            <div className="absolute inset-0 flex items-center justify-center">
+              {stream ? (
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  className="w-full h-full object-cover transform scale-x-[-1]"
+                  style={{
+                    filter: selectedEffect.filter,
+                  }}
+                />
+              ) : isLoadingCamera ? (
+                <div className="flex flex-col items-center justify-center text-white h-full w-full"></div>
+              ) : cameraError ? (
+                <div className="flex flex-col items-center justify-center text-white h-full w-full p-8">
+                  <div className="bg-black/40 p-10 rounded-lg flex flex-col items-center gap-4 max-w-md">
+                    {cameraError === "Camera permission denied" ? (
+                      <Ban size={48} className="text-red-500 mb-2" />
+                    ) : (
+                      <ZapOff size={48} className="text-yellow-500 mb-2" />
+                    )}
+                    <h3 className="text-xl font-bold">{cameraError}</h3>
+                    <p className="text-center text-gray-300">
+                      {cameraError === "Camera permission denied"
+                        ? "Please allow camera access in your browser settings to use Photo Booth."
+                        : "We couldn't connect to your camera. Please check your connection and try again."}
+                    </p>
+                    <Button
+                      onClick={startCamera}
+                      className="mt-4 bg-blue-600 hover:bg-blue-700"
+                    >
+                      Try Again
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center text-white h-full w-full p-8">
+                  <Button
+                    onClick={startCamera}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    Start Camera
+                  </Button>
+                </div>
+              )}
 
               {/* Camera flash effect */}
               <AnimatePresence>
@@ -229,134 +276,6 @@ export function PhotoBoothComponent({
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.6 }}
                   />
-                )}
-              </AnimatePresence>
-
-              {/* Bottom control bar */}
-              <div className="absolute bottom-0 left-0 right-0 p-4 flex justify-between items-center">
-                <div className="flex space-x-2 relative">
-                  {/* Thumbnail animation */}
-                  <AnimatePresence>
-                    {showThumbnail && lastPhoto && !showPhotoStrip && (
-                      <motion.div
-                        className="absolute bottom-14 left-0 pointer-events-none"
-                        initial={{ opacity: 0, y: 10, scale: 0.3 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{
-                          opacity: 0,
-                          y: 60,
-                          scale: 0.2,
-                          x: -16,
-                        }}
-                        transition={{
-                          type: "spring",
-                          stiffness: 300,
-                          damping: 15,
-                        }}
-                        style={{
-                          originX: "0",
-                          originY: "1",
-                        }}
-                      >
-                        <motion.img
-                          src={lastPhoto}
-                          alt="Last photo thumbnail"
-                          className="h-20 w-auto object-cover rounded-md shadow-md border-2 border-white"
-                          initial={{ rotateZ: 0 }}
-                          animate={{ rotateZ: 0 }}
-                          exit={{ rotateZ: 5 }}
-                          transition={{
-                            type: "spring",
-                            stiffness: 200,
-                            damping: 10,
-                          }}
-                        />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                  <button
-                    className="h-10 w-10 bg-black/40 backdrop-blur-sm rounded-[3px] flex items-center justify-center text-white relative overflow-hidden"
-                    onClick={togglePhotoStrip}
-                    disabled={photos.length === 0}
-                    ref={(node) => {
-                      if (node) {
-                        const rect = node.getBoundingClientRect();
-                        thumbnailRef.current = {
-                          x: rect.left,
-                          y: rect.top,
-                          width: rect.width,
-                          height: rect.height,
-                        };
-                      }
-                    }}
-                  >
-                    <Images size={20} />
-                  </button>
-                  <button
-                    className="h-10 w-10 bg-black/40 backdrop-blur-sm rounded-[3px] flex items-center justify-center text-white"
-                    onClick={startMultiPhotoSequence}
-                    disabled={isMultiPhotoMode}
-                  >
-                    <Camera size={20} />
-                  </button>
-                </div>
-
-                <Button
-                  onClick={isMultiPhotoMode ? () => {} : takePhoto}
-                  className={`rounded-full h-16 w-16 ${
-                    isMultiPhotoMode
-                      ? `bg-gray-400 cursor-not-allowed`
-                      : `bg-red-500 hover:bg-red-600`
-                  }`}
-                  disabled={isMultiPhotoMode}
-                >
-                  <Circle size={32} fill="white" stroke="white" />
-                </Button>
-
-                <Button
-                  onClick={toggleEffects}
-                  className="h-10 px-4 py-2 rounded-[3px] bg-black/40 backdrop-blur-sm text-white hover:bg-black/60 font-geneva-12 text-[12px]"
-                >
-                  Effects
-                </Button>
-              </div>
-
-              {/* Photo strip preview */}
-              <AnimatePresence>
-                {showPhotoStrip && photos.length > 0 && (
-                  <motion.div
-                    className="absolute bottom-24 left-4 bg-white/90 p-2 rounded-md shadow-md overflow-x-auto"
-                    initial={{ x: -100, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    exit={{ x: -100, opacity: 0 }}
-                    transition={{
-                      type: "spring",
-                      stiffness: 500,
-                      damping: 30,
-                      duration: 0.2,
-                    }}
-                  >
-                    <div className="flex flex-row space-x-1 h-20">
-                      {[...photos].reverse().map((photo, index) => (
-                        <img
-                          key={index}
-                          src={photo}
-                          alt={`Photo ${index}`}
-                          className="h-full w-auto object-cover cursor-pointer transition-opacity hover:opacity-80"
-                          onClick={() => {
-                            // Create an anchor element to download the image
-                            const link = document.createElement("a");
-                            link.href = photo;
-                            link.download = `photo-booth-image-${Date.now()}-${index}.jpg`;
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
-                          }}
-                        />
-                      ))}
-                    </div>
-                  </motion.div>
                 )}
               </AnimatePresence>
 
@@ -388,7 +307,7 @@ export function PhotoBoothComponent({
                     transition={{ duration: 0.2 }}
                   >
                     <motion.div
-                      className="grid grid-cols-3 gap-4 p-4 w-full max-w-4xl"
+                      className="grid grid-cols-3 gap-4 p-4 w-full max-w-4xl max-h-[calc(100vh-200px)] overflow-auto"
                       initial={{ scale: 0.85, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
                       exit={{ scale: 0.85, opacity: 0 }}
@@ -403,7 +322,7 @@ export function PhotoBoothComponent({
                           key={effect.name}
                           className={`relative aspect-video overflow-hidden rounded-lg cursor-pointer border-2 ${
                             selectedEffect.name === effect.name
-                              ? "border-blue-500"
+                              ? "border-white"
                               : "border-transparent"
                           }`}
                           whileHover={{
@@ -419,7 +338,7 @@ export function PhotoBoothComponent({
                             setShowEffects(false);
                           }}
                         >
-                          {videoRef.current && (
+                          {videoRef.current && stream && (
                             <video
                               autoPlay
                               playsInline
@@ -435,23 +354,145 @@ export function PhotoBoothComponent({
                               }}
                             />
                           )}
-                          <div className="absolute bottom-0 left-0 right-0 text-center py-2 bg-black/50 text-white">
+                          <div className="absolute bottom-0 left-0 right-0 text-center py-2 bg-black/50 text-white text-[16px]">
                             {effect.name}
                           </div>
                         </motion.div>
                       ))}
                     </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-                    <button
-                      className="absolute top-4 right-4 text-white hover:text-gray-300"
-                      onClick={() => setShowEffects(false)}
-                    >
-                      <X size={24} />
-                    </button>
+              {/* Photo strip preview - positioned in camera view area, but above bottom controls */}
+              <AnimatePresence>
+                {showPhotoStrip && photos.length > 0 && (
+                  <motion.div
+                    className="absolute bottom-0 inset-x-0 w-full bg-white/40 backdrop-blur-sm p-1 overflow-x-auto"
+                    initial={{ y: 50, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: 50, opacity: 0 }}
+                    transition={{
+                      type: "spring",
+                      stiffness: 500,
+                      damping: 30,
+                      duration: 0.2,
+                    }}
+                  >
+                    <div className="flex flex-row space-x-1 h-20">
+                      {[...photos].reverse().map((photo, index) => (
+                        <img
+                          key={index}
+                          src={photo}
+                          alt={`Photo ${index}`}
+                          className="h-full w-auto object-cover cursor-pointer transition-opacity hover:opacity-80"
+                          onClick={() => {
+                            // Create an anchor element to download the image
+                            const link = document.createElement("a");
+                            link.href = photo;
+                            link.download = `photo-booth-image-${Date.now()}-${index}.jpg`;
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                          }}
+                        />
+                      ))}
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>
             </div>
+          </div>
+
+          {/* Fixed bottom control bar that always takes full width without overflowing */}
+          <div className="flex-shrink-0 w-full bg-black/70 backdrop-blur-md px-6 py-4 flex justify-between items-center z-10">
+            <div className="flex space-x-3 relative">
+              {/* Thumbnail animation */}
+              <AnimatePresence>
+                {showThumbnail && lastPhoto && !showPhotoStrip && (
+                  <motion.div
+                    className="absolute -top-24 left-0 pointer-events-none"
+                    initial={{ opacity: 0, y: 10, scale: 0.3 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{
+                      opacity: 0,
+                      y: 60,
+                      scale: 0.2,
+                      x: -16,
+                    }}
+                    transition={{
+                      type: "spring",
+                      stiffness: 300,
+                      damping: 15,
+                    }}
+                    style={{
+                      originX: "0",
+                      originY: "1",
+                    }}
+                  >
+                    <motion.img
+                      src={lastPhoto}
+                      alt="Last photo thumbnail"
+                      className="h-20 w-auto object-cover rounded-md shadow-md border-2 border-white"
+                      initial={{ rotateZ: 0 }}
+                      animate={{ rotateZ: 0 }}
+                      exit={{ rotateZ: 5 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 200,
+                        damping: 10,
+                      }}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <button
+                className="h-12 w-12 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white relative overflow-hidden"
+                onClick={togglePhotoStrip}
+                disabled={photos.length === 0}
+                ref={(node) => {
+                  if (node) {
+                    const rect = node.getBoundingClientRect();
+                    thumbnailRef.current = {
+                      x: rect.left,
+                      y: rect.top,
+                      width: rect.width,
+                      height: rect.height,
+                    };
+                  }
+                }}
+              >
+                <Images size={22} />
+              </button>
+              <button
+                className="h-12 w-12 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white"
+                onClick={startMultiPhotoSequence}
+                disabled={isMultiPhotoMode || !stream || !!cameraError}
+              >
+                <Timer size={22} />
+              </button>
+            </div>
+
+            <Button
+              onClick={isMultiPhotoMode ? () => {} : takePhoto}
+              className={`rounded-full h-16 w-16 [&_svg]:size-6  ${
+                isMultiPhotoMode || !stream || !!cameraError
+                  ? `bg-gray-500 cursor-not-allowed`
+                  : `bg-red-500 hover:bg-red-600`
+              }`}
+              disabled={isMultiPhotoMode || !stream || !!cameraError}
+            >
+              <Camera stroke="white" />
+            </Button>
+
+            <Button
+              onClick={toggleEffects}
+              className="h-12 px-6 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white text-[16px]"
+              disabled={!stream || !!cameraError}
+            >
+              Effects
+            </Button>
           </div>
 
           <HelpDialog
