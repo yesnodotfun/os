@@ -138,7 +138,7 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
         const menuBarHeight = 30;
 
         // Start playing move sound in a loop when actual movement starts
-        if (!moveAudioRef.current) {
+        if (!moveAudioRef.current && !isMobile) {
           playMoveMoving();
           moveAudioRef.current = setInterval(playMoveMoving, 300);
         }
