@@ -273,6 +273,38 @@ export function PhotoBoothComponent({
     // Call immediately and again after a delay
     forceVideoPlay();
     setTimeout(forceVideoPlay, 1000);
+
+    // Add explicit metadata event listener
+    const handleLoadedMetadata = () => {
+      console.log("Video metadata loaded, dimensions:", {
+        videoWidth: videoEl.videoWidth,
+        videoHeight: videoEl.videoHeight,
+      });
+
+      if (videoEl.videoWidth === 0 || videoEl.videoHeight === 0) {
+        console.log(
+          "Metadata loaded but dimensions still zero, applying fix..."
+        );
+        // Force dimensions if needed
+        if (videoEl.style.width === "" && videoEl.style.height === "") {
+          // Try to set reasonable defaults based on container
+          videoEl.style.width = "100%";
+          videoEl.style.height = "100%";
+        }
+
+        // Force reflow and play
+        void videoEl.offsetHeight;
+        videoEl
+          .play()
+          .catch((e) => console.error("Play after metadata error:", e));
+      }
+    };
+
+    videoEl.addEventListener("loadedmetadata", handleLoadedMetadata);
+
+    return () => {
+      videoEl.removeEventListener("loadedmetadata", handleLoadedMetadata);
+    };
   }, [stream]);
 
   // Modify startCamera for Chrome production
@@ -286,6 +318,7 @@ export function PhotoBoothComponent({
         protocol: window.location.protocol,
         isSecure: window.isSecureContext,
         hostname: window.location.hostname,
+        userAgent: navigator.userAgent,
       });
 
       // Strict check for secure context - required for camera in production
@@ -318,9 +351,12 @@ export function PhotoBoothComponent({
         throw new Error("Camera API not available");
       }
 
-      // Use most basic constraints for maximum compatibility
+      // Use specific constraints with ideal dimensions to help with initialization
       const constraints = {
-        video: true,
+        video: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
         audio: false,
       };
 
@@ -596,6 +632,23 @@ export function PhotoBoothComponent({
                     transform: "scaleX(-1)",
                     WebkitTransform: "scaleX(-1)",
                     display: "block",
+                    minWidth: "100%",
+                    minHeight: "100%",
+                  }}
+                  onLoadedMetadata={(e) => {
+                    console.log(
+                      "Video onLoadedMetadata event fired, dimensions:",
+                      {
+                        videoWidth: e.currentTarget.videoWidth,
+                        videoHeight: e.currentTarget.videoHeight,
+                      }
+                    );
+                    // Force play again on metadata loaded (helps Safari)
+                    e.currentTarget
+                      .play()
+                      .catch((err) =>
+                        console.warn("Play on metadata failed:", err)
+                      );
                   }}
                   onError={(e) => {
                     console.error("Video error:", e);
@@ -759,10 +812,19 @@ export function PhotoBoothComponent({
                                 filter: effect.filter,
                                 transform: "scaleX(-1)",
                                 WebkitTransform: "scaleX(-1)",
+                                minWidth: "100%",
+                                minHeight: "100%",
                               }}
                               ref={(el) => {
                                 if (el && videoRef.current?.srcObject) {
                                   el.srcObject = videoRef.current.srcObject;
+                                  // Add loadedmetadata handler for preview too
+                                  el.onloadedmetadata = () => {
+                                    console.log(
+                                      "Effect preview video metadata loaded"
+                                    );
+                                    el.play().catch(() => {});
+                                  };
                                   // Ensure playing
                                   el.play().catch(() => {});
                                 }
