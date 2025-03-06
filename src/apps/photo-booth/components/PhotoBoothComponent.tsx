@@ -9,6 +9,7 @@ import { APP_STORAGE_KEYS } from "@/utils/storage";
 import { AppProps } from "../../base/types";
 import { Circle, Camera, X, Images } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSound, Sounds } from "@/hooks/useSound";
 
 interface Effect {
   name: string;
@@ -55,6 +56,7 @@ export function PhotoBoothComponent({
   const [lastPhoto, setLastPhoto] = useState<string | null>(null);
   const [showThumbnail, setShowThumbnail] = useState(false);
   const thumbnailRef = useRef({ x: 0, y: 0, width: 0, height: 0 });
+  const { play: playShutter } = useSound(Sounds.PHOTO_SHUTTER, 0.4);
 
   useEffect(() => {
     if (isWindowOpen) {
@@ -98,6 +100,9 @@ export function PhotoBoothComponent({
     // Trigger flash effect
     setIsFlashing(true);
     setTimeout(() => setIsFlashing(false), 800);
+
+    // Play shutter sound
+    playShutter();
 
     const canvas = document.createElement("canvas");
     canvas.width = videoRef.current.videoWidth;
