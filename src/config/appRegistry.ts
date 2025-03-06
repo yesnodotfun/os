@@ -8,6 +8,7 @@ import { FinderApp } from "@/apps/finder";
 import { PaintApp } from "@/apps/paint";
 import { VideosApp } from "@/apps/videos";
 import { PcApp } from "@/apps/pc";
+import { PhotoBoothApp } from "@/apps/photo-booth";
 
 export interface WindowSize {
   width: number;
@@ -101,6 +102,14 @@ export const appRegistry = {
       defaultSize: { width: 365, height: 400 },
       minSize: { width: 320, height: 400 },
       maxSize: { width: 365, height: 600 },
+    } as WindowConstraints,
+  },
+  [PhotoBoothApp.id]: {
+    ...PhotoBoothApp,
+    windowConfig: {
+      defaultSize: { width: 644, height: 510 },
+      minSize: { width: 644, height: 510 },
+      maxSize: { width: 644, height: 510 },
     } as WindowConstraints,
   },
 } as const;

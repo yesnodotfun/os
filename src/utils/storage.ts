@@ -87,6 +87,11 @@ export const APP_STORAGE_KEYS = {
     SAVE_STATE: "pc:saveState" as const,
     GAMES: "pc:games" as const,
   },
+  "photo-booth": {
+    WINDOW: "photo-booth:window" as const,
+    HAS_SEEN_HELP: "photo-booth:hasSeenHelp" as const,
+    PHOTOS: "photo-booth:photos" as const,
+  },
 } as const;
 
 interface WindowState {

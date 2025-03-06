@@ -23,7 +23,8 @@ export interface BaseApp {
     | "finder"
     | "paint"
     | "videos"
-    | "pc";
+    | "pc"
+    | "photo-booth";
   name: string;
   icon: string | { type: "image"; src: string };
   description: string;
