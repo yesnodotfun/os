@@ -112,6 +112,20 @@ export function PhotoBoothComponent({
     }
   };
 
+  // Detect iOS devices which need special handling
+  const isIOS =
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+  useEffect(() => {
+    // Print device info on mount
+    console.log("Device info:", {
+      userAgent: navigator.userAgent,
+      isIOS,
+      isSecureContext: window.isSecureContext,
+    });
+  }, []);
+
   // Add event listener for the video element to handle Safari initialization
   useEffect(() => {
     const videoElement = videoRef.current;
@@ -122,6 +136,14 @@ export function PhotoBoothComponent({
 
     const handleCanPlay = () => {
       console.log("Video can play now");
+
+      // iOS Safari needs display none/block toggle to render properly sometimes
+      if (isIOS) {
+        videoElement.style.display = "none";
+        // Force reflow
+        void videoElement.offsetHeight;
+        videoElement.style.display = "block";
+      }
 
       // Force play (required for mobile browsers)
       videoElement
@@ -174,6 +196,21 @@ export function PhotoBoothComponent({
       setCameraError(null);
       setIsLoadingCamera(true);
 
+      // Production-specific debugging
+      console.log("Environment:", {
+        protocol: window.location.protocol,
+        isSecure: window.isSecureContext,
+        hostname: window.location.hostname,
+      });
+
+      // Strict check for secure context - required for camera in production
+      if (!window.isSecureContext) {
+        throw new DOMException(
+          "Camera requires a secure context (HTTPS)",
+          "SecurityError"
+        );
+      }
+
       // Check if current stream is still active before stopping it
       if (stream) {
         const isStreamActive =
@@ -190,25 +227,62 @@ export function PhotoBoothComponent({
         }
       }
 
-      // Basic constraints that work well across devices
+      // Diagnostic check for mediaDevices API
+      if (!navigator.mediaDevices) {
+        console.error("mediaDevices API not available");
+        throw new Error("Camera API not available");
+      }
+
+      // Use most basic constraints for maximum compatibility
       const constraints = {
-        video: { facingMode: "user" },
+        video: true,
         audio: false,
       };
 
+      console.log("Requesting camera access...");
       const mediaStream = await navigator.mediaDevices.getUserMedia(
         constraints
       );
+      console.log(
+        "Camera access granted:",
+        mediaStream.active,
+        "Video tracks:",
+        mediaStream.getVideoTracks().length
+      );
 
       if (videoRef.current) {
-        // Set HTML attributes important for mobile
+        // Set essential attributes first
         videoRef.current.setAttribute("playsinline", "true");
         videoRef.current.setAttribute("autoplay", "true");
         videoRef.current.setAttribute("muted", "true");
         videoRef.current.muted = true;
 
-        // Set srcObject directly
-        videoRef.current.srcObject = mediaStream;
+        // Clear any previous source before assigning new one
+        if (videoRef.current.srcObject) {
+          videoRef.current.srcObject = null;
+        }
+
+        // Set srcObject with small delay to ensure DOM has updated
+        setTimeout(() => {
+          if (videoRef.current) {
+            console.log("Setting video source object");
+            videoRef.current.srcObject = mediaStream;
+
+            // Force play with retry
+            const playVideo = () => {
+              console.log("Attempting to play video");
+              videoRef.current
+                ?.play()
+                .then(() => console.log("Video playing successfully"))
+                .catch((e) => {
+                  console.error("Play failed:", e);
+                  // Retry once more after a short delay
+                  setTimeout(playVideo, 500);
+                });
+            };
+            playVideo();
+          }
+        }, 100);
       }
 
       setStream(mediaStream);
@@ -217,10 +291,13 @@ export function PhotoBoothComponent({
       let errorMessage = "Could not access camera";
 
       if (error instanceof DOMException) {
+        console.log("DOMException type:", error.name);
         if (error.name === "NotAllowedError") {
           errorMessage = "Camera permission denied";
         } else if (error.name === "NotFoundError") {
           errorMessage = "No camera found";
+        } else if (error.name === "SecurityError") {
+          errorMessage = "Camera requires HTTPS";
         } else {
           errorMessage = `Camera error: ${error.name}`;
         }
@@ -412,9 +489,13 @@ export function PhotoBoothComponent({
                   autoPlay
                   playsInline
                   muted
-                  className="w-full h-full object-cover transform scale-x-[-1]"
+                  className={`w-full h-full object-cover transform scale-x-[-1] ${
+                    isIOS ? "z-[1]" : ""
+                  }`}
                   style={{
                     filter: selectedEffect.filter,
+                    transform: "scaleX(-1)", // Explicit transform for iOS
+                    WebkitTransform: "scaleX(-1)", // For older iOS browsers
                   }}
                   onError={(e) => {
                     console.error("Video error:", e);
@@ -434,18 +515,55 @@ export function PhotoBoothComponent({
                   <div className="bg-black/60 p-4 rounded-lg shadow-lg">
                     <AlertTriangle className="h-12 w-12 text-yellow-400 mx-auto mb-2" />
                     <p className="font-geneva-12 mb-3">{cameraError}</p>
-                    {cameraError.includes("HTTPS") ? (
-                      <div className="text-xs mb-2 text-yellow-200">
-                        This application requires a secure connection to access
-                        your camera. Please make sure you're using HTTPS.
+
+                    {cameraError.includes("HTTPS") ||
+                    cameraError.includes("secure") ? (
+                      <div className="text-xs mb-3 text-yellow-200">
+                        <p className="mb-2">
+                          This application requires a secure connection to
+                          access your camera. Your current connection is:{" "}
+                          <strong>{window.location.protocol}</strong>
+                        </p>
+                        <p>
+                          Please ensure you're using HTTPS in production
+                          environments.
+                        </p>
                       </div>
                     ) : null}
+
+                    {cameraError.includes("API not available") ? (
+                      <div className="text-xs mb-3 text-yellow-200">
+                        <p className="mb-2">
+                          Your browser doesn't support camera access or has it
+                          disabled.
+                        </p>
+                        <p>
+                          Try using Chrome, Firefox, or Safari with the latest
+                          updates.
+                        </p>
+                      </div>
+                    ) : null}
+
                     <Button
                       onClick={startCamera}
                       className="mt-2 bg-blue-600 hover:bg-blue-700 rounded-full text-sm px-4 py-1.5"
                     >
                       Try Again
                     </Button>
+
+                    <button
+                      onClick={() => {
+                        console.log({
+                          isSecureContext: window.isSecureContext,
+                          protocol: window.location.protocol,
+                          hasMediaDevices: !!navigator.mediaDevices,
+                          userAgent: navigator.userAgent,
+                        });
+                      }}
+                      className="ml-2 mt-2 bg-gray-600 hover:bg-gray-700 rounded-full text-sm px-4 py-1.5"
+                    >
+                      Debug Info
+                    </button>
                   </div>
                 </div>
               ) : (
