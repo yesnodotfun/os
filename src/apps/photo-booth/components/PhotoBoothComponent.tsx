@@ -300,7 +300,7 @@ export function PhotoBoothComponent({
               <AnimatePresence>
                 {showEffects && (
                   <motion.div
-                    className="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center"
+                    className="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
@@ -373,19 +373,27 @@ export function PhotoBoothComponent({
                     animate={{ y: 0, opacity: 1 }}
                     exit={{ y: 50, opacity: 0 }}
                     transition={{
-                      type: "spring",
-                      stiffness: 500,
-                      damping: 30,
+                      type: "tween",
+                      ease: "easeOut",
                       duration: 0.2,
                     }}
                   >
-                    <div className="flex flex-row space-x-1 h-20">
+                    <motion.div className="flex flex-row space-x-1 h-20" layout>
                       {[...photos].reverse().map((photo, index) => (
-                        <img
-                          key={index}
+                        <motion.img
+                          key={photo}
                           src={photo}
                           alt={`Photo ${index}`}
                           className="h-full w-auto object-cover cursor-pointer transition-opacity hover:opacity-80"
+                          layout="position"
+                          layoutId={photo}
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{
+                            type: "spring",
+                            stiffness: 400,
+                            damping: 25,
+                          }}
                           onClick={() => {
                             // Create an anchor element to download the image
                             const link = document.createElement("a");
@@ -397,7 +405,7 @@ export function PhotoBoothComponent({
                           }}
                         />
                       ))}
-                    </div>
+                    </motion.div>
                   </motion.div>
                 )}
               </AnimatePresence>
