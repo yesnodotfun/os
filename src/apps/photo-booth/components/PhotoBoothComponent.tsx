@@ -231,9 +231,9 @@ export function PhotoBoothComponent({
 
               {/* Photo strip preview */}
               {showPhotoStrip && photos.length > 0 && (
-                <div className="absolute bottom-24 right-4 bg-white/90 p-2 rounded-md shadow-md">
+                <div className="absolute bottom-24 left-4 bg-white/90 p-2 rounded-md shadow-md overflow-x-auto">
                   <div className="flex flex-row space-x-1 h-20">
-                    {photos.slice(-4).map((photo, index) => (
+                    {[...photos].reverse().map((photo, index) => (
                       <img
                         key={index}
                         src={photo}
@@ -271,37 +271,22 @@ export function PhotoBoothComponent({
                           setShowEffects(false);
                         }}
                       >
-                        <div
-                          className="w-full h-full"
-                          style={{
-                            backgroundImage: `url(${
-                              photos.length > 0 ? photos[photos.length - 1] : ""
-                            })`,
-                            backgroundSize: "cover",
-                            backgroundPosition: "center",
-                            filter: effect.filter,
-                          }}
-                        >
-                          {!photos.length && (
-                            <video
-                              className="w-full h-full object-cover"
-                              style={{
-                                filter: effect.filter,
-                              }}
-                            >
-                              <source
-                                src={
-                                  videoRef.current?.srcObject
-                                    ? URL.createObjectURL(
-                                        videoRef.current
-                                          .srcObject as MediaSource
-                                      )
-                                    : ""
-                                }
-                              />
-                            </video>
-                          )}
-                        </div>
+                        {videoRef.current && (
+                          <video
+                            autoPlay
+                            playsInline
+                            muted
+                            className="w-full h-full object-cover"
+                            style={{
+                              filter: effect.filter,
+                            }}
+                            ref={(el) => {
+                              if (el && videoRef.current?.srcObject) {
+                                el.srcObject = videoRef.current.srcObject;
+                              }
+                            }}
+                          />
+                        )}
                         <div className="absolute bottom-0 left-0 right-0 text-center py-2 bg-black/50 text-white">
                           {effect.name}
                         </div>
