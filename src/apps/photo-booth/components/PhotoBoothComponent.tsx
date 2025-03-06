@@ -7,7 +7,7 @@ import { helpItems, appMetadata } from "..";
 import { PhotoBoothMenuBar } from "./PhotoBoothMenuBar";
 import { APP_STORAGE_KEYS } from "@/utils/storage";
 import { AppProps } from "../../base/types";
-import { Camera, Images, Timer } from "lucide-react";
+import { Camera, Images, Timer, AlertTriangle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSound, Sounds } from "@/hooks/useSound";
 
@@ -75,7 +75,15 @@ export function PhotoBoothComponent({
 
   useEffect(() => {
     if (isWindowOpen && isForeground) {
-      startCamera();
+      checkCameraAvailability().then((available) => {
+        if (available) {
+          startCamera();
+        } else {
+          setCameraError(
+            "Camera API not available in this browser or environment. Try using a different browser."
+          );
+        }
+      });
     }
     return () => {
       if (stream) {
@@ -139,6 +147,17 @@ export function PhotoBoothComponent({
       setCameraError(null);
       setIsLoadingCamera(true);
 
+      // Check if running on a secure context (HTTPS) when in production
+      if (
+        window.location.protocol === "http:" &&
+        window.location.hostname !== "localhost"
+      ) {
+        throw new DOMException(
+          "Camera access requires HTTPS in production environments",
+          "SecurityError"
+        );
+      }
+
       // Safari-specific constraints - using more lenient constraints for iOS
       const constraints = {
         video: {
@@ -150,12 +169,26 @@ export function PhotoBoothComponent({
         audio: false,
       };
 
-      const mediaStream = await navigator.mediaDevices.getUserMedia(
-        constraints
-      );
+      // Add a timeout to handle long-running permission requests
+      const getUserMediaPromise =
+        navigator.mediaDevices.getUserMedia(constraints);
+      const timeoutPromise = new Promise<MediaStream>((_, reject) => {
+        setTimeout(() => reject(new Error("Camera access timed out")), 10000);
+      });
+
+      const mediaStream = await Promise.race([
+        getUserMediaPromise,
+        timeoutPromise,
+      ]);
 
       // For Safari, we need to ensure the video element is properly configured
       if (videoRef.current) {
+        // First stop any existing stream
+        if (videoRef.current.srcObject) {
+          const oldStream = videoRef.current.srcObject as MediaStream;
+          oldStream.getTracks().forEach((track) => track.stop());
+        }
+
         // Safari on iOS: Need to set attributes before assigning srcObject
         videoRef.current.setAttribute("playsinline", "true");
         videoRef.current.setAttribute("autoplay", "true");
@@ -197,9 +230,18 @@ export function PhotoBoothComponent({
             errorMessage =
               "Camera does not support the requested configuration.";
             break;
+          case "SecurityError":
+            errorMessage =
+              "Camera access requires HTTPS. Please use a secure connection.";
+            break;
           default:
             errorMessage = `Camera error: ${error.message}`;
         }
+      } else if (
+        error instanceof Error &&
+        error.message === "Camera access timed out"
+      ) {
+        errorMessage = "Camera access timed out. Please try again.";
       }
 
       setCameraError(errorMessage);
@@ -364,6 +406,28 @@ export function PhotoBoothComponent({
     setShowPhotoStrip(!showPhotoStrip);
   };
 
+  // Check if camera is available at all
+  const checkCameraAvailability = async (): Promise<boolean> => {
+    try {
+      // Check if mediaDevices API is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        console.error("mediaDevices API not available");
+        return false;
+      }
+
+      // Check for secure context (required for camera in most browsers)
+      if (window.isSecureContext === false) {
+        console.error("Not in a secure context, camera might not work");
+        // We'll still try, but log the warning
+      }
+
+      return true;
+    } catch (err) {
+      console.error("Error checking camera availability:", err);
+      return false;
+    }
+  };
+
   if (!isWindowOpen) return null;
 
   return (
@@ -404,14 +468,23 @@ export function PhotoBoothComponent({
               ) : isLoadingCamera ? (
                 <div className="flex flex-col items-center justify-center text-white h-full w-full"></div>
               ) : cameraError ? (
-                <div className="flex flex-col items-center justify-center text-white h-full w-full">
-                  <p className="font-geneva-12">{cameraError}</p>
-                  <Button
-                    onClick={startCamera}
-                    className="mt-4 bg-black hover:bg-black/80 rounded-full text-sm px-4 py-1.5"
-                  >
-                    Try Again
-                  </Button>
+                <div className="flex flex-col items-center justify-center text-white h-full w-full p-6 max-w-md mx-auto text-center">
+                  <div className="bg-black/60 p-4 rounded-lg shadow-lg">
+                    <AlertTriangle className="h-12 w-12 text-yellow-400 mx-auto mb-2" />
+                    <p className="font-geneva-12 mb-3">{cameraError}</p>
+                    {cameraError.includes("HTTPS") ? (
+                      <div className="text-xs mb-2 text-yellow-200">
+                        This application requires a secure connection to access
+                        your camera. Please make sure you're using HTTPS.
+                      </div>
+                    ) : null}
+                    <Button
+                      onClick={startCamera}
+                      className="mt-2 bg-blue-600 hover:bg-blue-700 rounded-full text-sm px-4 py-1.5"
+                    >
+                      Try Again
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center text-white h-full w-full p-8">
