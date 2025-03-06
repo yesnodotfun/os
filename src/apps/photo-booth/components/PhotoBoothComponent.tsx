@@ -59,6 +59,19 @@ export function PhotoBoothComponent({
   const [showThumbnail, setShowThumbnail] = useState(false);
   const thumbnailRef = useRef({ x: 0, y: 0, width: 0, height: 0 });
   const { play: playShutter } = useSound(Sounds.PHOTO_SHUTTER, 0.4);
+  const [newPhotoIndex, setNewPhotoIndex] = useState<number | null>(null);
+
+  // Add a small delay before showing photo strip to prevent flickering
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  useEffect(() => {
+    if (showPhotoStrip && isInitialLoad) {
+      // Let the component fully mount before showing photostrip
+      const timer = setTimeout(() => {
+        setIsInitialLoad(false);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [showPhotoStrip, isInitialLoad]);
 
   useEffect(() => {
     if (isWindowOpen && isForeground) {
@@ -81,6 +94,14 @@ export function PhotoBoothComponent({
     // Safari on iOS requires this initialization sequence
     const handleCanPlay = () => {
       if (videoElement) {
+        console.log("Video can play now, attempting to play...");
+        // Force repaint on iOS to prevent gray screen
+        videoElement.style.display = "none";
+        // This forces a repaint - void operator to avoid unused variable warning
+        void videoElement.offsetHeight;
+        videoElement.style.display = "block";
+
+        // Force play - critical for iOS Safari
         videoElement.play().catch((e) => {
           console.error("Error playing video:", e);
         });
@@ -98,11 +119,19 @@ export function PhotoBoothComponent({
     };
   }, [stream]); // Re-run when stream changes
 
+  // Save photos to localStorage whenever they change
   useEffect(() => {
-    localStorage.setItem(
-      APP_STORAGE_KEYS["photo-booth"].PHOTOS,
-      JSON.stringify(photos)
-    );
+    if (photos.length > 0) {
+      try {
+        localStorage.setItem(
+          APP_STORAGE_KEYS["photo-booth"].PHOTOS,
+          JSON.stringify(photos)
+        );
+      } catch (error) {
+        console.error("Failed to save photos to localStorage:", error);
+        // Continue without saving to localStorage
+      }
+    }
   }, [photos]);
 
   const startCamera = async () => {
@@ -110,13 +139,13 @@ export function PhotoBoothComponent({
       setCameraError(null);
       setIsLoadingCamera(true);
 
-      // Safari-specific constraints
+      // Safari-specific constraints - using more lenient constraints for iOS
       const constraints = {
         video: {
           facingMode: "user",
-          // Safari requires explicit width/height
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
+          // Avoid specific resolution constraints on iOS which can cause issues
+          width: { ideal: 640 },
+          height: { ideal: 480 },
         },
         audio: false,
       };
@@ -127,11 +156,22 @@ export function PhotoBoothComponent({
 
       // For Safari, we need to ensure the video element is properly configured
       if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-        // Safari requires playsInline attribute
+        // Safari on iOS: Need to set attributes before assigning srcObject
         videoRef.current.setAttribute("playsinline", "true");
-        // Ensure autoplay is set
         videoRef.current.setAttribute("autoplay", "true");
+        videoRef.current.setAttribute("muted", "true");
+        videoRef.current.muted = true; // Redundant but sometimes needed
+
+        // Delay setting srcObject slightly for iOS Safari
+        setTimeout(() => {
+          if (videoRef.current) {
+            videoRef.current.srcObject = mediaStream;
+            // Try to force play
+            videoRef.current.play().catch((e) => {
+              console.error("Error playing video after setting srcObject:", e);
+            });
+          }
+        }, 100);
       }
 
       setStream(mediaStream);
@@ -178,31 +218,81 @@ export function PhotoBoothComponent({
     // Play shutter sound
     playShutter();
 
-    const canvas = document.createElement("canvas");
-    canvas.width = videoRef.current.videoWidth;
-    canvas.height = videoRef.current.videoHeight;
-    const context = canvas.getContext("2d");
+    try {
+      // Create a canvas element to capture the photo
+      const canvas = document.createElement("canvas");
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+      const ctx = canvas.getContext("2d");
 
-    if (!context) return;
+      if (!ctx) return;
 
-    // Apply current filter
-    context.filter = selectedEffect.filter;
-    context.drawImage(videoRef.current, 0, 0);
+      // Setup horizontal flip for selfie camera (mirror effect)
+      ctx.save();
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
 
-    const photoUrl = canvas.toDataURL("image/jpeg");
+      // Apply the selected effect if any - Safari compatible approach
+      try {
+        if (selectedEffect && selectedEffect.name !== "Normal") {
+          ctx.filter = selectedEffect.filter;
+        }
+      } catch (filterError) {
+        console.error("Error applying filter:", filterError);
+        // Continue without filter if there's an error
+      }
 
-    if (isMultiPhotoMode) {
-      setCurrentPhotoBatch((prev) => [...prev, photoUrl]);
-    } else {
-      setPhotos((prev) => [...prev, photoUrl]);
+      // Draw the current video frame on the canvas
+      ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
 
-      // Show thumbnail animation
-      setLastPhoto(photoUrl);
+      // Restore canvas context
+      ctx.restore();
+
+      // Convert the canvas to a data URL that can be displayed as an image
+      // Use explicit MIME type and quality for better Safari compatibility
+      let photoDataUrl;
+      try {
+        photoDataUrl = canvas.toDataURL("image/jpeg", 0.92);
+      } catch (dataUrlError) {
+        console.error("Error creating data URL:", dataUrlError);
+        // Fallback to PNG if JPEG fails
+        photoDataUrl = canvas.toDataURL("image/png");
+      }
+
+      // Add the new photo to the photos array
+      setPhotos((prevPhotos) => {
+        const newPhotos = [...prevPhotos, photoDataUrl];
+        // Save to localStorage with explicit try/catch for Safari private browsing
+        try {
+          localStorage.setItem(
+            APP_STORAGE_KEYS["photo-booth"].PHOTOS,
+            JSON.stringify(newPhotos)
+          );
+        } catch (storageError) {
+          console.error("Error saving to localStorage:", storageError);
+          // Continue without saving to localStorage
+        }
+        return newPhotos;
+      });
+      setLastPhoto(photoDataUrl);
+
+      // Mark the new photo for animation
+      setNewPhotoIndex(photos.length);
+
+      // Show the thumbnail
       setShowThumbnail(true);
-      setTimeout(() => setShowThumbnail(false), 3000);
-    }
 
-    return photoUrl;
+      // Hide the thumbnail after 2 seconds
+      setTimeout(() => {
+        setShowThumbnail(false);
+        // Reset the new photo index after animation is likely done
+        setTimeout(() => {
+          setNewPhotoIndex(null);
+        }, 500);
+      }, 2000);
+    } catch (error) {
+      console.error("Error taking photo:", error);
+    }
   };
 
   const startMultiPhotoSequence = () => {
@@ -248,6 +338,17 @@ export function PhotoBoothComponent({
   const handleClearPhotos = () => {
     setPhotos([]);
     setCurrentPhotoBatch([]);
+
+    // Clear photos from localStorage with Safari compatibility
+    try {
+      localStorage.setItem(
+        APP_STORAGE_KEYS["photo-booth"].PHOTOS,
+        JSON.stringify([])
+      );
+    } catch (storageError) {
+      console.error("Error clearing photos from localStorage:", storageError);
+      // Continue without saving to localStorage
+    }
   };
 
   const handleExportPhotos = () => {
@@ -282,7 +383,13 @@ export function PhotoBoothComponent({
       >
         <div className="flex flex-col w-full h-full bg-neutral-500 max-h-full overflow-hidden">
           {/* Camera view area - takes available space but doesn't overflow */}
-          <div className="flex-1 min-h-0 relative">
+          <div
+            className={`flex-1 min-h-0 relative ${
+              !stream || isLoadingCamera || cameraError
+                ? "pointer-events-none opacity-50"
+                : ""
+            }`}
+          >
             <div className="absolute inset-0 flex items-center justify-center">
               {stream ? (
                 <video
@@ -301,7 +408,7 @@ export function PhotoBoothComponent({
                   <p className="font-geneva-12">{cameraError}</p>
                   <Button
                     onClick={startCamera}
-                    className="mt-4 bg-black hover:bg-black/80 rounded-full"
+                    className="mt-4 bg-black hover:bg-black/80 rounded-full text-sm px-4 py-1.5"
                   >
                     Try Again
                   </Button>
@@ -310,7 +417,7 @@ export function PhotoBoothComponent({
                 <div className="flex flex-col items-center justify-center text-white h-full w-full p-8">
                   <Button
                     onClick={startCamera}
-                    className="bg-blue-600 hover:bg-blue-700"
+                    className="bg-blue-600 hover:bg-blue-700 text-sm px-4 py-1.5"
                   >
                     Start Camera
                   </Button>
@@ -358,7 +465,7 @@ export function PhotoBoothComponent({
                     transition={{ duration: 0.2 }}
                   >
                     <motion.div
-                      className="grid grid-cols-3 gap-4 p-4 w-full max-w-4xl max-h-[calc(100vh-200px)] overflow-auto"
+                      className="grid grid-cols-3 gap-4 p-4 w-full max-w-4xl max-h-full overflow-auto"
                       initial={{ scale: 0.85, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
                       exit={{ scale: 0.85, opacity: 0 }}
@@ -416,8 +523,8 @@ export function PhotoBoothComponent({
               </AnimatePresence>
 
               {/* Photo strip preview - positioned in camera view area, but above bottom controls */}
-              <AnimatePresence>
-                {showPhotoStrip && photos.length > 0 && (
+              <AnimatePresence mode="wait">
+                {showPhotoStrip && photos.length > 0 && !isInitialLoad && (
                   <motion.div
                     className="absolute bottom-0 inset-x-0 w-full bg-white/40 backdrop-blur-sm p-1 overflow-x-auto"
                     initial={{ y: 50, opacity: 0 }}
@@ -429,34 +536,49 @@ export function PhotoBoothComponent({
                       duration: 0.2,
                     }}
                   >
-                    <motion.div className="flex flex-row space-x-1 h-20" layout>
-                      {[...photos].reverse().map((photo, index) => (
-                        <motion.img
-                          key={photo}
-                          src={photo}
-                          alt={`Photo ${index}`}
-                          className="h-full w-auto object-cover cursor-pointer transition-opacity hover:opacity-80"
-                          layout="position"
-                          layoutId={photo}
-                          initial={{ opacity: 0, scale: 0.8 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{
-                            type: "spring",
-                            stiffness: 400,
-                            damping: 25,
-                          }}
-                          onClick={() => {
-                            // Create an anchor element to download the image
-                            const link = document.createElement("a");
-                            link.href = photo;
-                            link.download = `photo-booth-image-${Date.now()}-${index}.jpg`;
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
-                          }}
-                        />
-                      ))}
-                    </motion.div>
+                    <div className="flex flex-row space-x-1 h-20 w-max">
+                      {[...photos].reverse().map((photo, index) => {
+                        // Calculate the original index (before reversing)
+                        const originalIndex = photos.length - 1 - index;
+                        // Check if this is the new photo that was just added
+                        const isNewPhoto = originalIndex === newPhotoIndex;
+
+                        return (
+                          <motion.div
+                            key={`photo-${originalIndex}`}
+                            className="h-full flex-shrink-0"
+                            initial={
+                              isNewPhoto
+                                ? { scale: 0.5, opacity: 0 }
+                                : { opacity: 1, scale: 1 }
+                            }
+                            animate={{ scale: 1, opacity: 1 }}
+                            layout
+                            transition={{
+                              type: "spring",
+                              damping: 25,
+                              stiffness: 400,
+                              duration: isNewPhoto ? 0.4 : 0,
+                            }}
+                          >
+                            <img
+                              src={photo}
+                              alt={`Photo ${originalIndex}`}
+                              className="h-full w-auto object-contain cursor-pointer transition-opacity hover:opacity-80"
+                              onClick={() => {
+                                // Create an anchor element to download the image
+                                const link = document.createElement("a");
+                                link.href = photo;
+                                link.download = `photo-booth-image-${Date.now()}-${originalIndex}.jpg`;
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                              }}
+                            />
+                          </motion.div>
+                        );
+                      })}
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -507,7 +629,7 @@ export function PhotoBoothComponent({
               </AnimatePresence>
 
               <button
-                className="h-12 w-12 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white relative overflow-hidden"
+                className="h-10 w-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white relative overflow-hidden"
                 onClick={togglePhotoStrip}
                 disabled={photos.length === 0}
                 ref={(node) => {
@@ -522,20 +644,20 @@ export function PhotoBoothComponent({
                   }
                 }}
               >
-                <Images size={22} />
+                <Images size={18} />
               </button>
               <button
-                className="h-12 w-12 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white"
+                className="h-10 w-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white"
                 onClick={startMultiPhotoSequence}
                 disabled={isMultiPhotoMode || !stream || !!cameraError}
               >
-                <Timer size={22} />
+                <Timer size={18} />
               </button>
             </div>
 
             <Button
               onClick={isMultiPhotoMode ? () => {} : takePhoto}
-              className={`rounded-full h-16 w-16 [&_svg]:size-6  ${
+              className={`rounded-full h-14 w-14 [&_svg]:size-5 ${
                 isMultiPhotoMode || !stream || !!cameraError
                   ? `bg-gray-500 cursor-not-allowed`
                   : `bg-red-500 hover:bg-red-600`
@@ -547,7 +669,7 @@ export function PhotoBoothComponent({
 
             <Button
               onClick={toggleEffects}
-              className="h-12 px-6 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white text-[16px]"
+              className="h-10 px-5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-[16px]"
               disabled={!stream || !!cameraError}
             >
               Effects
