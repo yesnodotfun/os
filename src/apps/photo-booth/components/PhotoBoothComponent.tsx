@@ -74,58 +74,85 @@ export function PhotoBoothComponent({
   }, [showPhotoStrip, isInitialLoad]);
 
   useEffect(() => {
-    if (isWindowOpen && isForeground) {
-      checkCameraAvailability().then((available) => {
-        if (available) {
+    // Start camera when window opens or app comes to foreground
+    if (isWindowOpen) {
+      if (isForeground) {
+        // Check if stream is active, if not, restart it
+        const isStreamActive =
+          stream &&
+          stream.active &&
+          stream.getTracks().some((track) => track.readyState === "live");
+
+        if (!isStreamActive) {
+          console.log("Starting/restarting camera");
           startCamera();
-        } else {
-          setCameraError(
-            "Camera API not available in this browser or environment. Try using a different browser."
-          );
         }
-      });
-    }
-    return () => {
-      if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
+      } else {
+        // App going to background - we'll keep the stream alive
+        console.log("App in background - stream will be maintained");
       }
-      if (multiPhotoTimer) {
-        clearInterval(multiPhotoTimer);
+    }
+
+    // Only clean up when window actually closes
+    return () => {
+      if (!isWindowOpen) {
+        stopCamera();
       }
     };
-  }, [isWindowOpen, isForeground]);
+  }, [isWindowOpen, isForeground, stream]);
+
+  const stopCamera = () => {
+    if (stream) {
+      stream.getTracks().forEach((track) => track.stop());
+      setStream(null);
+    }
+
+    if (multiPhotoTimer) {
+      clearInterval(multiPhotoTimer);
+    }
+  };
 
   // Add event listener for the video element to handle Safari initialization
   useEffect(() => {
     const videoElement = videoRef.current;
+    if (!videoElement || !stream) return;
 
-    // Safari on iOS requires this initialization sequence
+    // Track if video is actually playing
+    let isPlaying = false;
+
     const handleCanPlay = () => {
-      if (videoElement) {
-        console.log("Video can play now, attempting to play...");
-        // Force repaint on iOS to prevent gray screen
-        videoElement.style.display = "none";
-        // This forces a repaint - void operator to avoid unused variable warning
-        void videoElement.offsetHeight;
-        videoElement.style.display = "block";
+      console.log("Video can play now");
 
-        // Force play - critical for iOS Safari
-        videoElement.play().catch((e) => {
-          console.error("Error playing video:", e);
+      // Force play (required for mobile browsers)
+      videoElement
+        .play()
+        .then(() => {
+          isPlaying = true;
+          console.log("Video playing successfully");
+        })
+        .catch((e) => {
+          console.error("Play error:", e);
+          isPlaying = false;
         });
-      }
     };
 
-    if (videoElement) {
-      videoElement.addEventListener("canplay", handleCanPlay);
-    }
+    // Recovery check - if video isn't playing after a moment, try again
+    const recoveryTimer = setTimeout(() => {
+      if (!isPlaying && videoElement && stream.active) {
+        console.log("Attempting recovery of video playback");
+        videoElement
+          .play()
+          .catch((e) => console.error("Recovery attempt failed:", e));
+      }
+    }, 2000);
+
+    videoElement.addEventListener("canplay", handleCanPlay);
 
     return () => {
-      if (videoElement) {
-        videoElement.removeEventListener("canplay", handleCanPlay);
-      }
+      videoElement.removeEventListener("canplay", handleCanPlay);
+      clearTimeout(recoveryTimer);
     };
-  }, [stream]); // Re-run when stream changes
+  }, [stream]);
 
   // Save photos to localStorage whenever they change
   useEffect(() => {
@@ -147,101 +174,56 @@ export function PhotoBoothComponent({
       setCameraError(null);
       setIsLoadingCamera(true);
 
-      // Check if running on a secure context (HTTPS) when in production
-      if (
-        window.location.protocol === "http:" &&
-        window.location.hostname !== "localhost"
-      ) {
-        throw new DOMException(
-          "Camera access requires HTTPS in production environments",
-          "SecurityError"
-        );
+      // Check if current stream is still active before stopping it
+      if (stream) {
+        const isStreamActive =
+          stream.active &&
+          stream.getTracks().some((track) => track.readyState === "live");
+
+        if (isStreamActive) {
+          console.log("Camera already active, keeping current stream");
+          setIsLoadingCamera(false);
+          return;
+        } else {
+          console.log("Stream inactive, stopping and restarting");
+          stopCamera();
+        }
       }
 
-      // Safari-specific constraints - using more lenient constraints for iOS
+      // Basic constraints that work well across devices
       const constraints = {
-        video: {
-          facingMode: "user",
-          // Avoid specific resolution constraints on iOS which can cause issues
-          width: { ideal: 640 },
-          height: { ideal: 480 },
-        },
+        video: { facingMode: "user" },
         audio: false,
       };
 
-      // Add a timeout to handle long-running permission requests
-      const getUserMediaPromise =
-        navigator.mediaDevices.getUserMedia(constraints);
-      const timeoutPromise = new Promise<MediaStream>((_, reject) => {
-        setTimeout(() => reject(new Error("Camera access timed out")), 10000);
-      });
+      const mediaStream = await navigator.mediaDevices.getUserMedia(
+        constraints
+      );
 
-      const mediaStream = await Promise.race([
-        getUserMediaPromise,
-        timeoutPromise,
-      ]);
-
-      // For Safari, we need to ensure the video element is properly configured
       if (videoRef.current) {
-        // First stop any existing stream
-        if (videoRef.current.srcObject) {
-          const oldStream = videoRef.current.srcObject as MediaStream;
-          oldStream.getTracks().forEach((track) => track.stop());
-        }
-
-        // Safari on iOS: Need to set attributes before assigning srcObject
+        // Set HTML attributes important for mobile
         videoRef.current.setAttribute("playsinline", "true");
         videoRef.current.setAttribute("autoplay", "true");
         videoRef.current.setAttribute("muted", "true");
-        videoRef.current.muted = true; // Redundant but sometimes needed
+        videoRef.current.muted = true;
 
-        // Delay setting srcObject slightly for iOS Safari
-        setTimeout(() => {
-          if (videoRef.current) {
-            videoRef.current.srcObject = mediaStream;
-            // Try to force play
-            videoRef.current.play().catch((e) => {
-              console.error("Error playing video after setting srcObject:", e);
-            });
-          }
-        }, 100);
+        // Set srcObject directly
+        videoRef.current.srcObject = mediaStream;
       }
 
       setStream(mediaStream);
     } catch (error) {
-      console.error("Error accessing camera:", error);
+      console.error("Camera error:", error);
       let errorMessage = "Could not access camera";
 
       if (error instanceof DOMException) {
-        switch (error.name) {
-          case "NotAllowedError":
-            errorMessage =
-              "Camera permission denied. Please enable camera access in your browser settings.";
-            break;
-          case "NotFoundError":
-            errorMessage =
-              "No camera found. Please connect a camera and try again.";
-            break;
-          case "NotReadableError":
-            errorMessage =
-              "Camera is in use by another application. Please close other apps using the camera.";
-            break;
-          case "OverconstrainedError":
-            errorMessage =
-              "Camera does not support the requested configuration.";
-            break;
-          case "SecurityError":
-            errorMessage =
-              "Camera access requires HTTPS. Please use a secure connection.";
-            break;
-          default:
-            errorMessage = `Camera error: ${error.message}`;
+        if (error.name === "NotAllowedError") {
+          errorMessage = "Camera permission denied";
+        } else if (error.name === "NotFoundError") {
+          errorMessage = "No camera found";
+        } else {
+          errorMessage = `Camera error: ${error.name}`;
         }
-      } else if (
-        error instanceof Error &&
-        error.message === "Camera access timed out"
-      ) {
-        errorMessage = "Camera access timed out. Please try again.";
       }
 
       setCameraError(errorMessage);
@@ -263,10 +245,15 @@ export function PhotoBoothComponent({
     try {
       // Create a canvas element to capture the photo
       const canvas = document.createElement("canvas");
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
-      const ctx = canvas.getContext("2d");
 
+      // Use reasonable default dimensions if video dimensions are not available
+      const videoWidth = videoRef.current.videoWidth || 640;
+      const videoHeight = videoRef.current.videoHeight || 480;
+
+      canvas.width = videoWidth;
+      canvas.height = videoHeight;
+
+      const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
       // Setup horizontal flip for selfie camera (mirror effect)
@@ -274,63 +261,49 @@ export function PhotoBoothComponent({
       ctx.translate(canvas.width, 0);
       ctx.scale(-1, 1);
 
-      // Apply the selected effect if any - Safari compatible approach
-      try {
-        if (selectedEffect && selectedEffect.name !== "Normal") {
+      // Apply the selected effect if any (in a safe way)
+      if (selectedEffect && selectedEffect.name !== "Normal") {
+        try {
           ctx.filter = selectedEffect.filter;
+        } catch {
+          console.error("Filter not supported");
+          // Continue without filter
         }
-      } catch (filterError) {
-        console.error("Error applying filter:", filterError);
-        // Continue without filter if there's an error
       }
 
       // Draw the current video frame on the canvas
       ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-
-      // Restore canvas context
       ctx.restore();
 
-      // Convert the canvas to a data URL that can be displayed as an image
-      // Use explicit MIME type and quality for better Safari compatibility
+      // Convert to data URL - try JPEG first, then PNG as fallback
       let photoDataUrl;
       try {
-        photoDataUrl = canvas.toDataURL("image/jpeg", 0.92);
-      } catch (dataUrlError) {
-        console.error("Error creating data URL:", dataUrlError);
-        // Fallback to PNG if JPEG fails
+        photoDataUrl = canvas.toDataURL("image/jpeg", 0.85);
+      } catch {
         photoDataUrl = canvas.toDataURL("image/png");
       }
 
       // Add the new photo to the photos array
       setPhotos((prevPhotos) => {
         const newPhotos = [...prevPhotos, photoDataUrl];
-        // Save to localStorage with explicit try/catch for Safari private browsing
         try {
           localStorage.setItem(
             APP_STORAGE_KEYS["photo-booth"].PHOTOS,
             JSON.stringify(newPhotos)
           );
-        } catch (storageError) {
-          console.error("Error saving to localStorage:", storageError);
-          // Continue without saving to localStorage
+        } catch (e) {
+          console.error("Error saving to localStorage:", e);
         }
         return newPhotos;
       });
+
       setLastPhoto(photoDataUrl);
-
-      // Mark the new photo for animation
       setNewPhotoIndex(photos.length);
-
-      // Show the thumbnail
       setShowThumbnail(true);
 
-      // Hide the thumbnail after 2 seconds
       setTimeout(() => {
         setShowThumbnail(false);
-        // Reset the new photo index after animation is likely done
-        setTimeout(() => {
-          setNewPhotoIndex(null);
-        }, 500);
+        setTimeout(() => setNewPhotoIndex(null), 500);
       }, 2000);
     } catch (error) {
       console.error("Error taking photo:", error);
@@ -406,28 +379,6 @@ export function PhotoBoothComponent({
     setShowPhotoStrip(!showPhotoStrip);
   };
 
-  // Check if camera is available at all
-  const checkCameraAvailability = async (): Promise<boolean> => {
-    try {
-      // Check if mediaDevices API is available
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        console.error("mediaDevices API not available");
-        return false;
-      }
-
-      // Check for secure context (required for camera in most browsers)
-      if (window.isSecureContext === false) {
-        console.error("Not in a secure context, camera might not work");
-        // We'll still try, but log the warning
-      }
-
-      return true;
-    } catch (err) {
-      console.error("Error checking camera availability:", err);
-      return false;
-    }
-  };
-
   if (!isWindowOpen) return null;
 
   return (
@@ -460,9 +411,20 @@ export function PhotoBoothComponent({
                   ref={videoRef}
                   autoPlay
                   playsInline
+                  muted
                   className="w-full h-full object-cover transform scale-x-[-1]"
                   style={{
                     filter: selectedEffect.filter,
+                  }}
+                  onError={(e) => {
+                    console.error("Video error:", e);
+                    // Try to restart camera on error after a delay
+                    setTimeout(() => {
+                      if (isWindowOpen && isForeground) {
+                        console.log("Attempting camera recovery");
+                        startCamera();
+                      }
+                    }, 1000);
                   }}
                 />
               ) : isLoadingCamera ? (
@@ -581,6 +543,8 @@ export function PhotoBoothComponent({
                               ref={(el) => {
                                 if (el && videoRef.current?.srcObject) {
                                   el.srcObject = videoRef.current.srcObject;
+                                  // Ensure playing
+                                  el.play().catch(() => {});
                                 }
                               }}
                             />
