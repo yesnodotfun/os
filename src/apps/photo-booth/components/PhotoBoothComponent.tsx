@@ -61,7 +61,7 @@ export function PhotoBoothComponent({
   const { play: playShutter } = useSound(Sounds.PHOTO_SHUTTER, 0.4);
 
   useEffect(() => {
-    if (isWindowOpen) {
+    if (isWindowOpen && isForeground) {
       startCamera();
     }
     return () => {
@@ -72,7 +72,31 @@ export function PhotoBoothComponent({
         clearInterval(multiPhotoTimer);
       }
     };
-  }, [isWindowOpen]);
+  }, [isWindowOpen, isForeground]);
+
+  // Add event listener for the video element to handle Safari initialization
+  useEffect(() => {
+    const videoElement = videoRef.current;
+
+    // Safari on iOS requires this initialization sequence
+    const handleCanPlay = () => {
+      if (videoElement) {
+        videoElement.play().catch((e) => {
+          console.error("Error playing video:", e);
+        });
+      }
+    };
+
+    if (videoElement) {
+      videoElement.addEventListener("canplay", handleCanPlay);
+    }
+
+    return () => {
+      if (videoElement) {
+        videoElement.removeEventListener("canplay", handleCanPlay);
+      }
+    };
+  }, [stream]); // Re-run when stream changes
 
   useEffect(() => {
     localStorage.setItem(
@@ -85,21 +109,60 @@ export function PhotoBoothComponent({
     try {
       setCameraError(null);
       setIsLoadingCamera(true);
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user" },
+
+      // Safari-specific constraints
+      const constraints = {
+        video: {
+          facingMode: "user",
+          // Safari requires explicit width/height
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
         audio: false,
-      });
-      setStream(mediaStream);
+      };
+
+      const mediaStream = await navigator.mediaDevices.getUserMedia(
+        constraints
+      );
+
+      // For Safari, we need to ensure the video element is properly configured
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
+        // Safari requires playsInline attribute
+        videoRef.current.setAttribute("playsinline", "true");
+        // Ensure autoplay is set
+        videoRef.current.setAttribute("autoplay", "true");
       }
+
+      setStream(mediaStream);
     } catch (error) {
       console.error("Error accessing camera:", error);
-      setCameraError(
-        error instanceof DOMException && error.name === "NotAllowedError"
-          ? "Camera permission denied"
-          : "Could not access camera"
-      );
+      let errorMessage = "Could not access camera";
+
+      if (error instanceof DOMException) {
+        switch (error.name) {
+          case "NotAllowedError":
+            errorMessage =
+              "Camera permission denied. Please enable camera access in your browser settings.";
+            break;
+          case "NotFoundError":
+            errorMessage =
+              "No camera found. Please connect a camera and try again.";
+            break;
+          case "NotReadableError":
+            errorMessage =
+              "Camera is in use by another application. Please close other apps using the camera.";
+            break;
+          case "OverconstrainedError":
+            errorMessage =
+              "Camera does not support the requested configuration.";
+            break;
+          default:
+            errorMessage = `Camera error: ${error.message}`;
+        }
+      }
+
+      setCameraError(errorMessage);
     } finally {
       setIsLoadingCamera(false);
     }
