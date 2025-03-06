@@ -7,7 +7,7 @@ import { helpItems, appMetadata } from "..";
 import { PhotoBoothMenuBar } from "./PhotoBoothMenuBar";
 import { APP_STORAGE_KEYS } from "@/utils/storage";
 import { AppProps } from "../../base/types";
-import { Camera, Images, ZapOff, Ban, Timer } from "lucide-react";
+import { Camera, Images, Timer } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSound, Sounds } from "@/hooks/useSound";
 
@@ -234,26 +234,14 @@ export function PhotoBoothComponent({
               ) : isLoadingCamera ? (
                 <div className="flex flex-col items-center justify-center text-white h-full w-full"></div>
               ) : cameraError ? (
-                <div className="flex flex-col items-center justify-center text-white h-full w-full p-8">
-                  <div className="bg-black/40 p-10 rounded-lg flex flex-col items-center gap-4 max-w-md">
-                    {cameraError === "Camera permission denied" ? (
-                      <Ban size={48} className="text-red-500 mb-2" />
-                    ) : (
-                      <ZapOff size={48} className="text-yellow-500 mb-2" />
-                    )}
-                    <h3 className="text-xl font-bold">{cameraError}</h3>
-                    <p className="text-center text-gray-300">
-                      {cameraError === "Camera permission denied"
-                        ? "Please allow camera access in your browser settings to use Photo Booth."
-                        : "We couldn't connect to your camera. Please check your connection and try again."}
-                    </p>
-                    <Button
-                      onClick={startCamera}
-                      className="mt-4 bg-blue-600 hover:bg-blue-700"
-                    >
-                      Try Again
-                    </Button>
-                  </div>
+                <div className="flex flex-col items-center justify-center text-white h-full w-full">
+                  <p className="font-geneva-12">{cameraError}</p>
+                  <Button
+                    onClick={startCamera}
+                    className="mt-4 bg-black hover:bg-black/80 rounded-full"
+                  >
+                    Try Again
+                  </Button>
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center text-white h-full w-full p-8">
