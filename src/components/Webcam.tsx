@@ -58,7 +58,14 @@ export function Webcam({
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
 
-        // Flip the context horizontally to match the video display
+        // Reset any existing transformations
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+        // Apply the filter first
+        ctx.filter = filter;
+        console.log("Applying filter during capture:", filter);
+
+        // Then apply the horizontal flip
         ctx.scale(-1, 1);
         ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
 
@@ -72,7 +79,7 @@ export function Webcam({
       window.addEventListener('webcam-capture', handleCapture);
       return () => window.removeEventListener('webcam-capture', handleCapture);
     }
-  }, [stream, onPhoto, isPreview]);
+  }, [stream, onPhoto, isPreview, filter]);
 
   const startCamera = async () => {
     try {

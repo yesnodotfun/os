@@ -66,19 +66,19 @@ export const appRegistry = {
       maxSize: { width: 713, height: 535 },
     } as WindowConstraints,
   },
-  [VideosApp.id]: {
-    ...VideosApp,
-    windowConfig: {
-      defaultSize: { width: 400, height: 389 },
-      minSize: { width: 400, height: 340 },
-    } as WindowConstraints,
-  },
   [PhotoBoothApp.id]: {
     ...PhotoBoothApp,
     windowConfig: {
       defaultSize: { width: 644, height: 510 },
       minSize: { width: 644, height: 510 },
       maxSize: { width: 644, height: 510 },
+    } as WindowConstraints,
+  },
+  [VideosApp.id]: {
+    ...VideosApp,
+    windowConfig: {
+      defaultSize: { width: 400, height: 389 },
+      minSize: { width: 400, height: 340 },
     } as WindowConstraints,
   },
   [PcApp.id]: {
