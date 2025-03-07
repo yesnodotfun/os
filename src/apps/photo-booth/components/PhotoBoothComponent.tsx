@@ -60,6 +60,7 @@ export function PhotoBoothComponent({
   const [showThumbnail, setShowThumbnail] = useState(false);
   const { play: playShutter } = useSound(Sounds.PHOTO_SHUTTER, 0.4);
   const [newPhotoIndex, setNewPhotoIndex] = useState<number | null>(null);
+  const [mainStream, setMainStream] = useState<MediaStream | null>(null);
 
   // Add a small delay before showing photo strip to prevent flickering
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -580,6 +581,8 @@ export function PhotoBoothComponent({
               <Webcam 
                 onPhoto={handlePhoto}
                 className="w-full h-full"
+                filter={selectedEffect.filter}
+                onStreamReady={setMainStream}
               />
 
               {/* Camera flash effect */}
@@ -654,6 +657,12 @@ export function PhotoBoothComponent({
                             setShowEffects(false);
                           }}
                         >
+                          <Webcam
+                            isPreview
+                            filter={effect.filter}
+                            className="w-full h-full"
+                            sharedStream={mainStream}
+                          />
                           <div className="absolute bottom-0 left-0 right-0 text-center py-2 bg-black/50 text-white text-[16px]">
                             {effect.name}
                           </div>

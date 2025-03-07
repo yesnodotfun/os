@@ -3,18 +3,44 @@ import { useEffect, useRef, useState } from "react";
 interface WebcamProps {
   onPhoto?: (photoDataUrl: string) => void;
   className?: string;
+  isPreview?: boolean;
+  filter?: string;
+  onStreamReady?: (stream: MediaStream) => void;
+  sharedStream?: MediaStream | null;
 }
 
-export function Webcam({ onPhoto, className = "" }: WebcamProps) {
+export function Webcam({ 
+  onPhoto, 
+  className = "", 
+  isPreview = false,
+  filter = "none",
+  onStreamReady,
+  sharedStream
+}: WebcamProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Start camera when component mounts
+  // Start camera when component mounts or shared stream changes
   useEffect(() => {
-    startCamera();
-    return () => stopCamera();
-  }, []);
+    if (!isPreview) {
+      startCamera();
+      return () => stopCamera();
+    } else if (sharedStream) {
+      setStream(sharedStream);
+      if (videoRef.current) {
+        videoRef.current.srcObject = sharedStream;
+        videoRef.current.play().catch(console.error);
+      }
+    }
+  }, [isPreview, sharedStream]);
+
+  // Handle stream ready callback
+  useEffect(() => {
+    if (stream && onStreamReady && !isPreview) {
+      onStreamReady(stream);
+    }
+  }, [stream, onStreamReady, isPreview]);
 
   // Listen for webcam-capture events
   useEffect(() => {
@@ -39,17 +65,19 @@ export function Webcam({ onPhoto, className = "" }: WebcamProps) {
       }
     };
 
-    window.addEventListener('webcam-capture', handleCapture);
-    return () => window.removeEventListener('webcam-capture', handleCapture);
-  }, [stream, onPhoto]);
+    if (!isPreview) {
+      window.addEventListener('webcam-capture', handleCapture);
+      return () => window.removeEventListener('webcam-capture', handleCapture);
+    }
+  }, [stream, onPhoto, isPreview]);
 
   const startCamera = async () => {
     try {
       const constraints = {
         audio: false,
         video: {
-          width: { ideal: 640 },
-          height: { ideal: 480 },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
         },
       };
 
@@ -67,7 +95,7 @@ export function Webcam({ onPhoto, className = "" }: WebcamProps) {
   };
 
   const stopCamera = () => {
-    if (stream) {
+    if (stream && !isPreview) {
       stream.getTracks().forEach(track => track.stop());
       setStream(null);
     }
@@ -92,6 +120,7 @@ export function Webcam({ onPhoto, className = "" }: WebcamProps) {
           playsInline
           muted
           className="w-full h-full object-cover"
+          style={{ filter }}
         />
       )}
     </div>
