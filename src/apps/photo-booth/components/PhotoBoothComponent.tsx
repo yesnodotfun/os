@@ -751,13 +751,13 @@ export function PhotoBoothComponent({
           </div>
 
           {/* Fixed bottom control bar that always takes full width without overflowing */}
-          <div className="flex-shrink-0 w-full bg-black/70 backdrop-blur-md px-6 py-4 flex justify-between items-center z-10">
+          <div className="flex-shrink-0 w-full bg-black/70 backdrop-blur-md px-6 py-4 flex justify-between items-center z-[60]">
             <div className="flex space-x-3 relative">
               {/* Thumbnail animation */}
               <AnimatePresence>
                 {showThumbnail && lastPhoto && !showPhotoStrip && (
                   <motion.div
-                    className="absolute -top-24 left-0 pointer-events-none"
+                    className="absolute -top-24 left-0 pointer-events-none z-[100]"
                     initial={{ opacity: 0, y: 10, scale: 0.3 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{
