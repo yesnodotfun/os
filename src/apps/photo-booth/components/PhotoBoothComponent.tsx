@@ -7,9 +7,10 @@ import { helpItems, appMetadata } from "..";
 import { PhotoBoothMenuBar } from "./PhotoBoothMenuBar";
 import { APP_STORAGE_KEYS } from "@/utils/storage";
 import { AppProps } from "../../base/types";
-import { Camera, Images, Timer, AlertTriangle } from "lucide-react";
+import { Images, Timer, Camera } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSound, Sounds } from "@/hooks/useSound";
+import { Webcam } from "@/components/Webcam";
 
 interface Effect {
   name: string;
@@ -57,7 +58,6 @@ export function PhotoBoothComponent({
   const [isFlashing, setIsFlashing] = useState(false);
   const [lastPhoto, setLastPhoto] = useState<string | null>(null);
   const [showThumbnail, setShowThumbnail] = useState(false);
-  const thumbnailRef = useRef({ x: 0, y: 0, width: 0, height: 0 });
   const { play: playShutter } = useSound(Sounds.PHOTO_SHUTTER, 0.4);
   const [newPhotoIndex, setNewPhotoIndex] = useState<number | null>(null);
 
@@ -446,9 +446,7 @@ export function PhotoBoothComponent({
     }
   };
 
-  const takePhoto = () => {
-    if (!videoRef.current || !stream) return;
-
+  const handlePhoto = (photoDataUrl: string) => {
     // Trigger flash effect
     setIsFlashing(true);
     setTimeout(() => setIsFlashing(false), 800);
@@ -456,72 +454,28 @@ export function PhotoBoothComponent({
     // Play shutter sound
     playShutter();
 
-    try {
-      // Create a canvas element to capture the photo
-      const canvas = document.createElement("canvas");
-
-      // Use reasonable default dimensions if video dimensions are not available
-      const videoWidth = videoRef.current.videoWidth || 640;
-      const videoHeight = videoRef.current.videoHeight || 480;
-
-      canvas.width = videoWidth;
-      canvas.height = videoHeight;
-
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-
-      // Setup horizontal flip for selfie camera (mirror effect)
-      ctx.save();
-      ctx.translate(canvas.width, 0);
-      ctx.scale(-1, 1);
-
-      // Apply the selected effect if any (in a safe way)
-      if (selectedEffect && selectedEffect.name !== "Normal") {
-        try {
-          ctx.filter = selectedEffect.filter;
-        } catch {
-          console.error("Filter not supported");
-          // Continue without filter
-        }
-      }
-
-      // Draw the current video frame on the canvas
-      ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-      ctx.restore();
-
-      // Convert to data URL - try JPEG first, then PNG as fallback
-      let photoDataUrl;
+    // Add the new photo to the photos array
+    setPhotos((prevPhotos) => {
+      const newPhotos = [...prevPhotos, photoDataUrl];
       try {
-        photoDataUrl = canvas.toDataURL("image/jpeg", 0.85);
-      } catch {
-        photoDataUrl = canvas.toDataURL("image/png");
+        localStorage.setItem(
+          APP_STORAGE_KEYS["photo-booth"].PHOTOS,
+          JSON.stringify(newPhotos)
+        );
+      } catch (e) {
+        console.error("Error saving to localStorage:", e);
       }
+      return newPhotos;
+    });
 
-      // Add the new photo to the photos array
-      setPhotos((prevPhotos) => {
-        const newPhotos = [...prevPhotos, photoDataUrl];
-        try {
-          localStorage.setItem(
-            APP_STORAGE_KEYS["photo-booth"].PHOTOS,
-            JSON.stringify(newPhotos)
-          );
-        } catch (e) {
-          console.error("Error saving to localStorage:", e);
-        }
-        return newPhotos;
-      });
+    setLastPhoto(photoDataUrl);
+    setNewPhotoIndex(photos.length);
+    setShowThumbnail(true);
 
-      setLastPhoto(photoDataUrl);
-      setNewPhotoIndex(photos.length);
-      setShowThumbnail(true);
-
-      setTimeout(() => {
-        setShowThumbnail(false);
-        setTimeout(() => setNewPhotoIndex(null), 500);
-      }, 2000);
-    } catch (error) {
-      console.error("Error taking photo:", error);
-    }
+    setTimeout(() => {
+      setShowThumbnail(false);
+      setTimeout(() => setNewPhotoIndex(null), 500);
+    }, 2000);
   };
 
   const startMultiPhotoSequence = () => {
@@ -535,7 +489,9 @@ export function PhotoBoothComponent({
         const newCount = count + 1;
 
         if (newCount <= 4) {
-          takePhoto();
+          // Trigger photo capture
+          const event = new CustomEvent('webcam-capture');
+          window.dispatchEvent(event);
         }
 
         if (newCount === 4) {
@@ -561,7 +517,8 @@ export function PhotoBoothComponent({
     setMultiPhotoTimer(timer);
 
     // Take the first photo immediately
-    takePhoto();
+    const event = new CustomEvent('webcam-capture');
+    window.dispatchEvent(event);
   };
 
   const handleClearPhotos = () => {
@@ -620,115 +577,10 @@ export function PhotoBoothComponent({
             }`}
           >
             <div className="absolute inset-0 flex items-center justify-center">
-              {stream ? (
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  playsInline
-                  muted
-                  className={`w-full h-full object-cover z-10 opacity-100`}
-                  style={{
-                    filter: selectedEffect.filter,
-                    transform: "scaleX(-1)",
-                    WebkitTransform: "scaleX(-1)",
-                    display: "block",
-                    minWidth: "100%",
-                    minHeight: "100%",
-                  }}
-                  onLoadedMetadata={(e) => {
-                    console.log(
-                      "Video onLoadedMetadata event fired, dimensions:",
-                      {
-                        videoWidth: e.currentTarget.videoWidth,
-                        videoHeight: e.currentTarget.videoHeight,
-                      }
-                    );
-                    // Force play again on metadata loaded (helps Safari)
-                    e.currentTarget
-                      .play()
-                      .catch((err) =>
-                        console.warn("Play on metadata failed:", err)
-                      );
-                  }}
-                  onError={(e) => {
-                    console.error("Video error:", e);
-                    // Try to restart camera on error after a delay
-                    setTimeout(() => {
-                      if (isWindowOpen && isForeground) {
-                        console.log("Attempting camera recovery");
-                        startCamera();
-                      }
-                    }, 1000);
-                  }}
-                />
-              ) : isLoadingCamera ? (
-                <div className="flex flex-col items-center justify-center text-white h-full w-full"></div>
-              ) : cameraError ? (
-                <div className="flex flex-col items-center justify-center text-white h-full w-full p-6 max-w-md mx-auto text-center">
-                  <div className="bg-black/60 p-4 rounded-lg shadow-lg">
-                    <AlertTriangle className="h-12 w-12 text-yellow-400 mx-auto mb-2" />
-                    <p className="font-geneva-12 mb-3">{cameraError}</p>
-
-                    {cameraError.includes("HTTPS") ||
-                    cameraError.includes("secure") ? (
-                      <div className="text-xs mb-3 text-yellow-200">
-                        <p className="mb-2">
-                          This application requires a secure connection to
-                          access your camera. Your current connection is:{" "}
-                          <strong>{window.location.protocol}</strong>
-                        </p>
-                        <p>
-                          Please ensure you're using HTTPS in production
-                          environments.
-                        </p>
-                      </div>
-                    ) : null}
-
-                    {cameraError.includes("API not available") ? (
-                      <div className="text-xs mb-3 text-yellow-200">
-                        <p className="mb-2">
-                          Your browser doesn't support camera access or has it
-                          disabled.
-                        </p>
-                        <p>
-                          Try using Chrome, Firefox, or Safari with the latest
-                          updates.
-                        </p>
-                      </div>
-                    ) : null}
-
-                    <Button
-                      onClick={startCamera}
-                      className="mt-2 bg-blue-600 hover:bg-blue-700 rounded-full text-sm px-4 py-1.5"
-                    >
-                      Try Again
-                    </Button>
-
-                    <button
-                      onClick={() => {
-                        console.log({
-                          isSecureContext: window.isSecureContext,
-                          protocol: window.location.protocol,
-                          hasMediaDevices: !!navigator.mediaDevices,
-                          userAgent: navigator.userAgent,
-                        });
-                      }}
-                      className="ml-2 mt-2 bg-gray-600 hover:bg-gray-700 rounded-full text-sm px-4 py-1.5"
-                    >
-                      Debug Info
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center text-white h-full w-full p-8">
-                  <Button
-                    onClick={startCamera}
-                    className="bg-blue-600 hover:bg-blue-700 text-sm px-4 py-1.5"
-                  >
-                    Start Camera
-                  </Button>
-                </div>
-              )}
+              <Webcam 
+                onPhoto={handlePhoto}
+                className="w-full h-full"
+              />
 
               {/* Camera flash effect */}
               <AnimatePresence>
@@ -802,35 +654,6 @@ export function PhotoBoothComponent({
                             setShowEffects(false);
                           }}
                         >
-                          {videoRef.current && stream && (
-                            <video
-                              autoPlay
-                              playsInline
-                              muted
-                              className="w-full h-full object-cover"
-                              style={{
-                                filter: effect.filter,
-                                transform: "scaleX(-1)",
-                                WebkitTransform: "scaleX(-1)",
-                                minWidth: "100%",
-                                minHeight: "100%",
-                              }}
-                              ref={(el) => {
-                                if (el && videoRef.current?.srcObject) {
-                                  el.srcObject = videoRef.current.srcObject;
-                                  // Add loadedmetadata handler for preview too
-                                  el.onloadedmetadata = () => {
-                                    console.log(
-                                      "Effect preview video metadata loaded"
-                                    );
-                                    el.play().catch(() => {});
-                                  };
-                                  // Ensure playing
-                                  el.play().catch(() => {});
-                                }
-                              }}
-                            />
-                          )}
                           <div className="absolute bottom-0 left-0 right-0 text-center py-2 bg-black/50 text-white text-[16px]">
                             {effect.name}
                           </div>
@@ -951,37 +774,29 @@ export function PhotoBoothComponent({
                 className="h-10 w-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white relative overflow-hidden"
                 onClick={togglePhotoStrip}
                 disabled={photos.length === 0}
-                ref={(node) => {
-                  if (node) {
-                    const rect = node.getBoundingClientRect();
-                    thumbnailRef.current = {
-                      x: rect.left,
-                      y: rect.top,
-                      width: rect.width,
-                      height: rect.height,
-                    };
-                  }
-                }}
               >
                 <Images size={18} />
               </button>
               <button
                 className="h-10 w-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white"
                 onClick={startMultiPhotoSequence}
-                disabled={isMultiPhotoMode || !stream || !!cameraError}
+                disabled={isMultiPhotoMode}
               >
                 <Timer size={18} />
               </button>
             </div>
 
             <Button
-              onClick={isMultiPhotoMode ? () => {} : takePhoto}
+              onClick={isMultiPhotoMode ? () => {} : () => {
+                const event = new CustomEvent('webcam-capture');
+                window.dispatchEvent(event);
+              }}
               className={`rounded-full h-14 w-14 [&_svg]:size-5 ${
-                isMultiPhotoMode || !stream || !!cameraError
+                isMultiPhotoMode
                   ? `bg-gray-500 cursor-not-allowed`
                   : `bg-red-500 hover:bg-red-600`
               }`}
-              disabled={isMultiPhotoMode || !stream || !!cameraError}
+              disabled={isMultiPhotoMode}
             >
               <Camera stroke="white" />
             </Button>
@@ -989,7 +804,6 @@ export function PhotoBoothComponent({
             <Button
               onClick={toggleEffects}
               className="h-10 px-5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-[16px]"
-              disabled={!stream || !!cameraError}
             >
               Effects
             </Button>
