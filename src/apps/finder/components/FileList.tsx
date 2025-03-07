@@ -146,6 +146,7 @@ export function FileList({
           name={file.name}
           isDirectory={file.isDirectory}
           icon={file.icon}
+          content={file.type === 'image' ? file.content : undefined}
           onDoubleClick={() => handleFileOpen(file)}
           onClick={() => handleFileSelect(file)}
           isSelected={selectedFile?.path === file.path}

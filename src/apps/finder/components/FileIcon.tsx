@@ -4,6 +4,7 @@ interface FileIconProps {
   name: string;
   isDirectory: boolean;
   icon?: string;
+  content?: string;
   onDoubleClick?: (event: React.MouseEvent<HTMLDivElement>) => void;
   isSelected?: boolean;
   onClick?: (event: React.MouseEvent<HTMLDivElement>) => void;
@@ -15,6 +16,7 @@ export function FileIcon({
   name,
   isDirectory,
   icon,
+  content,
   onDoubleClick,
   isSelected,
   onClick,
@@ -22,6 +24,11 @@ export function FileIcon({
   className,
 }: FileIconProps) {
   const { play: playClick } = useSound(Sounds.BUTTON_CLICK, 0.3);
+
+  const isImage = () => {
+    const ext = name.split('.').pop()?.toLowerCase();
+    return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext || '');
+  };
 
   const getIconPath = () => {
     if (icon) return icon;
@@ -48,6 +55,29 @@ export function FileIcon({
 
   const sizes = sizeClasses[size];
 
+  const renderIcon = () => {
+    if (isImage() && content) {
+      return (
+        <div className={`relative ${sizes.icon} flex items-center justify-center`}>
+          <img
+            src={content}
+            alt={name}
+            className={`object-cover ${sizes.image} rounded`}
+          />
+        </div>
+      );
+    }
+    
+    return (
+      <img
+        src={getIconPath()}
+        alt={isDirectory ? "Directory" : "File"}
+        className={`object-contain ${sizes.image}`}
+        style={{ imageRendering: "pixelated" }}
+      />
+    );
+  };
+
   return (
     <div
       className={`flex flex-col items-center justify-start cursor-pointer gap-1 ${sizes.container} ${className}`}
@@ -62,12 +92,7 @@ export function FileIcon({
           isSelected ? "brightness-65 contrast-100" : ""
         }`}
       >
-        <img
-          src={getIconPath()}
-          alt={isDirectory ? "Directory" : "File"}
-          className={`object-contain ${sizes.image}`}
-          style={{ imageRendering: "pixelated" }}
-        />
+        {renderIcon()}
       </div>
       <span
         className={`text-center px-1 font-geneva-12 break-words truncate ${
