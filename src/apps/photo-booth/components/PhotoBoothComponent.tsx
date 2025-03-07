@@ -434,9 +434,9 @@ export function PhotoBoothComponent({
     // Generate unique filename with timestamp
     const timestamp = new Date().toISOString().replace(/[-:.]/g, "").substring(0, 15);
     const filename = `photo_${timestamp}.png`;
-
-    // Save to the file system
-    saveFile({
+    
+    // Create file item
+    const fileItem = {
       name: filename,
       content: photoDataUrl,
       type: "image/png",
@@ -444,7 +444,16 @@ export function PhotoBoothComponent({
       isDirectory: false,
       size: Math.round(photoDataUrl.length * 0.75), // Approximate size in bytes
       modifiedAt: new Date(),
+    };
+
+    // Save to the file system using hook
+    saveFile(fileItem);
+    
+    // Dispatch a custom event to notify Finder of the new file
+    const saveEvent = new CustomEvent("saveFile", { 
+      detail: fileItem
     });
+    window.dispatchEvent(saveEvent);
 
     // Add the new photo to the photos array (maintain existing functionality)
     setPhotos((prevPhotos) => {
