@@ -7,6 +7,7 @@ interface WebcamProps {
   filter?: string;
   onStreamReady?: (stream: MediaStream) => void;
   sharedStream?: MediaStream | null;
+  selectedCameraId?: string | null;
 }
 
 export function Webcam({ 
@@ -15,7 +16,8 @@ export function Webcam({
   isPreview = false,
   filter = "none",
   onStreamReady,
-  sharedStream
+  sharedStream,
+  selectedCameraId
 }: WebcamProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
@@ -33,7 +35,7 @@ export function Webcam({
         videoRef.current.play().catch(console.error);
       }
     }
-  }, [isPreview, sharedStream]);
+  }, [isPreview, sharedStream, selectedCameraId]);
 
   // Handle stream ready callback
   useEffect(() => {
@@ -56,8 +58,9 @@ export function Webcam({
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
 
-        // Draw the current video frame
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        // Flip the context horizontally to match the video display
+        ctx.scale(-1, 1);
+        ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
 
         // Convert to JPEG data URL
         const photoDataUrl = canvas.toDataURL("image/jpeg", 0.85);
@@ -76,6 +79,7 @@ export function Webcam({
       const constraints = {
         audio: false,
         video: {
+          deviceId: selectedCameraId ? { exact: selectedCameraId } : undefined,
           width: { ideal: 1280 },
           height: { ideal: 720 },
         },
@@ -120,7 +124,7 @@ export function Webcam({
           playsInline
           muted
           className="w-full h-full object-cover"
-          style={{ filter }}
+          style={{ filter, transform: 'scaleX(-1)' }}
         />
       )}
     </div>

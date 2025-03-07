@@ -45,6 +45,8 @@ export function PhotoBoothComponent({
   const [selectedEffect, setSelectedEffect] = useState<Effect>(
     effects.find((effect) => effect.name === "Normal") || effects[0]
   );
+  const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>([]);
+  const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null);
   const [photos, setPhotos] = useState<string[]>(() => {
     const saved = localStorage.getItem(APP_STORAGE_KEYS["photo-booth"].PHOTOS);
     return saved ? JSON.parse(saved) : [];
@@ -308,7 +310,27 @@ export function PhotoBoothComponent({
     };
   }, [stream]);
 
-  // Modify startCamera for Chrome production
+  // Add effect to get available cameras
+  useEffect(() => {
+    const getCameras = async () => {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const cameras = devices.filter(device => device.kind === 'videoinput');
+        setAvailableCameras(cameras);
+        
+        // If no camera is selected and cameras are available, select the first one
+        if (!selectedCameraId && cameras.length > 0) {
+          setSelectedCameraId(cameras[0].deviceId);
+        }
+      } catch (error) {
+        console.error('Error getting cameras:', error);
+      }
+    };
+
+    getCameras();
+  }, []);
+
+  // Update startCamera to use selected camera
   const startCamera = async () => {
     try {
       setCameraError(null);
@@ -330,20 +352,9 @@ export function PhotoBoothComponent({
         );
       }
 
-      // Check if current stream is still active before stopping it
+      // Always stop the current stream before starting a new one
       if (stream) {
-        const isStreamActive =
-          stream.active &&
-          stream.getTracks().some((track) => track.readyState === "live");
-
-        if (isStreamActive) {
-          console.log("Camera already active, keeping current stream");
-          setIsLoadingCamera(false);
-          return;
-        } else {
-          console.log("Stream inactive, stopping and restarting");
-          stopCamera();
-        }
+        stopCamera();
       }
 
       // Diagnostic check for mediaDevices API
@@ -352,16 +363,17 @@ export function PhotoBoothComponent({
         throw new Error("Camera API not available");
       }
 
-      // Use specific constraints with ideal dimensions to help with initialization
+      // Use specific constraints with ideal dimensions and selected camera
       const constraints = {
         video: {
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
+          deviceId: selectedCameraId ? { exact: selectedCameraId } : undefined,
+          width: { ideal: 640 },
+          height: { ideal: 480 },
         },
         audio: false,
       };
 
-      console.log("Requesting camera access...");
+      console.log("Requesting camera access with constraints:", constraints);
       const mediaStream = await navigator.mediaDevices.getUserMedia(
         constraints
       );
@@ -383,44 +395,6 @@ export function PhotoBoothComponent({
         } catch (e) {
           console.warn("Couldn't read track settings:", e);
         }
-      }
-
-      if (videoRef.current) {
-        // Set essential attributes first
-        videoRef.current.setAttribute("playsinline", "true");
-        videoRef.current.setAttribute("autoplay", "true");
-        videoRef.current.setAttribute("muted", "true");
-        videoRef.current.muted = true;
-
-        // Clear any previous source before assigning new one
-        if (videoRef.current.srcObject) {
-          videoRef.current.srcObject = null;
-        }
-
-        // Chrome can be sensitive to timing - use direct assignment first
-        videoRef.current.srcObject = mediaStream;
-
-        // Then also try after a timeout
-        setTimeout(() => {
-          if (videoRef.current) {
-            console.log("Setting video source object");
-            videoRef.current.srcObject = mediaStream;
-
-            // Force play with retry
-            const playVideo = () => {
-              console.log("Attempting to play video");
-              videoRef.current
-                ?.play()
-                .then(() => console.log("Video playing successfully"))
-                .catch((e) => {
-                  console.error("Play failed:", e);
-                  // Retry once more after a short delay
-                  setTimeout(playVideo, 500);
-                });
-            };
-            playVideo();
-          }
-        }, 100);
       }
 
       setStream(mediaStream);
@@ -551,6 +525,13 @@ export function PhotoBoothComponent({
     setShowPhotoStrip(!showPhotoStrip);
   };
 
+  // Add handler for camera selection
+  const handleCameraSelect = async (deviceId: string) => {
+    console.log("Switching to camera:", deviceId);
+    setSelectedCameraId(deviceId);
+    await startCamera();
+  };
+
   if (!isWindowOpen) return null;
 
   return (
@@ -561,6 +542,12 @@ export function PhotoBoothComponent({
         onShowAbout={() => setShowAbout(true)}
         onClearPhotos={handleClearPhotos}
         onExportPhotos={handleExportPhotos}
+        effects={effects}
+        selectedEffect={selectedEffect}
+        onEffectSelect={setSelectedEffect}
+        availableCameras={availableCameras}
+        selectedCameraId={selectedCameraId}
+        onCameraSelect={handleCameraSelect}
       />
       <WindowFrame
         title="Photo Booth"
@@ -583,6 +570,7 @@ export function PhotoBoothComponent({
                 className="w-full h-full"
                 filter={selectedEffect.filter}
                 onStreamReady={setMainStream}
+                selectedCameraId={selectedCameraId}
               />
 
               {/* Camera flash effect */}
