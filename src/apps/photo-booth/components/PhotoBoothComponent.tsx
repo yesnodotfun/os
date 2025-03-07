@@ -11,6 +11,7 @@ import { Images, Timer, Camera } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSound, Sounds } from "@/hooks/useSound";
 import { Webcam } from "@/components/Webcam";
+import { useFileSystem } from "@/apps/finder/hooks/useFileSystem";
 
 interface Effect {
   name: string;
@@ -63,6 +64,7 @@ export function PhotoBoothComponent({
   const { play: playShutter } = useSound(Sounds.PHOTO_SHUTTER, 0.4);
   const [newPhotoIndex, setNewPhotoIndex] = useState<number | null>(null);
   const [mainStream, setMainStream] = useState<MediaStream | null>(null);
+  const { saveFile } = useFileSystem("/Images");
 
   // Add a small delay before showing photo strip to prevent flickering
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -429,7 +431,22 @@ export function PhotoBoothComponent({
     // Play shutter sound
     playShutter();
 
-    // Add the new photo to the photos array
+    // Generate unique filename with timestamp
+    const timestamp = new Date().toISOString().replace(/[-:.]/g, "").substring(0, 15);
+    const filename = `photo_${timestamp}.png`;
+
+    // Save to the file system
+    saveFile({
+      name: filename,
+      content: photoDataUrl,
+      type: "image/png",
+      path: "/Images/",
+      isDirectory: false,
+      size: Math.round(photoDataUrl.length * 0.75), // Approximate size in bytes
+      modifiedAt: new Date(),
+    });
+
+    // Add the new photo to the photos array (maintain existing functionality)
     setPhotos((prevPhotos) => {
       const newPhotos = [...prevPhotos, photoDataUrl];
       try {
