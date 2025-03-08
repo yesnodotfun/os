@@ -14,7 +14,7 @@ import {
   loadDisplayMode,
   applyDisplayMode,
 } from "@/utils/displayMode";
-import { Upload } from "lucide-react";
+import { Plus } from "lucide-react";
 
 // Import constants from useFileSystem
 const DB_NAME = "ryOS";
@@ -526,7 +526,7 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
                 className="w-full aspect-video border-[2px] border-dotted border-gray-400 cursor-pointer hover:opacity-90 flex items-center justify-center"
                 onClick={() => fileInputRef.current?.click()}
               >
-                <Upload className="h-5 w-5 text-gray-500" />
+                <Plus className="h-5 w-5 text-gray-500" />
               </div>
               {customWallpapers.length > 0 ? (
                 customWallpapers.map((path) => (
