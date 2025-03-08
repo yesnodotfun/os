@@ -733,34 +733,29 @@ export interface Video {
 
 const DEFAULT_VIDEOS: Video[] = [
   {
+    id: "In7e1knX7rQ",
+    url: "https://www.youtube.com/watch?v=In7e1knX7rQ",
+    title: "NJZ - ETA/MTLA (feat. E SENS 이센스)",
+  },
+  {
+    id: "WpqXjRrZqa0",
+    url: "https://www.youtube.com/watch?v=WpqXjRrZqa0",
+    title: "NJZ - Cool with You (2025)",
+  },
+  {
     id: "YYyskjq1vSc",
     url: "https://www.youtube.com/watch?v=YYyskjq1vSc",
     title: "NJZ - New Jeans (2025)",
   },
   {
-    id: "m7Ct6cR_NS4",
-    url: "https://www.youtube.com/watch?v=m7Ct6cR_NS4",
-    title: "1TEAM - 습관적 VIBE",
-  },
-  {
-    id: "GYLUSHZl8M0",
-    url: "https://www.youtube.com/watch?v=GYLUSHZl8M0",
-    title: "ditto - peace",
-  },
-  {
-    id: "pSUydWEqKwE",
-    url: "https://www.youtube.com/watch?v=pSUydWEqKwE",
-    title: "NewJeans (뉴진스) - Ditto (side A)",
+    id: "hgNJ_qy6LCw",
+    url: "https://www.youtube.com/watch?v=hgNJ_qy6LCw",
+    title: "NJZ - ASAP",
   },
   {
     id: "ZncbtRo7RXs",
     url: "https://www.youtube.com/watch?v=ZncbtRo7RXs",
     title: "NewJeans (뉴진스) - Supernatural (Part.1)",
-  },
-  {
-    id: "Q3K0TOvTOno",
-    url: "https://www.youtube.com/watch?v=Q3K0TOvTOno",
-    title: "NewJeans (뉴진스) - How Sweet",
   },
   {
     id: "FonjL7DQAUQ",
@@ -771,11 +766,6 @@ const DEFAULT_VIDEOS: Video[] = [
     id: "Rk6aQvlmsWo",
     url: "https://www.youtube.com/watch?v=Rk6aQvlmsWo",
     title: "grentperez & Ruel - Dandelion",
-  },
-  {
-    id: "_wgeHqXr4Hc",
-    url: "https://www.youtube.com/watch?v=_wgeHqXr4Hc",
-    title: "Crush - 나를 위해 (For Days to Come)",
   },
   {
     id: "DskqpUrvlmw",
