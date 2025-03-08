@@ -6,13 +6,14 @@ import { useLaunchApp } from "@/hooks/useLaunchApp";
 
 // Database setup
 const DB_NAME = "ryOS";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 // Store names
 const STORES = {
   DOCUMENTS: "documents",
   IMAGES: "images",
   TRASH: "trash",
+  CUSTOM_WALLPAPERS: "custom_wallpapers",
 } as const;
 
 // Database initialization
@@ -35,6 +36,9 @@ const initDB = (): Promise<IDBDatabase> => {
       }
       if (!db.objectStoreNames.contains(STORES.TRASH)) {
         db.createObjectStore(STORES.TRASH, { keyPath: "name" });
+      }
+      if (!db.objectStoreNames.contains(STORES.CUSTOM_WALLPAPERS)) {
+        db.createObjectStore(STORES.CUSTOM_WALLPAPERS, { keyPath: "name" });
       }
     };
   });
@@ -798,6 +802,7 @@ export function useFileSystem(initialPath: string = "/") {
       await Promise.all([
         dbOperations.clear(STORES.IMAGES),
         dbOperations.clear(STORES.TRASH),
+        dbOperations.clear(STORES.CUSTOM_WALLPAPERS),
       ]);
 
       // Reset documents to sample documents
@@ -805,6 +810,9 @@ export function useFileSystem(initialPath: string = "/") {
       for (const doc of DOCUMENTS) {
         await dbOperations.put(STORES.DOCUMENTS, doc);
       }
+
+      // Reset wallpaper to default
+      localStorage.removeItem(APP_STORAGE_KEYS["control-panels"].WALLPAPER);
 
       // Update state
       setDocuments(DOCUMENTS);

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Select,
   SelectContent,
@@ -14,6 +14,12 @@ import {
   loadDisplayMode,
   applyDisplayMode,
 } from "@/utils/displayMode";
+import { Upload } from "lucide-react";
+
+// Import constants from useFileSystem
+const DB_NAME = "ryOS";
+const DB_VERSION = 2;
+const CUSTOM_WALLPAPERS_STORE = "custom_wallpapers";
 
 interface WallpaperItemProps {
   path: string;
@@ -60,7 +66,8 @@ type PhotoCategory =
   | "landscapes"
   | "nostalgia"
   | "objects"
-  | "structures";
+  | "structures"
+  | "custom";
 
 const TILE_WALLPAPERS = [
   "default",
@@ -193,6 +200,7 @@ const PHOTO_WALLPAPERS: Record<PhotoCategory, string[]> = {
     "stone_wall",
     "wall_of_stones",
   ],
+  custom: [], // This will be populated dynamically
 };
 
 // Transform photo paths
@@ -214,6 +222,8 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
   const [displayMode, setDisplayMode] = useState<DisplayMode>(() =>
     loadDisplayMode()
   );
+  const [customWallpapers, setCustomWallpapers] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [selectedCategory, setSelectedCategory] = useState<
     "tiles" | PhotoCategory
@@ -221,6 +231,9 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
     // Set initial category based on current wallpaper
     if (currentWallpaper.includes("/wallpapers/tiles/")) {
       return "tiles";
+    }
+    if (currentWallpaper.includes("/custom-wallpapers/")) {
+      return "custom";
     }
     for (const category of PHOTO_CATEGORIES) {
       if (currentWallpaper.includes(`/wallpapers/photos/${category}/`)) {
@@ -230,6 +243,50 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
     return "tiles";
   });
 
+  // Load custom wallpapers from IndexedDB
+  useEffect(() => {
+    const loadCustomWallpapers = async () => {
+      try {
+        // Use IndexedDB to get custom wallpapers
+        const db = await new Promise<IDBDatabase>((resolve, reject) => {
+          const request = indexedDB.open(DB_NAME, DB_VERSION);
+          request.onerror = () => reject(request.error);
+          request.onsuccess = () => resolve(request.result);
+
+          request.onupgradeneeded = (event) => {
+            const db = (event.target as IDBOpenDBRequest).result;
+            if (!db.objectStoreNames.contains(CUSTOM_WALLPAPERS_STORE)) {
+              db.createObjectStore(CUSTOM_WALLPAPERS_STORE, {
+                keyPath: "name",
+              });
+            }
+          };
+        });
+
+        // Check if the store exists before attempting to use it
+        if (db.objectStoreNames.contains(CUSTOM_WALLPAPERS_STORE)) {
+          const transaction = db.transaction(
+            CUSTOM_WALLPAPERS_STORE,
+            "readonly"
+          );
+          const store = transaction.objectStore(CUSTOM_WALLPAPERS_STORE);
+          const request = store.getAll();
+
+          request.onsuccess = () => {
+            const wallpapers = request.result;
+            if (wallpapers && wallpapers.length > 0) {
+              setCustomWallpapers(wallpapers.map((wp) => wp.content));
+            }
+          };
+        }
+      } catch (error) {
+        console.error("Error loading custom wallpapers:", error);
+      }
+    };
+
+    loadCustomWallpapers();
+  }, []);
+
   const handleWallpaperSelect = (path: string) => {
     setWallpaper(path);
     playClick();
@@ -238,10 +295,140 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
     }
   };
 
+  const handleFileUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    if (!event.target.files || event.target.files.length === 0) return;
+
+    const file = event.target.files[0];
+    if (!file.type.startsWith("image/")) {
+      alert("Please select an image file");
+      return;
+    }
+
+    try {
+      // Read the file as data URL
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      // Save to IndexedDB - always use version 2
+      const db = await new Promise<IDBDatabase>((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve(request.result);
+
+        // This is crucial - we need to create the store during an upgrade
+        request.onupgradeneeded = (event) => {
+          const db = (event.target as IDBOpenDBRequest).result;
+          if (!db.objectStoreNames.contains(CUSTOM_WALLPAPERS_STORE)) {
+            db.createObjectStore(CUSTOM_WALLPAPERS_STORE, { keyPath: "name" });
+          }
+        };
+      });
+
+      // Check if the store exists
+      if (!db.objectStoreNames.contains(CUSTOM_WALLPAPERS_STORE)) {
+        // If it doesn't exist, we need to close the database and reopen it with a higher version
+        db.close();
+        const upgradeRequest = indexedDB.open(DB_NAME, 3);
+
+        upgradeRequest.onupgradeneeded = (event) => {
+          const upgradedDb = (event.target as IDBOpenDBRequest).result;
+          if (!upgradedDb.objectStoreNames.contains(CUSTOM_WALLPAPERS_STORE)) {
+            upgradedDb.createObjectStore(CUSTOM_WALLPAPERS_STORE, {
+              keyPath: "name",
+            });
+          }
+        };
+
+        await new Promise<void>((resolve, reject) => {
+          upgradeRequest.onsuccess = () => {
+            resolve();
+          };
+          upgradeRequest.onerror = () => reject(upgradeRequest.error);
+        });
+
+        // Now reopen the database with the new version
+        db.close();
+        const reopenRequest = indexedDB.open(DB_NAME, 3);
+        const reopenedDb = await new Promise<IDBDatabase>((resolve, reject) => {
+          reopenRequest.onsuccess = () => resolve(reopenRequest.result);
+          reopenRequest.onerror = () => reject(reopenRequest.error);
+        });
+
+        const transaction = reopenedDb.transaction(
+          CUSTOM_WALLPAPERS_STORE,
+          "readwrite"
+        );
+        const store = transaction.objectStore(CUSTOM_WALLPAPERS_STORE);
+        const wallpaper = {
+          name: `custom_${Date.now()}_${file.name}`,
+          content: dataUrl,
+          type: file.type,
+        };
+
+        const request = store.put(wallpaper);
+
+        request.onsuccess = () => {
+          // Update state with new wallpaper
+          setCustomWallpapers((prev) => [...prev, dataUrl]);
+          // Automatically select the new wallpaper
+          setWallpaper(dataUrl);
+          setSelectedCategory("custom");
+          playClick();
+        };
+
+        request.onerror = () => {
+          console.error("Error saving custom wallpaper:", request.error);
+        };
+      } else {
+        // If the store exists, proceed normally
+        const transaction = db.transaction(
+          CUSTOM_WALLPAPERS_STORE,
+          "readwrite"
+        );
+        const store = transaction.objectStore(CUSTOM_WALLPAPERS_STORE);
+        const wallpaper = {
+          name: `custom_${Date.now()}_${file.name}`,
+          content: dataUrl,
+          type: file.type,
+        };
+
+        const request = store.put(wallpaper);
+
+        request.onsuccess = () => {
+          // Update state with new wallpaper
+          setCustomWallpapers((prev) => [...prev, dataUrl]);
+          // Automatically select the new wallpaper
+          setWallpaper(dataUrl);
+          setSelectedCategory("custom");
+          playClick();
+        };
+
+        request.onerror = () => {
+          console.error("Error saving custom wallpaper:", request.error);
+        };
+      }
+    } catch (error) {
+      console.error("Error processing file:", error);
+    }
+
+    // Reset the file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   // Force rerender when wallpaper changes
   useEffect(() => {
     if (currentWallpaper.includes("/wallpapers/tiles/")) {
       setSelectedCategory("tiles");
+    } else if (customWallpapers.includes(currentWallpaper)) {
+      setSelectedCategory("custom");
     } else {
       for (const category of PHOTO_CATEGORIES) {
         if (currentWallpaper.includes(`/wallpapers/photos/${category}/`)) {
@@ -250,7 +437,7 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
         }
       }
     }
-  }, [currentWallpaper]);
+  }, [currentWallpaper, customWallpapers]);
 
   const formatCategoryLabel = (category: string) => {
     return category
@@ -279,11 +466,14 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="tiles">Tiled Patterns</SelectItem>
-              {PHOTO_CATEGORIES.map((category) => (
-                <SelectItem key={category} value={category}>
-                  {formatCategoryLabel(category)}
-                </SelectItem>
-              ))}
+              <SelectItem value="custom">Custom</SelectItem>
+              {PHOTO_CATEGORIES.filter((cat) => cat !== "custom").map(
+                (category) => (
+                  <SelectItem key={category} value={category}>
+                    {formatCategoryLabel(category)}
+                  </SelectItem>
+                )
+              )}
             </SelectContent>
           </Select>
         </div>
@@ -304,6 +494,16 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
         </Select>
       </div>
 
+      {selectedCategory === "custom" && (
+        <input
+          type="file"
+          ref={fileInputRef}
+          accept="image/*"
+          onChange={handleFileUpload}
+          className="hidden"
+        />
+      )}
+
       <ScrollArea className="flex-1 h-[200px]">
         <div
           className={`grid gap-2 p-1 ${
@@ -320,6 +520,27 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
                 isTile
               />
             ))
+          ) : selectedCategory === "custom" ? (
+            <>
+              <div
+                className="w-full aspect-video border-[2px] border-dotted border-gray-400 cursor-pointer hover:opacity-90 flex items-center justify-center"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Upload className="h-5 w-5 text-gray-500" />
+              </div>
+              {customWallpapers.length > 0 ? (
+                customWallpapers.map((path) => (
+                  <WallpaperItem
+                    key={path}
+                    path={path}
+                    isSelected={currentWallpaper === path}
+                    onClick={() => handleWallpaperSelect(path)}
+                  />
+                ))
+              ) : (
+                <></>
+              )}
+            </>
           ) : PHOTO_WALLPAPERS[selectedCategory] ? (
             PHOTO_WALLPAPERS[selectedCategory].map((path) => (
               <WallpaperItem

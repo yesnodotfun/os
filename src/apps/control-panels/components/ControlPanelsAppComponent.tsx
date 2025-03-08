@@ -425,8 +425,9 @@ export function ControlPanelsAppComponent({
                     Format File System
                   </Button>
                   <p className="text-[11px] text-gray-600 font-geneva-12">
-                    This will clear all documents (except sample documents) and
-                    images. ryOS will restart after format.
+                    This will clear all documents (except sample documents),
+                    images, and custom wallpapers. ryOS will restart after
+                    format.
                   </p>
                 </div>
               </div>
@@ -460,7 +461,7 @@ export function ControlPanelsAppComponent({
             window.location.reload();
           }}
           title="Format File System"
-          description="Are you sure you want to format the file system? This will permanently delete all documents (except sample documents) and images. ryOS will restart after format."
+          description="Are you sure you want to format the file system? This will permanently delete all documents (except sample documents), images, and custom wallpapers. ryOS will restart after format."
         />
       </WindowFrame>
     </>
