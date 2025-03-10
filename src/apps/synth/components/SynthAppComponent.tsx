@@ -321,6 +321,9 @@ export function SynthAppComponent({
   const distortionRef = useRef<Tone.Distortion | null>(null);
   const analyzerRef = useRef<Tone.Analyser | null>(null);
   const gainRef = useRef<Tone.Gain | null>(null);
+  const chorusRef = useRef<Tone.Chorus | null>(null);
+  const phaserRef = useRef<Tone.Phaser | null>(null);
+  const bitcrusherRef = useRef<Tone.BitCrusher | null>(null);
 
   // UI state
   const [isHelpOpen, setIsHelpOpen] = useState(false);
@@ -349,6 +352,9 @@ export function SynthAppComponent({
         delay: 0.2,
         distortion: 0,
         gain: 0.8,
+        chorus: 0,
+        phaser: 0,
+        bitcrusher: 0,
       },
     },
     {
@@ -368,6 +374,9 @@ export function SynthAppComponent({
         delay: 0.1,
         distortion: 0,
         gain: 0.7,
+        chorus: 0.2,
+        phaser: 0,
+        bitcrusher: 0,
       },
     },
     {
@@ -377,7 +386,7 @@ export function SynthAppComponent({
         type: "triangle" as OscillatorType,
       },
       envelope: {
-        attack: 0.5,
+        attack: 0.1,
         decay: 0.3,
         sustain: 0.7,
         release: 2,
@@ -385,8 +394,11 @@ export function SynthAppComponent({
       effects: {
         reverb: 0.6,
         delay: 0.3,
-        distortion: 0.1,
+        distortion: 0,
         gain: 0.6,
+        chorus: 0.4,
+        phaser: 0,
+        bitcrusher: 0,
       },
     },
     {
@@ -397,15 +409,18 @@ export function SynthAppComponent({
       },
       envelope: {
         attack: 0.02,
-        decay: 0.15,
-        sustain: 0.4,
-        release: 0.2,
+        decay: 0.6,
+        sustain: 0.5,
+        release: 0.5,
       },
       effects: {
-        reverb: 0.15,
+        reverb: 0.5,
         delay: 0.25,
-        distortion: 0.4,
-        gain: 0.3,
+        distortion: 0.0,
+        gain: 0.2,
+        chorus: 0.1,
+        phaser: 0.1,
+        bitcrusher: 0.4,
       },
     },
   ];
@@ -605,6 +620,23 @@ export function SynthAppComponent({
       distortion: currentPreset.effects.distortion,
     });
     const gain = new Tone.Gain(currentPreset.effects.gain);
+    const chorus = new Tone.Chorus({
+      frequency: 4,
+      delayTime: 2.5,
+      depth: 0.7,
+    }).start();
+    chorus.wet.value = currentPreset.effects.chorus ?? 0;
+
+    const phaser = new Tone.Phaser({
+      frequency: 0.5,
+      octaves: 3,
+      baseFrequency: 1000,
+      wet: currentPreset.effects.phaser ?? 0,
+    });
+
+    const bitcrusher = new Tone.BitCrusher(4).set({
+      bits: Math.floor(4 + (1 - (currentPreset.effects.bitcrusher ?? 0)) * 12),
+    });
     // Add a boost gain before analyzer for better visualization
     const analyzerBoost = new Tone.Gain(4);
     const analyzer = new Tone.Analyser({
@@ -617,7 +649,10 @@ export function SynthAppComponent({
     synth.connect(reverb);
     reverb.connect(delay);
     delay.connect(distortion);
-    distortion.connect(gain);
+    distortion.connect(chorus);
+    chorus.connect(phaser);
+    phaser.connect(bitcrusher);
+    bitcrusher.connect(gain);
     gain.connect(analyzerBoost);
     analyzerBoost.connect(analyzer);
     gain.connect(Tone.Destination);
@@ -640,6 +675,9 @@ export function SynthAppComponent({
     delayRef.current = delay;
     distortionRef.current = distortion;
     gainRef.current = gain;
+    chorusRef.current = chorus;
+    phaserRef.current = phaser;
+    bitcrusherRef.current = bitcrusher;
     analyzerRef.current = analyzer;
 
     // Initialize synth with current preset
@@ -654,6 +692,9 @@ export function SynthAppComponent({
       reverb.dispose();
       delay.dispose();
       distortion.dispose();
+      chorus.dispose();
+      phaser.dispose();
+      bitcrusher.dispose();
       gain.dispose();
       analyzer.dispose();
       document.removeEventListener("keydown", handleKeyDown);
@@ -682,7 +723,10 @@ export function SynthAppComponent({
       !reverbRef.current ||
       !delayRef.current ||
       !distortionRef.current ||
-      !gainRef.current
+      !gainRef.current ||
+      !chorusRef.current ||
+      !phaserRef.current ||
+      !bitcrusherRef.current
     )
       return;
 
@@ -702,6 +746,21 @@ export function SynthAppComponent({
     delayRef.current.feedback.value = preset.effects.delay;
     distortionRef.current.distortion = preset.effects.distortion;
     gainRef.current.gain.value = preset.effects.gain;
+
+    // Update chorus parameters safely
+    if (chorusRef.current.wet) {
+      chorusRef.current.wet.value = preset.effects.chorus ?? 0;
+    }
+
+    // Update phaser parameters safely
+    if (phaserRef.current.wet) {
+      phaserRef.current.wet.value = preset.effects.phaser ?? 0;
+    }
+
+    // Update bitcrusher parameters
+    bitcrusherRef.current.set({
+      bits: Math.floor(4 + (1 - (preset.effects.bitcrusher ?? 0)) * 12),
+    });
   };
 
   // Keyboard event handlers - extended mapping
@@ -852,7 +911,14 @@ export function SynthAppComponent({
   };
 
   const handleEffectChange = (
-    effect: "reverb" | "delay" | "distortion" | "gain",
+    effect:
+      | "reverb"
+      | "delay"
+      | "distortion"
+      | "gain"
+      | "chorus"
+      | "phaser"
+      | "bitcrusher",
     value: number
   ) => {
     const updatedPreset = {
@@ -1216,6 +1282,48 @@ export function SynthAppComponent({
                                 handleEffectChange("distortion", value)
                               }
                               label="Distortion"
+                              color="#ff00ff"
+                              size="sm"
+                            />
+                          </div>
+                          <div className="w-16">
+                            <Dial
+                              value={currentPreset.effects.chorus ?? 0}
+                              min={0}
+                              max={1}
+                              step={0.01}
+                              onChange={(value) =>
+                                handleEffectChange("chorus", value)
+                              }
+                              label="Chorus"
+                              color="#ff00ff"
+                              size="sm"
+                            />
+                          </div>
+                          <div className="w-16">
+                            <Dial
+                              value={currentPreset.effects.phaser ?? 0}
+                              min={0}
+                              max={1}
+                              step={0.01}
+                              onChange={(value) =>
+                                handleEffectChange("phaser", value)
+                              }
+                              label="Phaser"
+                              color="#ff00ff"
+                              size="sm"
+                            />
+                          </div>
+                          <div className="w-16">
+                            <Dial
+                              value={currentPreset.effects.bitcrusher ?? 0}
+                              min={0}
+                              max={1}
+                              step={0.01}
+                              onChange={(value) =>
+                                handleEffectChange("bitcrusher", value)
+                              }
+                              label="Bitcrusher"
                               color="#ff00ff"
                               size="sm"
                             />

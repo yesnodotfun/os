@@ -1055,12 +1055,30 @@ export interface SynthPreset {
     delay: number;
     distortion: number;
     gain: number;
+    chorus?: number;
+    phaser?: number;
+    bitcrusher?: number;
   };
 }
 
 export const loadSynthPresets = (): SynthPreset[] => {
-  const saved = localStorage.getItem(APP_STORAGE_KEYS.synth.PRESETS);
-  return saved ? JSON.parse(saved) : [];
+  const presets = localStorage.getItem(APP_STORAGE_KEYS.synth.PRESETS);
+  if (!presets) return [];
+  try {
+    const parsedPresets = JSON.parse(presets) as SynthPreset[];
+    // Handle backward compatibility with older presets
+    return parsedPresets.map((preset) => ({
+      ...preset,
+      effects: {
+        ...preset.effects,
+        chorus: preset.effects.chorus ?? 0,
+        phaser: preset.effects.phaser ?? 0,
+        bitcrusher: preset.effects.bitcrusher ?? 0,
+      },
+    }));
+  } catch {
+    return [];
+  }
 };
 
 export const saveSynthPresets = (presets: SynthPreset[]): void => {
@@ -1068,8 +1086,23 @@ export const saveSynthPresets = (presets: SynthPreset[]): void => {
 };
 
 export const loadSynthCurrentPreset = (): SynthPreset | null => {
-  const saved = localStorage.getItem(APP_STORAGE_KEYS.synth.CURRENT_PRESET);
-  return saved ? JSON.parse(saved) : null;
+  const preset = localStorage.getItem(APP_STORAGE_KEYS.synth.CURRENT_PRESET);
+  if (!preset) return null;
+  try {
+    const parsedPreset = JSON.parse(preset) as SynthPreset;
+    // Handle backward compatibility
+    return {
+      ...parsedPreset,
+      effects: {
+        ...parsedPreset.effects,
+        chorus: parsedPreset.effects.chorus ?? 0,
+        phaser: parsedPreset.effects.phaser ?? 0,
+        bitcrusher: parsedPreset.effects.bitcrusher ?? 0,
+      },
+    };
+  } catch {
+    return null;
+  }
 };
 
 export const saveSynthCurrentPreset = (preset: SynthPreset): void => {
