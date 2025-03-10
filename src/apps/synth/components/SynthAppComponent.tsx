@@ -102,7 +102,7 @@ const PianoKey: React.FC<{
         "relative touch-none select-none outline-none transition-colors duration-100",
         isBlack
           ? cn(
-              "absolute top-0 left-[55%] w-[60%] h-[70%] rounded-b-md z-10 translate-x-[30%]",
+              "absolute top-0 left-[50%] w-[74%] h-[70%] rounded-b-md z-10 translate-x-[37%]",
               isPressed ? "bg-[#ff33ff]" : "bg-black hover:bg-[#333333]"
             )
           : cn(
