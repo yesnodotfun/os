@@ -768,7 +768,7 @@ export function SynthAppComponent({
           {/* Main content area */}
           <div className="flex flex-col flex-1 min-h-0 w-full overflow-hidden">
             {/* Presets section */}
-            <div className="p-4 py-4 bg-[#2a2a2a] w-full border-b border-[#3a3a3a]">
+            <div className="p-4 py-4 pb-3 bg-[#2a2a2a] w-full border-b border-[#3a3a3a]">
               <div className="flex justify-between items-center">
                 <div className="flex gap-0 overflow-x-auto">
                   {presets.length > 0 ? (
