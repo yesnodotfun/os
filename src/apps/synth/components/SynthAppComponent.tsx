@@ -15,6 +15,9 @@ import {
   saveSynthPresets,
   loadSynthCurrentPreset,
   saveSynthCurrentPreset,
+  loadSynthLabelType,
+  saveSynthLabelType,
+  APP_STORAGE_KEYS,
   SynthPreset,
 } from "@/utils/storage";
 import { Button } from "@/components/ui/button";
@@ -489,14 +492,27 @@ export function SynthAppComponent({
 
   // Determine default label type based on screen size
   const isMobile = useMediaQuery("(max-width: 768px)");
-  const [labelType, setLabelType] = useState<NoteLabelType>(
-    isMobile ? "off" : "key"
-  );
+  const [labelType, setLabelType] = useState<NoteLabelType>(() => {
+    // Load saved label type, fallback to screen size based default if not found
+    const savedLabelType = loadSynthLabelType();
+    return savedLabelType || (isMobile ? "off" : "key");
+  });
 
-  // Update label type when screen size changes
+  // Update label type when screen size changes and save when changed
   useEffect(() => {
-    setLabelType(isMobile ? "off" : "key");
-  }, [isMobile]);
+    if (!isWindowOpen) return;
+
+    // Only update to screen size based default if no saved preference exists
+    if (!localStorage.getItem(APP_STORAGE_KEYS.synth.LABEL_TYPE)) {
+      setLabelType(isMobile ? "off" : "key");
+    }
+  }, [isMobile, isWindowOpen]);
+
+  // Save label type when it changes
+  useEffect(() => {
+    if (!isWindowOpen) return;
+    saveSynthLabelType(labelType);
+  }, [labelType, isWindowOpen]);
 
   // Initialize synth and effects
   useEffect(() => {

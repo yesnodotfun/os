@@ -97,6 +97,7 @@ export const APP_STORAGE_KEYS = {
     HAS_SEEN_HELP: "synth:hasSeenHelp" as const,
     PRESETS: "synth:presets" as const,
     CURRENT_PRESET: "synth:currentPreset" as const,
+    LABEL_TYPE: "synth:labelType" as const,
   },
 } as const;
 
@@ -1075,4 +1076,14 @@ export const saveSynthCurrentPreset = (preset: SynthPreset): void => {
     APP_STORAGE_KEYS.synth.CURRENT_PRESET,
     JSON.stringify(preset)
   );
+};
+
+// Add these new functions near the other synth storage functions
+export const loadSynthLabelType = (): "note" | "key" | "off" => {
+  const saved = localStorage.getItem(APP_STORAGE_KEYS.synth.LABEL_TYPE);
+  return (saved as "note" | "key" | "off") || "key";
+};
+
+export const saveSynthLabelType = (labelType: "note" | "key" | "off"): void => {
+  localStorage.setItem(APP_STORAGE_KEYS.synth.LABEL_TYPE, labelType);
 };
