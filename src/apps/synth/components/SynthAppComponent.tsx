@@ -94,25 +94,6 @@ const PianoKey: React.FC<{
     // This is handled by the parent component's touch events
   };
 
-  // Calculate black key offset based on note
-  const getBlackKeyOffset = (note: string) => {
-    const noteName = note.replace(/[0-9]/g, "");
-    switch (noteName) {
-      case "C#":
-        return "translate-x-[20%]";
-      case "D#":
-        return "translate-x-[30%]";
-      case "F#":
-        return "translate-x-[30%]";
-      case "G#":
-        return "translate-x-[30%]";
-      case "A#":
-        return "translate-x-[30%]";
-      default:
-        return "";
-    }
-  };
-
   return (
     <button
       type="button"
@@ -120,8 +101,7 @@ const PianoKey: React.FC<{
         "relative touch-none select-none outline-none transition-colors duration-100",
         isBlack
           ? cn(
-              "absolute top-0 left-[55%] w-[60%] h-[70%] rounded-b-md z-10",
-              getBlackKeyOffset(note),
+              "absolute top-0 left-[55%] w-[60%] h-[70%] rounded-b-md z-10 translate-x-[30%]",
               isPressed ? "bg-[#ff33ff]" : "bg-black hover:bg-[#333333]"
             )
           : cn(
