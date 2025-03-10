@@ -243,7 +243,7 @@ export function SynthAppComponent({
   const whiteKeys = ["C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5"];
   const blackKeys = ["C#4", "D#4", null, "F#4", "G#4", "A#4", null];
 
-  const [isControlsVisible, setIsControlsVisible] = useState(true);
+  const [isControlsVisible, setIsControlsVisible] = useState(false);
 
   // Initialize synth and effects
   useEffect(() => {
