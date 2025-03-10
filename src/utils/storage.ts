@@ -283,6 +283,12 @@ export const DEFAULT_FAVORITES: Favorite[] = [
     year: "current",
   },
   {
+    title: "Maya",
+    url: "https://mayabakir.com",
+    favicon: "https://www.google.com/s2/favicons?domain=mayabakir.com&sz=32",
+    year: "current",
+  },
+  {
     title: "Frank",
     url: "https://okfrank.co",
     favicon: "https://www.google.com/s2/favicons?domain=okfrank.co&sz=32",
