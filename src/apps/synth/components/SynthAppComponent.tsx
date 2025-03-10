@@ -27,9 +27,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Dial } from "@/components/ui/dial";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 // Define oscillator type
 type OscillatorType = "sine" | "square" | "triangle" | "sawtooth";
+
+// Define label type
+type NoteLabelType = "note" | "key" | "off";
 
 // Component to display status messages
 const StatusDisplay: React.FC<{ message: string | null }> = ({ message }) => {
@@ -57,7 +61,17 @@ const PianoKey: React.FC<{
   isPressed?: boolean;
   onPress: (note: string) => void;
   onRelease: (note: string) => void;
-}> = ({ note, isBlack = false, isPressed = false, onPress, onRelease }) => {
+  labelType: NoteLabelType;
+  keyMap: Record<string, string>;
+}> = ({
+  note,
+  isBlack = false,
+  isPressed = false,
+  onPress,
+  onRelease,
+  labelType,
+  keyMap,
+}) => {
   const handleMouseDown = () => {
     onPress(note);
   };
@@ -67,18 +81,31 @@ const PianoKey: React.FC<{
   };
 
   const handleMouseEnter = (e: React.MouseEvent) => {
-    // Only trigger note if mouse button is pressed (dragging)
     if (e.buttons === 1) {
       onPress(note);
     }
   };
 
   const handleMouseLeave = (e: React.MouseEvent) => {
-    // Only release if we were dragging
     if (e.buttons === 1) {
       onRelease(note);
     }
   };
+
+  // Get the appropriate label based on labelType
+  const getKeyLabel = () => {
+    if (labelType === "off") return "";
+    if (labelType === "key") {
+      // Find the keyboard key for this note
+      const keyboardKey = Object.entries(keyMap).find(
+        ([, noteValue]) => noteValue === note
+      )?.[0];
+      return keyboardKey ? keyboardKey.toUpperCase() : "";
+    }
+    return note.replace(/[0-9]/g, "");
+  };
+
+  const label = getKeyLabel();
 
   return (
     <button
@@ -101,14 +128,16 @@ const PianoKey: React.FC<{
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      <span
-        className={cn(
-          "absolute bottom-2 left-1/2 transform -translate-x-1/2 text-xs pointer-events-none font-semibold",
-          isBlack ? "text-white" : "text-black"
-        )}
-      >
-        {note.replace(/[0-9]/g, "")}
-      </span>
+      {label && (
+        <span
+          className={cn(
+            "absolute bottom-2 left-1/2 transform -translate-x-1/2 text-xs pointer-events-none font-semibold",
+            isBlack ? "text-white" : "text-black"
+          )}
+        >
+          {label}
+        </span>
+      )}
     </button>
   );
 };
@@ -457,6 +486,17 @@ export function SynthAppComponent({
 
   const whiteKeys = allWhiteKeys.slice(startIndex, endIndex);
   const blackKeys = allBlackKeys.slice(startIndex, endIndex);
+
+  // Determine default label type based on screen size
+  const isMobile = useMediaQuery("(max-width: 768px)");
+  const [labelType, setLabelType] = useState<NoteLabelType>(
+    isMobile ? "off" : "key"
+  );
+
+  // Update label type when screen size changes
+  useEffect(() => {
+    setLabelType(isMobile ? "off" : "key");
+  }, [isMobile]);
 
   // Initialize synth and effects
   useEffect(() => {
@@ -814,6 +854,8 @@ export function SynthAppComponent({
           const preset = presets.find((p) => p.id === id);
           if (preset) loadPreset(preset);
         }}
+        labelType={labelType}
+        onLabelTypeChange={setLabelType}
       />
 
       <WindowFrame
@@ -1207,6 +1249,8 @@ export function SynthAppComponent({
                         isPressed={pressedNotes[note]}
                         onPress={pressNote}
                         onRelease={releaseNote}
+                        labelType={labelType}
+                        keyMap={keyToNoteMap}
                       />
                     </div>
                   ))}
@@ -1238,6 +1282,8 @@ export function SynthAppComponent({
                               isPressed={pressedNotes[note]}
                               onPress={pressNote}
                               onRelease={releaseNote}
+                              labelType={labelType}
+                              keyMap={keyToNoteMap}
                             />
                           </div>
                         )}
