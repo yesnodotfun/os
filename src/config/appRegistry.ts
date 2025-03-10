@@ -108,8 +108,8 @@ export const appRegistry = {
   [SynthApp.id]: {
     ...SynthApp,
     windowConfig: {
-      defaultSize: { width: 650, height: 550 },
-      minSize: { width: 500, height: 450 },
+      defaultSize: { width: 640, height: 400 },
+      minSize: { width: 500, height: 400 },
     } as WindowConstraints,
   },
   [ControlPanelsApp.id]: {
