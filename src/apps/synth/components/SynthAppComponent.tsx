@@ -985,24 +985,36 @@ export function SynthAppComponent({
 
                 {/* Black keys container */}
                 <div className="absolute inset-0 h-full w-full flex pointer-events-none">
-                  {blackKeys.map((note, index) => (
-                    <div
-                      key={note || `empty-${index}`}
-                      className="flex-1 relative"
-                    >
-                      {note && (
-                        <div className="pointer-events-auto w-full">
-                          <PianoKey
-                            note={note}
-                            isBlack
-                            isPressed={pressedNotes[note]}
-                            onPress={pressNote}
-                            onRelease={releaseNote}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                  {blackKeys.map((note, index) => {
+                    // Only hide black keys at the end of the visible range
+                    if (visibleKeyCount > 0 && index === blackKeys.length - 1) {
+                      return (
+                        <div
+                          key={`empty-${index}`}
+                          className="flex-1 relative"
+                        />
+                      );
+                    }
+
+                    return (
+                      <div
+                        key={note || `empty-${index}`}
+                        className="flex-1 relative"
+                      >
+                        {note && (
+                          <div className="pointer-events-auto w-full">
+                            <PianoKey
+                              note={note}
+                              isBlack
+                              isPressed={pressedNotes[note]}
+                              onPress={pressNote}
+                              onRelease={releaseNote}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
