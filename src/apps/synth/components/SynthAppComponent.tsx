@@ -707,6 +707,25 @@ export function SynthAppComponent({
     )
       return;
 
+    // Handle number keys for preset switching
+    const numKey = parseInt(e.key);
+    if (!isNaN(numKey) && numKey >= 1 && numKey <= 9) {
+      e.preventDefault();
+      const presetIndex = numKey - 1;
+      if (presetIndex < presets.length) {
+        loadPreset(presets[presetIndex]);
+      }
+    }
+
+    // Handle 0 key for the 10th preset
+    if (e.key === "0") {
+      e.preventDefault();
+      const presetIndex = 9;
+      if (presetIndex < presets.length) {
+        loadPreset(presets[presetIndex]);
+      }
+    }
+
     const note = keyToNoteMap[e.key.toLowerCase()];
     if (note) {
       e.preventDefault();
