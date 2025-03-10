@@ -131,7 +131,7 @@ const PianoKey: React.FC<{
       {label && (
         <span
           className={cn(
-            "absolute bottom-2 left-1/2 transform -translate-x-1/2 text-xs pointer-events-none font-semibold",
+            "absolute bottom-2 left-1/2 transform -translate-x-1/2 text-[10px] pointer-events-none font-geneva-12",
             isBlack ? "text-white" : "text-black"
           )}
         >
