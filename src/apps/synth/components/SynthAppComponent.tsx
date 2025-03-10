@@ -94,6 +94,25 @@ const PianoKey: React.FC<{
     // This is handled by the parent component's touch events
   };
 
+  // Calculate black key offset based on note
+  const getBlackKeyOffset = (note: string) => {
+    const noteName = note.replace(/[0-9]/g, "");
+    switch (noteName) {
+      case "C#":
+        return "translate-x-[20%]";
+      case "D#":
+        return "translate-x-[30%]";
+      case "F#":
+        return "translate-x-[30%]";
+      case "G#":
+        return "translate-x-[30%]";
+      case "A#":
+        return "translate-x-[30%]";
+      default:
+        return "";
+    }
+  };
+
   return (
     <button
       type="button"
@@ -102,11 +121,7 @@ const PianoKey: React.FC<{
         isBlack
           ? cn(
               "absolute top-0 left-[55%] w-[60%] h-[70%] rounded-b-md z-10",
-              // Add custom offsets for F#, G#, and A# keys
-              note === "D#4" && "-translate-x-[20%]",
-              note === "F#4" && "-translate-x-[60%]",
-              note === "G#4" && "-translate-x-[80%]",
-              note === "A#4" && "-translate-x-[100%]",
+              getBlackKeyOffset(note),
               isPressed ? "bg-[#ff33ff]" : "bg-black hover:bg-[#333333]"
             )
           : cn(
@@ -239,11 +254,99 @@ export function SynthAppComponent({
   // Use UI sound for interface feedback
   const { play } = useSound("/sounds/click.mp3");
 
-  // Define keyboard layout
-  const whiteKeys = ["C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5"];
-  const blackKeys = ["C#4", "D#4", null, "F#4", "G#4", "A#4", null];
+  // Define keyboard layout with extended range
+  const allWhiteKeys = [
+    "C3",
+    "D3",
+    "E3",
+    "F3",
+    "G3",
+    "A3",
+    "B3",
+    "C4",
+    "D4",
+    "E4",
+    "F4",
+    "G4",
+    "A4",
+    "B4",
+    "C5",
+    "D5",
+    "E5",
+    "F5",
+  ];
+  const allBlackKeys = [
+    "C#3",
+    "D#3",
+    null,
+    "F#3",
+    "G#3",
+    "A#3",
+    null,
+    "C#4",
+    "D#4",
+    null,
+    "F#4",
+    "G#4",
+    "A#4",
+    null,
+    "C#5",
+    "D#5",
+    null,
+    "F#5",
+  ];
 
+  // State for responsive keyboard
+  const [visibleKeyCount, setVisibleKeyCount] = useState(8);
   const [isControlsVisible, setIsControlsVisible] = useState(false);
+
+  // Reference to the app container
+  const appContainerRef = useRef<HTMLDivElement>(null);
+
+  // Update visible keys based on WindowFrame's width
+  useEffect(() => {
+    if (!isWindowOpen) return;
+
+    const handleResize = () => {
+      if (!appContainerRef.current) return;
+
+      const width = appContainerRef.current.clientWidth;
+      // Calculate how many additional keys to show based on width
+      // Base is 8 keys at minimum width (e.g. 400px)
+      // Add 1 key per 80px of additional width
+      const additionalKeys = Math.floor((width - 400) / 80);
+      setVisibleKeyCount(Math.max(0, Math.min(10, additionalKeys)));
+    };
+
+    // Initial calculation
+    handleResize();
+
+    // Create ResizeObserver to watch for container size changes
+    const resizeObserver = new ResizeObserver(handleResize);
+
+    if (appContainerRef.current) {
+      resizeObserver.observe(appContainerRef.current);
+    }
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [isWindowOpen, appContainerRef.current]);
+
+  // Get visible keys based on container width
+  // Start with a base of 8 keys (C4-C5) and add more keys on both sides as container gets wider
+  const baseIndex = 7; // Index of C4 in allWhiteKeys
+  const keysToAddLeft = Math.floor(visibleKeyCount / 2);
+  const keysToAddRight = Math.ceil(visibleKeyCount / 2);
+
+  const startIndex = Math.max(0, baseIndex - keysToAddLeft);
+  const endIndex = Math.min(
+    allWhiteKeys.length,
+    baseIndex + 8 + keysToAddRight
+  );
+
+  const whiteKeys = allWhiteKeys.slice(startIndex, endIndex);
+  const blackKeys = allBlackKeys.slice(startIndex, endIndex);
 
   // Initialize synth and effects
   useEffect(() => {
@@ -355,8 +458,9 @@ export function SynthAppComponent({
     distortionRef.current.distortion = preset.effects.distortion;
   };
 
-  // Keyboard event handlers
+  // Keyboard event handlers - extended mapping
   const keyToNoteMap: Record<string, string> = {
+    // Middle octave (C4-B4)
     a: "C4",
     w: "C#4",
     s: "D4",
@@ -369,7 +473,14 @@ export function SynthAppComponent({
     h: "A4",
     u: "A#4",
     j: "B4",
+
+    // Upper octave (C5-F5)
     k: "C5",
+    o: "C#5",
+    l: "D5",
+    p: "D#5",
+    ";": "E5",
+    "'": "F5",
   };
 
   // Note press/release handlers
@@ -631,7 +742,10 @@ export function SynthAppComponent({
         onClose={onClose}
         isForeground={isForeground}
       >
-        <div className="flex flex-col h-full w-full bg-[#1a1a1a] text-white overflow-hidden">
+        <div
+          ref={appContainerRef}
+          className="flex flex-col h-full w-full bg-[#1a1a1a] text-white overflow-hidden"
+        >
           {/* Main content area */}
           <div className="flex flex-col flex-1 min-h-0 w-full overflow-hidden">
             {/* Presets section */}
