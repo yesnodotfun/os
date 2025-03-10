@@ -80,24 +80,10 @@ const PianoKey: React.FC<{
     }
   };
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    e.preventDefault();
-    onPress(note);
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    e.preventDefault();
-    onRelease(note);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    e.preventDefault();
-    // This is handled by the parent component's touch events
-  };
-
   return (
     <button
       type="button"
+      data-note={note}
       className={cn(
         "relative touch-none select-none outline-none transition-colors duration-100",
         isBlack
@@ -114,9 +100,6 @@ const PianoKey: React.FC<{
       onMouseUp={handleMouseUp}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-      onTouchMove={handleTouchMove}
     >
       <span
         className={cn(
@@ -1106,7 +1089,74 @@ export function SynthAppComponent({
 
             {/* Keyboard - fixed at bottom */}
             <div className="flex-grow flex flex-col justify-end min-h-[160px] bg-black p-4 w-full">
-              <div className="relative h-full w-full">
+              <div
+                className="relative h-full w-full"
+                onTouchStart={(e) => {
+                  e.preventDefault();
+                  const touch = e.touches[0];
+                  if (!touch) return;
+
+                  // Find the element under the touch point
+                  const elementUnderTouch = document.elementFromPoint(
+                    touch.clientX,
+                    touch.clientY
+                  ) as HTMLElement;
+
+                  // Find the piano key button element (it might be a child element)
+                  const keyElement =
+                    elementUnderTouch?.closest("button[data-note]");
+                  if (!keyElement) return;
+
+                  // Get the note data from the element's dataset
+                  const noteAttr = keyElement.getAttribute("data-note");
+                  if (noteAttr) {
+                    // Play the note on initial touch
+                    pressNote(noteAttr);
+                  }
+                }}
+                onTouchMove={(e) => {
+                  e.preventDefault();
+                  const touch = e.touches[0];
+                  if (!touch) return;
+
+                  // Find the element under the touch point
+                  const elementUnderTouch = document.elementFromPoint(
+                    touch.clientX,
+                    touch.clientY
+                  ) as HTMLElement;
+
+                  // Find the piano key button element
+                  const keyElement =
+                    elementUnderTouch?.closest("button[data-note]");
+
+                  // Release all currently pressed notes
+                  Object.keys(pressedNotes).forEach((note) => {
+                    releaseNote(note);
+                  });
+
+                  // If we're over a key, play that note
+                  if (keyElement) {
+                    const noteAttr = keyElement.getAttribute("data-note");
+                    if (noteAttr) {
+                      pressNote(noteAttr);
+                    }
+                  }
+                }}
+                onTouchEnd={(e) => {
+                  e.preventDefault();
+                  // Release all pressed notes when touch ends
+                  Object.keys(pressedNotes).forEach((note) => {
+                    releaseNote(note);
+                  });
+                }}
+                onTouchCancel={(e) => {
+                  e.preventDefault();
+                  // Release all pressed notes when touch is cancelled
+                  Object.keys(pressedNotes).forEach((note) => {
+                    releaseNote(note);
+                  });
+                }}
+              >
                 {/* White keys container */}
                 <div className="absolute inset-0 h-full flex w-full">
                   {whiteKeys.map((note) => (
