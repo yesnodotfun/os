@@ -683,7 +683,8 @@ export function SynthAppComponent({
       e.repeat ||
       isPresetDialogOpen ||
       isHelpOpen ||
-      isAboutOpen
+      isAboutOpen ||
+      isControlsVisible
     )
       return;
 
@@ -714,7 +715,13 @@ export function SynthAppComponent({
   };
 
   const handleKeyUp = (e: KeyboardEvent) => {
-    if (!isForeground || isPresetDialogOpen || isHelpOpen || isAboutOpen)
+    if (
+      !isForeground ||
+      isPresetDialogOpen ||
+      isHelpOpen ||
+      isAboutOpen ||
+      isControlsVisible
+    )
       return;
 
     const note = keyToNoteMap[e.key.toLowerCase()];
