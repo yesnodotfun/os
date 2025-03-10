@@ -318,7 +318,7 @@ export function SynthAppComponent({
   const defaultPresets: SynthPreset[] = [
     {
       id: "default",
-      name: "Default",
+      name: "Synth",
       oscillator: {
         type: "sine" as OscillatorType,
       },
@@ -336,7 +336,7 @@ export function SynthAppComponent({
     },
     {
       id: "analog-pad",
-      name: "Analog Pad",
+      name: "Pad",
       oscillator: {
         type: "triangle" as OscillatorType,
       },
@@ -354,38 +354,20 @@ export function SynthAppComponent({
     },
     {
       id: "digital-lead",
-      name: "Digital Lead",
+      name: "Lead",
       oscillator: {
         type: "sawtooth" as OscillatorType,
       },
       envelope: {
-        attack: 0.01,
-        decay: 0.1,
-        sustain: 0.3,
-        release: 0.1,
-      },
-      effects: {
-        reverb: 0.1,
-        delay: 0.2,
-        distortion: 0.3,
-      },
-    },
-    {
-      id: "retro-bass",
-      name: "Retro Bass",
-      oscillator: {
-        type: "square" as OscillatorType,
-      },
-      envelope: {
         attack: 0.02,
-        decay: 0.2,
-        sustain: 0.8,
-        release: 0.3,
+        decay: 0.15,
+        sustain: 0.4,
+        release: 0.2,
       },
       effects: {
-        reverb: 0.1,
-        delay: 0.1,
-        distortion: 0.2,
+        reverb: 0.15,
+        delay: 0.25,
+        distortion: 0.4,
       },
     },
   ];
@@ -711,82 +693,6 @@ export function SynthAppComponent({
   };
 
   const resetSynth = () => {
-    // Load the default presets
-    const defaultPresets: SynthPreset[] = [
-      {
-        id: "default",
-        name: "Default",
-        oscillator: {
-          type: "sine" as OscillatorType,
-        },
-        envelope: {
-          attack: 0.1,
-          decay: 0.2,
-          sustain: 0.5,
-          release: 1,
-        },
-        effects: {
-          reverb: 0.2,
-          delay: 0.2,
-          distortion: 0,
-        },
-      },
-      {
-        id: "analog-pad",
-        name: "Analog Pad",
-        oscillator: {
-          type: "triangle" as OscillatorType,
-        },
-        envelope: {
-          attack: 0.5,
-          decay: 0.3,
-          sustain: 0.7,
-          release: 2,
-        },
-        effects: {
-          reverb: 0.6,
-          delay: 0.3,
-          distortion: 0.1,
-        },
-      },
-      {
-        id: "digital-lead",
-        name: "Digital Lead",
-        oscillator: {
-          type: "sawtooth" as OscillatorType,
-        },
-        envelope: {
-          attack: 0.01,
-          decay: 0.1,
-          sustain: 0.3,
-          release: 0.1,
-        },
-        effects: {
-          reverb: 0.1,
-          delay: 0.2,
-          distortion: 0.3,
-        },
-      },
-      {
-        id: "retro-bass",
-        name: "Retro Bass",
-        oscillator: {
-          type: "square" as OscillatorType,
-        },
-        envelope: {
-          attack: 0.05,
-          decay: 0.1,
-          sustain: 0.6,
-          release: 0.3,
-        },
-        effects: {
-          reverb: 0.1,
-          delay: 0.1,
-          distortion: 0.2,
-        },
-      },
-    ];
-
     // Set the presets and current preset
     setPresets(defaultPresets);
     setCurrentPreset(defaultPresets[0]);
