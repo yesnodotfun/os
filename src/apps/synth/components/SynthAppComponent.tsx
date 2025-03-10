@@ -839,7 +839,7 @@ export function SynthAppComponent({
                     onClick={addPreset}
                     className="h-[22px] px-2"
                   >
-                    ADD PRESET
+                    ADD
                   </Button>
                   <Button
                     variant="player"
