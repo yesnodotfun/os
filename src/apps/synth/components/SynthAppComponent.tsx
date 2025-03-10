@@ -140,9 +140,23 @@ const Waveform3D: React.FC<{ analyzer: Tone.Analyser | null }> = ({
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const meshRef = useRef<THREE.Mesh | null>(null);
   const animationFrameRef = useRef<number>();
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+
+    return () => {
+      window.removeEventListener("resize", checkMobile);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!containerRef.current || isMobile) return;
 
     // Create scene
     const scene = new THREE.Scene();
@@ -274,7 +288,7 @@ const Waveform3D: React.FC<{ analyzer: Tone.Analyser | null }> = ({
   return (
     <div
       ref={containerRef}
-      className="w-full h-26 overflow-hidden bg-black/50"
+      className="w-full h-12 md:h-26 overflow-hidden bg-black/50 hidden md:block"
     />
   );
 };
@@ -686,6 +700,7 @@ export function SynthAppComponent({
       setCurrentPreset(updatedPreset);
       showStatus(`Preset "${name}" updated`);
     }
+    setIsPresetDialogOpen(false);
   };
 
   const loadPreset = (preset: SynthPreset) => {
@@ -895,11 +910,17 @@ export function SynthAppComponent({
     <>
       <SynthMenuBar
         onAddPreset={addPreset}
-        onLoadPreset={() => {}}
         onSavePreset={updateCurrentPreset}
         onShowHelp={() => setIsHelpOpen(true)}
         onShowAbout={() => setIsAboutOpen(true)}
         onReset={resetSynth}
+        onClose={onClose}
+        presets={presets}
+        currentPresetId={currentPreset.id}
+        onLoadPresetById={(id) => {
+          const preset = presets.find((p) => p.id === id);
+          if (preset) loadPreset(preset);
+        }}
       />
 
       <WindowFrame
@@ -918,25 +939,54 @@ export function SynthAppComponent({
             <div className="p-4 py-4 pb-3 bg-[#2a2a2a] w-full border-b border-[#3a3a3a] z-[50] relative">
               <div className="flex justify-between items-center">
                 <div className="flex gap-0 overflow-x-auto">
-                  {presets.length > 0 ? (
-                    presets.map((preset) => (
-                      <Button
-                        key={preset.id}
-                        variant="player"
-                        data-state={
-                          currentPreset.id === preset.id ? "on" : "off"
-                        }
-                        onClick={() => loadPreset(preset)}
-                        className="h-[22px] px-2 whitespace-nowrap uppercase"
-                      >
-                        {preset.name}
-                      </Button>
-                    ))
-                  ) : (
-                    <p className="text-xs text-gray-400 font-geneva-12">
-                      No presets yet. Create one with the NEW button.
-                    </p>
-                  )}
+                  {/* Mobile preset selector */}
+                  <div className="md:hidden w-48">
+                    <Select
+                      value={currentPreset.id}
+                      onValueChange={(value) => {
+                        const preset = presets.find((p) => p.id === value);
+                        if (preset) loadPreset(preset);
+                      }}
+                    >
+                      <SelectTrigger className="w-full bg-black border-[#3a3a3a] text-white font-geneva-12 text-[12px] p-2">
+                        <SelectValue placeholder="Select Preset" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-black border-[#3a3a3a] text-white">
+                        {presets.map((preset) => (
+                          <SelectItem
+                            key={preset.id}
+                            value={preset.id}
+                            className="font-geneva-12 text-[12px]"
+                          >
+                            {preset.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Desktop preset buttons */}
+                  <div className="hidden md:flex gap-0 overflow-x-auto">
+                    {presets.length > 0 ? (
+                      presets.map((preset) => (
+                        <Button
+                          key={preset.id}
+                          variant="player"
+                          data-state={
+                            currentPreset.id === preset.id ? "on" : "off"
+                          }
+                          onClick={() => loadPreset(preset)}
+                          className="h-[22px] px-2 whitespace-nowrap uppercase"
+                        >
+                          {preset.name}
+                        </Button>
+                      ))
+                    ) : (
+                      <p className="text-xs text-gray-400 font-geneva-12">
+                        No presets yet. Create one with the NEW button.
+                      </p>
+                    )}
+                  </div>
                 </div>
                 <div className="flex gap-1">
                   <Button
@@ -1021,6 +1071,7 @@ export function SynthAppComponent({
                               animate={{ opacity: 1, height: "auto" }}
                               exit={{ opacity: 0, height: 0 }}
                               transition={{ duration: 0.2 }}
+                              className="hidden md:block"
                             >
                               <Waveform3D analyzer={analyzerRef.current} />
                             </motion.div>
