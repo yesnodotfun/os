@@ -25,43 +25,75 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Slider } from "@/components/ui/slider";
+import { Dial } from "@/components/ui/dial";
 
 // Define oscillator type
 type OscillatorType = "sine" | "square" | "triangle" | "sawtooth";
 
 // Component to display status messages
-function StatusDisplay({ message }: { message: string }) {
+const StatusDisplay: React.FC<{ message: string | null }> = ({ message }) => {
   return (
     <AnimatePresence>
       {message && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          className="absolute bottom-4 left-1/2 transform -translate-x-1/2 px-4 py-2 bg-black/80 text-white rounded-md text-sm z-50"
+          exit={{ opacity: 0, y: 20 }}
+          transition={{ duration: 0.2 }}
+          className="absolute bottom-4 w-full text-center left-1/2 transform -translate-x-1/2 px-4 py-2 bg-black/80 backdrop-blur-sm border border-[#3a3a3a] rounded-md text-[#ff00ff] text-sm font-geneva-12 z-50"
         >
           {message}
         </motion.div>
       )}
     </AnimatePresence>
   );
-}
+};
 
 // Piano key component
-function PianoKey({
-  note,
-  isBlack = false,
-  isPressed = false,
-  onPress,
-  onRelease,
-}: {
+const PianoKey: React.FC<{
   note: string;
   isBlack?: boolean;
   isPressed?: boolean;
   onPress: (note: string) => void;
   onRelease: (note: string) => void;
-}) {
+}> = ({ note, isBlack = false, isPressed = false, onPress, onRelease }) => {
+  const handleMouseDown = () => {
+    onPress(note);
+  };
+
+  const handleMouseUp = () => {
+    onRelease(note);
+  };
+
+  const handleMouseEnter = (e: React.MouseEvent) => {
+    // Only trigger note if mouse button is pressed (dragging)
+    if (e.buttons === 1) {
+      onPress(note);
+    }
+  };
+
+  const handleMouseLeave = (e: React.MouseEvent) => {
+    // Only release if we were dragging
+    if (e.buttons === 1) {
+      onRelease(note);
+    }
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    e.preventDefault();
+    onPress(note);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    e.preventDefault();
+    onRelease(note);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    e.preventDefault();
+    // This is handled by the parent component's touch events
+  };
+
   return (
     <button
       type="button"
@@ -69,39 +101,38 @@ function PianoKey({
         "relative touch-none select-none outline-none transition-colors duration-100",
         isBlack
           ? cn(
-              "absolute top-0 left-[55%] w-[60%] h-2/3 bg-gray-900 rounded-b-md z-10 hover:bg-gray-800",
+              "absolute top-0 left-[55%] w-[60%] h-2/3 rounded-b-md z-10",
               // Add custom offsets for F#, G#, and A# keys
               note === "D#4" && "-translate-x-[20%]",
               note === "F#4" && "-translate-x-[60%]",
               note === "G#4" && "-translate-x-[80%]",
-              note === "A#4" && "-translate-x-[100%]"
+              note === "A#4" && "-translate-x-[100%]",
+              isPressed ? "bg-[#ff33ff]" : "bg-black hover:bg-[#333333]"
             )
-          : "h-full w-full bg-white border border-gray-300 rounded-b-md hover:bg-gray-50",
-        isPressed ? (isBlack ? "bg-gray-600" : "bg-gray-200") : ""
+          : cn(
+              "h-full w-full border border-[#333333] rounded-b-md",
+              isPressed ? "bg-[#ff33ff]" : "bg-white hover:bg-[#f5f5f5]"
+            )
       )}
-      onMouseDown={() => onPress(note)}
-      onMouseUp={() => onRelease(note)}
-      onMouseLeave={() => onRelease(note)}
-      onTouchStart={(e) => {
-        e.preventDefault();
-        onPress(note);
-      }}
-      onTouchEnd={(e) => {
-        e.preventDefault();
-        onRelease(note);
-      }}
+      onMouseDown={handleMouseDown}
+      onMouseUp={handleMouseUp}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onTouchMove={handleTouchMove}
     >
       <span
         className={cn(
-          "absolute bottom-2 left-1/2 transform -translate-x-1/2 text-xs pointer-events-none",
-          isBlack ? "text-white" : "text-gray-800"
+          "absolute bottom-2 left-1/2 transform -translate-x-1/2 text-xs pointer-events-none font-semibold",
+          isBlack ? "text-white" : "text-black"
         )}
       >
         {note.replace(/[0-9]/g, "")}
       </span>
     </button>
   );
-}
+};
 
 // Main synth app component
 export function SynthAppComponent({
@@ -119,26 +150,90 @@ export function SynthAppComponent({
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [isPresetDialogOpen, setIsPresetDialogOpen] = useState(false);
+  const [isSavingNewPreset, setIsSavingNewPreset] = useState(true);
+  const [presetName, setPresetName] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
+
+  // Default presets
+  const defaultPresets: SynthPreset[] = [
+    {
+      id: "default",
+      name: "Default",
+      oscillator: {
+        type: "sine" as OscillatorType,
+      },
+      envelope: {
+        attack: 0.1,
+        decay: 0.2,
+        sustain: 0.5,
+        release: 1,
+      },
+      effects: {
+        reverb: 0.2,
+        delay: 0.2,
+        distortion: 0,
+      },
+    },
+    {
+      id: "analog-pad",
+      name: "Analog Pad",
+      oscillator: {
+        type: "triangle" as OscillatorType,
+      },
+      envelope: {
+        attack: 0.5,
+        decay: 0.3,
+        sustain: 0.7,
+        release: 2,
+      },
+      effects: {
+        reverb: 0.6,
+        delay: 0.3,
+        distortion: 0.1,
+      },
+    },
+    {
+      id: "digital-lead",
+      name: "Digital Lead",
+      oscillator: {
+        type: "sawtooth" as OscillatorType,
+      },
+      envelope: {
+        attack: 0.01,
+        decay: 0.1,
+        sustain: 0.3,
+        release: 0.1,
+      },
+      effects: {
+        reverb: 0.1,
+        delay: 0.2,
+        distortion: 0.3,
+      },
+    },
+    {
+      id: "retro-bass",
+      name: "Retro Bass",
+      oscillator: {
+        type: "square" as OscillatorType,
+      },
+      envelope: {
+        attack: 0.02,
+        decay: 0.2,
+        sustain: 0.8,
+        release: 0.3,
+      },
+      effects: {
+        reverb: 0.1,
+        delay: 0.1,
+        distortion: 0.2,
+      },
+    },
+  ];
+
   const [presets, setPresets] = useState<SynthPreset[]>([]);
-  const [currentPreset, setCurrentPreset] = useState<SynthPreset>({
-    id: "default",
-    name: "Default",
-    oscillator: {
-      type: "sine",
-    },
-    envelope: {
-      attack: 0.1,
-      decay: 0.2,
-      sustain: 0.5,
-      release: 1,
-    },
-    effects: {
-      reverb: 0.2,
-      delay: 0.2,
-      distortion: 0,
-    },
-  });
+  const [currentPreset, setCurrentPreset] = useState<SynthPreset>(
+    defaultPresets[0]
+  );
 
   const [pressedNotes, setPressedNotes] = useState<Record<string, boolean>>({});
   // Use UI sound for interface feedback
@@ -196,6 +291,9 @@ export function SynthAppComponent({
     const savedPresets = loadSynthPresets();
     if (savedPresets.length > 0) {
       setPresets(savedPresets);
+    } else {
+      // Use default presets if no saved presets
+      setPresets(defaultPresets);
     }
 
     const savedCurrentPreset = loadSynthCurrentPreset();
@@ -204,7 +302,7 @@ export function SynthAppComponent({
       updateSynthParams(savedCurrentPreset);
     }
 
-    // Add keyboard event listeners
+    // Add keyboard event handlers
     document.addEventListener("keydown", handleKeyDown);
     document.addEventListener("keyup", handleKeyUp);
 
@@ -274,26 +372,6 @@ export function SynthAppComponent({
     k: "C5",
   };
 
-  const handleKeyDown = (e: KeyboardEvent) => {
-    if (!isForeground || e.repeat) return;
-
-    const note = keyToNoteMap[e.key.toLowerCase()];
-    if (note) {
-      e.preventDefault();
-      pressNote(note);
-    }
-  };
-
-  const handleKeyUp = (e: KeyboardEvent) => {
-    if (!isForeground) return;
-
-    const note = keyToNoteMap[e.key.toLowerCase()];
-    if (note) {
-      e.preventDefault();
-      releaseNote(note);
-    }
-  };
-
   // Note press/release handlers
   const pressNote = (note: string) => {
     if (!synthRef.current) return;
@@ -317,20 +395,46 @@ export function SynthAppComponent({
 
   // Preset handlers
   const addPreset = () => {
+    setIsSavingNewPreset(true);
+    setPresetName("");
+    setIsPresetDialogOpen(true);
+    play();
+  };
+
+  const updateCurrentPreset = () => {
+    setIsSavingNewPreset(false);
+    setPresetName(currentPreset.name);
     setIsPresetDialogOpen(true);
     play();
   };
 
   const savePreset = (name: string) => {
-    const newPreset: SynthPreset = {
-      ...currentPreset,
-      id: Date.now().toString(),
-      name,
-    };
+    if (isSavingNewPreset) {
+      // Create a new preset
+      const newPreset: SynthPreset = {
+        ...currentPreset,
+        id: Date.now().toString(),
+        name,
+      };
 
-    setPresets((prev) => [...prev, newPreset]);
-    setCurrentPreset(newPreset);
-    showStatus(`Preset "${name}" saved`);
+      setPresets((prev) => [...prev, newPreset]);
+      setCurrentPreset(newPreset);
+      showStatus(`Preset "${name}" saved`);
+    } else {
+      // Update existing preset
+      const updatedPreset: SynthPreset = {
+        ...currentPreset,
+        name: name,
+      };
+
+      setPresets((prev) =>
+        prev.map((preset) =>
+          preset.id === currentPreset.id ? updatedPreset : preset
+        )
+      );
+      setCurrentPreset(updatedPreset);
+      showStatus(`Preset "${name}" updated`);
+    }
   };
 
   const loadPreset = (preset: SynthPreset) => {
@@ -341,27 +445,86 @@ export function SynthAppComponent({
   };
 
   const resetSynth = () => {
-    const defaultPreset: SynthPreset = {
-      id: "default",
-      name: "Default",
-      oscillator: {
-        type: "sine",
+    // Load the default presets
+    const defaultPresets: SynthPreset[] = [
+      {
+        id: "default",
+        name: "Default",
+        oscillator: {
+          type: "sine" as OscillatorType,
+        },
+        envelope: {
+          attack: 0.1,
+          decay: 0.2,
+          sustain: 0.5,
+          release: 1,
+        },
+        effects: {
+          reverb: 0.2,
+          delay: 0.2,
+          distortion: 0,
+        },
       },
-      envelope: {
-        attack: 0.1,
-        decay: 0.2,
-        sustain: 0.5,
-        release: 1,
+      {
+        id: "analog-pad",
+        name: "Analog Pad",
+        oscillator: {
+          type: "triangle" as OscillatorType,
+        },
+        envelope: {
+          attack: 0.5,
+          decay: 0.3,
+          sustain: 0.7,
+          release: 2,
+        },
+        effects: {
+          reverb: 0.6,
+          delay: 0.3,
+          distortion: 0.1,
+        },
       },
-      effects: {
-        reverb: 0.2,
-        delay: 0.2,
-        distortion: 0,
+      {
+        id: "digital-lead",
+        name: "Digital Lead",
+        oscillator: {
+          type: "sawtooth" as OscillatorType,
+        },
+        envelope: {
+          attack: 0.01,
+          decay: 0.1,
+          sustain: 0.3,
+          release: 0.1,
+        },
+        effects: {
+          reverb: 0.1,
+          delay: 0.2,
+          distortion: 0.3,
+        },
       },
-    };
+      {
+        id: "retro-bass",
+        name: "Retro Bass",
+        oscillator: {
+          type: "square" as OscillatorType,
+        },
+        envelope: {
+          attack: 0.05,
+          decay: 0.1,
+          sustain: 0.6,
+          release: 0.3,
+        },
+        effects: {
+          reverb: 0.1,
+          delay: 0.1,
+          distortion: 0.2,
+        },
+      },
+    ];
 
-    setCurrentPreset(defaultPreset);
-    updateSynthParams(defaultPreset);
+    // Set the presets and current preset
+    setPresets(defaultPresets);
+    setCurrentPreset(defaultPresets[0]);
+    updateSynthParams(defaultPresets[0]);
     showStatus("Synth reset to defaults");
     play();
   };
@@ -422,12 +585,41 @@ export function SynthAppComponent({
     }
   };
 
+  // Keyboard event handlers
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (
+      !isForeground ||
+      e.repeat ||
+      isPresetDialogOpen ||
+      isHelpOpen ||
+      isAboutOpen
+    )
+      return;
+
+    const note = keyToNoteMap[e.key.toLowerCase()];
+    if (note) {
+      e.preventDefault();
+      pressNote(note);
+    }
+  };
+
+  const handleKeyUp = (e: KeyboardEvent) => {
+    if (!isForeground || isPresetDialogOpen || isHelpOpen || isAboutOpen)
+      return;
+
+    const note = keyToNoteMap[e.key.toLowerCase()];
+    if (note) {
+      e.preventDefault();
+      releaseNote(note);
+    }
+  };
+
   return (
     <>
       <SynthMenuBar
         onAddPreset={addPreset}
         onLoadPreset={() => {}}
-        onSavePreset={() => {}}
+        onSavePreset={updateCurrentPreset}
         onShowHelp={() => setIsHelpOpen(true)}
         onShowAbout={() => setIsAboutOpen(true)}
         onReset={resetSynth}
@@ -439,17 +631,11 @@ export function SynthAppComponent({
         onClose={onClose}
         isForeground={isForeground}
       >
-        <div className="flex flex-col h-full w-full bg-gradient-to-b from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 overflow-hidden">
+        <div className="flex flex-col h-full w-full bg-[#1a1a1a] text-white overflow-hidden">
           {/* Main content area */}
           <div className="flex flex-col flex-1 min-h-0 w-full overflow-hidden">
             {/* Controls panel */}
             <div className="relative w-full">
-              <button
-                onClick={() => setIsControlsVisible(!isControlsVisible)}
-                className="absolute right-2 top-2 z-10 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 px-2 py-1 rounded-md text-xs transition-colors"
-              >
-                {isControlsVisible ? "Hide Controls" : "Show Controls"}
-              </button>
               <AnimatePresence>
                 {isControlsVisible && (
                   <motion.div
@@ -459,145 +645,159 @@ export function SynthAppComponent({
                     transition={{ duration: 0.2 }}
                     className="overflow-hidden w-full"
                   >
-                    <div className="p-4 bg-gray-200 dark:bg-gray-700 w-full border-b border-gray-300 dark:border-gray-600">
-                      <div className="flex flex-col gap-4">
-                        {/* Oscillator and envelope controls */}
+                    <div className="p-4 bg-[#2a2a2a] w-full border-b border-[#3a3a3a]">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                          <h3 className="text-sm font-semibold mb-2">
+                          <h3 className="text-sm font-semibold mb-2 text-[#ff00ff] font-geneva-12 text-[12px]">
                             Oscillator
                           </h3>
                           <Select
                             value={currentPreset.oscillator.type}
-                            onValueChange={(value) =>
-                              handleOscillatorChange(value as OscillatorType)
+                            onValueChange={(value: OscillatorType) =>
+                              handleOscillatorChange(value)
                             }
                           >
-                            <SelectTrigger className="w-full">
+                            <SelectTrigger className="w-full bg-black border-[#3a3a3a] text-white font-geneva-12 text-[12px] p-2">
                               <SelectValue placeholder="Waveform" />
                             </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="sine">Sine</SelectItem>
-                              <SelectItem value="square">Square</SelectItem>
-                              <SelectItem value="triangle">Triangle</SelectItem>
-                              <SelectItem value="sawtooth">Sawtooth</SelectItem>
+                            <SelectContent className="bg-black border-[#3a3a3a] text-white">
+                              <SelectItem
+                                value="sine"
+                                className="font-geneva-12 text-[12px]"
+                              >
+                                Sine
+                              </SelectItem>
+                              <SelectItem
+                                value="square"
+                                className="font-geneva-12 text-[12px]"
+                              >
+                                Square
+                              </SelectItem>
+                              <SelectItem
+                                value="triangle"
+                                className="font-geneva-12 text-[12px]"
+                              >
+                                Triangle
+                              </SelectItem>
+                              <SelectItem
+                                value="sawtooth"
+                                className="font-geneva-12 text-[12px]"
+                              >
+                                Sawtooth
+                              </SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
 
                         <div>
-                          <h3 className="text-sm font-semibold mb-2">
+                          <h3 className="text-sm font-semibold mb-2 text-[#ff00ff] font-geneva-12 text-[12px]">
                             Envelope
                           </h3>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-4 gap-4">
                             <div>
-                              <p className="text-xs mb-1">
-                                Attack:{" "}
-                                {currentPreset.envelope.attack.toFixed(2)}
-                              </p>
-                              <Slider
-                                value={[currentPreset.envelope.attack]}
+                              <Dial
+                                value={currentPreset.envelope.attack}
                                 min={0.01}
                                 max={2}
                                 step={0.01}
-                                onValueChange={([value]) =>
+                                onChange={(value) =>
                                   handleEnvelopeChange("attack", value)
                                 }
+                                label="Attack"
+                                color="#ff00ff"
+                                size="sm"
                               />
                             </div>
                             <div>
-                              <p className="text-xs mb-1">
-                                Decay: {currentPreset.envelope.decay.toFixed(2)}
-                              </p>
-                              <Slider
-                                value={[currentPreset.envelope.decay]}
+                              <Dial
+                                value={currentPreset.envelope.decay}
                                 min={0.01}
                                 max={2}
                                 step={0.01}
-                                onValueChange={([value]) =>
+                                onChange={(value) =>
                                   handleEnvelopeChange("decay", value)
                                 }
+                                label="Decay"
+                                color="#ff00ff"
+                                size="sm"
                               />
                             </div>
                             <div>
-                              <p className="text-xs mb-1">
-                                Sustain:{" "}
-                                {currentPreset.envelope.sustain.toFixed(2)}
-                              </p>
-                              <Slider
-                                value={[currentPreset.envelope.sustain]}
+                              <Dial
+                                value={currentPreset.envelope.sustain}
                                 min={0}
                                 max={1}
                                 step={0.01}
-                                onValueChange={([value]) =>
+                                onChange={(value) =>
                                   handleEnvelopeChange("sustain", value)
                                 }
+                                label="Sustain"
+                                color="#ff00ff"
+                                size="sm"
                               />
                             </div>
                             <div>
-                              <p className="text-xs mb-1">
-                                Release:{" "}
-                                {currentPreset.envelope.release.toFixed(2)}
-                              </p>
-                              <Slider
-                                value={[currentPreset.envelope.release]}
+                              <Dial
+                                value={currentPreset.envelope.release}
                                 min={0.1}
                                 max={4}
                                 step={0.1}
-                                onValueChange={([value]) =>
+                                onChange={(value) =>
                                   handleEnvelopeChange("release", value)
                                 }
+                                label="Release"
+                                color="#ff00ff"
+                                size="sm"
                               />
                             </div>
                           </div>
                         </div>
 
                         <div>
-                          <h3 className="text-sm font-semibold mb-2">
+                          <h3 className="text-sm font-semibold mb-2 text-[#ff00ff] font-geneva-12 text-[12px]">
                             Effects
                           </h3>
                           <div className="grid grid-cols-3 gap-4">
                             <div>
-                              <p className="text-xs mb-1">
-                                Reverb:{" "}
-                                {currentPreset.effects.reverb.toFixed(2)}
-                              </p>
-                              <Slider
-                                value={[currentPreset.effects.reverb]}
+                              <Dial
+                                value={currentPreset.effects.reverb}
                                 min={0}
                                 max={1}
                                 step={0.01}
-                                onValueChange={([value]) =>
+                                onChange={(value) =>
                                   handleEffectChange("reverb", value)
                                 }
+                                label="Reverb"
+                                color="#ff00ff"
+                                size="sm"
                               />
                             </div>
                             <div>
-                              <p className="text-xs mb-1">
-                                Delay: {currentPreset.effects.delay.toFixed(2)}
-                              </p>
-                              <Slider
-                                value={[currentPreset.effects.delay]}
-                                min={0}
-                                max={0.9}
-                                step={0.01}
-                                onValueChange={([value]) =>
-                                  handleEffectChange("delay", value)
-                                }
-                              />
-                            </div>
-                            <div>
-                              <p className="text-xs mb-1">
-                                Distortion:{" "}
-                                {currentPreset.effects.distortion.toFixed(2)}
-                              </p>
-                              <Slider
-                                value={[currentPreset.effects.distortion]}
+                              <Dial
+                                value={currentPreset.effects.delay}
                                 min={0}
                                 max={1}
                                 step={0.01}
-                                onValueChange={([value]) =>
+                                onChange={(value) =>
+                                  handleEffectChange("delay", value)
+                                }
+                                label="Delay"
+                                color="#ff00ff"
+                                size="sm"
+                              />
+                            </div>
+                            <div>
+                              <Dial
+                                value={currentPreset.effects.distortion}
+                                min={0}
+                                max={1}
+                                step={0.01}
+                                onChange={(value) =>
                                   handleEffectChange("distortion", value)
                                 }
+                                label="Distortion"
+                                color="#ff00ff"
+                                size="sm"
                               />
                             </div>
                           </div>
@@ -610,33 +810,50 @@ export function SynthAppComponent({
             </div>
 
             {/* Presets section */}
-            <div className="p-4 bg-gray-200 dark:bg-gray-700 w-full border-b border-gray-300 dark:border-gray-600">
-              <h3 className="text-sm font-semibold mb-2">Presets</h3>
-              <div className="flex gap-2 overflow-x-auto pb-2">
-                {presets.length > 0 ? (
-                  presets.map((preset) => (
-                    <Button
-                      key={preset.id}
-                      variant={
-                        currentPreset.id === preset.id ? "default" : "outline"
-                      }
-                      size="sm"
-                      onClick={() => loadPreset(preset)}
-                      className="whitespace-nowrap"
-                    >
-                      {preset.name}
-                    </Button>
-                  ))
-                ) : (
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    No presets yet. Create one with File → New Preset.
-                  </p>
-                )}
+            <div className="p-4 py-4 bg-[#2a2a2a] w-full border-b border-[#3a3a3a]">
+              <div className="flex justify-between items-center">
+                <div className="flex gap-0 overflow-x-auto">
+                  {presets.length > 0 ? (
+                    presets.map((preset) => (
+                      <Button
+                        key={preset.id}
+                        variant="player"
+                        data-state={
+                          currentPreset.id === preset.id ? "on" : "off"
+                        }
+                        onClick={() => loadPreset(preset)}
+                        className="h-[22px] px-2 whitespace-nowrap uppercase"
+                      >
+                        {preset.name}
+                      </Button>
+                    ))
+                  ) : (
+                    <p className="text-xs text-gray-400 font-geneva-12">
+                      No presets yet. Create one with the NEW button.
+                    </p>
+                  )}
+                </div>
+                <div className="flex gap-1">
+                  <Button
+                    variant="player"
+                    onClick={addPreset}
+                    className="h-[22px] px-2"
+                  >
+                    ADD PRESET
+                  </Button>
+                  <Button
+                    variant="player"
+                    onClick={() => setIsControlsVisible(!isControlsVisible)}
+                    className="h-[22px] px-2"
+                  >
+                    CONTROLS
+                  </Button>
+                </div>
               </div>
             </div>
 
             {/* Keyboard - fixed at bottom */}
-            <div className="flex-grow flex flex-col justify-end min-h-[160px] bg-gray-300 dark:bg-gray-600 p-4 w-full">
+            <div className="flex-grow flex flex-col justify-end min-h-[160px] bg-black p-4 w-full">
               <div className="relative h-full w-full">
                 {/* White keys container */}
                 <div className="absolute inset-0 h-full flex w-full">
@@ -700,10 +917,14 @@ export function SynthAppComponent({
         isOpen={isPresetDialogOpen}
         onOpenChange={setIsPresetDialogOpen}
         onSubmit={savePreset}
-        title="Save Preset"
-        description="Enter a name for your preset"
-        value=""
-        onChange={() => {}}
+        title={isSavingNewPreset ? "Save New Preset" : "Update Preset"}
+        description={
+          isSavingNewPreset
+            ? "Enter a name for your preset"
+            : "Update the name of your preset"
+        }
+        value={presetName}
+        onChange={setPresetName}
       />
     </>
   );
