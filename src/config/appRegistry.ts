@@ -9,6 +9,7 @@ import { PaintApp } from "@/apps/paint";
 import { VideosApp } from "@/apps/videos";
 import { PcApp } from "@/apps/pc";
 import { PhotoBoothApp } from "@/apps/photo-booth";
+import { SynthApp } from "@/apps/synth";
 
 export interface WindowSize {
   width: number;
@@ -110,6 +111,13 @@ export const appRegistry = {
       defaultSize: { width: 365, height: 400 },
       minSize: { width: 320, height: 400 },
       maxSize: { width: 365, height: 600 },
+    } as WindowConstraints,
+  },
+  [SynthApp.id]: {
+    ...SynthApp,
+    windowConfig: {
+      defaultSize: { width: 650, height: 550 },
+      minSize: { width: 500, height: 450 },
     } as WindowConstraints,
   },
 } as const;

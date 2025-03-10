@@ -24,7 +24,8 @@ export interface BaseApp {
     | "paint"
     | "videos"
     | "pc"
-    | "photo-booth";
+    | "photo-booth"
+    | "synth";
   name: string;
   icon: string | { type: "image"; src: string };
   description: string;

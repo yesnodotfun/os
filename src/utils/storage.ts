@@ -92,6 +92,12 @@ export const APP_STORAGE_KEYS = {
     HAS_SEEN_HELP: "photo-booth:hasSeenHelp" as const,
     PHOTOS: "photo-booth:photos" as const,
   },
+  synth: {
+    WINDOW: "synth:window" as const,
+    HAS_SEEN_HELP: "synth:hasSeenHelp" as const,
+    PRESETS: "synth:presets" as const,
+    CURRENT_PRESET: "synth:currentPreset" as const,
+  },
 } as const;
 
 interface WindowState {
@@ -1022,4 +1028,45 @@ export const getCurrentBrowserState = () => {
     currentYear: loadWaybackYear(),
     history: loadHistory(),
   };
+};
+
+// Synth app storage
+export interface SynthPreset {
+  id: string;
+  name: string;
+  oscillator: {
+    type: "sine" | "square" | "triangle" | "sawtooth";
+  };
+  envelope: {
+    attack: number;
+    decay: number;
+    sustain: number;
+    release: number;
+  };
+  effects: {
+    reverb: number;
+    delay: number;
+    distortion: number;
+  };
+}
+
+export const loadSynthPresets = (): SynthPreset[] => {
+  const saved = localStorage.getItem(APP_STORAGE_KEYS.synth.PRESETS);
+  return saved ? JSON.parse(saved) : [];
+};
+
+export const saveSynthPresets = (presets: SynthPreset[]): void => {
+  localStorage.setItem(APP_STORAGE_KEYS.synth.PRESETS, JSON.stringify(presets));
+};
+
+export const loadSynthCurrentPreset = (): SynthPreset | null => {
+  const saved = localStorage.getItem(APP_STORAGE_KEYS.synth.CURRENT_PRESET);
+  return saved ? JSON.parse(saved) : null;
+};
+
+export const saveSynthCurrentPreset = (preset: SynthPreset): void => {
+  localStorage.setItem(
+    APP_STORAGE_KEYS.synth.CURRENT_PRESET,
+    JSON.stringify(preset)
+  );
 };
