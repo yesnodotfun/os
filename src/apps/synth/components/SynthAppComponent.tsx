@@ -101,7 +101,7 @@ const PianoKey: React.FC<{
         "relative touch-none select-none outline-none transition-colors duration-100",
         isBlack
           ? cn(
-              "absolute top-0 left-[55%] w-[60%] h-[70%] rounded-b-md z-10 translate-x-[30%]",
+              "absolute top-0 left-[55%] w-[60%] h-[78%] rounded-b-md z-10 translate-x-[30%]",
               isPressed ? "bg-[#ff33ff]" : "bg-black hover:bg-[#333333]"
             )
           : cn(
@@ -748,7 +748,7 @@ export function SynthAppComponent({
           {/* Main content area */}
           <div className="flex flex-col flex-1 min-h-0 w-full overflow-hidden">
             {/* Presets section */}
-            <div className="p-4 py-4 pb-3 bg-[#2a2a2a] w-full border-b border-[#3a3a3a]">
+            <div className="p-4 py-4 pb-3 bg-[#2a2a2a] w-full border-b border-[#3a3a3a] z-[50] relative">
               <div className="flex justify-between items-center">
                 <div className="flex gap-0 overflow-x-auto">
                   {presets.length > 0 ? (
@@ -795,167 +795,170 @@ export function SynthAppComponent({
               <AnimatePresence>
                 {isControlsVisible && (
                   <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="overflow-hidden w-full"
+                    initial={{ y: -40, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: -40, opacity: 0 }}
+                    transition={{
+                      type: "spring",
+                      stiffness: 300,
+                      damping: 25,
+                      mass: 0.8,
+                    }}
+                    className="absolute top-0 inset-x-0 w-full bg-neutral-900/90 backdrop-blur-xl p-4 z-[40]"
                   >
-                    <div className="p-4 bg-[#2a2a2a] w-full border-b border-[#3a3a3a]">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                          <h3 className="font-semibold mb-2 text-[#ff00ff] font-geneva-12 text-[10px]">
-                            Oscillator
-                          </h3>
-                          <Select
-                            value={currentPreset.oscillator.type}
-                            onValueChange={(value: OscillatorType) =>
-                              handleOscillatorChange(value)
-                            }
-                          >
-                            <SelectTrigger className="w-full bg-black border-[#3a3a3a] text-white font-geneva-12 text-[12px] p-2">
-                              <SelectValue placeholder="Waveform" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-black border-[#3a3a3a] text-white">
-                              <SelectItem
-                                value="sine"
-                                className="font-geneva-12 text-[12px]"
-                              >
-                                Sine
-                              </SelectItem>
-                              <SelectItem
-                                value="square"
-                                className="font-geneva-12 text-[12px]"
-                              >
-                                Square
-                              </SelectItem>
-                              <SelectItem
-                                value="triangle"
-                                className="font-geneva-12 text-[12px]"
-                              >
-                                Triangle
-                              </SelectItem>
-                              <SelectItem
-                                value="sawtooth"
-                                className="font-geneva-12 text-[12px]"
-                              >
-                                Sawtooth
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <h3 className="font-semibold mb-2 text-[#ff00ff] font-geneva-12 text-[10px]">
+                          Oscillator
+                        </h3>
+                        <Select
+                          value={currentPreset.oscillator.type}
+                          onValueChange={(value: OscillatorType) =>
+                            handleOscillatorChange(value)
+                          }
+                        >
+                          <SelectTrigger className="w-full bg-black border-[#3a3a3a] text-white font-geneva-12 text-[12px] p-2">
+                            <SelectValue placeholder="Waveform" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-black border-[#3a3a3a] text-white">
+                            <SelectItem
+                              value="sine"
+                              className="font-geneva-12 text-[12px]"
+                            >
+                              Sine
+                            </SelectItem>
+                            <SelectItem
+                              value="square"
+                              className="font-geneva-12 text-[12px]"
+                            >
+                              Square
+                            </SelectItem>
+                            <SelectItem
+                              value="triangle"
+                              className="font-geneva-12 text-[12px]"
+                            >
+                              Triangle
+                            </SelectItem>
+                            <SelectItem
+                              value="sawtooth"
+                              className="font-geneva-12 text-[12px]"
+                            >
+                              Sawtooth
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-                        <div>
-                          <h3 className="font-semibold mb-2 text-[#ff00ff] font-geneva-12 text-[10px]">
-                            Envelope
-                          </h3>
-                          <div className="flex flex-wrap gap-1">
-                            <div className="w-16">
-                              <Dial
-                                value={currentPreset.envelope.attack}
-                                min={0.01}
-                                max={2}
-                                step={0.01}
-                                onChange={(value) =>
-                                  handleEnvelopeChange("attack", value)
-                                }
-                                label="Attack"
-                                color="#ff00ff"
-                                size="sm"
-                              />
-                            </div>
-                            <div className="w-16">
-                              <Dial
-                                value={currentPreset.envelope.decay}
-                                min={0.01}
-                                max={2}
-                                step={0.01}
-                                onChange={(value) =>
-                                  handleEnvelopeChange("decay", value)
-                                }
-                                label="Decay"
-                                color="#ff00ff"
-                                size="sm"
-                              />
-                            </div>
-                            <div className="w-16">
-                              <Dial
-                                value={currentPreset.envelope.sustain}
-                                min={0}
-                                max={1}
-                                step={0.01}
-                                onChange={(value) =>
-                                  handleEnvelopeChange("sustain", value)
-                                }
-                                label="Sustain"
-                                color="#ff00ff"
-                                size="sm"
-                              />
-                            </div>
-                            <div className="w-16">
-                              <Dial
-                                value={currentPreset.envelope.release}
-                                min={0.1}
-                                max={4}
-                                step={0.1}
-                                onChange={(value) =>
-                                  handleEnvelopeChange("release", value)
-                                }
-                                label="Release"
-                                color="#ff00ff"
-                                size="sm"
-                              />
-                            </div>
+                      <div>
+                        <h3 className="font-semibold mb-2 text-[#ff00ff] font-geneva-12 text-[10px]">
+                          Envelope
+                        </h3>
+                        <div className="flex flex-wrap gap-1">
+                          <div className="w-16">
+                            <Dial
+                              value={currentPreset.envelope.attack}
+                              min={0.01}
+                              max={2}
+                              step={0.01}
+                              onChange={(value) =>
+                                handleEnvelopeChange("attack", value)
+                              }
+                              label="Attack"
+                              color="#ff00ff"
+                              size="sm"
+                            />
+                          </div>
+                          <div className="w-16">
+                            <Dial
+                              value={currentPreset.envelope.decay}
+                              min={0.01}
+                              max={2}
+                              step={0.01}
+                              onChange={(value) =>
+                                handleEnvelopeChange("decay", value)
+                              }
+                              label="Decay"
+                              color="#ff00ff"
+                              size="sm"
+                            />
+                          </div>
+                          <div className="w-16">
+                            <Dial
+                              value={currentPreset.envelope.sustain}
+                              min={0}
+                              max={1}
+                              step={0.01}
+                              onChange={(value) =>
+                                handleEnvelopeChange("sustain", value)
+                              }
+                              label="Sustain"
+                              color="#ff00ff"
+                              size="sm"
+                            />
+                          </div>
+                          <div className="w-16">
+                            <Dial
+                              value={currentPreset.envelope.release}
+                              min={0.1}
+                              max={4}
+                              step={0.1}
+                              onChange={(value) =>
+                                handleEnvelopeChange("release", value)
+                              }
+                              label="Release"
+                              color="#ff00ff"
+                              size="sm"
+                            />
                           </div>
                         </div>
+                      </div>
 
-                        <div>
-                          <h3 className="font-semibold mb-2 text-[#ff00ff] font-geneva-12 text-[10px] ">
-                            Effects
-                          </h3>
-                          <div className="flex flex-wrap gap-1">
-                            <div className="w-16">
-                              <Dial
-                                value={currentPreset.effects.reverb}
-                                min={0}
-                                max={1}
-                                step={0.01}
-                                onChange={(value) =>
-                                  handleEffectChange("reverb", value)
-                                }
-                                label="Reverb"
-                                color="#ff00ff"
-                                size="sm"
-                              />
-                            </div>
-                            <div className="w-16">
-                              <Dial
-                                value={currentPreset.effects.delay}
-                                min={0}
-                                max={1}
-                                step={0.01}
-                                onChange={(value) =>
-                                  handleEffectChange("delay", value)
-                                }
-                                label="Delay"
-                                color="#ff00ff"
-                                size="sm"
-                              />
-                            </div>
-                            <div className="w-16">
-                              <Dial
-                                value={currentPreset.effects.distortion}
-                                min={0}
-                                max={1}
-                                step={0.01}
-                                onChange={(value) =>
-                                  handleEffectChange("distortion", value)
-                                }
-                                label="Distortion"
-                                color="#ff00ff"
-                                size="sm"
-                              />
-                            </div>
+                      <div>
+                        <h3 className="font-semibold mb-2 text-[#ff00ff] font-geneva-12 text-[10px]">
+                          Effects
+                        </h3>
+                        <div className="flex flex-wrap gap-1">
+                          <div className="w-16">
+                            <Dial
+                              value={currentPreset.effects.reverb}
+                              min={0}
+                              max={1}
+                              step={0.01}
+                              onChange={(value) =>
+                                handleEffectChange("reverb", value)
+                              }
+                              label="Reverb"
+                              color="#ff00ff"
+                              size="sm"
+                            />
+                          </div>
+                          <div className="w-16">
+                            <Dial
+                              value={currentPreset.effects.delay}
+                              min={0}
+                              max={1}
+                              step={0.01}
+                              onChange={(value) =>
+                                handleEffectChange("delay", value)
+                              }
+                              label="Delay"
+                              color="#ff00ff"
+                              size="sm"
+                            />
+                          </div>
+                          <div className="w-16">
+                            <Dial
+                              value={currentPreset.effects.distortion}
+                              min={0}
+                              max={1}
+                              step={0.01}
+                              onChange={(value) =>
+                                handleEffectChange("distortion", value)
+                              }
+                              label="Distortion"
+                              color="#ff00ff"
+                              size="sm"
+                            />
                           </div>
                         </div>
                       </div>
