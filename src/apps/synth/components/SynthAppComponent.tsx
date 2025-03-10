@@ -88,7 +88,7 @@ const PianoKey: React.FC<{
         "relative touch-none select-none outline-none transition-colors duration-100",
         isBlack
           ? cn(
-              "absolute top-0 left-[45%] w-[74%] h-[70%] rounded-b-md z-10 translate-x-[37%]",
+              "absolute top-0 left-[64%] w-[74%] h-[70%] rounded-b-md z-10",
               isPressed ? "bg-[#ff33ff]" : "bg-black hover:bg-[#333333]"
             )
           : cn(
@@ -795,6 +795,10 @@ export function SynthAppComponent({
     }
   };
 
+  const [activeTouches, setActiveTouches] = useState<Map<number, string>>(
+    new Map()
+  );
+
   return (
     <>
       <SynthMenuBar
@@ -1110,51 +1114,75 @@ export function SynthAppComponent({
                   // Get the note data from the element's dataset
                   const noteAttr = keyElement.getAttribute("data-note");
                   if (noteAttr) {
-                    // Play the note on initial touch
+                    // Store the active touch and its note
+                    setActiveTouches((prev) =>
+                      new Map(prev).set(touch.identifier, noteAttr)
+                    );
+                    // Play the note
                     pressNote(noteAttr);
                   }
                 }}
                 onTouchMove={(e) => {
                   e.preventDefault();
-                  const touch = e.touches[0];
-                  if (!touch) return;
 
-                  // Find the element under the touch point
-                  const elementUnderTouch = document.elementFromPoint(
-                    touch.clientX,
-                    touch.clientY
-                  ) as HTMLElement;
+                  // Handle each active touch
+                  Array.from(e.touches).forEach((touch) => {
+                    const elementUnderTouch = document.elementFromPoint(
+                      touch.clientX,
+                      touch.clientY
+                    ) as HTMLElement;
 
-                  // Find the piano key button element
-                  const keyElement =
-                    elementUnderTouch?.closest("button[data-note]");
+                    const keyElement =
+                      elementUnderTouch?.closest("button[data-note]");
 
-                  // Release all currently pressed notes
-                  Object.keys(pressedNotes).forEach((note) => {
-                    releaseNote(note);
-                  });
+                    // Get the current note for this touch
+                    const currentNote = activeTouches.get(touch.identifier);
 
-                  // If we're over a key, play that note
-                  if (keyElement) {
-                    const noteAttr = keyElement.getAttribute("data-note");
-                    if (noteAttr) {
-                      pressNote(noteAttr);
+                    // If we're over a key
+                    if (keyElement) {
+                      const noteAttr = keyElement.getAttribute("data-note");
+                      if (noteAttr && noteAttr !== currentNote) {
+                        // Release the previous note if it exists
+                        if (currentNote) {
+                          releaseNote(currentNote);
+                        }
+                        // Update the active touch with the new note
+                        setActiveTouches((prev) =>
+                          new Map(prev).set(touch.identifier, noteAttr)
+                        );
+                        // Play the new note
+                        pressNote(noteAttr);
+                      }
+                    } else {
+                      // If we're not over a key, release the current note
+                      if (currentNote) {
+                        releaseNote(currentNote);
+                        setActiveTouches((prev) => {
+                          const newMap = new Map(prev);
+                          newMap.delete(touch.identifier);
+                          return newMap;
+                        });
+                      }
                     }
-                  }
+                  });
                 }}
                 onTouchEnd={(e) => {
                   e.preventDefault();
-                  // Release all pressed notes when touch ends
-                  Object.keys(pressedNotes).forEach((note) => {
+                  // Release all active notes
+                  activeTouches.forEach((note) => {
                     releaseNote(note);
                   });
+                  // Clear all active touches
+                  setActiveTouches(new Map());
                 }}
                 onTouchCancel={(e) => {
                   e.preventDefault();
-                  // Release all pressed notes when touch is cancelled
-                  Object.keys(pressedNotes).forEach((note) => {
+                  // Release all active notes
+                  activeTouches.forEach((note) => {
                     releaseNote(note);
                   });
+                  // Clear all active touches
+                  setActiveTouches(new Map());
                 }}
               >
                 {/* White keys container */}
