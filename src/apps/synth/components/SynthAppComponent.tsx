@@ -1014,7 +1014,18 @@ export function SynthAppComponent({
                             </SelectItem>
                           </SelectContent>
                         </Select>
-                        <Waveform3D analyzer={analyzerRef.current} />
+                        <AnimatePresence>
+                          {isControlsVisible && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: "auto" }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ duration: 0.2 }}
+                            >
+                              <Waveform3D analyzer={analyzerRef.current} />
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
 
                       <div>
