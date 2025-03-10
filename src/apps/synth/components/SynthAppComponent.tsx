@@ -350,6 +350,24 @@ export function SynthAppComponent({
       },
     },
     {
+      id: "piano",
+      name: "Piano",
+      oscillator: {
+        type: "sine" as OscillatorType,
+      },
+      envelope: {
+        attack: 0.01,
+        decay: 0.3,
+        sustain: 0.1,
+        release: 0.5,
+      },
+      effects: {
+        reverb: 0.4,
+        delay: 0.1,
+        distortion: 0,
+      },
+    },
+    {
       id: "analog-pad",
       name: "Pad",
       oscillator: {
