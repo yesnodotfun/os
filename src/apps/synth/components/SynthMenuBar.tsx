@@ -14,7 +14,6 @@ export type NoteLabelType = "note" | "key" | "off";
 
 interface SynthMenuBarProps {
   onAddPreset: () => void;
-  onSavePreset: () => void;
   onShowHelp: () => void;
   onShowAbout: () => void;
   onReset: () => void;
@@ -28,7 +27,6 @@ interface SynthMenuBarProps {
 
 export function SynthMenuBar({
   onAddPreset,
-  onSavePreset,
   onShowHelp,
   onShowAbout,
   onReset,
@@ -58,12 +56,6 @@ export function SynthMenuBar({
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
             New Preset
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={onSavePreset}
-            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
-          >
-            Save Preset
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={onReset}

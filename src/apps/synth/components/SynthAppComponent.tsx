@@ -320,6 +320,7 @@ export function SynthAppComponent({
   const delayRef = useRef<Tone.FeedbackDelay | null>(null);
   const distortionRef = useRef<Tone.Distortion | null>(null);
   const analyzerRef = useRef<Tone.Analyser | null>(null);
+  const gainRef = useRef<Tone.Gain | null>(null);
 
   // UI state
   const [isHelpOpen, setIsHelpOpen] = useState(false);
@@ -347,6 +348,7 @@ export function SynthAppComponent({
         reverb: 0.2,
         delay: 0.2,
         distortion: 0,
+        gain: 0.8,
       },
     },
     {
@@ -365,6 +367,7 @@ export function SynthAppComponent({
         reverb: 0.4,
         delay: 0.1,
         distortion: 0,
+        gain: 0.7,
       },
     },
     {
@@ -383,6 +386,7 @@ export function SynthAppComponent({
         reverb: 0.6,
         delay: 0.3,
         distortion: 0.1,
+        gain: 0.6,
       },
     },
     {
@@ -401,14 +405,65 @@ export function SynthAppComponent({
         reverb: 0.15,
         delay: 0.25,
         distortion: 0.4,
+        gain: 0.3,
       },
     },
   ];
 
-  const [presets, setPresets] = useState<SynthPreset[]>([]);
-  const [currentPreset, setCurrentPreset] = useState<SynthPreset>(
-    defaultPresets[0]
-  );
+  const [presets, setPresets] = useState<SynthPreset[]>(() => {
+    try {
+      // Try to load saved presets on initial render
+      const savedPresets = loadSynthPresets();
+      if (savedPresets && savedPresets.length > 0) {
+        // Add default gain to presets that don't have it
+        return savedPresets.map((preset) => ({
+          ...preset,
+          effects: {
+            ...preset.effects,
+            gain: preset.effects.gain ?? 0.8, // Default to 0.8 if gain is missing
+          },
+        }));
+      }
+      return [...defaultPresets];
+    } catch (error) {
+      console.error("Error loading presets:", error);
+      return [...defaultPresets];
+    }
+  });
+
+  const [currentPreset, setCurrentPreset] = useState<SynthPreset>(() => {
+    try {
+      // Try to load saved current preset on initial render
+      const savedCurrentPreset = loadSynthCurrentPreset();
+      const savedPresets = loadSynthPresets();
+      if (
+        savedCurrentPreset &&
+        savedPresets?.find((p) => p.id === savedCurrentPreset.id)
+      ) {
+        // Add default gain if missing
+        return {
+          ...savedCurrentPreset,
+          effects: {
+            ...savedCurrentPreset.effects,
+            gain: savedCurrentPreset.effects.gain ?? 0.8, // Default to 0.8 if gain is missing
+          },
+        };
+      }
+      // Fall back to first preset if no valid saved current preset
+      return savedPresets && savedPresets.length > 0
+        ? {
+            ...savedPresets[0],
+            effects: {
+              ...savedPresets[0].effects,
+              gain: savedPresets[0].effects.gain ?? 0.8,
+            },
+          }
+        : { ...defaultPresets[0] };
+    } catch (error) {
+      console.error("Error loading current preset:", error);
+      return { ...defaultPresets[0] };
+    }
+  });
 
   const [pressedNotes, setPressedNotes] = useState<Record<string, boolean>>({});
   // Use UI sound for interface feedback
@@ -537,31 +592,35 @@ export function SynthAppComponent({
     if (!isWindowOpen) return;
 
     // Create synth and effects chain
-    const synth = new Tone.PolySynth(Tone.Synth).toDestination();
+    const synth = new Tone.PolySynth(Tone.Synth);
     const reverb = new Tone.Reverb({
       decay: 2,
       wet: currentPreset.effects.reverb,
-    }).toDestination();
+    });
     const delay = new Tone.FeedbackDelay({
       delayTime: 0.25,
       feedback: currentPreset.effects.delay,
-    }).toDestination();
+    });
     const distortion = new Tone.Distortion({
       distortion: currentPreset.effects.distortion,
-    }).toDestination();
-
-    // Create analyzer for volume meter
+    });
+    const gain = new Tone.Gain(currentPreset.effects.gain);
+    // Add a boost gain before analyzer for better visualization
+    const analyzerBoost = new Tone.Gain(4);
     const analyzer = new Tone.Analyser({
       type: "waveform",
       size: 1024,
-    }).toDestination();
+      smoothing: 0.8,
+    });
 
     // Connect effects chain
     synth.connect(reverb);
     reverb.connect(delay);
     delay.connect(distortion);
-    distortion.connect(analyzer);
-    analyzer.toDestination();
+    distortion.connect(gain);
+    gain.connect(analyzerBoost);
+    analyzerBoost.connect(analyzer);
+    gain.connect(Tone.Destination);
 
     // Set initial synth parameters
     synth.set({
@@ -580,22 +639,11 @@ export function SynthAppComponent({
     reverbRef.current = reverb;
     delayRef.current = delay;
     distortionRef.current = distortion;
+    gainRef.current = gain;
     analyzerRef.current = analyzer;
 
-    // Load saved presets
-    const savedPresets = loadSynthPresets();
-    if (savedPresets.length > 0) {
-      setPresets(savedPresets);
-    } else {
-      // Use default presets if no saved presets
-      setPresets(defaultPresets);
-    }
-
-    const savedCurrentPreset = loadSynthCurrentPreset();
-    if (savedCurrentPreset) {
-      setCurrentPreset(savedCurrentPreset);
-      updateSynthParams(savedCurrentPreset);
-    }
+    // Initialize synth with current preset
+    updateSynthParams(currentPreset);
 
     // Add keyboard event handlers
     document.addEventListener("keydown", handleKeyDown);
@@ -606,6 +654,7 @@ export function SynthAppComponent({
       reverb.dispose();
       delay.dispose();
       distortion.dispose();
+      gain.dispose();
       analyzer.dispose();
       document.removeEventListener("keydown", handleKeyDown);
       document.removeEventListener("keyup", handleKeyUp);
@@ -614,15 +663,17 @@ export function SynthAppComponent({
 
   // Save presets when they change
   useEffect(() => {
+    if (!isWindowOpen) return;
     if (presets.length > 0) {
       saveSynthPresets(presets);
     }
-  }, [presets]);
+  }, [presets, isWindowOpen]);
 
   // Save current preset when it changes
   useEffect(() => {
+    if (!isWindowOpen) return;
     saveSynthCurrentPreset(currentPreset);
-  }, [currentPreset]);
+  }, [currentPreset, isWindowOpen]);
 
   // Update synth parameters when current preset changes
   const updateSynthParams = (preset: SynthPreset) => {
@@ -630,7 +681,8 @@ export function SynthAppComponent({
       !synthRef.current ||
       !reverbRef.current ||
       !delayRef.current ||
-      !distortionRef.current
+      !distortionRef.current ||
+      !gainRef.current
     )
       return;
 
@@ -649,6 +701,7 @@ export function SynthAppComponent({
     reverbRef.current.wet.value = preset.effects.reverb;
     delayRef.current.feedback.value = preset.effects.delay;
     distortionRef.current.distortion = preset.effects.distortion;
+    gainRef.current.gain.value = preset.effects.gain;
   };
 
   // Keyboard event handlers - extended mapping
@@ -705,13 +758,6 @@ export function SynthAppComponent({
     play();
   };
 
-  const updateCurrentPreset = () => {
-    setIsSavingNewPreset(false);
-    setPresetName(currentPreset.name);
-    setIsPresetDialogOpen(true);
-    play();
-  };
-
   const savePreset = (name: string) => {
     if (isSavingNewPreset) {
       // Create a new preset
@@ -751,67 +797,81 @@ export function SynthAppComponent({
 
   const resetSynth = () => {
     // Set the presets and current preset
-    setPresets(defaultPresets);
-    setCurrentPreset(defaultPresets[0]);
-    updateSynthParams(defaultPresets[0]);
+    const resetPresets = [...defaultPresets]; // Create a new array to trigger state update
+    setPresets(resetPresets);
+    setCurrentPreset(resetPresets[0]);
+    updateSynthParams(resetPresets[0]);
+
+    // Clear any saved presets
+    saveSynthPresets(resetPresets);
+    saveSynthCurrentPreset(resetPresets[0]);
+
     showStatus("Synth reset to defaults");
     play();
   };
 
-  // Parameter change handlers
+  // Parameter change handlers with autosave
   const handleOscillatorChange = (type: OscillatorType) => {
-    setCurrentPreset((prev) => ({
-      ...prev,
+    const updatedPreset = {
+      ...currentPreset,
       oscillator: { type },
-    }));
+    };
+    setCurrentPreset(updatedPreset);
+    updateSynthParams(updatedPreset);
 
-    if (synthRef.current) {
-      synthRef.current.set({
-        oscillator: { type },
-      });
-    }
+    // Update and save presets
+    const updatedPresets = presets.map((p) =>
+      p.id === updatedPreset.id ? updatedPreset : p
+    );
+    setPresets(updatedPresets);
+    saveSynthPresets(updatedPresets);
+    saveSynthCurrentPreset(updatedPreset);
   };
 
   const handleEnvelopeChange = (
     param: "attack" | "decay" | "sustain" | "release",
     value: number
   ) => {
-    setCurrentPreset((prev) => ({
-      ...prev,
+    const updatedPreset = {
+      ...currentPreset,
       envelope: {
-        ...prev.envelope,
+        ...currentPreset.envelope,
         [param]: value,
       },
-    }));
+    };
+    setCurrentPreset(updatedPreset);
+    updateSynthParams(updatedPreset);
 
-    if (synthRef.current) {
-      synthRef.current.set({
-        envelope: {
-          [param]: value,
-        },
-      });
-    }
+    // Update and save presets
+    const updatedPresets = presets.map((p) =>
+      p.id === updatedPreset.id ? updatedPreset : p
+    );
+    setPresets(updatedPresets);
+    saveSynthPresets(updatedPresets);
+    saveSynthCurrentPreset(updatedPreset);
   };
 
   const handleEffectChange = (
-    effect: "reverb" | "delay" | "distortion",
+    effect: "reverb" | "delay" | "distortion" | "gain",
     value: number
   ) => {
-    setCurrentPreset((prev) => ({
-      ...prev,
+    const updatedPreset = {
+      ...currentPreset,
       effects: {
-        ...prev.effects,
+        ...currentPreset.effects,
         [effect]: value,
       },
-    }));
+    };
+    setCurrentPreset(updatedPreset);
+    updateSynthParams(updatedPreset);
 
-    if (effect === "reverb" && reverbRef.current) {
-      reverbRef.current.wet.value = value;
-    } else if (effect === "delay" && delayRef.current) {
-      delayRef.current.feedback.value = value;
-    } else if (effect === "distortion" && distortionRef.current) {
-      distortionRef.current.distortion = value;
-    }
+    // Update and save presets
+    const updatedPresets = presets.map((p) =>
+      p.id === updatedPreset.id ? updatedPreset : p
+    );
+    setPresets(updatedPresets);
+    saveSynthPresets(updatedPresets);
+    saveSynthCurrentPreset(updatedPreset);
   };
 
   // Keyboard event handlers
@@ -877,7 +937,6 @@ export function SynthAppComponent({
     <>
       <SynthMenuBar
         onAddPreset={addPreset}
-        onSavePreset={updateCurrentPreset}
         onShowHelp={() => setIsHelpOpen(true)}
         onShowAbout={() => setIsAboutOpen(true)}
         onReset={resetSynth}
@@ -960,13 +1019,6 @@ export function SynthAppComponent({
                 <div className="flex gap-1">
                   <Button
                     variant="player"
-                    onClick={addPreset}
-                    className="h-[22px] px-2"
-                  >
-                    ADD
-                  </Button>
-                  <Button
-                    variant="player"
                     onClick={() => setIsControlsVisible(!isControlsVisible)}
                     className="h-[22px] px-2"
                   >
@@ -994,9 +1046,18 @@ export function SynthAppComponent({
                   >
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       <div>
-                        <h3 className="font-semibold mb-2 text-[#ff00ff] font-geneva-12 text-[10px]">
-                          Oscillator
-                        </h3>
+                        <div className="flex justify-between items-center mb-2">
+                          <h3 className="font-semibold text-[#ff00ff] font-geneva-12 text-[10px]">
+                            Oscillator
+                          </h3>
+                          <Button
+                            variant="player"
+                            onClick={addPreset}
+                            className="h-[22px] px-2 text-[9px]"
+                          >
+                            ADD PRESET
+                          </Button>
+                        </div>
                         <Select
                           value={currentPreset.oscillator.type}
                           onValueChange={(value: OscillatorType) =>
@@ -1155,6 +1216,20 @@ export function SynthAppComponent({
                                 handleEffectChange("distortion", value)
                               }
                               label="Distortion"
+                              color="#ff00ff"
+                              size="sm"
+                            />
+                          </div>
+                          <div className="w-16">
+                            <Dial
+                              value={currentPreset.effects.gain}
+                              min={0}
+                              max={1}
+                              step={0.01}
+                              onChange={(value) =>
+                                handleEffectChange("gain", value)
+                              }
+                              label="Gain"
                               color="#ff00ff"
                               size="sm"
                             />

@@ -1054,6 +1054,7 @@ export interface SynthPreset {
     reverb: number;
     delay: number;
     distortion: number;
+    gain: number;
   };
 }
 
