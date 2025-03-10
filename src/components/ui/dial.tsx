@@ -133,9 +133,9 @@ const Dial = React.forwardRef<HTMLDivElement, DialProps>(
 
     // Size classes
     const sizeClasses = {
-      sm: "w-10 h-10",
-      md: "w-14 h-14",
-      lg: "w-16 h-16",
+      sm: "w-8 h-8",
+      md: "w-12 h-12",
+      lg: "w-14 h-14",
     };
 
     // Calculate the percentage for the background fill

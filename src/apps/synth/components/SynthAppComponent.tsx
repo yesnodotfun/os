@@ -159,12 +159,17 @@ const Waveform3D: React.FC<{ analyzer: Tone.Analyser | null }> = ({
     camera.lookAt(0, 0, 0);
     cameraRef.current = camera;
 
-    // Create renderer
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    // Create renderer with better quality
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: true,
+      powerPreference: "high-performance",
+    });
     renderer.setSize(
       containerRef.current.clientWidth,
       containerRef.current.clientHeight
     );
+    renderer.setPixelRatio(window.devicePixelRatio);
     containerRef.current.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
@@ -175,19 +180,31 @@ const Waveform3D: React.FC<{ analyzer: Tone.Analyser | null }> = ({
       wireframe: true,
       transparent: true,
       opacity: 0.8,
+      emissive: 0xff00ff,
+      emissiveIntensity: 0.5,
+      shininess: 100,
     });
     const mesh = new THREE.Mesh(geometry, material);
     mesh.rotation.x = -Math.PI / 6; // Less steep angle
     scene.add(mesh);
     meshRef.current = mesh;
 
-    // Add lights
+    // Add more lights for better glow effect
     const ambientLight = new THREE.AmbientLight(0x404040);
     scene.add(ambientLight);
 
     const directionalLight = new THREE.DirectionalLight(0xff00ff, 1);
     directionalLight.position.set(1, 1, 1);
     scene.add(directionalLight);
+
+    // Add point lights for additional glow
+    const pointLight1 = new THREE.PointLight(0xff00ff, 1, 10);
+    pointLight1.position.set(-2, 1, 2);
+    scene.add(pointLight1);
+
+    const pointLight2 = new THREE.PointLight(0xff00ff, 1, 10);
+    pointLight2.position.set(2, 1, 2);
+    scene.add(pointLight2);
 
     // Animation loop
     const animate = () => {
@@ -236,6 +253,7 @@ const Waveform3D: React.FC<{ analyzer: Tone.Analyser | null }> = ({
       cameraRef.current.aspect = width / height;
       cameraRef.current.updateProjectionMatrix();
       rendererRef.current.setSize(width, height);
+      rendererRef.current.setPixelRatio(window.devicePixelRatio);
     };
     window.addEventListener("resize", handleResize);
 
@@ -256,7 +274,7 @@ const Waveform3D: React.FC<{ analyzer: Tone.Analyser | null }> = ({
   return (
     <div
       ref={containerRef}
-      className="w-full h-28 rounded-sm overflow-hidden bg-black/50"
+      className="w-full h-26 overflow-hidden bg-black/50"
     />
   );
 };
