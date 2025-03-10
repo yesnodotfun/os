@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import * as Tone from "tone";
+import * as THREE from "three";
 import { cn } from "@/lib/utils";
 import { AppProps } from "../../base/types";
 import { WindowFrame } from "@/components/layout/WindowFrame";
@@ -129,6 +130,137 @@ const PianoKey: React.FC<{
   );
 };
 
+// 3D Waveform component
+const Waveform3D: React.FC<{ analyzer: Tone.Analyser | null }> = ({
+  analyzer,
+}) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const sceneRef = useRef<THREE.Scene | null>(null);
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
+  const meshRef = useRef<THREE.Mesh | null>(null);
+  const animationFrameRef = useRef<number>();
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    // Create scene
+    const scene = new THREE.Scene();
+    sceneRef.current = scene;
+
+    // Create camera with better angle
+    const camera = new THREE.PerspectiveCamera(
+      30, // Keep narrow field of view
+      containerRef.current.clientWidth / containerRef.current.clientHeight,
+      0.1,
+      1000
+    );
+    camera.position.set(0, 1.5, 2); // Move back slightly and up a bit
+    camera.lookAt(0, 0, 0);
+    cameraRef.current = camera;
+
+    // Create renderer
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(
+      containerRef.current.clientWidth,
+      containerRef.current.clientHeight
+    );
+    containerRef.current.appendChild(renderer.domElement);
+    rendererRef.current = renderer;
+
+    // Create geometry for waveform with more segments
+    const geometry = new THREE.PlaneGeometry(6, 2, 96, 32); // Wider geometry with more segments
+    const material = new THREE.MeshPhongMaterial({
+      color: 0xff00ff,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.8,
+    });
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.rotation.x = -Math.PI / 6; // Less steep angle
+    scene.add(mesh);
+    meshRef.current = mesh;
+
+    // Add lights
+    const ambientLight = new THREE.AmbientLight(0x404040);
+    scene.add(ambientLight);
+
+    const directionalLight = new THREE.DirectionalLight(0xff00ff, 1);
+    directionalLight.position.set(1, 1, 1);
+    scene.add(directionalLight);
+
+    // Animation loop
+    const animate = () => {
+      if (
+        !meshRef.current ||
+        !rendererRef.current ||
+        !sceneRef.current ||
+        !cameraRef.current
+      )
+        return;
+
+      // Get waveform data from analyzer
+      if (analyzer) {
+        const waveform = analyzer.getValue() as Float32Array;
+        const vertices = meshRef.current.geometry.attributes.position
+          .array as Float32Array;
+
+        // Map waveform data to vertices
+        for (let i = 0; i < vertices.length; i += 3) {
+          const x = vertices[i];
+          // Map x position to waveform index
+          const waveformIndex = Math.floor(((x + 3) / 6) * waveform.length); // Adjusted for wider geometry
+          if (waveformIndex >= 0 && waveformIndex < waveform.length) {
+            // Use waveform value for height, scaled appropriately and clipped
+            const value = waveform[waveformIndex];
+            // Only show significant changes (clip out near-zero values)
+            vertices[i + 1] = Math.abs(value) > 0.1 ? value * 2.5 : 0;
+          }
+        }
+        meshRef.current.geometry.attributes.position.needsUpdate = true;
+      }
+
+      rendererRef.current.render(sceneRef.current, cameraRef.current);
+      animationFrameRef.current = requestAnimationFrame(animate);
+    };
+    animate();
+
+    // Handle resize
+    const handleResize = () => {
+      if (!containerRef.current || !cameraRef.current || !rendererRef.current)
+        return;
+
+      const width = containerRef.current.clientWidth;
+      const height = containerRef.current.clientHeight;
+
+      cameraRef.current.aspect = width / height;
+      cameraRef.current.updateProjectionMatrix();
+      rendererRef.current.setSize(width, height);
+    };
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+      if (rendererRef.current) {
+        rendererRef.current.dispose();
+      }
+      if (containerRef.current) {
+        containerRef.current.removeChild(rendererRef.current!.domElement);
+      }
+    };
+  }, [analyzer]);
+
+  return (
+    <div
+      ref={containerRef}
+      className="w-full h-28 rounded-sm overflow-hidden bg-black/50"
+    />
+  );
+};
+
 // Main synth app component
 export function SynthAppComponent({
   isWindowOpen,
@@ -140,6 +272,7 @@ export function SynthAppComponent({
   const reverbRef = useRef<Tone.Reverb | null>(null);
   const delayRef = useRef<Tone.FeedbackDelay | null>(null);
   const distortionRef = useRef<Tone.Distortion | null>(null);
+  const analyzerRef = useRef<Tone.Analyser | null>(null);
 
   // UI state
   const [isHelpOpen, setIsHelpOpen] = useState(false);
@@ -346,11 +479,18 @@ export function SynthAppComponent({
       distortion: currentPreset.effects.distortion,
     }).toDestination();
 
+    // Create analyzer for volume meter
+    const analyzer = new Tone.Analyser({
+      type: "waveform",
+      size: 1024,
+    }).toDestination();
+
     // Connect effects chain
     synth.connect(reverb);
     reverb.connect(delay);
     delay.connect(distortion);
-    distortion.toDestination();
+    distortion.connect(analyzer);
+    analyzer.toDestination();
 
     // Set initial synth parameters
     synth.set({
@@ -369,6 +509,7 @@ export function SynthAppComponent({
     reverbRef.current = reverb;
     delayRef.current = delay;
     distortionRef.current = distortion;
+    analyzerRef.current = analyzer;
 
     // Load saved presets
     const savedPresets = loadSynthPresets();
@@ -394,6 +535,7 @@ export function SynthAppComponent({
       reverb.dispose();
       delay.dispose();
       distortion.dispose();
+      analyzer.dispose();
       document.removeEventListener("keydown", handleKeyDown);
       document.removeEventListener("keyup", handleKeyUp);
     };
@@ -813,7 +955,7 @@ export function SynthAppComponent({
                     }}
                     className="absolute top-0 inset-x-0 w-full bg-neutral-900/90 backdrop-blur-xl p-4 z-[40]"
                   >
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       <div>
                         <h3 className="font-semibold mb-2 text-[#ff00ff] font-geneva-12 text-[10px]">
                           Oscillator
@@ -854,6 +996,7 @@ export function SynthAppComponent({
                             </SelectItem>
                           </SelectContent>
                         </Select>
+                        <Waveform3D analyzer={analyzerRef.current} />
                       </div>
 
                       <div>
