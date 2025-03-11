@@ -643,37 +643,6 @@ export function SynthAppComponent({
     setPressedNotes((prev) => ({ ...prev, [note]: false }));
   };
 
-  const clearAllNotes = () => {
-    if (!synthRef.current) return;
-
-    try {
-      // First, try to release all notes that are currently pressed
-      const notesToRelease = Object.entries(pressedNotes)
-        .filter(([, isPressed]) => isPressed)
-        .map(([note]) => note);
-
-      if (notesToRelease.length > 0) {
-        synthRef.current.releaseAll();
-      }
-
-      // As a backup, also cancel any scheduled events and silence the synth
-      Tone.Transport.cancel();
-
-      // Reset the pressed notes state
-      setPressedNotes((prevState) => {
-        const newState = { ...prevState };
-        Object.keys(newState).forEach((note) => {
-          newState[note] = false;
-        });
-        return newState;
-      });
-
-      showStatus("All notes cleared");
-    } catch (error) {
-      console.error("Error clearing notes:", error);
-    }
-  };
-
   // Status message display
   const showStatus = (message: string) => {
     setStatusMessage(message);
@@ -983,22 +952,13 @@ export function SynthAppComponent({
                           <h3 className="font-semibold text-[#ff00ff] font-geneva-12 text-[10px] select-none">
                             Oscillator
                           </h3>
-                          <div className="flex gap-0">
-                            <Button
-                              variant="player"
-                              onClick={clearAllNotes}
-                              className="h-[22px] px-2 text-[9px] select-none"
-                            >
-                              STOP
-                            </Button>
-                            <Button
-                              variant="player"
-                              onClick={addPreset}
-                              className="h-[22px] px-2 text-[9px] select-none"
-                            >
-                              ADD PRESET
-                            </Button>
-                          </div>
+                          <Button
+                            variant="player"
+                            onClick={addPreset}
+                            className="h-[22px] px-2 text-[9px] select-none"
+                          >
+                            ADD PRESET
+                          </Button>
                         </div>
                         <Select
                           value={currentPreset.oscillator.type}
