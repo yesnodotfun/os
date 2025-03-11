@@ -157,6 +157,7 @@ const Waveform3D: React.FC<{ analyzer: Tone.Analyser | null }> = ({
   const animationFrameRef = useRef<number>();
   const [isMobile, setIsMobile] = useState(false);
 
+  // Effect to handle window resize and mobile detection
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
@@ -271,7 +272,7 @@ const Waveform3D: React.FC<{ analyzer: Tone.Analyser | null }> = ({
     };
     animate();
 
-    // Handle resize
+    // Handle resize with ResizeObserver
     const handleResize = () => {
       if (!containerRef.current || !cameraRef.current || !rendererRef.current)
         return;
@@ -284,18 +285,27 @@ const Waveform3D: React.FC<{ analyzer: Tone.Analyser | null }> = ({
       rendererRef.current.setSize(width, height);
       rendererRef.current.setPixelRatio(window.devicePixelRatio);
     };
+
+    // Create ResizeObserver to detect container size changes
+    const resizeObserver = new ResizeObserver(handleResize);
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+
+    // Also keep the window resize listener for when the window size changes
     window.addEventListener("resize", handleResize);
 
     return () => {
       window.removeEventListener("resize", handleResize);
+      resizeObserver.disconnect();
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
       if (rendererRef.current) {
         rendererRef.current.dispose();
       }
-      if (containerRef.current) {
-        containerRef.current.removeChild(rendererRef.current!.domElement);
+      if (containerRef.current && rendererRef.current) {
+        containerRef.current.removeChild(rendererRef.current.domElement);
       }
     };
   }, [analyzer]);
@@ -303,7 +313,7 @@ const Waveform3D: React.FC<{ analyzer: Tone.Analyser | null }> = ({
   return (
     <div
       ref={containerRef}
-      className="w-full h-12 md:h-26 overflow-hidden bg-black/50 hidden md:block"
+      className="w-full h-12 md:h-28 overflow-hidden bg-black/50 hidden md:block flex-grow"
     />
   );
 };
@@ -1167,9 +1177,11 @@ export function SynthAppComponent({
                               animate={{ opacity: 1, height: "auto" }}
                               exit={{ opacity: 0, height: 0 }}
                               transition={{ duration: 0.2 }}
-                              className="hidden md:block"
+                              className="hidden md:block w-full"
                             >
-                              <Waveform3D analyzer={analyzerRef.current} />
+                              <div className="w-full">
+                                <Waveform3D analyzer={analyzerRef.current} />
+                              </div>
                             </motion.div>
                           )}
                         </AnimatePresence>
