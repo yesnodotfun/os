@@ -1422,7 +1422,25 @@ export function SynthAppComponent({
                 }}
                 onTouchMove={(e) => {
                   e.preventDefault(); // Prevent scrolling while playing
-                  // Handle all touches
+
+                  // Create a set of currently active touch identifiers
+                  const currentTouchIds = new Set(
+                    Array.from(e.touches).map((touch) => touch.identifier)
+                  );
+
+                  // Release any notes whose touch identifiers are no longer present
+                  Object.entries(activeTouches).forEach(([touchId, note]) => {
+                    if (!currentTouchIds.has(parseInt(touchId))) {
+                      releaseNote(note);
+                      setActiveTouches((prev) => {
+                        const newTouches = { ...prev };
+                        delete newTouches[touchId];
+                        return newTouches;
+                      });
+                    }
+                  });
+
+                  // Handle all current touches
                   Array.from(e.touches).forEach((touch) => {
                     const elementUnderTouch = document.elementFromPoint(
                       touch.clientX,
