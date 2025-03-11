@@ -1110,8 +1110,8 @@ export function SynthAppComponent({
                     }}
                     className="absolute top-0 inset-x-0 w-full bg-neutral-900/90 backdrop-blur-xl p-4 z-[40]"
                   >
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <div>
+                    <div className="flex flex-col md:flex-row md:flex-wrap md:items-start gap-6">
+                      <div className="md:min-w-[200px] md:flex-grow-0 md:flex-shrink-0">
                         <div className="flex justify-between items-center mb-2">
                           <h3 className="font-semibold text-[#ff00ff] font-geneva-12 text-[10px]">
                             Oscillator
@@ -1351,172 +1351,180 @@ export function SynthAppComponent({
                       </div>
 
                       {/* Desktop: Original separate sections */}
-                      <div className="hidden md:block">
+                      <div className="hidden md:block md:min-w-[120px] md:flex-grow-0 md:flex-shrink-0">
                         <h3 className="font-semibold mb-2 text-[#ff00ff] font-geneva-12 text-[10px]">
                           Envelope
                         </h3>
-                        <div className="flex flex-wrap gap-1">
-                          <div className="w-16">
-                            <Dial
-                              value={currentPreset.envelope.attack}
-                              min={0.01}
-                              max={2}
-                              step={0.01}
-                              onChange={(value) =>
-                                handleEnvelopeChange("attack", value)
-                              }
-                              label="Attack"
-                              color="#ff00ff"
-                              size="sm"
-                            />
+                        <div className="flex flex-col gap-2">
+                          <div className="flex flex-nowrap gap-2 overflow-x-auto">
+                            <div className="w-16 flex-shrink-0">
+                              <Dial
+                                value={currentPreset.envelope.attack}
+                                min={0.01}
+                                max={2}
+                                step={0.01}
+                                onChange={(value) =>
+                                  handleEnvelopeChange("attack", value)
+                                }
+                                label="Attack"
+                                color="#ff00ff"
+                                size="sm"
+                              />
+                            </div>
+                            <div className="w-16 flex-shrink-0">
+                              <Dial
+                                value={currentPreset.envelope.decay}
+                                min={0.01}
+                                max={2}
+                                step={0.01}
+                                onChange={(value) =>
+                                  handleEnvelopeChange("decay", value)
+                                }
+                                label="Decay"
+                                color="#ff00ff"
+                                size="sm"
+                              />
+                            </div>
                           </div>
-                          <div className="w-16">
-                            <Dial
-                              value={currentPreset.envelope.decay}
-                              min={0.01}
-                              max={2}
-                              step={0.01}
-                              onChange={(value) =>
-                                handleEnvelopeChange("decay", value)
-                              }
-                              label="Decay"
-                              color="#ff00ff"
-                              size="sm"
-                            />
-                          </div>
-                          <div className="w-16">
-                            <Dial
-                              value={currentPreset.envelope.sustain}
-                              min={0}
-                              max={1}
-                              step={0.01}
-                              onChange={(value) =>
-                                handleEnvelopeChange("sustain", value)
-                              }
-                              label="Sustain"
-                              color="#ff00ff"
-                              size="sm"
-                            />
-                          </div>
-                          <div className="w-16">
-                            <Dial
-                              value={currentPreset.envelope.release}
-                              min={0.1}
-                              max={4}
-                              step={0.1}
-                              onChange={(value) =>
-                                handleEnvelopeChange("release", value)
-                              }
-                              label="Release"
-                              color="#ff00ff"
-                              size="sm"
-                            />
+                          <div className="flex flex-nowrap gap-2 overflow-x-auto">
+                            <div className="w-16 flex-shrink-0">
+                              <Dial
+                                value={currentPreset.envelope.sustain}
+                                min={0}
+                                max={1}
+                                step={0.01}
+                                onChange={(value) =>
+                                  handleEnvelopeChange("sustain", value)
+                                }
+                                label="Sustain"
+                                color="#ff00ff"
+                                size="sm"
+                              />
+                            </div>
+                            <div className="w-16 flex-shrink-0">
+                              <Dial
+                                value={currentPreset.envelope.release}
+                                min={0.1}
+                                max={4}
+                                step={0.1}
+                                onChange={(value) =>
+                                  handleEnvelopeChange("release", value)
+                                }
+                                label="Release"
+                                color="#ff00ff"
+                                size="sm"
+                              />
+                            </div>
                           </div>
                         </div>
                       </div>
 
-                      <div className="hidden md:block">
+                      <div className="hidden md:block md:flex-1 md:min-w-[300px]">
                         <h3 className="font-semibold mb-2 text-[#ff00ff] font-geneva-12 text-[10px]">
                           Effects
                         </h3>
-                        <div className="flex flex-wrap gap-1">
-                          <div className="w-16">
-                            <Dial
-                              value={currentPreset.effects.gain}
-                              min={0}
-                              max={1}
-                              step={0.01}
-                              onChange={(value) =>
-                                handleEffectChange("gain", value)
-                              }
-                              label="Gain"
-                              color="#ff00ff"
-                              size="sm"
-                            />
+                        <div className="flex flex-col gap-2">
+                          <div className="flex flex-nowrap gap-2 overflow-x-auto">
+                            <div className="w-16 flex-shrink-0">
+                              <Dial
+                                value={currentPreset.effects.gain}
+                                min={0}
+                                max={1}
+                                step={0.01}
+                                onChange={(value) =>
+                                  handleEffectChange("gain", value)
+                                }
+                                label="Gain"
+                                color="#ff00ff"
+                                size="sm"
+                              />
+                            </div>
+                            <div className="w-16 flex-shrink-0">
+                              <Dial
+                                value={currentPreset.effects.reverb}
+                                min={0}
+                                max={1}
+                                step={0.01}
+                                onChange={(value) =>
+                                  handleEffectChange("reverb", value)
+                                }
+                                label="Reverb"
+                                color="#ff00ff"
+                                size="sm"
+                              />
+                            </div>
+                            <div className="w-16 flex-shrink-0">
+                              <Dial
+                                value={currentPreset.effects.delay}
+                                min={0}
+                                max={1}
+                                step={0.01}
+                                onChange={(value) =>
+                                  handleEffectChange("delay", value)
+                                }
+                                label="Delay"
+                                color="#ff00ff"
+                                size="sm"
+                              />
+                            </div>
+                            <div className="w-16 flex-shrink-0">
+                              <Dial
+                                value={currentPreset.effects.distortion}
+                                min={0}
+                                max={1}
+                                step={0.01}
+                                onChange={(value) =>
+                                  handleEffectChange("distortion", value)
+                                }
+                                label="Distortion"
+                                color="#ff00ff"
+                                size="sm"
+                              />
+                            </div>
                           </div>
-                          <div className="w-16">
-                            <Dial
-                              value={currentPreset.effects.reverb}
-                              min={0}
-                              max={1}
-                              step={0.01}
-                              onChange={(value) =>
-                                handleEffectChange("reverb", value)
-                              }
-                              label="Reverb"
-                              color="#ff00ff"
-                              size="sm"
-                            />
-                          </div>
-                          <div className="w-16">
-                            <Dial
-                              value={currentPreset.effects.delay}
-                              min={0}
-                              max={1}
-                              step={0.01}
-                              onChange={(value) =>
-                                handleEffectChange("delay", value)
-                              }
-                              label="Delay"
-                              color="#ff00ff"
-                              size="sm"
-                            />
-                          </div>
-                          <div className="w-16">
-                            <Dial
-                              value={currentPreset.effects.distortion}
-                              min={0}
-                              max={1}
-                              step={0.01}
-                              onChange={(value) =>
-                                handleEffectChange("distortion", value)
-                              }
-                              label="Distortion"
-                              color="#ff00ff"
-                              size="sm"
-                            />
-                          </div>
-                          <div className="w-16">
-                            <Dial
-                              value={currentPreset.effects.chorus ?? 0}
-                              min={0}
-                              max={1}
-                              step={0.01}
-                              onChange={(value) =>
-                                handleEffectChange("chorus", value)
-                              }
-                              label="Chorus"
-                              color="#ff00ff"
-                              size="sm"
-                            />
-                          </div>
-                          <div className="w-16">
-                            <Dial
-                              value={currentPreset.effects.phaser ?? 0}
-                              min={0}
-                              max={1}
-                              step={0.01}
-                              onChange={(value) =>
-                                handleEffectChange("phaser", value)
-                              }
-                              label="Phaser"
-                              color="#ff00ff"
-                              size="sm"
-                            />
-                          </div>
-                          <div className="w-16">
-                            <Dial
-                              value={currentPreset.effects.bitcrusher ?? 0}
-                              min={0}
-                              max={1}
-                              step={0.01}
-                              onChange={(value) =>
-                                handleEffectChange("bitcrusher", value)
-                              }
-                              label="Bitcrusher"
-                              color="#ff00ff"
-                              size="sm"
-                            />
+                          <div className="flex flex-nowrap gap-2 overflow-x-auto">
+                            <div className="w-16 flex-shrink-0">
+                              <Dial
+                                value={currentPreset.effects.chorus ?? 0}
+                                min={0}
+                                max={1}
+                                step={0.01}
+                                onChange={(value) =>
+                                  handleEffectChange("chorus", value)
+                                }
+                                label="Chorus"
+                                color="#ff00ff"
+                                size="sm"
+                              />
+                            </div>
+                            <div className="w-16 flex-shrink-0">
+                              <Dial
+                                value={currentPreset.effects.phaser ?? 0}
+                                min={0}
+                                max={1}
+                                step={0.01}
+                                onChange={(value) =>
+                                  handleEffectChange("phaser", value)
+                                }
+                                label="Phaser"
+                                color="#ff00ff"
+                                size="sm"
+                              />
+                            </div>
+                            <div className="w-16 flex-shrink-0">
+                              <Dial
+                                value={currentPreset.effects.bitcrusher ?? 0}
+                                min={0}
+                                max={1}
+                                step={0.01}
+                                onChange={(value) =>
+                                  handleEffectChange("bitcrusher", value)
+                                }
+                                label="Bitcrusher"
+                                color="#ff00ff"
+                                size="sm"
+                              />
+                            </div>
                           </div>
                         </div>
                       </div>
