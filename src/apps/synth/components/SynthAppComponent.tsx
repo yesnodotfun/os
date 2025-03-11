@@ -261,7 +261,7 @@ const Waveform3D: React.FC<{ analyzer: Tone.Analyser | null }> = ({
             // Use waveform value for height, scaled appropriately and clipped
             const value = waveform[waveformIndex];
             // Only show significant changes (clip out near-zero values)
-            vertices[i + 1] = Math.abs(value) > 0.1 ? value * 2.5 : 0;
+            vertices[i + 1] = Math.abs(value) > 0.1 ? value * 1 : 0;
           }
         }
         meshRef.current.geometry.attributes.position.needsUpdate = true;
