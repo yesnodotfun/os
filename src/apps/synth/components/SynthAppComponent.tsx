@@ -1632,33 +1632,32 @@ export function SynthAppComponent({
               <div
                 className="relative h-full w-full"
                 onTouchStart={(e) => {
-                  // Don't prevent default to allow natural touch behavior
-                  const touch = e.touches[0];
-                  if (!touch) return;
+                  // Handle all touches
+                  Array.from(e.touches).forEach((touch) => {
+                    const elementUnderTouch = document.elementFromPoint(
+                      touch.clientX,
+                      touch.clientY
+                    ) as HTMLElement;
 
-                  const elementUnderTouch = document.elementFromPoint(
-                    touch.clientX,
-                    touch.clientY
-                  ) as HTMLElement;
+                    const keyElement =
+                      elementUnderTouch?.closest("button[data-note]");
+                    if (!keyElement) return;
 
-                  const keyElement =
-                    elementUnderTouch?.closest("button[data-note]");
-                  if (!keyElement) return;
-
-                  const noteAttr = keyElement.getAttribute("data-note");
-                  if (noteAttr) {
-                    // Only add to activeTouches if note isn't already playing
-                    if (!activeTouches[touch.identifier]) {
-                      setActiveTouches((prev) => ({
-                        ...prev,
-                        [touch.identifier]: noteAttr,
-                      }));
-                      pressNote(noteAttr);
+                    const noteAttr = keyElement.getAttribute("data-note");
+                    if (noteAttr) {
+                      // Only add to activeTouches if note isn't already playing
+                      if (!activeTouches[touch.identifier]) {
+                        setActiveTouches((prev) => ({
+                          ...prev,
+                          [touch.identifier]: noteAttr,
+                        }));
+                        pressNote(noteAttr);
+                      }
                     }
-                  }
+                  });
                 }}
                 onTouchMove={(e) => {
-                  // Don't prevent default to allow natural touch behavior
+                  // Handle all touches
                   Array.from(e.touches).forEach((touch) => {
                     const elementUnderTouch = document.elementFromPoint(
                       touch.clientX,
@@ -1697,7 +1696,6 @@ export function SynthAppComponent({
                   });
                 }}
                 onTouchEnd={(e) => {
-                  // Don't prevent default to allow natural touch behavior
                   // Release notes for ended touches
                   const endedTouches = Array.from(e.changedTouches);
                   endedTouches.forEach((touch) => {
@@ -1713,7 +1711,6 @@ export function SynthAppComponent({
                   });
                 }}
                 onTouchCancel={(e) => {
-                  // Don't prevent default to allow natural touch behavior
                   // Release notes for cancelled touches
                   const cancelledTouches = Array.from(e.changedTouches);
                   cancelledTouches.forEach((touch) => {
