@@ -1359,7 +1359,7 @@ export function SynthAppComponent({
                       </div>
 
                       {/* Desktop: Original separate sections */}
-                      <div className="hidden md:block md:flex-grow-0 md:flex-shrink-0 md:w-[150px]">
+                      <div className="hidden md:block md:flex-grow-0 md:flex-shrink-0 md:w-[140px]">
                         <h3 className="font-semibold mb-2 text-[#ff00ff] font-geneva-12 text-[10px]">
                           Envelope
                         </h3>
@@ -1427,7 +1427,7 @@ export function SynthAppComponent({
                         </div>
                       </div>
 
-                      <div className="hidden md:block md:flex-shrink-0 md:w-[275px]">
+                      <div className="hidden md:block md:flex-shrink-0 md:w-[280px]">
                         <h3 className="font-semibold mb-2 text-[#ff00ff] font-geneva-12 text-[10px]">
                           Effects
                         </h3>
