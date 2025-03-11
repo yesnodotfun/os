@@ -1632,37 +1632,33 @@ export function SynthAppComponent({
               <div
                 className="relative h-full w-full"
                 onTouchStart={(e) => {
-                  e.preventDefault();
+                  // Don't prevent default to allow natural touch behavior
                   const touch = e.touches[0];
                   if (!touch) return;
 
-                  // Find the element under the touch point
                   const elementUnderTouch = document.elementFromPoint(
                     touch.clientX,
                     touch.clientY
                   ) as HTMLElement;
 
-                  // Find the piano key button element (it might be a child element)
                   const keyElement =
                     elementUnderTouch?.closest("button[data-note]");
                   if (!keyElement) return;
 
-                  // Get the note data from the element's dataset
                   const noteAttr = keyElement.getAttribute("data-note");
                   if (noteAttr) {
-                    // Store the note for this touch
-                    setActiveTouches((prev) => ({
-                      ...prev,
-                      [touch.identifier]: noteAttr,
-                    }));
-                    // Play the note on initial touch
-                    pressNote(noteAttr);
+                    // Only add to activeTouches if note isn't already playing
+                    if (!activeTouches[touch.identifier]) {
+                      setActiveTouches((prev) => ({
+                        ...prev,
+                        [touch.identifier]: noteAttr,
+                      }));
+                      pressNote(noteAttr);
+                    }
                   }
                 }}
                 onTouchMove={(e) => {
-                  e.preventDefault();
-
-                  // Handle each active touch
+                  // Don't prevent default to allow natural touch behavior
                   Array.from(e.touches).forEach((touch) => {
                     const elementUnderTouch = document.elementFromPoint(
                       touch.clientX,
@@ -1673,7 +1669,6 @@ export function SynthAppComponent({
                       elementUnderTouch?.closest("button[data-note]");
                     const currentNote = activeTouches[touch.identifier];
 
-                    // If we're over a key
                     if (keyElement) {
                       const noteAttr = keyElement.getAttribute("data-note");
                       if (noteAttr && noteAttr !== currentNote) {
@@ -1702,7 +1697,7 @@ export function SynthAppComponent({
                   });
                 }}
                 onTouchEnd={(e) => {
-                  e.preventDefault();
+                  // Don't prevent default to allow natural touch behavior
                   // Release notes for ended touches
                   const endedTouches = Array.from(e.changedTouches);
                   endedTouches.forEach((touch) => {
@@ -1718,7 +1713,7 @@ export function SynthAppComponent({
                   });
                 }}
                 onTouchCancel={(e) => {
-                  e.preventDefault();
+                  // Don't prevent default to allow natural touch behavior
                   // Release notes for cancelled touches
                   const cancelledTouches = Array.from(e.changedTouches);
                   cancelledTouches.forEach((touch) => {
