@@ -292,11 +292,7 @@ const Waveform3D: React.FC<{ analyzer: Tone.Analyser | null }> = ({
       resizeObserver.observe(containerRef.current);
     }
 
-    // Also keep the window resize listener for when the window size changes
-    window.addEventListener("resize", handleResize);
-
     return () => {
-      window.removeEventListener("resize", handleResize);
       resizeObserver.disconnect();
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
