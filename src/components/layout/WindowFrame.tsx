@@ -169,93 +169,96 @@ export function WindowFrame({
   };
 
   // This function maximizes both width and height (for titlebar)
-  const handleFullMaximize = (e: React.MouseEvent | React.TouchEvent) => {
-    e.stopPropagation();
+  const handleFullMaximize = useCallback(
+    (e: React.MouseEvent | React.TouchEvent) => {
+      e.stopPropagation();
 
-    const now = Date.now();
-    // Add cooldown to prevent rapid toggling (300ms)
-    if (now - lastToggleTimeRef.current < 300) {
-      return;
-    }
-    lastToggleTimeRef.current = now;
+      const now = Date.now();
+      // Add cooldown to prevent rapid toggling (300ms)
+      if (now - lastToggleTimeRef.current < 300) {
+        return;
+      }
+      lastToggleTimeRef.current = now;
 
-    // Toggle the maximized state directly
-    const newMaximizedState = !isMaximized;
-    setIsMaximized(newMaximizedState);
+      // Toggle the maximized state directly
+      const newMaximizedState = !isMaximized;
+      setIsMaximized(newMaximizedState);
 
-    if (!newMaximizedState) {
-      // Restoring to default size
-      const defaultSize = mergedConstraints.defaultSize;
+      if (!newMaximizedState) {
+        // Restoring to default size
+        const defaultSize = mergedConstraints.defaultSize;
 
-      const newPosition = {
-        x: Math.max(0, (window.innerWidth - defaultSize.width) / 2),
-        y: Math.max(30, (window.innerHeight - defaultSize.height) / 2),
-      };
+        const newPosition = {
+          x: Math.max(0, (window.innerWidth - defaultSize.width) / 2),
+          y: Math.max(30, (window.innerHeight - defaultSize.height) / 2),
+        };
 
-      setWindowSize({
-        width: defaultSize.width,
-        height: defaultSize.height,
-      });
+        setWindowSize({
+          width: defaultSize.width,
+          height: defaultSize.height,
+        });
 
-      // Center the window if we're restoring from a maximized state
-      if (window.innerWidth >= 768) {
+        // Center the window if we're restoring from a maximized state
+        if (window.innerWidth >= 768) {
+          setWindowPosition(newPosition);
+        }
+
+        // Save the new window state to localStorage
+        saveWindowPositionAndSize(
+          appId,
+          window.innerWidth >= 768 ? newPosition : windowPosition,
+          defaultSize
+        );
+      } else {
+        // Maximizing the window
+        // Save current size before maximizing
+        previousSizeRef.current = {
+          width: windowSize.width,
+          height: windowSize.height,
+        };
+
+        // Set to full width and height
+        const menuBarHeight = 30;
+        const maxPossibleHeight = window.innerHeight - menuBarHeight;
+        const maxHeight = mergedConstraints.maxHeight
+          ? typeof mergedConstraints.maxHeight === "string"
+            ? parseInt(mergedConstraints.maxHeight)
+            : mergedConstraints.maxHeight
+          : maxPossibleHeight;
+        const newHeight = Math.min(maxPossibleHeight, maxHeight);
+
+        // For width we use the full window width on mobile, otherwise respect constraints
+        let newWidth = window.innerWidth;
+        if (window.innerWidth >= 768) {
+          const maxWidth = mergedConstraints.maxWidth
+            ? typeof mergedConstraints.maxWidth === "string"
+              ? parseInt(mergedConstraints.maxWidth)
+              : mergedConstraints.maxWidth
+            : window.innerWidth;
+          newWidth = Math.min(window.innerWidth, maxWidth);
+        }
+
+        const newSize = {
+          width: newWidth,
+          height: newHeight,
+        };
+
+        const newPosition = {
+          x: window.innerWidth >= 768 ? (window.innerWidth - newWidth) / 2 : 0,
+          y: menuBarHeight,
+        };
+
+        setWindowSize(newSize);
+
+        // Position at top of screen
         setWindowPosition(newPosition);
+
+        // Save the new window state to localStorage
+        saveWindowPositionAndSize(appId, newPosition, newSize);
       }
-
-      // Save the new window state to localStorage
-      saveWindowPositionAndSize(
-        appId,
-        window.innerWidth >= 768 ? newPosition : windowPosition,
-        defaultSize
-      );
-    } else {
-      // Maximizing the window
-      // Save current size before maximizing
-      previousSizeRef.current = {
-        width: windowSize.width,
-        height: windowSize.height,
-      };
-
-      // Set to full width and height
-      const menuBarHeight = 30;
-      const maxPossibleHeight = window.innerHeight - menuBarHeight;
-      const maxHeight = mergedConstraints.maxHeight
-        ? typeof mergedConstraints.maxHeight === "string"
-          ? parseInt(mergedConstraints.maxHeight)
-          : mergedConstraints.maxHeight
-        : maxPossibleHeight;
-      const newHeight = Math.min(maxPossibleHeight, maxHeight);
-
-      // For width we use the full window width on mobile, otherwise respect constraints
-      let newWidth = window.innerWidth;
-      if (window.innerWidth >= 768) {
-        const maxWidth = mergedConstraints.maxWidth
-          ? typeof mergedConstraints.maxWidth === "string"
-            ? parseInt(mergedConstraints.maxWidth)
-            : mergedConstraints.maxWidth
-          : window.innerWidth;
-        newWidth = Math.min(window.innerWidth, maxWidth);
-      }
-
-      const newSize = {
-        width: newWidth,
-        height: newHeight,
-      };
-
-      const newPosition = {
-        x: window.innerWidth >= 768 ? (window.innerWidth - newWidth) / 2 : 0,
-        y: menuBarHeight,
-      };
-
-      setWindowSize(newSize);
-
-      // Position at top of screen
-      setWindowPosition(newPosition);
-
-      // Save the new window state to localStorage
-      saveWindowPositionAndSize(appId, newPosition, newSize);
-    }
-  };
+    },
+    [isMaximized, mergedConstraints]
+  );
 
   // Handle double tap for titlebar
   const handleTitleBarTap = useCallback(
