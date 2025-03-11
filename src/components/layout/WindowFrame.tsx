@@ -118,6 +118,7 @@ export function WindowFrame({
     maximizeWindowHeight,
     setWindowSize,
     setWindowPosition,
+    getSafeAreaBottomInset,
   } = useWindowManager({ appId });
 
   // No longer track maximized state based on window dimensions
@@ -219,7 +220,9 @@ export function WindowFrame({
 
         // Set to full width and height
         const menuBarHeight = 30;
-        const maxPossibleHeight = window.innerHeight - menuBarHeight;
+        const safeAreaBottom = getSafeAreaBottomInset();
+        const maxPossibleHeight =
+          window.innerHeight - menuBarHeight - safeAreaBottom;
         const maxHeight = mergedConstraints.maxHeight
           ? typeof mergedConstraints.maxHeight === "string"
             ? parseInt(mergedConstraints.maxHeight)
@@ -257,7 +260,14 @@ export function WindowFrame({
         saveWindowPositionAndSize(appId, newPosition, newSize);
       }
     },
-    [isMaximized, mergedConstraints]
+    [
+      isMaximized,
+      mergedConstraints,
+      windowPosition,
+      windowSize,
+      appId,
+      getSafeAreaBottomInset,
+    ]
   );
 
   // Handle double tap for titlebar

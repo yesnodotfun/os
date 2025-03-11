@@ -47,6 +47,18 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
 
   const isMobile = window.innerWidth < 768;
 
+  // Function to get the safe area bottom inset for iOS devices
+  const getSafeAreaBottomInset = useCallback(() => {
+    // Get the env(safe-area-inset-bottom) value or fallback to 0
+    const safeAreaInset = parseInt(
+      getComputedStyle(document.documentElement).getPropertyValue(
+        "--sat-safe-area-bottom"
+      )
+    );
+    // On iPadOS, the home indicator height is typically 20px
+    return !isNaN(safeAreaInset) ? safeAreaInset : isMobile ? 20 : 0;
+  }, [isMobile]);
+
   const { play: playMoveMoving } = useSound(Sounds.WINDOW_MOVE_MOVING);
   const { play: playMoveStop } = useSound(Sounds.WINDOW_MOVE_STOP);
   const { play: playResizeResizing } = useSound(Sounds.WINDOW_RESIZE_RESIZING);
@@ -58,7 +70,9 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
   const maximizeWindowHeight = useCallback(
     (maxHeightConstraint?: number | string) => {
       const menuBarHeight = 30;
-      const maxPossibleHeight = window.innerHeight - menuBarHeight;
+      const safeAreaBottom = getSafeAreaBottomInset();
+      const maxPossibleHeight =
+        window.innerHeight - menuBarHeight - safeAreaBottom;
       const maxHeight = maxHeightConstraint
         ? typeof maxHeightConstraint === "string"
           ? parseInt(maxHeightConstraint)
@@ -75,7 +89,7 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
         y: menuBarHeight,
       }));
     },
-    []
+    [getSafeAreaBottomInset]
   );
 
   const handleMouseDown = useCallback(
@@ -166,7 +180,8 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
         const minWidth = config.minSize?.width || 260;
         const minHeight = config.minSize?.height || 200;
         const maxWidth = window.innerWidth;
-        const maxHeight = window.innerHeight;
+        const safeAreaBottom = getSafeAreaBottomInset();
+        const maxHeight = window.innerHeight - safeAreaBottom;
         const menuBarHeight = 30;
 
         let newWidth = resizeStart.width;
@@ -297,6 +312,7 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
     playMoveStop,
     playResizeStop,
     config,
+    getSafeAreaBottomInset,
   ]);
 
   return {
@@ -309,5 +325,6 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
     setWindowSize,
     setWindowPosition,
     maximizeWindowHeight,
+    getSafeAreaBottomInset,
   };
 };
