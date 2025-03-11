@@ -675,18 +675,18 @@ export function SynthAppComponent({
   // Determine default label type based on screen size
   const isMobile = useMediaQuery("(max-width: 768px)");
   const [labelType, setLabelType] = useState<NoteLabelType>(() => {
-    // Load saved label type, fallback to screen size based default if not found
+    // Load saved label type, fallback to "off" as default
     const savedLabelType = loadSynthLabelType();
-    return savedLabelType || (isMobile ? "off" : "key");
+    return savedLabelType || "off";
   });
 
   // Update label type when screen size changes and save when changed
   useEffect(() => {
     if (!isWindowOpen) return;
 
-    // Only update to screen size based default if no saved preference exists
+    // Only update to default if no saved preference exists
     if (!localStorage.getItem(APP_STORAGE_KEYS.synth.LABEL_TYPE)) {
-      setLabelType(isMobile ? "off" : "key");
+      setLabelType("off");
     }
   }, [isMobile, isWindowOpen]);
 
