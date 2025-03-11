@@ -1422,8 +1422,7 @@ export function SynthAppComponent({
                 }}
                 onTouchMove={(e) => {
                   e.preventDefault(); // Prevent scrolling while playing
-
-                  // Handle all current touches
+                  // Handle all touches
                   Array.from(e.touches).forEach((touch) => {
                     const elementUnderTouch = document.elementFromPoint(
                       touch.clientX,
@@ -1437,39 +1436,27 @@ export function SynthAppComponent({
                     if (keyElement) {
                       const noteAttr = keyElement.getAttribute("data-note");
                       if (noteAttr && noteAttr !== currentNote) {
-                        // Only release and update if we're moving to a different note
+                        // Release the previous note if it's different
                         if (currentNote) {
                           releaseNote(currentNote);
                         }
+                        // Store and play the new note
                         setActiveTouches((prev) => ({
                           ...prev,
                           [touch.identifier]: noteAttr,
                         }));
                         pressNote(noteAttr);
                       }
-                    } else if (currentNote) {
-                      // Only release if we were previously on a note and now we're not
-                      releaseNote(currentNote);
-                      setActiveTouches((prev) => {
-                        const newTouches = { ...prev };
-                        delete newTouches[touch.identifier];
-                        return newTouches;
-                      });
-                    }
-                  });
-
-                  // Clean up any orphaned touches, but only if they're not in the current touch list
-                  const currentTouchIds = new Set(
-                    Array.from(e.touches).map((touch) => touch.identifier)
-                  );
-                  Object.entries(activeTouches).forEach(([touchId, note]) => {
-                    if (!currentTouchIds.has(parseInt(touchId))) {
-                      releaseNote(note);
-                      setActiveTouches((prev) => {
-                        const newTouches = { ...prev };
-                        delete newTouches[touchId];
-                        return newTouches;
-                      });
+                    } else {
+                      // If we're not over a key, release the current note
+                      if (currentNote) {
+                        releaseNote(currentNote);
+                        setActiveTouches((prev) => {
+                          const newTouches = { ...prev };
+                          delete newTouches[touch.identifier];
+                          return newTouches;
+                        });
+                      }
                     }
                   });
                 }}
