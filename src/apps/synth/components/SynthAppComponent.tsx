@@ -646,28 +646,31 @@ export function SynthAppComponent({
   const clearAllNotes = () => {
     if (!synthRef.current) return;
 
-    // Get all currently pressed notes
-    const notesToRelease = Object.entries(pressedNotes)
-      .filter(([, isPressed]) => isPressed)
-      .map(([note]) => note);
+    try {
+      // First, try to release all notes that are currently pressed
+      const notesToRelease = Object.entries(pressedNotes)
+        .filter(([, isPressed]) => isPressed)
+        .map(([note]) => note);
 
-    // Release all pressed notes
-    if (notesToRelease.length > 0) {
-      // Release each note individually to ensure proper handling
-      notesToRelease.forEach((note) => {
-        synthRef.current?.triggerRelease(note);
-      });
+      if (notesToRelease.length > 0) {
+        synthRef.current.releaseAll();
+      }
 
-      // Update state to mark all notes as not pressed
+      // As a backup, also cancel any scheduled events and silence the synth
+      Tone.Transport.cancel();
+
+      // Reset the pressed notes state
       setPressedNotes((prevState) => {
         const newState = { ...prevState };
-        notesToRelease.forEach((note) => {
+        Object.keys(newState).forEach((note) => {
           newState[note] = false;
         });
         return newState;
       });
 
       showStatus("All notes cleared");
+    } catch (error) {
+      console.error("Error clearing notes:", error);
     }
   };
 
