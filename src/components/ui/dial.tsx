@@ -150,6 +150,9 @@ const Dial = React.forwardRef<HTMLDivElement, DialProps>(
               "mb-1 font-geneva-12 text-center cursor-ew-resize select-none",
               isDraggingValue && "text-[#ff00ff]"
             )}
+            style={{
+              touchAction: "none",
+            }}
             onMouseDown={handleValueMouseDown}
             onTouchStart={handleValueTouchStart}
           >
@@ -166,11 +169,12 @@ const Dial = React.forwardRef<HTMLDivElement, DialProps>(
             sizeClasses[size],
             isDragging && "ring-1 ring-[#ff00ff]"
           )}
-          onMouseDown={handleMouseDown}
-          onTouchStart={handleTouchStart}
           style={{
             background: `conic-gradient(${color} 0% ${percentage}%, #333 ${percentage}% 100%)`,
+            touchAction: "none",
           }}
+          onMouseDown={handleMouseDown}
+          onTouchStart={handleTouchStart}
         >
           {/* Center circle */}
           <div className="absolute top-1/2 left-1/2 w-4 h-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#222]"></div>

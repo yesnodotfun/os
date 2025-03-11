@@ -1015,7 +1015,7 @@ export function SynthAppComponent({
 
                       {/* Mobile: Horizontal scrollable container for Envelope + Effects */}
                       <div className="md:hidden overflow-x-auto">
-                        <div className="flex flex-nowrap gap-6 min-w-max">
+                        <div className="flex flex-nowrap gap-6 min-w-max pb-2">
                           <div>
                             <h3 className="font-semibold mb-2 text-[#ff00ff] font-geneva-12 text-[10px] select-none">
                               Envelope
