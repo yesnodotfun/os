@@ -835,6 +835,24 @@ export function SynthAppComponent({
     }
   };
 
+  // Add visibility change effect to release notes when app goes to background
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // Release all active notes when the app goes to background
+        Object.entries(activeTouches).forEach(([, note]) => {
+          releaseNote(note);
+        });
+        setActiveTouches({});
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [activeTouches, releaseNote]);
+
   return (
     <>
       <SynthMenuBar
@@ -1377,6 +1395,7 @@ export function SynthAppComponent({
               <div
                 className="relative h-full w-full"
                 onTouchStart={(e) => {
+                  e.preventDefault(); // Prevent scrolling while playing
                   // Handle all touches
                   Array.from(e.touches).forEach((touch) => {
                     const elementUnderTouch = document.elementFromPoint(
@@ -1402,6 +1421,7 @@ export function SynthAppComponent({
                   });
                 }}
                 onTouchMove={(e) => {
+                  e.preventDefault(); // Prevent scrolling while playing
                   // Handle all touches
                   Array.from(e.touches).forEach((touch) => {
                     const elementUnderTouch = document.elementFromPoint(
@@ -1441,6 +1461,7 @@ export function SynthAppComponent({
                   });
                 }}
                 onTouchEnd={(e) => {
+                  e.preventDefault(); // Prevent scrolling while playing
                   // Release notes for ended touches
                   const endedTouches = Array.from(e.changedTouches);
                   endedTouches.forEach((touch) => {
@@ -1465,6 +1486,7 @@ export function SynthAppComponent({
                   }
                 }}
                 onTouchCancel={(e) => {
+                  e.preventDefault(); // Prevent scrolling while playing
                   // Release notes for cancelled touches
                   const cancelledTouches = Array.from(e.changedTouches);
                   cancelledTouches.forEach((touch) => {
