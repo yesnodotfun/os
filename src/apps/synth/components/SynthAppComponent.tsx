@@ -1356,7 +1356,7 @@ export function SynthAppComponent({
                           Envelope
                         </h3>
                         <div className="flex flex-col gap-2">
-                          <div className="flex flex-nowrap gap-2 overflow-x-auto">
+                          <div className="flex flex-nowrap gap-2 py-0.5 overflow-x-auto">
                             <div className="w-16 flex-shrink-0">
                               <Dial
                                 value={currentPreset.envelope.attack}
@@ -1386,7 +1386,7 @@ export function SynthAppComponent({
                               />
                             </div>
                           </div>
-                          <div className="flex flex-nowrap gap-2 overflow-x-auto">
+                          <div className="flex flex-nowrap gap-2 py-0.5 overflow-x-auto">
                             <div className="w-16 flex-shrink-0">
                               <Dial
                                 value={currentPreset.envelope.sustain}
@@ -1424,7 +1424,7 @@ export function SynthAppComponent({
                           Effects
                         </h3>
                         <div className="flex flex-col gap-2">
-                          <div className="flex flex-nowrap gap-2 overflow-x-auto">
+                          <div className="flex flex-nowrap gap-2 py-0.5 overflow-x-auto">
                             <div className="w-16 flex-shrink-0">
                               <Dial
                                 value={currentPreset.effects.gain}
@@ -1482,7 +1482,7 @@ export function SynthAppComponent({
                               />
                             </div>
                           </div>
-                          <div className="flex flex-nowrap gap-2 overflow-x-auto">
+                          <div className="flex flex-nowrap gap-2 py-0.5 overflow-x-auto">
                             <div className="w-16 flex-shrink-0">
                               <Dial
                                 value={currentPreset.effects.chorus ?? 0}
