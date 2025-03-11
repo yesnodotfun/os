@@ -653,14 +653,19 @@ export function SynthAppComponent({
 
     // Release all pressed notes
     if (notesToRelease.length > 0) {
-      synthRef.current.triggerRelease(notesToRelease);
+      // Release each note individually to ensure proper handling
+      notesToRelease.forEach((note) => {
+        synthRef.current?.triggerRelease(note);
+      });
 
       // Update state to mark all notes as not pressed
-      const clearedNotes = Object.keys(pressedNotes).reduce(
-        (acc, note) => ({ ...acc, [note]: false }),
-        {}
-      );
-      setPressedNotes(clearedNotes);
+      setPressedNotes((prevState) => {
+        const newState = { ...prevState };
+        notesToRelease.forEach((note) => {
+          newState[note] = false;
+        });
+        return newState;
+      });
 
       showStatus("All notes cleared");
     }
