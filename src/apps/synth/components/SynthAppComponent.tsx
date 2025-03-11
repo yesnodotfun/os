@@ -48,7 +48,7 @@ const StatusDisplay: React.FC<{ message: string | null }> = ({ message }) => {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 20 }}
           transition={{ duration: 0.2 }}
-          className="absolute bottom-4 w-full text-center left-1/2 transform -translate-x-1/2 px-4 py-2 bg-black/80 backdrop-blur-sm text-[#ff00ff] text-[12px] font-geneva-12 z-10"
+          className="absolute bottom-4 w-full text-center left-1/2 transform -translate-x-1/2 px-4 py-2 bg-black/80 backdrop-blur-sm text-[#ff00ff] text-[12px] font-geneva-12 z-10 select-none"
         >
           {message}
         </motion.div>
@@ -134,7 +134,7 @@ const PianoKey: React.FC<{
       {label && (
         <span
           className={cn(
-            "absolute bottom-2 left-1/2 transform -translate-x-1/2 text-[10px] pointer-events-none font-geneva-12",
+            "absolute bottom-2 left-1/2 transform -translate-x-1/2 text-[10px] pointer-events-none font-geneva-12 select-none",
             isBlack ? "text-white" : "text-black"
           )}
         >
@@ -861,7 +861,7 @@ export function SynthAppComponent({
       >
         <div
           ref={appContainerRef}
-          className="flex flex-col h-full w-full bg-[#1a1a1a] text-white overflow-hidden"
+          className="flex flex-col h-full w-full bg-[#1a1a1a] text-white overflow-hidden select-none"
         >
           {/* Main content area */}
           <div className="flex flex-col flex-1 min-h-0 w-full overflow-hidden">
@@ -886,7 +886,7 @@ export function SynthAppComponent({
                           <SelectItem
                             key={preset.id}
                             value={preset.id}
-                            className="font-geneva-12 text-[12px]"
+                            className="font-geneva-12 text-[12px] select-none"
                           >
                             {preset.name}
                           </SelectItem>
@@ -906,13 +906,13 @@ export function SynthAppComponent({
                             currentPreset.id === preset.id ? "on" : "off"
                           }
                           onClick={() => loadPreset(preset)}
-                          className="h-[22px] px-2 whitespace-nowrap uppercase"
+                          className="h-[22px] px-2 whitespace-nowrap uppercase select-none"
                         >
                           {preset.name}
                         </Button>
                       ))
                     ) : (
-                      <p className="text-xs text-gray-400 font-geneva-12">
+                      <p className="text-xs text-gray-400 font-geneva-12 select-none">
                         No presets yet. Create one with the NEW button.
                       </p>
                     )}
@@ -922,7 +922,7 @@ export function SynthAppComponent({
                   <Button
                     variant="player"
                     onClick={() => setIsControlsVisible(!isControlsVisible)}
-                    className="h-[22px] px-2"
+                    className="h-[22px] px-2 select-none"
                   >
                     CONTROLS
                   </Button>
@@ -944,18 +944,18 @@ export function SynthAppComponent({
                       damping: 25,
                       mass: 0.8,
                     }}
-                    className="absolute top-0 inset-x-0 w-full bg-neutral-900/90 backdrop-blur-xl p-4 z-[40]"
+                    className="absolute top-0 inset-x-0 w-full bg-neutral-900/90 backdrop-blur-xl p-4 z-[40] select-none"
                   >
                     <div className="flex flex-col md:flex-row md:flex-wrap md:items-start gap-6">
                       <div className="md:min-w-[200px] md:flex-grow md:flex-1 md:flex-basis-0">
                         <div className="flex justify-between items-center mb-2">
-                          <h3 className="font-semibold text-[#ff00ff] font-geneva-12 text-[10px]">
+                          <h3 className="font-semibold text-[#ff00ff] font-geneva-12 text-[10px] select-none">
                             Oscillator
                           </h3>
                           <Button
                             variant="player"
                             onClick={addPreset}
-                            className="h-[22px] px-2 text-[9px]"
+                            className="h-[22px] px-2 text-[9px] select-none"
                           >
                             ADD PRESET
                           </Button>
@@ -1017,7 +1017,7 @@ export function SynthAppComponent({
                       <div className="md:hidden overflow-x-auto">
                         <div className="flex flex-nowrap gap-6 min-w-max">
                           <div>
-                            <h3 className="font-semibold mb-2 text-[#ff00ff] font-geneva-12 text-[10px]">
+                            <h3 className="font-semibold mb-2 text-[#ff00ff] font-geneva-12 text-[10px] select-none">
                               Envelope
                             </h3>
                             <div className="flex flex-nowrap gap-1">
@@ -1081,7 +1081,7 @@ export function SynthAppComponent({
                           </div>
 
                           <div>
-                            <h3 className="font-semibold mb-2 text-[#ff00ff] font-geneva-12 text-[10px]">
+                            <h3 className="font-semibold mb-2 text-[#ff00ff] font-geneva-12 text-[10px] select-none">
                               Effects
                             </h3>
                             <div className="flex flex-nowrap gap-1">
@@ -1190,7 +1190,7 @@ export function SynthAppComponent({
 
                       {/* Desktop: Original separate sections */}
                       <div className="hidden md:block md:flex-grow-0 md:flex-shrink-0 md:w-[140px]">
-                        <h3 className="font-semibold mb-2 text-[#ff00ff] font-geneva-12 text-[10px]">
+                        <h3 className="font-semibold mb-2 text-[#ff00ff] font-geneva-12 text-[10px] select-none">
                           Envelope
                         </h3>
                         <div className="flex flex-col gap-2">
@@ -1258,7 +1258,7 @@ export function SynthAppComponent({
                       </div>
 
                       <div className="hidden md:block md:flex-shrink-0 md:w-[280px]">
-                        <h3 className="font-semibold mb-2 text-[#ff00ff] font-geneva-12 text-[10px]">
+                        <h3 className="font-semibold mb-2 text-[#ff00ff] font-geneva-12 text-[10px] select-none">
                           Effects
                         </h3>
                         <div className="flex flex-col gap-2">

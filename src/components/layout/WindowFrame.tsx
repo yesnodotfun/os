@@ -369,7 +369,7 @@ export function WindowFrame({
     >
       <div className="relative w-full h-full">
         {/* Resize handles - positioned outside main content */}
-        <div className="absolute -top-2 -left-2 -right-2 -bottom-2 pointer-events-none z-50">
+        <div className="absolute -top-2 -left-2 -right-2 -bottom-2 pointer-events-none z-50 select-none">
           {/* Top resize handle */}
           <div
             className={cn(
@@ -494,7 +494,7 @@ export function WindowFrame({
         >
           {/* Title bar */}
           <div
-            className={`flex items-center shrink-0 h-6 min-h-6 mx-0 my-[0.1rem] px-[0.1rem] py-[0.2rem] ${
+            className={`flex items-center shrink-0 h-6 min-h-6 mx-0 my-[0.1rem] px-[0.1rem] py-[0.2rem] select-none ${
               isForeground
                 ? "bg-[linear-gradient(#000_50%,transparent_0)] bg-clip-content bg-[length:6.6666666667%_13.3333333333%] border-b-black"
                 : "bg-white border-b-gray-400"
