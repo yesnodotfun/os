@@ -406,6 +406,9 @@ export function WindowFrame({
             onMouseDown={(e) =>
               handleResizeStartWithForeground(e, "w" as ResizeType)
             }
+            onTouchStart={(e) =>
+              handleResizeStartWithForeground(e, "w" as ResizeType)
+            }
           />
 
           {/* Right resize handle */}
@@ -418,6 +421,9 @@ export function WindowFrame({
             )}
             style={{ bottom: resizeType?.includes("s") ? "32px" : "32px" }}
             onMouseDown={(e) =>
+              handleResizeStartWithForeground(e, "e" as ResizeType)
+            }
+            onTouchStart={(e) =>
               handleResizeStartWithForeground(e, "e" as ResizeType)
             }
           />
@@ -433,6 +439,9 @@ export function WindowFrame({
             onMouseDown={(e) =>
               handleResizeStartWithForeground(e, "ne" as ResizeType)
             }
+            onTouchStart={(e) =>
+              handleResizeStartWithForeground(e, "ne" as ResizeType)
+            }
           />
 
           <div
@@ -445,6 +454,9 @@ export function WindowFrame({
             onMouseDown={(e) =>
               handleResizeStartWithForeground(e, "sw" as ResizeType)
             }
+            onTouchStart={(e) =>
+              handleResizeStartWithForeground(e, "sw" as ResizeType)
+            }
           />
 
           <div
@@ -455,6 +467,9 @@ export function WindowFrame({
                 : "bottom-0 right-0 w-6 h-6" // reduced from w-8 h-8
             )}
             onMouseDown={(e) =>
+              handleResizeStartWithForeground(e, "se" as ResizeType)
+            }
+            onTouchStart={(e) =>
               handleResizeStartWithForeground(e, "se" as ResizeType)
             }
           />

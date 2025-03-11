@@ -97,8 +97,6 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
 
   const handleResizeStart = useCallback(
     (e: React.MouseEvent | React.TouchEvent, type: ResizeType) => {
-      if (isMobile && !type.match(/^[ns]$/)) return;
-
       e.stopPropagation();
       e.preventDefault();
 
@@ -122,7 +120,7 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
       });
       setResizeType(type);
     },
-    [windowPosition, isMobile]
+    [windowPosition]
   );
 
   useEffect(() => {
