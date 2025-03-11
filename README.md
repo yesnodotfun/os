@@ -41,36 +41,65 @@ bun run build
 
 ### Built-in Applications
 
-- **Finder**: File system navigation and management
-- **Text Editor**: Rich text editing with markdown support
+- **Finder**: File system navigation and management with Documents, Applications, and Trash
+- **TextEdit**: Rich text editing with markdown support and task lists
 - **MacPaint**: Classic bitmap graphics editor
   - Drawing tools (pencil, brush, eraser)
   - Shape tools (rectangle, oval, line)
   - Fill patterns and colors
   - Selection and move tools
   - Undo/redo support
+  - Image file import/export support
 - **Videos**: Retro-style YouTube playlist player
+  - VCR-style interface with LCD display
   - Add and manage YouTube videos
-  - Playlist management
-  - Shuffle and repeat modes
-  - LCD display with scrolling titles
-  - Classic CD player controls
+  - Playlist management with shuffle and repeat modes
+  - Scrolling titles and classic CD player controls
   - Local storage persistence
 - **Soundboard**: Create and manage custom soundboards
-  - Record audio from microphone
+  - Record sounds directly from microphone
   - Multiple soundboards support
   - Waveform visualization
   - Keyboard shortcuts (1-9)
   - Import/export functionality
   - Emoji and title customization
+  - Enhanced synth effects
+- **Synth**: Virtual synthesizer with retro aesthetics
+  - Virtual keyboard with computer key support
+  - Multiple oscillator waveforms (sine, square, sawtooth, triangle)
+  - Effects including reverb, delay, and distortion
+  - Customizable synth parameters
+  - MIDI input support
+  - Preset saving and loading
+  - Classic synthesizer UI design
+- **Photo Booth**: Camera app with effects
+  - Take photos with your webcam
+  - Multiple photo effects and filters
+  - Brightness and contrast adjustments
+  - Photo gallery with thumbnails
+  - Multi-photo sequence mode
+  - Export photos to Files
+  - Real-time filter preview
+- **Internet Explorer**: Classic web browser experience
+  - Wayback Machine integration for time travel
+  - Classic UI with modern browsing capabilities
+  - Historical web content viewing
+- **Chats**: AI-powered chat interface
+  - Natural conversation with Ryo AI
+  - System control through chat
+  - App launching and management
+  - Document editing capabilities
 - **Control Panels**: System settings
   - Appearance customization
-  - Sound settings
+  - Sound settings and synth controls
   - System management
-  - Backup and restore
-- **Chat**: AI-powered chat interface using OpenAI
+  - Backup and restore functionality
+  - Wallpaper management
 - **Minesweeper**: Classic game implementation
-- **Internet Explorer**: Classic web browser experience
+- **Virtual PC**: DOS game emulator
+  - Play classic games like Doom and SimCity
+  - DOS environment emulation
+  - Game save states
 
 ### Core Features
 

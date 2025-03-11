@@ -129,7 +129,7 @@ A web-based operating system experience inspired by classic Mac OS System 7. Bui
 ## Features
 - Classic System 7 UI with authentic typography
 - Window management (drag, resize, maximize)
-- File system with Documents and Applications folders
+- File system with Documents, Applications, and Trash
 - Multiple built-in applications
 - Local storage persistence
 - Modern audio features with WaveSurfer.js and Tone.js
@@ -140,14 +140,17 @@ A web-based operating system experience inspired by classic Mac OS System 7. Bui
 
 ## Built-in Applications
 - **Finder**: Browse and manage your files
-- **TextEdit**: Create and edit documents
+- **TextEdit**: Create and edit documents with markdown
+- **MacPaint**: Classic bitmap graphics editor with image support
 - **Soundboard**: Create and play custom soundboards
+- **Synth**: Virtual synthesizer with retro aesthetics
+- **Photo Booth**: Camera app with effects and filters
 - **Control Panels**: Customize ryOS system settings
 - **Minesweeper**: Classic puzzle game
-- **Internet Explorer**: Browse the web with time travel
-- **Chats**: Chat with AI assistant
-- **Videos**: Make video playlists and watch them
-- **Virtual PC**: Play classic PC games like Doom and SimCity
+- **Internet Explorer**: Browse historical web content
+- **Chats**: Chat with Ryo AI assistant
+- **Videos**: VCR-style video playlist player
+- **Virtual PC**: Play classic DOS games
 
 ## Getting Started
 - Double-click on any app icon to launch it
@@ -192,13 +195,23 @@ Visit https://github.com/ryokun6/ryos for more information.`,
 - Format text with bold, italic, and underline
 - Align text and create ordered/unordered lists
 - Use slash commands (/) for quick formatting
-- Record audio input for dictation
+- Support for markdown syntax
+- Task list support with checkboxes
 - Auto-saves your work
 - Export documents when needed
+
+## MacPaint
+- Classic bitmap graphics editor
+- Multiple drawing tools and patterns
+- Shape tools with fill options
+- Selection and move capabilities
+- Image file import/export
+- Undo/redo support
 
 ## Soundboard
 - Create multiple custom soundboards
 - Record sounds directly from your microphone
+- Enhanced synth effects and processing
 - Customize with emojis and titles
 - Play sounds with clicks or number keys (1-9)
 - View sound waveforms with WaveSurfer.js
@@ -206,6 +219,40 @@ Visit https://github.com/ryokun6/ryos for more information.`,
 - Auto-saves your recordings
 - Choose input device
 - Toggle waveform/emoji display
+
+## Synth
+- Play using on-screen keyboard or computer keys
+- Choose between multiple waveforms:
+  - Sine wave (smooth, pure tones)
+  - Square wave (rich, buzzy sounds)
+  - Sawtooth (bright, sharp tones)
+  - Triangle (soft, hollow sounds)
+- Add effects:
+  - Reverb for space and depth
+  - Delay for echo effects
+  - Distortion for gritty tones
+- Save and load custom presets
+- MIDI keyboard support
+- Classic synthesizer interface
+- Real-time parameter control
+
+## Photo Booth
+- Take photos with your webcam
+- Apply real-time effects:
+  - Green Tint
+  - High Contrast
+  - Warm Vintage
+  - Soft Sepia
+  - Soft Focus
+  - Black & White
+  - Inverted
+  - Green Boost
+- Adjust brightness and contrast
+- Multi-photo sequence mode
+- Built-in photo gallery
+- Export photos to Files
+- Multiple camera support
+- Flash effect on capture
 
 ## Control Panels
 - Customize system appearance
@@ -222,53 +269,36 @@ Visit https://github.com/ryokun6/ryos for more information.`,
   - Reset to defaults
   - Format file system
 
-## Minesweeper
-- Classic puzzle game with modern features
-- Left-click to reveal cells
-- Right-click to flag mines
-- Sound effects for actions
-- Track remaining mines
-- Start new game anytime
-
 ## Internet Explorer
-- Browse web content
-- Time travel feature to see historical dates
-- Add websites to favorites
-- Modern browsing experience
+- Browse historical web content
+- Time travel with Wayback Machine
 - Classic System 7 style interface
+- Add websites to favorites
+- View content from different years
 
-## Chat with Ryo
-- Chat with Ryo (AI version)
-- Get help with system features
+## Chats with Ryo
+- Natural conversation with Ryo AI
+- Control system through chat
+- Launch and manage apps
+- Edit documents directly
+- Get help with features
 - Ask about design and concepts
-- Natural conversation interface
-- Modern AI-powered assistance
 
 ## Videos
-- Make video playlists and watch them
-- Add videos to favorites
-- VHS-style video player interface
+- VCR-style video playlist player
+- Add and manage YouTube videos
+- Shuffle and repeat modes
+- LCD display with scrolling titles
+- Classic CD player controls
+- Playlist management
+- Local storage for favorites
 
 ## Virtual PC
-- Play classic PC games like Doom and SimCity
-- Launch from Applications folder
-- Use keyboard shortcuts for game controls
-- Save game progress automatically
-- Switch between multiple games
-- Adjust emulator settings in Control Panels
-- Import/export game saves
-- Full-screen mode available
-
-## Tips & Tricks
-- Use keyboard shortcuts for efficiency
-- Right-click for context menus
-- Drag windows to organize workspace
-- All changes save automatically
-- Files persist between sessions
-- Export important data locally
-- Customize system sounds and appearance
-- Regular backups recommended
-`,
+- Play classic DOS games
+- Doom, SimCity, and more
+- Save game states
+- Full DOS environment
+- Keyboard and mouse support`,
   },
 ];
 
