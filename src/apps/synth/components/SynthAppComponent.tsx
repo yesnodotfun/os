@@ -643,6 +643,29 @@ export function SynthAppComponent({
     setPressedNotes((prev) => ({ ...prev, [note]: false }));
   };
 
+  const clearAllNotes = () => {
+    if (!synthRef.current) return;
+
+    // Get all currently pressed notes
+    const notesToRelease = Object.entries(pressedNotes)
+      .filter(([, isPressed]) => isPressed)
+      .map(([note]) => note);
+
+    // Release all pressed notes
+    if (notesToRelease.length > 0) {
+      synthRef.current.triggerRelease(notesToRelease);
+
+      // Update state to mark all notes as not pressed
+      const clearedNotes = Object.keys(pressedNotes).reduce(
+        (acc, note) => ({ ...acc, [note]: false }),
+        {}
+      );
+      setPressedNotes(clearedNotes);
+
+      showStatus("All notes cleared");
+    }
+  };
+
   // Status message display
   const showStatus = (message: string) => {
     setStatusMessage(message);
@@ -952,13 +975,22 @@ export function SynthAppComponent({
                           <h3 className="font-semibold text-[#ff00ff] font-geneva-12 text-[10px] select-none">
                             Oscillator
                           </h3>
-                          <Button
-                            variant="player"
-                            onClick={addPreset}
-                            className="h-[22px] px-2 text-[9px] select-none"
-                          >
-                            ADD PRESET
-                          </Button>
+                          <div className="flex gap-0">
+                            <Button
+                              variant="player"
+                              onClick={clearAllNotes}
+                              className="h-[22px] px-2 text-[9px] select-none"
+                            >
+                              STOP
+                            </Button>
+                            <Button
+                              variant="player"
+                              onClick={addPreset}
+                              className="h-[22px] px-2 text-[9px] select-none"
+                            >
+                              ADD PRESET
+                            </Button>
+                          </div>
                         </div>
                         <Select
                           value={currentPreset.oscillator.type}
