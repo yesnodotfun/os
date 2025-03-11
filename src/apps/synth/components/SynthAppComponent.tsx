@@ -572,6 +572,9 @@ export function SynthAppComponent({
   });
 
   const [pressedNotes, setPressedNotes] = useState<Record<string, boolean>>({});
+  const [activeTouches, setActiveTouches] = useState<Record<string, string>>(
+    {}
+  );
   // Use UI sound for interface feedback
   const { play } = useSound("/sounds/click.mp3");
 
@@ -1085,10 +1088,6 @@ export function SynthAppComponent({
       releaseNote(note);
     }
   };
-
-  const [activeTouches, setActiveTouches] = useState<Record<string, string>>(
-    {}
-  );
 
   return (
     <>
@@ -1709,6 +1708,15 @@ export function SynthAppComponent({
                       });
                     }
                   });
+
+                  // Safety check: ensure all touch identifiers in changedTouches are removed
+                  if (e.touches.length === 0) {
+                    // If no touches remain on the screen, release ALL active touches
+                    Object.entries(activeTouches).forEach(([, note]) => {
+                      releaseNote(note);
+                    });
+                    setActiveTouches({});
+                  }
                 }}
                 onTouchCancel={(e) => {
                   // Release notes for cancelled touches
@@ -1724,6 +1732,14 @@ export function SynthAppComponent({
                       });
                     }
                   });
+
+                  // Safety check: if this was the last touch, clear all active touches
+                  if (e.touches.length === 0) {
+                    Object.entries(activeTouches).forEach(([, note]) => {
+                      releaseNote(note);
+                    });
+                    setActiveTouches({});
+                  }
                 }}
               >
                 {/* White keys container */}
