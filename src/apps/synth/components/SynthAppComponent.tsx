@@ -1111,7 +1111,7 @@ export function SynthAppComponent({
                     className="absolute top-0 inset-x-0 w-full bg-neutral-900/90 backdrop-blur-xl p-4 z-[40]"
                   >
                     <div className="flex flex-col md:flex-row md:flex-wrap md:items-start gap-6">
-                      <div className="md:min-w-[200px] md:flex-grow-0 md:flex-shrink-0">
+                      <div className="md:min-w-[200px] md:flex-grow md:flex-1 md:flex-basis-0">
                         <div className="flex justify-between items-center mb-2">
                           <h3 className="font-semibold text-[#ff00ff] font-geneva-12 text-[10px]">
                             Oscillator
@@ -1351,7 +1351,7 @@ export function SynthAppComponent({
                       </div>
 
                       {/* Desktop: Original separate sections */}
-                      <div className="hidden md:block md:min-w-[120px] md:flex-grow-0 md:flex-shrink-0">
+                      <div className="hidden md:block md:flex-grow-0 md:flex-shrink-0 md:w-[150px]">
                         <h3 className="font-semibold mb-2 text-[#ff00ff] font-geneva-12 text-[10px]">
                           Envelope
                         </h3>
@@ -1419,7 +1419,7 @@ export function SynthAppComponent({
                         </div>
                       </div>
 
-                      <div className="hidden md:block md:flex-1 md:min-w-[300px]">
+                      <div className="hidden md:block md:flex-shrink-0 md:w-[275px]">
                         <h3 className="font-semibold mb-2 text-[#ff00ff] font-geneva-12 text-[10px]">
                           Effects
                         </h3>
