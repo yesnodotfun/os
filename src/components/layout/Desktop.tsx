@@ -107,6 +107,7 @@ export function Desktop({
           autoPlay
           loop
           muted
+          playsInline
         />
       )}
       <div className="pt-8 p-4 flex flex-col items-end h-[calc(100%-2rem)]">
