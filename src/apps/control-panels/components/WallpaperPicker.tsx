@@ -66,11 +66,12 @@ function WallpaperItem({
       >
         <video
           ref={videoRef}
-          className="w-full h-full object-cover"
+          className="absolute inset-0 w-full h-full object-cover"
           src={path}
           loop
           muted
           playsInline
+          style={{ objectPosition: "center center" }}
         />
       </div>
     );
