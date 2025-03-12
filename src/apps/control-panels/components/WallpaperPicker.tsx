@@ -528,9 +528,19 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
               <SelectValue placeholder="Select a category" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="videos">
+                Videos
+                <span className="ml-1.5 px-0.5 text-[9px] font-geneva-12 bg-neutral-400 text-white rounded-md">
+                  NEW
+                </span>
+              </SelectItem>
+              <SelectItem value="custom">
+                Custom
+                <span className="ml-1.5 px-0.5 text-[9px] font-geneva-12 bg-neutral-400 text-white rounded-md">
+                  NEW
+                </span>
+              </SelectItem>
               <SelectItem value="tiles">Tiled Patterns</SelectItem>
-              <SelectItem value="videos">Videos</SelectItem>
-              <SelectItem value="custom">Custom</SelectItem>
               {PHOTO_CATEGORIES.filter(
                 (cat) => cat !== "custom" && cat !== "videos"
               ).map((category) => (
