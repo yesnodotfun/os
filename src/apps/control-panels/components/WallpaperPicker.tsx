@@ -26,6 +26,7 @@ interface WallpaperItemProps {
   isSelected: boolean;
   onClick: () => void;
   isTile?: boolean;
+  isVideo?: boolean;
 }
 
 function WallpaperItem({
@@ -33,6 +34,7 @@ function WallpaperItem({
   isSelected,
   onClick,
   isTile = false,
+  isVideo = false,
 }: WallpaperItemProps) {
   const { play: playClick } = useSound(Sounds.BUTTON_CLICK, 0.3);
 
@@ -40,6 +42,26 @@ function WallpaperItem({
     playClick();
     onClick();
   };
+
+  if (isVideo) {
+    return (
+      <div
+        className={`w-full aspect-video border-2 cursor-pointer hover:opacity-90 ${
+          isSelected ? "ring-2 ring-black border-white" : "border-transparent"
+        } relative overflow-hidden`}
+        onClick={handleClick}
+      >
+        <video
+          className="w-full h-full object-cover"
+          src={path}
+          autoPlay={isSelected}
+          loop
+          muted
+          playsInline
+        />
+      </div>
+    );
+  }
 
   return (
     <div
@@ -67,6 +89,7 @@ type PhotoCategory =
   | "nostalgia"
   | "objects"
   | "structures"
+  | "videos"
   | "custom";
 
 const TILE_WALLPAPERS = [
@@ -117,6 +140,16 @@ const TILE_WALLPAPERS = [
   "peanuts_pistachio",
   "peanuts_azul",
 ].map((name) => `/wallpapers/tiles/${name}.png`);
+
+// Add video wallpapers
+const VIDEO_WALLPAPERS = [
+  "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/cancun_sunset-wF3a1Unid4NyecqtGbKJmVyXEevquL.mp4",
+  "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/clouds-JvRX6JrjKjXk0nxPljwO8okrEVhRH5.mp4",
+  "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/galway_bay-aDogTnnmx92MpkpuOwX8QjS9GjGqXG.mp4",
+  "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/glacier_national_park-zU5Sre6MixUSMcMw1mOjCJZDexLFqe.mp4",
+  "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/red_clouds-hIMB3tpo5ERiXJpAkq4DVA02cNPgjc.mp4",
+  "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/golden_poppy-p4sIKkyENgI4kE3omyNE31tInqikuu.mp4",
+];
 
 const PHOTO_WALLPAPERS: Record<PhotoCategory, string[]> = {
   "3d_graphics": [
@@ -200,14 +233,17 @@ const PHOTO_WALLPAPERS: Record<PhotoCategory, string[]> = {
     "stone_wall",
     "wall_of_stones",
   ],
+  videos: VIDEO_WALLPAPERS,
   custom: [], // This will be populated dynamically
 };
 
 // Transform photo paths
 Object.entries(PHOTO_WALLPAPERS).forEach(([category, photos]) => {
-  PHOTO_WALLPAPERS[category as PhotoCategory] = photos.map(
-    (name) => `/wallpapers/photos/${category}/${name}.jpg`
-  );
+  if (category !== "videos" && category !== "custom") {
+    PHOTO_WALLPAPERS[category as PhotoCategory] = photos.map(
+      (name) => `/wallpapers/photos/${category}/${name}.jpg`
+    );
+  }
 });
 
 const PHOTO_CATEGORIES = Object.keys(PHOTO_WALLPAPERS) as PhotoCategory[];
@@ -234,6 +270,9 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
     }
     if (currentWallpaper.includes("/custom-wallpapers/")) {
       return "custom";
+    }
+    if (VIDEO_WALLPAPERS.includes(currentWallpaper)) {
+      return "videos";
     }
     for (const category of PHOTO_CATEGORIES) {
       if (currentWallpaper.includes(`/wallpapers/photos/${category}/`)) {
@@ -301,8 +340,11 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
     if (!event.target.files || event.target.files.length === 0) return;
 
     const file = event.target.files[0];
-    if (!file.type.startsWith("image/")) {
-      alert("Please select an image file");
+    const isVideo = file.type.startsWith("video/");
+    const isImage = file.type.startsWith("image/");
+
+    if (!isImage && !isVideo) {
+      alert("Please select an image or video file");
       return;
     }
 
@@ -429,6 +471,8 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
       setSelectedCategory("tiles");
     } else if (customWallpapers.includes(currentWallpaper)) {
       setSelectedCategory("custom");
+    } else if (VIDEO_WALLPAPERS.includes(currentWallpaper)) {
+      setSelectedCategory("videos");
     } else {
       for (const category of PHOTO_CATEGORIES) {
         if (currentWallpaper.includes(`/wallpapers/photos/${category}/`)) {
@@ -466,14 +510,15 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="tiles">Tiled Patterns</SelectItem>
+              <SelectItem value="videos">Videos</SelectItem>
               <SelectItem value="custom">Custom</SelectItem>
-              {PHOTO_CATEGORIES.filter((cat) => cat !== "custom").map(
-                (category) => (
-                  <SelectItem key={category} value={category}>
-                    {formatCategoryLabel(category)}
-                  </SelectItem>
-                )
-              )}
+              {PHOTO_CATEGORIES.filter(
+                (cat) => cat !== "custom" && cat !== "videos"
+              ).map((category) => (
+                <SelectItem key={category} value={category}>
+                  {formatCategoryLabel(category)}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -498,7 +543,7 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
         <input
           type="file"
           ref={fileInputRef}
-          accept="image/*"
+          accept="image/*,video/mp4,video/webm,video/ogg"
           onChange={handleFileUpload}
           className="hidden"
         />
@@ -520,6 +565,16 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
                 isTile
               />
             ))
+          ) : selectedCategory === "videos" ? (
+            VIDEO_WALLPAPERS.map((path) => (
+              <WallpaperItem
+                key={path}
+                path={path}
+                isSelected={currentWallpaper === path}
+                onClick={() => handleWallpaperSelect(path)}
+                isVideo
+              />
+            ))
           ) : selectedCategory === "custom" ? (
             <>
               <div
@@ -535,6 +590,7 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
                     path={path}
                     isSelected={currentWallpaper === path}
                     onClick={() => handleWallpaperSelect(path)}
+                    isVideo={path.includes(";video/")}
                   />
                 ))
               ) : (

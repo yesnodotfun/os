@@ -30,6 +30,7 @@ export function Desktop({
 }: DesktopProps) {
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
   const [currentWallpaper, setCurrentWallpaper] = useState(wallpaperPath);
+  const isVideoWallpaper = currentWallpaper.endsWith(".mp4");
 
   // Listen for wallpaper changes
   useEffect(() => {
@@ -54,6 +55,11 @@ export function Desktop({
   }, [wallpaperPath]);
 
   const getWallpaperStyles = (path: string): DesktopStyles => {
+    // Don't apply background styles for video wallpapers
+    if (path.endsWith(".mp4")) {
+      return {};
+    }
+
     const isTiled = path.includes("/wallpapers/tiles/");
     return {
       backgroundImage: `url(${path})`,
@@ -94,6 +100,15 @@ export function Desktop({
       onClick={onClick}
       style={finalStyles}
     >
+      {isVideoWallpaper && (
+        <video
+          className="absolute inset-0 w-full h-full object-cover -z-10"
+          src={currentWallpaper}
+          autoPlay
+          loop
+          muted
+        />
+      )}
       <div className="pt-8 p-4 flex flex-col items-end h-[calc(100%-2rem)]">
         <div className="flex flex-col flex-wrap-reverse justify-start gap-1 content-start h-full">
           <FileIcon

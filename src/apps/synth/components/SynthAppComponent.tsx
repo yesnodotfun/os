@@ -169,6 +169,8 @@ export function SynthAppComponent({
   const [isSavingNewPreset, setIsSavingNewPreset] = useState(true);
   const [presetName, setPresetName] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
+  const [isControlsVisible, setIsControlsVisible] = useState(false);
+  const [octaveOffset, setOctaveOffset] = useState(0);
 
   // Default presets
   const defaultPresets: SynthPreset[] = [
@@ -179,7 +181,7 @@ export function SynthAppComponent({
         type: "sine" as OscillatorType,
       },
       envelope: {
-        attack: 0.1,
+        attack: 0.01,
         decay: 0.2,
         sustain: 0.5,
         release: 1,
@@ -223,7 +225,7 @@ export function SynthAppComponent({
         type: "triangle" as OscillatorType,
       },
       envelope: {
-        attack: 0.1,
+        attack: 0.01,
         decay: 0.3,
         sustain: 0.7,
         release: 2,
@@ -368,7 +370,6 @@ export function SynthAppComponent({
 
   // State for responsive keyboard
   const [visibleKeyCount, setVisibleKeyCount] = useState(8);
-  const [isControlsVisible, setIsControlsVisible] = useState(false);
 
   // Reference to the app container
   const appContainerRef = useRef<HTMLDivElement>(null);
@@ -628,18 +629,34 @@ export function SynthAppComponent({
     "'": "F5",
   };
 
+  // Function to shift note by octave
+  const shiftNoteByOctave = (note: string, offset: number): string => {
+    const noteMatch = note.match(/([A-G]#?)(\d+)/);
+    if (!noteMatch) return note;
+
+    const [, noteName, octave] = noteMatch;
+    const newOctave = parseInt(octave) + offset;
+
+    // Limit octave range to prevent invalid notes
+    if (newOctave < 0 || newOctave > 8) return note;
+
+    return `${noteName}${newOctave}`;
+  };
+
   // Note press/release handlers
   const pressNote = (note: string) => {
     if (!synthRef.current) return;
 
-    synthRef.current.triggerAttack(note);
+    const shiftedNote = shiftNoteByOctave(note, octaveOffset);
+    synthRef.current.triggerAttack(shiftedNote);
     setPressedNotes((prev) => ({ ...prev, [note]: true }));
   };
 
   const releaseNote = (note: string) => {
     if (!synthRef.current) return;
 
-    synthRef.current.triggerRelease(note);
+    const shiftedNote = shiftNoteByOctave(note, octaveOffset);
+    synthRef.current.triggerRelease(shiftedNote);
     setPressedNotes((prev) => ({ ...prev, [note]: false }));
   };
 
@@ -792,6 +809,23 @@ export function SynthAppComponent({
     )
       return;
 
+    // Handle octave shift keys
+    if (e.key === "-" || e.key === "_") {
+      e.preventDefault();
+      setOctaveOffset((prevOffset) => {
+        const newOffset = Math.max(-2, prevOffset - 1);
+        showStatus(`Octave ${newOffset}`);
+        return newOffset;
+      });
+    } else if (e.key === "=" || e.key === "+") {
+      e.preventDefault();
+      setOctaveOffset((prevOffset) => {
+        const newOffset = Math.min(2, prevOffset + 1);
+        showStatus(`Octave ${newOffset}`);
+        return newOffset;
+      });
+    }
+
     // Handle number keys for preset switching
     const numKey = parseInt(e.key);
     if (!isNaN(numKey) && numKey >= 1 && numKey <= 9) {
@@ -936,7 +970,25 @@ export function SynthAppComponent({
                     )}
                   </div>
                 </div>
-                <div className="flex gap-1">
+                <div className="flex gap-0">
+                  <Button
+                    variant="player"
+                    onClick={() =>
+                      setOctaveOffset((prev) => Math.max(-2, prev - 1))
+                    }
+                    className="h-[22px] px-2 select-none"
+                  >
+                    &lt;
+                  </Button>
+                  <Button
+                    variant="player"
+                    onClick={() =>
+                      setOctaveOffset((prev) => Math.min(2, prev + 1))
+                    }
+                    className="h-[22px] px-2 select-none"
+                  >
+                    &gt;
+                  </Button>
                   <Button
                     variant="player"
                     onClick={() => setIsControlsVisible(!isControlsVisible)}
