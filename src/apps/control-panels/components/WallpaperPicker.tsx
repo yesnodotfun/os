@@ -161,13 +161,13 @@ const VIDEO_WALLPAPERS = [
   "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/red_clouds-hIMB3tpo5ERiXJpAkq4DVA02cNPgjc.mp4",
   "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/galway_bay-aDogTnnmx92MpkpuOwX8QjS9GjGqXG.mp4",
   "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/glacier_national_park-zU5Sre6MixUSMcMw1mOjCJZDexLFqe.mp4",
-  "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/cliff_flyby-Da4HNaOJobmhJXU9YUCMEN9eiCVDKy.mp4",
+  "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/lily_pad-ewDMSKULDgURywNkocVRnuRJHkAjvh.mp4",
   "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/golden_poppy-p4sIKkyENgI4kE3omyNE31tInqikuu.mp4",
   "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/red_tulips-2xvdKI4P13vFVRs35XRDScruE3RUiT.mp4",
   "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/blue_flowers-MNyycIMHxNFghtSiQSAZIZrTWsXMVk.mp4",
   "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/golden_gate_dusk-vwlMXQIHDKMOPQnqPlTPB5fGTZAtTK.mp4",
   "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/fish_eagle-nnO0aaeeLdliCSHg3jsHiJHf7r6kdd.mp4",
-  "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/bliss-9NsGr8rbUtGT5FvW20ZggOwttAB7wt.mp4",
+  "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/bliss_og-FRrs4u8TrHCBTgwfk9GzInMKaQBIGh.mp4",
 ];
 
 const PHOTO_WALLPAPERS: Record<PhotoCategory, string[]> = {
