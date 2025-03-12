@@ -531,13 +531,13 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
             <SelectContent>
               <SelectItem value="videos">
                 Videos
-                <span className="ml-1.5 px-0.5 text-[9px] font-geneva-12 bg-neutral-400 text-white rounded-md">
+                <span className="ml-1.5 px-0.5 text-[9px] font-geneva-12 bg-neutral-500 text-white rounded-md">
                   NEW
                 </span>
               </SelectItem>
               <SelectItem value="custom">
                 Custom
-                <span className="ml-1.5 px-0.5 text-[9px] font-geneva-12 bg-neutral-400 text-white rounded-md">
+                <span className="ml-1.5 px-0.5 text-[9px] font-geneva-12 bg-neutral-500 text-white rounded-md">
                   NEW
                 </span>
               </SelectItem>
