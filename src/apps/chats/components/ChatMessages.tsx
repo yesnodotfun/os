@@ -274,19 +274,23 @@ export function ChatMessages({
 
               <motion.div
                 layout="position"
+                initial={{
+                  backgroundColor:
+                    message.role === "user" ? "#fef08a" : "#bfdbfe",
+                  color: "#000000",
+                }}
                 animate={
                   isUrgentMessage(message.content)
                     ? {
                         backgroundColor: [
                           "#fecaca",
                           message.role === "user" ? "#fef08a" : "#bfdbfe",
-                          "#fecaca",
-                          message.role === "user" ? "#fef08a" : "#bfdbfe",
                         ],
-                        color: ["#ef4444", "#000000", "#ef4444", "#000000"],
+                        color: ["#ef4444", "#000000"],
                         transition: {
-                          duration: 2,
-                          times: [0, 0.3, 0.6, 1],
+                          duration: 1,
+                          repeat: 1,
+                          repeatType: "reverse",
                           ease: "easeInOut",
                         },
                       }
