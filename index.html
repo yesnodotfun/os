@@ -19,6 +19,10 @@
     <meta name="theme-color" content="#000000" />
     <meta http-equiv="Permissions-Policy" content="camera=(self)" />
 
+    <!-- Preload critical assets -->
+    <link rel="preload" href="/src/main.tsx" as="script" type="module" />
+    <link rel="preload" href="/icons/mac.png" as="image" />
+
     <!-- Cache control -->
     <meta http-equiv="Cache-Control" content="max-age=86400" />
 
@@ -36,5 +40,6 @@
   </head>
   <body style="background-color: black">
     <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
