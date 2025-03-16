@@ -38,6 +38,20 @@ type OscillatorType = "sine" | "square" | "triangle" | "sawtooth";
 // Define label type
 type NoteLabelType = "note" | "key" | "off";
 
+// Function to shift note by octave
+const shiftNoteByOctave = (note: string, offset: number): string => {
+  const noteMatch = note.match(/([A-G]#?)(\d+)/);
+  if (!noteMatch) return note;
+
+  const [, noteName, octave] = noteMatch;
+  const newOctave = parseInt(octave) + offset;
+
+  // Limit octave range to prevent invalid notes
+  if (newOctave < 0 || newOctave > 8) return note;
+
+  return `${noteName}${newOctave}`;
+};
+
 // Component to display status messages
 const StatusDisplay: React.FC<{ message: string | null }> = ({ message }) => {
   return (
@@ -66,6 +80,7 @@ const PianoKey: React.FC<{
   onRelease: (note: string) => void;
   labelType: NoteLabelType;
   keyMap: Record<string, string>;
+  octaveOffset: number;
 }> = ({
   note,
   isBlack = false,
@@ -74,6 +89,7 @@ const PianoKey: React.FC<{
   onRelease,
   labelType,
   keyMap,
+  octaveOffset,
 }) => {
   const handleMouseDown = () => {
     onPress(note);
@@ -105,7 +121,13 @@ const PianoKey: React.FC<{
       )?.[0];
       return keyboardKey ? keyboardKey.toUpperCase() : "";
     }
-    return note.replace(/[0-9]/g, "");
+    // Include the octave number in the note label, adjusted for octaveOffset
+    if (octaveOffset !== 0) {
+      // Apply octave shift to display the actual note being played
+      const shiftedNote = shiftNoteByOctave(note, octaveOffset);
+      return shiftedNote;
+    }
+    return note;
   };
 
   const label = getKeyLabel();
@@ -627,20 +649,6 @@ export function SynthAppComponent({
     p: "D#5",
     ";": "E5",
     "'": "F5",
-  };
-
-  // Function to shift note by octave
-  const shiftNoteByOctave = (note: string, offset: number): string => {
-    const noteMatch = note.match(/([A-G]#?)(\d+)/);
-    if (!noteMatch) return note;
-
-    const [, noteName, octave] = noteMatch;
-    const newOctave = parseInt(octave) + offset;
-
-    // Limit octave range to prevent invalid notes
-    if (newOctave < 0 || newOctave > 8) return note;
-
-    return `${noteName}${newOctave}`;
   };
 
   // Note press/release handlers
@@ -1573,6 +1581,7 @@ export function SynthAppComponent({
                         onRelease={releaseNote}
                         labelType={labelType}
                         keyMap={keyToNoteMap}
+                        octaveOffset={octaveOffset}
                       />
                     </div>
                   ))}
@@ -1606,6 +1615,7 @@ export function SynthAppComponent({
                               onRelease={releaseNote}
                               labelType={labelType}
                               keyMap={keyToNoteMap}
+                              octaveOffset={octaveOffset}
                             />
                           </div>
                         )}
