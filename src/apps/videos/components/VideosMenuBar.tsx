@@ -31,6 +31,7 @@ interface VideosMenuBarProps {
   onPrevious: () => void;
   onAddVideo: () => void;
   onOpenVideo: () => void;
+  onResetPlaylist: () => void;
   isLoopAll: boolean;
   isLoopCurrent: boolean;
   isPlaying: boolean;
@@ -54,6 +55,7 @@ export function VideosMenuBar({
   onPrevious,
   onAddVideo,
   onOpenVideo,
+  onResetPlaylist,
   isLoopAll,
   isLoopCurrent,
   isPlaying,
@@ -180,6 +182,12 @@ export function VideosMenuBar({
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
             Clear Playlist
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={onResetPlaylist}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            Reset Playlist
           </DropdownMenuItem>
           {videos.length > 0 && (
             <>

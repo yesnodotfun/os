@@ -21,6 +21,7 @@ import {
   saveIsLoopCurrent,
   loadIsShuffled,
   saveIsShuffled,
+  DEFAULT_VIDEOS,
 } from "@/utils/storage";
 import { Button } from "@/components/ui/button";
 import { useSound, Sounds } from "@/hooks/useSound";
@@ -347,6 +348,7 @@ export function VideosAppComponent({
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
   const [isConfirmClearOpen, setIsConfirmClearOpen] = useState(false);
+  const [isConfirmResetOpen, setIsConfirmResetOpen] = useState(false);
   const playerRef = useRef<ReactPlayer>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [playAfterAdd, setPlayAfterAdd] = useState(false);
@@ -602,11 +604,12 @@ export function VideosAppComponent({
         onClearPlaylist={() => {
           setIsConfirmClearOpen(true);
         }}
+        onResetPlaylist={() => {
+          setIsConfirmResetOpen(true);
+        }}
         onShufflePlaylist={toggleShuffle}
         onToggleLoopAll={() => setLoopAll(!loopAll)}
         onToggleLoopCurrent={() => setLoopCurrent(!loopCurrent)}
-        isLoopAll={loopAll}
-        isLoopCurrent={loopCurrent}
         onTogglePlay={() => {
           togglePlay();
           playVideoTape();
@@ -633,6 +636,8 @@ export function VideosAppComponent({
           setIsAddDialogOpen(true);
         }}
         isPlaying={isPlaying}
+        isLoopAll={loopAll}
+        isLoopCurrent={loopCurrent}
         isShuffled={isShuffled}
         onFullScreen={handleFullScreen}
       />
@@ -901,6 +906,20 @@ export function VideosAppComponent({
           }}
           title="Clear Playlist"
           description="Are you sure you want to clear the entire playlist? This action cannot be undone."
+        />
+        <ConfirmDialog
+          isOpen={isConfirmResetOpen}
+          onOpenChange={setIsConfirmResetOpen}
+          onConfirm={() => {
+            setVideos(DEFAULT_VIDEOS);
+            setCurrentIndex(0);
+            setIsPlaying(false);
+            setOriginalOrder(DEFAULT_VIDEOS);
+            setIsConfirmResetOpen(false);
+            showStatus("PLAYLIST RESET");
+          }}
+          title="Reset Playlist"
+          description="Are you sure you want to reset the playlist to default videos? This will replace your current playlist."
         />
         <InputDialog
           isOpen={isAddDialogOpen}

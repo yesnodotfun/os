@@ -744,7 +744,7 @@ export interface Video {
   title: string;
 }
 
-const DEFAULT_VIDEOS: Video[] = [
+export const DEFAULT_VIDEOS: Video[] = [
   {
     id: "In7e1knX7rQ",
     url: "https://www.youtube.com/watch?v=In7e1knX7rQ",
@@ -784,6 +784,16 @@ const DEFAULT_VIDEOS: Video[] = [
     id: "DskqpUrvlmw",
     url: "https://www.youtube.com/watch?v=DskqpUrvlmw",
     title: "STAYC (스테이씨) - GPT",
+  },
+  {
+    id: "osNYssIep5w",
+    url: "https://www.youtube.com/watch?v=osNYssIep5w",
+    title: "JENNIE - Mantra (House Remix)",
+  },
+  {
+    id: "PICpEtPHyZI",
+    url: "https://www.youtube.com/watch?v=PICpEtPHyZI",
+    title: "JENNIE, Childish Gambino, Kali Uchis - Damn Right",
   },
 ];
 
