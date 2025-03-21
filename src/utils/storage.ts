@@ -559,7 +559,7 @@ export const calculateStorageSpace = () => {
 export const loadWallpaper = (): string => {
   return (
     localStorage.getItem(APP_STORAGE_KEYS["control-panels"].WALLPAPER) ||
-    "/wallpapers/photos/landscapes/clouds.jpg"
+    "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/cancun_sunset_loop-9ANCNr8P6N24yiSjr39WOjKadDT3X3.mp4"
   );
 };
 
