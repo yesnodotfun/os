@@ -977,7 +977,7 @@ export function IpodAppComponent({
                 id: video.id,
                 url: video.url,
                 title: video.title,
-                artist: video.title.split(" - ")[0] || undefined,
+                artist: video.artist,
                 album: "Shared Playlist",
               }))
             );
@@ -986,7 +986,7 @@ export function IpodAppComponent({
                 id: video.id,
                 url: video.url,
                 title: video.title,
-                artist: video.title.split(" - ")[0] || undefined,
+                artist: video.artist,
                 album: "Shared Playlist",
               }))
             );
