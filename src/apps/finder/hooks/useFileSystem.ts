@@ -6,7 +6,7 @@ import { useLaunchApp } from "@/hooks/useLaunchApp";
 
 // Database setup
 const DB_NAME = "ryOS";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 // Store names
 const STORES = {
