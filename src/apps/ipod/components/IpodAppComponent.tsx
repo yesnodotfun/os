@@ -170,6 +170,7 @@ function ScrollingText({
   const textRef = useRef<HTMLDivElement>(null);
   const [shouldScroll, setShouldScroll] = useState(false);
   const [contentWidth, setContentWidth] = useState(0);
+  const paddingWidth = 20; // Width of padding between text duplicates
 
   // Check if text needs to scroll (is wider than container)
   useEffect(() => {
@@ -195,7 +196,7 @@ function ScrollingText({
         <div className="inline-block whitespace-nowrap">
           <motion.div
             animate={{
-              x: isPlaying ? [0, -contentWidth] : 0,
+              x: isPlaying ? [0, -(contentWidth + paddingWidth)] : 0,
             }}
             transition={
               isPlaying
@@ -210,10 +211,10 @@ function ScrollingText({
             }
             style={{ display: "inline-flex" }}
           >
-            <span ref={textRef} style={{ paddingRight: "20px" }}>
+            <span ref={textRef} style={{ paddingRight: `${paddingWidth}px` }}>
               {text}
             </span>
-            <span style={{ paddingRight: "20px" }} aria-hidden>
+            <span style={{ paddingRight: `${paddingWidth}px` }} aria-hidden>
               {text}
             </span>
           </motion.div>
