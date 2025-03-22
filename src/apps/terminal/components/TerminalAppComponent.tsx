@@ -107,20 +107,20 @@ function HtmlPreview({ htmlContent }: { htmlContent: string }) {
   const { windowSize } = useWindowManager({ appId: "terminal" });
 
   // Adjust for the terminal interface elements
-  const contentHeight = windowSize.height - 100; // Adjust for header, input, padding
+  const contentHeight = windowSize.height - 30; // Adjust for header, input, padding
 
   // Normal inline display with optional maximized height
   return (
     <div
       className="border rounded bg-white/100 overflow-auto my-2 relative"
       style={{
-        maxHeight: isFullScreen ? `${contentHeight}px` : "500px",
+        maxHeight: isFullScreen ? `${contentHeight}px` : "800px",
       }}
     >
-      <div className="flex justify-end bg-gray-100 p-1 absolute top-0 right-0">
+      <div className="flex justify-end p-1 absolute top-0 right-0">
         <button
           onClick={() => setIsFullScreen(!isFullScreen)}
-          className="flex items-center justify-center w-6 h-6 hover:bg-gray-200 rounded"
+          className="flex items-center justify-center w-6 h-6 hover:bg-black/10 rounded"
           aria-label={isFullScreen ? "Minimize preview" : "Maximize preview"}
         >
           {isFullScreen ? (
