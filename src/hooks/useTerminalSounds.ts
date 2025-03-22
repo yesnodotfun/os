@@ -103,8 +103,19 @@ export function useTerminalSounds() {
   }, [initializeTone]);
 
   const playSound = useCallback(
-    (type: SoundType) => {
-      if (isMuted || !isInitialized || Tone.context.state !== "running") return;
+    async (type: SoundType) => {
+      if (isMuted) return;
+
+      // Initialize Tone.js if not already initialized
+      if (!isInitialized || Tone.context.state !== "running") {
+        try {
+          await Tone.start();
+          setIsInitialized(true);
+        } catch (error) {
+          console.debug("Could not initialize Tone.js:", error);
+          return;
+        }
+      }
 
       const synth = synthsRef.current[type];
       if (!synth) return;
@@ -122,7 +133,7 @@ export function useTerminalSounds() {
         }
       }
     },
-    [isInitialized, isMuted]
+    [isMuted, isInitialized]
   );
 
   const toggleMute = useCallback(() => {
@@ -130,9 +141,15 @@ export function useTerminalSounds() {
   }, []);
 
   return {
-    playCommandSound: () => playSound("command"),
-    playErrorSound: () => playSound("error"),
-    playAiResponseSound: () => playSound("aiResponse"),
+    playCommandSound: () => {
+      return playSound("command");
+    },
+    playErrorSound: () => {
+      return playSound("error");
+    },
+    playAiResponseSound: () => {
+      return playSound("aiResponse");
+    },
     toggleMute,
     isMuted,
   };
