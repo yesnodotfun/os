@@ -169,13 +169,16 @@ function ScrollingText({
   const containerRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
   const [shouldScroll, setShouldScroll] = useState(false);
+  const [contentWidth, setContentWidth] = useState(0);
 
   // Check if text needs to scroll (is wider than container)
   useEffect(() => {
     if (containerRef.current && textRef.current) {
-      const containerWidth = containerRef.current.clientWidth;
-      const textWidth = textRef.current.scrollWidth;
-      setShouldScroll(textWidth > containerWidth);
+      const newContainerWidth = containerRef.current.clientWidth;
+      const newContentWidth = textRef.current.scrollWidth;
+
+      setContentWidth(newContentWidth);
+      setShouldScroll(newContentWidth > newContainerWidth);
     }
   }, [text, containerRef, textRef]);
 
@@ -189,48 +192,32 @@ function ScrollingText({
       )}
     >
       {shouldScroll ? (
-        <motion.div key={text} className="whitespace-nowrap flex gap-6">
+        <div className="inline-block whitespace-nowrap">
           <motion.div
-            ref={textRef}
-            initial={{ x: "0%" }}
-            animate={{ x: isPlaying ? "-100%" : "0%" }}
+            animate={{
+              x: isPlaying ? [0, -contentWidth] : 0,
+            }}
             transition={
               isPlaying
                 ? {
                     duration: Math.max(text.length * 0.15, 8),
                     ease: "linear",
                     repeat: Infinity,
-                    repeatType: "loop",
                   }
                 : {
                     duration: 0.3,
                   }
             }
-            className="shrink-0 transition-colors duration-300"
+            style={{ display: "inline-flex" }}
           >
-            {text}
+            <span ref={textRef} style={{ paddingRight: "20px" }}>
+              {text}
+            </span>
+            <span style={{ paddingRight: "20px" }} aria-hidden>
+              {text}
+            </span>
           </motion.div>
-          <motion.div
-            initial={{ x: "0%" }}
-            animate={{ x: isPlaying ? "-100%" : "0%" }}
-            transition={
-              isPlaying
-                ? {
-                    duration: Math.max(text.length * 0.15, 8),
-                    ease: "linear",
-                    repeat: Infinity,
-                    repeatType: "loop",
-                  }
-                : {
-                    duration: 0.3,
-                  }
-            }
-            className="shrink-0 transition-colors duration-300"
-            aria-hidden
-          >
-            {text}
-          </motion.div>
-        </motion.div>
+        </div>
       ) : (
         <div ref={textRef} className="whitespace-nowrap text-center">
           {text}
@@ -266,7 +253,7 @@ function IpodScreen({
   tracksLength: number;
 }) {
   return (
-    <div className="relative w-full h-[160px] bg-white border border-gray-400 rounded-t-md overflow-hidden">
+    <div className="relative w-full h-[160px] bg-white border border-gray-500 border-2 rounded-t-md overflow-hidden">
       {menuMode ? (
         <IpodMenu
           items={menuItems}
@@ -282,7 +269,7 @@ function IpodScreen({
             <div>Now Playing</div>
             <div className="w-6 text-xs"></div>
           </div>
-          <div className="flex-1 flex flex-col p-1.5 px-2">
+          <div className="flex-1 flex flex-col p-1 px-2">
             {currentTrack ? (
               <>
                 <div className="font-chicago text-[12px] mb-1">
@@ -864,7 +851,7 @@ export function IpodAppComponent({
 
         <div className="flex flex-col items-center justify-center w-full h-full bg-gradient-to-b from-gray-100/20 to-gray-300/20 backdrop-blur-lg p-4">
           {/* iPod device */}
-          <div className="w-[250px] h-[400px] bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col items-center p-4">
+          <div className="w-[250px] h-[400px] bg-white rounded-2xl shadow-xl border border-black/40 flex flex-col items-center p-4">
             {/* Screen */}
             <IpodScreen
               currentTrack={tracks[currentIndex] || null}
