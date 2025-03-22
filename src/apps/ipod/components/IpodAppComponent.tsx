@@ -74,9 +74,7 @@ function MenuListItem({
       onClick={onClick}
       className={cn(
         "px-2 cursor-pointer font-chicago text-[16px] flex justify-between items-center",
-        isSelected
-          ? "bg-black text-white"
-          : "bg-white text-black hover:bg-gray-200"
+        isSelected ? "bg-black text-white" : "text-black hover:bg-gray-200"
       )}
     >
       <span className="whitespace-nowrap overflow-hidden text-ellipsis flex-1 mr-2">
@@ -135,7 +133,7 @@ function IpodMenu({
 
   return (
     <div ref={containerRef} className="flex flex-col h-full">
-      <div className="bg-white border-b border-gray-400 py-0 px-2 font-chicago text-[16px] flex justify-between items-center sticky top-0 z-10">
+      <div className="border-b border-gray-400 py-0 px-2 font-chicago text-[16px] flex justify-between items-center sticky top-0 z-10">
         <div className="w-6 text-xs">{isPlaying ? "▶" : "II"}</div>
         <div>{title}</div>
         <div className="w-6 text-xs"></div>
@@ -227,6 +225,16 @@ function ScrollingText({
   );
 }
 
+// Add function to handle backlight state
+const loadIpodBacklight = (): boolean => {
+  const saved = localStorage.getItem("ipod-backlight");
+  return saved === null ? true : saved === "true";
+};
+
+const saveIpodBacklight = (value: boolean) => {
+  localStorage.setItem("ipod-backlight", value.toString());
+};
+
 function IpodScreen({
   currentTrack,
   isPlaying,
@@ -239,6 +247,7 @@ function IpodScreen({
   menuTitle,
   currentIndex,
   tracksLength,
+  backlightOn,
 }: {
   currentTrack: Track | null;
   isPlaying: boolean;
@@ -251,9 +260,15 @@ function IpodScreen({
   menuTitle: string;
   currentIndex: number;
   tracksLength: number;
+  backlightOn: boolean;
 }) {
   return (
-    <div className="relative w-full h-[160px] bg-white border border-gray-500 border-2 rounded-t-md overflow-hidden">
+    <div
+      className={cn(
+        "relative w-full h-[160px] border border-gray-500 border-2 rounded-t-md overflow-hidden transition-all duration-500",
+        backlightOn ? "bg-white" : "bg-gray-300 opacity-60"
+      )}
+    >
       {menuMode ? (
         <IpodMenu
           items={menuItems}
@@ -264,7 +279,7 @@ function IpodScreen({
         />
       ) : (
         <div className="flex flex-col h-full">
-          <div className="bg-white border-b border-gray-400 py-0 px-2 font-chicago text-[16px] flex justify-between items-center">
+          <div className="border-b border-gray-400 py-0 px-2 font-chicago text-[16px] flex justify-between items-center">
             <div className="w-6 text-xs">{isPlaying ? "▶" : "II"}</div>
             <div>Now Playing</div>
             <div className="w-6 text-xs"></div>
@@ -296,7 +311,7 @@ function IpodScreen({
                     }}
                   />
                 </div>
-                <div className="mt-1 font-chicago text-[16px] w-full flex justify-between">
+                <div className="font-chicago text-[16px] w-full flex justify-between">
                   <span>
                     {Math.floor(elapsedTime / 60)}:
                     {String(Math.floor(elapsedTime % 60)).padStart(2, "0")}
@@ -339,6 +354,8 @@ export function IpodAppComponent({
   const [loopCurrent, setLoopCurrent] = useState(loadIpodIsLoopCurrent());
   const [loopAll, setLoopAll] = useState(loadIpodIsLoopAll());
   const [isShuffled, setIsShuffled] = useState(loadIpodIsShuffled());
+  // Add backlight state
+  const [backlightOn, setBacklightOn] = useState(loadIpodBacklight());
 
   const [elapsedTime, setElapsedTime] = useState(0);
   const [totalTime, setTotalTime] = useState(0);
@@ -409,6 +426,10 @@ export function IpodAppComponent({
               action: toggleShuffle,
             },
             {
+              label: `Backlight: ${backlightOn ? "On" : "Off"}`,
+              action: toggleBacklight,
+            },
+            {
               label: "Back",
               action: () => {
                 setMenuTitle("iPod");
@@ -428,8 +449,8 @@ export function IpodAppComponent({
       {
         label: "Backlight",
         action: () => {
-          // Toggle backlight functionality could be added here
-          setMenuMode(false);
+          toggleBacklight();
+          // Don't exit menu mode when toggling backlight
         },
       },
       {
@@ -466,6 +487,10 @@ export function IpodAppComponent({
           action: toggleShuffle,
         },
         {
+          label: `Backlight: ${backlightOn ? "On" : "Off"}`,
+          action: toggleBacklight,
+        },
+        {
           label: "Back",
           action: () => {
             setMenuTitle("iPod");
@@ -474,7 +499,7 @@ export function IpodAppComponent({
         },
       ]);
     }
-  }, [isPlaying, loopCurrent, loopAll, isShuffled]);
+  }, [isPlaying, loopCurrent, loopAll, isShuffled, backlightOn]);
 
   // Save state to storage whenever it changes
   useEffect(() => {
@@ -775,6 +800,16 @@ export function IpodAppComponent({
     setTouchStartAngle(null);
   };
 
+  // Save backlight state to storage
+  useEffect(() => {
+    saveIpodBacklight(backlightOn);
+  }, [backlightOn]);
+
+  const toggleBacklight = () => {
+    setBacklightOn(!backlightOn);
+    playClickSound();
+  };
+
   if (!isWindowOpen) return null;
 
   return (
@@ -865,10 +900,11 @@ export function IpodAppComponent({
               menuTitle={menuTitle}
               currentIndex={currentIndex}
               tracksLength={tracks.length}
+              backlightOn={backlightOn}
             />
 
             {/* Click Wheel */}
-            <div className="mt-8 mb-2 relative w-[180px] h-[180px] rounded-full bg-gray-200 flex items-center justify-center">
+            <div className="mt-8 mb-3 relative w-[180px] h-[180px] rounded-full bg-gray-200 flex items-center justify-center">
               {/* Center button */}
               <button
                 onClick={() => handleWheelClick("center")}
