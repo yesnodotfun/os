@@ -252,7 +252,7 @@ export function TerminalAppComponent({
       {
         command: "",
         output:
-          "Welcome to ryOS Terminal v1.0\nType 'help' for a list of available commands.",
+          "Welcome to ryOS Terminal\nType 'help' for a list of available commands.",
         path: currentPath,
       },
     ]);
@@ -1143,6 +1143,7 @@ Available commands:
         // - AI assistant responses
         // - Command outputs that aren't errors or help text and are reasonably sized
         // - Exclude "ls" command output
+        // - Exclude welcome message
         if (
           item.path === "ai-assistant" ||
           (!item.path.startsWith("ai-") &&
@@ -1152,6 +1153,7 @@ Available commands:
             !item.output.startsWith("Command not found") &&
             !item.output.startsWith("Usage:") &&
             !item.output.includes("Available commands") &&
+            !item.output.includes("Welcome to ryOS Terminal") &&
             // Don't animate ls command output
             !(item.command && item.command.trim().startsWith("ls")))
         ) {
