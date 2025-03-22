@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import ReactPlayer from "react-player";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { AppProps } from "../../base/types";
 import { WindowFrame } from "@/components/layout/WindowFrame";
