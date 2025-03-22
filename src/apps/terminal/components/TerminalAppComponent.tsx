@@ -17,6 +17,7 @@ import {
 interface CommandHistory {
   command: string;
   output: string;
+  path: string;
 }
 
 // Available commands for autocompletion
@@ -69,7 +70,8 @@ export function TerminalAppComponent({
     setCommandHistory([
       {
         command: "",
-        output: "Welcome to ryOS Terminal v1.0\nType 'help' for a list of available commands."
+        output: "Welcome to ryOS Terminal v1.0\nType 'help' for a list of available commands.",
+        path: currentPath
       }
     ]);
   }, []);
@@ -79,7 +81,7 @@ export function TerminalAppComponent({
     if (terminalRef.current) {
       terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
     }
-  }, [commandHistory]);
+  }, [commandHistory, currentCommand]);
 
   // Focus input when window is opened or brought to foreground
   useEffect(() => {
@@ -119,7 +121,8 @@ export function TerminalAppComponent({
       ...commandHistory,
       {
         command: currentCommand,
-        output
+        output,
+        path: currentPath
       }
     ]);
     
@@ -202,7 +205,8 @@ export function TerminalAppComponent({
           ...commandHistory,
           {
             command: input,
-            output: matches.join("  ")
+            output: matches.join("  "),
+            path: currentPath
           }
         ]);
         return input;
@@ -242,7 +246,8 @@ export function TerminalAppComponent({
           ...commandHistory,
           {
             command: input,
-            output: matches.join("  ")
+            output: matches.join("  "),
+            path: currentPath
           }
         ]);
         return input;
@@ -292,7 +297,7 @@ Available commands:
       case "cd":
         if (args.length === 0) {
           navigateToPath("/");
-          return "Changed directory to /";
+          return "";
         }
         
         // Handle special case for parent directory
@@ -302,7 +307,7 @@ Available commands:
             ? "/" + pathParts.slice(0, -1).join("/") 
             : "/";
           navigateToPath(parentPath);
-          return `Changed directory to ${parentPath}`;
+          return "";
         }
         
         let newPath = args[0];
@@ -314,7 +319,7 @@ Available commands:
         
         // Direct path navigation
         navigateToPath(newPath);
-        return `Changed directory to ${newPath}`;
+        return "";
 
       case "cat":
         if (args.length === 0) {
@@ -434,32 +439,33 @@ Available commands:
           <div 
             ref={terminalRef}
             className="flex-1 overflow-auto whitespace-pre-wrap"
+            onClick={() => inputRef.current?.focus()}
           >
             {commandHistory.map((item, index) => (
               <div key={index} className="mb-1">
                 {item.command && (
                   <div className="flex">
-                    <span className="text-green-400 mr-1">user@ryos:{currentPath === "/" ? "/" : currentPath}$</span>
+                    <span className="text-green-400 mr-1">➜ {item.path === "/" ? "/" : item.path}</span>
                     <span>{item.command}</span>
                   </div>
                 )}
                 {item.output && <div className="ml-0">{item.output}</div>}
               </div>
             ))}
+            <form onSubmit={handleCommandSubmit} className="flex">
+              <span className="text-green-400 mr-1 whitespace-nowrap">➜ {currentPath === "/" ? "/" : currentPath}</span>
+              <input
+                ref={inputRef}
+                type="text"
+                value={currentCommand}
+                onChange={(e) => setCurrentCommand(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="flex-1 bg-black text-white focus:outline-none"
+                style={{ fontSize: `${fontSize}px` }}
+                autoFocus
+              />
+            </form>
           </div>
-          <form onSubmit={handleCommandSubmit} className="flex mt-2">
-            <span className="text-green-400 mr-1 whitespace-nowrap">user@ryos:{currentPath === "/" ? "/" : currentPath}$</span>
-            <input
-              ref={inputRef}
-              type="text"
-              value={currentCommand}
-              onChange={(e) => setCurrentCommand(e.target.value)}
-              onKeyDown={handleKeyDown}
-              className="flex-1 bg-black text-white focus:outline-none"
-              style={{ fontSize: `${fontSize}px` }}
-              autoFocus
-            />
-          </form>
         </div>
       </WindowFrame>
       <HelpDialog
