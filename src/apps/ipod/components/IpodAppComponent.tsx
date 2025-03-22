@@ -68,7 +68,7 @@ function MenuListItem({
     <div
       onClick={onClick}
       className={cn(
-        "px-2 py-0.5 cursor-pointer font-chicago text-[16px] flex justify-between items-center",
+        "px-2 cursor-pointer font-chicago text-[16px] flex justify-between items-center",
         isSelected
           ? "bg-black text-white"
           : "bg-white text-black hover:bg-gray-200"
