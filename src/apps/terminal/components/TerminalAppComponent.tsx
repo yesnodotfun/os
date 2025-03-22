@@ -1287,7 +1287,9 @@ Available commands:
                       className={`ml-0 ${
                         item.path === "ai-thinking" ? "text-gray-400" : ""
                       } ${
-                        item.path === "ai-assistant" ? "text-purple-300" : ""
+                        item.path === "ai-assistant"
+                          ? "text-purple-300 italic"
+                          : ""
                       } ${item.path === "ai-error" ? "text-red-400" : ""}`}
                     >
                       {item.path === "ai-thinking" ? (
