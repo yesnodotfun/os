@@ -14,6 +14,7 @@ import {
   TerminalCommand,
 } from "@/utils/storage";
 import { useLaunchApp } from "@/hooks/useLaunchApp";
+import { useChat } from "ai/react";
 
 interface CommandHistory {
   command: string;
@@ -35,6 +36,7 @@ const AVAILABLE_COMMANDS = [
   "edit",
   "history",
   "about",
+  "ai",
 ];
 
 export function TerminalAppComponent({
@@ -49,6 +51,26 @@ export function TerminalAppComponent({
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [historyCommands, setHistoryCommands] = useState<string[]>([]);
   const [fontSize, setFontSize] = useState(14); // Default font size in pixels
+  const [isInAiMode, setIsInAiMode] = useState(false);
+
+  // Add useChat hook
+  const {
+    messages: aiMessages,
+    append: appendAiMessage,
+    isLoading: isAiLoading,
+    stop: stopAiResponse,
+    setMessages: setAiChatMessages,
+  } = useChat({
+    initialMessages: [
+      {
+        id: "system",
+        role: "system",
+        content:
+          "You are a helpful AI assistant running in a terminal on ryOS.",
+      },
+    ],
+    experimental_throttle: 50,
+  });
 
   const inputRef = useRef<HTMLInputElement>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
@@ -99,6 +121,12 @@ export function TerminalAppComponent({
     e.preventDefault();
 
     if (!currentCommand.trim()) return;
+
+    if (isInAiMode) {
+      // Handle AI mode commands
+      handleAiCommand(currentCommand);
+      return;
+    }
 
     // Add command to history commands array
     const newHistoryCommands = [...historyCommands, currentCommand];
@@ -287,6 +315,7 @@ Available commands:
   edit <file>      - Open file in TextEdit
   history          - Show command history
   about            - Display information about Terminal
+  ai [prompt]      - Start AI chat mode with optional initial prompt
 `;
       case "clear":
         // We'll handle this specially after the switch
@@ -465,10 +494,175 @@ Available commands:
           .join("\n");
       }
 
+      case "ai": {
+        // Enter AI chat mode
+        setIsInAiMode(true);
+
+        // Reset AI messages to just the system message
+        setAiChatMessages([
+          {
+            id: "system",
+            role: "system",
+            content:
+              "You are a helpful AI assistant running in a terminal on ryOS.",
+          },
+        ]);
+
+        // If there's an initial prompt, add it to messages and immediately send it
+        if (args.length > 0) {
+          const initialPrompt = args.join(" ");
+
+          // Add prompt to command history
+          setCommandHistory((prev) => [
+            ...prev,
+            {
+              command: initialPrompt,
+              output: "",
+              path: "ai-user",
+            },
+            {
+              command: "",
+              output: "thinking...",
+              path: "ai-thinking",
+            },
+          ]);
+
+          // Send the initial prompt
+          appendAiMessage({
+            role: "user",
+            content: initialPrompt,
+          });
+
+          return `Entering AI chat mode. Type 'exit' to return to terminal.\nSending initial prompt: ${initialPrompt}`;
+        }
+
+        return `Entering AI chat mode. Type 'exit' to return to terminal.`;
+      }
+
       default:
         return `Command not found: ${cmd}. Type 'help' for a list of available commands.`;
     }
   };
+
+  // Function to handle commands in AI mode
+  const handleAiCommand = (command: string) => {
+    // If user types 'exit', leave AI mode
+    if (command.trim().toLowerCase() === "exit") {
+      setIsInAiMode(false);
+      stopAiResponse();
+      setAiChatMessages([
+        {
+          id: "system",
+          role: "system",
+          content:
+            "You are a helpful AI assistant running in a terminal on ryOS.",
+        },
+      ]);
+
+      // Add exit command to history
+      setCommandHistory([
+        ...commandHistory,
+        {
+          command: "exit",
+          output: "Exiting AI chat mode.",
+          path: currentPath,
+        },
+      ]);
+
+      setCurrentCommand("");
+      return;
+    }
+
+    // Add user command to chat history with special AI mode formatting
+    setCommandHistory([
+      ...commandHistory,
+      {
+        command: command,
+        output: "",
+        path: "ai-user", // Special marker for AI mode user message
+      },
+    ]);
+
+    // Add "thinking..." to show loading state
+    setCommandHistory((prev) => [
+      ...prev,
+      {
+        command: "",
+        output: "thinking...",
+        path: "ai-thinking", // Special marker for thinking state
+      },
+    ]);
+
+    // Send the message using useChat hook
+    appendAiMessage({
+      role: "user",
+      content: command,
+    });
+
+    // Clear current command
+    setCurrentCommand("");
+  };
+
+  // Watch for changes in the AI messages to update the terminal display
+  useEffect(() => {
+    if (isInAiMode && aiMessages.length > 1) {
+      // Get the most recent assistant message
+      const lastUserMessageIndex = aiMessages
+        .map((m) => m.role)
+        .lastIndexOf("user");
+
+      if (
+        lastUserMessageIndex !== -1 &&
+        lastUserMessageIndex < aiMessages.length - 1
+      ) {
+        const assistantMessage = aiMessages[aiMessages.length - 1];
+
+        if (assistantMessage.role === "assistant") {
+          // Replace the most recent "thinking..." message with the actual response
+          setCommandHistory((prev) => {
+            const newHistory = [...prev];
+
+            // Find the most recent "thinking..." message (search from the end)
+            const thinkingIndex = newHistory
+              .map((item) => item.path)
+              .lastIndexOf("ai-thinking");
+
+            if (thinkingIndex !== -1) {
+              // Replace the most recent "thinking..." with the assistant's response
+              newHistory[thinkingIndex] = {
+                command: "",
+                output: assistantMessage.content,
+                path: "ai-assistant",
+              };
+            } else {
+              // Check if we already have an assistant message we should update
+              const assistantIndex = newHistory
+                .map((item) => item.path)
+                .lastIndexOf("ai-assistant");
+
+              if (assistantIndex !== -1) {
+                // Update the existing assistant message
+                newHistory[assistantIndex] = {
+                  command: "",
+                  output: assistantMessage.content,
+                  path: "ai-assistant",
+                };
+              } else {
+                // If no thinking or assistant message found, append a new one
+                newHistory.push({
+                  command: "",
+                  output: assistantMessage.content,
+                  path: "ai-assistant",
+                });
+              }
+            }
+
+            return newHistory;
+          });
+        }
+      }
+    }
+  }, [aiMessages, isInAiMode]);
 
   const increaseFontSize = () => {
     if (fontSize < 24) {
@@ -519,19 +713,39 @@ Available commands:
               <div key={index} className="mb-1">
                 {item.command && (
                   <div className="flex">
-                    <span className="text-green-400 mr-1">
-                      ➜ {item.path === "/" ? "/" : item.path}
-                    </span>
+                    {item.path === "ai-user" ? (
+                      <span className="text-purple-400 mr-1">→ ai</span>
+                    ) : (
+                      <span className="text-green-400 mr-1">
+                        ➜ {item.path === "/" ? "/" : item.path}
+                      </span>
+                    )}
                     <span>{item.command}</span>
                   </div>
                 )}
-                {item.output && <div className="ml-0">{item.output}</div>}
+                {item.output && (
+                  <div
+                    className={`ml-0 ${
+                      item.path === "ai-thinking" ? "text-gray-400 italic" : ""
+                    } ${
+                      item.path === "ai-assistant" ? "text-purple-300" : ""
+                    } ${item.path === "ai-error" ? "text-red-400" : ""}`}
+                  >
+                    {item.output}
+                  </div>
+                )}
               </div>
             ))}
             <form onSubmit={handleCommandSubmit} className="flex">
-              <span className="text-green-400 mr-1 whitespace-nowrap">
-                ➜ {currentPath === "/" ? "/" : currentPath}
-              </span>
+              {isInAiMode ? (
+                <span className="text-purple-400 mr-1 whitespace-nowrap">
+                  → ai
+                </span>
+              ) : (
+                <span className="text-green-400 mr-1 whitespace-nowrap">
+                  ➜ {currentPath === "/" ? "/" : currentPath}
+                </span>
+              )}
               <input
                 ref={inputRef}
                 type="text"
@@ -541,6 +755,7 @@ Available commands:
                 className="flex-1 text-white focus:outline-none"
                 style={{ fontSize: `${fontSize}px` }}
                 autoFocus
+                disabled={isAiLoading}
               />
             </form>
           </div>
