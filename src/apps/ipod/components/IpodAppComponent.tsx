@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from "react";
-import { motion } from "framer-motion";
 import ReactPlayer from "react-player";
 import { cn } from "@/lib/utils";
 import { AppProps } from "../../base/types";
@@ -56,38 +55,6 @@ async function fetchTrackInfo(videoId: string): Promise<TrackInfo> {
   };
 }
 
-function AnimatedText({
-  text,
-  isScrolling,
-}: {
-  text: string;
-  isScrolling: boolean;
-}) {
-  return (
-    <div className="relative overflow-hidden whitespace-nowrap w-full">
-      <motion.div
-        initial={{ x: 0 }}
-        animate={
-          isScrolling && text.length > 18
-            ? {
-                x: -100,
-                transition: {
-                  duration: text.length * 0.2,
-                  ease: "linear",
-                  repeat: Infinity,
-                  repeatType: "loop",
-                },
-              }
-            : { x: 0 }
-        }
-        className="font-chicago text-xs"
-      >
-        {text}
-      </motion.div>
-    </div>
-  );
-}
-
 function MenuListItem({
   text,
   isSelected,
@@ -101,14 +68,16 @@ function MenuListItem({
     <div
       onClick={onClick}
       className={cn(
-        "px-2 py-1 cursor-pointer font-chicago text-xs flex justify-between items-center",
+        "px-2 py-0.5 cursor-pointer font-chicago text-[16px] flex justify-between items-center",
         isSelected
           ? "bg-black text-white"
           : "bg-white text-black hover:bg-gray-200"
       )}
     >
-      <span>{text}</span>
-      <span>{">"}</span>
+      <span className="whitespace-nowrap overflow-hidden text-ellipsis flex-1 mr-2">
+        {text}
+      </span>
+      <span className="flex-shrink-0">{">"}</span>
     </div>
   );
 }
@@ -128,13 +97,10 @@ function IpodMenu({
 }) {
   return (
     <div className="flex flex-col h-full">
-      <div className="bg-white border-b border-gray-400 py-1 px-2 font-chicago text-sm flex justify-between items-center">
+      <div className="bg-white border-b border-gray-400 py-0 px-2 font-chicago text-[16px] flex justify-between items-center">
         <div className="w-6 text-xs">{isPlaying ? "▶" : "II"}</div>
         <div>{title}</div>
-        <div className="w-6 text-xs">
-          {/* Simple battery icon */}
-          <span>🔋</span>
-        </div>
+        <div className="w-6 text-xs"></div>
       </div>
       <div className="flex-1 overflow-auto">
         {items.map((item, index) => (
@@ -163,6 +129,8 @@ function IpodScreen({
   selectedMenuItem,
   onSelectMenuItem,
   menuTitle,
+  currentIndex,
+  tracksLength,
 }: {
   currentTrack: Track | null;
   isPlaying: boolean;
@@ -173,6 +141,8 @@ function IpodScreen({
   selectedMenuItem: number;
   onSelectMenuItem: (index: number) => void;
   menuTitle: string;
+  currentIndex: number;
+  tracksLength: number;
 }) {
   return (
     <div className="relative w-full h-[160px] bg-white border border-gray-400 rounded-t-md overflow-hidden">
@@ -186,29 +156,28 @@ function IpodScreen({
         />
       ) : (
         <div className="flex flex-col h-full">
-          <div className="bg-white border-b border-gray-400 py-1 px-2 font-chicago text-sm flex justify-between items-center">
+          <div className="bg-white border-b border-gray-400 py-0 px-2 font-chicago text-[16px] flex justify-between items-center">
             <div className="w-6 text-xs">{isPlaying ? "▶" : "II"}</div>
             <div>Now Playing</div>
-            <div className="w-6 text-xs">
-              <span>🔋</span>
-            </div>
+            <div className="w-6 text-xs"></div>
           </div>
-          <div className="flex-1 flex flex-col items-center justify-center p-2">
+          <div className="flex-1 flex flex-col p-2">
             {currentTrack ? (
               <>
-                <div className="mb-2 w-full">
-                  <AnimatedText
-                    text={currentTrack.title}
-                    isScrolling={isPlaying}
-                  />
-                  <AnimatedText
-                    text={currentTrack.artist || "Unknown Artist"}
-                    isScrolling={isPlaying}
-                  />
+                <div className="font-chicago text-[12px] mb-1">
+                  {currentIndex + 1} of {tracksLength}
                 </div>
-                <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div className="font-chicago text-[16px] mb-4 text-center">
+                  <div className="whitespace-nowrap overflow-hidden text-ellipsis">
+                    {currentTrack.title}
+                  </div>
+                  <div className="whitespace-nowrap overflow-hidden text-ellipsis">
+                    {currentTrack.artist || "Unknown Artist"}
+                  </div>
+                </div>
+                <div className="mt-auto w-full h-2 bg-gray-200 rounded-full border border-black overflow-hidden">
                   <div
-                    className="h-full bg-gray-600"
+                    className="h-full bg-black"
                     style={{
                       width: `${
                         totalTime > 0 ? (elapsedTime / totalTime) * 100 : 0
@@ -216,26 +185,21 @@ function IpodScreen({
                     }}
                   />
                 </div>
-                <div className="mt-1 text-xs font-chicago w-full flex justify-between">
+                <div className="mt-1 font-chicago text-[16px] w-full flex justify-between">
                   <span>
                     {Math.floor(elapsedTime / 60)}:
                     {String(Math.floor(elapsedTime % 60)).padStart(2, "0")}
                   </span>
                   <span>
-                    {Math.floor(totalTime / 60)}:
-                    {String(Math.floor(totalTime % 60)).padStart(2, "0")}
+                    -{Math.floor((totalTime - elapsedTime) / 60)}:
+                    {String(
+                      Math.floor((totalTime - elapsedTime) % 60)
+                    ).padStart(2, "0")}
                   </span>
-                </div>
-                <div className="mt-2">
-                  {isPlaying ? (
-                    <span className="text-xs">▶️ Playing</span>
-                  ) : (
-                    <span className="text-xs">⏸️ Paused</span>
-                  )}
                 </div>
               </>
             ) : (
-              <div className="text-center font-chicago text-xs">
+              <div className="text-center font-chicago text-[16px]">
                 <p>No track selected</p>
                 <p>Use the wheel to</p>
                 <p>browse your library</p>
@@ -700,6 +664,8 @@ export function IpodAppComponent({
               selectedMenuItem={selectedMenuItem}
               onSelectMenuItem={setSelectedMenuItem}
               menuTitle={menuTitle}
+              currentIndex={currentIndex}
+              tracksLength={tracks.length}
             />
 
             {/* Click Wheel */}
@@ -747,17 +713,17 @@ export function IpodAppComponent({
                 {/* Wheel controls with text */}
                 <button
                   onClick={() => handleMenuButton()}
-                  className="absolute top-4 left-1/2 transform -translate-x-1/2 font-chicago text-xs text-gray-700"
+                  className="absolute top-4 left-1/2 transform -translate-x-1/2 font-chicago text-xs text-white"
                 >
                   MENU
                 </button>
-                <div className="absolute right-6 top-1/2 transform -translate-y-1/2 font-chicago text-xs text-gray-700">
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 font-chicago text-[9px] text-white">
                   ▶︎▶︎
                 </div>
-                <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 font-chicago text-xs text-gray-700">
+                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 font-chicago text-[9px] text-white">
                   ▶︎❙❙
                 </div>
-                <div className="absolute left-6 top-1/2 transform -translate-y-1/2 font-chicago text-xs text-gray-700">
+                <div className="absolute left-3 top-1/2 transform -translate-y-1/2 font-chicago text-[9px] text-white">
                   ◀︎◀︎
                 </div>
               </div>

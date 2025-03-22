@@ -113,20 +113,20 @@ export const appRegistry = {
       minSize: { width: 720, height: 290 },
     } as WindowConstraints,
   },
-  [ControlPanelsApp.id]: {
-    ...ControlPanelsApp,
-    windowConfig: {
-      defaultSize: { width: 365, height: 400 },
-      minSize: { width: 320, height: 400 },
-      maxSize: { width: 365, height: 600 },
-    } as WindowConstraints,
-  },
   [IpodApp.id]: {
     ...IpodApp,
     windowConfig: {
       defaultSize: { width: 300, height: 480 },
       minSize: { width: 300, height: 480 },
       maxSize: { width: 300, height: 480 },
+    } as WindowConstraints,
+  },
+  [ControlPanelsApp.id]: {
+    ...ControlPanelsApp,
+    windowConfig: {
+      defaultSize: { width: 365, height: 400 },
+      minSize: { width: 320, height: 400 },
+      maxSize: { width: 365, height: 600 },
     } as WindowConstraints,
   },
 } as const;
