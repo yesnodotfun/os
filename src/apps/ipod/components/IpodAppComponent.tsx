@@ -41,17 +41,21 @@ async function fetchTrackInfo(videoId: string): Promise<TrackInfo> {
   }
 
   const data = await response.json();
-  const title = data.title;
+  const fullTitle = data.title;
 
-  // Try to extract artist from title (common format: "Artist - Title")
+  // Try to extract artist and song title (common format: "Artist - Title")
   let artist;
-  const splitTitle = title.split(" - ");
+  let title = fullTitle; // Default to full title if we can't parse it
+  
+  const splitTitle = fullTitle.split(" - ");
   if (splitTitle.length > 1) {
     artist = splitTitle[0];
+    // Join the rest of the parts in case there are multiple dashes
+    title = splitTitle.slice(1).join(" - ");
   }
 
   return {
-    title: data.title,
+    title,
     artist,
   };
 }
@@ -360,7 +364,7 @@ export function IpodAppComponent({
   const [wheelDelta, setWheelDelta] = useState(0);
   const [touchStartAngle, setTouchStartAngle] = useState<number | null>(null);
   const [lastTouchEventTime, setLastTouchEventTime] = useState(0);
-  const touchEventThrottleMs = 150; // Minimum time between touch events
+  const touchEventThrottleMs = 50; // Reduced from 150ms to 50ms for faster response
   const wheelRef = useRef<HTMLDivElement>(null);
 
   const [menuMode, setMenuMode] = useState(false);
@@ -766,7 +770,8 @@ export function IpodAppComponent({
     if (angleDifference < -180) angleDifference += 360;
 
     // Update rotation direction when the difference is large enough
-    if (Math.abs(angleDifference) > 15) {
+    // Reduced threshold from 15 to 8 for more sensitive rotation
+    if (Math.abs(angleDifference) > 8) {
       if (angleDifference > 0) {
         handleWheelRotation("clockwise");
       } else {
