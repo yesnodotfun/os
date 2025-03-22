@@ -652,7 +652,7 @@ export function IpodAppComponent({
 
         <div className="flex flex-col items-center w-full h-full bg-gradient-to-b from-gray-100 to-gray-300 p-4">
           {/* iPod device */}
-          <div className="w-[250px] h-[400px] bg-white rounded-xl shadow-xl border border-gray-200 flex flex-col items-center p-2">
+          <div className="w-[250px] h-[400px] bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col items-center p-4">
             {/* Screen */}
             <IpodScreen
               currentTrack={tracks[currentIndex] || null}
