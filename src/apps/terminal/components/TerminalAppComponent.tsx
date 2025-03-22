@@ -133,10 +133,10 @@ function HtmlPreview({ htmlContent }: { htmlContent: string }) {
       <iframe
         srcDoc={htmlContent}
         title="HTML Preview"
-        className="w-full border-0"
+        className="w-full h-full border-0"
         sandbox="allow-scripts"
         style={{
-          height: isFullScreen ? `${contentHeight - 40}px` : "200px",
+          height: isFullScreen ? `${contentHeight - 40}px` : "250px",
           display: "block",
         }}
       />
