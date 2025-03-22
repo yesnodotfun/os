@@ -272,8 +272,8 @@ export function IpodAppComponent({
   const [isConfirmResetOpen, setIsConfirmResetOpen] = useState(false);
 
   const [wheelDelta, setWheelDelta] = useState(0);
-  const [touchStartY, setTouchStartY] = useState<number | null>(null);
-  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [touchStartAngle, setTouchStartAngle] = useState<number | null>(null);
+  const wheelRef = useRef<HTMLDivElement>(null);
 
   const [menuMode, setMenuMode] = useState(false);
   const [selectedMenuItem, setSelectedMenuItem] = useState(0);
@@ -615,57 +615,67 @@ export function IpodAppComponent({
     }
   };
 
-  // Touch event handlers for the wheel
-  const handleTouchStart = (e: React.TouchEvent) => {
-    const touch = e.touches[0];
-    setTouchStartY(touch.clientY);
-    setTouchStartX(touch.clientX);
+  // Calculate angle from center of wheel
+  const getAngleFromCenter = (x: number, y: number): number => {
+    if (!wheelRef.current) return 0;
+
+    const rect = wheelRef.current.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    return (Math.atan2(y - centerY, x - centerX) * 180) / Math.PI;
   };
 
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (touchStartY === null || touchStartX === null) return;
-
-    const touch = e.touches[0];
-    const deltaY = touch.clientY - touchStartY;
-    const deltaX = touch.clientX - touchStartX;
-
-    // Determine if this is primarily a vertical or horizontal swipe
-    if (Math.abs(deltaY) > Math.abs(deltaX)) {
-      // Vertical swipe
-      if (Math.abs(deltaY) > 10) {
-        // Threshold to avoid small movements
-        if (deltaY < 0) {
-          // Swipe up
-          handleWheelRotation("counterclockwise");
-        } else {
-          // Swipe down
-          handleWheelRotation("clockwise");
-        }
-        // Reset touch start to allow continuous swiping
-        setTouchStartY(touch.clientY);
-        setTouchStartX(touch.clientX);
-      }
+  // Determine wheel section from angle
+  const getWheelSection = (
+    angle: number
+  ): "top" | "right" | "bottom" | "left" => {
+    if (angle >= -45 && angle < 45) {
+      return "right";
+    } else if (angle >= 45 && angle < 135) {
+      return "bottom";
+    } else if (angle >= 135 || angle < -135) {
+      return "left";
     } else {
-      // Horizontal swipe
-      if (Math.abs(deltaX) > 10) {
-        // Threshold to avoid small movements
-        if (deltaX < 0) {
-          // Swipe left
-          handleWheelRotation("counterclockwise");
-        } else {
-          // Swipe right
-          handleWheelRotation("clockwise");
-        }
-        // Reset touch start to allow continuous swiping
-        setTouchStartY(touch.clientY);
-        setTouchStartX(touch.clientX);
-      }
+      return "top";
     }
   };
 
+  // Handle touch start
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    const angle = getAngleFromCenter(touch.clientX, touch.clientY);
+    setTouchStartAngle(angle);
+  };
+
+  // Handle touch move
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStartAngle === null) return;
+
+    const touch = e.touches[0];
+    const currentAngle = getAngleFromCenter(touch.clientX, touch.clientY);
+
+    // Calculate the difference in angle
+    let angleDifference = currentAngle - touchStartAngle;
+
+    // Handle the case where we cross the -180/180 boundary
+    if (angleDifference > 180) angleDifference -= 360;
+    if (angleDifference < -180) angleDifference += 360;
+
+    // Update rotation direction when the difference is large enough
+    if (Math.abs(angleDifference) > 15) {
+      if (angleDifference > 0) {
+        handleWheelRotation("clockwise");
+      } else {
+        handleWheelRotation("counterclockwise");
+      }
+      setTouchStartAngle(currentAngle);
+    }
+  };
+
+  // Handle touch end
   const handleTouchEnd = () => {
-    setTouchStartY(null);
-    setTouchStartX(null);
+    setTouchStartAngle(null);
   };
 
   if (!isWindowOpen) return null;
@@ -763,66 +773,19 @@ export function IpodAppComponent({
               {/* Center button */}
               <button
                 onClick={() => handleWheelClick("center")}
-                onTouchStart={() => handleWheelClick("center")}
                 className="absolute w-16 h-16 rounded-full bg-white z-10 flex items-center justify-center"
               />
 
               {/* Wheel sections */}
               <div
+                ref={wheelRef}
                 className="absolute w-full h-full rounded-full"
                 onMouseDown={(e) => {
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  const centerX = rect.left + rect.width / 2;
-                  const centerY = rect.top + rect.height / 2;
-                  const mouseX = e.clientX;
-                  const mouseY = e.clientY;
-
-                  // Calculate angle from center
-                  const angle =
-                    (Math.atan2(mouseY - centerY, mouseX - centerX) * 180) /
-                    Math.PI;
-
-                  // Determine which section was clicked
-                  if (angle >= -45 && angle < 45) {
-                    handleWheelClick("right");
-                  } else if (angle >= 45 && angle < 135) {
-                    handleWheelClick("bottom");
-                  } else if (angle >= 135 || angle < -135) {
-                    handleWheelClick("left");
-                  } else {
-                    handleWheelClick("top");
-                  }
+                  const angle = getAngleFromCenter(e.clientX, e.clientY);
+                  const section = getWheelSection(angle);
+                  handleWheelClick(section);
                 }}
-                onTouchStart={(e) => {
-                  // Handle touch for sections similar to mouse clicks
-                  const touch = e.touches[0];
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  const centerX = rect.left + rect.width / 2;
-                  const centerY = rect.top + rect.height / 2;
-
-                  // Calculate angle from center
-                  const angle =
-                    (Math.atan2(
-                      touch.clientY - centerY,
-                      touch.clientX - centerX
-                    ) *
-                      180) /
-                    Math.PI;
-
-                  // Determine which section was touched
-                  if (angle >= -45 && angle < 45) {
-                    handleWheelClick("right");
-                  } else if (angle >= 45 && angle < 135) {
-                    handleWheelClick("bottom");
-                  } else if (angle >= 135 || angle < -135) {
-                    handleWheelClick("left");
-                  } else {
-                    handleWheelClick("top");
-                  }
-
-                  // Also start touch tracking for swipe gestures
-                  handleTouchStart(e);
-                }}
+                onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
                 onWheel={(e) => {
@@ -842,33 +805,23 @@ export function IpodAppComponent({
                   }
                 }}
               >
-                {/* Wheel controls with text */}
-                <button
-                  onClick={() => handleMenuButton()}
-                  onTouchStart={() => handleMenuButton()}
+                {/* Wheel labels - no click handlers */}
+                <div
                   className="absolute top-3 left-1/2 transform -translate-x-1/2 font-chicago text-xs text-white"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleMenuButton();
+                  }}
                 >
                   MENU
-                </button>
-                <div
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 font-chicago text-[9px] text-white"
-                  onClick={() => handleWheelClick("right")}
-                  onTouchStart={() => handleWheelClick("right")}
-                >
+                </div>
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 font-chicago text-[9px] text-white">
                   ▶︎▶︎
                 </div>
-                <div
-                  className="absolute bottom-3 left-1/2 transform -translate-x-1/2 font-chicago text-[9px] text-white"
-                  onClick={() => handleWheelClick("bottom")}
-                  onTouchStart={() => handleWheelClick("bottom")}
-                >
+                <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 font-chicago text-[9px] text-white">
                   ▶︎❙❙
                 </div>
-                <div
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 font-chicago text-[9px] text-white"
-                  onClick={() => handleWheelClick("left")}
-                  onTouchStart={() => handleWheelClick("left")}
-                >
+                <div className="absolute left-3 top-1/2 transform -translate-y-1/2 font-chicago text-[9px] text-white">
                   ◀︎◀︎
                 </div>
               </div>
