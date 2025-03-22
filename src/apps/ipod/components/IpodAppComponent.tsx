@@ -306,7 +306,7 @@ function IpodScreen({
                     isPlaying={isPlaying}
                   />
                 </div>
-                <div className="mt-auto w-full h-2 bg-white/10 rounded-full border border-[#0a3667] overflow-hidden">
+                <div className="mt-auto w-full h-2 rounded-full border border-[#0a3667] overflow-hidden">
                   <div
                     className="h-full bg-[#0a3667]"
                     style={{
@@ -361,6 +361,10 @@ export function IpodAppComponent({
   const [isShuffled, setIsShuffled] = useState(loadIpodIsShuffled());
   // Add backlight state
   const [backlightOn, setBacklightOn] = useState(loadIpodBacklight());
+  // Add last activity timestamp for backlight timer
+  const [lastActivityTime, setLastActivityTime] = useState(Date.now());
+  // Add backlight timer timeout reference
+  const backlightTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const [elapsedTime, setElapsedTime] = useState(0);
   const [totalTime, setTotalTime] = useState(0);
@@ -589,9 +593,52 @@ export function IpodAppComponent({
     }
   };
 
+  // Register user activity function to reset the timer
+  const registerActivity = () => {
+    setLastActivityTime(Date.now());
+    if (!backlightOn) {
+      setBacklightOn(true);
+    }
+  };
+
+  // Setup backlight timer
+  useEffect(() => {
+    // Clear any existing timer
+    if (backlightTimerRef.current) {
+      clearTimeout(backlightTimerRef.current);
+    }
+
+    // Only set timer if backlight is on
+    if (backlightOn) {
+      backlightTimerRef.current = setTimeout(() => {
+        // Turn off backlight after 5 seconds of inactivity
+        if (Date.now() - lastActivityTime >= 5000) {
+          setBacklightOn(false);
+        }
+      }, 5000);
+    }
+
+    return () => {
+      if (backlightTimerRef.current) {
+        clearTimeout(backlightTimerRef.current);
+      }
+    };
+  }, [backlightOn, lastActivityTime]);
+
+  // Handle foreground/background changes
+  useEffect(() => {
+    if (isForeground) {
+      setBacklightOn(true);
+      registerActivity();
+    } else {
+      setBacklightOn(false);
+    }
+  }, [isForeground]);
+
   const nextTrack = () => {
     if (tracks.length === 0) return;
     playClickSound();
+    registerActivity();
     setCurrentIndex((prev) => {
       if (prev === tracks.length - 1) {
         if (loopAll) {
@@ -607,6 +654,7 @@ export function IpodAppComponent({
   const previousTrack = () => {
     if (tracks.length === 0) return;
     playClickSound();
+    registerActivity();
     setCurrentIndex((prev) => {
       if (prev === 0) {
         if (loopAll) {
@@ -622,11 +670,13 @@ export function IpodAppComponent({
   const togglePlay = () => {
     setIsPlaying(!isPlaying);
     playClickSound();
+    registerActivity();
   };
 
   const toggleShuffle = () => {
     setIsShuffled(!isShuffled);
     playClickSound();
+    registerActivity();
   };
 
   const handleTrackEnd = () => {
@@ -671,6 +721,7 @@ export function IpodAppComponent({
     area: "top" | "right" | "bottom" | "left" | "center"
   ) => {
     playClickSound();
+    registerActivity();
     switch (area) {
       case "top":
         if (menuMode) {
@@ -707,6 +758,7 @@ export function IpodAppComponent({
 
   const handleWheelRotation = (direction: "clockwise" | "counterclockwise") => {
     playScrollSound();
+    registerActivity();
     if (menuMode) {
       if (direction === "clockwise") {
         setSelectedMenuItem(
@@ -728,6 +780,7 @@ export function IpodAppComponent({
 
   const handleMenuButton = () => {
     playClickSound();
+    registerActivity();
     setMenuMode(!menuMode);
     if (!menuMode) {
       setMenuTitle("iPod");
@@ -813,6 +866,7 @@ export function IpodAppComponent({
   const toggleBacklight = () => {
     setBacklightOn(!backlightOn);
     playClickSound();
+    registerActivity();
   };
 
   if (!isWindowOpen) return null;
