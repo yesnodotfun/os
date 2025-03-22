@@ -878,7 +878,7 @@ export function IpodAppComponent({
             />
 
             {/* Click Wheel */}
-            <div className="mt-8 relative w-[180px] h-[180px] rounded-full bg-gray-200 flex items-center justify-center">
+            <div className="mt-8 mb-2 relative w-[180px] h-[180px] rounded-full bg-gray-200 flex items-center justify-center">
               {/* Center button */}
               <button
                 onClick={() => handleWheelClick("center")}
