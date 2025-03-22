@@ -38,6 +38,7 @@ function WallpaperItem({
 }: WallpaperItemProps) {
   const { play: playClick } = useSound(Sounds.BUTTON_CLICK, 0.3);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [isLoading, setIsLoading] = useState(isVideo);
 
   const handleClick = () => {
     playClick();
@@ -56,6 +57,10 @@ function WallpaperItem({
     }
   }, [isSelected, isVideo]);
 
+  const handleVideoLoaded = () => {
+    setIsLoading(false);
+  };
+
   if (isVideo) {
     return (
       <div
@@ -64,6 +69,16 @@ function WallpaperItem({
         } relative overflow-hidden`}
         onClick={handleClick}
       >
+        {isLoading && (
+          <div className="absolute inset-0 bg-gray-700/30">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-50" 
+              style={{ 
+                backgroundSize: '200% 100%',
+                animation: 'shimmer 2.5s infinite ease-in-out'
+              }} 
+            />
+          </div>
+        )}
         <video
           ref={videoRef}
           className="absolute inset-0 w-full h-full object-cover"
@@ -71,7 +86,12 @@ function WallpaperItem({
           loop
           muted
           playsInline
-          style={{ objectPosition: "center center" }}
+          onLoadedData={handleVideoLoaded}
+          style={{ 
+            objectPosition: "center center", 
+            opacity: isLoading ? 0 : 1, 
+            transition: 'opacity 0.5s ease-in-out' 
+          }}
         />
       </div>
     );

@@ -1,8 +1,9 @@
 import { BaseApp } from "@/apps/base/types";
 import { AppManagerState } from "@/apps/base/types";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { FileIcon } from "@/apps/finder/components/FileIcon";
 import { getAppIconPath } from "@/config/appRegistry";
+import { useWallpaper } from "@/hooks/useWallpaper";
 
 interface DesktopStyles {
   backgroundImage?: string;
@@ -29,8 +30,9 @@ export function Desktop({
   wallpaperPath,
 }: DesktopProps) {
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
+  const { isVideoWallpaper, isVideoLoading, markVideoLoaded } = useWallpaper();
   const [currentWallpaper, setCurrentWallpaper] = useState(wallpaperPath);
-  const isVideoWallpaper = currentWallpaper.endsWith(".mp4");
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   // Listen for wallpaper changes
   useEffect(() => {
@@ -56,7 +58,8 @@ export function Desktop({
 
   const getWallpaperStyles = (path: string): DesktopStyles => {
     // Don't apply background styles for video wallpapers
-    if (path.endsWith(".mp4")) {
+    if (path.endsWith(".mp4") || path.includes("video/") || 
+        (path.startsWith("https://") && /\.(mp4|webm|ogg)($|\?)/.test(path))) {
       return {};
     }
 
@@ -94,6 +97,10 @@ export function Desktop({
     setSelectedAppId(null);
   };
 
+  const handleVideoLoaded = () => {
+    markVideoLoaded(currentWallpaper);
+  };
+
   return (
     <div
       className="absolute inset-0 min-h-screen h-full z-[-1] desktop-background"
@@ -101,16 +108,31 @@ export function Desktop({
       style={finalStyles}
     >
       {isVideoWallpaper && (
-        <video
-          className="absolute inset-0 w-full h-full object-cover -z-10"
-          src={currentWallpaper}
-          autoPlay
-          loop
-          muted
-          playsInline
-        />
+        <>
+          {isVideoLoading && (
+            <div className="absolute inset-0 w-full h-full bg-gray-700/30 z-[-5]">
+              <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-50" 
+                style={{ 
+                  backgroundSize: '200% 100%',
+                  animation: 'shimmer 2.5s infinite ease-in-out'
+                }} 
+              />
+            </div>
+          )}
+          <video
+            ref={videoRef}
+            className="absolute inset-0 w-full h-full object-cover z-[-10]"
+            src={currentWallpaper}
+            autoPlay
+            loop
+            muted
+            playsInline
+            onLoadedData={handleVideoLoaded}
+            style={{ opacity: isVideoLoading ? 0 : 1, transition: 'opacity 0.5s ease-in-out' }}
+          />
+        </>
       )}
-      <div className="pt-8 p-4 flex flex-col items-end h-[calc(100%-2rem)]">
+      <div className="pt-8 p-4 flex flex-col items-end h-[calc(100%-2rem)] relative z-[1]">
         <div className="flex flex-col flex-wrap-reverse justify-start gap-1 content-start h-full">
           <FileIcon
             name="Macintosh HD"
