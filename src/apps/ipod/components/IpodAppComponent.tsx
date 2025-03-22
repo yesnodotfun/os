@@ -143,7 +143,7 @@ function IpodMenu({
             isSelected={index === selectedIndex}
             onClick={() => {
               onSelect(index);
-              item.action();
+              // Don't execute action on click, just select
             }}
           />
         ))}
@@ -341,6 +341,8 @@ export function IpodAppComponent({
 
   const [wheelDelta, setWheelDelta] = useState(0);
   const [touchStartAngle, setTouchStartAngle] = useState<number | null>(null);
+  const [lastTouchEventTime, setLastTouchEventTime] = useState(0);
+  const touchEventThrottleMs = 150; // Minimum time between touch events
   const wheelRef = useRef<HTMLDivElement>(null);
 
   const [menuMode, setMenuMode] = useState(false);
@@ -469,6 +471,29 @@ export function IpodAppComponent({
     saveLibrary(tracks);
   }, [tracks]);
 
+  // Fix the circular dependency in shuffle logic
+  useEffect(() => {
+    // Keep a reference to current tracks when not shuffled
+    if (!isShuffled) {
+      setOriginalOrder([...tracks]);
+    }
+  }, [tracks, isShuffled]);
+
+  // Handle shuffle toggle
+  useEffect(() => {
+    if (isShuffled && originalOrder.length > 0) {
+      // Only shuffle if we have an original order to shuffle from
+      const shuffled = [...originalOrder].sort(() => Math.random() - 0.5);
+      // Use a functional update to avoid race conditions
+      setTracks(shuffled);
+    } else if (!isShuffled && originalOrder.length > 0) {
+      // Restore original order
+      setTracks([...originalOrder]);
+    }
+    // Only run this when isShuffled changes, not when tracks or originalOrder change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isShuffled]);
+
   useEffect(() => {
     saveIpodCurrentIndex(currentIndex);
   }, [currentIndex]);
@@ -489,23 +514,6 @@ export function IpodAppComponent({
   useEffect(() => {
     setElapsedTime(0);
   }, [currentIndex]);
-
-  // Handle shuffle
-  useEffect(() => {
-    if (isShuffled) {
-      const shuffled = [...tracks].sort(() => Math.random() - 0.5);
-      setTracks(shuffled);
-    } else {
-      setTracks([...originalOrder]);
-    }
-  }, [isShuffled]);
-
-  // Keep original order in sync with new additions
-  useEffect(() => {
-    if (!isShuffled) {
-      setOriginalOrder(tracks);
-    }
-  }, [tracks, isShuffled]);
 
   const extractVideoId = (url: string): string | null => {
     const regExp =
@@ -582,10 +590,14 @@ export function IpodAppComponent({
   };
 
   const handleTrackEnd = () => {
+    // Don't handle looping here if we're using ReactPlayer's built-in loop
     if (loopCurrent) {
-      playerRef.current?.seekTo(0);
-      setIsPlaying(true);
-    } else {
+      // ReactPlayer's loop prop will handle looping when loopCurrent is true
+      // so we don't need to do anything here
+      return;
+    } else if (loopAll) {
+      nextTrack();
+    } else if (currentIndex < tracks.length - 1) {
       nextTrack();
     }
   };
@@ -644,6 +656,7 @@ export function IpodAppComponent({
         break;
       case "center":
         if (menuMode) {
+          // Execute the selected menu item's action
           menuItems[selectedMenuItem]?.action();
         } else {
           togglePlay();
@@ -720,6 +733,10 @@ export function IpodAppComponent({
   const handleTouchMove = (e: React.TouchEvent) => {
     if (touchStartAngle === null) return;
 
+    const now = Date.now();
+    // Throttle touch events to prevent over-triggering
+    if (now - lastTouchEventTime < touchEventThrottleMs) return;
+
     const touch = e.touches[0];
     const currentAngle = getAngleFromCenter(touch.clientX, touch.clientY);
 
@@ -738,6 +755,7 @@ export function IpodAppComponent({
         handleWheelRotation("counterclockwise");
       }
       setTouchStartAngle(currentAngle);
+      setLastTouchEventTime(now);
     }
   };
 
@@ -849,6 +867,10 @@ export function IpodAppComponent({
                 ref={wheelRef}
                 className="absolute w-full h-full rounded-full"
                 onMouseDown={(e) => {
+                  // Don't handle wheel clicks if we're clicking on the menu button
+                  if (e.target && (e.target as HTMLElement).classList.contains('menu-button')) {
+                    return;
+                  }
                   const angle = getAngleFromCenter(e.clientX, e.clientY);
                   const section = getWheelSection(angle);
                   handleWheelClick(section);
@@ -875,7 +897,7 @@ export function IpodAppComponent({
               >
                 {/* Wheel labels - no click handlers */}
                 <div
-                  className="absolute top-3 left-1/2 transform -translate-x-1/2 font-chicago text-xs text-white"
+                  className="absolute top-3 left-1/2 transform -translate-x-1/2 font-chicago text-xs text-white menu-button"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleMenuButton();

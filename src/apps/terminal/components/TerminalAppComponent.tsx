@@ -13,6 +13,7 @@ import {
   saveTerminalCurrentPath,
   TerminalCommand
 } from "@/utils/storage";
+import { useLaunchApp } from "@/hooks/useLaunchApp";
 
 interface CommandHistory {
   command: string;
@@ -31,6 +32,7 @@ const AVAILABLE_COMMANDS = [
   "mkdir",
   "touch",
   "rm",
+  "edit",
   "history",
   "about"
 ];
@@ -58,6 +60,8 @@ export function TerminalAppComponent({
     saveFile,
     moveToTrash,
   } = useFileSystem(loadTerminalCurrentPath());
+
+  const launchApp = useLaunchApp();
 
   // Load command history from storage
   useEffect(() => {
@@ -213,7 +217,7 @@ export function TerminalAppComponent({
       }
     } 
     // File/directory autocompletion (for commands that take file arguments)
-    else if (["cd", "cat", "rm"].includes(cmd)) {
+    else if (["cd", "cat", "rm", "edit"].includes(cmd)) {
       const lastArg = args.length > 0 ? args[args.length - 1] : "";
       
       const matches = files
@@ -273,6 +277,7 @@ Available commands:
   mkdir <name>     - Create a directory
   touch <name>     - Create an empty file
   rm <file>        - Delete a file (moves to trash)
+  edit <file>      - Open file in TextEdit
   history          - Show command history
   about            - Display information about Terminal
 `;
@@ -380,6 +385,56 @@ Available commands:
         
         moveToTrash(fileObj);
         return `Moved to trash: ${fileToDelete}`;
+
+      case "edit":
+        if (args.length === 0) {
+          return "Usage: edit <filename>";
+        }
+        
+        const fileToEdit = args[0];
+        const fileToEditObj = files.find(f => f.name === fileToEdit);
+        
+        if (!fileToEditObj) {
+          return `File not found: ${fileToEdit}`;
+        }
+        
+        if (fileToEditObj.isDirectory) {
+          return `${fileToEdit} is a directory, not a file`;
+        }
+        
+        // Check if the file is already in Documents folder
+        let filePath = fileToEditObj.path;
+        if (!filePath.startsWith("/Documents/")) {
+          // Create a copy in the Documents folder
+          const fileName = fileToEditObj.name;
+          const documentsPath = `/Documents/${fileName}`;
+          
+          // Save file to Documents
+          saveFile({
+            name: fileName,
+            path: documentsPath,
+            content: fileToEditObj.content,
+            isDirectory: false,
+            icon: "/icons/file-text.png",
+            type: "text"
+          });
+          
+          filePath = documentsPath;
+        }
+        
+        // Store the file content temporarily for TextEdit to open
+        localStorage.setItem(
+          "pending_file_open",
+          JSON.stringify({
+            path: filePath,
+            content: fileToEditObj.content || "",
+          })
+        );
+        
+        // Launch TextEdit
+        launchApp("textedit");
+        
+        return `Opening ${fileToEdit} in TextEdit...`;
 
       case "about":
         setTimeout(() => setIsAboutDialogOpen(true), 100);
