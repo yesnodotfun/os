@@ -108,6 +108,12 @@ export const APP_STORAGE_KEYS = {
     IS_LOOP_CURRENT: "ipod:isLoopCurrent" as const,
     IS_SHUFFLED: "ipod:isShuffled" as const,
   },
+  terminal: {
+    WINDOW: "terminal:window" as const,
+    HAS_SEEN_HELP: "terminal:hasSeenHelp" as const,
+    COMMAND_HISTORY: "terminal:commandHistory" as const,
+    CURRENT_PATH: "terminal:currentPath" as const,
+  },
 } as const;
 
 interface WindowState {
@@ -682,6 +688,18 @@ export const clearAllAppStates = (): void => {
   localStorage.removeItem(APP_STORAGE_KEYS.pc.HAS_SEEN_HELP);
   localStorage.removeItem(APP_STORAGE_KEYS.pc.SAVE_STATE);
 
+  localStorage.removeItem(APP_STORAGE_KEYS.ipod.WINDOW);
+  localStorage.removeItem(APP_STORAGE_KEYS.ipod.HAS_SEEN_HELP);
+  localStorage.removeItem(APP_STORAGE_KEYS.ipod.CURRENT_INDEX);
+  localStorage.removeItem(APP_STORAGE_KEYS.ipod.IS_LOOP_ALL);
+  localStorage.removeItem(APP_STORAGE_KEYS.ipod.IS_LOOP_CURRENT);
+  localStorage.removeItem(APP_STORAGE_KEYS.ipod.IS_SHUFFLED);
+
+  localStorage.removeItem(APP_STORAGE_KEYS.terminal.WINDOW);
+  localStorage.removeItem(APP_STORAGE_KEYS.terminal.HAS_SEEN_HELP);
+  localStorage.removeItem(APP_STORAGE_KEYS.terminal.COMMAND_HISTORY);
+  localStorage.removeItem(APP_STORAGE_KEYS.terminal.CURRENT_PATH);
+
   // Clear desktop icon state
   localStorage.removeItem("desktop:icons");
 
@@ -693,13 +711,6 @@ export const clearAllAppStates = (): void => {
 
   // Clear display mode
   localStorage.removeItem("displayMode");
-
-  localStorage.removeItem(APP_STORAGE_KEYS.ipod.WINDOW);
-  localStorage.removeItem(APP_STORAGE_KEYS.ipod.HAS_SEEN_HELP);
-  localStorage.removeItem(APP_STORAGE_KEYS.ipod.CURRENT_INDEX);
-  localStorage.removeItem(APP_STORAGE_KEYS.ipod.IS_LOOP_ALL);
-  localStorage.removeItem(APP_STORAGE_KEYS.ipod.IS_LOOP_CURRENT);
-  localStorage.removeItem(APP_STORAGE_KEYS.ipod.IS_SHUFFLED);
 };
 
 const SYNTH_PRESET_KEY = "synthPreset";
@@ -1228,4 +1239,40 @@ export const saveIpodIsShuffled = (isShuffled: boolean): void => {
     APP_STORAGE_KEYS.ipod.IS_SHUFFLED,
     isShuffled.toString()
   );
+};
+
+// Terminal command history storage
+export interface TerminalCommand {
+  command: string;
+  timestamp: number;
+}
+
+export const loadTerminalCommandHistory = (): TerminalCommand[] => {
+  const saved = localStorage.getItem(APP_STORAGE_KEYS.terminal.COMMAND_HISTORY);
+  return saved ? JSON.parse(saved) : [];
+};
+
+export const saveTerminalCommandHistory = (commands: TerminalCommand[]): void => {
+  localStorage.setItem(
+    APP_STORAGE_KEYS.terminal.COMMAND_HISTORY,
+    JSON.stringify(commands.slice(-100)) // Keep only the last 100 commands
+  );
+};
+
+export const addTerminalCommand = (command: string): void => {
+  const history = loadTerminalCommandHistory();
+  const newCommand: TerminalCommand = {
+    command,
+    timestamp: Date.now(),
+  };
+  history.push(newCommand);
+  saveTerminalCommandHistory(history);
+};
+
+export const loadTerminalCurrentPath = (): string => {
+  return localStorage.getItem(APP_STORAGE_KEYS.terminal.CURRENT_PATH) || "/";
+};
+
+export const saveTerminalCurrentPath = (path: string): void => {
+  localStorage.setItem(APP_STORAGE_KEYS.terminal.CURRENT_PATH, path);
 };

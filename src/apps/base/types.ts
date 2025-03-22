@@ -26,7 +26,8 @@ export interface BaseApp {
     | "pc"
     | "photo-booth"
     | "synth"
-    | "ipod";
+    | "ipod"
+    | "terminal";
   name: string;
   icon: string | { type: "image"; src: string };
   description: string;

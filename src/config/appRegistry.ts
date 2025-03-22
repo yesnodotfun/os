@@ -11,6 +11,7 @@ import { PcApp } from "@/apps/pc";
 import { PhotoBoothApp } from "@/apps/photo-booth";
 import { SynthApp } from "@/apps/synth";
 import { IpodApp } from "@/apps/ipod";
+import { TerminalApp } from "@/apps/terminal";
 
 export interface WindowSize {
   width: number;
@@ -118,6 +119,13 @@ export const appRegistry = {
     windowConfig: {
       defaultSize: { width: 300, height: 480 },
       minSize: { width: 300, height: 480 },
+    } as WindowConstraints,
+  },
+  [TerminalApp.id]: {
+    ...TerminalApp,
+    windowConfig: {
+      defaultSize: { width: 600, height: 400 },
+      minSize: { width: 400, height: 300 },
     } as WindowConstraints,
   },
   [ControlPanelsApp.id]: {
