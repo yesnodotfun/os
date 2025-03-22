@@ -18,11 +18,9 @@ export function useWallpaper() {
   // Initialize loading state for video wallpapers
   useEffect(() => {
     if (isVideoWallpaper) {
-      // Only set loading state if we don't already know this video is loaded
-      if (videoLoadingStates[currentWallpaper] !== false) {
-        setIsVideoLoading(true);
-        videoLoadingStates[currentWallpaper] = true;
-      }
+      // Reset loading state whenever the video wallpaper changes
+      setIsVideoLoading(true);
+      videoLoadingStates[currentWallpaper] = true;
     } else {
       setIsVideoLoading(false);
     }
@@ -39,6 +37,16 @@ export function useWallpaper() {
     window.addEventListener("storage", handleStorageChange);
     return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
+
+  // Helper function to check if a video is ready to play
+  const checkVideoLoadState = (video: HTMLVideoElement, path: string) => {
+    // readyState 4 means HAVE_ENOUGH_DATA - video can be played
+    if (video.readyState >= 3) { // HAVE_FUTURE_DATA or better
+      markVideoLoaded(path);
+      return true;
+    }
+    return false;
+  };
 
   // Helper function to mark a video as loaded
   const markVideoLoaded = (path: string) => {
@@ -63,5 +71,6 @@ export function useWallpaper() {
     isVideoWallpaper,
     isVideoLoading,
     markVideoLoaded,
+    checkVideoLoadState,
   };
 }

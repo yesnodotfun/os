@@ -54,10 +54,19 @@ function WallpaperItem({
       } else {
         videoRef.current.pause();
       }
+      
+      // Check if video is already cached/loaded
+      if (videoRef.current.readyState >= 3) { // HAVE_FUTURE_DATA or better
+        setIsLoading(false);
+      }
     }
-  }, [isSelected, isVideo]);
+  }, [isSelected, isVideo, path]);
 
   const handleVideoLoaded = () => {
+    setIsLoading(false);
+  };
+  
+  const handleCanPlayThrough = () => {
     setIsLoading(false);
   };
 
@@ -87,6 +96,7 @@ function WallpaperItem({
           muted
           playsInline
           onLoadedData={handleVideoLoaded}
+          onCanPlayThrough={handleCanPlayThrough}
           style={{ 
             objectPosition: "center center", 
             opacity: isLoading ? 0 : 1, 

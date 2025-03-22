@@ -30,7 +30,7 @@ export function Desktop({
   wallpaperPath,
 }: DesktopProps) {
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
-  const { isVideoWallpaper, isVideoLoading, markVideoLoaded } = useWallpaper();
+  const { isVideoWallpaper, isVideoLoading, markVideoLoaded, checkVideoLoadState } = useWallpaper();
   const [currentWallpaper, setCurrentWallpaper] = useState(wallpaperPath);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -55,6 +55,14 @@ export function Desktop({
   useEffect(() => {
     setCurrentWallpaper(wallpaperPath);
   }, [wallpaperPath]);
+
+  // Check for cached video on ref update and wallpaper change
+  useEffect(() => {
+    if (isVideoWallpaper && videoRef.current) {
+      // Try to check if the video is already loaded/cached
+      checkVideoLoadState(videoRef.current, currentWallpaper);
+    }
+  }, [isVideoWallpaper, videoRef, currentWallpaper, checkVideoLoadState]);
 
   const getWallpaperStyles = (path: string): DesktopStyles => {
     // Don't apply background styles for video wallpapers
@@ -101,6 +109,11 @@ export function Desktop({
     markVideoLoaded(currentWallpaper);
   };
 
+  // Handle video loading events
+  const handleCanPlayThrough = () => {
+    markVideoLoaded(currentWallpaper);
+  };
+
   return (
     <div
       className="absolute inset-0 min-h-screen h-full z-[-1] desktop-background"
@@ -128,6 +141,7 @@ export function Desktop({
             muted
             playsInline
             onLoadedData={handleVideoLoaded}
+            onCanPlayThrough={handleCanPlayThrough}
             style={{ opacity: isVideoLoading ? 0 : 1, transition: 'opacity 0.5s ease-in-out' }}
           />
         </>
