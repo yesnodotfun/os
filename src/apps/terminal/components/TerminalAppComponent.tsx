@@ -106,7 +106,7 @@ export function TerminalAppComponent({
   const [commandHistory, setCommandHistory] = useState<CommandHistory[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [historyCommands, setHistoryCommands] = useState<string[]>([]);
-  const [fontSize, setFontSize] = useState(14); // Default font size in pixels
+  const [fontSize, setFontSize] = useState(12); // Default font size in pixels
   const [isInAiMode, setIsInAiMode] = useState(false);
   const [spinnerIndex, setSpinnerIndex] = useState(0);
   const spinnerChars = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
@@ -474,8 +474,47 @@ Available commands:
           newPath = `${currentPath === "/" ? "" : currentPath}/${newPath}`;
         }
 
-        // Direct path navigation
-        navigateToPath(newPath);
+        // Verify the path exists before navigating
+        // First normalize the path to prevent issues with trailing slashes
+        const normalizedPath =
+          newPath.endsWith("/") && newPath !== "/"
+            ? newPath.slice(0, -1)
+            : newPath;
+
+        // Get the parent directory to check if target exists
+        const pathParts = normalizedPath.split("/").filter(Boolean);
+        const targetDir = pathParts.pop(); // Remove the target directory from the path
+        const parentPath =
+          pathParts.length > 0 ? "/" + pathParts.join("/") : "/";
+
+        // Special case for root directory
+        if (normalizedPath === "/") {
+          navigateToPath("/");
+          return "";
+        }
+
+        // Get files in the parent directory
+        const filesInParent = files.filter((file) => {
+          const parentPathWithSlash = parentPath.endsWith("/")
+            ? parentPath
+            : parentPath + "/";
+          return (
+            file.path.startsWith(parentPathWithSlash) &&
+            !file.path.replace(parentPathWithSlash, "").includes("/")
+          );
+        });
+
+        // Check if the target directory exists
+        const targetExists = filesInParent.some(
+          (file) => file.name === targetDir && file.isDirectory
+        );
+
+        if (!targetExists) {
+          return `cd: ${args[0]}: No such directory`;
+        }
+
+        // Directory exists, navigate to it
+        navigateToPath(normalizedPath);
         return "";
       }
 
@@ -751,8 +790,10 @@ Available commands:
 
   // Function to handle commands in AI mode
   const handleAiCommand = (command: string) => {
-    // If user types 'exit', leave AI mode
-    if (command.trim().toLowerCase() === "exit") {
+    const lowerCommand = command.trim().toLowerCase();
+
+    // If user types 'exit' or 'quit', leave AI mode
+    if (lowerCommand === "exit" || lowerCommand === "quit") {
       setIsInAiMode(false);
       stopAiResponse();
       setAiChatMessages([
@@ -772,9 +813,25 @@ Available commands:
       setCommandHistory([
         ...commandHistory,
         {
-          command: "exit",
-          output: "Exiting AI chat mode.",
+          command: command,
+          output: "Exiting ryo chat mode.",
           path: currentPath,
+        },
+      ]);
+
+      setCurrentCommand("");
+      return;
+    }
+
+    // If user types 'clear', clear the chat history
+    if (lowerCommand === "clear") {
+      // Keep just the welcome message
+      setCommandHistory([
+        {
+          command: "",
+          output:
+            "Chat history cleared. You're still in ryo chat mode. Type 'exit' to return to terminal.",
+          path: "ai-assistant",
         },
       ]);
 
@@ -820,7 +877,7 @@ Available commands:
   };
 
   const resetFontSize = () => {
-    setFontSize(14); // Reset to default
+    setFontSize(12); // Reset to default
   };
 
   if (!isWindowOpen) return null;
@@ -857,7 +914,7 @@ Available commands:
                 {item.command && (
                   <div className="flex">
                     {item.path === "ai-user" ? (
-                      <span className="text-purple-400 mr-1">→ ai</span>
+                      <span className="text-purple-400 mr-1">→ ryo</span>
                     ) : (
                       <span className="text-green-400 mr-1">
                         ➜ {item.path === "/" ? "/" : item.path}
@@ -893,7 +950,7 @@ Available commands:
             <form onSubmit={handleCommandSubmit} className="flex">
               {isInAiMode ? (
                 <span className="text-purple-400 mr-1 whitespace-nowrap">
-                  → ai
+                  → ryo
                 </span>
               ) : (
                 <span className="text-green-400 mr-1 whitespace-nowrap">
