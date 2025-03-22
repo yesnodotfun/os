@@ -75,8 +75,8 @@ function MenuListItem({
       className={cn(
         "px-2 cursor-pointer font-chicago text-[16px] flex justify-between items-center",
         isSelected
-          ? "bg-[#0a3667] text-white"
-          : "text-[#0a3667] hover:bg-[#d6e9f8]"
+          ? "bg-[#0a3667] text-white [text-shadow:1px_1px_0_rgba(0,0,0,0.15)]"
+          : "text-[#0a3667] hover:bg-[#d6e9f8] [text-shadow:1px_1px_0_rgba(0,0,0,0.15)]"
       )}
     >
       <span className="whitespace-nowrap overflow-hidden text-ellipsis flex-1 mr-2">
@@ -135,7 +135,7 @@ function IpodMenu({
 
   return (
     <div ref={containerRef} className="flex flex-col h-full">
-      <div className="border-b border-[#0a3667] py-0 px-2 font-chicago text-[16px] flex justify-between items-center sticky top-0 z-10 text-[#0a3667]">
+      <div className="border-b border-[#0a3667] py-0 px-2 font-chicago text-[16px] flex justify-between items-center sticky top-0 z-10 text-[#0a3667] [text-shadow:1px_1px_0_rgba(0,0,0,0.15)]">
         <div className="w-6 text-xs">{isPlaying ? "▶" : "II"}</div>
         <div>{title}</div>
         <div className="w-6 text-xs"></div>
@@ -270,7 +270,7 @@ function IpodScreen({
         "relative w-full h-[160px] border border-gray-500 border-2 rounded-t-md overflow-hidden transition-all duration-500",
         backlightOn
           ? "bg-[#c5e0f5] bg-gradient-to-b from-[#d1e8fa] to-[#e0f0fc]"
-          : "bg-[#8a9da9] contrast-75 saturate-50"
+          : "bg-[#8a9da9] contrast-65 saturate-50"
       )}
     >
       {menuMode ? (
@@ -283,7 +283,7 @@ function IpodScreen({
         />
       ) : (
         <div className="flex flex-col h-full">
-          <div className="border-b border-[#0a3667] py-0 px-2 font-chicago text-[16px] flex justify-between items-center text-[#0a3667]">
+          <div className="border-b border-[#0a3667] py-0 px-2 font-chicago text-[16px] flex justify-between items-center text-[#0a3667] [text-shadow:1px_1px_0_rgba(0,0,0,0.15)]">
             <div className="w-6 text-xs">{isPlaying ? "▶" : "II"}</div>
             <div>Now Playing</div>
             <div className="w-6 text-xs"></div>
@@ -291,10 +291,10 @@ function IpodScreen({
           <div className="flex-1 flex flex-col p-1 px-2">
             {currentTrack ? (
               <>
-                <div className="font-chicago text-[12px] mb-1 text-[#0a3667]">
+                <div className="font-chicago text-[12px] mb-1 text-[#0a3667] [text-shadow:1px_1px_0_rgba(0,0,0,0.15)]">
                   {currentIndex + 1} of {tracksLength}
                 </div>
-                <div className="font-chicago text-[16px] mb-4 text-center text-[#0a3667]">
+                <div className="font-chicago text-[16px] mb-4 text-center text-[#0a3667] [text-shadow:1px_1px_0_rgba(0,0,0,0.15)]">
                   <ScrollingText
                     text={currentTrack.title}
                     className="mb-0.5"
@@ -315,7 +315,7 @@ function IpodScreen({
                     }}
                   />
                 </div>
-                <div className="font-chicago text-[16px] w-full flex justify-between text-[#0a3667]">
+                <div className="font-chicago text-[16px] w-full flex justify-between text-[#0a3667] [text-shadow:1px_1px_0_rgba(0,0,0,0.15)]">
                   <span>
                     {Math.floor(elapsedTime / 60)}:
                     {String(Math.floor(elapsedTime % 60)).padStart(2, "0")}
@@ -329,7 +329,7 @@ function IpodScreen({
                 </div>
               </>
             ) : (
-              <div className="text-center font-chicago text-[16px] text-[#0a3667]">
+              <div className="text-center font-chicago text-[16px] text-[#0a3667] [text-shadow:1px_1px_0_rgba(0,0,0,0.15)]">
                 <p>No track selected</p>
                 <p>Use the wheel to</p>
                 <p>browse your library</p>
