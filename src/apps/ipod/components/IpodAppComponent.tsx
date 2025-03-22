@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import ReactPlayer from "react-player";
+import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { AppProps } from "../../base/types";
 import { WindowFrame } from "@/components/layout/WindowFrame";
@@ -155,66 +156,82 @@ function IpodMenu({
 function ScrollingText({
   text,
   className,
+  isPlaying = true,
 }: {
   text: string;
   className?: string;
+  isPlaying?: boolean;
 }) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
-  const [isOverflowing, setIsOverflowing] = useState(false);
-  const [animationStyles, setAnimationStyles] = useState({});
+  const [shouldScroll, setShouldScroll] = useState(false);
 
+  // Check if text needs to scroll (is wider than container)
   useEffect(() => {
-    const checkOverflow = () => {
-      if (textRef.current) {
-        const isTextOverflowing =
-          textRef.current.scrollWidth > textRef.current.clientWidth;
-        setIsOverflowing(isTextOverflowing);
-
-        if (isTextOverflowing) {
-          const duration = Math.max(text.length * 0.2, 5); // Adjust speed based on text length
-
-          setAnimationStyles({
-            animationName: "scrollText",
-            animationDuration: `${duration}s`,
-            animationTimingFunction: "linear",
-            animationIterationCount: "infinite",
-            animationDelay: "1s",
-            paddingLeft: "10px",
-            paddingRight: "20px",
-          });
-        }
-      }
-    };
-
-    checkOverflow();
-
-    // Recheck on window resize
-    window.addEventListener("resize", checkOverflow);
-    return () => window.removeEventListener("resize", checkOverflow);
-  }, [text]);
+    if (containerRef.current && textRef.current) {
+      const containerWidth = containerRef.current.clientWidth;
+      const textWidth = textRef.current.scrollWidth;
+      setShouldScroll(textWidth > containerWidth);
+    }
+  }, [text, containerRef, textRef]);
 
   return (
-    <div
-      className={cn("relative whitespace-nowrap overflow-hidden", className)}
+    <div 
+      ref={containerRef} 
+      className={cn(
+        "relative overflow-hidden", 
+        !shouldScroll && "flex justify-center", 
+        className
+      )}
     >
-      {isOverflowing ? (
-        <>
-          <style>{`
-            @keyframes scrollText {
-              0%, 10% {
-                transform: translateX(0);
-              }
-              90%, 100% {
-                transform: translateX(-100%);
-              }
+      {shouldScroll ? (
+        <motion.div
+          key={text}
+          className="whitespace-nowrap flex gap-6"
+        >
+          <motion.div
+            ref={textRef}
+            initial={{ x: "0%" }}
+            animate={{ x: isPlaying ? "-100%" : "0%" }}
+            transition={
+              isPlaying
+                ? {
+                    duration: Math.max(text.length * 0.15, 8),
+                    ease: "linear",
+                    repeat: Infinity,
+                    repeatType: "loop",
+                  }
+                : {
+                    duration: 0.3,
+                  }
             }
-          `}</style>
-          <div ref={textRef} style={animationStyles}>
+            className="shrink-0 transition-colors duration-300"
+          >
             {text}
-          </div>
-        </>
+          </motion.div>
+          <motion.div
+            initial={{ x: "0%" }}
+            animate={{ x: isPlaying ? "-100%" : "0%" }}
+            transition={
+              isPlaying
+                ? {
+                    duration: Math.max(text.length * 0.15, 8),
+                    ease: "linear",
+                    repeat: Infinity,
+                    repeatType: "loop",
+                  }
+                : {
+                    duration: 0.3,
+                  }
+            }
+            className="shrink-0 transition-colors duration-300"
+            aria-hidden
+          >
+            {text}
+          </motion.div>
+        </motion.div>
       ) : (
-        <div ref={textRef} className="text-ellipsis overflow-hidden">
+        <div ref={textRef} className="whitespace-nowrap text-center">
           {text}
         </div>
       )}
@@ -271,9 +288,10 @@ function IpodScreen({
                   {currentIndex + 1} of {tracksLength}
                 </div>
                 <div className="font-chicago text-[16px] mb-4 text-center">
-                  <ScrollingText text={currentTrack.title} className="mb-0.5" />
+                  <ScrollingText text={currentTrack.title} className="mb-0.5" isPlaying={isPlaying} />
                   <ScrollingText
                     text={currentTrack.artist || "Unknown Artist"}
+                    isPlaying={isPlaying}
                   />
                 </div>
                 <div className="mt-auto w-full h-2 bg-gray-200 rounded-full border border-black overflow-hidden">
