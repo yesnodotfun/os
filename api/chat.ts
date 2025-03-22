@@ -97,6 +97,8 @@ Available app IDs:
 - paint (MacPaint-style editor)
 - videos (VCR-style video player)
 - pc (DOS game virtual pc emulator)
+- ipod (iPod player)
+- terminal (Unix-like terminal)
 
 IMPORTANT RULES:
 - Use valid app IDs from the list above
