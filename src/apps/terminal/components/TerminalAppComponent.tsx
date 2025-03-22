@@ -1236,7 +1236,7 @@ Available commands:
               inputRef.current?.focus();
             }}
           >
-            <AnimatePresence initial={false} mode="popLayout">
+            <AnimatePresence initial={false} mode="sync">
               {commandHistory.map((item, index) => (
                 <motion.div
                   key={index}
@@ -1261,7 +1261,7 @@ Available commands:
                   layout="position"
                   transition={{
                     type: "spring",
-                    delay: 0.05 * (index % 3), // Stagger effect for groups of 3
+                    // delay: 0.03 * (index % 3), // Reduced stagger effect
                     duration: 0.3,
                     stiffness: 100,
                     damping: 25,
