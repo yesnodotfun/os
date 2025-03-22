@@ -840,7 +840,7 @@ Available commands:
             },
             {
               command: "",
-              output: `${spinnerChars[spinnerIndex]} thinking...`,
+              output: `${spinnerChars[spinnerIndex]} ryo is thinking...`,
               path: "ai-thinking",
             },
           ]);
@@ -1239,7 +1239,7 @@ Available commands:
               }
             }}
           >
-            <AnimatePresence initial={false} mode="sync">
+            <AnimatePresence>
               {commandHistory.map((item, index) => (
                 <motion.div
                   key={index}
@@ -1264,7 +1264,6 @@ Available commands:
                   layout="position"
                   transition={{
                     type: "spring",
-                    // delay: 0.03 * (index % 3), // Reduced stagger effect
                     duration: 0.3,
                     stiffness: 100,
                     damping: 25,
@@ -1297,7 +1296,7 @@ Available commands:
                             {item.output.split(" ")[0]}
                           </span>
                           <span className="text-gray-400 italic shimmer">
-                            {" thinking"}
+                            {" ryo is thinking"}
                             <AnimatedEllipsis />
                           </span>
                         </div>
@@ -1317,38 +1316,45 @@ Available commands:
                 </motion.div>
               ))}
             </AnimatePresence>
-            {isAiLoading && isInAiMode && (
-              <div className="mb-1">
-                <span className="text-gray-400">
-                  {spinnerChars[spinnerIndex]}
-                </span>
-                <span className="text-gray-400 italic shimmer">
-                  {" thinking"}
-                  <AnimatedEllipsis />
-                </span>
-              </div>
-            )}
-            <form onSubmit={handleCommandSubmit} className="flex">
-              {isInAiMode ? (
-                <span className="text-purple-400 mr-1 whitespace-nowrap">
-                  → ryo
-                </span>
-              ) : (
-                <span className="text-green-400 mr-1 whitespace-nowrap">
-                  ➜ {currentPath === "/" ? "/" : currentPath}
-                </span>
-              )}
-              <input
-                ref={inputRef}
-                type="text"
-                value={currentCommand}
-                onChange={(e) => setCurrentCommand(e.target.value)}
-                onKeyDown={handleKeyDown}
-                className="flex-1 text-white focus:outline-none"
-                style={{ fontSize: `${fontSize}px` }}
-                autoFocus
-              />
-            </form>
+
+            <div className="relative">
+              <form
+                onSubmit={handleCommandSubmit}
+                className="flex transition-all duration-200"
+              >
+                {isInAiMode ? (
+                  <span className="text-purple-400 mr-1 whitespace-nowrap">
+                    {isAiLoading
+                      ? spinnerChars[spinnerIndex] + " ryo"
+                      : "→ ryo"}
+                  </span>
+                ) : (
+                  <span className="text-green-400 mr-1 whitespace-nowrap">
+                    ➜ {currentPath === "/" ? "/" : currentPath}
+                  </span>
+                )}
+                <div className="flex-1 relative">
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={currentCommand}
+                    onChange={(e) => setCurrentCommand(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    className="w-full text-white focus:outline-none bg-transparent"
+                    style={{ fontSize: `${fontSize}px` }}
+                    autoFocus
+                  />
+                  {isAiLoading && isInAiMode && (
+                    <div className="absolute top-0 left-0 w-full h-full pointer-events-none flex items-center">
+                      <span className="text-gray-400/50">
+                        is thinking
+                        <AnimatedEllipsis />
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </form>
+            </div>
           </div>
         </motion.div>
       </WindowFrame>
