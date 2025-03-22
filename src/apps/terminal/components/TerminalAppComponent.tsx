@@ -522,9 +522,9 @@ Available commands:
   touch <name>     - Create an empty file
   rm <file>        - Delete a file (moves to trash)
   edit <file>      - Open file in TextEdit
+  ryo <prompt>     - Start AI chat mode with optional initial prompt
   history          - Show command history
   about            - Display information about Terminal
-  ryo [prompt]     - Start AI chat mode with optional initial prompt
 `,
           isError: false,
         };
