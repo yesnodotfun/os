@@ -546,7 +546,7 @@ export function WindowFrame({
               className={`select-none mx-auto ${
                 !transparentBackground && "bg-white"
               } px-2 py-0 h-full flex items-center whitespace-nowrap overflow-hidden text-ellipsis max-w-[80%] ${
-                !isForeground && "text-gray-500"
+                !isForeground && "text-black/50"
               }`}
               onDoubleClick={handleFullMaximize}
               onTouchStart={(e) => {

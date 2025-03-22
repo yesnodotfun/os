@@ -19,6 +19,8 @@ import { useChat } from "ai/react";
 import { useAppContext } from "@/contexts/AppContext";
 import { AppId } from "@/config/appRegistry";
 import { useTerminalSounds } from "@/hooks/useTerminalSounds";
+import { Maximize, Minimize } from "lucide-react";
+import { useWindowManager } from "@/hooks/useWindowManager";
 
 interface CommandHistory {
   command: string;
@@ -97,6 +99,113 @@ const cleanAppControlMarkup = (message: string): string => {
   );
 
   return message.trim();
+};
+
+// Component to render HTML previews
+function HtmlPreview({ htmlContent }: { htmlContent: string }) {
+  const [isFullScreen, setIsFullScreen] = useState(false);
+  const { windowSize } = useWindowManager({ appId: "terminal" });
+
+  // Adjust for the terminal interface elements
+  const contentHeight = windowSize.height - 100; // Adjust for header, input, padding
+
+  // Normal inline display with optional maximized height
+  return (
+    <div
+      className="border rounded bg-white/100 overflow-auto my-2 relative"
+      style={{
+        maxHeight: isFullScreen ? `${contentHeight}px` : "500px",
+      }}
+    >
+      <div className="flex justify-end bg-gray-100 p-1 absolute top-0 right-0">
+        <button
+          onClick={() => setIsFullScreen(!isFullScreen)}
+          className="flex items-center justify-center w-6 h-6 hover:bg-gray-200 rounded"
+          aria-label={isFullScreen ? "Minimize preview" : "Maximize preview"}
+        >
+          {isFullScreen ? (
+            <Minimize size={16} className="text-black" />
+          ) : (
+            <Maximize size={16} className="text-black" />
+          )}
+        </button>
+      </div>
+      <iframe
+        srcDoc={htmlContent}
+        title="HTML Preview"
+        className="w-full border-0"
+        sandbox="allow-scripts"
+        style={{
+          height: isFullScreen ? `${contentHeight - 40}px` : "200px",
+          display: "block",
+        }}
+      />
+    </div>
+  );
+}
+
+// Check if a string is a HTML code block
+const isHtmlCodeBlock = (
+  text: string
+): { isHtml: boolean; content: string } => {
+  const regex = /```(?:html)?\s*([\s\S]*?)```/;
+  const match = text.match(regex);
+
+  if (match && match[1] && match[1].trim().startsWith("<")) {
+    return { isHtml: true, content: match[1].trim() };
+  }
+
+  return { isHtml: false, content: "" };
+};
+
+// Extract HTML content even if the code block is incomplete/being streamed
+const extractHtmlContent = (
+  text: string
+): {
+  htmlContent: string;
+  textContent: string;
+  hasHtml: boolean;
+} => {
+  // Check for complete HTML code blocks
+  const completeRegex = /```(?:html)?\s*([\s\S]*?)```/g;
+  let processedText = text;
+  const htmlParts: string[] = [];
+  let match;
+  let hasHtml = false;
+
+  // First check for complete HTML blocks
+  while ((match = completeRegex.exec(text)) !== null) {
+    if (match[1] && match[1].trim().startsWith("<")) {
+      htmlParts.push(match[1].trim());
+      hasHtml = true;
+      // Remove complete HTML blocks from text
+      processedText = processedText.replace(match[0], "");
+    }
+  }
+
+  // Then check for incomplete HTML blocks that are still streaming
+  const incompleteRegex = /```(?:html)?\s*([\s\S]*?)$/;
+  const incompleteMatch = processedText.match(incompleteRegex);
+
+  if (
+    incompleteMatch &&
+    incompleteMatch[1] &&
+    incompleteMatch[1].trim().startsWith("<")
+  ) {
+    htmlParts.push(incompleteMatch[1].trim());
+    hasHtml = true;
+    // Remove incomplete HTML block from text
+    processedText = processedText.replace(incompleteMatch[0], "");
+  }
+
+  // Join all HTML parts
+  const htmlContent = htmlParts.join("\n\n");
+
+  return {
+    htmlContent,
+    textContent: processedText,
+    hasHtml,
+  };
 };
 
 // TypewriterText component for terminal output
@@ -218,6 +327,12 @@ export function TerminalAppComponent({
   const [spinnerIndex, setSpinnerIndex] = useState(0);
   const spinnerChars = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
+  // Track if auto-scrolling is enabled
+  const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
+
+  // Reference to track if user is at the bottom
+  const isAtBottomRef = useRef(true);
+
   // Keep track of the last processed message ID to avoid duplicates
   const lastProcessedMessageIdRef = useRef<string | null>(null);
   // Keep track of apps already launched in the current session
@@ -279,10 +394,33 @@ export function TerminalAppComponent({
 
   // Auto-scroll to bottom when command history changes
   useEffect(() => {
-    if (terminalRef.current) {
+    if (terminalRef.current && autoScrollEnabled) {
       terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
     }
-  }, [commandHistory, currentCommand]);
+  }, [commandHistory, currentCommand, autoScrollEnabled]);
+
+  // Handle scroll events to enable/disable auto-scroll
+  const handleScroll = () => {
+    if (terminalRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = terminalRef.current;
+      // Check if user is at the bottom (allowing for a small buffer of 10px)
+      const isAtBottom = scrollHeight - scrollTop - clientHeight < 10;
+
+      // Only update state if the value changes to avoid unnecessary re-renders
+      if (isAtBottom !== isAtBottomRef.current) {
+        isAtBottomRef.current = isAtBottom;
+
+        // If user scrolled to bottom, re-enable auto-scroll
+        if (isAtBottom) {
+          setAutoScrollEnabled(true);
+        }
+        // If user scrolled up, disable auto-scroll
+        else if (autoScrollEnabled) {
+          setAutoScrollEnabled(false);
+        }
+      }
+    }
+  };
 
   // Simplify to a single focus effect
   useEffect(() => {
@@ -1238,6 +1376,7 @@ Available commands:
                 bringToForeground("terminal");
               }
             }}
+            onScroll={handleScroll}
           >
             <AnimatePresence>
               {commandHistory.map((item, index) => (
@@ -1303,7 +1442,29 @@ Available commands:
                           </span>
                         </div>
                       ) : item.path === "ai-assistant" ? (
-                        <span className="text-purple-300">{item.output}</span>
+                        <>
+                          {(() => {
+                            // Process the message to extract HTML and text parts
+                            const { htmlContent, textContent, hasHtml } =
+                              extractHtmlContent(item.output);
+
+                            return (
+                              <>
+                                {/* Show only non-HTML text content */}
+                                {textContent && (
+                                  <span className="text-purple-300">
+                                    {textContent}
+                                  </span>
+                                )}
+
+                                {/* Show HTML preview if there's HTML content */}
+                                {hasHtml && htmlContent && (
+                                  <HtmlPreview htmlContent={htmlContent} />
+                                )}
+                              </>
+                            );
+                          })()}
+                        </>
                       ) : animatedLines.has(index) ? (
                         <TypewriterText
                           text={item.output}
@@ -1311,7 +1472,14 @@ Available commands:
                           className=""
                         />
                       ) : (
-                        item.output
+                        <>
+                          {item.output}
+                          {isHtmlCodeBlock(item.output).isHtml && (
+                            <HtmlPreview
+                              htmlContent={isHtmlCodeBlock(item.output).content}
+                            />
+                          )}
+                        </>
                       )}
                     </div>
                   )}
