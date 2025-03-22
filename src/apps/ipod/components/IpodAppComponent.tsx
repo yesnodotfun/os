@@ -152,6 +152,76 @@ function IpodMenu({
   );
 }
 
+function ScrollingText({
+  text,
+  className,
+}: {
+  text: string;
+  className?: string;
+}) {
+  const textRef = useRef<HTMLDivElement>(null);
+  const [isOverflowing, setIsOverflowing] = useState(false);
+  const [animationStyles, setAnimationStyles] = useState({});
+
+  useEffect(() => {
+    const checkOverflow = () => {
+      if (textRef.current) {
+        const isTextOverflowing =
+          textRef.current.scrollWidth > textRef.current.clientWidth;
+        setIsOverflowing(isTextOverflowing);
+
+        if (isTextOverflowing) {
+          const duration = Math.max(text.length * 0.2, 5); // Adjust speed based on text length
+
+          setAnimationStyles({
+            animationName: "scrollText",
+            animationDuration: `${duration}s`,
+            animationTimingFunction: "linear",
+            animationIterationCount: "infinite",
+            animationDelay: "1s",
+            paddingLeft: "10px",
+            paddingRight: "20px",
+          });
+        }
+      }
+    };
+
+    checkOverflow();
+
+    // Recheck on window resize
+    window.addEventListener("resize", checkOverflow);
+    return () => window.removeEventListener("resize", checkOverflow);
+  }, [text]);
+
+  return (
+    <div
+      className={cn("relative whitespace-nowrap overflow-hidden", className)}
+    >
+      {isOverflowing ? (
+        <>
+          <style>{`
+            @keyframes scrollText {
+              0%, 10% {
+                transform: translateX(0);
+              }
+              90%, 100% {
+                transform: translateX(-100%);
+              }
+            }
+          `}</style>
+          <div ref={textRef} style={animationStyles}>
+            {text}
+          </div>
+        </>
+      ) : (
+        <div ref={textRef} className="text-ellipsis overflow-hidden">
+          {text}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function IpodScreen({
   currentTrack,
   isPlaying,
@@ -194,19 +264,17 @@ function IpodScreen({
             <div>Now Playing</div>
             <div className="w-6 text-xs"></div>
           </div>
-          <div className="flex-1 flex flex-col p-2">
+          <div className="flex-1 flex flex-col p-1.5 px-2">
             {currentTrack ? (
               <>
                 <div className="font-chicago text-[12px] mb-1">
                   {currentIndex + 1} of {tracksLength}
                 </div>
                 <div className="font-chicago text-[16px] mb-4 text-center">
-                  <div className="whitespace-nowrap overflow-hidden text-ellipsis">
-                    {currentTrack.title}
-                  </div>
-                  <div className="whitespace-nowrap overflow-hidden text-ellipsis">
-                    {currentTrack.artist || "Unknown Artist"}
-                  </div>
+                  <ScrollingText text={currentTrack.title} className="mb-0.5" />
+                  <ScrollingText
+                    text={currentTrack.artist || "Unknown Artist"}
+                  />
                 </div>
                 <div className="mt-auto w-full h-2 bg-gray-200 rounded-full border border-black overflow-hidden">
                   <div
