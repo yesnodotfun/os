@@ -151,6 +151,18 @@ export function TerminalAppComponent({
     }
   }, [spinnerIndex, isAiLoading]);
 
+  // Add an effect to keep focus in the input field during AI interactions
+  useEffect(() => {
+    if (isInAiMode && inputRef.current && isForeground) {
+      // Use a small timeout to allow the DOM to update first
+      const focusTimeout = setTimeout(() => {
+        inputRef.current?.focus();
+      }, 10);
+
+      return () => clearTimeout(focusTimeout);
+    }
+  }, [isInAiMode, isForeground, aiMessages, spinnerIndex]);
+
   const handleCommandSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
