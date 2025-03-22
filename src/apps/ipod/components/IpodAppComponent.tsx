@@ -890,7 +890,7 @@ export function IpodAppComponent({
 
         <div className="flex flex-col items-center justify-center w-full h-full bg-gradient-to-b from-gray-100/20 to-gray-300/20 backdrop-blur-lg p-4">
           {/* iPod device */}
-          <div className="w-[250px] h-[400px] bg-white rounded-2xl shadow-xl border border-black/40 flex flex-col items-center p-4">
+          <div className="w-[250px] h-[400px] bg-white rounded-2xl shadow-xl border border-black/40 flex flex-col items-center p-4 pb-8">
             {/* Screen */}
             <IpodScreen
               currentTrack={tracks[currentIndex] || null}
@@ -908,7 +908,7 @@ export function IpodAppComponent({
             />
 
             {/* Click Wheel */}
-            <div className="mt-8 mb-3 relative w-[180px] h-[180px] rounded-full bg-gray-200 flex items-center justify-center">
+            <div className="mt-6 relative w-[180px] h-[180px] rounded-full bg-gray-200 flex items-center justify-center">
               {/* Center button */}
               <button
                 onClick={() => handleWheelClick("center")}
@@ -953,7 +953,7 @@ export function IpodAppComponent({
               >
                 {/* Wheel labels - no click handlers */}
                 <div
-                  className="absolute top-3 left-1/2 transform -translate-x-1/2 font-chicago text-xs text-white menu-button"
+                  className="absolute top-2 left-1/2 transform -translate-x-1/2 font-chicago text-xs text-white menu-button"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleMenuButton();
