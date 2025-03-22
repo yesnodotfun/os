@@ -1139,9 +1139,9 @@ Available commands:
       filter: "blur(0px)",
       transition: {
         type: "spring",
-        stiffness: 70,
-        damping: 20,
-        mass: 1.2,
+        stiffness: 100,
+        damping: 25,
+        mass: 0.8,
       },
     },
     exit: {
@@ -1263,9 +1263,9 @@ Available commands:
                     type: "spring",
                     delay: 0.05 * (index % 3), // Stagger effect for groups of 3
                     duration: 0.3,
-                    stiffness: 65,
-                    damping: 22,
-                    mass: 1.2,
+                    stiffness: 100,
+                    damping: 25,
+                    mass: 0.8,
                   }}
                 >
                   {item.command && (
