@@ -1173,21 +1173,27 @@ export const loadLibrary = (): Track[] => {
   const videoPlaylist = loadPlaylist();
 
   // Convert Video objects to Track objects
-  return videoPlaylist.map((video) => ({
-    id: video.id,
-    url: video.url,
-    title: video.title,
-    // Try to extract artist from title (common format: "Artist - Title")
-    artist: extractArtistFromTitle(video.title),
-    album: "Shared Playlist",
-  }));
+  return videoPlaylist.map((video) => {
+    // Extract artist and title parts
+    const splitTitle = video.title.split(" - ");
+    let artist = undefined;
+    let title = video.title;
+    
+    if (splitTitle.length > 1) {
+      artist = splitTitle[0];
+      // Join the rest of the parts in case there are multiple dashes
+      title = splitTitle.slice(1).join(" - ");
+    }
+    
+    return {
+      id: video.id,
+      url: video.url,
+      title: title,
+      artist: artist,
+      album: "Shared Playlist",
+    };
+  });
 };
-
-// Helper function to extract artist from title
-function extractArtistFromTitle(title: string): string | undefined {
-  const splitTitle = title.split(" - ");
-  return splitTitle.length > 1 ? splitTitle[0] : undefined;
-}
 
 export const saveLibrary = (library: Track[]): void => {
   // Convert Track objects back to Video objects and save to videos playlist
