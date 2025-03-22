@@ -7,6 +7,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 
 export interface TerminalMenuBarProps {
   onClose: () => void;
@@ -16,6 +17,8 @@ export interface TerminalMenuBarProps {
   onIncreaseFontSize: () => void;
   onDecreaseFontSize: () => void;
   onResetFontSize: () => void;
+  onToggleMute?: () => void;
+  isMuted?: boolean;
 }
 
 export function TerminalMenuBar({
@@ -26,6 +29,8 @@ export function TerminalMenuBar({
   onIncreaseFontSize,
   onDecreaseFontSize,
   onResetFontSize,
+  onToggleMute,
+  isMuted = false,
 }: TerminalMenuBarProps) {
   return (
     <MenuBar>
@@ -94,25 +99,38 @@ export function TerminalMenuBar({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" sideOffset={1} className="px-0">
-          <DropdownMenuItem 
+          <DropdownMenuItem
             onClick={onIncreaseFontSize}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
             Increase Font Size
           </DropdownMenuItem>
-          <DropdownMenuItem 
+          <DropdownMenuItem
             onClick={onDecreaseFontSize}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
             Decrease Font Size
           </DropdownMenuItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
-          <DropdownMenuItem 
+          <DropdownMenuItem
             onClick={onResetFontSize}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
             Reset Font Size
           </DropdownMenuItem>
+          {onToggleMute && (
+            <>
+              <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
+              <DropdownMenuItem
+                onClick={onToggleMute}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+              >
+                <span className={cn(!isMuted && "pl-4")}>
+                  {isMuted ? "✓ Mute Sounds" : "Mute Sounds"}
+                </span>
+              </DropdownMenuItem>
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -145,4 +163,4 @@ export function TerminalMenuBar({
       </DropdownMenu>
     </MenuBar>
   );
-} 
+}

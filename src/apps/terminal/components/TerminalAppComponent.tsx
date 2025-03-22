@@ -17,6 +17,7 @@ import { useLaunchApp } from "@/hooks/useLaunchApp";
 import { useChat } from "ai/react";
 import { useAppContext } from "@/contexts/AppContext";
 import { AppId } from "@/config/appRegistry";
+import { useTerminalSounds } from "@/hooks/useTerminalSounds";
 
 interface CommandHistory {
   command: string;
@@ -39,6 +40,8 @@ const AVAILABLE_COMMANDS = [
   "history",
   "about",
   "ryo",
+  "ai",
+  "chat",
 ];
 
 // Helper function to parse app control markup
@@ -143,6 +146,14 @@ export function TerminalAppComponent({
 
   const launchApp = useLaunchApp();
   const { toggleApp } = useAppContext();
+
+  const {
+    playCommandSound,
+    playErrorSound,
+    playAiResponseSound,
+    toggleMute,
+    isMuted,
+  } = useTerminalSounds();
 
   // Load command history from storage
   useEffect(() => {
@@ -258,14 +269,21 @@ export function TerminalAppComponent({
     saveTerminalCommandHistory(newCommands);
 
     // Process the command
-    const output = processCommand(currentCommand);
+    const result = processCommand(currentCommand);
+
+    // Play appropriate sound based on command result
+    if (result.isError) {
+      playErrorSound();
+    } else {
+      playCommandSound();
+    }
 
     // Add to command history
     setCommandHistory([
       ...commandHistory,
       {
         command: currentCommand,
-        output,
+        output: result.output,
         path: currentPath,
       },
     ]);
@@ -412,12 +430,15 @@ export function TerminalAppComponent({
     return input; // Return original if no completions
   };
 
-  const processCommand = (command: string): string => {
+  const processCommand = (
+    command: string
+  ): { output: string; isError: boolean } => {
     const { cmd, args } = parseCommand(command);
 
     switch (cmd) {
       case "help":
-        return `
+        return {
+          output: `
 Available commands:
   help             - Show this help message
   clear            - Clear the terminal
@@ -432,30 +453,36 @@ Available commands:
   history          - Show command history
   about            - Display information about Terminal
   ryo [prompt]     - Start AI chat mode with optional initial prompt
-`;
+`,
+          isError: false,
+        };
+
       case "clear":
         // We'll handle this specially after the switch
         setTimeout(() => {
           setCommandHistory([]);
         }, 10);
-        return "";
+        return { output: "", isError: false };
 
       case "pwd":
-        return currentPath;
+        return { output: currentPath, isError: false };
 
       case "ls": {
         if (files.length === 0) {
-          return "No files found";
+          return { output: "No files found", isError: false };
         }
-        return files
-          .map((file) => (file.isDirectory ? file.name : file.name))
-          .join("\n");
+        return {
+          output: files
+            .map((file) => (file.isDirectory ? file.name : file.name))
+            .join("\n"),
+          isError: false,
+        };
       }
 
       case "cd": {
         if (args.length === 0) {
           navigateToPath("/");
-          return "";
+          return { output: "", isError: false };
         }
 
         // Handle special case for parent directory
@@ -464,7 +491,7 @@ Available commands:
           const parentPath =
             pathParts.length > 0 ? "/" + pathParts.slice(0, -1).join("/") : "/";
           navigateToPath(parentPath);
-          return "";
+          return { output: "", isError: false };
         }
 
         let newPath = args[0];
@@ -490,7 +517,7 @@ Available commands:
         // Special case for root directory
         if (normalizedPath === "/") {
           navigateToPath("/");
-          return "";
+          return { output: "", isError: false };
         }
 
         // Get files in the parent directory
@@ -510,46 +537,71 @@ Available commands:
         );
 
         if (!targetExists) {
-          return `cd: ${args[0]}: No such directory`;
+          return {
+            output: `cd: ${args[0]}: No such directory`,
+            isError: true,
+          };
         }
 
         // Directory exists, navigate to it
         navigateToPath(normalizedPath);
-        return "";
+        return { output: "", isError: false };
       }
 
       case "cat": {
         if (args.length === 0) {
-          return "Usage: cat <filename>";
+          return {
+            output: "Usage: cat <filename>",
+            isError: true,
+          };
         }
 
         const fileName = args[0];
         const file = files.find((f) => f.name === fileName);
 
         if (!file) {
-          return `File not found: ${fileName}`;
+          return {
+            output: `File not found: ${fileName}`,
+            isError: true,
+          };
         }
 
         if (file.isDirectory) {
-          return `${fileName} is a directory, not a file`;
+          return {
+            output: `${fileName} is a directory, not a file`,
+            isError: true,
+          };
         }
 
-        return file.content || `${fileName} is empty`;
+        return {
+          output: file.content || `${fileName} is empty`,
+          isError: false,
+        };
       }
 
       case "mkdir":
-        return "Command not implemented: mkdir requires filesystem write access";
+        return {
+          output:
+            "Command not implemented: mkdir requires filesystem write access",
+          isError: true,
+        };
 
       case "touch": {
         if (args.length === 0) {
-          return "Usage: touch <filename>";
+          return {
+            output: "Usage: touch <filename>",
+            isError: true,
+          };
         }
 
         const newFileName = args[0];
 
         // Check if file already exists
         if (files.find((f) => f.name === newFileName)) {
-          return `File already exists: ${newFileName}`;
+          return {
+            output: `File already exists: ${newFileName}`,
+            isError: true,
+          };
         }
 
         // Create empty file
@@ -562,39 +614,60 @@ Available commands:
           type: "text",
         });
 
-        return `Created file: ${newFileName}`;
+        return {
+          output: `Created file: ${newFileName}`,
+          isError: false,
+        };
       }
 
       case "rm": {
         if (args.length === 0) {
-          return "Usage: rm <filename>";
+          return {
+            output: "Usage: rm <filename>",
+            isError: true,
+          };
         }
 
         const fileToDelete = args[0];
         const fileObj = files.find((f) => f.name === fileToDelete);
 
         if (!fileObj) {
-          return `File not found: ${fileToDelete}`;
+          return {
+            output: `File not found: ${fileToDelete}`,
+            isError: true,
+          };
         }
 
         moveToTrash(fileObj);
-        return `Moved to trash: ${fileToDelete}`;
+        return {
+          output: `Moved to trash: ${fileToDelete}`,
+          isError: false,
+        };
       }
 
       case "edit": {
         if (args.length === 0) {
-          return "Usage: edit <filename>";
+          return {
+            output: "Usage: edit <filename>",
+            isError: true,
+          };
         }
 
         const fileToEdit = args[0];
         const fileToEditObj = files.find((f) => f.name === fileToEdit);
 
         if (!fileToEditObj) {
-          return `File not found: ${fileToEdit}`;
+          return {
+            output: `File not found: ${fileToEdit}`,
+            isError: true,
+          };
         }
 
         if (fileToEditObj.isDirectory) {
-          return `${fileToEdit} is a directory, not a file`;
+          return {
+            output: `${fileToEdit} is a directory, not a file`,
+            isError: true,
+          };
         }
 
         // Check if the file is already in Documents folder
@@ -629,26 +702,40 @@ Available commands:
         // Launch TextEdit
         launchApp("textedit");
 
-        return `Opening ${fileToEdit} in TextEdit...`;
+        return {
+          output: `Opening ${fileToEdit} in TextEdit...`,
+          isError: false,
+        };
       }
 
       case "about":
         setTimeout(() => setIsAboutDialogOpen(true), 100);
-        return "Opening About dialog...";
+        return {
+          output: "Opening About dialog...",
+          isError: false,
+        };
 
       case "history": {
         const cmdHistory = loadTerminalCommandHistory();
         if (cmdHistory.length === 0) {
-          return "No command history";
+          return {
+            output: "No command history",
+            isError: false,
+          };
         }
-        return cmdHistory
-          .map((cmd, idx) => {
-            const date = new Date(cmd.timestamp);
-            return `${idx + 1}  ${cmd.command}  # ${date.toLocaleString()}`;
-          })
-          .join("\n");
+        return {
+          output: cmdHistory
+            .map((cmd, idx) => {
+              const date = new Date(cmd.timestamp);
+              return `${idx + 1}  ${cmd.command}  # ${date.toLocaleString()}`;
+            })
+            .join("\n"),
+          isError: false,
+        };
       }
 
+      case "ai":
+      case "chat":
       case "ryo": {
         // Enter AI chat mode
         setIsInAiMode(true);
@@ -688,14 +775,23 @@ Available commands:
             content: initialPrompt,
           });
 
-          return `Entering ryo chat mode. Type 'exit' to return to terminal.\nSending initial prompt: ${initialPrompt}`;
+          return {
+            output: `Entering ryo chat mode. Type 'exit' to return to terminal.\nSending initial prompt: ${initialPrompt}`,
+            isError: false,
+          };
         }
 
-        return `Entering ryo chat mode. Type 'exit' to return to terminal.`;
+        return {
+          output: `Entering ryo chat mode. Type 'exit' to return to terminal.`,
+          isError: false,
+        };
       }
 
       default:
-        return `Command not found: ${cmd}. Type 'help' for a list of available commands.`;
+        return {
+          output: `Command not found: ${cmd}. Type 'help' for a list of available commands.`,
+          isError: true,
+        };
     }
   };
 
@@ -756,6 +852,9 @@ Available commands:
     const messageContent = lastMessage.content;
     const cleanedContent = handleAppControls(messageContent);
 
+    // Play AI response sound
+    playAiResponseSound();
+
     // Update command history by replacing the thinking message
     setCommandHistory((prev) => {
       const newHistory = [...prev];
@@ -786,11 +885,21 @@ Available commands:
 
     // Mark this message as processed
     lastProcessedMessageIdRef.current = lastMessage.id;
-  }, [aiMessages, isInAiMode, isAiLoading, launchApp, toggleApp]);
+  }, [
+    aiMessages,
+    isInAiMode,
+    isAiLoading,
+    launchApp,
+    toggleApp,
+    playAiResponseSound,
+  ]);
 
   // Function to handle commands in AI mode
   const handleAiCommand = (command: string) => {
     const lowerCommand = command.trim().toLowerCase();
+
+    // Play command sound for AI mode commands too
+    playCommandSound();
 
     // If user types 'exit' or 'quit', leave AI mode
     if (lowerCommand === "exit" || lowerCommand === "quit") {
@@ -892,6 +1001,8 @@ Available commands:
         onIncreaseFontSize={increaseFontSize}
         onDecreaseFontSize={decreaseFontSize}
         onResetFontSize={resetFontSize}
+        onToggleMute={toggleMute}
+        isMuted={isMuted}
       />
       <WindowFrame
         appId="terminal"
