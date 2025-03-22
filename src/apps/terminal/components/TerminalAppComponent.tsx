@@ -1040,18 +1040,44 @@ Available commands:
 
     // If user types 'clear', clear the chat history
     if (lowerCommand === "clear") {
-      // Keep just the welcome message
-      setCommandHistory([
+      // Stop any ongoing AI response
+      stopAiResponse();
+
+      // Reset AI messages to just the system message
+      setAiChatMessages([
         {
-          command: "",
-          output:
-            "Chat history cleared. You're still in ryo chat mode. Type 'exit' to return to terminal.",
-          path: "ai-assistant",
+          id: "system",
+          role: "system",
+          content:
+            "You are a helpful AI assistant running in a terminal on ryOS.",
         },
       ]);
 
-      // Reset any pending message processing
+      // Trigger clearing animation
+      setIsClearingTerminal(true);
+
+      // Reset animated lines to prevent typewriter effect on old content
+      setAnimatedLines(new Set());
+
+      // Reset tracking refs
       lastProcessedMessageIdRef.current = null;
+
+      // Clear launched apps tracking
+      launchedAppsRef.current.clear();
+
+      setTimeout(() => {
+        setIsClearingTerminal(false);
+        // Set command history to just the welcome message
+        setCommandHistory([
+          {
+            command: "",
+            output:
+              "Chat history cleared. You're still in ryo chat mode. Type 'exit' to return to terminal.",
+            path: "ai-assistant",
+          },
+        ]);
+      }, 300); // Short delay for animation
+
       setCurrentCommand("");
       return;
     }
@@ -1140,22 +1166,21 @@ Available commands:
         const newSet = new Set(prev);
 
         // Only animate certain types of output:
-        // - AI assistant responses
         // - Command outputs that aren't errors or help text and are reasonably sized
         // - Exclude "ls" command output
         // - Exclude welcome message
+        // - Exclude AI assistant responses (let them stream naturally)
         if (
-          item.path === "ai-assistant" ||
-          (!item.path.startsWith("ai-") &&
-            item.output &&
-            item.output.length > 0 &&
-            item.output.length < 150 &&
-            !item.output.startsWith("Command not found") &&
-            !item.output.startsWith("Usage:") &&
-            !item.output.includes("Available commands") &&
-            !item.output.includes("Welcome to ryOS Terminal") &&
-            // Don't animate ls command output
-            !(item.command && item.command.trim().startsWith("ls")))
+          !item.path.startsWith("ai-") &&
+          item.output &&
+          item.output.length > 0 &&
+          item.output.length < 150 &&
+          !item.output.startsWith("Command not found") &&
+          !item.output.startsWith("Usage:") &&
+          !item.output.includes("Available commands") &&
+          !item.output.includes("Welcome to ryOS Terminal") &&
+          // Don't animate ls command output
+          !(item.command && item.command.trim().startsWith("ls"))
         ) {
           newSet.add(newIndex);
         }
@@ -1269,15 +1294,14 @@ Available commands:
                             {" " + item.output.split(" ").slice(1).join(" ")}
                           </span>
                         </>
+                      ) : item.path === "ai-assistant" ? (
+                        // For AI responses, just display the text without typewriter animation
+                        <span className="text-purple-300">{item.output}</span>
                       ) : animatedLines.has(index) ? (
                         <TypewriterText
                           text={item.output}
-                          speed={item.path === "ai-assistant" ? 15 : 10}
-                          className={
-                            item.path === "ai-assistant"
-                              ? "text-purple-300"
-                              : ""
-                          }
+                          speed={10}
+                          className=""
                         />
                       ) : (
                         item.output
