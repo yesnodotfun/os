@@ -4,7 +4,10 @@ import { TerminalAppComponent } from "./components/TerminalAppComponent";
 export const TerminalApp: BaseApp = {
   id: "terminal",
   name: "Terminal",
-  icon: "/icons/terminal.png",
+  icon: {
+    type: "image",
+    src: "/icons/terminal.png",
+  },
   description: "A Unix-like terminal for interacting with the system",
   component: TerminalAppComponent,
   helpItems: [

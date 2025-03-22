@@ -121,19 +121,19 @@ export const appRegistry = {
       minSize: { width: 300, height: 480 },
     } as WindowConstraints,
   },
+  [TerminalApp.id]: {
+    ...TerminalApp,
+    windowConfig: {
+      defaultSize: { width: 600, height: 400 },
+      minSize: { width: 400, height: 300 },
+    } as WindowConstraints,
+  },
   [ControlPanelsApp.id]: {
     ...ControlPanelsApp,
     windowConfig: {
       defaultSize: { width: 365, height: 400 },
       minSize: { width: 320, height: 400 },
       maxSize: { width: 365, height: 600 },
-    } as WindowConstraints,
-  },
-  [TerminalApp.id]: {
-    ...TerminalApp,
-    windowConfig: {
-      defaultSize: { width: 600, height: 400 },
-      minSize: { width: 400, height: 300 },
     } as WindowConstraints,
   },
 } as const;

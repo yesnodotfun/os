@@ -13,6 +13,9 @@ export interface TerminalMenuBarProps {
   onShowHelp: () => void;
   onShowAbout: () => void;
   onClear: () => void;
+  onIncreaseFontSize: () => void;
+  onDecreaseFontSize: () => void;
+  onResetFontSize: () => void;
 }
 
 export function TerminalMenuBar({
@@ -20,6 +23,9 @@ export function TerminalMenuBar({
   onShowHelp,
   onShowAbout,
   onClear,
+  onIncreaseFontSize,
+  onDecreaseFontSize,
+  onResetFontSize,
 }: TerminalMenuBarProps) {
   return (
     <MenuBar>
@@ -88,14 +94,23 @@ export function TerminalMenuBar({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" sideOffset={1} className="px-0">
-          <DropdownMenuItem className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
+          <DropdownMenuItem 
+            onClick={onIncreaseFontSize}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
             Increase Font Size
           </DropdownMenuItem>
-          <DropdownMenuItem className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
+          <DropdownMenuItem 
+            onClick={onDecreaseFontSize}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
             Decrease Font Size
           </DropdownMenuItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
-          <DropdownMenuItem className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
+          <DropdownMenuItem 
+            onClick={onResetFontSize}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
             Reset Font Size
           </DropdownMenuItem>
         </DropdownMenuContent>

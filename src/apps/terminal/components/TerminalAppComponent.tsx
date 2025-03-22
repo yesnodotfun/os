@@ -45,6 +45,7 @@ export function TerminalAppComponent({
   const [commandHistory, setCommandHistory] = useState<CommandHistory[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [historyCommands, setHistoryCommands] = useState<string[]>([]);
+  const [fontSize, setFontSize] = useState(14); // Default font size in pixels
   
   const inputRef = useRef<HTMLInputElement>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
@@ -394,6 +395,22 @@ Available commands:
     }
   };
 
+  const increaseFontSize = () => {
+    if (fontSize < 24) {
+      setFontSize(prevSize => prevSize + 2);
+    }
+  };
+
+  const decreaseFontSize = () => {
+    if (fontSize > 10) {
+      setFontSize(prevSize => prevSize - 2);
+    }
+  };
+
+  const resetFontSize = () => {
+    setFontSize(14); // Reset to default
+  };
+
   if (!isWindowOpen) return null;
 
   return (
@@ -403,6 +420,9 @@ Available commands:
         onShowHelp={() => setIsHelpDialogOpen(true)}
         onShowAbout={() => setIsAboutDialogOpen(true)}
         onClear={() => setCommandHistory([])}
+        onIncreaseFontSize={increaseFontSize}
+        onDecreaseFontSize={decreaseFontSize}
+        onResetFontSize={resetFontSize}
       />
       <WindowFrame
         appId="terminal"
@@ -410,7 +430,7 @@ Available commands:
         onClose={onClose}
         isForeground={isForeground}
       >
-        <div className="flex flex-col h-full w-full bg-black text-white font-mono text-sm p-2 overflow-hidden">
+        <div className="flex flex-col h-full w-full bg-black text-white font-mono p-2 overflow-hidden" style={{ fontSize: `${fontSize}px` }}>
           <div 
             ref={terminalRef}
             className="flex-1 overflow-auto whitespace-pre-wrap"
@@ -436,6 +456,7 @@ Available commands:
               onChange={(e) => setCurrentCommand(e.target.value)}
               onKeyDown={handleKeyDown}
               className="flex-1 bg-black text-white focus:outline-none"
+              style={{ fontSize: `${fontSize}px` }}
               autoFocus
             />
           </form>
