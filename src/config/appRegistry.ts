@@ -10,6 +10,7 @@ import { VideosApp } from "@/apps/videos";
 import { PcApp } from "@/apps/pc";
 import { PhotoBoothApp } from "@/apps/photo-booth";
 import { SynthApp } from "@/apps/synth";
+import { IpodApp } from "@/apps/ipod";
 
 export interface WindowSize {
   width: number;
@@ -118,6 +119,14 @@ export const appRegistry = {
       defaultSize: { width: 365, height: 400 },
       minSize: { width: 320, height: 400 },
       maxSize: { width: 365, height: 600 },
+    } as WindowConstraints,
+  },
+  [IpodApp.id]: {
+    ...IpodApp,
+    windowConfig: {
+      defaultSize: { width: 300, height: 480 },
+      minSize: { width: 300, height: 480 },
+      maxSize: { width: 300, height: 480 },
     } as WindowConstraints,
   },
 } as const;

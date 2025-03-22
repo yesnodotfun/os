@@ -99,6 +99,15 @@ export const APP_STORAGE_KEYS = {
     CURRENT_PRESET: "synth:currentPreset" as const,
     LABEL_TYPE: "synth:labelType" as const,
   },
+  ipod: {
+    WINDOW: "ipod:window" as const,
+    HAS_SEEN_HELP: "ipod:hasSeenHelp" as const,
+    LIBRARY: "ipod:library" as const,
+    CURRENT_INDEX: "ipod:currentIndex" as const,
+    IS_LOOP_ALL: "ipod:isLoopAll" as const,
+    IS_LOOP_CURRENT: "ipod:isLoopCurrent" as const,
+    IS_SHUFFLED: "ipod:isShuffled" as const,
+  },
 } as const;
 
 interface WindowState {
@@ -684,6 +693,14 @@ export const clearAllAppStates = (): void => {
 
   // Clear display mode
   localStorage.removeItem("displayMode");
+
+  localStorage.removeItem(APP_STORAGE_KEYS.ipod.WINDOW);
+  localStorage.removeItem(APP_STORAGE_KEYS.ipod.HAS_SEEN_HELP);
+  localStorage.removeItem(APP_STORAGE_KEYS.ipod.LIBRARY);
+  localStorage.removeItem(APP_STORAGE_KEYS.ipod.CURRENT_INDEX);
+  localStorage.removeItem(APP_STORAGE_KEYS.ipod.IS_LOOP_ALL);
+  localStorage.removeItem(APP_STORAGE_KEYS.ipod.IS_LOOP_CURRENT);
+  localStorage.removeItem(APP_STORAGE_KEYS.ipod.IS_SHUFFLED);
 };
 
 const SYNTH_PRESET_KEY = "synthPreset";
@@ -1130,4 +1147,115 @@ export const loadSynthLabelType = (): "note" | "key" | "off" => {
 
 export const saveSynthLabelType = (labelType: "note" | "key" | "off"): void => {
   localStorage.setItem(APP_STORAGE_KEYS.synth.LABEL_TYPE, labelType);
+};
+
+// iPod library storage
+export interface Track {
+  id: string;
+  url: string;
+  title: string;
+  artist?: string;
+  album?: string;
+}
+
+export const DEFAULT_TRACKS: Track[] = [
+  {
+    id: "In7e1knX7rQ",
+    url: "https://www.youtube.com/watch?v=In7e1knX7rQ",
+    title: "NJZ - ETA/MTLA (feat. E SENS 이센스)",
+    artist: "NJZ",
+    album: "Singles",
+  },
+  {
+    id: "WpqXjRrZqa0",
+    url: "https://www.youtube.com/watch?v=WpqXjRrZqa0",
+    title: "NJZ - Cool with You (2025)",
+    artist: "NJZ",
+    album: "Singles",
+  },
+  {
+    id: "YYyskjq1vSc",
+    url: "https://www.youtube.com/watch?v=YYyskjq1vSc",
+    title: "NJZ - New Jeans (2025)",
+    artist: "NJZ",
+    album: "Singles",
+  },
+  {
+    id: "hgNJ_qy6LCw",
+    url: "https://www.youtube.com/watch?v=hgNJ_qy6LCw",
+    title: "NJZ - ASAP",
+    artist: "NJZ",
+    album: "Singles",
+  },
+  {
+    id: "ZncbtRo7RXs",
+    url: "https://www.youtube.com/watch?v=ZncbtRo7RXs",
+    title: "NewJeans - Supernatural (Part.1)",
+    artist: "NewJeans",
+    album: "Singles",
+  },
+  {
+    id: "FonjL7DQAUQ",
+    url: "https://www.youtube.com/watch?v=FonjL7DQAUQ",
+    title: "deca joins - 海浪 (Waves)",
+    artist: "deca joins",
+    album: "Singles",
+  },
+  {
+    id: "Rk6aQvlmsWo",
+    url: "https://www.youtube.com/watch?v=Rk6aQvlmsWo",
+    title: "grentperez & Ruel - Dandelion",
+    artist: "grentperez & Ruel",
+    album: "Singles",
+  },
+];
+
+export const loadLibrary = (): Track[] => {
+  const saved = localStorage.getItem(APP_STORAGE_KEYS.ipod.LIBRARY);
+  return saved ? JSON.parse(saved) : DEFAULT_TRACKS;
+};
+
+export const saveLibrary = (library: Track[]): void => {
+  localStorage.setItem(APP_STORAGE_KEYS.ipod.LIBRARY, JSON.stringify(library));
+};
+
+export const loadIpodCurrentIndex = (): number => {
+  const saved = localStorage.getItem(APP_STORAGE_KEYS.ipod.CURRENT_INDEX);
+  return saved ? parseInt(saved) : 0;
+};
+
+export const saveIpodCurrentIndex = (index: number): void => {
+  localStorage.setItem(APP_STORAGE_KEYS.ipod.CURRENT_INDEX, index.toString());
+};
+
+export const loadIpodIsLoopAll = (): boolean => {
+  const saved = localStorage.getItem(APP_STORAGE_KEYS.ipod.IS_LOOP_ALL);
+  return saved === null ? true : saved === "true";
+};
+
+export const saveIpodIsLoopAll = (isLoopAll: boolean): void => {
+  localStorage.setItem(APP_STORAGE_KEYS.ipod.IS_LOOP_ALL, isLoopAll.toString());
+};
+
+export const loadIpodIsLoopCurrent = (): boolean => {
+  return localStorage.getItem(APP_STORAGE_KEYS.ipod.IS_LOOP_CURRENT) === "true";
+};
+
+export const saveIpodIsLoopCurrent = (isLoopCurrent: boolean): void => {
+  localStorage.setItem(
+    APP_STORAGE_KEYS.ipod.IS_LOOP_CURRENT,
+    isLoopCurrent.toString()
+  );
+};
+
+export const loadIpodIsShuffled = (): boolean => {
+  const saved = localStorage.getItem(APP_STORAGE_KEYS.ipod.IS_SHUFFLED);
+  return saved === null ? false : saved === "true";
+};
+
+export const saveIpodIsShuffled = (isShuffled: boolean): void => {
+  localStorage.setItem(
+    APP_STORAGE_KEYS.ipod.IS_SHUFFLED,
+    isShuffled.toString()
+  );
 };

@@ -47,7 +47,7 @@
     "three": "^0.174.0",
     "tippy.js": "^6.3.7",
     "tone": "^15.0.4",
-    "vercel": "^41.3.2",
+    "vercel": "^41.4.1",
     "wavesurfer.js": "^7.9.0"
   },
   "devDependencies": {
