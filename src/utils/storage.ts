@@ -769,58 +769,69 @@ export interface Video {
   id: string;
   url: string;
   title: string;
+  artist?: string;
 }
 
 export const DEFAULT_VIDEOS: Video[] = [
   {
     id: "In7e1knX7rQ",
     url: "https://www.youtube.com/watch?v=In7e1knX7rQ",
-    title: "NJZ - ETA/MTLA (feat. E SENS 이센스)",
+    title: "ETA/MTLA (feat. E SENS 이센스)",
+    artist: "NJZ",
   },
   {
     id: "WpqXjRrZqa0",
     url: "https://www.youtube.com/watch?v=WpqXjRrZqa0",
-    title: "NJZ - Cool with You (2025)",
+    title: "Cool with You (2025)",
+    artist: "NJZ",
   },
   {
     id: "YYyskjq1vSc",
     url: "https://www.youtube.com/watch?v=YYyskjq1vSc",
-    title: "NJZ - New Jeans (2025)",
+    title: "New Jeans (2025)",
+    artist: "NJZ",
   },
   {
     id: "hgNJ_qy6LCw",
     url: "https://www.youtube.com/watch?v=hgNJ_qy6LCw",
-    title: "NJZ - ASAP",
+    title: "ASAP",
+    artist: "NJZ",
   },
   {
     id: "ZncbtRo7RXs",
     url: "https://www.youtube.com/watch?v=ZncbtRo7RXs",
-    title: "NewJeans (뉴진스) - Supernatural (Part.1)",
+    title: "Supernatural (Part.1)",
+    artist: "NewJeans (뉴진스)",
   },
   {
     id: "FonjL7DQAUQ",
     url: "https://www.youtube.com/watch?v=FonjL7DQAUQ",
-    title: "deca joins - 海浪 (Waves)",
+    title: "海浪 (Waves)",
+    artist: "deca joins",
   },
   {
     id: "Rk6aQvlmsWo",
     url: "https://www.youtube.com/watch?v=Rk6aQvlmsWo",
-    title: "grentperez & Ruel - Dandelion",
+    title: "Dandelion",
+    artist: "grentperez & Ruel",
   },
   {
     id: "DskqpUrvlmw",
     url: "https://www.youtube.com/watch?v=DskqpUrvlmw",
-    title: "STAYC (스테이씨) - GPT",
+    title: "GPT",
+    artist: "STAYC (스테이씨)",
   },
   {
     id: "osNYssIep5w",
     url: "https://www.youtube.com/watch?v=osNYssIep5w",
-    title: "JENNIE - Mantra (House Remix)",
+    title: "Mantra (House Remix)",
+    artist: "JENNIE",
   },
   {
     id: "PICpEtPHyZI",
     url: "https://www.youtube.com/watch?v=PICpEtPHyZI",
-    title: "JENNIE, Childish Gambino, Kali Uchis - Damn Right",
+    title: "Damn Right",
+    artist: "JENNIE, Childish Gambino, Kali Uchis",
   },
 ];
 
@@ -1174,34 +1185,61 @@ export const loadLibrary = (): Track[] => {
 
   // Convert Video objects to Track objects
   return videoPlaylist.map((video) => {
-    // Extract artist and title parts
-    const splitTitle = video.title.split(" - ");
-    let artist = undefined;
-    let title = video.title;
-    
-    if (splitTitle.length > 1) {
-      artist = splitTitle[0];
-      // Join the rest of the parts in case there are multiple dashes
-      title = splitTitle.slice(1).join(" - ");
+    // If video already has an artist field, use it
+    if (video.artist) {
+      // Extract just the title part (remove artist prefix if present)
+      let title = video.title;
+      if (video.title.startsWith(video.artist + " - ")) {
+        title = video.title.substring(video.artist.length + 3);
+      }
+      
+      return {
+        id: video.id,
+        url: video.url,
+        title: title,
+        artist: video.artist,
+        album: "Shared Playlist",
+      };
+    } 
+    // Otherwise, extract artist and title from the title field
+    else {
+      // Extract artist and title parts
+      const splitTitle = video.title.split(" - ");
+      let artist = undefined;
+      let title = video.title;
+      
+      if (splitTitle.length > 1) {
+        artist = splitTitle[0];
+        // Join the rest of the parts in case there are multiple dashes
+        title = splitTitle.slice(1).join(" - ");
+      }
+      
+      return {
+        id: video.id,
+        url: video.url,
+        title: title,
+        artist: artist,
+        album: "Shared Playlist",
+      };
     }
-    
-    return {
-      id: video.id,
-      url: video.url,
-      title: title,
-      artist: artist,
-      album: "Shared Playlist",
-    };
   });
 };
 
 export const saveLibrary = (library: Track[]): void => {
   // Convert Track objects back to Video objects and save to videos playlist
-  const videoPlaylist = library.map((track) => ({
-    id: track.id,
-    url: track.url,
-    title: track.title,
-  }));
+  const videoPlaylist = library.map((track) => {
+    // When saving back, reconstruct the full title as "Artist - Title" format if possible
+    let fullTitle = track.title;
+    if (track.artist) {
+      fullTitle = `${track.artist} - ${track.title}`;
+    }
+    
+    return {
+      id: track.id,
+      url: track.url,
+      title: fullTitle,
+    };
+  });
 
   savePlaylist(videoPlaylist);
 };
