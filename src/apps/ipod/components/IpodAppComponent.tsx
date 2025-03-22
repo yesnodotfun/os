@@ -20,7 +20,7 @@ import {
   saveIpodIsLoopCurrent,
   loadIpodIsShuffled,
   saveIpodIsShuffled,
-  DEFAULT_TRACKS,
+  loadPlaylist,
   Track,
 } from "@/utils/storage";
 import { useSound, Sounds } from "@/hooks/useSound";
@@ -531,7 +531,7 @@ export function IpodAppComponent({
             Math.min(menuItems.length - 1, selectedMenuItem + 1)
           );
         } else {
-          setIsPlaying(false);
+          togglePlay();
         }
         break;
       case "left":
@@ -759,8 +759,26 @@ export function IpodAppComponent({
           isOpen={isConfirmResetOpen}
           onOpenChange={setIsConfirmResetOpen}
           onConfirm={() => {
-            setTracks(DEFAULT_TRACKS);
-            setOriginalOrder(DEFAULT_TRACKS);
+            // Use the videos default playlist
+            const defaultTracks = loadPlaylist();
+            setTracks(
+              defaultTracks.map((video) => ({
+                id: video.id,
+                url: video.url,
+                title: video.title,
+                artist: video.title.split(" - ")[0] || undefined,
+                album: "Shared Playlist",
+              }))
+            );
+            setOriginalOrder(
+              defaultTracks.map((video) => ({
+                id: video.id,
+                url: video.url,
+                title: video.title,
+                artist: video.title.split(" - ")[0] || undefined,
+                album: "Shared Playlist",
+              }))
+            );
             setCurrentIndex(0);
             setIsPlaying(false);
             setIsConfirmResetOpen(false);
