@@ -61,6 +61,13 @@ export const appRegistry = {
       minSize: { width: 280, height: 320 },
     } as WindowConstraints,
   },
+  [TextEditApp.id]: {
+    ...TextEditApp,
+    windowConfig: {
+      defaultSize: { width: 368, height: 475 },
+      minSize: { width: 368, height: 200 },
+    } as WindowConstraints,
+  },
   [PaintApp.id]: {
     ...PaintApp,
     windowConfig: {
@@ -77,6 +84,14 @@ export const appRegistry = {
       maxSize: { width: 644, height: 510 },
     } as WindowConstraints,
   },
+  [MinesweeperApp.id]: {
+    ...MinesweeperApp,
+    windowConfig: {
+      defaultSize: { width: 305, height: 400 },
+      minSize: { width: 305, height: 400 },
+      maxSize: { width: 305, height: 400 },
+    } as WindowConstraints,
+  },
   [VideosApp.id]: {
     ...VideosApp,
     windowConfig: {
@@ -84,27 +99,11 @@ export const appRegistry = {
       minSize: { width: 400, height: 340 },
     } as WindowConstraints,
   },
-  [PcApp.id]: {
-    ...PcApp,
+  [IpodApp.id]: {
+    ...IpodApp,
     windowConfig: {
-      defaultSize: { width: 645, height: 511 },
-      minSize: { width: 645, height: 511 },
-      maxSize: { width: 645, height: 511 },
-    } as WindowConstraints,
-  },
-  [TextEditApp.id]: {
-    ...TextEditApp,
-    windowConfig: {
-      defaultSize: { width: 368, height: 475 },
-      minSize: { width: 368, height: 200 },
-    } as WindowConstraints,
-  },
-  [MinesweeperApp.id]: {
-    ...MinesweeperApp,
-    windowConfig: {
-      defaultSize: { width: 305, height: 400 },
-      minSize: { width: 305, height: 400 },
-      maxSize: { width: 305, height: 400 },
+      defaultSize: { width: 300, height: 480 },
+      minSize: { width: 300, height: 480 },
     } as WindowConstraints,
   },
   [SynthApp.id]: {
@@ -114,11 +113,12 @@ export const appRegistry = {
       minSize: { width: 720, height: 290 },
     } as WindowConstraints,
   },
-  [IpodApp.id]: {
-    ...IpodApp,
+  [PcApp.id]: {
+    ...PcApp,
     windowConfig: {
-      defaultSize: { width: 300, height: 480 },
-      minSize: { width: 300, height: 480 },
+      defaultSize: { width: 645, height: 511 },
+      minSize: { width: 645, height: 511 },
+      maxSize: { width: 645, height: 511 },
     } as WindowConstraints,
   },
   [TerminalApp.id]: {

@@ -249,7 +249,7 @@ export function TerminalAppComponent({
     useFileSystem(loadTerminalCurrentPath());
 
   const launchApp = useLaunchApp();
-  const { toggleApp } = useAppContext();
+  const { toggleApp, bringToForeground } = useAppContext();
 
   const {
     playCommandSound,
@@ -1234,6 +1234,9 @@ Available commands:
             onClick={(e) => {
               e.stopPropagation();
               inputRef.current?.focus();
+              if (!isForeground) {
+                bringToForeground("terminal");
+              }
             }}
           >
             <AnimatePresence initial={false} mode="sync">
@@ -1289,7 +1292,7 @@ Available commands:
                       } ${item.path === "ai-error" ? "text-red-400" : ""}`}
                     >
                       {item.path === "ai-thinking" ? (
-                        <>
+                        <div>
                           <span className="text-gray-400">
                             {item.output.split(" ")[0]}
                           </span>
@@ -1297,7 +1300,7 @@ Available commands:
                             {" thinking"}
                             <AnimatedEllipsis />
                           </span>
-                        </>
+                        </div>
                       ) : item.path === "ai-assistant" ? (
                         <span className="text-purple-300">{item.output}</span>
                       ) : animatedLines.has(index) ? (
@@ -1316,8 +1319,11 @@ Available commands:
             </AnimatePresence>
             {isAiLoading && isInAiMode && (
               <div className="mb-1">
+                <span className="text-gray-400">
+                  {spinnerChars[spinnerIndex]}
+                </span>
                 <span className="text-gray-400 italic shimmer">
-                  {spinnerChars[spinnerIndex]} thinking
+                  {" thinking"}
                   <AnimatedEllipsis />
                 </span>
               </div>
