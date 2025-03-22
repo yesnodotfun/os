@@ -265,12 +265,12 @@ export function TerminalAppComponent({
     }
   }, [commandHistory, currentCommand]);
 
-  // Focus input when window is opened or brought to foreground
+  // Simplify to a single focus effect
   useEffect(() => {
-    if (isWindowOpen && isForeground && inputRef.current) {
+    if (inputRef.current && isForeground) {
       inputRef.current.focus();
     }
-  }, [isWindowOpen, isForeground]);
+  }, [isForeground, commandHistory]);
 
   // Save current path when it changes
   useEffect(() => {
@@ -287,29 +287,6 @@ export function TerminalAppComponent({
       return () => clearInterval(interval);
     }
   }, [isAiLoading, spinnerChars.length]);
-
-  // Update thinking message with spinner
-  useEffect(() => {
-    if (isAiLoading) {
-      const interval = setInterval(() => {
-        setSpinnerIndex((prevIndex) => (prevIndex + 1) % spinnerChars.length);
-      }, 100);
-
-      return () => clearInterval(interval);
-    }
-  }, [isAiLoading, spinnerChars.length]);
-
-  // Add an effect to keep focus in the input field during AI interactions
-  useEffect(() => {
-    if (isInAiMode && inputRef.current && isForeground) {
-      // Use a small timeout to allow the DOM to update first
-      const focusTimeout = setTimeout(() => {
-        inputRef.current?.focus();
-      }, 10);
-
-      return () => clearTimeout(focusTimeout);
-    }
-  }, [isInAiMode, isForeground, aiMessages, spinnerIndex]);
 
   const [isClearingTerminal, setIsClearingTerminal] = useState(false);
 
@@ -1234,7 +1211,10 @@ Available commands:
           <div
             ref={terminalRef}
             className="flex-1 overflow-auto whitespace-pre-wrap"
-            onClick={() => inputRef.current?.focus()}
+            onClick={(e) => {
+              e.stopPropagation();
+              inputRef.current?.focus();
+            }}
           >
             <AnimatePresence initial={false} mode="popLayout">
               {commandHistory.map((item, index) => (
@@ -1295,7 +1275,6 @@ Available commands:
                           </span>
                         </>
                       ) : item.path === "ai-assistant" ? (
-                        // For AI responses, just display the text without typewriter animation
                         <span className="text-purple-300">{item.output}</span>
                       ) : animatedLines.has(index) ? (
                         <TypewriterText
@@ -1337,7 +1316,6 @@ Available commands:
                 className="flex-1 text-white focus:outline-none"
                 style={{ fontSize: `${fontSize}px` }}
                 autoFocus
-                disabled={isAiLoading}
               />
             </form>
           </div>
