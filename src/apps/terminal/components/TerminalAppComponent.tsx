@@ -15,6 +15,8 @@ import {
 } from "@/utils/storage";
 import { useLaunchApp } from "@/hooks/useLaunchApp";
 import { useChat } from "ai/react";
+import { useAppContext } from "@/contexts/AppContext";
+import { AppId } from "@/config/appRegistry";
 
 interface CommandHistory {
   command: string;
@@ -39,6 +41,60 @@ const AVAILABLE_COMMANDS = [
   "ai",
 ];
 
+// Helper function to parse app control markup
+const parseAppControlMarkup = (
+  message: string
+): {
+  type: "launch" | "close";
+  id: string;
+}[] => {
+  const operations: { type: "launch" | "close"; id: string }[] = [];
+
+  try {
+    // Find all app control tags
+    const launchRegex = /<app:launch\s+id\s*=\s*"([^"]+)"\s*\/>/g;
+    const closeRegex = /<app:close\s+id\s*=\s*"([^"]+)"\s*\/>/g;
+
+    // Find all launch operations
+    let match;
+    while ((match = launchRegex.exec(message)) !== null) {
+      operations.push({
+        type: "launch" as const,
+        id: match[1],
+      });
+    }
+
+    // Find all close operations
+    while ((match = closeRegex.exec(message)) !== null) {
+      operations.push({
+        type: "close" as const,
+        id: match[1],
+      });
+    }
+  } catch (error) {
+    console.error("Error parsing app control markup:", error);
+  }
+
+  return operations;
+};
+
+// Helper function to clean app control markup from message
+const cleanAppControlMarkup = (message: string): string => {
+  // Replace launch tags with human readable text
+  message = message.replace(
+    /<app:launch\s+id\s*=\s*"([^"]+)"\s*\/>/g,
+    (_match, id) => `*opened ${id}*`
+  );
+
+  // Replace close tags with human readable text
+  message = message.replace(
+    /<app:close\s+id\s*=\s*"([^"]+)"\s*\/>/g,
+    (_match, id) => `*closed ${id}*`
+  );
+
+  return message.trim();
+};
+
 export function TerminalAppComponent({
   onClose,
   isWindowOpen,
@@ -54,6 +110,11 @@ export function TerminalAppComponent({
   const [isInAiMode, setIsInAiMode] = useState(false);
   const [spinnerIndex, setSpinnerIndex] = useState(0);
   const spinnerChars = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+
+  // Keep track of the last processed message ID to avoid duplicates
+  const lastProcessedMessageIdRef = useRef<string | null>(null);
+  // Keep track of apps already launched in the current session
+  const launchedAppsRef = useRef<Set<string>>(new Set());
 
   // Add useChat hook
   const {
@@ -81,6 +142,7 @@ export function TerminalAppComponent({
     useFileSystem(loadTerminalCurrentPath());
 
   const launchApp = useLaunchApp();
+  const { toggleApp } = useAppContext();
 
   // Load command history from storage
   useEffect(() => {
@@ -144,6 +206,14 @@ export function TerminalAppComponent({
             ...newHistory[thinkingIndex],
             output: `${spinnerChars[spinnerIndex]} thinking...`,
           };
+        } else {
+          // If there's no thinking message but we're loading, add one
+          // This ensures there's always a thinking message when loading
+          newHistory.push({
+            command: "",
+            output: `${spinnerChars[spinnerIndex]} thinking...`,
+            path: "ai-thinking",
+          });
         }
 
         return newHistory;
@@ -590,6 +660,95 @@ Available commands:
     }
   };
 
+  // Function to handle app controls
+  const handleAppControls = (messageContent: string) => {
+    if (!/<app:(launch|close)/i.test(messageContent)) {
+      return messageContent;
+    }
+
+    const operations = parseAppControlMarkup(messageContent);
+    if (operations.length === 0) {
+      return messageContent;
+    }
+
+    // Execute app control operations - but only once per app
+    operations.forEach((op) => {
+      if (op.type === "launch") {
+        // Only launch each app once
+        if (!launchedAppsRef.current.has(op.id)) {
+          launchApp(op.id as AppId);
+          launchedAppsRef.current.add(op.id);
+        }
+      } else if (op.type === "close") {
+        toggleApp(op.id);
+        // Remove from launched apps so it can be launched again later
+        launchedAppsRef.current.delete(op.id);
+      }
+    });
+
+    // Clean the message content of markup
+    return cleanAppControlMarkup(messageContent);
+  };
+
+  // Reset launched apps when leaving AI mode
+  useEffect(() => {
+    if (!isInAiMode) {
+      launchedAppsRef.current.clear();
+    }
+  }, [isInAiMode]);
+
+  // Watch for changes in the AI messages to update the terminal display
+  useEffect(() => {
+    if (!isInAiMode || aiMessages.length <= 1) return;
+
+    // Get the most recent assistant message
+    const lastMessage = aiMessages[aiMessages.length - 1];
+
+    // Skip if this isn't a new assistant message or if we're still loading
+    if (
+      lastMessage.role !== "assistant" ||
+      lastMessage.id === lastProcessedMessageIdRef.current ||
+      isAiLoading
+    ) {
+      return;
+    }
+
+    // Process the message and handle app controls
+    const messageContent = lastMessage.content;
+    const cleanedContent = handleAppControls(messageContent);
+
+    // Update command history by replacing the thinking message
+    setCommandHistory((prev) => {
+      const newHistory = [...prev];
+
+      // Find the most recent "thinking..." message
+      const thinkingIndex = newHistory
+        .map((item) => item.path)
+        .lastIndexOf("ai-thinking");
+
+      if (thinkingIndex !== -1) {
+        // Replace the thinking message with the assistant's response
+        newHistory[thinkingIndex] = {
+          command: "",
+          output: cleanedContent,
+          path: "ai-assistant",
+        };
+      } else {
+        // If no thinking message found, append the response
+        newHistory.push({
+          command: "",
+          output: cleanedContent,
+          path: "ai-assistant",
+        });
+      }
+
+      return newHistory;
+    });
+
+    // Mark this message as processed
+    lastProcessedMessageIdRef.current = lastMessage.id;
+  }, [aiMessages, isInAiMode, isAiLoading, launchApp, toggleApp]);
+
   // Function to handle commands in AI mode
   const handleAiCommand = (command: string) => {
     // If user types 'exit', leave AI mode
@@ -604,6 +763,10 @@ Available commands:
             "You are a helpful AI assistant running in a terminal on ryOS.",
         },
       ]);
+
+      // Reset tracking refs
+      lastProcessedMessageIdRef.current = null;
+      launchedAppsRef.current.clear();
 
       // Add exit command to history
       setCommandHistory([
@@ -643,67 +806,6 @@ Available commands:
     // Clear current command
     setCurrentCommand("");
   };
-
-  // Watch for changes in the AI messages to update the terminal display
-  useEffect(() => {
-    if (isInAiMode && aiMessages.length > 1) {
-      // Get the most recent assistant message
-      const lastUserMessageIndex = aiMessages
-        .map((m) => m.role)
-        .lastIndexOf("user");
-
-      if (
-        lastUserMessageIndex !== -1 &&
-        lastUserMessageIndex < aiMessages.length - 1
-      ) {
-        const assistantMessage = aiMessages[aiMessages.length - 1];
-
-        if (assistantMessage.role === "assistant") {
-          // Replace the most recent "thinking..." message with the actual response
-          setCommandHistory((prev) => {
-            const newHistory = [...prev];
-
-            // Find the most recent "thinking..." message (search from the end)
-            const thinkingIndex = newHistory
-              .map((item) => item.path)
-              .lastIndexOf("ai-thinking");
-
-            if (thinkingIndex !== -1) {
-              // Replace the most recent "thinking..." with the assistant's response
-              newHistory[thinkingIndex] = {
-                command: "",
-                output: assistantMessage.content,
-                path: "ai-assistant",
-              };
-            } else {
-              // Check if we already have an assistant message we should update
-              const assistantIndex = newHistory
-                .map((item) => item.path)
-                .lastIndexOf("ai-assistant");
-
-              if (assistantIndex !== -1) {
-                // Update the existing assistant message
-                newHistory[assistantIndex] = {
-                  command: "",
-                  output: assistantMessage.content,
-                  path: "ai-assistant",
-                };
-              } else {
-                // If no thinking or assistant message found, append a new one
-                newHistory.push({
-                  command: "",
-                  output: assistantMessage.content,
-                  path: "ai-assistant",
-                });
-              }
-            }
-
-            return newHistory;
-          });
-        }
-      }
-    }
-  }, [aiMessages, isInAiMode]);
 
   const increaseFontSize = () => {
     if (fontSize < 24) {
