@@ -38,7 +38,7 @@ const AVAILABLE_COMMANDS = [
   "edit",
   "history",
   "about",
-  "ai",
+  "ryo",
 ];
 
 // Helper function to parse app control markup
@@ -431,7 +431,7 @@ Available commands:
   edit <file>      - Open file in TextEdit
   history          - Show command history
   about            - Display information about Terminal
-  ai [prompt]      - Start AI chat mode with optional initial prompt
+  ryo [prompt]     - Start AI chat mode with optional initial prompt
 `;
       case "clear":
         // We'll handle this specially after the switch
@@ -610,7 +610,7 @@ Available commands:
           .join("\n");
       }
 
-      case "ai": {
+      case "ryo": {
         // Enter AI chat mode
         setIsInAiMode(true);
 
@@ -638,7 +638,7 @@ Available commands:
             },
             {
               command: "",
-              output: "thinking...",
+              output: `${spinnerChars[spinnerIndex]} thinking...`,
               path: "ai-thinking",
             },
           ]);
@@ -649,10 +649,10 @@ Available commands:
             content: initialPrompt,
           });
 
-          return `Entering AI chat mode. Type 'exit' to return to terminal.\nSending initial prompt: ${initialPrompt}`;
+          return `Entering ryo chat mode. Type 'exit' to return to terminal.\nSending initial prompt: ${initialPrompt}`;
         }
 
-        return `Entering AI chat mode. Type 'exit' to return to terminal.`;
+        return `Entering ryo chat mode. Type 'exit' to return to terminal.`;
       }
 
       default:
