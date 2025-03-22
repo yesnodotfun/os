@@ -294,7 +294,7 @@ function IpodScreen({
                 <div className="font-chicago text-[16px] mb-4 text-center">
                   <ScrollingText text={currentTrack.title} className="mb-0.5" isPlaying={isPlaying} />
                   <ScrollingText
-                    text={currentTrack.artist || "Unknown Artist"}
+                    text={currentTrack.artist || ""}
                     isPlaying={isPlaying}
                   />
                 </div>
@@ -878,7 +878,7 @@ export function IpodAppComponent({
             />
 
             {/* Click Wheel */}
-            <div className="mt-8 relative w-[180px] h-[180px] rounded-full bg-gray-200 flex items-center justify-center">
+            <div className="mt-8 mb-2 relative w-[180px] h-[180px] rounded-full bg-gray-200 flex items-center justify-center">
               {/* Center button */}
               <button
                 onClick={() => handleWheelClick("center")}
