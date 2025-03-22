@@ -18,6 +18,7 @@ interface WindowFrameProps {
   isForeground?: boolean;
   appId: keyof typeof APP_STORAGE_KEYS;
   isShaking?: boolean;
+  transparentBackground?: boolean;
   windowConstraints?: {
     minWidth?: number;
     minHeight?: number;
@@ -33,6 +34,7 @@ export function WindowFrame({
   isForeground = true,
   isShaking = false,
   appId,
+  transparentBackground = false,
   windowConstraints = {},
 }: WindowFrameProps) {
   const config = getWindowConfig(appId);
@@ -487,18 +489,22 @@ export function WindowFrame({
 
         <div
           className={cn(
-            "w-full h-full flex flex-col bg-system7-window-bg border-[2px] border-black rounded-lg overflow-hidden",
+            "w-full h-full flex flex-col border-[2px] border-black rounded-lg overflow-hidden",
+            !transparentBackground && "bg-system7-window-bg",
             isForeground ? "shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)]" : ""
           )}
           style={getSwipeStyle()}
         >
           {/* Title bar */}
           <div
-            className={`flex items-center shrink-0 h-6 min-h-6 mx-0 my-[0.1rem] px-[0.1rem] py-[0.2rem] select-none ${
+            className={cn(
+              "flex items-center shrink-0 h-6 min-h-6 mx-0 my-[0.1rem] px-[0.1rem] py-[0.2rem] select-none cursor-move border-b-[2px]",
               isForeground
-                ? "bg-[linear-gradient(#000_50%,transparent_0)] bg-clip-content bg-[length:6.6666666667%_13.3333333333%] border-b-black"
+                ? transparentBackground
+                  ? "bg-white border-b-black"
+                  : "bg-white bg-[linear-gradient(#000_50%,transparent_0)] bg-clip-content bg-[length:6.6666666667%_13.3333333333%] border-b-black"
                 : "bg-white border-b-gray-400"
-            } cursor-move border-b-[2px]`}
+            )}
             onMouseDown={handleMouseDown}
             onTouchStart={(e: React.TouchEvent<HTMLElement>) => {
               handleMouseDown(e);

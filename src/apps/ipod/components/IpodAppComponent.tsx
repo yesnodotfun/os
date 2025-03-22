@@ -46,7 +46,7 @@ async function fetchTrackInfo(videoId: string): Promise<TrackInfo> {
   // Try to extract artist and song title (common format: "Artist - Title")
   let artist;
   let title = fullTitle; // Default to full title if we can't parse it
-  
+
   const splitTitle = fullTitle.split(" - ");
   if (splitTitle.length > 1) {
     artist = splitTitle[0];
@@ -180,19 +180,16 @@ function ScrollingText({
   }, [text, containerRef, textRef]);
 
   return (
-    <div 
-      ref={containerRef} 
+    <div
+      ref={containerRef}
       className={cn(
-        "relative overflow-hidden", 
-        !shouldScroll && "flex justify-center", 
+        "relative overflow-hidden",
+        !shouldScroll && "flex justify-center",
         className
       )}
     >
       {shouldScroll ? (
-        <motion.div
-          key={text}
-          className="whitespace-nowrap flex gap-6"
-        >
+        <motion.div key={text} className="whitespace-nowrap flex gap-6">
           <motion.div
             ref={textRef}
             initial={{ x: "0%" }}
@@ -292,7 +289,11 @@ function IpodScreen({
                   {currentIndex + 1} of {tracksLength}
                 </div>
                 <div className="font-chicago text-[16px] mb-4 text-center">
-                  <ScrollingText text={currentTrack.title} className="mb-0.5" isPlaying={isPlaying} />
+                  <ScrollingText
+                    text={currentTrack.title}
+                    className="mb-0.5"
+                    isPlaying={isPlaying}
+                  />
                   <ScrollingText
                     text={currentTrack.artist || ""}
                     isPlaying={isPlaying}
@@ -825,6 +826,7 @@ export function IpodAppComponent({
         onClose={onClose}
         isForeground={isForeground}
         appId="ipod"
+        transparentBackground
       >
         {/* Hidden audio player */}
         <div className="absolute top-0 left-0 opacity-10 pointer-events-none">
@@ -860,7 +862,7 @@ export function IpodAppComponent({
           )}
         </div>
 
-        <div className="flex flex-col items-center justify-center w-full h-full bg-gradient-to-b from-gray-100 to-gray-300 p-4">
+        <div className="flex flex-col items-center justify-center w-full h-full bg-gradient-to-b from-gray-100/20 to-gray-300/20 backdrop-blur-lg p-4">
           {/* iPod device */}
           <div className="w-[250px] h-[400px] bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col items-center p-4">
             {/* Screen */}
@@ -892,7 +894,10 @@ export function IpodAppComponent({
                 className="absolute w-full h-full rounded-full"
                 onMouseDown={(e) => {
                   // Don't handle wheel clicks if we're clicking on the menu button
-                  if (e.target && (e.target as HTMLElement).classList.contains('menu-button')) {
+                  if (
+                    e.target &&
+                    (e.target as HTMLElement).classList.contains("menu-button")
+                  ) {
                     return;
                   }
                   const angle = getAngleFromCenter(e.clientX, e.clientY);

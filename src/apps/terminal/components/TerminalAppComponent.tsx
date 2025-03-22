@@ -6,12 +6,12 @@ import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { TerminalMenuBar } from "./TerminalMenuBar";
 import { appMetadata, helpItems } from "../index";
 import { useFileSystem } from "@/apps/finder/hooks/useFileSystem";
-import { 
-  loadTerminalCommandHistory, 
-  saveTerminalCommandHistory, 
+import {
+  loadTerminalCommandHistory,
+  saveTerminalCommandHistory,
   loadTerminalCurrentPath,
   saveTerminalCurrentPath,
-  TerminalCommand
+  TerminalCommand,
 } from "@/utils/storage";
 import { useLaunchApp } from "@/hooks/useLaunchApp";
 
@@ -34,7 +34,7 @@ const AVAILABLE_COMMANDS = [
   "rm",
   "edit",
   "history",
-  "about"
+  "about",
 ];
 
 export function TerminalAppComponent({
@@ -49,24 +49,19 @@ export function TerminalAppComponent({
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [historyCommands, setHistoryCommands] = useState<string[]>([]);
   const [fontSize, setFontSize] = useState(14); // Default font size in pixels
-  
+
   const inputRef = useRef<HTMLInputElement>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
-  
-  const {
-    currentPath,
-    files,
-    navigateToPath,
-    saveFile,
-    moveToTrash,
-  } = useFileSystem(loadTerminalCurrentPath());
+
+  const { currentPath, files, navigateToPath, saveFile, moveToTrash } =
+    useFileSystem(loadTerminalCurrentPath());
 
   const launchApp = useLaunchApp();
 
   // Load command history from storage
   useEffect(() => {
     const savedCommands = loadTerminalCommandHistory();
-    setHistoryCommands(savedCommands.map(cmd => cmd.command));
+    setHistoryCommands(savedCommands.map((cmd) => cmd.command));
   }, []);
 
   // Initialize with welcome message
@@ -74,9 +69,10 @@ export function TerminalAppComponent({
     setCommandHistory([
       {
         command: "",
-        output: "Welcome to ryOS Terminal v1.0\nType 'help' for a list of available commands.",
-        path: currentPath
-      }
+        output:
+          "Welcome to ryOS Terminal v1.0\nType 'help' for a list of available commands.",
+        path: currentPath,
+      },
     ]);
   }, []);
 
@@ -101,49 +97,49 @@ export function TerminalAppComponent({
 
   const handleCommandSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!currentCommand.trim()) return;
-    
+
     // Add command to history commands array
     const newHistoryCommands = [...historyCommands, currentCommand];
     setHistoryCommands(newHistoryCommands);
     setHistoryIndex(-1);
-    
+
     // Save to storage
     const savedCommands = loadTerminalCommandHistory();
     const newCommands: TerminalCommand[] = [
       ...savedCommands,
-      { command: currentCommand, timestamp: Date.now() }
+      { command: currentCommand, timestamp: Date.now() },
     ];
     saveTerminalCommandHistory(newCommands);
-    
+
     // Process the command
     const output = processCommand(currentCommand);
-    
+
     // Add to command history
     setCommandHistory([
       ...commandHistory,
       {
         command: currentCommand,
         output,
-        path: currentPath
-      }
+        path: currentPath,
+      },
     ]);
-    
+
     // Clear current command
     setCurrentCommand("");
   };
 
   // Parse command respecting quotes for arguments with spaces
-  const parseCommand = (command: string): { cmd: string, args: string[] } => {
+  const parseCommand = (command: string): { cmd: string; args: string[] } => {
     const trimmedCommand = command.trim();
     if (!trimmedCommand) return { cmd: "", args: [] };
-    
+
     // Handle quoted arguments
     const regex = /[^\s"']+|"([^"]*)"|'([^']*)'/g;
     const parts: string[] = [];
     let match;
-    
+
     // Extract all parts including quoted sections
     while ((match = regex.exec(trimmedCommand)) !== null) {
       // If it's a quoted string, use the capture group (without quotes)
@@ -151,10 +147,10 @@ export function TerminalAppComponent({
       else if (match[2]) parts.push(match[2]);
       else parts.push(match[0]);
     }
-    
+
     return {
       cmd: parts[0].toLowerCase(),
-      args: parts.slice(1)
+      args: parts.slice(1),
     };
   };
 
@@ -163,11 +159,14 @@ export function TerminalAppComponent({
       e.preventDefault();
       // Navigate up through command history
       if (historyCommands.length > 0) {
-        const newIndex = historyIndex < historyCommands.length - 1 
-          ? historyIndex + 1 
-          : historyIndex;
+        const newIndex =
+          historyIndex < historyCommands.length - 1
+            ? historyIndex + 1
+            : historyIndex;
         setHistoryIndex(newIndex);
-        setCurrentCommand(historyCommands[historyCommands.length - 1 - newIndex] || "");
+        setCurrentCommand(
+          historyCommands[historyCommands.length - 1 - newIndex] || ""
+        );
       }
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
@@ -175,7 +174,9 @@ export function TerminalAppComponent({
       if (historyIndex > 0) {
         const newIndex = historyIndex - 1;
         setHistoryIndex(newIndex);
-        setCurrentCommand(historyCommands[historyCommands.length - 1 - newIndex] || "");
+        setCurrentCommand(
+          historyCommands[historyCommands.length - 1 - newIndex] || ""
+        );
       } else if (historyIndex === 0) {
         setHistoryIndex(-1);
         setCurrentCommand("");
@@ -191,15 +192,15 @@ export function TerminalAppComponent({
   const autoComplete = (input: string): string => {
     // If the input ends with a space, don't try to autocomplete
     if (input.endsWith(" ")) return input;
-    
+
     const { cmd, args } = parseCommand(input);
-    
+
     // If this is the first word (command autocomplete)
     if (!input.includes(" ")) {
-      const matches = AVAILABLE_COMMANDS.filter(availableCmd => 
+      const matches = AVAILABLE_COMMANDS.filter((availableCmd) =>
         availableCmd.startsWith(cmd)
       );
-      
+
       if (matches.length === 1) {
         // Exact match, replace the command
         return matches[0];
@@ -210,39 +211,45 @@ export function TerminalAppComponent({
           {
             command: input,
             output: matches.join("  "),
-            path: currentPath
-          }
+            path: currentPath,
+          },
         ]);
         return input;
       }
-    } 
+    }
     // File/directory autocompletion (for commands that take file arguments)
     else if (["cd", "cat", "rm", "edit"].includes(cmd)) {
       const lastArg = args.length > 0 ? args[args.length - 1] : "";
-      
+
       const matches = files
-        .filter(file => file.name.toLowerCase().startsWith(lastArg.toLowerCase()))
-        .map(file => file.name);
-      
+        .filter((file) =>
+          file.name.toLowerCase().startsWith(lastArg.toLowerCase())
+        )
+        .map((file) => file.name);
+
       if (matches.length === 1) {
         // Exact match, replace the last part
         // Handle filenames with spaces by adding quotes if needed
         const matchedName = matches[0];
         const needsQuotes = matchedName.includes(" ");
-        
+
         // Rebuild the command with the matched filename
         const commandParts = input.split(" ");
-        
+
         // Remove the last part (partial filename)
         commandParts.pop();
-        
+
         // Add the completed filename (with quotes if needed)
-        if (needsQuotes && !lastArg.startsWith('"') && !lastArg.startsWith("'")) {
+        if (
+          needsQuotes &&
+          !lastArg.startsWith('"') &&
+          !lastArg.startsWith("'")
+        ) {
           commandParts.push(`"${matchedName}"`);
         } else {
           commandParts.push(matchedName);
         }
-        
+
         return commandParts.join(" ");
       } else if (matches.length > 1) {
         // Show matching files/directories
@@ -251,19 +258,19 @@ export function TerminalAppComponent({
           {
             command: input,
             output: matches.join("  "),
-            path: currentPath
-          }
+            path: currentPath,
+          },
         ]);
         return input;
       }
     }
-    
+
     return input; // Return original if no completions
   };
 
   const processCommand = (command: string): string => {
     const { cmd, args } = parseCommand(command);
-    
+
     switch (cmd) {
       case "help":
         return `
@@ -291,74 +298,76 @@ Available commands:
       case "pwd":
         return currentPath;
 
-      case "ls":
+      case "ls": {
         if (files.length === 0) {
           return "No files found";
         }
-        return files.map(file => (
-          file.isDirectory ? file.name : file.name
-        )).join("\n");
+        return files
+          .map((file) => (file.isDirectory ? file.name : file.name))
+          .join("\n");
+      }
 
-      case "cd":
+      case "cd": {
         if (args.length === 0) {
           navigateToPath("/");
           return "";
         }
-        
+
         // Handle special case for parent directory
         if (args[0] === "..") {
           const pathParts = currentPath.split("/").filter(Boolean);
-          const parentPath = pathParts.length > 0 
-            ? "/" + pathParts.slice(0, -1).join("/") 
-            : "/";
+          const parentPath =
+            pathParts.length > 0 ? "/" + pathParts.slice(0, -1).join("/") : "/";
           navigateToPath(parentPath);
           return "";
         }
-        
+
         let newPath = args[0];
-        
+
         // Handle relative paths
         if (!newPath.startsWith("/")) {
           newPath = `${currentPath === "/" ? "" : currentPath}/${newPath}`;
         }
-        
+
         // Direct path navigation
         navigateToPath(newPath);
         return "";
+      }
 
-      case "cat":
+      case "cat": {
         if (args.length === 0) {
           return "Usage: cat <filename>";
         }
-        
+
         const fileName = args[0];
-        const file = files.find(f => f.name === fileName);
-        
+        const file = files.find((f) => f.name === fileName);
+
         if (!file) {
           return `File not found: ${fileName}`;
         }
-        
+
         if (file.isDirectory) {
           return `${fileName} is a directory, not a file`;
         }
-        
+
         return file.content || `${fileName} is empty`;
+      }
 
       case "mkdir":
         return "Command not implemented: mkdir requires filesystem write access";
 
-      case "touch":
+      case "touch": {
         if (args.length === 0) {
           return "Usage: touch <filename>";
         }
-        
+
         const newFileName = args[0];
-        
+
         // Check if file already exists
-        if (files.find(f => f.name === newFileName)) {
+        if (files.find((f) => f.name === newFileName)) {
           return `File already exists: ${newFileName}`;
         }
-        
+
         // Create empty file
         saveFile({
           name: newFileName,
@@ -366,49 +375,51 @@ Available commands:
           content: "",
           isDirectory: false,
           icon: "/icons/file-text.png",
-          type: "text"
+          type: "text",
         });
-        
-        return `Created file: ${newFileName}`;
 
-      case "rm":
+        return `Created file: ${newFileName}`;
+      }
+
+      case "rm": {
         if (args.length === 0) {
           return "Usage: rm <filename>";
         }
-        
+
         const fileToDelete = args[0];
-        const fileObj = files.find(f => f.name === fileToDelete);
-        
+        const fileObj = files.find((f) => f.name === fileToDelete);
+
         if (!fileObj) {
           return `File not found: ${fileToDelete}`;
         }
-        
+
         moveToTrash(fileObj);
         return `Moved to trash: ${fileToDelete}`;
+      }
 
-      case "edit":
+      case "edit": {
         if (args.length === 0) {
           return "Usage: edit <filename>";
         }
-        
+
         const fileToEdit = args[0];
-        const fileToEditObj = files.find(f => f.name === fileToEdit);
-        
+        const fileToEditObj = files.find((f) => f.name === fileToEdit);
+
         if (!fileToEditObj) {
           return `File not found: ${fileToEdit}`;
         }
-        
+
         if (fileToEditObj.isDirectory) {
           return `${fileToEdit} is a directory, not a file`;
         }
-        
+
         // Check if the file is already in Documents folder
         let filePath = fileToEditObj.path;
         if (!filePath.startsWith("/Documents/")) {
           // Create a copy in the Documents folder
           const fileName = fileToEditObj.name;
           const documentsPath = `/Documents/${fileName}`;
-          
+
           // Save file to Documents
           saveFile({
             name: fileName,
@@ -416,12 +427,12 @@ Available commands:
             content: fileToEditObj.content,
             isDirectory: false,
             icon: "/icons/file-text.png",
-            type: "text"
+            type: "text",
           });
-          
+
           filePath = documentsPath;
         }
-        
+
         // Store the file content temporarily for TextEdit to open
         localStorage.setItem(
           "pending_file_open",
@@ -430,25 +441,29 @@ Available commands:
             content: fileToEditObj.content || "",
           })
         );
-        
+
         // Launch TextEdit
         launchApp("textedit");
-        
+
         return `Opening ${fileToEdit} in TextEdit...`;
+      }
 
       case "about":
         setTimeout(() => setIsAboutDialogOpen(true), 100);
         return "Opening About dialog...";
 
-      case "history":
+      case "history": {
         const cmdHistory = loadTerminalCommandHistory();
         if (cmdHistory.length === 0) {
           return "No command history";
         }
-        return cmdHistory.map((cmd, idx) => {
-          const date = new Date(cmd.timestamp);
-          return `${idx + 1}  ${cmd.command}  # ${date.toLocaleString()}`;
-        }).join("\n");
+        return cmdHistory
+          .map((cmd, idx) => {
+            const date = new Date(cmd.timestamp);
+            return `${idx + 1}  ${cmd.command}  # ${date.toLocaleString()}`;
+          })
+          .join("\n");
+      }
 
       default:
         return `Command not found: ${cmd}. Type 'help' for a list of available commands.`;
@@ -457,13 +472,13 @@ Available commands:
 
   const increaseFontSize = () => {
     if (fontSize < 24) {
-      setFontSize(prevSize => prevSize + 2);
+      setFontSize((prevSize) => prevSize + 2);
     }
   };
 
   const decreaseFontSize = () => {
     if (fontSize > 10) {
-      setFontSize(prevSize => prevSize - 2);
+      setFontSize((prevSize) => prevSize - 2);
     }
   };
 
@@ -490,8 +505,11 @@ Available commands:
         onClose={onClose}
         isForeground={isForeground}
       >
-        <div className="flex flex-col h-full w-full bg-black text-white font-mono p-2 overflow-hidden" style={{ fontSize: `${fontSize}px` }}>
-          <div 
+        <div
+          className="flex flex-col h-full w-full bg-black text-white antialiased font-mono p-2 overflow-hidden"
+          style={{ fontSize: `${fontSize}px` }}
+        >
+          <div
             ref={terminalRef}
             className="flex-1 overflow-auto whitespace-pre-wrap"
             onClick={() => inputRef.current?.focus()}
@@ -500,7 +518,9 @@ Available commands:
               <div key={index} className="mb-1">
                 {item.command && (
                   <div className="flex">
-                    <span className="text-green-400 mr-1">➜ {item.path === "/" ? "/" : item.path}</span>
+                    <span className="text-green-400 mr-1">
+                      ➜ {item.path === "/" ? "/" : item.path}
+                    </span>
                     <span>{item.command}</span>
                   </div>
                 )}
@@ -508,7 +528,9 @@ Available commands:
               </div>
             ))}
             <form onSubmit={handleCommandSubmit} className="flex">
-              <span className="text-green-400 mr-1 whitespace-nowrap">➜ {currentPath === "/" ? "/" : currentPath}</span>
+              <span className="text-green-400 mr-1 whitespace-nowrap">
+                ➜ {currentPath === "/" ? "/" : currentPath}
+              </span>
               <input
                 ref={inputRef}
                 type="text"
@@ -532,16 +554,18 @@ Available commands:
       <AboutDialog
         isOpen={isAboutDialogOpen}
         onOpenChange={setIsAboutDialogOpen}
-        metadata={appMetadata || {
-          name: "Terminal",
-          version: "1.0",
-          creator: {
-            name: "ryOS Developer",
-            url: "https://github.com/ryokun6/ryos"
-          },
-          github: "https://github.com/ryokun6/ryos",
-          icon: "/icons/terminal.png"
-        }}
+        metadata={
+          appMetadata || {
+            name: "Terminal",
+            version: "1.0",
+            creator: {
+              name: "ryOS Developer",
+              url: "https://github.com/ryokun6/ryos",
+            },
+            github: "https://github.com/ryokun6/ryos",
+            icon: "/icons/terminal.png",
+          }
+        }
       />
     </>
   );
