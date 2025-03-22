@@ -1,0 +1,458 @@
+import { useState, useEffect, useRef } from "react";
+import { WindowFrame } from "@/components/layout/WindowFrame";
+import { AppProps } from "@/apps/base/types";
+import { HelpDialog } from "@/components/dialogs/HelpDialog";
+import { AboutDialog } from "@/components/dialogs/AboutDialog";
+import { TerminalMenuBar } from "./TerminalMenuBar";
+import { appMetadata, helpItems } from "../index";
+import { useFileSystem } from "@/apps/finder/hooks/useFileSystem";
+import { 
+  loadTerminalCommandHistory, 
+  saveTerminalCommandHistory, 
+  addTerminalCommand,
+  loadTerminalCurrentPath,
+  saveTerminalCurrentPath,
+  TerminalCommand
+} from "@/utils/storage";
+
+interface CommandHistory {
+  command: string;
+  output: string;
+}
+
+// Available commands for autocompletion
+const AVAILABLE_COMMANDS = [
+  "help",
+  "clear",
+  "pwd",
+  "ls",
+  "cd",
+  "cat",
+  "mkdir",
+  "touch",
+  "rm",
+  "history",
+  "about"
+];
+
+export function TerminalAppComponent({
+  onClose,
+  isWindowOpen,
+  isForeground = true,
+}: AppProps) {
+  const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
+  const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
+  const [currentCommand, setCurrentCommand] = useState("");
+  const [commandHistory, setCommandHistory] = useState<CommandHistory[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const [historyCommands, setHistoryCommands] = useState<string[]>([]);
+  
+  const inputRef = useRef<HTMLInputElement>(null);
+  const terminalRef = useRef<HTMLDivElement>(null);
+  
+  const {
+    currentPath,
+    files,
+    navigateToPath,
+    saveFile,
+    moveToTrash,
+  } = useFileSystem(loadTerminalCurrentPath());
+
+  // Load command history from storage
+  useEffect(() => {
+    const savedCommands = loadTerminalCommandHistory();
+    setHistoryCommands(savedCommands.map(cmd => cmd.command));
+  }, []);
+
+  // Initialize with welcome message
+  useEffect(() => {
+    setCommandHistory([
+      {
+        command: "",
+        output: "Welcome to ryOS Terminal v1.0\nType 'help' for a list of available commands."
+      }
+    ]);
+  }, []);
+
+  // Auto-scroll to bottom when command history changes
+  useEffect(() => {
+    if (terminalRef.current) {
+      terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+    }
+  }, [commandHistory]);
+
+  // Focus input when window is opened or brought to foreground
+  useEffect(() => {
+    if (isWindowOpen && isForeground && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isWindowOpen, isForeground]);
+
+  // Save current path when it changes
+  useEffect(() => {
+    saveTerminalCurrentPath(currentPath);
+  }, [currentPath]);
+
+  const handleCommandSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!currentCommand.trim()) return;
+    
+    // Add command to history commands array
+    const newHistoryCommands = [...historyCommands, currentCommand];
+    setHistoryCommands(newHistoryCommands);
+    setHistoryIndex(-1);
+    
+    // Save to storage
+    const savedCommands = loadTerminalCommandHistory();
+    const newCommands: TerminalCommand[] = [
+      ...savedCommands,
+      { command: currentCommand, timestamp: Date.now() }
+    ];
+    saveTerminalCommandHistory(newCommands);
+    
+    // Process the command
+    const output = processCommand(currentCommand);
+    
+    // Add to command history
+    setCommandHistory([
+      ...commandHistory,
+      {
+        command: currentCommand,
+        output
+      }
+    ]);
+    
+    // Clear current command
+    setCurrentCommand("");
+  };
+
+  // Parse command respecting quotes for arguments with spaces
+  const parseCommand = (command: string): { cmd: string, args: string[] } => {
+    const trimmedCommand = command.trim();
+    if (!trimmedCommand) return { cmd: "", args: [] };
+    
+    // Handle quoted arguments
+    const regex = /[^\s"']+|"([^"]*)"|'([^']*)'/g;
+    const parts: string[] = [];
+    let match;
+    
+    // Extract all parts including quoted sections
+    while ((match = regex.exec(trimmedCommand)) !== null) {
+      // If it's a quoted string, use the capture group (without quotes)
+      if (match[1]) parts.push(match[1]);
+      else if (match[2]) parts.push(match[2]);
+      else parts.push(match[0]);
+    }
+    
+    return {
+      cmd: parts[0].toLowerCase(),
+      args: parts.slice(1)
+    };
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      // Navigate up through command history
+      if (historyCommands.length > 0) {
+        const newIndex = historyIndex < historyCommands.length - 1 
+          ? historyIndex + 1 
+          : historyIndex;
+        setHistoryIndex(newIndex);
+        setCurrentCommand(historyCommands[historyCommands.length - 1 - newIndex] || "");
+      }
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      // Navigate down through command history
+      if (historyIndex > 0) {
+        const newIndex = historyIndex - 1;
+        setHistoryIndex(newIndex);
+        setCurrentCommand(historyCommands[historyCommands.length - 1 - newIndex] || "");
+      } else if (historyIndex === 0) {
+        setHistoryIndex(-1);
+        setCurrentCommand("");
+      }
+    } else if (e.key === "Tab") {
+      e.preventDefault();
+      const completedCommand = autoComplete(currentCommand);
+      setCurrentCommand(completedCommand);
+    }
+  };
+
+  // Update autoComplete to handle quotes
+  const autoComplete = (input: string): string => {
+    // If the input ends with a space, don't try to autocomplete
+    if (input.endsWith(" ")) return input;
+    
+    const { cmd, args } = parseCommand(input);
+    
+    // If this is the first word (command autocomplete)
+    if (!input.includes(" ")) {
+      const matches = AVAILABLE_COMMANDS.filter(availableCmd => 
+        availableCmd.startsWith(cmd)
+      );
+      
+      if (matches.length === 1) {
+        // Exact match, replace the command
+        return matches[0];
+      } else if (matches.length > 1) {
+        // Show matching commands
+        setCommandHistory([
+          ...commandHistory,
+          {
+            command: input,
+            output: matches.join("  ")
+          }
+        ]);
+        return input;
+      }
+    } 
+    // File/directory autocompletion (for commands that take file arguments)
+    else if (["cd", "cat", "rm"].includes(cmd)) {
+      const lastArg = args.length > 0 ? args[args.length - 1] : "";
+      
+      const matches = files
+        .filter(file => file.name.toLowerCase().startsWith(lastArg.toLowerCase()))
+        .map(file => file.name);
+      
+      if (matches.length === 1) {
+        // Exact match, replace the last part
+        // Handle filenames with spaces by adding quotes if needed
+        const matchedName = matches[0];
+        const needsQuotes = matchedName.includes(" ");
+        
+        // Rebuild the command with the matched filename
+        const commandParts = input.split(" ");
+        
+        // Remove the last part (partial filename)
+        commandParts.pop();
+        
+        // Add the completed filename (with quotes if needed)
+        if (needsQuotes && !lastArg.startsWith('"') && !lastArg.startsWith("'")) {
+          commandParts.push(`"${matchedName}"`);
+        } else {
+          commandParts.push(matchedName);
+        }
+        
+        return commandParts.join(" ");
+      } else if (matches.length > 1) {
+        // Show matching files/directories
+        setCommandHistory([
+          ...commandHistory,
+          {
+            command: input,
+            output: matches.join("  ")
+          }
+        ]);
+        return input;
+      }
+    }
+    
+    return input; // Return original if no completions
+  };
+
+  const processCommand = (command: string): string => {
+    const { cmd, args } = parseCommand(command);
+    
+    switch (cmd) {
+      case "help":
+        return `
+Available commands:
+  help             - Show this help message
+  clear            - Clear the terminal
+  pwd              - Print working directory
+  ls               - List files in current directory
+  cd <directory>   - Change directory
+  cat <file>       - Display file contents
+  mkdir <name>     - Create a directory
+  touch <name>     - Create an empty file
+  rm <file>        - Delete a file (moves to trash)
+  history          - Show command history
+  about            - Display information about Terminal
+`;
+      case "clear":
+        // We'll handle this specially after the switch
+        setTimeout(() => {
+          setCommandHistory([]);
+        }, 10);
+        return "";
+
+      case "pwd":
+        return currentPath;
+
+      case "ls":
+        if (files.length === 0) {
+          return "No files found";
+        }
+        return files.map(file => (
+          file.isDirectory ? file.name : file.name
+        )).join("\n");
+
+      case "cd":
+        if (args.length === 0) {
+          navigateToPath("/");
+          return "Changed directory to /";
+        }
+        
+        // Handle special case for parent directory
+        if (args[0] === "..") {
+          const pathParts = currentPath.split("/").filter(Boolean);
+          const parentPath = pathParts.length > 0 
+            ? "/" + pathParts.slice(0, -1).join("/") 
+            : "/";
+          navigateToPath(parentPath);
+          return `Changed directory to ${parentPath}`;
+        }
+        
+        let newPath = args[0];
+        
+        // Handle relative paths
+        if (!newPath.startsWith("/")) {
+          newPath = `${currentPath === "/" ? "" : currentPath}/${newPath}`;
+        }
+        
+        // Direct path navigation
+        navigateToPath(newPath);
+        return `Changed directory to ${newPath}`;
+
+      case "cat":
+        if (args.length === 0) {
+          return "Usage: cat <filename>";
+        }
+        
+        const fileName = args[0];
+        const file = files.find(f => f.name === fileName);
+        
+        if (!file) {
+          return `File not found: ${fileName}`;
+        }
+        
+        if (file.isDirectory) {
+          return `${fileName} is a directory, not a file`;
+        }
+        
+        return file.content || `${fileName} is empty`;
+
+      case "mkdir":
+        return "Command not implemented: mkdir requires filesystem write access";
+
+      case "touch":
+        if (args.length === 0) {
+          return "Usage: touch <filename>";
+        }
+        
+        const newFileName = args[0];
+        
+        // Check if file already exists
+        if (files.find(f => f.name === newFileName)) {
+          return `File already exists: ${newFileName}`;
+        }
+        
+        // Create empty file
+        saveFile({
+          name: newFileName,
+          path: `${currentPath}/${newFileName}`,
+          content: "",
+          isDirectory: false,
+          icon: "/icons/file-text.png",
+          type: "text"
+        });
+        
+        return `Created file: ${newFileName}`;
+
+      case "rm":
+        if (args.length === 0) {
+          return "Usage: rm <filename>";
+        }
+        
+        const fileToDelete = args[0];
+        const fileObj = files.find(f => f.name === fileToDelete);
+        
+        if (!fileObj) {
+          return `File not found: ${fileToDelete}`;
+        }
+        
+        moveToTrash(fileObj);
+        return `Moved to trash: ${fileToDelete}`;
+
+      case "about":
+        setTimeout(() => setIsAboutDialogOpen(true), 100);
+        return "Opening About dialog...";
+
+      case "history":
+        const cmdHistory = loadTerminalCommandHistory();
+        if (cmdHistory.length === 0) {
+          return "No command history";
+        }
+        return cmdHistory.map((cmd, idx) => {
+          const date = new Date(cmd.timestamp);
+          return `${idx + 1}  ${cmd.command}  # ${date.toLocaleString()}`;
+        }).join("\n");
+
+      default:
+        return `Command not found: ${cmd}. Type 'help' for a list of available commands.`;
+    }
+  };
+
+  if (!isWindowOpen) return null;
+
+  return (
+    <>
+      <TerminalMenuBar
+        onClose={onClose}
+        onShowHelp={() => setIsHelpDialogOpen(true)}
+        onShowAbout={() => setIsAboutDialogOpen(true)}
+        onClear={() => setCommandHistory([])}
+      />
+      <WindowFrame
+        appId="terminal"
+        title="Terminal"
+        onClose={onClose}
+        isForeground={isForeground}
+      >
+        <div className="flex flex-col h-full w-full bg-black text-white font-mono text-sm p-2 overflow-hidden">
+          <div 
+            ref={terminalRef}
+            className="flex-1 overflow-auto whitespace-pre-wrap"
+          >
+            {commandHistory.map((item, index) => (
+              <div key={index} className="mb-1">
+                {item.command && (
+                  <div className="flex">
+                    <span className="text-green-400 mr-1">user@ryos:{currentPath === "/" ? "/" : currentPath}$</span>
+                    <span>{item.command}</span>
+                  </div>
+                )}
+                {item.output && <div className="ml-0">{item.output}</div>}
+              </div>
+            ))}
+          </div>
+          <form onSubmit={handleCommandSubmit} className="flex mt-2">
+            <span className="text-green-400 mr-1 whitespace-nowrap">user@ryos:{currentPath === "/" ? "/" : currentPath}$</span>
+            <input
+              ref={inputRef}
+              type="text"
+              value={currentCommand}
+              onChange={(e) => setCurrentCommand(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="flex-1 bg-black text-white focus:outline-none"
+              autoFocus
+            />
+          </form>
+        </div>
+      </WindowFrame>
+      <HelpDialog
+        isOpen={isHelpDialogOpen}
+        onOpenChange={setIsHelpDialogOpen}
+        appName="Terminal"
+        helpItems={helpItems}
+      />
+      <AboutDialog
+        isOpen={isAboutDialogOpen}
+        onOpenChange={setIsAboutDialogOpen}
+        metadata={appMetadata}
+      />
+    </>
+  );
+}
