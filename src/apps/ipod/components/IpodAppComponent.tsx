@@ -827,15 +827,15 @@ export function IpodAppComponent({
         appId="ipod"
       >
         {/* Hidden audio player */}
-        <div className="absolute top-0 left-0 w-0 h-0 overflow-hidden">
+        <div className="absolute top-0 left-0 opacity-10 pointer-events-none">
           {tracks.length > 0 && (
             <ReactPlayer
               ref={playerRef}
               url={tracks[currentIndex]?.url}
               playing={isPlaying}
               controls={false}
-              width="0"
-              height="0"
+              width="1px"
+              height="1px"
               onEnded={handleTrackEnd}
               onProgress={handleProgress}
               onDuration={handleDuration}
@@ -852,6 +852,7 @@ export function IpodAppComponent({
                     iv_load_policy: 3,
                     fs: 0,
                     disablekb: 1,
+                    playsinline: 1,
                   },
                 },
               }}
@@ -977,7 +978,7 @@ export function IpodAppComponent({
                 id: video.id,
                 url: video.url,
                 title: video.title,
-                artist: video.title.split(" - ")[0] || undefined,
+                artist: video.artist,
                 album: "Shared Playlist",
               }))
             );
@@ -986,7 +987,7 @@ export function IpodAppComponent({
                 id: video.id,
                 url: video.url,
                 title: video.title,
-                artist: video.title.split(" - ")[0] || undefined,
+                artist: video.artist,
                 album: "Shared Playlist",
               }))
             );
