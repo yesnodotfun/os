@@ -118,7 +118,6 @@ export const appRegistry = {
     windowConfig: {
       defaultSize: { width: 300, height: 480 },
       minSize: { width: 300, height: 480 },
-      maxSize: { width: 300, height: 480 },
     } as WindowConstraints,
   },
   [ControlPanelsApp.id]: {
