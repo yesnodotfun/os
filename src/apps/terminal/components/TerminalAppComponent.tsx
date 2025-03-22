@@ -9,7 +9,6 @@ import { useFileSystem } from "@/apps/finder/hooks/useFileSystem";
 import { 
   loadTerminalCommandHistory, 
   saveTerminalCommandHistory, 
-  addTerminalCommand,
   loadTerminalCurrentPath,
   saveTerminalCurrentPath,
   TerminalCommand
@@ -446,12 +445,21 @@ Available commands:
         isOpen={isHelpDialogOpen}
         onOpenChange={setIsHelpDialogOpen}
         appName="Terminal"
-        helpItems={helpItems}
+        helpItems={helpItems || []}
       />
       <AboutDialog
         isOpen={isAboutDialogOpen}
         onOpenChange={setIsAboutDialogOpen}
-        metadata={appMetadata}
+        metadata={appMetadata || {
+          name: "Terminal",
+          version: "1.0",
+          creator: {
+            name: "ryOS Developer",
+            url: "https://github.com/ryokun6/ryos"
+          },
+          github: "https://github.com/ryokun6/ryos",
+          icon: "/icons/terminal.png"
+        }}
       />
     </>
   );
