@@ -272,6 +272,8 @@ export function IpodAppComponent({
   const [isConfirmResetOpen, setIsConfirmResetOpen] = useState(false);
 
   const [wheelDelta, setWheelDelta] = useState(0);
+  const [touchStartY, setTouchStartY] = useState<number | null>(null);
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
 
   const [menuMode, setMenuMode] = useState(false);
   const [selectedMenuItem, setSelectedMenuItem] = useState(0);
@@ -613,6 +615,59 @@ export function IpodAppComponent({
     }
   };
 
+  // Touch event handlers for the wheel
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    setTouchStartY(touch.clientY);
+    setTouchStartX(touch.clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStartY === null || touchStartX === null) return;
+
+    const touch = e.touches[0];
+    const deltaY = touch.clientY - touchStartY;
+    const deltaX = touch.clientX - touchStartX;
+
+    // Determine if this is primarily a vertical or horizontal swipe
+    if (Math.abs(deltaY) > Math.abs(deltaX)) {
+      // Vertical swipe
+      if (Math.abs(deltaY) > 10) {
+        // Threshold to avoid small movements
+        if (deltaY < 0) {
+          // Swipe up
+          handleWheelRotation("counterclockwise");
+        } else {
+          // Swipe down
+          handleWheelRotation("clockwise");
+        }
+        // Reset touch start to allow continuous swiping
+        setTouchStartY(touch.clientY);
+        setTouchStartX(touch.clientX);
+      }
+    } else {
+      // Horizontal swipe
+      if (Math.abs(deltaX) > 10) {
+        // Threshold to avoid small movements
+        if (deltaX < 0) {
+          // Swipe left
+          handleWheelRotation("counterclockwise");
+        } else {
+          // Swipe right
+          handleWheelRotation("clockwise");
+        }
+        // Reset touch start to allow continuous swiping
+        setTouchStartY(touch.clientY);
+        setTouchStartX(touch.clientX);
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setTouchStartY(null);
+    setTouchStartX(null);
+  };
+
   if (!isWindowOpen) return null;
 
   return (
@@ -708,6 +763,7 @@ export function IpodAppComponent({
               {/* Center button */}
               <button
                 onClick={() => handleWheelClick("center")}
+                onTouchStart={() => handleWheelClick("center")}
                 className="absolute w-16 h-16 rounded-full bg-white z-10 flex items-center justify-center"
               />
 
@@ -737,6 +793,38 @@ export function IpodAppComponent({
                     handleWheelClick("top");
                   }
                 }}
+                onTouchStart={(e) => {
+                  // Handle touch for sections similar to mouse clicks
+                  const touch = e.touches[0];
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const centerX = rect.left + rect.width / 2;
+                  const centerY = rect.top + rect.height / 2;
+
+                  // Calculate angle from center
+                  const angle =
+                    (Math.atan2(
+                      touch.clientY - centerY,
+                      touch.clientX - centerX
+                    ) *
+                      180) /
+                    Math.PI;
+
+                  // Determine which section was touched
+                  if (angle >= -45 && angle < 45) {
+                    handleWheelClick("right");
+                  } else if (angle >= 45 && angle < 135) {
+                    handleWheelClick("bottom");
+                  } else if (angle >= 135 || angle < -135) {
+                    handleWheelClick("left");
+                  } else {
+                    handleWheelClick("top");
+                  }
+
+                  // Also start touch tracking for swipe gestures
+                  handleTouchStart(e);
+                }}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
                 onWheel={(e) => {
                   // Accumulate delta and only trigger when it reaches threshold
                   const newDelta = wheelDelta + Math.abs(e.deltaY);
@@ -757,17 +845,30 @@ export function IpodAppComponent({
                 {/* Wheel controls with text */}
                 <button
                   onClick={() => handleMenuButton()}
+                  onTouchStart={() => handleMenuButton()}
                   className="absolute top-3 left-1/2 transform -translate-x-1/2 font-chicago text-xs text-white"
                 >
                   MENU
                 </button>
-                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 font-chicago text-[9px] text-white">
+                <div
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 font-chicago text-[9px] text-white"
+                  onClick={() => handleWheelClick("right")}
+                  onTouchStart={() => handleWheelClick("right")}
+                >
                   ▶︎▶︎
                 </div>
-                <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 font-chicago text-[9px] text-white">
+                <div
+                  className="absolute bottom-3 left-1/2 transform -translate-x-1/2 font-chicago text-[9px] text-white"
+                  onClick={() => handleWheelClick("bottom")}
+                  onTouchStart={() => handleWheelClick("bottom")}
+                >
                   ▶︎❙❙
                 </div>
-                <div className="absolute left-3 top-1/2 transform -translate-y-1/2 font-chicago text-[9px] text-white">
+                <div
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 font-chicago text-[9px] text-white"
+                  onClick={() => handleWheelClick("left")}
+                  onTouchStart={() => handleWheelClick("left")}
+                >
                   ◀︎◀︎
                 </div>
               </div>
