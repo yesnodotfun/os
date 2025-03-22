@@ -183,6 +183,25 @@ function TypewriterText({
   );
 }
 
+// Animated ellipsis component for thinking indicator
+function AnimatedEllipsis() {
+  const [dots, setDots] = useState("");
+
+  useEffect(() => {
+    const patterns = [".  ", ".. ", "...", " ..", "  .", " . ", ". .", "..."];
+    let index = 0;
+
+    const interval = setInterval(() => {
+      setDots(patterns[index]);
+      index = (index + 1) % patterns.length;
+    }, 200);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return <span>{dots}</span>;
+}
+
 export function TerminalAppComponent({
   onClose,
   isWindowOpen,
@@ -833,13 +852,13 @@ Available commands:
           });
 
           return {
-            output: `Entering ryo chat mode. Type 'exit' to return to terminal.\nSending initial prompt: ${initialPrompt}`,
+            output: `Ask Ryo anything. Type 'exit' to return to terminal.\nSending initial prompt: ${initialPrompt}`,
             isError: false,
           };
         }
 
         return {
-          output: `Entering ryo chat mode. Type 'exit' to return to terminal.`,
+          output: `Ask Ryo anything. Type 'exit' to return to terminal.`,
           isError: false,
         };
       }
@@ -1006,7 +1025,7 @@ Available commands:
         ...commandHistory,
         {
           command: command,
-          output: "Exiting ryo chat mode.",
+          output: "Bye! ♥",
           path: currentPath,
         },
       ]);
@@ -1275,7 +1294,8 @@ Available commands:
                             {item.output.split(" ")[0]}
                           </span>
                           <span className="text-gray-400 italic shimmer">
-                            {" " + item.output.split(" ").slice(1).join(" ")}
+                            {" thinking"}
+                            <AnimatedEllipsis />
                           </span>
                         </>
                       ) : item.path === "ai-assistant" ? (
@@ -1297,7 +1317,8 @@ Available commands:
             {isAiLoading && isInAiMode && (
               <div className="mb-1">
                 <span className="text-gray-400 italic shimmer">
-                  {spinnerChars[spinnerIndex]} thinking...
+                  {spinnerChars[spinnerIndex]} thinking
+                  <AnimatedEllipsis />
                 </span>
               </div>
             )}
