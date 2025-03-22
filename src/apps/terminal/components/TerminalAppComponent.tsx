@@ -504,9 +504,10 @@ Available commands:
         title="Terminal"
         onClose={onClose}
         isForeground={isForeground}
+        transparentBackground={true}
       >
         <div
-          className="flex flex-col h-full w-full bg-black text-white antialiased font-mono p-2 overflow-hidden"
+          className="flex flex-col h-full w-full bg-black/90 backdrop-blur-lg text-white antialiased font-mono p-2 overflow-hidden"
           style={{ fontSize: `${fontSize}px` }}
         >
           <div
@@ -537,7 +538,7 @@ Available commands:
                 value={currentCommand}
                 onChange={(e) => setCurrentCommand(e.target.value)}
                 onKeyDown={handleKeyDown}
-                className="flex-1 bg-black text-white focus:outline-none"
+                className="flex-1 text-white focus:outline-none"
                 style={{ fontSize: `${fontSize}px` }}
                 autoFocus
               />
