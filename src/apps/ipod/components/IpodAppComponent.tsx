@@ -64,10 +64,12 @@ function MenuListItem({
   text,
   isSelected,
   onClick,
+  backlightOn = true,
 }: {
   text: string;
   isSelected: boolean;
   onClick: () => void;
+  backlightOn?: boolean;
 }) {
   return (
     <div
@@ -75,7 +77,9 @@ function MenuListItem({
       className={cn(
         "px-2 cursor-pointer font-chicago text-[16px] flex justify-between items-center",
         isSelected
-          ? "bg-[#0a3667] text-white [text-shadow:1px_1px_0_rgba(0,0,0,0.15)]"
+          ? backlightOn
+            ? "bg-[#0a3667] text-[#c5e0f5] [text-shadow:1px_1px_0_rgba(0,0,0,0.15)]"
+            : "bg-[#0a3667] text-[#8a9da9] [text-shadow:1px_1px_0_rgba(0,0,0,0.15)]"
           : "text-[#0a3667] hover:bg-[#c0d8f0] [text-shadow:1px_1px_0_rgba(0,0,0,0.15)]"
       )}
     >
@@ -93,12 +97,14 @@ function IpodMenu({
   onSelect,
   title,
   isPlaying,
+  backlightOn = true,
 }: {
   items: { label: string; action: () => void }[];
   selectedIndex: number;
   onSelect: (index: number) => void;
   title: string;
   isPlaying?: boolean;
+  backlightOn?: boolean;
 }) {
   const menuRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -146,6 +152,7 @@ function IpodMenu({
             key={index}
             text={item.label}
             isSelected={index === selectedIndex}
+            backlightOn={backlightOn}
             onClick={() => {
               onSelect(index);
               item.action();
@@ -281,6 +288,7 @@ function IpodScreen({
           onSelect={onSelectMenuItem}
           title={menuTitle}
           isPlaying={isPlaying}
+          backlightOn={backlightOn}
         />
       ) : (
         <div className="flex flex-col h-full">
@@ -1008,7 +1016,7 @@ export function IpodAppComponent({
               >
                 {/* Wheel labels - no click handlers */}
                 <div
-                  className="absolute top-2 left-1/2 transform -translate-x-1/2 font-chicago text-xs text-white menu-button"
+                  className="absolute top-2 left-1/2 transform -translate-x-1/2 font-chicago text-xs text-white menu-button cursor-default"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleMenuButton();
@@ -1016,13 +1024,13 @@ export function IpodAppComponent({
                 >
                   MENU
                 </div>
-                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 font-chicago text-[9px] text-white">
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 font-chicago text-[9px] text-white cursor-default">
                   ▶︎▶︎
                 </div>
-                <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 font-chicago text-[9px] text-white">
+                <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 font-chicago text-[9px] text-white cursor-default">
                   ▶︎❙❙
                 </div>
-                <div className="absolute left-3 top-1/2 transform -translate-y-1/2 font-chicago text-[9px] text-white">
+                <div className="absolute left-3 top-1/2 transform -translate-y-1/2 font-chicago text-[9px] text-white cursor-default">
                   ◀︎◀︎
                 </div>
               </div>
