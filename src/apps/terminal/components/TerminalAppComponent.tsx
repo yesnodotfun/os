@@ -1120,8 +1120,9 @@ Available commands:
       filter: "blur(0px)",
       transition: {
         type: "spring",
-        stiffness: 100,
-        damping: 15,
+        stiffness: 70,
+        damping: 20,
+        mass: 1.2,
       },
     },
     exit: {
@@ -1243,6 +1244,9 @@ Available commands:
                     type: "spring",
                     delay: 0.05 * (index % 3), // Stagger effect for groups of 3
                     duration: 0.3,
+                    stiffness: 65,
+                    damping: 22,
+                    mass: 1.2,
                   }}
                 >
                   {item.command && (
@@ -1270,7 +1274,7 @@ Available commands:
                           <span className="text-gray-400">
                             {item.output.split(" ")[0]}
                           </span>
-                          <span className="text-gray-400 italic">
+                          <span className="text-gray-400 italic shimmer">
                             {" " + item.output.split(" ").slice(1).join(" ")}
                           </span>
                         </>
@@ -1292,7 +1296,7 @@ Available commands:
             </AnimatePresence>
             {isAiLoading && isInAiMode && (
               <div className="mb-1">
-                <span className="text-gray-400 italic">
+                <span className="text-gray-400 italic shimmer">
                   {spinnerChars[spinnerIndex]} thinking...
                 </span>
               </div>
