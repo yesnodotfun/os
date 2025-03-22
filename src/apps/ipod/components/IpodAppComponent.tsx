@@ -95,14 +95,47 @@ function IpodMenu({
   title: string;
   isPlaying?: boolean;
 }) {
+  const menuRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to keep selected item visible
+  useEffect(() => {
+    if (menuRef.current) {
+      const selectedItem = menuRef.current.children[
+        selectedIndex
+      ] as HTMLElement;
+      if (selectedItem) {
+        const menuContainer = menuRef.current;
+        const itemTop = selectedItem.offsetTop;
+        const itemHeight = selectedItem.offsetHeight;
+        const containerHeight = menuContainer.clientHeight;
+        const scrollTop = menuContainer.scrollTop;
+
+        // If item is below the visible area
+        if (itemTop + itemHeight > scrollTop + containerHeight) {
+          menuContainer.scrollTop = itemTop + itemHeight - containerHeight;
+        }
+        // If item is above the visible area
+        else if (itemTop < scrollTop) {
+          menuContainer.scrollTop = Math.max(0, itemTop);
+        }
+
+        // Force scroll to top for first item
+        if (selectedIndex === 0) {
+          menuContainer.scrollTop = 0;
+        }
+      }
+    }
+  }, [selectedIndex]);
+
   return (
-    <div className="flex flex-col h-full">
-      <div className="bg-white border-b border-gray-400 py-0 px-2 font-chicago text-[16px] flex justify-between items-center">
+    <div ref={containerRef} className="flex flex-col h-full">
+      <div className="bg-white border-b border-gray-400 py-0 px-2 font-chicago text-[16px] flex justify-between items-center sticky top-0 z-10">
         <div className="w-6 text-xs">{isPlaying ? "▶" : "II"}</div>
         <div>{title}</div>
         <div className="w-6 text-xs"></div>
       </div>
-      <div className="flex-1 overflow-auto">
+      <div ref={menuRef} className="flex-1 overflow-auto">
         {items.map((item, index) => (
           <MenuListItem
             key={index}
@@ -237,6 +270,8 @@ export function IpodAppComponent({
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
   const [isConfirmClearOpen, setIsConfirmClearOpen] = useState(false);
   const [isConfirmResetOpen, setIsConfirmResetOpen] = useState(false);
+
+  const [wheelDelta, setWheelDelta] = useState(0);
 
   const [menuMode, setMenuMode] = useState(false);
   const [selectedMenuItem, setSelectedMenuItem] = useState(0);
@@ -703,24 +738,33 @@ export function IpodAppComponent({
                   }
                 }}
                 onWheel={(e) => {
-                  if (e.deltaY < 0) {
-                    handleWheelRotation("counterclockwise");
-                  } else {
-                    handleWheelRotation("clockwise");
+                  // Accumulate delta and only trigger when it reaches threshold
+                  const newDelta = wheelDelta + Math.abs(e.deltaY);
+                  setWheelDelta(newDelta);
+
+                  // Using a threshold of 50 to reduce sensitivity
+                  if (newDelta >= 50) {
+                    if (e.deltaY < 0) {
+                      handleWheelRotation("counterclockwise");
+                    } else {
+                      handleWheelRotation("clockwise");
+                    }
+                    // Reset delta after triggering action
+                    setWheelDelta(0);
                   }
                 }}
               >
                 {/* Wheel controls with text */}
                 <button
                   onClick={() => handleMenuButton()}
-                  className="absolute top-4 left-1/2 transform -translate-x-1/2 font-chicago text-xs text-white"
+                  className="absolute top-3 left-1/2 transform -translate-x-1/2 font-chicago text-xs text-white"
                 >
                   MENU
                 </button>
                 <div className="absolute right-3 top-1/2 transform -translate-y-1/2 font-chicago text-[9px] text-white">
                   ▶︎▶︎
                 </div>
-                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 font-chicago text-[9px] text-white">
+                <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 font-chicago text-[9px] text-white">
                   ▶︎❙❙
                 </div>
                 <div className="absolute left-3 top-1/2 transform -translate-y-1/2 font-chicago text-[9px] text-white">
