@@ -351,7 +351,7 @@ export function TerminalAppComponent({
         id: "system",
         role: "system",
         content:
-          "You are a helpful AI assistant running in a terminal on ryOS.",
+          "You are a helpful AI assistant and genius web front-end programmer running in a terminal on ryOS.",
       },
     ],
     experimental_throttle: 50,
@@ -1314,6 +1314,7 @@ Available commands:
           !item.output.startsWith("Usage:") &&
           !item.output.includes("Available commands") &&
           !item.output.includes("Welcome to ryOS Terminal") &&
+          !item.output.includes("Ask Ryo anything.") &&
           // Don't animate ls command output
           !(item.command && item.command.trim().startsWith("ls"))
         ) {
@@ -1354,7 +1355,7 @@ Available commands:
         transparentBackground={true}
       >
         <motion.div
-          className="flex flex-col h-full w-full bg-black/90 backdrop-blur-lg text-white antialiased font-mono p-2 overflow-hidden"
+          className="flex flex-col h-full w-full bg-black/80 backdrop-blur-lg text-white antialiased font-mono p-2 overflow-hidden"
           style={{ fontSize: `${fontSize}px` }}
           animate={
             terminalFlash
