@@ -52,6 +52,8 @@ export function TerminalAppComponent({
   const [historyCommands, setHistoryCommands] = useState<string[]>([]);
   const [fontSize, setFontSize] = useState(14); // Default font size in pixels
   const [isInAiMode, setIsInAiMode] = useState(false);
+  const [spinnerIndex, setSpinnerIndex] = useState(0);
+  const spinnerChars = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
   // Add useChat hook
   const {
@@ -116,6 +118,38 @@ export function TerminalAppComponent({
   useEffect(() => {
     saveTerminalCurrentPath(currentPath);
   }, [currentPath]);
+
+  // Spinner animation effect
+  useEffect(() => {
+    if (isAiLoading) {
+      const interval = setInterval(() => {
+        setSpinnerIndex((prevIndex) => (prevIndex + 1) % spinnerChars.length);
+      }, 100);
+
+      return () => clearInterval(interval);
+    }
+  }, [isAiLoading, spinnerChars.length]);
+
+  // Update thinking message with spinner
+  useEffect(() => {
+    if (isAiLoading) {
+      setCommandHistory((prev) => {
+        const newHistory = [...prev];
+        const thinkingIndex = newHistory
+          .map((item) => item.path)
+          .lastIndexOf("ai-thinking");
+
+        if (thinkingIndex !== -1) {
+          newHistory[thinkingIndex] = {
+            ...newHistory[thinkingIndex],
+            output: `${spinnerChars[spinnerIndex]} thinking...`,
+          };
+        }
+
+        return newHistory;
+      });
+    }
+  }, [spinnerIndex, isAiLoading]);
 
   const handleCommandSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -581,14 +615,9 @@ Available commands:
         output: "",
         path: "ai-user", // Special marker for AI mode user message
       },
-    ]);
-
-    // Add "thinking..." to show loading state
-    setCommandHistory((prev) => [
-      ...prev,
       {
         command: "",
-        output: "thinking...",
+        output: `${spinnerChars[spinnerIndex]} thinking...`,
         path: "ai-thinking", // Special marker for thinking state
       },
     ]);
@@ -726,12 +755,23 @@ Available commands:
                 {item.output && (
                   <div
                     className={`ml-0 ${
-                      item.path === "ai-thinking" ? "text-gray-400 italic" : ""
+                      item.path === "ai-thinking" ? "text-gray-400" : ""
                     } ${
                       item.path === "ai-assistant" ? "text-purple-300" : ""
                     } ${item.path === "ai-error" ? "text-red-400" : ""}`}
                   >
-                    {item.output}
+                    {item.path === "ai-thinking" ? (
+                      <>
+                        <span className="text-gray-400">
+                          {item.output.split(" ")[0]}
+                        </span>
+                        <span className="text-gray-400 italic">
+                          {" " + item.output.split(" ").slice(1).join(" ")}
+                        </span>
+                      </>
+                    ) : (
+                      item.output
+                    )}
                   </div>
                 )}
               </div>
