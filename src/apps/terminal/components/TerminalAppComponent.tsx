@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { WindowFrame } from "@/components/layout/WindowFrame";
 import { AppProps } from "@/apps/base/types";
 import { HelpDialog } from "@/components/dialogs/HelpDialog";
@@ -97,6 +98,90 @@ const cleanAppControlMarkup = (message: string): string => {
 
   return message.trim();
 };
+
+// TypewriterText component for terminal output
+function TypewriterText({
+  text,
+  className,
+  speed = 15,
+}: {
+  text: string;
+  className?: string;
+  speed?: number;
+}) {
+  const [displayedText, setDisplayedText] = useState("");
+  const [isComplete, setIsComplete] = useState(false);
+  const textRef = useRef(text);
+
+  useEffect(() => {
+    // Reset when text changes
+    setDisplayedText("");
+    setIsComplete(false);
+    textRef.current = text;
+
+    // Skip animation for long text (performance)
+    if (text.length > 200) {
+      setDisplayedText(text);
+      setIsComplete(true);
+      return;
+    }
+
+    // Adjust speed based on text length - faster for longer text
+    const adjustedSpeed =
+      text.length > 100 ? speed * 0.7 : text.length > 50 ? speed * 0.85 : speed;
+
+    // Split into reasonable chunks for better performance
+    // This makes animation smoother by reducing React state updates
+    const chunkSize = text.length > 100 ? 3 : text.length > 50 ? 2 : 1;
+    const chunks: string[] = [];
+
+    for (let i = 0; i < text.length; i += chunkSize) {
+      chunks.push(text.substring(i, Math.min(i + chunkSize, text.length)));
+    }
+
+    // Use a recursive setTimeout for more reliable animation
+    let currentIndex = 0;
+    let timeoutId: NodeJS.Timeout;
+
+    const typeNextChunk = () => {
+      if (currentIndex < chunks.length) {
+        const chunk = chunks[currentIndex];
+        setDisplayedText((prev) => prev + chunk);
+        currentIndex++;
+
+        // Pause longer after punctuation for natural rhythm
+        const endsWithPunctuation = /[.,!?;:]$/.test(chunk);
+        const delay = endsWithPunctuation ? adjustedSpeed * 3 : adjustedSpeed;
+
+        timeoutId = setTimeout(typeNextChunk, delay);
+      } else {
+        setIsComplete(true);
+      }
+    };
+
+    // Start the typing animation
+    timeoutId = setTimeout(typeNextChunk, adjustedSpeed);
+
+    // Clean up on unmount
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [text, speed]);
+
+  return (
+    <span className={className}>
+      {displayedText}
+      {!isComplete && (
+        <motion.span
+          animate={{ opacity: [1, 0, 1] }}
+          transition={{ repeat: Infinity, duration: 0.8 }}
+        >
+          _
+        </motion.span>
+      )}
+    </span>
+  );
+}
 
 export function TerminalAppComponent({
   onClose,
@@ -206,31 +291,13 @@ export function TerminalAppComponent({
   // Update thinking message with spinner
   useEffect(() => {
     if (isAiLoading) {
-      setCommandHistory((prev) => {
-        const newHistory = [...prev];
-        const thinkingIndex = newHistory
-          .map((item) => item.path)
-          .lastIndexOf("ai-thinking");
+      const interval = setInterval(() => {
+        setSpinnerIndex((prevIndex) => (prevIndex + 1) % spinnerChars.length);
+      }, 100);
 
-        if (thinkingIndex !== -1) {
-          newHistory[thinkingIndex] = {
-            ...newHistory[thinkingIndex],
-            output: `${spinnerChars[spinnerIndex]} thinking...`,
-          };
-        } else {
-          // If there's no thinking message but we're loading, add one
-          // This ensures there's always a thinking message when loading
-          newHistory.push({
-            command: "",
-            output: `${spinnerChars[spinnerIndex]} thinking...`,
-            path: "ai-thinking",
-          });
-        }
-
-        return newHistory;
-      });
+      return () => clearInterval(interval);
     }
-  }, [spinnerIndex, isAiLoading]);
+  }, [isAiLoading, spinnerChars.length]);
 
   // Add an effect to keep focus in the input field during AI interactions
   useEffect(() => {
@@ -243,6 +310,8 @@ export function TerminalAppComponent({
       return () => clearTimeout(focusTimeout);
     }
   }, [isInAiMode, isForeground, aiMessages, spinnerIndex]);
+
+  const [isClearingTerminal, setIsClearingTerminal] = useState(false);
 
   const handleCommandSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -277,6 +346,9 @@ export function TerminalAppComponent({
     } else {
       playCommandSound();
     }
+
+    // Reset animated lines to ensure only new content gets animated
+    setAnimatedLines(new Set());
 
     // Add to command history
     setCommandHistory([
@@ -458,10 +530,18 @@ Available commands:
         };
 
       case "clear":
-        // We'll handle this specially after the switch
+        // Trigger clearing animation
+        setIsClearingTerminal(true);
+        // Stop any ongoing AI responses
+        if (isInAiMode) {
+          stopAiResponse();
+        }
         setTimeout(() => {
+          setIsClearingTerminal(false);
           setCommandHistory([]);
-        }, 10);
+          // Reset tracking refs for AI responses
+          lastProcessedMessageIdRef.current = null;
+        }, 500); // Animation duration
         return { output: "", isError: false };
 
       case "pwd":
@@ -839,67 +919,93 @@ Available commands:
     // Get the most recent assistant message
     const lastMessage = aiMessages[aiMessages.length - 1];
 
-    // Skip if this isn't a new assistant message or if we're still loading
-    if (
-      lastMessage.role !== "assistant" ||
-      lastMessage.id === lastProcessedMessageIdRef.current ||
-      isAiLoading
-    ) {
+    // Skip if this isn't an assistant message
+    if (lastMessage.role !== "assistant") {
       return;
     }
+
+    // Check if this is a new message or an update to the message we're already processing
+    const isNewMessage = lastMessage.id !== lastProcessedMessageIdRef.current;
 
     // Process the message and handle app controls
     const messageContent = lastMessage.content;
     const cleanedContent = handleAppControls(messageContent);
 
-    // Play AI response sound
-    playAiResponseSound();
+    // If we're clearing the terminal, don't update messages
+    if (isClearingTerminal) return;
 
-    // Update command history by replacing the thinking message
+    // If this is a streaming update (not loading)
     setCommandHistory((prev) => {
       const newHistory = [...prev];
 
-      // Find the most recent "thinking..." message
-      const thinkingIndex = newHistory
+      // Remove any thinking messages first
+      const filteredHistory = newHistory.filter(
+        (item) => item.path !== "ai-thinking"
+      );
+
+      // Find the most recent assistant message
+      const assistantIndex = filteredHistory
         .map((item) => item.path)
-        .lastIndexOf("ai-thinking");
+        .lastIndexOf("ai-assistant");
 
-      if (thinkingIndex !== -1) {
-        // Replace the thinking message with the assistant's response
-        newHistory[thinkingIndex] = {
-          command: "",
-          output: cleanedContent,
-          path: "ai-assistant",
-        };
-      } else {
-        // If no thinking message found, append the response
-        newHistory.push({
-          command: "",
-          output: cleanedContent,
-          path: "ai-assistant",
-        });
+      // For a new message
+      if (isNewMessage) {
+        // Play sound only on first chunk of a new message
+        playAiResponseSound();
+
+        // Add new assistant message
+        return [
+          ...filteredHistory,
+          {
+            command: "",
+            output: cleanedContent,
+            path: "ai-assistant",
+          },
+        ];
       }
+      // For a continuing message (update existing response)
+      else {
+        // Update the existing assistant message with the full content
+        if (assistantIndex !== -1) {
+          filteredHistory[assistantIndex] = {
+            command: "",
+            output: cleanedContent,
+            path: "ai-assistant",
+          };
+        } else {
+          // No existing message found, create new one
+          filteredHistory.push({
+            command: "",
+            output: cleanedContent,
+            path: "ai-assistant",
+          });
+        }
 
-      return newHistory;
+        return filteredHistory;
+      }
     });
 
-    // Mark this message as processed
+    // Store the current message ID being processed
     lastProcessedMessageIdRef.current = lastMessage.id;
   }, [
     aiMessages,
     isInAiMode,
     isAiLoading,
+    isClearingTerminal,
     launchApp,
     toggleApp,
     playAiResponseSound,
   ]);
 
-  // Function to handle commands in AI mode
+  // Function to handle AI mode commands
   const handleAiCommand = (command: string) => {
     const lowerCommand = command.trim().toLowerCase();
 
     // Play command sound for AI mode commands too
     playCommandSound();
+
+    // Reset animated lines to ensure only new content gets animated
+    setAnimatedLines(new Set());
 
     // If user types 'exit' or 'quit', leave AI mode
     if (lowerCommand === "exit" || lowerCommand === "quit") {
@@ -944,22 +1050,25 @@ Available commands:
         },
       ]);
 
+      // Reset any pending message processing
+      lastProcessedMessageIdRef.current = null;
       setCurrentCommand("");
       return;
     }
 
     // Add user command to chat history with special AI mode formatting
+    // Remove any existing thinking messages
+    const filteredHistory = commandHistory.filter(
+      (item) => item.path !== "ai-thinking"
+    );
+
+    // Add only the user message - no thinking message in history
     setCommandHistory([
-      ...commandHistory,
+      ...filteredHistory,
       {
         command: command,
         output: "",
         path: "ai-user", // Special marker for AI mode user message
-      },
-      {
-        command: "",
-        output: `${spinnerChars[spinnerIndex]} thinking...`,
-        path: "ai-thinking", // Special marker for thinking state
       },
     ]);
 
@@ -985,9 +1094,74 @@ Available commands:
     }
   };
 
+  const [terminalFlash, setTerminalFlash] = useState(false);
+
   const resetFontSize = () => {
     setFontSize(12); // Reset to default
+
+    // Create a flash effect when resetting font size
+    setTerminalFlash(true);
+    setTimeout(() => setTerminalFlash(false), 300);
   };
+
+  // Animation variants for terminal lines
+  const lineVariants = {
+    initial: {
+      opacity: 0,
+      y: 10,
+      filter: "blur(2px)",
+    },
+    animate: {
+      opacity: 1,
+      y: 0,
+      filter: "blur(0px)",
+      transition: {
+        type: "spring",
+        stiffness: 100,
+        damping: 15,
+      },
+    },
+    exit: {
+      opacity: 0,
+      transition: { duration: 0.2 },
+    },
+  };
+
+  // Track which output lines should use typewriter effect
+  const [animatedLines, setAnimatedLines] = useState<Set<number>>(new Set());
+
+  // Add new line to the animated lines set
+  useEffect(() => {
+    if (commandHistory.length > 0) {
+      const newIndex = commandHistory.length - 1;
+      const item = commandHistory[newIndex];
+
+      setAnimatedLines((prev) => {
+        const newSet = new Set(prev);
+
+        // Only animate certain types of output:
+        // - AI assistant responses
+        // - Command outputs that aren't errors or help text and are reasonably sized
+        // - Exclude "ls" command output
+        if (
+          item.path === "ai-assistant" ||
+          (!item.path.startsWith("ai-") &&
+            item.output &&
+            item.output.length > 0 &&
+            item.output.length < 150 &&
+            !item.output.startsWith("Command not found") &&
+            !item.output.startsWith("Usage:") &&
+            !item.output.includes("Available commands") &&
+            // Don't animate ls command output
+            !(item.command && item.command.trim().startsWith("ls")))
+        ) {
+          newSet.add(newIndex);
+        }
+
+        return newSet;
+      });
+    }
+  }, [commandHistory.length]);
 
   if (!isWindowOpen) return null;
 
@@ -997,7 +1171,13 @@ Available commands:
         onClose={onClose}
         onShowHelp={() => setIsHelpDialogOpen(true)}
         onShowAbout={() => setIsAboutDialogOpen(true)}
-        onClear={() => setCommandHistory([])}
+        onClear={() => {
+          setIsClearingTerminal(true);
+          setTimeout(() => {
+            setIsClearingTerminal(false);
+            setCommandHistory([]);
+          }, 500);
+        }}
         onIncreaseFontSize={increaseFontSize}
         onDecreaseFontSize={decreaseFontSize}
         onResetFontSize={resetFontSize}
@@ -1011,53 +1191,107 @@ Available commands:
         isForeground={isForeground}
         transparentBackground={true}
       >
-        <div
+        <motion.div
           className="flex flex-col h-full w-full bg-black/90 backdrop-blur-lg text-white antialiased font-mono p-2 overflow-hidden"
           style={{ fontSize: `${fontSize}px` }}
+          animate={
+            terminalFlash
+              ? {
+                  filter: ["brightness(1)", "brightness(1.5)", "brightness(1)"],
+                  scale: [1, 1.01, 1],
+                }
+              : {}
+          }
+          transition={{ duration: 0.3, ease: "easeOut" }}
         >
           <div
             ref={terminalRef}
             className="flex-1 overflow-auto whitespace-pre-wrap"
             onClick={() => inputRef.current?.focus()}
           >
-            {commandHistory.map((item, index) => (
-              <div key={index} className="mb-1">
-                {item.command && (
-                  <div className="flex">
-                    {item.path === "ai-user" ? (
-                      <span className="text-purple-400 mr-1">→ ryo</span>
-                    ) : (
-                      <span className="text-green-400 mr-1">
-                        ➜ {item.path === "/" ? "/" : item.path}
-                      </span>
-                    )}
-                    <span>{item.command}</span>
-                  </div>
-                )}
-                {item.output && (
-                  <div
-                    className={`ml-0 ${
-                      item.path === "ai-thinking" ? "text-gray-400" : ""
-                    } ${
-                      item.path === "ai-assistant" ? "text-purple-300" : ""
-                    } ${item.path === "ai-error" ? "text-red-400" : ""}`}
-                  >
-                    {item.path === "ai-thinking" ? (
-                      <>
-                        <span className="text-gray-400">
-                          {item.output.split(" ")[0]}
+            <AnimatePresence initial={false} mode="popLayout">
+              {commandHistory.map((item, index) => (
+                <motion.div
+                  key={index}
+                  className="mb-1"
+                  variants={lineVariants}
+                  initial="initial"
+                  animate={
+                    isClearingTerminal
+                      ? {
+                          opacity: 0,
+                          y: -100,
+                          filter: "blur(4px)",
+                          transition: {
+                            duration: 0.3,
+                            delay: 0.02 * (commandHistory.length - index),
+                          },
+                        }
+                      : "animate"
+                  }
+                  exit="exit"
+                  layoutId={`terminal-line-${index}`}
+                  layout="position"
+                  transition={{
+                    type: "spring",
+                    delay: 0.05 * (index % 3), // Stagger effect for groups of 3
+                    duration: 0.3,
+                  }}
+                >
+                  {item.command && (
+                    <div className="flex">
+                      {item.path === "ai-user" ? (
+                        <span className="text-purple-400 mr-1">→ ryo</span>
+                      ) : (
+                        <span className="text-green-400 mr-1">
+                          ➜ {item.path === "/" ? "/" : item.path}
                         </span>
-                        <span className="text-gray-400 italic">
-                          {" " + item.output.split(" ").slice(1).join(" ")}
-                        </span>
-                      </>
-                    ) : (
-                      item.output
-                    )}
-                  </div>
-                )}
+                      )}
+                      <span>{item.command}</span>
+                    </div>
+                  )}
+                  {item.output && (
+                    <div
+                      className={`ml-0 ${
+                        item.path === "ai-thinking" ? "text-gray-400" : ""
+                      } ${
+                        item.path === "ai-assistant" ? "text-purple-300" : ""
+                      } ${item.path === "ai-error" ? "text-red-400" : ""}`}
+                    >
+                      {item.path === "ai-thinking" ? (
+                        <>
+                          <span className="text-gray-400">
+                            {item.output.split(" ")[0]}
+                          </span>
+                          <span className="text-gray-400 italic">
+                            {" " + item.output.split(" ").slice(1).join(" ")}
+                          </span>
+                        </>
+                      ) : animatedLines.has(index) ? (
+                        <TypewriterText
+                          text={item.output}
+                          speed={item.path === "ai-assistant" ? 15 : 10}
+                          className={
+                            item.path === "ai-assistant"
+                              ? "text-purple-300"
+                              : ""
+                          }
+                        />
+                      ) : (
+                        item.output
+                      )}
+                    </div>
+                  )}
+                </motion.div>
+              ))}
+            </AnimatePresence>
+            {isAiLoading && isInAiMode && (
+              <div className="mb-1">
+                <span className="text-gray-400 italic">
+                  {spinnerChars[spinnerIndex]} thinking...
+                </span>
               </div>
-            ))}
+            )}
             <form onSubmit={handleCommandSubmit} className="flex">
               {isInAiMode ? (
                 <span className="text-purple-400 mr-1 whitespace-nowrap">
@@ -1081,7 +1315,7 @@ Available commands:
               />
             </form>
           </div>
-        </div>
+        </motion.div>
       </WindowFrame>
       <HelpDialog
         isOpen={isHelpDialogOpen}
