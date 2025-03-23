@@ -176,13 +176,21 @@ function HtmlPreview({
 
   // Normal inline display with optional maximized height
   return (
-    <div
+    <motion.div
       className="border rounded bg-white/100 overflow-auto my-2 relative"
       style={{
         maxHeight: isFullScreen ? `${contentHeight}px` : "800px",
         pointerEvents: isStreaming ? "none" : "auto",
-        opacity: isStreaming ? 0.7 : 1,
-        transition: "opacity 0.3s ease-in-out",
+      }}
+      animate={{
+        opacity: isStreaming ? [0.6, 0.8, 0.6] : 1,
+      }}
+      transition={{
+        opacity: {
+          duration: 2.5,
+          repeat: isStreaming ? Infinity : 0,
+          ease: "easeInOut",
+        },
       }}
       onClick={(e) => e.stopPropagation()}
       onMouseDown={(e) => e.stopPropagation()}
@@ -190,20 +198,17 @@ function HtmlPreview({
       onMouseLeave={() => !isStreaming && onInteractionChange(false)}
       tabIndex={-1}
     >
-      {isStreaming && (
-        <div
-          className="absolute inset-0 w-full h-full z-10 pointer-events-none"
-          style={{
-            backgroundColor: "rgba(31, 41, 55, 0.5)",
-            animation: "shimmer-text 2s ease-in-out infinite",
-            transition: "opacity 0.5s ease",
-          }}
-        />
-      )}
-      <div
-        className={`flex justify-end p-1 absolute top-0 right-0 z-20 transition-opacity duration-300 ${
-          isStreaming ? "opacity-0 pointer-events-none" : "opacity-100"
-        }`}
+      <motion.div
+        className="flex justify-end p-1 absolute top-0 right-0 z-20"
+        animate={{
+          opacity: isStreaming ? 0 : 1,
+        }}
+        transition={{
+          duration: 0.3,
+        }}
+        style={{
+          pointerEvents: isStreaming ? "none" : "auto",
+        }}
       >
         <button
           onClick={handleSaveToDisk}
@@ -212,7 +217,7 @@ function HtmlPreview({
           aria-label="Save HTML to disk"
           disabled={isStreaming}
         >
-          <Save size={16} className="text-gray-500" />
+          <Save size={16} className="text-neutral-400/50" />
         </button>
         <button
           onClick={handleCopy}
@@ -222,9 +227,9 @@ function HtmlPreview({
           disabled={isStreaming}
         >
           {copySuccess ? (
-            <Check size={16} className="text-gray-600" />
+            <Check size={16} className="text-neutral-400/50" />
           ) : (
-            <Copy size={16} className="text-gray-500" />
+            <Copy size={16} className="text-neutral-400/50" />
           )}
         </button>
         <button
@@ -238,13 +243,13 @@ function HtmlPreview({
           disabled={isStreaming}
         >
           {isFullScreen ? (
-            <Minimize size={16} className="text-gray-500" />
+            <Minimize size={16} className="text-neutral-400/50" />
           ) : (
-            <Maximize size={16} className="text-gray-500" />
+            <Maximize size={16} className="text-neutral-400/50" />
           )}
         </button>
-      </div>
-      <iframe
+      </motion.div>
+      <motion.iframe
         srcDoc={htmlContent}
         title="HTML Preview"
         className="w-full h-full border-0"
@@ -252,13 +257,21 @@ function HtmlPreview({
         style={{
           height: isFullScreen ? `${contentHeight - 40}px` : "250px",
           display: "block",
-          opacity: isStreaming ? 0.7 : 1,
-          transition: "opacity 0.3s ease-in-out",
           pointerEvents: isStreaming ? "none" : "auto",
+        }}
+        animate={{
+          opacity: isStreaming ? [0.6, 0.8, 0.6] : 1,
+        }}
+        transition={{
+          opacity: {
+            duration: 2.5,
+            repeat: isStreaming ? Infinity : 0,
+            ease: "easeInOut",
+          },
         }}
         onMouseDown={(e) => e.stopPropagation()}
       />
-    </div>
+    </motion.div>
   );
 }
 
@@ -1491,8 +1504,9 @@ Available commands:
         }
         
         @keyframes shimmer-text {
-          0%, 100% { opacity: 0.5; }
+          0% { opacity: 0.5; }
           50% { opacity: 0.8; }
+          100% { opacity: 0.5; }
         }
       `;
       document.head.appendChild(style);
