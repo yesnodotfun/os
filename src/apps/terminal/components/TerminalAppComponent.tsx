@@ -19,7 +19,7 @@ import { useChat } from "ai/react";
 import { useAppContext } from "@/contexts/AppContext";
 import { AppId } from "@/config/appRegistry";
 import { useTerminalSounds } from "@/hooks/useTerminalSounds";
-import { Maximize, Minimize, Copy, Check } from "lucide-react";
+import { Maximize, Minimize, Copy, Check, Save } from "lucide-react";
 import { useWindowManager } from "@/hooks/useWindowManager";
 
 interface CommandHistory {
@@ -135,6 +135,23 @@ function HtmlPreview({
     }
   };
 
+  const handleSaveToDisk = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const blob = new Blob([htmlContent], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const timestamp = new Date()
+      .toISOString()
+      .replace(/[:.]/g, "-")
+      .substring(0, 19);
+    a.href = url;
+    a.download = `terminal-output-${timestamp}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   // Play elevator music when streaming starts, stop when streaming ends
   useEffect(() => {
     if (isStreaming) {
@@ -181,6 +198,15 @@ function HtmlPreview({
         />
       )}
       <div className="flex justify-end p-1 absolute top-0 right-0 z-20">
+        <button
+          onClick={handleSaveToDisk}
+          onMouseDown={(e) => e.stopPropagation()}
+          className="flex items-center justify-center w-6 h-6 hover:bg-black/10 rounded mr-1"
+          aria-label="Save HTML to disk"
+          disabled={isStreaming}
+        >
+          <Save size={16} className="text-black" />
+        </button>
         <button
           onClick={handleCopy}
           onMouseDown={(e) => e.stopPropagation()}
