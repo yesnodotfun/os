@@ -1328,6 +1328,19 @@ Available commands:
     // Play command sound for AI mode commands too
     playCommandSound();
 
+    // Add command to history commands array (for up/down arrow navigation)
+    const newHistoryCommands = [...historyCommands, command];
+    setHistoryCommands(newHistoryCommands);
+    setHistoryIndex(-1);
+
+    // Save to storage (including AI commands)
+    const savedCommands = loadTerminalCommandHistory();
+    const newCommands: TerminalCommand[] = [
+      ...savedCommands,
+      { command: `ryo ${command}`, timestamp: Date.now() },
+    ];
+    saveTerminalCommandHistory(newCommands);
+
     // Reset animated lines to ensure only new content gets animated
     setAnimatedLines(new Set());
 
