@@ -107,14 +107,14 @@ interface HtmlPreviewProps {
   htmlContent: string;
   onInteractionChange: (isInteracting: boolean) => void;
   isStreaming?: boolean;
-  scrollToBottom: () => void;
+  terminalRef: React.RefObject<HTMLDivElement>;
 }
 
 function HtmlPreview({
   htmlContent,
   onInteractionChange,
   isStreaming = false,
-  scrollToBottom,
+  terminalRef,
 }: HtmlPreviewProps) {
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
@@ -122,6 +122,7 @@ function HtmlPreview({
   const { playElevatorMusic, stopElevatorMusic, playDingSound } =
     useTerminalSounds();
   const prevStreamingRef = useRef(isStreaming);
+  const previewRef = useRef<HTMLDivElement>(null);
 
   const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -176,9 +177,24 @@ function HtmlPreview({
   // Adjust for the terminal interface elements
   const contentHeight = windowSize.height - 30; // Adjust for header, input, padding
 
+  // Function to scroll to the preview's top edge
+  const scrollToPreview = useCallback(() => {
+    if (previewRef.current && terminalRef.current) {
+      const previewRect = previewRef.current.getBoundingClientRect();
+      const terminalRect = terminalRef.current.getBoundingClientRect();
+      const scrollOffset =
+        previewRect.top - terminalRect.top + terminalRef.current.scrollTop - 8; // 8px for padding
+      terminalRef.current.scrollTo({
+        top: scrollOffset,
+        behavior: "smooth",
+      });
+    }
+  }, []);
+
   // Normal inline display with optional maximized height
   return (
     <motion.div
+      ref={previewRef}
       className="border rounded bg-white/100 overflow-auto my-2 relative"
       style={{
         maxHeight: isFullScreen ? `${contentHeight}px` : "800px",
@@ -238,9 +254,9 @@ function HtmlPreview({
           onClick={(e) => {
             e.stopPropagation();
             setIsFullScreen(!isFullScreen);
-            // Scroll to bottom when maximizing
+            // Scroll to preview when maximizing
             if (!isFullScreen) {
-              setTimeout(scrollToBottom, 50); // Small delay to ensure the resize has completed
+              setTimeout(scrollToPreview, 50); // Small delay to ensure the resize has completed
             }
           }}
           onMouseDown={(e) => e.stopPropagation()}
@@ -1683,7 +1699,7 @@ Available commands:
                                       handleHtmlPreviewInteraction
                                     }
                                     isStreaming={isThisMessageStreaming}
-                                    scrollToBottom={scrollToBottom}
+                                    terminalRef={terminalRef}
                                   />
                                 )}
                               </>
@@ -1704,7 +1720,7 @@ Available commands:
                               htmlContent={isHtmlCodeBlock(item.output).content}
                               onInteractionChange={handleHtmlPreviewInteraction}
                               isStreaming={false}
-                              scrollToBottom={scrollToBottom}
+                              terminalRef={terminalRef}
                             />
                           )}
                         </>
