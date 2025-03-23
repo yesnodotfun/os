@@ -217,7 +217,7 @@ function HtmlPreview({
       tabIndex={-1}
     >
       <motion.div
-        className="flex justify-end p-1 absolute top-0 right-0 z-20"
+        className="flex justify-end p-1 absolute top-2 right-4 z-20"
         animate={{
           opacity: isStreaming ? 0 : 1,
         }}
@@ -231,23 +231,32 @@ function HtmlPreview({
         <button
           onClick={handleSaveToDisk}
           onMouseDown={(e) => e.stopPropagation()}
-          className="flex items-center justify-center w-6 h-6 hover:bg-black/10 rounded mr-1"
+          className="flex items-center justify-center w-6 h-6 hover:bg-black/10 rounded mr-1 group"
           aria-label="Save HTML to disk"
           disabled={isStreaming}
         >
-          <Save size={16} className="text-neutral-400/50" />
+          <Save
+            size={16}
+            className="text-neutral-400/50 group-hover:text-neutral-300"
+          />
         </button>
         <button
           onClick={handleCopy}
           onMouseDown={(e) => e.stopPropagation()}
-          className="flex items-center justify-center w-6 h-6 hover:bg-black/10 rounded mr-1"
+          className="flex items-center justify-center w-6 h-6 hover:bg-black/10 rounded mr-1 group"
           aria-label="Copy HTML code"
           disabled={isStreaming}
         >
           {copySuccess ? (
-            <Check size={16} className="text-neutral-400/50" />
+            <Check
+              size={16}
+              className="text-neutral-400/50 group-hover:text-neutral-300"
+            />
           ) : (
-            <Copy size={16} className="text-neutral-400/50" />
+            <Copy
+              size={16}
+              className="text-neutral-400/50 group-hover:text-neutral-300"
+            />
           )}
         </button>
         <button
@@ -260,14 +269,20 @@ function HtmlPreview({
             }
           }}
           onMouseDown={(e) => e.stopPropagation()}
-          className="flex items-center justify-center w-6 h-6 hover:bg-black/10 rounded"
+          className="flex items-center justify-center w-6 h-6 hover:bg-black/10 rounded group"
           aria-label={isFullScreen ? "Minimize preview" : "Maximize preview"}
           disabled={isStreaming}
         >
           {isFullScreen ? (
-            <Minimize size={16} className="text-neutral-400/50" />
+            <Minimize
+              size={16}
+              className="text-neutral-400/50 group-hover:text-neutral-300"
+            />
           ) : (
-            <Maximize size={16} className="text-neutral-400/50" />
+            <Maximize
+              size={16}
+              className="text-neutral-400/50 group-hover:text-neutral-300"
+            />
           )}
         </button>
       </motion.div>
