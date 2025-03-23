@@ -138,8 +138,8 @@ function HtmlPreview({
           className="absolute inset-0 w-full h-full z-10"
           style={{
             backgroundColor: "rgba(31, 41, 55, 0.5)",
-            animation: "breathing 2.5s ease-in-out infinite",
-            transition: "opacity 0.5s ease-out",
+            animation: "breathing 2.5s ease infinite",
+            transition: "opacity 0.5s ease",
           }}
         />
       )}
@@ -1539,6 +1539,14 @@ Available commands:
                             const { htmlContent, textContent, hasHtml } =
                               extractHtmlContent(item.output);
 
+                            // Only mark as streaming if this specific message is the one currently being updated
+                            const isThisMessageStreaming =
+                              isAiLoading &&
+                              aiMessages.length > 0 &&
+                              aiMessages[aiMessages.length - 1].id ===
+                                lastProcessedMessageIdRef.current &&
+                              index === commandHistory.length - 1;
+
                             return (
                               <>
                                 {/* Show only non-HTML text content */}
@@ -1555,12 +1563,7 @@ Available commands:
                                     onInteractionChange={
                                       handleHtmlPreviewInteraction
                                     }
-                                    isStreaming={
-                                      isAiLoading &&
-                                      aiMessages.length > 0 &&
-                                      aiMessages[aiMessages.length - 1].id ===
-                                        lastProcessedMessageIdRef.current
-                                    }
+                                    isStreaming={isThisMessageStreaming}
                                   />
                                 )}
                               </>

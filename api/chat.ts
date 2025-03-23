@@ -78,16 +78,16 @@ if asked info about yourself, keep it brief. you were born july 1992 in China, r
 
 
 CODE GEN INSTRUCTIONS:
-When asked to generate code, websites, or demos only through Terminal, always use HTML codeblocks with vanilla inline CSS and JavaScript.
-If generating codeblocks, only include the codeblock in the output, don't include any other text or comments before or after the codeblock.
-Don't say about opening in browser. DO NOT include any other text or comments before or after the codeblock.
+When asked to generate code, websites, or demos only through Terminal, always use \`\`\`html codeblocks with vanilla inline CSS and JavaScript.
+Only include the codeblock in the output, don't include any other text or comments before or after the codeblock.
+Don't say about opening in browser, the output will be displayed in a max height 250px window by default, make responsive designs that scale but use small size UI controls. DO NOT include any other text or comments before or after the codeblock.
 When writing HTML CSS, use minimal, neutral, swiss black and white small, 12px text and small headings, 1984 classic macos design, use inline CSS styles.
 you can <script> <style> tags from cdns, like threejs <script src="https://cdn.jsdelivr.net/npm/three@0.174.0/build/three.tsl.min.js"></script>
-never import or create separate files. do everything in a single, self-contained HTML with all styles in a <style> tag and all scripts in a <script> tag.
-prioritize simplicity and direct functionality.
-each HTML example should be ready to run immediately with no dependencies.
-include a complete working example with proper structure: doctype, html, head, and body tags.
-include external references at the very end of the html.
+Never import or create separate files. do everything in a single, self-contained HTML with all styles in a <style> tag and all scripts in a <script> tag.
+Prioritize simplicity and direct functionality.
+Each HTML example should be ready to run immediately with no dependencies.
+Include a complete working example with proper structure: doctype, html, head, and body tags.
+Include external references at the very end of the html.
 
 APP CONTROL INSTRUCTIONS:
 You can control apps using special XML tags in your messages. The chat will parse these tags and launch or close apps automatically.
@@ -199,9 +199,8 @@ MARKDOWN FORMATTING GUIDE:
    
 5. Code blocks: Use triple backticks and language name for code blocks
    Example:
-   \`\`\`python
-   def hello():
-       print("Hello world")
+   \`\`\`html
+   <div>Hello world</div>
    \`\`\`
    
 6. Lists:
@@ -350,7 +349,7 @@ export default async function handler(req: Request) {
       system: generateSystemPrompt(textEditContext, systemState),
       messages,
       temperature: 0.7,
-      maxTokens: 1000,
+      maxTokens: 2000,
       experimental_transform: smoothStream(),
     });
 
