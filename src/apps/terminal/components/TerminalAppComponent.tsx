@@ -1364,7 +1364,10 @@ Available commands:
     const savedCommands = loadTerminalCommandHistory();
     const newCommands: TerminalCommand[] = [
       ...savedCommands,
-      { command: `ryo ${command}`, timestamp: Date.now() },
+      {
+        command: command.startsWith("ryo ") ? command : `ryo ${command}`,
+        timestamp: Date.now(),
+      },
     ];
     saveTerminalCommandHistory(newCommands);
 

@@ -1,5 +1,6 @@
 import { openai } from "@ai-sdk/openai";
-import { smoothStream, streamText } from "ai";
+import { anthropic } from "@ai-sdk/anthropic";
+import { streamText, smoothStream, LanguageModelV1 } from "ai";
 import { SystemState } from "../src/utils/storage";
 
 // Allow streaming responses up to 30 seconds
@@ -365,14 +366,24 @@ export default async function handler(req: Request) {
   }
 
   try {
-    const { messages, textEditContext, systemState } = await req.json();
+    const {
+      messages,
+      textEditContext,
+      systemState,
+      model = "claude-3.5",
+    } = await req.json();
 
     if (!messages || !Array.isArray(messages)) {
       return new Response("Invalid messages format", { status: 400 });
     }
 
+    const selectedModel =
+      model === "gpt-4o"
+        ? openai("gpt-4o")
+        : anthropic("claude-3-5-sonnet-20241022");
+
     const result = streamText({
-      model: openai("gpt-4o"),
+      model: selectedModel as LanguageModelV1,
       system: generateSystemPrompt(textEditContext, systemState),
       messages,
       temperature: 0.7,
