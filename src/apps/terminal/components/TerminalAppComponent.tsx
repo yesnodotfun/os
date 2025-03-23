@@ -26,6 +26,7 @@ interface CommandHistory {
   command: string;
   output: string;
   path: string;
+  messageId?: string; // Optional since not all commands will have a message ID
 }
 
 // Available commands for autocompletion
@@ -1137,35 +1138,38 @@ Available commands:
     }
   };
 
-  // Function to handle app controls
-  const handleAppControls = (messageContent: string) => {
-    if (!/<app:(launch|close)/i.test(messageContent)) {
-      return messageContent;
-    }
-
-    const operations = parseAppControlMarkup(messageContent);
-    if (operations.length === 0) {
-      return messageContent;
-    }
-
-    // Execute app control operations - but only once per app
-    operations.forEach((op) => {
-      if (op.type === "launch") {
-        // Only launch each app once
-        if (!launchedAppsRef.current.has(op.id)) {
-          launchApp(op.id as AppId);
-          launchedAppsRef.current.add(op.id);
-        }
-      } else if (op.type === "close") {
-        toggleApp(op.id);
-        // Remove from launched apps so it can be launched again later
-        launchedAppsRef.current.delete(op.id);
+  // Function to handle app controls - memoized to prevent recreation on every render
+  const handleAppControls = useCallback(
+    (messageContent: string) => {
+      if (!/<app:(launch|close)/i.test(messageContent)) {
+        return messageContent;
       }
-    });
 
-    // Clean the message content of markup
-    return cleanAppControlMarkup(messageContent);
-  };
+      const operations = parseAppControlMarkup(messageContent);
+      if (operations.length === 0) {
+        return messageContent;
+      }
+
+      // Execute app control operations - but only once per app
+      operations.forEach((op) => {
+        if (op.type === "launch") {
+          // Only launch each app once
+          if (!launchedAppsRef.current.has(op.id)) {
+            launchApp(op.id as AppId);
+            launchedAppsRef.current.add(op.id);
+          }
+        } else if (op.type === "close") {
+          toggleApp(op.id);
+          // Remove from launched apps so it can be launched again later
+          launchedAppsRef.current.delete(op.id);
+        }
+      });
+
+      // Clean the message content of markup
+      return cleanAppControlMarkup(messageContent);
+    },
+    [launchApp, toggleApp]
+  );
 
   // Reset launched apps when leaving AI mode
   useEffect(() => {
@@ -1173,6 +1177,11 @@ Available commands:
       launchedAppsRef.current.clear();
     }
   }, [isInAiMode]);
+
+  // Memoize the AI response sound function to prevent dependency changes
+  const playAiResponseSoundMemoized = useCallback(() => {
+    playAiResponseSound();
+  }, [playAiResponseSound]);
 
   // Watch for changes in the AI messages to update the terminal display
   useEffect(() => {
@@ -1186,8 +1195,11 @@ Available commands:
       return;
     }
 
-    // Check if this is a new message or an update to the message we're already processing
-    const isNewMessage = lastMessage.id !== lastProcessedMessageIdRef.current;
+    // Skip if we've already processed this exact message content
+    const messageKey = `${lastMessage.id}-${lastMessage.content}`;
+    if (messageKey === lastProcessedMessageIdRef.current) {
+      return;
+    }
 
     // Process the message and handle app controls
     const messageContent = lastMessage.content;
@@ -1196,67 +1208,59 @@ Available commands:
     // If we're clearing the terminal, don't update messages
     if (isClearingTerminal) return;
 
-    // If this is a streaming update (not loading)
+    // Update command history atomically
     setCommandHistory((prev) => {
-      const newHistory = [...prev];
-
       // Remove any thinking messages first
-      const filteredHistory = newHistory.filter(
+      const filteredHistory = prev.filter(
         (item) => item.path !== "ai-thinking"
       );
 
-      // Find the most recent assistant message
-      const assistantIndex = filteredHistory
-        .map((item) => item.path)
-        .lastIndexOf("ai-assistant");
+      // Check if this message already exists in the history
+      const existingMessageIndex = filteredHistory.findIndex(
+        (item) =>
+          item.path === "ai-assistant" && item.messageId === lastMessage.id
+      );
 
-      // For a new message
-      if (isNewMessage) {
-        // Play sound only on first chunk of a new message
-        playAiResponseSound();
-
-        // Add new assistant message
-        return [
-          ...filteredHistory,
-          {
-            command: "",
-            output: cleanedContent,
-            path: "ai-assistant",
-          },
-        ];
-      }
-      // For a continuing message (update existing response)
-      else {
-        // Update the existing assistant message with the full content
-        if (assistantIndex !== -1) {
-          filteredHistory[assistantIndex] = {
-            command: "",
-            output: cleanedContent,
-            path: "ai-assistant",
-          };
-        } else {
-          // No existing message found, create new one
-          filteredHistory.push({
-            command: "",
-            output: cleanedContent,
-            path: "ai-assistant",
-          });
+      // If message exists, update it only if content changed
+      if (existingMessageIndex !== -1) {
+        const existingMessage = filteredHistory[existingMessageIndex];
+        if (existingMessage.output === cleanedContent) {
+          return prev; // No change needed
         }
 
-        return filteredHistory;
+        const updatedHistory = [...filteredHistory];
+        updatedHistory[existingMessageIndex] = {
+          command: "",
+          output: cleanedContent,
+          path: "ai-assistant",
+          messageId: lastMessage.id,
+        };
+        return updatedHistory;
       }
+
+      // If it's a completely new message, play sound
+      playAiResponseSoundMemoized();
+
+      // Append new message
+      return [
+        ...filteredHistory,
+        {
+          command: "",
+          output: cleanedContent,
+          path: "ai-assistant",
+          messageId: lastMessage.id,
+        },
+      ];
     });
 
-    // Store the current message ID being processed
-    lastProcessedMessageIdRef.current = lastMessage.id;
+    // Store the current message key being processed
+    lastProcessedMessageIdRef.current = messageKey;
   }, [
     aiMessages,
     isInAiMode,
-    isAiLoading,
     isClearingTerminal,
-    launchApp,
-    toggleApp,
-    playAiResponseSound,
+    handleAppControls,
+    playAiResponseSoundMemoized,
   ]);
 
   // Function to handle AI mode commands
@@ -1419,40 +1423,43 @@ Available commands:
   // Track which output lines should use typewriter effect
   const [animatedLines, setAnimatedLines] = useState<Set<number>>(new Set());
 
-  // Add new line to the animated lines set
+  // Add new line to the animated lines set - optimize to prevent unnecessary updates
   useEffect(() => {
-    if (commandHistory.length > 0) {
-      const newIndex = commandHistory.length - 1;
-      const item = commandHistory[newIndex];
+    if (commandHistory.length === 0) return;
 
-      setAnimatedLines((prev) => {
-        const newSet = new Set(prev);
+    const newIndex = commandHistory.length - 1;
+    const item = commandHistory[newIndex];
 
-        // Only animate certain types of output:
-        // - Command outputs that aren't errors or help text and are reasonably sized
-        // - Exclude "ls" command output
-        // - Exclude welcome message
-        // - Exclude AI assistant responses (let them stream naturally)
-        if (
-          !item.path.startsWith("ai-") &&
-          item.output &&
-          item.output.length > 0 &&
-          item.output.length < 150 &&
-          !item.output.startsWith("Command not found") &&
-          !item.output.startsWith("Usage:") &&
-          !item.output.includes("Available commands") &&
-          !item.output.includes("Welcome to ryOS Terminal") &&
-          !item.output.includes("Ask Ryo anything.") &&
-          // Don't animate ls command output
-          !(item.command && item.command.trim().startsWith("ls"))
-        ) {
-          newSet.add(newIndex);
-        }
+    // Skip adding animation if we've already processed this length
+    if (previousCommandHistoryLength.current === commandHistory.length) return;
+    previousCommandHistoryLength.current = commandHistory.length;
 
-        return newSet;
-      });
-    }
-  }, [commandHistory.length]);
+    setAnimatedLines((prev) => {
+      // If the line is already animated, don't update the set
+      if (prev.has(newIndex)) return prev;
+
+      const newSet = new Set(prev);
+
+      // Only animate certain types of output
+      if (
+        !item.path.startsWith("ai-") &&
+        item.output &&
+        item.output.length > 0 &&
+        item.output.length < 150 &&
+        !item.output.startsWith("Command not found") &&
+        !item.output.startsWith("Usage:") &&
+        !item.output.includes("Available commands") &&
+        !item.output.includes("Welcome to ryOS Terminal") &&
+        !item.output.includes("Ask Ryo anything.") &&
+        // Don't animate ls command output
+        !(item.command && item.command.trim().startsWith("ls"))
+      ) {
+        newSet.add(newIndex);
+      }
+
+      return newSet;
+    });
+  }, [commandHistory]);
 
   // Update HTML preview usage in the component
   const handleHtmlPreviewInteraction = (isInteracting: boolean) => {
