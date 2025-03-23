@@ -19,7 +19,7 @@ import { useChat } from "ai/react";
 import { useAppContext } from "@/contexts/AppContext";
 import { AppId } from "@/config/appRegistry";
 import { useTerminalSounds } from "@/hooks/useTerminalSounds";
-import { Maximize, Minimize } from "lucide-react";
+import { Maximize, Minimize, Copy, Check } from "lucide-react";
 import { useWindowManager } from "@/hooks/useWindowManager";
 
 interface CommandHistory {
@@ -114,10 +114,26 @@ function HtmlPreview({
   isStreaming = false,
 }: HtmlPreviewProps) {
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
   const { windowSize } = useWindowManager({ appId: "terminal" });
   const { playElevatorMusic, stopElevatorMusic, playDingSound } =
     useTerminalSounds();
   const prevStreamingRef = useRef(isStreaming);
+
+  const handleCopy = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(htmlContent);
+      setCopySuccess(true);
+
+      // Reset after 2 seconds
+      setTimeout(() => {
+        setCopySuccess(false);
+      }, 2000);
+    } catch (err) {
+      console.error("Failed to copy: ", err);
+    }
+  };
 
   // Play elevator music when streaming starts, stop when streaming ends
   useEffect(() => {
@@ -165,6 +181,19 @@ function HtmlPreview({
         />
       )}
       <div className="flex justify-end p-1 absolute top-0 right-0 z-20">
+        <button
+          onClick={handleCopy}
+          onMouseDown={(e) => e.stopPropagation()}
+          className="flex items-center justify-center w-6 h-6 hover:bg-black/10 rounded mr-1"
+          aria-label="Copy HTML code"
+          disabled={isStreaming}
+        >
+          {copySuccess ? (
+            <Check size={16} className="text-green-600" />
+          ) : (
+            <Copy size={16} className="text-black" />
+          )}
+        </button>
         <button
           onClick={(e) => {
             e.stopPropagation();
