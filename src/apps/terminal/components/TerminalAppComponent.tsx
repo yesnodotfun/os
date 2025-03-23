@@ -181,6 +181,8 @@ function HtmlPreview({
       style={{
         maxHeight: isFullScreen ? `${contentHeight}px` : "800px",
         pointerEvents: isStreaming ? "none" : "auto",
+        opacity: isStreaming ? 0.7 : 1,
+        transition: "opacity 0.3s ease-in-out",
       }}
       onClick={(e) => e.stopPropagation()}
       onMouseDown={(e) => e.stopPropagation()}
@@ -190,53 +192,58 @@ function HtmlPreview({
     >
       {isStreaming && (
         <div
-          className="absolute inset-0 w-full h-full z-10"
+          className="absolute inset-0 w-full h-full z-10 pointer-events-none"
           style={{
-            backgroundColor: "rgba(31, 41, 55, 0.7)",
+            backgroundColor: "rgba(31, 41, 55, 0.5)",
             animation: "shimmer-text 2s ease-in-out infinite",
             transition: "opacity 0.5s ease",
           }}
         />
       )}
-      {!isStreaming && (
-        <div className="flex justify-end p-1 absolute top-0 right-0 z-20">
-          <button
-            onClick={handleSaveToDisk}
-            onMouseDown={(e) => e.stopPropagation()}
-            className="flex items-center justify-center w-6 h-6 hover:bg-black/10 rounded mr-1"
-            aria-label="Save HTML to disk"
-          >
-            <Save size={16} className="text-gray-500" />
-          </button>
-          <button
-            onClick={handleCopy}
-            onMouseDown={(e) => e.stopPropagation()}
-            className="flex items-center justify-center w-6 h-6 hover:bg-black/10 rounded mr-1"
-            aria-label="Copy HTML code"
-          >
-            {copySuccess ? (
-              <Check size={16} className="text-gray-600" />
-            ) : (
-              <Copy size={16} className="text-gray-500" />
-            )}
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsFullScreen(!isFullScreen);
-            }}
-            onMouseDown={(e) => e.stopPropagation()}
-            className="flex items-center justify-center w-6 h-6 hover:bg-black/10 rounded"
-            aria-label={isFullScreen ? "Minimize preview" : "Maximize preview"}
-          >
-            {isFullScreen ? (
-              <Minimize size={16} className="text-gray-500" />
-            ) : (
-              <Maximize size={16} className="text-gray-500" />
-            )}
-          </button>
-        </div>
-      )}
+      <div
+        className={`flex justify-end p-1 absolute top-0 right-0 z-20 transition-opacity duration-300 ${
+          isStreaming ? "opacity-0 pointer-events-none" : "opacity-100"
+        }`}
+      >
+        <button
+          onClick={handleSaveToDisk}
+          onMouseDown={(e) => e.stopPropagation()}
+          className="flex items-center justify-center w-6 h-6 hover:bg-black/10 rounded mr-1"
+          aria-label="Save HTML to disk"
+          disabled={isStreaming}
+        >
+          <Save size={16} className="text-gray-500" />
+        </button>
+        <button
+          onClick={handleCopy}
+          onMouseDown={(e) => e.stopPropagation()}
+          className="flex items-center justify-center w-6 h-6 hover:bg-black/10 rounded mr-1"
+          aria-label="Copy HTML code"
+          disabled={isStreaming}
+        >
+          {copySuccess ? (
+            <Check size={16} className="text-gray-600" />
+          ) : (
+            <Copy size={16} className="text-gray-500" />
+          )}
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsFullScreen(!isFullScreen);
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+          className="flex items-center justify-center w-6 h-6 hover:bg-black/10 rounded"
+          aria-label={isFullScreen ? "Minimize preview" : "Maximize preview"}
+          disabled={isStreaming}
+        >
+          {isFullScreen ? (
+            <Minimize size={16} className="text-gray-500" />
+          ) : (
+            <Maximize size={16} className="text-gray-500" />
+          )}
+        </button>
+      </div>
       <iframe
         srcDoc={htmlContent}
         title="HTML Preview"
@@ -247,6 +254,7 @@ function HtmlPreview({
           display: "block",
           opacity: isStreaming ? 0.7 : 1,
           transition: "opacity 0.3s ease-in-out",
+          pointerEvents: isStreaming ? "none" : "auto",
         }}
         onMouseDown={(e) => e.stopPropagation()}
       />
@@ -1635,7 +1643,7 @@ Available commands:
                               isAiLoading &&
                               aiMessages.length > 0 &&
                               aiMessages[aiMessages.length - 1].id ===
-                                lastProcessedMessageIdRef.current &&
+                                item.messageId &&
                               index === commandHistory.length - 1;
 
                             return (
