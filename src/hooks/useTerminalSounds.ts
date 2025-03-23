@@ -96,12 +96,118 @@ export function useTerminalSounds() {
     pattern: Tone.Pattern<string> | null;
     synth: Tone.PolySynth | null;
     effects: Tone.ToneAudioNode[] | null;
+    lastMelodyIndex: number;
   }>({
     isPlaying: false,
     pattern: null,
     synth: null,
     effects: null,
+    lastMelodyIndex: -1,
   });
+
+  // Function to randomly select a melody set
+  const getRandomMelodySet = useCallback(() => {
+    const allMelodySets = [
+      // Tetris Theme (Korobeiniki)
+      [
+        "E5",
+        "B4",
+        "C5",
+        "D5",
+        "C5",
+        "B4",
+        "A4",
+        "A4",
+        "C5",
+        "E5",
+        "D5",
+        "C5",
+        "B4",
+        "B4",
+        "C5",
+        "D5",
+        "E5",
+        "C5",
+        "A4",
+        "A4",
+        "D5",
+        "F5",
+        "A5",
+        "G5",
+        "F5",
+        "E5",
+      ],
+      // Beethoven's Für Elise simplified
+      [
+        "E5",
+        "D#5",
+        "E5",
+        "D#5",
+        "E5",
+        "B4",
+        "D5",
+        "C5",
+        "A4",
+        "C4",
+        "E4",
+        "A4",
+        "B4",
+        "E4",
+        "G#4",
+        "B4",
+        "C5",
+      ],
+      // Mozart's Eine kleine Nachtmusik
+      [
+        "G4",
+        "D5",
+        "G5",
+        "D5",
+        "G5",
+        "D5",
+        "G4",
+        "D5",
+        "C5",
+        "D5",
+        "E5",
+        "C5",
+        "E5",
+        "G5",
+        "D5",
+        "G5",
+        "B5",
+        "G5",
+        "B5",
+        "D6",
+      ],
+    ];
+
+    const totalMelodies = allMelodySets.length;
+    let newIndex;
+
+    // If we have a previous melody index, make sure we select a different one
+    if (elevatorMusicRef.current.lastMelodyIndex >= 0) {
+      // Get available indices excluding the last one
+      const availableIndices = Array.from(
+        { length: totalMelodies },
+        (_, i) => i
+      ).filter((i) => i !== elevatorMusicRef.current.lastMelodyIndex);
+
+      // Select randomly from the available indices
+      const randomAvailableIndex = Math.floor(
+        Math.random() * (totalMelodies - 1)
+      );
+      newIndex = availableIndices[randomAvailableIndex];
+    } else {
+      // First time playing, just select a random index
+      newIndex = Math.floor(Math.random() * totalMelodies);
+    }
+
+    // Update the last melody index
+    elevatorMusicRef.current.lastMelodyIndex = newIndex;
+
+    return allMelodySets[newIndex];
+  }, []);
 
   // For completion ding
   const dingSynthRef = useRef<Tone.Synth | null>(null);
@@ -154,32 +260,8 @@ export function useTerminalSounds() {
       },
     });
 
-    // Create cute and fun note pattern with higher pitched notes
-    const cuteNotes = [
-      "C5",
-      "E5",
-      "G5",
-      "A5", // C major scale - bright and happy
-      "D5",
-      "F#5",
-      "A5", // D major triad
-      "G5",
-      "B5",
-      "D6", // G major triad - higher octave
-      "E5",
-      "G5",
-      "C6", // C major 1st inversion
-      "A5",
-      "C6",
-      "E6", // A minor high - sparkly
-      "F5",
-      "A5",
-      "C6",
-      "E6", // F major 7th - playful
-      "G6",
-      "E6",
-      "C6", // High sparkly notes
-    ];
+    // Initialize with a random melody set
+    const initialMelodySet = getRandomMelodySet();
 
     // More playful rhythm with alternating patterns
     const pattern = new Tone.Pattern(
@@ -193,7 +275,7 @@ export function useTerminalSounds() {
           elevatorMusicRef.current.synth.triggerAttackRelease(note, "8n", time);
         }
       },
-      cuteNotes,
+      initialMelodySet,
       "upDown" // More predictable pattern for cute feeling
     );
 
@@ -302,13 +384,17 @@ export function useTerminalSounds() {
 
       // Start the pattern
       if (elevatorMusicRef.current.pattern) {
+        // Select a new random melody set each time we start playing
+        const newMelodySet = getRandomMelodySet();
+        elevatorMusicRef.current.pattern.values = newMelodySet;
+
         if (Tone.Transport.state !== "started") {
           Tone.Transport.start();
         }
         elevatorMusicRef.current.pattern.start(0);
       }
     }
-  }, [isMuted, isInitialized]);
+  }, [isMuted, isInitialized, getRandomMelodySet]);
 
   // Stop elevator music
   const stopElevatorMusic = useCallback(() => {
