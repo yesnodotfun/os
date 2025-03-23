@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { WindowFrame } from "@/components/layout/WindowFrame";
 import { AppProps } from "@/apps/base/types";
@@ -124,10 +124,47 @@ function HtmlPreview({
   const prevStreamingRef = useRef(isStreaming);
   const previewRef = useRef<HTMLDivElement>(null);
 
+  // Add font stack and base styling to HTML content
+  const processedHtmlContent = useMemo(() => {
+    // Check if content already has complete HTML structure
+    if (
+      htmlContent.includes("<!DOCTYPE html>") ||
+      htmlContent.includes("<html")
+    ) {
+      return htmlContent;
+    }
+
+    // Wrap with proper HTML tags
+    return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      padding: 8px;
+      font-size: 12px;
+      line-height: 1.4;
+      max-width: 100%;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  ${htmlContent}
+</body>
+</html>`;
+  }, [htmlContent]);
+
   const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      await navigator.clipboard.writeText(htmlContent);
+      await navigator.clipboard.writeText(processedHtmlContent);
       setCopySuccess(true);
 
       // Reset after 2 seconds
@@ -141,7 +178,7 @@ function HtmlPreview({
 
   const handleSaveToDisk = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const blob = new Blob([htmlContent], { type: "text/html" });
+    const blob = new Blob([processedHtmlContent], { type: "text/html" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     const timestamp = new Date()
@@ -287,7 +324,7 @@ function HtmlPreview({
         </button>
       </motion.div>
       <motion.iframe
-        srcDoc={htmlContent}
+        srcDoc={processedHtmlContent}
         title="HTML Preview"
         className="w-full h-full border-0"
         sandbox="allow-scripts"
@@ -316,11 +353,29 @@ function HtmlPreview({
 const isHtmlCodeBlock = (
   text: string
 ): { isHtml: boolean; content: string } => {
-  const regex = /```(?:html)?\s*([\s\S]*?)```/;
-  const match = text.match(regex);
+  // Check for markdown code blocks with html tag
+  const codeBlockRegex = /```(?:html)?\s*([\s\S]*?)```/;
+  const match = text.match(codeBlockRegex);
 
-  if (match && match[1] && match[1].trim().startsWith("<")) {
-    return { isHtml: true, content: match[1].trim() };
+  if (match && match[1]) {
+    const content = match[1].trim();
+    // Check if content appears to be HTML (starts with a tag or has HTML elements)
+    if (content.startsWith("<") || /<\/?[a-z][\s\S]*>/i.test(content)) {
+      return { isHtml: true, content };
+    }
+  }
+
+  // Also check for HTML content outside of code blocks
+  const trimmedText = text.trim();
+  if (
+    trimmedText.startsWith("<") &&
+    (/<\/[a-z][^>]*>/i.test(trimmedText) || // Has a closing tag
+      /<[a-z][^>]*\/>/i.test(trimmedText) || // Has a self-closing tag
+      trimmedText.includes("<style>") ||
+      trimmedText.includes("<div>") ||
+      trimmedText.includes("<span>"))
+  ) {
+    return { isHtml: true, content: trimmedText };
   }
 
   return { isHtml: false, content: "" };
@@ -343,8 +398,12 @@ const extractHtmlContent = (
 
   // First check for complete HTML blocks
   while ((match = completeRegex.exec(text)) !== null) {
-    if (match[1] && match[1].trim().startsWith("<")) {
-      htmlParts.push(match[1].trim());
+    const content = match[1].trim();
+    if (
+      content &&
+      (content.startsWith("<") || /<\/?[a-z][\s\S]*>/i.test(content))
+    ) {
+      htmlParts.push(content);
       hasHtml = true;
       // Remove complete HTML blocks from text
       processedText = processedText.replace(match[0], "");
@@ -358,12 +417,29 @@ const extractHtmlContent = (
   if (
     incompleteMatch &&
     incompleteMatch[1] &&
-    incompleteMatch[1].trim().startsWith("<")
+    (incompleteMatch[1].trim().startsWith("<") ||
+      /<\/?[a-z][\s\S]*>/i.test(incompleteMatch[1].trim()))
   ) {
     htmlParts.push(incompleteMatch[1].trim());
     hasHtml = true;
     // Remove incomplete HTML block from text
     processedText = processedText.replace(incompleteMatch[0], "");
+  }
+
+  // Check for standalone HTML content outside of code blocks
+  const trimmedText = processedText.trim();
+  if (
+    !hasHtml &&
+    trimmedText.startsWith("<") &&
+    (/<\/[a-z][^>]*>/i.test(trimmedText) || // Has a closing tag
+      /<[a-z][^>]*\/>/i.test(trimmedText) || // Has a self-closing tag
+      trimmedText.includes("<style>") ||
+      trimmedText.includes("<div>") ||
+      trimmedText.includes("<span>"))
+  ) {
+    htmlParts.push(trimmedText);
+    hasHtml = true;
+    processedText = "";
   }
 
   // Join all HTML parts
@@ -1630,7 +1706,11 @@ Available commands:
       >
         <motion.div
           className="flex flex-col h-full w-full bg-black/80 backdrop-blur-lg text-white antialiased font-mono p-2 overflow-hidden"
-          style={{ fontSize: `${fontSize}px` }}
+          style={{
+            fontSize: `${fontSize}px`,
+            fontFamily:
+              'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+          }}
           animate={
             terminalFlash
               ? {
