@@ -107,12 +107,14 @@ interface HtmlPreviewProps {
   htmlContent: string;
   onInteractionChange: (isInteracting: boolean) => void;
   isStreaming?: boolean;
+  scrollToBottom: () => void;
 }
 
 function HtmlPreview({
   htmlContent,
   onInteractionChange,
   isStreaming = false,
+  scrollToBottom,
 }: HtmlPreviewProps) {
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
@@ -236,6 +238,10 @@ function HtmlPreview({
           onClick={(e) => {
             e.stopPropagation();
             setIsFullScreen(!isFullScreen);
+            // Scroll to bottom when maximizing
+            if (!isFullScreen) {
+              setTimeout(scrollToBottom, 50); // Small delay to ensure the resize has completed
+            }
           }}
           onMouseDown={(e) => e.stopPropagation()}
           className="flex items-center justify-center w-6 h-6 hover:bg-black/10 rounded"
@@ -1677,6 +1683,7 @@ Available commands:
                                       handleHtmlPreviewInteraction
                                     }
                                     isStreaming={isThisMessageStreaming}
+                                    scrollToBottom={scrollToBottom}
                                   />
                                 )}
                               </>
@@ -1697,6 +1704,7 @@ Available commands:
                               htmlContent={isHtmlCodeBlock(item.output).content}
                               onInteractionChange={handleHtmlPreviewInteraction}
                               isStreaming={false}
+                              scrollToBottom={scrollToBottom}
                             />
                           )}
                         </>
