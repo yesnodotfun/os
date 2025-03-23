@@ -719,9 +719,23 @@ export function TerminalAppComponent({
             ? historyIndex + 1
             : historyIndex;
         setHistoryIndex(newIndex);
-        setCurrentCommand(
-          historyCommands[historyCommands.length - 1 - newIndex] || ""
-        );
+        const historicCommand =
+          historyCommands[historyCommands.length - 1 - newIndex] || "";
+
+        // If we're not in AI mode and the historic command was from AI mode
+        // (doesn't start with 'ryo' and was saved with 'ryo' prefix)
+        const savedCommands = loadTerminalCommandHistory();
+        const commandEntry = savedCommands[savedCommands.length - 1 - newIndex];
+        if (
+          !isInAiMode &&
+          commandEntry &&
+          commandEntry.command.startsWith("ryo ") &&
+          !historicCommand.startsWith("ryo ")
+        ) {
+          setCurrentCommand("ryo " + historicCommand);
+        } else {
+          setCurrentCommand(historicCommand);
+        }
       }
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
@@ -729,9 +743,22 @@ export function TerminalAppComponent({
       if (historyIndex > 0) {
         const newIndex = historyIndex - 1;
         setHistoryIndex(newIndex);
-        setCurrentCommand(
-          historyCommands[historyCommands.length - 1 - newIndex] || ""
-        );
+        const historicCommand =
+          historyCommands[historyCommands.length - 1 - newIndex] || "";
+
+        // Same logic for down arrow
+        const savedCommands = loadTerminalCommandHistory();
+        const commandEntry = savedCommands[savedCommands.length - 1 - newIndex];
+        if (
+          !isInAiMode &&
+          commandEntry &&
+          commandEntry.command.startsWith("ryo ") &&
+          !historicCommand.startsWith("ryo ")
+        ) {
+          setCurrentCommand("ryo " + historicCommand);
+        } else {
+          setCurrentCommand(historicCommand);
+        }
       } else if (historyIndex === 0) {
         setHistoryIndex(-1);
         setCurrentCommand("");
