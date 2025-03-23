@@ -1443,7 +1443,16 @@ Available commands:
                           </span>
                         </div>
                       ) : item.path === "ai-assistant" ? (
-                        <>
+                        <motion.div
+                          layout="position"
+                          transition={{
+                            type: "spring",
+                            duration: 0.3,
+                            stiffness: 100,
+                            damping: 25,
+                            mass: 0.8,
+                          }}
+                        >
                           {(() => {
                             // Process the message to extract HTML and text parts
                             const { htmlContent, textContent, hasHtml } =
@@ -1465,7 +1474,7 @@ Available commands:
                               </>
                             );
                           })()}
-                        </>
+                        </motion.div>
                       ) : animatedLines.has(index) ? (
                         <TypewriterText
                           text={item.output}
