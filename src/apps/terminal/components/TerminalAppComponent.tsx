@@ -115,6 +115,27 @@ function HtmlPreview({
 }: HtmlPreviewProps) {
   const [isFullScreen, setIsFullScreen] = useState(false);
   const { windowSize } = useWindowManager({ appId: "terminal" });
+  const { playElevatorMusic, stopElevatorMusic, playDingSound } =
+    useTerminalSounds();
+  const prevStreamingRef = useRef(isStreaming);
+
+  // Play elevator music when streaming starts, stop when streaming ends
+  useEffect(() => {
+    if (isStreaming) {
+      playElevatorMusic();
+    } else if (prevStreamingRef.current && !isStreaming) {
+      // If we were streaming but now we're not, stop music and play ding
+      stopElevatorMusic();
+      playDingSound();
+    }
+
+    prevStreamingRef.current = isStreaming;
+
+    // Clean up on unmount
+    return () => {
+      stopElevatorMusic();
+    };
+  }, [isStreaming, playElevatorMusic, stopElevatorMusic, playDingSound]);
 
   // Adjust for the terminal interface elements
   const contentHeight = windowSize.height - 30; // Adjust for header, input, padding
