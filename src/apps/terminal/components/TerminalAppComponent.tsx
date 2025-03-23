@@ -331,7 +331,7 @@ function AnimatedEllipsis() {
   const [dots, setDots] = useState("");
 
   useEffect(() => {
-    const patterns = [".  ", ".. ", "...", " ..", "  .", " . ", ". .", "..."];
+    const patterns = [".", "..", "...", "..", ".", ".", "..", "..."];
     let index = 0;
 
     const interval = setInterval(() => {
@@ -1395,6 +1395,15 @@ Available commands:
           0%, 100% { opacity: 0.3; }
           50% { opacity: 0.6; }
         }
+        
+        .shimmer-subtle {
+          animation: shimmer-text 2.5s ease-in-out infinite;
+        }
+        
+        @keyframes shimmer-text {
+          0%, 100% { opacity: 0.5; }
+          50% { opacity: 0.8; }
+        }
       `;
       document.head.appendChild(style);
     }
@@ -1518,7 +1527,7 @@ Available commands:
                           <span className="text-gray-400">
                             {item.output.split(" ")[0]}
                           </span>
-                          <span className="text-gray-400 italic shimmer">
+                          <span className="text-gray-500 italic shimmer-subtle">
                             {" ryo is thinking"}
                             <AnimatedEllipsis />
                           </span>
@@ -1623,7 +1632,7 @@ Available commands:
                   />
                   {isAiLoading && isInAiMode && (
                     <div className="absolute top-0 left-0 w-full h-full pointer-events-none flex items-center">
-                      <span className="text-gray-400/50">
+                      <span className="text-gray-400/40 opacity-30 shimmer">
                         is thinking
                         <AnimatedEllipsis />
                       </span>
