@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { WindowFrame } from "@/components/layout/WindowFrame";
 import { AppProps } from "@/apps/base/types";
@@ -102,7 +102,12 @@ const cleanAppControlMarkup = (message: string): string => {
 };
 
 // Component to render HTML previews
-function HtmlPreview({ htmlContent }: { htmlContent: string }) {
+interface HtmlPreviewProps {
+  htmlContent: string;
+  onInteractionChange: (isInteracting: boolean) => void;
+}
+
+function HtmlPreview({ htmlContent, onInteractionChange }: HtmlPreviewProps) {
   const [isFullScreen, setIsFullScreen] = useState(false);
   const { windowSize } = useWindowManager({ appId: "terminal" });
 
@@ -116,10 +121,19 @@ function HtmlPreview({ htmlContent }: { htmlContent: string }) {
       style={{
         maxHeight: isFullScreen ? `${contentHeight}px` : "800px",
       }}
+      onClick={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
+      onMouseEnter={() => onInteractionChange(true)}
+      onMouseLeave={() => onInteractionChange(false)}
+      tabIndex={-1}
     >
       <div className="flex justify-end p-1 absolute top-0 right-0">
         <button
-          onClick={() => setIsFullScreen(!isFullScreen)}
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsFullScreen(!isFullScreen);
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
           className="flex items-center justify-center w-6 h-6 hover:bg-black/10 rounded"
           aria-label={isFullScreen ? "Minimize preview" : "Maximize preview"}
         >
@@ -139,6 +153,7 @@ function HtmlPreview({ htmlContent }: { htmlContent: string }) {
           height: isFullScreen ? `${contentHeight - 40}px` : "250px",
           display: "block",
         }}
+        onMouseDown={(e) => e.stopPropagation()}
       />
     </div>
   );
@@ -325,6 +340,8 @@ export function TerminalAppComponent({
   const [fontSize, setFontSize] = useState(12); // Default font size in pixels
   const [isInAiMode, setIsInAiMode] = useState(false);
   const [spinnerIndex, setSpinnerIndex] = useState(0);
+  const [isInteractingWithPreview, setIsInteractingWithPreview] =
+    useState(false);
   const spinnerChars = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
   // Track if auto-scrolling is enabled
@@ -332,6 +349,8 @@ export function TerminalAppComponent({
 
   // Reference to track if user is at the bottom
   const isAtBottomRef = useRef(true);
+  const hasScrolledRef = useRef(false);
+  const previousCommandHistoryLength = useRef(0);
 
   // Keep track of the last processed message ID to avoid duplicates
   const lastProcessedMessageIdRef = useRef<string | null>(null);
@@ -392,42 +411,57 @@ export function TerminalAppComponent({
     ]);
   }, []);
 
-  // Auto-scroll to bottom when command history changes
-  useEffect(() => {
-    if (terminalRef.current && autoScrollEnabled) {
-      terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
-    }
-  }, [commandHistory, currentCommand, autoScrollEnabled]);
-
   // Handle scroll events to enable/disable auto-scroll
   const handleScroll = () => {
     if (terminalRef.current) {
+      hasScrolledRef.current = true;
       const { scrollTop, scrollHeight, clientHeight } = terminalRef.current;
       // Check if user is at the bottom (allowing for a small buffer of 10px)
       const isAtBottom = scrollHeight - scrollTop - clientHeight < 10;
 
-      // Only update state if the value changes to avoid unnecessary re-renders
-      if (isAtBottom !== isAtBottomRef.current) {
-        isAtBottomRef.current = isAtBottom;
-
-        // If user scrolled to bottom, re-enable auto-scroll
-        if (isAtBottom) {
-          setAutoScrollEnabled(true);
-        }
-        // If user scrolled up, disable auto-scroll
-        else if (autoScrollEnabled) {
-          setAutoScrollEnabled(false);
-        }
+      // If we were at bottom and scrolled up, disable auto-scroll
+      if (isAtBottomRef.current && !isAtBottom) {
+        setAutoScrollEnabled(false);
+      }
+      // If we're at bottom, enable auto-scroll
+      if (isAtBottom) {
+        setAutoScrollEnabled(true);
+        isAtBottomRef.current = true;
       }
     }
   };
 
-  // Simplify to a single focus effect
+  // Improved scroll to bottom function
+  const scrollToBottom = useCallback(() => {
+    if (terminalRef.current) {
+      terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+    }
+  }, []);
+
+  // Auto-scroll to bottom when command history changes
   useEffect(() => {
-    if (inputRef.current && isForeground) {
+    if (!terminalRef.current) return;
+
+    // Always scroll to bottom on initial load
+    if (!hasScrolledRef.current) {
+      scrollToBottom();
+      return;
+    }
+
+    // For subsequent updates, only scroll if auto-scroll is enabled
+    if (autoScrollEnabled) {
+      scrollToBottom();
+    }
+
+    previousCommandHistoryLength.current = commandHistory.length;
+  }, [commandHistory, autoScrollEnabled, scrollToBottom]);
+
+  // Modify the focus effect to respect preview interaction
+  useEffect(() => {
+    if (inputRef.current && isForeground && !isInteractingWithPreview) {
       inputRef.current.focus();
     }
-  }, [isForeground, commandHistory]);
+  }, [isForeground, commandHistory, isInteractingWithPreview]);
 
   // Save current path when it changes
   useEffect(() => {
@@ -1326,6 +1360,11 @@ Available commands:
     }
   }, [commandHistory.length]);
 
+  // Update HTML preview usage in the component
+  const handleHtmlPreviewInteraction = (isInteracting: boolean) => {
+    setIsInteractingWithPreview(isInteracting);
+  };
+
   if (!isWindowOpen) return null;
 
   return (
@@ -1401,7 +1440,7 @@ Available commands:
                   }
                   exit="exit"
                   layoutId={`terminal-line-${index}`}
-                  layout="position"
+                  layout="preserve-aspect"
                   transition={{
                     type: "spring",
                     duration: 0.3,
@@ -1469,7 +1508,12 @@ Available commands:
 
                                 {/* Show HTML preview if there's HTML content */}
                                 {hasHtml && htmlContent && (
-                                  <HtmlPreview htmlContent={htmlContent} />
+                                  <HtmlPreview
+                                    htmlContent={htmlContent}
+                                    onInteractionChange={
+                                      handleHtmlPreviewInteraction
+                                    }
+                                  />
                                 )}
                               </>
                             );
@@ -1487,6 +1531,7 @@ Available commands:
                           {isHtmlCodeBlock(item.output).isHtml && (
                             <HtmlPreview
                               htmlContent={isHtmlCodeBlock(item.output).content}
+                              onInteractionChange={handleHtmlPreviewInteraction}
                             />
                           )}
                         </>
