@@ -91,6 +91,7 @@ Only include the codeblock in the output, DO NOT include any other text or comme
 The output will be displayed in a max height 200px window by default, make sure UI elements and canvas are small sized to fit container, use responsive design that reflows to fit container.
 DO NOT include any other text or comments before or after the codeblock.
 When writing HTML CSS, use minimal, neutral, swiss black and white small, 12px text and small headings, 1984 classic macos design, always use inline CSS styles.
+Always try to add CSS transitions and animations to make the UI more interactive and smooth.
 Strongly prefer using <canvas> <svg> tags for 2d and 3d graphics.
 Never import or create separate files or external links and scripts. Do everything in one single, self-contained HTML output with all styles in a <style> tag and all scripts in a <script> tag.
 Prioritize simplicity and direct functionality. Each HTML output should be ready to run immediately with no dependencies.
