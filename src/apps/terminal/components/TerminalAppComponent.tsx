@@ -105,9 +105,14 @@ const cleanAppControlMarkup = (message: string): string => {
 interface HtmlPreviewProps {
   htmlContent: string;
   onInteractionChange: (isInteracting: boolean) => void;
+  isStreaming?: boolean;
 }
 
-function HtmlPreview({ htmlContent, onInteractionChange }: HtmlPreviewProps) {
+function HtmlPreview({
+  htmlContent,
+  onInteractionChange,
+  isStreaming = false,
+}: HtmlPreviewProps) {
   const [isFullScreen, setIsFullScreen] = useState(false);
   const { windowSize } = useWindowManager({ appId: "terminal" });
 
@@ -120,14 +125,25 @@ function HtmlPreview({ htmlContent, onInteractionChange }: HtmlPreviewProps) {
       className="border rounded bg-white/100 overflow-auto my-2 relative"
       style={{
         maxHeight: isFullScreen ? `${contentHeight}px` : "800px",
+        pointerEvents: isStreaming ? "none" : "auto",
       }}
       onClick={(e) => e.stopPropagation()}
       onMouseDown={(e) => e.stopPropagation()}
-      onMouseEnter={() => onInteractionChange(true)}
-      onMouseLeave={() => onInteractionChange(false)}
+      onMouseEnter={() => !isStreaming && onInteractionChange(true)}
+      onMouseLeave={() => !isStreaming && onInteractionChange(false)}
       tabIndex={-1}
     >
-      <div className="flex justify-end p-1 absolute top-0 right-0">
+      {isStreaming && (
+        <div
+          className="absolute inset-0 w-full h-full z-10"
+          style={{
+            backgroundColor: "rgba(31, 41, 55, 0.5)",
+            animation: "breathing 2.5s ease-in-out infinite",
+            transition: "opacity 0.5s ease-out",
+          }}
+        />
+      )}
+      <div className="flex justify-end p-1 absolute top-0 right-0 z-20">
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -136,6 +152,7 @@ function HtmlPreview({ htmlContent, onInteractionChange }: HtmlPreviewProps) {
           onMouseDown={(e) => e.stopPropagation()}
           className="flex items-center justify-center w-6 h-6 hover:bg-black/10 rounded"
           aria-label={isFullScreen ? "Minimize preview" : "Maximize preview"}
+          disabled={isStreaming}
         >
           {isFullScreen ? (
             <Minimize size={16} className="text-black" />
@@ -152,6 +169,8 @@ function HtmlPreview({ htmlContent, onInteractionChange }: HtmlPreviewProps) {
         style={{
           height: isFullScreen ? `${contentHeight - 40}px` : "250px",
           display: "block",
+          opacity: isStreaming ? 0.7 : 1,
+          transition: "opacity 0.3s ease-in-out",
         }}
         onMouseDown={(e) => e.stopPropagation()}
       />
@@ -1365,6 +1384,29 @@ Available commands:
     setIsInteractingWithPreview(isInteracting);
   };
 
+  // Add the following style in a useEffect that runs once to add the global animation
+  useEffect(() => {
+    // Add breathing animation if it doesn't exist
+    if (!document.getElementById("breathing-animation")) {
+      const style = document.createElement("style");
+      style.id = "breathing-animation";
+      style.innerHTML = `
+        @keyframes breathing {
+          0%, 100% { opacity: 0.3; }
+          50% { opacity: 0.6; }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+    return () => {
+      // Clean up on unmount
+      const styleElement = document.getElementById("breathing-animation");
+      if (styleElement) {
+        styleElement.remove();
+      }
+    };
+  }, []);
+
   if (!isWindowOpen) return null;
 
   return (
@@ -1513,6 +1555,12 @@ Available commands:
                                     onInteractionChange={
                                       handleHtmlPreviewInteraction
                                     }
+                                    isStreaming={
+                                      isAiLoading &&
+                                      aiMessages.length > 0 &&
+                                      aiMessages[aiMessages.length - 1].id ===
+                                        lastProcessedMessageIdRef.current
+                                    }
                                   />
                                 )}
                               </>
@@ -1532,6 +1580,7 @@ Available commands:
                             <HtmlPreview
                               htmlContent={isHtmlCodeBlock(item.output).content}
                               onInteractionChange={handleHtmlPreviewInteraction}
+                              isStreaming={false}
                             />
                           )}
                         </>
