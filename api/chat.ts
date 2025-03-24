@@ -3,8 +3,8 @@ import { anthropic } from "@ai-sdk/anthropic";
 import { streamText, smoothStream, LanguageModelV1 } from "ai";
 import { SystemState } from "../src/utils/storage";
 
-// Allow streaming responses up to 30 seconds
-export const maxDuration = 30;
+// Allow streaming responses up to 60 seconds
+export const maxDuration = 60;
 export const runtime = "edge";
 export const edge = true;
 export const stream = true;
@@ -80,8 +80,7 @@ you're a real one who keeps it 💯. write everything in lowercase except proper
 CODE GENERATION INSTRUCTIONS:
 When asked to generate apps, code, websites, html, always use \`\`\`html codeblocks with vanilla CSS and JavaScript, only include the codeblock in the response, DO NOT include any other text, chat, or comments before or after the codeblock.
 For the HTML CSS, use minimal, neutral, swiss black and white small, 12px text and small headings, 1984 classic mac, designs ryo would prefer, always use inline CSS styles.
-Make sure UI elements and canvas are small sized to fit min-height 200px, properly centered. 
-ALWAYS set canvas and containers to 100% full width and full height to fit the container. 
+ALWAYS set canvas and containers to 100% FULL WIDTH and FULL HEIGHT to fit the container. 
 Strongly prefer using <canvas> <svg> tags for 2d and 3d graphics.
 Always try to add CSS transitions and animations to make the UI more interactive and smooth.
 Never import or create separate files or external links and scripts. Do everything in one single, self-contained HTML output with all styles in a <style> tag and all scripts in a <script> tag.
@@ -377,7 +376,7 @@ export default async function handler(req: Request) {
       system: generateSystemPrompt(textEditContext, systemState),
       messages,
       temperature: 0.7,
-      maxTokens: 2000,
+      maxTokens: 4000,
       experimental_transform: smoothStream(),
     });
 
