@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { AnimatePresence, motion } from "framer-motion";
 import { useChatSynth } from "@/hooks/useChatSynth";
+import { useTerminalSounds } from "@/hooks/useTerminalSounds";
 import HtmlPreview, {
   isHtmlCodeBlock,
   extractHtmlContent,
@@ -87,6 +88,8 @@ export function ChatMessages({
   const [scrollLockedToBottom, setScrollLockedToBottom] = useState(true);
   const viewportRef = useRef<HTMLElement | null>(null);
   const { playNote } = useChatSynth();
+  const { playElevatorMusic, stopElevatorMusic, playDingSound } =
+    useTerminalSounds();
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
   const previousMessagesLength = useRef(messages.length);
@@ -411,6 +414,9 @@ export function ChatMessages({
                                 message === messages[messages.length - 1]
                               }
                               className="mt-2"
+                              playElevatorMusic={playElevatorMusic}
+                              stopElevatorMusic={stopElevatorMusic}
+                              playDingSound={playDingSound}
                             />
                           )}
                         </>
@@ -447,6 +453,9 @@ export function ChatMessages({
                         htmlContent={isHtmlCodeBlock(message.content).content}
                         onInteractionChange={setIsInteractingWithPreview}
                         className="mt-2"
+                        playElevatorMusic={playElevatorMusic}
+                        stopElevatorMusic={stopElevatorMusic}
+                        playDingSound={playDingSound}
                       />
                     )}
                   </>

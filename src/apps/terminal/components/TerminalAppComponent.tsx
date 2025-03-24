@@ -118,31 +118,15 @@ function TerminalHtmlPreview({
 }: HtmlPreviewProps) {
   const { playElevatorMusic, stopElevatorMusic, playDingSound } =
     useTerminalSounds();
-  const prevStreamingRef = useRef(isStreaming);
-
-  // Play elevator music when streaming starts, stop when streaming ends
-  useEffect(() => {
-    if (isStreaming) {
-      playElevatorMusic();
-    } else if (prevStreamingRef.current && !isStreaming) {
-      // If we were streaming but now we're not, stop music and play ding
-      stopElevatorMusic();
-      playDingSound();
-    }
-
-    prevStreamingRef.current = isStreaming;
-
-    // Clean up on unmount
-    return () => {
-      stopElevatorMusic();
-    };
-  }, [isStreaming, playElevatorMusic, stopElevatorMusic, playDingSound]);
 
   return (
     <HtmlPreview
       htmlContent={htmlContent}
       onInteractionChange={onInteractionChange}
       isStreaming={isStreaming}
+      playElevatorMusic={playElevatorMusic}
+      stopElevatorMusic={stopElevatorMusic}
+      playDingSound={playDingSound}
     />
   );
 }

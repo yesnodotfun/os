@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Maximize, Minimize, Copy, Check, Save } from "lucide-react";
 import { createPortal } from "react-dom";
@@ -115,6 +115,9 @@ interface HtmlPreviewProps {
   minHeight?: number | string;
   initialFullScreen?: boolean;
   className?: string;
+  playElevatorMusic?: () => void;
+  stopElevatorMusic?: () => void;
+  playDingSound?: () => void;
 }
 
 export default function HtmlPreview({
@@ -125,6 +128,9 @@ export default function HtmlPreview({
   minHeight = "250px",
   initialFullScreen = false,
   className = "",
+  playElevatorMusic,
+  stopElevatorMusic,
+  playDingSound,
 }: HtmlPreviewProps) {
   const [isFullScreen, setIsFullScreen] = useState(initialFullScreen);
   const [copySuccess, setCopySuccess] = useState(false);
@@ -132,6 +138,31 @@ export default function HtmlPreview({
   const iframeId = useRef(
     `iframe-${Math.random().toString(36).substring(2, 9)}`
   ).current;
+  const prevStreamingRef = useRef(isStreaming);
+
+  // Play elevator music when streaming starts, stop when streaming ends
+  useEffect(() => {
+    if (isStreaming && playElevatorMusic) {
+      playElevatorMusic();
+    } else if (prevStreamingRef.current && !isStreaming) {
+      // If we were streaming but now we're not, stop music and play ding
+      if (stopElevatorMusic) {
+        stopElevatorMusic();
+      }
+      if (playDingSound) {
+        playDingSound();
+      }
+    }
+
+    prevStreamingRef.current = isStreaming;
+
+    // Clean up on unmount
+    return () => {
+      if (stopElevatorMusic) {
+        stopElevatorMusic();
+      }
+    };
+  }, [isStreaming, playElevatorMusic, stopElevatorMusic, playDingSound]);
 
   // Add font stack and base styling to HTML content
   const processedHtmlContent = (() => {
