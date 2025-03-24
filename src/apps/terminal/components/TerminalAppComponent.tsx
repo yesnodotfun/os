@@ -310,12 +310,17 @@ export function TerminalAppComponent({
 
   // Initialize with welcome message
   useEffect(() => {
+    const currentTime = new Date().toLocaleTimeString();
+    const asciiArt = `     __  __ 
+ _  /  \\(_  
+| \\/\\__/__) 
+  /         `;
+    
     setCommandHistory([
       {
         command: "",
-        output:
-          "Welcome to ryOS Terminal\nType 'help' for a list of available commands.",
-        path: currentPath,
+        output: `${asciiArt}\nlast login: ${currentTime}\ntype 'help' to see available commands`,
+        path: "welcome-message",
       },
     ]);
   }, []);
@@ -960,7 +965,7 @@ Available commands:
           });
 
           return {
-            output: `Ask Ryo anything. Type 'exit' to return to terminal.\nSending initial prompt: ${initialPrompt}`,
+            output: `Ask Ryo anything. Type 'exit' to return to terminal.\n→ ryo ${initialPrompt}`,
             isError: false,
           };
         }
@@ -1467,7 +1472,9 @@ Available commands:
                         item.path === "ai-assistant"
                           ? "text-purple-300 italic"
                           : ""
-                      } ${item.path === "ai-error" ? "text-red-400" : ""}`}
+                      } ${item.path === "ai-error" ? "text-red-400" : ""} ${
+                        item.path === "welcome-message" ? "text-gray-400" : ""
+                      }`}
                     >
                       {item.path === "ai-thinking" ? (
                         <div>
