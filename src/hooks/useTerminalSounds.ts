@@ -93,219 +93,321 @@ export function useTerminalSounds() {
   // For elevator music
   const elevatorMusicRef = useRef<{
     isPlaying: boolean;
-    pattern: Tone.Pattern<string> | null;
-    synth: Tone.PolySynth | null;
+    players: {
+      player: Tone.Player | null;
+      interval: Tone.Loop | null;
+    }[];
+    generativePlayers: {
+      synth: Tone.PolySynth | Tone.MonoSynth | null;
+      pattern: Tone.Pattern<string> | null;
+    }[];
+    notePool: string[];
+    melodySequencer: {
+      synth: Tone.MonoSynth | null;
+      currentMelody: string[];
+      currentIndex: number;
+      timeout: number | null;
+    };
     effects: Tone.ToneAudioNode[] | null;
-    lastMelodyIndex: number;
+    timeoutIds: number[];
   }>({
     isPlaying: false,
-    pattern: null,
-    synth: null,
+    players: [],
+    generativePlayers: [],
+    notePool: [],
+    melodySequencer: {
+      synth: null,
+      currentMelody: [],
+      currentIndex: 0,
+      timeout: null,
+    },
     effects: null,
-    lastMelodyIndex: -1,
+    timeoutIds: [],
   });
 
-  // Function to randomly select a melody set
-  const getRandomMelodySet = useCallback(() => {
-    const allMelodySets = [
-      // Tetris Theme (Korobeiniki)
-      [
-        "E5",
-        "B4",
-        "C5",
-        "D5",
-        "C5",
-        "B4",
-        "A4",
-        "A4",
-        "C5",
-        "E5",
-        "D5",
-        "C5",
-        "B4",
-        "B4",
-        "C5",
-        "D5",
-        "E5",
-        "C5",
-        "A4",
-        "A4",
-      ],
-      // Beethoven's Für Elise simplified
-      [
-        "E5",
-        "D#5",
-        "E5",
-        "D#5",
-        "E5",
-        "B4",
-        "D5",
-        "C5",
-        "A4",
-        "C4",
-        "E4",
-        "A4",
-        "B4",
-        "E4",
-        "G#4",
-        "B4",
-        "C5",
-      ],
-      // Beethoven's Ode to Joy
-      [
-        "E4",
-        "E4",
-        "F4",
-        "G4",
-        "G4",
-        "F4",
-        "E4",
-        "D4",
-        "C4",
-        "C4",
-        "D4",
-        "E4",
-        "E4",
-        "D4",
-        "D4",
-        "E4",
-        "E4",
-        "F4",
-        "G4",
-        "G4",
-        "F4",
-        "E4",
-        "D4",
-        "C4",
-        "C4",
-        "D4",
-        "E4",
-        "D4",
-        "C4",
-        "C4",
-      ],
-      // Super Mario Bros. Theme
-      [
-        "E5",
-        "E5",
-        "E5",
-        "C5",
-        "E5",
-        "G5",
-        "G4",
-        "C5",
-        "G4",
-        "E4",
-        "A4",
-        "B4",
-        "Bb4",
-        "A4",
-        "G4",
-        "E5",
-        "G5",
-        "A5",
-        "F5",
-        "G5",
-        "E5",
-        "C5",
-        "D5",
-        "B4",
-        "C5",
-        "G4",
-        "E4",
-        "A4",
-        "B4",
-        "Bb4",
-        "A4",
-        "G4",
-        "E5",
-        "G5",
-        "A5",
-        "F5",
-        "G5",
-        "E5",
-        "C5",
-        "D5",
-        "B4",
-      ],
-      // Zelda's Lullaby
-      [
-        "B4",
-        "D5",
-        "A4",
-        "G4",
-        "A4",
-        "B4",
-        "D5",
-        "A4",
-        "B4",
-        "D5",
-        "A4",
-        "G4",
-        "D5",
-        "C5",
-        "B4",
-        "A4",
-        "B4",
-        "D5",
-        "A4",
-        "G4",
-        "A4",
-        "B4",
-        "D5",
-        "A4",
-        "B4",
-        "D5",
-        "A4",
-        "G4",
-        "D5",
-        "D5",
-        "C5",
-        "B4",
-        "C5",
-        "B4",
-        "G4",
-        "C5",
-        "B4",
-        "A4",
-        "B4",
-        "A4",
-        "E4",
-        "D4",
-        "C4",
-        "B3",
-        "C4",
-        "B3",
-        "G3",
-      ],
-    ];
-
-    const totalMelodies = allMelodySets.length;
-    let newIndex;
-
-    // If we have a previous melody index, make sure we select a different one
-    if (elevatorMusicRef.current.lastMelodyIndex >= 0) {
-      // Get available indices excluding the last one
-      const availableIndices = Array.from(
-        { length: totalMelodies },
-        (_, i) => i
-      ).filter((i) => i !== elevatorMusicRef.current.lastMelodyIndex);
-
-      // Select randomly from the available indices
-      const randomAvailableIndex = Math.floor(
-        Math.random() * (totalMelodies - 1)
-      );
-      newIndex = availableIndices[randomAvailableIndex];
-    } else {
-      // First time playing, just select a random index
-      newIndex = Math.floor(Math.random() * totalMelodies);
+  // Function to generate a Brian Eno inspired ambient sound environment
+  const setupAmbientEnvironment = useCallback(() => {
+    // Dispose of any existing effects or players
+    if (elevatorMusicRef.current.effects) {
+      elevatorMusicRef.current.effects.forEach((effect) => effect.dispose());
     }
 
-    // Update the last melody index
-    elevatorMusicRef.current.lastMelodyIndex = newIndex;
+    elevatorMusicRef.current.players.forEach(({ player, interval }) => {
+      if (player) player.dispose();
+      if (interval) interval.dispose();
+    });
 
-    return allMelodySets[newIndex];
+    elevatorMusicRef.current.generativePlayers.forEach(({ synth, pattern }) => {
+      if (synth) synth.dispose();
+      if (pattern) pattern.dispose();
+    });
+
+    // Clear any ongoing timeouts
+    elevatorMusicRef.current.timeoutIds.forEach((id) =>
+      window.clearTimeout(id)
+    );
+
+    // Cancel any melody timeout
+    if (elevatorMusicRef.current.melodySequencer.timeout) {
+      window.clearTimeout(elevatorMusicRef.current.melodySequencer.timeout);
+    }
+
+    // Reset the arrays
+    elevatorMusicRef.current.players = [];
+    elevatorMusicRef.current.generativePlayers = [];
+    elevatorMusicRef.current.timeoutIds = [];
+
+    // Brian Eno inspired ambient effects chain
+    const reverb = new Tone.Reverb({
+      decay: 10, // Very long reverb decay
+      wet: 0.8, // High reverb mix
+    }).toDestination();
+
+    const delay = new Tone.PingPongDelay({
+      delayTime: 0.7,
+      feedback: 0.5,
+      wet: 0.3,
+    }).connect(reverb);
+
+    const filter = new Tone.Filter({
+      type: "lowpass",
+      frequency: 2000,
+      Q: 1,
+    }).connect(delay);
+
+    // Create a note pool for generative composition
+    // Using notes from Db major pentatonic scale, which gives an ethereal sound
+    const notePool = [
+      "Db3",
+      "Eb3",
+      "Gb3",
+      "Ab3",
+      "Bb3",
+      "Db4",
+      "Eb4",
+      "Gb4",
+      "Ab4",
+      "Bb4",
+      "Db5",
+      "Eb5",
+    ];
+    elevatorMusicRef.current.notePool = notePool;
+
+    // Create melody synth
+    const melodySynth = new Tone.MonoSynth().connect(filter);
+    melodySynth.set({
+      volume: -15,
+      oscillator: {
+        type: "triangle",
+      },
+      envelope: {
+        attack: 0.02,
+        decay: 0.2,
+        sustain: 0.2,
+        release: 0.8,
+      },
+      filterEnvelope: {
+        attack: 0.01,
+        decay: 0.1,
+        sustain: 0.6,
+        release: 1.5,
+        baseFrequency: 800,
+        octaves: 2,
+      },
+    });
+
+    // Initialize melody sequencer
+    elevatorMusicRef.current.melodySequencer = {
+      synth: melodySynth,
+      currentMelody: [],
+      currentIndex: 0,
+      timeout: null,
+    };
+
+    // Create pad sounds
+    const createPadSynth = () => {
+      const padSynth = new Tone.PolySynth(Tone.FMSynth).connect(filter);
+      padSynth.set({
+        volume: -18,
+        harmonicity: 3.5,
+        modulationIndex: 10,
+        oscillator: {
+          type: "sine",
+        },
+        envelope: {
+          attack: 3,
+          decay: 2,
+          sustain: 0.8,
+          release: 8,
+        },
+        modulation: {
+          type: "sine",
+        },
+        modulationEnvelope: {
+          attack: 4,
+          decay: 2,
+          sustain: 0.5,
+          release: 10,
+        },
+      });
+
+      return padSynth;
+    };
+
+    // Create a soft piano/bell-like synth
+    const createBellSynth = () => {
+      const bellSynth = new Tone.MonoSynth().connect(filter);
+      bellSynth.set({
+        volume: -20,
+        oscillator: {
+          type: "sine",
+        },
+        envelope: {
+          attack: 0.1,
+          decay: 0.8,
+          sustain: 0.4,
+          release: 4,
+        },
+        filterEnvelope: {
+          attack: 0.1,
+          decay: 0.2,
+          sustain: 0.1,
+          release: 2,
+          baseFrequency: 300,
+          octaves: 2,
+        },
+      });
+
+      return bellSynth;
+    };
+
+    // Create generative players
+    const padSynth1 = createPadSynth();
+    const padSynth2 = createPadSynth();
+    const bellSynth = createBellSynth();
+
+    // Store synths in ref
+    elevatorMusicRef.current.generativePlayers = [
+      { synth: padSynth1, pattern: null },
+      { synth: padSynth2, pattern: null },
+      { synth: bellSynth, pattern: null },
+    ];
+
+    // Store effects chain
+    elevatorMusicRef.current.effects = [filter, delay, reverb];
   }, []);
+
+  // Function to randomly select notes from the pool
+  const getRandomNote = useCallback(() => {
+    const notePool = elevatorMusicRef.current.notePool;
+    return notePool[Math.floor(Math.random() * notePool.length)];
+  }, []);
+
+  // Generate an evolving pattern of notes
+  const generateEnoSequence = useCallback(() => {
+    if (!elevatorMusicRef.current.isPlaying) return;
+
+    const { generativePlayers, timeoutIds } = elevatorMusicRef.current;
+
+    // Play a sustained pad chord occasionally
+    if (Math.random() < 0.3 && generativePlayers[0]?.synth) {
+      const padSynth = generativePlayers[0].synth;
+      const chordNotes = [
+        getRandomNote(),
+        elevatorMusicRef.current.notePool[
+          Math.floor(Math.random() * elevatorMusicRef.current.notePool.length)
+        ],
+      ];
+
+      try {
+        padSynth.triggerAttackRelease(chordNotes[0], "8n");
+        if (chordNotes.length > 1) {
+          // Trigger remaining notes individually
+          for (let i = 1; i < chordNotes.length; i++) {
+            padSynth.triggerAttackRelease(chordNotes[i], "8n");
+          }
+        }
+      } catch (error) {
+        console.debug("Error playing pad sound:", error);
+      }
+    }
+
+    // Play occasional bell-like tones with longer intervals
+    if (Math.random() < 0.15 && generativePlayers[2]?.synth) {
+      const bellSynth = generativePlayers[2].synth;
+      const note = getRandomNote();
+
+      try {
+        bellSynth.triggerAttackRelease(note, "4n");
+      } catch (error) {
+        console.debug("Error playing bell sound:", error);
+      }
+    }
+
+    // Schedule next note generation with variable timing
+    // This creates the sense of unpredictability and organic evolution
+    const nextInterval = 800 + Math.random() * 2500; // Between 0.8 and 3.3 seconds (faster than before)
+    const timeoutId = window.setTimeout(() => {
+      generateEnoSequence();
+    }, nextInterval);
+
+    timeoutIds.push(timeoutId);
+  }, [getRandomNote]);
+
+  // Play occasional swelling pad chord
+  const playSwellPad = useCallback(() => {
+    if (!elevatorMusicRef.current.isPlaying) return;
+
+    const { generativePlayers, timeoutIds } = elevatorMusicRef.current;
+
+    if (generativePlayers[1]?.synth) {
+      const padSynth = generativePlayers[1].synth;
+
+      // Create a chord from notes in our pool
+      const rootNote = getRandomNote();
+      const chordNotes = [rootNote];
+
+      // Add 1-2 more notes sometimes for a chord
+      if (Math.random() < 0.7) {
+        const secondNote =
+          elevatorMusicRef.current.notePool[
+            Math.floor(Math.random() * elevatorMusicRef.current.notePool.length)
+          ];
+        chordNotes.push(secondNote);
+
+        if (Math.random() < 0.4) {
+          const thirdNote =
+            elevatorMusicRef.current.notePool[
+              Math.floor(
+                Math.random() * elevatorMusicRef.current.notePool.length
+              )
+            ];
+          chordNotes.push(thirdNote);
+        }
+      }
+
+      try {
+        // Long sustain for ambient pad swells
+        padSynth.triggerAttackRelease(chordNotes[0], "2n");
+        if (chordNotes.length > 1) {
+          // Trigger remaining notes individually
+          for (let i = 1; i < chordNotes.length; i++) {
+            padSynth.triggerAttackRelease(chordNotes[i], "2n");
+          }
+        }
+      } catch (error) {
+        console.debug("Error playing swell pad:", error);
+      }
+    }
+
+    // Schedule next pad swell with long, variable timing
+    const nextInterval = 4000 + Math.random() * 8000; // Between 4 and 12 seconds (faster than before)
+    const timeoutId = window.setTimeout(() => {
+      playSwellPad();
+    }, nextInterval);
+
+    timeoutIds.push(timeoutId);
+  }, [getRandomNote]);
 
   // For completion ding
   const dingSynthRef = useRef<Tone.Synth | null>(null);
@@ -321,71 +423,6 @@ export function useTerminalSounds() {
     // Create ding synth
     dingSynthRef.current = createSynth(DING_PRESET);
 
-    // Create cute and fun ambient effects with less reverb/decay
-    const reverb = new Tone.Reverb({
-      decay: 3, // Shorter decay for more cutesy effect
-      wet: 0.4, // Less reverb
-    }).toDestination();
-
-    const delay = new Tone.FeedbackDelay({
-      delayTime: 0.3, // Shorter delay
-      feedback: 0.2, // Less feedback for less moodiness
-      wet: 0.2, // Subtle delay
-    }).connect(reverb);
-
-    // Use AM synth for brighter, cuter tones
-    const cutePolySynth = new Tone.PolySynth(Tone.AMSynth).connect(delay);
-    cutePolySynth.set({
-      volume: -14, // Slightly louder
-      harmonicity: 3,
-      oscillator: {
-        type: "fatsine", // Triangle for softer but brighter tone
-      },
-      envelope: {
-        attack: 0.1, // Faster attack
-        decay: 0.2, // Faster decay
-        sustain: 0.3, // Less sustain for bouncier feel
-        release: 0.8, // Shorter release
-      },
-      modulation: {
-        type: "square", // Square for more playful sound
-      },
-      modulationEnvelope: {
-        attack: 0.2,
-        decay: 0.2,
-        sustain: 0.2,
-        release: 0.5,
-      },
-    });
-
-    // Initialize with a random melody set
-    const initialMelodySet = getRandomMelodySet();
-
-    // More playful rhythm with alternating patterns
-    const pattern = new Tone.Pattern(
-      (time, note) => {
-        if (
-          !isMuted &&
-          elevatorMusicRef.current.isPlaying &&
-          elevatorMusicRef.current.synth
-        ) {
-          // Use shorter note durations for more playful feeling
-          elevatorMusicRef.current.synth.triggerAttackRelease(note, "8n", time);
-        }
-      },
-      initialMelodySet,
-      "upDown" // More predictable pattern for cute feeling
-    );
-
-    pattern.interval = "6n"; // Faster notes for more playful feel
-    pattern.probability = 0.8; // Occasional random skips for playfulness
-    pattern.humanize = true;
-
-    // Store references
-    elevatorMusicRef.current.pattern = pattern;
-    elevatorMusicRef.current.synth = cutePolySynth;
-    elevatorMusicRef.current.effects = [delay, reverb];
-
     return () => {
       // Dispose synths on unmount
       Object.values(synthsRef.current).forEach((synth) => {
@@ -394,19 +431,6 @@ export function useTerminalSounds() {
 
       if (dingSynthRef.current) {
         dingSynthRef.current.dispose();
-      }
-
-      // Dispose elevator music resources
-      if (elevatorMusicRef.current.pattern) {
-        elevatorMusicRef.current.pattern.dispose();
-      }
-
-      if (elevatorMusicRef.current.synth) {
-        elevatorMusicRef.current.synth.dispose();
-      }
-
-      if (elevatorMusicRef.current.effects) {
-        elevatorMusicRef.current.effects.forEach((effect) => effect.dispose());
       }
     };
   }, []);
@@ -461,6 +485,115 @@ export function useTerminalSounds() {
     [isMuted, isInitialized]
   );
 
+  // Generate a melodic sequence from the note pool
+  const generateMelodySequence = useCallback(() => {
+    const { notePool } = elevatorMusicRef.current;
+    const length = 4 + Math.floor(Math.random() * 4); // Melodies of 4-7 notes
+    const melody: string[] = [];
+
+    // Start with the root note sometimes
+    if (Math.random() < 0.4) {
+      melody.push("Db4");
+    } else {
+      melody.push(notePool[Math.floor(Math.random() * notePool.length)]);
+    }
+
+    // Generate the rest of the melody with some musical logic
+    for (let i = 1; i < length; i++) {
+      // 60% chance to move stepwise in the scale
+      if (Math.random() < 0.6) {
+        const lastIndex = notePool.indexOf(melody[i - 1]);
+        const stepUp = Math.random() < 0.5;
+
+        if (stepUp && lastIndex < notePool.length - 1) {
+          melody.push(notePool[lastIndex + 1]);
+        } else if (!stepUp && lastIndex > 0) {
+          melody.push(notePool[lastIndex - 1]);
+        } else {
+          // Fallback if we can't move in the desired direction
+          melody.push(notePool[Math.floor(Math.random() * notePool.length)]);
+        }
+      }
+      // 20% chance to repeat the last note
+      else if (Math.random() < 0.25) {
+        melody.push(melody[i - 1]);
+      }
+      // Otherwise, random note from the scale
+      else {
+        melody.push(notePool[Math.floor(Math.random() * notePool.length)]);
+      }
+    }
+
+    return melody;
+  }, []);
+
+  // Play the next note in the current melody
+  const playNextMelodyNote = useCallback(() => {
+    if (!elevatorMusicRef.current.isPlaying) return;
+
+    const { melodySequencer, timeoutIds } = elevatorMusicRef.current;
+    const { synth, currentMelody, currentIndex } = melodySequencer;
+
+    if (!synth || currentMelody.length === 0) return;
+
+    // Play the current note
+    try {
+      const note = currentMelody[currentIndex];
+      synth.triggerAttackRelease(note, "16n");
+
+      // Move to next note or get new melody
+      const nextIndex = (currentIndex + 1) % currentMelody.length;
+      elevatorMusicRef.current.melodySequencer.currentIndex = nextIndex;
+
+      // Generate new melody if we've completed the current one and randomly decide to change
+      if (nextIndex === 0 && Math.random() < 0.7) {
+        elevatorMusicRef.current.melodySequencer.currentMelody =
+          generateMelodySequence();
+      }
+
+      // Schedule next note with slight rhythm variations
+      const nextInterval = 200 + Math.random() * 150; // 200-350ms between notes
+      const timeoutId = window.setTimeout(() => {
+        playNextMelodyNote();
+      }, nextInterval);
+
+      // Only start playing melodies occasionally
+      if (melodySequencer.timeout !== null) {
+        melodySequencer.timeout = timeoutId;
+      }
+      timeoutIds.push(timeoutId);
+    } catch (error) {
+      console.debug("Error playing melody note:", error);
+    }
+  }, [generateMelodySequence]);
+
+  // Occasionally start a melody
+  const scheduleNextMelody = useCallback(() => {
+    if (!elevatorMusicRef.current.isPlaying) return;
+
+    const { timeoutIds } = elevatorMusicRef.current;
+
+    // Sometimes start a new melody
+    if (Math.random() < 0.4) {
+      // Generate a new melody
+      elevatorMusicRef.current.melodySequencer.currentMelody =
+        generateMelodySequence();
+      elevatorMusicRef.current.melodySequencer.currentIndex = 0;
+
+      // Start playing the melody
+      playNextMelodyNote();
+    }
+
+    // Schedule next melody check (with gaps between melodies)
+    const nextMelodyInterval = 2000 + Math.random() * 5000; // 2-7 seconds between melody attempts
+    const timeoutId = window.setTimeout(() => {
+      scheduleNextMelody();
+    }, nextMelodyInterval);
+
+    timeoutIds.push(timeoutId);
+    elevatorMusicRef.current.melodySequencer.timeout = timeoutId;
+  }, [generateMelodySequence, playNextMelodyNote]);
+
   // Play elevator music (atmospheric background sound)
   const playElevatorMusic = useCallback(async () => {
     if (isMuted) return;
@@ -480,27 +613,67 @@ export function useTerminalSounds() {
     if (!elevatorMusicRef.current.isPlaying) {
       elevatorMusicRef.current.isPlaying = true;
 
-      // Start the pattern
-      if (elevatorMusicRef.current.pattern) {
-        // Select a new random melody set each time we start playing
-        const newMelodySet = getRandomMelodySet();
-        elevatorMusicRef.current.pattern.values = newMelodySet;
+      // Setup the ambient environment
+      setupAmbientEnvironment();
 
-        if (Tone.Transport.state !== "started") {
-          Tone.Transport.start();
-        }
-        elevatorMusicRef.current.pattern.start(0);
+      // Start the generative processes
+      generateEnoSequence();
+      playSwellPad();
+      scheduleNextMelody();
+
+      // Start the transport if it's not already started
+      if (Tone.Transport.state !== "started") {
+        Tone.Transport.start();
       }
     }
-  }, [isMuted, isInitialized, getRandomMelodySet]);
+  }, [
+    isMuted,
+    isInitialized,
+    setupAmbientEnvironment,
+    generateEnoSequence,
+    playSwellPad,
+    scheduleNextMelody,
+  ]);
 
   // Stop elevator music
   const stopElevatorMusic = useCallback(() => {
     elevatorMusicRef.current.isPlaying = false;
 
-    // Optionally stop the pattern completely
-    if (elevatorMusicRef.current.pattern) {
-      elevatorMusicRef.current.pattern.stop();
+    // Clear all timeout ids
+    elevatorMusicRef.current.timeoutIds.forEach((id) =>
+      window.clearTimeout(id)
+    );
+    elevatorMusicRef.current.timeoutIds = [];
+
+    // Stop all synths
+    elevatorMusicRef.current.generativePlayers.forEach(({ synth }) => {
+      if (synth) {
+        try {
+          if ("releaseAll" in synth) {
+            (synth as Tone.PolySynth).releaseAll();
+          } else {
+            // For MonoSynth, trigger release
+            (synth as Tone.MonoSynth).triggerRelease();
+          }
+        } catch (error) {
+          console.debug("Error releasing synth:", error);
+        }
+      }
+    });
+
+    // Stop melody synth
+    if (elevatorMusicRef.current.melodySequencer.synth) {
+      try {
+        elevatorMusicRef.current.melodySequencer.synth.triggerRelease();
+      } catch (error) {
+        console.debug("Error releasing melody synth:", error);
+      }
+    }
+
+    // Cancel melody timeout
+    if (elevatorMusicRef.current.melodySequencer.timeout) {
+      window.clearTimeout(elevatorMusicRef.current.melodySequencer.timeout);
+      elevatorMusicRef.current.melodySequencer.timeout = null;
     }
   }, []);
 
