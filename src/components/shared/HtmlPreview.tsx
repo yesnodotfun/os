@@ -368,7 +368,7 @@ export default function HtmlPreview({
               exit={{ opacity: 0 }}
               onClick={() => setIsFullScreen(false)}
             >
-              <div className="flex justify-end p-4">
+              <div className="absolute top-4 right-4 flex items-center bg-black/40 backdrop-blur-sm rounded-md px-2 py-1 z-10">
                 <button
                   onClick={handleSaveToDisk}
                   className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded mr-2 group"
@@ -412,13 +412,8 @@ export default function HtmlPreview({
                 name="fullscreen"
                 srcDoc={processedHtmlContent}
                 title="HTML Preview Fullscreen"
-                className="flex-1 w-full border-0 rounded-lg bg-white mx-auto my-0"
+                className="w-full h-full border-0 bg-white"
                 sandbox="allow-scripts"
-                style={{
-                  width: "calc(100% - 48px)",
-                  margin: "0 24px 24px 24px",
-                  maxWidth: "1400px",
-                }}
                 onClick={(e) => e.stopPropagation()}
                 onMouseDown={(e) => e.stopPropagation()}
               />
