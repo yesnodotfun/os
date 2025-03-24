@@ -204,7 +204,7 @@ export function ChatMessages({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.2 }}
-              className={`flex flex-col z-10 ${
+              className={`flex flex-col z-10 w-full ${
                 message.role === "user" ? "items-end" : "items-start"
               }`}
               style={{
@@ -308,7 +308,11 @@ export function ChatMessages({
                       }
                     : {}
                 }
-                className={`max-w-[90%] min-h-[12px] p-1.5 px-2 rounded leading-snug text-[12px] font-geneva-12 break-words select-text ${
+                className={`${
+                  isHtmlCodeBlock(message.content).isHtml
+                    ? "w-full"
+                    : "w-fit max-w-[90%]"
+                } min-h-[12px] p-1.5 px-2 rounded leading-snug text-[12px] font-geneva-12 break-words select-text ${
                   message.role === "user"
                     ? "bg-yellow-200 text-black"
                     : "bg-blue-200 text-black"
