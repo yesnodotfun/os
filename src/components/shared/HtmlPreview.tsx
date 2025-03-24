@@ -155,6 +155,7 @@ export default function HtmlPreview({
   const [showCode, setShowCode] = useState(false);
   const [isSplitView, setIsSplitView] = useState(loadHtmlPreviewSplit());
   const [highlightedCode, setHighlightedCode] = useState("");
+  const [refreshKey, setRefreshKey] = useState(Date.now());
   const previewRef = useRef<HTMLDivElement>(null);
   const iframeId = useRef(
     `iframe-${Math.random().toString(36).substring(2, 9)}`
@@ -171,21 +172,28 @@ export default function HtmlPreview({
     if (isFullScreen && isSplitView) {
       setShowCode(true);
     }
+
+    // Force reinitialization of canvas and scripts when fullscreen state changes
+    setRefreshKey(Date.now());
   }, [isFullScreen, isSplitView]);
 
-  // Add font stack and base styling to HTML content
+  // Enhanced processedHtmlContent with timestamp to force fresh execution
   const processedHtmlContent = (() => {
+    // Add a timestamp comment to force the browser to treat this as new content
+    const timestamp = `<!-- ts=${refreshKey} -->`;
+
     // Check if content already has complete HTML structure
     if (
       htmlContent.includes("<!DOCTYPE html>") ||
       htmlContent.includes("<html")
     ) {
-      // For complete HTML, no need for any injection
-      return htmlContent;
+      // For complete HTML documents, inject the timestamp at the start
+      return timestamp + htmlContent;
     }
 
-    // Wrap with proper HTML tags
-    return `<!DOCTYPE html>
+    // Wrap with proper HTML tags and add timestamp
+    return `${timestamp}
+<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
@@ -268,7 +276,7 @@ export default function HtmlPreview({
   const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      await navigator.clipboard.writeText(processedHtmlContent);
+      await navigator.clipboard.writeText(htmlContent);
       setCopySuccess(true);
 
       // Reset after 2 seconds
@@ -282,7 +290,7 @@ export default function HtmlPreview({
 
   const handleSaveToDisk = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const blob = new Blob([processedHtmlContent], { type: "text/html" });
+    const blob = new Blob([htmlContent], { type: "text/html" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     const timestamp = new Date()
@@ -393,7 +401,7 @@ export default function HtmlPreview({
           </button>
         </motion.div>
         <motion.iframe
-          key="preview"
+          key={`preview-${refreshKey}`}
           id={iframeId}
           srcDoc={processedHtmlContent}
           title="HTML Preview"
@@ -557,7 +565,7 @@ export default function HtmlPreview({
                       />
                     )}
                     <motion.iframe
-                      key="preview"
+                      key={`fullscreen-${iframeId}-${refreshKey}`}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
