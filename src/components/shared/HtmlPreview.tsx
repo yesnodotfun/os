@@ -195,7 +195,7 @@ export default function HtmlPreview({
 </html>`;
   })();
 
-  // Initialize syntax highlighting with cached highlighter
+  // Initialize syntax highlighting only when code view is active
   useEffect(() => {
     let isMounted = true;
 
@@ -214,14 +214,15 @@ export default function HtmlPreview({
       }
     };
 
-    if (showCode) {
+    // Only initialize Shiki and highlight code when code view is active
+    if (showCode && !highlightedCode) {
       highlight();
     }
 
     return () => {
       isMounted = false;
     };
-  }, [processedHtmlContent, showCode]);
+  }, [processedHtmlContent, showCode, highlightedCode]);
 
   // Play elevator music when streaming starts, stop when streaming ends
   useEffect(() => {
@@ -401,14 +402,15 @@ export default function HtmlPreview({
       </motion.div>
 
       {/* Fullscreen overlay */}
-      {isFullScreen &&
-        createPortal(
-          <AnimatePresence>
+      {createPortal(
+        <AnimatePresence mode="wait">
+          {isFullScreen && (
             <motion.div
               className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex flex-col"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
               onClick={() => setIsFullScreen(false)}
             >
               <div className="absolute top-4 right-4 flex items-center bg-black/40 backdrop-blur-sm rounded-full px-2 py-1 z-10">
@@ -467,9 +469,9 @@ export default function HtmlPreview({
                 {showCode ? (
                   <motion.div
                     key="code"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
                     transition={{ duration: 0.2 }}
                     className="w-full h-full overflow-auto bg-[#24292e] p-4"
                     dangerouslySetInnerHTML={{ __html: highlightedCode }}
@@ -477,6 +479,10 @@ export default function HtmlPreview({
                 ) : (
                   <motion.iframe
                     key="preview"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.2 }}
                     id={`fullscreen-${iframeId}`}
                     srcDoc={processedHtmlContent}
                     title="HTML Preview Fullscreen"
@@ -488,9 +494,10 @@ export default function HtmlPreview({
                 )}
               </AnimatePresence>
             </motion.div>
-          </AnimatePresence>,
-          document.body
-        )}
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </>
   );
 }
