@@ -125,7 +125,7 @@ export default function HtmlPreview({
   onInteractionChange,
   isStreaming = false,
   maxHeight = "800px",
-  minHeight = "250px",
+  minHeight = "200px",
   initialFullScreen = false,
   className = "",
   playElevatorMusic,
