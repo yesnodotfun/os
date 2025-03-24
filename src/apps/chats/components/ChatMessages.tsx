@@ -410,7 +410,6 @@ export function ChatMessages({
                                 isLoading &&
                                 message === messages[messages.length - 1]
                               }
-                              containerRef={viewportRef}
                               className="mt-2"
                             />
                           )}
@@ -447,7 +446,6 @@ export function ChatMessages({
                       <HtmlPreview
                         htmlContent={isHtmlCodeBlock(message.content).content}
                         onInteractionChange={setIsInteractingWithPreview}
-                        containerRef={viewportRef}
                         className="mt-2"
                       />
                     )}

@@ -19,7 +19,6 @@ import { useChat } from "ai/react";
 import { useAppContext } from "@/contexts/AppContext";
 import { AppId } from "@/config/appRegistry";
 import { useTerminalSounds } from "@/hooks/useTerminalSounds";
-import { useWindowManager } from "@/hooks/useWindowManager";
 import HtmlPreview, {
   isHtmlCodeBlock,
   extractHtmlContent,
@@ -110,16 +109,13 @@ interface HtmlPreviewProps {
   htmlContent: string;
   onInteractionChange: (isInteracting: boolean) => void;
   isStreaming?: boolean;
-  terminalRef: React.RefObject<HTMLDivElement>;
 }
 
 function TerminalHtmlPreview({
   htmlContent,
   onInteractionChange,
   isStreaming = false,
-  terminalRef,
 }: HtmlPreviewProps) {
-  const { windowSize } = useWindowManager({ appId: "terminal" });
   const { playElevatorMusic, stopElevatorMusic, playDingSound } =
     useTerminalSounds();
   const prevStreamingRef = useRef(isStreaming);
@@ -147,8 +143,6 @@ function TerminalHtmlPreview({
       htmlContent={htmlContent}
       onInteractionChange={onInteractionChange}
       isStreaming={isStreaming}
-      containerRef={terminalRef}
-      windowSize={windowSize}
     />
   );
 }
@@ -1538,7 +1532,6 @@ Available commands:
                                       handleHtmlPreviewInteraction
                                     }
                                     isStreaming={isThisMessageStreaming}
-                                    terminalRef={terminalRef}
                                   />
                                 )}
                               </>
@@ -1559,7 +1552,6 @@ Available commands:
                               htmlContent={isHtmlCodeBlock(item.output).content}
                               onInteractionChange={handleHtmlPreviewInteraction}
                               isStreaming={false}
-                              terminalRef={terminalRef}
                             />
                           )}
                         </>

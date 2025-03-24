@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect } from "react";
-import { motion } from "framer-motion";
+import { useState, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Maximize, Minimize, Copy, Check, Save } from "lucide-react";
+import { createPortal } from "react-dom";
 
 // Check if a string is a HTML code block
 export const isHtmlCodeBlock = (
@@ -110,28 +111,27 @@ interface HtmlPreviewProps {
   htmlContent: string;
   onInteractionChange?: (isInteracting: boolean) => void;
   isStreaming?: boolean;
-  containerRef?: React.RefObject<HTMLElement>;
   maxHeight?: number | string;
   minHeight?: number | string;
   initialFullScreen?: boolean;
   className?: string;
-  windowSize?: { width: number; height: number };
 }
 
 export default function HtmlPreview({
   htmlContent,
   onInteractionChange,
   isStreaming = false,
-  containerRef,
   maxHeight = "800px",
   minHeight = "250px",
   initialFullScreen = false,
   className = "",
-  windowSize,
 }: HtmlPreviewProps) {
   const [isFullScreen, setIsFullScreen] = useState(initialFullScreen);
   const [copySuccess, setCopySuccess] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
+  const iframeId = useRef(
+    `iframe-${Math.random().toString(36).substring(2, 9)}`
+  ).current;
 
   // Add font stack and base styling to HTML content
   const processedHtmlContent = (() => {
@@ -203,151 +203,20 @@ export default function HtmlPreview({
     URL.revokeObjectURL(url);
   };
 
-  // Calculate content height for fullscreen mode
-  const contentHeight = windowSize ? windowSize.height - 30 : 800; // Default to 800 if no windowSize prop
-
-  // Function to scroll to the preview's top edge
-  const scrollToPreview = () => {
-    if (previewRef.current && containerRef?.current) {
-      const previewRect = previewRef.current.getBoundingClientRect();
-      const containerRect = containerRef.current.getBoundingClientRect();
-      const scrollOffset =
-        previewRect.top -
-        containerRect.top +
-        containerRef.current.scrollTop -
-        8; // 8px for padding
-      containerRef.current.scrollTo({
-        top: scrollOffset,
-        behavior: "smooth",
-      });
-    }
-  };
-
-  // Add interactivity handlers
-  useEffect(() => {
-    if (isFullScreen && containerRef?.current) {
-      // Scroll to preview when maximizing
-      setTimeout(scrollToPreview, 50);
-    }
-  }, [isFullScreen]);
-
   // Normal inline display with optional maximized height
   return (
-    <motion.div
-      ref={previewRef}
-      className={`rounded bg-white/100 overflow-auto my-2 relative ${className}`}
-      style={{
-        maxHeight: isFullScreen
-          ? typeof contentHeight === "number"
-            ? `${contentHeight}px`
-            : contentHeight
-          : maxHeight,
-        pointerEvents: isStreaming ? "none" : "auto",
-      }}
-      animate={{
-        opacity: isStreaming ? [0.6, 0.8, 0.6] : 1,
-      }}
-      transition={{
-        opacity: {
-          duration: 2.5,
-          repeat: isStreaming ? Infinity : 0,
-          ease: "easeInOut",
-        },
-      }}
-      onClick={(e) => e.stopPropagation()}
-      onMouseDown={(e) => e.stopPropagation()}
-      onMouseEnter={() => !isStreaming && onInteractionChange?.(true)}
-      onMouseLeave={() => !isStreaming && onInteractionChange?.(false)}
-      tabIndex={-1}
-    >
+    <>
       <motion.div
-        className="flex justify-end p-1 absolute top-2 right-4 z-20"
-        animate={{
-          opacity: isStreaming ? 0 : 1,
-        }}
-        transition={{
-          duration: 0.3,
-        }}
+        ref={previewRef}
+        className={`rounded bg-white/100 overflow-auto my-2 relative ${className}`}
         style={{
+          maxHeight: isFullScreen ? "0" : maxHeight,
           pointerEvents: isStreaming ? "none" : "auto",
-        }}
-      >
-        <button
-          onClick={handleSaveToDisk}
-          onMouseDown={(e) => e.stopPropagation()}
-          className="flex items-center justify-center w-6 h-6 hover:bg-black/10 rounded mr-1 group"
-          aria-label="Save HTML to disk"
-          disabled={isStreaming}
-        >
-          <Save
-            size={16}
-            className="text-neutral-400/50 group-hover:text-neutral-300"
-          />
-        </button>
-        <button
-          onClick={handleCopy}
-          onMouseDown={(e) => e.stopPropagation()}
-          className="flex items-center justify-center w-6 h-6 hover:bg-black/10 rounded mr-1 group"
-          aria-label="Copy HTML code"
-          disabled={isStreaming}
-        >
-          {copySuccess ? (
-            <Check
-              size={16}
-              className="text-neutral-400/50 group-hover:text-neutral-300"
-            />
-          ) : (
-            <Copy
-              size={16}
-              className="text-neutral-400/50 group-hover:text-neutral-300"
-            />
-          )}
-        </button>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsFullScreen(!isFullScreen);
-            // Scroll to preview when maximizing
-            if (!isFullScreen && containerRef) {
-              setTimeout(scrollToPreview, 50);
-            }
-          }}
-          onMouseDown={(e) => e.stopPropagation()}
-          className="flex items-center justify-center w-6 h-6 hover:bg-black/10 rounded group"
-          aria-label={isFullScreen ? "Minimize preview" : "Maximize preview"}
-          disabled={isStreaming}
-        >
-          {isFullScreen ? (
-            <Minimize
-              size={16}
-              className="text-neutral-400/50 group-hover:text-neutral-300"
-            />
-          ) : (
-            <Maximize
-              size={16}
-              className="text-neutral-400/50 group-hover:text-neutral-300"
-            />
-          )}
-        </button>
-      </motion.div>
-      <motion.iframe
-        srcDoc={processedHtmlContent}
-        title="HTML Preview"
-        className="w-full h-full border-0"
-        sandbox="allow-scripts"
-        style={{
-          height: isFullScreen
-            ? `${
-                (typeof contentHeight === "number" ? contentHeight : 800) - 40
-              }px`
-            : typeof minHeight === "string"
-            ? minHeight
-            : `${minHeight}px`,
-          display: "block",
-          pointerEvents: isStreaming ? "none" : "auto",
+          opacity: isFullScreen ? 0 : 1,
+          height: isFullScreen ? "0" : "auto",
         }}
         animate={{
-          opacity: isStreaming ? [0.6, 0.8, 0.6] : 1,
+          opacity: isStreaming ? [0.6, 0.8, 0.6] : isFullScreen ? 0 : 1,
         }}
         transition={{
           opacity: {
@@ -356,8 +225,172 @@ export default function HtmlPreview({
             ease: "easeInOut",
           },
         }}
+        onClick={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
-      />
-    </motion.div>
+        onMouseEnter={() => !isStreaming && onInteractionChange?.(true)}
+        onMouseLeave={() => !isStreaming && onInteractionChange?.(false)}
+        tabIndex={-1}
+      >
+        <motion.div
+          className="flex justify-end p-1 absolute top-2 right-4 z-20"
+          animate={{
+            opacity: isStreaming ? 0 : 1,
+          }}
+          transition={{
+            duration: 0.3,
+          }}
+          style={{
+            pointerEvents: isStreaming ? "none" : "auto",
+          }}
+        >
+          <button
+            onClick={handleSaveToDisk}
+            onMouseDown={(e) => e.stopPropagation()}
+            className="flex items-center justify-center w-6 h-6 hover:bg-black/10 rounded mr-1 group"
+            aria-label="Save HTML to disk"
+            disabled={isStreaming}
+          >
+            <Save
+              size={16}
+              className="text-neutral-400/50 group-hover:text-neutral-300"
+            />
+          </button>
+          <button
+            onClick={handleCopy}
+            onMouseDown={(e) => e.stopPropagation()}
+            className="flex items-center justify-center w-6 h-6 hover:bg-black/10 rounded mr-1 group"
+            aria-label="Copy HTML code"
+            disabled={isStreaming}
+          >
+            {copySuccess ? (
+              <Check
+                size={16}
+                className="text-neutral-400/50 group-hover:text-neutral-300"
+              />
+            ) : (
+              <Copy
+                size={16}
+                className="text-neutral-400/50 group-hover:text-neutral-300"
+              />
+            )}
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsFullScreen(!isFullScreen);
+            }}
+            onMouseDown={(e) => e.stopPropagation()}
+            className="flex items-center justify-center w-6 h-6 hover:bg-black/10 rounded group"
+            aria-label={isFullScreen ? "Minimize preview" : "Maximize preview"}
+            disabled={isStreaming}
+          >
+            {isFullScreen ? (
+              <Minimize
+                size={16}
+                className="text-neutral-400/50 group-hover:text-neutral-300"
+              />
+            ) : (
+              <Maximize
+                size={16}
+                className="text-neutral-400/50 group-hover:text-neutral-300"
+              />
+            )}
+          </button>
+        </motion.div>
+        <motion.iframe
+          id={iframeId}
+          srcDoc={processedHtmlContent}
+          title="HTML Preview"
+          className="w-full h-full border-0"
+          sandbox="allow-scripts"
+          style={{
+            height:
+              typeof minHeight === "string" ? minHeight : `${minHeight}px`,
+            display: "block",
+            pointerEvents: isStreaming ? "none" : "auto",
+          }}
+          animate={{
+            opacity: isStreaming ? [0.6, 0.8, 0.6] : 1,
+          }}
+          transition={{
+            opacity: {
+              duration: 2.5,
+              repeat: isStreaming ? Infinity : 0,
+              ease: "easeInOut",
+            },
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+        />
+      </motion.div>
+
+      {/* Fullscreen overlay */}
+      {isFullScreen &&
+        createPortal(
+          <AnimatePresence>
+            <motion.div
+              className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex flex-col"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsFullScreen(false)}
+            >
+              <div className="flex justify-end p-4">
+                <button
+                  onClick={handleSaveToDisk}
+                  className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded mr-2 group"
+                  aria-label="Save HTML to disk"
+                >
+                  <Save
+                    size={20}
+                    className="text-white/70 group-hover:text-white"
+                  />
+                </button>
+                <button
+                  onClick={handleCopy}
+                  className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded mr-2 group"
+                  aria-label="Copy HTML code"
+                >
+                  {copySuccess ? (
+                    <Check
+                      size={20}
+                      className="text-white/70 group-hover:text-white"
+                    />
+                  ) : (
+                    <Copy
+                      size={20}
+                      className="text-white/70 group-hover:text-white"
+                    />
+                  )}
+                </button>
+                <button
+                  onClick={() => setIsFullScreen(false)}
+                  className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded group"
+                  aria-label="Exit fullscreen"
+                >
+                  <Minimize
+                    size={20}
+                    className="text-white/70 group-hover:text-white"
+                  />
+                </button>
+              </div>
+              <motion.iframe
+                id={`fullscreen-${iframeId}`}
+                srcDoc={processedHtmlContent}
+                title="HTML Preview Fullscreen"
+                className="flex-1 w-full border-0 rounded-lg bg-white mx-auto my-0"
+                sandbox="allow-scripts"
+                style={{
+                  width: "calc(100% - 48px)",
+                  margin: "0 24px 24px 24px",
+                  maxWidth: "1400px",
+                }}
+                onClick={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+              />
+            </motion.div>
+          </AnimatePresence>,
+          document.body
+        )}
+    </>
   );
 }
