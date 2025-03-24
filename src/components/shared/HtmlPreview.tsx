@@ -235,7 +235,7 @@ export default function HtmlPreview({
   return (
     <motion.div
       ref={previewRef}
-      className={`border rounded bg-white/100 overflow-auto my-2 relative ${className}`}
+      className={`rounded bg-white/100 overflow-auto my-2 relative ${className}`}
       style={{
         maxHeight: isFullScreen
           ? typeof contentHeight === "number"
