@@ -319,7 +319,7 @@ export function TerminalAppComponent({
     setCommandHistory([
       {
         command: "",
-        output: `${asciiArt}\nlast login: ${currentTime}\ntype 'help' to see available commands`,
+        output: `${asciiArt}\nlast login: ${currentTime}\ntype 'help' to see available commands\n\n`,
         path: "welcome-message",
       },
     ]);
@@ -1309,9 +1309,8 @@ Available commands:
         item.output.length > 0 &&
         item.output.length < 150 &&
         !item.output.startsWith("Command not found") &&
-        !item.output.startsWith("Usage:") &&
         !item.output.includes("Available commands") &&
-        !item.output.includes("Welcome to ryOS Terminal") &&
+        !item.output.includes("     __  __") &&
         !item.output.includes("Ask Ryo anything.") &&
         // Don't animate ls command output
         !(item.command && item.command.trim().startsWith("ls"))
