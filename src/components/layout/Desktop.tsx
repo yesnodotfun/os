@@ -90,6 +90,42 @@ export function Desktop({
     }
   }, [isVideoWallpaper, videoRef, currentWallpaper, checkVideoLoadState]);
 
+  // Add visibility change and focus handlers to resume video playback
+  useEffect(() => {
+    // Only add handlers if we have an active video wallpaper
+    if (!isVideoWallpaper || !videoRef.current) return;
+
+    const resumeVideoPlayback = () => {
+      const video = videoRef.current;
+      if (video && video.paused) {
+        // Try to play the video when visibility changes to visible
+        video.play().catch(err => {
+          console.warn("Could not resume video playback:", err);
+        });
+      }
+    };
+
+    // Handle page visibility change (when app is switched to/from background)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        resumeVideoPlayback();
+      }
+    };
+
+    // Handle window focus (when app regains focus)
+    const handleFocus = () => {
+      resumeVideoPlayback();
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, [isVideoWallpaper]);
+
   const getWallpaperStyles = (path: string): DesktopStyles => {
     // Don't apply background styles for video wallpapers
     if (
@@ -161,6 +197,7 @@ export function Desktop({
         loop
         muted
         playsInline
+        data-webkit-playsinline="true"
         onLoadedData={handleVideoLoaded}
         onCanPlayThrough={handleCanPlayThrough}
         style={{

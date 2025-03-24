@@ -451,6 +451,40 @@ export function useTerminalSounds() {
     return () => window.removeEventListener("click", handleFirstInteraction);
   }, [initializeTone]);
 
+  // Add visibility change and focus handlers to resume audio context
+  useEffect(() => {
+    const resumeAudioContext = async () => {
+      if (Tone.context.state === "suspended") {
+        try {
+          await Tone.context.resume();
+          console.debug("Audio context resumed");
+        } catch (error) {
+          console.error("Failed to resume audio context:", error);
+        }
+      }
+    };
+
+    // Handle page visibility change (when app is switched to/from background)
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === "visible") {
+        await resumeAudioContext();
+      }
+    };
+
+    // Handle window focus (when app regains focus)
+    const handleFocus = async () => {
+      await resumeAudioContext();
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, []);
+
   const playSound = useCallback(
     async (type: SoundType) => {
       if (isMuted) return;
@@ -460,6 +494,11 @@ export function useTerminalSounds() {
         try {
           await Tone.start();
           setIsInitialized(true);
+          
+          // For iOS, explicitly resume the audio context
+          if (Tone.context.state === "suspended") {
+            await Tone.context.resume();
+          }
         } catch (error) {
           console.debug("Could not initialize Tone.js:", error);
           return;
@@ -603,6 +642,11 @@ export function useTerminalSounds() {
       try {
         await Tone.start();
         setIsInitialized(true);
+        
+        // For iOS, we need to explicitly resume the audio context
+        if (Tone.context.state === "suspended") {
+          await Tone.context.resume();
+        }
       } catch (error) {
         console.debug("Could not initialize Tone.js:", error);
         return;
@@ -615,6 +659,16 @@ export function useTerminalSounds() {
 
       // Setup the ambient environment
       setupAmbientEnvironment();
+
+      // Ensure context is running before starting sounds
+      if (Tone.context.state !== "running") {
+        try {
+          await Tone.context.resume();
+        } catch (error) {
+          console.debug("Could not resume audio context:", error);
+          return;
+        }
+      }
 
       // Start the generative processes
       generateEnoSequence();
@@ -686,6 +740,11 @@ export function useTerminalSounds() {
       try {
         await Tone.start();
         setIsInitialized(true);
+        
+        // For iOS, explicitly resume the audio context
+        if (Tone.context.state === "suspended") {
+          await Tone.context.resume();
+        }
       } catch (error) {
         console.debug("Could not initialize Tone.js:", error);
         return;
