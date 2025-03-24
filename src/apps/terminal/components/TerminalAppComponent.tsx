@@ -1491,7 +1491,7 @@ assistant
                         </div>
                       ) : item.path === "ai-assistant" ? (
                         <motion.div
-                          layout="preserve-aspect"
+                          layout="position"
                           className="select-text cursor-text"
                           transition={{
                             type: "spring",
