@@ -14,6 +14,31 @@ const getAudioContext = () => {
   return audioContext;
 };
 
+// Resume audio context - important for iOS
+const resumeAudioContext = async () => {
+  if (audioContext && audioContext.state === "suspended") {
+    try {
+      await audioContext.resume();
+      console.debug("Audio context resumed");
+    } catch (error) {
+      console.error("Failed to resume audio context:", error);
+    }
+  }
+};
+
+// Add global event listeners for visibility and focus
+if (typeof document !== "undefined" && typeof window !== "undefined") {
+  // Handle page visibility change (when app is switched to/from background)
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      resumeAudioContext();
+    }
+  });
+
+  // Handle window focus (when app regains focus)
+  window.addEventListener("focus", resumeAudioContext);
+}
+
 // Preload a single sound and add it to cache
 const preloadSound = async (soundPath: string): Promise<AudioBuffer> => {
   if (audioBufferCache.has(soundPath)) {
@@ -62,6 +87,9 @@ export function useSound(soundPath: string, volume: number = 0.3) {
     }
 
     try {
+      // Ensure audio context is running before playing
+      await resumeAudioContext();
+      
       const audioBuffer = await preloadSound(soundPath);
       const source = getAudioContext().createBufferSource();
       source.buffer = audioBuffer;
