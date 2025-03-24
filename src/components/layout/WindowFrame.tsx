@@ -502,7 +502,7 @@ export function WindowFrame({
               transparentBackground && "mt-0 h-6.5",
               isForeground
                 ? transparentBackground
-                  ? "bg-white/50 backdrop-blur-sm border-b-black"
+                  ? "bg-white/70 backdrop-blur-sm border-b-black"
                   : "bg-white bg-[linear-gradient(#000_50%,transparent_0)] bg-clip-content bg-[length:6.6666666667%_13.3333333333%] border-b-black"
                 : transparentBackground
                 ? "bg-white/20 backdrop-blur-sm border-b-black"
