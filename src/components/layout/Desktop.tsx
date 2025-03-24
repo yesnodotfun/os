@@ -61,6 +61,27 @@ export function Desktop({
     setCurrentWallpaper(wallpaperPath);
   }, [wallpaperPath]);
 
+  // Check if the current wallpaper is a video and force update
+  useEffect(() => {
+    const isVideo = 
+      currentWallpaper.endsWith('.mp4') || 
+      currentWallpaper.includes('video/') ||
+      (currentWallpaper.startsWith('https://') && /\.(mp4|webm|ogg)($|\?)/.test(currentWallpaper));
+    
+    if (isVideo) {
+      // When switching from image to video, force video detection
+      const videoEl = videoRef.current;
+      if (videoEl) {
+        // Only update src if it changed to avoid reloading unnecessarily
+        if (videoEl.src !== currentWallpaper) {
+          videoEl.src = currentWallpaper;
+          videoEl.load();
+        }
+        checkVideoLoadState(videoEl, currentWallpaper);
+      }
+    }
+  }, [currentWallpaper, checkVideoLoadState]);
+
   // Check for cached video on ref update and wallpaper change
   useEffect(() => {
     if (isVideoWallpaper && videoRef.current) {
@@ -128,28 +149,26 @@ export function Desktop({
       onClick={onClick}
       style={finalStyles}
     >
-      {isVideoWallpaper && (
-        <>
-          {isVideoLoading && (
-            <div className="absolute inset-0 w-full h-full bg-gray-700/30 z-[-5]" />
-          )}
-          <video
-            ref={videoRef}
-            className="absolute inset-0 w-full h-full object-cover z-[-10]"
-            src={currentWallpaper}
-            autoPlay
-            loop
-            muted
-            playsInline
-            onLoadedData={handleVideoLoaded}
-            onCanPlayThrough={handleCanPlayThrough}
-            style={{
-              opacity: isVideoLoading ? 0.6 : 1,
-              transition: "opacity 0.5s ease-in-out",
-            }}
-          />
-        </>
+      {/* Always render video element but control visibility */}
+      {isVideoLoading && isVideoWallpaper && (
+        <div className="absolute inset-0 w-full h-full bg-gray-700/30 z-[-5]" />
       )}
+      <video
+        ref={videoRef}
+        className="absolute inset-0 w-full h-full object-cover z-[-10]"
+        src={currentWallpaper}
+        autoPlay
+        loop
+        muted
+        playsInline
+        onLoadedData={handleVideoLoaded}
+        onCanPlayThrough={handleCanPlayThrough}
+        style={{
+          display: isVideoWallpaper ? 'block' : 'none',
+          opacity: isVideoLoading ? 0.6 : 1,
+          transition: "opacity 0.5s ease-in-out",
+        }}
+      />
       <div className="pt-8 p-4 flex flex-col items-end h-[calc(100%-2rem)] relative z-[1]">
         <div className="flex flex-col flex-wrap-reverse justify-start gap-1 content-start h-full">
           <FileIcon

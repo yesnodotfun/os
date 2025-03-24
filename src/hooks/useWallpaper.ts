@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { loadWallpaper, saveWallpaper } from "@/utils/storage";
 
 // Store loading state for video wallpapers
@@ -9,18 +9,22 @@ export function useWallpaper() {
     useState<string>(loadWallpaper);
   const [isVideoLoading, setIsVideoLoading] = useState<boolean>(false);
   
-  // Check if current wallpaper is a video
-  const isVideoWallpaper = currentWallpaper.endsWith(".mp4") || 
-    currentWallpaper.includes("video/") ||
-    currentWallpaper.startsWith("https://") && 
-    /\.(mp4|webm|ogg)($|\?)/.test(currentWallpaper);
+  // Check if current wallpaper is a video using useMemo to ensure it's recalculated
+  const isVideoWallpaper = useMemo(() => {
+    return currentWallpaper.endsWith(".mp4") || 
+      currentWallpaper.includes("video/") ||
+      (currentWallpaper.startsWith("https://") && 
+      /\.(mp4|webm|ogg)($|\?)/.test(currentWallpaper));
+  }, [currentWallpaper]);
 
   // Initialize loading state for video wallpapers
   useEffect(() => {
     if (isVideoWallpaper) {
-      // Reset loading state whenever the video wallpaper changes
-      setIsVideoLoading(true);
-      videoLoadingStates[currentWallpaper] = true;
+      // Only set loading state if it's not already marked as loaded
+      if (videoLoadingStates[currentWallpaper] !== false) {
+        setIsVideoLoading(true);
+        videoLoadingStates[currentWallpaper] = true;
+      }
     } else {
       setIsVideoLoading(false);
     }
