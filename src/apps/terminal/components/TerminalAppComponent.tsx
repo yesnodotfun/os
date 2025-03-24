@@ -149,10 +149,10 @@ function HtmlPreview({
       margin: 0;
       font-size: 12px;
       line-height: 1.35;
-      max-width: 100%;
       overflow-x: auto;
       width: 100%;
       height: 100%;
+      max-width: 100%;
     }
   </style>
 </head>
