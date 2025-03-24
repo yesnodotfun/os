@@ -309,8 +309,11 @@ export function ChatMessages({
                     : {}
                 }
                 className={`${
-                  isHtmlCodeBlock(message.content).isHtml
-                    ? "w-full p-0 m-0"
+                  isHtmlCodeBlock(message.content).isHtml ||
+                  (isLoading &&
+                    message === messages[messages.length - 1] &&
+                    message.content.includes("```"))
+                    ? "w-full p-[1px] m-0 outline-0 ring-0 bg-transparent"
                     : "w-fit max-w-[90%] p-1.5 px-2"
                 } min-h-[12px] rounded leading-snug text-[12px] font-geneva-12 break-words select-text ${
                   message.role === "user"

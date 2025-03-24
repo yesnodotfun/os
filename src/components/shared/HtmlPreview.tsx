@@ -310,13 +310,13 @@ export default function HtmlPreview({
     <>
       <motion.div
         ref={previewRef}
-        className={`rounded bg-white/100 overflow-auto m-0 relative ${className}`}
+        className={`rounded bg-white overflow-auto m-0 relative ${className}`}
         style={{
           maxHeight: isFullScreen ? "0" : maxHeight,
           pointerEvents: isStreaming ? "none" : "auto",
           opacity: isFullScreen ? 0 : 1,
           height: isFullScreen ? "0" : "auto",
-          boxShadow: "inset 0 0 1px rgba(0, 0, 0, 0.3)",
+          boxShadow: isFullScreen ? "none" : "0 0 0 1px rgba(0, 0, 0, 0.3)",
         }}
         animate={{
           opacity: isStreaming ? [0.6, 0.8, 0.6] : isFullScreen ? 0 : 1,
