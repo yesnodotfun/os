@@ -5,6 +5,10 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { AnimatePresence, motion } from "framer-motion";
 import { useChatSynth } from "@/hooks/useChatSynth";
+import HtmlPreview, {
+  isHtmlCodeBlock,
+  extractHtmlContent,
+} from "@/components/shared/HtmlPreview";
 
 // Helper function to parse markdown and segment text
 const parseMarkdown = (text: string): { type: string; content: string }[] => {
@@ -88,6 +92,8 @@ export function ChatMessages({
   const previousMessagesLength = useRef(messages.length);
   const hasScrolled = useRef(false);
   const wasAtBottom = useRef(true);
+  const [isInteractingWithPreview, setIsInteractingWithPreview] =
+    useState(false);
 
   const copyMessage = async (message: Message) => {
     try {
@@ -203,12 +209,15 @@ export function ChatMessages({
                   message.role === "user" ? "bottom right" : "bottom left",
               }}
               onMouseEnter={() =>
+                !isInteractingWithPreview &&
                 setHoveredMessageId(
                   message.id ||
                     `${message.role}-${message.content.substring(0, 10)}`
                 )
               }
-              onMouseLeave={() => setHoveredMessageId(null)}
+              onMouseLeave={() =>
+                !isInteractingWithPreview && setHoveredMessageId(null)
+              }
             >
               <div className="text-[16px] text-gray-500 mb-0.5 font-['Geneva-9'] mb-[-2px] select-text flex items-center gap-2">
                 {message.role === "user" && (
@@ -346,67 +355,103 @@ export function ChatMessages({
                         ? message.content.slice(4).trimStart()
                         : message.content;
 
-                      return segmentText(displayContent).map((segment, idx) => (
-                        <motion.span
+                      // Check for HTML content
+                      const { hasHtml, htmlContent, textContent } =
+                        extractHtmlContent(displayContent);
+
+                      return (
+                        <>
+                          {/* Show only non-HTML text content */}
+                          {textContent &&
+                            segmentText(textContent).map((segment, idx) => (
+                              <motion.span
+                                key={idx}
+                                initial={
+                                  hasXmlTags
+                                    ? { opacity: 1, y: 0 }
+                                    : { opacity: 0, y: 12 }
+                                }
+                                animate={{ opacity: 1, y: 0 }}
+                                className={`select-text ${
+                                  isEmojiOnly(textContent) ? "text-[24px]" : ""
+                                } ${
+                                  segment.type === "bold"
+                                    ? "font-bold"
+                                    : segment.type === "italic"
+                                    ? "italic"
+                                    : ""
+                                }`}
+                                style={{ userSelect: "text" }}
+                                transition={
+                                  hasXmlTags
+                                    ? { duration: 0 }
+                                    : {
+                                        duration: 0.15,
+                                        delay: idx * 0.05,
+                                        ease: "easeOut",
+                                        onComplete: () => {
+                                          if (idx % 2 === 0) {
+                                            playNote();
+                                          }
+                                        },
+                                      }
+                                }
+                              >
+                                {segment.content}
+                              </motion.span>
+                            ))}
+
+                          {/* Show HTML preview if there's HTML content */}
+                          {hasHtml && htmlContent && (
+                            <HtmlPreview
+                              htmlContent={htmlContent}
+                              onInteractionChange={setIsInteractingWithPreview}
+                              isStreaming={
+                                isLoading &&
+                                message === messages[messages.length - 1]
+                              }
+                              containerRef={viewportRef}
+                              className="mt-2"
+                            />
+                          )}
+                        </>
+                      );
+                    })()}
+                  </motion.div>
+                ) : (
+                  <>
+                    <span
+                      className={`select-text whitespace-pre-wrap ${
+                        isEmojiOnly(message.content) ? "text-[24px]" : ""
+                      }`}
+                      style={{ userSelect: "text" }}
+                    >
+                      {segmentText(message.content).map((segment, idx) => (
+                        <span
                           key={idx}
-                          initial={
-                            hasXmlTags
-                              ? { opacity: 1, y: 0 }
-                              : { opacity: 0, y: 12 }
-                          }
-                          animate={{ opacity: 1, y: 0 }}
-                          className={`select-text ${
-                            isEmojiOnly(message.content) ? "text-[24px]" : ""
-                          } ${
+                          className={
                             segment.type === "bold"
                               ? "font-bold"
                               : segment.type === "italic"
                               ? "italic"
                               : ""
-                          }`}
-                          style={{ userSelect: "text" }}
-                          transition={
-                            hasXmlTags
-                              ? { duration: 0 }
-                              : {
-                                  duration: 0.15,
-                                  delay: idx * 0.05,
-                                  ease: "easeOut",
-                                  onComplete: () => {
-                                    if (idx % 2 === 0) {
-                                      playNote();
-                                    }
-                                  },
-                                }
                           }
                         >
                           {segment.content}
-                        </motion.span>
-                      ));
-                    })()}
-                  </motion.div>
-                ) : (
-                  <span
-                    className={`select-text whitespace-pre-wrap ${
-                      isEmojiOnly(message.content) ? "text-[24px]" : ""
-                    }`}
-                    style={{ userSelect: "text" }}
-                  >
-                    {segmentText(message.content).map((segment, idx) => (
-                      <span
-                        key={idx}
-                        className={
-                          segment.type === "bold"
-                            ? "font-bold"
-                            : segment.type === "italic"
-                            ? "italic"
-                            : ""
-                        }
-                      >
-                        {segment.content}
-                      </span>
-                    ))}
-                  </span>
+                        </span>
+                      ))}
+                    </span>
+
+                    {/* Check if user message contains HTML code and show preview */}
+                    {isHtmlCodeBlock(message.content).isHtml && (
+                      <HtmlPreview
+                        htmlContent={isHtmlCodeBlock(message.content).content}
+                        onInteractionChange={setIsInteractingWithPreview}
+                        containerRef={viewportRef}
+                        className="mt-2"
+                      />
+                    )}
+                  </>
                 )}
               </motion.div>
             </motion.div>

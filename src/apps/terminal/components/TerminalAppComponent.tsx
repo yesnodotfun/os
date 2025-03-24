@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { WindowFrame } from "@/components/layout/WindowFrame";
 import { AppProps } from "@/apps/base/types";
@@ -19,8 +19,11 @@ import { useChat } from "ai/react";
 import { useAppContext } from "@/contexts/AppContext";
 import { AppId } from "@/config/appRegistry";
 import { useTerminalSounds } from "@/hooks/useTerminalSounds";
-import { Maximize, Minimize, Copy, Check, Save } from "lucide-react";
 import { useWindowManager } from "@/hooks/useWindowManager";
+import HtmlPreview, {
+  isHtmlCodeBlock,
+  extractHtmlContent,
+} from "@/components/shared/HtmlPreview";
 
 interface CommandHistory {
   command: string;
@@ -110,89 +113,16 @@ interface HtmlPreviewProps {
   terminalRef: React.RefObject<HTMLDivElement>;
 }
 
-function HtmlPreview({
+function TerminalHtmlPreview({
   htmlContent,
   onInteractionChange,
   isStreaming = false,
   terminalRef,
 }: HtmlPreviewProps) {
-  const [isFullScreen, setIsFullScreen] = useState(false);
-  const [copySuccess, setCopySuccess] = useState(false);
   const { windowSize } = useWindowManager({ appId: "terminal" });
   const { playElevatorMusic, stopElevatorMusic, playDingSound } =
     useTerminalSounds();
   const prevStreamingRef = useRef(isStreaming);
-  const previewRef = useRef<HTMLDivElement>(null);
-
-  // Add font stack and base styling to HTML content
-  const processedHtmlContent = useMemo(() => {
-    // Check if content already has complete HTML structure
-    if (
-      htmlContent.includes("<!DOCTYPE html>") ||
-      htmlContent.includes("<html")
-    ) {
-      return htmlContent;
-    }
-
-    // Wrap with proper HTML tags
-    return `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    * {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      box-sizing: border-box;
-    }
-    html, body {
-      margin: 0;
-      font-size: 12px;
-      line-height: 1.35;
-      overflow-x: auto;
-      width: 100%;
-      height: 100%;
-      max-width: 100%;
-    }
-  </style>
-</head>
-<body>
-  ${htmlContent}
-</body>
-</html>`;
-  }, [htmlContent]);
-
-  const handleCopy = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    try {
-      await navigator.clipboard.writeText(processedHtmlContent);
-      setCopySuccess(true);
-
-      // Reset after 2 seconds
-      setTimeout(() => {
-        setCopySuccess(false);
-      }, 2000);
-    } catch (err) {
-      console.error("Failed to copy: ", err);
-    }
-  };
-
-  const handleSaveToDisk = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const blob = new Blob([processedHtmlContent], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    const timestamp = new Date()
-      .toISOString()
-      .replace(/[:.]/g, "-")
-      .substring(0, 19);
-    a.href = url;
-    a.download = `terminal-output-${timestamp}.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
 
   // Play elevator music when streaming starts, stop when streaming ends
   useEffect(() => {
@@ -212,246 +142,16 @@ function HtmlPreview({
     };
   }, [isStreaming, playElevatorMusic, stopElevatorMusic, playDingSound]);
 
-  // Adjust for the terminal interface elements
-  const contentHeight = windowSize.height - 30; // Adjust for header, input, padding
-
-  // Function to scroll to the preview's top edge
-  const scrollToPreview = useCallback(() => {
-    if (previewRef.current && terminalRef.current) {
-      const previewRect = previewRef.current.getBoundingClientRect();
-      const terminalRect = terminalRef.current.getBoundingClientRect();
-      const scrollOffset =
-        previewRect.top - terminalRect.top + terminalRef.current.scrollTop - 8; // 8px for padding
-      terminalRef.current.scrollTo({
-        top: scrollOffset,
-        behavior: "smooth",
-      });
-    }
-  }, []);
-
-  // Normal inline display with optional maximized height
   return (
-    <motion.div
-      ref={previewRef}
-      className="border rounded bg-white/100 overflow-auto my-2 relative"
-      style={{
-        maxHeight: isFullScreen ? `${contentHeight}px` : "800px",
-        pointerEvents: isStreaming ? "none" : "auto",
-      }}
-      animate={{
-        opacity: isStreaming ? [0.6, 0.8, 0.6] : 1,
-      }}
-      transition={{
-        opacity: {
-          duration: 2.5,
-          repeat: isStreaming ? Infinity : 0,
-          ease: "easeInOut",
-        },
-      }}
-      onClick={(e) => e.stopPropagation()}
-      onMouseDown={(e) => e.stopPropagation()}
-      onMouseEnter={() => !isStreaming && onInteractionChange(true)}
-      onMouseLeave={() => !isStreaming && onInteractionChange(false)}
-      tabIndex={-1}
-    >
-      <motion.div
-        className="flex justify-end p-1 absolute top-2 right-4 z-20"
-        animate={{
-          opacity: isStreaming ? 0 : 1,
-        }}
-        transition={{
-          duration: 0.3,
-        }}
-        style={{
-          pointerEvents: isStreaming ? "none" : "auto",
-        }}
-      >
-        <button
-          onClick={handleSaveToDisk}
-          onMouseDown={(e) => e.stopPropagation()}
-          className="flex items-center justify-center w-6 h-6 hover:bg-black/10 rounded mr-1 group"
-          aria-label="Save HTML to disk"
-          disabled={isStreaming}
-        >
-          <Save
-            size={16}
-            className="text-neutral-400/50 group-hover:text-neutral-300"
-          />
-        </button>
-        <button
-          onClick={handleCopy}
-          onMouseDown={(e) => e.stopPropagation()}
-          className="flex items-center justify-center w-6 h-6 hover:bg-black/10 rounded mr-1 group"
-          aria-label="Copy HTML code"
-          disabled={isStreaming}
-        >
-          {copySuccess ? (
-            <Check
-              size={16}
-              className="text-neutral-400/50 group-hover:text-neutral-300"
-            />
-          ) : (
-            <Copy
-              size={16}
-              className="text-neutral-400/50 group-hover:text-neutral-300"
-            />
-          )}
-        </button>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsFullScreen(!isFullScreen);
-            // Scroll to preview when maximizing
-            if (!isFullScreen) {
-              setTimeout(scrollToPreview, 50); // Small delay to ensure the resize has completed
-            }
-          }}
-          onMouseDown={(e) => e.stopPropagation()}
-          className="flex items-center justify-center w-6 h-6 hover:bg-black/10 rounded group"
-          aria-label={isFullScreen ? "Minimize preview" : "Maximize preview"}
-          disabled={isStreaming}
-        >
-          {isFullScreen ? (
-            <Minimize
-              size={16}
-              className="text-neutral-400/50 group-hover:text-neutral-300"
-            />
-          ) : (
-            <Maximize
-              size={16}
-              className="text-neutral-400/50 group-hover:text-neutral-300"
-            />
-          )}
-        </button>
-      </motion.div>
-      <motion.iframe
-        srcDoc={processedHtmlContent}
-        title="HTML Preview"
-        className="w-full h-full border-0"
-        sandbox="allow-scripts"
-        style={{
-          height: isFullScreen ? `${contentHeight - 40}px` : "250px",
-          display: "block",
-          pointerEvents: isStreaming ? "none" : "auto",
-        }}
-        animate={{
-          opacity: isStreaming ? [0.6, 0.8, 0.6] : 1,
-        }}
-        transition={{
-          opacity: {
-            duration: 2.5,
-            repeat: isStreaming ? Infinity : 0,
-            ease: "easeInOut",
-          },
-        }}
-        onMouseDown={(e) => e.stopPropagation()}
-      />
-    </motion.div>
+    <HtmlPreview
+      htmlContent={htmlContent}
+      onInteractionChange={onInteractionChange}
+      isStreaming={isStreaming}
+      containerRef={terminalRef}
+      windowSize={windowSize}
+    />
   );
 }
-
-// Check if a string is a HTML code block
-const isHtmlCodeBlock = (
-  text: string
-): { isHtml: boolean; content: string } => {
-  // Check for markdown code blocks with html tag
-  const codeBlockRegex = /```(?:html)?\s*([\s\S]*?)```/;
-  const match = text.match(codeBlockRegex);
-
-  if (match && match[1]) {
-    const content = match[1].trim();
-    // Check if content appears to be HTML (starts with a tag or has HTML elements)
-    if (content.startsWith("<") || /<\/?[a-z][\s\S]*>/i.test(content)) {
-      return { isHtml: true, content };
-    }
-  }
-
-  // Also check for HTML content outside of code blocks
-  const trimmedText = text.trim();
-  if (
-    trimmedText.startsWith("<") &&
-    (/<\/[a-z][^>]*>/i.test(trimmedText) || // Has a closing tag
-      /<[a-z][^>]*\/>/i.test(trimmedText) || // Has a self-closing tag
-      trimmedText.includes("<style>") ||
-      trimmedText.includes("<div>") ||
-      trimmedText.includes("<span>"))
-  ) {
-    return { isHtml: true, content: trimmedText };
-  }
-
-  return { isHtml: false, content: "" };
-};
-
-// Extract HTML content even if the code block is incomplete/being streamed
-const extractHtmlContent = (
-  text: string
-): {
-  htmlContent: string;
-  textContent: string;
-  hasHtml: boolean;
-} => {
-  // Check for complete HTML code blocks
-  const completeRegex = /```(?:html)?\s*([\s\S]*?)```/g;
-  let processedText = text;
-  const htmlParts: string[] = [];
-  let match;
-  let hasHtml = false;
-
-  // First check for complete HTML blocks
-  while ((match = completeRegex.exec(text)) !== null) {
-    const content = match[1].trim();
-    if (
-      content &&
-      (content.startsWith("<") || /<\/?[a-z][\s\S]*>/i.test(content))
-    ) {
-      htmlParts.push(content);
-      hasHtml = true;
-      // Remove complete HTML blocks from text
-      processedText = processedText.replace(match[0], "");
-    }
-  }
-
-  // Then check for incomplete HTML blocks that are still streaming
-  const incompleteRegex = /```(?:html)?\s*([\s\S]*?)$/;
-  const incompleteMatch = processedText.match(incompleteRegex);
-
-  if (
-    incompleteMatch &&
-    incompleteMatch[1] &&
-    (incompleteMatch[1].trim().startsWith("<") ||
-      /<\/?[a-z][\s\S]*>/i.test(incompleteMatch[1].trim()))
-  ) {
-    htmlParts.push(incompleteMatch[1].trim());
-    hasHtml = true;
-    // Remove incomplete HTML block from text
-    processedText = processedText.replace(incompleteMatch[0], "");
-  }
-
-  // Check for standalone HTML content outside of code blocks
-  const trimmedText = processedText.trim();
-  if (
-    !hasHtml &&
-    trimmedText.startsWith("<") &&
-    (/<\/[a-z][^>]*>/i.test(trimmedText) || // Has a closing tag
-      /<[a-z][^>]*\/>/i.test(trimmedText) || // Has a self-closing tag
-      trimmedText.includes("<style>") ||
-      trimmedText.includes("<div>") ||
-      trimmedText.includes("<span>"))
-  ) {
-    htmlParts.push(trimmedText);
-    hasHtml = true;
-    processedText = "";
-  }
-
-  // Join all HTML parts
-  const htmlContent = htmlParts.join("\n\n");
-
-  return {
-    htmlContent,
-    textContent: processedText,
-    hasHtml,
-  };
-};
 
 // TypewriterText component for terminal output
 function TypewriterText({
@@ -1832,7 +1532,7 @@ Available commands:
 
                                 {/* Show HTML preview if there's HTML content */}
                                 {hasHtml && htmlContent && (
-                                  <HtmlPreview
+                                  <TerminalHtmlPreview
                                     htmlContent={htmlContent}
                                     onInteractionChange={
                                       handleHtmlPreviewInteraction
@@ -1855,7 +1555,7 @@ Available commands:
                         <>
                           {item.output}
                           {isHtmlCodeBlock(item.output).isHtml && (
-                            <HtmlPreview
+                            <TerminalHtmlPreview
                               htmlContent={isHtmlCodeBlock(item.output).content}
                               onInteractionChange={handleHtmlPreviewInteraction}
                               isStreaming={false}
