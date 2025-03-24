@@ -285,12 +285,13 @@ export default function HtmlPreview({
     <>
       <motion.div
         ref={previewRef}
-        className={`rounded bg-white/100 border border-black/25 overflow-auto m-0 relative ${className}`}
+        className={`rounded bg-white/100 overflow-auto m-0 relative ${className}`}
         style={{
           maxHeight: isFullScreen ? "0" : maxHeight,
           pointerEvents: isStreaming ? "none" : "auto",
           opacity: isFullScreen ? 0 : 1,
           height: isFullScreen ? "0" : "auto",
+          boxShadow: "inset 0 0 1px rgba(0, 0, 0, 0.3)",
         }}
         animate={{
           opacity: isStreaming ? [0.6, 0.8, 0.6] : isFullScreen ? 0 : 1,
@@ -407,92 +408,123 @@ export default function HtmlPreview({
           {isFullScreen && (
             <motion.div
               className="fixed inset-0 bg-black/80 z-[9999] flex flex-col"
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 50 }}
-              transition={{ duration: 0.4 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
               onClick={() => setIsFullScreen(false)}
             >
-              <div className="absolute top-4 right-4 flex items-center bg-black/40 backdrop-blur-sm rounded-full px-2 py-1 z-10">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowCode(!showCode);
-                  }}
-                  className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full mr-2 group"
-                  aria-label="Toggle code view"
-                >
-                  <Code
-                    size={20}
-                    className="text-white/70 group-hover:text-white"
-                  />
-                </button>
-                <button
-                  onClick={handleSaveToDisk}
-                  className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full mr-2 group"
-                  aria-label="Save HTML to disk"
-                >
-                  <Save
-                    size={20}
-                    className="text-white/70 group-hover:text-white"
-                  />
-                </button>
-                <button
-                  onClick={handleCopy}
-                  className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full mr-2 group"
-                  aria-label="Copy HTML code"
-                >
-                  {copySuccess ? (
-                    <Check
+              <motion.div
+                className="absolute inset-0 flex flex-col"
+                initial={{
+                  position: "fixed",
+                  top: previewRef.current?.getBoundingClientRect().top ?? 0,
+                  left: previewRef.current?.getBoundingClientRect().left ?? 0,
+                  width: previewRef.current?.getBoundingClientRect().width ?? 0,
+                  height:
+                    previewRef.current?.getBoundingClientRect().height ?? 0,
+                }}
+                animate={{
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: "100%",
+                }}
+                exit={{
+                  position: "fixed",
+                  top: previewRef.current?.getBoundingClientRect().top ?? 0,
+                  left: previewRef.current?.getBoundingClientRect().left ?? 0,
+                  width: previewRef.current?.getBoundingClientRect().width ?? 0,
+                  height:
+                    previewRef.current?.getBoundingClientRect().height ?? 0,
+                }}
+                transition={{
+                  type: "spring",
+                  stiffness: 300,
+                  damping: 30,
+                }}
+              >
+                <div className="absolute top-4 right-4 flex items-center bg-black/40 backdrop-blur-sm rounded-full px-2 py-1 z-10">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowCode(!showCode);
+                    }}
+                    className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full mr-2 group"
+                    aria-label="Toggle code view"
+                  >
+                    <Code
                       size={20}
                       className="text-white/70 group-hover:text-white"
+                    />
+                  </button>
+                  <button
+                    onClick={handleSaveToDisk}
+                    className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full mr-2 group"
+                    aria-label="Save HTML to disk"
+                  >
+                    <Save
+                      size={20}
+                      className="text-white/70 group-hover:text-white"
+                    />
+                  </button>
+                  <button
+                    onClick={handleCopy}
+                    className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full mr-2 group"
+                    aria-label="Copy HTML code"
+                  >
+                    {copySuccess ? (
+                      <Check
+                        size={20}
+                        className="text-white/70 group-hover:text-white"
+                      />
+                    ) : (
+                      <Copy
+                        size={20}
+                        className="text-white/70 group-hover:text-white"
+                      />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setIsFullScreen(false)}
+                    className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full group"
+                    aria-label="Exit fullscreen"
+                  >
+                    <Minimize
+                      size={20}
+                      className="text-white/70 group-hover:text-white"
+                    />
+                  </button>
+                </div>
+                <AnimatePresence mode="wait">
+                  {showCode ? (
+                    <motion.div
+                      key="code"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="w-full h-full overflow-auto bg-[#24292e] p-4"
+                      dangerouslySetInnerHTML={{ __html: highlightedCode }}
                     />
                   ) : (
-                    <Copy
-                      size={20}
-                      className="text-white/70 group-hover:text-white"
+                    <motion.iframe
+                      key="preview"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      id={`fullscreen-${iframeId}`}
+                      srcDoc={processedHtmlContent}
+                      title="HTML Preview Fullscreen"
+                      className="w-full h-full border-0 bg-white"
+                      sandbox="allow-scripts"
+                      onClick={(e) => e.stopPropagation()}
+                      onMouseDown={(e) => e.stopPropagation()}
                     />
                   )}
-                </button>
-                <button
-                  onClick={() => setIsFullScreen(false)}
-                  className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full group"
-                  aria-label="Exit fullscreen"
-                >
-                  <Minimize
-                    size={20}
-                    className="text-white/70 group-hover:text-white"
-                  />
-                </button>
-              </div>
-              <AnimatePresence mode="wait">
-                {showCode ? (
-                  <motion.div
-                    key="code"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ duration: 0.2 }}
-                    className="w-full h-full overflow-auto bg-[#24292e] p-4"
-                    dangerouslySetInnerHTML={{ __html: highlightedCode }}
-                  />
-                ) : (
-                  <motion.iframe
-                    key="preview"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ duration: 0.2 }}
-                    id={`fullscreen-${iframeId}`}
-                    srcDoc={processedHtmlContent}
-                    title="HTML Preview Fullscreen"
-                    className="w-full h-full border-0 bg-white"
-                    sandbox="allow-scripts"
-                    onClick={(e) => e.stopPropagation()}
-                    onMouseDown={(e) => e.stopPropagation()}
-                  />
-                )}
-              </AnimatePresence>
+                </AnimatePresence>
+              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>,
