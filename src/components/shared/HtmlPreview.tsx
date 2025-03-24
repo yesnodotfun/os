@@ -156,6 +156,7 @@ export default function HtmlPreview({
   const [isSplitView, setIsSplitView] = useState(loadHtmlPreviewSplit());
   const [highlightedCode, setHighlightedCode] = useState("");
   const [refreshKey, setRefreshKey] = useState(Date.now());
+  const [originalHeight, setOriginalHeight] = useState<string | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const iframeId = useRef(
     `iframe-${Math.random().toString(36).substring(2, 9)}`
@@ -173,6 +174,15 @@ export default function HtmlPreview({
     // Force reinitialization of canvas and scripts when fullscreen state changes
     setRefreshKey(Date.now());
   }, [isFullScreen, isSplitView]);
+
+  // Capture the original height when toggling fullscreen
+  useEffect(() => {
+    if (isFullScreen && previewRef.current && !originalHeight) {
+      // Store the current height of the element before going fullscreen
+      const height = `${previewRef.current.offsetHeight}px`;
+      setOriginalHeight(height);
+    }
+  }, [isFullScreen, originalHeight]);
 
   // Enhanced processedHtmlContent with timestamp to force fresh execution
   const processedHtmlContent = (() => {
@@ -309,11 +319,12 @@ export default function HtmlPreview({
         ref={previewRef}
         className={`rounded bg-white overflow-auto m-0 relative ${className}`}
         style={{
-          maxHeight: isFullScreen ? "0" : maxHeight,
+          maxHeight: isFullScreen ? (originalHeight || minHeight) : maxHeight,
           pointerEvents: isStreaming ? "none" : "auto",
           opacity: isFullScreen ? 0 : 1,
-          height: isFullScreen ? "0" : "auto",
+          height: isFullScreen ? (originalHeight || minHeight) : "auto",
           boxShadow: isFullScreen ? "none" : "0 0 0 1px rgba(0, 0, 0, 0.3)",
+          visibility: isFullScreen ? "hidden" : "visible",
         }}
         animate={{
           opacity: isStreaming ? [0.6, 0.8, 0.6] : isFullScreen ? 0 : 1,
