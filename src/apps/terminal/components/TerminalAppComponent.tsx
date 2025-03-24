@@ -1473,7 +1473,7 @@ assistant
                         item.path === "ai-thinking" ? "text-gray-400" : ""
                       } ${
                         item.path === "ai-assistant"
-                          ? "text-purple-300 italic"
+                          ? "text-purple-100 italic"
                           : ""
                       } ${item.path === "ai-error" ? "text-red-400" : ""} ${
                         item.path === "welcome-message" ? "text-gray-400" : ""
@@ -1491,7 +1491,7 @@ assistant
                         </div>
                       ) : item.path === "ai-assistant" ? (
                         <motion.div
-                          layout="position"
+                          layout="preserve-aspect"
                           className="select-text cursor-text"
                           transition={{
                             type: "spring",
