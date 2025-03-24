@@ -2434,9 +2434,6 @@ export function ChatsAppComponent({
         isForeground={isForeground}
         appId="chats"
         isShaking={isShaking}
-        windowConstraints={{
-          maxHeight: window.innerWidth <= 768 ? 360 : undefined,
-        }}
       >
         <div className="flex flex-col h-full bg-[#c0c0c0] p-2 w-full">
           <ChatMessages
