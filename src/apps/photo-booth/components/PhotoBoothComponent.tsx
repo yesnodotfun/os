@@ -677,7 +677,10 @@ export function PhotoBoothComponent({
                             className="w-full h-full"
                             sharedStream={mainStream}
                           />
-                          <div className="absolute bottom-0 left-0 right-0 text-center py-2 bg-black/50 text-white text-[16px]">
+                          <div 
+                            className="absolute bottom-0 left-0 right-0 text-center py-1.5 text-white font-geneva-12 text-[12px]" 
+                            style={{ textShadow: "0px 0px 2px black, 0px 0px 2px black, 0px 0px 2px black" }}
+                          >
                             {effect.name}
                           </div>
                         </motion.div>
@@ -794,7 +797,7 @@ export function PhotoBoothComponent({
               </AnimatePresence>
 
               <button
-                className="h-10 w-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white relative overflow-hidden"
+                className={`h-10 w-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white relative overflow-hidden ${photos.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
                 onClick={togglePhotoStrip}
                 disabled={photos.length === 0}
               >
