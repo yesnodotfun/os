@@ -488,7 +488,7 @@ export default function HtmlPreview({
                       aria-label="Toggle split view"
                     >
                       <span className="text-white/70 group-hover:text-white">
-                        {isSplitView ? "Full" : "Split"}
+                        {isSplitView ? "Split" : "Full"}
                       </span>
                     </button>
                   )}
@@ -504,7 +504,7 @@ export default function HtmlPreview({
                       }
                     }}
                     className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full mr-2 group"
-                    aria-label="Toggle code view"
+                    aria-label="Toggle code"
                   >
                     <Code
                       size={20}
