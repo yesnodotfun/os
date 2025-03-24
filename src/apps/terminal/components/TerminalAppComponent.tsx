@@ -127,6 +127,7 @@ function TerminalHtmlPreview({
       playElevatorMusic={playElevatorMusic}
       stopElevatorMusic={stopElevatorMusic}
       playDingSound={playDingSound}
+      className="select-text"
     />
   );
 }
@@ -201,7 +202,7 @@ function TypewriterText({
   }, [text, speed]);
 
   return (
-    <span className={className}>
+    <span className={`select-text cursor-text ${className || ""}`}>
       {displayedText}
       {!isComplete && (
         <motion.span
@@ -1384,7 +1385,7 @@ Available commands:
         transparentBackground={true}
       >
         <motion.div
-          className="flex flex-col h-full w-full bg-black/80 backdrop-blur-lg text-white antialiased font-mono p-2 overflow-hidden"
+          className="flex flex-col h-full w-full bg-black/80 backdrop-blur-lg text-white antialiased font-mono p-2 overflow-hidden select-text"
           style={{
             fontSize: `${fontSize}px`,
             fontFamily:
@@ -1402,12 +1403,15 @@ Available commands:
         >
           <div
             ref={terminalRef}
-            className="flex-1 overflow-auto whitespace-pre-wrap"
+            className="flex-1 overflow-auto whitespace-pre-wrap select-text cursor-text"
             onClick={(e) => {
-              e.stopPropagation();
-              inputRef.current?.focus();
-              if (!isForeground) {
-                bringToForeground("terminal");
+              // Only focus input if this isn't a text selection
+              if (window.getSelection()?.toString() === '') {
+                e.stopPropagation();
+                inputRef.current?.focus();
+                if (!isForeground) {
+                  bringToForeground("terminal");
+                }
               }
             }}
             onScroll={handleScroll}
@@ -1416,7 +1420,7 @@ Available commands:
               {commandHistory.map((item, index) => (
                 <motion.div
                   key={index}
-                  className="mb-1"
+                  className="mb-1 select-text cursor-text"
                   variants={lineVariants}
                   initial="initial"
                   animate={
@@ -1444,20 +1448,20 @@ Available commands:
                   }}
                 >
                   {item.command && (
-                    <div className="flex">
+                    <div className="flex select-text">
                       {item.path === "ai-user" ? (
-                        <span className="text-purple-400 mr-1">→ ryo</span>
+                        <span className="text-purple-400 mr-1 select-text cursor-text">→ ryo</span>
                       ) : (
-                        <span className="text-green-400 mr-1">
+                        <span className="text-green-400 mr-1 select-text cursor-text">
                           ➜ {item.path === "/" ? "/" : item.path}
                         </span>
                       )}
-                      <span>{item.command}</span>
+                      <span className="select-text cursor-text">{item.command}</span>
                     </div>
                   )}
                   {item.output && (
                     <div
-                      className={`ml-0 ${
+                      className={`ml-0 select-text ${
                         item.path === "ai-thinking" ? "text-gray-400" : ""
                       } ${
                         item.path === "ai-assistant"
@@ -1478,6 +1482,7 @@ Available commands:
                       ) : item.path === "ai-assistant" ? (
                         <motion.div
                           layout="position"
+                          className="select-text cursor-text"
                           transition={{
                             type: "spring",
                             duration: 0.3,
@@ -1503,7 +1508,7 @@ Available commands:
                               <>
                                 {/* Show only non-HTML text content */}
                                 {textContent && (
-                                  <span className="text-purple-300">
+                                  <span className="text-purple-300 select-text cursor-text">
                                     {textContent}
                                   </span>
                                 )}
@@ -1546,19 +1551,19 @@ Available commands:
               ))}
             </AnimatePresence>
 
-            <div className="relative">
+            <div className="relative select-text">
               <form
                 onSubmit={handleCommandSubmit}
-                className="flex transition-all duration-200"
+                className="flex transition-all duration-200 select-text"
               >
                 {isInAiMode ? (
-                  <span className="text-purple-400 mr-1 whitespace-nowrap">
+                  <span className="text-purple-400 mr-1 whitespace-nowrap select-text cursor-text">
                     {isAiLoading
                       ? spinnerChars[spinnerIndex] + " ryo"
                       : "→ ryo"}
                   </span>
                 ) : (
-                  <span className="text-green-400 mr-1 whitespace-nowrap">
+                  <span className="text-green-400 mr-1 whitespace-nowrap select-text cursor-text">
                     ➜ {currentPath === "/" ? "/" : currentPath}
                   </span>
                 )}
