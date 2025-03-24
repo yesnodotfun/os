@@ -620,20 +620,24 @@ export function TerminalAppComponent({
       case "help":
         return {
           output: `
-Available commands:
-  help             - Show this help message
-  clear            - Clear the terminal
-  pwd              - Print working directory
-  ls               - List files in current directory
-  cd <directory>   - Change directory
-  cat <file>       - Display file contents
-  mkdir <name>     - Create a directory
-  touch <name>     - Create an empty file
-  rm <file>        - Delete a file (moves to trash)
-  edit <file>      - Open file in TextEdit
-  ryo <prompt>     - Start AI chat mode with optional initial prompt
-  history          - Show command history
-  about            - Display information about Terminal
+navigation & files
+  pwd              show current directory
+  ls               list directory contents  
+  cd <dir>         change directory
+  cat <file>       view file contents
+  touch <file>     create empty file
+  mkdir <dir>      create directory
+  rm <file>        move file to trash
+  edit <file>      open in text editor
+
+terminal
+  clear            clear screen
+  help             show this help
+  history          show command history
+  about            about terminal
+
+assistant
+  ryo <prompt>     chat with ryo
 `,
           isError: false,
         };
@@ -1200,7 +1204,7 @@ Available commands:
           {
             command: "",
             output:
-              "Chat history cleared. You're still in ryo chat mode. Type 'exit' to return to terminal.",
+              "Chat cleared. You're still chatting with Ryo. Type 'exit' to return to terminal.",
             path: "ai-assistant",
           },
         ]);
@@ -1612,7 +1616,7 @@ Available commands:
             name: "Terminal",
             version: "1.0",
             creator: {
-              name: "ryOS Developer",
+              name: "Ryo",
               url: "https://github.com/ryokun6/ryos",
             },
             github: "https://github.com/ryokun6/ryos",
