@@ -30,7 +30,12 @@ export function Desktop({
   wallpaperPath,
 }: DesktopProps) {
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
-  const { isVideoWallpaper, isVideoLoading, markVideoLoaded, checkVideoLoadState } = useWallpaper();
+  const {
+    isVideoWallpaper,
+    isVideoLoading,
+    markVideoLoaded,
+    checkVideoLoadState,
+  } = useWallpaper();
   const [currentWallpaper, setCurrentWallpaper] = useState(wallpaperPath);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -66,8 +71,11 @@ export function Desktop({
 
   const getWallpaperStyles = (path: string): DesktopStyles => {
     // Don't apply background styles for video wallpapers
-    if (path.endsWith(".mp4") || path.includes("video/") || 
-        (path.startsWith("https://") && /\.(mp4|webm|ogg)($|\?)/.test(path))) {
+    if (
+      path.endsWith(".mp4") ||
+      path.includes("video/") ||
+      (path.startsWith("https://") && /\.(mp4|webm|ogg)($|\?)/.test(path))
+    ) {
       return {};
     }
 
@@ -123,14 +131,7 @@ export function Desktop({
       {isVideoWallpaper && (
         <>
           {isVideoLoading && (
-            <div className="absolute inset-0 w-full h-full bg-gray-700/30 z-[-5]">
-              <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-50" 
-                style={{ 
-                  backgroundSize: '200% 100%',
-                  animation: 'shimmer 2.5s infinite ease-in-out'
-                }} 
-              />
-            </div>
+            <div className="absolute inset-0 w-full h-full bg-gray-700/30 z-[-5]" />
           )}
           <video
             ref={videoRef}
@@ -142,7 +143,10 @@ export function Desktop({
             playsInline
             onLoadedData={handleVideoLoaded}
             onCanPlayThrough={handleCanPlayThrough}
-            style={{ opacity: isVideoLoading ? 0 : 1, transition: 'opacity 0.5s ease-in-out' }}
+            style={{
+              opacity: isVideoLoading ? 0.6 : 1,
+              transition: "opacity 0.5s ease-in-out",
+            }}
           />
         </>
       )}

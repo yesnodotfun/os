@@ -149,6 +149,7 @@ export default function HtmlPreview({
   const [isFullScreen, setIsFullScreen] = useState(initialFullScreen);
   const [copySuccess, setCopySuccess] = useState(false);
   const [showCode, setShowCode] = useState(false);
+  const [isSplitView, setIsSplitView] = useState(false);
   const [highlightedCode, setHighlightedCode] = useState("");
   const previewRef = useRef<HTMLDivElement>(null);
   const iframeId = useRef(
@@ -445,10 +446,29 @@ export default function HtmlPreview({
                 }}
               >
                 <div className="absolute top-4 right-4 flex items-center bg-black/40 backdrop-blur-sm rounded-full px-2 py-1 z-10">
+                  {showCode && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsSplitView(!isSplitView);
+                      }}
+                      className="flex items-center justify-center px-2 h-8 hover:bg-white/10 rounded-full mr-2 group text-sm font-geneva-12"
+                      aria-label="Toggle split view"
+                    >
+                      <span className="text-white/70 group-hover:text-white">
+                        {isSplitView ? "Full" : "Split"}
+                      </span>
+                    </button>
+                  )}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      setShowCode(!showCode);
+                      if (showCode && !isSplitView) {
+                        setIsSplitView(true);
+                      } else {
+                        setShowCode(!showCode);
+                        setIsSplitView(false);
+                      }
                     }}
                     className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full mr-2 group"
                     aria-label="Toggle code view"
@@ -497,17 +517,26 @@ export default function HtmlPreview({
                   </button>
                 </div>
                 <AnimatePresence mode="wait">
-                  {showCode ? (
-                    <motion.div
-                      key="code"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="w-full h-full overflow-auto bg-[#24292e] p-4"
-                      dangerouslySetInnerHTML={{ __html: highlightedCode }}
-                    />
-                  ) : (
+                  <div
+                    className={`relative w-full h-full ${
+                      isSplitView ? "flex" : ""
+                    }`}
+                  >
+                    {showCode && (
+                      <motion.div
+                        key="code"
+                        className={`${
+                          isSplitView ? "w-1/2" : "absolute inset-0"
+                        } bg-[#24292e] overflow-auto p-4`}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ fontSize: "12px" }}
+                        dangerouslySetInnerHTML={{ __html: highlightedCode }}
+                      />
+                    )}
                     <motion.iframe
                       key="preview"
                       initial={{ opacity: 0 }}
@@ -517,12 +546,14 @@ export default function HtmlPreview({
                       id={`fullscreen-${iframeId}`}
                       srcDoc={processedHtmlContent}
                       title="HTML Preview Fullscreen"
-                      className="w-full h-full border-0 bg-white"
+                      className={`border-0 bg-white ${
+                        isSplitView ? "w-1/2" : "w-full h-full"
+                      }`}
                       sandbox="allow-scripts"
                       onClick={(e) => e.stopPropagation()}
                       onMouseDown={(e) => e.stopPropagation()}
                     />
-                  )}
+                  </div>
                 </AnimatePresence>
               </motion.div>
             </motion.div>
