@@ -140,41 +140,9 @@ export default function HtmlPreview({
       htmlContent.includes("<!DOCTYPE html>") ||
       htmlContent.includes("<html")
     ) {
-      // For complete HTML, inject the canvas ID script
-      const hasCanvas = htmlContent.includes("<canvas");
-      const scriptToInject = hasCanvas
-        ? `
-      <script>
-        document.addEventListener('DOMContentLoaded', () => {
-          const canvasElements = document.querySelectorAll('canvas');
-          const isFullscreen = window.name === 'fullscreen';
-          canvasElements.forEach((canvas, index) => {
-            const originalId = canvas.id || \`canvas-\${index}\`;
-            canvas.id = isFullscreen ? \`fullscreen-\${originalId}\` : originalId;
-          });
-        });
-      </script>`
-        : "";
-
-      // Insert the script before the closing </head> tag
-      return htmlContent.replace("</head>", `${scriptToInject}</head>`);
+      // For complete HTML, no need for any injection
+      return htmlContent;
     }
-
-    // Check if the content contains canvas elements
-    const hasCanvas = htmlContent.includes("<canvas");
-    const canvasScript = hasCanvas
-      ? `
-    <script>
-      document.addEventListener('DOMContentLoaded', () => {
-        const canvasElements = document.querySelectorAll('canvas');
-        const isFullscreen = window.name === 'fullscreen';
-        canvasElements.forEach((canvas, index) => {
-          const originalId = canvas.id || \`canvas-\${index}\`;
-          canvas.id = isFullscreen ? \`fullscreen-\${originalId}\` : originalId;
-        });
-      });
-    </script>`
-      : "";
 
     // Wrap with proper HTML tags
     return `<!DOCTYPE html>
@@ -197,7 +165,6 @@ export default function HtmlPreview({
       max-width: 100%;
     }
   </style>
-  ${canvasScript}
 </head>
 <body>
   ${htmlContent}
@@ -409,7 +376,6 @@ export default function HtmlPreview({
               </div>
               <motion.iframe
                 id={`fullscreen-${iframeId}`}
-                name="fullscreen"
                 srcDoc={processedHtmlContent}
                 title="HTML Preview Fullscreen"
                 className="w-full h-full border-0 bg-white"
