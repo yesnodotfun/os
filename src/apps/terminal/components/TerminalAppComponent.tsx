@@ -145,13 +145,14 @@ function HtmlPreview({
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
       box-sizing: border-box;
     }
-    body {
+    html, body {
       margin: 0;
-      padding: 8px;
       font-size: 12px;
-      line-height: 1.4;
+      line-height: 1.35;
       max-width: 100%;
       overflow-x: auto;
+      width: 100%;
+      height: 100%;
     }
   </style>
 </head>
