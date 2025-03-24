@@ -55,6 +55,7 @@ export const APP_STORAGE_KEYS = {
     CHAT_SYNTH_ENABLED: "control-panels:chat-synth-enabled",
     TYPING_SYNTH_ENABLED: "control-panels:typing-synth-enabled",
     SYNTH_PRESET: "control-panels:synth-preset",
+    HTML_PREVIEW_SPLIT: "control-panels:html-preview-split",
   },
   minesweeper: {
     WINDOW: "minesweeper:window",
@@ -1192,7 +1193,7 @@ export const loadLibrary = (): Track[] => {
       if (video.title.startsWith(video.artist + " - ")) {
         title = video.title.substring(video.artist.length + 3);
       }
-      
+
       return {
         id: video.id,
         url: video.url,
@@ -1200,20 +1201,20 @@ export const loadLibrary = (): Track[] => {
         artist: video.artist,
         album: "Shared Playlist",
       };
-    } 
+    }
     // Otherwise, extract artist and title from the title field
     else {
       // Extract artist and title parts
       const splitTitle = video.title.split(" - ");
       let artist = undefined;
       let title = video.title;
-      
+
       if (splitTitle.length > 1) {
         artist = splitTitle[0];
         // Join the rest of the parts in case there are multiple dashes
         title = splitTitle.slice(1).join(" - ");
       }
-      
+
       return {
         id: video.id,
         url: video.url,
@@ -1233,7 +1234,7 @@ export const saveLibrary = (library: Track[]): void => {
     if (track.artist) {
       fullTitle = `${track.artist} - ${track.title}`;
     }
-    
+
     return {
       id: track.id,
       url: track.url,
@@ -1296,7 +1297,9 @@ export const loadTerminalCommandHistory = (): TerminalCommand[] => {
   return saved ? JSON.parse(saved) : [];
 };
 
-export const saveTerminalCommandHistory = (commands: TerminalCommand[]): void => {
+export const saveTerminalCommandHistory = (
+  commands: TerminalCommand[]
+): void => {
   localStorage.setItem(
     APP_STORAGE_KEYS.terminal.COMMAND_HISTORY,
     JSON.stringify(commands.slice(-100)) // Keep only the last 100 commands
@@ -1319,4 +1322,19 @@ export const loadTerminalCurrentPath = (): string => {
 
 export const saveTerminalCurrentPath = (path: string): void => {
   localStorage.setItem(APP_STORAGE_KEYS.terminal.CURRENT_PATH, path);
+};
+
+// Add these new functions near the other control panel storage functions
+export const loadHtmlPreviewSplit = (): boolean => {
+  const saved = localStorage.getItem(
+    APP_STORAGE_KEYS["control-panels"].HTML_PREVIEW_SPLIT
+  );
+  return saved === null ? true : saved === "true"; // Default to true
+};
+
+export const saveHtmlPreviewSplit = (isSplit: boolean): void => {
+  localStorage.setItem(
+    APP_STORAGE_KEYS["control-panels"].HTML_PREVIEW_SPLIT,
+    isSplit.toString()
+  );
 };

@@ -3,6 +3,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Maximize, Minimize, Copy, Check, Save, Code } from "lucide-react";
 import { createPortal } from "react-dom";
 import * as shiki from "shiki";
+import {
+  loadHtmlPreviewSplit,
+  saveHtmlPreviewSplit,
+} from "../../utils/storage";
 
 // Create a singleton highlighter instance
 let highlighterPromise: Promise<shiki.Highlighter> | null = null;
@@ -149,13 +153,25 @@ export default function HtmlPreview({
   const [isFullScreen, setIsFullScreen] = useState(initialFullScreen);
   const [copySuccess, setCopySuccess] = useState(false);
   const [showCode, setShowCode] = useState(false);
-  const [isSplitView, setIsSplitView] = useState(false);
+  const [isSplitView, setIsSplitView] = useState(loadHtmlPreviewSplit());
   const [highlightedCode, setHighlightedCode] = useState("");
   const previewRef = useRef<HTMLDivElement>(null);
   const iframeId = useRef(
     `iframe-${Math.random().toString(36).substring(2, 9)}`
   ).current;
   const prevStreamingRef = useRef(isStreaming);
+
+  // Save split view state when it changes
+  useEffect(() => {
+    saveHtmlPreviewSplit(isSplitView);
+  }, [isSplitView]);
+
+  // Update showCode to true when entering fullscreen if split view is enabled
+  useEffect(() => {
+    if (isFullScreen && isSplitView) {
+      setShowCode(true);
+    }
+  }, [isFullScreen, isSplitView]);
 
   // Add font stack and base styling to HTML content
   const processedHtmlContent = (() => {
@@ -463,10 +479,11 @@ export default function HtmlPreview({
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (showCode && !isSplitView) {
+                      if (!showCode) {
+                        setShowCode(true);
                         setIsSplitView(true);
                       } else {
-                        setShowCode(!showCode);
+                        setShowCode(false);
                         setIsSplitView(false);
                       }
                     }}
@@ -519,14 +536,16 @@ export default function HtmlPreview({
                 <AnimatePresence mode="wait">
                   <div
                     className={`relative w-full h-full ${
-                      isSplitView ? "flex" : ""
+                      isSplitView ? "flex flex-col md:flex-row" : ""
                     }`}
                   >
                     {showCode && (
                       <motion.div
                         key="code"
                         className={`${
-                          isSplitView ? "w-1/2" : "absolute inset-0"
+                          isSplitView
+                            ? "h-1/2 md:h-auto md:w-1/2"
+                            : "absolute inset-0"
                         } bg-[#24292e] overflow-auto p-4`}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -547,7 +566,9 @@ export default function HtmlPreview({
                       srcDoc={processedHtmlContent}
                       title="HTML Preview Fullscreen"
                       className={`border-0 bg-white ${
-                        isSplitView ? "w-1/2" : "w-full h-full"
+                        isSplitView
+                          ? "h-1/2 md:h-auto md:w-1/2"
+                          : "w-full h-full"
                       }`}
                       sandbox="allow-scripts"
                       onClick={(e) => e.stopPropagation()}
