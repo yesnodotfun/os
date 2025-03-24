@@ -18,7 +18,7 @@ import { Plus } from "lucide-react";
 
 // Import constants from useFileSystem
 const DB_NAME = "ryOS";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const CUSTOM_WALLPAPERS_STORE = "custom_wallpapers";
 
 interface WallpaperItemProps {
@@ -365,8 +365,17 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
             const wallpapers = request.result;
             if (wallpapers && wallpapers.length > 0) {
               setCustomWallpapers(wallpapers.map((wp) => wp.content));
+              console.log("Loaded custom wallpapers:", wallpapers.length);
+            } else {
+              console.log("No custom wallpapers found in IndexedDB");
             }
           };
+          
+          request.onerror = (err) => {
+            console.error("Error fetching wallpapers:", err);
+          };
+        } else {
+          console.log("Custom wallpapers store doesn't exist");
         }
       } catch (error) {
         console.error("Error loading custom wallpapers:", error);
@@ -407,13 +416,16 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
         reader.readAsDataURL(file);
       });
 
-      // Save to IndexedDB - always use version 2
+      // Always use version 3 for consistency
       const db = await new Promise<IDBDatabase>((resolve, reject) => {
         const request = indexedDB.open(DB_NAME, DB_VERSION);
-        request.onerror = () => reject(request.error);
+        request.onerror = () => {
+          console.error("IndexedDB open error:", request.error);
+          reject(request.error);
+        };
         request.onsuccess = () => resolve(request.result);
 
-        // This is crucial - we need to create the store during an upgrade
+        // Create store if needed during upgrade
         request.onupgradeneeded = (event) => {
           const db = (event.target as IDBOpenDBRequest).result;
           if (!db.objectStoreNames.contains(CUSTOM_WALLPAPERS_STORE)) {
@@ -423,62 +435,7 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
       });
 
       // Check if the store exists
-      if (!db.objectStoreNames.contains(CUSTOM_WALLPAPERS_STORE)) {
-        // If it doesn't exist, we need to close the database and reopen it with a higher version
-        db.close();
-        const upgradeRequest = indexedDB.open(DB_NAME, 3);
-
-        upgradeRequest.onupgradeneeded = (event) => {
-          const upgradedDb = (event.target as IDBOpenDBRequest).result;
-          if (!upgradedDb.objectStoreNames.contains(CUSTOM_WALLPAPERS_STORE)) {
-            upgradedDb.createObjectStore(CUSTOM_WALLPAPERS_STORE, {
-              keyPath: "name",
-            });
-          }
-        };
-
-        await new Promise<void>((resolve, reject) => {
-          upgradeRequest.onsuccess = () => {
-            resolve();
-          };
-          upgradeRequest.onerror = () => reject(upgradeRequest.error);
-        });
-
-        // Now reopen the database with the new version
-        db.close();
-        const reopenRequest = indexedDB.open(DB_NAME, 3);
-        const reopenedDb = await new Promise<IDBDatabase>((resolve, reject) => {
-          reopenRequest.onsuccess = () => resolve(reopenRequest.result);
-          reopenRequest.onerror = () => reject(reopenRequest.error);
-        });
-
-        const transaction = reopenedDb.transaction(
-          CUSTOM_WALLPAPERS_STORE,
-          "readwrite"
-        );
-        const store = transaction.objectStore(CUSTOM_WALLPAPERS_STORE);
-        const wallpaper = {
-          name: `custom_${Date.now()}_${file.name}`,
-          content: dataUrl,
-          type: file.type,
-        };
-
-        const request = store.put(wallpaper);
-
-        request.onsuccess = () => {
-          // Update state with new wallpaper
-          setCustomWallpapers((prev) => [...prev, dataUrl]);
-          // Automatically select the new wallpaper
-          setWallpaper(dataUrl);
-          setSelectedCategory("custom");
-          playClick();
-        };
-
-        request.onerror = () => {
-          console.error("Error saving custom wallpaper:", request.error);
-        };
-      } else {
-        // If the store exists, proceed normally
+      if (db.objectStoreNames.contains(CUSTOM_WALLPAPERS_STORE)) {
         const transaction = db.transaction(
           CUSTOM_WALLPAPERS_STORE,
           "readwrite"
@@ -493,6 +450,7 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
         const request = store.put(wallpaper);
 
         request.onsuccess = () => {
+          console.log("Custom wallpaper saved successfully");
           // Update state with new wallpaper
           setCustomWallpapers((prev) => [...prev, dataUrl]);
           // Automatically select the new wallpaper
@@ -503,10 +461,15 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
 
         request.onerror = () => {
           console.error("Error saving custom wallpaper:", request.error);
+          alert("Failed to save wallpaper. Storage might be full.");
         };
+      } else {
+        console.error("Custom wallpapers store doesn't exist after checking");
+        alert("Failed to access storage for custom wallpapers");
       }
     } catch (error) {
       console.error("Error processing file:", error);
+      alert("Error processing file. Please try again with a smaller file.");
     }
 
     // Reset the file input
