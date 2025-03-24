@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { CameraOff } from "lucide-react";
 
 interface WebcamProps {
   onPhoto?: (photoDataUrl: string) => void;
@@ -115,14 +116,8 @@ export function Webcam({
   return (
     <div className={`relative ${className}`}>
       {error ? (
-        <div className="text-red-500 p-4 text-center">
-          {error}
-          <button 
-            onClick={startCamera}
-            className="ml-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-          >
-            Retry
-          </button>
+        <div className="w-full h-full flex items-center justify-center" onClick={startCamera}>
+          <CameraOff size={48} className="text-white/30 cursor-pointer" />
         </div>
       ) : (
         <video
