@@ -169,10 +169,7 @@ export default function HtmlPreview({
 
   // Update showCode to true when entering fullscreen if split view is enabled
   useEffect(() => {
-    if (isFullScreen && isSplitView) {
-      setShowCode(true);
-    }
-
+    // Remove the automatic code view showing when entering fullscreen
     // Force reinitialization of canvas and scripts when fullscreen state changes
     setRefreshKey(Date.now());
   }, [isFullScreen, isSplitView]);
@@ -544,7 +541,7 @@ export default function HtmlPreview({
                 <AnimatePresence mode="wait">
                   <div
                     className={`relative w-full h-full ${
-                      isSplitView ? "flex flex-col md:flex-row" : ""
+                      isSplitView && showCode ? "flex flex-col md:flex-row" : ""
                     }`}
                   >
                     {showCode && (
@@ -554,7 +551,7 @@ export default function HtmlPreview({
                           isSplitView
                             ? "h-1/2 md:h-auto md:w-1/2"
                             : "absolute inset-0"
-                        } bg-[#24292e] overflow-auto p-4`}
+                        } bg-[#24292e] font-geneva-12 overflow-auto p-4`}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
@@ -574,7 +571,7 @@ export default function HtmlPreview({
                       srcDoc={processedHtmlContent}
                       title="HTML Preview Fullscreen"
                       className={`border-0 bg-white ${
-                        isSplitView
+                        showCode && isSplitView
                           ? "h-1/2 md:h-auto md:w-1/2"
                           : "w-full h-full"
                       }`}
