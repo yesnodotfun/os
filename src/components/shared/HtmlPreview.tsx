@@ -285,7 +285,7 @@ export default function HtmlPreview({
     <>
       <motion.div
         ref={previewRef}
-        className={`rounded bg-white/100 border border-black/15 overflow-auto m-0 relative ${className}`}
+        className={`rounded bg-white/100 border border-black/25 overflow-auto m-0 relative ${className}`}
         style={{
           maxHeight: isFullScreen ? "0" : maxHeight,
           pointerEvents: isStreaming ? "none" : "auto",
@@ -406,11 +406,11 @@ export default function HtmlPreview({
         <AnimatePresence mode="wait">
           {isFullScreen && (
             <motion.div
-              className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex flex-col"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
+              className="fixed inset-0 bg-black/80 z-[9999] flex flex-col"
+              initial={{ opacity: 0, y: 50 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 50 }}
+              transition={{ duration: 0.4 }}
               onClick={() => setIsFullScreen(false)}
             >
               <div className="absolute top-4 right-4 flex items-center bg-black/40 backdrop-blur-sm rounded-full px-2 py-1 z-10">
