@@ -310,9 +310,9 @@ export function ChatMessages({
                 }
                 className={`${
                   isHtmlCodeBlock(message.content).isHtml
-                    ? "w-full"
-                    : "w-fit max-w-[90%]"
-                } min-h-[12px] p-1.5 px-2 rounded leading-snug text-[12px] font-geneva-12 break-words select-text ${
+                    ? "w-full p-0 m-0"
+                    : "w-fit max-w-[90%] p-1.5 px-2"
+                } min-h-[12px] rounded leading-snug text-[12px] font-geneva-12 break-words select-text ${
                   message.role === "user"
                     ? "bg-yellow-200 text-black"
                     : "bg-blue-200 text-black"
@@ -417,7 +417,6 @@ export function ChatMessages({
                                 isLoading &&
                                 message === messages[messages.length - 1]
                               }
-                              className="mt-2"
                               playElevatorMusic={playElevatorMusic}
                               stopElevatorMusic={stopElevatorMusic}
                               playDingSound={playDingSound}
@@ -456,7 +455,6 @@ export function ChatMessages({
                       <HtmlPreview
                         htmlContent={isHtmlCodeBlock(message.content).content}
                         onInteractionChange={setIsInteractingWithPreview}
-                        className="mt-2"
                         playElevatorMusic={playElevatorMusic}
                         stopElevatorMusic={stopElevatorMusic}
                         playDingSound={playDingSound}
