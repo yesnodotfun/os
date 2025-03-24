@@ -1,7 +1,21 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Maximize, Minimize, Copy, Check, Save } from "lucide-react";
+import { Maximize, Minimize, Copy, Check, Save, Code } from "lucide-react";
 import { createPortal } from "react-dom";
+import * as shiki from "shiki";
+
+// Create a singleton highlighter instance
+let highlighterPromise: Promise<shiki.Highlighter> | null = null;
+
+const getHighlighterInstance = () => {
+  if (!highlighterPromise) {
+    highlighterPromise = shiki.createHighlighter({
+      themes: ["github-dark"],
+      langs: ["html"],
+    });
+  }
+  return highlighterPromise;
+};
 
 // Check if a string is a HTML code block
 export const isHtmlCodeBlock = (
@@ -134,35 +148,13 @@ export default function HtmlPreview({
 }: HtmlPreviewProps) {
   const [isFullScreen, setIsFullScreen] = useState(initialFullScreen);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [showCode, setShowCode] = useState(false);
+  const [highlightedCode, setHighlightedCode] = useState("");
   const previewRef = useRef<HTMLDivElement>(null);
   const iframeId = useRef(
     `iframe-${Math.random().toString(36).substring(2, 9)}`
   ).current;
   const prevStreamingRef = useRef(isStreaming);
-
-  // Play elevator music when streaming starts, stop when streaming ends
-  useEffect(() => {
-    if (isStreaming && playElevatorMusic) {
-      playElevatorMusic();
-    } else if (prevStreamingRef.current && !isStreaming) {
-      // If we were streaming but now we're not, stop music and play ding
-      if (stopElevatorMusic) {
-        stopElevatorMusic();
-      }
-      if (playDingSound) {
-        playDingSound();
-      }
-    }
-
-    prevStreamingRef.current = isStreaming;
-
-    // Clean up on unmount
-    return () => {
-      if (stopElevatorMusic) {
-        stopElevatorMusic();
-      }
-    };
-  }, [isStreaming, playElevatorMusic, stopElevatorMusic, playDingSound]);
 
   // Add font stack and base styling to HTML content
   const processedHtmlContent = (() => {
@@ -202,6 +194,58 @@ export default function HtmlPreview({
 </body>
 </html>`;
   })();
+
+  // Initialize syntax highlighting with cached highlighter
+  useEffect(() => {
+    let isMounted = true;
+
+    const highlight = async () => {
+      try {
+        const highlighter = await getHighlighterInstance();
+        if (isMounted) {
+          const highlighted = highlighter.codeToHtml(processedHtmlContent, {
+            lang: "html",
+            theme: "github-dark",
+          });
+          setHighlightedCode(highlighted);
+        }
+      } catch (error) {
+        console.error("Failed to highlight code:", error);
+      }
+    };
+
+    if (showCode) {
+      highlight();
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [processedHtmlContent, showCode]);
+
+  // Play elevator music when streaming starts, stop when streaming ends
+  useEffect(() => {
+    if (isStreaming && playElevatorMusic) {
+      playElevatorMusic();
+    } else if (prevStreamingRef.current && !isStreaming) {
+      // If we were streaming but now we're not, stop music and play ding
+      if (stopElevatorMusic) {
+        stopElevatorMusic();
+      }
+      if (playDingSound) {
+        playDingSound();
+      }
+    }
+
+    prevStreamingRef.current = isStreaming;
+
+    // Clean up on unmount
+    return () => {
+      if (stopElevatorMusic) {
+        stopElevatorMusic();
+      }
+    };
+  }, [isStreaming, playElevatorMusic, stopElevatorMusic, playDingSound]);
 
   const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -330,6 +374,7 @@ export default function HtmlPreview({
           </button>
         </motion.div>
         <motion.iframe
+          key="preview"
           id={iframeId}
           srcDoc={processedHtmlContent}
           title="HTML Preview"
@@ -366,10 +411,23 @@ export default function HtmlPreview({
               exit={{ opacity: 0 }}
               onClick={() => setIsFullScreen(false)}
             >
-              <div className="absolute top-4 right-4 flex items-center bg-black/40 backdrop-blur-sm rounded-md px-2 py-1 z-10">
+              <div className="absolute top-4 right-4 flex items-center bg-black/40 backdrop-blur-sm rounded-full px-2 py-1 z-10">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowCode(!showCode);
+                  }}
+                  className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full mr-2 group"
+                  aria-label="Toggle code view"
+                >
+                  <Code
+                    size={20}
+                    className="text-white/70 group-hover:text-white"
+                  />
+                </button>
                 <button
                   onClick={handleSaveToDisk}
-                  className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded mr-2 group"
+                  className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full mr-2 group"
                   aria-label="Save HTML to disk"
                 >
                   <Save
@@ -379,7 +437,7 @@ export default function HtmlPreview({
                 </button>
                 <button
                   onClick={handleCopy}
-                  className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded mr-2 group"
+                  className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full mr-2 group"
                   aria-label="Copy HTML code"
                 >
                   {copySuccess ? (
@@ -396,7 +454,7 @@ export default function HtmlPreview({
                 </button>
                 <button
                   onClick={() => setIsFullScreen(false)}
-                  className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded group"
+                  className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full group"
                   aria-label="Exit fullscreen"
                 >
                   <Minimize
@@ -405,15 +463,30 @@ export default function HtmlPreview({
                   />
                 </button>
               </div>
-              <motion.iframe
-                id={`fullscreen-${iframeId}`}
-                srcDoc={processedHtmlContent}
-                title="HTML Preview Fullscreen"
-                className="w-full h-full border-0 bg-white"
-                sandbox="allow-scripts"
-                onClick={(e) => e.stopPropagation()}
-                onMouseDown={(e) => e.stopPropagation()}
-              />
+              <AnimatePresence mode="wait">
+                {showCode ? (
+                  <motion.div
+                    key="code"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="w-full h-full overflow-auto bg-[#24292e] p-4"
+                    dangerouslySetInnerHTML={{ __html: highlightedCode }}
+                  />
+                ) : (
+                  <motion.iframe
+                    key="preview"
+                    id={`fullscreen-${iframeId}`}
+                    srcDoc={processedHtmlContent}
+                    title="HTML Preview Fullscreen"
+                    className="w-full h-full border-0 bg-white"
+                    sandbox="allow-scripts"
+                    onClick={(e) => e.stopPropagation()}
+                    onMouseDown={(e) => e.stopPropagation()}
+                  />
+                )}
+              </AnimatePresence>
             </motion.div>
           </AnimatePresence>,
           document.body
