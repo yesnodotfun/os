@@ -398,7 +398,7 @@ export default async function handler(req: Request) {
       system: generateSystemPrompt(textEditContext, systemState),
       messages,
       temperature: 0.7,
-      maxTokens: 5000,
+      maxTokens: 8000,
       experimental_transform: smoothStream(),
     });
 
