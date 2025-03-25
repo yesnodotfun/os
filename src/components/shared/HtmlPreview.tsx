@@ -438,7 +438,7 @@ export default function HtmlPreview({
 
   const handleSaveToDisk = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const blob = new Blob([htmlContent], { type: "text/html" });
+    const blob = new Blob([processedHtmlContent], { type: "text/html" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     const timestamp = new Date()
