@@ -2182,7 +2182,7 @@ assistant
     }
 
     // Track AI command
-    track(TERMINAL_ANALYTICS.AI_COMMAND);
+    track(TERMINAL_ANALYTICS.AI_COMMAND, { prompt: command });
 
     // Add user command to chat history with special AI mode formatting
     // Remove any existing thinking messages

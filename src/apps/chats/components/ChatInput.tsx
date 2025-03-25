@@ -195,7 +195,9 @@ export function ChatInput({
     <form
       onSubmit={(e) => {
         if (input.trim() !== "") {
-          track(CHAT_ANALYTICS.TEXT_MESSAGE);
+          track(CHAT_ANALYTICS.TEXT_MESSAGE, {
+            message: input,
+          });
         }
         onSubmit(e);
       }}
