@@ -125,7 +125,7 @@ export const extractHtmlContent = (
   };
 };
 
-// Component to render HTML previews
+// Component to render ryOS Code Previews
 interface HtmlPreviewProps {
   htmlContent: string;
   onInteractionChange?: (isInteracting: boolean) => void;
@@ -411,7 +411,7 @@ export default function HtmlPreview({
       .replace(/[:.]/g, "-")
       .substring(0, 19);
     a.href = url;
-    a.download = `html-output-${timestamp}.html`;
+    a.download = `ryOS-generated-${timestamp}.html`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -525,7 +525,7 @@ export default function HtmlPreview({
           ref={iframeRef}
           id={iframeId}
           srcDoc={processedHtmlContent}
-          title="HTML Preview"
+          title="ryOS Code Preview"
           className="w-full h-full border-0"
           sandbox="allow-scripts"
           style={{
@@ -645,7 +645,7 @@ export default function HtmlPreview({
                       ref={fullscreenIframeRef}
                       id={`fullscreen-${iframeId}`}
                       srcDoc={processedHtmlContent}
-                      title="HTML Preview Fullscreen"
+                      title="ryOS Code Preview Fullscreen"
                       className="border-0 bg-white w-full h-full"
                       sandbox="allow-scripts"
                       onClick={(e) => e.stopPropagation()}
