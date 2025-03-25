@@ -104,6 +104,14 @@ const cleanAppControlMarkup = (message: string): string => {
   return message.trim();
 };
 
+// Helper function to check if a message is urgent (starts with "!!!!")
+const isUrgentMessage = (content: string): boolean => content.startsWith("!!!!");
+
+// Function to clean urgent message prefix
+const cleanUrgentPrefix = (content: string): string => {
+  return isUrgentMessage(content) ? content.slice(4).trimStart() : content;
+};
+
 // Component to render HTML previews
 interface HtmlPreviewProps {
   htmlContent: string;
@@ -1022,6 +1030,20 @@ assistant
     [launchApp, toggleApp]
   );
 
+  // Process message content: handle app controls and urgent prefixes
+  const processMessageContent = useCallback(
+    (messageContent: string) => {
+      // First handle app controls
+      const processedContent = handleAppControls(messageContent);
+      
+      // The urgent prefix processing is separate from app controls
+      // We don't clean it here as we want to preserve it for styling in the UI
+      
+      return processedContent;
+    },
+    [handleAppControls]
+  );
+
   // Reset launched apps when leaving AI mode
   useEffect(() => {
     if (!isInAiMode) {
@@ -1054,7 +1076,7 @@ assistant
 
     // Process the message and handle app controls
     const messageContent = lastMessage.content;
-    const cleanedContent = handleAppControls(messageContent);
+    const cleanedContent = processMessageContent(messageContent);
 
     // If we're clearing the terminal, don't update messages
     if (isClearingTerminal) return;
@@ -1110,7 +1132,7 @@ assistant
     aiMessages,
     isInAiMode,
     isClearingTerminal,
-    handleAppControls,
+    processMessageContent,
     playAiResponseSoundMemoized,
   ]);
 
@@ -1479,6 +1501,11 @@ assistant
                       } ${item.path === "ai-error" ? "text-red-400" : ""} ${
                         item.path === "welcome-message" ? "text-gray-400" : ""
                       } ${
+                        // Add urgent message styling
+                        isUrgentMessage(item.output)
+                          ? "text-red-500 font-bold"
+                          : ""
+                      } ${
                         // Add system message styling
                         item.output.startsWith("Ask Ryo anything") ||
                         item.output.startsWith("Usage:") ||
@@ -1519,6 +1546,11 @@ assistant
                             // Process the message to extract HTML and text parts
                             const { htmlContent, textContent, hasHtml } =
                               extractHtmlContent(item.output);
+                              
+                            // Check if this is an urgent message
+                            const urgent = isUrgentMessage(item.output);
+                            // Clean content by removing !!!! prefix if urgent
+                            const cleanedTextContent = urgent ? cleanUrgentPrefix(textContent || "") : textContent;
 
                             // Only mark as streaming if this specific message is the one currently being updated
                             const isThisMessageStreaming =
@@ -1531,9 +1563,9 @@ assistant
                             return (
                               <>
                                 {/* Show only non-HTML text content */}
-                                {textContent && (
-                                  <span className="text-purple-300 select-text cursor-text">
-                                    {textContent}
+                                {cleanedTextContent && (
+                                  <span className={`select-text cursor-text ${urgent ? "text-red-300" : "text-purple-300"}`}>
+                                    {cleanedTextContent}
                                   </span>
                                 )}
 
@@ -1553,13 +1585,13 @@ assistant
                         </motion.div>
                       ) : animatedLines.has(index) ? (
                         <TypewriterText
-                          text={item.output}
+                          text={isUrgentMessage(item.output) ? cleanUrgentPrefix(item.output) : item.output}
                           speed={10}
                           className=""
                         />
                       ) : (
                         <>
-                          {item.output}
+                          {isUrgentMessage(item.output) ? cleanUrgentPrefix(item.output) : item.output}
                           {isHtmlCodeBlock(item.output).isHtml && (
                             <TerminalHtmlPreview
                               htmlContent={isHtmlCodeBlock(item.output).content}
