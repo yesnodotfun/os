@@ -357,7 +357,7 @@ export function TerminalAppComponent({
   const [vimPosition, setVimPosition] = useState(0); // Current position for pagination
   const [vimCursorLine, setVimCursorLine] = useState(0); // Current cursor line position
   const [vimCursorColumn, setVimCursorColumn] = useState(0); // Current cursor column position
-  const [vimMode, setVimMode] = useState<"normal" | "command">("normal"); // Vim mode (normal or command)
+  const [vimMode, setVimMode] = useState<"normal" | "command" | "insert">("normal"); // Vim mode
   const [spinnerIndex, setSpinnerIndex] = useState(0);
   const [isInteractingWithPreview, setIsInteractingWithPreview] =
     useState(false);
@@ -588,7 +588,269 @@ export function TerminalAppComponent({
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (isInVimMode) {
-      // Special handling for vim mode
+      // Insert mode handling
+      if (vimMode === "insert") {
+        if (e.key === 'Escape') {
+          // Exit insert mode
+          e.preventDefault();
+          setVimMode("normal");
+          return;
+        }
+        
+        // Handle backspace in insert mode
+        if (e.key === 'Backspace') {
+          e.preventDefault();
+          
+          if (!vimFile) return;
+          
+          const lines = vimFile.content.split("\n");
+          
+          // Check if we are at the beginning of a line and not on the first line
+          if (vimCursorColumn === 0 && vimCursorLine > 0) {
+            // We need to merge with the previous line
+            const previousLine = lines[vimCursorLine - 1];
+            const currentLine = lines[vimCursorLine];
+            const previousLineLength = previousLine.length;
+            
+            // Merge the lines
+            lines[vimCursorLine - 1] = previousLine + currentLine;
+            
+            // Remove the current line
+            lines.splice(vimCursorLine, 1);
+            
+            // Update file content
+            setVimFile({
+              ...vimFile,
+              content: lines.join("\n")
+            });
+            
+            // Move cursor to the end of the previous line
+            setVimCursorLine(prev => prev - 1);
+            setVimCursorColumn(previousLineLength);
+            
+            // Auto-scroll if needed
+            const maxVisibleLines = 20;
+            const lowerThreshold = Math.floor(maxVisibleLines * 0.4);
+            
+            if ((vimCursorLine - 1) - vimPosition < lowerThreshold && vimPosition > 0) {
+              setVimPosition(prev => Math.max(prev - 1, 0));
+            }
+            
+            return;
+          }
+          
+          // Regular backspace in the middle of a line
+          if (vimCursorColumn > 0) {
+            const currentLine = lines[vimCursorLine] || "";
+            
+            // Remove character before cursor
+            const newLine = currentLine.substring(0, vimCursorColumn - 1) + currentLine.substring(vimCursorColumn);
+            lines[vimCursorLine] = newLine;
+            
+            // Update file content
+            setVimFile({
+              ...vimFile,
+              content: lines.join("\n")
+            });
+            
+            // Move cursor backward
+            setVimCursorColumn(prev => Math.max(0, prev - 1));
+          }
+          
+          return;
+        }
+        
+        // Handle Enter key in insert mode to create a new line
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          
+          if (!vimFile) return;
+          
+          const lines = vimFile.content.split("\n");
+          const currentLine = lines[vimCursorLine] || "";
+          
+          // Split the line at cursor position
+          const beforeCursor = currentLine.substring(0, vimCursorColumn);
+          const afterCursor = currentLine.substring(vimCursorColumn);
+          
+          // Update the current line and add a new line
+          lines[vimCursorLine] = beforeCursor;
+          lines.splice(vimCursorLine + 1, 0, afterCursor);
+          
+          // Update file content
+          setVimFile({
+            ...vimFile,
+            content: lines.join("\n")
+          });
+          
+          // Move cursor to the beginning of the new line
+          setVimCursorLine(prev => prev + 1);
+          setVimCursorColumn(0);
+          
+          // Auto-scroll if the cursor moves out of view
+          const maxVisibleLines = 20;
+          const upperThreshold = Math.floor(maxVisibleLines * 0.6);
+          const maxPosition = Math.max(0, lines.length - maxVisibleLines);
+          
+          if ((vimCursorLine + 1) - vimPosition > upperThreshold && vimPosition < maxPosition) {
+            setVimPosition(prev => Math.min(prev + 1, maxPosition));
+          }
+          
+          return;
+        }
+        
+        // Handle Tab key in insert mode
+        if (e.key === 'Tab') {
+          e.preventDefault();
+          
+          if (!vimFile) return;
+          
+          const lines = vimFile.content.split("\n");
+          const currentLine = lines[vimCursorLine] || "";
+          
+          // Insert 2 spaces (standard tab size)
+          const newLine = currentLine.substring(0, vimCursorColumn) + "  " + currentLine.substring(vimCursorColumn);
+          lines[vimCursorLine] = newLine;
+          
+          // Update file content
+          setVimFile({
+            ...vimFile,
+            content: lines.join("\n")
+          });
+          
+          // Move cursor after the tab
+          setVimCursorColumn(prev => prev + 2);
+          
+          return;
+        }
+
+        // Handle Delete key in insert mode
+        if (e.key === 'Delete') {
+          e.preventDefault();
+          
+          if (!vimFile) return;
+          
+          const lines = vimFile.content.split("\n");
+          const currentLine = lines[vimCursorLine] || "";
+          
+          // Check if we are at the end of a line and not on the last line
+          if (vimCursorColumn === currentLine.length && vimCursorLine < lines.length - 1) {
+            // We need to merge with the next line
+            const nextLine = lines[vimCursorLine + 1];
+            
+            // Merge the lines
+            lines[vimCursorLine] = currentLine + nextLine;
+            
+            // Remove the next line
+            lines.splice(vimCursorLine + 1, 1);
+            
+            // Update file content
+            setVimFile({
+              ...vimFile,
+              content: lines.join("\n")
+            });
+            
+            return;
+          }
+          
+          // Regular delete in the middle of a line
+          if (vimCursorColumn < currentLine.length) {
+            // Remove character after cursor
+            const newLine = currentLine.substring(0, vimCursorColumn) + currentLine.substring(vimCursorColumn + 1);
+            lines[vimCursorLine] = newLine;
+            
+            // Update file content
+            setVimFile({
+              ...vimFile,
+              content: lines.join("\n")
+            });
+          }
+          
+          return;
+        }
+        
+        // Handle Home/End keys in insert mode
+        if (e.key === 'Home') {
+          e.preventDefault();
+          setVimCursorColumn(0);
+          return;
+        }
+        
+        if (e.key === 'End') {
+          e.preventDefault();
+          if (!vimFile) return;
+          
+          const lines = vimFile.content.split("\n");
+          const currentLine = lines[vimCursorLine] || "";
+          setVimCursorColumn(currentLine.length);
+          return;
+        }
+        
+        // Let most keys pass through to be handled by onChange in insert mode
+        // Only handle special navigation cases here
+        if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || 
+            e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+          e.preventDefault();
+          
+          if (!vimFile) return;
+          const lines = vimFile.content.split("\n");
+          
+          // Handle arrow navigation in insert mode
+          if (e.key === "ArrowDown" && vimCursorLine < lines.length - 1) {
+            // Move cursor down
+            const newCursorLine = vimCursorLine + 1;
+            setVimCursorLine(newCursorLine);
+            
+            // Adjust column position if needed
+            const newLineLength = lines[newCursorLine].length;
+            if (newLineLength < vimCursorColumn) {
+              setVimCursorColumn(Math.max(0, newLineLength));
+            }
+            
+            // Auto-scroll if needed
+            const maxVisibleLines = 20;
+            const upperThreshold = Math.floor(maxVisibleLines * 0.6);
+            const maxPosition = Math.max(0, lines.length - maxVisibleLines);
+            
+            if (newCursorLine - vimPosition > upperThreshold && vimPosition < maxPosition) {
+              setVimPosition(prev => Math.min(prev + 1, maxPosition));
+            }
+          } else if (e.key === "ArrowUp" && vimCursorLine > 0) {
+            // Move cursor up
+            const newCursorLine = vimCursorLine - 1;
+            setVimCursorLine(newCursorLine);
+            
+            // Adjust column position if needed
+            const newLineLength = lines[newCursorLine].length;
+            if (newLineLength < vimCursorColumn) {
+              setVimCursorColumn(Math.max(0, newLineLength));
+            }
+            
+            // Auto-scroll if needed
+            const maxVisibleLines = 20;
+            const lowerThreshold = Math.floor(maxVisibleLines * 0.4);
+            
+            if (newCursorLine - vimPosition < lowerThreshold && vimPosition > 0) {
+              setVimPosition(prev => Math.max(prev - 1, 0));
+            }
+          } else if (e.key === "ArrowLeft" && vimCursorColumn > 0) {
+            // Move cursor left
+            setVimCursorColumn(prev => prev - 1);
+          } else if (e.key === "ArrowRight") {
+            // Move cursor right, but don't go beyond the end of the line
+            const currentLineLength = lines[vimCursorLine]?.length || 0;
+            if (vimCursorColumn < currentLineLength) {
+              setVimCursorColumn(prev => prev + 1);
+            }
+          }
+          
+          return;
+        }
+        
+        return;
+      }
+      
+      // Normal mode handling
       if (e.key === 'j' || e.key === 'k' || e.key === 'ArrowUp' || e.key === 'ArrowDown' || 
           e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'h' || e.key === 'l') {
         e.preventDefault();
@@ -648,6 +910,11 @@ export function TerminalAppComponent({
           }
         }
         
+        return;
+      } else if (e.key === 'i') {
+        // Enter insert mode
+        e.preventDefault();
+        setVimMode("insert");
         return;
       } else if (e.key === ':') {
         // Switch to command mode without adding colon to the input
@@ -1622,6 +1889,34 @@ vim commands
     setCurrentCommand("");
   };
 
+  // Handle text input in vim insert mode
+  const handleVimTextInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!isInVimMode || !vimFile || vimMode !== "insert") return;
+    
+    const inputText = e.target.value;
+    const lastChar = inputText.slice(-1);
+    
+    // Process the character input by modifying the file content
+    const lines = vimFile.content.split("\n");
+    const currentLine = lines[vimCursorLine] || "";
+    
+    // Insert the character at cursor position
+    const newLine = currentLine.substring(0, vimCursorColumn) + lastChar + currentLine.substring(vimCursorColumn);
+    lines[vimCursorLine] = newLine;
+    
+    // Update file content
+    setVimFile({
+      ...vimFile,
+      content: lines.join("\n")
+    });
+    
+    // Move cursor forward
+    setVimCursorColumn(prev => prev + 1);
+    
+    // Clear the input field after processing
+    setCurrentCommand("");
+  };
+
   const increaseFontSize = () => {
     if (fontSize < 24) {
       setFontSize((prevSize) => prevSize + 2);
@@ -1795,8 +2090,8 @@ vim commands
           );
         })}
         <div className="vim-status-bar flex text-white text-xs mt-2">
-          <div className="bg-blue-600 px-2 py-1 font-bold">
-            {vimMode === "normal" ? "NORMAL" : "COMMAND"}
+          <div className={`px-2 py-1 font-bold ${vimMode === "insert" ? "bg-green-600" : "bg-blue-600"}`}>
+            {vimMode === "normal" ? "NORMAL" : vimMode === "insert" ? "INSERT" : "COMMAND"}
           </div>
           <div className="flex-1 bg-white/10 px-2 py-1 flex items-center justify-between">
             <span className="flex-1 mx-2">[{file.name}]</span>
@@ -1820,13 +2115,13 @@ vim commands
           <VimEditor file={vimFile} position={vimPosition} />
           <div className="flex mt-1">
             <span className="text-green-400 mr-1">
-              {vimMode === "normal" ? "" : ":"}
+              {vimMode === "normal" ? "" : vimMode === "insert" ? "" : ":"}
             </span>
             <input
               ref={inputRef}
               type="text"
               value={currentCommand}
-              onChange={(e) => setCurrentCommand(e.target.value)}
+              onChange={vimMode === "insert" ? handleVimTextInput : (e) => setCurrentCommand(e.target.value)}
               onKeyDown={handleKeyDown}
               onFocus={() => setInputFocused(true)}
               onBlur={() => setInputFocused(false)}
