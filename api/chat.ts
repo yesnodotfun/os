@@ -389,7 +389,7 @@ export default async function handler(req: Request) {
       messages,
       textEditContext,
       systemState,
-      model: bodyModel = "claude-3.7",
+      model: bodyModel = "claude-3.5",
     } = await req.json();
 
     // Use query parameter if available, otherwise use body parameter
