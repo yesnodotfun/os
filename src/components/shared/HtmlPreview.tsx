@@ -210,7 +210,19 @@ export default function HtmlPreview({
     const scriptTags = `
   <link rel="stylesheet" href="/fonts/fonts.css">
   <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>`;
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ["Geneva-12", "ArkPixel", "SerenityOS-Emoji", "ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", "monospace"],
+            mono: ["Geneva-12", "ArkPixel", "SerenityOS-Emoji", "ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", "monospace"]
+          }
+        }
+      }
+    }
+  </script>`;
 
     // Add blur transition CSS for streaming
     const blurStyle = `
@@ -241,7 +253,6 @@ export default function HtmlPreview({
   ${blurStyle}
   <style>
     * {
-      font-family: "Geneva-12", "ArkPixel", "SerenityOS-Emoji", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
       box-sizing: border-box;
     }
     html, body {
