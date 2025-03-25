@@ -24,6 +24,7 @@ import HtmlPreview, {
   isHtmlCodeBlock,
   extractHtmlContent,
 } from "@/components/shared/HtmlPreview";
+import { useSound, Sounds } from "@/hooks/useSound";
 
 // Analytics event namespace for terminal AI events
 export const TERMINAL_ANALYTICS = {
@@ -153,10 +154,18 @@ function TerminalHtmlPreview({
   htmlContent,
   onInteractionChange,
   isStreaming = false,
-}: HtmlPreviewProps) {
-  const { playElevatorMusic, stopElevatorMusic, playDingSound } =
-    useTerminalSounds();
-
+  playElevatorMusic,
+  stopElevatorMusic,
+  playDingSound,
+}: HtmlPreviewProps & {
+  playElevatorMusic: () => void;
+  stopElevatorMusic: () => void;
+  playDingSound: () => void;
+}) {
+  // Get UI sound hooks
+  const maximizeSound = useSound(Sounds.WINDOW_EXPAND);
+  const minimizeSound = useSound(Sounds.WINDOW_COLLAPSE);
+  
   return (
     <HtmlPreview
       htmlContent={htmlContent}
@@ -165,6 +174,8 @@ function TerminalHtmlPreview({
       playElevatorMusic={playElevatorMusic}
       stopElevatorMusic={stopElevatorMusic}
       playDingSound={playDingSound}
+      maximizeSound={maximizeSound}
+      minimizeSound={minimizeSound}
       className="select-text"
     />
   );
@@ -430,6 +441,9 @@ export function TerminalAppComponent({
     playAiResponseSound,
     toggleMute,
     isMuted,
+    playElevatorMusic,
+    stopElevatorMusic,
+    playDingSound,
   } = useTerminalSounds();
 
   // Load command history from storage
@@ -2701,6 +2715,9 @@ assistant
                                   handleHtmlPreviewInteraction
                                 }
                                 isStreaming={isThisMessageStreaming}
+                                playElevatorMusic={playElevatorMusic}
+                                stopElevatorMusic={stopElevatorMusic}
+                                playDingSound={playDingSound}
                               />
                             )}
                           </>
@@ -2740,6 +2757,9 @@ assistant
                           htmlContent={isHtmlCodeBlock(item.output).content}
                           onInteractionChange={handleHtmlPreviewInteraction}
                           isStreaming={false}
+                          playElevatorMusic={playElevatorMusic}
+                          stopElevatorMusic={stopElevatorMusic}
+                          playDingSound={playDingSound}
                         />
                       )}
                     </>

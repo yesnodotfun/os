@@ -435,35 +435,45 @@ export function useTerminalSounds() {
     };
   }, []);
 
-  const initializeTone = useCallback(async () => {
-    if (!isInitialized) {
-      await Tone.start();
-      setIsInitialized(true);
+  const resumeAudioContext = async () => {
+    if (Tone.context.state === "suspended") {
+      try {
+        await Tone.context.resume();
+        console.debug("Audio context resumed");
+      } catch (error) {
+        console.error("Failed to resume audio context:", error);
+      }
     }
-  }, [isInitialized]);
+  };
 
+  // New shared function to initialize Tone.js once
+  const initializeToneOnce = async () => {
+    if (!isInitialized || Tone.context.state !== "running") {
+      try {
+        await Tone.start();
+        setIsInitialized(true);
+        
+        // For iOS, explicitly resume the audio context
+        if (Tone.context.state === "suspended") {
+          await Tone.context.resume();
+        }
+        return true;
+      } catch (error) {
+        console.debug("Could not initialize Tone.js:", error);
+        return false;
+      }
+    }
+    return true;
+  };
+
+  // Add event listeners for visibility change and focus
   useEffect(() => {
     const handleFirstInteraction = () => {
-      initializeTone();
+      initializeToneOnce();
       window.removeEventListener("click", handleFirstInteraction);
     };
     window.addEventListener("click", handleFirstInteraction);
-    return () => window.removeEventListener("click", handleFirstInteraction);
-  }, [initializeTone]);
-
-  // Add visibility change and focus handlers to resume audio context
-  useEffect(() => {
-    const resumeAudioContext = async () => {
-      if (Tone.context.state === "suspended") {
-        try {
-          await Tone.context.resume();
-          console.debug("Audio context resumed");
-        } catch (error) {
-          console.error("Failed to resume audio context:", error);
-        }
-      }
-    };
-
+    
     // Handle page visibility change (when app is switched to/from background)
     const handleVisibilityChange = async () => {
       if (document.visibilityState === "visible") {
@@ -480,6 +490,7 @@ export function useTerminalSounds() {
     window.addEventListener("focus", handleFocus);
 
     return () => {
+      window.removeEventListener("click", handleFirstInteraction);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("focus", handleFocus);
     };
@@ -489,21 +500,8 @@ export function useTerminalSounds() {
     async (type: SoundType) => {
       if (isMuted) return;
 
-      // Initialize Tone.js if not already initialized
-      if (!isInitialized || Tone.context.state !== "running") {
-        try {
-          await Tone.start();
-          setIsInitialized(true);
-          
-          // For iOS, explicitly resume the audio context
-          if (Tone.context.state === "suspended") {
-            await Tone.context.resume();
-          }
-        } catch (error) {
-          console.debug("Could not initialize Tone.js:", error);
-          return;
-        }
-      }
+      // Use shared initialization function
+      if (!(await initializeToneOnce())) return;
 
       const synth = synthsRef.current[type];
       if (!synth) return;
@@ -637,21 +635,8 @@ export function useTerminalSounds() {
   const playElevatorMusic = useCallback(async () => {
     if (isMuted) return;
 
-    // Initialize Tone.js if not already initialized
-    if (!isInitialized || Tone.context.state !== "running") {
-      try {
-        await Tone.start();
-        setIsInitialized(true);
-        
-        // For iOS, we need to explicitly resume the audio context
-        if (Tone.context.state === "suspended") {
-          await Tone.context.resume();
-        }
-      } catch (error) {
-        console.debug("Could not initialize Tone.js:", error);
-        return;
-      }
-    }
+    // Use shared initialization function
+    if (!(await initializeToneOnce())) return;
 
     // Start playing elevator music if not already playing
     if (!elevatorMusicRef.current.isPlaying) {
@@ -735,21 +720,8 @@ export function useTerminalSounds() {
   const playDingSound = useCallback(async () => {
     if (isMuted) return;
 
-    // Initialize Tone.js if not already initialized
-    if (!isInitialized || Tone.context.state !== "running") {
-      try {
-        await Tone.start();
-        setIsInitialized(true);
-        
-        // For iOS, explicitly resume the audio context
-        if (Tone.context.state === "suspended") {
-          await Tone.context.resume();
-        }
-      } catch (error) {
-        console.debug("Could not initialize Tone.js:", error);
-        return;
-      }
-    }
+    // Use shared initialization function
+    if (!(await initializeToneOnce())) return;
 
     if (dingSynthRef.current) {
       const now = Tone.now();

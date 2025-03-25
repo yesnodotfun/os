@@ -137,6 +137,8 @@ interface HtmlPreviewProps {
   playElevatorMusic?: () => void;
   stopElevatorMusic?: () => void;
   playDingSound?: () => void;
+  maximizeSound?: { play: () => void };
+  minimizeSound?: { play: () => void };
 }
 
 export default function HtmlPreview({
@@ -150,6 +152,8 @@ export default function HtmlPreview({
   playElevatorMusic,
   stopElevatorMusic,
   playDingSound,
+  maximizeSound: propMaximizeSound,
+  minimizeSound: propMinimizeSound,
 }: HtmlPreviewProps) {
   const [isFullScreen, setIsFullScreen] = useState(initialFullScreen);
   const [copySuccess, setCopySuccess] = useState(false);
@@ -169,9 +173,13 @@ export default function HtmlPreview({
   const lastUpdateRef = useRef<number>(0);
   const pendingContentRef = useRef<string | null>(null);
 
-  // Add sound hooks
-  const maximizeSound = useSound(Sounds.WINDOW_EXPAND);
-  const minimizeSound = useSound(Sounds.WINDOW_COLLAPSE);
+  // Add sound hooks - fallback to local sound hooks if props not provided
+  const localMaximizeSound = useSound(Sounds.WINDOW_EXPAND);
+  const localMinimizeSound = useSound(Sounds.WINDOW_COLLAPSE);
+  
+  // Use prop sounds if provided, otherwise use local sounds
+  const maximizeSound = propMaximizeSound || localMaximizeSound;
+  const minimizeSound = propMinimizeSound || localMinimizeSound;
 
   // Save split view state when it changes
   useEffect(() => {
