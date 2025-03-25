@@ -11,16 +11,16 @@ const getModelInstance = (model: SupportedModel): LanguageModelV1 => {
   switch (model) {
     case "gpt-4o":
       return openai("gpt-4o");
-    case "claude-3.5":
-      return anthropic("claude-3-5-sonnet-20241022");
     case "claude-3.7":
-    default:
       return anthropic("claude-3-7-sonnet-20250219");
+    case "claude-3.5":
+    default:
+      return anthropic("claude-3-5-sonnet-20241022");
   }
 };
 
 // Allow streaming responses up to 60 seconds
-export const maxDuration = 60;
+export const maxDuration = 80;
 export const runtime = "edge";
 export const edge = true;
 export const stream = true;
@@ -384,7 +384,7 @@ export default async function handler(req: Request) {
       messages,
       textEditContext,
       systemState,
-      model = "claude-3.7",
+      model = "claude-3.5",
     } = await req.json();
 
     if (!messages || !Array.isArray(messages)) {
