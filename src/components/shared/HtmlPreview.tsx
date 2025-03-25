@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Maximize, Minimize, Copy, Check, Save, Code, GripVertical } from "lucide-react";
+import { Maximize, Minimize, Copy, Check, Save, Code, GripVertical, Plus } from "lucide-react";
 import { createPortal } from "react-dom";
 import * as shiki from "shiki";
 import {
@@ -163,6 +163,10 @@ export default function HtmlPreview({
   const [originalHeight, setOriginalHeight] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [isToolbarCollapsed, setIsToolbarCollapsed] = useState(false);
+  const wasDragging = useRef(false);
+  const lastDragEndTime = useRef(0);
+  const clickTimerRef = useRef<NodeJS.Timeout | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const fullscreenIframeRef = useRef<HTMLIFrameElement>(null);
@@ -211,6 +215,24 @@ export default function HtmlPreview({
       window.removeEventListener("resize", checkMobile);
     };
   }, []);
+
+  // Listen for ESC key to exit fullscreen
+  useEffect(() => {
+    const handleEscKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullScreen) {
+        minimizeSound.play();
+        setIsFullScreen(false);
+      }
+    };
+
+    if (isFullScreen) {
+      document.addEventListener('keydown', handleEscKey);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscKey);
+    };
+  }, [isFullScreen, minimizeSound]);
 
   // Enhanced processedHtmlContent with timestamp to force fresh execution
   const processedHtmlContent = (() => {
@@ -440,17 +462,71 @@ export default function HtmlPreview({
     setIsFullScreen(!isFullScreen);
   };
 
-  // Function to handle drag end and snap to corners
-  const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent) => {
-    // Stop propagation to prevent closing fullscreen
-    if (event) {
-      event.stopPropagation();
-    }
+  // Document-level mouse move handler
+  const handleDocumentMouseMove = (e: MouseEvent) => {
+    const deltaX = Math.abs(e.clientX - lastDragEndTime.current);
+    const deltaY = Math.abs(e.clientY - lastDragEndTime.current);
     
-    // Set dragging to false after a small delay
+    if (deltaX > 5 || deltaY > 5) {
+      setIsDragging(true);
+      wasDragging.current = true;
+    }
+  };
+  
+  // Document-level touch move handler
+  const handleDocumentTouchMove = (e: TouchEvent) => {
+    if (!e.touches[0]) return;
+    
+    const deltaX = Math.abs(e.touches[0].clientX - lastDragEndTime.current);
+    const deltaY = Math.abs(e.touches[0].clientY - lastDragEndTime.current);
+    
+    if (deltaX > 5 || deltaY > 5) {
+      wasDragging.current = true;
+    }
+  };
+  
+  // Document-level mouse up handler
+  const handleDocumentMouseUp = () => {
+    cleanup();
+  };
+  
+  // Document-level touch end handler
+  const handleDocumentTouchUp = () => {
+    cleanup();
+  };
+  
+  // Clean up all handlers
+  const cleanup = () => {
+    document.removeEventListener('mousemove', handleDocumentMouseMove);
+    document.removeEventListener('touchmove', handleDocumentTouchMove);
+    document.removeEventListener('mouseup', handleDocumentMouseUp);
+    document.removeEventListener('touchend', handleDocumentTouchUp);
+    
+    // Reset dragging state after cooldown
     setTimeout(() => {
       setIsDragging(false);
     }, 150);
+  };
+
+  // Function to handle toolbar toggle
+  const toggleToolbarCollapse = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!isDragging) {
+      setIsToolbarCollapsed(!isToolbarCollapsed);
+      if (!isToolbarCollapsed) {
+        minimizeSound.play();
+      } else {
+        maximizeSound.play();
+      }
+    }
+  };
+  
+  // Handle direct click on plus icon (when collapsed)
+  const handlePlusClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsToolbarCollapsed(false);
+    maximizeSound.play();
   };
 
   // Normal inline display with optional maximized height
@@ -685,102 +761,164 @@ export default function HtmlPreview({
                     dragTransition={{ bounceStiffness: 600, bounceDamping: 20 }}
                     dragSnapToOrigin={false}
                     whileDrag={{ scale: 1.05 }}
-                    onMouseDown={() => setIsDragging(true)}
-                    onDragEnd={handleDragEnd}
+                    onDragStart={() => setIsDragging(true)}
+                    onDragEnd={() => {
+                      // Set a short timeout to delay resetting isDragging
+                      // This prevents click handlers from firing right after drag
+                      if (clickTimerRef.current) {
+                        clearTimeout(clickTimerRef.current);
+                      }
+                      
+                      clickTimerRef.current = setTimeout(() => {
+                        setIsDragging(false);
+                      }, 100);
+                    }}
                     onClick={(e) => e.stopPropagation()}
                     style={{ top: 0, right: 0, padding: 16 }} // Default position: top-right
                   >
                     <motion.div 
-                      className="flex items-center bg-black/40 backdrop-blur-sm rounded-full px-2 py-1"
+                      className="bg-black/40 backdrop-blur-sm rounded-full overflow-hidden flex items-center justify-center"
+                      layout
                       onClick={(e) => e.stopPropagation()}
+                      initial={false}
+                      animate={{
+                        width: isToolbarCollapsed ? '40px' : 'auto',
+                        height: isToolbarCollapsed ? '40px' : '40px',
+                        padding: isToolbarCollapsed ? '0px' : '4px 8px'
+                      }}
+                      transition={{ 
+                        duration: 0.15,
+                        ease: "easeInOut"
+                      }}
                     >
-                      <div className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full mr-2 group cursor-grab active:cursor-grabbing">
-                        <GripVertical 
-                          size={18} 
-                          className="text-white/70 group-hover:text-white"
-                        />
-                      </div>
-                      {showCode && (
+                      {/* Plus icon - only visible when collapsed */}
+                      <motion.div
+                        className="absolute"
+                        initial={false}
+                        animate={{
+                          opacity: isToolbarCollapsed ? 1 : 0,
+                          scale: isToolbarCollapsed ? 1 : 0.5,
+                        }}
+                        transition={{ duration: 0.1 }}
+                        style={{
+                          pointerEvents: isToolbarCollapsed ? 'auto' : 'none',
+                          cursor: 'pointer'
+                        }}
+                        onClick={handlePlusClick}
+                      >
+                        <Plus size={24} className="text-white" />
+                      </motion.div>
+
+                      {/* Toolbar content - hidden when collapsed with zero width but still in DOM */}
+                      <motion.div 
+                        className="flex items-center justify-center"
+                        initial={false}
+                        animate={{
+                          opacity: isToolbarCollapsed ? 0 : 1,
+                          width: isToolbarCollapsed ? 0 : 'auto',
+                        }}
+                        transition={{ duration: 0.1 }}
+                        style={{
+                          pointerEvents: isToolbarCollapsed ? 'none' : 'auto',
+                          overflow: 'hidden'
+                        }}
+                      >
+                        <button 
+                          className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full mr-2 group cursor-pointer"
+                          onClick={toggleToolbarCollapse}
+                          onMouseDown={(e) => {
+                            // Stop propagation to prevent drag from starting on this element
+                            e.stopPropagation();
+                          }}
+                        >
+                          <GripVertical 
+                            size={18} 
+                            className="text-white/70 group-hover:text-white"
+                          />
+                        </button>
+                        
+                        {showCode && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setIsSplitView(!isSplitView);
+                              if (!isSplitView) {
+                                minimizeSound.play();
+                              } else {
+                                maximizeSound.play();
+                              }
+                            }}
+                            className="flex items-center justify-center px-2 h-8 hover:bg-white/10 rounded-full mr-2 group text-sm font-geneva-12"
+                            aria-label="Toggle split view"
+                          >
+                            <span className="text-white/70 group-hover:text-white">
+                              {isSplitView ? "Split" : "Full"}
+                            </span>
+                          </button>
+                        )}
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            setIsSplitView(!isSplitView);
-                            if (!isSplitView) {
-                              minimizeSound.play();
-                            } else {
+                            if (!showCode) {
+                              setShowCode(true);
+                              setIsSplitView(true);
                               maximizeSound.play();
+                            } else {
+                              setShowCode(false);
+                              setIsSplitView(false);
+                              minimizeSound.play();
                             }
                           }}
-                          className="flex items-center justify-center px-2 h-8 hover:bg-white/10 rounded-full mr-2 group text-sm font-geneva-12"
-                          aria-label="Toggle split view"
+                          className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full mr-2 group"
+                          aria-label="Toggle code"
                         >
-                          <span className="text-white/70 group-hover:text-white">
-                            {isSplitView ? "Split" : "Full"}
-                          </span>
+                          <Code
+                            size={20}
+                            className="text-white/70 group-hover:text-white"
+                          />
                         </button>
-                      )}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (!showCode) {
-                            setShowCode(true);
-                            setIsSplitView(true);
-                            maximizeSound.play();
-                          } else {
-                            setShowCode(false);
-                            setIsSplitView(false);
+                        <button
+                          onClick={handleSaveToDisk}
+                          className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full mr-2 group"
+                          aria-label="Save HTML to disk"
+                        >
+                          <Save
+                            size={20}
+                            className="text-white/70 group-hover:text-white"
+                          />
+                        </button>
+                        <button
+                          onClick={handleCopy}
+                          className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full mr-2 group"
+                          aria-label="Copy HTML code"
+                        >
+                          {copySuccess ? (
+                            <Check
+                              size={20}
+                              className="text-white/70 group-hover:text-white"
+                            />
+                          ) : (
+                            <Copy
+                              size={20}
+                              className="text-white/70 group-hover:text-white"
+                            />
+                          )}
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
                             minimizeSound.play();
-                          }
-                        }}
-                        className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full mr-2 group"
-                        aria-label="Toggle code"
-                      >
-                        <Code
-                          size={20}
-                          className="text-white/70 group-hover:text-white"
-                        />
-                      </button>
-                      <button
-                        onClick={handleSaveToDisk}
-                        className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full mr-2 group"
-                        aria-label="Save HTML to disk"
-                      >
-                        <Save
-                          size={20}
-                          className="text-white/70 group-hover:text-white"
-                        />
-                      </button>
-                      <button
-                        onClick={handleCopy}
-                        className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full mr-2 group"
-                        aria-label="Copy HTML code"
-                      >
-                        {copySuccess ? (
-                          <Check
+                            setIsFullScreen(false);
+                          }}
+                          className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full group"
+                          aria-label="Exit fullscreen"
+                        >
+                          <Minimize
                             size={20}
                             className="text-white/70 group-hover:text-white"
                           />
-                        ) : (
-                          <Copy
-                            size={20}
-                            className="text-white/70 group-hover:text-white"
-                          />
-                        )}
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          minimizeSound.play();
-                          setIsFullScreen(false);
-                        }}
-                        className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full group"
-                        aria-label="Exit fullscreen"
-                      >
-                        <Minimize
-                          size={20}
-                          className="text-white/70 group-hover:text-white"
-                        />
-                      </button>
+                        </button>
+                      </motion.div>
                     </motion.div>
                   </motion.div>
                 </div>
