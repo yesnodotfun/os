@@ -158,6 +158,7 @@ export default function HtmlPreview({
   const [highlightedCode, setHighlightedCode] = useState("");
   const [refreshKey, setRefreshKey] = useState(Date.now());
   const [originalHeight, setOriginalHeight] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
   const iframeId = useRef(
     `iframe-${Math.random().toString(36).substring(2, 9)}`
@@ -188,6 +189,20 @@ export default function HtmlPreview({
       setOriginalHeight(height);
     }
   }, [isFullScreen, originalHeight]);
+
+  // Check for mobile viewport
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+    };
+  }, []);
 
   // Enhanced processedHtmlContent with timestamp to force fresh execution
   const processedHtmlContent = (() => {
@@ -492,125 +507,143 @@ export default function HtmlPreview({
                   damping: 30,
                 }}
               >
-                <div className="absolute top-4 right-4 flex items-center bg-black/40 backdrop-blur-sm rounded-full px-2 py-1 z-10">
-                  {showCode && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setIsSplitView(!isSplitView);
-                      }}
-                      className="flex items-center justify-center px-2 h-8 hover:bg-white/10 rounded-full mr-2 group text-sm font-geneva-12"
-                      aria-label="Toggle split view"
-                    >
-                      <span className="text-white/70 group-hover:text-white">
-                        {isSplitView ? "Split" : "Full"}
-                      </span>
-                    </button>
-                  )}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (!showCode) {
-                        setShowCode(true);
-                        setIsSplitView(true);
-                      } else {
-                        setShowCode(false);
-                        setIsSplitView(false);
-                      }
-                    }}
-                    className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full mr-2 group"
-                    aria-label="Toggle code"
-                  >
-                    <Code
-                      size={20}
-                      className="text-white/70 group-hover:text-white"
-                    />
-                  </button>
-                  <button
-                    onClick={handleSaveToDisk}
-                    className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full mr-2 group"
-                    aria-label="Save HTML to disk"
-                  >
-                    <Save
-                      size={20}
-                      className="text-white/70 group-hover:text-white"
-                    />
-                  </button>
-                  <button
-                    onClick={handleCopy}
-                    className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full mr-2 group"
-                    aria-label="Copy HTML code"
-                  >
-                    {copySuccess ? (
-                      <Check
-                        size={20}
-                        className="text-white/70 group-hover:text-white"
-                      />
-                    ) : (
-                      <Copy
-                        size={20}
-                        className="text-white/70 group-hover:text-white"
-                      />
-                    )}
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      minimizeSound.play();
-                      setIsFullScreen(false);
-                    }}
-                    className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full group"
-                    aria-label="Exit fullscreen"
-                  >
-                    <Minimize
-                      size={20}
-                      className="text-white/70 group-hover:text-white"
-                    />
-                  </button>
-                </div>
-                <AnimatePresence mode="wait">
-                  <div
-                    className={`relative w-full h-full ${
-                      isSplitView && showCode ? "flex flex-col md:flex-row" : ""
-                    }`}
-                  >
-                    {showCode && (
+                <div
+                  className="relative w-full h-full overflow-hidden"
+                >
+                  {/* Code view layer - always 100% width underneath */}
+                  <AnimatePresence>
+                    {showCode ? (
                       <motion.div
                         key="code"
-                        className={`${
-                          isSplitView
-                            ? "h-1/2 md:h-auto md:w-1/2"
-                            : "absolute inset-0"
-                        } bg-[#24292e] font-geneva-12 overflow-auto p-4`}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.2 }}
+                        className="absolute inset-0 bg-[#24292e] font-geneva-12 overflow-auto p-4 z-10"
                         onClick={(e) => e.stopPropagation()}
                         style={{ fontSize: "12px" }}
                         dangerouslySetInnerHTML={{ __html: highlightedCode }}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.25 }}
                       />
-                    )}
-                    <motion.iframe
-                      key={`fullscreen-${iframeId}-${refreshKey}`}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.2 }}
+                    ) : null}
+                  </AnimatePresence>
+                  
+                  {/* Preview iframe layer - positioned above code */}
+                  <motion.div 
+                    className="absolute z-20"
+                    initial={false}
+                    animate={{
+                      width: isSplitView && showCode ? (isMobile ? "100%" : "50%") : "100%",
+                      height: isSplitView && showCode ? (isMobile ? "50%" : "100%") : "100%",
+                      right: 0,
+                      opacity: showCode && !isSplitView ? 0 : 1
+                    }}
+                    transition={{
+                      duration: 0.3,
+                      ease: [0.25, 0.1, 0.25, 1.0]
+                    }}
+                    style={{
+                      position: "absolute",
+                      top: showCode && isSplitView && isMobile ? "50%" : 0,
+                      right: 0
+                    }}
+                  >
+                    <iframe
+                      key={`fullscreen-${iframeId}`}
                       id={`fullscreen-${iframeId}`}
                       srcDoc={processedHtmlContent}
                       title="HTML Preview Fullscreen"
-                      className={`border-0 bg-white ${
-                        showCode && isSplitView
-                          ? "h-1/2 md:h-auto md:w-1/2"
-                          : "w-full h-full"
-                      }`}
+                      className="border-0 bg-white w-full h-full"
                       sandbox="allow-scripts"
                       onClick={(e) => e.stopPropagation()}
                       onMouseDown={(e) => e.stopPropagation()}
                     />
+                  </motion.div>
+                  
+                  {/* Toolbar - topmost layer */}
+                  <div className="absolute top-4 right-4 flex items-center bg-black/40 backdrop-blur-sm rounded-full px-2 py-1 z-50">
+                    {showCode && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsSplitView(!isSplitView);
+                          if (!isSplitView) {
+                            minimizeSound.play();
+                          } else {
+                            maximizeSound.play();
+                          }
+                        }}
+                        className="flex items-center justify-center px-2 h-8 hover:bg-white/10 rounded-full mr-2 group text-sm font-geneva-12"
+                        aria-label="Toggle split view"
+                      >
+                        <span className="text-white/70 group-hover:text-white">
+                          {isSplitView ? "Split" : "Full"}
+                        </span>
+                      </button>
+                    )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!showCode) {
+                          setShowCode(true);
+                          setIsSplitView(true);
+                          maximizeSound.play();
+                        } else {
+                          setShowCode(false);
+                          setIsSplitView(false);
+                          minimizeSound.play();
+                        }
+                      }}
+                      className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full mr-2 group"
+                      aria-label="Toggle code"
+                    >
+                      <Code
+                        size={20}
+                        className="text-white/70 group-hover:text-white"
+                      />
+                    </button>
+                    <button
+                      onClick={handleSaveToDisk}
+                      className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full mr-2 group"
+                      aria-label="Save HTML to disk"
+                    >
+                      <Save
+                        size={20}
+                        className="text-white/70 group-hover:text-white"
+                      />
+                    </button>
+                    <button
+                      onClick={handleCopy}
+                      className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full mr-2 group"
+                      aria-label="Copy HTML code"
+                    >
+                      {copySuccess ? (
+                        <Check
+                          size={20}
+                          className="text-white/70 group-hover:text-white"
+                        />
+                      ) : (
+                        <Copy
+                          size={20}
+                          className="text-white/70 group-hover:text-white"
+                        />
+                      )}
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        minimizeSound.play();
+                        setIsFullScreen(false);
+                      }}
+                      className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full group"
+                      aria-label="Exit fullscreen"
+                    >
+                      <Minimize
+                        size={20}
+                        className="text-white/70 group-hover:text-white"
+                      />
+                    </button>
                   </div>
-                </AnimatePresence>
+                </div>
               </motion.div>
             </motion.div>
           )}
