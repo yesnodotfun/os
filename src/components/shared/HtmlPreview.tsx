@@ -535,7 +535,7 @@ export default function HtmlPreview({
           srcDoc={processedHtmlContent}
           title="ryOS Code Preview"
           className="w-full h-full border-0"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation allow-modals allow-orientation-lock allow-pointer-lock allow-presentation allow-downloads allow-storage-access-by-user-activation"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation allow-modals allow-pointer-lock allow-downloads allow-storage-access-by-user-activation"
           style={{
             height:
               typeof minHeight === "string" ? minHeight : `${minHeight}px`,
@@ -574,7 +574,7 @@ export default function HtmlPreview({
               <motion.div
                 className="absolute inset-0 flex flex-col"
                 initial={{
-                  y: "100%",
+                  y: "15%",
                   opacity: 0
                 }}
                 animate={{
@@ -582,13 +582,13 @@ export default function HtmlPreview({
                   opacity: 1
                 }}
                 exit={{
-                  y: "100%",
+                  y: "15%",
                   opacity: 0
                 }}
                 transition={{
                   type: "spring",
-                  stiffness: 300,
-                  damping: 30,
+                  stiffness: 250,
+                  damping: 25,
                 }}
               >
                 <div className="relative w-full h-full overflow-hidden">
@@ -645,7 +645,7 @@ export default function HtmlPreview({
                       srcDoc={processedHtmlContent}
                       title="ryOS Code Preview Fullscreen"
                       className="border-0 bg-white w-full h-full"
-                      sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation allow-modals allow-orientation-lock allow-pointer-lock allow-presentation allow-downloads allow-storage-access-by-user-activation"
+                      sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation allow-modals allow-pointer-lock allow-downloads allow-storage-access-by-user-activation"
                       onClick={(e) => e.stopPropagation()}
                       onMouseDown={(e) => e.stopPropagation()}
                     />
