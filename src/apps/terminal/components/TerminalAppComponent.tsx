@@ -251,6 +251,7 @@ export function TerminalAppComponent({
   const [spinnerIndex, setSpinnerIndex] = useState(0);
   const [isInteractingWithPreview, setIsInteractingWithPreview] =
     useState(false);
+  const [inputFocused, setInputFocused] = useState(false); // Add state for input focus
   const spinnerChars = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
   // Track if auto-scrolling is enabled
@@ -1584,7 +1585,14 @@ assistant
                     value={currentCommand}
                     onChange={(e) => setCurrentCommand(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    className="w-full text-white focus:outline-none bg-transparent"
+                    onFocus={() => setInputFocused(true)}
+                    onBlur={() => setInputFocused(false)}
+                    onTouchStart={(e) => {
+                      e.preventDefault();
+                    }}
+                    className={`w-full text-white focus:outline-none bg-transparent ${
+                      inputFocused ? "input--focused" : ""
+                    }`}
                     style={{ fontSize: `${fontSize}px` }}
                     autoFocus
                   />
