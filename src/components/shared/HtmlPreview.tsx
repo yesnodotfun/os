@@ -156,14 +156,16 @@ export default function HtmlPreview({
   const [showCode, setShowCode] = useState(false);
   const [isSplitView, setIsSplitView] = useState(loadHtmlPreviewSplit());
   const [highlightedCode, setHighlightedCode] = useState("");
-  const [refreshKey, setRefreshKey] = useState(Date.now());
   const [originalHeight, setOriginalHeight] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const fullscreenIframeRef = useRef<HTMLIFrameElement>(null);
   const iframeId = useRef(
     `iframe-${Math.random().toString(36).substring(2, 9)}`
   ).current;
   const prevStreamingRef = useRef(isStreaming);
+  const contentTimestamp = useRef(Date.now());
 
   // Add sound hooks
   const maximizeSound = useSound(Sounds.WINDOW_EXPAND);
@@ -173,13 +175,6 @@ export default function HtmlPreview({
   useEffect(() => {
     saveHtmlPreviewSplit(isSplitView);
   }, [isSplitView]);
-
-  // Update showCode to true when entering fullscreen if split view is enabled
-  useEffect(() => {
-    // Remove the automatic code view showing when entering fullscreen
-    // Force reinitialization of canvas and scripts when fullscreen state changes
-    setRefreshKey(Date.now());
-  }, [isFullScreen, isSplitView]);
 
   // Capture the original height when toggling fullscreen
   useEffect(() => {
@@ -207,7 +202,7 @@ export default function HtmlPreview({
   // Enhanced processedHtmlContent with timestamp to force fresh execution
   const processedHtmlContent = (() => {
     // Add a timestamp comment to force the browser to treat this as new content
-    const timestamp = `<!-- ts=${refreshKey} -->`;
+    const timestamp = `<!-- ts=${contentTimestamp.current} -->`;
 
     // Define the script tags that should be added after streaming
     const scriptTags = `
@@ -251,6 +246,19 @@ export default function HtmlPreview({
 </body>
 </html>`;
   })();
+
+  // Update iframe content without remounting
+  useEffect(() => {
+    // Update inline iframe
+    if (iframeRef.current) {
+      iframeRef.current.srcdoc = processedHtmlContent;
+    }
+
+    // Update fullscreen iframe if it exists
+    if (fullscreenIframeRef.current) {
+      fullscreenIframeRef.current.srcdoc = processedHtmlContent;
+    }
+  }, [processedHtmlContent, htmlContent]);
 
   // Initialize syntax highlighting only when code view is active
   useEffect(() => {
@@ -441,7 +449,7 @@ export default function HtmlPreview({
           </button>
         </motion.div>
         <motion.iframe
-          key={`preview-${refreshKey}`}
+          ref={iframeRef}
           id={iframeId}
           srcDoc={processedHtmlContent}
           title="HTML Preview"
@@ -561,7 +569,7 @@ export default function HtmlPreview({
                     }}
                   >
                     <iframe
-                      key={`fullscreen-${iframeId}`}
+                      ref={fullscreenIframeRef}
                       id={`fullscreen-${iframeId}`}
                       srcDoc={processedHtmlContent}
                       title="HTML Preview Fullscreen"
