@@ -763,7 +763,7 @@ assistant
 
       case "ls": {
         if (files.length === 0) {
-          return { output: "No files found", isError: false };
+          return { output: "no files found", isError: false };
         }
         return {
           output: files
@@ -832,7 +832,7 @@ assistant
 
         if (!targetExists) {
           return {
-            output: `cd: ${args[0]}: No such directory`,
+            output: `cd: ${args[0]}: no such directory`,
             isError: true,
           };
         }
@@ -845,7 +845,7 @@ assistant
       case "cat": {
         if (args.length === 0) {
           return {
-            output: "Usage: cat <filename>",
+            output: "usage: cat <filename>",
             isError: true,
           };
         }
@@ -855,7 +855,7 @@ assistant
 
         if (!file) {
           return {
-            output: `File not found: ${fileName}`,
+            output: `file not found: ${fileName}`,
             isError: true,
           };
         }
@@ -883,7 +883,7 @@ assistant
       case "touch": {
         if (args.length === 0) {
           return {
-            output: "Usage: touch <filename>",
+            output: "usage: touch <filename>",
             isError: true,
           };
         }
@@ -893,7 +893,7 @@ assistant
         // Check if file already exists
         if (files.find((f) => f.name === newFileName)) {
           return {
-            output: `File already exists: ${newFileName}`,
+            output: `file already exists: ${newFileName}`,
             isError: true,
           };
         }
@@ -917,7 +917,7 @@ assistant
       case "rm": {
         if (args.length === 0) {
           return {
-            output: "Usage: rm <filename>",
+            output: "usage: rm <filename>",
             isError: true,
           };
         }
@@ -927,14 +927,14 @@ assistant
 
         if (!fileObj) {
           return {
-            output: `File not found: ${fileToDelete}`,
+            output: `file not found: ${fileToDelete}`,
             isError: true,
           };
         }
 
         moveToTrash(fileObj);
         return {
-          output: `Moved to trash: ${fileToDelete}`,
+          output: `moved to trash: ${fileToDelete}`,
           isError: false,
         };
       }
@@ -942,7 +942,7 @@ assistant
       case "edit": {
         if (args.length === 0) {
           return {
-            output: "Usage: edit <filename>",
+            output: "usage: edit <filename>",
             isError: true,
           };
         }
@@ -952,7 +952,7 @@ assistant
 
         if (!fileToEditObj) {
           return {
-            output: `File not found: ${fileToEdit}`,
+            output: `file not found: ${fileToEdit}`,
             isError: true,
           };
         }
@@ -997,7 +997,7 @@ assistant
         launchApp("textedit");
 
         return {
-          output: `Opening ${fileToEdit} in TextEdit...`,
+          output: `opening ${fileToEdit} in textedit...`,
           isError: false,
         };
       }
@@ -1005,7 +1005,7 @@ assistant
       case "about":
         setTimeout(() => setIsAboutDialogOpen(true), 100);
         return {
-          output: "Opening About dialog...",
+          output: "opening about dialog...",
           isError: false,
         };
 
@@ -1013,7 +1013,7 @@ assistant
         const cmdHistory = loadTerminalCommandHistory();
         if (cmdHistory.length === 0) {
           return {
-            output: "No command history",
+            output: "no command history",
             isError: false,
           };
         }
@@ -1040,7 +1040,7 @@ assistant
             id: "system",
             role: "system",
             content:
-              "You are a helpful AI assistant running in a terminal on ryOS.",
+              "You are a coding assistant running in the terminal app on ryOS.",
           },
         ]);
 
@@ -1070,20 +1070,20 @@ assistant
           });
 
           return {
-            output: `Ask Ryo anything. Type 'exit' to return to terminal.\n→ ryo ${initialPrompt}`,
+            output: `ask ryo anything. type 'exit' to return to terminal.\n→ ryo ${initialPrompt}`,
             isError: false,
           };
         }
 
         return {
-          output: `Ask Ryo anything. Type 'exit' to return to terminal.`,
+          output: `ask ryo anything. type 'exit' to return to terminal.`,
           isError: false,
         };
       }
 
       default:
         return {
-          output: `Command not found: ${cmd}. Type 'help' for a list of available commands.`,
+          output: `command not found: ${cmd}. type 'help' for a list of available commands.`,
           isError: true,
         };
     }
@@ -1263,7 +1263,7 @@ assistant
           id: "system",
           role: "system",
           content:
-            "You are a helpful AI assistant running in a terminal on ryOS.",
+            "You are a coding assistant running in the terminal app on ryOS.",
         },
       ]);
 
@@ -1296,7 +1296,7 @@ assistant
           id: "system",
           role: "system",
           content:
-            "You are a helpful AI assistant running in a terminal on ryOS.",
+            "You are a coding assistant running in the terminal app on ryOS.",
         },
       ]);
 
@@ -1319,7 +1319,7 @@ assistant
           {
             command: "",
             output:
-              "Chat cleared. You're still chatting with Ryo. Type 'exit' to return to terminal.",
+              "chat cleared. you're still chatting with ryo. type 'exit' to return to terminal.",
             path: "ai-assistant",
           },
         ]);
@@ -1427,10 +1427,10 @@ assistant
         item.output &&
         item.output.length > 0 &&
         item.output.length < 150 &&
-        !item.output.startsWith("Command not found") &&
-        !item.output.includes("Available commands") &&
+        !item.output.startsWith("command not found") &&
+        !item.output.includes("commands") &&
         !item.output.includes("     __  __") &&
-        !item.output.includes("Ask Ryo anything.") &&
+        !item.output.includes("ask ryo anything.") &&
         // Don't animate ls command output
         !(item.command && item.command.trim().startsWith("ls"))
       ) {
@@ -1604,15 +1604,15 @@ assistant
                           : ""
                       } ${
                         // Add system message styling
-                        item.output.startsWith("Ask Ryo anything") ||
-                        item.output.startsWith("Usage:") ||
-                        item.output.startsWith("Command not found:") ||
+                        item.output.startsWith("ask ryo anything") ||
+                        item.output.startsWith("usage:") ||
+                        item.output.startsWith("command not found:") ||
                         item.output.includes("type 'help' for") ||
-                        item.output.includes("No such") ||
+                        item.output.includes("no such") ||
                         item.output.includes("not implemented") ||
                         item.output.includes("already exists") ||
-                        item.output.startsWith("File not found:") ||
-                        item.output.startsWith("No files found")
+                        item.output.startsWith("file not found:") ||
+                        item.output.startsWith("no files found")
                           ? "text-gray-400"
                           : ""
                       }`}
