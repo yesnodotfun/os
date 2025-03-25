@@ -229,7 +229,7 @@ export default function HtmlPreview({
   <style>
     body {
       transition: filter 0.5s ease-out;
-      ${isStreaming ? "filter: blur(4px);" : ""}
+      ${isStreaming ? "filter: blur(2px);" : ""}
     }
   </style>`;
 
