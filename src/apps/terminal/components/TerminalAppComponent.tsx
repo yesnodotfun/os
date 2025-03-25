@@ -1905,7 +1905,7 @@ assistant
           });
 
           return {
-            output: `ask ryo anything. type 'exit' to return to terminal.\n→ ryo ${initialPrompt}`,
+            output: `ask ryo anything. type 'exit' to return to terminal.\n→ you sent: ${initialPrompt}`,
             isError: false,
           };
         }
@@ -2227,7 +2227,7 @@ assistant
           ...commandHistory,
           {
             command: input,
-            output: `Unsupported vim command: ${input}`,
+            output: `unsupported vim command: ${input}`,
             path: currentPath,
           },
         ]);
@@ -2393,6 +2393,18 @@ assistant
           0% { opacity: 0.5; }
           50% { opacity: 0.8; }
           100% { opacity: 0.5; }
+        }
+
+        @keyframes gradient-spin {
+          0% { color: #ff6b6b; }
+          25% { color: #4ecdc4; }
+          50% { color: #45b7d1; }
+          75% { color: #96ceb4; }
+          100% { color: #ff6b6b; }
+        }
+
+        .gradient-spin {
+          animation: gradient-spin 3s linear infinite;
         }
       `;
       document.head.appendChild(style);
@@ -2562,12 +2574,14 @@ assistant
               {item.command && (
                 <div className="flex select-text">
                   {item.path === "ai-user" ? (
-                    <span className="text-purple-400 mr-1 select-text cursor-text">
-                      → ryo
+                    <span className="text-purple-400 mr-2 select-text cursor-text">
+                      <span className="inline-block w-2 text-center">→</span>{" "}
+                      ryo
                     </span>
                   ) : (
-                    <span className="text-green-400 mr-1 select-text cursor-text">
-                      ➜ {item.path === "/" ? "/" : item.path}
+                    <span className="text-green-400 mr-2 select-text cursor-text">
+                      <span className="inline-block w-2 text-center">→</span>{" "}
+                      {item.path === "/" ? "/" : item.path}
                     </span>
                   )}
                   <span className="select-text cursor-text">
@@ -2583,7 +2597,7 @@ assistant
                     item.path === "ai-error" ? "text-red-400" : ""
                   } ${item.path === "welcome-message" ? "text-gray-400" : ""} ${
                     // Add urgent message styling
-                    isUrgentMessage(item.output) ? "text-red-500" : ""
+                    isUrgentMessage(item.output) ? "text-red-400" : ""
                   } ${
                     // Add system message styling
                     item.output.startsWith("ask ryo anything") ||
@@ -2601,11 +2615,14 @@ assistant
                 >
                   {item.path === "ai-thinking" ? (
                     <div>
-                      <span className="text-gray-400">
-                        {item.output.split(" ")[0]}
+                      <span className="gradient-spin">
+                        <span className="inline-block w-2 text-center">
+                          {item.output.split(" ")[0]}
+                        </span>{" "}
+                        ryo
                       </span>
                       <span className="text-gray-500 italic shimmer-subtle">
-                        {" ryo is thinking"}
+                        {" is thinking"}
                         <AnimatedEllipsis />
                       </span>
                     </div>
@@ -2718,12 +2735,26 @@ assistant
             className="flex transition-all duration-200 select-text"
           >
             {isInAiMode ? (
-              <span className="text-purple-400 mr-1 whitespace-nowrap select-text cursor-text">
-                {isAiLoading ? spinnerChars[spinnerIndex] + " ryo" : "→ ryo"}
+              <span className="text-purple-400 mr-2 whitespace-nowrap select-text cursor-text">
+                {isAiLoading ? (
+                  <span>
+                    <span className="gradient-spin">
+                      <span className="inline-block w-2 text-center">
+                        {spinnerChars[spinnerIndex]}
+                      </span>{" "}
+                      ryo
+                    </span>
+                  </span>
+                ) : (
+                  <>
+                    <span className="inline-block w-2 text-center">→</span> ryo
+                  </>
+                )}
               </span>
             ) : (
-              <span className="text-green-400 mr-1 whitespace-nowrap select-text cursor-text">
-                ➜ {currentPath === "/" ? "/" : currentPath}
+              <span className="text-green-400 mr-2 whitespace-nowrap select-text cursor-text">
+                <span className="inline-block w-2 text-center">→</span>{" "}
+                {currentPath === "/" ? "/" : currentPath}
               </span>
             )}
             <div className="flex-1 relative">
