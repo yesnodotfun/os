@@ -48,6 +48,9 @@ const AVAILABLE_COMMANDS = [
   "ryo",
   "ai",
   "chat",
+  "echo",
+  "whoami",
+  "date",
 ];
 
 // Helper function to parse app control markup
@@ -736,6 +739,9 @@ terminal
   help             show this help
   history          show command history
   about            about terminal
+  echo <text>      display text
+  whoami           display current user
+  date             display current date/time
 
 assistant
   ryo <prompt>     chat with ryo
@@ -876,7 +882,7 @@ assistant
       case "mkdir":
         return {
           output:
-            "Command not implemented: mkdir requires filesystem write access",
+            "command not implemented: mkdir requires filesystem write access",
           isError: true,
         };
 
@@ -909,7 +915,7 @@ assistant
         });
 
         return {
-          output: `Created file: ${newFileName}`,
+          output: `created file: ${newFileName}`,
           isError: false,
         };
       }
@@ -1017,13 +1023,68 @@ assistant
             isError: false,
           };
         }
+        
+        // Calculate padding for index column based on number of commands
+        const indexPadding = cmdHistory.length.toString().length;
+        
+        // Find the longest command to determine command column width
+        const longestCmd = Math.min(
+          40, // Maximum width to prevent extremely long commands from using too much space
+          Math.max(...cmdHistory.map(cmd => cmd.command.length))
+        );
+        
         return {
           output: cmdHistory
             .map((cmd, idx) => {
               const date = new Date(cmd.timestamp);
-              return `${idx + 1}  ${cmd.command}  # ${date.toLocaleString()}`;
+              const indexStr = (idx + 1).toString().padStart(indexPadding, ' ');
+              
+              // Truncate very long commands and add ellipsis
+              const displayCmd = cmd.command.length > 40 
+                ? cmd.command.substring(0, 37) + '...' 
+                : cmd.command;
+              
+              // Pad command to align timestamps
+              const paddedCmd = displayCmd.padEnd(longestCmd, ' ');
+              
+              // Simplified date format: MM/DD HH:MM
+              const dateStr = `${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+              
+              return `${indexStr}  ${paddedCmd}  # ${dateStr}`;
             })
             .join("\n"),
+          isError: false,
+        };
+      }
+
+      case "echo": {
+        return {
+          output: args.join(" "),
+          isError: false,
+        };
+      }
+
+      case "whoami": {
+        return {
+          output: "you",
+          isError: false,
+        };
+      }
+
+      case "date": {
+        const now = new Date();
+        const options: Intl.DateTimeFormatOptions = {
+          weekday: 'short',
+          month: 'short', 
+          day: 'numeric',
+          hour: '2-digit', 
+          minute: '2-digit',
+          second: '2-digit',
+          year: 'numeric',
+          timeZoneName: 'short'
+        };
+        return {
+          output: now.toLocaleString('en-US', options),
           isError: false,
         };
       }
