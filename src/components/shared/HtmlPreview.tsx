@@ -166,6 +166,8 @@ export default function HtmlPreview({
   ).current;
   const prevStreamingRef = useRef(isStreaming);
   const contentTimestamp = useRef(Date.now());
+  const lastUpdateRef = useRef<number>(0);
+  const pendingContentRef = useRef<string | null>(null);
 
   // Add sound hooks
   const maximizeSound = useSound(Sounds.WINDOW_EXPAND);
@@ -247,18 +249,52 @@ export default function HtmlPreview({
 </html>`;
   })();
 
-  // Update iframe content without remounting
-  useEffect(() => {
+  // Throttled update function to update iframe content
+  const updateIframeContent = (content: string) => {
     // Update inline iframe
     if (iframeRef.current) {
-      iframeRef.current.srcdoc = processedHtmlContent;
+      iframeRef.current.srcdoc = content;
     }
 
     // Update fullscreen iframe if it exists
     if (fullscreenIframeRef.current) {
-      fullscreenIframeRef.current.srcdoc = processedHtmlContent;
+      fullscreenIframeRef.current.srcdoc = content;
     }
-  }, [processedHtmlContent, htmlContent]);
+
+    // Update last update timestamp
+    lastUpdateRef.current = Date.now();
+    pendingContentRef.current = null;
+  };
+
+  // Update iframe content with throttling during streaming
+  useEffect(() => {
+    if (isStreaming) {
+      const now = Date.now();
+      const timeSinceLastUpdate = now - lastUpdateRef.current;
+
+      // Store the most recent content
+      pendingContentRef.current = processedHtmlContent;
+
+      // If we haven't updated in 1 second, update immediately
+      if (timeSinceLastUpdate >= 1000) {
+        updateIframeContent(processedHtmlContent);
+      } else {
+        // Otherwise schedule an update for when the 1 second has passed
+        const timeToNextUpdate = 1000 - timeSinceLastUpdate;
+        const timeoutId = setTimeout(() => {
+          // Only update if there's pending content
+          if (pendingContentRef.current) {
+            updateIframeContent(pendingContentRef.current);
+          }
+        }, timeToNextUpdate);
+
+        return () => clearTimeout(timeoutId);
+      }
+    } else {
+      // When not streaming, update immediately
+      updateIframeContent(processedHtmlContent);
+    }
+  }, [processedHtmlContent, isStreaming]);
 
   // Initialize syntax highlighting only when code view is active
   useEffect(() => {
