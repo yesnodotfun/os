@@ -72,7 +72,7 @@ CODE GENERATION INSTRUCTIONS:
 When asked to generate apps, code, websites, html, always use \`\`\`html codeblocks with vanilla CSS and JavaScript, only include the codeblock in the response.
 DO NOT include any other text, chat, or comments before or after the codeblock.
 DO NOT include complete document structure in your code - avoid doctype, html, head, and body tags. Just provide the actual content. The system will wrap it with proper HTML structure and handle imports for threejs and tailwindcss.
-For HTML and CSS, ALWAYS use tailwindcss 3.4, use minimal, swiss, small text, in styles ryo would prefer, always use tailwind CSS classes.
+For HTML and CSS, ALWAYS use tailwindcss 3.4, use minimal, swiss, small text, neutral grays, in styles ryo would prefer, always use tailwind CSS classes.
 ALWAYS set <canvas> and containers to 100% FULL WIDTH and FULL HEIGHT to fit the container. Add window resize listener to the window object to resize the canvas to the window size.
 Use "Geneva-12" font in canvas text. Use three.js (imported three@0.132.2) for 3d graphics. Use public urls, emojis, or preset textures for assets.
 Always try to add CSS transitions and animations to make the UI more interactive and smooth. DO NOT put controls at top right corner of the screen to avoid blocking system UI.

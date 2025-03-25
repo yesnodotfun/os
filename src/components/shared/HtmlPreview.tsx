@@ -654,7 +654,7 @@ export default function HtmlPreview({
         <AnimatePresence mode="wait">
           {isFullScreen && (
             <motion.div
-              className="fixed inset-0 bg-black/80 z-[9999] flex flex-col"
+              className="fixed inset-0 z-[9999] flex flex-col"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -707,7 +707,7 @@ export default function HtmlPreview({
 
                   {/* Preview iframe layer - positioned above code */}
                   <motion.div
-                    className="absolute z-20"
+                    className="absolute z-100"
                     initial={false}
                     animate={{
                       width:
@@ -753,7 +753,7 @@ export default function HtmlPreview({
                   {/* Toolbar - topmost layer */}
                   <motion.div 
                     ref={controlsRef}
-                    className="absolute z-50"
+                    className="absolute z-200"
                     initial={false}
                     drag
                     dragConstraints={fullscreenWrapperRef}
@@ -777,7 +777,7 @@ export default function HtmlPreview({
                     style={{ top: 0, right: 0, padding: 16 }} // Default position: top-right
                   >
                     <motion.div 
-                      className="bg-black/40 backdrop-blur-sm rounded-full overflow-hidden flex items-center justify-center"
+                      className="bg-neutral-700/40 backdrop-blur-sm rounded-full overflow-hidden flex items-center justify-center"
                       layout
                       onClick={(e) => e.stopPropagation()}
                       initial={false}
