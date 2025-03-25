@@ -1029,7 +1029,7 @@ assistant
         
         // Find the longest command to determine command column width
         const longestCmd = Math.min(
-          40, // Maximum width to prevent extremely long commands from using too much space
+          25, // Maximum width to prevent extremely long commands from using too much space
           Math.max(...cmdHistory.map(cmd => cmd.command.length))
         );
         
@@ -1040,8 +1040,8 @@ assistant
               const indexStr = (idx + 1).toString().padStart(indexPadding, ' ');
               
               // Truncate very long commands and add ellipsis
-              const displayCmd = cmd.command.length > 40 
-                ? cmd.command.substring(0, 37) + '...' 
+              const displayCmd = cmd.command.length > 25 
+                ? cmd.command.substring(0, 22) + '...' 
                 : cmd.command;
               
               // Pad command to align timestamps
