@@ -112,6 +112,32 @@ const cleanUrgentPrefix = (content: string): string => {
   return isUrgentMessage(content) ? content.slice(4).trimStart() : content;
 };
 
+// Animated ASCII for urgent messages
+function UrgentMessageAnimation() {
+  const [frame, setFrame] = useState(0);
+  const frames = [
+    "!   ",
+    "!!  ",
+    "!!! ",
+    "!!  ",
+    "!   "
+  ];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setFrame(prev => (prev + 1) % frames.length);
+    }, 300);
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <span className="text-red-400 animate-pulse">
+      {frames[frame]}
+    </span>
+  );
+}
+
 // Component to render HTML previews
 interface HtmlPreviewProps {
   htmlContent: string;
@@ -140,15 +166,81 @@ function TerminalHtmlPreview({
   );
 }
 
+// Helper function to parse simple markdown formatting
+const parseSimpleMarkdown = (text: string): React.ReactNode[] => {
+  if (!text) return [text];
+  
+  // Process the bold formatting first, then italic
+  let result: React.ReactNode[] = [];
+  const currentText = text;
+  
+  // Process bold patterns first (**text** or __text__)
+  const boldRegex = /(\*\*.*?\*\*|__.*?__)/g;
+  let lastIndex = 0;
+  let boldMatch;
+  
+  while ((boldMatch = boldRegex.exec(currentText)) !== null) {
+    // Add text before the match
+    if (boldMatch.index > lastIndex) {
+      result.push(currentText.substring(lastIndex, boldMatch.index));
+    }
+    
+    // Add the bold text
+    const boldContent = boldMatch[0].replace(/^\*\*|\*\*$|^__|__$/g, '');
+    result.push(<span key={`bold-${boldMatch.index}`} className="font-bold">{boldContent}</span>);
+    
+    lastIndex = boldMatch.index + boldMatch[0].length;
+  }
+  
+  // Add any remaining text after the last bold match
+  if (lastIndex < currentText.length) {
+    result.push(currentText.substring(lastIndex));
+  }
+  
+  // Now process italic in each text segment
+  result = result.flatMap((segment, i) => {
+    if (typeof segment !== 'string') return segment;
+    
+    const italicParts: React.ReactNode[] = [];
+    const italicRegex = /(\*[^*]+\*|_[^_]+_)/g;
+    let lastItalicIndex = 0;
+    let italicMatch;
+    
+    while ((italicMatch = italicRegex.exec(segment)) !== null) {
+      // Add text before the match
+      if (italicMatch.index > lastItalicIndex) {
+        italicParts.push(segment.substring(lastItalicIndex, italicMatch.index));
+      }
+      
+      // Add the italic text
+      const italicContent = italicMatch[0].replace(/^\*|\*$|^_|_$/g, '');
+      italicParts.push(<span key={`italic-${i}-${italicMatch.index}`} className="italic">{italicContent}</span>);
+      
+      lastItalicIndex = italicMatch.index + italicMatch[0].length;
+    }
+    
+    // Add any remaining text after the last italic match
+    if (lastItalicIndex < segment.length) {
+      italicParts.push(segment.substring(lastItalicIndex));
+    }
+    
+    return italicParts.length > 0 ? italicParts : segment;
+  });
+  
+  return result;
+};
+
 // TypewriterText component for terminal output
 function TypewriterText({
   text,
   className,
   speed = 15,
+  renderMarkdown = false,
 }: {
   text: string;
   className?: string;
   speed?: number;
+  renderMarkdown?: boolean;
 }) {
   const [displayedText, setDisplayedText] = useState("");
   const [isComplete, setIsComplete] = useState(false);
@@ -211,7 +303,7 @@ function TypewriterText({
 
   return (
     <span className={`select-text cursor-text ${className || ""}`}>
-      {displayedText}
+      {renderMarkdown ? parseSimpleMarkdown(displayedText) : displayedText}
       {!isComplete && (
         <motion.span
           animate={{ opacity: [1, 0, 1] }}
@@ -1387,6 +1479,11 @@ assistant
     };
   }, []);
 
+  // Only apply to AI assistant messages and user messages in AI mode
+  const shouldApplyMarkdown = (path: string): boolean => {
+    return path === "ai-assistant" || path === "ai-user";
+  };
+
   if (!isWindowOpen) return null;
 
   return (
@@ -1496,14 +1593,14 @@ assistant
                         item.path === "ai-thinking" ? "text-gray-400" : ""
                       } ${
                         item.path === "ai-assistant"
-                          ? "text-purple-100 italic"
+                          ? "text-purple-100"
                           : ""
                       } ${item.path === "ai-error" ? "text-red-400" : ""} ${
                         item.path === "welcome-message" ? "text-gray-400" : ""
                       } ${
                         // Add urgent message styling
                         isUrgentMessage(item.output)
-                          ? "text-red-500 font-bold"
+                          ? "text-red-500"
                           : ""
                       } ${
                         // Add system message styling
@@ -1562,10 +1659,11 @@ assistant
 
                             return (
                               <>
-                                {/* Show only non-HTML text content */}
+                                {/* Show only non-HTML text content with markdown parsing */}
                                 {cleanedTextContent && (
                                   <span className={`select-text cursor-text ${urgent ? "text-red-300" : "text-purple-300"}`}>
-                                    {cleanedTextContent}
+                                    {urgent && <UrgentMessageAnimation />}
+                                    {parseSimpleMarkdown(cleanedTextContent)}
                                   </span>
                                 )}
 
@@ -1584,14 +1682,25 @@ assistant
                           })()}
                         </motion.div>
                       ) : animatedLines.has(index) ? (
-                        <TypewriterText
-                          text={isUrgentMessage(item.output) ? cleanUrgentPrefix(item.output) : item.output}
-                          speed={10}
-                          className=""
-                        />
+                        <>
+                          {isUrgentMessage(item.output) && <UrgentMessageAnimation />}
+                          <TypewriterText
+                            text={isUrgentMessage(item.output) ? cleanUrgentPrefix(item.output) : item.output}
+                            speed={10}
+                            className=""
+                            renderMarkdown={shouldApplyMarkdown(item.path)}
+                          />
+                        </>
                       ) : (
                         <>
-                          {isUrgentMessage(item.output) ? cleanUrgentPrefix(item.output) : item.output}
+                          {isUrgentMessage(item.output) && <UrgentMessageAnimation />}
+                          {isUrgentMessage(item.output) 
+                            ? (shouldApplyMarkdown(item.path) 
+                               ? parseSimpleMarkdown(cleanUrgentPrefix(item.output)) 
+                               : cleanUrgentPrefix(item.output))
+                            : (shouldApplyMarkdown(item.path) 
+                               ? parseSimpleMarkdown(item.output) 
+                               : item.output)}
                           {isHtmlCodeBlock(item.output).isHtml && (
                             <TerminalHtmlPreview
                               htmlContent={isHtmlCodeBlock(item.output).content}
