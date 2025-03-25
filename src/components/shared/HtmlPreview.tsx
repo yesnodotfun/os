@@ -164,7 +164,7 @@ export default function HtmlPreview({
     `iframe-${Math.random().toString(36).substring(2, 9)}`
   ).current;
   const prevStreamingRef = useRef(isStreaming);
-  
+
   // Add sound hooks
   const maximizeSound = useSound(Sounds.WINDOW_EXPAND);
   const minimizeSound = useSound(Sounds.WINDOW_COLLAPSE);
@@ -195,12 +195,12 @@ export default function HtmlPreview({
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
     };
-    
+
     checkMobile();
-    window.addEventListener('resize', checkMobile);
-    
+    window.addEventListener("resize", checkMobile);
+
     return () => {
-      window.removeEventListener('resize', checkMobile);
+      window.removeEventListener("resize", checkMobile);
     };
   }, []);
 
@@ -208,6 +208,11 @@ export default function HtmlPreview({
   const processedHtmlContent = (() => {
     // Add a timestamp comment to force the browser to treat this as new content
     const timestamp = `<!-- ts=${refreshKey} -->`;
+
+    // Define the script tags that should be added after streaming
+    const scriptTags = `
+  <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>`;
 
     // Check if content already has complete HTML structure
     if (
@@ -225,6 +230,7 @@ export default function HtmlPreview({
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  ${!isStreaming ? scriptTags : ""}
   <style>
     * {
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
@@ -349,10 +355,10 @@ export default function HtmlPreview({
         ref={previewRef}
         className={`rounded bg-white overflow-auto m-0 relative ${className}`}
         style={{
-          maxHeight: isFullScreen ? (originalHeight || minHeight) : maxHeight,
+          maxHeight: isFullScreen ? originalHeight || minHeight : maxHeight,
           pointerEvents: isStreaming ? "none" : "auto",
           opacity: isFullScreen ? 0 : 1,
-          height: isFullScreen ? (originalHeight || minHeight) : "auto",
+          height: isFullScreen ? originalHeight || minHeight : "auto",
           boxShadow: isFullScreen ? "none" : "0 0 0 1px rgba(0, 0, 0, 0.3)",
           visibility: isFullScreen ? "hidden" : "visible",
         }}
@@ -507,9 +513,7 @@ export default function HtmlPreview({
                   damping: 30,
                 }}
               >
-                <div
-                  className="relative w-full h-full overflow-hidden"
-                >
+                <div className="relative w-full h-full overflow-hidden">
                   {/* Code view layer - always 100% width underneath */}
                   <AnimatePresence>
                     {showCode ? (
@@ -526,25 +530,35 @@ export default function HtmlPreview({
                       />
                     ) : null}
                   </AnimatePresence>
-                  
+
                   {/* Preview iframe layer - positioned above code */}
-                  <motion.div 
+                  <motion.div
                     className="absolute z-20"
                     initial={false}
                     animate={{
-                      width: isSplitView && showCode ? (isMobile ? "100%" : "50%") : "100%",
-                      height: isSplitView && showCode ? (isMobile ? "50%" : "100%") : "100%",
+                      width:
+                        isSplitView && showCode
+                          ? isMobile
+                            ? "100%"
+                            : "50%"
+                          : "100%",
+                      height:
+                        isSplitView && showCode
+                          ? isMobile
+                            ? "50%"
+                            : "100%"
+                          : "100%",
                       right: 0,
-                      opacity: showCode && !isSplitView ? 0 : 1
+                      opacity: showCode && !isSplitView ? 0 : 1,
                     }}
                     transition={{
                       duration: 0.3,
-                      ease: [0.25, 0.1, 0.25, 1.0]
+                      ease: [0.25, 0.1, 0.25, 1.0],
                     }}
                     style={{
                       position: "absolute",
                       top: showCode && isSplitView && isMobile ? "50%" : 0,
-                      right: 0
+                      right: 0,
                     }}
                   >
                     <iframe
@@ -558,7 +572,7 @@ export default function HtmlPreview({
                       onMouseDown={(e) => e.stopPropagation()}
                     />
                   </motion.div>
-                  
+
                   {/* Toolbar - topmost layer */}
                   <div className="absolute top-4 right-4 flex items-center bg-black/40 backdrop-blur-sm rounded-full px-2 py-1 z-50">
                     {showCode && (
