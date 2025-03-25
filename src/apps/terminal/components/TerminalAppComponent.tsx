@@ -51,6 +51,7 @@ const AVAILABLE_COMMANDS = [
   "echo",
   "whoami",
   "date",
+  "vim",
 ];
 
 // Helper function to parse app control markup
@@ -351,6 +352,12 @@ export function TerminalAppComponent({
   const [historyCommands, setHistoryCommands] = useState<string[]>([]);
   const [fontSize, setFontSize] = useState(12); // Default font size in pixels
   const [isInAiMode, setIsInAiMode] = useState(false);
+  const [isInVimMode, setIsInVimMode] = useState(false);
+  const [vimFile, setVimFile] = useState<{ name: string; content: string } | null>(null);
+  const [vimPosition, setVimPosition] = useState(0); // Current position for pagination
+  const [vimCursorLine, setVimCursorLine] = useState(0); // Current cursor line position
+  const [vimCursorColumn, setVimCursorColumn] = useState(0); // Current cursor column position
+  const [vimMode, setVimMode] = useState<"normal" | "command">("normal"); // Vim mode (normal or command)
   const [spinnerIndex, setSpinnerIndex] = useState(0);
   const [isInteractingWithPreview, setIsInteractingWithPreview] =
     useState(false);
@@ -504,6 +511,11 @@ export function TerminalAppComponent({
 
     if (!currentCommand.trim()) return;
 
+    if (isInVimMode) {
+      handleVimInput(currentCommand);
+      return;
+    }
+
     if (isInAiMode) {
       // Handle AI mode commands
       handleAiCommand(currentCommand);
@@ -575,6 +587,90 @@ export function TerminalAppComponent({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (isInVimMode) {
+      // Special handling for vim mode
+      if (e.key === 'j' || e.key === 'k' || e.key === 'ArrowUp' || e.key === 'ArrowDown' || 
+          e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'h' || e.key === 'l') {
+        e.preventDefault();
+        
+        // Directly handle navigation keys
+        if (!vimFile) return;
+        
+        const lines = vimFile.content.split("\n");
+        const maxVisibleLines = 20;
+        const maxPosition = Math.max(0, lines.length - maxVisibleLines);
+        
+        // Calculate scroll threshold for comfortable viewing
+        const lowerThreshold = Math.floor(maxVisibleLines * 0.4); // 40% from top
+        const upperThreshold = Math.floor(maxVisibleLines * 0.6); // 60% from top
+        
+        // Handle vertical movement (up/down)
+        if ((e.key === "j" || e.key === "ArrowDown") && vimCursorLine < lines.length - 1) {
+          // Move cursor down
+          const newCursorLine = vimCursorLine + 1;
+          setVimCursorLine(newCursorLine);
+          
+          // Adjust column position if the new line is shorter than current column
+          const newLineLength = lines[newCursorLine].length;
+          if (newLineLength < vimCursorColumn) {
+            setVimCursorColumn(Math.max(0, newLineLength));
+          }
+          
+          // Auto-scroll if cursor is below the upper threshold
+          if (newCursorLine - vimPosition > upperThreshold && vimPosition < maxPosition) {
+            setVimPosition(prev => Math.min(prev + 1, maxPosition));
+          }
+        } else if ((e.key === "k" || e.key === "ArrowUp") && vimCursorLine > 0) {
+          // Move cursor up
+          const newCursorLine = vimCursorLine - 1;
+          setVimCursorLine(newCursorLine);
+          
+          // Adjust column position if the new line is shorter than current column
+          const newLineLength = lines[newCursorLine].length;
+          if (newLineLength < vimCursorColumn) {
+            setVimCursorColumn(Math.max(0, newLineLength));
+          }
+          
+          // Auto-scroll if cursor is above the lower threshold
+          if (newCursorLine - vimPosition < lowerThreshold && vimPosition > 0) {
+            setVimPosition(prev => Math.max(prev - 1, 0));
+          }
+        }
+        // Handle horizontal movement (left/right)
+        else if ((e.key === "ArrowLeft" || e.key === "h") && vimCursorColumn > 0) {
+          // Move cursor left
+          setVimCursorColumn(prev => prev - 1);
+        } else if ((e.key === "ArrowRight" || e.key === "l")) {
+          // Move cursor right, but don't go beyond the end of the line
+          const currentLineLength = lines[vimCursorLine]?.length || 0;
+          if (vimCursorColumn < currentLineLength) {
+            setVimCursorColumn(prev => prev + 1);
+          }
+        }
+        
+        return;
+      } else if (e.key === ':') {
+        // Switch to command mode without adding colon to the input
+        e.preventDefault();
+        setVimMode("command");
+        setCurrentCommand("");
+        return;
+      } else if (e.key === 'Escape' && vimMode === "command") {
+        // Return to normal mode
+        setVimMode("normal");
+        setCurrentCommand("");
+        return;
+      } else if (e.key === 'Enter' && vimMode === "command") {
+        // Execute command on Enter
+        e.preventDefault();
+        
+        // Add colon prefix to command if needed
+        const command = ':' + currentCommand;
+        handleVimInput(command);
+        return;
+      }
+    }
+
     if (e.key === "ArrowUp") {
       e.preventDefault();
       // Navigate up through command history
@@ -733,6 +829,7 @@ navigation & files
   mkdir <dir>      create directory
   rm <file>        move file to trash
   edit <file>      open in text editor
+  vim <file>       open in vim editor
 
 terminal
   clear            clear screen
@@ -745,6 +842,12 @@ terminal
 
 assistant
   ryo <prompt>     chat with ryo
+
+vim commands
+  j                scroll down
+  k                scroll up
+  :q               quit without saving
+  :wq              save and quit
 `,
           isError: false,
         };
@@ -1089,6 +1192,48 @@ assistant
         };
       }
 
+      case "vim": {
+        if (args.length === 0) {
+          return {
+            output: "usage: vim <filename>",
+            isError: true,
+          };
+        }
+
+        const fileName = args[0];
+        const file = files.find((f) => f.name === fileName);
+
+        if (!file) {
+          return {
+            output: `file not found: ${fileName}`,
+            isError: true,
+          };
+        }
+
+        if (file.isDirectory) {
+          return {
+            output: `${fileName} is a directory, not a file`,
+            isError: true,
+          };
+        }
+
+        // Enter vim mode
+        setIsInVimMode(true);
+        setVimFile({
+          name: fileName,
+          content: file.content || "",
+        });
+        setVimPosition(0);
+        setVimCursorLine(0); // Initialize cursor at top of file
+        setVimCursorColumn(0); // Initialize cursor at start of line
+        setVimMode("normal");
+
+        return {
+          output: `opening ${fileName} in vim...`,
+          isError: false,
+        };
+      }
+
       case "ai":
       case "chat":
       case "ryo": {
@@ -1416,6 +1561,67 @@ assistant
     setCurrentCommand("");
   };
 
+  const handleVimInput = (input: string) => {
+    // Handle commands that start with ":"
+    if (input.startsWith(":")) {
+      if (input === ":q" || input === ":q!" || input === ":wq") {
+        // Exit vim mode
+        const output = input === ":wq" ? `"${vimFile?.name}" written` : "";
+        
+        setCommandHistory([
+          ...commandHistory,
+          {
+            command: input,
+            output,
+            path: currentPath,
+          },
+        ]);
+        
+        setIsInVimMode(false);
+        setVimFile(null);
+        setVimPosition(0);
+        setVimMode("normal");
+        
+        // Save file if using :wq
+        if (input === ":wq" && vimFile) {
+          const fileObj = files.find(f => f.name === vimFile.name);
+          if (fileObj) {
+            saveFile({
+              ...fileObj,
+              content: vimFile.content
+            });
+          }
+        }
+      } else {
+        // Unsupported vim command
+        setCommandHistory([
+          ...commandHistory,
+          {
+            command: input,
+            output: `Unsupported vim command: ${input}`,
+            path: currentPath,
+          },
+        ]);
+      }
+    } else if (input === "j" || input === "k") {
+      // Handle navigation (j: down, k: up)
+      if (!vimFile) return;
+      
+      const lines = vimFile.content.split("\n");
+      const maxVisibleLines = 20; // Number of lines to display
+      const maxPosition = Math.max(0, lines.length - maxVisibleLines);
+      
+      if (input === "j" && vimPosition < maxPosition) {
+        setVimPosition(prev => prev + 1);
+      } else if (input === "k" && vimPosition > 0) {
+        setVimPosition(prev => prev - 1);
+      }
+    }
+    
+    // Clear the input field
+    setCurrentCommand("");
+  };
+
   const increaseFontSize = () => {
     if (fontSize < 24) {
       setFontSize((prevSize) => prevSize + 2);
@@ -1545,6 +1751,319 @@ assistant
     return path === "ai-assistant" || path === "ai-user";
   };
 
+  // Add a VimEditor component
+  function VimEditor({ file, position }: { file: { name: string; content: string }, position: number }) {
+    const lines = file.content.split("\n");
+    const maxVisibleLines = 20; // Show up to 20 lines at a time
+    
+    // Get the visible lines based on the current position
+    const visibleLines = lines.slice(position, position + maxVisibleLines);
+    
+    // Fill with empty lines if there are fewer lines than maxVisibleLines
+    while (visibleLines.length < maxVisibleLines) {
+      visibleLines.push("~");
+    }
+    
+    // Calculate percentage through the file
+    const percentage = lines.length > 0 
+      ? Math.min(100, Math.floor((position + maxVisibleLines) / lines.length * 100)) 
+      : 100;
+    
+    return (
+      <div className="vim-editor font-mono text-white">
+        {visibleLines.map((line, i) => {
+          const lineNumber = position + i;
+          const isCursorLine = lineNumber === vimCursorLine;
+          
+          return (
+            <div key={i} className={`vim-line flex ${isCursorLine ? 'bg-white/10' : ''}`}>
+              <span className="text-gray-500 w-6 text-right mr-2">{lineNumber + 1}</span>
+              {isCursorLine ? (
+                // Render line with cursor
+                <span className="select-text flex-1">
+                  {line.substring(0, vimCursorColumn)}
+                  <span className="bg-orange-300 text-black">
+                    {line.charAt(vimCursorColumn) || ' '}
+                  </span>
+                  {line.substring(vimCursorColumn + 1)}
+                </span>
+              ) : (
+                // Render line without cursor
+                <span className="select-text flex-1">{line}</span>
+              )}
+            </div>
+          );
+        })}
+        <div className="vim-status-bar flex text-white text-xs mt-2">
+          <div className="bg-blue-600 px-2 py-1 font-bold">
+            {vimMode === "normal" ? "NORMAL" : "COMMAND"}
+          </div>
+          <div className="flex-1 bg-white/10 px-2 py-1 flex items-center justify-between">
+            <span className="flex-1 mx-2">[{file.name}]</span>
+            <span>
+              {percentage}%
+            </span>
+            <span className="ml-4 mr-2">
+              {vimCursorLine + 1}:{vimCursorColumn + 1}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Add a helper function to render the main terminal or vim editor
+  const renderMainContent = () => {
+    if (isInVimMode && vimFile) {
+      return (
+        <div className="mb-4">
+          <VimEditor file={vimFile} position={vimPosition} />
+          <div className="flex mt-1">
+            <span className="text-green-400 mr-1">
+              {vimMode === "normal" ? "" : ":"}
+            </span>
+            <input
+              ref={inputRef}
+              type="text"
+              value={currentCommand}
+              onChange={(e) => setCurrentCommand(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onFocus={() => setInputFocused(true)}
+              onBlur={() => setInputFocused(false)}
+              className={`flex-1 bg-transparent text-white focus:outline-none ${
+                inputFocused ? "input--focused" : ""
+              }`}
+              style={{ fontSize: `${fontSize}px` }}
+              autoFocus
+            />
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <>
+        <AnimatePresence>
+          {commandHistory.map((item, index) => (
+            <motion.div
+              key={index}
+              className="mb-1 select-text cursor-text"
+              variants={lineVariants}
+              initial="initial"
+              animate={
+                isClearingTerminal
+                  ? {
+                      opacity: 0,
+                      y: -100,
+                      filter: "blur(4px)",
+                      transition: {
+                        duration: 0.3,
+                        delay: 0.02 * (commandHistory.length - index),
+                      },
+                    }
+                  : "animate"
+              }
+              exit="exit"
+              layoutId={`terminal-line-${index}`}
+              layout="preserve-aspect"
+              transition={{
+                type: "spring",
+                duration: 0.3,
+                stiffness: 100,
+                damping: 25,
+                mass: 0.8,
+              }}
+            >
+              {item.command && (
+                <div className="flex select-text">
+                  {item.path === "ai-user" ? (
+                    <span className="text-purple-400 mr-1 select-text cursor-text">→ ryo</span>
+                  ) : (
+                    <span className="text-green-400 mr-1 select-text cursor-text">
+                      ➜ {item.path === "/" ? "/" : item.path}
+                    </span>
+                  )}
+                  <span className="select-text cursor-text">{item.command}</span>
+                </div>
+              )}
+              {item.output && (
+                <div
+                  className={`ml-0 select-text ${
+                    item.path === "ai-thinking" ? "text-gray-400" : ""
+                  } ${
+                    item.path === "ai-assistant"
+                      ? "text-purple-100"
+                      : ""
+                  } ${item.path === "ai-error" ? "text-red-400" : ""} ${
+                    item.path === "welcome-message" ? "text-gray-400" : ""
+                  } ${
+                    // Add urgent message styling
+                    isUrgentMessage(item.output)
+                      ? "text-red-500"
+                      : ""
+                  } ${
+                    // Add system message styling
+                    item.output.startsWith("ask ryo anything") ||
+                    item.output.startsWith("usage:") ||
+                    item.output.startsWith("command not found:") ||
+                    item.output.includes("type 'help' for") ||
+                    item.output.includes("no such") ||
+                    item.output.includes("not implemented") ||
+                    item.output.includes("already exists") ||
+                    item.output.startsWith("file not found:") ||
+                    item.output.startsWith("no files found")
+                      ? "text-gray-400"
+                      : ""
+                  }`}
+                >
+                  {item.path === "ai-thinking" ? (
+                    <div>
+                      <span className="text-gray-400">
+                        {item.output.split(" ")[0]}
+                      </span>
+                      <span className="text-gray-500 italic shimmer-subtle">
+                        {" ryo is thinking"}
+                        <AnimatedEllipsis />
+                      </span>
+                    </div>
+                  ) : item.path === "ai-assistant" ? (
+                    <motion.div
+                      layout="position"
+                      className="select-text cursor-text"
+                      transition={{
+                        type: "spring",
+                        duration: 0.3,
+                        stiffness: 100,
+                        damping: 25,
+                        mass: 0.8,
+                      }}
+                    >
+                      {(() => {
+                        // Process the message to extract HTML and text parts
+                        const { htmlContent, textContent, hasHtml } =
+                          extractHtmlContent(item.output);
+                          
+                        // Check if this is an urgent message
+                        const urgent = isUrgentMessage(item.output);
+                        // Clean content by removing !!!! prefix if urgent
+                        const cleanedTextContent = urgent ? cleanUrgentPrefix(textContent || "") : textContent;
+
+                        // Only mark as streaming if this specific message is the one currently being updated
+                        const isThisMessageStreaming =
+                          isAiLoading &&
+                          aiMessages.length > 0 &&
+                          aiMessages[aiMessages.length - 1].id ===
+                            item.messageId &&
+                          index === commandHistory.length - 1;
+
+                        return (
+                          <>
+                            {/* Show only non-HTML text content with markdown parsing */}
+                            {cleanedTextContent && (
+                              <span className={`select-text cursor-text ${urgent ? "text-red-300" : "text-purple-300"}`}>
+                                {urgent && <UrgentMessageAnimation />}
+                                {parseSimpleMarkdown(cleanedTextContent)}
+                              </span>
+                            )}
+
+                            {/* Show HTML preview if there's HTML content */}
+                            {hasHtml && htmlContent && (
+                              <TerminalHtmlPreview
+                                htmlContent={htmlContent}
+                                onInteractionChange={
+                                  handleHtmlPreviewInteraction
+                                }
+                                isStreaming={isThisMessageStreaming}
+                              />
+                            )}
+                          </>
+                        );
+                      })()}
+                    </motion.div>
+                  ) : animatedLines.has(index) ? (
+                    <>
+                      {isUrgentMessage(item.output) && <UrgentMessageAnimation />}
+                      <TypewriterText
+                        text={isUrgentMessage(item.output) ? cleanUrgentPrefix(item.output) : item.output}
+                        speed={10}
+                        className=""
+                        renderMarkdown={shouldApplyMarkdown(item.path)}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      {isUrgentMessage(item.output) && <UrgentMessageAnimation />}
+                      {isUrgentMessage(item.output) 
+                        ? (shouldApplyMarkdown(item.path) 
+                           ? parseSimpleMarkdown(cleanUrgentPrefix(item.output)) 
+                           : cleanUrgentPrefix(item.output))
+                        : (shouldApplyMarkdown(item.path) 
+                           ? parseSimpleMarkdown(item.output) 
+                           : item.output)}
+                      {isHtmlCodeBlock(item.output).isHtml && (
+                        <TerminalHtmlPreview
+                          htmlContent={isHtmlCodeBlock(item.output).content}
+                          onInteractionChange={handleHtmlPreviewInteraction}
+                          isStreaming={false}
+                        />
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+            </motion.div>
+          ))}
+        </AnimatePresence>
+
+        <div className="relative select-text">
+          <form
+            onSubmit={handleCommandSubmit}
+            className="flex transition-all duration-200 select-text"
+          >
+            {isInAiMode ? (
+              <span className="text-purple-400 mr-1 whitespace-nowrap select-text cursor-text">
+                {isAiLoading
+                  ? spinnerChars[spinnerIndex] + " ryo"
+                  : "→ ryo"}
+              </span>
+            ) : (
+              <span className="text-green-400 mr-1 whitespace-nowrap select-text cursor-text">
+                ➜ {currentPath === "/" ? "/" : currentPath}
+              </span>
+            )}
+            <div className="flex-1 relative">
+              <input
+                ref={inputRef}
+                type="text"
+                value={currentCommand}
+                onChange={(e) => setCurrentCommand(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onFocus={() => setInputFocused(true)}
+                onBlur={() => setInputFocused(false)}
+                onTouchStart={(e) => {
+                  e.preventDefault();
+                }}
+                className={`w-full text-white focus:outline-none bg-transparent ${
+                  inputFocused ? "input--focused" : ""
+                }`}
+                style={{ fontSize: `${fontSize}px` }}
+                autoFocus
+              />
+              {isAiLoading && isInAiMode && (
+                <div className="absolute top-0 left-0 w-full h-full pointer-events-none flex items-center">
+                  <span className="text-gray-400/40 opacity-30 shimmer">
+                    is thinking
+                    <AnimatedEllipsis />
+                  </span>
+                </div>
+              )}
+            </div>
+          </form>
+        </div>
+      </>
+    );
+  };
+
   if (!isWindowOpen) return null;
 
   return (
@@ -1605,223 +2124,7 @@ assistant
             }}
             onScroll={handleScroll}
           >
-            <AnimatePresence>
-              {commandHistory.map((item, index) => (
-                <motion.div
-                  key={index}
-                  className="mb-1 select-text cursor-text"
-                  variants={lineVariants}
-                  initial="initial"
-                  animate={
-                    isClearingTerminal
-                      ? {
-                          opacity: 0,
-                          y: -100,
-                          filter: "blur(4px)",
-                          transition: {
-                            duration: 0.3,
-                            delay: 0.02 * (commandHistory.length - index),
-                          },
-                        }
-                      : "animate"
-                  }
-                  exit="exit"
-                  layoutId={`terminal-line-${index}`}
-                  layout="preserve-aspect"
-                  transition={{
-                    type: "spring",
-                    duration: 0.3,
-                    stiffness: 100,
-                    damping: 25,
-                    mass: 0.8,
-                  }}
-                >
-                  {item.command && (
-                    <div className="flex select-text">
-                      {item.path === "ai-user" ? (
-                        <span className="text-purple-400 mr-1 select-text cursor-text">→ ryo</span>
-                      ) : (
-                        <span className="text-green-400 mr-1 select-text cursor-text">
-                          ➜ {item.path === "/" ? "/" : item.path}
-                        </span>
-                      )}
-                      <span className="select-text cursor-text">{item.command}</span>
-                    </div>
-                  )}
-                  {item.output && (
-                    <div
-                      className={`ml-0 select-text ${
-                        item.path === "ai-thinking" ? "text-gray-400" : ""
-                      } ${
-                        item.path === "ai-assistant"
-                          ? "text-purple-100"
-                          : ""
-                      } ${item.path === "ai-error" ? "text-red-400" : ""} ${
-                        item.path === "welcome-message" ? "text-gray-400" : ""
-                      } ${
-                        // Add urgent message styling
-                        isUrgentMessage(item.output)
-                          ? "text-red-500"
-                          : ""
-                      } ${
-                        // Add system message styling
-                        item.output.startsWith("ask ryo anything") ||
-                        item.output.startsWith("usage:") ||
-                        item.output.startsWith("command not found:") ||
-                        item.output.includes("type 'help' for") ||
-                        item.output.includes("no such") ||
-                        item.output.includes("not implemented") ||
-                        item.output.includes("already exists") ||
-                        item.output.startsWith("file not found:") ||
-                        item.output.startsWith("no files found")
-                          ? "text-gray-400"
-                          : ""
-                      }`}
-                    >
-                      {item.path === "ai-thinking" ? (
-                        <div>
-                          <span className="text-gray-400">
-                            {item.output.split(" ")[0]}
-                          </span>
-                          <span className="text-gray-500 italic shimmer-subtle">
-                            {" ryo is thinking"}
-                            <AnimatedEllipsis />
-                          </span>
-                        </div>
-                      ) : item.path === "ai-assistant" ? (
-                        <motion.div
-                          layout="position"
-                          className="select-text cursor-text"
-                          transition={{
-                            type: "spring",
-                            duration: 0.3,
-                            stiffness: 100,
-                            damping: 25,
-                            mass: 0.8,
-                          }}
-                        >
-                          {(() => {
-                            // Process the message to extract HTML and text parts
-                            const { htmlContent, textContent, hasHtml } =
-                              extractHtmlContent(item.output);
-                              
-                            // Check if this is an urgent message
-                            const urgent = isUrgentMessage(item.output);
-                            // Clean content by removing !!!! prefix if urgent
-                            const cleanedTextContent = urgent ? cleanUrgentPrefix(textContent || "") : textContent;
-
-                            // Only mark as streaming if this specific message is the one currently being updated
-                            const isThisMessageStreaming =
-                              isAiLoading &&
-                              aiMessages.length > 0 &&
-                              aiMessages[aiMessages.length - 1].id ===
-                                item.messageId &&
-                              index === commandHistory.length - 1;
-
-                            return (
-                              <>
-                                {/* Show only non-HTML text content with markdown parsing */}
-                                {cleanedTextContent && (
-                                  <span className={`select-text cursor-text ${urgent ? "text-red-300" : "text-purple-300"}`}>
-                                    {urgent && <UrgentMessageAnimation />}
-                                    {parseSimpleMarkdown(cleanedTextContent)}
-                                  </span>
-                                )}
-
-                                {/* Show HTML preview if there's HTML content */}
-                                {hasHtml && htmlContent && (
-                                  <TerminalHtmlPreview
-                                    htmlContent={htmlContent}
-                                    onInteractionChange={
-                                      handleHtmlPreviewInteraction
-                                    }
-                                    isStreaming={isThisMessageStreaming}
-                                  />
-                                )}
-                              </>
-                            );
-                          })()}
-                        </motion.div>
-                      ) : animatedLines.has(index) ? (
-                        <>
-                          {isUrgentMessage(item.output) && <UrgentMessageAnimation />}
-                          <TypewriterText
-                            text={isUrgentMessage(item.output) ? cleanUrgentPrefix(item.output) : item.output}
-                            speed={10}
-                            className=""
-                            renderMarkdown={shouldApplyMarkdown(item.path)}
-                          />
-                        </>
-                      ) : (
-                        <>
-                          {isUrgentMessage(item.output) && <UrgentMessageAnimation />}
-                          {isUrgentMessage(item.output) 
-                            ? (shouldApplyMarkdown(item.path) 
-                               ? parseSimpleMarkdown(cleanUrgentPrefix(item.output)) 
-                               : cleanUrgentPrefix(item.output))
-                            : (shouldApplyMarkdown(item.path) 
-                               ? parseSimpleMarkdown(item.output) 
-                               : item.output)}
-                          {isHtmlCodeBlock(item.output).isHtml && (
-                            <TerminalHtmlPreview
-                              htmlContent={isHtmlCodeBlock(item.output).content}
-                              onInteractionChange={handleHtmlPreviewInteraction}
-                              isStreaming={false}
-                            />
-                          )}
-                        </>
-                      )}
-                    </div>
-                  )}
-                </motion.div>
-              ))}
-            </AnimatePresence>
-
-            <div className="relative select-text">
-              <form
-                onSubmit={handleCommandSubmit}
-                className="flex transition-all duration-200 select-text"
-              >
-                {isInAiMode ? (
-                  <span className="text-purple-400 mr-1 whitespace-nowrap select-text cursor-text">
-                    {isAiLoading
-                      ? spinnerChars[spinnerIndex] + " ryo"
-                      : "→ ryo"}
-                  </span>
-                ) : (
-                  <span className="text-green-400 mr-1 whitespace-nowrap select-text cursor-text">
-                    ➜ {currentPath === "/" ? "/" : currentPath}
-                  </span>
-                )}
-                <div className="flex-1 relative">
-                  <input
-                    ref={inputRef}
-                    type="text"
-                    value={currentCommand}
-                    onChange={(e) => setCurrentCommand(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    onFocus={() => setInputFocused(true)}
-                    onBlur={() => setInputFocused(false)}
-                    onTouchStart={(e) => {
-                      e.preventDefault();
-                    }}
-                    className={`w-full text-white focus:outline-none bg-transparent ${
-                      inputFocused ? "input--focused" : ""
-                    }`}
-                    style={{ fontSize: `${fontSize}px` }}
-                    autoFocus
-                  />
-                  {isAiLoading && isInAiMode && (
-                    <div className="absolute top-0 left-0 w-full h-full pointer-events-none flex items-center">
-                      <span className="text-gray-400/40 opacity-30 shimmer">
-                        is thinking
-                        <AnimatedEllipsis />
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </form>
-            </div>
+            {renderMainContent()}
           </div>
         </motion.div>
       </WindowFrame>
