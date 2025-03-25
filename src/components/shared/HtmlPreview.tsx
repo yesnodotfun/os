@@ -774,7 +774,7 @@ export default function HtmlPreview({
                       }, 100);
                     }}
                     onClick={(e) => e.stopPropagation()}
-                    style={{ top: 0, right: 0, padding: 16 }} // Default position: top-right
+                    style={{ top: 0, right: 0, padding: 16, minHeight: '40px', minWidth: '40px'}} // Default position: top-right
                   >
                     <motion.div 
                       className="bg-neutral-700/40 backdrop-blur-sm rounded-full overflow-hidden flex items-center justify-center"
@@ -788,18 +788,17 @@ export default function HtmlPreview({
                       }}
                       transition={{ 
                         duration: 0.15,
-                        ease: "easeInOut"
                       }}
                     >
                       {/* Plus icon - only visible when collapsed */}
                       <motion.div
-                        className="absolute"
+                        className="absolute w-[40px] h-[40px] flex items-center justify-center"
                         initial={false}
                         animate={{
                           opacity: isToolbarCollapsed ? 1 : 0,
                           scale: isToolbarCollapsed ? 1 : 0.5,
                         }}
-                        transition={{ duration: 0.1 }}
+                        transition={{ duration: 0.2 }}
                         style={{
                           pointerEvents: isToolbarCollapsed ? 'auto' : 'none',
                           cursor: 'pointer'
@@ -815,9 +814,9 @@ export default function HtmlPreview({
                         initial={false}
                         animate={{
                           opacity: isToolbarCollapsed ? 0 : 1,
-                          width: isToolbarCollapsed ? 0 : 'auto',
+                          width: isToolbarCollapsed ? 40 : 'auto',
                         }}
-                        transition={{ duration: 0.1 }}
+                        transition={{ duration: 0.15 }}
                         style={{
                           pointerEvents: isToolbarCollapsed ? 'none' : 'auto',
                           overflow: 'hidden'
