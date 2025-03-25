@@ -1875,12 +1875,10 @@ export function ChatsAppComponent({
   } = useChat({
     initialMessages: loadChatMessages() || [initialMessage],
     experimental_throttle: 50,
-    body: textEditContext
-      ? {
-          textEditContext,
-          systemState: getSystemState(),
-        }
-      : undefined,
+    body: {
+      textEditContext: textEditContext || undefined,
+      systemState: getSystemState(),
+    },
   });
 
   // Mark initial messages as loaded after the first render
@@ -1900,13 +1898,15 @@ export function ChatsAppComponent({
   const handleSubmit = useCallback(
     (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
+      
+      // Get fresh system state right before sending the request
+      const freshSystemState = getSystemState();
+      
       originalHandleSubmit(e, {
-        body: textEditContext
-          ? {
-              textEditContext,
-              systemState: getSystemState(),
-            }
-          : undefined,
+        body: {
+          textEditContext: textEditContext || undefined,
+          systemState: freshSystemState,
+        },
       });
     },
     [originalHandleSubmit, textEditContext]
@@ -2292,12 +2292,10 @@ export function ChatsAppComponent({
           role: "user",
         },
         {
-          body: textEditContext
-            ? {
-                textEditContext,
-                systemState: getSystemState(),
-              }
-            : undefined,
+          body: {
+            textEditContext: textEditContext || undefined,
+            systemState: getSystemState(),
+          },
         }
       );
     },

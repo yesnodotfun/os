@@ -25,6 +25,7 @@ import {
   APP_STORAGE_KEYS,
   loadWaybackYear,
   saveWaybackYear,
+  updateBrowserState,
 } from "@/utils/storage";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { InputDialog } from "@/components/dialogs/InputDialog";
@@ -134,6 +135,9 @@ export function InternetExplorerAppComponent({
     if (navigation.url && navigation.year) {
       saveLastUrl(navigation.url);
       saveWaybackYear(navigation.year);
+      
+      // Update global browser state for system state tracking
+      updateBrowserState(navigation.url, navigation.year);
     }
   }, [navigation.url, navigation.year]);
 

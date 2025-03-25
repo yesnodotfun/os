@@ -977,6 +977,22 @@ export const saveGames = (games: Game[]): void => {
   localStorage.setItem(APP_STORAGE_KEYS.pc.GAMES, JSON.stringify(games));
 };
 
+// Add a new section for runtime state tracking that persists between renders
+// Create global state trackers for runtime state
+let videoIsPlayingState = false;
+let browserCurrentUrlState = '';
+let browserCurrentYearState = '';
+
+// Export functions to update the runtime state
+export const updateVideoPlayingState = (isPlaying: boolean): void => {
+  videoIsPlayingState = isPlaying;
+};
+
+export const updateBrowserState = (url: string, year: string): void => {
+  browserCurrentUrlState = url;
+  browserCurrentYearState = year;
+};
+
 // System state helper functions
 export interface SystemState {
   openApps: string[];
@@ -1014,9 +1030,9 @@ export const getSystemState = (): SystemState => {
   const currentIndex = loadCurrentIndex();
   const currentVideo = playlist[currentIndex] || null;
 
-  // Get browser state
-  const currentUrl = loadLastUrl();
-  const currentYear = loadWaybackYear();
+  // Get browser state - use runtime state if available, otherwise fallback to storage
+  const currentUrl = browserCurrentUrlState || loadLastUrl();
+  const currentYear = browserCurrentYearState || loadWaybackYear();
   const history = loadHistory();
 
   // Get TextEdit state
@@ -1033,7 +1049,7 @@ export const getSystemState = (): SystemState => {
     foregroundApp,
     video: {
       currentVideo,
-      isPlaying: false, // This is a runtime state, can't be determined from storage
+      isPlaying: videoIsPlayingState, // Use the live state instead of hardcoded false
       currentIndex,
       isLoopAll: loadIsLoopAll(),
       isLoopCurrent: loadIsLoopCurrent(),

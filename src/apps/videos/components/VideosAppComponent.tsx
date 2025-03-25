@@ -22,6 +22,7 @@ import {
   loadIsShuffled,
   saveIsShuffled,
   DEFAULT_VIDEOS,
+  updateVideoPlayingState,
 } from "@/utils/storage";
 import { Button } from "@/components/ui/button";
 import { useSound, Sounds } from "@/hooks/useSound";
@@ -503,6 +504,7 @@ export function VideosAppComponent({
     setIsPlaying(!isPlaying);
     showStatus(isPlaying ? "PAUSED ⏸" : "PLAY ▶");
     playVideoTape();
+    updateVideoPlayingState(!isPlaying);
   };
 
   const toggleShuffle = () => {
@@ -526,10 +528,12 @@ export function VideosAppComponent({
   // Add new handlers for YouTube player state sync
   const handlePlay = () => {
     setIsPlaying(true);
+    updateVideoPlayingState(true);
   };
 
   const handlePause = () => {
     setIsPlaying(false);
+    updateVideoPlayingState(false);
   };
 
   const handleReady = () => {
