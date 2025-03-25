@@ -59,6 +59,8 @@ export function WindowFrame({
     useAppContext();
   const { play: playWindowOpen } = useSound(Sounds.WINDOW_OPEN);
   const { play: playWindowClose } = useSound(Sounds.WINDOW_CLOSE);
+  const { play: playWindowExpand } = useSound(Sounds.WINDOW_EXPAND);
+  const { play: playWindowCollapse } = useSound(Sounds.WINDOW_COLLAPSE);
   const [isFullHeight, setIsFullHeight] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
   const isMobile = useIsMobile();
@@ -158,6 +160,9 @@ export function WindowFrame({
     if (isMaximized) return;
 
     if (isFullHeight) {
+      // Play collapse sound when restoring height
+      playWindowCollapse();
+      
       // Restore to default height from app's configuration
       setIsFullHeight(false);
       setWindowSize((prev) => ({
@@ -165,6 +170,9 @@ export function WindowFrame({
         height: mergedConstraints.defaultSize.height,
       }));
     } else {
+      // Play expand sound when maximizing height
+      playWindowExpand();
+      
       // Set to full height
       setIsFullHeight(true);
       maximizeWindowHeight(mergedConstraints.maxHeight);
@@ -188,6 +196,9 @@ export function WindowFrame({
       setIsMaximized(newMaximizedState);
 
       if (!newMaximizedState) {
+        // Play collapse sound when minimizing
+        playWindowCollapse();
+        
         // Restoring to default size
         const defaultSize = mergedConstraints.defaultSize;
 
@@ -213,6 +224,9 @@ export function WindowFrame({
           defaultSize
         );
       } else {
+        // Play expand sound when maximizing
+        playWindowExpand();
+        
         // Maximizing the window
         // Save current size before maximizing
         previousSizeRef.current = {
@@ -269,6 +283,8 @@ export function WindowFrame({
       windowSize,
       appId,
       getSafeAreaBottomInset,
+      playWindowExpand,
+      playWindowCollapse,
     ]
   );
 

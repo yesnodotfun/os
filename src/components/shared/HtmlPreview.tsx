@@ -7,6 +7,7 @@ import {
   loadHtmlPreviewSplit,
   saveHtmlPreviewSplit,
 } from "../../utils/storage";
+import { useSound, Sounds } from "../../hooks/useSound";
 
 // Create a singleton highlighter instance
 let highlighterPromise: Promise<shiki.Highlighter> | null = null;
@@ -162,6 +163,10 @@ export default function HtmlPreview({
     `iframe-${Math.random().toString(36).substring(2, 9)}`
   ).current;
   const prevStreamingRef = useRef(isStreaming);
+  
+  // Add sound hooks
+  const maximizeSound = useSound(Sounds.WINDOW_EXPAND);
+  const minimizeSound = useSound(Sounds.WINDOW_COLLAPSE);
 
   // Save split view state when it changes
   useEffect(() => {
@@ -312,6 +317,16 @@ export default function HtmlPreview({
     URL.revokeObjectURL(url);
   };
 
+  const toggleFullScreen = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isFullScreen) {
+      maximizeSound.play();
+    } else {
+      minimizeSound.play();
+    }
+    setIsFullScreen(!isFullScreen);
+  };
+
   // Normal inline display with optional maximized height
   return (
     <>
@@ -386,10 +401,7 @@ export default function HtmlPreview({
             )}
           </button>
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsFullScreen(!isFullScreen);
-            }}
+            onClick={toggleFullScreen}
             onMouseDown={(e) => e.stopPropagation()}
             className="flex items-center justify-center w-6 h-6 hover:bg-black/10 rounded group"
             aria-label={isFullScreen ? "Minimize preview" : "Maximize preview"}
@@ -445,7 +457,10 @@ export default function HtmlPreview({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
-              onClick={() => setIsFullScreen(false)}
+              onClick={() => {
+                minimizeSound.play();
+                setIsFullScreen(false);
+              }}
             >
               <motion.div
                 className="absolute inset-0 flex flex-col"
@@ -539,7 +554,11 @@ export default function HtmlPreview({
                     )}
                   </button>
                   <button
-                    onClick={() => setIsFullScreen(false)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      minimizeSound.play();
+                      setIsFullScreen(false);
+                    }}
                     className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full group"
                     aria-label="Exit fullscreen"
                   >
