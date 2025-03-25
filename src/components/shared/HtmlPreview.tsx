@@ -210,7 +210,7 @@ export default function HtmlPreview({
     const scriptTags = `
   <link rel="stylesheet" href="/fonts/fonts.css">
   <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/tailwindcss@3.4"></script>
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
   <script>
     tailwind.config = {
       theme: {
