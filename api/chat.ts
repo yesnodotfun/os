@@ -384,7 +384,7 @@ export default async function handler(req: Request) {
       messages,
       textEditContext,
       systemState,
-      model = "claude-3.5",
+      model = "claude-3.7",
     } = await req.json();
 
     if (!messages || !Array.isArray(messages)) {
@@ -397,7 +397,7 @@ export default async function handler(req: Request) {
       model: selectedModel,
       system: generateSystemPrompt(textEditContext, systemState),
       messages,
-      temperature: 1,
+      temperature: 0.7,
       maxTokens: 8000,
       experimental_transform: smoothStream(),
     });
