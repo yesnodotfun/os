@@ -535,7 +535,7 @@ export default function HtmlPreview({
           srcDoc={processedHtmlContent}
           title="ryOS Code Preview"
           className="w-full h-full border-0"
-          sandbox="allow-scripts"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation allow-modals allow-orientation-lock allow-pointer-lock allow-presentation allow-downloads allow-storage-access-by-user-activation"
           style={{
             height:
               typeof minHeight === "string" ? minHeight : `${minHeight}px`,
@@ -574,66 +574,16 @@ export default function HtmlPreview({
               <motion.div
                 className="absolute inset-0 flex flex-col"
                 initial={{
-                  position: "fixed",
-                  top: previewRef.current?.getBoundingClientRect().top ?? 0,
-                  left: previewRef.current?.getBoundingClientRect().left ?? 0,
-                  width: "100%",
-                  height: "100%",
-                  transform: `
-                    scale(${
-                      (previewRef.current?.getBoundingClientRect().width ?? 0) /
-                      window.innerWidth
-                    })
-                    translate(
-                      ${
-                        ((previewRef.current?.getBoundingClientRect().left ??
-                          0) /
-                          (previewRef.current?.getBoundingClientRect().width ??
-                            1)) *
-                        100
-                      }%,
-                      ${
-                        ((previewRef.current?.getBoundingClientRect().top ??
-                          0) /
-                          (previewRef.current?.getBoundingClientRect().height ??
-                            1)) *
-                        100
-                      }%
-                    )
-                  `,
-                  transformOrigin: "top left",
+                  y: "100%",
+                  opacity: 0
                 }}
                 animate={{
-                  top: 0,
-                  left: 0,
-                  transform: "scale(1) translate(0%, 0%)",
+                  y: 0,
+                  opacity: 1
                 }}
                 exit={{
-                  position: "fixed",
-                  top: previewRef.current?.getBoundingClientRect().top ?? 0,
-                  left: previewRef.current?.getBoundingClientRect().left ?? 0,
-                  transform: `
-                    scale(${
-                      (previewRef.current?.getBoundingClientRect().width ?? 0) /
-                      window.innerWidth
-                    })
-                    translate(
-                      ${
-                        ((previewRef.current?.getBoundingClientRect().left ??
-                          0) /
-                          (previewRef.current?.getBoundingClientRect().width ??
-                            1)) *
-                        100
-                      }%,
-                      ${
-                        ((previewRef.current?.getBoundingClientRect().top ??
-                          0) /
-                          (previewRef.current?.getBoundingClientRect().height ??
-                            1)) *
-                        100
-                      }%
-                    )
-                  `,
+                  y: "100%",
+                  opacity: 0
                 }}
                 transition={{
                   type: "spring",
@@ -695,7 +645,7 @@ export default function HtmlPreview({
                       srcDoc={processedHtmlContent}
                       title="ryOS Code Preview Fullscreen"
                       className="border-0 bg-white w-full h-full"
-                      sandbox="allow-scripts"
+                      sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation allow-modals allow-orientation-lock allow-pointer-lock allow-presentation allow-downloads allow-storage-access-by-user-activation"
                       onClick={(e) => e.stopPropagation()}
                       onMouseDown={(e) => e.stopPropagation()}
                     />
