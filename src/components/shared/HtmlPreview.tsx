@@ -779,7 +779,7 @@ export default function HtmlPreview({
                     style={{ top: 0, right: 0, padding: 16, minHeight: '40px', minWidth: '40px'}} // Default position: top-right
                   >
                     <motion.div 
-                      className="bg-neutral-700/40 backdrop-blur-sm rounded-full overflow-hidden flex items-center justify-center"
+                      className="bg-neutral-700/40 backdrop-blur-sm rounded-full overflow-hidden flex items-center justify-center gap-1"
                       layout
                       onClick={(e) => e.stopPropagation()}
                       initial={false}
@@ -825,7 +825,7 @@ export default function HtmlPreview({
                         }}
                       >
                         <div 
-                          className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full mr-2 group cursor-move"
+                          className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full group cursor-move"
                           onPointerDown={(e) => {
                             e.stopPropagation();
                             dragControls.start(e);
@@ -852,7 +852,7 @@ export default function HtmlPreview({
                                 maximizeSound.play();
                               }
                             }}
-                            className="flex items-center justify-center px-2 h-8 hover:bg-white/10 rounded-full mr-2 group text-sm font-geneva-12"
+                            className="flex items-center justify-center px-2 h-8 hover:bg-white/10 rounded-full group text-sm font-geneva-12"
                             aria-label="Toggle split view"
                           >
                             <span className="text-white/70 group-hover:text-white">
@@ -873,7 +873,7 @@ export default function HtmlPreview({
                               minimizeSound.play();
                             }
                           }}
-                          className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full mr-2 group"
+                          className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full group"
                           aria-label="Toggle code"
                         >
                           <Code
@@ -883,7 +883,7 @@ export default function HtmlPreview({
                         </button>
                         <button
                           onClick={handleSaveToDisk}
-                          className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full mr-2 group"
+                          className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full group"
                           aria-label="Save HTML to disk"
                         >
                           <Save
@@ -893,7 +893,7 @@ export default function HtmlPreview({
                         </button>
                         <button
                           onClick={handleCopy}
-                          className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full mr-2 group"
+                          className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full group"
                           aria-label="Copy HTML code"
                         >
                           {copySuccess ? (
