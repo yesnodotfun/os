@@ -358,6 +358,7 @@ export function TerminalAppComponent({
   const [vimCursorLine, setVimCursorLine] = useState(0); // Current cursor line position
   const [vimCursorColumn, setVimCursorColumn] = useState(0); // Current cursor column position
   const [vimMode, setVimMode] = useState<"normal" | "command" | "insert">("normal"); // Vim mode
+  const [vimClipboard, setVimClipboard] = useState<string>(""); // Add clipboard state for vim copy/paste
   const [spinnerIndex, setSpinnerIndex] = useState(0);
   const [isInteractingWithPreview, setIsInteractingWithPreview] =
     useState(false);
@@ -371,6 +372,8 @@ export function TerminalAppComponent({
   const isAtBottomRef = useRef(true);
   const hasScrolledRef = useRef(false);
   const previousCommandHistoryLength = useRef(0);
+  const lastGPressTimeRef = useRef<number>(0); // Add ref for tracking 'g' key presses
+  const lastKeyPressRef = useRef<{key: string, time: number}>({key: '', time: 0}); // Track last key for double-key commands
 
   // Keep track of the last processed message ID to avoid duplicates
   const lastProcessedMessageIdRef = useRef<string | null>(null);
@@ -852,7 +855,11 @@ export function TerminalAppComponent({
       
       // Normal mode handling
       if (e.key === 'j' || e.key === 'k' || e.key === 'ArrowUp' || e.key === 'ArrowDown' || 
-          e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'h' || e.key === 'l') {
+          e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'h' || e.key === 'l' ||
+          e.key === '0' || e.key === '$' || e.key === 'w' || e.key === 'b' ||
+          e.key === 'g' || e.key === 'G' || e.key === 'a' || e.key === 'o' || e.key === 'O' ||
+          e.key === 'd' || e.key === 'y' || e.key === 'p' ||
+          (e.key === 'd' && e.ctrlKey) || (e.key === 'u' && e.ctrlKey)) {
         e.preventDefault();
         
         // Directly handle navigation keys
@@ -907,6 +914,276 @@ export function TerminalAppComponent({
           const currentLineLength = lines[vimCursorLine]?.length || 0;
           if (vimCursorColumn < currentLineLength) {
             setVimCursorColumn(prev => prev + 1);
+          }
+        }
+        // Go to start of line (0)
+        else if (e.key === "0") {
+          setVimCursorColumn(0);
+        }
+        // Go to end of line ($)
+        else if (e.key === "$") {
+          const currentLineLength = lines[vimCursorLine]?.length || 0;
+          setVimCursorColumn(Math.max(0, currentLineLength));
+        }
+        // Move to next word (w)
+        else if (e.key === "w") {
+          const currentLine = lines[vimCursorLine] || "";
+          // Find next word boundary
+          const wordRegex = /\b\w/g;
+          wordRegex.lastIndex = vimCursorColumn + 1; // Start from next character
+          
+          const match = wordRegex.exec(currentLine);
+          if (match) {
+            // Found a word boundary in current line
+            setVimCursorColumn(match.index);
+          } else if (vimCursorLine < lines.length - 1) {
+            // Move to beginning of next line
+            setVimCursorLine(prev => prev + 1);
+            setVimCursorColumn(0);
+            
+            // Auto-scroll if needed
+            if ((vimCursorLine + 1) - vimPosition > upperThreshold && vimPosition < maxPosition) {
+              setVimPosition(prev => Math.min(prev + 1, maxPosition));
+            }
+          }
+        }
+        // Move to previous word (b)
+        else if (e.key === "b") {
+          const currentLine = lines[vimCursorLine] || "";
+          
+          // If at start of line and not first line, go to end of previous line
+          if (vimCursorColumn === 0 && vimCursorLine > 0) {
+            setVimCursorLine(prev => prev - 1);
+            const prevLineLength = lines[vimCursorLine - 1]?.length || 0;
+            setVimCursorColumn(prevLineLength);
+            
+            // Auto-scroll if needed
+            if ((vimCursorLine - 1) - vimPosition < lowerThreshold && vimPosition > 0) {
+              setVimPosition(prev => Math.max(prev - 1, 0));
+            }
+            return;
+          }
+          
+          // Find previous word boundary
+          let position = vimCursorColumn - 1;
+          while (position > 0) {
+            // Check if this position is at a word boundary
+            const isWordBoundary = 
+              /\w/.test(currentLine[position]) && 
+              (position === 0 || /\W/.test(currentLine[position - 1]));
+            
+            if (isWordBoundary) {
+              setVimCursorColumn(position);
+              return;
+            }
+            position--;
+          }
+          
+          // If no word boundary found, go to start of line
+          setVimCursorColumn(0);
+        }
+        // Go to top of file (gg)
+        else if (e.key === "g") {
+          // Track 'g' press for double-g (gg) command
+          const now = Date.now();
+          const lastGPress = lastGPressTimeRef.current;
+          lastGPressTimeRef.current = now;
+          
+          // If pressed 'g' twice quickly
+          if (now - lastGPress < 500) {
+            setVimCursorLine(0);
+            setVimCursorColumn(0);
+            setVimPosition(0);
+            lastGPressTimeRef.current = 0; // Reset timer
+          }
+        }
+        // Go to bottom of file (G)
+        else if (e.key === "G") {
+          const lastLineIndex = Math.max(0, lines.length - 1);
+          setVimCursorLine(lastLineIndex);
+          setVimCursorColumn(0);
+          
+          // Update scroll position to show the last lines
+          setVimPosition(Math.max(0, lines.length - maxVisibleLines));
+        }
+        // Page down (Ctrl+d) - move half screen down
+        else if (e.key === "d" && e.ctrlKey) {
+          const halfScreen = Math.floor(maxVisibleLines / 2);
+          const newPosition = Math.min(vimPosition + halfScreen, maxPosition);
+          setVimPosition(newPosition);
+          
+          // Move cursor down too if possible
+          const newCursorLine = Math.min(vimCursorLine + halfScreen, lines.length - 1);
+          setVimCursorLine(newCursorLine);
+          
+          // Adjust column if needed
+          const newLineLength = lines[newCursorLine]?.length || 0;
+          if (vimCursorColumn > newLineLength) {
+            setVimCursorColumn(Math.max(0, newLineLength));
+          }
+        }
+        // Page up (Ctrl+u) - move half screen up
+        else if (e.key === "u" && e.ctrlKey) {
+          const halfScreen = Math.floor(maxVisibleLines / 2);
+          const newPosition = Math.max(vimPosition - halfScreen, 0);
+          setVimPosition(newPosition);
+          
+          // Move cursor up too if possible
+          const newCursorLine = Math.max(vimCursorLine - halfScreen, 0);
+          setVimCursorLine(newCursorLine);
+          
+          // Adjust column if needed
+          const newLineLength = lines[newCursorLine]?.length || 0;
+          if (vimCursorColumn > newLineLength) {
+            setVimCursorColumn(Math.max(0, newLineLength));
+          }
+        }
+        // Insert after cursor (a)
+        else if (e.key === "a") {
+          setVimMode("insert");
+          // Move cursor one position right if not at end of line
+          const currentLineLength = lines[vimCursorLine]?.length || 0;
+          if (vimCursorColumn < currentLineLength) {
+            setVimCursorColumn(prev => prev + 1);
+          }
+        }
+        // Open new line below cursor (o)
+        else if (e.key === "o") {
+          // Insert a new line below current line
+          const newLines = [...lines];
+          newLines.splice(vimCursorLine + 1, 0, "");
+          
+          // Update file content
+          setVimFile({
+            ...vimFile,
+            content: newLines.join("\n")
+          });
+          
+          // Move cursor to the beginning of the new line
+          setVimCursorLine(prev => prev + 1);
+          setVimCursorColumn(0);
+          
+          // Enter insert mode
+          setVimMode("insert");
+          
+          // Auto-scroll if needed
+          if ((vimCursorLine + 1) - vimPosition > upperThreshold && vimPosition < maxPosition) {
+            setVimPosition(prev => Math.min(prev + 1, maxPosition));
+          }
+        }
+        // Open new line above cursor (O)
+        else if (e.key === "O") {
+          // Insert a new line above current line
+          const newLines = [...lines];
+          newLines.splice(vimCursorLine, 0, "");
+          
+          // Update file content
+          setVimFile({
+            ...vimFile,
+            content: newLines.join("\n")
+          });
+          
+          // Keep cursor at the same line (which is now the new empty line)
+          setVimCursorColumn(0);
+          
+          // Enter insert mode
+          setVimMode("insert");
+        }
+        
+        // Delete line (dd)
+        else if (e.key === "d") {
+          // Track for double-d (dd) command
+          const now = Date.now();
+          const lastKey = lastKeyPressRef.current;
+          
+          // Update last key press
+          lastKeyPressRef.current = { key: 'd', time: now };
+          
+          // If pressed 'd' twice quickly
+          if (lastKey.key === 'd' && now - lastKey.time < 500) {
+            // Can't delete the last line - vim always keeps at least one line
+            if (lines.length > 1) {
+              // Copy the line to clipboard before deleting
+              setVimClipboard(lines[vimCursorLine]);
+              
+              // Remove the current line
+              const newLines = [...lines];
+              newLines.splice(vimCursorLine, 1);
+              
+              // Update file content
+              setVimFile({
+                ...vimFile,
+                content: newLines.join("\n")
+              });
+              
+              // Adjust cursor position if we deleted the last line
+              if (vimCursorLine >= newLines.length) {
+                setVimCursorLine(Math.max(0, newLines.length - 1));
+              }
+              
+              // Reset column position to the start of the line
+              setVimCursorColumn(0);
+            } else {
+              // If it's the last line, just clear it and copy its content
+              setVimClipboard(lines[0]);
+              
+              // Clear the line content but keep the line
+              const newLines = [""];
+              setVimFile({
+                ...vimFile,
+                content: newLines.join("\n")
+              });
+              
+              setVimCursorColumn(0);
+            }
+            
+            // Reset the last key press
+            lastKeyPressRef.current = { key: '', time: 0 };
+          }
+        }
+        
+        // Yank (copy) line (yy)
+        else if (e.key === "y") {
+          // Track for double-y (yy) command
+          const now = Date.now();
+          const lastKey = lastKeyPressRef.current;
+          
+          // Update last key press
+          lastKeyPressRef.current = { key: 'y', time: now };
+          
+          // If pressed 'y' twice quickly
+          if (lastKey.key === 'y' && now - lastKey.time < 500) {
+            // Copy the current line to clipboard
+            setVimClipboard(lines[vimCursorLine]);
+            
+            // Reset the last key press
+            lastKeyPressRef.current = { key: '', time: 0 };
+          }
+        }
+        
+        // Paste (p)
+        else if (e.key === "p") {
+          // Only paste if there's content in the clipboard
+          if (vimClipboard) {
+            const newLines = [...lines];
+            
+            // Paste after current line
+            newLines.splice(vimCursorLine + 1, 0, vimClipboard);
+            
+            // Update file content
+            setVimFile({
+              ...vimFile,
+              content: newLines.join("\n")
+            });
+            
+            // Move cursor to the next line (the pasted line)
+            setVimCursorLine(prev => prev + 1);
+            setVimCursorColumn(0);
+            
+            // Auto-scroll if needed
+            if ((vimCursorLine + 1) - vimPosition > upperThreshold && vimPosition < maxPosition) {
+              setVimPosition(prev => Math.min(prev + 1, maxPosition));
+            }
           }
         }
         
@@ -1110,11 +1387,6 @@ terminal
 assistant
   ryo <prompt>     chat with ryo
 
-vim commands
-  j                scroll down
-  k                scroll up
-  :q               quit without saving
-  :wq              save and quit
 `,
           isError: false,
         };
