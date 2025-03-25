@@ -2396,15 +2396,17 @@ assistant
         }
 
         @keyframes gradient-spin {
-          0% { color: #ff6b6b; }
-          25% { color: #4ecdc4; }
-          50% { color: #45b7d1; }
-          75% { color: #96ceb4; }
-          100% { color: #ff6b6b; }
+          0% { color: #FFB3BA; }  /* Pastel Pink */
+          20% { color: #BAFFC9; } /* Pastel Green */
+          40% { color: #BAE1FF; } /* Pastel Blue */
+          60% { color: #FFFFBA; } /* Pastel Yellow */
+          80% { color: #FFE4BA; } /* Pastel Orange */
+          100% { color: #FFB3BA; } /* Back to Pastel Pink */
         }
 
         .gradient-spin {
-          animation: gradient-spin 3s linear infinite;
+          animation: gradient-spin 4s ease-in-out infinite;
+          text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
         }
       `;
       document.head.appendChild(style);
