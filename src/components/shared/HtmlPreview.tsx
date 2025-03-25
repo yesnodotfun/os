@@ -798,7 +798,6 @@ export default function HtmlPreview({
                         initial={false}
                         animate={{
                           opacity: isToolbarCollapsed ? 1 : 0,
-                          scale: isToolbarCollapsed ? 1 : 0.5,
                         }}
                         transition={{ duration: 0.2 }}
                         style={{
