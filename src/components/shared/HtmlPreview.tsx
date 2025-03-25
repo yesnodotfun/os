@@ -212,6 +212,15 @@ export default function HtmlPreview({
   <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>`;
 
+    // Add blur transition CSS for streaming
+    const blurStyle = `
+  <style>
+    body {
+      transition: filter 0.5s ease-out;
+      ${isStreaming ? "filter: blur(4px);" : ""}
+    }
+  </style>`;
+
     // Check if content already has complete HTML structure
     if (
       htmlContent.includes("<!DOCTYPE html>") ||
@@ -229,6 +238,7 @@ export default function HtmlPreview({
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   ${!isStreaming ? scriptTags : ""}
+  ${blurStyle}
   <style>
     * {
       font-family: "Geneva-12", "ArkPixel", "SerenityOS-Emoji", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
@@ -437,32 +447,6 @@ export default function HtmlPreview({
         onMouseLeave={() => !isStreaming && onInteractionChange?.(false)}
         tabIndex={-1}
       >
-        {/* Add backdrop blur scrim with exit animation */}
-        <AnimatePresence>
-          {isStreaming && (
-            <motion.div
-              className="absolute inset-0 bg-white/50 backdrop-blur-[40px] pointer-events-none"
-              initial={{ opacity: 0 }}
-              animate={{
-                opacity: [0.5, 0.7, 0.5],
-              }}
-              exit={{
-                opacity: 0,
-                transition: {
-                  duration: 0.5,
-                  ease: "easeOut",
-                },
-              }}
-              transition={{
-                opacity: {
-                  duration: 2.5,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                },
-              }}
-            />
-          )}
-        </AnimatePresence>
         <motion.div
           className="flex justify-end p-1 absolute top-2 right-4 z-20"
           animate={{
