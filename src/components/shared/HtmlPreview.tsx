@@ -794,7 +794,7 @@ export default function HtmlPreview({
                     >
                       {/* Plus icon - only visible when collapsed */}
                       <motion.div
-                        className="absolute w-[40px] h-[40px] flex items-center justify-center"
+                        className="absolute w-[40px] h-[40px] flex items-center justify-center group hover:scale-110 transition-all duration-200"
                         initial={false}
                         animate={{
                           opacity: isToolbarCollapsed ? 1 : 0,
@@ -807,7 +807,7 @@ export default function HtmlPreview({
                         }}
                         onClick={handlePlusClick}
                       >
-                        <Plus size={24} className="text-white" />
+                        <Plus size={24} className="text-white/40 group-hover:text-white transition-all duration-200" />
                       </motion.div>
 
                       {/* Toolbar content - hidden when collapsed with zero width but still in DOM */}
