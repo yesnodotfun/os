@@ -397,8 +397,8 @@ export default async function handler(req: Request) {
       model: selectedModel,
       system: generateSystemPrompt(textEditContext, systemState),
       messages,
-      temperature: 0.7,
-      maxTokens: 4000,
+      temperature: 1,
+      maxTokens: 8000,
       experimental_transform: smoothStream(),
     });
 
