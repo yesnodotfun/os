@@ -8,6 +8,9 @@ import path from "path";
 export default defineConfig({
   server: {
     port: process.env.PORT as unknown as number,
+    cors: {
+      origin: ["*"],
+    },
   },
   plugins: [react(), tailwindcss(), vercel()],
   resolve: {
