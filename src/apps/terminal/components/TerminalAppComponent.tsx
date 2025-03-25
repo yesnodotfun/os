@@ -1478,6 +1478,19 @@ assistant
                           : ""
                       } ${item.path === "ai-error" ? "text-red-400" : ""} ${
                         item.path === "welcome-message" ? "text-gray-400" : ""
+                      } ${
+                        // Add system message styling
+                        item.output.startsWith("Ask Ryo anything") ||
+                        item.output.startsWith("Usage:") ||
+                        item.output.startsWith("Command not found:") ||
+                        item.output.includes("type 'help' for") ||
+                        item.output.includes("No such") ||
+                        item.output.includes("not implemented") ||
+                        item.output.includes("already exists") ||
+                        item.output.startsWith("File not found:") ||
+                        item.output.startsWith("No files found")
+                          ? "text-gray-400"
+                          : ""
                       }`}
                     >
                       {item.path === "ai-thinking" ? (

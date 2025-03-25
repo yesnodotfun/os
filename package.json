@@ -35,6 +35,7 @@
     "@types/dompurify": "^3.2.0",
     "@types/three": "^0.174.0",
     "@vercel/analytics": "^1.5.0",
+    "@vercel/blob": "^0.27.3",
     "ai": "^4.2.2",
     "audio-buffer-utils": "^5.1.2",
     "class-variance-authority": "^0.7.1",
