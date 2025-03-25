@@ -569,23 +569,63 @@ export default function HtmlPreview({
                   position: "fixed",
                   top: previewRef.current?.getBoundingClientRect().top ?? 0,
                   left: previewRef.current?.getBoundingClientRect().left ?? 0,
-                  width: previewRef.current?.getBoundingClientRect().width ?? 0,
-                  height:
-                    previewRef.current?.getBoundingClientRect().height ?? 0,
+                  width: "100%",
+                  height: "100%",
+                  transform: `
+                    scale(${
+                      (previewRef.current?.getBoundingClientRect().width ?? 0) /
+                      window.innerWidth
+                    })
+                    translate(
+                      ${
+                        ((previewRef.current?.getBoundingClientRect().left ??
+                          0) /
+                          (previewRef.current?.getBoundingClientRect().width ??
+                            1)) *
+                        100
+                      }%,
+                      ${
+                        ((previewRef.current?.getBoundingClientRect().top ??
+                          0) /
+                          (previewRef.current?.getBoundingClientRect().height ??
+                            1)) *
+                        100
+                      }%
+                    )
+                  `,
+                  transformOrigin: "top left",
                 }}
                 animate={{
                   top: 0,
                   left: 0,
-                  width: "100%",
-                  height: "100%",
+                  transform: "scale(1) translate(0%, 0%)",
                 }}
                 exit={{
                   position: "fixed",
                   top: previewRef.current?.getBoundingClientRect().top ?? 0,
                   left: previewRef.current?.getBoundingClientRect().left ?? 0,
-                  width: previewRef.current?.getBoundingClientRect().width ?? 0,
-                  height:
-                    previewRef.current?.getBoundingClientRect().height ?? 0,
+                  transform: `
+                    scale(${
+                      (previewRef.current?.getBoundingClientRect().width ?? 0) /
+                      window.innerWidth
+                    })
+                    translate(
+                      ${
+                        ((previewRef.current?.getBoundingClientRect().left ??
+                          0) /
+                          (previewRef.current?.getBoundingClientRect().width ??
+                            1)) *
+                        100
+                      }%,
+                      ${
+                        ((previewRef.current?.getBoundingClientRect().top ??
+                          0) /
+                          (previewRef.current?.getBoundingClientRect().height ??
+                            1)) *
+                        100
+                      }%
+                    )
+                  `,
                 }}
                 transition={{
                   type: "spring",
