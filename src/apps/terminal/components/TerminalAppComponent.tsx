@@ -1905,7 +1905,7 @@ assistant
           });
 
           return {
-            output: `ask ryo anything. type 'exit' to return to terminal.\n→ you sent: ${initialPrompt}`,
+            output: `ask ryo anything. type 'exit' to return to terminal.\n→ from your command: ${initialPrompt}`,
             isError: false,
           };
         }
