@@ -211,6 +211,7 @@ export default function HtmlPreview({
 
     // Define the script tags that should be added after streaming
     const scriptTags = `
+  <link rel="stylesheet" href="/fonts/fonts.css">
   <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>`;
 
@@ -233,7 +234,7 @@ export default function HtmlPreview({
   ${!isStreaming ? scriptTags : ""}
   <style>
     * {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-family: "Geneva-12", "ArkPixel", "SerenityOS-Emoji", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
       box-sizing: border-box;
     }
     html, body {
