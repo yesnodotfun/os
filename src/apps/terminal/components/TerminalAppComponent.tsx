@@ -19,10 +19,19 @@ import { useChat } from "ai/react";
 import { useAppContext } from "@/contexts/AppContext";
 import { AppId } from "@/config/appRegistry";
 import { useTerminalSounds } from "@/hooks/useTerminalSounds";
+import { track } from "@vercel/analytics";
 import HtmlPreview, {
   isHtmlCodeBlock,
   extractHtmlContent,
 } from "@/components/shared/HtmlPreview";
+
+// Analytics event namespace for terminal AI events
+export const TERMINAL_ANALYTICS = {
+  AI_COMMAND: "terminal:ai_command",
+  CHAT_START: "terminal:chat_start",
+  CHAT_EXIT: "terminal:chat_exit",
+  CHAT_CLEAR: "terminal:chat_clear",
+};
 
 interface CommandHistory {
   command: string;
@@ -1869,6 +1878,9 @@ assistant
         // Enter AI chat mode
         setIsInAiMode(true);
 
+        // Track chat start
+        track(TERMINAL_ANALYTICS.CHAT_START);
+
         // Reset AI messages to just the system message
         setAiChatMessages([
           {
@@ -1882,6 +1894,9 @@ assistant
         // If there's an initial prompt, add it to messages and immediately send it
         if (args.length > 0) {
           const initialPrompt = args.join(" ");
+
+          // Track AI command
+          track(TERMINAL_ANALYTICS.AI_COMMAND, { prompt: initialPrompt });
 
           // Add prompt to command history
           setCommandHistory((prev) => [
@@ -2091,6 +2106,7 @@ assistant
 
     // If user types 'exit' or 'quit', leave AI mode
     if (lowerCommand === "exit" || lowerCommand === "quit") {
+      track(TERMINAL_ANALYTICS.CHAT_EXIT);
       setIsInAiMode(false);
       stopAiResponse();
       setAiChatMessages([
@@ -2122,6 +2138,7 @@ assistant
 
     // If user types 'clear', clear the chat history
     if (lowerCommand === "clear") {
+      track(TERMINAL_ANALYTICS.CHAT_CLEAR);
       // Stop any ongoing AI response
       stopAiResponse();
 
@@ -2163,6 +2180,9 @@ assistant
       setCurrentCommand("");
       return;
     }
+
+    // Track AI command
+    track(TERMINAL_ANALYTICS.AI_COMMAND);
 
     // Add user command to chat history with special AI mode formatting
     // Remove any existing thinking messages
@@ -2251,7 +2271,6 @@ assistant
     setCurrentCommand("");
   };
 
-  // Handle text input in vim insert mode
   const handleVimTextInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!isInVimMode || !vimFile || vimMode !== "insert") return;
 

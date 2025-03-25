@@ -7,12 +7,21 @@ import { AudioInputButton } from "@/components/ui/audio-input-button";
 import { useChatSynth } from "@/hooks/useChatSynth";
 import { loadTypingSynthEnabled } from "@/utils/storage";
 import { useSound, Sounds } from "@/hooks/useSound";
+import { track } from "@vercel/analytics";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+
+// Analytics event namespace for chat events
+export const CHAT_ANALYTICS = {
+  TEXT_MESSAGE: "chats:text",
+  VOICE_MESSAGE: "chats:voice",
+  NUDGE: "chats:nudge",
+  STOP_GENERATION: "chats:stop",
+};
 
 interface ChatInputProps {
   input: string;
@@ -113,6 +122,9 @@ export function ChatInput({
       return;
     }
 
+    // Track voice message
+    track(CHAT_ANALYTICS.VOICE_MESSAGE);
+
     // Submit the transcribed text directly if the function is available
     if (onDirectMessageSubmit) {
       onDirectMessageSubmit(text.trim());
@@ -144,6 +156,7 @@ export function ChatInput({
   };
 
   const handleNudgeClick = () => {
+    track(CHAT_ANALYTICS.NUDGE);
     playNudgeSound();
     onNudge?.();
   };
@@ -179,7 +192,15 @@ export function ChatInput({
   }, [isForeground, isFocused, isTranscribing]);
 
   return (
-    <form onSubmit={onSubmit} className="flex gap-1">
+    <form
+      onSubmit={(e) => {
+        if (input.trim() !== "") {
+          track(CHAT_ANALYTICS.TEXT_MESSAGE);
+        }
+        onSubmit(e);
+      }}
+      className="flex gap-1"
+    >
       <AnimatePresence mode="popLayout" initial={false}>
         <motion.div
           layout
@@ -266,7 +287,10 @@ export function ChatInput({
           >
             <Button
               type="button"
-              onClick={onStop}
+              onClick={() => {
+                track(CHAT_ANALYTICS.STOP_GENERATION);
+                onStop();
+              }}
               className="bg-black hover:bg-black/80 text-white text-xs border-2 border-gray-800 w-8 h-8 p-0 flex items-center justify-center"
             >
               <Square className="h-4 w-4" fill="currentColor" />
