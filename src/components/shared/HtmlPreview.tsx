@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Maximize, Minimize, Copy, Check, Save, Code } from "lucide-react";
+import { Maximize, Minimize, Copy, Check, Save, Code, GripVertical } from "lucide-react";
 import { createPortal } from "react-dom";
 import * as shiki from "shiki";
 import {
@@ -162,9 +162,12 @@ export default function HtmlPreview({
   const [highlightedCode, setHighlightedCode] = useState("");
   const [originalHeight, setOriginalHeight] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const fullscreenIframeRef = useRef<HTMLIFrameElement>(null);
+  const controlsRef = useRef<HTMLDivElement>(null);
+  const fullscreenWrapperRef = useRef<HTMLDivElement>(null);
   const iframeId = useRef(
     `iframe-${Math.random().toString(36).substring(2, 9)}`
   ).current;
@@ -437,6 +440,17 @@ export default function HtmlPreview({
     setIsFullScreen(!isFullScreen);
   };
 
+  // Function to handle drag end and snap to corners
+  const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent) => {
+    // Stop propagation to prevent closing fullscreen
+    if (event) {
+      event.stopPropagation();
+    }
+    
+    // Set dragging to false
+    setIsDragging(false);
+  };
+
   // Normal inline display with optional maximized height
   return (
     <>
@@ -592,7 +606,10 @@ export default function HtmlPreview({
                   damping: 25,
                 }}
               >
-                <div className="relative w-full h-full overflow-hidden">
+                <div 
+                  ref={fullscreenWrapperRef}
+                  className="relative w-full h-full overflow-hidden"
+                >
                   {/* Code view layer - always 100% width underneath */}
                   <AnimatePresence>
                     {showCode ? (
@@ -649,11 +666,34 @@ export default function HtmlPreview({
                       sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation allow-modals allow-pointer-lock allow-downloads allow-storage-access-by-user-activation"
                       onClick={(e) => e.stopPropagation()}
                       onMouseDown={(e) => e.stopPropagation()}
+                      style={{
+                        pointerEvents: isDragging ? "none" : "auto",
+                      }}
                     />
                   </motion.div>
 
                   {/* Toolbar - topmost layer */}
-                  <div className="absolute top-4 right-4 flex items-center bg-black/40 backdrop-blur-sm rounded-full px-2 py-1 z-50">
+                  <motion.div 
+                    ref={controlsRef}
+                    className="absolute flex items-center bg-black/40 backdrop-blur-sm rounded-full px-2 py-1 z-50"
+                    initial={false}
+                    drag
+                    dragConstraints={fullscreenWrapperRef}
+                    dragElastic={0.2}
+                    dragTransition={{ bounceStiffness: 600, bounceDamping: 20 }}
+                    dragSnapToOrigin={false}
+                    whileDrag={{ scale: 1.05 }}
+                    onDragStart={() => setIsDragging(true)}
+                    onDragEnd={handleDragEnd}
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ top: 16, right: 16 }} // Default position: top-right
+                  >
+                    <div className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full mr-2 group cursor-grab active:cursor-grabbing">
+                      <GripVertical 
+                        size={18} 
+                        className="text-white/70 group-hover:text-white"
+                      />
+                    </div>
                     {showCode && (
                       <button
                         onClick={(e) => {
@@ -735,7 +775,7 @@ export default function HtmlPreview({
                         className="text-white/70 group-hover:text-white"
                       />
                     </button>
-                  </div>
+                  </motion.div>
                 </div>
               </motion.div>
             </motion.div>
