@@ -3,6 +3,22 @@ import { anthropic } from "@ai-sdk/anthropic";
 import { streamText, smoothStream, LanguageModelV1 } from "ai";
 import { SystemState } from "../src/utils/storage";
 
+// Define supported model types
+type SupportedModel = "gpt-4o" | "claude-3.5" | "claude-3.7";
+
+// Function to get the appropriate model instance
+const getModelInstance = (model: SupportedModel): LanguageModelV1 => {
+  switch (model) {
+    case "gpt-4o":
+      return openai("gpt-4o");
+    case "claude-3.5":
+      return anthropic("claude-3-5-sonnet-20241022");
+    case "claude-3.7":
+    default:
+      return anthropic("claude-3-7-sonnet-20250219");
+  }
+};
+
 // Allow streaming responses up to 60 seconds
 export const maxDuration = 60;
 export const runtime = "edge";
@@ -368,20 +384,17 @@ export default async function handler(req: Request) {
       messages,
       textEditContext,
       systemState,
-      model = "claude-3.5",
+      model = "claude-3.7",
     } = await req.json();
 
     if (!messages || !Array.isArray(messages)) {
       return new Response("Invalid messages format", { status: 400 });
     }
 
-    const selectedModel =
-      model === "gpt-4o"
-        ? openai("gpt-4o")
-        : anthropic("claude-3-5-sonnet-20241022");
+    const selectedModel = getModelInstance(model as SupportedModel);
 
     const result = streamText({
-      model: selectedModel as LanguageModelV1,
+      model: selectedModel,
       system: generateSystemPrompt(textEditContext, systemState),
       messages,
       temperature: 0.7,

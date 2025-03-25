@@ -109,7 +109,8 @@ const cleanAppControlMarkup = (message: string): string => {
 };
 
 // Helper function to check if a message is urgent (starts with "!!!!")
-const isUrgentMessage = (content: string): boolean => content.startsWith("!!!!");
+const isUrgentMessage = (content: string): boolean =>
+  content.startsWith("!!!!");
 
 // Function to clean urgent message prefix
 const cleanUrgentPrefix = (content: string): string => {
@@ -119,27 +120,17 @@ const cleanUrgentPrefix = (content: string): string => {
 // Animated ASCII for urgent messages
 function UrgentMessageAnimation() {
   const [frame, setFrame] = useState(0);
-  const frames = [
-    "!   ",
-    "!!  ",
-    "!!! ",
-    "!!  ",
-    "!   "
-  ];
+  const frames = ["!   ", "!!  ", "!!! ", "!!  ", "!   "];
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setFrame(prev => (prev + 1) % frames.length);
+      setFrame((prev) => (prev + 1) % frames.length);
     }, 300);
-    
+
     return () => clearInterval(interval);
   }, []);
 
-  return (
-    <span className="text-red-400 animate-pulse">
-      {frames[frame]}
-    </span>
-  );
+  return <span className="text-red-400 animate-pulse">{frames[frame]}</span>;
 }
 
 // Component to render HTML previews
@@ -173,64 +164,72 @@ function TerminalHtmlPreview({
 // Helper function to parse simple markdown formatting
 const parseSimpleMarkdown = (text: string): React.ReactNode[] => {
   if (!text) return [text];
-  
+
   // Process the bold formatting first, then italic
   let result: React.ReactNode[] = [];
   const currentText = text;
-  
+
   // Process bold patterns first (**text** or __text__)
   const boldRegex = /(\*\*.*?\*\*|__.*?__)/g;
   let lastIndex = 0;
   let boldMatch;
-  
+
   while ((boldMatch = boldRegex.exec(currentText)) !== null) {
     // Add text before the match
     if (boldMatch.index > lastIndex) {
       result.push(currentText.substring(lastIndex, boldMatch.index));
     }
-    
+
     // Add the bold text
-    const boldContent = boldMatch[0].replace(/^\*\*|\*\*$|^__|__$/g, '');
-    result.push(<span key={`bold-${boldMatch.index}`} className="font-bold">{boldContent}</span>);
-    
+    const boldContent = boldMatch[0].replace(/^\*\*|\*\*$|^__|__$/g, "");
+    result.push(
+      <span key={`bold-${boldMatch.index}`} className="font-bold">
+        {boldContent}
+      </span>
+    );
+
     lastIndex = boldMatch.index + boldMatch[0].length;
   }
-  
+
   // Add any remaining text after the last bold match
   if (lastIndex < currentText.length) {
     result.push(currentText.substring(lastIndex));
   }
-  
+
   // Now process italic in each text segment
   result = result.flatMap((segment, i) => {
-    if (typeof segment !== 'string') return segment;
-    
+    if (typeof segment !== "string") return segment;
+
     const italicParts: React.ReactNode[] = [];
     const italicRegex = /(\*[^*]+\*|_[^_]+_)/g;
     let lastItalicIndex = 0;
     let italicMatch;
-    
+
     while ((italicMatch = italicRegex.exec(segment)) !== null) {
       // Add text before the match
       if (italicMatch.index > lastItalicIndex) {
         italicParts.push(segment.substring(lastItalicIndex, italicMatch.index));
       }
-      
+
       // Add the italic text
-      const italicContent = italicMatch[0].replace(/^\*|\*$|^_|_$/g, '');
-      italicParts.push(<span key={`italic-${i}-${italicMatch.index}`} className="italic">{italicContent}</span>);
-      
+      const italicContent = italicMatch[0].replace(/^\*|\*$|^_|_$/g, "");
+      italicParts.push(
+        <span key={`italic-${i}-${italicMatch.index}`} className="italic">
+          {italicContent}
+        </span>
+      );
+
       lastItalicIndex = italicMatch.index + italicMatch[0].length;
     }
-    
+
     // Add any remaining text after the last italic match
     if (lastItalicIndex < segment.length) {
       italicParts.push(segment.substring(lastItalicIndex));
     }
-    
+
     return italicParts.length > 0 ? italicParts : segment;
   });
-  
+
   return result;
 };
 
@@ -353,11 +352,16 @@ export function TerminalAppComponent({
   const [fontSize, setFontSize] = useState(12); // Default font size in pixels
   const [isInAiMode, setIsInAiMode] = useState(false);
   const [isInVimMode, setIsInVimMode] = useState(false);
-  const [vimFile, setVimFile] = useState<{ name: string; content: string } | null>(null);
+  const [vimFile, setVimFile] = useState<{
+    name: string;
+    content: string;
+  } | null>(null);
   const [vimPosition, setVimPosition] = useState(0); // Current position for pagination
   const [vimCursorLine, setVimCursorLine] = useState(0); // Current cursor line position
   const [vimCursorColumn, setVimCursorColumn] = useState(0); // Current cursor column position
-  const [vimMode, setVimMode] = useState<"normal" | "command" | "insert">("normal"); // Vim mode
+  const [vimMode, setVimMode] = useState<"normal" | "command" | "insert">(
+    "normal"
+  ); // Vim mode
   const [vimClipboard, setVimClipboard] = useState<string>(""); // Add clipboard state for vim copy/paste
   const [spinnerIndex, setSpinnerIndex] = useState(0);
   const [isInteractingWithPreview, setIsInteractingWithPreview] =
@@ -373,7 +377,10 @@ export function TerminalAppComponent({
   const hasScrolledRef = useRef(false);
   const previousCommandHistoryLength = useRef(0);
   const lastGPressTimeRef = useRef<number>(0); // Add ref for tracking 'g' key presses
-  const lastKeyPressRef = useRef<{key: string, time: number}>({key: '', time: 0}); // Track last key for double-key commands
+  const lastKeyPressRef = useRef<{ key: string; time: number }>({
+    key: "",
+    time: 0,
+  }); // Track last key for double-key commands
 
   // Keep track of the last processed message ID to avoid duplicates
   const lastProcessedMessageIdRef = useRef<string | null>(null);
@@ -429,7 +436,7 @@ export function TerminalAppComponent({
  _  /  \\(_  
 | \\/\\__/__) 
   /         `;
-    
+
     setCommandHistory([
       {
         command: "",
@@ -593,327 +600,383 @@ export function TerminalAppComponent({
     if (isInVimMode) {
       // Insert mode handling
       if (vimMode === "insert") {
-        if (e.key === 'Escape') {
+        if (e.key === "Escape") {
           // Exit insert mode
           e.preventDefault();
           setVimMode("normal");
           return;
         }
-        
+
         // Handle backspace in insert mode
-        if (e.key === 'Backspace') {
+        if (e.key === "Backspace") {
           e.preventDefault();
-          
+
           if (!vimFile) return;
-          
+
           const lines = vimFile.content.split("\n");
-          
+
           // Check if we are at the beginning of a line and not on the first line
           if (vimCursorColumn === 0 && vimCursorLine > 0) {
             // We need to merge with the previous line
             const previousLine = lines[vimCursorLine - 1];
             const currentLine = lines[vimCursorLine];
             const previousLineLength = previousLine.length;
-            
+
             // Merge the lines
             lines[vimCursorLine - 1] = previousLine + currentLine;
-            
+
             // Remove the current line
             lines.splice(vimCursorLine, 1);
-            
+
             // Update file content
             setVimFile({
               ...vimFile,
-              content: lines.join("\n")
+              content: lines.join("\n"),
             });
-            
+
             // Move cursor to the end of the previous line
-            setVimCursorLine(prev => prev - 1);
+            setVimCursorLine((prev) => prev - 1);
             setVimCursorColumn(previousLineLength);
-            
+
             // Auto-scroll if needed
             const maxVisibleLines = 20;
             const lowerThreshold = Math.floor(maxVisibleLines * 0.4);
-            
-            if ((vimCursorLine - 1) - vimPosition < lowerThreshold && vimPosition > 0) {
-              setVimPosition(prev => Math.max(prev - 1, 0));
+
+            if (
+              vimCursorLine - 1 - vimPosition < lowerThreshold &&
+              vimPosition > 0
+            ) {
+              setVimPosition((prev) => Math.max(prev - 1, 0));
             }
-            
+
             return;
           }
-          
+
           // Regular backspace in the middle of a line
           if (vimCursorColumn > 0) {
             const currentLine = lines[vimCursorLine] || "";
-            
+
             // Remove character before cursor
-            const newLine = currentLine.substring(0, vimCursorColumn - 1) + currentLine.substring(vimCursorColumn);
+            const newLine =
+              currentLine.substring(0, vimCursorColumn - 1) +
+              currentLine.substring(vimCursorColumn);
             lines[vimCursorLine] = newLine;
-            
+
             // Update file content
             setVimFile({
               ...vimFile,
-              content: lines.join("\n")
+              content: lines.join("\n"),
             });
-            
+
             // Move cursor backward
-            setVimCursorColumn(prev => Math.max(0, prev - 1));
+            setVimCursorColumn((prev) => Math.max(0, prev - 1));
           }
-          
+
           return;
         }
-        
+
         // Handle Enter key in insert mode to create a new line
-        if (e.key === 'Enter') {
+        if (e.key === "Enter") {
           e.preventDefault();
-          
+
           if (!vimFile) return;
-          
+
           const lines = vimFile.content.split("\n");
           const currentLine = lines[vimCursorLine] || "";
-          
+
           // Split the line at cursor position
           const beforeCursor = currentLine.substring(0, vimCursorColumn);
           const afterCursor = currentLine.substring(vimCursorColumn);
-          
+
           // Update the current line and add a new line
           lines[vimCursorLine] = beforeCursor;
           lines.splice(vimCursorLine + 1, 0, afterCursor);
-          
+
           // Update file content
           setVimFile({
             ...vimFile,
-            content: lines.join("\n")
+            content: lines.join("\n"),
           });
-          
+
           // Move cursor to the beginning of the new line
-          setVimCursorLine(prev => prev + 1);
+          setVimCursorLine((prev) => prev + 1);
           setVimCursorColumn(0);
-          
+
           // Auto-scroll if the cursor moves out of view
           const maxVisibleLines = 20;
           const upperThreshold = Math.floor(maxVisibleLines * 0.6);
           const maxPosition = Math.max(0, lines.length - maxVisibleLines);
-          
-          if ((vimCursorLine + 1) - vimPosition > upperThreshold && vimPosition < maxPosition) {
-            setVimPosition(prev => Math.min(prev + 1, maxPosition));
+
+          if (
+            vimCursorLine + 1 - vimPosition > upperThreshold &&
+            vimPosition < maxPosition
+          ) {
+            setVimPosition((prev) => Math.min(prev + 1, maxPosition));
           }
-          
+
           return;
         }
-        
+
         // Handle Tab key in insert mode
-        if (e.key === 'Tab') {
+        if (e.key === "Tab") {
           e.preventDefault();
-          
+
           if (!vimFile) return;
-          
+
           const lines = vimFile.content.split("\n");
           const currentLine = lines[vimCursorLine] || "";
-          
+
           // Insert 2 spaces (standard tab size)
-          const newLine = currentLine.substring(0, vimCursorColumn) + "  " + currentLine.substring(vimCursorColumn);
+          const newLine =
+            currentLine.substring(0, vimCursorColumn) +
+            "  " +
+            currentLine.substring(vimCursorColumn);
           lines[vimCursorLine] = newLine;
-          
+
           // Update file content
           setVimFile({
             ...vimFile,
-            content: lines.join("\n")
+            content: lines.join("\n"),
           });
-          
+
           // Move cursor after the tab
-          setVimCursorColumn(prev => prev + 2);
-          
+          setVimCursorColumn((prev) => prev + 2);
+
           return;
         }
 
         // Handle Delete key in insert mode
-        if (e.key === 'Delete') {
+        if (e.key === "Delete") {
           e.preventDefault();
-          
+
           if (!vimFile) return;
-          
+
           const lines = vimFile.content.split("\n");
           const currentLine = lines[vimCursorLine] || "";
-          
+
           // Check if we are at the end of a line and not on the last line
-          if (vimCursorColumn === currentLine.length && vimCursorLine < lines.length - 1) {
+          if (
+            vimCursorColumn === currentLine.length &&
+            vimCursorLine < lines.length - 1
+          ) {
             // We need to merge with the next line
             const nextLine = lines[vimCursorLine + 1];
-            
+
             // Merge the lines
             lines[vimCursorLine] = currentLine + nextLine;
-            
+
             // Remove the next line
             lines.splice(vimCursorLine + 1, 1);
-            
+
             // Update file content
             setVimFile({
               ...vimFile,
-              content: lines.join("\n")
+              content: lines.join("\n"),
             });
-            
+
             return;
           }
-          
+
           // Regular delete in the middle of a line
           if (vimCursorColumn < currentLine.length) {
             // Remove character after cursor
-            const newLine = currentLine.substring(0, vimCursorColumn) + currentLine.substring(vimCursorColumn + 1);
+            const newLine =
+              currentLine.substring(0, vimCursorColumn) +
+              currentLine.substring(vimCursorColumn + 1);
             lines[vimCursorLine] = newLine;
-            
+
             // Update file content
             setVimFile({
               ...vimFile,
-              content: lines.join("\n")
+              content: lines.join("\n"),
             });
           }
-          
+
           return;
         }
-        
+
         // Handle Home/End keys in insert mode
-        if (e.key === 'Home') {
+        if (e.key === "Home") {
           e.preventDefault();
           setVimCursorColumn(0);
           return;
         }
-        
-        if (e.key === 'End') {
+
+        if (e.key === "End") {
           e.preventDefault();
           if (!vimFile) return;
-          
+
           const lines = vimFile.content.split("\n");
           const currentLine = lines[vimCursorLine] || "";
           setVimCursorColumn(currentLine.length);
           return;
         }
-        
+
         // Let most keys pass through to be handled by onChange in insert mode
         // Only handle special navigation cases here
-        if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || 
-            e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        if (
+          e.key === "ArrowUp" ||
+          e.key === "ArrowDown" ||
+          e.key === "ArrowLeft" ||
+          e.key === "ArrowRight"
+        ) {
           e.preventDefault();
-          
+
           if (!vimFile) return;
           const lines = vimFile.content.split("\n");
-          
+
           // Handle arrow navigation in insert mode
           if (e.key === "ArrowDown" && vimCursorLine < lines.length - 1) {
             // Move cursor down
             const newCursorLine = vimCursorLine + 1;
             setVimCursorLine(newCursorLine);
-            
+
             // Adjust column position if needed
             const newLineLength = lines[newCursorLine].length;
             if (newLineLength < vimCursorColumn) {
               setVimCursorColumn(Math.max(0, newLineLength));
             }
-            
+
             // Auto-scroll if needed
             const maxVisibleLines = 20;
             const upperThreshold = Math.floor(maxVisibleLines * 0.6);
             const maxPosition = Math.max(0, lines.length - maxVisibleLines);
-            
-            if (newCursorLine - vimPosition > upperThreshold && vimPosition < maxPosition) {
-              setVimPosition(prev => Math.min(prev + 1, maxPosition));
+
+            if (
+              newCursorLine - vimPosition > upperThreshold &&
+              vimPosition < maxPosition
+            ) {
+              setVimPosition((prev) => Math.min(prev + 1, maxPosition));
             }
           } else if (e.key === "ArrowUp" && vimCursorLine > 0) {
             // Move cursor up
             const newCursorLine = vimCursorLine - 1;
             setVimCursorLine(newCursorLine);
-            
+
             // Adjust column position if needed
             const newLineLength = lines[newCursorLine].length;
             if (newLineLength < vimCursorColumn) {
               setVimCursorColumn(Math.max(0, newLineLength));
             }
-            
+
             // Auto-scroll if needed
             const maxVisibleLines = 20;
             const lowerThreshold = Math.floor(maxVisibleLines * 0.4);
-            
-            if (newCursorLine - vimPosition < lowerThreshold && vimPosition > 0) {
-              setVimPosition(prev => Math.max(prev - 1, 0));
+
+            if (
+              newCursorLine - vimPosition < lowerThreshold &&
+              vimPosition > 0
+            ) {
+              setVimPosition((prev) => Math.max(prev - 1, 0));
             }
           } else if (e.key === "ArrowLeft" && vimCursorColumn > 0) {
             // Move cursor left
-            setVimCursorColumn(prev => prev - 1);
+            setVimCursorColumn((prev) => prev - 1);
           } else if (e.key === "ArrowRight") {
             // Move cursor right, but don't go beyond the end of the line
             const currentLineLength = lines[vimCursorLine]?.length || 0;
             if (vimCursorColumn < currentLineLength) {
-              setVimCursorColumn(prev => prev + 1);
+              setVimCursorColumn((prev) => prev + 1);
             }
           }
-          
+
           return;
         }
-        
+
         return;
       }
-      
+
       // Normal mode handling
-      if (e.key === 'j' || e.key === 'k' || e.key === 'ArrowUp' || e.key === 'ArrowDown' || 
-          e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'h' || e.key === 'l' ||
-          e.key === '0' || e.key === '$' || e.key === 'w' || e.key === 'b' ||
-          e.key === 'g' || e.key === 'G' || e.key === 'a' || e.key === 'o' || e.key === 'O' ||
-          e.key === 'd' || e.key === 'y' || e.key === 'p' ||
-          (e.key === 'd' && e.ctrlKey) || (e.key === 'u' && e.ctrlKey)) {
+      if (
+        e.key === "j" ||
+        e.key === "k" ||
+        e.key === "ArrowUp" ||
+        e.key === "ArrowDown" ||
+        e.key === "ArrowLeft" ||
+        e.key === "ArrowRight" ||
+        e.key === "h" ||
+        e.key === "l" ||
+        e.key === "0" ||
+        e.key === "$" ||
+        e.key === "w" ||
+        e.key === "b" ||
+        e.key === "g" ||
+        e.key === "G" ||
+        e.key === "a" ||
+        e.key === "o" ||
+        e.key === "O" ||
+        e.key === "d" ||
+        e.key === "y" ||
+        e.key === "p" ||
+        (e.key === "d" && e.ctrlKey) ||
+        (e.key === "u" && e.ctrlKey)
+      ) {
         e.preventDefault();
-        
+
         // Directly handle navigation keys
         if (!vimFile) return;
-        
+
         const lines = vimFile.content.split("\n");
         const maxVisibleLines = 20;
         const maxPosition = Math.max(0, lines.length - maxVisibleLines);
-        
+
         // Calculate scroll threshold for comfortable viewing
         const lowerThreshold = Math.floor(maxVisibleLines * 0.4); // 40% from top
         const upperThreshold = Math.floor(maxVisibleLines * 0.6); // 60% from top
-        
+
         // Handle vertical movement (up/down)
-        if ((e.key === "j" || e.key === "ArrowDown") && vimCursorLine < lines.length - 1) {
+        if (
+          (e.key === "j" || e.key === "ArrowDown") &&
+          vimCursorLine < lines.length - 1
+        ) {
           // Move cursor down
           const newCursorLine = vimCursorLine + 1;
           setVimCursorLine(newCursorLine);
-          
+
           // Adjust column position if the new line is shorter than current column
           const newLineLength = lines[newCursorLine].length;
           if (newLineLength < vimCursorColumn) {
             setVimCursorColumn(Math.max(0, newLineLength));
           }
-          
+
           // Auto-scroll if cursor is below the upper threshold
-          if (newCursorLine - vimPosition > upperThreshold && vimPosition < maxPosition) {
-            setVimPosition(prev => Math.min(prev + 1, maxPosition));
+          if (
+            newCursorLine - vimPosition > upperThreshold &&
+            vimPosition < maxPosition
+          ) {
+            setVimPosition((prev) => Math.min(prev + 1, maxPosition));
           }
-        } else if ((e.key === "k" || e.key === "ArrowUp") && vimCursorLine > 0) {
+        } else if (
+          (e.key === "k" || e.key === "ArrowUp") &&
+          vimCursorLine > 0
+        ) {
           // Move cursor up
           const newCursorLine = vimCursorLine - 1;
           setVimCursorLine(newCursorLine);
-          
+
           // Adjust column position if the new line is shorter than current column
           const newLineLength = lines[newCursorLine].length;
           if (newLineLength < vimCursorColumn) {
             setVimCursorColumn(Math.max(0, newLineLength));
           }
-          
+
           // Auto-scroll if cursor is above the lower threshold
           if (newCursorLine - vimPosition < lowerThreshold && vimPosition > 0) {
-            setVimPosition(prev => Math.max(prev - 1, 0));
+            setVimPosition((prev) => Math.max(prev - 1, 0));
           }
         }
         // Handle horizontal movement (left/right)
-        else if ((e.key === "ArrowLeft" || e.key === "h") && vimCursorColumn > 0) {
+        else if (
+          (e.key === "ArrowLeft" || e.key === "h") &&
+          vimCursorColumn > 0
+        ) {
           // Move cursor left
-          setVimCursorColumn(prev => prev - 1);
-        } else if ((e.key === "ArrowRight" || e.key === "l")) {
+          setVimCursorColumn((prev) => prev - 1);
+        } else if (e.key === "ArrowRight" || e.key === "l") {
           // Move cursor right, but don't go beyond the end of the line
           const currentLineLength = lines[vimCursorLine]?.length || 0;
           if (vimCursorColumn < currentLineLength) {
-            setVimCursorColumn(prev => prev + 1);
+            setVimCursorColumn((prev) => prev + 1);
           }
         }
         // Go to start of line (0)
@@ -931,54 +994,60 @@ export function TerminalAppComponent({
           // Find next word boundary
           const wordRegex = /\b\w/g;
           wordRegex.lastIndex = vimCursorColumn + 1; // Start from next character
-          
+
           const match = wordRegex.exec(currentLine);
           if (match) {
             // Found a word boundary in current line
             setVimCursorColumn(match.index);
           } else if (vimCursorLine < lines.length - 1) {
             // Move to beginning of next line
-            setVimCursorLine(prev => prev + 1);
+            setVimCursorLine((prev) => prev + 1);
             setVimCursorColumn(0);
-            
+
             // Auto-scroll if needed
-            if ((vimCursorLine + 1) - vimPosition > upperThreshold && vimPosition < maxPosition) {
-              setVimPosition(prev => Math.min(prev + 1, maxPosition));
+            if (
+              vimCursorLine + 1 - vimPosition > upperThreshold &&
+              vimPosition < maxPosition
+            ) {
+              setVimPosition((prev) => Math.min(prev + 1, maxPosition));
             }
           }
         }
         // Move to previous word (b)
         else if (e.key === "b") {
           const currentLine = lines[vimCursorLine] || "";
-          
+
           // If at start of line and not first line, go to end of previous line
           if (vimCursorColumn === 0 && vimCursorLine > 0) {
-            setVimCursorLine(prev => prev - 1);
+            setVimCursorLine((prev) => prev - 1);
             const prevLineLength = lines[vimCursorLine - 1]?.length || 0;
             setVimCursorColumn(prevLineLength);
-            
+
             // Auto-scroll if needed
-            if ((vimCursorLine - 1) - vimPosition < lowerThreshold && vimPosition > 0) {
-              setVimPosition(prev => Math.max(prev - 1, 0));
+            if (
+              vimCursorLine - 1 - vimPosition < lowerThreshold &&
+              vimPosition > 0
+            ) {
+              setVimPosition((prev) => Math.max(prev - 1, 0));
             }
             return;
           }
-          
+
           // Find previous word boundary
           let position = vimCursorColumn - 1;
           while (position > 0) {
             // Check if this position is at a word boundary
-            const isWordBoundary = 
-              /\w/.test(currentLine[position]) && 
+            const isWordBoundary =
+              /\w/.test(currentLine[position]) &&
               (position === 0 || /\W/.test(currentLine[position - 1]));
-            
+
             if (isWordBoundary) {
               setVimCursorColumn(position);
               return;
             }
             position--;
           }
-          
+
           // If no word boundary found, go to start of line
           setVimCursorColumn(0);
         }
@@ -988,7 +1057,7 @@ export function TerminalAppComponent({
           const now = Date.now();
           const lastGPress = lastGPressTimeRef.current;
           lastGPressTimeRef.current = now;
-          
+
           // If pressed 'g' twice quickly
           if (now - lastGPress < 500) {
             setVimCursorLine(0);
@@ -1002,7 +1071,7 @@ export function TerminalAppComponent({
           const lastLineIndex = Math.max(0, lines.length - 1);
           setVimCursorLine(lastLineIndex);
           setVimCursorColumn(0);
-          
+
           // Update scroll position to show the last lines
           setVimPosition(Math.max(0, lines.length - maxVisibleLines));
         }
@@ -1011,11 +1080,14 @@ export function TerminalAppComponent({
           const halfScreen = Math.floor(maxVisibleLines / 2);
           const newPosition = Math.min(vimPosition + halfScreen, maxPosition);
           setVimPosition(newPosition);
-          
+
           // Move cursor down too if possible
-          const newCursorLine = Math.min(vimCursorLine + halfScreen, lines.length - 1);
+          const newCursorLine = Math.min(
+            vimCursorLine + halfScreen,
+            lines.length - 1
+          );
           setVimCursorLine(newCursorLine);
-          
+
           // Adjust column if needed
           const newLineLength = lines[newCursorLine]?.length || 0;
           if (vimCursorColumn > newLineLength) {
@@ -1027,11 +1099,11 @@ export function TerminalAppComponent({
           const halfScreen = Math.floor(maxVisibleLines / 2);
           const newPosition = Math.max(vimPosition - halfScreen, 0);
           setVimPosition(newPosition);
-          
+
           // Move cursor up too if possible
           const newCursorLine = Math.max(vimCursorLine - halfScreen, 0);
           setVimCursorLine(newCursorLine);
-          
+
           // Adjust column if needed
           const newLineLength = lines[newCursorLine]?.length || 0;
           if (vimCursorColumn > newLineLength) {
@@ -1044,7 +1116,7 @@ export function TerminalAppComponent({
           // Move cursor one position right if not at end of line
           const currentLineLength = lines[vimCursorLine]?.length || 0;
           if (vimCursorColumn < currentLineLength) {
-            setVimCursorColumn(prev => prev + 1);
+            setVimCursorColumn((prev) => prev + 1);
           }
         }
         // Open new line below cursor (o)
@@ -1052,23 +1124,26 @@ export function TerminalAppComponent({
           // Insert a new line below current line
           const newLines = [...lines];
           newLines.splice(vimCursorLine + 1, 0, "");
-          
+
           // Update file content
           setVimFile({
             ...vimFile,
-            content: newLines.join("\n")
+            content: newLines.join("\n"),
           });
-          
+
           // Move cursor to the beginning of the new line
-          setVimCursorLine(prev => prev + 1);
+          setVimCursorLine((prev) => prev + 1);
           setVimCursorColumn(0);
-          
+
           // Enter insert mode
           setVimMode("insert");
-          
+
           // Auto-scroll if needed
-          if ((vimCursorLine + 1) - vimPosition > upperThreshold && vimPosition < maxPosition) {
-            setVimPosition(prev => Math.min(prev + 1, maxPosition));
+          if (
+            vimCursorLine + 1 - vimPosition > upperThreshold &&
+            vimPosition < maxPosition
+          ) {
+            setVimPosition((prev) => Math.min(prev + 1, maxPosition));
           }
         }
         // Open new line above cursor (O)
@@ -1076,140 +1151,143 @@ export function TerminalAppComponent({
           // Insert a new line above current line
           const newLines = [...lines];
           newLines.splice(vimCursorLine, 0, "");
-          
+
           // Update file content
           setVimFile({
             ...vimFile,
-            content: newLines.join("\n")
+            content: newLines.join("\n"),
           });
-          
+
           // Keep cursor at the same line (which is now the new empty line)
           setVimCursorColumn(0);
-          
+
           // Enter insert mode
           setVimMode("insert");
         }
-        
+
         // Delete line (dd)
         else if (e.key === "d") {
           // Track for double-d (dd) command
           const now = Date.now();
           const lastKey = lastKeyPressRef.current;
-          
+
           // Update last key press
-          lastKeyPressRef.current = { key: 'd', time: now };
-          
+          lastKeyPressRef.current = { key: "d", time: now };
+
           // If pressed 'd' twice quickly
-          if (lastKey.key === 'd' && now - lastKey.time < 500) {
+          if (lastKey.key === "d" && now - lastKey.time < 500) {
             // Can't delete the last line - vim always keeps at least one line
             if (lines.length > 1) {
               // Copy the line to clipboard before deleting
               setVimClipboard(lines[vimCursorLine]);
-              
+
               // Remove the current line
               const newLines = [...lines];
               newLines.splice(vimCursorLine, 1);
-              
+
               // Update file content
               setVimFile({
                 ...vimFile,
-                content: newLines.join("\n")
+                content: newLines.join("\n"),
               });
-              
+
               // Adjust cursor position if we deleted the last line
               if (vimCursorLine >= newLines.length) {
                 setVimCursorLine(Math.max(0, newLines.length - 1));
               }
-              
+
               // Reset column position to the start of the line
               setVimCursorColumn(0);
             } else {
               // If it's the last line, just clear it and copy its content
               setVimClipboard(lines[0]);
-              
+
               // Clear the line content but keep the line
               const newLines = [""];
               setVimFile({
                 ...vimFile,
-                content: newLines.join("\n")
+                content: newLines.join("\n"),
               });
-              
+
               setVimCursorColumn(0);
             }
-            
+
             // Reset the last key press
-            lastKeyPressRef.current = { key: '', time: 0 };
+            lastKeyPressRef.current = { key: "", time: 0 };
           }
         }
-        
+
         // Yank (copy) line (yy)
         else if (e.key === "y") {
           // Track for double-y (yy) command
           const now = Date.now();
           const lastKey = lastKeyPressRef.current;
-          
+
           // Update last key press
-          lastKeyPressRef.current = { key: 'y', time: now };
-          
+          lastKeyPressRef.current = { key: "y", time: now };
+
           // If pressed 'y' twice quickly
-          if (lastKey.key === 'y' && now - lastKey.time < 500) {
+          if (lastKey.key === "y" && now - lastKey.time < 500) {
             // Copy the current line to clipboard
             setVimClipboard(lines[vimCursorLine]);
-            
+
             // Reset the last key press
-            lastKeyPressRef.current = { key: '', time: 0 };
+            lastKeyPressRef.current = { key: "", time: 0 };
           }
         }
-        
+
         // Paste (p)
         else if (e.key === "p") {
           // Only paste if there's content in the clipboard
           if (vimClipboard) {
             const newLines = [...lines];
-            
+
             // Paste after current line
             newLines.splice(vimCursorLine + 1, 0, vimClipboard);
-            
+
             // Update file content
             setVimFile({
               ...vimFile,
-              content: newLines.join("\n")
+              content: newLines.join("\n"),
             });
-            
+
             // Move cursor to the next line (the pasted line)
-            setVimCursorLine(prev => prev + 1);
+            setVimCursorLine((prev) => prev + 1);
             setVimCursorColumn(0);
-            
+
             // Auto-scroll if needed
-            if ((vimCursorLine + 1) - vimPosition > upperThreshold && vimPosition < maxPosition) {
-              setVimPosition(prev => Math.min(prev + 1, maxPosition));
+            if (
+              vimCursorLine + 1 - vimPosition > upperThreshold &&
+              vimPosition < maxPosition
+            ) {
+              setVimPosition((prev) => Math.min(prev + 1, maxPosition));
             }
           }
         }
-        
+
         return;
-      } else if (e.key === 'i') {
+      } else if (e.key === "i") {
         // Enter insert mode
         e.preventDefault();
         setVimMode("insert");
         return;
-      } else if (e.key === ':') {
+      } else if (e.key === ":") {
         // Switch to command mode without adding colon to the input
         e.preventDefault();
         setVimMode("command");
         setCurrentCommand("");
         return;
-      } else if (e.key === 'Escape' && vimMode === "command") {
+      } else if (e.key === "Escape" && vimMode === "command") {
         // Return to normal mode
         setVimMode("normal");
         setCurrentCommand("");
         return;
-      } else if (e.key === 'Enter' && vimMode === "command") {
+      } else if (e.key === "Enter" && vimMode === "command") {
         // Execute command on Enter
         e.preventDefault();
-        
+
         // Add colon prefix to command if needed
-        const command = ':' + currentCommand;
+        const command = ":" + currentCommand;
         handleVimInput(command);
         return;
       }
@@ -1305,7 +1383,7 @@ export function TerminalAppComponent({
       }
     }
     // File/directory autocompletion (for commands that take file arguments)
-    else if (["cd", "cat", "rm", "edit"].includes(cmd)) {
+    else if (["cd", "cat", "rm", "edit", "vim"].includes(cmd)) {
       const lastArg = args.length > 0 ? args[args.length - 1] : "";
 
       const matches = files
@@ -1665,33 +1743,45 @@ assistant
             isError: false,
           };
         }
-        
+
         // Calculate padding for index column based on number of commands
         const indexPadding = cmdHistory.length.toString().length;
-        
+
         // Find the longest command to determine command column width
         const longestCmd = Math.min(
           25, // Maximum width to prevent extremely long commands from using too much space
-          Math.max(...cmdHistory.map(cmd => cmd.command.length))
+          Math.max(...cmdHistory.map((cmd) => cmd.command.length))
         );
-        
+
         return {
           output: cmdHistory
             .map((cmd, idx) => {
               const date = new Date(cmd.timestamp);
-              const indexStr = (idx + 1).toString().padStart(indexPadding, ' ');
-              
+              const indexStr = (idx + 1).toString().padStart(indexPadding, " ");
+
               // Truncate very long commands and add ellipsis
-              const displayCmd = cmd.command.length > 25 
-                ? cmd.command.substring(0, 22) + '...' 
-                : cmd.command;
-              
+              const displayCmd =
+                cmd.command.length > 25
+                  ? cmd.command.substring(0, 22) + "..."
+                  : cmd.command;
+
               // Pad command to align timestamps
-              const paddedCmd = displayCmd.padEnd(longestCmd, ' ');
-              
+              const paddedCmd = displayCmd.padEnd(longestCmd, " ");
+
               // Simplified date format: MM/DD HH:MM
-              const dateStr = `${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
-              
+              const dateStr = `${(date.getMonth() + 1)
+                .toString()
+                .padStart(2, "0")}/${date
+                .getDate()
+                .toString()
+                .padStart(2, "0")} ${date
+                .getHours()
+                .toString()
+                .padStart(2, "0")}:${date
+                .getMinutes()
+                .toString()
+                .padStart(2, "0")}`;
+
               return `${indexStr}  ${paddedCmd}  # ${dateStr}`;
             })
             .join("\n"),
@@ -1716,17 +1806,17 @@ assistant
       case "date": {
         const now = new Date();
         const options: Intl.DateTimeFormatOptions = {
-          weekday: 'short',
-          month: 'short', 
-          day: 'numeric',
-          hour: '2-digit', 
-          minute: '2-digit',
-          second: '2-digit',
-          year: 'numeric',
-          timeZoneName: 'short'
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          year: "numeric",
+          timeZoneName: "short",
         };
         return {
-          output: now.toLocaleString('en-US', options),
+          output: now.toLocaleString("en-US", options),
           isError: false,
         };
       }
@@ -1872,10 +1962,10 @@ assistant
     (messageContent: string) => {
       // First handle app controls
       const processedContent = handleAppControls(messageContent);
-      
+
       // The urgent prefix processing is separate from app controls
       // We don't clean it here as we want to preserve it for styling in the UI
-      
+
       return processedContent;
     },
     [handleAppControls]
@@ -2106,7 +2196,7 @@ assistant
       if (input === ":q" || input === ":q!" || input === ":wq") {
         // Exit vim mode
         const output = input === ":wq" ? `"${vimFile?.name}" written` : "";
-        
+
         setCommandHistory([
           ...commandHistory,
           {
@@ -2115,19 +2205,19 @@ assistant
             path: currentPath,
           },
         ]);
-        
+
         setIsInVimMode(false);
         setVimFile(null);
         setVimPosition(0);
         setVimMode("normal");
-        
+
         // Save file if using :wq
         if (input === ":wq" && vimFile) {
-          const fileObj = files.find(f => f.name === vimFile.name);
+          const fileObj = files.find((f) => f.name === vimFile.name);
           if (fileObj) {
             saveFile({
               ...fileObj,
-              content: vimFile.content
+              content: vimFile.content,
             });
           }
         }
@@ -2145,18 +2235,18 @@ assistant
     } else if (input === "j" || input === "k") {
       // Handle navigation (j: down, k: up)
       if (!vimFile) return;
-      
+
       const lines = vimFile.content.split("\n");
       const maxVisibleLines = 20; // Number of lines to display
       const maxPosition = Math.max(0, lines.length - maxVisibleLines);
-      
+
       if (input === "j" && vimPosition < maxPosition) {
-        setVimPosition(prev => prev + 1);
+        setVimPosition((prev) => prev + 1);
       } else if (input === "k" && vimPosition > 0) {
-        setVimPosition(prev => prev - 1);
+        setVimPosition((prev) => prev - 1);
       }
     }
-    
+
     // Clear the input field
     setCurrentCommand("");
   };
@@ -2164,27 +2254,30 @@ assistant
   // Handle text input in vim insert mode
   const handleVimTextInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!isInVimMode || !vimFile || vimMode !== "insert") return;
-    
+
     const inputText = e.target.value;
     const lastChar = inputText.slice(-1);
-    
+
     // Process the character input by modifying the file content
     const lines = vimFile.content.split("\n");
     const currentLine = lines[vimCursorLine] || "";
-    
+
     // Insert the character at cursor position
-    const newLine = currentLine.substring(0, vimCursorColumn) + lastChar + currentLine.substring(vimCursorColumn);
+    const newLine =
+      currentLine.substring(0, vimCursorColumn) +
+      lastChar +
+      currentLine.substring(vimCursorColumn);
     lines[vimCursorLine] = newLine;
-    
+
     // Update file content
     setVimFile({
       ...vimFile,
-      content: lines.join("\n")
+      content: lines.join("\n"),
     });
-    
+
     // Move cursor forward
-    setVimCursorColumn(prev => prev + 1);
-    
+    setVimCursorColumn((prev) => prev + 1);
+
     // Clear the input field after processing
     setCurrentCommand("");
   };
@@ -2319,38 +2412,53 @@ assistant
   };
 
   // Add a VimEditor component
-  function VimEditor({ file, position }: { file: { name: string; content: string }, position: number }) {
+  function VimEditor({
+    file,
+    position,
+  }: {
+    file: { name: string; content: string };
+    position: number;
+  }) {
     const lines = file.content.split("\n");
     const maxVisibleLines = 20; // Show up to 20 lines at a time
-    
+
     // Get the visible lines based on the current position
     const visibleLines = lines.slice(position, position + maxVisibleLines);
-    
+
     // Fill with empty lines if there are fewer lines than maxVisibleLines
     while (visibleLines.length < maxVisibleLines) {
       visibleLines.push("~");
     }
-    
+
     // Calculate percentage through the file
-    const percentage = lines.length > 0 
-      ? Math.min(100, Math.floor((position + maxVisibleLines) / lines.length * 100)) 
-      : 100;
-    
+    const percentage =
+      lines.length > 0
+        ? Math.min(
+            100,
+            Math.floor(((position + maxVisibleLines) / lines.length) * 100)
+          )
+        : 100;
+
     return (
       <div className="vim-editor font-mono text-white">
         {visibleLines.map((line, i) => {
           const lineNumber = position + i;
           const isCursorLine = lineNumber === vimCursorLine;
-          
+
           return (
-            <div key={i} className={`vim-line flex ${isCursorLine ? 'bg-white/10' : ''}`}>
-              <span className="text-gray-500 w-6 text-right mr-2">{lineNumber + 1}</span>
+            <div
+              key={i}
+              className={`vim-line flex ${isCursorLine ? "bg-white/10" : ""}`}
+            >
+              <span className="text-gray-500 w-6 text-right mr-2">
+                {lineNumber + 1}
+              </span>
               {isCursorLine ? (
                 // Render line with cursor
                 <span className="select-text flex-1">
                   {line.substring(0, vimCursorColumn)}
                   <span className="bg-orange-300 text-black">
-                    {line.charAt(vimCursorColumn) || ' '}
+                    {line.charAt(vimCursorColumn) || " "}
                   </span>
                   {line.substring(vimCursorColumn + 1)}
                 </span>
@@ -2362,14 +2470,20 @@ assistant
           );
         })}
         <div className="vim-status-bar flex text-white text-xs mt-2">
-          <div className={`px-2 py-1 font-bold ${vimMode === "insert" ? "bg-green-600/50" : "bg-blue-600/50"}`}>
-            {vimMode === "normal" ? "NORMAL" : vimMode === "insert" ? "INSERT" : "COMMAND"}
+          <div
+            className={`px-2 py-1 font-bold ${
+              vimMode === "insert" ? "bg-green-600/50" : "bg-blue-600/50"
+            }`}
+          >
+            {vimMode === "normal"
+              ? "NORMAL"
+              : vimMode === "insert"
+              ? "INSERT"
+              : "COMMAND"}
           </div>
           <div className="flex-1 bg-white/10 px-2 py-1 flex items-center justify-between">
             <span className="flex-1 mx-2">[{file.name}]</span>
-            <span>
-              {percentage}%
-            </span>
+            <span>{percentage}%</span>
             <span className="ml-4 mr-2">
               {vimCursorLine + 1}:{vimCursorColumn + 1}
             </span>
@@ -2393,7 +2507,11 @@ assistant
               ref={inputRef}
               type="text"
               value={currentCommand}
-              onChange={vimMode === "insert" ? handleVimTextInput : (e) => setCurrentCommand(e.target.value)}
+              onChange={
+                vimMode === "insert"
+                  ? handleVimTextInput
+                  : (e) => setCurrentCommand(e.target.value)
+              }
               onKeyDown={handleKeyDown}
               onFocus={() => setInputFocused(true)}
               onBlur={() => setInputFocused(false)}
@@ -2444,30 +2562,28 @@ assistant
               {item.command && (
                 <div className="flex select-text">
                   {item.path === "ai-user" ? (
-                    <span className="text-purple-400 mr-1 select-text cursor-text">→ ryo</span>
+                    <span className="text-purple-400 mr-1 select-text cursor-text">
+                      → ryo
+                    </span>
                   ) : (
                     <span className="text-green-400 mr-1 select-text cursor-text">
                       ➜ {item.path === "/" ? "/" : item.path}
                     </span>
                   )}
-                  <span className="select-text cursor-text">{item.command}</span>
+                  <span className="select-text cursor-text">
+                    {item.command}
+                  </span>
                 </div>
               )}
               {item.output && (
                 <div
                   className={`ml-0 select-text ${
                     item.path === "ai-thinking" ? "text-gray-400" : ""
-                  } ${
-                    item.path === "ai-assistant"
-                      ? "text-purple-100"
-                      : ""
-                  } ${item.path === "ai-error" ? "text-red-400" : ""} ${
-                    item.path === "welcome-message" ? "text-gray-400" : ""
-                  } ${
+                  } ${item.path === "ai-assistant" ? "text-purple-100" : ""} ${
+                    item.path === "ai-error" ? "text-red-400" : ""
+                  } ${item.path === "welcome-message" ? "text-gray-400" : ""} ${
                     // Add urgent message styling
-                    isUrgentMessage(item.output)
-                      ? "text-red-500"
-                      : ""
+                    isUrgentMessage(item.output) ? "text-red-500" : ""
                   } ${
                     // Add system message styling
                     item.output.startsWith("ask ryo anything") ||
@@ -2509,11 +2625,13 @@ assistant
                         // Process the message to extract HTML and text parts
                         const { htmlContent, textContent, hasHtml } =
                           extractHtmlContent(item.output);
-                          
+
                         // Check if this is an urgent message
                         const urgent = isUrgentMessage(item.output);
                         // Clean content by removing !!!! prefix if urgent
-                        const cleanedTextContent = urgent ? cleanUrgentPrefix(textContent || "") : textContent;
+                        const cleanedTextContent = urgent
+                          ? cleanUrgentPrefix(textContent || "")
+                          : textContent;
 
                         // Only mark as streaming if this specific message is the one currently being updated
                         const isThisMessageStreaming =
@@ -2527,7 +2645,11 @@ assistant
                           <>
                             {/* Show only non-HTML text content with markdown parsing */}
                             {cleanedTextContent && (
-                              <span className={`select-text cursor-text ${urgent ? "text-red-300" : "text-purple-300"}`}>
+                              <span
+                                className={`select-text cursor-text ${
+                                  urgent ? "text-red-300" : "text-purple-300"
+                                }`}
+                              >
                                 {urgent && <UrgentMessageAnimation />}
                                 {parseSimpleMarkdown(cleanedTextContent)}
                               </span>
@@ -2549,9 +2671,15 @@ assistant
                     </motion.div>
                   ) : animatedLines.has(index) ? (
                     <>
-                      {isUrgentMessage(item.output) && <UrgentMessageAnimation />}
+                      {isUrgentMessage(item.output) && (
+                        <UrgentMessageAnimation />
+                      )}
                       <TypewriterText
-                        text={isUrgentMessage(item.output) ? cleanUrgentPrefix(item.output) : item.output}
+                        text={
+                          isUrgentMessage(item.output)
+                            ? cleanUrgentPrefix(item.output)
+                            : item.output
+                        }
                         speed={10}
                         className=""
                         renderMarkdown={shouldApplyMarkdown(item.path)}
@@ -2559,14 +2687,16 @@ assistant
                     </>
                   ) : (
                     <>
-                      {isUrgentMessage(item.output) && <UrgentMessageAnimation />}
-                      {isUrgentMessage(item.output) 
-                        ? (shouldApplyMarkdown(item.path) 
-                           ? parseSimpleMarkdown(cleanUrgentPrefix(item.output)) 
-                           : cleanUrgentPrefix(item.output))
-                        : (shouldApplyMarkdown(item.path) 
-                           ? parseSimpleMarkdown(item.output) 
-                           : item.output)}
+                      {isUrgentMessage(item.output) && (
+                        <UrgentMessageAnimation />
+                      )}
+                      {isUrgentMessage(item.output)
+                        ? shouldApplyMarkdown(item.path)
+                          ? parseSimpleMarkdown(cleanUrgentPrefix(item.output))
+                          : cleanUrgentPrefix(item.output)
+                        : shouldApplyMarkdown(item.path)
+                        ? parseSimpleMarkdown(item.output)
+                        : item.output}
                       {isHtmlCodeBlock(item.output).isHtml && (
                         <TerminalHtmlPreview
                           htmlContent={isHtmlCodeBlock(item.output).content}
@@ -2589,9 +2719,7 @@ assistant
           >
             {isInAiMode ? (
               <span className="text-purple-400 mr-1 whitespace-nowrap select-text cursor-text">
-                {isAiLoading
-                  ? spinnerChars[spinnerIndex] + " ryo"
-                  : "→ ryo"}
+                {isAiLoading ? spinnerChars[spinnerIndex] + " ryo" : "→ ryo"}
               </span>
             ) : (
               <span className="text-green-400 mr-1 whitespace-nowrap select-text cursor-text">
@@ -2681,7 +2809,7 @@ assistant
             className="flex-1 overflow-auto whitespace-pre-wrap select-text cursor-text"
             onClick={(e) => {
               // Only focus input if this isn't a text selection
-              if (window.getSelection()?.toString() === '') {
+              if (window.getSelection()?.toString() === "") {
                 e.stopPropagation();
                 inputRef.current?.focus();
                 if (!isForeground) {
