@@ -447,8 +447,10 @@ export default function HtmlPreview({
       event.stopPropagation();
     }
     
-    // Set dragging to false
-    setIsDragging(false);
+    // Set dragging to false after a small delay
+    setTimeout(() => {
+      setIsDragging(false);
+    }, 150);
   };
 
   // Normal inline display with optional maximized height
@@ -675,7 +677,7 @@ export default function HtmlPreview({
                   {/* Toolbar - topmost layer */}
                   <motion.div 
                     ref={controlsRef}
-                    className="absolute flex items-center bg-black/40 backdrop-blur-sm rounded-full px-2 py-1 z-50"
+                    className="absolute z-50"
                     initial={false}
                     drag
                     dragConstraints={fullscreenWrapperRef}
@@ -683,98 +685,103 @@ export default function HtmlPreview({
                     dragTransition={{ bounceStiffness: 600, bounceDamping: 20 }}
                     dragSnapToOrigin={false}
                     whileDrag={{ scale: 1.05 }}
-                    onDragStart={() => setIsDragging(true)}
+                    onMouseDown={() => setIsDragging(true)}
                     onDragEnd={handleDragEnd}
                     onClick={(e) => e.stopPropagation()}
-                    style={{ top: 16, right: 16 }} // Default position: top-right
+                    style={{ top: 0, right: 0, padding: 16 }} // Default position: top-right
                   >
-                    <div className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full mr-2 group cursor-grab active:cursor-grabbing">
-                      <GripVertical 
-                        size={18} 
-                        className="text-white/70 group-hover:text-white"
-                      />
-                    </div>
-                    {showCode && (
+                    <motion.div 
+                      className="flex items-center bg-black/40 backdrop-blur-sm rounded-full px-2 py-1"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full mr-2 group cursor-grab active:cursor-grabbing">
+                        <GripVertical 
+                          size={18} 
+                          className="text-white/70 group-hover:text-white"
+                        />
+                      </div>
+                      {showCode && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setIsSplitView(!isSplitView);
+                            if (!isSplitView) {
+                              minimizeSound.play();
+                            } else {
+                              maximizeSound.play();
+                            }
+                          }}
+                          className="flex items-center justify-center px-2 h-8 hover:bg-white/10 rounded-full mr-2 group text-sm font-geneva-12"
+                          aria-label="Toggle split view"
+                        >
+                          <span className="text-white/70 group-hover:text-white">
+                            {isSplitView ? "Split" : "Full"}
+                          </span>
+                        </button>
+                      )}
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          setIsSplitView(!isSplitView);
-                          if (!isSplitView) {
-                            minimizeSound.play();
-                          } else {
+                          if (!showCode) {
+                            setShowCode(true);
+                            setIsSplitView(true);
                             maximizeSound.play();
+                          } else {
+                            setShowCode(false);
+                            setIsSplitView(false);
+                            minimizeSound.play();
                           }
                         }}
-                        className="flex items-center justify-center px-2 h-8 hover:bg-white/10 rounded-full mr-2 group text-sm font-geneva-12"
-                        aria-label="Toggle split view"
+                        className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full mr-2 group"
+                        aria-label="Toggle code"
                       >
-                        <span className="text-white/70 group-hover:text-white">
-                          {isSplitView ? "Split" : "Full"}
-                        </span>
+                        <Code
+                          size={20}
+                          className="text-white/70 group-hover:text-white"
+                        />
                       </button>
-                    )}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (!showCode) {
-                          setShowCode(true);
-                          setIsSplitView(true);
-                          maximizeSound.play();
-                        } else {
-                          setShowCode(false);
-                          setIsSplitView(false);
+                      <button
+                        onClick={handleSaveToDisk}
+                        className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full mr-2 group"
+                        aria-label="Save HTML to disk"
+                      >
+                        <Save
+                          size={20}
+                          className="text-white/70 group-hover:text-white"
+                        />
+                      </button>
+                      <button
+                        onClick={handleCopy}
+                        className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full mr-2 group"
+                        aria-label="Copy HTML code"
+                      >
+                        {copySuccess ? (
+                          <Check
+                            size={20}
+                            className="text-white/70 group-hover:text-white"
+                          />
+                        ) : (
+                          <Copy
+                            size={20}
+                            className="text-white/70 group-hover:text-white"
+                          />
+                        )}
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
                           minimizeSound.play();
-                        }
-                      }}
-                      className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full mr-2 group"
-                      aria-label="Toggle code"
-                    >
-                      <Code
-                        size={20}
-                        className="text-white/70 group-hover:text-white"
-                      />
-                    </button>
-                    <button
-                      onClick={handleSaveToDisk}
-                      className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full mr-2 group"
-                      aria-label="Save HTML to disk"
-                    >
-                      <Save
-                        size={20}
-                        className="text-white/70 group-hover:text-white"
-                      />
-                    </button>
-                    <button
-                      onClick={handleCopy}
-                      className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full mr-2 group"
-                      aria-label="Copy HTML code"
-                    >
-                      {copySuccess ? (
-                        <Check
+                          setIsFullScreen(false);
+                        }}
+                        className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full group"
+                        aria-label="Exit fullscreen"
+                      >
+                        <Minimize
                           size={20}
                           className="text-white/70 group-hover:text-white"
                         />
-                      ) : (
-                        <Copy
-                          size={20}
-                          className="text-white/70 group-hover:text-white"
-                        />
-                      )}
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        minimizeSound.play();
-                        setIsFullScreen(false);
-                      }}
-                      className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full group"
-                      aria-label="Exit fullscreen"
-                    >
-                      <Minimize
-                        size={20}
-                        className="text-white/70 group-hover:text-white"
-                      />
-                    </button>
+                      </button>
+                    </motion.div>
                   </motion.div>
                 </div>
               </motion.div>
