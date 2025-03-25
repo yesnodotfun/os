@@ -2090,7 +2090,7 @@ vim commands
           );
         })}
         <div className="vim-status-bar flex text-white text-xs mt-2">
-          <div className={`px-2 py-1 font-bold ${vimMode === "insert" ? "bg-green-600" : "bg-blue-600"}`}>
+          <div className={`px-2 py-1 font-bold ${vimMode === "insert" ? "bg-green-600/50" : "bg-blue-600/50"}`}>
             {vimMode === "normal" ? "NORMAL" : vimMode === "insert" ? "INSERT" : "COMMAND"}
           </div>
           <div className="flex-1 bg-white/10 px-2 py-1 flex items-center justify-between">
