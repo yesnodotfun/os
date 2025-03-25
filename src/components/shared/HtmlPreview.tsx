@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { Maximize, Minimize, Copy, Check, Save, Code, GripVertical, Plus } from "lucide-react";
 import { createPortal } from "react-dom";
 import * as shiki from "shiki";
@@ -179,6 +179,7 @@ export default function HtmlPreview({
   const contentTimestamp = useRef(Date.now());
   const lastUpdateRef = useRef<number>(0);
   const pendingContentRef = useRef<string | null>(null);
+  const dragControls = useDragControls();
 
   // Add sound hooks - fallback to local sound hooks if props not provided
   const localMaximizeSound = useSound(Sounds.WINDOW_EXPAND);
@@ -756,6 +757,7 @@ export default function HtmlPreview({
                     className="absolute z-200"
                     initial={false}
                     drag
+                    dragControls={dragControls}
                     dragConstraints={fullscreenWrapperRef}
                     dragElastic={0.2}
                     dragTransition={{ bounceStiffness: 600, bounceDamping: 20 }}
@@ -784,7 +786,7 @@ export default function HtmlPreview({
                       animate={{
                         width: isToolbarCollapsed ? '40px' : 'auto',
                         height: isToolbarCollapsed ? '40px' : '40px',
-                        padding: isToolbarCollapsed ? '0px' : '4px 8px'
+                        padding: isToolbarCollapsed ? '0px' : '4px'
                       }}
                       transition={{ 
                         duration: 0.15,
@@ -822,19 +824,22 @@ export default function HtmlPreview({
                           overflow: 'hidden'
                         }}
                       >
-                        <button 
-                          className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full mr-2 group cursor-pointer"
-                          onClick={toggleToolbarCollapse}
-                          onMouseDown={(e) => {
-                            // Stop propagation to prevent drag from starting on this element
+                        <div 
+                          className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full mr-2 group cursor-move"
+                          onPointerDown={(e) => {
                             e.stopPropagation();
+                            dragControls.start(e);
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleToolbarCollapse(e);
                           }}
                         >
                           <GripVertical 
                             size={18} 
                             className="text-white/70 group-hover:text-white"
                           />
-                        </button>
+                        </div>
                         
                         {showCode && (
                           <button
