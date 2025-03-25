@@ -380,12 +380,23 @@ export default async function handler(req: Request) {
   }
 
   try {
+    // Parse query string to get model parameter
+    const url = new URL(req.url);
+    const queryModel = url.searchParams.get("model") as SupportedModel | null;
+
     const {
       messages,
       textEditContext,
       systemState,
-      model = "claude-3.7",
+      model: bodyModel = "claude-3.5",
     } = await req.json();
+
+    // Use query parameter if available, otherwise use body parameter
+    const model = queryModel || bodyModel;
+
+    console.log(
+      `Using model: ${model} (from ${queryModel ? "query" : "body"})`
+    );
 
     if (!messages || !Array.isArray(messages)) {
       return new Response("Invalid messages format", { status: 400 });

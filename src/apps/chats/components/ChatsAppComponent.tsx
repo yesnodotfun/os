@@ -1898,10 +1898,10 @@ export function ChatsAppComponent({
   const handleSubmit = useCallback(
     (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
-      
+
       // Get fresh system state right before sending the request
       const freshSystemState = getSystemState();
-      
+
       originalHandleSubmit(e, {
         body: {
           textEditContext: textEditContext || undefined,
