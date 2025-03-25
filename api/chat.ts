@@ -20,7 +20,7 @@ const getModelInstance = (model: SupportedModel): LanguageModelV1 => {
 };
 
 // Allow streaming responses up to 60 seconds
-export const maxDuration = 80;
+export const maxDuration = 60;
 export const runtime = "edge";
 export const edge = true;
 export const stream = true;
@@ -398,7 +398,7 @@ export default async function handler(req: Request) {
       system: generateSystemPrompt(textEditContext, systemState),
       messages,
       temperature: 0.7,
-      maxTokens: 8000,
+      maxTokens: 5000,
       experimental_transform: smoothStream(),
     });
 
