@@ -177,11 +177,32 @@ export function ControlPanelsAppComponent({
   };
 
   const handleBackup = async () => {
+    interface StoreItem {
+      name: string;
+      content?: string;
+      type?: string;
+      modifiedAt?: string;
+      size?: number;
+      [key: string]: unknown;
+    }
+
     const backup: {
       localStorage: Record<string, string | null>;
+      indexedDB: {
+        documents: StoreItem[];
+        images: StoreItem[];
+        trash: StoreItem[];
+        custom_wallpapers: StoreItem[];
+      };
       timestamp: string;
     } = {
       localStorage: {},
+      indexedDB: {
+        documents: [],
+        images: [],
+        trash: [],
+        custom_wallpapers: [],
+      },
       timestamp: new Date().toISOString(),
     };
 
@@ -191,6 +212,49 @@ export function ControlPanelsAppComponent({
       if (key) {
         backup.localStorage[key] = localStorage.getItem(key);
       }
+    }
+
+    // Backup IndexedDB data
+    try {
+      // Open database
+      const db = await new Promise<IDBDatabase>((resolve, reject) => {
+        const request = indexedDB.open("ryOS", 3);
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve(request.result);
+      });
+
+      // Get all stores data
+      const getStoreData = async (storeName: string): Promise<StoreItem[]> => {
+        return new Promise((resolve, reject) => {
+          const transaction = db.transaction(storeName, "readonly");
+          const store = transaction.objectStore(storeName);
+          const request = store.getAll();
+
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+      };
+
+      // Get data from all stores
+      [
+        backup.indexedDB.documents,
+        backup.indexedDB.images,
+        backup.indexedDB.trash,
+        backup.indexedDB.custom_wallpapers,
+      ] = await Promise.all([
+        getStoreData("documents"),
+        getStoreData("images"),
+        getStoreData("trash"),
+        getStoreData("custom_wallpapers"),
+      ]);
+
+      // Close the database
+      db.close();
+    } catch (error) {
+      console.error("Error backing up IndexedDB:", error);
+      alert(
+        "Failed to backup file system data. Only settings will be backed up."
+      );
     }
 
     // Compress the data
@@ -258,6 +322,79 @@ export function ControlPanelsAppComponent({
               localStorage.setItem(key, value as string);
             }
           });
+        }
+
+        // Restore IndexedDB data if available
+        if (backup.indexedDB) {
+          try {
+            // Open database
+            const db = await new Promise<IDBDatabase>((resolve, reject) => {
+              const request = indexedDB.open("ryOS", 3);
+              request.onerror = () => reject(request.error);
+              request.onsuccess = () => resolve(request.result);
+            });
+
+            // Helper function to restore data to a store
+            const restoreStoreData = async (
+              storeName: string,
+              data: Record<string, unknown>[]
+            ): Promise<void> => {
+              return new Promise((resolve, reject) => {
+                const transaction = db.transaction(storeName, "readwrite");
+                const store = transaction.objectStore(storeName);
+
+                // Clear existing data
+                const clearRequest = store.clear();
+                clearRequest.onsuccess = async () => {
+                  try {
+                    // Add all items
+                    for (const item of data) {
+                      await new Promise<void>((resolveItem) => {
+                        const addRequest = store.add(item);
+                        addRequest.onsuccess = () => resolveItem();
+                        addRequest.onerror = () => {
+                          console.error(
+                            `Error adding item to ${storeName}:`,
+                            addRequest.error
+                          );
+                          resolveItem(); // Continue with other items even if one fails
+                        };
+                      });
+                    }
+                    resolve();
+                  } catch (err) {
+                    reject(err);
+                  }
+                };
+                clearRequest.onerror = () => reject(clearRequest.error);
+              });
+            };
+
+            // Restore data to all stores
+            if (backup.indexedDB.documents) {
+              await restoreStoreData("documents", backup.indexedDB.documents);
+            }
+            if (backup.indexedDB.images) {
+              await restoreStoreData("images", backup.indexedDB.images);
+            }
+            if (backup.indexedDB.trash) {
+              await restoreStoreData("trash", backup.indexedDB.trash);
+            }
+            if (backup.indexedDB.custom_wallpapers) {
+              await restoreStoreData(
+                "custom_wallpapers",
+                backup.indexedDB.custom_wallpapers
+              );
+            }
+
+            // Close the database
+            db.close();
+          } catch (error) {
+            console.error("Error restoring IndexedDB:", error);
+            alert(
+              "Failed to restore file system data. Only settings were restored."
+            );
+          }
         }
 
         window.location.reload();
