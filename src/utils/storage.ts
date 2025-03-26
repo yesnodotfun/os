@@ -834,6 +834,12 @@ export const DEFAULT_VIDEOS: Video[] = [
     title: "Damn Right",
     artist: "JENNIE, Childish Gambino, Kali Uchis",
   },
+  {
+    id: "kxUA2wwYiME",
+    url: "https://www.youtube.com/watch?v=kxUA2wwYiME",
+    title: "The Chase",
+    artist: "Hearts2Hearts (하츠투하츠)",
+  },
 ];
 
 export const loadPlaylist = (): Video[] => {
@@ -980,8 +986,8 @@ export const saveGames = (games: Game[]): void => {
 // Add a new section for runtime state tracking that persists between renders
 // Create global state trackers for runtime state
 let videoIsPlayingState = false;
-let browserCurrentUrlState = '';
-let browserCurrentYearState = '';
+let browserCurrentUrlState = "";
+let browserCurrentYearState = "";
 
 // Export functions to update the runtime state
 export const updateVideoPlayingState = (isPlaying: boolean): void => {
