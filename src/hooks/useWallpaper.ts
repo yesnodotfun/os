@@ -4,6 +4,9 @@ import { loadWallpaper, saveWallpaper } from "@/utils/storage";
 // Store loading state for video wallpapers
 const videoLoadingStates: Record<string, boolean> = {};
 
+// Store object URLs to manage their lifecycle
+const objectURLs: Record<string, string> = {};
+
 // Constants for IndexedDB
 const DB_NAME = "ryOS";
 const DB_VERSION = 3;
@@ -41,6 +44,17 @@ export function useWallpaper() {
     );
   }, [currentWallpaper, actualWallpaperData]);
 
+  // Cleanup function for object URLs
+  const cleanupObjectURLs = () => {
+    // Only cleanup URLs that aren't the current one
+    Object.entries(objectURLs).forEach(([id, url]) => {
+      if (wallpaperId !== id) {
+        URL.revokeObjectURL(url);
+        delete objectURLs[id];
+      }
+    });
+  };
+
   // Load wallpaper data from IndexedDB if it's a reference
   useEffect(() => {
     if (isIndexedDBReference && wallpaperId) {
@@ -57,15 +71,36 @@ export function useWallpaper() {
 
           request.onsuccess = () => {
             if (request.result) {
-              setActualWallpaperData(request.result.content);
+              // Create an object URL from the blob data if not already created
+              if (!objectURLs[wallpaperId]) {
+                // If we have a Blob, use it directly, otherwise create one from content
+                const blob =
+                  request.result.blob || dataURLToBlob(request.result.content);
+
+                if (blob) {
+                  const objectURL = URL.createObjectURL(blob);
+                  objectURLs[wallpaperId] = objectURL;
+                  setActualWallpaperData(objectURL);
+                } else {
+                  // Fallback to content if blob conversion fails
+                  setActualWallpaperData(request.result.content);
+                }
+              } else {
+                // Use existing object URL
+                setActualWallpaperData(objectURLs[wallpaperId]);
+              }
+
               // Check if it's a video
               const isVideo =
                 request.result.type?.startsWith("video/") ||
-                request.result.content.includes("video/");
+                request.result.content?.includes("video/");
 
               if (!isVideo) {
                 setIsVideoLoading(false);
               }
+
+              // Clean up unused object URLs
+              cleanupObjectURLs();
             } else {
               console.error("Wallpaper not found in IndexedDB:", wallpaperId);
               setActualWallpaperData(null);
@@ -94,6 +129,13 @@ export function useWallpaper() {
     } else {
       setActualWallpaperData(null);
     }
+
+    // Cleanup object URLs when the component unmounts
+    return () => {
+      if (!currentWallpaper.startsWith(INDEXEDDB_PREFIX)) {
+        cleanupObjectURLs();
+      }
+    };
   }, [isIndexedDBReference, wallpaperId]);
 
   // Initialize loading state for video wallpapers
@@ -126,6 +168,26 @@ export function useWallpaper() {
     window.addEventListener("storage", handleStorageChange);
     return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
+
+  // Helper function to convert a data URL to a Blob
+  const dataURLToBlob = (dataURL: string): Blob | null => {
+    try {
+      if (!dataURL.startsWith("data:")) return null;
+
+      const arr = dataURL.split(",");
+      const mime = arr[0].match(/:(.*?);/)?.[1];
+      const bstr = atob(arr[1]);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+      }
+      return new Blob([u8arr], { type: mime });
+    } catch (e) {
+      console.error("Error converting data URL to Blob:", e);
+      return null;
+    }
+  };
 
   // Helper function to open the IndexedDB database
   const openDatabase = (): Promise<IDBDatabase> => {
@@ -176,14 +238,6 @@ export function useWallpaper() {
     }
 
     try {
-      // Read the file as data URL
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = (e) => reject(e);
-        reader.readAsDataURL(file);
-      });
-
       const db = await openDatabase();
       const transaction = db.transaction(CUSTOM_WALLPAPERS_STORE, "readwrite");
       const store = transaction.objectStore(CUSTOM_WALLPAPERS_STORE);
@@ -194,9 +248,11 @@ export function useWallpaper() {
         "_"
       )}`;
 
+      // Store the file as a blob directly instead of converting to data URL
       const wallpaper = {
         name: wallpaperName,
-        content: dataUrl,
+        blob: file, // Store the actual blob
+        content: "", // Keep this for backwards compatibility
         type: file.type,
         dateAdded: new Date().toISOString(),
       };
@@ -263,6 +319,11 @@ export function useWallpaper() {
 
     const id = reference.substring(INDEXEDDB_PREFIX.length);
 
+    // If we already have an object URL for this ID, return it
+    if (objectURLs[id]) {
+      return objectURLs[id];
+    }
+
     try {
       const db = await openDatabase();
       const transaction = db.transaction(CUSTOM_WALLPAPERS_STORE, "readonly");
@@ -273,7 +334,27 @@ export function useWallpaper() {
 
         request.onsuccess = () => {
           if (request.result) {
-            resolve(request.result.content);
+            // If we have a blob, create an object URL
+            if (request.result.blob) {
+              const objectURL = URL.createObjectURL(request.result.blob);
+              objectURLs[id] = objectURL;
+              resolve(objectURL);
+            }
+            // For backwards compatibility with older data
+            else if (request.result.content) {
+              // Try to convert data URL to blob
+              const blob = dataURLToBlob(request.result.content);
+              if (blob) {
+                const objectURL = URL.createObjectURL(blob);
+                objectURLs[id] = objectURL;
+                resolve(objectURL);
+              } else {
+                // Fallback to the content
+                resolve(request.result.content);
+              }
+            } else {
+              resolve(null);
+            }
           } else {
             resolve(null);
           }
