@@ -407,7 +407,9 @@ export default async function handler(req: Request) {
     );
 
     if (!messages || !Array.isArray(messages)) {
-      console.error(`400 Error: Invalid messages format - ${JSON.stringify({messages})}`);
+      console.error(
+        `400 Error: Invalid messages format - ${JSON.stringify({ messages })}`
+      );
       return new Response("Invalid messages format", { status: 400 });
     }
 
@@ -431,13 +433,15 @@ export default async function handler(req: Request) {
     return result.toDataStreamResponse();
   } catch (error) {
     console.error("Chat API error:", error);
-    
+
     // Check if error is a SyntaxError (likely from parsing JSON)
     if (error instanceof SyntaxError) {
       console.error(`400 Error: Invalid JSON - ${error.message}`);
-      return new Response(`Bad Request: Invalid JSON - ${error.message}`, { status: 400 });
+      return new Response(`Bad Request: Invalid JSON - ${error.message}`, {
+        status: 400,
+      });
     }
-    
+
     return new Response("Internal Server Error", { status: 500 });
   }
 }

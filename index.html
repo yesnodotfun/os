@@ -5,6 +5,7 @@
     <link rel="icon" type="image/png" href="/icons/mac-512.png" />
     <link rel="apple-touch-icon" href="/icons/mac-512.png" />
     <link rel="manifest" href="/manifest.json" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <meta name="apple-mobile-web-app-title" content="ryOS" />
@@ -18,10 +19,6 @@
     />
     <meta name="theme-color" content="#000000" />
     <meta http-equiv="Permissions-Policy" content="camera=(self)" />
-
-    <!-- Preload critical assets -->
-    <link rel="preload" href="/src/main.tsx" as="script" type="module" />
-    <link rel="preload" href="/icons/mac-512.png" as="image" />
 
     <!-- Cache control -->
     <meta http-equiv="Cache-Control" content="max-age=86400" />
