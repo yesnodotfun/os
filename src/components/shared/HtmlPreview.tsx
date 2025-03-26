@@ -243,7 +243,7 @@ export default function HtmlPreview({
     // Define the script tags that should be added after streaming
     const scriptTags = `
   <link rel="stylesheet" href="/fonts/fonts.css">
-  <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+  <script type="module" src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.174.0/three.module.min.js"></script>
   <script src="https://cdn.tailwindcss.com/3.4.16"></script>
   <script>
     tailwind.config = {
