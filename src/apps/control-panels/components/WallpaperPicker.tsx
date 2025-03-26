@@ -54,9 +54,10 @@ function WallpaperItem({
       } else {
         videoRef.current.pause();
       }
-      
+
       // Check if video is already cached/loaded
-      if (videoRef.current.readyState >= 3) { // HAVE_FUTURE_DATA or better
+      if (videoRef.current.readyState >= 3) {
+        // HAVE_FUTURE_DATA or better
         setIsLoading(false);
       }
     }
@@ -65,7 +66,7 @@ function WallpaperItem({
   const handleVideoLoaded = () => {
     setIsLoading(false);
   };
-  
+
   const handleCanPlayThrough = () => {
     setIsLoading(false);
   };
@@ -80,11 +81,12 @@ function WallpaperItem({
       >
         {isLoading && (
           <div className="absolute inset-0 bg-gray-700/30">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-50" 
-              style={{ 
-                backgroundSize: '200% 100%',
-                animation: 'shimmer 2.5s infinite ease-in-out'
-              }} 
+            <div
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-50"
+              style={{
+                backgroundSize: "200% 100%",
+                animation: "shimmer 2.5s infinite ease-in-out",
+              }}
             />
           </div>
         )}
@@ -97,10 +99,10 @@ function WallpaperItem({
           playsInline
           onLoadedData={handleVideoLoaded}
           onCanPlayThrough={handleCanPlayThrough}
-          style={{ 
-            objectPosition: "center center", 
-            opacity: isLoading ? 0 : 1, 
-            transition: 'opacity 0.5s ease-in-out' 
+          style={{
+            objectPosition: "center center",
+            opacity: isLoading ? 0 : 1,
+            transition: "opacity 0.5s ease-in-out",
           }}
         />
       </div>
@@ -336,10 +338,14 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
   useEffect(() => {
     const loadCustomWallpapers = async () => {
       try {
+        console.log("Loading custom wallpapers...");
         // Use IndexedDB to get custom wallpapers
         const db = await new Promise<IDBDatabase>((resolve, reject) => {
           const request = indexedDB.open(DB_NAME, DB_VERSION);
-          request.onerror = () => reject(request.error);
+          request.onerror = () => {
+            console.error("Error opening IndexedDB:", request.error);
+            reject(request.error);
+          };
           request.onsuccess = () => resolve(request.result);
 
           request.onupgradeneeded = (event) => {
@@ -363,14 +369,18 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
 
           request.onsuccess = () => {
             const wallpapers = request.result;
+            console.log("Custom wallpapers loaded:", wallpapers);
             if (wallpapers && wallpapers.length > 0) {
-              setCustomWallpapers(wallpapers.map((wp) => wp.content));
+              // Extract the content field from each wallpaper
+              const wallpaperUrls = wallpapers.map((wp) => wp.content);
+              console.log("Wallpaper URLs:", wallpaperUrls);
+              setCustomWallpapers(wallpaperUrls);
               console.log("Loaded custom wallpapers:", wallpapers.length);
             } else {
               console.log("No custom wallpapers found in IndexedDB");
             }
           };
-          
+
           request.onerror = (err) => {
             console.error("Error fetching wallpapers:", err);
           };
@@ -402,6 +412,8 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
     const isVideo = file.type.startsWith("video/");
     const isImage = file.type.startsWith("image/");
 
+    console.log("Uploading file:", file.name, "Type:", file.type);
+
     if (!isImage && !isVideo) {
       alert("Please select an image or video file");
       return;
@@ -412,9 +424,18 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
       const dataUrl = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
+        reader.onerror = (e) => {
+          console.error("Error reading file:", e);
+          reject(e);
+        };
         reader.readAsDataURL(file);
       });
+
+      console.log(
+        "File read as data URL, size:",
+        Math.round(dataUrl.length / 1024),
+        "KB"
+      );
 
       // Always use version 3 for consistency
       const db = await new Promise<IDBDatabase>((resolve, reject) => {
@@ -434,6 +455,8 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
         };
       });
 
+      console.log("IndexedDB opened successfully");
+
       // Check if the store exists
       if (db.objectStoreNames.contains(CUSTOM_WALLPAPERS_STORE)) {
         const transaction = db.transaction(
@@ -441,16 +464,29 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
           "readwrite"
         );
         const store = transaction.objectStore(CUSTOM_WALLPAPERS_STORE);
+
+        // Generate a unique name for the wallpaper
+        const wallpaperName = `custom_${Date.now()}_${file.name.replace(
+          /[^a-zA-Z0-9._-]/g,
+          "_"
+        )}`;
+
         const wallpaper = {
-          name: `custom_${Date.now()}_${file.name}`,
+          name: wallpaperName,
           content: dataUrl,
           type: file.type,
+          dateAdded: new Date().toISOString(),
         };
+
+        console.log("Saving wallpaper with name:", wallpaperName);
 
         const request = store.put(wallpaper);
 
         request.onsuccess = () => {
-          console.log("Custom wallpaper saved successfully");
+          console.log(
+            "Custom wallpaper saved successfully with key:",
+            request.result
+          );
           // Update state with new wallpaper
           setCustomWallpapers((prev) => [...prev, dataUrl]);
           // Automatically select the new wallpaper
@@ -462,6 +498,17 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
         request.onerror = () => {
           console.error("Error saving custom wallpaper:", request.error);
           alert("Failed to save wallpaper. Storage might be full.");
+        };
+
+        // Handle transaction complete/error
+        transaction.oncomplete = () => {
+          console.log("Transaction completed successfully");
+          db.close();
+        };
+
+        transaction.onerror = () => {
+          console.error("Transaction error:", transaction.error);
+          db.close();
         };
       } else {
         console.error("Custom wallpapers store doesn't exist after checking");

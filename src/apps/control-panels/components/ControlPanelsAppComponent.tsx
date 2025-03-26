@@ -350,7 +350,8 @@ export function ControlPanelsAppComponent({
                     // Add all items
                     for (const item of data) {
                       await new Promise<void>((resolveItem) => {
-                        const addRequest = store.add(item);
+                        // Use put instead of add to handle potential duplicate keys
+                        const addRequest = store.put(item);
                         addRequest.onsuccess = () => resolveItem();
                         addRequest.onerror = () => {
                           console.error(
@@ -381,10 +382,15 @@ export function ControlPanelsAppComponent({
               await restoreStoreData("trash", backup.indexedDB.trash);
             }
             if (backup.indexedDB.custom_wallpapers) {
+              console.log(
+                "Restoring custom wallpapers:",
+                backup.indexedDB.custom_wallpapers.length
+              );
               await restoreStoreData(
                 "custom_wallpapers",
                 backup.indexedDB.custom_wallpapers
               );
+              console.log("Custom wallpapers restored successfully");
             }
 
             // Close the database
