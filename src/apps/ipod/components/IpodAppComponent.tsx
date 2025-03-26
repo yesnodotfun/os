@@ -170,6 +170,28 @@ function ScrollingText({
   );
 }
 
+// Add StatusDisplay component after the ScrollingText component
+function StatusDisplay({ message }: { message: string }) {
+  return (
+    <div className="absolute top-4 left-4 pointer-events-none">
+      <div className="relative">
+        <div className="font-chicago text-white text-xl relative z-10">
+          {message}
+        </div>
+        <div
+          className="font-chicago text-black text-xl absolute inset-0"
+          style={{
+            WebkitTextStroke: "3px black",
+            textShadow: "none",
+          }}
+        >
+          {message}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Add function to handle backlight state
 const loadIpodBacklight = (): boolean => {
   const saved = localStorage.getItem("ipod-backlight");
@@ -203,6 +225,7 @@ function IpodScreen({
   handlePause,
   handleReady,
   loopCurrent,
+  statusMessage,
 }: {
   currentTrack: Track | null;
   isPlaying: boolean;
@@ -235,6 +258,7 @@ function IpodScreen({
   handlePause: () => void;
   handleReady: () => void;
   loopCurrent: boolean;
+  statusMessage: string | null;
 }) {
   // Animation variants for menu transitions
   const menuVariants = {
@@ -392,6 +416,19 @@ function IpodScreen({
                 },
               }}
             />
+            {/* Status Display */}
+            <AnimatePresence>
+              {statusMessage && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <StatusDisplay message={statusMessage} />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       )}
@@ -543,6 +580,10 @@ export function IpodAppComponent({
   // Add backlight timer timeout reference
   const backlightTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Add status message state and ref
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const statusTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const [elapsedTime, setElapsedTime] = useState(0);
   const [totalTime, setTotalTime] = useState(0);
   const [urlInput, setUrlInput] = useState("");
@@ -595,6 +636,11 @@ export function IpodAppComponent({
       {
         label: "Music",
         action: () => {
+          // Turn off video when navigating to Music menu
+          if (showVideo) {
+            setShowVideo(false);
+          }
+
           setMenuDirection("forward");
           // Use current tracks array which will already be in shuffled order if shuffle is on
           const musicSubmenu = tracks.map((track, index) => ({
@@ -605,6 +651,10 @@ export function IpodAppComponent({
               setMenuDirection("forward");
               setMenuMode(false);
               setCameFromNowPlayingMenuItem(false);
+              // Turn off video when selecting a track
+              if (showVideo) {
+                setShowVideo(false);
+              }
             },
             showChevron: false,
           }));
@@ -625,6 +675,10 @@ export function IpodAppComponent({
       {
         label: "Extras",
         action: () => {
+          // Turn off video when opening dialog
+          if (showVideo) {
+            setShowVideo(false);
+          }
           setIsAddDialogOpen(true);
         },
         showChevron: true,
@@ -632,6 +686,11 @@ export function IpodAppComponent({
       {
         label: "Settings",
         action: () => {
+          // Turn off video when navigating to Settings
+          if (showVideo) {
+            setShowVideo(false);
+          }
+
           setMenuDirection("forward");
           const settingsSubmenu = [
             {
@@ -680,6 +739,10 @@ export function IpodAppComponent({
       {
         label: "Shuffle Songs",
         action: () => {
+          // Turn off video when shuffling songs
+          if (showVideo) {
+            setShowVideo(false);
+          }
           toggleShuffle();
           setMenuMode(false);
         },
@@ -912,6 +975,26 @@ export function IpodAppComponent({
     }
   }, [isForeground]);
 
+  // Add function to show status
+  const showStatus = (message: string) => {
+    setStatusMessage(message);
+    if (statusTimeoutRef.current) {
+      clearTimeout(statusTimeoutRef.current);
+    }
+    statusTimeoutRef.current = setTimeout(() => {
+      setStatusMessage(null);
+    }, 2000);
+  };
+
+  // Clean up status timeout
+  useEffect(() => {
+    return () => {
+      if (statusTimeoutRef.current) {
+        clearTimeout(statusTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const nextTrack = () => {
     if (tracks.length === 0) return;
     playClickSound();
@@ -926,6 +1009,7 @@ export function IpodAppComponent({
       return prev + 1;
     });
     setIsPlaying(true);
+    showStatus("⏭");
   };
 
   const previousTrack = () => {
@@ -942,12 +1026,14 @@ export function IpodAppComponent({
       return prev - 1;
     });
     setIsPlaying(true);
+    showStatus("⏮");
   };
 
   const togglePlay = () => {
     setIsPlaying(!isPlaying);
     playClickSound();
     registerActivity();
+    showStatus(isPlaying ? "⏸" : "▶");
   };
 
   const toggleVideo = () => {
@@ -983,13 +1069,16 @@ export function IpodAppComponent({
     setTotalTime(duration);
   };
 
-  // Add new handlers for YouTube player state sync
+  // Update handlePlay to show status
   const handlePlay = () => {
     setIsPlaying(true);
+    showStatus("▶");
   };
 
+  // Update handlePause to show status
   const handlePause = () => {
     setIsPlaying(false);
+    showStatus("⏸");
   };
 
   const handleReady = () => {
@@ -1078,6 +1167,11 @@ export function IpodAppComponent({
     playClickSound();
     registerActivity();
 
+    // Turn off video when navigating menus
+    if (showVideo) {
+      setShowVideo(false);
+    }
+
     if (menuMode) {
       // If we're in a submenu, go back to previous menu
       if (menuHistory.length > 1) {
@@ -1127,6 +1221,10 @@ export function IpodAppComponent({
               setMenuDirection("forward");
               setMenuMode(false);
               setCameFromNowPlayingMenuItem(false);
+              // Turn off video when selecting a track from menu
+              if (showVideo) {
+                setShowVideo(false);
+              }
             },
           }));
 
@@ -1253,10 +1351,14 @@ export function IpodAppComponent({
         onNext={nextTrack}
         onPrevious={previousTrack}
         onAddTrack={() => setIsAddDialogOpen(true)}
+        onToggleBacklight={toggleBacklight}
+        onToggleVideo={toggleVideo}
         isLoopAll={loopAll}
         isLoopCurrent={loopCurrent}
         isPlaying={isPlaying}
         isShuffled={isShuffled}
+        isBacklightOn={backlightOn}
+        isVideoOn={showVideo}
       />
 
       <WindowFrame
@@ -1293,6 +1395,7 @@ export function IpodAppComponent({
               handlePause={handlePause}
               handleReady={handleReady}
               loopCurrent={loopCurrent}
+              statusMessage={statusMessage}
             />
 
             {/* Click Wheel */}

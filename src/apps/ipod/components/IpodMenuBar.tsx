@@ -33,10 +33,14 @@ interface IpodMenuBarProps {
   onNext: () => void;
   onPrevious: () => void;
   onAddTrack: () => void;
+  onToggleBacklight: () => void;
+  onToggleVideo: () => void;
   isLoopAll: boolean;
   isLoopCurrent: boolean;
   isPlaying: boolean;
   isShuffled: boolean;
+  isBacklightOn: boolean;
+  isVideoOn: boolean;
 }
 
 export function IpodMenuBar({
@@ -55,10 +59,14 @@ export function IpodMenuBar({
   onNext,
   onPrevious,
   onAddTrack,
+  onToggleBacklight,
+  onToggleVideo,
   isLoopAll,
   isLoopCurrent,
   isPlaying,
   isShuffled,
+  isBacklightOn,
+  isVideoOn,
 }: IpodMenuBarProps) {
   return (
     <MenuBar>
@@ -146,6 +154,38 @@ export function IpodMenuBar({
           >
             <span className={cn(!isLoopCurrent && "pl-4")}>
               {isLoopCurrent ? "✓ Repeat One" : "Repeat One"}
+            </span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* View Menu */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="default"
+            className="h-6 px-2 py-1 text-md focus-visible:ring-0 hover:bg-gray-200 active:bg-gray-900 active:text-white"
+          >
+            View
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" sideOffset={1} className="px-0">
+          <DropdownMenuItem
+            onClick={onToggleBacklight}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            <span className={cn(!isBacklightOn && "pl-4")}>
+              {isBacklightOn ? "✓ Backlight" : "Backlight"}
+            </span>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={onToggleVideo}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+            disabled={!isPlaying}
+          >
+            <span className={cn(!isVideoOn && "pl-4")}>
+              {isVideoOn ? "✓ Show Video" : "Show Video"}
             </span>
           </DropdownMenuItem>
         </DropdownMenuContent>
