@@ -65,11 +65,15 @@ function MenuListItem({
   isSelected,
   onClick,
   backlightOn = true,
+  showChevron = true,
+  value,
 }: {
   text: string;
   isSelected: boolean;
   onClick: () => void;
   backlightOn?: boolean;
+  showChevron?: boolean;
+  value?: string;
 }) {
   return (
     <div
@@ -86,7 +90,11 @@ function MenuListItem({
       <span className="whitespace-nowrap overflow-hidden text-ellipsis flex-1 mr-2">
         {text}
       </span>
-      <span className="flex-shrink-0">{">"}</span>
+      {value ? (
+        <span className="flex-shrink-0">{value}</span>
+      ) : (
+        showChevron && <span className="flex-shrink-0">{">"}</span>
+      )}
     </div>
   );
 }
@@ -194,7 +202,12 @@ function IpodScreen({
   menuMode: boolean;
   menuHistory: {
     title: string;
-    items: { label: string; action: () => void }[];
+    items: {
+      label: string;
+      action: () => void;
+      showChevron?: boolean;
+      value?: string;
+    }[];
     selectedIndex: number;
   }[];
   selectedMenuItem: number;
@@ -370,6 +383,8 @@ function IpodScreen({
                             onSelectMenuItem(index);
                             onMenuItemAction(item.action);
                           }}
+                          showChevron={item.showChevron !== false}
+                          value={item.value}
                         />
                       </div>
                     )
@@ -490,13 +505,19 @@ export function IpodAppComponent({
   const [menuHistory, setMenuHistory] = useState<
     {
       title: string;
-      items: { label: string; action: () => void }[];
+      items: {
+        label: string;
+        action: () => void;
+        showChevron?: boolean;
+        value?: string;
+      }[];
       selectedIndex: number;
     }[]
   >([]);
 
-  // Add state to track if user came from music menu
-  const [cameFromMusicMenu, setCameFromMusicMenu] = useState(false);
+  // Add state to track if user came directly from "Now Playing" menu item
+  const [cameFromNowPlayingMenuItem, setCameFromNowPlayingMenuItem] =
+    useState(false);
 
   const playerRef = useRef<ReactPlayer>(null);
 
@@ -519,9 +540,11 @@ export function IpodAppComponent({
             action: () => {
               setCurrentIndex(index);
               setIsPlaying(true);
+              setMenuDirection("forward");
               setMenuMode(false);
-              setCameFromMusicMenu(true);
+              setCameFromNowPlayingMenuItem(false);
             },
+            showChevron: false,
           }));
 
           // Push music menu to history
@@ -535,12 +558,14 @@ export function IpodAppComponent({
           ]);
           setSelectedMenuItem(0);
         },
+        showChevron: true,
       },
       {
         label: "Extras",
         action: () => {
           setIsAddDialogOpen(true);
         },
+        showChevron: true,
       },
       {
         label: "Settings",
@@ -548,7 +573,7 @@ export function IpodAppComponent({
           setMenuDirection("forward");
           const settingsSubmenu = [
             {
-              label: `Repeat: ${loopCurrent ? "One" : loopAll ? "All" : "Off"}`,
+              label: "Repeat",
               action: () => {
                 if (loopCurrent) {
                   setLoopCurrent(false);
@@ -560,29 +585,20 @@ export function IpodAppComponent({
                   setLoopAll(true);
                 }
               },
+              showChevron: false,
+              value: loopCurrent ? "One" : loopAll ? "All" : "Off",
             },
             {
-              label: `Shuffle: ${isShuffled ? "On" : "Off"}`,
+              label: "Shuffle",
               action: toggleShuffle,
+              showChevron: false,
+              value: isShuffled ? "On" : "Off",
             },
             {
-              label: `Backlight: ${backlightOn ? "On" : "Off"}`,
+              label: "Backlight",
               action: toggleBacklight,
-            },
-            {
-              label: "Back",
-              action: () => {
-                setMenuDirection("backward");
-                // Pop the current menu off the stack
-                setMenuHistory((prev) => prev.slice(0, -1));
-                // Restore previous selected item
-                const prevMenu = menuHistory[menuHistory.length - 2];
-                if (prevMenu) {
-                  setSelectedMenuItem(prevMenu.selectedIndex);
-                } else {
-                  setSelectedMenuItem(0);
-                }
-              },
+              showChevron: false,
+              value: backlightOn ? "On" : "Off",
             },
           ];
 
@@ -597,6 +613,7 @@ export function IpodAppComponent({
           ]);
           setSelectedMenuItem(0);
         },
+        showChevron: true,
       },
       {
         label: "Shuffle Songs",
@@ -604,6 +621,7 @@ export function IpodAppComponent({
           toggleShuffle();
           setMenuMode(false);
         },
+        showChevron: false,
       },
       {
         label: "Backlight",
@@ -611,13 +629,16 @@ export function IpodAppComponent({
           toggleBacklight();
           // Don't exit menu mode when toggling backlight
         },
+        showChevron: false,
       },
       {
         label: "Now Playing",
         action: () => {
           setMenuDirection("forward");
           setMenuMode(false);
+          setCameFromNowPlayingMenuItem(true);
         },
+        showChevron: true,
       },
     ];
   };
@@ -640,7 +661,7 @@ export function IpodAppComponent({
         // Update Settings menu when relevant state changes
         const updatedSettings = [
           {
-            label: `Repeat: ${loopCurrent ? "One" : loopAll ? "All" : "Off"}`,
+            label: "Repeat",
             action: () => {
               if (loopCurrent) {
                 setLoopCurrent(false);
@@ -652,24 +673,20 @@ export function IpodAppComponent({
                 setLoopAll(true);
               }
             },
+            showChevron: false,
+            value: loopCurrent ? "One" : loopAll ? "All" : "Off",
           },
           {
-            label: `Shuffle: ${isShuffled ? "On" : "Off"}`,
+            label: "Shuffle",
             action: toggleShuffle,
+            showChevron: false,
+            value: isShuffled ? "On" : "Off",
           },
           {
-            label: `Backlight: ${backlightOn ? "On" : "Off"}`,
+            label: "Backlight",
             action: toggleBacklight,
-          },
-          {
-            label: "Back",
-            action: () => {
-              setMenuDirection("backward");
-              // Pop the current menu off the stack
-              setMenuHistory((prev) => prev.slice(0, -1));
-              // Restore previous selected item
-              setSelectedMenuItem(0);
-            },
+            showChevron: false,
+            value: backlightOn ? "On" : "Off",
           },
         ];
 
@@ -693,9 +710,11 @@ export function IpodAppComponent({
           action: () => {
             setCurrentIndex(index);
             setIsPlaying(true);
+            setMenuDirection("forward");
             setMenuMode(false);
-            setCameFromMusicMenu(true);
+            setCameFromNowPlayingMenuItem(false);
           },
+          showChevron: false,
         }));
 
         setMenuHistory((prev) => [
@@ -920,42 +939,15 @@ export function IpodAppComponent({
     registerActivity();
     switch (area) {
       case "top":
-        if (menuMode) {
-          setSelectedMenuItem(Math.max(0, selectedMenuItem - 1));
-          // Update selected index in current menu
-          if (menuHistory.length > 0) {
-            const currentMenu = menuHistory[menuHistory.length - 1];
-            setMenuHistory((prev) => [
-              ...prev.slice(0, -1),
-              {
-                ...currentMenu,
-                selectedIndex: Math.max(0, selectedMenuItem - 1),
-              },
-            ]);
-          }
-        } else {
-          setIsPlaying(true);
-        }
+        // Top always acts as menu button
+        handleMenuButton();
         break;
       case "right":
         nextTrack();
         break;
       case "bottom":
-        if (menuMode) {
-          const currentMenu = menuHistory[menuHistory.length - 1];
-          const newIndex = Math.min(
-            currentMenu.items.length - 1,
-            selectedMenuItem + 1
-          );
-          setSelectedMenuItem(newIndex);
-          // Update selected index in current menu
-          setMenuHistory((prev) => [
-            ...prev.slice(0, -1),
-            { ...currentMenu, selectedIndex: newIndex },
-          ]);
-        } else {
-          togglePlay();
-        }
+        // Bottom always toggles play/pause regardless of menu mode
+        togglePlay();
         break;
       case "left":
         previousTrack();
@@ -1025,16 +1017,23 @@ export function IpodAppComponent({
           setSelectedMenuItem(previousMenu.selectedIndex);
         }
       } else {
-        // If we're in the main menu, exit menu mode
-        setMenuDirection("backward");
-        setMenuMode(false);
+        // If we're in the main/root menu, do nothing
+        // Just play a sound to give feedback
+        playClickSound();
       }
     } else {
       // Enter menu mode
       setMenuDirection("backward");
 
-      // If we came from music menu, go back to music submenu with current song selected
-      if (cameFromMusicMenu && menuHistory.length > 1) {
+      // If we came from the "Now Playing" menu item in the main menu, go to the main menu
+      if (cameFromNowPlayingMenuItem) {
+        if (menuHistory.length > 1) {
+          setMenuHistory([menuHistory[0]]);
+        }
+        setSelectedMenuItem(menuHistory[0]?.selectedIndex || 0);
+        setCameFromNowPlayingMenuItem(false);
+      } else {
+        // Otherwise, always go to the music menu with current song selected
         const musicMenu = menuHistory.find((menu) => menu.title === "Music");
 
         if (musicMenu) {
@@ -1047,20 +1046,29 @@ export function IpodAppComponent({
           // Keep only the main menu and add updated music menu
           setMenuHistory([menuHistory[0], updatedMusicMenu]);
           setSelectedMenuItem(currentIndex);
-          setCameFromMusicMenu(false);
         } else {
-          // If for some reason we can't find Music menu, go to main menu
-          if (menuHistory.length > 1) {
-            setMenuHistory([menuHistory[0]]);
-          }
-          setSelectedMenuItem(menuHistory[0]?.selectedIndex || 0);
+          // If for some reason we can't find Music menu, create it
+          const musicSubmenu = tracks.map((track, index) => ({
+            label: track.title,
+            action: () => {
+              setCurrentIndex(index);
+              setIsPlaying(true);
+              setMenuDirection("forward");
+              setMenuMode(false);
+              setCameFromNowPlayingMenuItem(false);
+            },
+          }));
+
+          setMenuHistory([
+            menuHistory[0],
+            {
+              title: "Music",
+              items: musicSubmenu,
+              selectedIndex: currentIndex,
+            },
+          ]);
+          setSelectedMenuItem(currentIndex);
         }
-      } else {
-        // Regular behavior - go to main menu
-        if (menuHistory.length > 1) {
-          setMenuHistory([menuHistory[0]]);
-        }
-        setSelectedMenuItem(menuHistory[0]?.selectedIndex || 0);
       }
 
       setMenuMode(true);
