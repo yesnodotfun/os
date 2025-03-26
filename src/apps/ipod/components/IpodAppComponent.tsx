@@ -320,18 +320,39 @@ function IpodScreen({
     const itemHeight = selectedItem.offsetHeight;
     const scrollTop = container.scrollTop;
 
+    // Use smooth scrolling with a small buffer to prevent edge flickering
+    // Add a 2px buffer at top and bottom to prevent edge flickering
+    const buffer = 2;
+    
     // If item is below the visible area
-    if (itemTop + itemHeight > scrollTop + containerHeight) {
-      container.scrollTop = itemTop + itemHeight - containerHeight;
+    if (itemTop + itemHeight > scrollTop + containerHeight - buffer) {
+      container.scrollTo({
+        top: itemTop + itemHeight - containerHeight + buffer,
+        behavior: 'smooth'
+      });
     }
     // If item is above the visible area
-    else if (itemTop < scrollTop) {
-      container.scrollTop = itemTop;
+    else if (itemTop < scrollTop + buffer) {
+      container.scrollTo({
+        top: Math.max(0, itemTop - buffer),
+        behavior: 'smooth'
+      });
     }
 
     // Force scroll to top for first item
     if (selectedMenuItem === 0) {
-      container.scrollTop = 0;
+      container.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    }
+    
+    // For last item, ensure it's fully visible
+    if (selectedMenuItem === menuItems.length - 1) {
+      container.scrollTo({
+        top: Math.max(0, itemTop - (containerHeight - itemHeight) + buffer),
+        behavior: 'smooth'
+      });
     }
 
     // Reset need scroll flag
