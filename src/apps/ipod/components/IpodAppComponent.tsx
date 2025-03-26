@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import ReactPlayer from "react-player";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { AppProps } from "../../base/types";
 import { WindowFrame } from "@/components/layout/WindowFrame";
@@ -87,79 +87,6 @@ function MenuListItem({
         {text}
       </span>
       <span className="flex-shrink-0">{">"}</span>
-    </div>
-  );
-}
-
-function IpodMenu({
-  items,
-  selectedIndex,
-  onSelect,
-  title,
-  isPlaying,
-  backlightOn = true,
-}: {
-  items: { label: string; action: () => void }[];
-  selectedIndex: number;
-  onSelect: (index: number) => void;
-  title: string;
-  isPlaying?: boolean;
-  backlightOn?: boolean;
-}) {
-  const menuRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  // Scroll to keep selected item visible
-  useEffect(() => {
-    if (menuRef.current) {
-      const selectedItem = menuRef.current.children[
-        selectedIndex
-      ] as HTMLElement;
-      if (selectedItem) {
-        const menuContainer = menuRef.current;
-        const itemTop = selectedItem.offsetTop;
-        const itemHeight = selectedItem.offsetHeight;
-        const containerHeight = menuContainer.clientHeight;
-        const scrollTop = menuContainer.scrollTop;
-
-        // If item is below the visible area
-        if (itemTop + itemHeight > scrollTop + containerHeight) {
-          menuContainer.scrollTop = itemTop + itemHeight - containerHeight;
-        }
-        // If item is above the visible area
-        else if (itemTop < scrollTop) {
-          menuContainer.scrollTop = Math.max(0, itemTop);
-        }
-
-        // Force scroll to top for first item
-        if (selectedIndex === 0) {
-          menuContainer.scrollTop = 0;
-        }
-      }
-    }
-  }, [selectedIndex]);
-
-  return (
-    <div ref={containerRef} className="flex flex-col h-full">
-      <div className="border-b border-[#0a3667] py-0 px-2 font-chicago text-[16px] flex justify-between items-center sticky top-0 z-10 text-[#0a3667] [text-shadow:1px_1px_0_rgba(0,0,0,0.15)]">
-        <div className="w-6 text-xs">{isPlaying ? "▶" : "II"}</div>
-        <div>{title}</div>
-        <div className="w-6 text-xs"></div>
-      </div>
-      <div ref={menuRef} className="flex-1 overflow-auto">
-        {items.map((item, index) => (
-          <MenuListItem
-            key={index}
-            text={item.label}
-            isSelected={index === selectedIndex}
-            backlightOn={backlightOn}
-            onClick={() => {
-              onSelect(index);
-              item.action();
-            }}
-          />
-        ))}
-      </div>
     </div>
   );
 }
@@ -251,27 +178,141 @@ function IpodScreen({
   elapsedTime,
   totalTime,
   menuMode,
-  menuItems,
+  menuHistory,
   selectedMenuItem,
   onSelectMenuItem,
-  menuTitle,
   currentIndex,
   tracksLength,
   backlightOn,
+  menuDirection,
+  onMenuItemAction,
 }: {
   currentTrack: Track | null;
   isPlaying: boolean;
   elapsedTime: number;
   totalTime: number;
   menuMode: boolean;
-  menuItems: { label: string; action: () => void }[];
+  menuHistory: {
+    title: string;
+    items: { label: string; action: () => void }[];
+    selectedIndex: number;
+  }[];
   selectedMenuItem: number;
   onSelectMenuItem: (index: number) => void;
-  menuTitle: string;
   currentIndex: number;
   tracksLength: number;
   backlightOn: boolean;
+  menuDirection: "forward" | "backward";
+  onMenuItemAction: (action: () => void) => void;
 }) {
+  // Animation variants for menu transitions
+  const menuVariants = {
+    enter: (direction: "forward" | "backward") => ({
+      x: direction === "forward" ? "100%" : "-100%",
+    }),
+    center: {
+      x: 0,
+    },
+    exit: (direction: "forward" | "backward") => ({
+      x: direction === "forward" ? "-100%" : "100%",
+    }),
+  };
+
+  // Current menu title
+  const currentMenuTitle = menuMode
+    ? menuHistory.length > 0
+      ? menuHistory[menuHistory.length - 1].title
+      : "iPod"
+    : "Now Playing";
+
+  // Refs
+  const menuScrollRef = useRef<HTMLDivElement>(null);
+  const menuItemsRef = useRef<(HTMLDivElement | null)[]>([]);
+
+  // Need scroll flag
+  const needScrollRef = useRef(false);
+
+  // Reset refs when menu items change
+  const resetItemRefs = (count: number) => {
+    menuItemsRef.current = Array(count).fill(null);
+  };
+
+  // More direct scroll approach that doesn't rely on refs being attached yet
+  const forceScrollToSelected = () => {
+    // Return if we're not in menu mode
+    if (!menuMode || menuHistory.length === 0) return;
+
+    // Get the current menu's container
+    const container = document.querySelector(
+      ".ipod-menu-container"
+    ) as HTMLElement;
+    if (!container) return;
+
+    // Get all menu items
+    const menuItems = Array.from(container.querySelectorAll(".ipod-menu-item"));
+    if (!menuItems.length) return;
+
+    // Exit if selectedMenuItem is out of bounds
+    if (selectedMenuItem < 0 || selectedMenuItem >= menuItems.length) return;
+
+    // Get the selected item
+    const selectedItem = menuItems[selectedMenuItem] as HTMLElement;
+    if (!selectedItem) return;
+
+    // Calculate scroll position
+    const containerHeight = container.clientHeight;
+    const itemTop = selectedItem.offsetTop;
+    const itemHeight = selectedItem.offsetHeight;
+    const scrollTop = container.scrollTop;
+
+    // If item is below the visible area
+    if (itemTop + itemHeight > scrollTop + containerHeight) {
+      container.scrollTop = itemTop + itemHeight - containerHeight;
+    }
+    // If item is above the visible area
+    else if (itemTop < scrollTop) {
+      container.scrollTop = itemTop;
+    }
+
+    // Force scroll to top for first item
+    if (selectedMenuItem === 0) {
+      container.scrollTop = 0;
+    }
+
+    // Reset need scroll flag
+    needScrollRef.current = false;
+  };
+
+  // Trigger scroll on various conditions
+  useEffect(() => {
+    if (menuMode && menuHistory.length > 0) {
+      // Flag that we need to scroll
+      needScrollRef.current = true;
+
+      // Try immediately (in case DOM is ready)
+      forceScrollToSelected();
+
+      // Schedule multiple attempts with increasing delays
+      const attempts = [50, 100, 250, 500, 1000];
+
+      attempts.forEach((delay) => {
+        setTimeout(() => {
+          if (needScrollRef.current) {
+            forceScrollToSelected();
+          }
+        }, delay);
+      });
+    }
+  }, [menuMode, selectedMenuItem, menuHistory.length]);
+
+  // Prepare for a newly opened menu
+  useEffect(() => {
+    if (menuMode && menuHistory.length > 0) {
+      const currentMenu = menuHistory[menuHistory.length - 1];
+      resetItemRefs(currentMenu.items.length);
+    }
+  }, [menuMode, menuHistory.length]);
+
   return (
     <div
       className={cn(
@@ -281,72 +322,123 @@ function IpodScreen({
           : "bg-[#8a9da9] contrast-65 saturate-50"
       )}
     >
-      {menuMode ? (
-        <IpodMenu
-          items={menuItems}
-          selectedIndex={selectedMenuItem}
-          onSelect={onSelectMenuItem}
-          title={menuTitle}
-          isPlaying={isPlaying}
-          backlightOn={backlightOn}
-        />
-      ) : (
-        <div className="flex flex-col h-full">
-          <div className="border-b border-[#0a3667] py-0 px-2 font-chicago text-[16px] flex justify-between items-center text-[#0a3667] [text-shadow:1px_1px_0_rgba(0,0,0,0.15)]">
-            <div className="w-6 text-xs">{isPlaying ? "▶" : "II"}</div>
-            <div>Now Playing</div>
-            <div className="w-6 text-xs"></div>
-          </div>
-          <div className="flex-1 flex flex-col p-1 px-2">
-            {currentTrack ? (
-              <>
-                <div className="font-chicago text-[12px] mb-1 text-[#0a3667] [text-shadow:1px_1px_0_rgba(0,0,0,0.15)]">
-                  {currentIndex + 1} of {tracksLength}
-                </div>
-                <div className="font-chicago text-[16px] mb-4 text-center text-[#0a3667] [text-shadow:1px_1px_0_rgba(0,0,0,0.15)]">
-                  <ScrollingText
-                    text={currentTrack.title}
-                    className="mb-0.5"
-                    isPlaying={isPlaying}
-                  />
-                  <ScrollingText
-                    text={currentTrack.artist || ""}
-                    isPlaying={isPlaying}
-                  />
-                </div>
-                <div className="mt-auto w-full h-2 rounded-full border border-[#0a3667] overflow-hidden">
-                  <div
-                    className="h-full bg-[#0a3667]"
-                    style={{
-                      width: `${
-                        totalTime > 0 ? (elapsedTime / totalTime) * 100 : 0
-                      }%`,
-                    }}
-                  />
-                </div>
-                <div className="font-chicago text-[16px] w-full flex justify-between text-[#0a3667] [text-shadow:1px_1px_0_rgba(0,0,0,0.15)]">
-                  <span>
-                    {Math.floor(elapsedTime / 60)}:
-                    {String(Math.floor(elapsedTime % 60)).padStart(2, "0")}
-                  </span>
-                  <span>
-                    -{Math.floor((totalTime - elapsedTime) / 60)}:
-                    {String(
-                      Math.floor((totalTime - elapsedTime) % 60)
-                    ).padStart(2, "0")}
-                  </span>
-                </div>
-              </>
-            ) : (
-              <div className="text-center font-chicago text-[16px] text-[#0a3667] [text-shadow:1px_1px_0_rgba(0,0,0,0.15)]">
-                <p>No track selected</p>
-                <p>Use the wheel to</p>
-                <p>browse your library</p>
+      {/* Title bar - not animated, immediately swaps */}
+      <div className="border-b border-[#0a3667] py-0 px-2 font-chicago text-[16px] flex justify-between items-center sticky top-0 z-10 text-[#0a3667] [text-shadow:1px_1px_0_rgba(0,0,0,0.15)]">
+        <div className="w-6 text-xs">{isPlaying ? "▶" : "II"}</div>
+        <div>{currentMenuTitle}</div>
+        <div className="w-6 text-xs"></div>
+      </div>
+
+      {/* Content area - this animates/slides */}
+      <div className="relative h-[calc(100%-26px)]">
+        <AnimatePresence initial={false} custom={menuDirection} mode="sync">
+          {menuMode ? (
+            <motion.div
+              key={`menu-${menuHistory.length}-${currentMenuTitle}`}
+              className="absolute inset-0 flex flex-col h-full"
+              initial="enter"
+              animate="center"
+              exit="exit"
+              variants={menuVariants}
+              transition={{ duration: 0.2, ease: "easeInOut" }}
+              custom={menuDirection}
+              onAnimationComplete={() => {
+                // Flag that we need to scroll and trigger the scroll logic
+                needScrollRef.current = true;
+                forceScrollToSelected();
+              }}
+            >
+              <div
+                ref={menuScrollRef}
+                className="flex-1 overflow-auto ipod-menu-container"
+              >
+                {menuHistory.length > 0 &&
+                  menuHistory[menuHistory.length - 1].items.map(
+                    (item, index) => (
+                      <div
+                        key={index}
+                        ref={(el) => (menuItemsRef.current[index] = el)}
+                        className={`ipod-menu-item ${
+                          index === selectedMenuItem ? "selected" : ""
+                        }`}
+                      >
+                        <MenuListItem
+                          text={item.label}
+                          isSelected={index === selectedMenuItem}
+                          backlightOn={backlightOn}
+                          onClick={() => {
+                            onSelectMenuItem(index);
+                            onMenuItemAction(item.action);
+                          }}
+                        />
+                      </div>
+                    )
+                  )}
               </div>
-            )}
-          </div>
-        </div>
-      )}
+            </motion.div>
+          ) : (
+            <motion.div
+              key="nowplaying"
+              className="absolute inset-0 flex flex-col h-full"
+              initial="enter"
+              animate="center"
+              exit="exit"
+              variants={menuVariants}
+              transition={{ duration: 0.2, ease: "easeInOut" }}
+              custom={menuDirection}
+            >
+              <div className="flex-1 flex flex-col p-1 px-2 overflow-auto">
+                {currentTrack ? (
+                  <>
+                    <div className="font-chicago text-[12px] mb-1 text-[#0a3667] [text-shadow:1px_1px_0_rgba(0,0,0,0.15)]">
+                      {currentIndex + 1} of {tracksLength}
+                    </div>
+                    <div className="font-chicago text-[16px] text-center text-[#0a3667] [text-shadow:1px_1px_0_rgba(0,0,0,0.15)]">
+                      <ScrollingText
+                        text={currentTrack.title}
+                        className="mb-0.5"
+                        isPlaying={isPlaying}
+                      />
+                      <ScrollingText
+                        text={currentTrack.artist || ""}
+                        isPlaying={isPlaying}
+                      />
+                    </div>
+                    <div className="mt-auto w-full h-[8px] rounded-full border border-[#0a3667] overflow-hidden">
+                      <div
+                        className="h-full bg-[#0a3667]"
+                        style={{
+                          width: `${
+                            totalTime > 0 ? (elapsedTime / totalTime) * 100 : 0
+                          }%`,
+                        }}
+                      />
+                    </div>
+                    <div className="font-chicago text-[16px] w-full flex justify-between text-[#0a3667] [text-shadow:1px_1px_0_rgba(0,0,0,0.15)]">
+                      <span>
+                        {Math.floor(elapsedTime / 60)}:
+                        {String(Math.floor(elapsedTime % 60)).padStart(2, "0")}
+                      </span>
+                      <span>
+                        -{Math.floor((totalTime - elapsedTime) / 60)}:
+                        {String(
+                          Math.floor((totalTime - elapsedTime) % 60)
+                        ).padStart(2, "0")}
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center font-chicago text-[16px] text-[#0a3667] [text-shadow:1px_1px_0_rgba(0,0,0,0.15)]">
+                    <p>No track selected</p>
+                    <p>Use the wheel to</p>
+                    <p>browse your library</p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
@@ -391,26 +483,57 @@ export function IpodAppComponent({
 
   const [menuMode, setMenuMode] = useState(false);
   const [selectedMenuItem, setSelectedMenuItem] = useState(0);
-  const [menuTitle, setMenuTitle] = useState("iPod");
+  const [menuDirection, setMenuDirection] = useState<"forward" | "backward">(
+    "forward"
+  );
+  // Add menu history/stack to track navigation
+  const [menuHistory, setMenuHistory] = useState<
+    {
+      title: string;
+      items: { label: string; action: () => void }[];
+      selectedIndex: number;
+    }[]
+  >([]);
+
+  // Add state to track if user came from music menu
+  const [cameFromMusicMenu, setCameFromMusicMenu] = useState(false);
 
   const playerRef = useRef<ReactPlayer>(null);
 
-  const makeMenuItems = () => {
+  // Handle menu item action to properly manage transitions
+  const handleMenuItemAction = (action: () => void) => {
+    // Execute the action directly - we manage history in the actions themselves
+    action();
+  };
+
+  // Create main menu items
+  const makeMainMenuItems = () => {
     return [
       {
         label: "Music",
         action: () => {
-          setMenuTitle("Music");
-          setMenuItems(
-            tracks.map((track, index) => ({
-              label: track.title,
-              action: () => {
-                setCurrentIndex(index);
-                setIsPlaying(true);
-                setMenuMode(false);
-              },
-            }))
-          );
+          setMenuDirection("forward");
+          // Use current tracks array which will already be in shuffled order if shuffle is on
+          const musicSubmenu = tracks.map((track, index) => ({
+            label: track.title,
+            action: () => {
+              setCurrentIndex(index);
+              setIsPlaying(true);
+              setMenuMode(false);
+              setCameFromMusicMenu(true);
+            },
+          }));
+
+          // Push music menu to history
+          setMenuHistory((prev) => [
+            ...prev,
+            {
+              title: "Music",
+              items: musicSubmenu,
+              selectedIndex: 0,
+            },
+          ]);
+          setSelectedMenuItem(0);
         },
       },
       {
@@ -422,8 +545,8 @@ export function IpodAppComponent({
       {
         label: "Settings",
         action: () => {
-          setMenuTitle("Settings");
-          setMenuItems([
+          setMenuDirection("forward");
+          const settingsSubmenu = [
             {
               label: `Repeat: ${loopCurrent ? "One" : loopAll ? "All" : "Off"}`,
               action: () => {
@@ -449,11 +572,30 @@ export function IpodAppComponent({
             {
               label: "Back",
               action: () => {
-                setMenuTitle("iPod");
-                setMenuItems(makeMenuItems());
+                setMenuDirection("backward");
+                // Pop the current menu off the stack
+                setMenuHistory((prev) => prev.slice(0, -1));
+                // Restore previous selected item
+                const prevMenu = menuHistory[menuHistory.length - 2];
+                if (prevMenu) {
+                  setSelectedMenuItem(prevMenu.selectedIndex);
+                } else {
+                  setSelectedMenuItem(0);
+                }
               },
             },
+          ];
+
+          // Push settings menu to history
+          setMenuHistory((prev) => [
+            ...prev,
+            {
+              title: "Settings",
+              items: settingsSubmenu,
+              selectedIndex: 0,
+            },
           ]);
+          setSelectedMenuItem(0);
         },
       },
       {
@@ -472,51 +614,97 @@ export function IpodAppComponent({
       },
       {
         label: "Now Playing",
-        action: () => setMenuMode(false),
+        action: () => {
+          setMenuDirection("forward");
+          setMenuMode(false);
+        },
       },
     ];
   };
 
-  const [menuItems, setMenuItems] = useState(makeMenuItems());
+  // Initialize menu with main menu items
+  useEffect(() => {
+    if (menuHistory.length === 0) {
+      setMenuHistory([
+        { title: "iPod", items: makeMainMenuItems(), selectedIndex: 0 },
+      ]);
+    }
+  }, []);
 
   // Update menu items when certain states change
   useEffect(() => {
-    if (menuTitle === "iPod") {
-      setMenuItems(makeMenuItems());
-    } else if (menuTitle === "Settings") {
-      setMenuItems([
-        {
-          label: `Repeat: ${loopCurrent ? "One" : loopAll ? "All" : "Off"}`,
-          action: () => {
-            if (loopCurrent) {
-              setLoopCurrent(false);
-              setLoopAll(false);
-            } else if (loopAll) {
-              setLoopCurrent(true);
-              setLoopAll(false);
-            } else {
-              setLoopAll(true);
-            }
+    if (menuHistory.length > 0) {
+      const currentMenu = menuHistory[menuHistory.length - 1];
+
+      if (currentMenu.title === "Settings") {
+        // Update Settings menu when relevant state changes
+        const updatedSettings = [
+          {
+            label: `Repeat: ${loopCurrent ? "One" : loopAll ? "All" : "Off"}`,
+            action: () => {
+              if (loopCurrent) {
+                setLoopCurrent(false);
+                setLoopAll(false);
+              } else if (loopAll) {
+                setLoopCurrent(true);
+                setLoopAll(false);
+              } else {
+                setLoopAll(true);
+              }
+            },
           },
-        },
-        {
-          label: `Shuffle: ${isShuffled ? "On" : "Off"}`,
-          action: toggleShuffle,
-        },
-        {
-          label: `Backlight: ${backlightOn ? "On" : "Off"}`,
-          action: toggleBacklight,
-        },
-        {
-          label: "Back",
-          action: () => {
-            setMenuTitle("iPod");
-            setMenuItems(makeMenuItems());
+          {
+            label: `Shuffle: ${isShuffled ? "On" : "Off"}`,
+            action: toggleShuffle,
           },
-        },
-      ]);
+          {
+            label: `Backlight: ${backlightOn ? "On" : "Off"}`,
+            action: toggleBacklight,
+          },
+          {
+            label: "Back",
+            action: () => {
+              setMenuDirection("backward");
+              // Pop the current menu off the stack
+              setMenuHistory((prev) => prev.slice(0, -1));
+              // Restore previous selected item
+              setSelectedMenuItem(0);
+            },
+          },
+        ];
+
+        setMenuHistory((prev) => [
+          ...prev.slice(0, -1),
+          { ...currentMenu, items: updatedSettings },
+        ]);
+      } else if (currentMenu.title === "iPod") {
+        // Update main menu
+        setMenuHistory((prev) => [
+          {
+            title: "iPod",
+            items: makeMainMenuItems(),
+            selectedIndex: prev[0].selectedIndex,
+          },
+        ]);
+      } else if (currentMenu.title === "Music") {
+        // Update music menu when tracks change or shuffle state changes
+        const musicSubmenu = tracks.map((track, index) => ({
+          label: track.title,
+          action: () => {
+            setCurrentIndex(index);
+            setIsPlaying(true);
+            setMenuMode(false);
+            setCameFromMusicMenu(true);
+          },
+        }));
+
+        setMenuHistory((prev) => [
+          ...prev.slice(0, -1),
+          { ...currentMenu, items: musicSubmenu },
+        ]);
+      }
     }
-  }, [isPlaying, loopCurrent, loopAll, isShuffled, backlightOn]);
+  }, [isPlaying, loopCurrent, loopAll, isShuffled, backlightOn, tracks]);
 
   // Save state to storage whenever it changes
   useEffect(() => {
@@ -734,6 +922,17 @@ export function IpodAppComponent({
       case "top":
         if (menuMode) {
           setSelectedMenuItem(Math.max(0, selectedMenuItem - 1));
+          // Update selected index in current menu
+          if (menuHistory.length > 0) {
+            const currentMenu = menuHistory[menuHistory.length - 1];
+            setMenuHistory((prev) => [
+              ...prev.slice(0, -1),
+              {
+                ...currentMenu,
+                selectedIndex: Math.max(0, selectedMenuItem - 1),
+              },
+            ]);
+          }
         } else {
           setIsPlaying(true);
         }
@@ -743,9 +942,17 @@ export function IpodAppComponent({
         break;
       case "bottom":
         if (menuMode) {
-          setSelectedMenuItem(
-            Math.min(menuItems.length - 1, selectedMenuItem + 1)
+          const currentMenu = menuHistory[menuHistory.length - 1];
+          const newIndex = Math.min(
+            currentMenu.items.length - 1,
+            selectedMenuItem + 1
           );
+          setSelectedMenuItem(newIndex);
+          // Update selected index in current menu
+          setMenuHistory((prev) => [
+            ...prev.slice(0, -1),
+            { ...currentMenu, selectedIndex: newIndex },
+          ]);
         } else {
           togglePlay();
         }
@@ -756,7 +963,10 @@ export function IpodAppComponent({
       case "center":
         if (menuMode) {
           // Execute the selected menu item's action
-          menuItems[selectedMenuItem]?.action();
+          const currentMenu = menuHistory[menuHistory.length - 1];
+          if (currentMenu && currentMenu.items[selectedMenuItem]) {
+            currentMenu.items[selectedMenuItem].action();
+          }
         } else {
           togglePlay();
         }
@@ -768,12 +978,27 @@ export function IpodAppComponent({
     playScrollSound();
     registerActivity();
     if (menuMode) {
+      const currentMenu = menuHistory[menuHistory.length - 1];
+      const menuLength = currentMenu.items.length;
+
       if (direction === "clockwise") {
-        setSelectedMenuItem(
-          Math.min(menuItems.length - 1, selectedMenuItem + 1)
-        );
+        const newIndex = Math.min(menuLength - 1, selectedMenuItem + 1);
+        setSelectedMenuItem(newIndex);
+
+        // Update selected index in menu history
+        setMenuHistory((prev) => [
+          ...prev.slice(0, -1),
+          { ...currentMenu, selectedIndex: newIndex },
+        ]);
       } else {
-        setSelectedMenuItem(Math.max(0, selectedMenuItem - 1));
+        const newIndex = Math.max(0, selectedMenuItem - 1);
+        setSelectedMenuItem(newIndex);
+
+        // Update selected index in menu history
+        setMenuHistory((prev) => [
+          ...prev.slice(0, -1),
+          { ...currentMenu, selectedIndex: newIndex },
+        ]);
       }
     } else {
       // Volume control or seek when not in menu mode
@@ -789,11 +1014,56 @@ export function IpodAppComponent({
   const handleMenuButton = () => {
     playClickSound();
     registerActivity();
-    setMenuMode(!menuMode);
-    if (!menuMode) {
-      setMenuTitle("iPod");
-      setMenuItems(makeMenuItems());
-      setSelectedMenuItem(0);
+
+    if (menuMode) {
+      // If we're in a submenu, go back to previous menu
+      if (menuHistory.length > 1) {
+        setMenuDirection("backward");
+        setMenuHistory((prev) => prev.slice(0, -1));
+        const previousMenu = menuHistory[menuHistory.length - 2];
+        if (previousMenu) {
+          setSelectedMenuItem(previousMenu.selectedIndex);
+        }
+      } else {
+        // If we're in the main menu, exit menu mode
+        setMenuDirection("backward");
+        setMenuMode(false);
+      }
+    } else {
+      // Enter menu mode
+      setMenuDirection("backward");
+
+      // If we came from music menu, go back to music submenu with current song selected
+      if (cameFromMusicMenu && menuHistory.length > 1) {
+        const musicMenu = menuHistory.find((menu) => menu.title === "Music");
+
+        if (musicMenu) {
+          // Update the Music menu with current selection
+          const updatedMusicMenu = {
+            ...musicMenu,
+            selectedIndex: currentIndex,
+          };
+
+          // Keep only the main menu and add updated music menu
+          setMenuHistory([menuHistory[0], updatedMusicMenu]);
+          setSelectedMenuItem(currentIndex);
+          setCameFromMusicMenu(false);
+        } else {
+          // If for some reason we can't find Music menu, go to main menu
+          if (menuHistory.length > 1) {
+            setMenuHistory([menuHistory[0]]);
+          }
+          setSelectedMenuItem(menuHistory[0]?.selectedIndex || 0);
+        }
+      } else {
+        // Regular behavior - go to main menu
+        if (menuHistory.length > 1) {
+          setMenuHistory([menuHistory[0]]);
+        }
+        setSelectedMenuItem(menuHistory[0]?.selectedIndex || 0);
+      }
+
+      setMenuMode(true);
     }
   };
 
@@ -961,13 +1231,14 @@ export function IpodAppComponent({
               elapsedTime={elapsedTime}
               totalTime={totalTime}
               menuMode={menuMode}
-              menuItems={menuItems}
+              menuHistory={menuHistory}
               selectedMenuItem={selectedMenuItem}
               onSelectMenuItem={setSelectedMenuItem}
-              menuTitle={menuTitle}
               currentIndex={currentIndex}
               tracksLength={tracks.length}
               backlightOn={backlightOn}
+              menuDirection={menuDirection}
+              onMenuItemAction={handleMenuItemAction}
             />
 
             {/* Click Wheel */}
