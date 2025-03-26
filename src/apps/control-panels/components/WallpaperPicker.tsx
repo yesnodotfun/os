@@ -381,11 +381,10 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
     if (!event.target.files || event.target.files.length === 0) return;
 
     const file = event.target.files[0];
-    const isVideo = file.type.startsWith("video/");
     const isImage = file.type.startsWith("image/");
 
-    if (!isImage && !isVideo) {
-      alert("Please select an image or video file");
+    if (!isImage) {
+      alert("Please select an image file. Videos are not supported.");
       return;
     }
 
@@ -521,7 +520,7 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
         <input
           type="file"
           ref={fileInputRef}
-          accept="image/*,video/mp4,video/webm,video/ogg"
+          accept="image/*"
           onChange={handleFileUpload}
           className="hidden"
         />

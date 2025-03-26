@@ -170,6 +170,11 @@ export function useWallpaper() {
 
   // Save a custom wallpaper to IndexedDB and return a reference
   const saveCustomWallpaper = async (file: File): Promise<string> => {
+    // Validate that the file is an image
+    if (!file.type.startsWith("image/")) {
+      throw new Error("Only image files are allowed for custom wallpapers");
+    }
+
     try {
       // Read the file as data URL
       const dataUrl = await new Promise<string>((resolve, reject) => {
@@ -293,6 +298,11 @@ export function useWallpaper() {
     // If path is a File, save it to IndexedDB
     if (path instanceof File) {
       try {
+        // Check if it's an image before attempting to save
+        if (!path.type.startsWith("image/")) {
+          console.error("Only image files are allowed for custom wallpapers");
+          return;
+        }
         wallpaperPath = await saveCustomWallpaper(path);
       } catch (error) {
         console.error("Failed to save custom wallpaper:", error);
