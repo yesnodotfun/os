@@ -26,6 +26,7 @@ import {
   saveSynthPreset,
   loadTypingSynthEnabled,
   saveTypingSynthEnabled,
+  ensureIndexedDBInitialized,
 } from "@/utils/storage";
 import { SYNTH_PRESETS } from "@/hooks/useChatSynth";
 import { useFileSystem } from "@/apps/finder/hooks/useFileSystem";
@@ -216,22 +217,23 @@ export function ControlPanelsAppComponent({
 
     // Backup IndexedDB data
     try {
-      // Open database
-      const db = await new Promise<IDBDatabase>((resolve, reject) => {
-        const request = indexedDB.open("ryOS", 3);
-        request.onerror = () => reject(request.error);
-        request.onsuccess = () => resolve(request.result);
-      });
+      // Open database with our utility function that ensures stores exist
+      const db = await ensureIndexedDBInitialized();
 
       // Get all stores data
       const getStoreData = async (storeName: string): Promise<StoreItem[]> => {
         return new Promise((resolve, reject) => {
-          const transaction = db.transaction(storeName, "readonly");
-          const store = transaction.objectStore(storeName);
-          const request = store.getAll();
+          try {
+            const transaction = db.transaction(storeName, "readonly");
+            const store = transaction.objectStore(storeName);
+            const request = store.getAll();
 
-          request.onsuccess = () => resolve(request.result);
-          request.onerror = () => reject(request.error);
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+          } catch (error) {
+            console.error(`Error accessing store ${storeName}:`, error);
+            resolve([]); // Return empty array if store doesn't exist
+          }
         });
       };
 
@@ -327,12 +329,8 @@ export function ControlPanelsAppComponent({
         // Restore IndexedDB data if available
         if (backup.indexedDB) {
           try {
-            // Open database
-            const db = await new Promise<IDBDatabase>((resolve, reject) => {
-              const request = indexedDB.open("ryOS", 3);
-              request.onerror = () => reject(request.error);
-              request.onsuccess = () => resolve(request.result);
-            });
+            // Open database using our utility function
+            const db = await ensureIndexedDBInitialized();
 
             // Helper function to restore data to a store
             const restoreStoreData = async (
@@ -340,34 +338,39 @@ export function ControlPanelsAppComponent({
               data: Record<string, unknown>[]
             ): Promise<void> => {
               return new Promise((resolve, reject) => {
-                const transaction = db.transaction(storeName, "readwrite");
-                const store = transaction.objectStore(storeName);
+                try {
+                  const transaction = db.transaction(storeName, "readwrite");
+                  const store = transaction.objectStore(storeName);
 
-                // Clear existing data
-                const clearRequest = store.clear();
-                clearRequest.onsuccess = async () => {
-                  try {
-                    // Add all items
-                    for (const item of data) {
-                      await new Promise<void>((resolveItem) => {
-                        // Use put instead of add to handle potential duplicate keys
-                        const addRequest = store.put(item);
-                        addRequest.onsuccess = () => resolveItem();
-                        addRequest.onerror = () => {
-                          console.error(
-                            `Error adding item to ${storeName}:`,
-                            addRequest.error
-                          );
-                          resolveItem(); // Continue with other items even if one fails
-                        };
-                      });
+                  // Clear existing data
+                  const clearRequest = store.clear();
+                  clearRequest.onsuccess = async () => {
+                    try {
+                      // Add all items
+                      for (const item of data) {
+                        await new Promise<void>((resolveItem) => {
+                          // Use put instead of add to handle potential duplicate keys
+                          const addRequest = store.put(item);
+                          addRequest.onsuccess = () => resolveItem();
+                          addRequest.onerror = () => {
+                            console.error(
+                              `Error adding item to ${storeName}:`,
+                              addRequest.error
+                            );
+                            resolveItem(); // Continue with other items even if one fails
+                          };
+                        });
+                      }
+                      resolve();
+                    } catch (err) {
+                      reject(err);
                     }
-                    resolve();
-                  } catch (err) {
-                    reject(err);
-                  }
-                };
-                clearRequest.onerror = () => reject(clearRequest.error);
+                  };
+                  clearRequest.onerror = () => reject(clearRequest.error);
+                } catch (error) {
+                  console.error(`Error accessing store ${storeName}:`, error);
+                  resolve(); // Resolve anyway to continue with other stores
+                }
               });
             };
 

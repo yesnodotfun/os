@@ -1,12 +1,8 @@
 import { useState, useEffect } from "react";
 import { FileItem } from "../components/FileList";
-import { APP_STORAGE_KEYS } from "@/utils/storage";
+import { APP_STORAGE_KEYS, ensureIndexedDBInitialized } from "@/utils/storage";
 import { getNonFinderApps } from "@/config/appRegistry";
 import { useLaunchApp } from "@/hooks/useLaunchApp";
-
-// Database setup
-const DB_NAME = "ryOS";
-const DB_VERSION = 3;
 
 // Store names
 const STORES = {
@@ -22,93 +18,125 @@ interface ExtendedFileItem extends Omit<FileItem, "content"> {
   contentUrl?: string;
 }
 
-// Database initialization
-const initDB = (): Promise<IDBDatabase> => {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve(request.result);
-
-    request.onupgradeneeded = (event) => {
-      const db = (event.target as IDBOpenDBRequest).result;
-
-      // Create stores if they don't exist
-      if (!db.objectStoreNames.contains(STORES.DOCUMENTS)) {
-        db.createObjectStore(STORES.DOCUMENTS, { keyPath: "name" });
-      }
-      if (!db.objectStoreNames.contains(STORES.IMAGES)) {
-        db.createObjectStore(STORES.IMAGES, { keyPath: "name" });
-      }
-      if (!db.objectStoreNames.contains(STORES.TRASH)) {
-        db.createObjectStore(STORES.TRASH, { keyPath: "name" });
-      }
-      if (!db.objectStoreNames.contains(STORES.CUSTOM_WALLPAPERS)) {
-        db.createObjectStore(STORES.CUSTOM_WALLPAPERS, { keyPath: "name" });
-      }
-    };
-  });
-};
-
 // Generic CRUD operations
 const dbOperations = {
   async getAll<T>(storeName: string): Promise<T[]> {
-    const db = await initDB();
+    const db = await ensureIndexedDBInitialized();
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction(storeName, "readonly");
-      const store = transaction.objectStore(storeName);
-      const request = store.getAll();
+      try {
+        const transaction = db.transaction(storeName, "readonly");
+        const store = transaction.objectStore(storeName);
+        const request = store.getAll();
 
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
+        request.onsuccess = () => {
+          db.close();
+          resolve(request.result);
+        };
+        request.onerror = () => {
+          db.close();
+          reject(request.error);
+        };
+      } catch (error) {
+        db.close();
+        console.error(`Error getting all items from ${storeName}:`, error);
+        resolve([]);
+      }
     });
   },
 
   async get<T>(storeName: string, key: string): Promise<T | undefined> {
-    const db = await initDB();
+    const db = await ensureIndexedDBInitialized();
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction(storeName, "readonly");
-      const store = transaction.objectStore(storeName);
-      const request = store.get(key);
+      try {
+        const transaction = db.transaction(storeName, "readonly");
+        const store = transaction.objectStore(storeName);
+        const request = store.get(key);
 
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
+        request.onsuccess = () => {
+          db.close();
+          resolve(request.result);
+        };
+        request.onerror = () => {
+          db.close();
+          reject(request.error);
+        };
+      } catch (error) {
+        db.close();
+        console.error(`Error getting item from ${storeName}:`, error);
+        resolve(undefined);
+      }
     });
   },
 
   async put<T>(storeName: string, item: T): Promise<void> {
-    const db = await initDB();
+    const db = await ensureIndexedDBInitialized();
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction(storeName, "readwrite");
-      const store = transaction.objectStore(storeName);
-      const request = store.put(item);
+      try {
+        const transaction = db.transaction(storeName, "readwrite");
+        const store = transaction.objectStore(storeName);
+        const request = store.put(item);
 
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
+        request.onsuccess = () => {
+          db.close();
+          resolve();
+        };
+        request.onerror = () => {
+          db.close();
+          reject(request.error);
+        };
+      } catch (error) {
+        db.close();
+        console.error(`Error putting item in ${storeName}:`, error);
+        reject(error);
+      }
     });
   },
 
   async delete(storeName: string, key: string): Promise<void> {
-    const db = await initDB();
+    const db = await ensureIndexedDBInitialized();
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction(storeName, "readwrite");
-      const store = transaction.objectStore(storeName);
-      const request = store.delete(key);
+      try {
+        const transaction = db.transaction(storeName, "readwrite");
+        const store = transaction.objectStore(storeName);
+        const request = store.delete(key);
 
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
+        request.onsuccess = () => {
+          db.close();
+          resolve();
+        };
+        request.onerror = () => {
+          db.close();
+          reject(request.error);
+        };
+      } catch (error) {
+        db.close();
+        console.error(`Error deleting item from ${storeName}:`, error);
+        reject(error);
+      }
     });
   },
 
   async clear(storeName: string): Promise<void> {
-    const db = await initDB();
+    const db = await ensureIndexedDBInitialized();
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction(storeName, "readwrite");
-      const store = transaction.objectStore(storeName);
-      const request = store.clear();
+      try {
+        const transaction = db.transaction(storeName, "readwrite");
+        const store = transaction.objectStore(storeName);
+        const request = store.clear();
 
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
+        request.onsuccess = () => {
+          db.close();
+          resolve();
+        };
+        request.onerror = () => {
+          db.close();
+          reject(request.error);
+        };
+      } catch (error) {
+        db.close();
+        console.error(`Error clearing ${storeName}:`, error);
+        reject(error);
+      }
     });
   },
 };

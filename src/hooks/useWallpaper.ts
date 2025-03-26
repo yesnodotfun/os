@@ -1,5 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
-import { loadWallpaper, saveWallpaper } from "@/utils/storage";
+import {
+  loadWallpaper,
+  saveWallpaper,
+  ensureIndexedDBInitialized,
+} from "@/utils/storage";
 
 // Store loading state for video wallpapers
 const videoLoadingStates: Record<string, boolean> = {};
@@ -8,8 +12,6 @@ const videoLoadingStates: Record<string, boolean> = {};
 const objectURLs: Record<string, string> = {};
 
 // Constants for IndexedDB
-const DB_NAME = "ryOS";
-const DB_VERSION = 3;
 const CUSTOM_WALLPAPERS_STORE = "custom_wallpapers";
 const INDEXEDDB_PREFIX = "indexeddb://";
 
@@ -61,63 +63,71 @@ export function useWallpaper() {
       const loadWallpaperFromIndexedDB = async () => {
         try {
           setIsVideoLoading(true);
-          const db = await openDatabase();
-          const transaction = db.transaction(
-            CUSTOM_WALLPAPERS_STORE,
-            "readonly"
-          );
-          const store = transaction.objectStore(CUSTOM_WALLPAPERS_STORE);
-          const request = store.get(wallpaperId);
+          const db = await ensureIndexedDBInitialized();
+          try {
+            const transaction = db.transaction(
+              CUSTOM_WALLPAPERS_STORE,
+              "readonly"
+            );
+            const store = transaction.objectStore(CUSTOM_WALLPAPERS_STORE);
+            const request = store.get(wallpaperId);
 
-          request.onsuccess = () => {
-            if (request.result) {
-              // Create an object URL from the blob data if not already created
-              if (!objectURLs[wallpaperId]) {
-                // If we have a Blob, use it directly, otherwise create one from content
-                const blob =
-                  request.result.blob || dataURLToBlob(request.result.content);
+            request.onsuccess = () => {
+              if (request.result) {
+                // Create an object URL from the blob data if not already created
+                if (!objectURLs[wallpaperId]) {
+                  // If we have a Blob, use it directly, otherwise create one from content
+                  const blob =
+                    request.result.blob ||
+                    dataURLToBlob(request.result.content);
 
-                if (blob) {
-                  const objectURL = URL.createObjectURL(blob);
-                  objectURLs[wallpaperId] = objectURL;
-                  setActualWallpaperData(objectURL);
+                  if (blob) {
+                    const objectURL = URL.createObjectURL(blob);
+                    objectURLs[wallpaperId] = objectURL;
+                    setActualWallpaperData(objectURL);
+                  } else {
+                    // Fallback to content if blob conversion fails
+                    setActualWallpaperData(request.result.content);
+                  }
                 } else {
-                  // Fallback to content if blob conversion fails
-                  setActualWallpaperData(request.result.content);
+                  // Use existing object URL
+                  setActualWallpaperData(objectURLs[wallpaperId]);
                 }
+
+                // Check if it's a video
+                const isVideo =
+                  request.result.type?.startsWith("video/") ||
+                  request.result.content?.includes("video/");
+
+                if (!isVideo) {
+                  setIsVideoLoading(false);
+                }
+
+                // Clean up unused object URLs
+                cleanupObjectURLs();
               } else {
-                // Use existing object URL
-                setActualWallpaperData(objectURLs[wallpaperId]);
-              }
-
-              // Check if it's a video
-              const isVideo =
-                request.result.type?.startsWith("video/") ||
-                request.result.content?.includes("video/");
-
-              if (!isVideo) {
+                console.error("Wallpaper not found in IndexedDB:", wallpaperId);
+                setActualWallpaperData(null);
                 setIsVideoLoading(false);
               }
+              db.close();
+            };
 
-              // Clean up unused object URLs
-              cleanupObjectURLs();
-            } else {
-              console.error("Wallpaper not found in IndexedDB:", wallpaperId);
+            request.onerror = () => {
+              console.error(
+                "Error loading wallpaper from IndexedDB:",
+                request.error
+              );
               setActualWallpaperData(null);
               setIsVideoLoading(false);
-            }
-            db.close();
-          };
-
-          request.onerror = () => {
-            console.error(
-              "Error loading wallpaper from IndexedDB:",
-              request.error
-            );
+              db.close();
+            };
+          } catch (err) {
+            console.error("Error accessing wallpaper store:", err);
             setActualWallpaperData(null);
             setIsVideoLoading(false);
             db.close();
-          };
+          }
         } catch (error) {
           console.error("Failed to open IndexedDB:", error);
           setActualWallpaperData(null);
@@ -189,28 +199,6 @@ export function useWallpaper() {
     }
   };
 
-  // Helper function to open the IndexedDB database
-  const openDatabase = (): Promise<IDBDatabase> => {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, DB_VERSION);
-
-      request.onerror = () => {
-        reject(request.error);
-      };
-
-      request.onsuccess = () => {
-        resolve(request.result);
-      };
-
-      request.onupgradeneeded = (event) => {
-        const db = (event.target as IDBOpenDBRequest).result;
-        if (!db.objectStoreNames.contains(CUSTOM_WALLPAPERS_STORE)) {
-          db.createObjectStore(CUSTOM_WALLPAPERS_STORE, { keyPath: "name" });
-        }
-      };
-    });
-  };
-
   // Helper function to check if a video is ready to play
   const checkVideoLoadState = (video: HTMLVideoElement, path: string) => {
     // readyState 4 means HAVE_ENOUGH_DATA - video can be played
@@ -238,7 +226,7 @@ export function useWallpaper() {
     }
 
     try {
-      const db = await openDatabase();
+      const db = await ensureIndexedDBInitialized();
       const transaction = db.transaction(CUSTOM_WALLPAPERS_STORE, "readwrite");
       const store = transaction.objectStore(CUSTOM_WALLPAPERS_STORE);
 
@@ -280,7 +268,7 @@ export function useWallpaper() {
   // Load all custom wallpapers from IndexedDB (just returns references)
   const loadCustomWallpapers = async (): Promise<string[]> => {
     try {
-      const db = await openDatabase();
+      const db = await ensureIndexedDBInitialized();
       const transaction = db.transaction(CUSTOM_WALLPAPERS_STORE, "readonly");
       const store = transaction.objectStore(CUSTOM_WALLPAPERS_STORE);
 
@@ -325,7 +313,7 @@ export function useWallpaper() {
     }
 
     try {
-      const db = await openDatabase();
+      const db = await ensureIndexedDBInitialized();
       const transaction = db.transaction(CUSTOM_WALLPAPERS_STORE, "readonly");
       const store = transaction.objectStore(CUSTOM_WALLPAPERS_STORE);
 

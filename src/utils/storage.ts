@@ -1374,3 +1374,64 @@ export const saveHtmlPreviewSplit = (isSplit: boolean): void => {
     isSplit.toString()
   );
 };
+
+// Add these constants for IndexedDB at the end of the file
+const DB_NAME = "ryOS";
+const DB_VERSION = 3;
+const STORES = {
+  DOCUMENTS: "documents",
+  IMAGES: "images",
+  TRASH: "trash",
+  CUSTOM_WALLPAPERS: "custom_wallpapers",
+};
+
+// Function to ensure IndexedDB is initialized with all required stores
+export const ensureIndexedDBInitialized = async (): Promise<IDBDatabase> => {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const db = request.result;
+      // Check if all required stores exist
+      const missingStores = Object.values(STORES).filter(
+        (store) => !db.objectStoreNames.contains(store)
+      );
+
+      if (missingStores.length > 0) {
+        // Close the database so we can upgrade it
+        db.close();
+        // Increment version to trigger onupgradeneeded
+        const upgradeRequest = indexedDB.open(DB_NAME, DB_VERSION + 1);
+
+        upgradeRequest.onupgradeneeded = (event) => {
+          const db = (event.target as IDBOpenDBRequest).result;
+
+          // Create missing stores
+          missingStores.forEach((store) => {
+            if (!db.objectStoreNames.contains(store)) {
+              db.createObjectStore(store, { keyPath: "name" });
+              console.log(`Created missing store: ${store}`);
+            }
+          });
+        };
+
+        upgradeRequest.onsuccess = () => resolve(upgradeRequest.result);
+        upgradeRequest.onerror = () => reject(upgradeRequest.error);
+      } else {
+        resolve(db);
+      }
+    };
+
+    request.onupgradeneeded = (event) => {
+      const db = (event.target as IDBOpenDBRequest).result;
+
+      // Create stores if they don't exist
+      Object.values(STORES).forEach((store) => {
+        if (!db.objectStoreNames.contains(store)) {
+          db.createObjectStore(store, { keyPath: "name" });
+        }
+      });
+    };
+  });
+};
