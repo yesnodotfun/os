@@ -347,7 +347,7 @@ function IpodScreen({
   return (
     <div
       className={cn(
-        "relative w-full h-[160px] border border-gray-500 border-2 rounded-t-md overflow-hidden transition-all duration-500",
+        "relative w-full h-[160px] border border-black border-2 rounded-[2px] overflow-hidden transition-all duration-500",
         backlightOn
           ? "bg-[#c5e0f5] bg-gradient-to-b from-[#d1e8fa] to-[#e0f0fc]"
           : "bg-[#8a9da9] contrast-65 saturate-50"
