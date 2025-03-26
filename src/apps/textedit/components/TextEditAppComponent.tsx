@@ -168,6 +168,17 @@ const removeFileExtension = (filename: string): string => {
   return filename.replace(/\.[^/.]+$/, "");
 };
 
+// Function to safely convert file content (string or Blob) to string
+const getContentAsString = async (
+  content: string | Blob | undefined
+): Promise<string> => {
+  if (!content) return "";
+  if (content instanceof Blob) {
+    return await content.text();
+  }
+  return content;
+};
+
 export function TextEditAppComponent({
   isWindowOpen,
   onClose,
@@ -248,17 +259,26 @@ export function TextEditAppComponent({
         const file = files.find((f) => f.path === lastFilePath);
         if (file?.content && !currentFilePath) {
           try {
-            const jsonContent = JSON.parse(file.content);
-            editor.commands.setContent(jsonContent);
-          } catch {
-            // Fallback to treating content as HTML/MD if not JSON
-            const content = lastFilePath.endsWith(".md")
-              ? markdownToHtml(file.content)
-              : file.content;
-            editor.commands.setContent(content);
+            // Handle file content that could be string or Blob
+            const processContent = async () => {
+              const contentStr = await getContentAsString(file.content);
+              try {
+                const jsonContent = JSON.parse(contentStr);
+                editor.commands.setContent(jsonContent);
+              } catch {
+                // Fallback to treating content as HTML/MD if not JSON
+                const content = lastFilePath.endsWith(".md")
+                  ? markdownToHtml(contentStr)
+                  : contentStr;
+                editor.commands.setContent(content);
+              }
+              setCurrentFilePath(lastFilePath);
+              setHasUnsavedChanges(false);
+            };
+            processContent();
+          } catch (err) {
+            console.error("Error processing file content:", err);
           }
-          setCurrentFilePath(lastFilePath);
-          setHasUnsavedChanges(false);
         }
       } else if (!currentFilePath) {
         // Only load from localStorage if we don't have any file path
@@ -396,47 +416,71 @@ export function TextEditAppComponent({
               setIsConfirmNewDialogOpen(true);
             } else {
               editor.commands.clearContent();
-              try {
-                // First try to parse as JSON (for documents saved by TextEdit)
-                const jsonContent = JSON.parse(content);
-                editor.commands.setContent(jsonContent);
-                // Save the file to ensure it's registered for autosaving
-                const fileName = path.split("/").pop() || "Untitled";
-                saveFile({
-                  name: fileName,
-                  path: path,
-                  content: content,
-                  icon: "/icons/file-text.png",
-                  isDirectory: false,
-                });
-              } catch {
-                // If not JSON, process as plain text or markdown
-                const processedContent = path.endsWith(".md")
-                  ? markdownToHtml(content)
-                  : content;
-                editor.commands.setContent(processedContent);
-                // Save the processed content
-                const fileName = path.split("/").pop() || "Untitled";
-                saveFile({
-                  name: fileName,
-                  path: path,
-                  content: JSON.stringify(editor.getJSON()),
-                  icon: "/icons/file-text.png",
-                  isDirectory: false,
-                });
-              }
-              setCurrentFilePath(path);
-              setHasUnsavedChanges(false);
-              // Store the file path for next time
-              localStorage.setItem(
-                APP_STORAGE_KEYS.textedit.LAST_FILE_PATH,
-                path
-              );
-              // Store content in case app crashes
-              localStorage.setItem(
-                APP_STORAGE_KEYS.textedit.CONTENT,
-                JSON.stringify(editor.getJSON())
-              );
+
+              // Handle content that could be string or a Blob URL
+              const processContent = async () => {
+                let contentToUse: string;
+
+                // Check if content is a Blob URL (starts with blob:)
+                if (
+                  typeof content === "string" &&
+                  content.startsWith("blob:")
+                ) {
+                  try {
+                    const response = await fetch(content);
+                    contentToUse = await response.text();
+                  } catch (error) {
+                    console.error("Error fetching blob URL:", error);
+                    contentToUse = "";
+                  }
+                } else {
+                  contentToUse = typeof content === "string" ? content : "";
+                }
+
+                try {
+                  // First try to parse as JSON (for documents saved by TextEdit)
+                  const jsonContent = JSON.parse(contentToUse);
+                  editor.commands.setContent(jsonContent);
+                  // Save the file to ensure it's registered for autosaving
+                  const fileName = path.split("/").pop() || "Untitled";
+                  saveFile({
+                    name: fileName,
+                    path: path,
+                    content: contentToUse,
+                    icon: "/icons/file-text.png",
+                    isDirectory: false,
+                  });
+                } catch {
+                  // If not JSON, process as plain text or markdown
+                  const processedContent = path.endsWith(".md")
+                    ? markdownToHtml(contentToUse)
+                    : contentToUse;
+                  editor.commands.setContent(processedContent);
+                  // Save the processed content
+                  const fileName = path.split("/").pop() || "Untitled";
+                  saveFile({
+                    name: fileName,
+                    path: path,
+                    content: JSON.stringify(editor.getJSON()),
+                    icon: "/icons/file-text.png",
+                    isDirectory: false,
+                  });
+                }
+                setCurrentFilePath(path);
+                setHasUnsavedChanges(false);
+                // Store the file path for next time
+                localStorage.setItem(
+                  APP_STORAGE_KEYS.textedit.LAST_FILE_PATH,
+                  path
+                );
+                // Store content in case app crashes
+                localStorage.setItem(
+                  APP_STORAGE_KEYS.textedit.CONTENT,
+                  JSON.stringify(editor.getJSON())
+                );
+              };
+
+              processContent();
             }
           }
         } catch (e) {

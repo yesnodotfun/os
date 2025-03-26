@@ -165,7 +165,7 @@ function TerminalHtmlPreview({
   // Get UI sound hooks
   const maximizeSound = useSound(Sounds.WINDOW_EXPAND);
   const minimizeSound = useSound(Sounds.WINDOW_COLLAPSE);
-  
+
   return (
     <HtmlPreview
       htmlContent={htmlContent}
@@ -357,6 +357,14 @@ function AnimatedEllipsis() {
 
   return <span>{dots}</span>;
 }
+
+// Helper function to convert Blob content to string
+const blobToString = async (content: string | Blob): Promise<string> => {
+  if (content instanceof Blob) {
+    return await content.text();
+  }
+  return content;
+};
 
 export function TerminalAppComponent({
   onClose,
@@ -1616,6 +1624,52 @@ assistant
           };
         }
 
+        // Handle blob content
+        if (file.content instanceof Blob) {
+          // Since we can't handle async in this function, we'll show a loading message
+          // and update the output later
+          const tempOutput = `Loading ${fileName}...`;
+
+          // Process the blob asynchronously and update the terminal history
+          blobToString(file.content)
+            .then((text) => {
+              setCommandHistory((prev) => {
+                const lastCommand = prev[prev.length - 1];
+                if (lastCommand.output === tempOutput) {
+                  return [
+                    ...prev.slice(0, -1),
+                    {
+                      ...lastCommand,
+                      output: text || `${fileName} is empty`,
+                    },
+                  ];
+                }
+                return prev;
+              });
+            })
+            .catch((err) => {
+              console.error("Error reading file blob:", err);
+              setCommandHistory((prev) => {
+                const lastCommand = prev[prev.length - 1];
+                if (lastCommand.output === tempOutput) {
+                  return [
+                    ...prev.slice(0, -1),
+                    {
+                      ...lastCommand,
+                      output: `Error reading file: ${err.message}`,
+                    },
+                  ];
+                }
+                return prev;
+              });
+            });
+
+          return {
+            output: tempOutput,
+            isError: false,
+          };
+        }
+
         return {
           output: file.content || `${fileName} is empty`,
           isError: false,
@@ -1866,6 +1920,39 @@ assistant
           return {
             output: `${fileName} is a directory, not a file`,
             isError: true,
+          };
+        }
+
+        // Handle blob content
+        if (file.content instanceof Blob) {
+          blobToString(file.content)
+            .then((textContent) => {
+              // Enter vim mode
+              setIsInVimMode(true);
+              setVimFile({
+                name: fileName,
+                content: textContent || "",
+              });
+              setVimPosition(0);
+              setVimCursorLine(0); // Initialize cursor at top of file
+              setVimCursorColumn(0); // Initialize cursor at start of line
+              setVimMode("normal");
+            })
+            .catch((err) => {
+              console.error("Error reading file blob for vim:", err);
+              setCommandHistory((prev) => [
+                ...prev,
+                {
+                  command: `vim ${fileName}`,
+                  output: `Error reading file: ${err.message}`,
+                  path: currentPath,
+                },
+              ]);
+            });
+
+          return {
+            output: `opening ${fileName} in vim...`,
+            isError: false,
           };
         }
 
