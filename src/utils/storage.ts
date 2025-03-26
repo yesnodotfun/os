@@ -663,6 +663,9 @@ export const clearAllAppStates = (): void => {
     APP_STORAGE_KEYS["control-panels"].TYPING_SYNTH_ENABLED
   );
   localStorage.removeItem(APP_STORAGE_KEYS["control-panels"].SYNTH_PRESET);
+  localStorage.removeItem(
+    APP_STORAGE_KEYS["control-panels"].HTML_PREVIEW_SPLIT
+  );
 
   localStorage.removeItem(APP_STORAGE_KEYS.minesweeper.WINDOW);
   localStorage.removeItem(APP_STORAGE_KEYS.minesweeper.HAS_SEEN_HELP);
@@ -688,6 +691,17 @@ export const clearAllAppStates = (): void => {
   localStorage.removeItem(APP_STORAGE_KEYS.pc.WINDOW);
   localStorage.removeItem(APP_STORAGE_KEYS.pc.HAS_SEEN_HELP);
   localStorage.removeItem(APP_STORAGE_KEYS.pc.SAVE_STATE);
+  localStorage.removeItem(APP_STORAGE_KEYS.pc.GAMES);
+
+  localStorage.removeItem(APP_STORAGE_KEYS["photo-booth"].WINDOW);
+  localStorage.removeItem(APP_STORAGE_KEYS["photo-booth"].HAS_SEEN_HELP);
+  localStorage.removeItem(APP_STORAGE_KEYS["photo-booth"].PHOTOS);
+
+  localStorage.removeItem(APP_STORAGE_KEYS.synth.WINDOW);
+  localStorage.removeItem(APP_STORAGE_KEYS.synth.HAS_SEEN_HELP);
+  localStorage.removeItem(APP_STORAGE_KEYS.synth.PRESETS);
+  localStorage.removeItem(APP_STORAGE_KEYS.synth.CURRENT_PRESET);
+  localStorage.removeItem(APP_STORAGE_KEYS.synth.LABEL_TYPE);
 
   localStorage.removeItem(APP_STORAGE_KEYS.ipod.WINDOW);
   localStorage.removeItem(APP_STORAGE_KEYS.ipod.HAS_SEEN_HELP);
