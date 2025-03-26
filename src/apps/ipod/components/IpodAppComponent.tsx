@@ -194,6 +194,15 @@ function IpodScreen({
   backlightOn,
   menuDirection,
   onMenuItemAction,
+  showVideo,
+  playerRef,
+  handleTrackEnd,
+  handleProgress,
+  handleDuration,
+  handlePlay,
+  handlePause,
+  handleReady,
+  loopCurrent,
 }: {
   currentTrack: Track | null;
   isPlaying: boolean;
@@ -217,6 +226,15 @@ function IpodScreen({
   backlightOn: boolean;
   menuDirection: "forward" | "backward";
   onMenuItemAction: (action: () => void) => void;
+  showVideo: boolean;
+  playerRef: React.RefObject<ReactPlayer>;
+  handleTrackEnd: () => void;
+  handleProgress: (state: { playedSeconds: number }) => void;
+  handleDuration: (duration: number) => void;
+  handlePlay: () => void;
+  handlePause: () => void;
+  handleReady: () => void;
+  loopCurrent: boolean;
 }) {
   // Animation variants for menu transitions
   const menuVariants = {
@@ -335,6 +353,49 @@ function IpodScreen({
           : "bg-[#8a9da9] contrast-65 saturate-50"
       )}
     >
+      {/* Video player */}
+      {currentTrack && (
+        <div
+          className={cn(
+            "absolute inset-0 z-20 transition-opacity duration-300 overflow-hidden",
+            showVideo && isPlaying
+              ? "opacity-100"
+              : "opacity-0 pointer-events-none"
+          )}
+        >
+          <div className="w-full h-[calc(100%+120px)] mt-[-60px]">
+            <ReactPlayer
+              ref={playerRef}
+              url={currentTrack.url}
+              playing={isPlaying}
+              controls={showVideo}
+              width="100%"
+              height="100%"
+              onEnded={handleTrackEnd}
+              onProgress={handleProgress}
+              onDuration={handleDuration}
+              onPlay={handlePlay}
+              onPause={handlePause}
+              onReady={handleReady}
+              loop={loopCurrent}
+              config={{
+                youtube: {
+                  playerVars: {
+                    modestbranding: 1,
+                    rel: 0,
+                    showinfo: 0,
+                    iv_load_policy: 3,
+                    fs: 0,
+                    disablekb: 1,
+                    playsinline: 1,
+                  },
+                },
+              }}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Title bar - not animated, immediately swaps */}
       <div className="border-b border-[#0a3667] py-0 px-2 font-chicago text-[16px] flex justify-between items-center sticky top-0 z-10 text-[#0a3667] [text-shadow:1px_1px_0_rgba(0,0,0,0.15)]">
         <div className="w-6 text-xs">{isPlaying ? "▶" : "II"}</div>
@@ -471,6 +532,7 @@ export function IpodAppComponent({
   const [currentIndex, setCurrentIndex] = useState(loadIpodCurrentIndex());
   const [originalOrder, setOriginalOrder] = useState<Track[]>(loadedLibrary);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [showVideo, setShowVideo] = useState(false);
   const [loopCurrent, setLoopCurrent] = useState(loadIpodIsLoopCurrent());
   const [loopAll, setLoopAll] = useState(loadIpodIsLoopAll());
   const [isShuffled, setIsShuffled] = useState(loadIpodIsShuffled());
@@ -888,6 +950,12 @@ export function IpodAppComponent({
     registerActivity();
   };
 
+  const toggleVideo = () => {
+    setShowVideo(!showVideo);
+    playClickSound();
+    registerActivity();
+  };
+
   const toggleShuffle = () => {
     setIsShuffled(!isShuffled);
     playClickSound();
@@ -960,7 +1028,10 @@ export function IpodAppComponent({
             currentMenu.items[selectedMenuItem].action();
           }
         } else {
-          togglePlay();
+          // Only toggle video when not in menu mode and playback is active
+          if (isPlaying) {
+            toggleVideo();
+          }
         }
         break;
     }
@@ -1195,44 +1266,10 @@ export function IpodAppComponent({
         appId="ipod"
         transparentBackground
       >
-        {/* Hidden audio player */}
-        <div className="absolute top-0 left-0 opacity-10 pointer-events-none">
-          {tracks.length > 0 && (
-            <ReactPlayer
-              ref={playerRef}
-              url={tracks[currentIndex]?.url}
-              playing={isPlaying}
-              controls={false}
-              width="1px"
-              height="1px"
-              onEnded={handleTrackEnd}
-              onProgress={handleProgress}
-              onDuration={handleDuration}
-              onPlay={handlePlay}
-              onPause={handlePause}
-              onReady={handleReady}
-              loop={loopCurrent}
-              config={{
-                youtube: {
-                  playerVars: {
-                    modestbranding: 1,
-                    rel: 0,
-                    showinfo: 0,
-                    iv_load_policy: 3,
-                    fs: 0,
-                    disablekb: 1,
-                    playsinline: 1,
-                  },
-                },
-              }}
-            />
-          )}
-        </div>
-
         <div className="flex flex-col items-center justify-center w-full h-full bg-gradient-to-b from-gray-100/20 to-gray-300/20 backdrop-blur-lg p-4">
           {/* iPod device */}
           <div className="w-[250px] h-[400px] bg-white rounded-2xl shadow-xl border border-black/40 flex flex-col items-center p-4 pb-8">
-            {/* Screen */}
+            {/* Screen - Now pass all required props */}
             <IpodScreen
               currentTrack={tracks[currentIndex] || null}
               isPlaying={isPlaying}
@@ -1247,6 +1284,15 @@ export function IpodAppComponent({
               backlightOn={backlightOn}
               menuDirection={menuDirection}
               onMenuItemAction={handleMenuItemAction}
+              showVideo={showVideo}
+              playerRef={playerRef}
+              handleTrackEnd={handleTrackEnd}
+              handleProgress={handleProgress}
+              handleDuration={handleDuration}
+              handlePlay={handlePlay}
+              handlePause={handlePause}
+              handleReady={handleReady}
+              loopCurrent={loopCurrent}
             />
 
             {/* Click Wheel */}
