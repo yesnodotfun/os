@@ -502,7 +502,7 @@ export function VideosAppComponent({
 
   const togglePlay = () => {
     setIsPlaying(!isPlaying);
-    showStatus(isPlaying ? "PAUSED ⏸" : "PLAY ▶");
+    showStatus(isPlaying ? "PAUSED ❙❙" : "PLAY ▶");
     playVideoTape();
     updateVideoPlayingState(!isPlaying);
   };

@@ -435,7 +435,7 @@ function IpodScreen({
 
       {/* Title bar - not animated, immediately swaps */}
       <div className="border-b border-[#0a3667] py-0 px-2 font-chicago text-[16px] flex justify-between items-center sticky top-0 z-10 text-[#0a3667] [text-shadow:1px_1px_0_rgba(0,0,0,0.15)]">
-        <div className="w-6 text-xs">{isPlaying ? "▶" : "II"}</div>
+        <div className="w-6 text-xs">{isPlaying ? "▶" : "❙❙"}</div>
         <div>{currentMenuTitle}</div>
         <div className="w-6 text-xs"></div>
       </div>
@@ -1078,7 +1078,7 @@ export function IpodAppComponent({
   // Update handlePause to show status
   const handlePause = () => {
     setIsPlaying(false);
-    showStatus("⏸");
+    showStatus("❙❙");
   };
 
   const handleReady = () => {
