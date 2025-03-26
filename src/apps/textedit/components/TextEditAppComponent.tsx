@@ -30,7 +30,7 @@ import { useSound, Sounds } from "@/hooks/useSound";
 // Function to convert HTML to Markdown
 const htmlToMarkdown = (html: string): string => {
   let markdown = html;
-
+  
   // Convert tables
   markdown = markdown.replace(
     /<table[^>]*>(.*?)<\/table>/gis,
@@ -65,6 +65,120 @@ const htmlToMarkdown = (html: string): string => {
     }
   );
 
+  // Convert task lists - needs to happen before regular lists
+  markdown = markdown.replace(
+    /<ul[^>]*data-type=['"]taskList['"][^>]*>(.*?)<\/ul>/gis,
+    (_, listContent) => {
+      // Process each task list item
+      return listContent.replace(
+        /<li[^>]*>(.*?)<\/li>/gis,
+        (_liMatch: string, itemContent: string) => {
+          // Extract checkbox state
+          const checked = itemContent.includes('checked="checked"') || 
+                          itemContent.includes('checked="true"') || 
+                          itemContent.includes('checked=""');
+          
+          // Extract the text content
+          const textContent = itemContent
+            .replace(/<input[^>]*>/gi, '')
+            .replace(/<label[^>]*>(.*?)<\/label>/gi, '')
+            .replace(/<div[^>]*>(.*?)<\/div>/gi, '$1')
+            .replace(/<p[^>]*>(.*?)<\/p>/gi, '$1')
+            .replace(/<[^>]+>/g, '');
+            
+          // Return markdown task item
+          const checkboxMark = checked ? '[x]' : '[ ]';
+          return `- ${checkboxMark} ${textContent.trim()}\n`;
+        }
+      );
+    }
+  );
+
+  // Convert nested lists more accurately
+  const convertNestedLists = (html: string): string => {
+    // Temporary placeholders for nested lists
+    const nestedListPlaceholders: string[] = [];
+    
+    // Function to process a list and its nested lists recursively
+    const processList = (listHtml: string, listType: 'ul' | 'ol', indent: number): string => {
+      const listItemRegex = /<li[^>]*>([\s\S]*?)<\/li>/gi;
+      let result = '';
+      let match;
+      let itemIndex = 1; // For ordered lists
+      
+      while ((match = listItemRegex.exec(listHtml)) !== null) {
+        let itemContent = match[1];
+        let nestedContent = '';
+        
+        // Check if this item contains a nested list
+        const nestedUlMatch = itemContent.match(/<ul[^>]*>([\s\S]*?)<\/ul>/i);
+        const nestedOlMatch = itemContent.match(/<ol[^>]*>([\s\S]*?)<\/ol>/i);
+        
+        if (nestedUlMatch) {
+          // Replace nested list with placeholder
+          const placeholder = `__NESTED_UL_${nestedListPlaceholders.length}__`;
+          nestedContent = processList(nestedUlMatch[0], 'ul', indent + 1);
+          nestedListPlaceholders.push(nestedContent);
+          itemContent = itemContent.replace(nestedUlMatch[0], placeholder);
+        } else if (nestedOlMatch) {
+          // Replace nested list with placeholder
+          const placeholder = `__NESTED_OL_${nestedListPlaceholders.length}__`;
+          nestedContent = processList(nestedOlMatch[0], 'ol', indent + 1);
+          nestedListPlaceholders.push(nestedContent);
+          itemContent = itemContent.replace(nestedOlMatch[0], placeholder);
+        }
+        
+        // Clean up item content
+        itemContent = itemContent
+          .replace(/<p[^>]*>([\s\S]*?)<\/p>/gi, '$1')
+          .replace(/<[^>]+>/g, '')
+          .trim();
+        
+        // Replace placeholders with actual nested content
+        for (let i = 0; i < nestedListPlaceholders.length; i++) {
+          itemContent = itemContent.replace(
+            `__NESTED_UL_${i}__`, 
+            `\n${nestedListPlaceholders[i]}`
+          );
+          itemContent = itemContent.replace(
+            `__NESTED_OL_${i}__`, 
+            `\n${nestedListPlaceholders[i]}`
+          );
+        }
+        
+        // Add indentation
+        const indentation = '  '.repeat(indent);
+        
+        // Format list item based on type
+        if (listType === 'ul') {
+          result += `${indentation}- ${itemContent}\n`;
+        } else {
+          result += `${indentation}${itemIndex}. ${itemContent}\n`;
+          itemIndex++;
+        }
+      }
+      
+      return result;
+    };
+    
+    // Process top-level unordered lists
+    html = html.replace(
+      /<ul[^>]*(?!data-type=['"]taskList['"])[^>]*>([\s\S]*?)<\/ul>/gi,
+      (match) => processList(match, 'ul', 0)
+    );
+    
+    // Process top-level ordered lists
+    html = html.replace(
+      /<ol[^>]*>([\s\S]*?)<\/ol>/gi,
+      (match) => processList(match, 'ol', 0)
+    );
+    
+    return html;
+  };
+  
+  // Apply the nested list conversion
+  markdown = convertNestedLists(markdown);
+
   // Convert code blocks
   markdown = markdown.replace(
     /<pre[^>]*><code[^>]*(?:class="language-([^"]+)")?[^>]*>(.*?)<\/code><\/pre>/gis,
@@ -87,32 +201,38 @@ const htmlToMarkdown = (html: string): string => {
         .replace(/&amp;/g, "&")}\``
   );
 
-  // Basic HTML to Markdown conversion (existing conversions)
+  // Convert headings
   markdown = markdown
     .replace(/<h1[^>]*>(.*?)<\/h1>/gi, "# $1\n\n")
     .replace(/<h2[^>]*>(.*?)<\/h2>/gi, "## $1\n\n")
-    .replace(/<h3[^>]*>(.*?)<\/h3>/gi, "### $1\n\n")
+    .replace(/<h3[^>]*>(.*?)<\/h3>/gi, "### $1\n\n");
+  
+  // Convert text formatting
+  markdown = markdown
     .replace(/<strong[^>]*>(.*?)<\/strong>/gi, "**$1**")
     .replace(/<b[^>]*>(.*?)<\/b>/gi, "**$1**")
     .replace(/<em[^>]*>(.*?)<\/em>/gi, "*$1*")
     .replace(/<i[^>]*>(.*?)<\/i>/gi, "*$1*")
-    .replace(/<u[^>]*>(.*?)<\/u>/gi, "_$1_")
-    .replace(/<ul[^>]*>(.*?)<\/ul>/gi, (_, list) => {
-      return list
-        .replace(/<li[^>]*>(.*?)<\/li>/gi, "- $1\n")
-        .replace(/<[^>]+>/g, "");
-    })
-    .replace(/<ol[^>]*>(.*?)<\/ol>/gi, (_, list) => {
-      let index = 1;
-      return list
-        .replace(/<li[^>]*>(.*?)<\/li>/gi, () => `${index++}. $1\n`)
-        .replace(/<[^>]+>/g, "");
-    })
+    .replace(/<u[^>]*>(.*?)<\/u>/gi, "_$1_");
+
+  // Convert paragraphs and line breaks
+  markdown = markdown
     .replace(/<p[^>]*>(.*?)<\/p>/gi, "$1\n\n")
-    .replace(/<br[^>]*>/gi, "\n")
-    .replace(/<[^>]+>/g, "") // Remove any remaining HTML tags
+    .replace(/<br[^>]*>/gi, "\n");
+
+  // Remove any remaining HTML tags
+  markdown = markdown.replace(/<[^>]+>/g, "");
+
+  // Fix HTML entities
+  markdown = markdown
     .replace(/&nbsp;/g, " ")
-    .replace(/\n\n+/g, "\n\n") // Normalize multiple newlines
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">");
+
+  // Normalize multiple newlines and trim
+  markdown = markdown
+    .replace(/\n\n+/g, "\n\n")
     .trim();
 
   return markdown;
@@ -131,6 +251,99 @@ const htmlToPlainText = (html: string): string => {
 const markdownToHtml = (markdown: string): string => {
   let html = markdown;
 
+  // Process task lists first
+  html = html.replace(/^(\s*)-\s+\[([ xX])\]\s+(.*?)$/gm, (match, indent, checked, text) => {
+    const isChecked = checked.toLowerCase() === 'x';
+    const indentSpaces = indent ? indent.length : 0;
+    const indentClass = indentSpaces > 0 ? ` class="indented" style="margin-left:${indentSpaces * 10}px"` : '';
+    return `<ul data-type="taskList"${indentClass}><li${isChecked ? ' data-checked="true"' : ''}><label><input type="checkbox" ${isChecked ? 'checked' : ''}/></label><div><p>${text}</p></div></li></ul>`;
+  });
+
+  // Process indented lists with proper nesting
+  const processIndentedLists = () => {
+    // Track list processing state
+    const listStack: { type: string; indent: number; html: string }[] = [];
+    const lines = html.split('\n');
+    const processedLines: string[] = [];
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      
+      // Check for bullet list item
+      const bulletMatch = line.match(/^(\s*)([-*+])\s+(.*?)$/);
+      if (bulletMatch) {
+        const [, indent, , content] = bulletMatch; // Ignore bullet character
+        const indentLevel = indent ? indent.length : 0;
+        
+        // Check if we need to close any lists or start a new one
+        while (listStack.length > 0 && listStack[listStack.length - 1].indent >= indentLevel && 
+               (listStack[listStack.length - 1].indent > indentLevel || listStack[listStack.length - 1].type !== 'ul')) {
+          const closedList = listStack.pop();
+          if (closedList) {
+            processedLines.push(`</ul>`);
+          }
+        }
+        
+        // Start a new list if needed
+        if (listStack.length === 0 || listStack[listStack.length - 1].indent < indentLevel || listStack[listStack.length - 1].type !== 'ul') {
+          processedLines.push(`<ul style="margin-left:${indentLevel * 10}px">`);
+          listStack.push({ type: 'ul', indent: indentLevel, html: '<ul>' });
+        }
+        
+        // Add the list item
+        processedLines.push(`<li>${content}</li>`);
+        continue;
+      }
+      
+      // Check for ordered list item
+      const orderedMatch = line.match(/^(\s*)(\d+)[.)] (.*?)$/);
+      if (orderedMatch) {
+        const [, indent, , content] = orderedMatch; // Ignore number
+        const indentLevel = indent ? indent.length : 0;
+        
+        // Check if we need to close any lists or start a new one
+        while (listStack.length > 0 && listStack[listStack.length - 1].indent >= indentLevel && 
+               (listStack[listStack.length - 1].indent > indentLevel || listStack[listStack.length - 1].type !== 'ol')) {
+          const closedList = listStack.pop();
+          if (closedList) {
+            processedLines.push(`</ol>`);
+          }
+        }
+        
+        // Start a new list if needed
+        if (listStack.length === 0 || listStack[listStack.length - 1].indent < indentLevel || listStack[listStack.length - 1].type !== 'ol') {
+          processedLines.push(`<ol style="margin-left:${indentLevel * 10}px">`);
+          listStack.push({ type: 'ol', indent: indentLevel, html: '<ol>' });
+        }
+        
+        // Add the list item
+        processedLines.push(`<li>${content}</li>`);
+        continue;
+      }
+      
+      // If it's not a list item, close all open lists
+      if (listStack.length > 0) {
+        for (let j = listStack.length - 1; j >= 0; j--) {
+          processedLines.push(`</${listStack[j].type}>`);
+        }
+        listStack.length = 0;
+      }
+      
+      // Add the non-list line
+      processedLines.push(line);
+    }
+    
+    // Close any remaining open lists
+    for (let i = listStack.length - 1; i >= 0; i--) {
+      processedLines.push(`</${listStack[i].type}>`);
+    }
+    
+    return processedLines.join('\n');
+  };
+  
+  // Apply indented list processing
+  html = processIndentedLists();
+
   // Convert headings
   html = html.replace(/^### (.*$)/gm, "<h3>$1</h3>");
   html = html.replace(/^## (.*$)/gm, "<h2>$1</h2>");
@@ -140,14 +353,6 @@ const markdownToHtml = (markdown: string): string => {
   html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
   html = html.replace(/\*([^*]+)\*/g, "<em>$1</em>");
   html = html.replace(/_([^_]+)_/g, "<u>$1</u>");
-
-  // Convert lists
-  html = html.replace(/^\s*[-*+]\s+(.*)$/gm, "<ul><li>$1</li></ul>");
-  html = html.replace(/^\s*\d+\.\s+(.*)$/gm, "<ol><li>$1</li></ol>");
-
-  // Merge adjacent list items
-  html = html.replace(/<\/ul>\s*<ul>/g, "");
-  html = html.replace(/<\/ol>\s*<ol>/g, "");
 
   // Convert code blocks
   html = html.replace(/```([^`]*?)```/gs, "<pre><code>$1</code></pre>");
@@ -219,8 +424,13 @@ export function TextEditAppComponent({
       },
     },
     onUpdate: ({ editor }) => {
-      // Store both HTML and JSON to preserve whitespace
+      // Get HTML content and convert to Markdown
+      const htmlContent = editor.getHTML();
+      const markdownContent = htmlToMarkdown(htmlContent);
+      
+      // Store both JSON for internal use and Markdown for file saving
       const jsonContent = editor.getJSON();
+      
       // Always save to localStorage for recovery
       localStorage.setItem(
         APP_STORAGE_KEYS.textedit.CONTENT,
@@ -235,7 +445,7 @@ export function TextEditAppComponent({
           detail: {
             name: fileName,
             path: currentFilePath,
-            content: JSON.stringify(jsonContent),
+            content: markdownContent, // Save as Markdown instead of JSON
             icon: "/icons/file-text.png",
             isDirectory: false,
           },
@@ -262,16 +472,22 @@ export function TextEditAppComponent({
             // Handle file content that could be string or Blob
             const processContent = async () => {
               const contentStr = await getContentAsString(file.content);
-              try {
-                const jsonContent = JSON.parse(contentStr);
-                editor.commands.setContent(jsonContent);
-              } catch {
-                // Fallback to treating content as HTML/MD if not JSON
-                const content = lastFilePath.endsWith(".md")
-                  ? markdownToHtml(contentStr)
-                  : contentStr;
-                editor.commands.setContent(content);
+
+              // If the file has .md extension, always use markdown parser
+              if (lastFilePath.endsWith(".md")) {
+                const htmlContent = markdownToHtml(contentStr);
+                editor.commands.setContent(htmlContent);
+              } else {
+                // For other files, try parsing as JSON first, then fallback to plain text
+                try {
+                  const jsonContent = JSON.parse(contentStr);
+                  editor.commands.setContent(jsonContent);
+                } catch {
+                  // Not JSON, treat as plain text
+                  editor.commands.setContent(`<p>${contentStr}</p>`);
+                }
               }
+              
               setCurrentFilePath(lastFilePath);
               setHasUnsavedChanges(false);
             };
@@ -437,35 +653,56 @@ export function TextEditAppComponent({
                   contentToUse = typeof content === "string" ? content : "";
                 }
 
-                try {
-                  // First try to parse as JSON (for documents saved by TextEdit)
-                  const jsonContent = JSON.parse(contentToUse);
-                  editor.commands.setContent(jsonContent);
-                  // Save the file to ensure it's registered for autosaving
+                // When opening a new file, always use markdown parser for .md files
+                if (path.endsWith(".md")) {
+                  // Convert markdown to HTML and set content
+                  const htmlContent = markdownToHtml(contentToUse);
+                  editor.commands.setContent(htmlContent);
+                  
+                  // Save directly as markdown
                   const fileName = path.split("/").pop() || "Untitled";
                   saveFile({
                     name: fileName,
                     path: path,
-                    content: contentToUse,
+                    content: contentToUse, // Save original markdown content
                     icon: "/icons/file-text.png",
                     isDirectory: false,
                   });
-                } catch {
-                  // If not JSON, process as plain text or markdown
-                  const processedContent = path.endsWith(".md")
-                    ? markdownToHtml(contentToUse)
-                    : contentToUse;
-                  editor.commands.setContent(processedContent);
-                  // Save the processed content
-                  const fileName = path.split("/").pop() || "Untitled";
-                  saveFile({
-                    name: fileName,
-                    path: path,
-                    content: JSON.stringify(editor.getJSON()),
-                    icon: "/icons/file-text.png",
-                    isDirectory: false,
-                  });
+                } else {
+                  try {
+                    // Try to parse as JSON first
+                    const jsonContent = JSON.parse(contentToUse);
+                    editor.commands.setContent(jsonContent);
+                    
+                    // Convert to markdown for saving
+                    const markdownContent = htmlToMarkdown(editor.getHTML());
+                    // Save the file to ensure it's registered for autosaving
+                    const fileName = path.split("/").pop() || "Untitled";
+                    saveFile({
+                      name: fileName,
+                      path: path,
+                      content: markdownContent,
+                      icon: "/icons/file-text.png",
+                      isDirectory: false,
+                    });
+                  } catch {
+                    // If not JSON, process as plain text
+                    editor.commands.setContent(`<p>${contentToUse}</p>`);
+                    
+                    // Convert to markdown for saving
+                    const markdownContent = htmlToMarkdown(editor.getHTML());
+                    // Save the processed content
+                    const fileName = path.split("/").pop() || "Untitled";
+                    saveFile({
+                      name: fileName,
+                      path: path,
+                      content: markdownContent,
+                      icon: "/icons/file-text.png",
+                      isDirectory: false,
+                    });
+                  }
                 }
+                
                 setCurrentFilePath(path);
                 setHasUnsavedChanges(false);
                 // Store the file path for next time
@@ -473,7 +710,7 @@ export function TextEditAppComponent({
                   APP_STORAGE_KEYS.textedit.LAST_FILE_PATH,
                   path
                 );
-                // Store content in case app crashes
+                // Store JSON for internal recovery
                 localStorage.setItem(
                   APP_STORAGE_KEYS.textedit.CONTENT,
                   JSON.stringify(editor.getJSON())
@@ -581,7 +818,10 @@ export function TextEditAppComponent({
       setIsSaveDialogOpen(true);
       setSaveFileName(`${firstLine || "Untitled"}.md`);
     } else {
-      const content = JSON.stringify(editor.getJSON());
+      // Get HTML content and convert to Markdown
+      const htmlContent = editor.getHTML();
+      const markdownContent = htmlToMarkdown(htmlContent);
+      
       const fileName = currentFilePath.split("/").pop() || "Untitled";
 
       // Dispatch saveFile event instead of directly calling saveFile
@@ -589,15 +829,18 @@ export function TextEditAppComponent({
         detail: {
           name: fileName,
           path: currentFilePath,
-          content: content,
+          content: markdownContent, // Save as Markdown instead of JSON
           icon: "/icons/file-text.png",
           isDirectory: false,
         },
       });
       window.dispatchEvent(saveEvent);
 
-      // Store content in case app crashes
-      localStorage.setItem(APP_STORAGE_KEYS.textedit.CONTENT, content);
+      // Store JSON content in case app crashes
+      localStorage.setItem(
+        APP_STORAGE_KEYS.textedit.CONTENT,
+        JSON.stringify(editor.getJSON())
+      );
       // Store the file path for next time
       localStorage.setItem(
         APP_STORAGE_KEYS.textedit.LAST_FILE_PATH,
@@ -610,7 +853,10 @@ export function TextEditAppComponent({
   const handleSaveSubmit = (fileName: string) => {
     if (!editor) return;
 
-    const content = JSON.stringify(editor.getJSON());
+    // Get HTML content and convert to Markdown
+    const htmlContent = editor.getHTML();
+    const markdownContent = htmlToMarkdown(htmlContent);
+    
     const filePath = `/Documents/${fileName}${
       fileName.endsWith(".md") ? "" : ".md"
     }`;
@@ -620,17 +866,23 @@ export function TextEditAppComponent({
       detail: {
         name: fileName,
         path: filePath,
-        content: content,
+        content: markdownContent, // Save as Markdown instead of JSON
         icon: "/icons/file-text.png",
         isDirectory: false,
       },
     });
     window.dispatchEvent(saveEvent);
 
-    // Store content in case app crashes
-    localStorage.setItem(APP_STORAGE_KEYS.textedit.CONTENT, content);
+    // Store JSON content in case app crashes (for editor recovery)
+    localStorage.setItem(
+      APP_STORAGE_KEYS.textedit.CONTENT,
+      JSON.stringify(editor.getJSON())
+    );
     // Store the file path for next time
-    localStorage.setItem(APP_STORAGE_KEYS.textedit.LAST_FILE_PATH, filePath);
+    localStorage.setItem(
+      APP_STORAGE_KEYS.textedit.LAST_FILE_PATH,
+      filePath
+    );
     setCurrentFilePath(filePath);
     setHasUnsavedChanges(false);
     setIsSaveDialogOpen(false);
@@ -644,24 +896,29 @@ export function TextEditAppComponent({
       const text = await file.text();
 
       // Convert content based on file type
-      let content;
+      let editorContent;
       if (file.name.endsWith(".html")) {
-        content = text;
+        editorContent = text;
       } else if (file.name.endsWith(".md")) {
-        content = markdownToHtml(text);
+        editorContent = markdownToHtml(text);
       } else {
-        content = `<p>${text}</p>`;
+        editorContent = `<p>${text}</p>`;
       }
 
-      editor.commands.setContent(content);
+      editor.commands.setContent(editorContent);
       const filePath = `/Documents/${file.name}`;
+      
+      // Always save in markdown format, converting from HTML if needed
+      const markdownContent = file.name.endsWith(".md") 
+        ? text // Use original markdown if it's already markdown
+        : htmlToMarkdown(editor.getHTML()); // Convert to markdown otherwise
 
       // Dispatch saveFile event instead of directly calling saveFile
       const saveEvent = new CustomEvent("saveFile", {
         detail: {
           name: file.name,
           path: filePath,
-          content: JSON.stringify(editor.getJSON()),
+          content: markdownContent,
           icon: "/icons/file-text.png",
           isDirectory: false,
         },
@@ -670,8 +927,11 @@ export function TextEditAppComponent({
 
       setCurrentFilePath(filePath);
       setHasUnsavedChanges(false);
-      // Store content in case app crashes
-      localStorage.setItem(APP_STORAGE_KEYS.textedit.CONTENT, editor.getHTML());
+      // Store JSON for internal recovery
+      localStorage.setItem(
+        APP_STORAGE_KEYS.textedit.CONTENT,
+        JSON.stringify(editor.getJSON())
+      );
       // Store the file path for next time
       localStorage.setItem(APP_STORAGE_KEYS.textedit.LAST_FILE_PATH, filePath);
     }
