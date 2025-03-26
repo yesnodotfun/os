@@ -16,17 +16,14 @@ import {
 } from "@/utils/displayMode";
 import { Plus } from "lucide-react";
 
-// Import constants from useFileSystem
-const DB_NAME = "ryOS";
-const DB_VERSION = 3;
-const CUSTOM_WALLPAPERS_STORE = "custom_wallpapers";
-
+// Remove unused constants
 interface WallpaperItemProps {
   path: string;
   isSelected: boolean;
   onClick: () => void;
   isTile?: boolean;
   isVideo?: boolean;
+  previewUrl?: string; // For IndexedDB references
 }
 
 function WallpaperItem({
@@ -35,10 +32,12 @@ function WallpaperItem({
   onClick,
   isTile = false,
   isVideo = false,
+  previewUrl,
 }: WallpaperItemProps) {
   const { play: playClick } = useSound(Sounds.BUTTON_CLICK, 0.3);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isLoading, setIsLoading] = useState(isVideo);
+  const displayUrl = previewUrl || path;
 
   const handleClick = () => {
     playClick();
@@ -61,7 +60,7 @@ function WallpaperItem({
         setIsLoading(false);
       }
     }
-  }, [isSelected, isVideo, path]);
+  }, [isSelected, isVideo, displayUrl]);
 
   const handleVideoLoaded = () => {
     setIsLoading(false);
@@ -93,7 +92,7 @@ function WallpaperItem({
         <video
           ref={videoRef}
           className="absolute inset-0 w-full h-full object-cover"
-          src={path}
+          src={displayUrl}
           loop
           muted
           playsInline
@@ -117,7 +116,7 @@ function WallpaperItem({
         isSelected ? "ring-2 ring-black border-white" : "border-transparent"
       }`}
       style={{
-        backgroundImage: `url(${path})`,
+        backgroundImage: `url(${displayUrl})`,
         backgroundSize: isTile ? "64px 64px" : "cover",
         backgroundPosition: isTile ? undefined : "center",
         backgroundRepeat: isTile ? "repeat" : undefined,
@@ -305,12 +304,22 @@ interface WallpaperPickerProps {
 }
 
 export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
-  const { currentWallpaper, setWallpaper } = useWallpaper();
+  const {
+    currentWallpaper,
+    setWallpaper,
+    INDEXEDDB_PREFIX,
+    loadCustomWallpapers,
+    getWallpaperData,
+  } = useWallpaper();
+
   const { play: playClick } = useSound(Sounds.BUTTON_CLICK, 0.3);
   const [displayMode, setDisplayMode] = useState<DisplayMode>(() =>
     loadDisplayMode()
   );
-  const [customWallpapers, setCustomWallpapers] = useState<string[]>([]);
+  const [customWallpaperRefs, setCustomWallpaperRefs] = useState<string[]>([]);
+  const [customWallpaperPreviews, setCustomWallpaperPreviews] = useState<
+    Record<string, string>
+  >({});
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [selectedCategory, setSelectedCategory] = useState<
@@ -320,7 +329,7 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
     if (currentWallpaper.includes("/wallpapers/tiles/")) {
       return "tiles";
     }
-    if (currentWallpaper.includes("/custom-wallpapers/")) {
+    if (currentWallpaper.startsWith(INDEXEDDB_PREFIX)) {
       return "custom";
     }
     if (VIDEO_WALLPAPERS.includes(currentWallpaper)) {
@@ -334,66 +343,29 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
     return "tiles";
   });
 
-  // Load custom wallpapers from IndexedDB
+  // Load custom wallpapers from IndexedDB (just the references)
   useEffect(() => {
-    const loadCustomWallpapers = async () => {
+    const fetchCustomWallpapers = async () => {
       try {
-        console.log("Loading custom wallpapers...");
-        // Use IndexedDB to get custom wallpapers
-        const db = await new Promise<IDBDatabase>((resolve, reject) => {
-          const request = indexedDB.open(DB_NAME, DB_VERSION);
-          request.onerror = () => {
-            console.error("Error opening IndexedDB:", request.error);
-            reject(request.error);
-          };
-          request.onsuccess = () => resolve(request.result);
+        const refs = await loadCustomWallpapers();
+        setCustomWallpaperRefs(refs);
 
-          request.onupgradeneeded = (event) => {
-            const db = (event.target as IDBOpenDBRequest).result;
-            if (!db.objectStoreNames.contains(CUSTOM_WALLPAPERS_STORE)) {
-              db.createObjectStore(CUSTOM_WALLPAPERS_STORE, {
-                keyPath: "name",
-              });
-            }
-          };
-        });
-
-        // Check if the store exists before attempting to use it
-        if (db.objectStoreNames.contains(CUSTOM_WALLPAPERS_STORE)) {
-          const transaction = db.transaction(
-            CUSTOM_WALLPAPERS_STORE,
-            "readonly"
-          );
-          const store = transaction.objectStore(CUSTOM_WALLPAPERS_STORE);
-          const request = store.getAll();
-
-          request.onsuccess = () => {
-            const wallpapers = request.result;
-            console.log("Custom wallpapers loaded:", wallpapers);
-            if (wallpapers && wallpapers.length > 0) {
-              // Extract the content field from each wallpaper
-              const wallpaperUrls = wallpapers.map((wp) => wp.content);
-              console.log("Wallpaper URLs:", wallpaperUrls);
-              setCustomWallpapers(wallpaperUrls);
-              console.log("Loaded custom wallpapers:", wallpapers.length);
-            } else {
-              console.log("No custom wallpapers found in IndexedDB");
-            }
-          };
-
-          request.onerror = (err) => {
-            console.error("Error fetching wallpapers:", err);
-          };
-        } else {
-          console.log("Custom wallpapers store doesn't exist");
+        // Load preview data for each reference
+        const previews: Record<string, string> = {};
+        for (const ref of refs) {
+          const data = await getWallpaperData(ref);
+          if (data) {
+            previews[ref] = data;
+          }
         }
+        setCustomWallpaperPreviews(previews);
       } catch (error) {
-        console.error("Error loading custom wallpapers:", error);
+        console.error("Error fetching custom wallpapers:", error);
       }
     };
 
-    loadCustomWallpapers();
-  }, []);
+    fetchCustomWallpapers();
+  }, [loadCustomWallpapers, getWallpaperData, INDEXEDDB_PREFIX]);
 
   const handleWallpaperSelect = (path: string) => {
     setWallpaper(path);
@@ -412,111 +384,37 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
     const isVideo = file.type.startsWith("video/");
     const isImage = file.type.startsWith("image/");
 
-    console.log("Uploading file:", file.name, "Type:", file.type);
-
     if (!isImage && !isVideo) {
       alert("Please select an image or video file");
       return;
     }
 
     try {
-      // Read the file as data URL
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = (e) => {
-          console.error("Error reading file:", e);
-          reject(e);
-        };
-        reader.readAsDataURL(file);
-      });
+      // Upload directly using the setWallpaper method which now accepts File objects
+      await setWallpaper(file);
 
-      console.log(
-        "File read as data URL, size:",
-        Math.round(dataUrl.length / 1024),
-        "KB"
-      );
+      // Refresh the custom wallpapers list
+      const refs = await loadCustomWallpapers();
+      setCustomWallpaperRefs(refs);
 
-      // Always use version 3 for consistency
-      const db = await new Promise<IDBDatabase>((resolve, reject) => {
-        const request = indexedDB.open(DB_NAME, DB_VERSION);
-        request.onerror = () => {
-          console.error("IndexedDB open error:", request.error);
-          reject(request.error);
-        };
-        request.onsuccess = () => resolve(request.result);
-
-        // Create store if needed during upgrade
-        request.onupgradeneeded = (event) => {
-          const db = (event.target as IDBOpenDBRequest).result;
-          if (!db.objectStoreNames.contains(CUSTOM_WALLPAPERS_STORE)) {
-            db.createObjectStore(CUSTOM_WALLPAPERS_STORE, { keyPath: "name" });
+      // Load preview for the new wallpaper
+      for (const ref of refs) {
+        if (!customWallpaperPreviews[ref]) {
+          const data = await getWallpaperData(ref);
+          if (data) {
+            setCustomWallpaperPreviews((prev) => ({
+              ...prev,
+              [ref]: data,
+            }));
           }
-        };
-      });
-
-      console.log("IndexedDB opened successfully");
-
-      // Check if the store exists
-      if (db.objectStoreNames.contains(CUSTOM_WALLPAPERS_STORE)) {
-        const transaction = db.transaction(
-          CUSTOM_WALLPAPERS_STORE,
-          "readwrite"
-        );
-        const store = transaction.objectStore(CUSTOM_WALLPAPERS_STORE);
-
-        // Generate a unique name for the wallpaper
-        const wallpaperName = `custom_${Date.now()}_${file.name.replace(
-          /[^a-zA-Z0-9._-]/g,
-          "_"
-        )}`;
-
-        const wallpaper = {
-          name: wallpaperName,
-          content: dataUrl,
-          type: file.type,
-          dateAdded: new Date().toISOString(),
-        };
-
-        console.log("Saving wallpaper with name:", wallpaperName);
-
-        const request = store.put(wallpaper);
-
-        request.onsuccess = () => {
-          console.log(
-            "Custom wallpaper saved successfully with key:",
-            request.result
-          );
-          // Update state with new wallpaper
-          setCustomWallpapers((prev) => [...prev, dataUrl]);
-          // Automatically select the new wallpaper
-          setWallpaper(dataUrl);
-          setSelectedCategory("custom");
-          playClick();
-        };
-
-        request.onerror = () => {
-          console.error("Error saving custom wallpaper:", request.error);
-          alert("Failed to save wallpaper. Storage might be full.");
-        };
-
-        // Handle transaction complete/error
-        transaction.oncomplete = () => {
-          console.log("Transaction completed successfully");
-          db.close();
-        };
-
-        transaction.onerror = () => {
-          console.error("Transaction error:", transaction.error);
-          db.close();
-        };
-      } else {
-        console.error("Custom wallpapers store doesn't exist after checking");
-        alert("Failed to access storage for custom wallpapers");
+        }
       }
+
+      // Switch to custom category
+      setSelectedCategory("custom");
     } catch (error) {
-      console.error("Error processing file:", error);
-      alert("Error processing file. Please try again with a smaller file.");
+      console.error("Error uploading wallpaper:", error);
+      alert("Error uploading wallpaper. Please try again with a smaller file.");
     }
 
     // Reset the file input
@@ -529,7 +427,7 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
   useEffect(() => {
     if (currentWallpaper.includes("/wallpapers/tiles/")) {
       setSelectedCategory("tiles");
-    } else if (customWallpapers.includes(currentWallpaper)) {
+    } else if (currentWallpaper.startsWith(INDEXEDDB_PREFIX)) {
       setSelectedCategory("custom");
     } else if (VIDEO_WALLPAPERS.includes(currentWallpaper)) {
       setSelectedCategory("videos");
@@ -541,7 +439,7 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
         }
       }
     }
-  }, [currentWallpaper, customWallpapers]);
+  }, [currentWallpaper, INDEXEDDB_PREFIX]);
 
   const formatCategoryLabel = (category: string) => {
     return category
@@ -553,6 +451,16 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
   const handleDisplayModeChange = (mode: DisplayMode) => {
     setDisplayMode(mode);
     applyDisplayMode(mode);
+  };
+
+  // Determine if a wallpaper is a video
+  const isVideoWallpaper = (path: string, previewUrl?: string) => {
+    const url = previewUrl || path;
+    return (
+      url.endsWith(".mp4") ||
+      url.includes("video/") ||
+      (url.startsWith("https://") && /\.(mp4|webm|ogg)($|\?)/.test(url))
+    );
   };
 
   return (
@@ -653,14 +561,18 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
               >
                 <Plus className="h-5 w-5 text-gray-500" />
               </div>
-              {customWallpapers.length > 0 ? (
-                customWallpapers.map((path) => (
+              {customWallpaperRefs.length > 0 ? (
+                customWallpaperRefs.map((path) => (
                   <WallpaperItem
                     key={path}
                     path={path}
+                    previewUrl={customWallpaperPreviews[path]}
                     isSelected={currentWallpaper === path}
                     onClick={() => handleWallpaperSelect(path)}
-                    isVideo={path.includes(";video/")}
+                    isVideo={isVideoWallpaper(
+                      path,
+                      customWallpaperPreviews[path]
+                    )}
                   />
                 ))
               ) : (

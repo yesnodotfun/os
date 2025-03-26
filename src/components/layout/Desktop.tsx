@@ -31,64 +31,83 @@ export function Desktop({
 }: DesktopProps) {
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
   const {
+    currentWallpaper,
+    wallpaperSource,
     isVideoWallpaper,
     isVideoLoading,
     markVideoLoaded,
     checkVideoLoadState,
+    INDEXEDDB_PREFIX,
+    getWallpaperData,
   } = useWallpaper();
-  const [currentWallpaper, setCurrentWallpaper] = useState(wallpaperPath);
+  const [displaySource, setDisplaySource] = useState<string>("");
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Keep displaySource in sync with wallpaperSource and currentWallpaper
+  useEffect(() => {
+    setDisplaySource(wallpaperSource);
+  }, [wallpaperSource, currentWallpaper]);
+
+  // Initialize wallpaperPath from props
+  useEffect(() => {
+    // Only update if the path actually changed (prevents loops)
+    if (wallpaperPath && wallpaperPath !== currentWallpaper) {
+      setDisplaySource(wallpaperPath);
+    }
+  }, [wallpaperPath, currentWallpaper]);
 
   // Listen for wallpaper changes
   useEffect(() => {
-    const handleWallpaperChange = (e: CustomEvent<string>) => {
-      setCurrentWallpaper(e.detail);
+    const handleWallpaperChange = async (e: CustomEvent<string>) => {
+      const newWallpaper = e.detail;
+
+      // If it's an IndexedDB reference, load the actual data
+      if (newWallpaper.startsWith(INDEXEDDB_PREFIX)) {
+        const data = await getWallpaperData(newWallpaper);
+        if (data) {
+          setDisplaySource(data);
+        } else {
+          setDisplaySource(newWallpaper);
+        }
+      } else {
+        setDisplaySource(newWallpaper);
+      }
     };
 
     window.addEventListener(
       "wallpaperChange",
-      handleWallpaperChange as EventListener
+      handleWallpaperChange as unknown as EventListener
     );
     return () =>
       window.removeEventListener(
         "wallpaperChange",
-        handleWallpaperChange as EventListener
+        handleWallpaperChange as unknown as EventListener
       );
-  }, []);
-
-  // Update currentWallpaper when prop changes
-  useEffect(() => {
-    setCurrentWallpaper(wallpaperPath);
-  }, [wallpaperPath]);
+  }, [INDEXEDDB_PREFIX, getWallpaperData]);
 
   // Check if the current wallpaper is a video and force update
   useEffect(() => {
-    const isVideo = 
-      currentWallpaper.endsWith('.mp4') || 
-      currentWallpaper.includes('video/') ||
-      (currentWallpaper.startsWith('https://') && /\.(mp4|webm|ogg)($|\?)/.test(currentWallpaper));
-    
+    if (!displaySource) return;
+
+    const isVideo =
+      displaySource.endsWith(".mp4") ||
+      displaySource.includes("video/") ||
+      (displaySource.startsWith("https://") &&
+        /\.(mp4|webm|ogg)($|\?)/.test(displaySource));
+
     if (isVideo) {
       // When switching from image to video, force video detection
       const videoEl = videoRef.current;
       if (videoEl) {
         // Only update src if it changed to avoid reloading unnecessarily
-        if (videoEl.src !== currentWallpaper) {
-          videoEl.src = currentWallpaper;
+        if (videoEl.src !== displaySource) {
+          videoEl.src = displaySource;
           videoEl.load();
         }
-        checkVideoLoadState(videoEl, currentWallpaper);
+        checkVideoLoadState(videoEl, displaySource);
       }
     }
-  }, [currentWallpaper, checkVideoLoadState]);
-
-  // Check for cached video on ref update and wallpaper change
-  useEffect(() => {
-    if (isVideoWallpaper && videoRef.current) {
-      // Try to check if the video is already loaded/cached
-      checkVideoLoadState(videoRef.current, currentWallpaper);
-    }
-  }, [isVideoWallpaper, videoRef, currentWallpaper, checkVideoLoadState]);
+  }, [displaySource, checkVideoLoadState]);
 
   // Add visibility change and focus handlers to resume video playback
   useEffect(() => {
@@ -99,7 +118,7 @@ export function Desktop({
       const video = videoRef.current;
       if (video && video.paused) {
         // Try to play the video when visibility changes to visible
-        video.play().catch(err => {
+        video.play().catch((err) => {
           console.warn("Could not resume video playback:", err);
         });
       }
@@ -127,6 +146,8 @@ export function Desktop({
   }, [isVideoWallpaper]);
 
   const getWallpaperStyles = (path: string): DesktopStyles => {
+    if (!path) return {};
+
     // Don't apply background styles for video wallpapers
     if (
       path.endsWith(".mp4") ||
@@ -148,7 +169,7 @@ export function Desktop({
 
   // Merge wallpaper styles with provided desktop styles
   const finalStyles = {
-    ...getWallpaperStyles(currentWallpaper),
+    ...getWallpaperStyles(displaySource),
     ...desktopStyles,
   };
 
@@ -171,12 +192,12 @@ export function Desktop({
   };
 
   const handleVideoLoaded = () => {
-    markVideoLoaded(currentWallpaper);
+    markVideoLoaded(displaySource);
   };
 
   // Handle video loading events
   const handleCanPlayThrough = () => {
-    markVideoLoaded(currentWallpaper);
+    markVideoLoaded(displaySource);
   };
 
   return (
@@ -192,7 +213,7 @@ export function Desktop({
       <video
         ref={videoRef}
         className="absolute inset-0 w-full h-full object-cover z-[-10]"
-        src={currentWallpaper}
+        src={displaySource}
         autoPlay
         loop
         muted
@@ -201,7 +222,7 @@ export function Desktop({
         onLoadedData={handleVideoLoaded}
         onCanPlayThrough={handleCanPlayThrough}
         style={{
-          display: isVideoWallpaper ? 'block' : 'none',
+          display: isVideoWallpaper ? "block" : "none",
           opacity: isVideoLoading ? 0.6 : 1,
           transition: "opacity 0.5s ease-in-out",
         }}
