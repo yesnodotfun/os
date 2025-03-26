@@ -24,7 +24,7 @@ interface PaintCanvasRef {
   undo: () => void;
   redo: () => void;
   clear: () => void;
-  exportCanvas: () => string;
+  exportCanvas: () => Promise<Blob>;
   importImage: (dataUrl: string) => void;
   cut: () => void;
   copy: () => void;
@@ -351,6 +351,17 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
         canvas.height
       );
 
+      // Check if there are actual changes before saving to history
+      const hasChanges =
+        historyIndexRef.current < 0 ||
+        !historyRef.current[historyIndexRef.current] ||
+        !compareImageData(
+          newImageData,
+          historyRef.current[historyIndexRef.current]
+        );
+
+      if (!hasChanges) return;
+
       // Remove any redo states
       historyRef.current = historyRef.current.slice(
         0,
@@ -376,6 +387,26 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
         onContentChange?.();
       }
     }, [onCanUndoChange, onCanRedoChange, onContentChange, isLoadingFile]);
+
+    // Helper function to compare ImageData
+    const compareImageData = useCallback((img1: ImageData, img2: ImageData) => {
+      if (img1.width !== img2.width || img1.height !== img2.height)
+        return false;
+
+      // Compare a sample of pixels to determine if images are significantly different
+      // This is more performant than comparing every pixel
+      const data1 = img1.data;
+      const data2 = img2.data;
+      const length = data1.length;
+      const sampleSize = Math.min(1000, length / 4); // Sample at most 1000 pixels
+      const step = Math.floor(length / (sampleSize * 4));
+
+      for (let i = 0; i < length; i += step) {
+        if (data1[i] !== data2[i]) return false;
+      }
+
+      return true;
+    }, []);
 
     // Clipboard methods
     const copySelectionToClipboard = useCallback(() => {
@@ -513,7 +544,21 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
           );
           saveToHistory();
         },
-        exportCanvas: () => canvasRef.current?.toDataURL() || "",
+        exportCanvas: () => {
+          if (!canvasRef.current) {
+            return Promise.reject(new Error("Canvas not available"));
+          }
+
+          return new Promise<Blob>((resolve, reject) => {
+            canvasRef.current?.toBlob((blob) => {
+              if (blob) {
+                resolve(blob);
+              } else {
+                reject(new Error("Failed to create blob from canvas"));
+              }
+            }, "image/png");
+          });
+        },
         importImage: (dataUrl: string) => {
           const img = new Image();
           img.src = dataUrl;
@@ -546,7 +591,15 @@ export const PaintCanvas = forwardRef<PaintCanvasRef, PaintCanvasProps>(
           }
         },
       }),
-      [onCanUndoChange, onCanRedoChange]
+      [
+        onCanUndoChange,
+        onCanRedoChange,
+        saveToHistory,
+        copySelectionToClipboard,
+        clearSelection,
+        handlePaste,
+        onContentChange,
+      ]
     );
 
     // Add keyboard shortcuts for clipboard operations

@@ -18,6 +18,12 @@ interface Effect {
   filter: string;
 }
 
+interface PhotoReference {
+  filename: string;
+  path: string;
+  timestamp: number;
+}
+
 const effects: Effect[] = [
   { name: "Green Tint", filter: "hue-rotate(90deg) saturate(200%)" },
   { name: "High Contrast", filter: "contrast(150%) brightness(120%)" },
@@ -46,11 +52,23 @@ export function PhotoBoothComponent({
   const [selectedEffect, setSelectedEffect] = useState<Effect>(
     effects.find((effect) => effect.name === "Normal") || effects[0]
   );
-  const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>([]);
+  const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>(
+    []
+  );
   const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null);
-  const [photos, setPhotos] = useState<string[]>(() => {
-    const saved = localStorage.getItem(APP_STORAGE_KEYS["photo-booth"].PHOTOS);
-    return saved ? JSON.parse(saved) : [];
+  const [photos, setPhotos] = useState<PhotoReference[]>(() => {
+    try {
+      const saved = localStorage.getItem(
+        APP_STORAGE_KEYS["photo-booth"].PHOTOS
+      );
+      if (!saved) return [];
+
+      // Parse stored photo references
+      return JSON.parse(saved) as PhotoReference[];
+    } catch (e) {
+      console.error("Error loading photos from localStorage:", e);
+      return [];
+    }
   });
   const [isMultiPhotoMode, setIsMultiPhotoMode] = useState(false);
   const [multiPhotoCount, setMultiPhotoCount] = useState(0);
@@ -64,7 +82,7 @@ export function PhotoBoothComponent({
   const { play: playShutter } = useSound(Sounds.PHOTO_SHUTTER, 0.4);
   const [newPhotoIndex, setNewPhotoIndex] = useState<number | null>(null);
   const [mainStream, setMainStream] = useState<MediaStream | null>(null);
-  const { saveFile } = useFileSystem("/Images");
+  const { saveFile, files } = useFileSystem("/Images");
 
   // Add a small delay before showing photo strip to prevent flickering
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -317,15 +335,17 @@ export function PhotoBoothComponent({
     const getCameras = async () => {
       try {
         const devices = await navigator.mediaDevices.enumerateDevices();
-        const cameras = devices.filter(device => device.kind === 'videoinput');
+        const cameras = devices.filter(
+          (device) => device.kind === "videoinput"
+        );
         setAvailableCameras(cameras);
-        
+
         // If no camera is selected and cameras are available, select the first one
         if (!selectedCameraId && cameras.length > 0) {
           setSelectedCameraId(cameras[0].deviceId);
         }
       } catch (error) {
-        console.error('Error getting cameras:', error);
+        console.error("Error getting cameras:", error);
       }
     };
 
@@ -431,33 +451,65 @@ export function PhotoBoothComponent({
     // Play shutter sound
     playShutter();
 
-    // Generate unique filename with timestamp
-    const timestamp = new Date().toISOString().replace(/[-:.]/g, "").substring(0, 15);
-    const filename = `photo_${timestamp}.png`;
-    
-    // Create file item
+    // Convert base64 data URL to Blob for file system storage
+    const base64Data = photoDataUrl.split(",")[1];
+    const mimeType = photoDataUrl.split(",")[0].split(":")[1].split(";")[0];
+    const byteCharacters = atob(base64Data);
+    const byteArrays = [];
+
+    for (let i = 0; i < byteCharacters.length; i += 512) {
+      const slice = byteCharacters.slice(i, i + 512);
+      const byteNumbers = new Array(slice.length);
+      for (let j = 0; j < slice.length; j++) {
+        byteNumbers[j] = slice.charCodeAt(j);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      byteArrays.push(byteArray);
+    }
+
+    const blob = new Blob(byteArrays, { type: mimeType });
+    const blobUrl = URL.createObjectURL(blob);
+
+    // Generate unique filename with timestamp and correct extension
+    const timestamp = Date.now();
+    const timestampStr = new Date(timestamp)
+      .toISOString()
+      .replace(/[-:.]/g, "")
+      .substring(0, 15);
+    const fileExtension = mimeType === "image/jpeg" ? ".jpg" : ".png";
+    const filename = `photo_${timestampStr}${fileExtension}`;
+
+    // Create file item with Blob content
     const fileItem = {
       name: filename,
-      content: photoDataUrl,
-      type: "image/png",
+      content: blob,
+      contentUrl: blobUrl,
+      type: mimeType,
       path: "/Images/",
       isDirectory: false,
-      size: Math.round(photoDataUrl.length * 0.75), // Approximate size in bytes
+      size: blob.size,
       modifiedAt: new Date(),
     };
 
     // Save to the file system using hook
     saveFile(fileItem);
-    
+
     // Dispatch a custom event to notify Finder of the new file
-    const saveEvent = new CustomEvent("saveFile", { 
-      detail: fileItem
+    const saveEvent = new CustomEvent("saveFile", {
+      detail: fileItem,
     });
     window.dispatchEvent(saveEvent);
 
-    // Add the new photo to the photos array (maintain existing functionality)
+    // Create a reference to the saved photo
+    const photoRef: PhotoReference = {
+      filename,
+      path: `/Images/${filename}`,
+      timestamp,
+    };
+
+    // Add the new photo reference to the photos array
     setPhotos((prevPhotos) => {
-      const newPhotos = [...prevPhotos, photoDataUrl];
+      const newPhotos = [...prevPhotos, photoRef];
       try {
         localStorage.setItem(
           APP_STORAGE_KEYS["photo-booth"].PHOTOS,
@@ -469,7 +521,7 @@ export function PhotoBoothComponent({
       return newPhotos;
     });
 
-    setLastPhoto(photoDataUrl);
+    setLastPhoto(photoDataUrl); // Use data URL for lastPhoto preview
     setNewPhotoIndex(photos.length);
     setShowThumbnail(true);
 
@@ -491,7 +543,7 @@ export function PhotoBoothComponent({
 
         if (newCount <= 4) {
           // Trigger photo capture
-          const event = new CustomEvent('webcam-capture');
+          const event = new CustomEvent("webcam-capture");
           window.dispatchEvent(event);
         }
 
@@ -499,13 +551,83 @@ export function PhotoBoothComponent({
           clearInterval(timer);
           setIsMultiPhotoMode(false);
 
-          // After the sequence completes, update photos state
-          const photoBatch = [...currentPhotoBatch];
-          setPhotos((prev) => [...prev, ...photoBatch]);
+          // After the sequence completes, process batch photos and convert to references
+          // This happens after all photos are taken
+          const batchWithReferences = currentPhotoBatch.map((dataUrl) => {
+            // Convert to blob and save file similar to handlePhoto
+            const base64Data = dataUrl.split(",")[1];
+            const mimeType = dataUrl.split(",")[0].split(":")[1].split(";")[0];
+            const byteCharacters = atob(base64Data);
+            const byteArrays = [];
+
+            for (let i = 0; i < byteCharacters.length; i += 512) {
+              const slice = byteCharacters.slice(i, i + 512);
+              const byteNumbers = new Array(slice.length);
+              for (let j = 0; j < slice.length; j++) {
+                byteNumbers[j] = slice.charCodeAt(j);
+              }
+              const byteArray = new Uint8Array(byteNumbers);
+              byteArrays.push(byteArray);
+            }
+
+            const blob = new Blob(byteArrays, { type: mimeType });
+            const blobUrl = URL.createObjectURL(blob);
+
+            // Generate unique filename with timestamp
+            const timestamp = Date.now();
+            const timestampStr = new Date(timestamp)
+              .toISOString()
+              .replace(/[-:.]/g, "")
+              .substring(0, 15);
+            const fileExtension = mimeType === "image/jpeg" ? ".jpg" : ".png";
+            const filename = `photo_${timestampStr}${fileExtension}`;
+
+            // Create file item with Blob content
+            const fileItem = {
+              name: filename,
+              content: blob,
+              contentUrl: blobUrl,
+              type: mimeType,
+              path: "/Images/",
+              isDirectory: false,
+              size: blob.size,
+              modifiedAt: new Date(),
+            };
+
+            // Save to the file system
+            saveFile(fileItem);
+
+            // Dispatch a custom event to notify Finder of the new file
+            const saveEvent = new CustomEvent("saveFile", {
+              detail: fileItem,
+            });
+            window.dispatchEvent(saveEvent);
+
+            // Return reference to the saved photo
+            return {
+              filename,
+              path: `/Images/${filename}`,
+              timestamp,
+            };
+          });
+
+          // Update photos state with the new references
+          setPhotos((prev) => {
+            const updatedPhotos = [...prev, ...batchWithReferences];
+            try {
+              localStorage.setItem(
+                APP_STORAGE_KEYS["photo-booth"].PHOTOS,
+                JSON.stringify(updatedPhotos)
+              );
+            } catch (e) {
+              console.error("Error saving batch to localStorage:", e);
+            }
+            return updatedPhotos;
+          });
 
           // Show thumbnail animation for the last photo in the sequence
-          if (photoBatch.length > 0) {
-            setLastPhoto(photoBatch[photoBatch.length - 1]);
+          if (currentPhotoBatch.length > 0) {
+            setLastPhoto(currentPhotoBatch[currentPhotoBatch.length - 1]);
             setShowThumbnail(true);
             setTimeout(() => setShowThumbnail(false), 3000);
           }
@@ -518,7 +640,7 @@ export function PhotoBoothComponent({
     setMultiPhotoTimer(timer);
 
     // Take the first photo immediately
-    const event = new CustomEvent('webcam-capture');
+    const event = new CustomEvent("webcam-capture");
     window.dispatchEvent(event);
   };
 
@@ -558,6 +680,51 @@ export function PhotoBoothComponent({
     await startCamera();
   };
 
+  // Add useEffect for cleanup
+  useEffect(() => {
+    // Cleanup when component unmounts
+    return () => {
+      // We don't need to revoke any URLs since we're using data URLs in the photos array
+      // Only revoke lastPhoto URL if it's a blob URL
+      if (lastPhoto && lastPhoto.startsWith("blob:")) {
+        URL.revokeObjectURL(lastPhoto);
+      }
+    };
+  }, [lastPhoto]);
+
+  // Update the photo-taken event handler
+  useEffect(() => {
+    const handlePhotoTaken = (e: CustomEvent) => {
+      // Skip if we're not in multi-photo mode
+      if (!isMultiPhotoMode) return;
+
+      // Get the photo data URL from the event
+      const photoDataUrl = e.detail;
+      if (!photoDataUrl || typeof photoDataUrl !== "string") {
+        console.error("Invalid photo data in photo-taken event");
+        return;
+      }
+
+      // Add to batch
+      setCurrentPhotoBatch((prev) => [...prev, photoDataUrl]);
+    };
+
+    // Add event listener
+    window.addEventListener("photo-taken", handlePhotoTaken as EventListener);
+
+    return () => {
+      window.removeEventListener(
+        "photo-taken",
+        handlePhotoTaken as EventListener
+      );
+    };
+  }, [isMultiPhotoMode]);
+
+  // Filter photos that actually exist in the file system
+  const validPhotos = photos.filter((photo) =>
+    files.some((file) => file.name === photo.filename)
+  );
+
   if (!isWindowOpen) return null;
 
   return (
@@ -591,8 +758,13 @@ export function PhotoBoothComponent({
             }`}
           >
             <div className="absolute inset-0 flex items-center justify-center">
-              <Webcam 
-                onPhoto={handlePhoto}
+              <Webcam
+                onPhoto={(photoDataUrl) => {
+                  // Only process if not in preview
+                  if (photoDataUrl) {
+                    handlePhoto(photoDataUrl);
+                  }
+                }}
                 className="w-full h-full"
                 filter={selectedEffect.filter}
                 onStreamReady={setMainStream}
@@ -677,9 +849,12 @@ export function PhotoBoothComponent({
                             className="w-full h-full"
                             sharedStream={mainStream}
                           />
-                          <div 
-                            className="absolute bottom-0 left-0 right-0 text-center py-1.5 text-white font-geneva-12 text-[12px]" 
-                            style={{ textShadow: "0px 0px 2px black, 0px 0px 2px black, 0px 0px 2px black" }}
+                          <div
+                            className="absolute bottom-0 left-0 right-0 text-center py-1.5 text-white font-geneva-12 text-[12px]"
+                            style={{
+                              textShadow:
+                                "0px 0px 2px black, 0px 0px 2px black, 0px 0px 2px black",
+                            }}
                           >
                             {effect.name}
                           </div>
@@ -692,7 +867,7 @@ export function PhotoBoothComponent({
 
               {/* Photo strip preview - positioned in camera view area, but above bottom controls */}
               <AnimatePresence mode="wait">
-                {showPhotoStrip && photos.length > 0 && !isInitialLoad && (
+                {showPhotoStrip && validPhotos.length > 0 && !isInitialLoad && (
                   <motion.div
                     className="absolute bottom-0 inset-x-0 w-full bg-white/40 backdrop-blur-sm p-1 overflow-x-auto"
                     initial={{ y: 50, opacity: 0 }}
@@ -705,15 +880,24 @@ export function PhotoBoothComponent({
                     }}
                   >
                     <div className="flex flex-row space-x-1 h-20 w-max">
-                      {[...photos].reverse().map((photo, index) => {
+                      {[...validPhotos].reverse().map((photo, index) => {
                         // Calculate the original index (before reversing)
-                        const originalIndex = photos.length - 1 - index;
+                        const originalIndex = validPhotos.length - 1 - index;
                         // Check if this is the new photo that was just added
                         const isNewPhoto = originalIndex === newPhotoIndex;
 
+                        // Find the matching file in the file system
+                        const matchingFile = files.find(
+                          (file) => file.name === photo.filename
+                        );
+
+                        // Skip if file not found in the file system
+                        if (!matchingFile || !matchingFile.contentUrl)
+                          return null;
+
                         return (
                           <motion.div
-                            key={`photo-${originalIndex}`}
+                            key={`photo-${photo.filename}`}
                             className="h-full flex-shrink-0"
                             initial={
                               isNewPhoto
@@ -730,14 +914,14 @@ export function PhotoBoothComponent({
                             }}
                           >
                             <img
-                              src={photo}
+                              src={matchingFile.contentUrl}
                               alt={`Photo ${originalIndex}`}
                               className="h-full w-auto object-contain cursor-pointer transition-opacity hover:opacity-80"
                               onClick={() => {
                                 // Create an anchor element to download the image
                                 const link = document.createElement("a");
-                                link.href = photo;
-                                link.download = `photo-booth-image-${Date.now()}-${originalIndex}.jpg`;
+                                link.href = matchingFile.contentUrl || "";
+                                link.download = matchingFile.name;
                                 document.body.appendChild(link);
                                 link.click();
                                 document.body.removeChild(link);
@@ -797,9 +981,13 @@ export function PhotoBoothComponent({
               </AnimatePresence>
 
               <button
-                className={`h-10 w-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white relative overflow-hidden ${photos.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`h-10 w-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white relative overflow-hidden ${
+                  validPhotos.length === 0
+                    ? "opacity-50 cursor-not-allowed"
+                    : ""
+                }`}
                 onClick={togglePhotoStrip}
-                disabled={photos.length === 0}
+                disabled={validPhotos.length === 0}
               >
                 <Images size={18} />
               </button>
@@ -813,10 +1001,14 @@ export function PhotoBoothComponent({
             </div>
 
             <Button
-              onClick={isMultiPhotoMode ? () => {} : () => {
-                const event = new CustomEvent('webcam-capture');
-                window.dispatchEvent(event);
-              }}
+              onClick={
+                isMultiPhotoMode
+                  ? () => {}
+                  : () => {
+                      const event = new CustomEvent("webcam-capture");
+                      window.dispatchEvent(event);
+                    }
+              }
               className={`rounded-full h-14 w-14 [&_svg]:size-5 ${
                 isMultiPhotoMode
                   ? `bg-gray-500 cursor-not-allowed`

@@ -16,7 +16,8 @@ export interface FileItem {
   path: string;
   icon?: string;
   appId?: string; // For application files
-  content?: string; // For document files
+  content?: string | Blob; // For document files or images
+  contentUrl?: string; // For blob URLs
   size?: number; // File size in bytes
   modifiedAt?: Date; // Last modified date
   type?: string;
@@ -146,7 +147,8 @@ export function FileList({
           name={file.name}
           isDirectory={file.isDirectory}
           icon={file.icon}
-          content={file.type === 'image' ? file.content : undefined}
+          content={file.type === "image" ? file.content : undefined}
+          contentUrl={file.type === "image" ? file.contentUrl : undefined}
           onDoubleClick={() => handleFileOpen(file)}
           onClick={() => handleFileSelect(file)}
           isSelected={selectedFile?.path === file.path}

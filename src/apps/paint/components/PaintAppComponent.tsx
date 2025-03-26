@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { PaintToolbar } from "./PaintToolbar";
 import { PaintCanvas } from "./PaintCanvas";
 import { PaintMenuBar } from "./PaintMenuBar";
@@ -40,7 +40,7 @@ export const PaintAppComponent: React.FC<AppProps> = ({
     undo: () => void;
     redo: () => void;
     clear: () => void;
-    exportCanvas: () => string;
+    exportCanvas: () => Promise<Blob>;
     importImage: (dataUrl: string) => void;
     cut: () => void;
     copy: () => void;
@@ -49,6 +49,7 @@ export const PaintAppComponent: React.FC<AppProps> = ({
   }>();
   const { files, saveFile } = useFileSystem("/Images");
   const launchApp = useLaunchApp();
+  const contentChangeTimeoutRef = useRef<number | null>(null);
 
   // Initial load - try to restore last opened image
   useEffect(() => {
@@ -59,8 +60,37 @@ export const PaintAppComponent: React.FC<AppProps> = ({
 
       if (lastFilePath?.startsWith("/Images/")) {
         const file = files.find((f) => f.path === lastFilePath);
-        if (file?.content && !currentFilePath) {
+        if (file) {
+          // Use contentUrl if available, otherwise use content
+          const contentSource = file.contentUrl || file.content;
+
+          if (!contentSource) {
+            console.error("No content found for file:", file.name);
+            return;
+          }
+
           const img = new Image();
+
+          // Add error handling
+          img.onerror = (error) => {
+            console.error("Error loading image:", error);
+
+            // If contentUrl failed but we have a Blob content, try creating a new URL
+            if (file.contentUrl && file.content instanceof Blob) {
+              console.log("Trying to recreate Blob URL for", file.name);
+              const newUrl = URL.createObjectURL(file.content);
+
+              // Update file with new URL and try again
+              file.contentUrl = newUrl;
+
+              const newImg = new Image();
+              newImg.onload = () => handleFileOpen(lastFilePath, newUrl);
+              newImg.onerror = () =>
+                console.error("Failed to load image even with new Blob URL");
+              newImg.src = newUrl;
+            }
+          };
+
           img.onload = () => {
             // Calculate dimensions maintaining aspect ratio with max width of 589px
             let newWidth = img.width;
@@ -73,12 +103,13 @@ export const PaintAppComponent: React.FC<AppProps> = ({
             setCanvasWidth(newWidth);
             setCanvasHeight(newHeight);
             setIsLoadingFile(true);
-            canvasRef.current?.importImage(file.content as string);
+            canvasRef.current?.importImage(contentSource as string);
             setCurrentFilePath(lastFilePath);
             setHasUnsavedChanges(false);
             setIsLoadingFile(false);
           };
-          img.src = file.content as string;
+
+          img.src = contentSource as string;
         }
       }
     }
@@ -104,50 +135,59 @@ export const PaintAppComponent: React.FC<AppProps> = ({
         }
       }
     }
-  }, [isForeground, hasUnsavedChanges, currentFilePath]);
+  }, [isForeground, hasUnsavedChanges, currentFilePath, files]);
 
   // Auto-save effect
   useEffect(() => {
     if (!canvasRef.current) return;
 
     if (hasUnsavedChanges && currentFilePath && !isLoadingFile) {
-      const timeoutId = setTimeout(() => {
+      const timeoutId = window.setTimeout(async () => {
         if (!canvasRef.current) return;
 
-        const content = canvasRef.current.exportCanvas();
-        const fileName = currentFilePath.split("/").pop() || "untitled.png";
+        try {
+          const blob = await canvasRef.current.exportCanvas();
+          const blobUrl = URL.createObjectURL(blob);
+          const fileName = currentFilePath.split("/").pop() || "untitled.png";
 
-        // Save using useFileSystem hook
-        saveFile({
-          name: fileName,
-          path: currentFilePath,
-          content: content,
-          icon: "/icons/image.png",
-          isDirectory: false,
-        });
-
-        // Also emit the saveFile event for Finder to refresh
-        const saveEvent = new CustomEvent("saveFile", {
-          detail: {
+          // Save using useFileSystem hook
+          saveFile({
             name: fileName,
             path: currentFilePath,
-            content: content,
+            content: blob,
+            contentUrl: blobUrl,
             icon: "/icons/image.png",
             isDirectory: false,
-          },
-        });
-        window.dispatchEvent(saveEvent);
+            size: blob.size,
+          });
 
-        localStorage.setItem(
-          APP_STORAGE_KEYS.paint.LAST_FILE_PATH,
-          currentFilePath
-        );
-        setHasUnsavedChanges(false);
+          // Also emit the saveFile event for Finder to refresh
+          const saveEvent = new CustomEvent("saveFile", {
+            detail: {
+              name: fileName,
+              path: currentFilePath,
+              content: blob,
+              contentUrl: blobUrl,
+              icon: "/icons/image.png",
+              isDirectory: false,
+              size: blob.size,
+            },
+          });
+          window.dispatchEvent(saveEvent);
+
+          localStorage.setItem(
+            APP_STORAGE_KEYS.paint.LAST_FILE_PATH,
+            currentFilePath
+          );
+          setHasUnsavedChanges(false);
+        } catch (err) {
+          console.error("Error auto-saving file:", err);
+        }
       }, 2000); // Auto-save after 2 seconds of no changes
 
-      return () => clearTimeout(timeoutId);
+      return () => window.clearTimeout(timeoutId);
     }
-  }, [hasUnsavedChanges, currentFilePath, saveFile, isLoadingFile]);
+  }, [hasUnsavedChanges, currentFilePath, isLoadingFile]);
 
   const handleFileOpen = (path: string, content: string) => {
     const img = new Image();
@@ -170,6 +210,43 @@ export const PaintAppComponent: React.FC<AppProps> = ({
       setIsLoadingFile(false);
       localStorage.removeItem("pending_file_open");
     };
+
+    img.onerror = (error) => {
+      console.error("Error loading image for import:", error);
+
+      // Try to find the file and recreate a Blob URL if needed
+      const file = files.find((f) => f.path === path);
+      if (file?.content instanceof Blob) {
+        const newUrl = URL.createObjectURL(file.content);
+
+        // Try again with the new URL
+        const newImg = new Image();
+        newImg.onload = () => {
+          // Calculate dimensions maintaining aspect ratio with max width of 589px
+          let newWidth = newImg.width;
+          let newHeight = newImg.height;
+          if (newWidth > 589) {
+            const ratio = 589 / newWidth;
+            newWidth = 589;
+            newHeight = Math.round(newImg.height * ratio);
+          }
+
+          setCanvasWidth(newWidth);
+          setCanvasHeight(newHeight);
+          setIsLoadingFile(true);
+          canvasRef.current?.importImage(newUrl);
+          setCurrentFilePath(path);
+          setHasUnsavedChanges(false);
+          localStorage.setItem(APP_STORAGE_KEYS.paint.LAST_FILE_PATH, path);
+          setIsLoadingFile(false);
+          localStorage.removeItem("pending_file_open");
+        };
+        newImg.onerror = () =>
+          console.error("Failed to load image even with new URL");
+        newImg.src = newUrl;
+      }
+    };
+
     img.src = content;
   };
 
@@ -199,97 +276,123 @@ export const PaintAppComponent: React.FC<AppProps> = ({
     setHasUnsavedChanges(false);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!canvasRef.current) return;
 
     if (!currentFilePath) {
       setIsSaveDialogOpen(true);
       setSaveFileName("untitled.png");
     } else {
-      const content = canvasRef.current.exportCanvas();
-      const fileName = currentFilePath.split("/").pop() || "untitled.png";
+      try {
+        const blob = await canvasRef.current.exportCanvas();
+        const blobUrl = URL.createObjectURL(blob);
+        const fileName = currentFilePath.split("/").pop() || "untitled.png";
+
+        // Save using useFileSystem hook
+        saveFile({
+          name: fileName,
+          path: currentFilePath,
+          content: blob,
+          contentUrl: blobUrl,
+          icon: "/icons/image.png",
+          isDirectory: false,
+          size: blob.size,
+        });
+
+        // Also emit the saveFile event for Finder to refresh
+        const saveEvent = new CustomEvent("saveFile", {
+          detail: {
+            name: fileName,
+            path: currentFilePath,
+            content: blob,
+            contentUrl: blobUrl,
+            icon: "/icons/image.png",
+            isDirectory: false,
+            size: blob.size,
+          },
+        });
+        window.dispatchEvent(saveEvent);
+
+        localStorage.setItem(
+          APP_STORAGE_KEYS.paint.LAST_FILE_PATH,
+          currentFilePath
+        );
+        setHasUnsavedChanges(false);
+      } catch (err) {
+        console.error("Error saving file:", err);
+      }
+    }
+  };
+
+  const handleSaveSubmit = async (fileName: string) => {
+    if (!canvasRef.current) return;
+
+    try {
+      const blob = await canvasRef.current.exportCanvas();
+      const blobUrl = URL.createObjectURL(blob);
+      const filePath = `/Images/${fileName}${
+        fileName.endsWith(".png") ? "" : ".png"
+      }`;
 
       // Save using useFileSystem hook
       saveFile({
         name: fileName,
-        path: currentFilePath,
-        content: content,
+        path: filePath,
+        content: blob,
+        contentUrl: blobUrl,
         icon: "/icons/image.png",
         isDirectory: false,
+        size: blob.size,
       });
 
       // Also emit the saveFile event for Finder to refresh
       const saveEvent = new CustomEvent("saveFile", {
         detail: {
           name: fileName,
-          path: currentFilePath,
-          content: content,
+          path: filePath,
+          content: blob,
+          contentUrl: blobUrl,
           icon: "/icons/image.png",
           isDirectory: false,
+          size: blob.size,
         },
       });
       window.dispatchEvent(saveEvent);
 
-      localStorage.setItem(
-        APP_STORAGE_KEYS.paint.LAST_FILE_PATH,
-        currentFilePath
-      );
+      localStorage.setItem(APP_STORAGE_KEYS.paint.LAST_FILE_PATH, filePath);
+      setCurrentFilePath(filePath);
       setHasUnsavedChanges(false);
+      setIsSaveDialogOpen(false);
+    } catch (err) {
+      console.error("Error saving file:", err);
     }
-  };
-
-  const handleSaveSubmit = (fileName: string) => {
-    if (!canvasRef.current) return;
-
-    const content = canvasRef.current.exportCanvas();
-    const filePath = `/Images/${fileName}${
-      fileName.endsWith(".png") ? "" : ".png"
-    }`;
-
-    // Save using useFileSystem hook
-    saveFile({
-      name: fileName,
-      path: filePath,
-      content: content,
-      icon: "/icons/image.png",
-      isDirectory: false,
-    });
-
-    // Also emit the saveFile event for Finder to refresh
-    const saveEvent = new CustomEvent("saveFile", {
-      detail: {
-        name: fileName,
-        path: filePath,
-        content: content,
-        icon: "/icons/image.png",
-        isDirectory: false,
-      },
-    });
-    window.dispatchEvent(saveEvent);
-
-    localStorage.setItem(APP_STORAGE_KEYS.paint.LAST_FILE_PATH, filePath);
-    setCurrentFilePath(filePath);
-    setHasUnsavedChanges(false);
-    setIsSaveDialogOpen(false);
   };
 
   const handleImportFile = () => {
     launchApp("finder", { initialPath: "/Images" });
   };
 
-  const handleExportFile = () => {
+  const handleExportFile = async () => {
     if (!canvasRef.current) return;
 
-    const content = canvasRef.current.exportCanvas();
-    const fileName = currentFilePath?.split("/").pop() || "untitled.png";
+    try {
+      const blob = await canvasRef.current.exportCanvas();
+      const blobUrl = URL.createObjectURL(blob);
+      const fileName = currentFilePath?.split("/").pop() || "untitled.png";
 
-    // Create a temporary link element to trigger download
-    const link = document.createElement("a");
-    link.download = fileName;
-    link.href = content;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      // Create a temporary link element to trigger download
+      const link = document.createElement("a");
+      link.download = fileName;
+      link.href = blobUrl;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Revoke the URL to free up memory
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+    } catch (err) {
+      console.error("Error exporting file:", err);
+    }
   };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -334,6 +437,47 @@ export const PaintAppComponent: React.FC<AppProps> = ({
   const handlePaste = () => {
     canvasRef.current?.paste();
   };
+
+  // Debounced content change handler
+  const handleContentChange = useCallback(() => {
+    if (contentChangeTimeoutRef.current) {
+      clearTimeout(contentChangeTimeoutRef.current);
+    }
+
+    contentChangeTimeoutRef.current = window.setTimeout(() => {
+      if (!isLoadingFile) {
+        setHasUnsavedChanges(true);
+      }
+      contentChangeTimeoutRef.current = null;
+    }, 300) as unknown as number;
+  }, [isLoadingFile]);
+
+  // Clean up timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (contentChangeTimeoutRef.current) {
+        window.clearTimeout(contentChangeTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Add useEffect for cleaning up blob URLs when component unmounts
+  useEffect(() => {
+    return () => {
+      // Clean up any pending blob URLs
+      const pendingFileOpen = localStorage.getItem("pending_file_open");
+      if (pendingFileOpen) {
+        try {
+          const { content } = JSON.parse(pendingFileOpen);
+          if (content && content.startsWith("blob:")) {
+            URL.revokeObjectURL(content);
+          }
+        } catch (e) {
+          console.error("Failed to cleanup pending file blob URL:", e);
+        }
+      }
+    };
+  }, []);
 
   if (!isWindowOpen) return null;
 
@@ -426,11 +570,7 @@ export const PaintAppComponent: React.FC<AppProps> = ({
                   strokeWidth={strokeWidth}
                   onCanUndoChange={setCanUndo}
                   onCanRedoChange={setCanRedo}
-                  onContentChange={() => {
-                    if (!isLoadingFile) {
-                      setHasUnsavedChanges(true);
-                    }
-                  }}
+                  onContentChange={handleContentChange}
                   canvasWidth={canvasWidth}
                   canvasHeight={canvasHeight}
                 />

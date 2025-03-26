@@ -11,14 +11,14 @@ interface WebcamProps {
   selectedCameraId?: string | null;
 }
 
-export function Webcam({ 
-  onPhoto, 
-  className = "", 
+export function Webcam({
+  onPhoto,
+  className = "",
   isPreview = false,
   filter = "none",
   onStreamReady,
   sharedStream,
-  selectedCameraId
+  selectedCameraId,
 }: WebcamProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
@@ -51,7 +51,7 @@ export function Webcam({
       if (videoRef.current && stream) {
         const canvas = document.createElement("canvas");
         const video = videoRef.current;
-        
+
         // Set canvas dimensions to match video
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
@@ -72,13 +72,21 @@ export function Webcam({
 
         // Convert to JPEG data URL
         const photoDataUrl = canvas.toDataURL("image/jpeg", 0.85);
+
+        // Call the onPhoto callback
         onPhoto?.(photoDataUrl);
+
+        // Dispatch a custom event with the photo data URL for other components to use
+        const photoTakenEvent = new CustomEvent("photo-taken", {
+          detail: photoDataUrl,
+        });
+        window.dispatchEvent(photoTakenEvent);
       }
     };
 
     if (!isPreview) {
-      window.addEventListener('webcam-capture', handleCapture);
-      return () => window.removeEventListener('webcam-capture', handleCapture);
+      window.addEventListener("webcam-capture", handleCapture);
+      return () => window.removeEventListener("webcam-capture", handleCapture);
     }
   }, [stream, onPhoto, isPreview, filter]);
 
@@ -93,7 +101,9 @@ export function Webcam({
         },
       };
 
-      const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+      const mediaStream = await navigator.mediaDevices.getUserMedia(
+        constraints
+      );
       setStream(mediaStream);
 
       if (videoRef.current) {
@@ -108,7 +118,7 @@ export function Webcam({
 
   const stopCamera = () => {
     if (stream && !isPreview) {
-      stream.getTracks().forEach(track => track.stop());
+      stream.getTracks().forEach((track) => track.stop());
       setStream(null);
     }
   };
@@ -116,7 +126,10 @@ export function Webcam({
   return (
     <div className={`relative ${className}`}>
       {error ? (
-        <div className="w-full h-full flex items-center justify-center" onClick={startCamera}>
+        <div
+          className="w-full h-full flex items-center justify-center"
+          onClick={startCamera}
+        >
           <CameraOff size={48} className="text-white/30 cursor-pointer" />
         </div>
       ) : (
@@ -126,9 +139,9 @@ export function Webcam({
           playsInline
           muted
           className="w-full h-full object-cover"
-          style={{ filter, transform: 'scaleX(-1)' }}
+          style={{ filter, transform: "scaleX(-1)" }}
         />
       )}
     </div>
   );
-} 
+}

@@ -16,6 +16,12 @@ const STORES = {
   CUSTOM_WALLPAPERS: "custom_wallpapers",
 } as const;
 
+// Add extension of FileItem to support Blob content
+interface ExtendedFileItem extends Omit<FileItem, "content"> {
+  content?: string | Blob;
+  contentUrl?: string;
+}
+
 // Database initialization
 const initDB = (): Promise<IDBDatabase> => {
   return new Promise((resolve, reject) => {
@@ -110,11 +116,12 @@ const dbOperations = {
 // Sample documents
 interface Document {
   name: string;
-  content: string;
+  content: string | Blob;
   type?: string;
+  contentUrl?: string; // URL for Blob content
 }
 
-interface TrashItem extends FileItem {
+interface TrashItem extends ExtendedFileItem {
   originalPath: string;
   deletedAt: number;
 }
@@ -352,10 +359,25 @@ function getFileIcon(fileName: string, isDirectory: boolean): string {
   }
 }
 
+// Helper function to create object URL from Blob
+function createObjectURLIfNeeded(content: string | Blob): string {
+  if (content instanceof Blob) {
+    return URL.createObjectURL(content);
+  }
+  return content;
+}
+
+// Helper function to revoke object URLs when no longer needed
+function revokeObjectURLIfNeeded(url: string | undefined) {
+  if (url && url.startsWith("blob:")) {
+    URL.revokeObjectURL(url);
+  }
+}
+
 export function useFileSystem(initialPath: string = "/") {
   const [currentPath, setCurrentPath] = useState(initialPath);
-  const [files, setFiles] = useState<FileItem[]>([]);
-  const [selectedFile, setSelectedFile] = useState<FileItem>();
+  const [files, setFiles] = useState<ExtendedFileItem[]>([]);
+  const [selectedFile, setSelectedFile] = useState<ExtendedFileItem>();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>();
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -393,13 +415,14 @@ export function useFileSystem(initialPath: string = "/") {
 
   // Listen for file save events
   useEffect(() => {
-    const handleFileSave = async (event: CustomEvent<FileItem>) => {
+    const handleFileSave = async (event: CustomEvent<ExtendedFileItem>) => {
       if (!event.detail.content) return;
 
       const newDoc: Document = {
         name: event.detail.name,
         content: event.detail.content,
         type: event.detail.type || getFileType(event.detail.name),
+        contentUrl: event.detail.contentUrl,
       };
 
       try {
@@ -413,6 +436,8 @@ export function useFileSystem(initialPath: string = "/") {
               (img) => img.name === newDoc.name
             );
             if (existingIndex >= 0) {
+              // Revoke old URL if it exists
+              revokeObjectURLIfNeeded(newImages[existingIndex].contentUrl);
               newImages[existingIndex] = newDoc;
             } else {
               newImages.push(newDoc);
@@ -446,7 +471,7 @@ export function useFileSystem(initialPath: string = "/") {
     };
 
     const eventListener = (event: Event) => {
-      handleFileSave(event as CustomEvent<FileItem>);
+      handleFileSave(event as CustomEvent<ExtendedFileItem>);
     };
 
     window.addEventListener("saveFile", eventListener);
@@ -460,7 +485,7 @@ export function useFileSystem(initialPath: string = "/") {
     setError(undefined);
 
     try {
-      let simulatedFiles: FileItem[] = [];
+      let simulatedFiles: ExtendedFileItem[] = [];
 
       // Root directory
       if (currentPath === "/") {
@@ -511,25 +536,59 @@ export function useFileSystem(initialPath: string = "/") {
       }
       // Documents directory
       else if (currentPath === "/Documents") {
-        simulatedFiles = documents.map((doc) => ({
-          name: doc.name,
-          isDirectory: false,
-          path: `/Documents/${doc.name}`,
-          icon: getFileIcon(doc.name, false),
-          content: doc.content,
-          type: doc.type || getFileType(doc.name),
-        }));
+        simulatedFiles = documents.map((doc) => {
+          // Handle blob content
+          let contentUrl = doc.contentUrl;
+          if (doc.content instanceof Blob) {
+            // Always create a fresh Blob URL - old ones may be invalid
+            if (contentUrl && contentUrl.startsWith("blob:")) {
+              try {
+                URL.revokeObjectURL(contentUrl);
+              } catch (e) {
+                console.error("Error revoking old URL:", e);
+              }
+            }
+            contentUrl = URL.createObjectURL(doc.content);
+          }
+
+          return {
+            name: doc.name,
+            isDirectory: false,
+            path: `/Documents/${doc.name}`,
+            icon: getFileIcon(doc.name, false),
+            content: doc.content,
+            contentUrl: contentUrl,
+            type: doc.type || getFileType(doc.name),
+          };
+        });
       }
       // Images directory
       else if (currentPath === "/Images") {
-        simulatedFiles = images.map((img) => ({
-          name: img.name,
-          isDirectory: false,
-          path: `/Images/${img.name}`,
-          icon: getFileIcon(img.name, false),
-          content: img.content,
-          type: img.type || getFileType(img.name),
-        }));
+        simulatedFiles = images.map((img) => {
+          // Handle blob content
+          let contentUrl = img.contentUrl;
+          if (img.content instanceof Blob) {
+            // Always create a fresh Blob URL - old ones may be invalid
+            if (contentUrl && contentUrl.startsWith("blob:")) {
+              try {
+                URL.revokeObjectURL(contentUrl);
+              } catch (e) {
+                console.error("Error revoking old URL:", e);
+              }
+            }
+            contentUrl = URL.createObjectURL(img.content);
+          }
+
+          return {
+            name: img.name,
+            isDirectory: false,
+            path: `/Images/${img.name}`,
+            icon: getFileIcon(img.name, false),
+            content: img.content,
+            contentUrl: contentUrl,
+            type: img.type || getFileType(img.name),
+          };
+        });
       }
       // Trash directory
       else if (currentPath === "/Trash") {
@@ -549,10 +608,24 @@ export function useFileSystem(initialPath: string = "/") {
     }
   }
 
-  function handleFileOpen(file: FileItem) {
+  function handleFileOpen(file: ExtendedFileItem) {
     if (file.isDirectory) {
       setCurrentPath(file.path);
       return;
+    }
+
+    // For images and documents, ensure we have a valid Blob URL
+    const contentToUse = file.content;
+    let contentUrlToUse = file.contentUrl;
+
+    // If content is a Blob but URL is invalid, create a new URL
+    if (
+      file.content instanceof Blob &&
+      (!file.contentUrl ||
+        !file.contentUrl.startsWith("blob:") ||
+        file.contentUrl.includes("invalid"))
+    ) {
+      contentUrlToUse = URL.createObjectURL(file.content);
     }
 
     // Handle opening files based on their location
@@ -578,7 +651,7 @@ export function useFileSystem(initialPath: string = "/") {
       }
     } else if (file.path.startsWith("/Documents/")) {
       // Open document in TextEdit
-      if (file.content) {
+      if (contentToUse || contentUrlToUse) {
         // Launch TextEdit first
         const textEditState = localStorage.getItem(
           APP_STORAGE_KEYS.textedit.WINDOW
@@ -598,7 +671,7 @@ export function useFileSystem(initialPath: string = "/") {
           "pending_file_open",
           JSON.stringify({
             path: file.path,
-            content: file.content,
+            content: contentUrlToUse || contentToUse,
           })
         );
 
@@ -623,7 +696,7 @@ export function useFileSystem(initialPath: string = "/") {
         "pending_file_open",
         JSON.stringify({
           path: file.path,
-          content: file.content,
+          content: contentUrlToUse || contentToUse,
         })
       );
 
@@ -632,7 +705,7 @@ export function useFileSystem(initialPath: string = "/") {
     }
   }
 
-  function handleFileSelect(file: FileItem) {
+  function handleFileSelect(file: ExtendedFileItem) {
     setSelectedFile(file);
   }
 
@@ -678,7 +751,7 @@ export function useFileSystem(initialPath: string = "/") {
     return historyIndex < history.length - 1;
   }
 
-  async function moveToTrash(file: FileItem) {
+  async function moveToTrash(file: ExtendedFileItem) {
     if (file.path === "/Trash" || file.path.startsWith("/Trash/")) return;
 
     const trashItem: TrashItem = {
@@ -707,7 +780,7 @@ export function useFileSystem(initialPath: string = "/") {
     }
   }
 
-  async function restoreFromTrash(file: FileItem) {
+  async function restoreFromTrash(file: ExtendedFileItem) {
     if (!file.path.startsWith("/Trash/")) return;
 
     const trashItem = trashItems.find((item) => item.name === file.name);
@@ -754,18 +827,41 @@ export function useFileSystem(initialPath: string = "/") {
     }
   }
 
-  async function saveFile(file: FileItem) {
-    if (!file.content) return;
+  async function saveFile(file: ExtendedFileItem) {
+    if (!file.content && !file.contentUrl) return;
+
+    // Create contentUrl from Blob if needed
+    let contentUrl = file.contentUrl;
+    if (
+      file.content instanceof Blob &&
+      (!contentUrl || !contentUrl.startsWith("blob:"))
+    ) {
+      contentUrl = URL.createObjectURL(file.content);
+    }
 
     const newDoc: Document = {
       name: file.name,
-      content: file.content,
+      content: file.content || "", // Ensure content is always defined
+      contentUrl: contentUrl,
       type: file.type || getFileType(file.name),
     };
 
     try {
       // Only save to one location based on the file path
       if (file.path.startsWith("/Images/")) {
+        // Revoke any existing URL for this image before updating
+        const existingImage = images.find((img) => img.name === file.name);
+        if (
+          existingImage?.contentUrl &&
+          existingImage.contentUrl.startsWith("blob:")
+        ) {
+          try {
+            URL.revokeObjectURL(existingImage.contentUrl);
+          } catch (e) {
+            console.error("Error revoking old URL during save:", e);
+          }
+        }
+
         await dbOperations.put(STORES.IMAGES, newDoc);
         await dbOperations.delete(STORES.DOCUMENTS, newDoc.name);
         setImages((prev) => {
@@ -855,6 +951,18 @@ export function useFileSystem(initialPath: string = "/") {
     }
   }
 
+  // Clean up object URLs when component unmounts
+  useEffect(() => {
+    return () => {
+      // Revoke all object URLs to prevent memory leaks
+      images.forEach((img) => {
+        if (img.contentUrl && img.contentUrl.startsWith("blob:")) {
+          URL.revokeObjectURL(img.contentUrl);
+        }
+      });
+    };
+  }, [images]);
+
   return {
     currentPath,
     files,
@@ -877,5 +985,7 @@ export function useFileSystem(initialPath: string = "/") {
     setSelectedFile,
     renameFile,
     formatFileSystem,
+    createObjectURLIfNeeded,
+    revokeObjectURLIfNeeded,
   };
 }
