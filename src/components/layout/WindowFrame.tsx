@@ -162,7 +162,7 @@ export function WindowFrame({
     if (isFullHeight) {
       // Play collapse sound when restoring height
       playWindowCollapse();
-      
+
       // Restore to default height from app's configuration
       setIsFullHeight(false);
       setWindowSize((prev) => ({
@@ -172,7 +172,7 @@ export function WindowFrame({
     } else {
       // Play expand sound when maximizing height
       playWindowExpand();
-      
+
       // Set to full height
       setIsFullHeight(true);
       maximizeWindowHeight(mergedConstraints.maxHeight);
@@ -198,7 +198,7 @@ export function WindowFrame({
       if (!newMaximizedState) {
         // Play collapse sound when minimizing
         playWindowCollapse();
-        
+
         // Restoring to default size
         const defaultSize = mergedConstraints.defaultSize;
 
@@ -226,7 +226,7 @@ export function WindowFrame({
       } else {
         // Play expand sound when maximizing
         playWindowExpand();
-        
+
         // Maximizing the window
         // Save current size before maximizing
         previousSizeRef.current = {
@@ -391,7 +391,7 @@ export function WindowFrame({
           {/* Top resize handle */}
           <div
             className={cn(
-              "absolute left-0 right-0 cursor-n-resize pointer-events-auto transition-[top,height]",
+              "absolute left-0 right-0 cursor-n-resize pointer-events-auto transition-[top,height] select-none",
               resizeType?.includes("n")
                 ? "top-[-100px] h-[200px]"
                 : "-top-2 h-6" // reduced from h-10
@@ -408,7 +408,7 @@ export function WindowFrame({
           {/* Bottom resize handle */}
           <div
             className={cn(
-              "absolute left-0 right-0 cursor-s-resize pointer-events-auto transition-[bottom,height]",
+              "absolute left-0 right-0 cursor-s-resize pointer-events-auto transition-[bottom,height] select-none",
               resizeType?.includes("s")
                 ? "bottom-[-100px] h-[200px]"
                 : "-bottom-2 h-6" // reduced from h-10
@@ -425,7 +425,7 @@ export function WindowFrame({
           {/* Left resize handle */}
           <div
             className={cn(
-              "absolute top-8 cursor-w-resize pointer-events-auto transition-[left,width]",
+              "absolute top-8 cursor-w-resize pointer-events-auto transition-[left,width] select-none",
               resizeType?.includes("w")
                 ? "left-[-100px] w-[200px]"
                 : "-left-2 w-6" // reduced from w-10
@@ -442,7 +442,7 @@ export function WindowFrame({
           {/* Right resize handle */}
           <div
             className={cn(
-              "absolute top-8 cursor-e-resize pointer-events-auto transition-[right,width]",
+              "absolute top-8 cursor-e-resize pointer-events-auto transition-[right,width] select-none",
               resizeType?.includes("e")
                 ? "right-[-100px] w-[200px]"
                 : "-right-2 w-6" // reduced from w-10
@@ -459,7 +459,7 @@ export function WindowFrame({
           {/* Corner resize handles */}
           <div
             className={cn(
-              "absolute cursor-ne-resize pointer-events-auto transition-all",
+              "absolute cursor-ne-resize pointer-events-auto transition-all select-none",
               resizeType === "ne"
                 ? "top-[-100px] right-[-100px] w-[200px] h-[200px]"
                 : "top-0 right-0 w-6 h-6" // reduced from w-8 h-8
@@ -474,7 +474,7 @@ export function WindowFrame({
 
           <div
             className={cn(
-              "absolute cursor-sw-resize pointer-events-auto transition-all",
+              "absolute cursor-sw-resize pointer-events-auto transition-all select-none",
               resizeType === "sw"
                 ? "bottom-[-100px] left-[-100px] w-[200px] h-[200px]"
                 : "bottom-0 left-0 w-6 h-6" // reduced from w-8 h-8
@@ -489,7 +489,7 @@ export function WindowFrame({
 
           <div
             className={cn(
-              "absolute cursor-se-resize pointer-events-auto transition-all",
+              "absolute cursor-se-resize pointer-events-auto transition-all select-none",
               resizeType === "se"
                 ? "bottom-[-100px] right-[-100px] w-[200px] h-[200px]"
                 : "bottom-0 right-0 w-6 h-6" // reduced from w-8 h-8
