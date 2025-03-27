@@ -140,7 +140,7 @@ export const htmlToMarkdown = (html: string): string => {
     // Process top-level unordered lists
     markdown = markdown.replace(
       /<ul(?![^>]*data-type=['"]taskList['"])[^>]*>([\s\S]*?)<\/ul>/gi,
-      (match, content: string) => {
+      (_, content: string) => {
         return content.replace(
           /<li[^>]*>([\s\S]*?)<\/li>/gi,
           (_: string, itemContent: string) => {
@@ -186,7 +186,7 @@ export const htmlToMarkdown = (html: string): string => {
     // Process top-level ordered lists
     markdown = markdown.replace(
       /<ol[^>]*>([\s\S]*?)<\/ol>/gi,
-      (match, content: string) => {
+      (_, content: string) => {
         let itemIndex = 1;
         return content.replace(
           /<li[^>]*>([\s\S]*?)<\/li>/gi,
@@ -332,7 +332,7 @@ export const markdownToHtml = (markdown: string): string => {
   let html = markdown;
 
   // Process task lists first
-  html = html.replace(/^(\s*)-\s+\[([ xX])\]\s+(.*?)$/gm, (match, indent, checked, text) => {
+  html = html.replace(/^(\s*)-\s+\[([ xX])\]\s+(.*?)$/gm, (_, indent, checked, text) => {
     const isChecked = checked.toLowerCase() === 'x';
     const indentSpaces = indent ? indent.length : 0;
     const indentClass = indentSpaces > 0 ? ` class="indented" style="margin-left:${indentSpaces * 10}px"` : '';
