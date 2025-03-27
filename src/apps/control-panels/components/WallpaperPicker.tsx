@@ -196,8 +196,8 @@ const VIDEO_WALLPAPERS = [
   "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/lily_pad-ewDMSKULDgURywNkocVRnuRJHkAjvh.mp4",
   "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/golden_poppy-p4sIKkyENgI4kE3omyNE31tInqikuu.mp4",
   "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/red_tulips-2xvdKI4P13vFVRs35XRDScruE3RUiT.mp4",
-  "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/blue_flowers-MNyycIMHxNFghtSiQSAZIZrTWsXMVk.mp4",
-  "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/golden_gate_loop-9sgXd3bwhZno02pDMbzg9Di5eYxSbd.mp4",
+  "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/blue_flowers_loop-p42FtjYrf2DMZ8ZlgNR2tWZrCfDuSL.mp4",
+  "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/golden_gate_dusk-vwlMXQIHDKMOPQnqPlTPB5fGTZAtTK.mp4",
   "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/fish_eagle-nnO0aaeeLdliCSHg3jsHiJHf7r6kdd.mp4",
   "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/bliss_og-FRrs4u8TrHCBTgwfk9GzInMKaQBIGh.mp4",
 ];
