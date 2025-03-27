@@ -159,7 +159,7 @@ export function VideosMenuBar({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Playlist Menu */}
+      {/* Library Menu */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -167,7 +167,7 @@ export function VideosMenuBar({
             size="default"
             className="h-6 px-2 py-1 text-md focus-visible:ring-0 hover:bg-gray-200 active:bg-gray-900 active:text-white"
           >
-            Playlist
+            Library
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" sideOffset={1} className="px-0">
@@ -175,19 +175,19 @@ export function VideosMenuBar({
             onClick={onAddVideo}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            Add to Playlist...
+            Add to Library...
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={onClearPlaylist}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            Clear Playlist
+            Clear Library
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={onResetPlaylist}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            Reset Playlist
+            Reset Library
           </DropdownMenuItem>
           {videos.length > 0 && (
             <>

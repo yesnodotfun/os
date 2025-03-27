@@ -219,7 +219,7 @@ export function IpodMenuBar({
             onClick={onResetLibrary}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            Reset to Default
+            Reset Library
           </DropdownMenuItem>
           {tracks.length > 0 && (
             <>

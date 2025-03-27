@@ -21,7 +21,7 @@ import {
   saveIpodIsLoopCurrent,
   loadIpodIsShuffled,
   saveIpodIsShuffled,
-  loadPlaylist,
+  DEFAULT_VIDEOS,
   Track,
 } from "@/utils/storage";
 import { useSound, Sounds } from "@/hooks/useSound";
@@ -323,19 +323,19 @@ function IpodScreen({
     // Use smooth scrolling with a small buffer to prevent edge flickering
     // Add a 2px buffer at top and bottom to prevent edge flickering
     const buffer = 2;
-    
+
     // If item is below the visible area
     if (itemTop + itemHeight > scrollTop + containerHeight - buffer) {
       container.scrollTo({
         top: itemTop + itemHeight - containerHeight + buffer,
-        behavior: 'smooth'
+        behavior: "smooth",
       });
     }
     // If item is above the visible area
     else if (itemTop < scrollTop + buffer) {
       container.scrollTo({
         top: Math.max(0, itemTop - buffer),
-        behavior: 'smooth'
+        behavior: "smooth",
       });
     }
 
@@ -343,15 +343,15 @@ function IpodScreen({
     if (selectedMenuItem === 0) {
       container.scrollTo({
         top: 0,
-        behavior: 'smooth'
+        behavior: "smooth",
       });
     }
-    
+
     // For last item, ensure it's fully visible
     if (selectedMenuItem === menuItems.length - 1) {
       container.scrollTo({
         top: Math.max(0, itemTop - (containerHeight - itemHeight) + buffer),
-        behavior: 'smooth'
+        behavior: "smooth",
       });
     }
 
@@ -423,6 +423,7 @@ function IpodScreen({
               onPause={handlePause}
               onReady={handleReady}
               loop={loopCurrent}
+              playsinline={true}
               config={{
                 youtube: {
                   playerVars: {
@@ -1516,9 +1517,8 @@ export function IpodAppComponent({
           onOpenChange={setIsConfirmResetOpen}
           onConfirm={() => {
             // Use the videos default playlist
-            const defaultTracks = loadPlaylist();
             setTracks(
-              defaultTracks.map((video) => ({
+              DEFAULT_VIDEOS.map((video) => ({
                 id: video.id,
                 url: video.url,
                 title: video.title,
@@ -1527,7 +1527,7 @@ export function IpodAppComponent({
               }))
             );
             setOriginalOrder(
-              defaultTracks.map((video) => ({
+              DEFAULT_VIDEOS.map((video) => ({
                 id: video.id,
                 url: video.url,
                 title: video.title,
@@ -1538,6 +1538,7 @@ export function IpodAppComponent({
             setCurrentIndex(0);
             setIsPlaying(false);
             setIsConfirmResetOpen(false);
+            showStatus("LIBRARY RESET");
           }}
           title="Reset Library"
           description="Are you sure you want to reset your music library to the default tracks? This will replace your current library."
