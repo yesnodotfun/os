@@ -298,12 +298,13 @@ export function ChatMessages({
                           "#fecaca",
                           message.role === "user" ? "#fef08a" : "#bfdbfe",
                         ],
-                        color: ["#ef4444", "#000000"],
+                        color: ["#C92D2D", "#000000"],
                         transition: {
                           duration: 1,
                           repeat: 1,
                           repeatType: "reverse",
                           ease: "easeInOut",
+                          delay: 0.,
                         },
                       }
                     : {}
