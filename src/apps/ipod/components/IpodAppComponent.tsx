@@ -1477,7 +1477,7 @@ export function IpodAppComponent({
                 onClick={() => handleWheelClick("center")}
                 className={cn(
                   "absolute w-16 h-16 rounded-full z-10 flex items-center justify-center",
-                  theme === "classic" ? "bg-white" : "bg-neutral-700"
+                  theme === "classic" ? "bg-white" : "bg-neutral-900"
                 )}
               />
 
