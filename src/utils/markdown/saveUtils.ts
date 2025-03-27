@@ -64,12 +64,12 @@ export const createHtmlRenderer = (content: TiptapJSON) => {
           }
           case 'bulletList': {
             if (!node.content) return '';
-            result = `<ul>${node.content.map((n) => processNode(n as ContentNode)).join('')}</ul>`;
+            result = `<ul>${node.content.map((n) => processNode(n as ContentNode)).join('')}</ul>\n`;
             break;
           }
           case 'orderedList': {
             if (!node.content) return '';
-            result = `<ol>${node.content.map((n) => processNode(n as ContentNode)).join('')}</ol>`;
+            result = `<ol>${node.content.map((n) => processNode(n as ContentNode)).join('')}</ol>\n`;
             break;
           }
           case 'listItem': {
@@ -79,7 +79,7 @@ export const createHtmlRenderer = (content: TiptapJSON) => {
           }
           case 'taskList': {
             if (!node.content) return '';
-            result = `<ul data-type="taskList">${node.content.map((n) => processNode(n as ContentNode)).join('')}</ul>`;
+            result = `<ul data-type="taskList">${node.content.map((n) => processNode(n as ContentNode)).join('')}</ul>\n`;
             break;
           }
           case 'taskItem': {
