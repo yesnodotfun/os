@@ -854,6 +854,12 @@ export const DEFAULT_VIDEOS: Video[] = [
     title: "The Chase",
     artist: "Hearts2Hearts (하츠투하츠)",
   },
+  {
+    id: "hJ9Wp3PO3c8",
+    url: "https://www.youtube.com/watch?v=hJ9Wp3PO3c8",
+    title: "Butterfly",
+    artist: "Hearts2Hearts (하츠투하츠)",
+  },
 ];
 
 export const loadPlaylist = (): Video[] => {
