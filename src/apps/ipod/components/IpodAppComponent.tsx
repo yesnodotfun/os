@@ -1200,9 +1200,15 @@ export function IpodAppComponent({
             currentMenu.items[selectedMenuItem].action();
           }
         } else {
-          // Toggle video when not in menu mode, regardless of playback state
+          // In Now Playing view
           if (tracks[currentIndex]) {
-            toggleVideo();
+            if (!isPlaying) {
+              // If music is paused, play it
+              togglePlay();
+            } else {
+              // If music is playing, toggle video
+              toggleVideo();
+            }
           }
         }
         break;
