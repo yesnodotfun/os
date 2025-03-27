@@ -1193,8 +1193,8 @@ export function IpodAppComponent({
             currentMenu.items[selectedMenuItem].action();
           }
         } else {
-          // Only toggle video when not in menu mode and playback is active
-          if (isPlaying) {
+          // Toggle video when not in menu mode, regardless of playback state
+          if (tracks[currentIndex]) {
             toggleVideo();
           }
         }
