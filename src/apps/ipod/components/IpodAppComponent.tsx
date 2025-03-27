@@ -236,6 +236,7 @@ function IpodScreen({
   handleReady,
   loopCurrent,
   statusMessage,
+  onToggleVideo,
 }: {
   currentTrack: Track | null;
   isPlaying: boolean;
@@ -269,6 +270,7 @@ function IpodScreen({
   handleReady: () => void;
   loopCurrent: boolean;
   statusMessage: string | null;
+  onToggleVideo: () => void;
 }) {
   // Animation variants for menu transitions
   const menuVariants = {
@@ -446,6 +448,16 @@ function IpodScreen({
                 },
               }}
             />
+            {/* Transparent overlay to capture clicks */}
+            {showVideo && (
+              <div
+                className="absolute inset-0 z-30"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleVideo();
+                }}
+              />
+            )}
             {/* Status Display */}
             <AnimatePresence>
               {statusMessage && (
@@ -529,6 +541,11 @@ function IpodScreen({
               variants={menuVariants}
               transition={{ duration: 0.2, ease: "easeInOut" }}
               custom={menuDirection}
+              onClick={() => {
+                if (!menuMode && currentTrack) {
+                  onToggleVideo();
+                }
+              }}
             >
               <div className="flex-1 flex flex-col p-1 px-2 overflow-auto">
                 {currentTrack ? (
@@ -1473,6 +1490,7 @@ export function IpodAppComponent({
               handleReady={handleReady}
               loopCurrent={loopCurrent}
               statusMessage={statusMessage}
+              onToggleVideo={toggleVideo}
             />
 
             {/* Click Wheel */}

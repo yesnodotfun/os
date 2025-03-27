@@ -10,28 +10,29 @@ export const helpItems = [
   {
     icon: "🔄",
     title: "Navigation",
-    description: "Use the click wheel to navigate menus and control playback",
+    description:
+      "Use the click wheel to navigate menus and browse your library",
   },
   {
     icon: "⏯️",
-    title: "Playback",
+    title: "Playback Controls",
     description:
-      "Play/pause using the center button, skip tracks with the wheel",
-  },
-  {
-    icon: "🔁",
-    title: "Loop",
-    description: "Enable repeat for current track or entire library",
+      "Play/pause, skip tracks, and toggle video display during playback",
   },
   {
     icon: "🔀",
-    title: "Shuffle",
-    description: "Randomize your music library order",
+    title: "Playback Settings",
+    description: "Shuffle your library and loop tracks or entire playlist",
+  },
+  {
+    icon: "💡",
+    title: "Display Options",
+    description: "Toggle backlight, switch between Classic and Black themes",
   },
   {
     icon: "📋",
-    title: "Playlists",
-    description: "Create and manage your music playlists",
+    title: "Library Management",
+    description: "Create playlists and organize your music collection",
   },
 ];
 
