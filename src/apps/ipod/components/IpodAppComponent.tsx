@@ -1603,7 +1603,7 @@ export function IpodAppComponent({
             <div
               className={cn(
                 "mt-6 relative w-[180px] h-[180px] rounded-full flex items-center justify-center",
-                theme === "classic" ? "bg-gray-300/40" : "bg-neutral-800/30"
+                theme === "classic" ? "bg-gray-300/50" : "bg-neutral-800/50"
               )}
             >
               {/* Center button */}
@@ -1611,7 +1611,7 @@ export function IpodAppComponent({
                 onClick={() => handleWheelClick("center")}
                 className={cn(
                   "absolute w-16 h-16 rounded-full z-10 flex items-center justify-center",
-                  theme === "classic" ? "bg-white/85" : "bg-black/25"
+                  theme === "classic" ? "bg-white/20" : "bg-black/40"
                 )}
               />
 
