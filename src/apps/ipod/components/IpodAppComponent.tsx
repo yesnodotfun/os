@@ -1511,7 +1511,7 @@ export function IpodAppComponent({
       >
         <div
           ref={containerRef}
-          className="flex flex-col items-center justify-center w-full h-full bg-gradient-to-b from-gray-100/20 to-gray-300/20 backdrop-blur-lg p-4"
+          className="flex flex-col items-center justify-center w-full h-full bg-gradient-to-b from-gray-100/20 to-gray-300/20 backdrop-blur-lg p-4 select-none"
         >
           {/* iPod device - add transform scale based on container size */}
           <div
