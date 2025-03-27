@@ -35,12 +35,14 @@ interface IpodMenuBarProps {
   onAddTrack: () => void;
   onToggleBacklight: () => void;
   onToggleVideo: () => void;
+  onChangeTheme: (theme: string) => void;
   isLoopAll: boolean;
   isLoopCurrent: boolean;
   isPlaying: boolean;
   isShuffled: boolean;
   isBacklightOn: boolean;
   isVideoOn: boolean;
+  currentTheme: string;
 }
 
 export function IpodMenuBar({
@@ -61,12 +63,14 @@ export function IpodMenuBar({
   onAddTrack,
   onToggleBacklight,
   onToggleVideo,
+  onChangeTheme,
   isLoopAll,
   isLoopCurrent,
   isPlaying,
   isShuffled,
   isBacklightOn,
   isVideoOn,
+  currentTheme,
 }: IpodMenuBarProps) {
   return (
     <MenuBar>
@@ -186,6 +190,23 @@ export function IpodMenuBar({
           >
             <span className={cn(!isVideoOn && "pl-4")}>
               {isVideoOn ? "✓ Show Video" : "Show Video"}
+            </span>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
+          <DropdownMenuItem
+            onClick={() => onChangeTheme("classic")}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            <span className={cn(currentTheme !== "classic" && "pl-4")}>
+              {currentTheme === "classic" ? "✓ Classic" : "Classic"}
+            </span>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => onChangeTheme("black")}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            <span className={cn(currentTheme !== "black" && "pl-4")}>
+              {currentTheme === "black" ? "✓ Black" : "Black"}
             </span>
           </DropdownMenuItem>
         </DropdownMenuContent>

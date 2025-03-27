@@ -194,12 +194,22 @@ function StatusDisplay({ message }: { message: string }) {
 
 // Add function to handle backlight state
 const loadIpodBacklight = (): boolean => {
-  const saved = localStorage.getItem("ipod-backlight");
+  const saved = localStorage.getItem("ipod:backlight");
   return saved === null ? true : saved === "true";
 };
 
 const saveIpodBacklight = (value: boolean) => {
-  localStorage.setItem("ipod-backlight", value.toString());
+  localStorage.setItem("ipod:backlight", value.toString());
+};
+
+// Add function to handle theme state after backlight functions
+const loadIpodTheme = (): string => {
+  const saved = localStorage.getItem("ipod:theme");
+  return saved || "classic";
+};
+
+const saveIpodTheme = (value: string) => {
+  localStorage.setItem("ipod:theme", value);
 };
 
 function IpodScreen({
@@ -531,7 +541,6 @@ function IpodScreen({
                     <div className="font-chicago text-[16px] text-center text-[#0a3667] [text-shadow:1px_1px_0_rgba(0,0,0,0.15)]">
                       <ScrollingText
                         text={currentTrack.title}
-                        className="mb-0.5"
                         isPlaying={isPlaying}
                       />
                       <ScrollingText
@@ -597,6 +606,8 @@ export function IpodAppComponent({
   const [isShuffled, setIsShuffled] = useState(loadIpodIsShuffled());
   // Add backlight state
   const [backlightOn, setBacklightOn] = useState(loadIpodBacklight());
+  // Add theme state
+  const [theme, setTheme] = useState(loadIpodTheme());
   // Add last activity timestamp for backlight timer
   const [lastActivityTime, setLastActivityTime] = useState(Date.now());
   // Add backlight timer timeout reference
@@ -743,6 +754,14 @@ export function IpodAppComponent({
               showChevron: false,
               value: backlightOn ? "On" : "Off",
             },
+            {
+              label: "Theme",
+              action: () => {
+                changeTheme(theme === "classic" ? "black" : "classic");
+              },
+              showChevron: false,
+              value: theme === "classic" ? "Classic" : "Black",
+            },
           ];
 
           // Push settings menu to history
@@ -835,6 +854,14 @@ export function IpodAppComponent({
             showChevron: false,
             value: backlightOn ? "On" : "Off",
           },
+          {
+            label: "Theme",
+            action: () => {
+              changeTheme(theme === "classic" ? "black" : "classic");
+            },
+            showChevron: false,
+            value: theme === "classic" ? "Classic" : "Black",
+          },
         ];
 
         setMenuHistory((prev) => [
@@ -870,7 +897,7 @@ export function IpodAppComponent({
         ]);
       }
     }
-  }, [isPlaying, loopCurrent, loopAll, isShuffled, backlightOn, tracks]);
+  }, [isPlaying, loopCurrent, loopAll, isShuffled, backlightOn, tracks, theme]);
 
   // Save state to storage whenever it changes
   useEffect(() => {
@@ -1346,6 +1373,17 @@ export function IpodAppComponent({
     registerActivity();
   };
 
+  // Save theme state to storage
+  useEffect(() => {
+    saveIpodTheme(theme);
+  }, [theme]);
+
+  const changeTheme = (newTheme: string) => {
+    setTheme(newTheme);
+    playClickSound();
+    registerActivity();
+  };
+
   if (!isWindowOpen) return null;
 
   return (
@@ -1375,12 +1413,14 @@ export function IpodAppComponent({
         onAddTrack={() => setIsAddDialogOpen(true)}
         onToggleBacklight={toggleBacklight}
         onToggleVideo={toggleVideo}
+        onChangeTheme={changeTheme}
         isLoopAll={loopAll}
         isLoopCurrent={loopCurrent}
         isPlaying={isPlaying}
         isShuffled={isShuffled}
         isBacklightOn={backlightOn}
         isVideoOn={showVideo}
+        currentTheme={theme}
       />
 
       <WindowFrame
@@ -1392,7 +1432,12 @@ export function IpodAppComponent({
       >
         <div className="flex flex-col items-center justify-center w-full h-full bg-gradient-to-b from-gray-100/20 to-gray-300/20 backdrop-blur-lg p-4">
           {/* iPod device */}
-          <div className="w-[250px] h-[400px] bg-white rounded-2xl shadow-xl border border-black/40 flex flex-col items-center p-4 pb-8">
+          <div
+            className={cn(
+              "w-[250px] h-[400px] rounded-2xl shadow-xl border border-black/40 flex flex-col items-center p-4 pb-8",
+              theme === "classic" ? "bg-white" : "bg-neutral-900"
+            )}
+          >
             {/* Screen - Now pass all required props */}
             <IpodScreen
               currentTrack={tracks[currentIndex] || null}
@@ -1421,11 +1466,19 @@ export function IpodAppComponent({
             />
 
             {/* Click Wheel */}
-            <div className="mt-6 relative w-[180px] h-[180px] rounded-full bg-gray-200 flex items-center justify-center">
+            <div
+              className={cn(
+                "mt-6 relative w-[180px] h-[180px] rounded-full flex items-center justify-center",
+                theme === "classic" ? "bg-gray-200" : "bg-neutral-800"
+              )}
+            >
               {/* Center button */}
               <button
                 onClick={() => handleWheelClick("center")}
-                className="absolute w-16 h-16 rounded-full bg-white z-10 flex items-center justify-center"
+                className={cn(
+                  "absolute w-16 h-16 rounded-full z-10 flex items-center justify-center",
+                  theme === "classic" ? "bg-white" : "bg-neutral-700"
+                )}
               />
 
               {/* Wheel sections */}
