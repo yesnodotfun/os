@@ -1411,6 +1411,51 @@ export function IpodAppComponent({
     registerActivity();
   };
 
+  // Add container ref and scale state
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+
+  // Add resize observer effect
+  useEffect(() => {
+    const handleResize = () => {
+      if (!containerRef.current) return;
+
+      const containerWidth = containerRef.current.clientWidth;
+      const containerHeight = containerRef.current.clientHeight;
+
+      // Base iPod size (from the styles in the render function)
+      const baseWidth = 250;
+      const baseHeight = 400;
+
+      // Calculate available space (with some padding)
+      const availableWidth = containerWidth - 50; // 20px padding on each side
+      const availableHeight = containerHeight - 50; // 20px padding on each side
+
+      // Calculate scale factors for width and height
+      const widthScale = availableWidth / baseWidth;
+      const heightScale = availableHeight / baseHeight;
+
+      // Use the smaller scale to ensure iPod fits within container
+      const newScale = Math.min(widthScale, heightScale, 1.5); // Cap at 1.5x
+
+      setScale(Math.max(1, newScale)); // Ensure minimum scale of 1
+    };
+
+    // Initial sizing
+    handleResize();
+
+    // Setup resize observer
+    const resizeObserver = new ResizeObserver(handleResize);
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+
+    // Cleanup
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [isWindowOpen]);
+
   if (!isWindowOpen) return null;
 
   return (
@@ -1457,13 +1502,21 @@ export function IpodAppComponent({
         appId="ipod"
         transparentBackground
       >
-        <div className="flex flex-col items-center justify-center w-full h-full bg-gradient-to-b from-gray-100/20 to-gray-300/20 backdrop-blur-lg p-4">
-          {/* iPod device */}
+        <div
+          ref={containerRef}
+          className="flex flex-col items-center justify-center w-full h-full bg-gradient-to-b from-gray-100/20 to-gray-300/20 backdrop-blur-lg p-4"
+        >
+          {/* iPod device - add transform scale based on container size */}
           <div
             className={cn(
               "w-[250px] h-[400px] rounded-2xl shadow-xl border border-black/40 flex flex-col items-center p-4 pb-8",
               theme === "classic" ? "bg-white" : "bg-neutral-900"
             )}
+            style={{
+              transform: `scale(${scale})`,
+              transformOrigin: "center",
+              transition: "transform 0.2s ease",
+            }}
           >
             {/* Screen - Now pass all required props */}
             <IpodScreen
