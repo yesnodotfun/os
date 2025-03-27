@@ -31,6 +31,7 @@ interface Video {
   id: string;
   url: string;
   title: string;
+  artist?: string;
 }
 
 interface VideoInfo {
@@ -775,7 +776,9 @@ export function VideosAppComponent({
                 {videos.length > 0 && (
                   <div className="relative overflow-hidden">
                     <AnimatedTitle
-                      title={videos[currentIndex].title}
+                      title={videos[currentIndex].artist 
+                        ? `${videos[currentIndex].artist} - ${videos[currentIndex].title}`
+                        : videos[currentIndex].title}
                       direction={animationDirection}
                       isPlaying={isPlaying}
                     />
