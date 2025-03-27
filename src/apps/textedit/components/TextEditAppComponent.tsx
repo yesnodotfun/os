@@ -26,347 +26,8 @@ import { AudioInputButton } from "@/components/ui/audio-input-button";
 import { ChevronDown } from "lucide-react";
 import { useLaunchApp } from "@/hooks/useLaunchApp";
 import { useSound, Sounds } from "@/hooks/useSound";
-
-// Function to convert HTML to Markdown
-const htmlToMarkdown = (html: string): string => {
-  let markdown = html;
-  
-  // Convert tables
-  markdown = markdown.replace(
-    /<table[^>]*>(.*?)<\/table>/gis,
-    (_, tableContent) => {
-      const rows = tableContent.match(/<tr[^>]*>.*?<\/tr>/gis) || [];
-      if (rows.length === 0) return "";
-
-      const markdownRows = rows.map((row: string) => {
-        const cells = row.match(/<t[dh][^>]*>(.*?)<\/t[dh]>/gi) || [];
-        return (
-          "| " +
-          cells
-            .map((cell: string) =>
-              cell
-                .replace(/<t[dh][^>]*>(.*?)<\/t[dh]>/i, "$1")
-                .trim()
-                .replace(/\|/g, "\\|")
-            )
-            .join(" | ") +
-          " |"
-        );
-      });
-
-      // Insert header separator after first row
-      if (markdownRows.length > 0) {
-        const columnCount = (markdownRows[0].match(/\|/g) || []).length - 1;
-        const separator = "\n|" + " --- |".repeat(columnCount);
-        markdownRows.splice(1, 0, separator);
-      }
-
-      return "\n" + markdownRows.join("\n") + "\n";
-    }
-  );
-
-  // Convert task lists - needs to happen before regular lists
-  markdown = markdown.replace(
-    /<ul[^>]*data-type=['"]taskList['"][^>]*>(.*?)<\/ul>/gis,
-    (_, listContent) => {
-      // Process each task list item
-      return listContent.replace(
-        /<li[^>]*>(.*?)<\/li>/gis,
-        (_liMatch: string, itemContent: string) => {
-          // Extract checkbox state
-          const checked = itemContent.includes('checked="checked"') || 
-                          itemContent.includes('checked="true"') || 
-                          itemContent.includes('checked=""');
-          
-          // Extract the text content
-          const textContent = itemContent
-            .replace(/<input[^>]*>/gi, '')
-            .replace(/<label[^>]*>(.*?)<\/label>/gi, '')
-            .replace(/<div[^>]*>(.*?)<\/div>/gi, '$1')
-            .replace(/<p[^>]*>(.*?)<\/p>/gi, '$1')
-            .replace(/<[^>]+>/g, '');
-            
-          // Return markdown task item
-          const checkboxMark = checked ? '[x]' : '[ ]';
-          return `- ${checkboxMark} ${textContent.trim()}\n`;
-        }
-      );
-    }
-  );
-
-  // Convert nested lists more accurately
-  const convertNestedLists = (html: string): string => {
-    // Temporary placeholders for nested lists
-    const nestedListPlaceholders: string[] = [];
-    
-    // Function to process a list and its nested lists recursively
-    const processList = (listHtml: string, listType: 'ul' | 'ol', indent: number): string => {
-      const listItemRegex = /<li[^>]*>([\s\S]*?)<\/li>/gi;
-      let result = '';
-      let match;
-      let itemIndex = 1; // For ordered lists
-      
-      while ((match = listItemRegex.exec(listHtml)) !== null) {
-        let itemContent = match[1];
-        let nestedContent = '';
-        
-        // Check if this item contains a nested list
-        const nestedUlMatch = itemContent.match(/<ul[^>]*>([\s\S]*?)<\/ul>/i);
-        const nestedOlMatch = itemContent.match(/<ol[^>]*>([\s\S]*?)<\/ol>/i);
-        
-        if (nestedUlMatch) {
-          // Replace nested list with placeholder
-          const placeholder = `__NESTED_UL_${nestedListPlaceholders.length}__`;
-          nestedContent = processList(nestedUlMatch[0], 'ul', indent + 1);
-          nestedListPlaceholders.push(nestedContent);
-          itemContent = itemContent.replace(nestedUlMatch[0], placeholder);
-        } else if (nestedOlMatch) {
-          // Replace nested list with placeholder
-          const placeholder = `__NESTED_OL_${nestedListPlaceholders.length}__`;
-          nestedContent = processList(nestedOlMatch[0], 'ol', indent + 1);
-          nestedListPlaceholders.push(nestedContent);
-          itemContent = itemContent.replace(nestedOlMatch[0], placeholder);
-        }
-        
-        // Clean up item content
-        itemContent = itemContent
-          .replace(/<p[^>]*>([\s\S]*?)<\/p>/gi, '$1')
-          .replace(/<[^>]+>/g, '')
-          .trim();
-        
-        // Replace placeholders with actual nested content
-        for (let i = 0; i < nestedListPlaceholders.length; i++) {
-          itemContent = itemContent.replace(
-            `__NESTED_UL_${i}__`, 
-            `\n${nestedListPlaceholders[i]}`
-          );
-          itemContent = itemContent.replace(
-            `__NESTED_OL_${i}__`, 
-            `\n${nestedListPlaceholders[i]}`
-          );
-        }
-        
-        // Add indentation
-        const indentation = '  '.repeat(indent);
-        
-        // Format list item based on type
-        if (listType === 'ul') {
-          result += `${indentation}- ${itemContent}\n`;
-        } else {
-          result += `${indentation}${itemIndex}. ${itemContent}\n`;
-          itemIndex++;
-        }
-      }
-      
-      return result;
-    };
-    
-    // Process top-level unordered lists
-    html = html.replace(
-      /<ul[^>]*(?!data-type=['"]taskList['"])[^>]*>([\s\S]*?)<\/ul>/gi,
-      (match) => processList(match, 'ul', 0)
-    );
-    
-    // Process top-level ordered lists
-    html = html.replace(
-      /<ol[^>]*>([\s\S]*?)<\/ol>/gi,
-      (match) => processList(match, 'ol', 0)
-    );
-    
-    return html;
-  };
-  
-  // Apply the nested list conversion
-  markdown = convertNestedLists(markdown);
-
-  // Convert code blocks
-  markdown = markdown.replace(
-    /<pre[^>]*><code[^>]*(?:class="language-([^"]+)")?[^>]*>(.*?)<\/code><\/pre>/gis,
-    (_, language, code) => {
-      const lang = language || "";
-      return `\n\`\`\`${lang}\n${code
-        .replace(/&lt;/g, "<")
-        .replace(/&gt;/g, ">")
-        .replace(/&amp;/g, "&")}\n\`\`\`\n`;
-    }
-  );
-
-  // Convert inline code
-  markdown = markdown.replace(
-    /<code[^>]*>(.*?)<\/code>/gi,
-    (_, code) =>
-      `\`${code
-        .replace(/&lt;/g, "<")
-        .replace(/&gt;/g, ">")
-        .replace(/&amp;/g, "&")}\``
-  );
-
-  // Convert headings
-  markdown = markdown
-    .replace(/<h1[^>]*>(.*?)<\/h1>/gi, "# $1\n\n")
-    .replace(/<h2[^>]*>(.*?)<\/h2>/gi, "## $1\n\n")
-    .replace(/<h3[^>]*>(.*?)<\/h3>/gi, "### $1\n\n");
-  
-  // Convert text formatting
-  markdown = markdown
-    .replace(/<strong[^>]*>(.*?)<\/strong>/gi, "**$1**")
-    .replace(/<b[^>]*>(.*?)<\/b>/gi, "**$1**")
-    .replace(/<em[^>]*>(.*?)<\/em>/gi, "*$1*")
-    .replace(/<i[^>]*>(.*?)<\/i>/gi, "*$1*")
-    .replace(/<u[^>]*>(.*?)<\/u>/gi, "_$1_");
-
-  // Convert paragraphs and line breaks
-  markdown = markdown
-    .replace(/<p[^>]*>(.*?)<\/p>/gi, "$1\n\n")
-    .replace(/<br[^>]*>/gi, "\n");
-
-  // Remove any remaining HTML tags
-  markdown = markdown.replace(/<[^>]+>/g, "");
-
-  // Fix HTML entities
-  markdown = markdown
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">");
-
-  // Normalize multiple newlines and trim
-  markdown = markdown
-    .replace(/\n\n+/g, "\n\n")
-    .trim();
-
-  return markdown;
-};
-
-// Function to convert HTML to plain text
-const htmlToPlainText = (html: string): string => {
-  return html
-    .replace(/<[^>]+>/g, "") // Remove all HTML tags
-    .replace(/&nbsp;/g, " ")
-    .replace(/\n\n+/g, "\n\n")
-    .trim();
-};
-
-// Function to convert Markdown to HTML
-const markdownToHtml = (markdown: string): string => {
-  let html = markdown;
-
-  // Process task lists first
-  html = html.replace(/^(\s*)-\s+\[([ xX])\]\s+(.*?)$/gm, (match, indent, checked, text) => {
-    const isChecked = checked.toLowerCase() === 'x';
-    const indentSpaces = indent ? indent.length : 0;
-    const indentClass = indentSpaces > 0 ? ` class="indented" style="margin-left:${indentSpaces * 10}px"` : '';
-    return `<ul data-type="taskList"${indentClass}><li${isChecked ? ' data-checked="true"' : ''}><label><input type="checkbox" ${isChecked ? 'checked' : ''}/></label><div><p>${text}</p></div></li></ul>`;
-  });
-
-  // Process indented lists with proper nesting
-  const processIndentedLists = () => {
-    // Track list processing state
-    const listStack: { type: string; indent: number; html: string }[] = [];
-    const lines = html.split('\n');
-    const processedLines: string[] = [];
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      
-      // Check for bullet list item
-      const bulletMatch = line.match(/^(\s*)([-*+])\s+(.*?)$/);
-      if (bulletMatch) {
-        const [, indent, , content] = bulletMatch; // Ignore bullet character
-        const indentLevel = indent ? indent.length : 0;
-        
-        // Check if we need to close any lists or start a new one
-        while (listStack.length > 0 && listStack[listStack.length - 1].indent >= indentLevel && 
-               (listStack[listStack.length - 1].indent > indentLevel || listStack[listStack.length - 1].type !== 'ul')) {
-          const closedList = listStack.pop();
-          if (closedList) {
-            processedLines.push(`</ul>`);
-          }
-        }
-        
-        // Start a new list if needed
-        if (listStack.length === 0 || listStack[listStack.length - 1].indent < indentLevel || listStack[listStack.length - 1].type !== 'ul') {
-          processedLines.push(`<ul style="margin-left:${indentLevel * 10}px">`);
-          listStack.push({ type: 'ul', indent: indentLevel, html: '<ul>' });
-        }
-        
-        // Add the list item
-        processedLines.push(`<li>${content}</li>`);
-        continue;
-      }
-      
-      // Check for ordered list item
-      const orderedMatch = line.match(/^(\s*)(\d+)[.)] (.*?)$/);
-      if (orderedMatch) {
-        const [, indent, , content] = orderedMatch; // Ignore number
-        const indentLevel = indent ? indent.length : 0;
-        
-        // Check if we need to close any lists or start a new one
-        while (listStack.length > 0 && listStack[listStack.length - 1].indent >= indentLevel && 
-               (listStack[listStack.length - 1].indent > indentLevel || listStack[listStack.length - 1].type !== 'ol')) {
-          const closedList = listStack.pop();
-          if (closedList) {
-            processedLines.push(`</ol>`);
-          }
-        }
-        
-        // Start a new list if needed
-        if (listStack.length === 0 || listStack[listStack.length - 1].indent < indentLevel || listStack[listStack.length - 1].type !== 'ol') {
-          processedLines.push(`<ol style="margin-left:${indentLevel * 10}px">`);
-          listStack.push({ type: 'ol', indent: indentLevel, html: '<ol>' });
-        }
-        
-        // Add the list item
-        processedLines.push(`<li>${content}</li>`);
-        continue;
-      }
-      
-      // If it's not a list item, close all open lists
-      if (listStack.length > 0) {
-        for (let j = listStack.length - 1; j >= 0; j--) {
-          processedLines.push(`</${listStack[j].type}>`);
-        }
-        listStack.length = 0;
-      }
-      
-      // Add the non-list line
-      processedLines.push(line);
-    }
-    
-    // Close any remaining open lists
-    for (let i = listStack.length - 1; i >= 0; i--) {
-      processedLines.push(`</${listStack[i].type}>`);
-    }
-    
-    return processedLines.join('\n');
-  };
-  
-  // Apply indented list processing
-  html = processIndentedLists();
-
-  // Convert headings
-  html = html.replace(/^### (.*$)/gm, "<h3>$1</h3>");
-  html = html.replace(/^## (.*$)/gm, "<h2>$1</h2>");
-  html = html.replace(/^# (.*$)/gm, "<h1>$1</h1>");
-
-  // Convert bold and italic
-  html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
-  html = html.replace(/\*([^*]+)\*/g, "<em>$1</em>");
-  html = html.replace(/_([^_]+)_/g, "<u>$1</u>");
-
-  // Convert code blocks
-  html = html.replace(/```([^`]*?)```/gs, "<pre><code>$1</code></pre>");
-  html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
-
-  // Convert paragraphs (lines not starting with special characters)
-  html = html.replace(/^(?![#<*_\s*-+\d.])(.*$)/gm, "<p>$1</p>");
-
-  // Clean up empty paragraphs and normalize whitespace
-  html = html.replace(/<p>\s*<\/p>/g, "");
-  html = html.trim();
-
-  return html;
-};
+import { htmlToMarkdown, markdownToHtml, htmlToPlainText } from "@/utils/markdown";
+import { saveAsMarkdown } from "@/utils/markdown/saveUtils";
 
 // Function to remove file extension
 const removeFileExtension = (filename: string): string => {
@@ -420,7 +81,7 @@ export function TextEditAppComponent({
     editorProps: {
       attributes: {
         class:
-          "prose prose-sm prose-neutral max-w-none focus:outline-none p-4 [&>ul]:list-disc [&>ol]:list-decimal [&>*]:my-1 [&>p]:leading-5 [&>h1]:mt-3 [&>h1]:mb-2 [&>h2]:mt-2 [&>h2]:mb-1 [&>ul]:my-1 [&>ol]:my-1 [&>ul>li]:my-0.5 [&>ol>li]:my-0.5 [&>ul]:pl-0 [&>ol]:pl-4 [&>ul>li>p]:my-0 [&>ol>li>p]:my-0 [&>ul>li]:pl-0 [&>ol>li]:pl-0 [&>ul>li]:marker:text-neutral-900 [&>ol>li]:marker:text-neutral-900 [&>ul[data-type='taskList']]:ml-0 [&>ul[data-type='taskList']]:list-none [&>ul[data-type='taskList']>li]:flex [&>ul[data-type='taskList']>li]:items-start [&>ul[data-type='taskList']>li>label]:mr-2 [&>ul[data-type='taskList']>li>label>input]:mt-1 [&>ul[data-type='taskList']>li>div]:flex-1 [&>ul[data-type='taskList']>li>div>p]:my-0 min-h-full font-geneva-12 text-[12px] [&>h1]:text-[24px] [&>h2]:text-[20px] [&>h3]:text-[16px] [&>h1]:font-['ChicagoKare'] [&>h2]:font-['ChicagoKare'] [&>h3]:font-['ChicagoKare']",
+          "prose prose-sm prose-neutral max-w-none focus:outline-none p-4 [&>ul]:list-disc [&>ol]:list-decimal [&>*]:my-1 [&>p]:leading-5 [&>h1]:mt-3 [&>h1]:mb-2 [&>h2]:mt-2 [&>h2]:mb-1 [&>ul]:my-1 [&>ol]:my-1 [&>ul>li]:my-0.5 [&>ol>li]:my-0.5 [&>ul]:pl-0 [&>ol]:pl-4 [&>ul>li>p]:my-0 [&>ol>li>p]:my-0 [&>ul>li]:pl-0 [&>ol>li]:pl-0 [&>ul>li]:marker:text-neutral-900 [&>ol>li]:marker:text-neutral-900 [&>ul[data-type='taskList']]:ml-0 [&>ul[data-type='taskList']]:list-none [&>ul[data-type='taskList']>li]:flex [&>ul[data-type='taskList']>li]:items-start [&>ul[data-type='taskList']>li>label]:mr-2 [&>ul[data-type='taskList']>li>label>input]:mt-1 [&>ul[data-type='taskList']>li>div]:flex-1 [&>ul[data-type='taskList']>li>div>p]:my-0 [&>ul>li>ul]:pl-1 [&>ol>li>ol]:pl-1 [&>ul>li>ol]:pl-1 [&>ol>li>ul]:pl-1 [&>ul>li>ul]:my-0 [&>ol>li>ol]:my-0 [&>ul>li>ul>li>p]:my-0 min-h-full font-geneva-12 text-[12px] [&>h1]:text-[24px] [&>h2]:text-[20px] [&>h3]:text-[16px] [&>h1]:font-['ChicagoKare'] [&>h2]:font-['ChicagoKare'] [&>h3]:font-['ChicagoKare']",
       },
     },
     onUpdate: ({ editor }) => {
@@ -622,6 +283,7 @@ export function TextEditAppComponent({
   // Check for pending file open when window becomes active
   useEffect(() => {
     if (isForeground && editor) {
+      console.log("Checking for pending file open");
       const pendingFileOpen = localStorage.getItem("pending_file_open");
       if (pendingFileOpen) {
         try {
@@ -788,7 +450,7 @@ export function TextEditAppComponent({
             // Store content in case app crashes
             localStorage.setItem(
               APP_STORAGE_KEYS.textedit.CONTENT,
-              processedContent
+              JSON.stringify(editor.getJSON())
             );
           }
         } catch (e) {
@@ -818,34 +480,24 @@ export function TextEditAppComponent({
       setIsSaveDialogOpen(true);
       setSaveFileName(`${firstLine || "Untitled"}.md`);
     } else {
-      // Get HTML content and convert to Markdown
-      const htmlContent = editor.getHTML();
-      const markdownContent = htmlToMarkdown(htmlContent);
-      
-      const fileName = currentFilePath.split("/").pop() || "Untitled";
-
-      // Dispatch saveFile event instead of directly calling saveFile
-      const saveEvent = new CustomEvent("saveFile", {
-        detail: {
-          name: fileName,
-          path: currentFilePath,
-          content: markdownContent, // Save as Markdown instead of JSON
-          icon: "/icons/file-text.png",
-          isDirectory: false,
-        },
+      // Use shared utility to save as markdown
+      const { jsonContent } = saveAsMarkdown(editor, {
+        name: currentFilePath.split("/").pop() || "Untitled",
+        path: currentFilePath
       });
-      window.dispatchEvent(saveEvent);
-
+      
       // Store JSON content in case app crashes
       localStorage.setItem(
         APP_STORAGE_KEYS.textedit.CONTENT,
-        JSON.stringify(editor.getJSON())
+        JSON.stringify(jsonContent)
       );
+      
       // Store the file path for next time
       localStorage.setItem(
         APP_STORAGE_KEYS.textedit.LAST_FILE_PATH,
         currentFilePath
       );
+      
       setHasUnsavedChanges(false);
     }
   };
@@ -853,36 +505,28 @@ export function TextEditAppComponent({
   const handleSaveSubmit = (fileName: string) => {
     if (!editor) return;
 
-    // Get HTML content and convert to Markdown
-    const htmlContent = editor.getHTML();
-    const markdownContent = htmlToMarkdown(htmlContent);
-    
     const filePath = `/Documents/${fileName}${
       fileName.endsWith(".md") ? "" : ".md"
     }`;
 
-    // Dispatch saveFile event instead of directly calling saveFile
-    const saveEvent = new CustomEvent("saveFile", {
-      detail: {
-        name: fileName,
-        path: filePath,
-        content: markdownContent, // Save as Markdown instead of JSON
-        icon: "/icons/file-text.png",
-        isDirectory: false,
-      },
+    // Use shared utility to save as markdown
+    const { jsonContent } = saveAsMarkdown(editor, {
+      name: fileName,
+      path: filePath
     });
-    window.dispatchEvent(saveEvent);
 
     // Store JSON content in case app crashes (for editor recovery)
     localStorage.setItem(
       APP_STORAGE_KEYS.textedit.CONTENT,
-      JSON.stringify(editor.getJSON())
+      JSON.stringify(jsonContent)
     );
+    
     // Store the file path for next time
     localStorage.setItem(
       APP_STORAGE_KEYS.textedit.LAST_FILE_PATH,
       filePath
     );
+    
     setCurrentFilePath(filePath);
     setHasUnsavedChanges(false);
     setIsSaveDialogOpen(false);
@@ -913,28 +557,28 @@ export function TextEditAppComponent({
         ? text // Use original markdown if it's already markdown
         : htmlToMarkdown(editor.getHTML()); // Convert to markdown otherwise
 
-      // Dispatch saveFile event instead of directly calling saveFile
-      const saveEvent = new CustomEvent("saveFile", {
-        detail: {
-          name: file.name,
-          path: filePath,
-          content: markdownContent,
-          icon: "/icons/file-text.png",
-          isDirectory: false,
-        },
+      // Use saveFile API directly for file imports
+      saveFile({
+        name: file.name,
+        path: filePath,
+        content: markdownContent,
+        icon: "/icons/file-text.png",
+        isDirectory: false,
       });
-      window.dispatchEvent(saveEvent);
 
       setCurrentFilePath(filePath);
       setHasUnsavedChanges(false);
+      
       // Store JSON for internal recovery
       localStorage.setItem(
         APP_STORAGE_KEYS.textedit.CONTENT,
         JSON.stringify(editor.getJSON())
       );
+      
       // Store the file path for next time
       localStorage.setItem(APP_STORAGE_KEYS.textedit.LAST_FILE_PATH, filePath);
     }
+    
     // Reset the input
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -1029,25 +673,29 @@ export function TextEditAppComponent({
         editor.commands.setContent(content);
         const filePath = `/Documents/${file.name}`;
 
-        // Dispatch saveFile event instead of directly calling saveFile
-        const saveEvent = new CustomEvent("saveFile", {
-          detail: {
-            name: file.name,
-            path: filePath,
-            content: JSON.stringify(editor.getJSON()),
-            icon: "/icons/file-text.png",
-            isDirectory: false,
-          },
+        // Save in markdown format
+        const markdownContent = file.name.endsWith(".md")
+          ? text // Use original markdown if it's already markdown
+          : htmlToMarkdown(editor.getHTML()); // Convert to markdown otherwise
+
+        // Save the file using the unified approach
+        saveFile({
+          name: file.name,
+          path: filePath,
+          content: markdownContent,
+          icon: "/icons/file-text.png",
+          isDirectory: false,
         });
-        window.dispatchEvent(saveEvent);
 
         setCurrentFilePath(filePath);
         setHasUnsavedChanges(false);
-        // Store content in case app crashes
+        
+        // Store JSON for internal recovery
         localStorage.setItem(
           APP_STORAGE_KEYS.textedit.CONTENT,
           JSON.stringify(editor.getJSON())
         );
+        
         // Store the file path for next time
         localStorage.setItem(
           APP_STORAGE_KEYS.textedit.LAST_FILE_PATH,

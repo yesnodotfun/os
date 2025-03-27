@@ -20,6 +20,7 @@ import { ChatInput } from "./ChatInput";
 import { useAppContext } from "@/contexts/AppContext";
 import { FileText } from "lucide-react";
 import { AppId } from "@/config/appRegistry";
+import { saveAsMarkdown } from "@/utils/markdown/saveUtils";
 
 // Define types for TextEdit content structure
 interface TextNode {
@@ -763,7 +764,7 @@ const testWithUserContent = (content: string) => {
         type: "paragraph",
         content: paragraph.trim()
           ? [{ type: "text", text: paragraph }]
-          : [{ type: "text", text: " " }], // Use space for empty paragraphs
+          : [], // Use space for empty paragraphs
       })),
     };
 
@@ -956,7 +957,7 @@ const parseMarkdown = (text: string): ContentNode[] => {
     if (!trimmedLine) {
       nodes.push({
         type: "paragraph",
-        content: [{ type: "text", text: " " }],
+        content: [],
       });
       continue;
     }
@@ -1114,10 +1115,8 @@ const updateTextEditContent = (newContent: string) => {
     );
     if (!currentFilePath) return false;
 
-    // Parse the JSON content and save the original structure
+    // Parse the JSON content
     const jsonContent = JSON.parse(contentJson) as TextEditContent;
-    const originalStructure = JSON.parse(contentJson); // Keep exact original structure
-
     if (!jsonContent.content) return false;
 
     // Analyze original structure to preserve formatting patterns
@@ -1133,127 +1132,74 @@ const updateTextEditContent = (newContent: string) => {
       hasRichTextFormatting: formattingPatterns.hasRichTextFormatting,
     });
 
-    // Parse markdown content into document nodes, with formatting awareness
+    // Parse markdown content into document nodes, preserving formatting
     const markdownNodes = parseMarkdownWithFormattingPreservation(
       newContent,
       formattingPatterns
     );
 
-    // Create a deep clone of the original structure to preserve all properties
-    const updatedContent = JSON.parse(JSON.stringify(originalStructure));
+    // Create a deep clone of the original structure to preserve properties
+    const updatedContent = {
+      ...jsonContent,
+      content: markdownNodes,
+    };
 
-    // Replace content with markdown-processed nodes
-    updatedContent.content = markdownNodes;
-
-    // Convert to JSON string
-    const jsonString = JSON.stringify(updatedContent);
-
-    console.log("Prepared updated content for TextEdit", {
-      filePath: currentFilePath,
-      contentNodes: markdownNodes.length,
-      contentStructure: {
-        type: updatedContent.type,
-        contentLength: updatedContent.content?.length || 0,
-      },
-    });
-
-    // Update the document in TextEdit directly using the same event it uses
-    // This ensures we're working with TextEdit's expected file handling mechanism
+    // Get the filename from the path
     const fileName = currentFilePath.split("/").pop() || "Untitled";
-
-    // First update localStorage directly to ensure consistency
-    localStorage.setItem(APP_STORAGE_KEYS.textedit.CONTENT, jsonString);
-
-    // New approach: First try to notify TextEdit that file will change
-    // This helps with already-opened documents
+    
+    // Use our shared utility to save the file
+    const { jsonContent: savedJsonContent } = saveAsMarkdown(updatedContent, {
+      name: fileName,
+      path: currentFilePath
+    });
+    
+    // Update localStorage with the updated JSON content
+    localStorage.setItem(APP_STORAGE_KEYS.textedit.CONTENT, JSON.stringify(savedJsonContent));
+    
+    // Notify the TextEdit app of updates
+    const jsonString = JSON.stringify(savedJsonContent);
+    
+    // Dispatch events to notify TextEdit app of changes
     window.dispatchEvent(
-      new CustomEvent("fileWillChange", {
+      new CustomEvent("contentChanged", {
         detail: {
           path: currentFilePath,
+          content: jsonString,
         },
       })
     );
 
-    // Short delay to allow TextEdit to prepare for change
-    setTimeout(() => {
-      // Then create a saveFile event - this is what TextEdit uses to save files
-      const saveEvent = new CustomEvent("saveFile", {
+    window.dispatchEvent(
+      new CustomEvent("documentUpdated", {
         detail: {
-          name: fileName,
           path: currentFilePath,
           content: jsonString,
-          icon: "/icons/file-text.png",
-          isDirectory: false,
-          updateExisting: true,
-          skipBackup: true,
         },
-      });
-
-      console.log(
-        "Dispatching saveFile event to update TextEdit document:",
-        currentFilePath
+      })
+    );
+    
+    // For full refresh, try to reopen the document
+    setTimeout(() => {
+      window.dispatchEvent(
+        new CustomEvent("openFile", {
+          detail: {
+            path: currentFilePath,
+            content: jsonString,
+            forceReload: true,
+          },
+        })
       );
-      window.dispatchEvent(saveEvent);
-
-      // Wait for the save event to be processed
-      setTimeout(() => {
-        // Force a content change notification
-        window.dispatchEvent(
-          new CustomEvent("contentChanged", {
-            detail: {
-              path: currentFilePath,
-              content: jsonString,
-            },
-          })
-        );
-
-        // Dispatch an event to notify TextEdit to reload the document from filesystem
-        window.dispatchEvent(
-          new CustomEvent("documentUpdated", {
-            detail: {
-              path: currentFilePath,
-              content: jsonString,
-            },
-          })
-        );
-
-        // Force a full document refresh
-        setTimeout(() => {
-          // Try closing and reopening the document to ensure refresh
-          // First try to close it (if it's open)
-          window.dispatchEvent(
-            new CustomEvent("closeFile", {
-              detail: {
-                path: currentFilePath,
-              },
-            })
-          );
-
-          // Then reopen it with the updated content
-          setTimeout(() => {
-            window.dispatchEvent(
-              new CustomEvent("openFile", {
-                detail: {
-                  path: currentFilePath,
-                  content: jsonString,
-                  forceReload: true,
-                },
-              })
-            );
-
-            // Also try to send a direct update to the editor if possible
-            window.dispatchEvent(
-              new CustomEvent("updateEditorContent", {
-                detail: {
-                  path: currentFilePath,
-                  content: jsonString,
-                },
-              })
-            );
-          }, 50);
-        }, 100);
-      }, 50);
-    }, 50);
+      
+      // Also try direct editor update
+      window.dispatchEvent(
+        new CustomEvent("updateEditorContent", {
+          detail: {
+            path: currentFilePath,
+            content: jsonString,
+          },
+        })
+      );
+    }, 100);
 
     return true;
   } catch (error) {
@@ -1520,7 +1466,7 @@ const ensureDocumentSaved = async (content: string): Promise<string | null> => {
 
   console.log("Creating new document for unsaved TextEdit content:", newPath);
 
-  // Prepare the document content in the format TextEdit expects
+  // Create a basic document structure from the plain text
   const paragraphs = content.split("\n");
   const jsonContent = {
     type: "doc",
@@ -1530,9 +1476,7 @@ const ensureDocumentSaved = async (content: string): Promise<string | null> => {
     })),
   };
 
-  const jsonString = JSON.stringify(jsonContent);
-
-  // Create save file event
+  // Create save file event with markdown content
   const savePromise = new Promise<boolean>((resolve) => {
     // Create a one-time listener to detect when the file is saved
     const handleSaved = (e: CustomEvent) => {
@@ -1550,19 +1494,28 @@ const ensureDocumentSaved = async (content: string): Promise<string | null> => {
       resolve(false);
     }, 2000);
 
-    // Dispatch saveFile event
-    const saveEvent = new CustomEvent("saveFile", {
-      detail: {
-        name: fileName,
-        path: newPath,
-        content: jsonString,
-        icon: "/icons/file-text.png",
-        isDirectory: false,
-        openAfterSave: true,
-      },
+    // Use shared utility to save as markdown
+    const { jsonContent: savedJsonContent } = saveAsMarkdown(jsonContent, {
+      name: fileName,
+      path: newPath
     });
-
-    window.dispatchEvent(saveEvent);
+    
+    // Update localStorage with JSON content for editor state
+    localStorage.setItem(APP_STORAGE_KEYS.textedit.CONTENT, JSON.stringify(savedJsonContent));
+    localStorage.setItem(APP_STORAGE_KEYS.textedit.LAST_FILE_PATH, newPath);
+    
+    // Also dispatch openAfterSave for TextEdit
+    setTimeout(() => {
+      window.dispatchEvent(
+        new CustomEvent("openFile", {
+          detail: {
+            path: newPath,
+            content: JSON.stringify(savedJsonContent),
+            forceReload: true,
+          },
+        })
+      );
+    }, 100);
   });
 
   // Wait for save to complete
