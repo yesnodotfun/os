@@ -413,9 +413,7 @@ function IpodScreen({
         <div
           className={cn(
             "absolute inset-0 z-20 transition-opacity duration-300 overflow-hidden",
-            showVideo && isPlaying
-              ? "opacity-100"
-              : "opacity-0 pointer-events-none"
+            showVideo ? "opacity-100" : "opacity-0 pointer-events-none"
           )}
         >
           <div className="w-full h-[calc(100%+120px)] mt-[-60px]">
@@ -656,6 +654,9 @@ export function IpodAppComponent({
     useState(false);
 
   const playerRef = useRef<ReactPlayer>(null);
+
+  // Add a ref to track if we're coming from a skip operation
+  const skipOperationRef = useRef(false);
 
   // Handle menu item action to properly manage transitions
   const handleMenuItemAction = (action: () => void) => {
@@ -1000,8 +1001,12 @@ export function IpodAppComponent({
     // Only set timer if backlight is on
     if (backlightOn) {
       backlightTimerRef.current = setTimeout(() => {
-        // Turn off backlight after 5 seconds of inactivity
-        if (Date.now() - lastActivityTime >= 5000) {
+        // Turn off backlight after 5 seconds of inactivity,
+        // but only if video is not visible
+        if (
+          Date.now() - lastActivityTime >= 5000 &&
+          !(showVideo && isPlaying)
+        ) {
           setBacklightOn(false);
         }
       }, 5000);
@@ -1012,7 +1017,7 @@ export function IpodAppComponent({
         clearTimeout(backlightTimerRef.current);
       }
     };
-  }, [backlightOn, lastActivityTime]);
+  }, [backlightOn, lastActivityTime, showVideo, isPlaying]);
 
   // Handle foreground/background changes
   useEffect(() => {
@@ -1048,6 +1053,7 @@ export function IpodAppComponent({
     if (tracks.length === 0) return;
     playClickSound();
     registerActivity();
+    skipOperationRef.current = true;
     setCurrentIndex((prev) => {
       if (prev === tracks.length - 1) {
         if (loopAll) {
@@ -1065,6 +1071,7 @@ export function IpodAppComponent({
     if (tracks.length === 0) return;
     playClickSound();
     registerActivity();
+    skipOperationRef.current = true;
     setCurrentIndex((prev) => {
       if (prev === 0) {
         if (loopAll) {
@@ -1118,10 +1125,13 @@ export function IpodAppComponent({
     setTotalTime(duration);
   };
 
-  // Update handlePlay to show status
+  // Update handlePlay to show status only if not coming from skip
   const handlePlay = () => {
     setIsPlaying(true);
-    showStatus("▶");
+    if (!skipOperationRef.current) {
+      showStatus("▶");
+    }
+    skipOperationRef.current = false;
   };
 
   // Update handlePause to show status
