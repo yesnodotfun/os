@@ -328,14 +328,14 @@ function IpodScreen({
     if (itemTop + itemHeight > scrollTop + containerHeight - buffer) {
       container.scrollTo({
         top: itemTop + itemHeight - containerHeight + buffer,
-        behavior: "smooth",
+        behavior: "instant",
       });
     }
     // If item is above the visible area
     else if (itemTop < scrollTop + buffer) {
       container.scrollTo({
         top: Math.max(0, itemTop - buffer),
-        behavior: "smooth",
+        behavior: "instant",
       });
     }
 
@@ -343,7 +343,7 @@ function IpodScreen({
     if (selectedMenuItem === 0) {
       container.scrollTo({
         top: 0,
-        behavior: "smooth",
+        behavior: "instant",
       });
     }
 
@@ -351,7 +351,7 @@ function IpodScreen({
     if (selectedMenuItem === menuItems.length - 1) {
       container.scrollTo({
         top: Math.max(0, itemTop - (containerHeight - itemHeight) + buffer),
-        behavior: "smooth",
+        behavior: "instant",
       });
     }
 
