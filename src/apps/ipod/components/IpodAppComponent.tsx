@@ -212,6 +212,16 @@ const saveIpodTheme = (value: string) => {
   localStorage.setItem("ipod:theme", value);
 };
 
+// Add function to handle LCD filter state
+const loadIpodLcdFilter = (): boolean => {
+  const saved = localStorage.getItem("ipod:lcdFilter");
+  return saved === null ? true : saved === "true";
+};
+
+const saveIpodLcdFilter = (value: boolean) => {
+  localStorage.setItem("ipod:lcdFilter", value.toString());
+};
+
 function IpodScreen({
   currentTrack,
   isPlaying,
@@ -237,6 +247,7 @@ function IpodScreen({
   loopCurrent,
   statusMessage,
   onToggleVideo,
+  lcdFilterOn,
 }: {
   currentTrack: Track | null;
   isPlaying: boolean;
@@ -271,6 +282,7 @@ function IpodScreen({
   loopCurrent: boolean;
   statusMessage: string | null;
   onToggleVideo: () => void;
+  lcdFilterOn: boolean;
 }) {
   // Animation variants for menu transitions
   const menuVariants = {
@@ -405,11 +417,22 @@ function IpodScreen({
     <div
       className={cn(
         "relative w-full h-[160px] border border-black border-2 rounded-[2px] overflow-hidden transition-all duration-500",
+        lcdFilterOn ? "lcd-screen" : "",
         backlightOn
           ? "bg-[#c5e0f5] bg-gradient-to-b from-[#d1e8fa] to-[#e0f0fc]"
           : "bg-[#8a9da9] contrast-65 saturate-50"
       )}
     >
+      {/* LCD screen overlay with scan lines - only show when LCD filter is on */}
+      {lcdFilterOn && (
+        <div className="absolute inset-0 pointer-events-none z-25 lcd-scan-lines"></div>
+      )}
+
+      {/* Glass reflection effect - only show when LCD filter is on */}
+      {lcdFilterOn && (
+        <div className="absolute inset-0 pointer-events-none z-25 lcd-reflection"></div>
+      )}
+
       {/* Video player */}
       {currentTrack && (
         <div
@@ -623,6 +646,8 @@ export function IpodAppComponent({
   const [backlightOn, setBacklightOn] = useState(loadIpodBacklight());
   // Add theme state
   const [theme, setTheme] = useState(loadIpodTheme());
+  // Add LCD filter state
+  const [lcdFilterOn, setLcdFilterOn] = useState(loadIpodLcdFilter());
   // Add last activity timestamp for backlight timer
   const [lastActivityTime, setLastActivityTime] = useState(Date.now());
   // Add backlight timer timeout reference
@@ -1424,6 +1449,18 @@ export function IpodAppComponent({
     registerActivity();
   };
 
+  // Save LCD filter state to storage
+  useEffect(() => {
+    saveIpodLcdFilter(lcdFilterOn);
+  }, [lcdFilterOn]);
+
+  const toggleLcdFilter = () => {
+    setLcdFilterOn(!lcdFilterOn);
+    playClickSound();
+    registerActivity();
+    showStatus(!lcdFilterOn ? "LCD ON" : "LCD OFF");
+  };
+
   // Add container ref and scale state
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
@@ -1469,6 +1506,99 @@ export function IpodAppComponent({
     };
   }, [isWindowOpen]);
 
+  // Add CSS for LCD effect - only apply styles when LCD filter is on
+  useEffect(() => {
+    if (!lcdFilterOn) return;
+
+    const style = document.createElement("style");
+    style.id = "ipod-lcd-filter-style";
+    style.innerHTML = `
+      /* LCD Screen base styling */
+      .lcd-screen {
+        position: relative;
+        image-rendering: pixelated;
+      }
+      
+      /* Horizontal scan lines */
+      .lcd-scan-lines::before {
+        content: " ";
+        display: block;
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        right: 0;
+        background: linear-gradient(
+          rgba(18, 16, 16, 0) 50%, 
+          rgba(0, 0, 0, 0.1) 50%
+        );
+        background-size: 100% 2px;
+        pointer-events: none;
+        z-index: 1;
+      }
+      
+      /* Glass reflection effect */
+      .lcd-reflection {
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.15) 0%,
+          rgba(255, 255, 255, 0) 50%,
+          rgba(255, 255, 255, 0.05) 100%
+        );
+        pointer-events: none;
+      }
+      
+      /* Subtle LCD flicker animation */
+      @keyframes lcd-flicker {
+        0% { opacity: 1; }
+        97% { opacity: 1; }
+        98% { opacity: 0.9; }
+        100% { opacity: 1; }
+      }
+      
+      .lcd-screen::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: transparent;
+        pointer-events: none;
+        z-index: 40; /* Higher z-index to appear above video */
+        animation: lcd-flicker 3s infinite;
+      }
+      
+      /* Add a subtle color bleeding effect for LCD pixels */
+      .lcd-screen {
+        position: relative;
+        filter: brightness(1.05) contrast(1.02) saturate(1.02);
+        
+      }
+      
+      /* Apply subtle color fringing on text - typical of LCD displays */
+      .lcd-screen .font-chicago {
+        text-shadow: 
+          0.5px 0 0 rgba(255,0,0,0.1),
+          -0.5px 0 0 rgba(0,0,255,0.1),
+          0 0 1px rgba(0,0,0,0.15);
+      }
+      
+      /* Add a subtle video effect when playing */
+      .lcd-screen .react-player {
+        filter: brightness(1.05) contrast(1.02) saturate(1.1);
+      }
+    `;
+    document.head.appendChild(style);
+
+    return () => {
+      const existingStyle = document.getElementById("ipod-lcd-filter-style");
+      if (existingStyle) {
+        document.head.removeChild(existingStyle);
+      }
+    };
+  }, [lcdFilterOn]);
+
   if (!isWindowOpen) return null;
 
   return (
@@ -1498,6 +1628,7 @@ export function IpodAppComponent({
         onAddTrack={() => setIsAddDialogOpen(true)}
         onToggleBacklight={toggleBacklight}
         onToggleVideo={toggleVideo}
+        onToggleLcdFilter={toggleLcdFilter}
         onChangeTheme={changeTheme}
         isLoopAll={loopAll}
         isLoopCurrent={loopCurrent}
@@ -1505,6 +1636,7 @@ export function IpodAppComponent({
         isShuffled={isShuffled}
         isBacklightOn={backlightOn}
         isVideoOn={showVideo}
+        isLcdFilterOn={lcdFilterOn}
         currentTheme={theme}
       />
 
@@ -1557,6 +1689,7 @@ export function IpodAppComponent({
               loopCurrent={loopCurrent}
               statusMessage={statusMessage}
               onToggleVideo={toggleVideo}
+              lcdFilterOn={lcdFilterOn}
             />
 
             {/* Click Wheel */}

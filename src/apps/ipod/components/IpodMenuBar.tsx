@@ -35,6 +35,7 @@ interface IpodMenuBarProps {
   onAddTrack: () => void;
   onToggleBacklight: () => void;
   onToggleVideo: () => void;
+  onToggleLcdFilter: () => void;
   onChangeTheme: (theme: string) => void;
   isLoopAll: boolean;
   isLoopCurrent: boolean;
@@ -42,6 +43,7 @@ interface IpodMenuBarProps {
   isShuffled: boolean;
   isBacklightOn: boolean;
   isVideoOn: boolean;
+  isLcdFilterOn: boolean;
   currentTheme: string;
 }
 
@@ -63,6 +65,7 @@ export function IpodMenuBar({
   onAddTrack,
   onToggleBacklight,
   onToggleVideo,
+  onToggleLcdFilter,
   onChangeTheme,
   isLoopAll,
   isLoopCurrent,
@@ -70,6 +73,7 @@ export function IpodMenuBar({
   isShuffled,
   isBacklightOn,
   isVideoOn,
+  isLcdFilterOn,
   currentTheme,
 }: IpodMenuBarProps) {
   return (
@@ -190,6 +194,14 @@ export function IpodMenuBar({
           >
             <span className={cn(!isVideoOn && "pl-4")}>
               {isVideoOn ? "✓ Show Video" : "Show Video"}
+            </span>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={onToggleLcdFilter}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            <span className={cn(!isLcdFilterOn && "pl-4")}>
+              {isLcdFilterOn ? "✓ LCD Filter" : "LCD Filter"}
             </span>
           </DropdownMenuItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
