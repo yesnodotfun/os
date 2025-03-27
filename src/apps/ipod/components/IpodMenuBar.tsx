@@ -187,21 +187,22 @@ export function IpodMenuBar({
               {isBacklightOn ? "✓ Backlight" : "Backlight"}
             </span>
           </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={onToggleVideo}
-            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
-            disabled={!isPlaying}
-          >
-            <span className={cn(!isVideoOn && "pl-4")}>
-              {isVideoOn ? "✓ Show Video" : "Show Video"}
-            </span>
-          </DropdownMenuItem>
+
           <DropdownMenuItem
             onClick={onToggleLcdFilter}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
             <span className={cn(!isLcdFilterOn && "pl-4")}>
               {isLcdFilterOn ? "✓ LCD Filter" : "LCD Filter"}
+            </span>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={onToggleVideo}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+            disabled={!isPlaying}
+          >
+            <span className={cn(!isVideoOn && "pl-4")}>
+              {isVideoOn ? "✓ Video" : "Video"}
             </span>
           </DropdownMenuItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
