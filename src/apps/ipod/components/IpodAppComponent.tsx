@@ -1506,99 +1506,6 @@ export function IpodAppComponent({
     };
   }, [isWindowOpen]);
 
-  // Add CSS for LCD effect - only apply styles when LCD filter is on
-  useEffect(() => {
-    if (!lcdFilterOn) return;
-
-    const style = document.createElement("style");
-    style.id = "ipod-lcd-filter-style";
-    style.innerHTML = `
-      /* LCD Screen base styling */
-      .lcd-screen {
-        position: relative;
-        image-rendering: pixelated;
-      }
-      
-      /* Horizontal scan lines */
-      .lcd-scan-lines::before {
-        content: " ";
-        display: block;
-        position: absolute;
-        top: 0;
-        left: 0;
-        bottom: 0;
-        right: 0;
-        background: linear-gradient(
-          rgba(18, 16, 16, 0) 50%, 
-          rgba(0, 0, 0, 0.1) 50%
-        );
-        background-size: 100% 2px;
-        pointer-events: none;
-        z-index: 1;
-      }
-      
-      /* Glass reflection effect */
-      .lcd-reflection {
-        background: linear-gradient(
-          135deg,
-          rgba(255, 255, 255, 0.15) 0%,
-          rgba(255, 255, 255, 0) 50%,
-          rgba(255, 255, 255, 0.05) 100%
-        );
-        pointer-events: none;
-      }
-      
-      /* Subtle LCD flicker animation */
-      @keyframes lcd-flicker {
-        0% { opacity: 1; }
-        97% { opacity: 1; }
-        98% { opacity: 0.9; }
-        100% { opacity: 1; }
-      }
-      
-      .lcd-screen::after {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: transparent;
-        pointer-events: none;
-        z-index: 40; /* Higher z-index to appear above video */
-        animation: lcd-flicker 3s infinite;
-      }
-      
-      /* Add a subtle color bleeding effect for LCD pixels */
-      .lcd-screen {
-        position: relative;
-        filter: brightness(1.05) contrast(1.02) saturate(1.02);
-        
-      }
-      
-      /* Apply subtle color fringing on text - typical of LCD displays */
-      .lcd-screen .font-chicago {
-        text-shadow: 
-          0.5px 0 0 rgba(255,0,0,0.1),
-          -0.5px 0 0 rgba(0,0,255,0.1),
-          0 0 1px rgba(0,0,0,0.15);
-      }
-      
-      /* Add a subtle video effect when playing */
-      .lcd-screen .react-player {
-        filter: brightness(1.05) contrast(1.02) saturate(1.1);
-      }
-    `;
-    document.head.appendChild(style);
-
-    return () => {
-      const existingStyle = document.getElementById("ipod-lcd-filter-style");
-      if (existingStyle) {
-        document.head.removeChild(existingStyle);
-      }
-    };
-  }, [lcdFilterOn]);
-
   if (!isWindowOpen) return null;
 
   return (
@@ -1655,7 +1562,7 @@ export function IpodAppComponent({
           <div
             className={cn(
               "w-[250px] h-[400px] rounded-2xl shadow-xl border border-black/40 flex flex-col items-center p-4 pb-8",
-              theme === "classic" ? "bg-white" : "bg-neutral-900"
+              theme === "classic" ? "bg-white/85" : "bg-black/85"
             )}
             style={{
               transform: `scale(${scale})`,
@@ -1696,7 +1603,7 @@ export function IpodAppComponent({
             <div
               className={cn(
                 "mt-6 relative w-[180px] h-[180px] rounded-full flex items-center justify-center",
-                theme === "classic" ? "bg-gray-200" : "bg-neutral-800"
+                theme === "classic" ? "bg-gray-300/40" : "bg-neutral-800/30"
               )}
             >
               {/* Center button */}
@@ -1704,7 +1611,7 @@ export function IpodAppComponent({
                 onClick={() => handleWheelClick("center")}
                 className={cn(
                   "absolute w-16 h-16 rounded-full z-10 flex items-center justify-center",
-                  theme === "classic" ? "bg-white" : "bg-neutral-900"
+                  theme === "classic" ? "bg-white/85" : "bg-black/25"
                 )}
               />
 
