@@ -1110,6 +1110,13 @@ export function IpodAppComponent({
   };
 
   const toggleVideo = () => {
+    // Only allow showing video if playing
+    // But always allow hiding video regardless of play state
+    if (!showVideo && !isPlaying) {
+      // Do nothing - prevent showing video when paused
+      return;
+    }
+
     setShowVideo(!showVideo);
     playClickSound();
     registerActivity();
