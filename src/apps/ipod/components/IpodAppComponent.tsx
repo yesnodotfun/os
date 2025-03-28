@@ -585,7 +585,6 @@ export function IpodAppComponent({
   const nextTrack = () => {
     if (tracks.length === 0) return;
     playClickSound();
-    vibrateOnAction();
     registerActivity();
     skipOperationRef.current = true;
     setCurrentIndex((prev) => {
@@ -604,7 +603,6 @@ export function IpodAppComponent({
   const previousTrack = () => {
     if (tracks.length === 0) return;
     playClickSound();
-    vibrateOnAction();
     registerActivity();
     skipOperationRef.current = true;
     setCurrentIndex((prev) => {
@@ -623,7 +621,6 @@ export function IpodAppComponent({
   const togglePlay = () => {
     setIsPlaying(!isPlaying);
     playClickSound();
-    vibrateOnAction();
     registerActivity();
     showStatus(isPlaying ? "⏸" : "▶");
   };
@@ -638,14 +635,12 @@ export function IpodAppComponent({
 
     setShowVideo(!showVideo);
     playClickSound();
-    vibrateOnAction();
     registerActivity();
   };
 
   const toggleShuffle = () => {
     setIsShuffled(!isShuffled);
     playClickSound();
-    vibrateOnAction();
     registerActivity();
   };
 
@@ -865,7 +860,6 @@ export function IpodAppComponent({
   const toggleBacklight = () => {
     setBacklightOn(!backlightOn);
     playClickSound();
-    vibrateOnAction();
     registerActivity();
   };
 
@@ -877,7 +871,6 @@ export function IpodAppComponent({
   const changeTheme = (newTheme: string) => {
     setTheme(newTheme);
     playClickSound();
-    vibrateOnAction();
     registerActivity();
   };
 
@@ -889,7 +882,6 @@ export function IpodAppComponent({
   const toggleLcdFilter = () => {
     setLcdFilterOn(!lcdFilterOn);
     playClickSound();
-    vibrateOnAction();
     registerActivity();
     showStatus(!lcdFilterOn ? "LCD ON" : "LCD OFF");
   };
