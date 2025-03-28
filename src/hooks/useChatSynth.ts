@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import * as Tone from "tone";
 import { loadSynthPreset } from "@/utils/storage";
+import { useVibration } from './useVibration';
 
 export type SynthPreset = {
   name: string;
@@ -150,6 +151,7 @@ export function useChatSynth() {
   );
   const lastNoteTimeRef = useRef(0);
   const synthRef = useRef<Tone.PolySynth | null>(null);
+  const vibrate = useVibration(50, 50);
 
   // Initialize synth on mount
   useEffect(() => {
@@ -196,12 +198,13 @@ export function useChatSynth() {
       const noteToPlay = notes[Math.floor(Math.random() * notes.length)];
       try {
         synthRef.current.triggerAttackRelease(noteToPlay, "32n", now);
+        vibrate();
         lastNoteTimeRef.current = now;
       } catch (error) {
         console.debug("Skipping note due to timing", error);
       }
     }
-  }, [isInitialized]);
+  }, [isInitialized, vibrate]);
 
   return { playNote, currentPreset, changePreset };
 }
