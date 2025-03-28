@@ -573,7 +573,7 @@ function IpodScreen({
               <div className="flex-1 flex flex-col p-1 px-2 overflow-auto">
                 {currentTrack ? (
                   <>
-                    <div className="font-chicago text-[12px] mb-1 text-[#0a3667] [text-shadow:1px_1px_0_rgba(0,0,0,0.15)]">
+                    <div className="font-chicago text-[12px] mb-1.5 text-[#0a3667] [text-shadow:1px_1px_0_rgba(0,0,0,0.15)]">
                       {currentIndex + 1} of {tracksLength}
                     </div>
                     <div className="font-chicago text-[16px] text-center text-[#0a3667] [text-shadow:1px_1px_0_rgba(0,0,0,0.15)]">
@@ -610,10 +610,11 @@ function IpodScreen({
                     </div>
                   </>
                 ) : (
-                  <div className="text-center font-chicago text-[16px] text-[#0a3667] [text-shadow:1px_1px_0_rgba(0,0,0,0.15)]">
-                    <p>No track selected</p>
-                    <p>Use the wheel to</p>
-                    <p>browse your library</p>
+                  <div className="text-center font-geneva-12 text-[12px] text-[#0a3667] [text-shadow:1px_1px_0_rgba(0,0,0,0.15)] h-full flex flex-col justify-center items-center">
+                    <p>Don't steal music</p>
+                    <p>Ne volez pas la musique</p>
+                    <p>Bitte keine Musik stehlen</p>
+                    <p>音楽を盗用しないでください</p>
                   </div>
                 )}
               </div>

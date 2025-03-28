@@ -40,11 +40,11 @@ export function SoundGrid({
 }: SoundGridProps) {
   return (
     <div className="flex-1 overflow-auto">
-      <div className="py-6 px-4 md:py-2 md:p-8 md:py-4">
+      <div className="py-6 px-4 md:px-8 md:py-4">
         <div className="max-w-2xl mx-auto flex flex-col">
           {isEditingTitle ? (
             <Input
-              className="text-3xl font-bold mb-4 text-left select-text"
+              className="text-[24px] font-bold mb-2 text-left select-text"
               value={board.name}
               autoFocus
               onChange={(e) => onTitleChange(e.target.value)}
@@ -53,7 +53,7 @@ export function SoundGrid({
             />
           ) : (
             <h1
-              className="text-3xl font-bold mb-4 text-left cursor-text hover:opacity-80 select-text"
+              className="text-[24px] font-bold mb-2 text-left cursor-text hover:opacity-80 hover:bg-black/7 px-2 -ml-2 transition-all duration-300 ease-in-out transform origin-left rounded select-text"
               onClick={() => setIsEditingTitle(true)}
             >
               {board.name}

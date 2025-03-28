@@ -35,7 +35,7 @@ export function SoundSlot({
     <div className="flex flex-col gap-2 min-h-0">
       <Button
         variant="retro"
-        className={`h-full w-full flex flex-col items-stretch justify-between relative p-2 md:p-2 group min-h-[106px] md:min-h-[110px] focus:outline-none focus:ring-0 ${
+        className={`h-full w-full flex flex-col items-stretch justify-center relative p-2 md:p-2 group min-h-[106px] md:min-h-[110px] focus:outline-none focus:ring-0 ${
           isRecording ? "bg-destructive animate-pulse" : ""
         } ${
           isPlaying
@@ -69,14 +69,17 @@ export function SoundSlot({
         )}
         <div
           className={`mb-[-4px] left-2 flex items-center gap-1 md:gap-2 transition-all duration-300 ease-in-out transform origin-left ${
-            isPlaying ? "opacity-100 scale-100" : "opacity-60 scale-80"
+            isPlaying ? "opacity-100 scale-100" : "opacity-60 scale-90"
           }`}
         >
           {showEmoji &&
             (slot.emoji ? (
               <span
-                className="text-xl md:text-2xl cursor-pointer hover:opacity-80"
+                className={`text-xl md:text-xl hover:opacity-80 ${
+                  slot.audioData && !isRecording ? 'cursor-pointer hover:bg-black/7 rounded px-0.5' : 'cursor-default'
+                }`}
                 onClick={(e) => {
+                  if (!slot.audioData || isRecording) return;
                   e.stopPropagation();
                   onEmojiClick();
                 }}
@@ -85,9 +88,11 @@ export function SoundSlot({
               </span>
             ) : (
               <span
-                role="button"
-                className="opacity-0 group-hover:opacity-100 transition-opacity text-xl md:text-2xl cursor-pointer hover:opacity-80"
+                className={`invisible group-hover:visible transition-opacity text-xl md:text-xl hover:opacity-80 ${
+                  slot.audioData && !isRecording ? 'cursor-pointer hover:bg-black/7 rounded px-0.5' : 'cursor-default'
+                }`}
                 onClick={(e) => {
+                  if (!slot.audioData || isRecording) return;
                   e.stopPropagation();
                   onEmojiClick();
                 }}
@@ -96,18 +101,21 @@ export function SoundSlot({
               </span>
             ))}
           <span
-            className="text-[14px] truncate max-w-[80px] md:max-w-[120px] cursor-text hover:bg-white/20 px-1 rounded select-text font-geneva-12"
+            className={`text-[12px] whitespace-nowrap overflow-hidden pr-5 text-left rounded select-text font-geneva-12 [mask-image:linear-gradient(to_right,black_80%,transparent)] ${
+              slot.audioData && !isRecording ? 'cursor-pointer hover:bg-black/7 rounded px-0.5 py-2' : 'cursor-default'
+            }`}
             onClick={(e) => {
+              if (!slot.audioData || isRecording) return;
               e.stopPropagation();
               onTitleClick();
             }}
-            title={slot.title ? "Edit title" : "Add title"}
+            title={slot.audioData && !isRecording ? (slot.title ? "Edit title" : "Add title") : ""}
           >
             {isRecording
               ? "Recording..."
               : slot.title || (
-                  <span className="opacity-0 group-hover:opacity-60">
-                    {slot.audioData ? "Add title..." : "Record"}
+                  <span className="invisible group-hover:visible opacity-60 hover:opacity-100">
+                    {slot.audioData ? "Title" : "Record"}
                   </span>
                 )}
           </span>

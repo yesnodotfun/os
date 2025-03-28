@@ -8,8 +8,6 @@ import { DialogState } from "@/types/types";
 import {
   loadSelectedDeviceId,
   saveSelectedDeviceId,
-  loadHasSeenHelp,
-  saveHasSeenHelp,
   saveSoundboards,
 } from "@/utils/storage";
 import { EmojiDialog } from "@/components/dialogs/EmojiDialog";
@@ -124,12 +122,20 @@ export function SoundboardAppComponent({
     saveSelectedDeviceId(selectedDeviceId);
   }, [selectedDeviceId]);
 
+  // Stop playing sounds and reset playback state when switching boards
   useEffect(() => {
-    if (!loadHasSeenHelp()) {
-      setHelpDialogOpen(true);
-      saveHasSeenHelp();
-    }
-  }, []);
+    // Stop any currently playing sounds
+    playbackStates.forEach((state, index) => {
+      if (state.isPlaying) {
+        stopSound(index);
+      }
+    });
+
+    // Reset playback states for the new board
+    setPlaybackStates(Array(9).fill({ isRecording: false, isPlaying: false }));
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeBoardId]); // Dependency: Run only when activeBoardId changes
 
   const startRecording = (index: number) => {
     activeSlotRef.current = index;
