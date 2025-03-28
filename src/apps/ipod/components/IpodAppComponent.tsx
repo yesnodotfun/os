@@ -128,12 +128,32 @@ export function IpodAppComponent({
   // Add a ref to track if we're coming from a skip operation
   const skipOperationRef = useRef(false);
 
+  // Add a ref to track the debounce timer
+  const vibrateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Add vibration function
   const vibrateOnAction = () => {
-    if (typeof navigator !== 'undefined' && navigator.vibrate) {
-      navigator.vibrate(100);
+    // Clear any existing timer
+    if (vibrateTimerRef.current !== null) {
+      clearTimeout(vibrateTimerRef.current);
     }
+    
+    // Set a new timer (debounce for 200ms)
+    vibrateTimerRef.current = setTimeout(() => {
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(100);
+      }
+    }, 120);
   };
+
+  // Clean up vibration timer on unmount
+  useEffect(() => {
+    return () => {
+      if (vibrateTimerRef.current !== null) {
+        clearTimeout(vibrateTimerRef.current);
+      }
+    };
+  }, []);
 
   // Handle menu item action to properly manage transitions
   const handleMenuItemAction = (action: () => void) => {
@@ -767,11 +787,13 @@ export function IpodAppComponent({
 
   const handleMenuButton = () => {
     playClickSound();
+    vibrateOnAction();
     registerActivity();
 
     // Turn off video when navigating menus
     if (showVideo) {
       setShowVideo(false);
+      // go up to this fi
     }
 
     if (menuMode) {
@@ -853,7 +875,6 @@ export function IpodAppComponent({
 
   const toggleBacklight = () => {
     setBacklightOn(!backlightOn);
-    playClickSound();
     registerActivity();
   };
 
@@ -864,7 +885,6 @@ export function IpodAppComponent({
 
   const changeTheme = (newTheme: string) => {
     setTheme(newTheme);
-    playClickSound();
     registerActivity();
   };
 
@@ -875,7 +895,6 @@ export function IpodAppComponent({
 
   const toggleLcdFilter = () => {
     setLcdFilterOn(!lcdFilterOn);
-    playClickSound();
     registerActivity();
     showStatus(!lcdFilterOn ? "LCD ON" : "LCD OFF");
   };
@@ -1088,7 +1107,7 @@ export function IpodAppComponent({
           onOpenChange={setIsAddDialogOpen}
           onSubmit={addTrack}
           title="Add Music"
-          description="Enter a YouTube URL to add to your iPod"
+          description="Enter a YouTube link to add to your iPod"
           value={urlInput}
           onChange={setUrlInput}
           isLoading={isAddingTrack}
