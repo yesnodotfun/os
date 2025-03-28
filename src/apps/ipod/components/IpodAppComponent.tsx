@@ -128,32 +128,23 @@ export function IpodAppComponent({
   // Add a ref to track if we're coming from a skip operation
   const skipOperationRef = useRef(false);
 
-  // Add a ref to track the debounce timer
-  const vibrateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Add a ref to track the last vibration timestamp for debouncing
+  const lastVibrateTimeRef = useRef<number>(0);
 
   // Add vibration function
   const vibrateOnAction = () => {
-    // Clear any existing timer
-    if (vibrateTimerRef.current !== null) {
-      clearTimeout(vibrateTimerRef.current);
-    }
-    
-    // Set a new timer
-    vibrateTimerRef.current = setTimeout(() => {
-      if (typeof navigator !== 'undefined' && navigator.vibrate) {
-        navigator.vibrate(100);
-      }
-    }, 200);
-  };
+    const now = Date.now();
+    const debounceTime = 100; // Debounce interval in milliseconds
 
-  // Clean up vibration timer on unmount
-  useEffect(() => {
-    return () => {
-      if (vibrateTimerRef.current !== null) {
-        clearTimeout(vibrateTimerRef.current);
+    // Check if enough time has passed since the last vibration
+    if (now - lastVibrateTimeRef.current > debounceTime) {
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(50);
       }
-    };
-  }, []);
+      // Update the last vibration time
+      lastVibrateTimeRef.current = now;
+    }
+  };
 
   // Handle menu item action to properly manage transitions
   const handleMenuItemAction = (action: () => void) => {
