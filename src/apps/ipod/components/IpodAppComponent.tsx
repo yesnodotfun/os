@@ -767,7 +767,6 @@ export function IpodAppComponent({
 
   const handleMenuButton = () => {
     playClickSound();
-    vibrateOnAction();
     registerActivity();
 
     // Turn off video when navigating menus
