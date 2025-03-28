@@ -1271,16 +1271,12 @@ export const loadLibrary = (): Track[] => {
 export const saveLibrary = (library: Track[]): void => {
   // Convert Track objects back to Video objects and save to videos playlist
   const videoPlaylist = library.map((track) => {
-    // When saving back, reconstruct the full title as "Artist - Title" format if possible
-    let fullTitle = track.title;
-    if (track.artist) {
-      fullTitle = `${track.artist} - ${track.title}`;
-    }
-
+    // Save artist and title separately, consistent with Video interface
     return {
       id: track.id,
       url: track.url,
-      title: fullTitle,
+      title: track.title, // Use the track's title directly
+      artist: track.artist, // Save the artist if available
     };
   });
 
