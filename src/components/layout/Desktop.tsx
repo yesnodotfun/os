@@ -84,12 +84,31 @@ export function Desktop({
   useEffect(() => {
     if (!isVideoWallpaper || !videoRef.current) return;
 
-    const resumeVideoPlayback = () => {
+    const resumeVideoPlayback = async () => {
       const video = videoRef.current;
-      if (video && video.paused) {
-        video.play().catch((err) => {
-          console.warn("Could not resume video playback:", err);
-        });
+      if (!video) return;
+
+      try {
+        // If video has ended, reset it to the beginning
+        if (video.ended) {
+          video.currentTime = 0;
+        }
+
+        // Only attempt to play if the video is ready
+        if (video.readyState >= 3) { // HAVE_FUTURE_DATA or better
+          await video.play();
+        } else {
+          // If video isn't ready, wait for it to be ready
+          const handleCanPlay = () => {
+            video.play().catch((err) => {
+              console.warn("Could not resume video playback:", err);
+            });
+            video.removeEventListener('canplay', handleCanPlay);
+          };
+          video.addEventListener('canplay', handleCanPlay);
+        }
+      } catch (err) {
+        console.warn("Could not resume video playback:", err);
       }
     };
 
@@ -109,6 +128,25 @@ export function Desktop({
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("focus", handleFocus);
+    };
+  }, [isVideoWallpaper]);
+
+  // Add video ready state handling
+  useEffect(() => {
+    if (!isVideoWallpaper || !videoRef.current) return;
+
+    const video = videoRef.current;
+    const handleCanPlayThrough = () => {
+      if (video.paused) {
+        video.play().catch((err) => {
+          console.warn("Could not start video playback:", err);
+        });
+      }
+    };
+
+    video.addEventListener('canplaythrough', handleCanPlayThrough);
+    return () => {
+      video.removeEventListener('canplaythrough', handleCanPlayThrough);
     };
   }, [isVideoWallpaper]);
 
@@ -170,6 +208,7 @@ export function Desktop({
         loop
         muted
         playsInline
+        preload="auto"
         data-webkit-playsinline="true"
         style={{
           display: isVideoWallpaper ? "block" : "none",
