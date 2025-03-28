@@ -62,7 +62,8 @@ export function WindowFrame({
   const { play: playWindowClose } = useSound(Sounds.WINDOW_CLOSE);
   const { play: playWindowExpand } = useSound(Sounds.WINDOW_EXPAND);
   const { play: playWindowCollapse } = useSound(Sounds.WINDOW_COLLAPSE);
-  const vibrate = useVibration(50, 100);
+  const vibrateMaximize = useVibration(50, 100);
+  const vibrateClose = useVibration(50, 50);
   const [isFullHeight, setIsFullHeight] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
   const isMobile = useIsMobile();
@@ -110,7 +111,7 @@ export function WindowFrame({
   );
 
   const handleClose = () => {
-    vibrate();
+    vibrateClose();
     playWindowClose();
     setIsOpen(false);
   };
@@ -157,7 +158,7 @@ export function WindowFrame({
 
   // This function only maximizes height (for bottom resize handle)
   const handleHeightOnlyMaximize = (e: React.MouseEvent | React.TouchEvent) => {
-    vibrate();
+    vibrateMaximize();
     e.stopPropagation();
 
     // If window is already fully maximized, do nothing - let handleFullMaximize handle the restoration
@@ -186,7 +187,7 @@ export function WindowFrame({
   // This function maximizes both width and height (for titlebar)
   const handleFullMaximize = useCallback(
     (e: React.MouseEvent | React.TouchEvent) => {
-      vibrate();
+      vibrateMaximize();
       e.stopPropagation();
 
       const now = Date.now();
