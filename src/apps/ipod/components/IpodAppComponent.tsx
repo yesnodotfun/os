@@ -27,40 +27,6 @@ import { useSound, Sounds } from "@/hooks/useSound";
 import { IpodScreen } from "./IpodScreen";
 import { IpodWheel } from "./IpodWheel";
 
-interface TrackInfo {
-  title: string;
-  artist?: string;
-}
-
-async function fetchTrackInfo(videoId: string): Promise<TrackInfo> {
-  const response = await fetch(
-    `https://www.youtube.com/oembed?url=http://www.youtube.com/watch?v=${videoId}&format=json`
-  );
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch track info");
-  }
-
-  const data = await response.json();
-  const fullTitle = data.title;
-
-  // Try to extract artist and song title (common format: "Artist - Title")
-  let artist;
-  let title = fullTitle; // Default to full title if we can't parse it
-
-  const splitTitle = fullTitle.split(" - ");
-  if (splitTitle.length > 1) {
-    artist = splitTitle[0];
-    // Join the rest of the parts in case there are multiple dashes
-    title = splitTitle.slice(1).join(" - ");
-  }
-
-  return {
-    title,
-    artist,
-  };
-}
-
 // Add function to handle backlight state
 const loadIpodBacklight = (): boolean => {
   const saved = localStorage.getItem("ipod:backlight");
