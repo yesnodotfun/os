@@ -420,7 +420,9 @@ function IpodScreen({
         lcdFilterOn ? "lcd-screen" : "",
         backlightOn
           ? "bg-[#c5e0f5] bg-gradient-to-b from-[#d1e8fa] to-[#e0f0fc]"
-          : "bg-[#8a9da9] contrast-65 saturate-50"
+          : "bg-[#8a9da9] contrast-65 saturate-50",
+        // Add the soft blue glow when both LCD filter and backlight are on
+        lcdFilterOn && backlightOn && "shadow-[0_0_10px_2px_rgba(197,224,245,0.05)]"
       )}
     >
       {/* LCD screen overlay with scan lines - only show when LCD filter is on */}
@@ -573,7 +575,7 @@ function IpodScreen({
               <div className="flex-1 flex flex-col p-1 px-2 overflow-auto">
                 {currentTrack ? (
                   <>
-                    <div className="font-chicago text-[12px] mb-1.5 text-[#0a3667] [text-shadow:1px_1px_0_rgba(0,0,0,0.15)]">
+                    <div className="font-chicago text-[12px] mb-1 text-[#0a3667] [text-shadow:1px_1px_0_rgba(0,0,0,0.15)]">
                       {currentIndex + 1} of {tracksLength}
                     </div>
                     <div className="font-chicago text-[16px] text-center text-[#0a3667] [text-shadow:1px_1px_0_rgba(0,0,0,0.15)]">
@@ -596,7 +598,7 @@ function IpodScreen({
                         }}
                       />
                     </div>
-                    <div className="font-chicago text-[16px] w-full flex justify-between text-[#0a3667] [text-shadow:1px_1px_0_rgba(0,0,0,0.15)]">
+                    <div className="font-chicago text-[16px] w-full h-[22px] flex justify-between text-[#0a3667] [text-shadow:1px_1px_0_rgba(0,0,0,0.15)]">
                       <span>
                         {Math.floor(elapsedTime / 60)}:
                         {String(Math.floor(elapsedTime % 60)).padStart(2, "0")}
