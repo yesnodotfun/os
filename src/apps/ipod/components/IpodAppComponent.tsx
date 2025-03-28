@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from "react";
 import ReactPlayer from "react-player";
-import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { AppProps } from "../../base/types";
 import { WindowFrame } from "@/components/layout/WindowFrame";
@@ -60,28 +59,6 @@ async function fetchTrackInfo(videoId: string): Promise<TrackInfo> {
     title,
     artist,
   };
-}
-
-// Add StatusDisplay component after the ScrollingText component
-function StatusDisplay({ message }: { message: string }) {
-  return (
-    <div className="absolute top-4 left-4 pointer-events-none">
-      <div className="relative">
-        <div className="font-chicago text-white text-xl relative z-10">
-          {message}
-        </div>
-        <div
-          className="font-chicago text-black text-xl absolute inset-0"
-          style={{
-            WebkitTextStroke: "3px black",
-            textShadow: "none",
-          }}
-        >
-          {message}
-        </div>
-      </div>
-    </div>
-  );
 }
 
 // Add function to handle backlight state
