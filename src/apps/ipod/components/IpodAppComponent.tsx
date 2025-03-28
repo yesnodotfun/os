@@ -584,7 +584,6 @@ export function IpodAppComponent({
 
   const nextTrack = () => {
     if (tracks.length === 0) return;
-    playClickSound();
     registerActivity();
     skipOperationRef.current = true;
     setCurrentIndex((prev) => {
@@ -602,7 +601,6 @@ export function IpodAppComponent({
 
   const previousTrack = () => {
     if (tracks.length === 0) return;
-    playClickSound();
     registerActivity();
     skipOperationRef.current = true;
     setCurrentIndex((prev) => {
@@ -620,7 +618,6 @@ export function IpodAppComponent({
 
   const togglePlay = () => {
     setIsPlaying(!isPlaying);
-    playClickSound();
     registerActivity();
     showStatus(isPlaying ? "⏸" : "▶");
   };
@@ -634,13 +631,11 @@ export function IpodAppComponent({
     }
 
     setShowVideo(!showVideo);
-    playClickSound();
     registerActivity();
   };
 
   const toggleShuffle = () => {
     setIsShuffled(!isShuffled);
-    playClickSound();
     registerActivity();
   };
 
