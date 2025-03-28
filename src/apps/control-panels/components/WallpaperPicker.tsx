@@ -190,11 +190,11 @@ const TILE_WALLPAPERS = [
 const VIDEO_WALLPAPERS = [
   "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/cancun_sunset_loop-9ANCNr8P6N24yiSjr39WOjKadDT3X3.mp4",
   "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/clouds-JvRX6JrjKjXk0nxPljwO8okrEVhRH5.mp4",
-  "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/red_clouds-hIMB3tpo5ERiXJpAkq4DVA02cNPgjc.mp4",
+  "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/red_clouds_loop-g6I8T9DlXNkPxUfgrJtCkrQh5slAKp.mp4",
   "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/galway_bay-aDogTnnmx92MpkpuOwX8QjS9GjGqXG.mp4",
   "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/glacier_national_park-zU5Sre6MixUSMcMw1mOjCJZDexLFqe.mp4",
   "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/lily_pad-ewDMSKULDgURywNkocVRnuRJHkAjvh.mp4",
-  "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/golden_poppy-p4sIKkyENgI4kE3omyNE31tInqikuu.mp4",
+  "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/golden_poppy_loop-3L7WvZYDFI4NBcMZOPqGctYptFZZ0u.mp4",
   "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/red_tulips-2xvdKI4P13vFVRs35XRDScruE3RUiT.mp4",
   "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/blue_flowers_loop-p42FtjYrf2DMZ8ZlgNR2tWZrCfDuSL.mp4",
   "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/golden_gate_dusk-vwlMXQIHDKMOPQnqPlTPB5fGTZAtTK.mp4",
