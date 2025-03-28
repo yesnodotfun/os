@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { AnimatePresence, motion } from "framer-motion";
 import { useChatSynth } from "@/hooks/useChatSynth";
 import { useTerminalSounds } from "@/hooks/useTerminalSounds";
-import { useVibration } from "@/hooks/useVibration";
 import HtmlPreview, {
   isHtmlCodeBlock,
   extractHtmlContent,
@@ -91,7 +90,6 @@ export function ChatMessages({
   const { playNote } = useChatSynth();
   const { playElevatorMusic, stopElevatorMusic, playDingSound } =
     useTerminalSounds();
-  const vibrate = useVibration(100, 20);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
   const previousMessagesLength = useRef(messages.length);
@@ -405,7 +403,6 @@ export function ChatMessages({
                                         onComplete: () => {
                                           if (idx % 2 === 0) {
                                             playNote();
-                                            vibrate();
                                           }
                                         },
                                       }

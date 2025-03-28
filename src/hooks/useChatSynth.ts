@@ -151,7 +151,7 @@ export function useChatSynth() {
   );
   const lastNoteTimeRef = useRef(0);
   const synthRef = useRef<Tone.PolySynth | null>(null);
-  const vibrate = useVibration(50, 50);
+  const vibrate = useVibration(50, 30);
 
   // Initialize synth on mount
   useEffect(() => {
