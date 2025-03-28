@@ -16,6 +16,7 @@ interface InputDialogProps {
   description: string;
   value: string;
   onChange: (value: string) => void;
+  isLoading?: boolean;
 }
 
 export function InputDialog({
@@ -26,7 +27,14 @@ export function InputDialog({
   description,
   value,
   onChange,
+  isLoading = false,
 }: InputDialogProps) {
+  const handleSubmit = () => {
+    if (!isLoading) {
+      onSubmit(value);
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent
@@ -42,15 +50,20 @@ export function InputDialog({
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={(e) => {
               e.stopPropagation();
-              if (e.key === "Enter") {
-                onSubmit(value);
+              if (e.key === "Enter" && !isLoading) {
+                handleSubmit();
               }
             }}
             className="shadow-none"
+            disabled={isLoading}
           />
           <DialogFooter className="mt-4">
-            <Button variant="retro" onClick={() => onSubmit(value)}>
-              Save
+            <Button
+              variant="retro"
+              onClick={handleSubmit}
+              disabled={isLoading}
+            >
+              {isLoading ? "Adding..." : "Save"}
             </Button>
           </DialogFooter>
         </div>

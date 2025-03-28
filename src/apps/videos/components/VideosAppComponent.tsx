@@ -34,25 +34,6 @@ interface Video {
   artist?: string;
 }
 
-interface VideoInfo {
-  title: string;
-}
-
-async function fetchVideoInfo(videoId: string): Promise<VideoInfo> {
-  const response = await fetch(
-    `https://www.youtube.com/oembed?url=http://www.youtube.com/watch?v=${videoId}&format=json`
-  );
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch video info");
-  }
-
-  const data = await response.json();
-  return {
-    title: data.title,
-  };
-}
-
 function AnimatedDigit({
   digit,
   direction,
@@ -351,9 +332,9 @@ export function VideosAppComponent({
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
   const [isConfirmClearOpen, setIsConfirmClearOpen] = useState(false);
   const [isConfirmResetOpen, setIsConfirmResetOpen] = useState(false);
+  const [isAddingVideo, setIsAddingVideo] = useState(false);
   const playerRef = useRef<ReactPlayer>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
-  const [playAfterAdd, setPlayAfterAdd] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const statusTimeoutRef = useRef<NodeJS.Timeout>();
 
@@ -473,31 +454,83 @@ export function VideosAppComponent({
   };
 
   const addVideo = async (url: string) => {
+    setIsAddingVideo(true);
     try {
       const videoId = extractVideoId(url);
       if (!videoId) {
         throw new Error("Invalid YouTube URL");
       }
 
-      const videoInfo = await fetchVideoInfo(videoId);
+      // 1. Fetch initial info from oEmbed
+      const oembedResponse = await fetch(
+        `https://www.youtube.com/oembed?url=http://www.youtube.com/watch?v=${videoId}&format=json`
+      );
+      if (!oembedResponse.ok) {
+        console.warn("Failed to fetch oEmbed info, using default title");
+      }
+      const oembedData = oembedResponse.ok ? await oembedResponse.json() : {};
+      const rawTitle = oembedData.title || `Video ID: ${videoId}`;
+
+      let videoInfo: Partial<Video> = {
+        title: rawTitle,
+        artist: undefined,
+      };
+
+      try {
+        // 2. Call our API to parse the title using AI
+        const parseResponse = await fetch("/api/parse-title", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ title: rawTitle }),
+        });
+
+        if (parseResponse.ok) {
+          const parsedData = await parseResponse.json();
+          videoInfo.title = parsedData.title || rawTitle;
+          videoInfo.artist = parsedData.artist;
+        } else {
+          console.warn(
+            "Failed to parse title with AI, using raw title:",
+            await parseResponse.text()
+          );
+        }
+      } catch (parseError) {
+        console.warn(
+          "Error calling parse-title API, using raw title:",
+          parseError
+        );
+      }
+
       const newVideo: Video = {
         id: videoId,
         url,
-        title: videoInfo.title,
+        title: videoInfo.title!,
+        artist: videoInfo.artist,
       };
 
-      setVideos((prev) => [...prev, newVideo]);
-      showStatus("VIDEO ADDED");
-      if (playAfterAdd) {
-        setCurrentIndex(videos.length);
+      setVideos((prev) => {
+        const newVideos = [...prev, newVideo];
+        // Update original order if not shuffled
+        if (!isShuffled) {
+          setOriginalOrder(newVideos);
+        }
+        // Set current index and start playing the new video
+        setCurrentIndex(newVideos.length - 1);
         setIsPlaying(true);
-        setPlayAfterAdd(false);
-        playVideoTape();
-      }
+        return newVideos;
+      });
+
+      showStatus("VIDEO ADDED"); // Update status message
+
       setUrlInput("");
       setIsAddDialogOpen(false);
     } catch (error) {
       console.error("Failed to add video:", error);
+      showStatus(`❌ Error adding: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsAddingVideo(false);
     }
   };
 
@@ -637,7 +670,6 @@ export function VideosAppComponent({
         }}
         onAddVideo={() => setIsAddDialogOpen(true)}
         onOpenVideo={() => {
-          setPlayAfterAdd(true);
           setIsAddDialogOpen(true);
         }}
         isPlaying={isPlaying}
@@ -936,6 +968,7 @@ export function VideosAppComponent({
           description="Enter YouTube, Vimeo, or a video URL"
           value={urlInput}
           onChange={setUrlInput}
+          isLoading={isAddingVideo}
         />
       </WindowFrame>
     </>

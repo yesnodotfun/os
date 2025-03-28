@@ -131,6 +131,7 @@ export function IpodAppComponent({
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
   const [isConfirmClearOpen, setIsConfirmClearOpen] = useState(false);
   const [isConfirmResetOpen, setIsConfirmResetOpen] = useState(false);
+  const [isAddingTrack, setIsAddingTrack] = useState(false);
 
   const [menuMode, setMenuMode] = useState(false);
   const [selectedMenuItem, setSelectedMenuItem] = useState(0);
@@ -459,29 +460,85 @@ export function IpodAppComponent({
   };
 
   const addTrack = async (url: string) => {
+    setIsAddingTrack(true);
     try {
       const videoId = extractVideoId(url);
       if (!videoId) {
         throw new Error("Invalid YouTube URL");
       }
 
-      const trackInfo = await fetchTrackInfo(videoId);
+      // 1. Fetch initial info from oEmbed
+      const oembedResponse = await fetch(
+        `https://www.youtube.com/oembed?url=http://www.youtube.com/watch?v=${videoId}&format=json`
+      );
+      if (!oembedResponse.ok) {
+        throw new Error("Failed to fetch oEmbed info");
+      }
+      const oembedData = await oembedResponse.json();
+      const rawTitle = oembedData.title as string;
+
+      let trackInfo: Partial<Track> = {
+        title: rawTitle, // Default to raw title
+        artist: undefined,
+        album: undefined,
+      };
+
+      try {
+        // 2. Call our new API to parse the title using AI
+        const parseResponse = await fetch("/api/parse-title", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ title: rawTitle }),
+        });
+
+        if (parseResponse.ok) {
+          const parsedData = await parseResponse.json();
+          trackInfo.title = parsedData.title || rawTitle;
+          trackInfo.artist = parsedData.artist;
+          trackInfo.album = parsedData.album;
+        } else {
+          console.warn(
+            "Failed to parse title with AI, using raw title:",
+            await parseResponse.text()
+          );
+        }
+      } catch (parseError) {
+        console.warn(
+          "Error calling parse-title API, using raw title:",
+          parseError
+        );
+      }
+
       const newTrack: Track = {
         id: videoId,
         url,
-        title: trackInfo.title,
+        title: trackInfo.title!,
         artist: trackInfo.artist,
+        album: trackInfo.album,
       };
 
-      setTracks((prev) => [...prev, newTrack]);
-      if (!isShuffled) {
-        setOriginalOrder((prev) => [...prev, newTrack]);
-      }
+      setTracks((prev) => {
+        const newTracks = [...prev, newTrack];
+        // Update original order immediately if not shuffled
+        if (!isShuffled) {
+          setOriginalOrder(newTracks);
+        }
+        // Set current index and start playing the new track
+        setCurrentIndex(newTracks.length - 1);
+        setIsPlaying(true);
+        return newTracks;
+      });
 
       setUrlInput("");
       setIsAddDialogOpen(false);
+      showStatus("♬ Added"); // Update status message
     } catch (error) {
       console.error("Failed to add track:", error);
+      showStatus(`❌ Error adding: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsAddingTrack(false);
     }
   };
 
@@ -1063,6 +1120,7 @@ export function IpodAppComponent({
           description="Enter a YouTube URL to add to your iPod"
           value={urlInput}
           onChange={setUrlInput}
+          isLoading={isAddingTrack}
         />
       </WindowFrame>
     </>
