@@ -26,6 +26,7 @@ import {
 import { useSound, Sounds } from "@/hooks/useSound";
 import { IpodScreen } from "./IpodScreen";
 import { IpodWheel } from "./IpodWheel";
+import "ios-vibrator-pro-max";
 
 // Add function to handle backlight state
 const loadIpodBacklight = (): boolean => {
@@ -126,6 +127,13 @@ export function IpodAppComponent({
 
   // Add a ref to track if we're coming from a skip operation
   const skipOperationRef = useRef(false);
+
+  // Add vibration function
+  const vibrateOnAction = () => {
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate(100);
+    }
+  };
 
   // Handle menu item action to properly manage transitions
   const handleMenuItemAction = (action: () => void) => {
@@ -443,7 +451,7 @@ export function IpodAppComponent({
       const oembedData = await oembedResponse.json();
       const rawTitle = oembedData.title as string;
 
-      let trackInfo: Partial<Track> = {
+      const trackInfo: Partial<Track> = {
         title: rawTitle, // Default to raw title
         artist: undefined,
         album: undefined,
@@ -577,6 +585,7 @@ export function IpodAppComponent({
   const nextTrack = () => {
     if (tracks.length === 0) return;
     playClickSound();
+    vibrateOnAction();
     registerActivity();
     skipOperationRef.current = true;
     setCurrentIndex((prev) => {
@@ -595,6 +604,7 @@ export function IpodAppComponent({
   const previousTrack = () => {
     if (tracks.length === 0) return;
     playClickSound();
+    vibrateOnAction();
     registerActivity();
     skipOperationRef.current = true;
     setCurrentIndex((prev) => {
@@ -613,6 +623,7 @@ export function IpodAppComponent({
   const togglePlay = () => {
     setIsPlaying(!isPlaying);
     playClickSound();
+    vibrateOnAction();
     registerActivity();
     showStatus(isPlaying ? "⏸" : "▶");
   };
@@ -627,12 +638,14 @@ export function IpodAppComponent({
 
     setShowVideo(!showVideo);
     playClickSound();
+    vibrateOnAction();
     registerActivity();
   };
 
   const toggleShuffle = () => {
     setIsShuffled(!isShuffled);
     playClickSound();
+    vibrateOnAction();
     registerActivity();
   };
 
@@ -684,6 +697,7 @@ export function IpodAppComponent({
     area: "top" | "right" | "bottom" | "left" | "center"
   ) => {
     playClickSound();
+    vibrateOnAction();
     registerActivity();
     switch (area) {
       case "top":
@@ -725,6 +739,7 @@ export function IpodAppComponent({
 
   const handleWheelRotation = (direction: "clockwise" | "counterclockwise") => {
     playScrollSound();
+    vibrateOnAction();
     registerActivity();
     if (menuMode) {
       const currentMenu = menuHistory[menuHistory.length - 1];
@@ -762,6 +777,7 @@ export function IpodAppComponent({
 
   const handleMenuButton = () => {
     playClickSound();
+    vibrateOnAction();
     registerActivity();
 
     // Turn off video when navigating menus
@@ -849,6 +865,7 @@ export function IpodAppComponent({
   const toggleBacklight = () => {
     setBacklightOn(!backlightOn);
     playClickSound();
+    vibrateOnAction();
     registerActivity();
   };
 
@@ -860,6 +877,7 @@ export function IpodAppComponent({
   const changeTheme = (newTheme: string) => {
     setTheme(newTheme);
     playClickSound();
+    vibrateOnAction();
     registerActivity();
   };
 
@@ -871,6 +889,7 @@ export function IpodAppComponent({
   const toggleLcdFilter = () => {
     setLcdFilterOn(!lcdFilterOn);
     playClickSound();
+    vibrateOnAction();
     registerActivity();
     showStatus(!lcdFilterOn ? "LCD ON" : "LCD OFF");
   };
