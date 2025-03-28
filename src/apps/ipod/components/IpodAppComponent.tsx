@@ -138,12 +138,12 @@ export function IpodAppComponent({
       clearTimeout(vibrateTimerRef.current);
     }
     
-    // Set a new timer (debounce for 200ms)
+    // Set a new timer
     vibrateTimerRef.current = setTimeout(() => {
       if (typeof navigator !== 'undefined' && navigator.vibrate) {
         navigator.vibrate(100);
       }
-    }, 120);
+    }, 200);
   };
 
   // Clean up vibration timer on unmount
