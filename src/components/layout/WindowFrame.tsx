@@ -3,6 +3,7 @@ import { ResizeType } from "@/types/types";
 import { APP_STORAGE_KEYS } from "@/utils/storage";
 import { useAppContext } from "@/contexts/AppContext";
 import { useSound, Sounds } from "@/hooks/useSound";
+import { useVibration } from "@/hooks/useVibration";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { getWindowConfig } from "@/config/appRegistry";
@@ -61,6 +62,7 @@ export function WindowFrame({
   const { play: playWindowClose } = useSound(Sounds.WINDOW_CLOSE);
   const { play: playWindowExpand } = useSound(Sounds.WINDOW_EXPAND);
   const { play: playWindowCollapse } = useSound(Sounds.WINDOW_COLLAPSE);
+  const vibrate = useVibration(50, 100);
   const [isFullHeight, setIsFullHeight] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
   const isMobile = useIsMobile();
@@ -108,6 +110,7 @@ export function WindowFrame({
   );
 
   const handleClose = () => {
+    vibrate();
     playWindowClose();
     setIsOpen(false);
   };
@@ -154,6 +157,7 @@ export function WindowFrame({
 
   // This function only maximizes height (for bottom resize handle)
   const handleHeightOnlyMaximize = (e: React.MouseEvent | React.TouchEvent) => {
+    vibrate();
     e.stopPropagation();
 
     // If window is already fully maximized, do nothing - let handleFullMaximize handle the restoration
@@ -182,6 +186,7 @@ export function WindowFrame({
   // This function maximizes both width and height (for titlebar)
   const handleFullMaximize = useCallback(
     (e: React.MouseEvent | React.TouchEvent) => {
+      vibrate();
       e.stopPropagation();
 
       const now = Date.now();
@@ -283,8 +288,6 @@ export function WindowFrame({
       windowSize,
       appId,
       getSafeAreaBottomInset,
-      playWindowExpand,
-      playWindowCollapse,
     ]
   );
 

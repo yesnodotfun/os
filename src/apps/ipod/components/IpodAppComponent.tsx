@@ -24,9 +24,9 @@ import {
   Track,
 } from "@/utils/storage";
 import { useSound, Sounds } from "@/hooks/useSound";
+import { useVibration } from "@/hooks/useVibration";
 import { IpodScreen } from "./IpodScreen";
 import { IpodWheel } from "./IpodWheel";
-import "ios-vibrator-pro-max";
 
 // Add function to handle backlight state
 const loadIpodBacklight = (): boolean => {
@@ -65,6 +65,7 @@ export function IpodAppComponent({
 }: AppProps) {
   const { play: playClickSound } = useSound(Sounds.BUTTON_CLICK);
   const { play: playScrollSound } = useSound(Sounds.MENU_OPEN);
+  const vibrate = useVibration(100, 50);
 
   const loadedLibrary = loadLibrary();
   const [tracks, setTracks] = useState<Track[]>(loadedLibrary);
@@ -127,24 +128,6 @@ export function IpodAppComponent({
 
   // Add a ref to track if we're coming from a skip operation
   const skipOperationRef = useRef(false);
-
-  // Add a ref to track the last vibration timestamp for debouncing
-  const lastVibrateTimeRef = useRef<number>(0);
-
-  // Add vibration function
-  const vibrateOnAction = () => {
-    const now = Date.now();
-    const debounceTime = 100; // Debounce interval in milliseconds
-
-    // Check if enough time has passed since the last vibration
-    if (now - lastVibrateTimeRef.current > debounceTime) {
-      if (typeof navigator !== 'undefined' && navigator.vibrate) {
-        navigator.vibrate(50);
-      }
-      // Update the last vibration time
-      lastVibrateTimeRef.current = now;
-    }
-  };
 
   // Handle menu item action to properly manage transitions
   const handleMenuItemAction = (action: () => void) => {
@@ -698,7 +681,7 @@ export function IpodAppComponent({
     area: "top" | "right" | "bottom" | "left" | "center"
   ) => {
     playClickSound();
-    vibrateOnAction();
+    vibrate();
     registerActivity();
     switch (area) {
       case "top":
@@ -740,7 +723,7 @@ export function IpodAppComponent({
 
   const handleWheelRotation = (direction: "clockwise" | "counterclockwise") => {
     playScrollSound();
-    vibrateOnAction();
+    vibrate();
     registerActivity();
     if (menuMode) {
       const currentMenu = menuHistory[menuHistory.length - 1];
@@ -778,7 +761,7 @@ export function IpodAppComponent({
 
   const handleMenuButton = () => {
     playClickSound();
-    vibrateOnAction();
+    vibrate();
     registerActivity();
 
     // Turn off video when navigating menus
