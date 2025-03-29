@@ -1,5 +1,4 @@
 import { Redis } from '@upstash/redis';
-import { ChatMessage, ChatRoom, User } from '../src/types/chat';
 
 // Set up Redis client
 const redis = new Redis({
@@ -8,26 +7,25 @@ const redis = new Redis({
 });
 
 // Logging utilities
-const logRequest = (method: string, url: string, action: string | null, id: string) => {
+const logRequest = (method, url, action, id) => {
   console.log(`[${id}] ${method} ${url} - Action: ${action || 'none'}`);
 };
 
-const logInfo = (id: string, message: string, data?: any) => {
+const logInfo = (id, message, data) => {
   console.log(`[${id}] INFO: ${message}`, data ? data : '');
 };
 
-const logError = (id: string, message: string, error: any) => {
+const logError = (id, message, error) => {
   console.error(`[${id}] ERROR: ${message}`, error);
 };
 
-const generateRequestId = (): string => {
+const generateRequestId = () => {
   return Math.random().toString(36).substring(2, 10);
 };
 
 // API runtime config
 export const runtime = "nodejs";
 export const maxDuration = 30;
-
 
 // Redis key prefixes
 const CHAT_ROOM_PREFIX = 'chat:room:';
@@ -36,16 +34,16 @@ const CHAT_USERS_PREFIX = 'chat:users:';
 const CHAT_ROOM_USERS_PREFIX = 'chat:room:users:';
 
 // Helper functions
-const generateId = (): string => {
+const generateId = () => {
   return Math.random().toString(36).substring(2, 15);
 };
 
-const getCurrentTimestamp = (): number => {
+const getCurrentTimestamp = () => {
   return Date.now();
 };
 
 // Error response helper
-const createErrorResponse = (message: string, status: number) => {
+const createErrorResponse = (message, status) => {
   return new Response(JSON.stringify({ error: message }), { 
     status,
     headers: { 'Content-Type': 'application/json' }
@@ -53,7 +51,7 @@ const createErrorResponse = (message: string, status: number) => {
 };
 
 // GET handler
-export async function GET(request: Request) {
+export async function GET(request) {
   const requestId = generateRequestId();
   const startTime = performance.now();
   const url = new URL(request.url);
@@ -97,7 +95,7 @@ export async function GET(request: Request) {
 }
 
 // POST handler
-export async function POST(request: Request) {
+export async function POST(request) {
   const requestId = generateRequestId();
   const startTime = performance.now();
   const url = new URL(request.url);
@@ -134,7 +132,7 @@ export async function POST(request: Request) {
 }
 
 // DELETE handler
-export async function DELETE(request: Request) {
+export async function DELETE(request) {
   const requestId = generateRequestId();
   const startTime = performance.now();
   const url = new URL(request.url);
@@ -166,7 +164,7 @@ export async function DELETE(request: Request) {
 }
 
 // Room functions
-async function handleGetRooms(requestId: string) {
+async function handleGetRooms(requestId) {
   logInfo(requestId, 'Fetching all rooms');
   try {
     const keys = await redis.keys(`${CHAT_ROOM_PREFIX}*`);
@@ -178,7 +176,7 @@ async function handleGetRooms(requestId: string) {
       });
     }
 
-    const roomsData = await redis.mget<ChatRoom[]>(...keys);
+    const roomsData = await redis.mget(...keys);
     const rooms = roomsData.map(room => room).filter(Boolean);
 
     return new Response(JSON.stringify({ rooms }), {
@@ -190,10 +188,10 @@ async function handleGetRooms(requestId: string) {
   }
 }
 
-async function handleGetRoom(roomId: string, requestId: string) {
+async function handleGetRoom(roomId, requestId) {
   logInfo(requestId, `Fetching room: ${roomId}`);
   try {
-    const room = await redis.get<ChatRoom>(`${CHAT_ROOM_PREFIX}${roomId}`);
+    const room = await redis.get(`${CHAT_ROOM_PREFIX}${roomId}`);
 
     if (!room) {
       logInfo(requestId, `Room not found: ${roomId}`);
@@ -209,7 +207,7 @@ async function handleGetRoom(roomId: string, requestId: string) {
   }
 }
 
-async function handleCreateRoom(data: { name: string }, requestId: string) {
+async function handleCreateRoom(data, requestId) {
   const { name } = data;
 
   if (!name) {
@@ -220,7 +218,7 @@ async function handleCreateRoom(data: { name: string }, requestId: string) {
   logInfo(requestId, `Creating room: ${name}`);
   try {
     const roomId = generateId();
-    const room: ChatRoom = {
+    const room = {
       id: roomId,
       name,
       createdAt: getCurrentTimestamp(),
@@ -240,7 +238,7 @@ async function handleCreateRoom(data: { name: string }, requestId: string) {
   }
 }
 
-async function handleDeleteRoom(roomId: string, requestId: string) {
+async function handleDeleteRoom(roomId, requestId) {
   logInfo(requestId, `Deleting room: ${roomId}`);
   try {
     const roomExists = await redis.exists(`${CHAT_ROOM_PREFIX}${roomId}`);
@@ -268,7 +266,7 @@ async function handleDeleteRoom(roomId: string, requestId: string) {
 }
 
 // Message functions
-async function handleGetMessages(roomId: string, requestId: string) {
+async function handleGetMessages(roomId, requestId) {
   logInfo(requestId, `Fetching messages for room: ${roomId}`);
 
   try {
@@ -290,10 +288,10 @@ async function handleGetMessages(roomId: string, requestId: string) {
         try {
           if (typeof item === 'object' && item !== null) {
             // Already an object, assume it's ChatMessage
-            return item as ChatMessage; 
+            return item; 
           } else if (typeof item === 'string') {
             // Item is a string, try parsing it
-            const parsed = JSON.parse(item) as ChatMessage;
+            const parsed = JSON.parse(item);
             return parsed;
           } else {
             // Unexpected type
@@ -305,7 +303,7 @@ async function handleGetMessages(roomId: string, requestId: string) {
           return null;
         }
       })
-      .filter((message): message is ChatMessage => message !== null); // Type guard in filter
+      .filter(message => message !== null);
 
     logInfo(requestId, `Processed ${messages.length} valid messages for room ${roomId}`);
 
@@ -318,7 +316,7 @@ async function handleGetMessages(roomId: string, requestId: string) {
   }
 }
 
-async function handleSendMessage(data: { roomId: string, username: string, content: string }, requestId: string) {
+async function handleSendMessage(data, requestId) {
   const { roomId, username, content } = data;
 
   if (!roomId || !username || !content) {
@@ -344,7 +342,7 @@ async function handleSendMessage(data: { roomId: string, username: string, conte
     }
 
     // Create and save the message
-    const message: ChatMessage = {
+    const message = {
       id: generateId(),
       roomId,
       username,
@@ -359,9 +357,9 @@ async function handleSendMessage(data: { roomId: string, username: string, conte
     logInfo(requestId, `Message saved with ID: ${message.id}`);
 
     // Update user's last active timestamp (assuming user data is stored as JSON string)
-    const currentUserData = await redis.get<User>(`${CHAT_USERS_PREFIX}${username}`);
+    const currentUserData = await redis.get(`${CHAT_USERS_PREFIX}${username}`);
     if (currentUserData) {
-      const updatedUser: User = { ...currentUserData, lastActive: getCurrentTimestamp() };
+      const updatedUser = { ...currentUserData, lastActive: getCurrentTimestamp() };
       await redis.set(`${CHAT_USERS_PREFIX}${username}`, updatedUser);
       logInfo(requestId, `Updated user ${username} last active timestamp`);
     }
@@ -377,7 +375,7 @@ async function handleSendMessage(data: { roomId: string, username: string, conte
 }
 
 // User functions
-async function handleGetUsers(requestId: string) {
+async function handleGetUsers(requestId) {
   logInfo(requestId, 'Fetching all users');
   try {
     const keys = await redis.keys(`${CHAT_USERS_PREFIX}*`);
@@ -389,7 +387,7 @@ async function handleGetUsers(requestId: string) {
       });
     }
 
-    const usersData = await redis.mget<User[]>(...keys);
+    const usersData = await redis.mget(...keys);
     const users = usersData.map(user => user).filter(Boolean);
 
     return new Response(JSON.stringify({ users }), {
@@ -401,7 +399,7 @@ async function handleGetUsers(requestId: string) {
   }
 }
 
-async function handleCreateUser(data: { username: string }, requestId: string) {
+async function handleCreateUser(data, requestId) {
   const { username } = data;
 
   if (!username) {
@@ -413,7 +411,7 @@ async function handleCreateUser(data: { username: string }, requestId: string) {
   try {
     // Check if username already exists using setnx for atomicity
     const userKey = `${CHAT_USERS_PREFIX}${username}`;
-    const user: User = {
+    const user = {
       username,
       lastActive: getCurrentTimestamp()
     };
@@ -437,7 +435,7 @@ async function handleCreateUser(data: { username: string }, requestId: string) {
 }
 
 // Room membership functions
-async function handleJoinRoom(data: { roomId: string, username: string }, requestId: string) {
+async function handleJoinRoom(data, requestId) {
   const { roomId, username } = data;
 
   if (!roomId || !username) {
@@ -449,8 +447,8 @@ async function handleJoinRoom(data: { roomId: string, username: string }, reques
   try {
     // Use Promise.all for concurrent checks
     const [roomData, userData] = await Promise.all([
-      redis.get<ChatRoom>(`${CHAT_ROOM_PREFIX}${roomId}`),
-      redis.get<User>(`${CHAT_USERS_PREFIX}${username}`)
+      redis.get(`${CHAT_ROOM_PREFIX}${roomId}`),
+      redis.get(`${CHAT_USERS_PREFIX}${username}`)
     ]);
 
     if (!roomData) {
@@ -468,12 +466,12 @@ async function handleJoinRoom(data: { roomId: string, username: string }, reques
 
     // Update room user count - Fetch latest count after adding
     const userCount = await redis.scard(`${CHAT_ROOM_USERS_PREFIX}${roomId}`);
-    const updatedRoom: ChatRoom = { ...roomData, userCount };
+    const updatedRoom = { ...roomData, userCount };
     await redis.set(`${CHAT_ROOM_PREFIX}${roomId}`, updatedRoom);
     logInfo(requestId, `User ${username} joined room ${roomId}, new user count: ${userCount}`);
 
     // Update user's last active timestamp
-    const updatedUser: User = { ...userData, lastActive: getCurrentTimestamp() };
+    const updatedUser = { ...userData, lastActive: getCurrentTimestamp() };
     await redis.set(`${CHAT_USERS_PREFIX}${username}`, updatedUser);
 
     return new Response(JSON.stringify({ success: true }), {
@@ -485,7 +483,7 @@ async function handleJoinRoom(data: { roomId: string, username: string }, reques
   }
 }
 
-async function handleLeaveRoom(data: { roomId: string, username: string }, requestId: string) {
+async function handleLeaveRoom(data, requestId) {
   const { roomId, username } = data;
 
   if (!roomId || !username) {
@@ -496,7 +494,7 @@ async function handleLeaveRoom(data: { roomId: string, username: string }, reque
   logInfo(requestId, `User ${username} leaving room ${roomId}`);
   try {
     // Check if room exists first
-    const roomData = await redis.get<ChatRoom>(`${CHAT_ROOM_PREFIX}${roomId}`);
+    const roomData = await redis.get(`${CHAT_ROOM_PREFIX}${roomId}`);
     if (!roomData) {
       logInfo(requestId, `Room not found: ${roomId}`);
       return createErrorResponse('Room not found', 404);
@@ -509,7 +507,7 @@ async function handleLeaveRoom(data: { roomId: string, username: string }, reque
     if (removed) {
       // Fetch latest count after removing
       const userCount = await redis.scard(`${CHAT_ROOM_USERS_PREFIX}${roomId}`);
-      const updatedRoom: ChatRoom = { ...roomData, userCount };
+      const updatedRoom = { ...roomData, userCount };
       await redis.set(`${CHAT_ROOM_PREFIX}${roomId}`, updatedRoom);
       logInfo(requestId, `User ${username} left room ${roomId}, new user count: ${userCount}`);
     } else {
