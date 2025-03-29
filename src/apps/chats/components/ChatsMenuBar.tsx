@@ -8,6 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { type ChatRoom } from "../../../../src/types/chat";
 
 interface ChatsMenuBarProps {
   onClose: () => void;
@@ -18,6 +19,10 @@ interface ChatsMenuBarProps {
   onSetUsername: () => void;
   onToggleSidebar: () => void;
   isSidebarVisible: boolean;
+  onAddRoom: () => void;
+  rooms: ChatRoom[];
+  currentRoom: ChatRoom | null;
+  onRoomSelect: (room: ChatRoom | null) => void;
 }
 
 export function ChatsMenuBar({
@@ -29,6 +34,10 @@ export function ChatsMenuBar({
   onSetUsername,
   onToggleSidebar,
   isSidebarVisible,
+  onAddRoom,
+  rooms,
+  currentRoom,
+  onRoomSelect,
 }: ChatsMenuBarProps) {
   return (
     <MenuBar>
@@ -71,6 +80,61 @@ export function ChatsMenuBar({
           >
             Close
           </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* Rooms Menu */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="default"
+            className="h-6 text-md px-2 py-1 border-none hover:bg-gray-200 active:bg-gray-900 active:text-white focus-visible:ring-0"
+          >
+            Rooms
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" sideOffset={1} className="px-0 max-h-[300px] overflow-y-auto">
+          <DropdownMenuItem
+            onClick={onAddRoom}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            Add Room...
+          </DropdownMenuItem>
+          
+          {rooms.length > 0 && (
+            <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
+          )}
+          
+          {/* Ryo Chat Option */}
+          <DropdownMenuItem
+            onClick={() => onRoomSelect(null)}
+            className={cn(
+              "text-md h-6 px-3 active:bg-gray-900 active:text-white",
+              currentRoom === null && "bg-gray-200"
+            )}
+          >
+            <span className={cn(currentRoom !== null && "pl-4")}>
+              {currentRoom === null ? "✓ Chat with Ryo" : "Chat with Ryo"}
+            </span>
+          </DropdownMenuItem>
+          
+          {/* Room List */}
+          {rooms.map(room => (
+            <DropdownMenuItem
+              key={room.id}
+              onClick={() => onRoomSelect(room)}
+              className={cn(
+                "text-md h-6 px-3 active:bg-gray-900 active:text-white",
+                currentRoom?.id === room.id && "bg-gray-200"
+              )}
+            >
+              <span className={cn(!(currentRoom?.id === room.id) && "pl-4")}>
+                {currentRoom?.id === room.id ? `✓ ${room.name}` : room.name}
+                <span className="text-gray-500 ml-1">({room.userCount})</span>
+              </span>
+            </DropdownMenuItem>
+          ))}
         </DropdownMenuContent>
       </DropdownMenu>
 

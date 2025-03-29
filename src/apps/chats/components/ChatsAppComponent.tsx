@@ -2623,6 +2623,10 @@ export function ChatsAppComponent({
         onSetUsername={handleSetUsernameClick}
         onToggleSidebar={toggleSidebar}
         isSidebarVisible={isSidebarVisible}
+        onAddRoom={handleAddRoom}
+        rooms={rooms}
+        currentRoom={currentRoom}
+        onRoomSelect={handleRoomSelect}
       />
       <WindowFrame
         title="Chats"
