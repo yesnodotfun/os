@@ -44,6 +44,7 @@ export const APP_STORAGE_KEYS = {
     LAST_OPENED_ROOM_ID: "chats:lastOpenedRoomId",
     CACHED_ROOMS: "chats:cachedRooms",
     CACHED_ROOM_MESSAGES: "chats:cachedRoomMessages",
+    SIDEBAR_VISIBLE: "chats:sidebarVisible",
   },
   textedit: {
     WINDOW: "textedit:window",
@@ -1380,6 +1381,21 @@ export const saveHtmlPreviewSplit = (isSplit: boolean): void => {
     APP_STORAGE_KEYS["control-panels"].HTML_PREVIEW_SPLIT,
     isSplit.toString()
   );
+};
+
+// Add functions for chat sidebar visibility
+export const loadChatSidebarVisible = (): boolean => {
+  const saved = localStorage.getItem(APP_STORAGE_KEYS.chats.SIDEBAR_VISIBLE);
+  console.log("[Storage] Loading chat sidebar visibility:", saved);
+  // Default to true if not set
+  const isVisible = saved === null ? true : saved === "true";
+  console.log("[Storage] Parsed visibility:", isVisible);
+  return isVisible;
+};
+
+export const saveChatSidebarVisible = (isVisible: boolean): void => {
+  console.log("[Storage] Saving chat sidebar visibility:", isVisible);
+  localStorage.setItem(APP_STORAGE_KEYS.chats.SIDEBAR_VISIBLE, isVisible.toString());
 };
 
 // Add these constants for IndexedDB at the end of the file

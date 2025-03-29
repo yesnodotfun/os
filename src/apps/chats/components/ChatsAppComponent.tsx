@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useLayoutEffect } from "react";
 import { AppProps } from "../../base/types";
 import { WindowFrame } from "@/components/layout/WindowFrame";
 import { ChatsMenuBar } from "./ChatsMenuBar";
@@ -22,6 +22,8 @@ import {
   saveCachedChatRooms, // Import cache functions
   loadCachedRoomMessages, // Import cache functions for messages
   saveRoomMessagesToCache, // Import cache functions for messages
+  loadChatSidebarVisible, // Import new function
+  saveChatSidebarVisible, // Import new function
 } from "@/utils/storage";
 import { ChatMessages } from "./ChatMessages";
 import { ChatInput } from "./ChatInput";
@@ -1644,8 +1646,8 @@ interface ChatRoomSidebarProps { // Explicitly define props interface
   onRoomSelect: (room: ChatRoom | null) => void; // Allow null
   onAddRoom: () => void;
   onDeleteRoom?: (room: ChatRoom) => void;
-  isVisible: boolean;
-  onToggleVisibility?: () => void;
+  isVisible: boolean; // Keep this prop
+  onToggleVisibility?: () => void; // Keep this prop
   username: string | null; // Add username prop
   isAdmin: boolean; // Add isAdmin prop
 }
@@ -1657,17 +1659,19 @@ const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
   onRoomSelect,
   onAddRoom,
   onDeleteRoom,
-  isVisible,
+  isVisible, // Receive isVisible
   isAdmin, // Receive isAdmin
 }) => {
+  // Render based on isVisible state
   if (!isVisible) {
-    // When not visible on mobile, don't render anything
     return null;
   }
 
   return (
-    <div className="w-full md:w-56 bg-[#e0e0e0] md:border-r border-b md:border-b-0 flex flex-col h-auto md:h-full max-h-64 md:max-h-none font-geneva-12 text-[12px]">
-      <div className="py-3 px-3 flex flex-col h-full">
+    // Updated classes: Added max-h-48 for mobile, adjusted flex/overflow for scrolling
+    <div className="w-full bg-[#e0e0e0] border-b flex flex-col max-h-44 overflow-hidden md:w-56 md:border-r md:border-b-0 md:max-h-full font-geneva-12 text-[12px]">
+      {/* Updated classes: Allow inner container to take space and manage overflow */}
+      <div className="py-3 px-3 flex flex-col flex-1 overflow-hidden">
         <div className="flex justify-between items-center md:mb-2">
           <h2 className="text-[14px] pl-1">Rooms</h2>
           {/* Conditionally render Add Room button */}
@@ -1682,7 +1686,8 @@ const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
             </Button>
           )}
         </div>
-        <div className="flex-1 overflow-auto md:space-y-1 min-h-0">
+        {/* Updated classes: Ensure vertical scroll only */}
+        <div className="flex-1 overflow-y-auto space-y-1 min-h-0">
           <div
             className={`px-2 py-1 cursor-pointer ${currentRoom === null ? 'bg-black text-white' : 'hover:bg-black/5'}`}
             onClick={() => onRoomSelect(null as any)} // Using null for Ryo chat
@@ -1756,8 +1761,8 @@ export function ChatsAppComponent({
   const [currentRoom, setCurrentRoom] = useState<ChatRoom | null>(null);
   const [username, setUsername] = useState<string | null>(null);
   const [roomMessages, setRoomMessages] = useState<ChatMessage[]>([]);
-  // Add state for sidebar visibility
-  const [isSidebarVisible, setIsSidebarVisible] = useState(true);
+  // Initialize with default, load from storage in useEffect
+  const [isSidebarVisible, setIsSidebarVisible] = useState(true); // Default to true initially
 
   // State for username dialog
   const [isUsernameDialogOpen, setIsUsernameDialogOpen] = useState(false);
@@ -1782,9 +1787,14 @@ export function ChatsAppComponent({
   // Determine if the user is an admin
   const isAdmin = username === "ryo";
 
-  // Handler to toggle sidebar visibility
+  // Handler to toggle sidebar visibility and save state
   const toggleSidebar = useCallback(() => {
-    setIsSidebarVisible(prev => !prev);
+    setIsSidebarVisible(prev => {
+      const newState = !prev;
+      console.log("[Component] Toggling sidebar visibility to:", newState);
+      saveChatSidebarVisible(newState); // Save the new state
+      return newState;
+    });
   }, []);
 
   // Add useEffect to handle responsive behavior - hide sidebar on small screens by default
@@ -1808,6 +1818,13 @@ export function ChatsAppComponent({
       window.removeEventListener('resize', handleResize);
     };
   }, []);
+
+  // Load sidebar state from storage once on mount
+  useEffect(() => {
+    const savedState = loadChatSidebarVisible();
+    console.log("[Component Mount] Loading sidebar visibility from storage:", savedState);
+    setIsSidebarVisible(savedState);
+  }, []); // Empty dependency array ensures this runs only once
 
   // Fetch rooms on mount, using cache first
   useEffect(() => {
@@ -2804,7 +2821,7 @@ export function ChatsAppComponent({
       >
         {/* Main container - changed to flex-col on mobile, flex-row on desktop */}
         <div className="flex flex-col md:flex-row h-full bg-[#c0c0c0] w-full">
-          {/* Sidebar - height adjusted for mobile */}
+          {/* Sidebar - Render conditionally based on isSidebarVisible */}
           <ChatRoomSidebar
             rooms={rooms}
             currentRoom={currentRoom}

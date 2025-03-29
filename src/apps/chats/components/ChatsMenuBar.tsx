@@ -152,7 +152,10 @@ export function ChatsMenuBar({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" sideOffset={1} className="px-0">
           <DropdownMenuItem
-            onClick={onToggleSidebar}
+            onClick={() => {
+              console.log("[MenuBar] Toggle Sidebar menu item clicked");
+              onToggleSidebar();
+            }}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
             <span className={cn(!isSidebarVisible && "pl-4")}>
