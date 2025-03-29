@@ -1676,7 +1676,7 @@ const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
         {/* Updated header to include user count conditionally */}
         <div className="flex justify-between items-center md:mb-2">
           <div className="flex items-baseline gap-1.5">
-            <h2 className="text-[14px] pl-1">Rooms</h2>
+            <h2 className="text-[14px] pl-1">Chats</h2>
           </div>
           {/* Conditionally render Add Room button */}
           {isAdmin && (
