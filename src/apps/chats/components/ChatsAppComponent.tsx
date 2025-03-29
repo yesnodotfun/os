@@ -20,7 +20,7 @@ import {
 import { ChatMessages } from "./ChatMessages";
 import { ChatInput } from "./ChatInput";
 import { useAppContext } from "@/contexts/AppContext";
-import { FileText, Plus } from "lucide-react";
+import { FileText, Plus, Trash } from "lucide-react";
 import { AppId } from "@/config/appRegistry";
 import { saveAsMarkdown } from "@/utils/markdown/saveUtils";
 import { type ChatRoom, type ChatMessage } from "../../../../src/types/chat";
@@ -1637,9 +1637,10 @@ const ChatRoomSidebar: React.FC<{
   currentRoom: ChatRoom | null;
   onRoomSelect: (room: ChatRoom) => void;
   onAddRoom: () => void;
+  onDeleteRoom?: (room: ChatRoom) => void;
   isVisible: boolean;
   onToggleVisibility?: () => void;
-}> = ({ rooms, currentRoom, onRoomSelect, onAddRoom, isVisible, onToggleVisibility }) => {
+}> = ({ rooms, currentRoom, onRoomSelect, onAddRoom, onDeleteRoom, isVisible }) => {
   if (!isVisible) {
     // When not visible on mobile, don't render anything
     return null;
@@ -1671,10 +1672,22 @@ const ChatRoomSidebar: React.FC<{
           {rooms.map((room) => (
             <div
               key={room.id}
-              className={`px-2 py-1 cursor-pointer ${currentRoom?.id === room.id ? 'bg-black text-white' : 'hover:bg-black/5'}`}
+              className={`group relative px-2 py-1 cursor-pointer ${currentRoom?.id === room.id ? 'bg-black text-white' : 'hover:bg-black/5'}`}
               onClick={() => onRoomSelect(room)}
             >
               {room.name} ({room.userCount})
+              {onDeleteRoom && (
+                <button
+                  className="absolute right-1 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-red-500 p-1 rounded hover:bg-black/5"
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent room selection
+                    onDeleteRoom(room);
+                  }}
+                  aria-label="Delete room"
+                >
+                  <Trash className="w-3 h-3" />
+                </button>
+              )}
             </div>
           ))}
         </div>
@@ -1731,6 +1744,10 @@ export function ChatsAppComponent({
   const [newRoomName, setNewRoomName] = useState("");
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
   const [roomError, setRoomError] = useState<string | null>(null);
+
+  // Add state for delete room confirmation
+  const [isDeleteRoomDialogOpen, setIsDeleteRoomDialogOpen] = useState(false);
+  const [roomToDelete, setRoomToDelete] = useState<ChatRoom | null>(null);
 
   // Handler to toggle sidebar visibility
   const toggleSidebar = useCallback(() => {
@@ -2348,6 +2365,42 @@ export function ChatsAppComponent({
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const [saveFileName, setSaveFileName] = useState("");
 
+  // Handler for initiating room deletion
+  const handleDeleteRoom = useCallback((room: ChatRoom) => {
+    setRoomToDelete(room);
+    setIsDeleteRoomDialogOpen(true);
+  }, []);
+
+  // Handler for confirming room deletion
+  const confirmDeleteRoom = useCallback(async () => {
+    if (!roomToDelete) return;
+    
+    try {
+      const response = await fetch(`/api/chatRooms?action=deleteRoom&roomId=${roomToDelete.id}`, {
+        method: 'DELETE'
+      });
+      
+      if (response.ok) {
+        // Remove the room from state
+        setRooms(prevRooms => prevRooms.filter(room => room.id !== roomToDelete.id));
+        
+        // If current room is the deleted one, reset to Ryo chat
+        if (currentRoom?.id === roomToDelete.id) {
+          setCurrentRoom(null);
+        }
+        
+        console.log(`Room ${roomToDelete.name} deleted successfully`);
+      } else {
+        console.error('Failed to delete room:', await response.json());
+      }
+    } catch (error) {
+      console.error('Error deleting room:', error);
+    } finally {
+      setIsDeleteRoomDialogOpen(false);
+      setRoomToDelete(null);
+    }
+  }, [roomToDelete, currentRoom]);
+
   const clearChats = () => {
     setIsClearDialogOpen(true);
   };
@@ -2586,6 +2639,7 @@ export function ChatsAppComponent({
             currentRoom={currentRoom}
             onRoomSelect={handleRoomSelect}
             onAddRoom={handleAddRoom}
+            onDeleteRoom={handleDeleteRoom}
             isVisible={isSidebarVisible}
             onToggleVisibility={toggleSidebar}
           />
@@ -2680,7 +2734,7 @@ export function ChatsAppComponent({
           onOpenChange={setIsUsernameDialogOpen}
           onSubmit={handleUsernameSubmit}
           title="Set Username"
-          description="Enter the username you want to use in chat rooms."
+          description="Enter the username you want to use in chat rooms"
           value={newUsername}
           onChange={(value) => {
             setNewUsername(value);
@@ -2703,6 +2757,14 @@ export function ChatsAppComponent({
           }}
           isLoading={isCreatingRoom}
           errorMessage={roomError}
+        />
+        {/* Delete Room Confirmation Dialog */}
+        <ConfirmDialog
+          isOpen={isDeleteRoomDialogOpen}
+          onOpenChange={setIsDeleteRoomDialogOpen}
+          onConfirm={confirmDeleteRoom}
+          title="Delete Chat Room"
+          description={`Are you sure you want to delete the room "${roomToDelete?.name}"? This action cannot be undone.`}
         />
       </WindowFrame>
     </>
