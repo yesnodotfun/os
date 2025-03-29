@@ -1730,9 +1730,10 @@ export function ChatsAppComponent({
         console.log(`Loaded username: ${storedUsername}`);
       } else {
         setUsername(null); // Set to null if no username is stored
-        console.log('No stored username found.');
-        // Optionally prompt the user to set one later or upon action
-        // setIsUsernameDialogOpen(true); // Example: prompt immediately (removed for now)
+        console.log('No stored username found. Prompting user to set one.');
+        // Automatically open username dialog if no username is found
+        setNewUsername(''); // Clear any previous input
+        setIsUsernameDialogOpen(true);
       }
     };
     loadUser();
@@ -1745,7 +1746,11 @@ export function ChatsAppComponent({
         try {
           const response = await fetch(`/api/chatRooms?action=getMessages&roomId=${currentRoom.id}`);
           const data = await response.json();
-          setRoomMessages(data.messages || []);
+          // Sort messages chronologically by timestamp (oldest first)
+          const sortedMessages = [...(data.messages || [])].sort(
+            (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+          );
+          setRoomMessages(sortedMessages);
         } catch (error) {
           console.error('Error fetching room messages:', error);
         }
@@ -1785,7 +1790,7 @@ export function ChatsAppComponent({
 
             if (newMessages.length > 0) {
               console.log(`Fetched ${newMessages.length} new message(s)`);
-              // Combine and sort by timestamp
+              // Combine and sort by timestamp (oldest first)
               const combined = [...prevMessages, ...newMessages];
               combined.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
               return combined;
@@ -1864,7 +1869,12 @@ export function ChatsAppComponent({
         }).then(async (response) => {
           if (response.ok) {
             const newMessage = await response.json();
-            setRoomMessages((prev) => [...prev, newMessage.message]);
+            setRoomMessages((prev) => {
+              // Add new message and ensure messages remain sorted by timestamp
+              const updated = [...prev, newMessage.message];
+              updated.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+              return updated;
+            });
             handleInputChange({ target: { value: '' } } as React.ChangeEvent<HTMLInputElement>);
           }
         }).catch((error) => {
@@ -2583,7 +2593,12 @@ export function ChatsAppComponent({
           title="Set Username"
           description="Enter the username you want to use in chat rooms."
           value={newUsername}
-          onChange={setNewUsername}
+          onChange={(value) => {
+            setNewUsername(value);
+            setUsernameError(null); // Clear error when user types
+          }}
+          isLoading={isSettingUsername}
+          errorMessage={usernameError}
         />
       </WindowFrame>
     </>

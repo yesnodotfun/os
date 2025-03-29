@@ -57,7 +57,7 @@ export const appRegistry = {
   [ChatsApp.id]: {
     ...ChatsApp,
     windowConfig: {
-      defaultSize: { width: 316, height: 360 },
+      defaultSize: { width: 530, height: 360 },
       minSize: { width: 280, height: 320 },
     } as WindowConstraints,
   },
