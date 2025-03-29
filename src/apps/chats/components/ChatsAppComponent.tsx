@@ -2647,7 +2647,7 @@ export function ChatsAppComponent({
         onRoomSelect={handleRoomSelect}
       />
       <WindowFrame
-        title="Chats"
+        title={currentRoom ? `#${currentRoom.name}` : "@ryo"}
         onClose={onClose}
         isForeground={isForeground}
         appId="chats"
