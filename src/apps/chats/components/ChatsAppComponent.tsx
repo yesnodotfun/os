@@ -24,6 +24,7 @@ import { FileText, Plus } from "lucide-react";
 import { AppId } from "@/config/appRegistry";
 import { saveAsMarkdown } from "@/utils/markdown/saveUtils";
 import { type ChatRoom, type ChatMessage } from "../../../../api/chatRooms";
+import { Button } from "@/components/ui/button";
 
 // Define types for TextEdit content structure
 interface TextNode {
@@ -1638,30 +1639,37 @@ const ChatRoomSidebar: React.FC<{
   onAddRoom: () => void;
 }> = ({ rooms, currentRoom, onRoomSelect, onAddRoom }) => {
   return (
-    <div className="w-48 bg-[#e0e0e0] border-r border-[#808080] flex flex-col p-2 font-geneva-12 text-[12px]">
-      <div className="mb-2 font-bold">Chats</div>
-      <div
-        className={`p-1 cursor-pointer ${currentRoom === null ? 'bg-[#000080] text-white' : 'hover:bg-[#c0c0c0]'}`}
-        onClick={() => onRoomSelect(null as any)} // Using null for Ryo chat
-      >
-        Ryo Chat
-      </div>
-      {rooms.map((room) => (
-        <div
-          key={room.id}
-          className={`p-1 cursor-pointer ${currentRoom?.id === room.id ? 'bg-[#000080] text-white' : 'hover:bg-[#c0c0c0]'}`}
-          onClick={() => onRoomSelect(room)}
-        >
-          {room.name} ({room.userCount})
+    <div className="w-full md:w-56 bg-[#e0e0e0] md:border-r border-b md:border-b-0 flex flex-col h-auto md:h-full max-h-64 md:max-h-none font-geneva-12 text-[12px]">
+      <div className="py-2 md:py-4 px-4 flex flex-col h-full">
+        <div className="flex justify-between items-center md:mb-2">
+          <h2 className="text-[14px] pl-1">Rooms</h2>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onAddRoom}
+            className="flex items-center text-xs hover:bg-black/5"
+          >
+            <Plus className="w-3 h-3" />
+          </Button>
         </div>
-      ))}
-      <button
-        className="mt-2 flex items-center gap-1 bg-[#c0c0c0] hover:bg-[#e0e0e0] p-1 border border-[#808080]"
-        onClick={onAddRoom}
-      >
-        <Plus className="w-4 h-4" />
-        Add Room
-      </button>
+        <div className="flex-1 overflow-auto md:space-y-1 min-h-0">
+          <div
+            className={`px-2 py-1 cursor-pointer ${currentRoom === null ? 'bg-black text-white' : 'hover:bg-black/5'}`}
+            onClick={() => onRoomSelect(null as any)} // Using null for Ryo chat
+          >
+            Chat with Ryo
+          </div>
+          {rooms.map((room) => (
+            <div
+              key={room.id}
+              className={`px-2 py-1 cursor-pointer ${currentRoom?.id === room.id ? 'bg-black text-white' : 'hover:bg-black/5'}`}
+              onClick={() => onRoomSelect(room)}
+            >
+              {room.name} ({room.userCount})
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 };
@@ -1706,6 +1714,12 @@ export function ChatsAppComponent({
   const [newUsername, setNewUsername] = useState("");
   const [isSettingUsername, setIsSettingUsername] = useState(false); // Loading state
   const [usernameError, setUsernameError] = useState<string | null>(null); // Error message state
+
+  // State for new room dialog
+  const [isNewRoomDialogOpen, setIsNewRoomDialogOpen] = useState(false);
+  const [newRoomName, setNewRoomName] = useState("");
+  const [isCreatingRoom, setIsCreatingRoom] = useState(false);
+  const [roomError, setRoomError] = useState<string | null>(null);
 
   // Fetch rooms on mount
   useEffect(() => {
@@ -2390,29 +2404,59 @@ export function ChatsAppComponent({
 
   // Add room creation handler
   const handleAddRoom = useCallback(() => {
-    const roomName = prompt('Enter room name:');
-    if (roomName && username) {
-      fetch('/api/chatRooms?action=createRoom', {
+    setNewRoomName(""); // Clear previous input
+    setRoomError(null); // Clear previous errors
+    setIsNewRoomDialogOpen(true);
+  }, []);
+
+  // Handler to submit new room
+  const handleRoomSubmit = async (roomName: string) => {
+    const trimmedRoomName = roomName.trim();
+    setRoomError(null); // Clear previous errors
+
+    if (!trimmedRoomName) {
+      setRoomError("Room name cannot be empty.");
+      return; // Don't proceed if empty
+    }
+
+    if (!username) {
+      setRoomError("You need to set a username first.");
+      return;
+    }
+
+    setIsCreatingRoom(true);
+
+    try {
+      const response = await fetch('/api/chatRooms?action=createRoom', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: roomName }),
-      }).then(async (response) => {
-        if (response.ok) {
-          const newRoom = await response.json();
-          setRooms((prev) => [...prev, newRoom.room]);
-          // Auto-join the new room
-          await fetch('/api/chatRooms?action=joinRoom', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ roomId: newRoom.room.id, username }),
-          });
-          setCurrentRoom(newRoom.room);
-        }
-      }).catch((error) => {
-        console.error('Error creating room:', error);
+        body: JSON.stringify({ name: trimmedRoomName }),
       });
+
+      if (response.ok) {
+        const newRoom = await response.json();
+        setRooms((prev) => [...prev, newRoom.room]);
+        // Auto-join the new room
+        await fetch('/api/chatRooms?action=joinRoom', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ roomId: newRoom.room.id, username }),
+        });
+        setCurrentRoom(newRoom.room);
+        setIsNewRoomDialogOpen(false);
+      } else {
+        // Handle API errors
+        const errorData = await response.json();
+        setRoomError(errorData.error || 'Failed to create room.');
+        console.error('Error creating room:', errorData);
+      }
+    } catch (error) {
+      setRoomError('Network error. Please try again.');
+      console.error('Network error creating room:', error);
+    } finally {
+      setIsCreatingRoom(false);
     }
-  }, [username]);
+  };
 
   // Handler to open username dialog
   const handleSetUsernameClick = () => {
@@ -2494,14 +2538,17 @@ export function ChatsAppComponent({
         appId="chats"
         isShaking={isShaking}
       >
-        <div className="flex h-full bg-[#c0c0c0] w-full">
+        {/* Main container - changed to flex-col on mobile, flex-row on desktop */}
+        <div className="flex flex-col md:flex-row h-full bg-[#c0c0c0] w-full">
+          {/* Sidebar - height adjusted for mobile */}
           <ChatRoomSidebar
             rooms={rooms}
             currentRoom={currentRoom}
             onRoomSelect={handleRoomSelect}
             onAddRoom={handleAddRoom}
           />
-          <div className="flex flex-col flex-1 p-2">
+          {/* Chat content - using flex properties for better height distribution */}
+          <div className="flex flex-col flex-1 p-2 overflow-hidden">
             <ChatMessages
               messages={currentRoom ? roomMessages.map(msg => ({
                 id: msg.id,
@@ -2599,6 +2646,21 @@ export function ChatsAppComponent({
           }}
           isLoading={isSettingUsername}
           errorMessage={usernameError}
+        />
+        {/* Add New Room Dialog */}
+        <InputDialog
+          isOpen={isNewRoomDialogOpen}
+          onOpenChange={setIsNewRoomDialogOpen}
+          onSubmit={handleRoomSubmit}
+          title="Create New Room"
+          description="Enter a name for the new chat room"
+          value={newRoomName}
+          onChange={(value) => {
+            setNewRoomName(value);
+            setRoomError(null); // Clear error when user types
+          }}
+          isLoading={isCreatingRoom}
+          errorMessage={roomError}
         />
       </WindowFrame>
     </>
