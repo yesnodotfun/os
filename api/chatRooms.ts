@@ -24,7 +24,7 @@ const generateRequestId = (): string => {
 };
 
 // API runtime config
-export const runtime = "nodejs";
+export const runtime = "edge";
 export const maxDuration = 60;
 
 // Data models
