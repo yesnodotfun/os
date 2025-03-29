@@ -113,7 +113,7 @@ export function ChatsMenuBar({
             )}
           >
             <span className={cn(currentRoom !== null && "pl-4")}>
-              {currentRoom === null ? "✓ Chat with Ryo" : "Chat with Ryo"}
+              {currentRoom === null ? "✓ @ryo" : "@ryo"}
             </span>
           </DropdownMenuItem>
           
@@ -128,8 +128,7 @@ export function ChatsMenuBar({
               )}
             >
               <span className={cn(!(currentRoom?.id === room.id) && "pl-4")}>
-                {currentRoom?.id === room.id ? `✓ ${room.name}` : room.name}
-                <span className="text-gray-500 ml-1">({room.userCount})</span>
+                {currentRoom?.id === room.id ? `✓ #${room.name}` : `#${room.name}`}
               </span>
             </DropdownMenuItem>
           ))}

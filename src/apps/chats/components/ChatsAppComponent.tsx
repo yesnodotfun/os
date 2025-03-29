@@ -1674,11 +1674,6 @@ const ChatRoomSidebar: React.FC<{
               onClick={() => onRoomSelect(room)}
             >
               #{room.name} 
-              {room.userCount > 0 && (
-                <span className={`ml-1 ${currentRoom?.id === room.id ? 'text-gray-200' : 'text-gray-400 opacity-0 group-hover:opacity-100'}`}>
-                  1
-                </span>
-              )}
               {onDeleteRoom && (
                 <button
                   className="absolute right-1 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-red-500 p-1 rounded hover:bg-black/5"
@@ -1694,6 +1689,11 @@ const ChatRoomSidebar: React.FC<{
             </div>
           ))}
         </div>
+        {currentRoom && (
+          <div className="mt-auto pt-2 border-t border-gray-300 text-gray-500 text-xs px-2">
+            <span>{currentRoom.userCount} online in #{currentRoom.name}</span>
+          </div>
+        )}
       </div>
     </div>
   );
