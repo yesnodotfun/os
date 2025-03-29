@@ -1935,6 +1935,38 @@ export function ChatsAppComponent({
     },
   });
 
+  // Helper function to send a message to the current room
+  const sendRoomMessage = useCallback(async (content: string) => {
+    if (!currentRoom || !username) return; // Guard clause
+
+    try {
+      const response = await fetch('/api/chat-rooms?action=sendMessage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roomId: currentRoom.id,
+          username,
+          content,
+        }),
+      });
+      if (response.ok) {
+        const newMessage = await response.json();
+        setRoomMessages((prev) => {
+          const updated = [...prev, newMessage.message];
+          updated.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+          return updated;
+        });
+        // Clear input only if this function is called from handleSubmit
+        // For direct submits/nudge, input is not involved or cleared elsewhere
+        // handleInputChange({ target: { value: '' } } as React.ChangeEvent<HTMLInputElement>);
+      } else {
+        console.error('Error sending room message:', await response.json());
+      }
+    } catch (error) {
+      console.error('Network error sending room message:', error);
+    }
+  }, [currentRoom, username]); // Dependencies for the helper function
+
   // Mark initial messages as loaded after the first render
   useEffect(() => {
     if (!initialMessagesLoaded.current && aiMessages.length > 0) {
@@ -1954,29 +1986,10 @@ export function ChatsAppComponent({
       e.preventDefault();
 
       if (currentRoom && username) {
-        // Send room message
-        fetch('/api/chat-rooms?action=sendMessage', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            roomId: currentRoom.id,
-            username,
-            content: input,
-          }),
-        }).then(async (response) => {
-          if (response.ok) {
-            const newMessage = await response.json();
-            setRoomMessages((prev) => {
-              // Add new message and ensure messages remain sorted by timestamp
-              const updated = [...prev, newMessage.message];
-              updated.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-              return updated;
-            });
-            handleInputChange({ target: { value: '' } } as React.ChangeEvent<HTMLInputElement>);
-          }
-        }).catch((error) => {
-          console.error('Error sending room message:', error);
-        });
+        // Send room message using the helper
+        sendRoomMessage(input);
+        // Clear the input field after sending
+        handleInputChange({ target: { value: '' } } as React.ChangeEvent<HTMLInputElement>);
       } else {
         // Send Ryo message
         const freshSystemState = getSystemState();
@@ -1988,7 +2001,7 @@ export function ChatsAppComponent({
         });
       }
     },
-    [originalHandleSubmit, textEditContext, currentRoom, username, input, handleInputChange]
+    [originalHandleSubmit, textEditContext, currentRoom, username, input, handleInputChange, sendRoomMessage] // Add sendRoomMessage dependency
   );
 
   const [messages, setMessages] = useState(aiMessages);
@@ -2365,27 +2378,34 @@ export function ChatsAppComponent({
 
   const handleDirectMessageSubmit = useCallback(
     (message: string) => {
-      append(
-        {
-          content: message,
-          role: "user",
-        },
-        {
-          body: {
-            textEditContext: textEditContext || undefined,
-            systemState: getSystemState(),
+      if (currentRoom && username) {
+        // Send to room if a room is active
+        sendRoomMessage(message);
+      } else {
+        // Otherwise, send to Ryo
+        append(
+          {
+            content: message,
+            role: "user",
           },
-        }
-      );
+          {
+            body: {
+              textEditContext: textEditContext || undefined,
+              systemState: getSystemState(),
+            },
+          }
+        );
+      }
     },
-    [append, textEditContext]
+    [append, textEditContext, currentRoom, username, sendRoomMessage] // Add dependencies
   );
 
   const handleNudge = useCallback(() => {
     setIsShaking(true);
     setTimeout(() => setIsShaking(false), 400);
+    // Use handleDirectMessageSubmit which now correctly routes the message
     handleDirectMessageSubmit("👋 *nudge sent*");
-  }, [handleDirectMessageSubmit]);
+  }, [handleDirectMessageSubmit]); // Dependency is now correct
 
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
@@ -2714,7 +2734,7 @@ export function ChatsAppComponent({
               error={error}
               onRetry={reload}
               onClear={clearChats}
-              // isInitialLoad={isMessageSourceChanged} // Remove prop pass
+              isRoomView={!!currentRoom} // Pass the new prop
             />
 
             <ChatInput

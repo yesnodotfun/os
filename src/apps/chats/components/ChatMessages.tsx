@@ -81,6 +81,7 @@ interface ChatMessagesProps {
   error?: Error;
   onRetry?: () => void;
   onClear?: () => void;
+  isRoomView: boolean; // Add prop to indicate if this is a room view
 }
 
 export function ChatMessages({
@@ -89,6 +90,7 @@ export function ChatMessages({
   error,
   onRetry,
   onClear,
+  isRoomView,
 }: ChatMessagesProps) {
   const [scrollLockedToBottom, setScrollLockedToBottom] = useState(true);
   const viewportRef = useRef<HTMLElement | null>(null);
@@ -201,6 +203,26 @@ export function ChatMessages({
             },
           }}
         >
+          {messages.length === 0 && !isRoomView && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center gap-2 text-gray-500 font-['Geneva-9'] text-[16px] antialiased h-[12px]"
+            >
+              <MessageSquare className="h-3 w-3" />
+              <span>Start a new conversation?</span>
+              {onClear && (
+                <Button
+                  size="sm"
+                  variant="link"
+                  onClick={onClear}
+                  className="m-0 p-0 text-[16px] h-0 text-gray-500 hover:text-gray-700"
+                >
+                  New chat
+                </Button>
+              )}
+            </motion.div>
+          )}
           {messages.map((message) => (
             <motion.div
               key={
@@ -501,25 +523,6 @@ export function ChatMessages({
                   className="m-0 p-0 text-[16px] h-0 text-amber-600"
                 >
                   Try again
-                </Button>
-              )}
-            </motion.div>
-          )}
-          {messages.length > 25 && (
-            <motion.div
-              layout
-              className="flex items-center gap-2 text-gray-500 font-['Geneva-9'] text-[16px] antialiased h-[12px]"
-            >
-              <MessageSquare className="h-3 w-3" />
-              <span>Start a new conversation?</span>
-              {onClear && (
-                <Button
-                  size="sm"
-                  variant="link"
-                  onClick={onClear}
-                  className="m-0 p-0 text-[16px] h-0 text-gray-500 hover:text-gray-700"
-                >
-                  New chat
                 </Button>
               )}
             </motion.div>
