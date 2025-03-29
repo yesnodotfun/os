@@ -1665,7 +1665,7 @@ const ChatRoomSidebar: React.FC<{
             className={`px-2 py-1 cursor-pointer ${currentRoom === null ? 'bg-black text-white' : 'hover:bg-black/5'}`}
             onClick={() => onRoomSelect(null as any)} // Using null for Ryo chat
           >
-            Chat with Ryo
+            @ryo
           </div>
           {rooms.map((room) => (
             <div
@@ -1673,7 +1673,7 @@ const ChatRoomSidebar: React.FC<{
               className={`group relative px-2 py-1 cursor-pointer ${currentRoom?.id === room.id ? 'bg-black text-white' : 'hover:bg-black/5'}`}
               onClick={() => onRoomSelect(room)}
             >
-              {room.name} ({room.userCount})
+              #{room.name} ({room.userCount})
               {onDeleteRoom && (
                 <button
                   className="absolute right-1 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-red-500 p-1 rounded hover:bg-black/5"
@@ -1748,8 +1748,8 @@ export function ChatsAppComponent({
   const [roomToDelete, setRoomToDelete] = useState<ChatRoom | null>(null);
 
   // Add ref to track message source changes
-  const lastMessageSource = useRef<string | null>(null);
-  const [isMessageSourceChanged, setIsMessageSourceChanged] = useState(false);
+  // const lastMessageSource = useRef<string | null>(null); // Remove this
+  // const [isMessageSourceChanged, setIsMessageSourceChanged] = useState(false); // Remove this
 
   // Handler to toggle sidebar visibility
   const toggleSidebar = useCallback(() => {
@@ -1815,9 +1815,6 @@ export function ChatsAppComponent({
     const fetchRoomMessages = async () => {
       if (currentRoom) {
         try {
-          // Set isMessageSourceChanged to true before fetching to disable animations
-          setIsMessageSourceChanged(true);
-          
           const response = await fetch(`/api/chatRooms?action=getMessages&roomId=${currentRoom.id}`);
           const data = await response.json();
           // Sort messages chronologically by timestamp (oldest first)
@@ -1825,28 +1822,11 @@ export function ChatsAppComponent({
             (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
           );
           setRoomMessages(sortedMessages);
-          
-          // Update message source after fetching
-          lastMessageSource.current = `room-${currentRoom.id}`;
-          
-          // Keep animations disabled for a bit longer after loading
-          setTimeout(() => {
-            setIsMessageSourceChanged(false);
-          }, 500);
         } catch (error) {
           console.error('Error fetching room messages:', error);
-          setIsMessageSourceChanged(false);
         }
       } else {
-        // If switching back to Ryo chat, also set isMessageSourceChanged first
-        setIsMessageSourceChanged(true);
         setRoomMessages([]);
-        lastMessageSource.current = 'ryo';
-        
-        // Keep animations disabled for a bit longer
-        setTimeout(() => {
-          setIsMessageSourceChanged(false);
-        }, 500);
       }
     };
     fetchRoomMessages();
@@ -2632,6 +2612,22 @@ export function ChatsAppComponent({
     };
   }, []);
 
+  // Update when message source changes (detect Ryo vs chat room switch)
+  // useEffect(() => {
+  //   const currentSource = currentRoom ? `room-${currentRoom.id}` : 'ryo';
+  //   if (lastMessageSource.current !== currentSource) {
+  //     // Message source changed
+  //     setIsMessageSourceChanged(true);
+  //     lastMessageSource.current = currentSource;
+      
+  //     // Reset after the render cycle
+  //     const timer = setTimeout(() => {
+  //       setIsMessageSourceChanged(false);
+  //     }, 200);
+  //     return () => clearTimeout(timer);
+  //   }
+  // }, [currentRoom]); // Remove this effect
+
   if (!isWindowOpen) return null;
 
   return (
@@ -2672,6 +2668,7 @@ export function ChatsAppComponent({
           {/* Chat content - using flex properties for better height distribution */}
           <div className="flex flex-col flex-1 p-2 overflow-hidden">
             <ChatMessages
+              key={currentRoom ? `room-${currentRoom.id}` : 'ryo'} // Add dynamic key here
               messages={currentRoom ? roomMessages.map(msg => ({
                 id: msg.id,
                 role: msg.username === username ? 'user' : 'assistant', // Keep role for styling
@@ -2687,7 +2684,7 @@ export function ChatsAppComponent({
               error={error}
               onRetry={reload}
               onClear={clearChats}
-              isInitialLoad={isMessageSourceChanged} // Pass prop to disable animations on source change
+              // isInitialLoad={isMessageSourceChanged} // Remove prop pass
             />
 
             <ChatInput

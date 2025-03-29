@@ -81,7 +81,6 @@ interface ChatMessagesProps {
   error?: Error;
   onRetry?: () => void;
   onClear?: () => void;
-  isInitialLoad?: boolean; // Add new prop to indicate initial message load
 }
 
 export function ChatMessages({
@@ -90,7 +89,6 @@ export function ChatMessages({
   error,
   onRetry,
   onClear,
-  isInitialLoad = false, // Default to false to maintain backward compatibility
 }: ChatMessagesProps) {
   const [scrollLockedToBottom, setScrollLockedToBottom] = useState(true);
   const viewportRef = useRef<HTMLElement | null>(null);
@@ -105,32 +103,9 @@ export function ChatMessages({
   const [isInteractingWithPreview, setIsInteractingWithPreview] =
     useState(false);
   
-  // Track if we should disable text span animations specifically
-  const [shouldDisableTextAnimations, setShouldDisableTextAnimations] = useState(isInitialLoad);
+  // Track if this is the first render of a new message set
+  const [isFirstRender, setIsFirstRender] = useState(true);
   
-  // Track message source to detect changes
-  const messagesSourceRef = useRef<string>(JSON.stringify(messages.map(m => m.id)));
-  
-  // Update text animation disabling when messages source changes
-  useEffect(() => {
-    const currentMessagesSource = JSON.stringify(messages.map(m => m.id || m.content.substring(0, 20)));
-    
-    // If messages source changed or initial load flag is set, disable text animations
-    if (isInitialLoad || currentMessagesSource !== messagesSourceRef.current) {
-      console.log("Disabling text animations for new message set");
-      setShouldDisableTextAnimations(true);
-      messagesSourceRef.current = currentMessagesSource;
-      
-      // Keep text animations disabled for 500ms to ensure all rendering is complete
-      const timer = setTimeout(() => {
-        console.log("Re-enabling text animations for new messages");
-        setShouldDisableTextAnimations(false);
-      }, 500);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [messages, isInitialLoad]);
-
   const copyMessage = async (message: ChatMessage) => {
     try {
       await navigator.clipboard.writeText(message.content);
@@ -406,71 +381,41 @@ export function ChatMessages({
                       return (
                         <>
                           {/* Show only non-HTML text content */}
-                          {textContent && (
-                            <div className="select-text">
-                              {shouldDisableTextAnimations ? (
-                                // Render all text at once without animations when text animations are disabled
-                                <span 
-                                  className={`select-text ${isEmojiOnly(textContent) ? "text-[24px]" : ""}`}
-                                  style={{ userSelect: "text" }}
-                                >
-                                  {segmentText(textContent).map((segment, idx) => (
-                                    <span
-                                      key={idx}
-                                      className={
-                                        segment.type === "bold"
-                                          ? "font-bold"
-                                          : segment.type === "italic"
-                                          ? "italic"
-                                          : ""
-                                      }
-                                    >
-                                      {segment.content}
-                                    </span>
-                                  ))}
-                                </span>
-                              ) : (
-                                // Use animated spans only when text animations are enabled
-                                segmentText(textContent).map((segment, idx) => (
-                                  <motion.span
-                                    key={idx}
-                                    initial={
-                                      hasXmlTags
-                                        ? { opacity: 1, y: 0 }
-                                        : { opacity: 0, y: 12 }
+                          {textContent &&
+                            segmentText(textContent).map((segment, idx) => (
+                              <motion.span
+                                key={idx}
+                                initial={{
+                                  // Always use the standard initial animation
+                                  opacity: 0, y: 12 
+                                }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className={`select-text ${
+                                  isEmojiOnly(textContent) ? "text-[24px]" : ""
+                                } ${
+                                  segment.type === "bold"
+                                    ? "font-bold"
+                                    : segment.type === "italic"
+                                    ? "italic"
+                                    : ""
+                                }`}
+                                style={{ userSelect: "text" }}
+                                transition={{
+                                  // Always use the standard transition
+                                  duration: 0.15,
+                                  delay: idx * 0.05,
+                                  ease: "easeOut",
+                                  onComplete: () => {
+                                    // Always attempt to play sound (standard behavior)
+                                    if (idx % 2 === 0) { 
+                                      playNote();
                                     }
-                                    animate={{ opacity: 1, y: 0 }}
-                                    className={`select-text ${
-                                      isEmojiOnly(textContent) ? "text-[24px]" : ""
-                                    } ${
-                                      segment.type === "bold"
-                                        ? "font-bold"
-                                        : segment.type === "italic"
-                                        ? "italic"
-                                        : ""
-                                    }`}
-                                    style={{ userSelect: "text" }}
-                                    transition={
-                                      hasXmlTags
-                                        ? { duration: 0 }
-                                        : {
-                                            duration: 0.15,
-                                            delay: idx * 0.05,
-                                            ease: "easeOut",
-                                            onComplete: () => {
-                                              if (idx % 2 === 0) {
-                                                playNote();
-                                              }
-                                            },
-                                          }
-                                    }
-                                  >
-                                    {segment.content}
-                                  </motion.span>
-                                ))
-                              )}
-                            </div>
-                          )}
+                                  },
+                                }}
+                              >
+                                {segment.content}
+                              </motion.span>
+                            ))}
 
                           {/* Show HTML preview if there's HTML content */}
                           {hasHtml && htmlContent && (
@@ -481,9 +426,9 @@ export function ChatMessages({
                                 isLoading &&
                                 message === messages[messages.length - 1]
                               }
-                              playElevatorMusic={shouldDisableTextAnimations ? () => {} : playElevatorMusic}
+                              playElevatorMusic={playElevatorMusic}
                               stopElevatorMusic={stopElevatorMusic}
-                              playDingSound={shouldDisableTextAnimations ? () => {} : playDingSound}
+                              playDingSound={playDingSound}
                             />
                           )}
                         </>
@@ -519,9 +464,9 @@ export function ChatMessages({
                       <HtmlPreview
                         htmlContent={isHtmlCodeBlock(message.content).content}
                         onInteractionChange={setIsInteractingWithPreview}
-                        playElevatorMusic={shouldDisableTextAnimations ? () => {} : playElevatorMusic}
+                        playElevatorMusic={playElevatorMusic}
                         stopElevatorMusic={stopElevatorMusic}
-                        playDingSound={shouldDisableTextAnimations ? () => {} : playDingSound}
+                        playDingSound={playDingSound}
                       />
                     )}
                   </>
