@@ -2592,6 +2592,9 @@ export function ChatsAppComponent({
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const [saveFileName, setSaveFileName] = useState("");
 
+  // Store the previous room ID to handle leaving
+  const previousRoomIdRef = useRef<string | null>(null);
+
   // Handler for initiating room deletion
   const handleDeleteRoom = useCallback((room: ChatRoom) => {
     setRoomToDelete(room);
@@ -2715,11 +2718,51 @@ export function ChatsAppComponent({
     setIsSaveDialogOpen(false);
   };
 
-  // Add room selection handler
-  const handleRoomSelect = useCallback((room: ChatRoom | null) => {
-    setCurrentRoom(room);
-    saveLastOpenedRoomId(room ? room.id : null); // Save the selected room ID (or null for Ryo chat)
+  // Add this helper function within the component
+  const callRoomAction = useCallback(async (action: 'joinRoom' | 'leaveRoom', roomId: string | null, currentUsername: string | null) => {
+    if (!roomId || !currentUsername) return; // Need room and user
+
+    console.log(`[Room Action] Calling ${action} for room ${roomId}, user ${currentUsername}`);
+    try {
+      const response = await fetch(`/api/chat-rooms?action=${action}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomId, username: currentUsername }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error(`[Room Action] Failed to ${action} room ${roomId}:`, errorData);
+      }
+    } catch (error) {
+      console.error(`[Room Action] Network error during ${action} for room ${roomId}:`, error);
+    }
   }, []);
+
+  // Add room selection handler - updated to handle join/leave
+  const handleRoomSelect = useCallback((newRoom: ChatRoom | null) => {
+    const previousRoomId = previousRoomIdRef.current;
+    const newRoomId = newRoom ? newRoom.id : null;
+
+    console.log(`[Room Select] Switching from ${previousRoomId || '@ryo'} to ${newRoomId || '@ryo'}`);
+
+    // Leave previous room if it exists and is different from the new one
+    if (previousRoomId && previousRoomId !== newRoomId && username) {
+      callRoomAction('leaveRoom', previousRoomId, username);
+    }
+
+    // Join new room if it exists and is different from the previous one
+    if (newRoomId && newRoomId !== previousRoomId && username) {
+      callRoomAction('joinRoom', newRoomId, username);
+    }
+
+    // Update state
+    setCurrentRoom(newRoom);
+    saveLastOpenedRoomId(newRoomId);
+
+    // Update the ref for the next change
+    previousRoomIdRef.current = newRoomId;
+
+  }, [username, callRoomAction]); // Dependencies: username, callRoomAction
 
   // Add room creation handler
   const handleAddRoom = useCallback(() => {
@@ -2824,7 +2867,28 @@ export function ChatsAppComponent({
     }
   };
 
-  // Add this right after other useEffect hooks, before the conditional return
+  // Add effect to handle joining the initial room on load and leaving on unmount
+  useEffect(() => {
+    const initialRoomId = currentRoom ? currentRoom.id : null;
+    
+    // Join the initial/restored room when username is available
+    if (initialRoomId && username) {
+      console.log("[Component Mount/User Ready] Joining initial room:", initialRoomId);
+      callRoomAction('joinRoom', initialRoomId, username);
+      previousRoomIdRef.current = initialRoomId; // Set initial previous room
+    }
+
+    // Cleanup: Leave the current room when the component unmounts
+    return () => {
+      const roomToLeave = previousRoomIdRef.current;
+      if (roomToLeave && username) {
+        console.log("[Component Unmount] Leaving room:", roomToLeave);
+        callRoomAction('leaveRoom', roomToLeave, username);
+      }
+    };
+  // Run when username becomes available or initial currentRoom is set
+  // Important: Add currentRoom?.id to dependencies to handle initial load correctly
+  }, [username, currentRoom?.id, callRoomAction]);
 
   // Cleanup function to ensure we don't have any hanging operations
   useEffect(() => {
@@ -2837,22 +2901,6 @@ export function ChatsAppComponent({
       console.log("Chat component unmounted, cleanup complete");
     };
   }, []);
-
-  // Update when message source changes (detect Ryo vs chat room switch)
-  // useEffect(() => {
-  //   const currentSource = currentRoom ? `room-${currentRoom.id}` : 'ryo';
-  //   if (lastMessageSource.current !== currentSource) {
-  //     // Message source changed
-  //     setIsMessageSourceChanged(true);
-  //     lastMessageSource.current = currentSource;
-      
-  //     // Reset after the render cycle
-  //     const timer = setTimeout(() => {
-  //       setIsMessageSourceChanged(false);
-  //     }, 200);
-  //     return () => clearTimeout(timer);
-  //   }
-  // }, [currentRoom]); // Remove this effect
 
   if (!isWindowOpen) return null;
 
