@@ -2,7 +2,7 @@ import { Soundboard, WindowPosition, WindowSize } from "../types/types";
 import { AppManagerState, AppState } from "../apps/base/types";
 import { Message } from "ai";
 import { getWindowConfig, getMobileWindowSize } from "../config/appRegistry";
-import { type ChatRoom } from '../types/chat';
+import { type ChatRoom, type ChatMessage } from '../types/chat';
 
 interface Document {
   name: string;
@@ -43,6 +43,7 @@ export const APP_STORAGE_KEYS = {
     CHAT_ROOM_USERNAME: "chats:chatRoomUsername",
     LAST_OPENED_ROOM_ID: "chats:lastOpenedRoomId",
     CACHED_ROOMS: "chats:cachedRooms",
+    CACHED_ROOM_MESSAGES: "chats:cachedRoomMessages",
   },
   textedit: {
     WINDOW: "textedit:window",
@@ -1473,4 +1474,45 @@ export const loadCachedChatRooms = (): ChatRoom[] | null => {
 
 export const saveCachedChatRooms = (rooms: ChatRoom[]): void => {
   localStorage.setItem(APP_STORAGE_KEYS.chats.CACHED_ROOMS, JSON.stringify(rooms));
+};
+
+// Add functions for caching individual room messages
+export const loadCachedRoomMessages = (roomId: string): ChatMessage[] | null => {
+  const saved = localStorage.getItem(APP_STORAGE_KEYS.chats.CACHED_ROOM_MESSAGES);
+  if (!saved) return null;
+
+  try {
+    const allCachedMessages: Record<string, ChatMessage[]> = JSON.parse(saved);
+    // Timestamps are stored as numbers, so they should be directly usable.
+    return allCachedMessages[roomId] || null;
+  } catch (error) {
+    console.error(`Error loading cached messages for room ${roomId}:`, error);
+    return null;
+  }
+};
+
+export const saveRoomMessagesToCache = (roomId: string, messages: ChatMessage[]): void => {
+  const saved = localStorage.getItem(APP_STORAGE_KEYS.chats.CACHED_ROOM_MESSAGES);
+  let allCachedMessages: Record<string, ChatMessage[]> = {};
+
+  if (saved) {
+    try {
+      allCachedMessages = JSON.parse(saved);
+    } catch (error) {
+      console.error("Error parsing existing cached room messages:", error);
+      allCachedMessages = {};
+    }
+  }
+
+  // Update messages - assumes timestamp is already a number
+  allCachedMessages[roomId] = messages;
+
+  try {
+    localStorage.setItem(
+      APP_STORAGE_KEYS.chats.CACHED_ROOM_MESSAGES,
+      JSON.stringify(allCachedMessages)
+    );
+  } catch (error) {
+    console.error(`Error saving cached messages for room ${roomId}:`, error);
+  }
 };

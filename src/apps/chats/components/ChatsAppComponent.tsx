@@ -20,6 +20,8 @@ import {
   saveLastOpenedRoomId,
   loadCachedChatRooms, // Import cache functions
   saveCachedChatRooms, // Import cache functions
+  loadCachedRoomMessages, // Import cache functions for messages
+  saveRoomMessagesToCache, // Import cache functions for messages
 } from "@/utils/storage";
 import { ChatMessages } from "./ChatMessages";
 import { ChatInput } from "./ChatInput";
@@ -1900,27 +1902,54 @@ export function ChatsAppComponent({
 
   // Load room messages when currentRoom changes
   useEffect(() => {
-    const fetchRoomMessages = async () => {
+    const fetchRoomMessages = async () => { // Restore async keyword
       if (currentRoom) {
         try {
+          // Load from cache first
+          const cachedMessages = loadCachedRoomMessages(currentRoom.id);
+          if (cachedMessages) {
+            // Timestamps from cache are numbers, directly update state
+            setRoomMessages(cachedMessages);
+            console.log(`Loaded ${cachedMessages.length} cached messages for room ${currentRoom.id}`);
+          }
+
           const response = await fetch(`/api/chat-rooms?action=getMessages&roomId=${currentRoom.id}`);
+          if (!response.ok) {
+            // If fetch fails, log error but rely on cache (if loaded)
+            console.error(`Error fetching messages: ${response.statusText}`);
+            return; 
+          }
           const data = await response.json();
-          // Sort messages chronologically by timestamp (oldest first)
-          const sortedMessages = [...(data.messages || [])].sort(
-            (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-          );
-          setRoomMessages(sortedMessages);
+          
+          // Assume API returns timestamps that can be parsed into numbers, sort
+          const fetchedMessages: ChatMessage[] = [...(data.messages || [])]
+            .map(msg => ({
+               ...msg, 
+               // Ensure timestamp is number, handle potential string/number from API
+               timestamp: typeof msg.timestamp === 'string' || typeof msg.timestamp === 'number' 
+                          ? new Date(msg.timestamp).getTime() 
+                          : msg.timestamp 
+            })) 
+            .sort((a, b) => a.timestamp - b.timestamp); // Sort by number timestamp
+
+          // Save fetched messages to cache (timestamps are now numbers)
+          saveRoomMessagesToCache(currentRoom.id, fetchedMessages);
+          
+          // Update state with fetched messages (timestamps are numbers)
+          setRoomMessages(fetchedMessages);
+          
         } catch (error) {
-          console.error('Error fetching room messages:', error);
+          console.error('Error processing room messages:', error);
+          // If fetch or processing fails, we rely on the cached messages (if any) loaded earlier
         }
       } else {
-        setRoomMessages([]);
+        setRoomMessages([]); // Clear messages if switching to Ryo chat
       }
     };
     fetchRoomMessages();
   }, [currentRoom]);
 
-  // Add polling for new room messages
+  // Add polling for new room messages // Restore polling effect structure
   useEffect(() => {
     if (!currentRoom || !username || !isForeground) {
       return; // No polling if not in a room, no username, or window not focused
@@ -1935,12 +1964,17 @@ export function ChatsAppComponent({
       try {
         const response = await fetch(`/api/chat-rooms?action=getMessages&roomId=${currentRoom.id}`);
         if (!response.ok) {
-          // Don't throw an error, just log it to avoid breaking the UI on transient network issues
           console.error(`Failed to fetch messages: ${response.statusText}`);
           return;
         }
         const data = await response.json();
-        const fetchedMessages: ChatMessage[] = data.messages || [];
+        // Ensure fetched timestamps are numbers
+        const fetchedMessages: ChatMessage[] = (data.messages || []).map((msg: any) => ({
+          ...msg,
+          timestamp: typeof msg.timestamp === 'string' || typeof msg.timestamp === 'number'
+                     ? new Date(msg.timestamp).getTime()
+                     : msg.timestamp
+        }));
 
         if (isMounted) {
           setRoomMessages((prevMessages) => {
@@ -1951,7 +1985,9 @@ export function ChatsAppComponent({
               console.log(`Fetched ${newMessages.length} new message(s)`);
               // Combine and sort by timestamp (oldest first)
               const combined = [...prevMessages, ...newMessages];
-              combined.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+              combined.sort((a, b) => a.timestamp - b.timestamp);
+              // Save combined messages to cache
+              saveRoomMessagesToCache(currentRoom.id, combined);
               return combined;
             }
             return prevMessages; // No changes
@@ -1962,16 +1998,14 @@ export function ChatsAppComponent({
       }
     };
 
-    // Set up polling interval
-    const intervalId = setInterval(fetchNewMessages, 10000); // Poll every 10 seconds
+    const intervalId = setInterval(fetchNewMessages, 10000); 
 
-    // Cleanup interval on unmount, room change, or losing focus
     return () => {
       isMounted = false;
       clearInterval(intervalId);
       console.log("Stopped polling for room messages.");
     };
-  }, [currentRoom, username, isForeground]); // Dependencies include username and isForeground
+  }, [currentRoom, username, isForeground]);
 
   // Modify useChat to handle both Ryo and room messages
   const {
@@ -2013,7 +2047,15 @@ export function ChatsAppComponent({
         setRoomMessages((prev) => {
           const updated = [...prev, newMessage.message];
           updated.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-          return updated;
+          // Save updated messages to cache (ensure timestamp is number)
+          const messagesToCache = updated.map(msg => ({
+            ...msg,
+            timestamp: typeof msg.timestamp === 'string' || typeof msg.timestamp === 'number'
+                        ? new Date(msg.timestamp).getTime()
+                        : msg.timestamp
+          }));
+          saveRoomMessagesToCache(currentRoom.id, messagesToCache);
+          return updated; // Return state with numeric timestamps
         });
         // Clear input only if this function is called from handleSubmit
         // For direct submits/nudge, input is not involved or cleared elsewhere
