@@ -1670,7 +1670,7 @@ const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
 
   return (
     // Updated classes: Added max-h-48 for mobile, adjusted flex/overflow for scrolling
-    <div className="w-full bg-[#e0e0e0] border-b flex flex-col max-h-44 overflow-hidden md:w-56 md:border-r md:border-b-0 md:max-h-full font-geneva-12 text-[12px]">
+    <div className="w-full bg-neutral-200 border-b flex flex-col max-h-44 overflow-hidden md:w-56 md:border-r md:border-b-0 md:max-h-full font-geneva-12 text-[12px]">
       {/* Apply ChatRoomSidebar inner container styles */}
       <div className="py-3 px-3 flex flex-col flex-1 overflow-hidden">
         {/* Updated header to include user count conditionally */}

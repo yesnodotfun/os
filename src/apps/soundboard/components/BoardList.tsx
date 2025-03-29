@@ -32,7 +32,7 @@ export function BoardList({
   micPermissionGranted,
 }: BoardListProps) {
   return (
-    <div className="w-full bg-[#e0e0e0] border-b flex flex-col max-h-44 overflow-hidden md:w-56 md:border-r md:border-b-0 md:max-h-full font-geneva-12 text-[12px]">
+    <div className="w-full bg-neutral-100 border-b flex flex-col max-h-44 overflow-hidden md:w-56 md:border-r md:border-b-0 md:max-h-full font-geneva-12 text-[12px]">
       <div className="py-3 px-3 flex flex-col flex-1 overflow-hidden">
         <div className="flex justify-between items-center md:mb-2">
           <h2 className="text-[14px] pl-1 mb-1">Soundboards</h2>
