@@ -1669,11 +1669,11 @@ const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
 
   return (
     // Updated classes: Added max-h-48 for mobile, adjusted flex/overflow for scrolling
-    <div className="w-full bg-[#e0e0e0] border-b flex flex-col max-h-44 overflow-hidden md:w-56 md:border-r md:border-b-0 md:max-h-full font-geneva-12 text-[12px]">
+    <div className="w-full bg-[#e0e0e0] border-b flex flex-col max-h-37 overflow-hidden md:w-56 md:border-r md:border-b-0 md:max-h-full font-geneva-12 text-[12px]">
       {/* Updated classes: Allow inner container to take space and manage overflow */}
       <div className="py-3 px-3 flex flex-col flex-1 overflow-hidden">
         <div className="flex justify-between items-center md:mb-2">
-          <h2 className="text-[14px] pl-1">Rooms</h2>
+          <h2 className="text-[14px] pl-1 mb-1">Rooms</h2>
           {/* Conditionally render Add Room button */}
           {isAdmin && (
             <Button
