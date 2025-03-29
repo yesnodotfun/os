@@ -281,7 +281,7 @@ async function handleGetMessages(roomId, requestId) {
 
     const messagesKey = `${CHAT_MESSAGES_PREFIX}${roomId}`;
     // Fetch only the last 10 messages (most recent)
-    const messagesStrings = await redis.lrange(messagesKey, 0, 9);
+    const messagesStrings = await redis.lrange(messagesKey, 0, 14);
     logInfo(requestId, `Retrieved ${messagesStrings.length} raw messages for room ${roomId}`);
 
     // Parse each message string/object

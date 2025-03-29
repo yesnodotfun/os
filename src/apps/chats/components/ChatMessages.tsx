@@ -11,6 +11,30 @@ import HtmlPreview, {
   extractHtmlContent,
 } from "@/components/shared/HtmlPreview";
 
+// --- Color Hashing for Usernames ---
+const userColors = [
+  "bg-pink-100 text-black",
+  "bg-purple-100 text-black",
+  "bg-indigo-100 text-black",
+  "bg-teal-100 text-black",
+  "bg-lime-100 text-black",
+  "bg-amber-100 text-black",
+  "bg-cyan-100 text-black",
+  "bg-rose-100 text-black",
+];
+
+const getUserColorClass = (username?: string): string => {
+  if (!username) {
+    return "bg-gray-200 text-black"; // Default or fallback color
+  }
+  // Simple hash function
+  const hash = username
+    .split("")
+    .reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return userColors[hash % userColors.length];
+};
+// --- End Color Hashing ---
+
 // Helper function to parse markdown and segment text
 const parseMarkdown = (text: string): { type: string; content: string }[] => {
   const tokens: { type: string; content: string }[] = [];
@@ -293,6 +317,17 @@ export function ChatMessages({
               animate: { opacity: 1 },
             };
 
+            // Determine message style based on role
+            let bgColorClass = "";
+            if (message.role === "user") {
+              bgColorClass = "bg-yellow-200 text-black";
+            } else if (message.role === "assistant") {
+              bgColorClass = "bg-blue-200 text-black";
+            } else if (message.role === "human") {
+              // Use hash-based color for human messages
+              bgColorClass = getUserColorClass(message.username);
+            }
+
             return (
               <motion.div
                 key={messageKey}
@@ -376,15 +411,37 @@ export function ChatMessages({
                   layout="position"
                   initial={{
                     backgroundColor:
-                      message.role === "user" ? "#fef08a" : "#bfdbfe",
+                      message.role === "user" ? "#fef08a" : 
+                      message.role === "assistant" ? "#bfdbfe" :
+                      // For human messages, convert bg-color-200 to hex (approximately)
+                      bgColorClass.split(" ")[0].includes("pink") ? "#fbd5e5" :
+                      bgColorClass.split(" ")[0].includes("purple") ? "#e9d5ff" :
+                      bgColorClass.split(" ")[0].includes("indigo") ? "#c7d2fe" :
+                      bgColorClass.split(" ")[0].includes("teal") ? "#afecef" :
+                      bgColorClass.split(" ")[0].includes("lime") ? "#d9f99d" :
+                      bgColorClass.split(" ")[0].includes("amber") ? "#fde68a" :
+                      bgColorClass.split(" ")[0].includes("cyan") ? "#a5f3fc" :
+                      bgColorClass.split(" ")[0].includes("rose") ? "#fecdd3" :
+                      "#e5e7eb", // gray-200 fallback
                     color: "#000000",
                   }}
                   animate={
                     isUrgentMessage(message.content)
                       ? {
                           backgroundColor: [
-                            "#fecaca",
-                            message.role === "user" ? "#fef08a" : "#bfdbfe",
+                            "#fecaca", // Start with red for urgent
+                            message.role === "user" ? "#fef08a" : 
+                            message.role === "assistant" ? "#bfdbfe" :
+                            // For human messages, convert bg-color-200 to hex (approximately)
+                            bgColorClass.split(" ")[0].includes("pink") ? "#fbd5e5" :
+                            bgColorClass.split(" ")[0].includes("purple") ? "#e9d5ff" :
+                            bgColorClass.split(" ")[0].includes("indigo") ? "#c7d2fe" :
+                            bgColorClass.split(" ")[0].includes("teal") ? "#afecef" :
+                            bgColorClass.split(" ")[0].includes("lime") ? "#d9f99d" :
+                            bgColorClass.split(" ")[0].includes("amber") ? "#fde68a" :
+                            bgColorClass.split(" ")[0].includes("cyan") ? "#a5f3fc" :
+                            bgColorClass.split(" ")[0].includes("rose") ? "#fecdd3" :
+                            "#e5e7eb", // gray-200 fallback
                           ],
                           color: ["#C92D2D", "#000000"],
                           transition: {
@@ -404,9 +461,9 @@ export function ChatMessages({
                       message.content.includes("```"))
                       ? "w-full p-[1px] m-0 outline-0 ring-0 !bg-transparent"
                       : `w-fit max-w-[90%] p-1.5 px-2 ${
-                          message.role === "user"
+                          bgColorClass || (message.role === "user"
                             ? "bg-yellow-200 text-black"
-                            : "bg-blue-200 text-black"
+                            : "bg-blue-200 text-black")
                         }`
                   } min-h-[12px] rounded leading-snug text-[12px] font-geneva-12 break-words select-text`}
                 >
