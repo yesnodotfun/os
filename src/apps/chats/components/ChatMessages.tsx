@@ -25,7 +25,7 @@ const userColors = [
 
 const getUserColorClass = (username?: string): string => {
   if (!username) {
-    return "bg-gray-200 text-black"; // Default or fallback color
+    return "bg-gray-100 text-black"; // Default or fallback color
   }
   // Simple hash function
   const hash = username
