@@ -1963,9 +1963,6 @@ export function ChatsAppComponent({
       }
     };
 
-    // Fetch immediately on entering room/foreground
-    fetchNewMessages();
-
     // Set up polling interval
     const intervalId = setInterval(fetchNewMessages, 10000); // Poll every 10 seconds
 
