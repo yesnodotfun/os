@@ -25,11 +25,9 @@ const generateRequestId = (): string => {
 };
 
 // API runtime config
-export const runtime = "edge";
-export const maxDuration = 60;
+export const runtime = "nodejs";
+export const maxDuration = 30;
 
-// Data models
-// Removed type definitions here, now imported from src/types/chat.ts
 
 // Redis key prefixes
 const CHAT_ROOM_PREFIX = 'chat:room:';
@@ -48,7 +46,10 @@ const getCurrentTimestamp = (): number => {
 
 // Error response helper
 const createErrorResponse = (message: string, status: number) => {
-  return Response.json({ error: message }, { status });
+  return new Response(JSON.stringify({ error: message }), { 
+    status,
+    headers: { 'Content-Type': 'application/json' }
+  });
 };
 
 // GET handler
@@ -172,13 +173,17 @@ async function handleGetRooms(requestId: string) {
     logInfo(requestId, `Found ${keys.length} rooms`);
     
     if (keys.length === 0) {
-      return Response.json({ rooms: [] });
+      return new Response(JSON.stringify({ rooms: [] }), {
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
     const roomsData = await redis.mget<ChatRoom[]>(...keys);
     const rooms = roomsData.map(room => room).filter(Boolean);
 
-    return Response.json({ rooms });
+    return new Response(JSON.stringify({ rooms }), {
+      headers: { 'Content-Type': 'application/json' }
+    });
   } catch (error) {
     logError(requestId, 'Error fetching rooms:', error);
     return createErrorResponse('Failed to fetch rooms', 500);
@@ -195,7 +200,9 @@ async function handleGetRoom(roomId: string, requestId: string) {
       return createErrorResponse('Room not found', 404);
     }
 
-    return Response.json({ room });
+    return new Response(JSON.stringify({ room }), {
+      headers: { 'Content-Type': 'application/json' }
+    });
   } catch (error) {
     logError(requestId, `Error fetching room ${roomId}:`, error);
     return createErrorResponse('Failed to fetch room', 500);
@@ -223,7 +230,10 @@ async function handleCreateRoom(data: { name: string }, requestId: string) {
     await redis.set(`${CHAT_ROOM_PREFIX}${roomId}`, room);
     logInfo(requestId, `Room created: ${roomId}`);
 
-    return Response.json({ room }, { status: 201 });
+    return new Response(JSON.stringify({ room }), {
+      status: 201,
+      headers: { 'Content-Type': 'application/json' }
+    });
   } catch (error) {
     logError(requestId, `Error creating room ${name}:`, error);
     return createErrorResponse('Failed to create room', 500);
@@ -248,7 +258,9 @@ async function handleDeleteRoom(roomId: string, requestId: string) {
     await pipeline.exec();
     logInfo(requestId, `Room deleted: ${roomId}`);
 
-    return Response.json({ success: true });
+    return new Response(JSON.stringify({ success: true }), {
+      headers: { 'Content-Type': 'application/json' }
+    });
   } catch (error) {
     logError(requestId, `Error deleting room ${roomId}:`, error);
     return createErrorResponse('Failed to delete room', 500);
@@ -297,7 +309,9 @@ async function handleGetMessages(roomId: string, requestId: string) {
 
     logInfo(requestId, `Processed ${messages.length} valid messages for room ${roomId}`);
 
-    return Response.json({ messages });
+    return new Response(JSON.stringify({ messages }), {
+      headers: { 'Content-Type': 'application/json' }
+    });
   } catch (error) {
     logError(requestId, `Error fetching messages for room ${roomId}:`, error);
     return createErrorResponse('Failed to fetch messages', 500);
@@ -352,7 +366,10 @@ async function handleSendMessage(data: { roomId: string, username: string, conte
       logInfo(requestId, `Updated user ${username} last active timestamp`);
     }
 
-    return Response.json({ message }, { status: 201 });
+    return new Response(JSON.stringify({ message }), {
+      status: 201,
+      headers: { 'Content-Type': 'application/json' }
+    });
   } catch (error) {
     logError(requestId, `Error sending message in room ${roomId} from user ${username}:`, error);
     return createErrorResponse('Failed to send message', 500);
@@ -367,13 +384,17 @@ async function handleGetUsers(requestId: string) {
     logInfo(requestId, `Found ${keys.length} users`);
     
     if (keys.length === 0) {
-      return Response.json({ users: [] });
+      return new Response(JSON.stringify({ users: [] }), {
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
     const usersData = await redis.mget<User[]>(...keys);
     const users = usersData.map(user => user).filter(Boolean);
 
-    return Response.json({ users });
+    return new Response(JSON.stringify({ users }), {
+      headers: { 'Content-Type': 'application/json' }
+    });
   } catch (error) {
     logError(requestId, 'Error fetching users:', error);
     return createErrorResponse('Failed to fetch users', 500);
@@ -405,7 +426,10 @@ async function handleCreateUser(data: { username: string }, requestId: string) {
     }
 
     logInfo(requestId, `User created: ${username}`);
-    return Response.json({ user }, { status: 201 });
+    return new Response(JSON.stringify({ user }), {
+      status: 201,
+      headers: { 'Content-Type': 'application/json' }
+    });
   } catch (error) {
     logError(requestId, `Error creating user ${username}:`, error);
     return createErrorResponse('Failed to create user', 500);
@@ -452,7 +476,9 @@ async function handleJoinRoom(data: { roomId: string, username: string }, reques
     const updatedUser: User = { ...userData, lastActive: getCurrentTimestamp() };
     await redis.set(`${CHAT_USERS_PREFIX}${username}`, updatedUser);
 
-    return Response.json({ success: true });
+    return new Response(JSON.stringify({ success: true }), {
+      headers: { 'Content-Type': 'application/json' }
+    });
   } catch (error) {
     logError(requestId, `Error joining room ${roomId} for user ${username}:`, error);
     return createErrorResponse('Failed to join room', 500);
@@ -490,7 +516,9 @@ async function handleLeaveRoom(data: { roomId: string, username: string }, reque
       logInfo(requestId, `User ${username} was not in room ${roomId}`);
     }
 
-    return Response.json({ success: true });
+    return new Response(JSON.stringify({ success: true }), {
+      headers: { 'Content-Type': 'application/json' }
+    });
   } catch (error) {
     logError(requestId, `Error leaving room ${roomId} for user ${username}:`, error);
     return createErrorResponse('Failed to leave room', 500);

@@ -23,7 +23,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { FileText, Plus } from "lucide-react";
 import { AppId } from "@/config/appRegistry";
 import { saveAsMarkdown } from "@/utils/markdown/saveUtils";
-import { type ChatRoom, type ChatMessage } from "../../../../api/chatRooms";
+import { type ChatRoom, type ChatMessage } from "../../../../src/types/chat";
 import { Button } from "@/components/ui/button";
 
 // Define types for TextEdit content structure
@@ -1655,7 +1655,7 @@ const ChatRoomSidebar: React.FC<{
               variant="ghost"
               size="sm"
               onClick={onAddRoom}
-              className="flex items-center text-xs hover:bg-black/5"
+              className="flex items-center text-xs hover:bg-black/5 mr-1"
             >
               <Plus className="w-3 h-3" />
             </Button>
