@@ -1678,7 +1678,7 @@ export function ChatsAppComponent({
     createdAt: new Date(),
   };
 
-  const { appStates, toggleApp } = useAppContext();
+  const { toggleApp } = useAppContext();
   const launchApp = useLaunchApp();
   // const isTextEditOpen = appStates["textedit"]?.isOpen || false; // Removed unused variable
   const [textEditContext, setTextEditContext] = useState<{
