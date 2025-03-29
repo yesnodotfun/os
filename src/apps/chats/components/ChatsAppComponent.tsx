@@ -1657,7 +1657,6 @@ const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
   onDeleteRoom,
   isVisible,
   isAdmin, // Receive isAdmin
-  onToggleVisibility, // Add missing prop to destructuring
 }) => {
   if (!isVisible) {
     // When not visible on mobile, don't render anything
@@ -2752,7 +2751,6 @@ export function ChatsAppComponent({
         rooms={rooms}
         currentRoom={currentRoom}
         onRoomSelect={handleRoomSelect}
-        username={username} // Pass username
         isAdmin={isAdmin} // Pass isAdmin
       />
       <WindowFrame

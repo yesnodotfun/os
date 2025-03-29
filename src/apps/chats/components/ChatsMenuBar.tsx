@@ -23,7 +23,6 @@ interface ChatsMenuBarProps {
   rooms: ChatRoom[];
   currentRoom: ChatRoom | null;
   onRoomSelect: (room: ChatRoom | null) => void;
-  username: string | null;
   isAdmin: boolean;
 }
 
@@ -40,7 +39,6 @@ export function ChatsMenuBar({
   rooms,
   currentRoom,
   onRoomSelect,
-  username,
   isAdmin,
 }: ChatsMenuBarProps) {
   return (
