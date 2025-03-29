@@ -208,12 +208,14 @@ async function handleGetRoom(roomId, requestId) {
 }
 
 async function handleCreateRoom(data, requestId) {
-  const { name } = data;
+  const { name: originalName } = data;
 
-  if (!name) {
+  if (!originalName) {
     logInfo(requestId, 'Room creation failed: Name is required');
     return createErrorResponse('Room name is required', 400);
   }
+
+  const name = originalName.toLowerCase().replace(/ /g, '-');
 
   logInfo(requestId, `Creating room: ${name}`);
   try {
@@ -278,8 +280,8 @@ async function handleGetMessages(roomId, requestId) {
     }
 
     const messagesKey = `${CHAT_MESSAGES_PREFIX}${roomId}`;
-    // Assuming messages are stored as stringified JSON in the list
-    const messagesStrings = await redis.lrange(messagesKey, 0, -1);
+    // Fetch only the last 10 messages (most recent)
+    const messagesStrings = await redis.lrange(messagesKey, 0, 9);
     logInfo(requestId, `Retrieved ${messagesStrings.length} raw messages for room ${roomId}`);
 
     // Parse each message string/object

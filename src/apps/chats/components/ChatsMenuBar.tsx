@@ -23,6 +23,8 @@ interface ChatsMenuBarProps {
   rooms: ChatRoom[];
   currentRoom: ChatRoom | null;
   onRoomSelect: (room: ChatRoom | null) => void;
+  username: string | null;
+  isAdmin: boolean;
 }
 
 export function ChatsMenuBar({
@@ -38,6 +40,8 @@ export function ChatsMenuBar({
   rooms,
   currentRoom,
   onRoomSelect,
+  username,
+  isAdmin,
 }: ChatsMenuBarProps) {
   return (
     <MenuBar>
@@ -87,12 +91,14 @@ export function ChatsMenuBar({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" sideOffset={1} className="px-0 max-h-[300px] overflow-y-auto">
-          <DropdownMenuItem
-            onClick={onAddRoom}
-            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
-          >
-            New Room...
-          </DropdownMenuItem>
+          {isAdmin && (
+            <DropdownMenuItem
+              onClick={onAddRoom}
+              className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+            >
+              New Room...
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem
             onClick={onSetUsername}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"

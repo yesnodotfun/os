@@ -1632,15 +1632,29 @@ window.tests = {
 };
 
 // Add chat room sidebar component
-const ChatRoomSidebar: React.FC<{
+interface ChatRoomSidebarProps { // Explicitly define props interface
   rooms: ChatRoom[];
   currentRoom: ChatRoom | null;
-  onRoomSelect: (room: ChatRoom) => void;
+  onRoomSelect: (room: ChatRoom | null) => void; // Allow null
   onAddRoom: () => void;
   onDeleteRoom?: (room: ChatRoom) => void;
   isVisible: boolean;
   onToggleVisibility?: () => void;
-}> = ({ rooms, currentRoom, onRoomSelect, onAddRoom, onDeleteRoom, isVisible }) => {
+  username: string | null; // Add username prop
+  isAdmin: boolean; // Add isAdmin prop
+}
+
+// Use the interface in React.FC
+const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
+  rooms,
+  currentRoom,
+  onRoomSelect,
+  onAddRoom,
+  onDeleteRoom,
+  isVisible,
+  isAdmin, // Receive isAdmin
+  onToggleVisibility, // Add missing prop to destructuring
+}) => {
   if (!isVisible) {
     // When not visible on mobile, don't render anything
     return null;
@@ -1651,6 +1665,8 @@ const ChatRoomSidebar: React.FC<{
       <div className="py-3 px-3 flex flex-col h-full">
         <div className="flex justify-between items-center md:mb-2">
           <h2 className="text-[14px] pl-1">Rooms</h2>
+          {/* Conditionally render Add Room button */}
+          {isAdmin && (
             <Button
               variant="ghost"
               size="sm"
@@ -1659,6 +1675,7 @@ const ChatRoomSidebar: React.FC<{
             >
               <Plus className="w-3 h-3" />
             </Button>
+          )}
         </div>
         <div className="flex-1 overflow-auto md:space-y-1 min-h-0">
           <div
@@ -1673,8 +1690,9 @@ const ChatRoomSidebar: React.FC<{
               className={`group relative px-2 py-1 cursor-pointer ${currentRoom?.id === room.id ? 'bg-black text-white' : 'hover:bg-black/5'}`}
               onClick={() => onRoomSelect(room)}
             >
-              #{room.name} 
-              {onDeleteRoom && (
+              #{room.name}
+              {/* Conditionally render Delete Room button */}
+              {isAdmin && onDeleteRoom && (
                 <button
                   className="absolute right-1 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-red-500 p-1 rounded hover:bg-black/5"
                   onClick={(e) => {
@@ -1755,6 +1773,9 @@ export function ChatsAppComponent({
   // Add ref to track message source changes
   // const lastMessageSource = useRef<string | null>(null); // Remove this
   // const [isMessageSourceChanged, setIsMessageSourceChanged] = useState(false); // Remove this
+
+  // Determine if the user is an admin
+  const isAdmin = username === "ryo";
 
   // Handler to toggle sidebar visibility
   const toggleSidebar = useCallback(() => {
@@ -2650,6 +2671,8 @@ export function ChatsAppComponent({
         rooms={rooms}
         currentRoom={currentRoom}
         onRoomSelect={handleRoomSelect}
+        username={username} // Pass username
+        isAdmin={isAdmin} // Pass isAdmin
       />
       <WindowFrame
         title={currentRoom ? `#${currentRoom.name}` : "@ryo"}
@@ -2669,6 +2692,8 @@ export function ChatsAppComponent({
             onDeleteRoom={handleDeleteRoom}
             isVisible={isSidebarVisible}
             onToggleVisibility={toggleSidebar}
+            username={username} // Pass username
+            isAdmin={isAdmin} // Pass isAdmin
           />
           {/* Chat content - using flex properties for better height distribution */}
           <div className="flex flex-col flex-1 p-2 overflow-hidden">
