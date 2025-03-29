@@ -33,6 +33,7 @@ import { AppId } from "@/config/appRegistry";
 import { saveAsMarkdown } from "@/utils/markdown/saveUtils";
 import { type ChatRoom, type ChatMessage } from "../../../../src/types/chat";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 // Define types for TextEdit content structure
 interface TextNode {
@@ -1669,11 +1670,14 @@ const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
 
   return (
     // Updated classes: Added max-h-48 for mobile, adjusted flex/overflow for scrolling
-    <div className="w-full bg-[#e0e0e0] border-b flex flex-col max-h-37 overflow-hidden md:w-56 md:border-r md:border-b-0 md:max-h-full font-geneva-12 text-[12px]">
-      {/* Updated classes: Allow inner container to take space and manage overflow */}
+    <div className="w-full bg-[#e0e0e0] border-b flex flex-col max-h-44 overflow-hidden md:w-56 md:border-r md:border-b-0 md:max-h-full font-geneva-12 text-[12px]">
+      {/* Apply ChatRoomSidebar inner container styles */}
       <div className="py-3 px-3 flex flex-col flex-1 overflow-hidden">
+        {/* Updated header to include user count conditionally */}
         <div className="flex justify-between items-center md:mb-2">
-          <h2 className="text-[14px] pl-1 mb-1">Rooms</h2>
+          <div className="flex items-baseline gap-1.5">
+            <h2 className="text-[14px] pl-1">Rooms</h2>
+          </div>
           {/* Conditionally render Add Room button */}
           {isAdmin && (
             <Button
@@ -1700,8 +1704,17 @@ const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
               className={`group relative px-2 py-1 cursor-pointer ${currentRoom?.id === room.id ? 'bg-black text-white' : 'hover:bg-black/5'}`}
               onClick={() => onRoomSelect(room)}
             >
-              #{room.name}
-              {/* Conditionally render Delete Room button */}
+              {/* Display room name and user count inline, conditionally visible */}
+              <div className="flex items-center">
+                <span>#{room.name}</span>
+                <span className={cn(
+                  "text-gray-400 text-[10px] ml-1.5 transition-opacity", // Added slight margin
+                  currentRoom?.id === room.id ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                )}>
+                  {room.userCount} online
+                </span>
+              </div>
+              {/* Conditionally render Delete Room button (absolute positioned) */}
               {isAdmin && onDeleteRoom && (
                 <button
                   className="absolute right-1 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-red-500 p-1 rounded hover:bg-black/5"
@@ -1717,11 +1730,6 @@ const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
             </div>
           ))}
         </div>
-        {currentRoom && (
-          <div className="mt-auto pt-2 border-t border-gray-300 text-gray-500 text-xs px-2">
-            <span>{currentRoom.userCount} online in #{currentRoom.name}</span>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -1825,6 +1833,59 @@ export function ChatsAppComponent({
     console.log("[Component Mount] Loading sidebar visibility from storage:", savedState);
     setIsSidebarVisible(savedState);
   }, []); // Empty dependency array ensures this runs only once
+
+  // Add polling for room data (including user counts)
+  useEffect(() => {
+    if (!isWindowOpen || !isForeground) {
+      return; // Don't poll if window is closed or not focused
+    }
+
+    const pollInterval = 15000; // Poll every 15 seconds
+    let isMounted = true;
+
+    const pollRooms = async () => {
+      if (!isMounted) return;
+      console.log(`[Polling] Fetching room data...`);
+      try {
+        const response = await fetch('/api/chat-rooms?action=getRooms');
+        if (!response.ok) {
+          console.error(`[Polling] Failed to fetch rooms: ${response.statusText}`);
+          return;
+        }
+        const data = await response.json();
+        const fetchedRooms = data.rooms || [];
+        
+        if (isMounted) {
+          // Only update if fetched data differs from current state to avoid unnecessary re-renders
+          setRooms(currentRooms => {
+            const currentRoomsJson = JSON.stringify(currentRooms.map((r: ChatRoom) => ({ id: r.id, name: r.name, userCount: r.userCount })));
+            const fetchedRoomsJson = JSON.stringify(fetchedRooms.map((r: ChatRoom) => ({ id: r.id, name: r.name, userCount: r.userCount })));
+            if (currentRoomsJson !== fetchedRoomsJson) {
+              console.log("[Polling] Room data updated:", fetchedRooms);
+              saveCachedChatRooms(fetchedRooms); // Update cache
+              return fetchedRooms;
+            }
+            return currentRooms; // No changes
+          });
+        }
+      } catch (error) {
+        console.error('[Polling] Error fetching rooms:', error);
+      }
+    };
+
+    // Initial fetch
+    pollRooms();
+    
+    // Set up interval
+    const intervalId = setInterval(pollRooms, pollInterval);
+
+    // Cleanup
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+      console.log("[Polling] Stopped polling for room data.");
+    };
+  }, [isWindowOpen, isForeground]); // Re-run if window visibility/focus changes
 
   // Fetch rooms on mount, using cache first
   useEffect(() => {
