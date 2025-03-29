@@ -2,6 +2,7 @@ import { Soundboard, WindowPosition, WindowSize } from "../types/types";
 import { AppManagerState, AppState } from "../apps/base/types";
 import { Message } from "ai";
 import { getWindowConfig, getMobileWindowSize } from "../config/appRegistry";
+import { type ChatRoom } from '../types/chat';
 
 interface Document {
   name: string;
@@ -40,6 +41,8 @@ export const APP_STORAGE_KEYS = {
     MESSAGES: "chats:messages",
     HAS_SEEN_HELP: "chats:hasSeenHelp",
     CHAT_ROOM_USERNAME: "chats:chatRoomUsername",
+    LAST_OPENED_ROOM_ID: "chats:lastOpenedRoomId",
+    CACHED_ROOMS: "chats:cachedRooms",
   },
   textedit: {
     WINDOW: "textedit:window",
@@ -1446,4 +1449,28 @@ export const loadChatRoomUsername = (): string | null => {
 
 export const saveChatRoomUsername = (username: string): void => {
   localStorage.setItem(APP_STORAGE_KEYS.chats.CHAT_ROOM_USERNAME, username);
+};
+
+// Add functions for loading and saving the last opened room ID
+export const loadLastOpenedRoomId = (): string | null => {
+  return localStorage.getItem(APP_STORAGE_KEYS.chats.LAST_OPENED_ROOM_ID) || null;
+};
+
+export const saveLastOpenedRoomId = (roomId: string | null): void => {
+  if (roomId) {
+    localStorage.setItem(APP_STORAGE_KEYS.chats.LAST_OPENED_ROOM_ID, roomId);
+  } else {
+    // Remove the item if the ID is null (e.g., user selected Ryo chat)
+    localStorage.removeItem(APP_STORAGE_KEYS.chats.LAST_OPENED_ROOM_ID);
+  }
+};
+
+// Add functions for loading and saving cached chat rooms
+export const loadCachedChatRooms = (): ChatRoom[] | null => {
+  const saved = localStorage.getItem(APP_STORAGE_KEYS.chats.CACHED_ROOMS);
+  return saved ? JSON.parse(saved) : null;
+};
+
+export const saveCachedChatRooms = (rooms: ChatRoom[]): void => {
+  localStorage.setItem(APP_STORAGE_KEYS.chats.CACHED_ROOMS, JSON.stringify(rooms));
 };

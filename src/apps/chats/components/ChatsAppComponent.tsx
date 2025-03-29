@@ -16,6 +16,10 @@ import {
   getSystemState,
   loadChatRoomUsername,
   saveChatRoomUsername,
+  loadLastOpenedRoomId,
+  saveLastOpenedRoomId,
+  loadCachedChatRooms, // Import cache functions
+  saveCachedChatRooms, // Import cache functions
 } from "@/utils/storage";
 import { ChatMessages } from "./ChatMessages";
 import { ChatInput } from "./ChatInput";
@@ -1804,19 +1808,78 @@ export function ChatsAppComponent({
     };
   }, []);
 
-  // Fetch rooms on mount
+  // Fetch rooms on mount, using cache first
   useEffect(() => {
+    // Load cached rooms immediately
+    const cachedRooms = loadCachedChatRooms();
+    if (cachedRooms) {
+      setRooms(cachedRooms);
+      console.log("Loaded cached rooms:", cachedRooms);
+      // Attempt to restore last room from cache
+      const lastRoomId = loadLastOpenedRoomId();
+      if (lastRoomId) {
+        const lastRoom = cachedRooms.find(room => room.id === lastRoomId);
+        if (lastRoom) {
+          setCurrentRoom(lastRoom);
+          console.log(`Restored last opened room from cache: ${lastRoom.name}`);
+        }
+      }
+    }
+
     const fetchRooms = async () => {
       try {
         const response = await fetch('/api/chat-rooms?action=getRooms');
         const data = await response.json();
-        setRooms(data.rooms || []);
+        const fetchedRooms = data.rooms || [];
+        
+        // Compare fetched rooms with cached rooms
+        const currentRoomsJson = JSON.stringify(cachedRooms || []);
+        const fetchedRoomsJson = JSON.stringify(fetchedRooms);
+
+        if (currentRoomsJson !== fetchedRoomsJson) {
+          setRooms(fetchedRooms);
+          saveCachedChatRooms(fetchedRooms);
+          console.log("Fetched and updated rooms cache:", fetchedRooms);
+        }
+
+        // After fetching rooms, try to load and set the last opened room (again, in case cache was outdated)
+        const lastRoomId = loadLastOpenedRoomId();
+        if (lastRoomId) {
+          const lastRoom = fetchedRooms.find((room: ChatRoom) => room.id === lastRoomId);
+          if (lastRoom) {
+            // Only set currentRoom if it wasn't already set from cache or if it needs updating
+            if (!currentRoom || currentRoom.id !== lastRoom.id) {
+              setCurrentRoom(lastRoom);
+              console.log(`Restored/updated last opened room from fetch: ${lastRoom.name}`);
+            }
+          } else {
+            // If the last room ID doesn't exist anymore, clear it and potentially switch to Ryo
+            if (currentRoom && currentRoom.id === lastRoomId) {
+              setCurrentRoom(null);
+              saveLastOpenedRoomId(null);
+              console.log(`Last opened room ID ${lastRoomId} not found in fetch, switching to @ryo.`);
+            } else if (!currentRoom) {
+              // If no room was set from cache, default to Ryo
+               setCurrentRoom(null);
+            }
+          }
+        } else {
+           // If no last room ID is saved, default to Ryo if no room set from cache
+           if (!currentRoom) {
+              setCurrentRoom(null);
+           }
+        }
+
       } catch (error) {
         console.error('Error fetching rooms:', error);
+        // If fetch fails, rely on cache or default to Ryo chat
+        if (!cachedRooms && !currentRoom) {
+          setCurrentRoom(null);
+        }
       }
     };
     fetchRooms();
-  }, []);
+  }, []); // Empty dependency array ensures this runs only once on mount
 
   // Load or register username
   useEffect(() => {
@@ -2539,6 +2602,7 @@ export function ChatsAppComponent({
   // Add room selection handler
   const handleRoomSelect = useCallback((room: ChatRoom | null) => {
     setCurrentRoom(room);
+    saveLastOpenedRoomId(room ? room.id : null); // Save the selected room ID (or null for Ryo chat)
   }, []);
 
   // Add room creation handler
