@@ -1,4 +1,5 @@
 import { Redis } from '@upstash/redis';
+import { ChatMessage, ChatRoom, User } from '../src/types/chat';
 
 // Set up Redis client
 const redis = new Redis({
@@ -28,25 +29,7 @@ export const runtime = "edge";
 export const maxDuration = 60;
 
 // Data models
-export type ChatMessage = {
-  id: string;
-  roomId: string;
-  username: string;
-  content: string;
-  timestamp: number;
-};
-
-export type ChatRoom = {
-  id: string;
-  name: string;
-  createdAt: number;
-  userCount: number;
-};
-
-type User = {
-  username: string;
-  lastActive: number;
-};
+// Removed type definitions here, now imported from src/types/chat.ts
 
 // Redis key prefixes
 const CHAT_ROOM_PREFIX = 'chat:room:';

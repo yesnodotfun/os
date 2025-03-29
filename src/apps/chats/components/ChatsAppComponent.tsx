@@ -1637,20 +1637,29 @@ const ChatRoomSidebar: React.FC<{
   currentRoom: ChatRoom | null;
   onRoomSelect: (room: ChatRoom) => void;
   onAddRoom: () => void;
-}> = ({ rooms, currentRoom, onRoomSelect, onAddRoom }) => {
+  isVisible: boolean;
+  onToggleVisibility?: () => void;
+}> = ({ rooms, currentRoom, onRoomSelect, onAddRoom, isVisible, onToggleVisibility }) => {
+  if (!isVisible) {
+    // When not visible on mobile, don't render anything
+    return null;
+  }
+
   return (
     <div className="w-full md:w-56 bg-[#e0e0e0] md:border-r border-b md:border-b-0 flex flex-col h-auto md:h-full max-h-64 md:max-h-none font-geneva-12 text-[12px]">
       <div className="py-2 md:py-4 px-4 flex flex-col h-full">
         <div className="flex justify-between items-center md:mb-2">
           <h2 className="text-[14px] pl-1">Rooms</h2>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onAddRoom}
-            className="flex items-center text-xs hover:bg-black/5"
-          >
-            <Plus className="w-3 h-3" />
-          </Button>
+          <div className="flex">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onAddRoom}
+              className="flex items-center text-xs hover:bg-black/5"
+            >
+              <Plus className="w-3 h-3" />
+            </Button>
+          </div>
         </div>
         <div className="flex-1 overflow-auto md:space-y-1 min-h-0">
           <div
@@ -1708,6 +1717,8 @@ export function ChatsAppComponent({
   const [currentRoom, setCurrentRoom] = useState<ChatRoom | null>(null);
   const [username, setUsername] = useState<string | null>(null);
   const [roomMessages, setRoomMessages] = useState<ChatMessage[]>([]);
+  // Add state for sidebar visibility
+  const [isSidebarVisible, setIsSidebarVisible] = useState(true);
 
   // State for username dialog
   const [isUsernameDialogOpen, setIsUsernameDialogOpen] = useState(false);
@@ -1720,6 +1731,33 @@ export function ChatsAppComponent({
   const [newRoomName, setNewRoomName] = useState("");
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
   const [roomError, setRoomError] = useState<string | null>(null);
+
+  // Handler to toggle sidebar visibility
+  const toggleSidebar = useCallback(() => {
+    setIsSidebarVisible(prev => !prev);
+  }, []);
+
+  // Add useEffect to handle responsive behavior - hide sidebar on small screens by default
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
+        setIsSidebarVisible(false);
+      } else {
+        setIsSidebarVisible(true);
+      }
+    };
+
+    // Set initial state
+    handleResize();
+
+    // Add event listener
+    window.addEventListener('resize', handleResize);
+    
+    // Clean up
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
   // Fetch rooms on mount
   useEffect(() => {
@@ -2529,7 +2567,9 @@ export function ChatsAppComponent({
         onShowAbout={() => setIsAboutDialogOpen(true)}
         onClearChats={clearChats}
         onSaveTranscript={handleSaveTranscript}
-        onSetUsername={handleSetUsernameClick} // Pass the handler
+        onSetUsername={handleSetUsernameClick}
+        onToggleSidebar={toggleSidebar}
+        isSidebarVisible={isSidebarVisible}
       />
       <WindowFrame
         title="Chats"
@@ -2546,6 +2586,8 @@ export function ChatsAppComponent({
             currentRoom={currentRoom}
             onRoomSelect={handleRoomSelect}
             onAddRoom={handleAddRoom}
+            isVisible={isSidebarVisible}
+            onToggleVisibility={toggleSidebar}
           />
           {/* Chat content - using flex properties for better height distribution */}
           <div className="flex flex-col flex-1 p-2 overflow-hidden">
