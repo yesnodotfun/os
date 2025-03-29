@@ -17,6 +17,7 @@ interface InputDialogProps {
   value: string;
   onChange: (value: string) => void;
   isLoading?: boolean;
+  errorMessage?: string | null;
 }
 
 export function InputDialog({
@@ -28,9 +29,10 @@ export function InputDialog({
   value,
   onChange,
   isLoading = false,
+  errorMessage = null,
 }: InputDialogProps) {
   const handleSubmit = () => {
-    if (!isLoading) {
+    if (!isLoading && !errorMessage) {
       onSubmit(value);
     }
   };
@@ -57,6 +59,9 @@ export function InputDialog({
             className="shadow-none"
             disabled={isLoading}
           />
+          {errorMessage && (
+            <p className="text-red-600 text-sm mt-1">{errorMessage}</p>
+          )}
           <DialogFooter className="mt-4">
             <Button
               variant="retro"

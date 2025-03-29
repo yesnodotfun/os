@@ -1701,6 +1701,12 @@ export function ChatsAppComponent({
   const [username, setUsername] = useState<string | null>(null);
   const [roomMessages, setRoomMessages] = useState<ChatMessage[]>([]);
 
+  // State for username dialog
+  const [isUsernameDialogOpen, setIsUsernameDialogOpen] = useState(false);
+  const [newUsername, setNewUsername] = useState("");
+  const [isSettingUsername, setIsSettingUsername] = useState(false); // Loading state
+  const [usernameError, setUsernameError] = useState<string | null>(null); // Error message state
+
   // Fetch rooms on mount
   useEffect(() => {
     const fetchRooms = async () => {
@@ -1717,28 +1723,19 @@ export function ChatsAppComponent({
 
   // Load or register username
   useEffect(() => {
-    const loadOrRegisterUser = async () => {
-      let storedUsername = loadChatRoomUsername();
-      if (!storedUsername) {
-        storedUsername = `User_${Math.random().toString(36).substring(2, 8)}`;
-        try {
-          const response = await fetch('/api/chatRooms?action=createUser', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: storedUsername }),
-          });
-          if (response.ok) {
-            saveChatRoomUsername(storedUsername);
-            setUsername(storedUsername);
-          }
-        } catch (error) {
-          console.error('Error registering user:', error);
-        }
-      } else {
+    const loadUser = () => {
+      const storedUsername = loadChatRoomUsername();
+      if (storedUsername) {
         setUsername(storedUsername);
+        console.log(`Loaded username: ${storedUsername}`);
+      } else {
+        setUsername(null); // Set to null if no username is stored
+        console.log('No stored username found.');
+        // Optionally prompt the user to set one later or upon action
+        // setIsUsernameDialogOpen(true); // Example: prompt immediately (removed for now)
       }
     };
-    loadOrRegisterUser();
+    loadUser();
   }, []);
 
   // Load room messages when currentRoom changes
@@ -1758,6 +1755,62 @@ export function ChatsAppComponent({
     };
     fetchRoomMessages();
   }, [currentRoom]);
+
+  // Add polling for new room messages
+  useEffect(() => {
+    if (!currentRoom || !username || !isForeground) {
+      return; // No polling if not in a room, no username, or window not focused
+    }
+
+    let isMounted = true; // Flag to prevent state updates on unmounted component
+
+    const fetchNewMessages = async () => {
+      if (!isMounted || !currentRoom) return; // Check again before fetching
+
+      console.log(`Polling for new messages in room: ${currentRoom.id}`);
+      try {
+        const response = await fetch(`/api/chatRooms?action=getMessages&roomId=${currentRoom.id}`);
+        if (!response.ok) {
+          // Don't throw an error, just log it to avoid breaking the UI on transient network issues
+          console.error(`Failed to fetch messages: ${response.statusText}`);
+          return;
+        }
+        const data = await response.json();
+        const fetchedMessages: ChatMessage[] = data.messages || [];
+
+        if (isMounted) {
+          setRoomMessages((prevMessages) => {
+            const existingIds = new Set(prevMessages.map(msg => msg.id));
+            const newMessages = fetchedMessages.filter(msg => !existingIds.has(msg.id));
+
+            if (newMessages.length > 0) {
+              console.log(`Fetched ${newMessages.length} new message(s)`);
+              // Combine and sort by timestamp
+              const combined = [...prevMessages, ...newMessages];
+              combined.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+              return combined;
+            }
+            return prevMessages; // No changes
+          });
+        }
+      } catch (error) {
+        console.error('Error polling for room messages:', error);
+      }
+    };
+
+    // Fetch immediately on entering room/foreground
+    fetchNewMessages();
+
+    // Set up polling interval
+    const intervalId = setInterval(fetchNewMessages, 5000); // Poll every 5 seconds
+
+    // Cleanup interval on unmount, room change, or losing focus
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+      console.log("Stopped polling for room messages.");
+    };
+  }, [currentRoom, username, isForeground]); // Dependencies include username and isForeground
 
   // Modify useChat to handle both Ryo and room messages
   const {
@@ -2351,6 +2404,53 @@ export function ChatsAppComponent({
     }
   }, [username]);
 
+  // Handler to open username dialog
+  const handleSetUsernameClick = () => {
+    setNewUsername(username || ""); // Initialize with current username or empty
+    setIsUsernameDialogOpen(true);
+  };
+
+  // Handler to submit new username
+  const handleUsernameSubmit = async (submittedUsername: string) => {
+    const trimmedUsername = submittedUsername.trim();
+    setUsernameError(null); // Clear previous errors
+
+    if (!trimmedUsername) {
+      setUsernameError("Username cannot be empty.");
+      return; // Don't proceed if empty
+    }
+
+    setIsSettingUsername(true);
+
+    try {
+      const response = await fetch('/api/chatRooms?action=createUser', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: trimmedUsername }),
+      });
+
+      if (response.ok) { // Status 201 Created or potentially 200 if already exists but we handle it
+        const data = await response.json();
+        saveChatRoomUsername(data.user.username); // Save the confirmed username
+        setUsername(data.user.username);
+        setIsUsernameDialogOpen(false);
+        console.log(`Username set to: ${data.user.username}`);
+      } else if (response.status === 409) { // Conflict - Username taken
+        setUsernameError("Username already taken. Please choose another.");
+      } else {
+        // Handle other API errors
+        const errorData = await response.json();
+        setUsernameError(errorData.error || 'Failed to set username.');
+        console.error('Error setting username:', errorData);
+      }
+    } catch (error) {
+      setUsernameError('Network error. Please try again.');
+      console.error('Network error setting username:', error);
+    } finally {
+      setIsSettingUsername(false);
+    }
+  };
+
   // Add this right after other useEffect hooks, before the conditional return
 
   // Cleanup function to ensure we don't have any hanging operations
@@ -2375,6 +2475,7 @@ export function ChatsAppComponent({
         onShowAbout={() => setIsAboutDialogOpen(true)}
         onClearChats={clearChats}
         onSaveTranscript={handleSaveTranscript}
+        onSetUsername={handleSetUsernameClick} // Pass the handler
       />
       <WindowFrame
         title="Chats"
@@ -2394,10 +2495,15 @@ export function ChatsAppComponent({
             <ChatMessages
               messages={currentRoom ? roomMessages.map(msg => ({
                 id: msg.id,
-                role: msg.username === username ? 'user' : 'assistant',
-                content: `${msg.username}: ${msg.content}`,
+                role: msg.username === username ? 'user' : 'assistant', // Keep role for styling
+                content: msg.content, // Content without prefix
                 createdAt: new Date(msg.timestamp),
-              })) : messages}
+                username: msg.username, // Pass the actual username
+              })) : messages.map(msg => ({
+                ...msg,
+                // Add username for AI messages too for consistency in ChatMessages component
+                username: msg.role === 'user' ? (username || 'You') : 'Ryo'
+              }))}
               isLoading={isLoading}
               error={error}
               onRetry={reload}
@@ -2417,13 +2523,15 @@ export function ChatsAppComponent({
                 new Set(
                   (currentRoom ? roomMessages : messages)
                     .filter((msg) => {
-                      if ('username' in msg) {
-                        // For ChatMessage (room messages)
+                      // Check if msg is a ChatMessage (room) or Message (AI)
+                      if ('username' in msg && msg.username) {
+                        // For ChatMessage (room messages), filter by current user's username
                         return msg.username === username;
-                      } else {
-                        // For AI messages
+                      } else if ('role' in msg) {
+                        // For AI Message, filter by role 'user'
                         return msg.role === "user";
                       }
+                      return false;
                     })
                     .map((msg) => msg.content)
                 )
@@ -2466,6 +2574,16 @@ export function ChatsAppComponent({
           description="Enter a name for your transcript file"
           value={saveFileName}
           onChange={setSaveFileName}
+        />
+        {/* Add Username Input Dialog */}
+        <InputDialog
+          isOpen={isUsernameDialogOpen}
+          onOpenChange={setIsUsernameDialogOpen}
+          onSubmit={handleUsernameSubmit}
+          title="Set Username"
+          description="Enter the username you want to use in chat rooms."
+          value={newUsername}
+          onChange={setNewUsername}
         />
       </WindowFrame>
     </>

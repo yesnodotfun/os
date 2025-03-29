@@ -14,6 +14,7 @@ interface ChatsMenuBarProps {
   onShowAbout: () => void;
   onClearChats: () => void;
   onSaveTranscript: () => void;
+  onSetUsername: () => void;
 }
 
 export function ChatsMenuBar({
@@ -22,6 +23,7 @@ export function ChatsMenuBar({
   onShowAbout,
   onClearChats,
   onSaveTranscript,
+  onSetUsername,
 }: ChatsMenuBarProps) {
   return (
     <MenuBar>
@@ -42,6 +44,13 @@ export function ChatsMenuBar({
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
             Save Transcript...
+          </DropdownMenuItem>
+          <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
+          <DropdownMenuItem
+            onClick={onSetUsername}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            Set Username...
           </DropdownMenuItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           <DropdownMenuItem

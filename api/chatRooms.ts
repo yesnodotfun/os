@@ -186,9 +186,12 @@ async function deleteRoom(response: VercelResponse, roomId: string) {
 
 // Message functions - modified to accept VercelResponse
 async function getMessages(response: VercelResponse, roomId: string) {
+  console.log(`[getMessages] Fetching messages for room: ${roomId}`); // Log Room ID
+
   const roomExists = await redis.exists(`${CHAT_ROOM_PREFIX}${roomId}`);
 
   if (!roomExists) {
+    console.log(`[getMessages] Room not found: ${roomId}`);
     // Use VercelResponse
     return response.status(404).json({ error: 'Room not found' });
   }
@@ -196,19 +199,34 @@ async function getMessages(response: VercelResponse, roomId: string) {
   const messagesKey = `${CHAT_MESSAGES_PREFIX}${roomId}`;
   // Assuming messages are stored as stringified JSON in the list
   const messagesStrings = await redis.lrange(messagesKey, 0, -1);
+  console.log(`[getMessages] Raw messages strings from Redis for ${roomId}:`, messagesStrings); // Log raw data
 
-  // Parse each message string
+  // Parse each message string/object
   const messages = messagesStrings
-    .map(messageStr => {
+    .map(item => {
       try {
-        // Ensure messageStr is treated as a string before parsing
-        return typeof messageStr === 'string' ? JSON.parse(messageStr) as ChatMessage : null;
+        if (typeof item === 'object' && item !== null) {
+          // Already an object, assume it's ChatMessage
+          // console.log(`[getMessages] Item is already an object:`, item); // Optional log
+          return item as ChatMessage; 
+        } else if (typeof item === 'string') {
+          // Item is a string, try parsing it
+          // console.log(`[getMessages] Item is a string, parsing:`, item);
+          const parsed = JSON.parse(item) as ChatMessage;
+          return parsed;
+        } else {
+          // Unexpected type
+          console.warn(`[getMessages] Unexpected item type in list for room ${roomId}:`, item);
+          return null;
+        }
       } catch (e) {
-        console.error("Failed to parse message:", messageStr, e);
+        console.error(`[getMessages] Failed to process or parse item for room ${roomId}:`, item, e); // Log processing/parsing errors
         return null;
       }
     })
-    .filter(Boolean); // Filter out any nulls from parsing errors
+    .filter((message): message is ChatMessage => message !== null); // Type guard in filter
+
+  console.log(`[getMessages] Final processed messages for ${roomId}:`, messages); // Log final array
 
   // Use VercelResponse
   return response.status(200).json({ messages });

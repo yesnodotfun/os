@@ -1,4 +1,4 @@
-import { Message } from "ai";
+import { Message as VercelMessage } from "ai";
 import { Loader2, AlertCircle, MessageSquare, Copy, Check } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useEffect, useRef, useState, useCallback } from "react";
@@ -70,8 +70,13 @@ const isEmojiOnly = (text: string): boolean => {
   return emojiRegex.test(text);
 };
 
+// Define an extended message type that includes username
+interface ChatMessage extends VercelMessage {
+  username?: string; // Add username, make it optional for safety
+}
+
 interface ChatMessagesProps {
-  messages: Message[];
+  messages: ChatMessage[]; // Use the extended type
   isLoading: boolean;
   error?: Error;
   onRetry?: () => void;
@@ -98,7 +103,7 @@ export function ChatMessages({
   const [isInteractingWithPreview, setIsInteractingWithPreview] =
     useState(false);
 
-  const copyMessage = async (message: Message) => {
+  const copyMessage = async (message: ChatMessage) => {
     try {
       await navigator.clipboard.writeText(message.content);
       setCopiedMessageId(
@@ -247,7 +252,7 @@ export function ChatMessages({
                     )}
                   </motion.button>
                 )}
-                {message.role === "user" ? "You" : "Ryo"}{" "}
+                {message.username || (message.role === "user" ? "You" : "Ryo")}{" "}
                 <span className="text-gray-400 select-text">
                   {message.createdAt ? (
                     new Date(message.createdAt).toLocaleTimeString([], {
