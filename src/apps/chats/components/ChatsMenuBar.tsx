@@ -59,19 +59,11 @@ export function ChatsMenuBar({
           >
             Save Transcript...
           </DropdownMenuItem>
-          <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
-          <DropdownMenuItem
-            onClick={onSetUsername}
-            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
-          >
-            Set Username...
-          </DropdownMenuItem>
-          <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           <DropdownMenuItem
             onClick={onClearChats}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            Clear Chats
+            Clear Chat
           </DropdownMenuItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           <DropdownMenuItem
@@ -99,7 +91,13 @@ export function ChatsMenuBar({
             onClick={onAddRoom}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            Add Room...
+            New Room...
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={onSetUsername}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            Set Username...
           </DropdownMenuItem>
           
           {rooms.length > 0 && (
@@ -155,7 +153,7 @@ export function ChatsMenuBar({
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
             <span className={cn(!isSidebarVisible && "pl-4")}>
-              {isSidebarVisible ? "✓ Show Sidebar" : "Show Sidebar"}
+              {isSidebarVisible ? "✓ Show Rooms" : "Show Rooms"}
             </span>
           </DropdownMenuItem>
         </DropdownMenuContent>

@@ -1782,7 +1782,7 @@ export function ChatsAppComponent({
   useEffect(() => {
     const fetchRooms = async () => {
       try {
-        const response = await fetch('/api/chatRooms?action=getRooms');
+        const response = await fetch('/api/chat-rooms?action=getRooms');
         const data = await response.json();
         setRooms(data.rooms || []);
       } catch (error) {
@@ -1815,7 +1815,7 @@ export function ChatsAppComponent({
     const fetchRoomMessages = async () => {
       if (currentRoom) {
         try {
-          const response = await fetch(`/api/chatRooms?action=getMessages&roomId=${currentRoom.id}`);
+          const response = await fetch(`/api/chat-rooms?action=getMessages&roomId=${currentRoom.id}`);
           const data = await response.json();
           // Sort messages chronologically by timestamp (oldest first)
           const sortedMessages = [...(data.messages || [])].sort(
@@ -1845,7 +1845,7 @@ export function ChatsAppComponent({
 
       console.log(`Polling for new messages in room: ${currentRoom.id}`);
       try {
-        const response = await fetch(`/api/chatRooms?action=getMessages&roomId=${currentRoom.id}`);
+        const response = await fetch(`/api/chat-rooms?action=getMessages&roomId=${currentRoom.id}`);
         if (!response.ok) {
           // Don't throw an error, just log it to avoid breaking the UI on transient network issues
           console.error(`Failed to fetch messages: ${response.statusText}`);
@@ -1929,7 +1929,7 @@ export function ChatsAppComponent({
 
       if (currentRoom && username) {
         // Send room message
-        fetch('/api/chatRooms?action=sendMessage', {
+        fetch('/api/chat-rooms?action=sendMessage', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -2378,7 +2378,7 @@ export function ChatsAppComponent({
     if (!roomToDelete) return;
     
     try {
-      const response = await fetch(`/api/chatRooms?action=deleteRoom&roomId=${roomToDelete.id}`, {
+      const response = await fetch(`/api/chat-rooms?action=deleteRoom&roomId=${roomToDelete.id}`, {
         method: 'DELETE'
       });
       
@@ -2520,7 +2520,7 @@ export function ChatsAppComponent({
     setIsCreatingRoom(true);
 
     try {
-      const response = await fetch('/api/chatRooms?action=createRoom', {
+      const response = await fetch('/api/chat-rooms?action=createRoom', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: trimmedRoomName }),
@@ -2530,7 +2530,7 @@ export function ChatsAppComponent({
         const newRoom = await response.json();
         setRooms((prev) => [...prev, newRoom.room]);
         // Auto-join the new room
-        await fetch('/api/chatRooms?action=joinRoom', {
+        await fetch('/api/chat-rooms?action=joinRoom', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ roomId: newRoom.room.id, username }),
@@ -2570,7 +2570,7 @@ export function ChatsAppComponent({
     setIsSettingUsername(true);
 
     try {
-      const response = await fetch('/api/chatRooms?action=createUser', {
+      const response = await fetch('/api/chat-rooms?action=createUser', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: trimmedUsername }),
