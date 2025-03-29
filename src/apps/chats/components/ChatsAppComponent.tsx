@@ -2719,17 +2719,20 @@ export function ChatsAppComponent({
           <div className="flex flex-col flex-1 p-2 overflow-hidden">
             <ChatMessages
               key={currentRoom ? `room-${currentRoom.id}` : 'ryo'} // Add dynamic key here
-              messages={currentRoom ? roomMessages.map(msg => ({
-                id: msg.id,
-                role: msg.username === username ? 'user' : 'assistant', // Keep role for styling
-                content: msg.content, // Content without prefix
-                createdAt: new Date(msg.timestamp),
-                username: msg.username, // Pass the actual username
-              })) : messages.map(msg => ({
-                ...msg,
-                // Add username for AI messages too for consistency in ChatMessages component
-                username: msg.role === 'user' ? (username || 'You') : 'Ryo'
-              }))}
+              messages={currentRoom
+                ? roomMessages.map(msg => ({
+                  id: msg.id,
+                  // Assign 'user' role if sender is current user, otherwise 'human'
+                  role: msg.username === username ? 'user' : 'human',
+                  content: msg.content,
+                  createdAt: new Date(msg.timestamp),
+                  username: msg.username, // Keep the actual username
+                }))
+                : messages.map(msg => ({
+                  // For Ryo chat, keep original roles and assign usernames
+                  ...msg,
+                  username: msg.role === 'user' ? (username || 'You') : 'Ryo'
+                }))}
               isLoading={isLoading}
               error={error}
               onRetry={reload}

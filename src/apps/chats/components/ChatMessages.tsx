@@ -71,8 +71,10 @@ const isEmojiOnly = (text: string): boolean => {
 };
 
 // Define an extended message type that includes username
-interface ChatMessage extends VercelMessage {
+// Extend VercelMessage and add username and the 'human' role
+interface ChatMessage extends Omit<VercelMessage, 'role'> { // Omit the original role to redefine it
   username?: string; // Add username, make it optional for safety
+  role: VercelMessage['role'] | 'human'; // Allow original roles plus 'human'
 }
 
 interface ChatMessagesProps {
@@ -105,7 +107,32 @@ export function ChatMessages({
   const [isInteractingWithPreview, setIsInteractingWithPreview] =
     useState(false);
   
-  
+  // Ref to track initial message IDs for animation control
+  const initialMessageIdsRef = useRef<Set<string>>(new Set());
+  const hasInitializedRef = useRef(false);
+
+  // Capture initial message IDs on mount (runs once per component instance/key change)
+  useEffect(() => {
+    // Only initialize once per component instance (keyed mount)
+    if (!hasInitializedRef.current && messages.length > 0) {
+      initialMessageIdsRef.current = new Set(messages.map(m => m.id || `${m.role}-${m.content.substring(0, 10)}`));
+      hasInitializedRef.current = true;
+    }
+    // We *don't* want this effect to re-run when messages update later,
+    // only when the component mounts due to a key change.
+    // Using an empty dependency array achieves this, but ESLint might complain.
+    // A more robust way might involve comparing props, but let's try this first.
+  }, []); // Run only once on mount for this instance
+
+  // Reset initialization state if messages become empty (e.g., chat cleared)
+  // and the component is still mounted (not changing room)
+  useEffect(() => {
+      if (messages.length === 0) {
+          hasInitializedRef.current = false;
+          initialMessageIdsRef.current = new Set();
+      }
+  }, [messages]);
+
   const copyMessage = async (message: ChatMessage) => {
     try {
       await navigator.clipboard.writeText(message.content);
@@ -223,277 +250,276 @@ export function ChatMessages({
               )}
             </motion.div>
           )}
-          {messages.map((message) => (
-            <motion.div
-              key={
-                message.id ||
-                `${message.role}-${message.content.substring(0, 10)}`
-              }
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.2 }}
-              className={`flex flex-col z-10 w-full ${
-                message.role === "user" ? "items-end" : "items-start"
-              }`}
-              style={{
-                transformOrigin:
-                  message.role === "user" ? "bottom right" : "bottom left",
-              }}
-              onMouseEnter={() =>
-                !isInteractingWithPreview &&
-                setHoveredMessageId(
-                  message.id ||
-                    `${message.role}-${message.content.substring(0, 10)}`
-                )
-              }
-              onMouseLeave={() =>
-                !isInteractingWithPreview && setHoveredMessageId(null)
-              }
-            >
-              <div className="text-[16px] text-gray-500 mb-0.5 font-['Geneva-9'] mb-[-2px] select-text flex items-center gap-2">
-                {message.role === "user" && (
-                  <motion.button
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{
-                      opacity:
-                        hoveredMessageId ===
-                        (message.id ||
-                          `${message.role}-${message.content.substring(0, 10)}`)
-                          ? 1
-                          : 0,
-                      scale: 1,
-                    }}
-                    className="h-3 w-3 text-gray-400 hover:text-gray-600 transition-colors"
-                    onClick={() => copyMessage(message)}
-                  >
-                    {copiedMessageId ===
-                    (message.id ||
-                      `${message.role}-${message.content.substring(0, 10)}`) ? (
-                      <Check className="h-3 w-3" />
-                    ) : (
-                      <Copy className="h-3 w-3" />
-                    )}
-                  </motion.button>
-                )}
-                {message.username || (message.role === "user" ? "You" : "Ryo")}{" "}
-                <span className="text-gray-400 select-text">
-                  {message.createdAt ? (
-                    new Date(message.createdAt).toLocaleTimeString([], {
-                      hour: "numeric",
-                      minute: "2-digit",
-                    })
-                  ) : (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  )}
-                </span>
-                {message.role === "assistant" && (
-                  <motion.button
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{
-                      opacity:
-                        hoveredMessageId ===
-                        (message.id ||
-                          `${message.role}-${message.content.substring(0, 10)}`)
-                          ? 1
-                          : 0,
-                      scale: 1,
-                    }}
-                    className="h-3 w-3 text-gray-400 hover:text-gray-600 transition-colors"
-                    onClick={() => copyMessage(message)}
-                  >
-                    {copiedMessageId ===
-                    (message.id ||
-                      `${message.role}-${message.content.substring(0, 10)}`) ? (
-                      <Check className="h-3 w-3" />
-                    ) : (
-                      <Copy className="h-3 w-3" />
-                    )}
-                  </motion.button>
-                )}
-              </div>
+          {messages.map((message) => {
+            const messageKey = message.id || `${message.role}-${message.content.substring(0, 10)}`;
+            const isInitialMessage = initialMessageIdsRef.current.has(messageKey);
 
+            // Define animation variants
+            const variants = {
+              initial: { opacity: 0 },
+              animate: { opacity: 1 },
+            };
+
+            return (
               <motion.div
-                layout="position"
-                initial={{
-                  backgroundColor:
-                    message.role === "user" ? "#fef08a" : "#bfdbfe",
-                  color: "#000000",
+                key={messageKey}
+                // Use variants, but skip the 'initial' state if it's an initial message
+                variants={variants}
+                initial={isInitialMessage ? "animate" : "initial"} // Start fully visible if initial
+                animate="animate"
+                transition={{ duration: 0.2 }} // Keep transition for layout changes
+                className={`flex flex-col z-10 w-full ${
+                  message.role === "user" ? "items-end" : "items-start"
+                }`}
+                style={{
+                  transformOrigin:
+                    message.role === "user" ? "bottom right" : "bottom left",
                 }}
-                animate={
-                  isUrgentMessage(message.content)
-                    ? {
-                        backgroundColor: [
-                          "#fecaca",
-                          message.role === "user" ? "#fef08a" : "#bfdbfe",
-                        ],
-                        color: ["#C92D2D", "#000000"],
-                        transition: {
-                          duration: 1,
-                          repeat: 1,
-                          repeatType: "reverse",
-                          ease: "easeInOut",
-                          delay: 0.,
-                        },
-                      }
-                    : {}
+                onMouseEnter={() =>
+                  !isInteractingWithPreview &&
+                  setHoveredMessageId(
+                    messageKey // Use consistent key
+                  )
                 }
-                className={`${
-                  isHtmlCodeBlock(message.content).isHtml ||
-                  (isLoading &&
-                    message === messages[messages.length - 1] &&
-                    message.content.includes("```"))
-                    ? "w-full p-[1px] m-0 outline-0 ring-0 !bg-transparent"
-                    : `w-fit max-w-[90%] p-1.5 px-2 ${
-                        message.role === "user"
-                          ? "bg-yellow-200 text-black"
-                          : "bg-blue-200 text-black"
-                      }`
-                } min-h-[12px] rounded leading-snug text-[12px] font-geneva-12 break-words select-text`}
+                onMouseLeave={() =>
+                  !isInteractingWithPreview && setHoveredMessageId(null)
+                }
               >
-                {message.role === "assistant" ? (
-                  <motion.div
-                    layout="position"
-                    className="select-text whitespace-pre-wrap"
-                  >
-                    {(() => {
-                      // Check for XML tags and their completeness
-                      const hasXmlTags =
-                        /<textedit:(insert|replace|delete)/i.test(
-                          message.content
-                        );
-                      if (hasXmlTags) {
-                        // Count opening and closing tags
-                        const openTags = (
-                          message.content.match(
-                            /<textedit:(insert|replace|delete)/g
-                          ) || []
-                        ).length;
-                        const closeTags = (
-                          message.content.match(
-                            /<\/textedit:(insert|replace)>|<textedit:delete[^>]*\/>/g
-                          ) || []
-                        ).length;
-
-                        // If tags are incomplete, show *editing*
-                        if (openTags !== closeTags) {
-                          return (
-                            <motion.span
-                              initial={{ opacity: 1 }}
-                              animate={{ opacity: 1 }}
-                              transition={{ duration: 0 }}
-                              className="select-text italic"
-                            >
-                              editing...
-                            </motion.span>
-                          );
-                        }
-                      }
-
-                      // Remove "!!!!" prefix and following space from urgent messages
-                      const displayContent = isUrgentMessage(message.content)
-                        ? message.content.slice(4).trimStart()
-                        : message.content;
-
-                      // Check for HTML content
-                      const { hasHtml, htmlContent, textContent } =
-                        extractHtmlContent(displayContent);
-
-                      return (
-                        <>
-                          {/* Show only non-HTML text content */}
-                          {textContent &&
-                            segmentText(textContent).map((segment, idx) => (
-                              <motion.span
-                                key={idx}
-                                initial={{
-                                  // Always use the standard initial animation
-                                  opacity: 0, y: 12 
-                                }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className={`select-text ${
-                                  isEmojiOnly(textContent) ? "text-[24px]" : ""
-                                } ${
-                                  segment.type === "bold"
-                                    ? "font-bold"
-                                    : segment.type === "italic"
-                                    ? "italic"
-                                    : ""
-                                }`}
-                                style={{ userSelect: "text" }}
-                                transition={{
-                                  // Always use the standard transition
-                                  duration: 0.15,
-                                  delay: idx * 0.05,
-                                  ease: "easeOut",
-                                  onComplete: () => {
-                                    // Always attempt to play sound (standard behavior)
-                                    if (idx % 2 === 0) { 
-                                      playNote();
-                                    }
-                                  },
-                                }}
-                              >
-                                {segment.content}
-                              </motion.span>
-                            ))}
-
-                          {/* Show HTML preview if there's HTML content */}
-                          {hasHtml && htmlContent && (
-                            <HtmlPreview
-                              htmlContent={htmlContent}
-                              onInteractionChange={setIsInteractingWithPreview}
-                              isStreaming={
-                                isLoading &&
-                                message === messages[messages.length - 1]
-                              }
-                              playElevatorMusic={playElevatorMusic}
-                              stopElevatorMusic={stopElevatorMusic}
-                              playDingSound={playDingSound}
-                            />
-                          )}
-                        </>
-                      );
-                    })()}
-                  </motion.div>
-                ) : (
-                  <>
-                    <span
-                      className={`select-text whitespace-pre-wrap ${
-                        isEmojiOnly(message.content) ? "text-[24px]" : ""
-                      }`}
-                      style={{ userSelect: "text" }}
+                <div className="text-[16px] text-gray-500 mb-0.5 font-['Geneva-9'] mb-[-2px] select-text flex items-center gap-2">
+                  {message.role === "user" && (
+                    <motion.button
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{
+                        opacity:
+                          hoveredMessageId === messageKey // Use consistent key
+                            ? 1
+                            : 0,
+                        scale: 1,
+                      }}
+                      className="h-3 w-3 text-gray-400 hover:text-gray-600 transition-colors"
+                      onClick={() => copyMessage(message)}
                     >
-                      {segmentText(message.content).map((segment, idx) => (
-                        <span
-                          key={idx}
-                          className={
-                            segment.type === "bold"
-                              ? "font-bold"
-                              : segment.type === "italic"
-                              ? "italic"
-                              : ""
-                          }
-                        >
-                          {segment.content}
-                        </span>
-                      ))}
-                    </span>
-
-                    {/* Check if user message contains HTML code and show preview */}
-                    {isHtmlCodeBlock(message.content).isHtml && (
-                      <HtmlPreview
-                        htmlContent={isHtmlCodeBlock(message.content).content}
-                        onInteractionChange={setIsInteractingWithPreview}
-                        playElevatorMusic={playElevatorMusic}
-                        stopElevatorMusic={stopElevatorMusic}
-                        playDingSound={playDingSound}
-                      />
+                      {copiedMessageId === messageKey ? ( // Use consistent key
+                        <Check className="h-3 w-3" />
+                      ) : (
+                        <Copy className="h-3 w-3" />
+                      )}
+                    </motion.button>
+                  )}
+                  {message.username || (message.role === "user" ? "You" : "Ryo")}{" "}
+                  <span className="text-gray-400 select-text">
+                    {message.createdAt ? (
+                      new Date(message.createdAt).toLocaleTimeString([], {
+                        hour: "numeric",
+                        minute: "2-digit",
+                      })
+                    ) : (
+                      <Loader2 className="h-3 w-3 animate-spin" />
                     )}
-                  </>
-                )}
+                  </span>
+                  {message.role === "assistant" && (
+                    <motion.button
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{
+                        opacity:
+                          hoveredMessageId === messageKey // Use consistent key
+                            ? 1
+                            : 0,
+                        scale: 1,
+                      }}
+                      className="h-3 w-3 text-gray-400 hover:text-gray-600 transition-colors"
+                      onClick={() => copyMessage(message)}
+                    >
+                      {copiedMessageId === messageKey ? ( // Use consistent key
+                        <Check className="h-3 w-3" />
+                      ) : (
+                        <Copy className="h-3 w-3" />
+                      )}
+                    </motion.button>
+                  )}
+                </div>
+
+                <motion.div
+                  layout="position"
+                  initial={{
+                    backgroundColor:
+                      message.role === "user" ? "#fef08a" : "#bfdbfe",
+                    color: "#000000",
+                  }}
+                  animate={
+                    isUrgentMessage(message.content)
+                      ? {
+                          backgroundColor: [
+                            "#fecaca",
+                            message.role === "user" ? "#fef08a" : "#bfdbfe",
+                          ],
+                          color: ["#C92D2D", "#000000"],
+                          transition: {
+                            duration: 1,
+                            repeat: 1,
+                            repeatType: "reverse",
+                            ease: "easeInOut",
+                            delay: 0.,
+                          },
+                        }
+                      : {}
+                  }
+                  className={`${
+                    isHtmlCodeBlock(message.content).isHtml ||
+                    (isLoading &&
+                      message === messages[messages.length - 1] &&
+                      message.content.includes("```"))
+                      ? "w-full p-[1px] m-0 outline-0 ring-0 !bg-transparent"
+                      : `w-fit max-w-[90%] p-1.5 px-2 ${
+                          message.role === "user"
+                            ? "bg-yellow-200 text-black"
+                            : "bg-blue-200 text-black"
+                        }`
+                  } min-h-[12px] rounded leading-snug text-[12px] font-geneva-12 break-words select-text`}
+                >
+                  {message.role === "assistant" ? (
+                    <motion.div
+                      layout="position"
+                      className="select-text whitespace-pre-wrap"
+                    >
+                      {(() => {
+                        // Check for XML tags and their completeness
+                        const hasXmlTags =
+                          /<textedit:(insert|replace|delete)/i.test(
+                            message.content
+                          );
+                        if (hasXmlTags) {
+                          // Count opening and closing tags
+                          const openTags = (
+                            message.content.match(
+                              /<textedit:(insert|replace|delete)/g
+                            ) || []
+                          ).length;
+                          const closeTags = (
+                            message.content.match(
+                              /<\/textedit:(insert|replace)>|<textedit:delete[^>]*\/>/g
+                            ) || []
+                          ).length;
+
+                          // If tags are incomplete, show *editing*
+                          if (openTags !== closeTags) {
+                            return (
+                              <motion.span
+                                initial={{ opacity: 1 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ duration: 0 }}
+                                className="select-text italic"
+                              >
+                                editing...
+                              </motion.span>
+                            );
+                          }
+                        }
+
+                        // Remove "!!!!" prefix and following space from urgent messages
+                        const displayContent = isUrgentMessage(message.content)
+                          ? message.content.slice(4).trimStart()
+                          : message.content;
+
+                        // Check for HTML content
+                        const { hasHtml, htmlContent, textContent } =
+                          extractHtmlContent(displayContent);
+
+                        return (
+                          <>
+                            {/* Show only non-HTML text content */}
+                            {textContent &&
+                              segmentText(textContent).map((segment, idx) => (
+                                <motion.span
+                                  key={idx}
+                                  // Skip initial animation for initial messages
+                                  initial={isInitialMessage ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  className={`select-text ${
+                                    isEmojiOnly(textContent) ? "text-[24px]" : ""
+                                  } ${
+                                    segment.type === "bold"
+                                      ? "font-bold"
+                                      : segment.type === "italic"
+                                      ? "italic"
+                                      : ""
+                                  }`}
+                                  style={{ userSelect: "text" }}
+                                  transition={{
+                                    // Always use the standard transition
+                                    duration: 0.15,
+                                    delay: idx * 0.05,
+                                    ease: "easeOut",
+                                    onComplete: () => {
+                                      // Always attempt to play sound (standard behavior)
+                                      if (idx % 2 === 0) { 
+                                        playNote();
+                                      }
+                                    },
+                                  }}
+                                >
+                                  {segment.content}
+                                </motion.span>
+                              ))}
+
+                            {/* Show HTML preview if there's HTML content */}
+                            {hasHtml && htmlContent && (
+                              <HtmlPreview
+                                htmlContent={htmlContent}
+                                onInteractionChange={setIsInteractingWithPreview}
+                                isStreaming={
+                                  isLoading &&
+                                  message === messages[messages.length - 1]
+                                }
+                                playElevatorMusic={playElevatorMusic}
+                                stopElevatorMusic={stopElevatorMusic}
+                                playDingSound={playDingSound}
+                              />
+                            )}
+                          </>
+                        );
+                      })()}
+                    </motion.div>
+                  ) : (
+                    <>
+                      <span
+                        className={`select-text whitespace-pre-wrap ${
+                          isEmojiOnly(message.content) ? "text-[24px]" : ""
+                        }`}
+                        style={{ userSelect: "text" }}
+                      >
+                        {segmentText(message.content).map((segment, idx) => (
+                          <span
+                            key={idx}
+                            className={
+                              segment.type === "bold"
+                                ? "font-bold"
+                                : segment.type === "italic"
+                                ? "italic"
+                                : ""
+                            }
+                          >
+                            {segment.content}
+                          </span>
+                        ))}
+                      </span>
+
+                      {/* Check if user message contains HTML code and show preview */}
+                      {isHtmlCodeBlock(message.content).isHtml && (
+                        <HtmlPreview
+                          htmlContent={isHtmlCodeBlock(message.content).content}
+                          onInteractionChange={setIsInteractingWithPreview}
+                          playElevatorMusic={playElevatorMusic}
+                          stopElevatorMusic={stopElevatorMusic}
+                          playDingSound={playDingSound}
+                        />
+                      )}
+                    </>
+                  )}
+                </motion.div>
               </motion.div>
-            </motion.div>
-          ))}
+            );
+          })}
           {isLoading && (
             <motion.div
               layout
