@@ -1,15 +1,14 @@
 import { Redis } from '@upstash/redis';
-import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 // Set up Redis client
 const redis = new Redis({
-  url: 'https://obliging-albacore-48177.upstash.io',
-  token: 'AbwxAAIjcDFjZTdjNjI3MGY0NmI0ZDYyYjg2NDBhMGI0NDdmOWI2N3AxMA',
+  url: process.env.REDIS_KV_REST_API_URL,
+  token: process.env.REDIS_KV_REST_API_TOKEN,
 });
 
 // Logging utilities
-const logRequest = (req: VercelRequest, id: string) => {
-  console.log(`[${id}] ${req.method} ${req.url} - Action: ${req.query.action}`);
+const logRequest = (method: string, url: string, action: string | null, id: string) => {
+  console.log(`[${id}] ${method} ${url} - Action: ${action || 'none'}`);
 };
 
 const logInfo = (id: string, message: string, data?: any) => {
@@ -25,9 +24,8 @@ const generateRequestId = (): string => {
 };
 
 // API runtime config
-// export const runtime = "edge";
-// export const edge = true;
-// export const maxDuration = 60;
+export const runtime = "nodejs";
+export const maxDuration = 60;
 
 // Data models
 export type ChatMessage = {
@@ -65,137 +63,168 @@ const getCurrentTimestamp = (): number => {
   return Date.now();
 };
 
-// API handler using VercelRequest and VercelResponse
-export default async function handler(request: VercelRequest, response: VercelResponse) {
+// Error response helper
+const createErrorResponse = (message: string, status: number) => {
+  return Response.json({ error: message }, { status });
+};
+
+// GET handler
+export async function GET(request: Request) {
   const requestId = generateRequestId();
   const startTime = performance.now();
-  logRequest(request, requestId);
+  const url = new URL(request.url);
+  const action = url.searchParams.get('action');
   
-  // Access query parameters and method from VercelRequest
-  const action = request.query.action as string;
+  logRequest('GET', request.url, action, requestId);
 
   try {
-    // Route API requests based on method and action query parameter
-    if (request.method === 'GET') {
-      switch (action) {
-        case 'getRooms':
-          return await getRooms(response, requestId);
-        case 'getRoom':
-          const getRoomId = request.query.roomId as string;
-          if (!getRoomId) {
-            logInfo(requestId, 'Missing roomId parameter');
-            return response.status(400).json({ error: 'roomId query parameter is required' });
-          }
-          return await getRoom(response, getRoomId, requestId);
-        case 'getMessages':
-          const getMessagesRoomId = request.query.roomId as string;
-          if (!getMessagesRoomId) {
-            logInfo(requestId, 'Missing roomId parameter');
-            return response.status(400).json({ error: 'roomId query parameter is required' });
-          }
-          return await getMessages(response, getMessagesRoomId, requestId);
-        case 'getUsers':
-          return await getUsers(response, requestId);
-        default:
-          logInfo(requestId, `Invalid action: ${action}`);
-          return response.status(400).json({ error: 'Invalid action' });
+    switch (action) {
+      case 'getRooms':
+        return await handleGetRooms(requestId);
+      case 'getRoom': {
+        const roomId = url.searchParams.get('roomId');
+        if (!roomId) {
+          logInfo(requestId, 'Missing roomId parameter');
+          return createErrorResponse('roomId query parameter is required', 400);
+        }
+        return await handleGetRoom(roomId, requestId);
       }
-    } else if (request.method === 'POST') {
-      // Access parsed JSON body directly from VercelRequest
-      const body = request.body;
-      switch (action) {
-        case 'createRoom':
-          return await createRoom(response, body, requestId);
-        case 'joinRoom':
-          return await joinRoom(response, body, requestId);
-        case 'leaveRoom':
-          return await leaveRoom(response, body, requestId);
-        case 'sendMessage':
-          return await sendMessage(response, body, requestId);
-        case 'createUser':
-          return await createUser(response, body, requestId);
-        default:
-          logInfo(requestId, `Invalid action: ${action}`);
-          return response.status(400).json({ error: 'Invalid action' });
+      case 'getMessages': {
+        const roomId = url.searchParams.get('roomId');
+        if (!roomId) {
+          logInfo(requestId, 'Missing roomId parameter');
+          return createErrorResponse('roomId query parameter is required', 400);
+        }
+        return await handleGetMessages(roomId, requestId);
       }
-    } else if (request.method === 'DELETE') {
-      switch (action) {
-        case 'deleteRoom':
-          const deleteRoomId = request.query.roomId as string;
-          if (!deleteRoomId) {
-            logInfo(requestId, 'Missing roomId parameter');
-            return response.status(400).json({ error: 'roomId query parameter is required' });
-          }
-          return await deleteRoom(response, deleteRoomId, requestId);
-        default:
-          logInfo(requestId, `Invalid action: ${action}`);
-          return response.status(400).json({ error: 'Invalid action' });
-      }
+      case 'getUsers':
+        return await handleGetUsers(requestId);
+      default:
+        logInfo(requestId, `Invalid action: ${action}`);
+        return createErrorResponse('Invalid action', 400);
     }
-
-    // Fallback for unsupported methods
-    logInfo(requestId, `Method not allowed: ${request.method}`);
-    response.setHeader('Allow', ['GET', 'POST', 'DELETE']);
-    return response.status(405).json({ error: `Method ${request.method} Not Allowed` });
   } catch (error) {
-    logError(requestId, 'Error handling request:', error);
-    // Use VercelResponse for error handling
-    return response.status(500).json({ error: 'Internal server error' });
+    logError(requestId, 'Error handling GET request:', error);
+    return createErrorResponse('Internal server error', 500);
   } finally {
     const duration = performance.now() - startTime;
     logInfo(requestId, `Request completed in ${duration.toFixed(2)}ms`);
   }
 }
 
-// Room functions - modified to accept VercelResponse
-async function getRooms(response: VercelResponse, requestId: string) {
+// POST handler
+export async function POST(request: Request) {
+  const requestId = generateRequestId();
+  const startTime = performance.now();
+  const url = new URL(request.url);
+  const action = url.searchParams.get('action');
+  
+  logRequest('POST', request.url, action, requestId);
+
+  try {
+    // Parse JSON body
+    const body = await request.json();
+
+    switch (action) {
+      case 'createRoom':
+        return await handleCreateRoom(body, requestId);
+      case 'joinRoom':
+        return await handleJoinRoom(body, requestId);
+      case 'leaveRoom':
+        return await handleLeaveRoom(body, requestId);
+      case 'sendMessage':
+        return await handleSendMessage(body, requestId);
+      case 'createUser':
+        return await handleCreateUser(body, requestId);
+      default:
+        logInfo(requestId, `Invalid action: ${action}`);
+        return createErrorResponse('Invalid action', 400);
+    }
+  } catch (error) {
+    logError(requestId, 'Error handling POST request:', error);
+    return createErrorResponse('Internal server error', 500);
+  } finally {
+    const duration = performance.now() - startTime;
+    logInfo(requestId, `Request completed in ${duration.toFixed(2)}ms`);
+  }
+}
+
+// DELETE handler
+export async function DELETE(request: Request) {
+  const requestId = generateRequestId();
+  const startTime = performance.now();
+  const url = new URL(request.url);
+  const action = url.searchParams.get('action');
+  
+  logRequest('DELETE', request.url, action, requestId);
+
+  try {
+    switch (action) {
+      case 'deleteRoom': {
+        const roomId = url.searchParams.get('roomId');
+        if (!roomId) {
+          logInfo(requestId, 'Missing roomId parameter');
+          return createErrorResponse('roomId query parameter is required', 400);
+        }
+        return await handleDeleteRoom(roomId, requestId);
+      }
+      default:
+        logInfo(requestId, `Invalid action: ${action}`);
+        return createErrorResponse('Invalid action', 400);
+    }
+  } catch (error) {
+    logError(requestId, 'Error handling DELETE request:', error);
+    return createErrorResponse('Internal server error', 500);
+  } finally {
+    const duration = performance.now() - startTime;
+    logInfo(requestId, `Request completed in ${duration.toFixed(2)}ms`);
+  }
+}
+
+// Room functions
+async function handleGetRooms(requestId: string) {
   logInfo(requestId, 'Fetching all rooms');
   try {
     const keys = await redis.keys(`${CHAT_ROOM_PREFIX}*`);
     logInfo(requestId, `Found ${keys.length} rooms`);
     
     if (keys.length === 0) {
-      // Use VercelResponse
-      return response.status(200).json({ rooms: [] });
+      return Response.json({ rooms: [] });
     }
 
     const roomsData = await redis.mget<ChatRoom[]>(...keys);
-    const rooms = roomsData.map(room => room); // mget already parses JSON if stored correctly
+    const rooms = roomsData.map(room => room).filter(Boolean);
 
-    // Use VercelResponse
-    return response.status(200).json({ rooms: rooms.filter(Boolean) });
+    return Response.json({ rooms });
   } catch (error) {
     logError(requestId, 'Error fetching rooms:', error);
-    return response.status(500).json({ error: 'Failed to fetch rooms' });
+    return createErrorResponse('Failed to fetch rooms', 500);
   }
 }
 
-async function getRoom(response: VercelResponse, roomId: string, requestId: string) {
+async function handleGetRoom(roomId: string, requestId: string) {
   logInfo(requestId, `Fetching room: ${roomId}`);
   try {
     const room = await redis.get<ChatRoom>(`${CHAT_ROOM_PREFIX}${roomId}`);
 
     if (!room) {
       logInfo(requestId, `Room not found: ${roomId}`);
-      // Use VercelResponse
-      return response.status(404).json({ error: 'Room not found' });
+      return createErrorResponse('Room not found', 404);
     }
 
-    // Use VercelResponse - redis.get<T> already parses
-    return response.status(200).json({ room });
+    return Response.json({ room });
   } catch (error) {
     logError(requestId, `Error fetching room ${roomId}:`, error);
-    return response.status(500).json({ error: 'Failed to fetch room' });
+    return createErrorResponse('Failed to fetch room', 500);
   }
 }
 
-async function createRoom(response: VercelResponse, data: { name: string }, requestId: string) {
+async function handleCreateRoom(data: { name: string }, requestId: string) {
   const { name } = data;
 
   if (!name) {
     logInfo(requestId, 'Room creation failed: Name is required');
-    // Use VercelResponse
-    return response.status(400).json({ error: 'Room name is required' });
+    return createErrorResponse('Room name is required', 400);
   }
 
   logInfo(requestId, `Creating room: ${name}`);
@@ -208,26 +237,24 @@ async function createRoom(response: VercelResponse, data: { name: string }, requ
       userCount: 0
     };
 
-    await redis.set(`${CHAT_ROOM_PREFIX}${roomId}`, room); // Store object directly
+    await redis.set(`${CHAT_ROOM_PREFIX}${roomId}`, room);
     logInfo(requestId, `Room created: ${roomId}`);
 
-    // Use VercelResponse
-    return response.status(201).json({ room });
+    return Response.json({ room }, { status: 201 });
   } catch (error) {
     logError(requestId, `Error creating room ${name}:`, error);
-    return response.status(500).json({ error: 'Failed to create room' });
+    return createErrorResponse('Failed to create room', 500);
   }
 }
 
-async function deleteRoom(response: VercelResponse, roomId: string, requestId: string) {
+async function handleDeleteRoom(roomId: string, requestId: string) {
   logInfo(requestId, `Deleting room: ${roomId}`);
   try {
     const roomExists = await redis.exists(`${CHAT_ROOM_PREFIX}${roomId}`);
 
     if (!roomExists) {
       logInfo(requestId, `Room not found for deletion: ${roomId}`);
-      // Use VercelResponse
-      return response.status(404).json({ error: 'Room not found' });
+      return createErrorResponse('Room not found', 404);
     }
 
     // Delete room and associated messages/users
@@ -238,16 +265,15 @@ async function deleteRoom(response: VercelResponse, roomId: string, requestId: s
     await pipeline.exec();
     logInfo(requestId, `Room deleted: ${roomId}`);
 
-    // Use VercelResponse
-    return response.status(200).json({ success: true });
+    return Response.json({ success: true });
   } catch (error) {
     logError(requestId, `Error deleting room ${roomId}:`, error);
-    return response.status(500).json({ error: 'Failed to delete room' });
+    return createErrorResponse('Failed to delete room', 500);
   }
 }
 
-// Message functions - modified to accept VercelResponse
-async function getMessages(response: VercelResponse, roomId: string, requestId: string) {
+// Message functions
+async function handleGetMessages(roomId: string, requestId: string) {
   logInfo(requestId, `Fetching messages for room: ${roomId}`);
 
   try {
@@ -255,8 +281,7 @@ async function getMessages(response: VercelResponse, roomId: string, requestId: 
 
     if (!roomExists) {
       logInfo(requestId, `Room not found: ${roomId}`);
-      // Use VercelResponse
-      return response.status(404).json({ error: 'Room not found' });
+      return createErrorResponse('Room not found', 404);
     }
 
     const messagesKey = `${CHAT_MESSAGES_PREFIX}${roomId}`;
@@ -289,23 +314,19 @@ async function getMessages(response: VercelResponse, roomId: string, requestId: 
 
     logInfo(requestId, `Processed ${messages.length} valid messages for room ${roomId}`);
 
-    // Use VercelResponse
-    return response.status(200).json({ messages });
+    return Response.json({ messages });
   } catch (error) {
     logError(requestId, `Error fetching messages for room ${roomId}:`, error);
-    return response.status(500).json({ error: 'Failed to fetch messages' });
+    return createErrorResponse('Failed to fetch messages', 500);
   }
 }
 
-async function sendMessage(response: VercelResponse, data: { roomId: string, username: string, content: string }, requestId: string) {
+async function handleSendMessage(data: { roomId: string, username: string, content: string }, requestId: string) {
   const { roomId, username, content } = data;
 
   if (!roomId || !username || !content) {
     logInfo(requestId, 'Message sending failed: Missing required fields', { roomId, username, hasContent: !!content });
-    // Use VercelResponse
-    return response.status(400).json({
-      error: 'Room ID, username, and content are required'
-    });
+    return createErrorResponse('Room ID, username, and content are required', 400);
   }
 
   logInfo(requestId, `Sending message in room ${roomId} from user ${username}`);
@@ -315,16 +336,14 @@ async function sendMessage(response: VercelResponse, data: { roomId: string, use
     const roomExists = await redis.exists(`${CHAT_ROOM_PREFIX}${roomId}`);
     if (!roomExists) {
       logInfo(requestId, `Room not found: ${roomId}`);
-      // Use VercelResponse
-      return response.status(404).json({ error: 'Room not found' });
+      return createErrorResponse('Room not found', 404);
     }
 
     // Check if user exists
     const userExists = await redis.exists(`${CHAT_USERS_PREFIX}${username}`);
     if (!userExists) {
       logInfo(requestId, `User not found: ${username}`);
-      // Use VercelResponse
-      return response.status(404).json({ error: 'User not found' });
+      return createErrorResponse('User not found', 404);
     }
 
     // Create and save the message
@@ -346,48 +365,44 @@ async function sendMessage(response: VercelResponse, data: { roomId: string, use
     const currentUserData = await redis.get<User>(`${CHAT_USERS_PREFIX}${username}`);
     if (currentUserData) {
       const updatedUser: User = { ...currentUserData, lastActive: getCurrentTimestamp() };
-      await redis.set(`${CHAT_USERS_PREFIX}${username}`, updatedUser); // Store object directly
+      await redis.set(`${CHAT_USERS_PREFIX}${username}`, updatedUser);
       logInfo(requestId, `Updated user ${username} last active timestamp`);
     }
 
-    // Use VercelResponse
-    return response.status(201).json({ message });
+    return Response.json({ message }, { status: 201 });
   } catch (error) {
     logError(requestId, `Error sending message in room ${roomId} from user ${username}:`, error);
-    return response.status(500).json({ error: 'Failed to send message' });
+    return createErrorResponse('Failed to send message', 500);
   }
 }
 
-// User functions - modified to accept VercelResponse
-async function getUsers(response: VercelResponse, requestId: string) {
+// User functions
+async function handleGetUsers(requestId: string) {
   logInfo(requestId, 'Fetching all users');
   try {
     const keys = await redis.keys(`${CHAT_USERS_PREFIX}*`);
     logInfo(requestId, `Found ${keys.length} users`);
     
     if (keys.length === 0) {
-      // Use VercelResponse
-      return response.status(200).json({ users: [] });
+      return Response.json({ users: [] });
     }
 
     const usersData = await redis.mget<User[]>(...keys);
-    const users = usersData.map(user => user); // mget already parses JSON
+    const users = usersData.map(user => user).filter(Boolean);
 
-    // Use VercelResponse
-    return response.status(200).json({ users: users.filter(Boolean) });
+    return Response.json({ users });
   } catch (error) {
     logError(requestId, 'Error fetching users:', error);
-    return response.status(500).json({ error: 'Failed to fetch users' });
+    return createErrorResponse('Failed to fetch users', 500);
   }
 }
 
-async function createUser(response: VercelResponse, data: { username: string }, requestId: string) {
+async function handleCreateUser(data: { username: string }, requestId: string) {
   const { username } = data;
 
   if (!username) {
     logInfo(requestId, 'User creation failed: Username is required');
-    // Use VercelResponse
-    return response.status(400).json({ error: 'Username is required' });
+    return createErrorResponse('Username is required', 400);
   }
 
   logInfo(requestId, `Creating user: ${username}`);
@@ -399,33 +414,28 @@ async function createUser(response: VercelResponse, data: { username: string }, 
       lastActive: getCurrentTimestamp()
     };
 
-    const created = await redis.setnx(userKey, JSON.stringify(user)); // Use setnx
+    const created = await redis.setnx(userKey, JSON.stringify(user));
 
     if (!created) {
       logInfo(requestId, `Username already taken: ${username}`);
-      // Use VercelResponse - User already exists
-      return response.status(409).json({ error: 'Username already taken' });
+      return createErrorResponse('Username already taken', 409);
     }
 
     logInfo(requestId, `User created: ${username}`);
-    // Use VercelResponse
-    return response.status(201).json({ user });
+    return Response.json({ user }, { status: 201 });
   } catch (error) {
     logError(requestId, `Error creating user ${username}:`, error);
-    return response.status(500).json({ error: 'Failed to create user' });
+    return createErrorResponse('Failed to create user', 500);
   }
 }
 
-// Room membership functions - modified to accept VercelResponse
-async function joinRoom(response: VercelResponse, data: { roomId: string, username: string }, requestId: string) {
+// Room membership functions
+async function handleJoinRoom(data: { roomId: string, username: string }, requestId: string) {
   const { roomId, username } = data;
 
   if (!roomId || !username) {
     logInfo(requestId, 'Room join failed: Missing required fields', { roomId, username });
-    // Use VercelResponse
-    return response.status(400).json({
-      error: 'Room ID and username are required'
-    });
+    return createErrorResponse('Room ID and username are required', 400);
   }
 
   logInfo(requestId, `User ${username} joining room ${roomId}`);
@@ -438,14 +448,12 @@ async function joinRoom(response: VercelResponse, data: { roomId: string, userna
 
     if (!roomData) {
       logInfo(requestId, `Room not found: ${roomId}`);
-      // Use VercelResponse
-      return response.status(404).json({ error: 'Room not found' });
+      return createErrorResponse('Room not found', 404);
     }
 
     if (!userData) {
       logInfo(requestId, `User not found: ${username}`);
-      // Use VercelResponse
-      return response.status(404).json({ error: 'User not found' });
+      return createErrorResponse('User not found', 404);
     }
 
     // Add user to room set
@@ -454,30 +462,26 @@ async function joinRoom(response: VercelResponse, data: { roomId: string, userna
     // Update room user count - Fetch latest count after adding
     const userCount = await redis.scard(`${CHAT_ROOM_USERS_PREFIX}${roomId}`);
     const updatedRoom: ChatRoom = { ...roomData, userCount };
-    await redis.set(`${CHAT_ROOM_PREFIX}${roomId}`, updatedRoom); // Store object directly
+    await redis.set(`${CHAT_ROOM_PREFIX}${roomId}`, updatedRoom);
     logInfo(requestId, `User ${username} joined room ${roomId}, new user count: ${userCount}`);
 
     // Update user's last active timestamp
     const updatedUser: User = { ...userData, lastActive: getCurrentTimestamp() };
-    await redis.set(`${CHAT_USERS_PREFIX}${username}`, updatedUser); // Store object directly
+    await redis.set(`${CHAT_USERS_PREFIX}${username}`, updatedUser);
 
-    // Use VercelResponse
-    return response.status(200).json({ success: true });
+    return Response.json({ success: true });
   } catch (error) {
     logError(requestId, `Error joining room ${roomId} for user ${username}:`, error);
-    return response.status(500).json({ error: 'Failed to join room' });
+    return createErrorResponse('Failed to join room', 500);
   }
 }
 
-async function leaveRoom(response: VercelResponse, data: { roomId: string, username: string }, requestId: string) {
+async function handleLeaveRoom(data: { roomId: string, username: string }, requestId: string) {
   const { roomId, username } = data;
 
   if (!roomId || !username) {
     logInfo(requestId, 'Room leave failed: Missing required fields', { roomId, username });
-    // Use VercelResponse
-    return response.status(400).json({
-      error: 'Room ID and username are required'
-    });
+    return createErrorResponse('Room ID and username are required', 400);
   }
 
   logInfo(requestId, `User ${username} leaving room ${roomId}`);
@@ -486,8 +490,7 @@ async function leaveRoom(response: VercelResponse, data: { roomId: string, usern
     const roomData = await redis.get<ChatRoom>(`${CHAT_ROOM_PREFIX}${roomId}`);
     if (!roomData) {
       logInfo(requestId, `Room not found: ${roomId}`);
-      // Use VercelResponse - Room doesn't exist, so user can't be in it
-      return response.status(404).json({ error: 'Room not found' });
+      return createErrorResponse('Room not found', 404);
     }
 
     // Remove user from room set
@@ -498,16 +501,15 @@ async function leaveRoom(response: VercelResponse, data: { roomId: string, usern
       // Fetch latest count after removing
       const userCount = await redis.scard(`${CHAT_ROOM_USERS_PREFIX}${roomId}`);
       const updatedRoom: ChatRoom = { ...roomData, userCount };
-      await redis.set(`${CHAT_ROOM_PREFIX}${roomId}`, updatedRoom); // Store object directly
+      await redis.set(`${CHAT_ROOM_PREFIX}${roomId}`, updatedRoom);
       logInfo(requestId, `User ${username} left room ${roomId}, new user count: ${userCount}`);
     } else {
       logInfo(requestId, `User ${username} was not in room ${roomId}`);
     }
 
-    // Use VercelResponse
-    return response.status(200).json({ success: true });
+    return Response.json({ success: true });
   } catch (error) {
     logError(requestId, `Error leaving room ${roomId} for user ${username}:`, error);
-    return response.status(500).json({ error: 'Failed to leave room' });
+    return createErrorResponse('Failed to leave room', 500);
   }
 } 
