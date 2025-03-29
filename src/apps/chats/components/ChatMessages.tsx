@@ -81,6 +81,7 @@ interface ChatMessagesProps {
   error?: Error;
   onRetry?: () => void;
   onClear?: () => void;
+  isInitialLoad?: boolean; // Add new prop to indicate initial message load
 }
 
 export function ChatMessages({
@@ -89,6 +90,7 @@ export function ChatMessages({
   error,
   onRetry,
   onClear,
+  isInitialLoad = false, // Default to false to maintain backward compatibility
 }: ChatMessagesProps) {
   const [scrollLockedToBottom, setScrollLockedToBottom] = useState(true);
   const viewportRef = useRef<HTMLElement | null>(null);
@@ -102,6 +104,21 @@ export function ChatMessages({
   const wasAtBottom = useRef(true);
   const [isInteractingWithPreview, setIsInteractingWithPreview] =
     useState(false);
+  
+  // Track if this is the first render of a new message set
+  const [isFirstRender, setIsFirstRender] = useState(true);
+  
+  // Update isFirstRender when messages source changes
+  useEffect(() => {
+    setIsFirstRender(isInitialLoad);
+    // Reset after first render cycle to enable animations for new messages
+    if (isInitialLoad) {
+      const timer = setTimeout(() => {
+        setIsFirstRender(false);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isInitialLoad]);
 
   const copyMessage = async (message: ChatMessage) => {
     try {
@@ -206,9 +223,9 @@ export function ChatMessages({
                 message.id ||
                 `${message.role}-${message.content.substring(0, 10)}`
               }
-              initial={{ opacity: 0 }}
+              initial={{ opacity: isFirstRender ? 1 : 0 }}
               animate={{ opacity: 1 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: isFirstRender ? 0 : 0.2 }}
               className={`flex flex-col z-10 w-full ${
                 message.role === "user" ? "items-end" : "items-start"
               }`}
@@ -383,7 +400,7 @@ export function ChatMessages({
                               <motion.span
                                 key={idx}
                                 initial={
-                                  hasXmlTags
+                                  hasXmlTags || isFirstRender
                                     ? { opacity: 1, y: 0 }
                                     : { opacity: 0, y: 12 }
                                 }
@@ -399,14 +416,14 @@ export function ChatMessages({
                                 }`}
                                 style={{ userSelect: "text" }}
                                 transition={
-                                  hasXmlTags
+                                  hasXmlTags || isFirstRender
                                     ? { duration: 0 }
                                     : {
                                         duration: 0.15,
                                         delay: idx * 0.05,
                                         ease: "easeOut",
                                         onComplete: () => {
-                                          if (idx % 2 === 0) {
+                                          if (!isFirstRender && idx % 2 === 0) {
                                             playNote();
                                           }
                                         },

@@ -1651,16 +1651,14 @@ const ChatRoomSidebar: React.FC<{
       <div className="py-2 md:py-4 px-4 flex flex-col h-full">
         <div className="flex justify-between items-center md:mb-2">
           <h2 className="text-[14px] pl-1">Rooms</h2>
-          <div className="flex">
             <Button
               variant="ghost"
               size="sm"
               onClick={onAddRoom}
-              className="flex items-center text-xs hover:bg-black/5 mr-1"
+              className="flex items-center text-xs hover:bg-black/5 w-[24px] h-[24px]"
             >
               <Plus className="w-3 h-3" />
             </Button>
-          </div>
         </div>
         <div className="flex-1 overflow-auto md:space-y-1 min-h-0">
           <div
@@ -1748,6 +1746,10 @@ export function ChatsAppComponent({
   // Add state for delete room confirmation
   const [isDeleteRoomDialogOpen, setIsDeleteRoomDialogOpen] = useState(false);
   const [roomToDelete, setRoomToDelete] = useState<ChatRoom | null>(null);
+
+  // Add ref to track message source changes
+  const lastMessageSource = useRef<string | null>(null);
+  const [isMessageSourceChanged, setIsMessageSourceChanged] = useState(false);
 
   // Handler to toggle sidebar visibility
   const toggleSidebar = useCallback(() => {
@@ -1876,7 +1878,7 @@ export function ChatsAppComponent({
     fetchNewMessages();
 
     // Set up polling interval
-    const intervalId = setInterval(fetchNewMessages, 5000); // Poll every 5 seconds
+    const intervalId = setInterval(fetchNewMessages, 10000); // Poll every 10 seconds
 
     // Cleanup interval on unmount, room change, or losing focus
     return () => {
@@ -2610,6 +2612,22 @@ export function ChatsAppComponent({
     };
   }, []);
 
+  // Update when message source changes (detect Ryo vs chat room switch)
+  useEffect(() => {
+    const currentSource = currentRoom ? `room-${currentRoom.id}` : 'ryo';
+    if (lastMessageSource.current !== currentSource) {
+      // Message source changed
+      setIsMessageSourceChanged(true);
+      lastMessageSource.current = currentSource;
+      
+      // Reset after the render cycle
+      const timer = setTimeout(() => {
+        setIsMessageSourceChanged(false);
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+  }, [currentRoom]);
+
   if (!isWindowOpen) return null;
 
   return (
@@ -2665,6 +2683,7 @@ export function ChatsAppComponent({
               error={error}
               onRetry={reload}
               onClear={clearChats}
+              isInitialLoad={isMessageSourceChanged} // Pass prop to disable animations on source change
             />
 
             <ChatInput
