@@ -103,8 +103,6 @@ export function ChatMessages({
   const [isInteractingWithPreview, setIsInteractingWithPreview] =
     useState(false);
   
-  // Track if this is the first render of a new message set
-  const [isFirstRender, setIsFirstRender] = useState(true);
   
   const copyMessage = async (message: ChatMessage) => {
     try {
