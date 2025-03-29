@@ -1709,7 +1709,8 @@ const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
                 <span>#{room.name}</span>
                 <span className={cn(
                   "text-gray-400 text-[10px] ml-1.5 transition-opacity", // Added slight margin
-                  currentRoom?.id === room.id ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                  // Updated logic: Always show if count > 0, otherwise use hover/select logic
+                  room.userCount > 0 ? "opacity-100" : (currentRoom?.id === room.id ? "opacity-100" : "opacity-0 group-hover:opacity-100")
                 )}>
                   {room.userCount} online
                 </span>
