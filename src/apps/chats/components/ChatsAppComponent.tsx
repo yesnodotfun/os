@@ -1680,7 +1680,7 @@ export function ChatsAppComponent({
 
   const { appStates, toggleApp } = useAppContext();
   const launchApp = useLaunchApp();
-  const isTextEditOpen = appStates["textedit"]?.isOpen || false;
+  // const isTextEditOpen = appStates["textedit"]?.isOpen || false; // Removed unused variable
   const [textEditContext, setTextEditContext] = useState<{
     fileName: string;
     content: string;
@@ -1694,7 +1694,7 @@ export function ChatsAppComponent({
   // Add ref to track the timestamp when the component was mounted
   const componentMountedAt = useRef(new Date());
   // Add this new reference at the top of the component, near other useRef declarations
-  const lastTextEditContextRef = useRef<string | null>(null);
+  // const lastTextEditContextRef = useRef<string | null>(null); // Removed unused variable
   // Add chat room state
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
   const [currentRoom, setCurrentRoom] = useState<ChatRoom | null>(null);

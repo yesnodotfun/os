@@ -146,7 +146,7 @@ async function getRooms() {
   }
   
   const rooms = await Promise.all(
-    keys.map(async key => {
+    keys.map(async (key: string) => {
       const room = await redis.get(key);
       return room ? JSON.parse(room as string) : null;
     })
@@ -233,7 +233,7 @@ async function getMessages(roomId: string) {
   const messages = await redis.lrange(messagesKey, 0, -1);
   
   return new Response(JSON.stringify({ 
-    messages: messages.map(message => typeof message === 'string' ? JSON.parse(message) : null).filter(Boolean)
+    messages: messages.map((message: string | null) => typeof message === 'string' ? JSON.parse(message) : null).filter(Boolean)
   }), { 
     headers: { 'Content-Type': 'application/json' }
   });
@@ -304,7 +304,7 @@ async function getUsers() {
   }
   
   const users = await Promise.all(
-    keys.map(async key => {
+    keys.map(async (key: string) => {
       const user = await redis.get(key);
       return user ? JSON.parse(user as string) : null;
     })
