@@ -39,6 +39,7 @@ export const APP_STORAGE_KEYS = {
     WINDOW: "chats:window",
     MESSAGES: "chats:messages",
     HAS_SEEN_HELP: "chats:hasSeenHelp",
+    CHAT_ROOM_USERNAME: "chats:chatRoomUsername",
   },
   textedit: {
     WINDOW: "textedit:window",
@@ -1436,4 +1437,13 @@ export const ensureIndexedDBInitialized = async (): Promise<IDBDatabase> => {
       });
     };
   });
+};
+
+// Chat room user storage
+export const loadChatRoomUsername = (): string | null => {
+  return localStorage.getItem(APP_STORAGE_KEYS.chats.CHAT_ROOM_USERNAME) || null;
+};
+
+export const saveChatRoomUsername = (username: string): void => {
+  localStorage.setItem(APP_STORAGE_KEYS.chats.CHAT_ROOM_USERNAME, username);
 };

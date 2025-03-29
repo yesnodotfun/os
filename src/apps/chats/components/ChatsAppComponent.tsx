@@ -14,13 +14,16 @@ import {
   saveChatMessages,
   APP_STORAGE_KEYS,
   getSystemState,
+  loadChatRoomUsername,
+  saveChatRoomUsername,
 } from "@/utils/storage";
 import { ChatMessages } from "./ChatMessages";
 import { ChatInput } from "./ChatInput";
 import { useAppContext } from "@/contexts/AppContext";
-import { FileText } from "lucide-react";
+import { FileText, Plus } from "lucide-react";
 import { AppId } from "@/config/appRegistry";
 import { saveAsMarkdown } from "@/utils/markdown/saveUtils";
+import { type ChatRoom, type ChatMessage } from "../../../../api/chatRooms";
 
 // Define types for TextEdit content structure
 interface TextNode {
@@ -1627,6 +1630,42 @@ window.tests = {
   testLineNumberAdjustments,
 };
 
+// Add chat room sidebar component
+const ChatRoomSidebar: React.FC<{
+  rooms: ChatRoom[];
+  currentRoom: ChatRoom | null;
+  onRoomSelect: (room: ChatRoom) => void;
+  onAddRoom: () => void;
+}> = ({ rooms, currentRoom, onRoomSelect, onAddRoom }) => {
+  return (
+    <div className="w-48 bg-[#e0e0e0] border-r border-[#808080] flex flex-col p-2 font-geneva-12 text-[12px]">
+      <div className="mb-2 font-bold">Chats</div>
+      <div
+        className={`p-1 cursor-pointer ${currentRoom === null ? 'bg-[#000080] text-white' : 'hover:bg-[#c0c0c0]'}`}
+        onClick={() => onRoomSelect(null as any)} // Using null for Ryo chat
+      >
+        Ryo Chat
+      </div>
+      {rooms.map((room) => (
+        <div
+          key={room.id}
+          className={`p-1 cursor-pointer ${currentRoom?.id === room.id ? 'bg-[#000080] text-white' : 'hover:bg-[#c0c0c0]'}`}
+          onClick={() => onRoomSelect(room)}
+        >
+          {room.name} ({room.userCount})
+        </div>
+      ))}
+      <button
+        className="mt-2 flex items-center gap-1 bg-[#c0c0c0] hover:bg-[#e0e0e0] p-1 border border-[#808080]"
+        onClick={onAddRoom}
+      >
+        <Plus className="w-4 h-4" />
+        Add Room
+      </button>
+    </div>
+  );
+};
+
 export function ChatsAppComponent({
   isWindowOpen,
   onClose,
@@ -1656,164 +1695,71 @@ export function ChatsAppComponent({
   const componentMountedAt = useRef(new Date());
   // Add this new reference at the top of the component, near other useRef declarations
   const lastTextEditContextRef = useRef<string | null>(null);
+  // Add chat room state
+  const [rooms, setRooms] = useState<ChatRoom[]>([]);
+  const [currentRoom, setCurrentRoom] = useState<ChatRoom | null>(null);
+  const [username, setUsername] = useState<string | null>(null);
+  const [roomMessages, setRoomMessages] = useState<ChatMessage[]>([]);
 
-  // Update the useEffect that watches for TextEdit context changes
+  // Fetch rooms on mount
   useEffect(() => {
-    const updateTextEditContext = () => {
-      if (isTextEditOpen) {
+    const fetchRooms = async () => {
+      try {
+        const response = await fetch('/api/chatRooms?action=getRooms');
+        const data = await response.json();
+        setRooms(data.rooms || []);
+      } catch (error) {
+        console.error('Error fetching rooms:', error);
+      }
+    };
+    fetchRooms();
+  }, []);
+
+  // Load or register username
+  useEffect(() => {
+    const loadOrRegisterUser = async () => {
+      let storedUsername = loadChatRoomUsername();
+      if (!storedUsername) {
+        storedUsername = `User_${Math.random().toString(36).substring(2, 8)}`;
         try {
-          // Get the current file path
-          const lastFilePath = localStorage.getItem(
-            APP_STORAGE_KEYS.textedit.LAST_FILE_PATH
-          );
-          const fileName = lastFilePath
-            ? lastFilePath.split("/").pop() || "Untitled"
-            : "Untitled";
-
-          // Get the document content
-          const content = localStorage.getItem(
-            APP_STORAGE_KEYS.textedit.CONTENT
-          );
-
-          // Check if content is new/changed to avoid unnecessary processing
-          const contentChanged =
-            content && content !== lastTextEditContextRef.current;
-
-          if (content && contentChanged) {
-            // Save the content reference to avoid redundant processing
-            lastTextEditContextRef.current = content;
-
-            // Use lightweight processing on mobile
-            if (window.innerWidth <= 768) {
-              // For mobile: simpler, immediate processing to avoid UI freezes
-              try {
-                const extractedText = extractTextFromTextEditContent(content);
-                setTextEditContext({
-                  fileName,
-                  content: extractedText,
-                });
-              } catch (error) {
-                console.error(
-                  "Error extracting TextEdit content on mobile:",
-                  error
-                );
-              }
-            } else {
-              // For desktop: use requestAnimationFrame for smoother UI
-              requestAnimationFrame(() => {
-                try {
-                  const extractedText = extractTextFromTextEditContent(content);
-                  setTextEditContext({
-                    fileName,
-                    content: extractedText,
-                  });
-                } catch (error) {
-                  console.error("Error extracting TextEdit content:", error);
-                }
-              });
-            }
+          const response = await fetch('/api/chatRooms?action=createUser', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: storedUsername }),
+          });
+          if (response.ok) {
+            saveChatRoomUsername(storedUsername);
+            setUsername(storedUsername);
           }
         } catch (error) {
-          console.error("Error accessing TextEdit content:", error);
-          setTextEditContext(null);
+          console.error('Error registering user:', error);
         }
       } else {
-        setTextEditContext(null);
+        setUsername(storedUsername);
       }
     };
+    loadOrRegisterUser();
+  }, []);
 
-    // Initial update
-    updateTextEditContext();
-
-    // Listen for storage events to detect TextEdit content changes
-    const handleStorageChange = (e: StorageEvent) => {
-      if (
-        e.key === APP_STORAGE_KEYS.textedit.CONTENT ||
-        e.key === APP_STORAGE_KEYS.textedit.LAST_FILE_PATH
-      ) {
-        updateTextEditContext();
-      }
-    };
-
-    // Listen for custom saveFile events which TextEdit dispatches when saving
-    const handleSaveFile = (e: CustomEvent) => {
-      if (e.detail?.path?.startsWith("/Documents/")) {
-        updateTextEditContext();
-      }
-    };
-
-    // Set up event listeners
-    window.addEventListener("storage", handleStorageChange);
-    window.addEventListener("saveFile", handleSaveFile as EventListener);
-
-    // Use a more efficient polling approach - less frequent on mobile
-    const pollInterval = window.innerWidth <= 768 ? 3000 : 2000;
-    const intervalId = setInterval(updateTextEditContext, pollInterval);
-
-    // Cleanup function
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-      window.removeEventListener("saveFile", handleSaveFile as EventListener);
-      clearInterval(intervalId);
-    };
-  }, [isTextEditOpen]);
-
-  // Listen for app state changes
+  // Load room messages when currentRoom changes
   useEffect(() => {
-    const handleAppStateChange = (
-      e: CustomEvent<{
-        appId: string;
-        isOpen: boolean;
-        isForeground: boolean;
-      }>
-    ) => {
-      if (e.detail?.appId === "textedit") {
-        // If TextEdit app state changed, check if it's now open or closed
-        const isNowOpen = e.detail.isOpen;
-        if (isNowOpen !== isTextEditOpen) {
-          // Force a re-check of the TextEdit context
-          setTimeout(() => {
-            if (isNowOpen) {
-              // TextEdit was just opened, wait a moment for it to initialize
-              setTimeout(() => {
-                const content = localStorage.getItem(
-                  APP_STORAGE_KEYS.textedit.CONTENT
-                );
-                const lastFilePath = localStorage.getItem(
-                  APP_STORAGE_KEYS.textedit.LAST_FILE_PATH
-                );
-
-                if (content && lastFilePath) {
-                  const fileName = lastFilePath.split("/").pop() || "Untitled";
-                  const extractedText = extractTextFromTextEditContent(content);
-                  setTextEditContext({
-                    fileName,
-                    content: extractedText,
-                  });
-                }
-              }, 500);
-            } else {
-              // TextEdit was closed, clear the context
-              setTextEditContext(null);
-            }
-          }, 0);
+    const fetchRoomMessages = async () => {
+      if (currentRoom) {
+        try {
+          const response = await fetch(`/api/chatRooms?action=getMessages&roomId=${currentRoom.id}`);
+          const data = await response.json();
+          setRoomMessages(data.messages || []);
+        } catch (error) {
+          console.error('Error fetching room messages:', error);
         }
+      } else {
+        setRoomMessages([]);
       }
     };
+    fetchRoomMessages();
+  }, [currentRoom]);
 
-    window.addEventListener(
-      "appStateChange",
-      handleAppStateChange as EventListener
-    );
-
-    return () => {
-      window.removeEventListener(
-        "appStateChange",
-        handleAppStateChange as EventListener
-      );
-    };
-  }, [isTextEditOpen]);
-
+  // Modify useChat to handle both Ryo and room messages
   const {
     messages: aiMessages,
     input,
@@ -1852,17 +1798,37 @@ export function ChatsAppComponent({
     (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
 
-      // Get fresh system state right before sending the request
-      const freshSystemState = getSystemState();
-
-      originalHandleSubmit(e, {
-        body: {
-          textEditContext: textEditContext || undefined,
-          systemState: freshSystemState,
-        },
-      });
+      if (currentRoom && username) {
+        // Send room message
+        fetch('/api/chatRooms?action=sendMessage', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            roomId: currentRoom.id,
+            username,
+            content: input,
+          }),
+        }).then(async (response) => {
+          if (response.ok) {
+            const newMessage = await response.json();
+            setRoomMessages((prev) => [...prev, newMessage.message]);
+            handleInputChange({ target: { value: '' } } as React.ChangeEvent<HTMLInputElement>);
+          }
+        }).catch((error) => {
+          console.error('Error sending room message:', error);
+        });
+      } else {
+        // Send Ryo message
+        const freshSystemState = getSystemState();
+        originalHandleSubmit(e, {
+          body: {
+            textEditContext: textEditContext || undefined,
+            systemState: freshSystemState,
+          },
+        });
+      }
     },
-    [originalHandleSubmit, textEditContext]
+    [originalHandleSubmit, textEditContext, currentRoom, username, input, handleInputChange]
   );
 
   const [messages, setMessages] = useState(aiMessages);
@@ -2354,6 +2320,37 @@ export function ChatsAppComponent({
     setIsSaveDialogOpen(false);
   };
 
+  // Add room selection handler
+  const handleRoomSelect = useCallback((room: ChatRoom | null) => {
+    setCurrentRoom(room);
+  }, []);
+
+  // Add room creation handler
+  const handleAddRoom = useCallback(() => {
+    const roomName = prompt('Enter room name:');
+    if (roomName && username) {
+      fetch('/api/chatRooms?action=createRoom', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: roomName }),
+      }).then(async (response) => {
+        if (response.ok) {
+          const newRoom = await response.json();
+          setRooms((prev) => [...prev, newRoom.room]);
+          // Auto-join the new room
+          await fetch('/api/chatRooms?action=joinRoom', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ roomId: newRoom.room.id, username }),
+          });
+          setCurrentRoom(newRoom.room);
+        }
+      }).catch((error) => {
+        console.error('Error creating room:', error);
+      });
+    }
+  }, [username]);
+
   // Add this right after other useEffect hooks, before the conditional return
 
   // Cleanup function to ensure we don't have any hanging operations
@@ -2386,41 +2383,62 @@ export function ChatsAppComponent({
         appId="chats"
         isShaking={isShaking}
       >
-        <div className="flex flex-col h-full bg-[#c0c0c0] p-2 w-full">
-          <ChatMessages
-            messages={messages}
-            isLoading={isLoading}
-            error={error}
-            onRetry={reload}
-            onClear={clearChats}
+        <div className="flex h-full bg-[#c0c0c0] w-full">
+          <ChatRoomSidebar
+            rooms={rooms}
+            currentRoom={currentRoom}
+            onRoomSelect={handleRoomSelect}
+            onAddRoom={handleAddRoom}
           />
+          <div className="flex flex-col flex-1 p-2">
+            <ChatMessages
+              messages={currentRoom ? roomMessages.map(msg => ({
+                id: msg.id,
+                role: msg.username === username ? 'user' : 'assistant',
+                content: `${msg.username}: ${msg.content}`,
+                createdAt: new Date(msg.timestamp),
+              })) : messages}
+              isLoading={isLoading}
+              error={error}
+              onRetry={reload}
+              onClear={clearChats}
+            />
 
-          <ChatInput
-            input={input}
-            isLoading={isLoading}
-            isForeground={isForeground}
-            onInputChange={handleInputChange}
-            onSubmit={handleSubmit}
-            onStop={stop}
-            onDirectMessageSubmit={handleDirectMessageSubmit}
-            onNudge={handleNudge}
-            previousMessages={Array.from(
-              new Set(
-                messages
-                  .filter((msg) => msg.role === "user")
-                  .map((msg) => msg.content)
-              )
-            ).reverse()}
-          />
-          {textEditContext && (
-            <div className="font-geneva-12 flex items-center gap-1 text-[10px] text-gray-600 mt-1 px-0 py-0.5">
-              <FileText className="w-3 h-3" />
-              <span>
-                Using{" "}
-                <strong>{truncateFilename(textEditContext.fileName)}</strong>
-              </span>
-            </div>
-          )}
+            <ChatInput
+              input={input}
+              isLoading={isLoading}
+              isForeground={isForeground}
+              onInputChange={handleInputChange}
+              onSubmit={handleSubmit}
+              onStop={stop}
+              onDirectMessageSubmit={handleDirectMessageSubmit}
+              onNudge={handleNudge}
+              previousMessages={Array.from(
+                new Set(
+                  (currentRoom ? roomMessages : messages)
+                    .filter((msg) => {
+                      if ('username' in msg) {
+                        // For ChatMessage (room messages)
+                        return msg.username === username;
+                      } else {
+                        // For AI messages
+                        return msg.role === "user";
+                      }
+                    })
+                    .map((msg) => msg.content)
+                )
+              ).reverse()}
+            />
+            {textEditContext && (
+              <div className="font-geneva-12 flex items-center gap-1 text-[10px] text-gray-600 mt-1 px-0 py-0.5">
+                <FileText className="w-3 h-3" />
+                <span>
+                  Using{" "}
+                  <strong>{truncateFilename(textEditContext.fileName)}</strong>
+                </span>
+              </div>
+            )}
+          </div>
         </div>
         <HelpDialog
           isOpen={isHelpDialogOpen}
