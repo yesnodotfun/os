@@ -110,6 +110,37 @@ export function ChatMessages({
   // Ref to track initial message IDs for animation control
   const initialMessageIdsRef = useRef<Set<string>>(new Set());
   const hasInitializedRef = useRef(false);
+  const previousMessagesRef = useRef<ChatMessage[]>([]); // Ref to store previous messages for comparison
+
+  // --- New Effect for Sound/Vibration ---
+  useEffect(() => {
+    // Only run if not the initial load/render and we have previous messages to compare against
+    // Also check if the component is currently mounted using a ref (optional but good practice)
+    if (previousMessagesRef.current.length > 0 && messages.length > previousMessagesRef.current.length) {
+        // Find messages present in the current list but not the previous one
+        // Ensure IDs are compared robustly, falling back if necessary
+        const previousIds = new Set(previousMessagesRef.current.map(m => m.id || `${m.role}-${m.content.substring(0, 10)}`));
+        const newMessages = messages.filter(
+            currentMsg => !previousIds.has(currentMsg.id || `${currentMsg.role}-${currentMsg.content.substring(0, 10)}`)
+        );
+
+        // Check if any of the *new* messages are from 'human' (other users in room)
+        const newHumanMessage = newMessages.find(msg => msg.role === 'human');
+
+        if (newHumanMessage) {
+            console.log("New human message detected:", newHumanMessage);
+            playNote();
+            if ('vibrate' in navigator) {
+                navigator.vibrate(100); // Vibrate for 100ms if supported
+            }
+        }
+    }
+
+    // Update the ref *after* comparison for the next render
+    previousMessagesRef.current = messages;
+
+  }, [messages, playNote]);
+  // --- End New Effect ---
 
   // Capture initial message IDs on mount (runs once per component instance/key change)
   useEffect(() => {
@@ -117,6 +148,7 @@ export function ChatMessages({
     if (!hasInitializedRef.current && messages.length > 0) {
       initialMessageIdsRef.current = new Set(messages.map(m => m.id || `${m.role}-${m.content.substring(0, 10)}`));
       hasInitializedRef.current = true;
+      previousMessagesRef.current = messages; // Initialize previous messages on mount
     }
     // We *don't* want this effect to re-run when messages update later,
     // only when the component mounts due to a key change.
@@ -130,6 +162,7 @@ export function ChatMessages({
       if (messages.length === 0) {
           hasInitializedRef.current = false;
           initialMessageIdsRef.current = new Set();
+          previousMessagesRef.current = []; // Reset previous messages when cleared
       }
   }, [messages]);
 
