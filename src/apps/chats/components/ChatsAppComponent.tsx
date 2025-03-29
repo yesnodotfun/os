@@ -1648,7 +1648,7 @@ const ChatRoomSidebar: React.FC<{
 
   return (
     <div className="w-full md:w-56 bg-[#e0e0e0] md:border-r border-b md:border-b-0 flex flex-col h-auto md:h-full max-h-64 md:max-h-none font-geneva-12 text-[12px]">
-      <div className="py-2 md:py-4 px-4 flex flex-col h-full">
+      <div className="py-3 px-3 flex flex-col h-full">
         <div className="flex justify-between items-center md:mb-2">
           <h2 className="text-[14px] pl-1">Rooms</h2>
             <Button
@@ -1815,6 +1815,9 @@ export function ChatsAppComponent({
     const fetchRoomMessages = async () => {
       if (currentRoom) {
         try {
+          // Set isMessageSourceChanged to true before fetching to disable animations
+          setIsMessageSourceChanged(true);
+          
           const response = await fetch(`/api/chatRooms?action=getMessages&roomId=${currentRoom.id}`);
           const data = await response.json();
           // Sort messages chronologically by timestamp (oldest first)
@@ -1822,11 +1825,28 @@ export function ChatsAppComponent({
             (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
           );
           setRoomMessages(sortedMessages);
+          
+          // Update message source after fetching
+          lastMessageSource.current = `room-${currentRoom.id}`;
+          
+          // Keep animations disabled for a bit longer after loading
+          setTimeout(() => {
+            setIsMessageSourceChanged(false);
+          }, 500);
         } catch (error) {
           console.error('Error fetching room messages:', error);
+          setIsMessageSourceChanged(false);
         }
       } else {
+        // If switching back to Ryo chat, also set isMessageSourceChanged first
+        setIsMessageSourceChanged(true);
         setRoomMessages([]);
+        lastMessageSource.current = 'ryo';
+        
+        // Keep animations disabled for a bit longer
+        setTimeout(() => {
+          setIsMessageSourceChanged(false);
+        }, 500);
       }
     };
     fetchRoomMessages();
@@ -2611,22 +2631,6 @@ export function ChatsAppComponent({
       console.log("Chat component unmounted, cleanup complete");
     };
   }, []);
-
-  // Update when message source changes (detect Ryo vs chat room switch)
-  useEffect(() => {
-    const currentSource = currentRoom ? `room-${currentRoom.id}` : 'ryo';
-    if (lastMessageSource.current !== currentSource) {
-      // Message source changed
-      setIsMessageSourceChanged(true);
-      lastMessageSource.current = currentSource;
-      
-      // Reset after the render cycle
-      const timer = setTimeout(() => {
-        setIsMessageSourceChanged(false);
-      }, 200);
-      return () => clearTimeout(timer);
-    }
-  }, [currentRoom]);
 
   if (!isWindowOpen) return null;
 
