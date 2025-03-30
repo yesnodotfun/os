@@ -32,7 +32,7 @@ const generateRequestId = () => {
 
 // API runtime config
 export const runtime = "nodejs";
-export const maxDuration = 30;
+export const maxDuration = 15;
 
 // Redis key prefixes
 const CHAT_ROOM_PREFIX = 'chat:room:';
