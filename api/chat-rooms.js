@@ -1,4 +1,11 @@
 import { Redis } from '@upstash/redis';
+import { Filter } from 'bad-words';
+
+// Initialize profanity filter with custom placeholder
+const filter = new Filter({ placeHolder: '█' });
+
+// Add additional words to the blacklist
+filter.addWords('badword1', 'badword2', 'inappropriate');
 
 // Set up Redis client
 const redis = new Redis({
@@ -215,6 +222,12 @@ async function handleCreateRoom(data, requestId) {
     return createErrorResponse('Room name is required', 400);
   }
 
+  // Check for profanity in room name
+  if (filter.isProfane(originalName)) {
+    logInfo(requestId, `Room creation failed: Name contains inappropriate language: ${originalName}`);
+    return createErrorResponse('Room name contains inappropriate language', 400);
+  }
+
   const name = originalName.toLowerCase().replace(/ /g, '-');
 
   logInfo(requestId, `Creating room: ${name}`);
@@ -319,12 +332,15 @@ async function handleGetMessages(roomId, requestId) {
 }
 
 async function handleSendMessage(data, requestId) {
-  const { roomId, username, content } = data;
+  const { roomId, username, content: originalContent } = data;
 
-  if (!roomId || !username || !content) {
-    logInfo(requestId, 'Message sending failed: Missing required fields', { roomId, username, hasContent: !!content });
+  if (!roomId || !username || !originalContent) {
+    logInfo(requestId, 'Message sending failed: Missing required fields', { roomId, username, hasContent: !!originalContent });
     return createErrorResponse('Room ID, username, and content are required', 400);
   }
+
+  // Filter profanity from message content
+  const content = filter.clean(originalContent);
 
   logInfo(requestId, `Sending message in room ${roomId} from user ${username}`);
   
@@ -402,12 +418,20 @@ async function handleGetUsers(requestId) {
 }
 
 async function handleCreateUser(data, requestId) {
-  const { username } = data;
+  const { username: originalUsername } = data;
 
-  if (!username) {
+  if (!originalUsername) {
     logInfo(requestId, 'User creation failed: Username is required');
     return createErrorResponse('Username is required', 400);
   }
+
+  // Check for profanity in username
+  if (filter.isProfane(originalUsername)) {
+    logInfo(requestId, `User creation failed: Username contains inappropriate language: ${originalUsername}`);
+    return createErrorResponse('Username contains inappropriate language', 400);
+  }
+
+  const username = originalUsername;
 
   logInfo(requestId, `Creating user: ${username}`);
   try {
