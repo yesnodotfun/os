@@ -279,40 +279,24 @@ export function ChatMessages({
   useEffect(() => {
     const viewport = viewportRef.current;
     if (!viewport) return;
-    
-    // Calculate new checksum
-    const newChecksum = calculateMessagesChecksum(messages);
-    const isRealChange = newChecksum !== messagesChecksumRef.current;
-    
-    // Update the stored checksum
-    messagesChecksumRef.current = newChecksum;
-    
-    // Skip scrolling during initial load sequence to prevent double scrolling
-    // We allow 500ms for initial load to complete
-    const timeSinceMount = Date.now() - mountedAt.current;
-    if (timeSinceMount < 500 && !initialLoadComplete.current) {
-      console.log('[Scroll] Skipping scroll during initial load sequence');
-      previousMessagesLength.current = messages.length;
+
+    // Always scroll to bottom on initial load or when messages first appear after being empty
+    if (!hasScrolled.current || previousMessagesLength.current === 0) {
+      console.log('[Scroll] Initial load or first messages, scrolling to bottom');
+      scrollToBottom(viewport);
       return;
     }
-    
-    // Only count as new messages if:
-    // 1. Message count increased
-    // 2. Content actually changed (using checksum)
-    // 3. We're past the initial load phase
-    const hasNewMessages = messages.length > previousMessagesLength.current && isRealChange;
-    
-    if (hasNewMessages) {
-      if (scrollLockedToBottom) {
-        console.log(`[Scroll] New messages detected (${messages.length} > ${previousMessagesLength.current}) and locked to bottom, scrolling down`);
-        scrollToBottom(viewport);
-      } else {
-        console.log(`[Scroll] New messages detected (${messages.length} > ${previousMessagesLength.current}) but NOT scrolling (locked: ${scrollLockedToBottom})`);
-      }
+
+    // Only scroll if locked to bottom AND the number of messages has increased
+    if (scrollLockedToBottom && messages.length > previousMessagesLength.current) {
+      console.log(`[Scroll] New messages (${messages.length} > ${previousMessagesLength.current}) and locked to bottom, scrolling down`);
+      scrollToBottom(viewport);
+    } else if (messages.length > previousMessagesLength.current) {
+      console.log(`[Scroll] New messages (${messages.length} > ${previousMessagesLength.current}) but NOT scrolling (locked: ${scrollLockedToBottom})`);
     }
     
     previousMessagesLength.current = messages.length;
-  }, [messages, messages.length, scrollLockedToBottom, scrollToBottom, calculateMessagesChecksum]);
+  }, [messages.length, scrollLockedToBottom, scrollToBottom]);
 
   const isUrgentMessage = (content: string) => content.startsWith("!!!!");
 
