@@ -1998,15 +1998,34 @@ export function ChatsAppComponent({
                timestamp: typeof msg.timestamp === 'string' || typeof msg.timestamp === 'number' 
                           ? new Date(msg.timestamp).getTime() 
                           : msg.timestamp 
-            })) 
-            .sort((a, b) => a.timestamp - b.timestamp); // Sort by number timestamp
+            })); 
 
-          // Save fetched messages to cache (timestamps are now numbers)
-          saveRoomMessagesToCache(currentRoom.id, fetchedMessages);
-          
-          // Update state with fetched messages (timestamps are numbers)
-          setRoomMessages(fetchedMessages);
-          
+          // Don't replace cached messages, merge them instead
+          setRoomMessages(currentMessages => {
+            // Create a map of existing message IDs for quick lookup
+            const existingMessageIds = new Set(currentMessages.map(msg => msg.id));
+            
+            // Only add messages that aren't already in the cache
+            const newMessages = fetchedMessages.filter(msg => !existingMessageIds.has(msg.id));
+            
+            if (newMessages.length === 0) {
+              console.log('No new messages from API that aren\'t already in cache');
+              return currentMessages; // No changes needed
+            }
+            
+            // Merge cached and new messages
+            const mergedMessages = [...currentMessages, ...newMessages];
+            
+            // Sort by timestamp
+            mergedMessages.sort((a, b) => a.timestamp - b.timestamp);
+            
+            console.log(`Added ${newMessages.length} new messages from API`);
+            
+            // Save the merged set to cache
+            saveRoomMessagesToCache(currentRoom.id, mergedMessages);
+            
+            return mergedMessages;
+          });
         } catch (error) {
           console.error('Error processing room messages:', error);
           // If fetch or processing fails, we rely on the cached messages (if any) loaded earlier

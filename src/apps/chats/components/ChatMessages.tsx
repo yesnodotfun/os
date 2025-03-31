@@ -185,6 +185,7 @@ export function ChatMessages({
   // and the component is still mounted (not changing room)
   useEffect(() => {
       if (messages.length === 0) {
+          hasScrolled.current = false; // Reset scroll state when messages are cleared (room switch)
           hasInitializedRef.current = false;
           initialMessageIdsRef.current = new Set();
           previousMessagesRef.current = []; // Reset previous messages when cleared
@@ -220,6 +221,7 @@ export function ChatMessages({
   };
 
   const scrollToBottom = useCallback((viewport: HTMLElement) => {
+    console.log('[Scroll] Scrolling to bottom');
     viewport.scrollTop = viewport.scrollHeight;
   }, []);
 
@@ -235,10 +237,12 @@ export function ChatMessages({
 
     // If we were at bottom and scrolled up, unlock
     if (wasAtBottom.current && !isAtBottom) {
+      console.log('[Scroll] User scrolled up, unlocking auto-scroll');
       setScrollLockedToBottom(false);
     }
     // If we're at bottom, lock and remember we were at bottom
     if (isAtBottom) {
+      console.log('[Scroll] User scrolled to bottom, locking auto-scroll');
       setScrollLockedToBottom(true);
       wasAtBottom.current = true;
     }
@@ -249,19 +253,23 @@ export function ChatMessages({
     const viewport = viewportRef.current;
     if (!viewport) return;
 
-    // Always scroll to bottom on initial load
-    if (!hasScrolled.current) {
+    // Always scroll to bottom on initial load or when messages first appear after being empty
+    if (!hasScrolled.current || previousMessagesLength.current === 0) {
+      console.log('[Scroll] Initial load or first messages, scrolling to bottom');
       scrollToBottom(viewport);
       return;
     }
 
-    // For subsequent updates, only scroll if locked to bottom
-    if (scrollLockedToBottom) {
+    // Only scroll if locked to bottom AND the number of messages has increased
+    if (scrollLockedToBottom && messages.length > previousMessagesLength.current) {
+      console.log(`[Scroll] New messages (${messages.length} > ${previousMessagesLength.current}) and locked to bottom, scrolling down`);
       scrollToBottom(viewport);
+    } else if (messages.length > previousMessagesLength.current) {
+      console.log(`[Scroll] New messages (${messages.length} > ${previousMessagesLength.current}) but NOT scrolling (locked: ${scrollLockedToBottom})`);
     }
 
     previousMessagesLength.current = messages.length;
-  }, [messages, isLoading, scrollLockedToBottom, scrollToBottom]);
+  }, [messages.length, scrollLockedToBottom, scrollToBottom]);
 
   const isUrgentMessage = (content: string) => content.startsWith("!!!!");
 
@@ -321,9 +329,9 @@ export function ChatMessages({
             // Determine message style based on role
             let bgColorClass = "";
             if (message.role === "user") {
-              bgColorClass = "bg-yellow-200 text-black";
+              bgColorClass = "bg-yellow-100 text-black";
             } else if (message.role === "assistant") {
-              bgColorClass = "bg-blue-200 text-black";
+              bgColorClass = "bg-blue-100 text-black";
             } else if (message.role === "human") {
               // Use hash-based color for human messages
               bgColorClass = getUserColorClass(message.username);
@@ -412,37 +420,37 @@ export function ChatMessages({
                   layout="position"
                   initial={{
                     backgroundColor:
-                      message.role === "user" ? "#fef08a" : 
-                      message.role === "assistant" ? "#bfdbfe" :
-                      // For human messages, convert bg-color-200 to hex (approximately)
-                      bgColorClass.split(" ")[0].includes("pink") ? "#fbd5e5" :
-                      bgColorClass.split(" ")[0].includes("purple") ? "#e9d5ff" :
-                      bgColorClass.split(" ")[0].includes("indigo") ? "#c7d2fe" :
-                      bgColorClass.split(" ")[0].includes("teal") ? "#afecef" :
-                      bgColorClass.split(" ")[0].includes("lime") ? "#d9f99d" :
-                      bgColorClass.split(" ")[0].includes("amber") ? "#fde68a" :
-                      bgColorClass.split(" ")[0].includes("cyan") ? "#a5f3fc" :
-                      bgColorClass.split(" ")[0].includes("rose") ? "#fecdd3" :
-                      "#e5e7eb", // gray-200 fallback
+                      message.role === "user" ? "#fef9c3" : 
+                      message.role === "assistant" ? "#dbeafe" :
+                      // For human messages, convert bg-color-100 to hex (approximately)
+                      bgColorClass.split(" ")[0].includes("pink") ? "#fce7f3" :
+                      bgColorClass.split(" ")[0].includes("purple") ? "#f3e8ff" :
+                      bgColorClass.split(" ")[0].includes("indigo") ? "#e0e7ff" :
+                      bgColorClass.split(" ")[0].includes("teal") ? "#ccfbf1" :
+                      bgColorClass.split(" ")[0].includes("lime") ? "#ecfccb" :
+                      bgColorClass.split(" ")[0].includes("amber") ? "#fef3c7" :
+                      bgColorClass.split(" ")[0].includes("cyan") ? "#cffafe" :
+                      bgColorClass.split(" ")[0].includes("rose") ? "#ffe4e6" :
+                      "#f3f4f6", // gray-100 fallback
                     color: "#000000",
                   }}
                   animate={
                     isUrgentMessage(message.content)
                       ? {
                           backgroundColor: [
-                            "#fecaca", // Start with red for urgent
-                            message.role === "user" ? "#fef08a" : 
-                            message.role === "assistant" ? "#bfdbfe" :
-                            // For human messages, convert bg-color-200 to hex (approximately)
-                            bgColorClass.split(" ")[0].includes("pink") ? "#fbd5e5" :
-                            bgColorClass.split(" ")[0].includes("purple") ? "#e9d5ff" :
-                            bgColorClass.split(" ")[0].includes("indigo") ? "#c7d2fe" :
-                            bgColorClass.split(" ")[0].includes("teal") ? "#afecef" :
-                            bgColorClass.split(" ")[0].includes("lime") ? "#d9f99d" :
-                            bgColorClass.split(" ")[0].includes("amber") ? "#fde68a" :
-                            bgColorClass.split(" ")[0].includes("cyan") ? "#a5f3fc" :
-                            bgColorClass.split(" ")[0].includes("rose") ? "#fecdd3" :
-                            "#e5e7eb", // gray-200 fallback
+                            "#fee2e2", // Start with red for urgent (lighter red-100)
+                            message.role === "user" ? "#fef9c3" : 
+                            message.role === "assistant" ? "#dbeafe" :
+                            // For human messages, convert bg-color-100 to hex (approximately)
+                            bgColorClass.split(" ")[0].includes("pink") ? "#fce7f3" :
+                            bgColorClass.split(" ")[0].includes("purple") ? "#f3e8ff" :
+                            bgColorClass.split(" ")[0].includes("indigo") ? "#e0e7ff" :
+                            bgColorClass.split(" ")[0].includes("teal") ? "#ccfbf1" :
+                            bgColorClass.split(" ")[0].includes("lime") ? "#ecfccb" :
+                            bgColorClass.split(" ")[0].includes("amber") ? "#fef3c7" :
+                            bgColorClass.split(" ")[0].includes("cyan") ? "#cffafe" :
+                            bgColorClass.split(" ")[0].includes("rose") ? "#ffe4e6" :
+                            "#f3f4f6", // gray-100 fallback
                           ],
                           color: ["#C92D2D", "#000000"],
                           transition: {
@@ -463,8 +471,8 @@ export function ChatMessages({
                       ? "w-full p-[1px] m-0 outline-0 ring-0 !bg-transparent"
                       : `w-fit max-w-[90%] p-1.5 px-2 ${
                           bgColorClass || (message.role === "user"
-                            ? "bg-yellow-200 text-black"
-                            : "bg-blue-200 text-black")
+                            ? "bg-yellow-100 text-black"
+                            : "bg-blue-100 text-black")
                         }`
                   } min-h-[12px] rounded leading-snug text-[12px] font-geneva-12 break-words select-text`}
                 >
