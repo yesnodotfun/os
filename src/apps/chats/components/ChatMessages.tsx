@@ -1,7 +1,7 @@
 import { Message as VercelMessage } from "ai";
 import { Loader2, AlertCircle, MessageSquare, Copy, Check } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { AnimatePresence, motion } from "framer-motion";
 import { useChatSynth } from "@/hooks/useChatSynth";
@@ -120,14 +120,13 @@ export function ChatMessages({
   isRoomView,
 }: ChatMessagesProps) {
   const [scrollLockedToBottom, setScrollLockedToBottom] = useState(true);
-  const viewportRef = useRef<HTMLElement | null>(null);
+  const scrollAreaRef = useRef<HTMLDivElement | null>(null); // Ref for the ScrollArea component itself
   const { playNote } = useChatSynth();
   const { playElevatorMusic, stopElevatorMusic, playDingSound } =
     useTerminalSounds();
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
   const previousMessagesLength = useRef(messages.length);
-  const hasScrolled = useRef(false);
   const wasAtBottom = useRef(true);
   const [isInteractingWithPreview, setIsInteractingWithPreview] =
     useState(false);
@@ -135,8 +134,7 @@ export function ChatMessages({
   // Add refs to track component lifecycle and message sources
   const mountedAt = useRef(Date.now());
   const initialLoadComplete = useRef(false);
-  const messagesChecksumRef = useRef<string>("");
-  
+
   // Ref to track initial message IDs for animation control
   const initialMessageIdsRef = useRef<Set<string>>(new Set());
   const hasInitializedRef = useRef(false);
@@ -172,52 +170,28 @@ export function ChatMessages({
   }, [messages, playNote]);
   // --- End New Effect ---
 
-  // Calculate a checksum for messages to detect real changes
-  const calculateMessagesChecksum = useCallback((msgs: ChatMessage[]) => {
-    return msgs.map(m => m.id || `${m.role}-${m.content.substring(0, 10)}`).join('|');
-  }, []);
-
   // Capture initial message IDs on mount (runs once per component instance/key change)
+  // Also sets initial refs related to scrolling/loading state
   useEffect(() => {
     // Reset everything for this new instance
     console.log('[Scroll] Component mounted with new key');
-    hasScrolled.current = false;
     wasAtBottom.current = true;
-    initialLoadComplete.current = false;
+    initialLoadComplete.current = false; // Mark that initial loading/scrolling hasn't happened yet
+    setScrollLockedToBottom(true); // Assume locked to bottom initially
     mountedAt.current = Date.now();
     
     // Only initialize once per component instance (keyed mount)
     if (!hasInitializedRef.current && messages.length > 0) {
-      initialMessageIdsRef.current = new Set(messages.map(m => m.id || `${m.role}-${m.content.substring(0, 10)}`));
       hasInitializedRef.current = true;
       previousMessagesRef.current = messages; // Initialize previous messages on mount
       
-      // Set initial checksum
-      messagesChecksumRef.current = calculateMessagesChecksum(messages);
-      
       // Handle initial scroll
-      setTimeout(() => {
-        const viewport = viewportRef.current;
-        if (viewport) {
-          console.log('[Scroll] Initial scroll on mount');
-          viewport.scrollTop = viewport.scrollHeight;
-          initialLoadComplete.current = true;
-        }
-      }, 50); // Small delay to ensure DOM is ready
+      // Initial scroll is now handled by the messages.length effect
+    } else if (messages.length === 0) { // Also reset if starting empty
+      hasInitializedRef.current = false; // Allow re-initialization if messages appear later
     }
+    initialMessageIdsRef.current = new Set(messages.map(m => m.id || `${m.role}-${m.content.substring(0, 10)}`));
   }, []); // Run only once on mount for this instance
-
-  // Reset initialization state if messages become empty (e.g., chat cleared)
-  // and the component is still mounted (not changing room)
-  useEffect(() => {
-      if (messages.length === 0) {
-          hasScrolled.current = false; // Reset scroll state when messages are cleared (room switch)
-          hasInitializedRef.current = false;
-          initialMessageIdsRef.current = new Set();
-          previousMessagesRef.current = []; // Reset previous messages when cleared
-          initialLoadComplete.current = false;
-      }
-  }, [messages]);
 
   const copyMessage = async (message: ChatMessage) => {
     try {
@@ -247,26 +221,17 @@ export function ChatMessages({
     }
   };
 
-  const scrollToBottom = useCallback((viewport: HTMLElement) => {
-    console.log('[Scroll] Scrolling to bottom');
-    viewport.scrollTop = viewport.scrollHeight;
-  }, []);
-
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const viewport = e.currentTarget.querySelector(
-      "[data-radix-scroll-area-viewport]"
-    ) as HTMLElement;
+  const handleScroll = () => {
+    // Get viewport directly from the ref instead of querying again
+    const scrollAreaElement = scrollAreaRef.current;
+    if (!scrollAreaElement) return;
+    const viewport = scrollAreaElement.querySelector<HTMLElement>('[data-radix-scroll-area-viewport]');
     if (!viewport) return;
 
-    hasScrolled.current = true;
+    // More precise bottom detection with lower threshold
     const isAtBottom =
-      viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 10;
+      Math.abs(viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight) < 5;
 
-    // If we were at bottom and scrolled up, unlock
-    if (wasAtBottom.current && !isAtBottom) {
-      console.log('[Scroll] User scrolled up, unlocking auto-scroll');
-      setScrollLockedToBottom(false);
-    }
     // If we're at bottom, lock and remember we were at bottom
     if (isAtBottom) {
       console.log('[Scroll] User scrolled to bottom, locking auto-scroll');
@@ -275,28 +240,50 @@ export function ChatMessages({
     }
   };
 
-  // Handle message changes with improved logic
+  // Handle message changes and initial scroll
+  // Scrolls to bottom on initial load or when new messages arrive AND scroll is locked
   useEffect(() => {
-    const viewport = viewportRef.current;
+    const scrollAreaElement = scrollAreaRef.current;
+    if (!scrollAreaElement) return;
+    const viewport = scrollAreaElement.querySelector<HTMLElement>('[data-radix-scroll-area-viewport]');
     if (!viewport) return;
 
-    // Always scroll to bottom on initial load or when messages first appear after being empty
-    if (!hasScrolled.current || previousMessagesLength.current === 0) {
-      console.log('[Scroll] Initial load or first messages, scrolling to bottom');
-      scrollToBottom(viewport);
-      return;
+    // Check if we should scroll:
+    // 1. It's the very first render cycle where messages are populated (initialLoadComplete is false)
+    // 2. Or, scroll is locked to the bottom AND new messages have arrived.
+    const isFirstMeaningfulRender = !initialLoadComplete.current && messages.length > 0;
+    const hasNewMessages = messages.length > previousMessagesLength.current;
+    const shouldScroll = isFirstMeaningfulRender || (scrollLockedToBottom && hasNewMessages);
+
+    if (shouldScroll) {
+        // Defer scroll until after the DOM updates from this render cycle
+        requestAnimationFrame(() => {
+            // Re-query the viewport in case component unmounted/remounted quickly or ref changed
+            const currentScrollAreaElement = scrollAreaRef.current;
+            if (!currentScrollAreaElement) return;
+            const currentViewport = currentScrollAreaElement.querySelector<HTMLElement>('[data-radix-scroll-area-viewport]');
+
+            if (currentViewport) {
+                console.log(`[Scroll] Scrolling to bottom. Reason: ${isFirstMeaningfulRender ? 'Initial load' : 'New message & locked'}`);
+                currentViewport.scrollTop = currentViewport.scrollHeight;
+
+                // If this was the initial scroll, mark it complete and set state
+                if (isFirstMeaningfulRender) {
+                    console.log('[Scroll] Initial load scroll complete.');
+                    initialLoadComplete.current = true;
+                    // Ensure lock state reflects reality after initial scroll
+                    // setScrollLockedToBottom(true); // Already set on mount/reset
+                    wasAtBottom.current = true;
+                }
+            }
+        });
+    } else if (hasNewMessages) {
+         console.log(`[Scroll] New messages received but NOT scrolling (Locked: ${scrollLockedToBottom})`);
     }
 
-    // Only scroll if locked to bottom AND the number of messages has increased
-    if (scrollLockedToBottom && messages.length > previousMessagesLength.current) {
-      console.log(`[Scroll] New messages (${messages.length} > ${previousMessagesLength.current}) and locked to bottom, scrolling down`);
-      scrollToBottom(viewport);
-    } else if (messages.length > previousMessagesLength.current) {
-      console.log(`[Scroll] New messages (${messages.length} > ${previousMessagesLength.current}) but NOT scrolling (locked: ${scrollLockedToBottom})`);
-    }
-    
+    // Update previous length ref *after* processing the current state
     previousMessagesLength.current = messages.length;
-  }, [messages.length, scrollLockedToBottom, scrollToBottom]);
+  }, [messages.length, scrollLockedToBottom]); // Trigger only when length changes or lock state changes
 
   const isUrgentMessage = (content: string) => content.startsWith("!!!!");
 
@@ -304,12 +291,7 @@ export function ChatMessages({
     <ScrollArea
       className="flex-1 bg-white border-2 border-gray-800 rounded mb-2 p-2 h-full w-full"
       onScroll={handleScroll}
-      ref={(ref) => {
-        const viewport = ref?.querySelector(
-          "[data-radix-scroll-area-viewport]"
-        ) as HTMLElement;
-        viewportRef.current = viewport;
-      }}
+      ref={scrollAreaRef} // Assign the ref to the ScrollArea component
     >
       <AnimatePresence initial={false} mode="sync">
         <motion.div
