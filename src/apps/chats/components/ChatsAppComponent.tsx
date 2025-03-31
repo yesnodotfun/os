@@ -9,6 +9,7 @@ import { InputDialog } from "@/components/dialogs/InputDialog";
 import { helpItems, appMetadata } from "..";
 import { useLaunchApp } from "@/hooks/useLaunchApp";
 import { useChat } from "ai/react";
+import Pusher from 'pusher-js'; // Import Pusher
 import {
   loadChatMessages,
   saveChatMessages,
@@ -1694,7 +1695,7 @@ const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
         <div className="flex-1 overflow-y-auto space-y-1 min-h-0">
           <div
             className={`px-2 py-1 cursor-pointer ${currentRoom === null ? 'bg-black text-white' : 'hover:bg-black/5'}`}
-            onClick={() => onRoomSelect(null as any)} // Using null for Ryo chat
+            onClick={() => onRoomSelect(null)} // Using null for Ryo chat
           >
             @ryo
           </div>
@@ -1835,131 +1836,120 @@ export function ChatsAppComponent({
     setIsSidebarVisible(savedState);
   }, []); // Empty dependency array ensures this runs only once
 
-  // Add polling for room data (including user counts)
+  // Add Pusher instance ref to avoid recreating it on each render
+  const pusherRef = useRef<Pusher | null>(null);
+  // Use a proper type for the channel
+  const channelRef = useRef<{ unbind_all: () => void } | null>(null);
+
+  // Replace polling with Pusher subscription
   useEffect(() => {
+    // Only subscribe if window is open and has focus
     if (!isWindowOpen || !isForeground) {
-      return; // Don't poll if window is closed or not focused
+      return;
     }
 
-    const pollInterval = 7000; // Poll every 15 seconds
-    let isMounted = true;
-
-    const pollRooms = async () => {
-      if (!isMounted) return;
-      console.log(`[Polling] Fetching room data...`);
-      try {
-        const response = await fetch('/api/chat-rooms?action=getRooms');
-        if (!response.ok) {
-          console.error(`[Polling] Failed to fetch rooms: ${response.statusText}`);
-          return;
-        }
-        const data = await response.json();
-        const fetchedRooms = data.rooms || [];
-        
-        if (isMounted) {
-          // Only update if fetched data differs from current state to avoid unnecessary re-renders
-          setRooms(currentRooms => {
-            const currentRoomsJson = JSON.stringify(currentRooms.map((r: ChatRoom) => ({ id: r.id, name: r.name, userCount: r.userCount })));
-            const fetchedRoomsJson = JSON.stringify(fetchedRooms.map((r: ChatRoom) => ({ id: r.id, name: r.name, userCount: r.userCount })));
-            if (currentRoomsJson !== fetchedRoomsJson) {
-              console.log("[Polling] Room data updated:", fetchedRooms);
-              saveCachedChatRooms(fetchedRooms); // Update cache
-              return fetchedRooms;
-            }
-            return currentRooms; // No changes
-          });
-        }
-      } catch (error) {
-        console.error('[Polling] Error fetching rooms:', error);
-      }
-    };
-
-    // Initial fetch
-    pollRooms();
+    console.log('[Pusher] Initializing...');
     
-    // Set up interval
-    const intervalId = setInterval(pollRooms, pollInterval);
-
-    // Cleanup
-    return () => {
-      isMounted = false;
-      clearInterval(intervalId);
-      console.log("[Polling] Stopped polling for room data.");
-    };
-  }, [isWindowOpen, isForeground]); // Re-run if window visibility/focus changes
-
-  // Fetch rooms on mount, using cache first
-  useEffect(() => {
-    // Load cached rooms immediately
-    const cachedRooms = loadCachedChatRooms();
-    if (cachedRooms) {
-      setRooms(cachedRooms);
-      console.log("Loaded cached rooms:", cachedRooms);
-      // Attempt to restore last room from cache
-      const lastRoomId = loadLastOpenedRoomId();
-      if (lastRoomId) {
-        const lastRoom = cachedRooms.find(room => room.id === lastRoomId);
-        if (lastRoom) {
-          setCurrentRoom(lastRoom);
-          console.log(`Restored last opened room from cache: ${lastRoom.name}`);
-        }
-      }
+    // Initialize Pusher only once
+    if (!pusherRef.current) {
+      pusherRef.current = new Pusher('b47fd563805c8c42da1a', {
+        cluster: 'us3'
+      });
     }
-
-    const fetchRooms = async () => {
-      try {
-        const response = await fetch('/api/chat-rooms?action=getRooms');
-        const data = await response.json();
-        const fetchedRooms = data.rooms || [];
-        
-        // Compare fetched rooms with cached rooms
-        const currentRoomsJson = JSON.stringify(cachedRooms || []);
-        const fetchedRoomsJson = JSON.stringify(fetchedRooms);
-
-        if (currentRoomsJson !== fetchedRoomsJson) {
-          setRooms(fetchedRooms);
-          saveCachedChatRooms(fetchedRooms);
-          console.log("Fetched and updated rooms cache:", fetchedRooms);
-        }
-
-        // After fetching rooms, try to load and set the last opened room (again, in case cache was outdated)
-        const lastRoomId = loadLastOpenedRoomId();
-        if (lastRoomId) {
-          const lastRoom = fetchedRooms.find((room: ChatRoom) => room.id === lastRoomId);
-          if (lastRoom) {
-            // Only set currentRoom if it wasn't already set from cache or if it needs updating
-            if (!currentRoom || currentRoom.id !== lastRoom.id) {
-              setCurrentRoom(lastRoom);
-              console.log(`Restored/updated last opened room from fetch: ${lastRoom.name}`);
-            }
-          } else {
-            // If the last room ID doesn't exist anymore, clear it and potentially switch to Ryo
-            if (currentRoom && currentRoom.id === lastRoomId) {
-              setCurrentRoom(null);
-              saveLastOpenedRoomId(null);
-              console.log(`Last opened room ID ${lastRoomId} not found in fetch, switching to @ryo.`);
-            } else if (!currentRoom) {
-              // If no room was set from cache, default to Ryo
-               setCurrentRoom(null);
-            }
+    
+    // Subscribe to the 'chats' channel
+    const channel = pusherRef.current.subscribe('chats');
+    channelRef.current = channel;
+    
+    // Bind to room update events
+    channel.bind('rooms-updated', (data: { rooms: ChatRoom[] }) => {
+      console.log('[Pusher] Received rooms update:', data);
+      if (data.rooms) {
+        // Update rooms state with fetched data
+        setRooms(currentRooms => {
+          const currentRoomsJson = JSON.stringify(currentRooms.map(r => ({ id: r.id, name: r.name, userCount: r.userCount })));
+          const fetchedRoomsJson = JSON.stringify(data.rooms.map(r => ({ id: r.id, name: r.name, userCount: r.userCount })));
+          
+          if (currentRoomsJson !== fetchedRoomsJson) {
+            console.log("[Pusher] Room data updated:", data.rooms);
+            saveCachedChatRooms(data.rooms); // Update cache
+            return data.rooms;
           }
-        } else {
-           // If no last room ID is saved, default to Ryo if no room set from cache
-           if (!currentRoom) {
-              setCurrentRoom(null);
-           }
-        }
+          return currentRooms; // No changes
+        });
+      }
+    });
+    
+    // Bind to room messages events
+    channel.bind('room-message', (data: { roomId: string; message: ChatMessage }) => {
+      console.log('[Pusher] Received room message:', data);
+      
+      // Only update if message is for the current room
+      if (currentRoom && data.roomId === currentRoom.id) {
+        setRoomMessages(prevMessages => {
+          // Check if this message is already in our list - use ID for exact matching
+          const isDuplicate = prevMessages.some(msg => msg.id === data.message.id);
+          
+          if (!isDuplicate) {
+            console.log(`[Pusher] Adding new message to room ${data.roomId}`);
+            // Ensure timestamp is a number 
+            const messageWithNumericTimestamp = {
+              ...data.message,
+              timestamp: typeof data.message.timestamp === 'string' || typeof data.message.timestamp === 'number'
+                ? new Date(data.message.timestamp).getTime()
+                : data.message.timestamp
+            };
+            
+            // Add the new message to the list
+            const updatedMessages = [...prevMessages, messageWithNumericTimestamp];
+            
+            // Sort by timestamp
+            updatedMessages.sort((a, b) => a.timestamp - b.timestamp);
+            
+            // Update local cache
+            saveRoomMessagesToCache(data.roomId, updatedMessages);
+            
+            return updatedMessages;
+          }
+          
+          return prevMessages;
+        });
+      }
+    });
+    
+    // Bind to user count update events
+    channel.bind('user-count-updated', (data: { roomId: string; userCount: number }) => {
+      console.log('[Pusher] Received user count update:', data);
+      
+      // Update the user count for the specific room
+      setRooms(prevRooms => {
+        return prevRooms.map(room => {
+          if (room.id === data.roomId) {
+            return { ...room, userCount: data.userCount };
+          }
+          return room;
+        });
+      });
+    });
 
-      } catch (error) {
-        console.error('Error fetching rooms:', error);
-        // If fetch fails, rely on cache or default to Ryo chat
-        if (!cachedRooms && !currentRoom) {
-          setCurrentRoom(null);
-        }
+    // Clean up function
+    return () => {
+      console.log('[Pusher] Cleaning up subscriptions...');
+      
+      // Unbind all events
+      if (channelRef.current) {
+        channelRef.current.unbind_all();
+        pusherRef.current?.unsubscribe('chats');
+        channelRef.current = null;
+      }
+      
+      // Disconnect Pusher when component unmounts
+      if (pusherRef.current) {
+        pusherRef.current.disconnect();
+        pusherRef.current = null;
       }
     };
-    fetchRooms();
-  }, []); // Empty dependency array ensures this runs only once on mount
+  }, [isWindowOpen, isForeground, currentRoom]); // Dependencies include currentRoom for filtering messages
 
   // Load or register username
   useEffect(() => {
@@ -2028,63 +2018,7 @@ export function ChatsAppComponent({
     fetchRoomMessages();
   }, [currentRoom]);
 
-  // Add polling for new room messages // Restore polling effect structure
-  useEffect(() => {
-    if (!currentRoom || !username || !isForeground) {
-      return; // No polling if not in a room, no username, or window not focused
-    }
-
-    let isMounted = true; // Flag to prevent state updates on unmounted component
-
-    const fetchNewMessages = async () => {
-      if (!isMounted || !currentRoom) return; // Check again before fetching
-
-      console.log(`Polling for new messages in room: ${currentRoom.id}`);
-      try {
-        const response = await fetch(`/api/chat-rooms?action=getMessages&roomId=${currentRoom.id}`);
-        if (!response.ok) {
-          console.error(`Failed to fetch messages: ${response.statusText}`);
-          return;
-        }
-        const data = await response.json();
-        // Ensure fetched timestamps are numbers
-        const fetchedMessages: ChatMessage[] = (data.messages || []).map((msg: any) => ({
-          ...msg,
-          timestamp: typeof msg.timestamp === 'string' || typeof msg.timestamp === 'number'
-                     ? new Date(msg.timestamp).getTime()
-                     : msg.timestamp
-        }));
-
-        if (isMounted) {
-          setRoomMessages((prevMessages) => {
-            const existingIds = new Set(prevMessages.map(msg => msg.id));
-            const newMessages = fetchedMessages.filter(msg => !existingIds.has(msg.id));
-
-            if (newMessages.length > 0) {
-              console.log(`Fetched ${newMessages.length} new message(s)`);
-              // Combine and sort by timestamp (oldest first)
-              const combined = [...prevMessages, ...newMessages];
-              combined.sort((a, b) => a.timestamp - b.timestamp);
-              // Save combined messages to cache
-              saveRoomMessagesToCache(currentRoom.id, combined);
-              return combined;
-            }
-            return prevMessages; // No changes
-          });
-        }
-      } catch (error) {
-        console.error('Error polling for room messages:', error);
-      }
-    };
-
-    const intervalId = setInterval(fetchNewMessages, 10000); 
-
-    return () => {
-      isMounted = false;
-      clearInterval(intervalId);
-      console.log("Stopped polling for room messages.");
-    };
-  }, [currentRoom, username, isForeground]);
+  // The polling effect for room messages has been replaced by Pusher real-time subscription
 
   // Modify useChat to handle both Ryo and room messages
   const {
@@ -2107,9 +2041,28 @@ export function ChatsAppComponent({
     },
   });
 
-  // Helper function to send a message to the current room
+  // Modify the sendRoomMessage function to add message immediately without pending state
   const sendRoomMessage = useCallback(async (content: string) => {
     if (!currentRoom || !username) return; // Guard clause
+
+    // Generate a temporary ID for the message to track it
+    const tempId = generateId();
+    
+    // Create the message object - no pending flag
+    const newMessage = {
+      id: tempId,
+      roomId: currentRoom.id,
+      username,
+      content,
+      timestamp: Date.now()
+    };
+    
+    // Add to local state immediately without any pending indicators
+    setRoomMessages(prev => {
+      const updated = [...prev, newMessage];
+      updated.sort((a, b) => a.timestamp - b.timestamp);
+      return updated;
+    });
 
     try {
       const response = await fetch('/api/chat-rooms?action=sendMessage', {
@@ -2121,31 +2074,48 @@ export function ChatsAppComponent({
           content,
         }),
       });
+      
       if (response.ok) {
-        const newMessage = await response.json();
-        setRoomMessages((prev) => {
-          const updated = [...prev, newMessage.message];
-          updated.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-          // Save updated messages to cache (ensure timestamp is number)
-          const messagesToCache = updated.map(msg => ({
-            ...msg,
-            timestamp: typeof msg.timestamp === 'string' || typeof msg.timestamp === 'number'
-                        ? new Date(msg.timestamp).getTime()
-                        : msg.timestamp
-          }));
-          saveRoomMessagesToCache(currentRoom.id, messagesToCache);
-          return updated; // Return state with numeric timestamps
+        const serverMessage = await response.json();
+        
+        // Replace our temp message with the server version
+        setRoomMessages(prev => {
+          // Remove our temporary message
+          const withoutTemp = prev.filter(msg => msg.id !== tempId);
+          
+          // Check if the real message already exists (from Pusher)
+          const realMessageExists = withoutTemp.some(msg => msg.id === serverMessage.message.id);
+          
+          if (!realMessageExists) {
+            // Add the real message if it's not already there
+            const updated = [...withoutTemp, {
+              ...serverMessage.message,
+              timestamp: typeof serverMessage.message.timestamp === 'string' || typeof serverMessage.message.timestamp === 'number'
+                ? new Date(serverMessage.message.timestamp).getTime()
+                : serverMessage.message.timestamp
+            }];
+            
+            updated.sort((a, b) => a.timestamp - b.timestamp);
+            saveRoomMessagesToCache(currentRoom.id, updated);
+            return updated;
+          }
+          
+          // Real message already exists (from Pusher), so just return without the temp
+          saveRoomMessagesToCache(currentRoom.id, withoutTemp);
+          return withoutTemp;
         });
-        // Clear input only if this function is called from handleSubmit
-        // For direct submits/nudge, input is not involved or cleared elsewhere
-        // handleInputChange({ target: { value: '' } } as React.ChangeEvent<HTMLInputElement>);
       } else {
         console.error('Error sending room message:', await response.json());
       }
     } catch (error) {
       console.error('Network error sending room message:', error);
     }
-  }, [currentRoom, username]); // Dependencies for the helper function
+  }, [currentRoom, username]);
+
+  // Add a helper function to generate unique IDs (similar to what the server uses)
+  const generateId = () => {
+    return Math.random().toString(36).substring(2, 15);
+  };
 
   // Mark initial messages as loaded after the first render
   useEffect(() => {
@@ -2902,6 +2872,86 @@ export function ChatsAppComponent({
       console.log("Chat component unmounted, cleanup complete");
     };
   }, []);
+
+  // Add initial room loading logic
+  useEffect(() => {
+    // Load cached rooms immediately
+    const cachedRooms = loadCachedChatRooms();
+    if (cachedRooms) {
+      setRooms(cachedRooms);
+      console.log("Loaded cached rooms:", cachedRooms);
+      // Attempt to restore last room from cache
+      const lastRoomId = loadLastOpenedRoomId();
+      if (lastRoomId) {
+        const lastRoom = cachedRooms.find(room => room.id === lastRoomId);
+        if (lastRoom) {
+          setCurrentRoom(lastRoom);
+          console.log(`Restored last opened room from cache: ${lastRoom.name}`);
+        }
+      }
+    }
+
+    // Initial fetch for rooms
+    const fetchRooms = async () => {
+      try {
+        const response = await fetch('/api/chat-rooms?action=getRooms');
+        
+        if (!response.ok) {
+          console.error(`Failed to fetch rooms: ${response.statusText}`);
+          return;
+        }
+        
+        const data = await response.json();
+        const fetchedRooms = data.rooms || [];
+        
+        // Compare fetched rooms with cached rooms
+        const currentRoomsJson = JSON.stringify(cachedRooms || []);
+        const fetchedRoomsJson = JSON.stringify(fetchedRooms);
+
+        if (currentRoomsJson !== fetchedRoomsJson) {
+          setRooms(fetchedRooms);
+          saveCachedChatRooms(fetchedRooms);
+          console.log("Fetched and updated rooms cache:", fetchedRooms);
+        }
+
+        // After fetching rooms, try to load and set the last opened room
+        const lastRoomId = loadLastOpenedRoomId();
+        if (lastRoomId) {
+          const lastRoom = fetchedRooms.find((room: ChatRoom) => room.id === lastRoomId);
+          if (lastRoom) {
+            // Only set currentRoom if it wasn't already set from cache or if it needs updating
+            if (!currentRoom || currentRoom.id !== lastRoom.id) {
+              setCurrentRoom(lastRoom);
+              console.log(`Restored/updated last opened room from fetch: ${lastRoom.name}`);
+            }
+          } else {
+            // If the last room ID doesn't exist anymore, clear it and potentially switch to Ryo
+            if (currentRoom && currentRoom.id === lastRoomId) {
+              setCurrentRoom(null);
+              saveLastOpenedRoomId(null);
+              console.log(`Last opened room ID ${lastRoomId} not found in fetch, switching to @ryo.`);
+            } else if (!currentRoom) {
+              // If no room was set from cache, default to Ryo
+              setCurrentRoom(null);
+            }
+          }
+        } else {
+          // If no last room ID is saved, default to Ryo if no room set from cache
+          if (!currentRoom) {
+            setCurrentRoom(null);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching rooms:', error);
+        // If fetch fails, rely on cache or default to Ryo chat
+        if (!cachedRooms && !currentRoom) {
+          setCurrentRoom(null);
+        }
+      }
+    };
+    
+    fetchRooms();
+  }, []); // Empty dependency array ensures this runs only once on mount
 
   if (!isWindowOpen) return null;
 

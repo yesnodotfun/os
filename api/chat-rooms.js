@@ -1,5 +1,6 @@
 import { Redis } from '@upstash/redis';
 import { Filter } from 'bad-words';
+import Pusher from 'pusher';
 
 // Initialize profanity filter with custom placeholder
 const filter = new Filter({ placeHolder: '█' });
@@ -11,6 +12,15 @@ filter.addWords('badword1', 'badword2', 'inappropriate');
 const redis = new Redis({
   url: process.env.REDIS_KV_REST_API_URL,
   token: process.env.REDIS_KV_REST_API_TOKEN,
+});
+
+// Initialize Pusher
+const pusher = new Pusher({
+  appId: process.env.PUSHER_APP_ID,
+  key: process.env.PUSHER_KEY,
+  secret: process.env.PUSHER_SECRET,
+  cluster: process.env.PUSHER_CLUSTER,
+  useTLS: true
 });
 
 // Logging utilities
@@ -243,6 +253,20 @@ async function handleCreateRoom(data, requestId) {
     await redis.set(`${CHAT_ROOM_PREFIX}${roomId}`, room);
     logInfo(requestId, `Room created: ${roomId}`);
 
+    // Trigger Pusher event for room creation
+    try {
+      // Get all rooms to send the updated list
+      const keys = await redis.keys(`${CHAT_ROOM_PREFIX}*`);
+      const roomsData = await redis.mget(...keys);
+      const rooms = roomsData.map(room => room).filter(Boolean);
+      
+      await pusher.trigger('chats', 'rooms-updated', { rooms });
+      logInfo(requestId, 'Pusher event triggered: rooms-updated');
+    } catch (pusherError) {
+      logError(requestId, 'Error triggering Pusher event for room creation:', pusherError);
+      // Continue with response - Pusher error shouldn't block room creation
+    }
+
     return new Response(JSON.stringify({ room }), {
       status: 201,
       headers: { 'Content-Type': 'application/json' }
@@ -270,6 +294,20 @@ async function handleDeleteRoom(roomId, requestId) {
     pipeline.del(`${CHAT_ROOM_USERS_PREFIX}${roomId}`);
     await pipeline.exec();
     logInfo(requestId, `Room deleted: ${roomId}`);
+
+    // Trigger Pusher event for room deletion
+    try {
+      // Get all rooms to send the updated list
+      const keys = await redis.keys(`${CHAT_ROOM_PREFIX}*`);
+      const roomsData = await redis.mget(...keys);
+      const rooms = roomsData.map(room => room).filter(Boolean);
+      
+      await pusher.trigger('chats', 'rooms-updated', { rooms });
+      logInfo(requestId, 'Pusher event triggered: rooms-updated after deletion');
+    } catch (pusherError) {
+      logError(requestId, 'Error triggering Pusher event for room deletion:', pusherError);
+      // Continue with response - Pusher error shouldn't block the operation
+    }
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { 'Content-Type': 'application/json' }
@@ -380,6 +418,18 @@ async function handleSendMessage(data, requestId) {
       const updatedUser = { ...currentUserData, lastActive: getCurrentTimestamp() };
       await redis.set(`${CHAT_USERS_PREFIX}${username}`, updatedUser);
       logInfo(requestId, `Updated user ${username} last active timestamp`);
+    }
+
+    // Trigger Pusher event for new message
+    try {
+      await pusher.trigger('chats', 'room-message', { 
+        roomId,
+        message
+      });
+      logInfo(requestId, `Pusher event triggered: room-message for room ${roomId}`);
+    } catch (pusherError) {
+      logError(requestId, 'Error triggering Pusher event for new message:', pusherError);
+      // Continue with response - Pusher error shouldn't block message sending
     }
 
     return new Response(JSON.stringify({ message }), {
@@ -500,6 +550,26 @@ async function handleJoinRoom(data, requestId) {
     const updatedUser = { ...userData, lastActive: getCurrentTimestamp() };
     await redis.set(`${CHAT_USERS_PREFIX}${username}`, updatedUser);
 
+    // Trigger Pusher events for room update and user count
+    try {
+      // Trigger user count update
+      await pusher.trigger('chats', 'user-count-updated', {
+        roomId,
+        userCount
+      });
+      logInfo(requestId, `Pusher event triggered: user-count-updated for room ${roomId}`);
+      
+      // Also send a rooms-updated event to refresh room lists in all clients
+      const keys = await redis.keys(`${CHAT_ROOM_PREFIX}*`);
+      const roomsData = await redis.mget(...keys);
+      const rooms = roomsData.map(room => room).filter(Boolean);
+      await pusher.trigger('chats', 'rooms-updated', { rooms });
+      logInfo(requestId, 'Pusher event triggered: rooms-updated after user join');
+    } catch (pusherError) {
+      logError(requestId, 'Error triggering Pusher events for room join:', pusherError);
+      // Continue with response - Pusher error shouldn't block operation
+    }
+
     return new Response(JSON.stringify({ success: true }), {
       headers: { 'Content-Type': 'application/json' }
     });
@@ -536,6 +606,26 @@ async function handleLeaveRoom(data, requestId) {
       const updatedRoom = { ...roomData, userCount };
       await redis.set(`${CHAT_ROOM_PREFIX}${roomId}`, updatedRoom);
       logInfo(requestId, `User ${username} left room ${roomId}, new user count: ${userCount}`);
+      
+      // Trigger Pusher events for user count update
+      try {
+        // Trigger user count update
+        await pusher.trigger('chats', 'user-count-updated', {
+          roomId,
+          userCount
+        });
+        logInfo(requestId, `Pusher event triggered: user-count-updated for room ${roomId}`);
+        
+        // Also send a rooms-updated event
+        const keys = await redis.keys(`${CHAT_ROOM_PREFIX}*`);
+        const roomsData = await redis.mget(...keys);
+        const rooms = roomsData.map(room => room).filter(Boolean);
+        await pusher.trigger('chats', 'rooms-updated', { rooms });
+        logInfo(requestId, 'Pusher event triggered: rooms-updated after user leave');
+      } catch (pusherError) {
+        logError(requestId, 'Error triggering Pusher events for room leave:', pusherError);
+        // Continue with response - Pusher error shouldn't block operation
+      }
     } else {
       logInfo(requestId, `User ${username} was not in room ${roomId}`);
     }

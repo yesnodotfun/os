@@ -99,6 +99,7 @@ const isEmojiOnly = (text: string): boolean => {
 interface ChatMessage extends Omit<VercelMessage, 'role'> { // Omit the original role to redefine it
   username?: string; // Add username, make it optional for safety
   role: VercelMessage['role'] | 'human'; // Allow original roles plus 'human'
+  isPending?: boolean; // Add isPending flag
 }
 
 interface ChatMessagesProps {
