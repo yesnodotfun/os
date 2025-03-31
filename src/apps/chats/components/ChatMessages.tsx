@@ -132,6 +132,11 @@ export function ChatMessages({
   const [isInteractingWithPreview, setIsInteractingWithPreview] =
     useState(false);
   
+  // Add refs to track component lifecycle and message sources
+  const mountedAt = useRef(Date.now());
+  const initialLoadComplete = useRef(false);
+  const messagesChecksumRef = useRef<string>("");
+  
   // Ref to track initial message IDs for animation control
   const initialMessageIdsRef = useRef<Set<string>>(new Set());
   const hasInitializedRef = useRef(false);
@@ -167,18 +172,39 @@ export function ChatMessages({
   }, [messages, playNote]);
   // --- End New Effect ---
 
+  // Calculate a checksum for messages to detect real changes
+  const calculateMessagesChecksum = useCallback((msgs: ChatMessage[]) => {
+    return msgs.map(m => m.id || `${m.role}-${m.content.substring(0, 10)}`).join('|');
+  }, []);
+
   // Capture initial message IDs on mount (runs once per component instance/key change)
   useEffect(() => {
+    // Reset everything for this new instance
+    console.log('[Scroll] Component mounted with new key');
+    hasScrolled.current = false;
+    wasAtBottom.current = true;
+    initialLoadComplete.current = false;
+    mountedAt.current = Date.now();
+    
     // Only initialize once per component instance (keyed mount)
     if (!hasInitializedRef.current && messages.length > 0) {
       initialMessageIdsRef.current = new Set(messages.map(m => m.id || `${m.role}-${m.content.substring(0, 10)}`));
       hasInitializedRef.current = true;
       previousMessagesRef.current = messages; // Initialize previous messages on mount
+      
+      // Set initial checksum
+      messagesChecksumRef.current = calculateMessagesChecksum(messages);
+      
+      // Handle initial scroll
+      setTimeout(() => {
+        const viewport = viewportRef.current;
+        if (viewport) {
+          console.log('[Scroll] Initial scroll on mount');
+          viewport.scrollTop = viewport.scrollHeight;
+          initialLoadComplete.current = true;
+        }
+      }, 50); // Small delay to ensure DOM is ready
     }
-    // We *don't* want this effect to re-run when messages update later,
-    // only when the component mounts due to a key change.
-    // Using an empty dependency array achieves this, but ESLint might complain.
-    // A more robust way might involve comparing props, but let's try this first.
   }, []); // Run only once on mount for this instance
 
   // Reset initialization state if messages become empty (e.g., chat cleared)
@@ -189,6 +215,7 @@ export function ChatMessages({
           hasInitializedRef.current = false;
           initialMessageIdsRef.current = new Set();
           previousMessagesRef.current = []; // Reset previous messages when cleared
+          initialLoadComplete.current = false;
       }
   }, [messages]);
 
@@ -248,28 +275,44 @@ export function ChatMessages({
     }
   };
 
-  // Initial scroll to bottom and handle new messages
+  // Handle message changes with improved logic
   useEffect(() => {
     const viewport = viewportRef.current;
     if (!viewport) return;
-
-    // Always scroll to bottom on initial load or when messages first appear after being empty
-    if (!hasScrolled.current || previousMessagesLength.current === 0) {
-      console.log('[Scroll] Initial load or first messages, scrolling to bottom');
-      scrollToBottom(viewport);
+    
+    // Calculate new checksum
+    const newChecksum = calculateMessagesChecksum(messages);
+    const isRealChange = newChecksum !== messagesChecksumRef.current;
+    
+    // Update the stored checksum
+    messagesChecksumRef.current = newChecksum;
+    
+    // Skip scrolling during initial load sequence to prevent double scrolling
+    // We allow 500ms for initial load to complete
+    const timeSinceMount = Date.now() - mountedAt.current;
+    if (timeSinceMount < 500 && !initialLoadComplete.current) {
+      console.log('[Scroll] Skipping scroll during initial load sequence');
+      previousMessagesLength.current = messages.length;
       return;
     }
-
-    // Only scroll if locked to bottom AND the number of messages has increased
-    if (scrollLockedToBottom && messages.length > previousMessagesLength.current) {
-      console.log(`[Scroll] New messages (${messages.length} > ${previousMessagesLength.current}) and locked to bottom, scrolling down`);
-      scrollToBottom(viewport);
-    } else if (messages.length > previousMessagesLength.current) {
-      console.log(`[Scroll] New messages (${messages.length} > ${previousMessagesLength.current}) but NOT scrolling (locked: ${scrollLockedToBottom})`);
+    
+    // Only count as new messages if:
+    // 1. Message count increased
+    // 2. Content actually changed (using checksum)
+    // 3. We're past the initial load phase
+    const hasNewMessages = messages.length > previousMessagesLength.current && isRealChange;
+    
+    if (hasNewMessages) {
+      if (scrollLockedToBottom) {
+        console.log(`[Scroll] New messages detected (${messages.length} > ${previousMessagesLength.current}) and locked to bottom, scrolling down`);
+        scrollToBottom(viewport);
+      } else {
+        console.log(`[Scroll] New messages detected (${messages.length} > ${previousMessagesLength.current}) but NOT scrolling (locked: ${scrollLockedToBottom})`);
+      }
     }
-
+    
     previousMessagesLength.current = messages.length;
-  }, [messages.length, scrollLockedToBottom, scrollToBottom]);
+  }, [messages, messages.length, scrollLockedToBottom, scrollToBottom, calculateMessagesChecksum]);
 
   const isUrgentMessage = (content: string) => content.startsWith("!!!!");
 
@@ -362,7 +405,7 @@ export function ChatMessages({
                   !isInteractingWithPreview && setHoveredMessageId(null)
                 }
               >
-                <div className="text-[16px] text-gray-500 mb-0.5 font-['Geneva-9'] mb-[-2px] select-text flex items-center gap-2">
+                <motion.div layout="position" className="text-[16px] text-gray-500 mb-0.5 font-['Geneva-9'] mb-[-2px] select-text flex items-center gap-2">
                   {message.role === "user" && (
                     <motion.button
                       initial={{ opacity: 0, scale: 0.8 }}
@@ -386,10 +429,24 @@ export function ChatMessages({
                   {message.username || (message.role === "user" ? "You" : "Ryo")}{" "}
                   <span className="text-gray-400 select-text">
                     {message.createdAt ? (
-                      new Date(message.createdAt).toLocaleTimeString([], {
-                        hour: "numeric",
-                        minute: "2-digit",
-                      })
+                      (() => {
+                        const messageDate = new Date(message.createdAt);
+                        const today = new Date();
+                        const isBeforeToday = 
+                          messageDate.getDate() !== today.getDate() ||
+                          messageDate.getMonth() !== today.getMonth() ||
+                          messageDate.getFullYear() !== today.getFullYear();
+                        
+                        return isBeforeToday 
+                          ? messageDate.toLocaleDateString([], {
+                              month: 'short',
+                              day: 'numeric',
+                            })
+                          : messageDate.toLocaleTimeString([], {
+                              hour: "numeric",
+                              minute: "2-digit",
+                            });
+                      })()
                     ) : (
                       <Loader2 className="h-3 w-3 animate-spin" />
                     )}
@@ -414,7 +471,7 @@ export function ChatMessages({
                       )}
                     </motion.button>
                   )}
-                </div>
+                </motion.div>
 
                 <motion.div
                   layout="position"
