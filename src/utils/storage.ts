@@ -2,7 +2,7 @@ import { Soundboard, WindowPosition, WindowSize } from "../types/types";
 import { AppManagerState, AppState } from "../apps/base/types";
 import { Message } from "ai";
 import { getWindowConfig, getMobileWindowSize } from "../config/appRegistry";
-import { type ChatRoom, type ChatMessage } from '../types/chat';
+import { type ChatRoom, type ChatMessage } from "../types/chat";
 
 interface Document {
   name: string;
@@ -866,6 +866,18 @@ export const DEFAULT_VIDEOS: Video[] = [
     title: "Butterfly",
     artist: "Hearts2Hearts (하츠투하츠)",
   },
+  {
+    id: "aFrQIJ5cbRc",
+    url: "https://www.youtube.com/watch?v=aFrQIJ5cbRc",
+    title: "Know About Me",
+    artist: "NMIXX",
+  },
+  {
+    id: "z-xfGoabprU",
+    url: "https://www.youtube.com/watch?v=z-xfGoabprU",
+    title: "BEBE",
+    artist: "STAYC (스테이씨)",
+  },
 ];
 
 export const loadPlaylist = (): Video[] => {
@@ -1395,7 +1407,10 @@ export const loadChatSidebarVisible = (): boolean => {
 
 export const saveChatSidebarVisible = (isVisible: boolean): void => {
   console.log("[Storage] Saving chat sidebar visibility:", isVisible);
-  localStorage.setItem(APP_STORAGE_KEYS.chats.SIDEBAR_VISIBLE, isVisible.toString());
+  localStorage.setItem(
+    APP_STORAGE_KEYS.chats.SIDEBAR_VISIBLE,
+    isVisible.toString()
+  );
 };
 
 // Add these constants for IndexedDB at the end of the file
@@ -1461,7 +1476,9 @@ export const ensureIndexedDBInitialized = async (): Promise<IDBDatabase> => {
 
 // Chat room user storage
 export const loadChatRoomUsername = (): string | null => {
-  return localStorage.getItem(APP_STORAGE_KEYS.chats.CHAT_ROOM_USERNAME) || null;
+  return (
+    localStorage.getItem(APP_STORAGE_KEYS.chats.CHAT_ROOM_USERNAME) || null
+  );
 };
 
 export const saveChatRoomUsername = (username: string): void => {
@@ -1470,7 +1487,9 @@ export const saveChatRoomUsername = (username: string): void => {
 
 // Add functions for loading and saving the last opened room ID
 export const loadLastOpenedRoomId = (): string | null => {
-  return localStorage.getItem(APP_STORAGE_KEYS.chats.LAST_OPENED_ROOM_ID) || null;
+  return (
+    localStorage.getItem(APP_STORAGE_KEYS.chats.LAST_OPENED_ROOM_ID) || null
+  );
 };
 
 export const saveLastOpenedRoomId = (roomId: string | null): void => {
@@ -1489,12 +1508,19 @@ export const loadCachedChatRooms = (): ChatRoom[] | null => {
 };
 
 export const saveCachedChatRooms = (rooms: ChatRoom[]): void => {
-  localStorage.setItem(APP_STORAGE_KEYS.chats.CACHED_ROOMS, JSON.stringify(rooms));
+  localStorage.setItem(
+    APP_STORAGE_KEYS.chats.CACHED_ROOMS,
+    JSON.stringify(rooms)
+  );
 };
 
 // Add functions for caching individual room messages
-export const loadCachedRoomMessages = (roomId: string): ChatMessage[] | null => {
-  const saved = localStorage.getItem(APP_STORAGE_KEYS.chats.CACHED_ROOM_MESSAGES);
+export const loadCachedRoomMessages = (
+  roomId: string
+): ChatMessage[] | null => {
+  const saved = localStorage.getItem(
+    APP_STORAGE_KEYS.chats.CACHED_ROOM_MESSAGES
+  );
   if (!saved) return null;
 
   try {
@@ -1507,8 +1533,13 @@ export const loadCachedRoomMessages = (roomId: string): ChatMessage[] | null => 
   }
 };
 
-export const saveRoomMessagesToCache = (roomId: string, messages: ChatMessage[]): void => {
-  const saved = localStorage.getItem(APP_STORAGE_KEYS.chats.CACHED_ROOM_MESSAGES);
+export const saveRoomMessagesToCache = (
+  roomId: string,
+  messages: ChatMessage[]
+): void => {
+  const saved = localStorage.getItem(
+    APP_STORAGE_KEYS.chats.CACHED_ROOM_MESSAGES
+  );
   let allCachedMessages: Record<string, ChatMessage[]> = {};
 
   if (saved) {
