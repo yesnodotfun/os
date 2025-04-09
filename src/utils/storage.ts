@@ -282,15 +282,9 @@ export const DEFAULT_FAVORITES: Favorite[] = [
     year: "current",
   },
   {
-    title: "Ryo",
-    url: "https://ryo.lu",
+    title: "Baby Cursor",
+    url: "https://baby-cursor.ryo.lu",
     favicon: "https://www.google.com/s2/favicons?domain=ryo.lu&sz=32",
-    year: "current",
-  },
-  {
-    title: "PS7",
-    url: "https://play.ryo.lu",
-    favicon: "https://www.google.com/s2/favicons?domain=play.ryo.lu&sz=32",
     year: "current",
   },
   {
@@ -300,28 +294,15 @@ export const DEFAULT_FAVORITES: Favorite[] = [
     year: "current",
   },
   {
-    title: "Stephen",
-    url: "https://wustep.me",
-    favicon: "https://www.google.com/s2/favicons?domain=wustep.me&sz=32",
+    title: "Ryo",
+    url: "https://ryo.lu",
+    favicon: "https://www.google.com/s2/favicons?domain=ryo.lu&sz=32",
     year: "current",
   },
   {
-    title: "Maya",
-    url: "https://mayabakir.com",
-    favicon: "https://www.google.com/s2/favicons?domain=mayabakir.com&sz=32",
-    year: "current",
-  },
-  {
-    title: "Frank",
-    url: "https://okfrank.co",
-    favicon: "https://www.google.com/s2/favicons?domain=okfrank.co&sz=32",
-    year: "current",
-  },
-  {
-    title: "Tyler",
-    url: "https://tylerbeauchamp.net",
-    favicon:
-      "https://www.google.com/s2/favicons?domain=tylerbeauchamp.net&sz=32",
+    title: "Theo",
+    url: "https://tmb.sh",
+    favicon: "https://www.google.com/s2/favicons?domain=tmb.sh&sz=32",
     year: "current",
   },
   {
@@ -338,6 +319,18 @@ export const DEFAULT_FAVORITES: Favorite[] = [
     year: "current",
   },
   {
+    title: "Stephen",
+    url: "https://wustep.me",
+    favicon: "https://www.google.com/s2/favicons?domain=wustep.me&sz=32",
+    year: "current",
+  },
+  {
+    title: "Maya",
+    url: "https://mayabakir.com",
+    favicon: "https://www.google.com/s2/favicons?domain=mayabakir.com&sz=32",
+    year: "current",
+  },
+  {
     title: "Modi",
     url: "https://www.akm.io",
     favicon: "https://www.google.com/s2/favicons?domain=www.akm.io&sz=32",
@@ -350,15 +343,21 @@ export const DEFAULT_FAVORITES: Favorite[] = [
     year: "current",
   },
   {
+    title: "Frank",
+    url: "https://okfrank.co",
+    favicon: "https://www.google.com/s2/favicons?domain=okfrank.co&sz=32",
+    year: "current",
+  },
+  {
     title: "Andrew",
     url: "https://www.andrewl.ee",
     favicon: "https://www.google.com/s2/favicons?domain=www.andrewl.ee&sz=32",
     year: "current",
   },
   {
-    title: "Theo",
-    url: "https://tmb.sh",
-    favicon: "https://www.google.com/s2/favicons?domain=tmb.sh&sz=32",
+    title: "PS7",
+    url: "https://play.ryo.lu",
+    favicon: "https://www.google.com/s2/favicons?domain=play.ryo.lu&sz=32",
     year: "current",
   },
 ];
