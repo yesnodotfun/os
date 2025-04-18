@@ -656,7 +656,8 @@ export function SynthAppComponent({
     if (!synthRef.current) return;
 
     const shiftedNote = shiftNoteByOctave(note, octaveOffset);
-    synthRef.current.triggerAttack(shiftedNote);
+    const now = Tone.context.currentTime; // schedule without extra latency
+    synthRef.current.triggerAttack(shiftedNote, now);
     setPressedNotes((prev) => ({ ...prev, [note]: true }));
   };
 
@@ -664,7 +665,8 @@ export function SynthAppComponent({
     if (!synthRef.current) return;
 
     const shiftedNote = shiftNoteByOctave(note, octaveOffset);
-    synthRef.current.triggerRelease(shiftedNote);
+    const now = Tone.context.currentTime;
+    synthRef.current.triggerRelease(shiftedNote, now);
     setPressedNotes((prev) => ({ ...prev, [note]: false }));
   };
 
@@ -894,6 +896,22 @@ export function SynthAppComponent({
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [activeTouches, releaseNote]);
+
+  // Ensure Tone.js context is in low-latency mode once when the component mounts
+  useEffect(() => {
+    // Tone.js adds a small scheduling lookAhead (default 0.1 s) which can make the
+    // keyboard feel sluggish.  Setting it to 0 removes the intentional delay so
+    // that notes are triggered immediately when requested.
+    try {
+      // In some environments Tone.context might not be ready yet, so we wrap in try/catch
+      if (Tone && Tone.context) {
+        // @ts-ignore – Tone's type defs don't expose lookAhead as writable
+        Tone.context.lookAhead = 0;
+      }
+    } catch {
+      // Ignore if Tone isn't available – worst case we keep the default value.
+    }
+  }, []);
 
   return (
     <>
