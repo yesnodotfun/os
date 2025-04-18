@@ -282,15 +282,15 @@ export const DEFAULT_FAVORITES: Favorite[] = [
     year: "current",
   },
   {
-    title: "Baby Cursor",
-    url: "https://baby-cursor.ryo.lu",
-    favicon: "https://www.google.com/s2/favicons?domain=ryo.lu&sz=32",
-    year: "current",
-  },
-  {
     title: "HyperCards",
     url: "https://hcsimulator.com",
     favicon: "https://www.google.com/s2/favicons?domain=hcsimulator.com&sz=32",
+    year: "current",
+  },
+  {
+    title: "Baby Cursor",
+    url: "https://baby-cursor.ryo.lu",
+    favicon: "https://www.google.com/s2/favicons?domain=ryo.lu&sz=32",
     year: "current",
   },
   {
