@@ -25,6 +25,7 @@ import {
   saveRoomMessagesToCache, // Import cache functions for messages
   loadChatSidebarVisible, // Import new function
   saveChatSidebarVisible, // Import new function
+  isAppOpen, // Import to check if TextEdit is open
 } from "@/utils/storage";
 import { ChatMessages } from "./ChatMessages";
 import { ChatInput } from "./ChatInput";
@@ -2135,6 +2136,75 @@ export function ChatsAppComponent({
   const generateId = () => {
     return Math.random().toString(36).substring(2, 15);
   };
+
+  // Add effect to monitor TextEdit state and load its context when open
+  useEffect(() => {
+    // Only run if chat window is open and has focus
+    if (!isWindowOpen || !isForeground) {
+      return;
+    }
+
+    // Check if TextEdit is open and load its context
+    const checkTextEditContext = () => {
+      // Check if TextEdit is open using the isAppOpen function
+      const textEditOpen = isAppOpen("textedit");
+      
+      // If TextEdit is open, get its file path and content
+      if (textEditOpen) {
+        const filePath = localStorage.getItem(APP_STORAGE_KEYS.textedit.LAST_FILE_PATH);
+        const contentJson = localStorage.getItem(APP_STORAGE_KEYS.textedit.CONTENT);
+        
+        if (filePath && contentJson) {
+          // Get filename from path
+          const fileName = filePath.split("/").pop() || "Untitled";
+          
+          // Extract text content from JSON
+          const content = extractTextFromTextEditContent(contentJson);
+          
+          // Only update if content or filename has changed
+          if (
+            !textEditContext || 
+            textEditContext.fileName !== fileName || 
+            textEditContext.content !== content
+          ) {
+            console.log("Updating TextEdit context:", fileName);
+            setTextEditContext({
+              fileName,
+              content,
+            });
+          }
+        } else if (contentJson && !filePath) {
+          // Handle unsaved document
+          const content = extractTextFromTextEditContent(contentJson);
+          
+          if (
+            !textEditContext || 
+            textEditContext.fileName !== "Untitled" || 
+            textEditContext.content !== content
+          ) {
+            console.log("Updating TextEdit context for unsaved document");
+            setTextEditContext({
+              fileName: "Untitled",
+              content,
+            });
+          }
+        }
+      } else if (textEditContext) {
+        // Clear context if TextEdit is closed
+        console.log("TextEdit is closed, clearing context");
+        setTextEditContext(null);
+      }
+    };
+    
+    // Check immediately on mount/update
+    checkTextEditContext();
+    
+    // Set up polling interval to check regularly
+    const intervalId = setInterval(checkTextEditContext, 2000);
+    
+    // Clean up interval on unmount
+    return () => clearInterval(intervalId);
+  }, [isWindowOpen, isForeground, textEditContext]);
 
   // Mark initial messages as loaded after the first render
   useEffect(() => {
