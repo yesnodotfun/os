@@ -215,7 +215,7 @@ export function InternetExplorerAppComponent({
       {
         id: "system",
         role: "system",
-        content: "You are a web designer specialized in futuristic UI/UX designs.",
+        content: "You are a web designer specialized in turning present websites into futuristic versions in story and design.",
       },
     ]);
     
@@ -232,10 +232,10 @@ Below are details about the current website and the task:
 - URL: ${url}
 ${existingContent ? `- A snapshot of the existing website's readable content (truncated to 4,000 characters) is provided between the fences below:\n"""\n${existingContent}\n"""\n` : ""}
 
-Imagine you are a visionary web architect living in the year ${year}. Redesign this website so that it feels perfectly at home in that era. Think boldly—embrace the cultural context, aesthetics, interface paradigms, and breakthrough technologies that could exist by then (e.g. ambient or holographic layouts, embedded AI concierges, climate‑adaptive themes, neuro‑responsive controls, zero‑click navigation, etc.).
+You living in the year ${year}. Redesign this website so that it feels perfectly at home in that era. Think boldly—embrace the cultural context, aesthetics, interface paradigms, and breakthrough technologies that could exist by then (e.g. ambient or holographic layouts, embedded AI concierges, climate‑adaptive themes, neuro‑responsive controls, zero‑click navigation, etc.).
 
 DELIVERABLE
-Return a single, fully self‑contained HTML document (NO markdown fences) that demonstrates this speculative design. Use TailwindCSS classes for styling and add inline \`<style>\` or \`<script>\` blocks when needed, but avoid external dependencies apart from Tailwind's CDN.
+Return a single, fully self‑contained HTML document in markdown codeblock that demonstrates this speculative design. Use TailwindCSS classes for styling and add inline \`<style>\` or \`<script>\` blocks when needed, but avoid external dependencies.
 
 REQUIREMENTS
 1. Include a small banner or note at the very top indicating that this is a speculative concept for ${year}.
