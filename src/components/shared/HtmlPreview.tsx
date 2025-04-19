@@ -528,6 +528,49 @@ export default function HtmlPreview({
     maximizeSound.play();
   };
 
+  // NEW: Function to sanitize HTML for stream preview - removing fixed position elements
+  const sanitizeHtmlForStream = (html: string): string => {
+    if (!html) return html;
+    
+    // Remove inline position:fixed styles
+    let sanitized = html.replace(/position\s*:\s*fixed/gi, "position: relative");
+    sanitized = sanitized.replace(/position\s*:\s*sticky/gi, "position: relative");
+    
+    // Handle Tailwind classes - convert fixed/sticky to relative
+    const processTailwindClasses = (classStr: string): string => {
+      const classes = classStr.split(/\s+/);
+      return classes.map(cls => {
+        // Replace standalone fixed/sticky classes
+        if (cls === 'fixed') return 'relative';
+        if (cls === 'sticky') return 'relative';
+        
+        // Remove specific positioning classes
+        if (/^(top|bottom|left|right|inset)(-|$)/.test(cls)) return '';
+        
+        // Keep all other classes unchanged
+        return cls;
+      }).filter(Boolean).join(' ');
+    };
+    
+    // Process standard HTML class attributes
+    sanitized = sanitized.replace(/class="([^"]*)"/gi, (match, classContent) => {
+      return `class="${processTailwindClasses(classContent)}"`;
+    });
+    
+    // Process React className attributes
+    sanitized = sanitized.replace(/className="([^"]*)"/gi, (match, classContent) => {
+      return `className="${processTailwindClasses(classContent)}"`;
+    });
+    
+    // Handle inline styles
+    sanitized = sanitized.replace(/(position\s*:\s*relative.*?)(top|left|right|bottom)\s*:\s*[^;]+/gi, '$1$2: auto');
+    
+    // Handle z-index in fixed elements that were converted
+    sanitized = sanitized.replace(/z-index\s*:\s*\d+/gi, 'z-index: auto');
+    
+    return sanitized;
+  };
+
   // NEW Effect: Update stream preview HTML with throttling while streaming
   useEffect(() => {
     if (isStreaming) {
@@ -537,7 +580,9 @@ export default function HtmlPreview({
         lastStreamRenderRef.current = now;
         const { htmlContent: extracted } = extractHtmlContent(htmlContent);
         if (extracted) {
-          setStreamPreviewHtml(extracted);
+          // Apply sanitization to remove fixed positioning before setting stream preview
+          const sanitizedHtml = sanitizeHtmlForStream(extracted);
+          setStreamPreviewHtml(sanitizedHtml);
         }
       }
     } else {
