@@ -475,7 +475,8 @@ export function InternetExplorerAppComponent({
     year?: string
   ) => {
     setIsNavigatingHistory(false);
-    handleNavigate(targetUrl, true, year || navigation.year);
+    // When navigating from history, we want to use cache if available
+    handleNavigate(targetUrl, true, year || navigation.year, false);
   };
 
   const handleGoBack = () => {
@@ -484,7 +485,8 @@ export function InternetExplorerAppComponent({
       const nextIndex = historyIndex + 1;
       setHistoryIndex(nextIndex);
       const entry = history[nextIndex];
-      handleNavigate(entry.url, false, entry.year || "current");
+      // When going back/forward, we want to use cache if available
+      handleNavigate(entry.url, false, entry.year || "current", false);
       setIsNavigatingHistory(false);
     }
   };
@@ -495,7 +497,8 @@ export function InternetExplorerAppComponent({
       const nextIndex = historyIndex - 1;
       setHistoryIndex(nextIndex);
       const entry = history[nextIndex];
-      handleNavigate(entry.url, false, entry.year || "current");
+      // When going back/forward, we want to use cache if available
+      handleNavigate(entry.url, false, entry.year || "current", false);
       setIsNavigatingHistory(false);
     }
   };

@@ -226,7 +226,7 @@ export function InternetExplorerMenuBar({
               {history.slice(0, 10).map((entry) => (
                 <DropdownMenuItem
                   key={entry.url + entry.timestamp}
-                  onClick={() => onNavigateToHistory?.(entry.url, entry.year)}
+                  onClick={() => onNavigateToHistory?.(entry.url, entry.year || "current")}
                   className="text-md h-6 px-3 active:bg-gray-900 active:text-white flex items-center gap-2"
                 >
                   <img
