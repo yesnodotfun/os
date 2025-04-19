@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useReducer } from "react";
 import { AppProps } from "../../base/types";
 import { WindowFrame } from "@/components/layout/WindowFrame";
 import { Input } from "@/components/ui/input";
@@ -38,11 +38,94 @@ import HtmlPreview from "@/components/shared/HtmlPreview";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAiGeneration } from "../hooks/useAiGeneration";
 
+// Define the navigation mode type
+type NavigationMode = "past" | "now" | "future";
+
+// Define the navigation status type
+type NavigationStatus = "idle" | "loading" | "success" | "error";
+
+// Define the navigation state interface
 interface NavigationState {
   url: string;
   year: string;
-  currentUrl: string | null;
-  aiGeneratedHtml?: string | null;
+  mode: NavigationMode;
+  status: NavigationStatus;
+  finalUrl: string | null;
+  aiGeneratedHtml: string | null;
+  error: string | null;
+  token: number; // For tracking the current navigation request
+}
+
+// Define the navigation action types
+type NavigationAction = 
+  | { type: 'NAVIGATE_START'; url: string; year: string; token: number; mode: NavigationMode }
+  | { type: 'SET_FINAL_URL'; finalUrl: string }
+  | { type: 'LOAD_SUCCESS'; finalUrl?: string; aiGeneratedHtml?: string | null }
+  | { type: 'LOAD_ERROR'; error: string }
+  | { type: 'CANCEL' }
+  | { type: 'SET_URL'; url: string }
+  | { type: 'SET_YEAR'; year: string };
+
+// Utility function to classify year into navigation mode
+function classifyYear(year: string): NavigationMode {
+  if (year === "current") return "now";
+  const yearNum = parseInt(year);
+  const currentYear = new Date().getFullYear();
+  return yearNum > currentYear ? "future" : "past";
+}
+
+// Navigation reducer
+function navigationReducer(state: NavigationState, action: NavigationAction): NavigationState {
+  switch (action.type) {
+    case 'NAVIGATE_START':
+      return {
+        ...state,
+        url: action.url,
+        year: action.year,
+        mode: action.mode,
+        status: 'loading',
+        finalUrl: null,
+        aiGeneratedHtml: null,
+        error: null,
+        token: action.token,
+      };
+    case 'SET_FINAL_URL':
+      return {
+        ...state,
+        finalUrl: action.finalUrl,
+      };
+    case 'LOAD_SUCCESS':
+      return {
+        ...state,
+        status: 'success',
+        finalUrl: action.finalUrl ?? state.finalUrl,
+        aiGeneratedHtml: action.aiGeneratedHtml ?? state.aiGeneratedHtml,
+        error: null,
+      };
+    case 'LOAD_ERROR':
+      return {
+        ...state,
+        status: 'error',
+        error: action.error,
+      };
+    case 'CANCEL':
+      return {
+        ...state,
+        status: 'idle',
+      };
+    case 'SET_URL':
+      return {
+        ...state,
+        url: action.url,
+      };
+    case 'SET_YEAR':
+      return {
+        ...state,
+        year: action.year,
+      };
+    default:
+      return state;
+  }
 }
 
 export function InternetExplorerAppComponent({
@@ -50,17 +133,27 @@ export function InternetExplorerAppComponent({
   onClose,
   isForeground,
 }: AppProps) {
+  // Load initial values
   const initialUrl = loadLastUrl();
   const initialYear = loadWaybackYear();
+  const initialMode = classifyYear(initialYear);
 
-  const [navigation, setNavigation] = useState<NavigationState>({
+  // Navigation state machine with reducer
+  const [navState, dispatchNav] = useReducer(navigationReducer, {
     url: initialUrl,
     year: initialYear,
-    currentUrl: null,
+    mode: initialMode,
+    status: 'idle',
+    finalUrl: null,
     aiGeneratedHtml: null,
+    error: null,
+    token: 0,
   });
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+
+  // Unified AbortController for cancellations
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // State for favorites, history, and UI dialogs
   const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
@@ -69,8 +162,7 @@ export function InternetExplorerAppComponent({
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
   const [isNavigatingHistory, setIsNavigatingHistory] = useState(false);
-  const [isClearFavoritesDialogOpen, setClearFavoritesDialogOpen] =
-    useState(false);
+  const [isClearFavoritesDialogOpen, setClearFavoritesDialogOpen] = useState(false);
   const [isClearHistoryDialogOpen, setClearHistoryDialogOpen] = useState(false);
   const [hasMoreToScroll, setHasMoreToScroll] = useState(false);
 
@@ -78,10 +170,7 @@ export function InternetExplorerAppComponent({
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const favoritesContainerRef = useRef<HTMLDivElement>(null);
 
-  // Add a ref to track navigation in progress
-  const navigationInProgressRef = useRef(false);
-
-  // Add useAiGeneration hook
+  // AI generation hook
   const {
     generateFuturisticWebsite,
     aiGeneratedHtml,
@@ -89,9 +178,9 @@ export function InternetExplorerAppComponent({
     stopGeneration,
   } = useAiGeneration({
     onLoadingChange: (loading) => {
-      // Only update loading state if this corresponds to an active navigation
-      if (navigationInProgressRef.current) {
-        setIsLoading(loading);
+      // Only update if this is the current navigation attempt
+      if (loading === false) {
+        dispatchNav({ type: 'LOAD_SUCCESS', aiGeneratedHtml });
       }
     },
   });
@@ -110,133 +199,36 @@ export function InternetExplorerAppComponent({
     "2150", "2200", "2250", "2300", "2400", "2500", "2750", "3000"
   ].sort((a, b) => parseInt(b) - parseInt(a)); // Newest (largest) first
 
-  // We'll handle the display in the select component, no need to combine them here
-
-  // Effect to load initial state and start initial navigation
+  // Effect to load initial state
   useEffect(() => {
-    // Store initial year locally for use in finally block
-    let initialYearValue = loadWaybackYear(); 
-
     const initializeState = async () => {
-      // Prevent concurrent initializations
-      if (navigationInProgressRef.current) return;
-
-      // Set navigation lock
-      navigationInProgressRef.current = true;
-      setIsLoading(true); // Keep loading state during initial navigation
-
-      try {
-        setFavorites(loadFavorites());
-        const loadedHistory = loadHistory();
-        setHistory(loadedHistory);
-        if (loadedHistory.length > 0) {
-          setHistoryIndex(0);
-        }
-
-        // Start initial navigation with the loaded URL and year
-        const initialUrl = loadLastUrl();
-        // Use the locally stored initialYearValue
-        initialYearValue = loadWaybackYear();
-
-        // First set the navigation state without triggering navigation
-        setNavigation({
-          url: initialUrl,
-          year: initialYearValue,
-          currentUrl: null,
-          aiGeneratedHtml: null,
-        });
-
-        try {
-          // Then explicitly trigger navigation after state is set
-          if (initialYearValue !== "current") {
-            // Check if it's a future year
-            const currentSystemYear = new Date().getFullYear();
-            const yearNum = parseInt(initialYearValue);
-
-            if (yearNum > currentSystemYear) {
-              // Handle future year navigation
-              await generateFuturisticWebsite(initialUrl, initialYearValue);
-              // AI useEffect handles isLoading for this case
-              // Inner finally block handles ref lock
-            } else {
-              // Handle past year (Wayback Machine)
-              const waybackUrl = await getWaybackUrl(initialUrl, initialYearValue);
-              if (waybackUrl) {
-                setNavigation((_prev) => ({
-                  ..._prev,
-                  currentUrl: waybackUrl,
-                }));
-                // Let iframe load handler clear loading state & ref lock
-              } else {
-                // If wayback URL fails, error will be handled by outer finally
-                // Inner finally block handles ref lock
-              }
-            }
-          } else {
-            // For current year, just use the URL directly
-            setNavigation((_prev) => ({
-              ..._prev,
-              currentUrl: initialUrl.startsWith("http")
-                ? initialUrl
-                : `https://${initialUrl}`,
-            }));
-            // Let iframe load handler manage loading state & ref lock
-          }
-        } catch (error) {
-          console.error("Error during initial navigation setup:", error);
-          // Error handling is deferred to outer finally/catch
-        } finally {
-            // This finally block now ONLY handles the ref lock for specific cases
-            const isFuture = initialYearValue !== "current" && parseInt(initialYearValue) > new Date().getFullYear();
-            // If AI was called, or if Wayback/Current failed *before* setting currentUrl
-            if (isFuture || (!isFuture && navigation.currentUrl === null)) { 
-                 if (navigationInProgressRef.current) { 
-                     navigationInProgressRef.current = false;
-                 }
-            }
-            // If successful Wayback/Current, iframe handlers clear the lock.
-        }
-      } catch (error) {
-          console.error("Error during state initialization:", error);
-          // Outer catch ensures lock is released on any setup error
-          if (navigationInProgressRef.current) {
-            navigationInProgressRef.current = false;
-          }
-          // Let outer finally handle isLoading
-      } finally {
-        // Outer finally: Guaranteed cleanup for isLoading and potentially ref lock
-        const isFutureNav = initialYearValue !== "current" && parseInt(initialYearValue) > new Date().getFullYear();
-        
-        // If the initial navigation wasn't AI-based, ensure loading is turned off.
-        // (AI useEffect handles isLoading for future navs)
-        if (!isFutureNav) {
-          setIsLoading(false);
-        }
-
-        // Fallback check for navigation lock, although it should be handled
-        // by inner finally or iframe handlers or outer catch.
-        if (navigationInProgressRef.current) {
-           console.warn("Initial navigation lock still held in outer finally block.");
-           // navigationInProgressRef.current = false; // Optionally force release
-        } 
+      setFavorites(loadFavorites());
+      const loadedHistory = loadHistory();
+      setHistory(loadedHistory);
+      if (loadedHistory.length > 0) {
+        setHistoryIndex(0);
       }
+
+      // Initialize with the initial URL and year
+      handleNavigate(initialUrl, true, initialYear, false);
     };
 
     initializeState();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run on mount
 
-  // Effect to persist navigation state - but don't trigger navigation
+  // Effect to persist navigation state
   useEffect(() => {
-    if (navigation.url && navigation.year) {
-      saveLastUrl(navigation.url);
-      saveWaybackYear(navigation.year);
+    if (navState.url && navState.year) {
+      saveLastUrl(navState.url);
+      saveWaybackYear(navState.year);
       
       // Update global browser state for system state tracking
-      updateBrowserState(navigation.url, navigation.year);
+      updateBrowserState(navState.url, navState.year);
     }
-  }, [navigation.url, navigation.year]);
+  }, [navState.url, navState.year]);
 
+  // Effect to check for scrollable favorites
   useEffect(() => {
     const checkScroll = () => {
       const container = favoritesContainerRef.current;
@@ -265,6 +257,7 @@ export function InternetExplorerAppComponent({
     };
   }, [favorites]); // Re-run when favorites change
 
+  // Helper function to get Wayback URL
   const getWaybackUrl = async (targetUrl: string, year: string) => {
     if (year === "current") return targetUrl;
 
@@ -281,192 +274,134 @@ export function InternetExplorerAppComponent({
     return `https://web.archive.org/web/${year}${month}${day}/${formattedUrl}`;
   };
 
-  // Update iframe load handler
+  // Handler for iframe load
   const handleIframeLoad = () => {
-    // Only update state if this load corresponds to an active navigation attempt
-    if (navigationInProgressRef.current) {
-        setIsLoading(false);
-        navigationInProgressRef.current = false;
+    // Only update if the iframe has a data-token attribute matching the current navigation token
+    if (iframeRef.current && iframeRef.current.dataset.navToken === navState.token.toString()) {
+      dispatchNav({ type: 'LOAD_SUCCESS' });
     }
   };
 
+  // Handler for iframe error
+  const handleIframeError = () => {
+    // Only update if the iframe has a data-token attribute matching the current navigation token
+    if (iframeRef.current && iframeRef.current.dataset.navToken === navState.token.toString()) {
+      dispatchNav({ 
+        type: 'LOAD_ERROR', 
+        error: `Cannot access ${navState.finalUrl || navState.url}. The website might be blocking access or requires authentication.` 
+      });
+    }
+  };
+
+  // Main navigation handler
   const handleNavigate = async (
-    targetUrl: string = navigation.url,
+    targetUrl: string = navState.url,
     addToHistoryStack = true,
-    year: string = navigation.year,
+    year: string = navState.year,
     forceRegenerate = false
   ) => {
-    // --- Interrupt ongoing AI generation --- 
+    // Cancel any ongoing navigation
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    // Create a new abort controller for this navigation
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+    
+    // Stop any AI generation in progress
     if (isAiLoading) {
-      console.log("Interrupting ongoing AI generation...");
       stopGeneration();
     }
-
-    // Prevent concurrent navigations (unless it was AI generation we just stopped)
-    if (navigationInProgressRef.current) {
-        console.log("Navigation already in progress, ignoring new request.");
-        return;
+    
+    // Reset iframe if needed to stop any loading
+    if (iframeRef.current && navState.status === 'loading') {
+      iframeRef.current.src = 'about:blank';
     }
 
-    // Set navigation lock
-    navigationInProgressRef.current = true;
-    setIsLoading(true);
-    setError(null);
+    // Determine navigation mode based on year
+    const mode = classifyYear(year);
+    
+    // Generate a new navigation token
+    const token = Date.now();
+    
+    // Update navigation state to start loading
+    dispatchNav({
+      type: 'NAVIGATE_START',
+      url: targetUrl,
+      year,
+      mode,
+      token,
+    });
 
-    // Add a timeout to clear loading state after 10 seconds for regular navigation
-    const loadingTimeout = setTimeout(() => {
-      // Only clear loading if still in progress (ref hasn't been cleared by success/error)
-      if (navigationInProgressRef.current) {
-        setIsLoading(false);
-        navigationInProgressRef.current = false; // Clear lock on timeout too
-      }
-    }, 10000);
-
+    // Format URL properly
     let newUrl = targetUrl.startsWith("http")
       ? targetUrl
       : `https://${targetUrl}`;
 
-    // Store original URL info before potentially converting to wayback URL
+    // Store original URL info for history/favorites
     const originalUrlInfo = new URL(newUrl);
     const originalHostname = originalUrlInfo.hostname;
     const originalFavicon = `https://www.google.com/s2/favicons?domain=${originalHostname}&sz=32`;
 
     try {
-      // Reset any previous AI-generated content
-      setNavigation((_prev) => ({
-        ..._prev,
-        aiGeneratedHtml: null,
-      }));
-
-      // Check if this is a future year
-      const currentYear = new Date().getFullYear();
-      const yearNum = parseInt(year);
-      
-      if (year !== "current" && yearNum > currentYear) {
+      // Handle navigation based on mode
+      if (mode === "future") {
         // For future years, generate AI content
-        clearTimeout(loadingTimeout); // AI generation handles its own loading
-        
-        // First, update the navigation state with the new URL and year
-        setNavigation((_prev) => ({
-          url: targetUrl,
-          year: year,
-          currentUrl: null,
-          aiGeneratedHtml: null,
-        }));
-        
-        if (addToHistoryStack && !isNavigatingHistory) {
-          const newEntry = {
-            url: targetUrl,
-            title: originalHostname,
-            favicon: originalFavicon,
-            timestamp: Date.now(),
-            year: year,
-          };
-
-          setHistory((prev) => [newEntry, ...prev]);
-          setHistoryIndex(0);
-          addToHistory(newEntry);
-        }
-        
-        // Then generate the AI content using the new hook with caching
-        try {
-          await generateFuturisticWebsite(targetUrl, year, forceRegenerate);
-          // Update navigation state with the generated HTML
-          setNavigation((_prev) => ({
-            ..._prev,
-            aiGeneratedHtml: aiGeneratedHtml,
-          }));
-        } catch (error) {
-          setError("Failed to generate futuristic website preview");
-          if (navigationInProgressRef.current) {
-            navigationInProgressRef.current = false;
-          }
-        }
-      } else if (year !== "current") {
-        // For past years, use Wayback Machine
-        const waybackUrl = await getWaybackUrl(newUrl, year);
-        if (!waybackUrl) {
-          clearTimeout(loadingTimeout);
-          setIsLoading(false);
-          // navigationInProgressRef.current = false; // Moved to finally block
-          return; // Return early, finally block will execute
-        }
-        newUrl = waybackUrl;
-        
-        // Update navigation state atomically
-        setNavigation((_prev) => ({
-          url: targetUrl,
-          year: year,
-          currentUrl:
-            newUrl === _prev.currentUrl
-              ? `${newUrl}${newUrl.includes("?") ? "&" : "?"}_t=${Date.now()}`
-              : newUrl,
-          aiGeneratedHtml: null,
-        }));
-
-        if (addToHistoryStack && !isNavigatingHistory) {
-          const newEntry = {
-            url: targetUrl,
-            title: originalHostname,
-            favicon: originalFavicon,
-            timestamp: Date.now(),
-            year: year !== "current" ? year : undefined,
-          };
-
-          setHistory((prev) => [newEntry, ...prev]);
-          setHistoryIndex(0);
-          addToHistory(newEntry);
+        if (!forceRegenerate) {
+          // This will update aiGeneratedHtml and trigger the onLoadingChange callback
+          await generateFuturisticWebsite(targetUrl, year, forceRegenerate, abortController.signal);
+        } else {
+          // Force regenerate
+          await generateFuturisticWebsite(targetUrl, year, true, abortController.signal);
         }
       } else {
-        // For current year, just use the URL directly
-        setNavigation((_prev) => ({
-          url: targetUrl,
-          year: year,
-          currentUrl:
-            newUrl === _prev.currentUrl
-              ? `${newUrl}${newUrl.includes("?") ? "&" : "?"}_t=${Date.now()}`
-              : newUrl,
-          aiGeneratedHtml: null,
-        }));
-
-        if (addToHistoryStack && !isNavigatingHistory) {
-          const newEntry = {
-            url: targetUrl,
-            title: originalHostname,
-            favicon: originalFavicon,
-            timestamp: Date.now(),
-            year: year !== "current" ? year : undefined,
-          };
-
-          setHistory((prev) => [newEntry, ...prev]);
-          setHistoryIndex(0);
-          addToHistory(newEntry);
+        // For past or current, use direct URL or Wayback
+        if (mode === "past") {
+          // Get Wayback URL for past years
+          const waybackUrl = await getWaybackUrl(newUrl, year);
+          if (waybackUrl) {
+            newUrl = waybackUrl;
+          }
+        }
+        
+        // Add cache buster if URL is the same to force reload
+        if (newUrl === navState.finalUrl) {
+          newUrl = `${newUrl}${newUrl.includes("?") ? "&" : "?"}_t=${Date.now()}`;
+        }
+        
+        // Update final URL in state
+        dispatchNav({ type: 'SET_FINAL_URL', finalUrl: newUrl });
+        
+        // Set iframe src with the token for tracking
+        if (iframeRef.current) {
+          iframeRef.current.dataset.navToken = token.toString();
+          iframeRef.current.src = newUrl;
         }
       }
-    } catch (error) {
-      clearTimeout(loadingTimeout);
-      setError(`Failed to navigate: ${error}`);
-      setIsLoading(false);
-      // navigationInProgressRef.current = false; // Moved to finally block
-    } finally {
-        // Clear the loading timeout if it hasn't fired yet
-        clearTimeout(loadingTimeout);
-        // Ensure the navigation lock is released unless handled by iframe load/error
-        // If it's AI generation or Wayback failed, release the lock.
-        // If it's a normal iframe load, handleIframeLoad/Error will release it.
-        // Need to differentiate: was this an AI call or iframe navigation attempt?
-        const isFuture = year !== "current" && parseInt(year) > new Date().getFullYear();
 
-        // Release lock if it was AI, or if it was Wayback/Current and didn't result in an iframe load (e.g., Wayback URL failed)
-        // Iframe load/error handlers will set the ref to false if they are triggered.
-        // If AI generation finished, its useEffect sets isLoading, but we need to clear the lock here.
-        if (isFuture || (!isFuture && navigation.currentUrl === null)) {
-             // If AI was called, or if Wayback/Current failed before setting currentUrl for iframe
-             if (navigationInProgressRef.current) { // Check again in case iframe handler ran quickly
-                 navigationInProgressRef.current = false;
-             }
-        }
-        // If it was a successful Wayback/Current navigation, handleIframeLoad/Error will set the ref.
+      // Add to history if needed
+      if (addToHistoryStack && !isNavigatingHistory) {
+        const newEntry = {
+          url: targetUrl,
+          title: originalHostname,
+          favicon: originalFavicon,
+          timestamp: Date.now(),
+          year: year !== "current" ? year : undefined,
+        };
+
+        setHistory((prev) => [newEntry, ...prev]);
+        setHistoryIndex(0);
+        addToHistory(newEntry);
+      }
+    } catch (error) {
+      // Only update error state if this navigation is still active
+      if (!abortController.signal.aborted) {
+        dispatchNav({ 
+          type: 'LOAD_ERROR', 
+          error: `Failed to navigate: ${error}` 
+        });
+      }
     }
   };
 
@@ -476,7 +411,7 @@ export function InternetExplorerAppComponent({
   ) => {
     setIsNavigatingHistory(false);
     // When navigating from history, we want to use cache if available
-    handleNavigate(targetUrl, true, year || navigation.year, false);
+    handleNavigate(targetUrl, true, year || navState.year, false);
   };
 
   const handleGoBack = () => {
@@ -485,7 +420,7 @@ export function InternetExplorerAppComponent({
       const nextIndex = historyIndex + 1;
       setHistoryIndex(nextIndex);
       const entry = history[nextIndex];
-      // When going back/forward, we want to use cache if available
+      // When going back, we want to use cache if available
       handleNavigate(entry.url, false, entry.year || "current", false);
       setIsNavigatingHistory(false);
     }
@@ -497,7 +432,7 @@ export function InternetExplorerAppComponent({
       const nextIndex = historyIndex - 1;
       setHistoryIndex(nextIndex);
       const entry = history[nextIndex];
-      // When going back/forward, we want to use cache if available
+      // When going forward, we want to use cache if available
       handleNavigate(entry.url, false, entry.year || "current", false);
       setIsNavigatingHistory(false);
     }
@@ -505,7 +440,7 @@ export function InternetExplorerAppComponent({
 
   const handleAddFavorite = () => {
     setNewFavoriteTitle(
-      new URL(navigation.currentUrl || navigation.url).hostname
+      new URL(navState.finalUrl || navState.url).hostname
     );
     setIsTitleDialogOpen(true);
   };
@@ -516,11 +451,11 @@ export function InternetExplorerAppComponent({
       ...favorites,
       {
         title: newFavoriteTitle,
-        url: navigation.url,
+        url: navState.url,
         favicon: `https://www.google.com/s2/favicons?domain=${
-          new URL(navigation.currentUrl || navigation.url).hostname
+          new URL(navState.finalUrl || navState.url).hostname
         }&sz=32`,
-        year: navigation.year !== "current" ? navigation.year : undefined,
+        year: navState.year !== "current" ? navState.year : undefined,
       },
     ];
     setFavorites(newFavorites);
@@ -538,34 +473,28 @@ export function InternetExplorerAppComponent({
     setClearFavoritesDialogOpen(false);
   };
 
-  const handleIframeError = () => {
-    // Only update state if this error corresponds to an active navigation attempt
-    if (navigationInProgressRef.current) {
-        setIsLoading(false);
-        navigationInProgressRef.current = false;
-        setError(
-          `Cannot access ${
-            navigation.currentUrl || navigation.url
-          }. The website might be blocking access or requires authentication.`
-        );
-    }
-  };
-
   const handleRefresh = () => {
-    handleNavigate(navigation.url, false, navigation.year, true);
+    handleNavigate(navState.url, false, navState.year, true);
   };
 
   const handleStop = () => {
-    // Clear loading state and release the lock if navigation was in progress
-    if (navigationInProgressRef.current) {
-        setIsLoading(false);
-        navigationInProgressRef.current = false;
+    // Cancel any ongoing navigation
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
     }
-    // Also stop the iframe loading
+    
+    // Reset navigation state
+    dispatchNav({ type: 'CANCEL' });
+    
+    // Stop AI generation if in progress
+    if (isAiLoading) {
+      stopGeneration();
+    }
+    
+    // Reset iframe if it exists
     if (iframeRef.current) {
-      iframeRef.current.src = "about:blank"; // Stop loading
+      iframeRef.current.src = "about:blank";
     }
-    // Consider stopping AI generation if possible (e.g., if useChat provides an abort controller)
   };
 
   const handleGoToUrl = () => {
@@ -592,8 +521,8 @@ export function InternetExplorerAppComponent({
 
   // Extract current year for display purposes
   const currentYear = new Date().getFullYear();
-  const selectedYearNum = parseInt(navigation.year);
-  const isFutureYear = navigation.year !== "current" && selectedYearNum > currentYear;
+  const isFutureYear = navState.mode === "future";
+  const isLoading = navState.status === "loading" || isAiLoading;
 
   // Animation variants for the loading bar
   const loadingBarVariants = {
@@ -667,10 +596,8 @@ export function InternetExplorerAppComponent({
               </div>
               <Input
                 ref={urlInputRef}
-                value={navigation.url}
-                onChange={(e) =>
-                  setNavigation((_prev) => ({ ..._prev, url: e.target.value }))
-                }
+                value={navState.url}
+                onChange={(e) => dispatchNav({ type: 'SET_URL', url: e.target.value })}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     handleNavigate();
@@ -681,10 +608,8 @@ export function InternetExplorerAppComponent({
               />
               <div className="flex items-center gap-2">
                 <Select
-                  value={navigation.year}
-                  onValueChange={(year) =>
-                    handleNavigate(navigation.url, true, year)
-                  }
+                  value={navState.year}
+                  onValueChange={(year) => handleNavigate(navState.url, true, year)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Year" />
@@ -744,8 +669,8 @@ export function InternetExplorerAppComponent({
           </div>
           <div className="flex-1 relative">
             {/* Content first */} 
-            {error ? (
-              <div className="p-4 text-red-500">{error}</div>
+            {navState.error ? (
+              <div className="p-4 text-red-500">{navState.error}</div>
             ) : isFutureYear ? ( // Render HtmlPreview if it's a future year
               <div className="w-full h-full overflow-hidden absolute inset-0">
                 <HtmlPreview
@@ -763,7 +688,7 @@ export function InternetExplorerAppComponent({
               // Render iframe for current/past years
               <iframe
                 ref={iframeRef}
-                src={navigation.currentUrl || ""}
+                src={navState.finalUrl || ""}
                 className="w-full h-full border-0"
                 onLoad={handleIframeLoad}
                 onError={handleIframeError}

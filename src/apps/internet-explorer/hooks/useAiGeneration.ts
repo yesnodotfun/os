@@ -1,5 +1,5 @@
 import { useChat } from "ai/react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { loadCachedAiPage, saveCachedAiPage } from "@/utils/storage";
 
 interface UseAiGenerationProps {
@@ -7,7 +7,7 @@ interface UseAiGenerationProps {
 }
 
 interface UseAiGenerationReturn {
-  generateFuturisticWebsite: (url: string, year: string, forceRegenerate?: boolean) => Promise<void>;
+  generateFuturisticWebsite: (url: string, year: string, forceRegenerate?: boolean, signal?: AbortSignal) => Promise<void>;
   aiGeneratedHtml: string | null;
   isAiLoading: boolean;
   stopGeneration: () => void;
@@ -15,6 +15,7 @@ interface UseAiGenerationReturn {
 
 export function useAiGeneration({ onLoadingChange }: UseAiGenerationProps = {}): UseAiGenerationReturn {
   const [aiGeneratedHtml, setAiGeneratedHtml] = useState<string | null>(null);
+  const currentGenerationId = useRef<string | null>(null);
 
   const {
     messages: aiMessages,
@@ -33,7 +34,7 @@ export function useAiGeneration({ onLoadingChange }: UseAiGenerationProps = {}):
   });
 
   // Helper to fetch existing website content (readability text via jina.ai)
-  const fetchExistingWebsiteContent = async (targetUrl: string): Promise<string | null> => {
+  const fetchExistingWebsiteContent = async (targetUrl: string, signal?: AbortSignal): Promise<string | null> => {
     try {
       // Ensure we always have a protocol for encoding
       const normalized = targetUrl.startsWith("http") ? targetUrl : `https://${targetUrl}`;
@@ -41,19 +42,27 @@ export function useAiGeneration({ onLoadingChange }: UseAiGenerationProps = {}):
       // Format: https://r.jina.ai/http://example.com/path
       const jinaEndpoint = `https://r.jina.ai/http://${normalized.replace(/^https?:\/\//, "")}`;
 
-      const res = await fetch(jinaEndpoint);
+      const res = await fetch(jinaEndpoint, { signal });
       if (!res.ok) return null;
       const text = await res.text();
       // Return a trimmed version to avoid blowing up the prompt size (max 4k chars)
       return text.slice(0, 4000);
-    } catch (err) {
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        console.log('Fetch operation was aborted');
+        return null;
+      }
       console.warn("Failed to fetch existing website content:", err);
       return null;
     }
   };
 
   // Function to generate futuristic website content using AI
-  const generateFuturisticWebsite = async (url: string, year: string, forceRegenerate = false) => {
+  const generateFuturisticWebsite = async (url: string, year: string, forceRegenerate = false, signal?: AbortSignal) => {
+    // Generate a unique ID for this generation request
+    const generationId = `${url}-${year}-${Date.now()}`;
+    currentGenerationId.current = generationId;
+    
     // Check cache first unless force regenerating
     if (!forceRegenerate) {
       const cachedHtml = loadCachedAiPage(url, year);
@@ -75,10 +84,21 @@ export function useAiGeneration({ onLoadingChange }: UseAiGenerationProps = {}):
       },
     ]);
     
+    // Check if the operation was aborted before proceeding
+    if (signal?.aborted) {
+      return;
+    }
+    
     // Extract domain name for better prompt
     const domainName = new URL(url.startsWith("http") ? url : `https://${url}`).hostname;
+    
     // Attempt to fetch existing website content (best-effort)
-    const existingContent = await fetchExistingWebsiteContent(url);
+    const existingContent = await fetchExistingWebsiteContent(url, signal);
+    
+    // Check if the operation was aborted after fetching content
+    if (signal?.aborted || currentGenerationId.current !== generationId) {
+      return;
+    }
     
     // Create a more inspirational prompt for AI‑generated future designs
     const prompt = `
@@ -102,9 +122,18 @@ REQUIREMENTS
 5. Output ONLY the raw HTML markup as the final answer.`;
 
     try {
+      // Final check if operation was aborted before sending to AI
+      if (signal?.aborted || currentGenerationId.current !== generationId) {
+        return;
+      }
+      
       // Send message to AI - the response will be handled by the useEffect
       await appendAiMessage({ role: "user", content: prompt });
-    } catch (error) {
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('AI generation was aborted');
+        return;
+      }
       console.error("Failed to generate futuristic website:", error);
       throw new Error("Failed to generate futuristic website preview");
     }
@@ -152,6 +181,10 @@ REQUIREMENTS
     generateFuturisticWebsite,
     aiGeneratedHtml,
     isAiLoading,
-    stopGeneration: stop,
+    stopGeneration: () => {
+      stop();
+      // Reset current generation ID to prevent further processing
+      currentGenerationId.current = null;
+    },
   };
 } 
