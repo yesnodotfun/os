@@ -257,116 +257,26 @@ REQUIREMENTS
 
   // Effect to load initial state and start initial navigation
   useEffect(() => {
-    // Store initial year locally for use in finally block
-    let initialYearValue = loadWaybackYear(); 
+    // Restore persisted session data
+    setFavorites(loadFavorites());
 
-    const initializeState = async () => {
-      // Prevent concurrent initializations
-      if (navigationInProgressRef.current) return;
+    const loadedHistory = loadHistory();
+    setHistory(loadedHistory);
+    if (loadedHistory.length > 0) {
+      setHistoryIndex(0);
+    }
 
-      // Set navigation lock
-      navigationInProgressRef.current = true;
-      setIsLoading(true); // Keep loading state during initial navigation
+    const initialUrl = loadLastUrl();
+    const initialYear = loadWaybackYear();
 
-      try {
-        setFavorites(loadFavorites());
-        const loadedHistory = loadHistory();
-        setHistory(loadedHistory);
-        if (loadedHistory.length > 0) {
-          setHistoryIndex(0);
-        }
-
-        // Start initial navigation with the loaded URL and year
-        const initialUrl = loadLastUrl();
-        // Use the locally stored initialYearValue
-        initialYearValue = loadWaybackYear();
-
-        // First set the navigation state without triggering navigation
-        setNavigation({
-          url: initialUrl,
-          year: initialYearValue,
-          currentUrl: null,
-          aiGeneratedHtml: null,
-        });
-
-        try {
-          // Then explicitly trigger navigation after state is set
-          if (initialYearValue !== "current") {
-            // Check if it's a future year
-            const currentSystemYear = new Date().getFullYear();
-            const yearNum = parseInt(initialYearValue);
-
-            if (yearNum > currentSystemYear) {
-              // Handle future year navigation
-              await generateFuturisticWebsite(initialUrl, initialYearValue);
-              // AI useEffect handles isLoading for this case
-              // Inner finally block handles ref lock
-            } else {
-              // Handle past year (Wayback Machine)
-              const waybackUrl = await getWaybackUrl(initialUrl, initialYearValue);
-              if (waybackUrl) {
-                setNavigation((_prev) => ({
-                  ..._prev,
-                  currentUrl: waybackUrl,
-                }));
-                // Let iframe load handler clear loading state & ref lock
-              } else {
-                // If wayback URL fails, error will be handled by outer finally
-                // Inner finally block handles ref lock
-              }
-            }
-          } else {
-            // For current year, just use the URL directly
-            setNavigation((_prev) => ({
-              ..._prev,
-              currentUrl: initialUrl.startsWith("http")
-                ? initialUrl
-                : `https://${initialUrl}`,
-            }));
-            // Let iframe load handler manage loading state & ref lock
-          }
-        } catch (error) {
-          console.error("Error during initial navigation setup:", error);
-          // Error handling is deferred to outer finally/catch
-        } finally {
-            // This finally block now ONLY handles the ref lock for specific cases
-            const isFuture = initialYearValue !== "current" && parseInt(initialYearValue) > new Date().getFullYear();
-            // If AI was called, or if Wayback/Current failed *before* setting currentUrl
-            if (isFuture || (!isFuture && navigation.currentUrl === null)) { 
-                 if (navigationInProgressRef.current) { 
-                     navigationInProgressRef.current = false;
-                 }
-            }
-            // If successful Wayback/Current, iframe handlers clear the lock.
-        }
-      } catch (error) {
-          console.error("Error during state initialization:", error);
-          // Outer catch ensures lock is released on any setup error
-          if (navigationInProgressRef.current) {
-            navigationInProgressRef.current = false;
-          }
-          // Let outer finally handle isLoading
-      } finally {
-        // Outer finally: Guaranteed cleanup for isLoading and potentially ref lock
-        const isFutureNav = initialYearValue !== "current" && parseInt(initialYearValue) > new Date().getFullYear();
-        
-        // If the initial navigation wasn't AI-based, ensure loading is turned off.
-        // (AI useEffect handles isLoading for future navs)
-        if (!isFutureNav) {
-          setIsLoading(false);
-        }
-
-        // Fallback check for navigation lock, although it should be handled
-        // by inner finally or iframe handlers or outer catch.
-        if (navigationInProgressRef.current) {
-           console.warn("Initial navigation lock still held in outer finally block.");
-           // navigationInProgressRef.current = false; // Optionally force release
-        } 
-      }
-    };
-
-    initializeState();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Kick‑off a navigation using the unified helper. We do **not** push this
+    // restoration onto the history stack because it's part of the previous
+    // session, not a brand‑new visit.
+    // The unified `handleNavigate` function will take care of loading logic
+    // for current, past (Wayback) and future (AI‑generated) pages as well as
+    // setting the appropriate loading states.
+    handleNavigate(initialUrl, /* addToHistoryStack */ false, initialYear, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run on mount
 
   // Effect to persist navigation state - but don't trigger navigation
@@ -436,8 +346,21 @@ REQUIREMENTS
   const handleNavigate = async (
     targetUrl: string = navigation.url,
     addToHistoryStack = true,
-    year: string = navigation.year
+    year: string = navigation.year,
+    forceReload = false // new flag to bypass duplicate guard (used by Refresh)
   ) => {
+    // Prevent unnecessary duplicate navigations (e.g., Select's onValueChange
+    // firing after the initial restoration). Allow an explicit forceReload
+    // (used by the Refresh button) to bypass the guard.
+    if (
+      !forceReload &&
+      !navigationInProgressRef.current &&
+      targetUrl === navigation.url &&
+      year === navigation.year
+    ) {
+      return;
+    }
+
     // --- Interrupt ongoing AI generation --- 
     if (isAiLoading) {
       console.log("Interrupting ongoing AI generation...");
@@ -687,7 +610,7 @@ REQUIREMENTS
   };
 
   const handleRefresh = () => {
-    handleNavigate();
+    handleNavigate(navigation.url, true, navigation.year, true);
   };
 
   const handleStop = () => {
