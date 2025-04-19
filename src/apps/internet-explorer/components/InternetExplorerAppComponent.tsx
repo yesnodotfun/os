@@ -396,36 +396,40 @@ export function InternetExplorerAppComponent({
           // Check if the site allows embedding before deciding whether to proxy
           try {
             const checkRes = await fetch(
-              `/api/iframe-check?mode=check&url=${encodeURIComponent(newUrl)}`,
+              `/api/iframe-check?mode=check&url=${encodeURIComponent(targetUrl)}`,
               { signal: abortController.signal }
             );
 
-            // Don't throw on non-200, check the body for allowed status
+            // Check MUST be ok (200) to proceed
             if (checkRes.ok) {
               const { allowed, reason } = (await checkRes.json()) as {
                 allowed: boolean;
                 reason?: string;
               };
 
-              if (!allowed) {
+              if (allowed) {
+                // Site allows direct embedding, proceed without proxy
+                console.info(`[IE] Loading ${targetUrl} directly (embedding allowed).`);
+                // newUrl is already correct (direct URL)
+              } else {
                 // Fallback: proxy the content through the endpoint
                 console.info(
                   `[IE] Using proxy for ${targetUrl} because direct embedding is blocked${
                     reason ? ` (${reason})` : ""
                   }.`
                 );
-                newUrl = `/api/iframe-check?url=${encodeURIComponent(newUrl)}`;
-              } else {
-                // Site allows direct embedding, proceed without proxy
-                console.info(`[IE] Loading ${targetUrl} directly (embedding allowed).`);
+                // IMPORTANT: Proxy the *original* targetUrl, not the potentially modified newUrl
+                newUrl = `/api/iframe-check?url=${encodeURIComponent(targetUrl)}`;
               }
             } else {
-                // If check response is not ok (e.g., 500), proceed without proxy
-                console.warn(`[IE] iframe-check failed (status ${checkRes.status}), attempting direct load for ${targetUrl}`);
+              // If check response itself is not ok (e.g., 500 error in the API route), try direct load
+              console.warn(`[IE] iframe-check request failed (status ${checkRes.status}), attempting direct load for ${targetUrl}`);
+              // Proceed with direct load (newUrl is unchanged)
             }
           } catch (error) {
-            // If the check fetch itself fails (network error etc.), proceed without proxy
+            // If the check fetch itself fails (network error etc.), try direct load
             console.warn(`[IE] iframe-check fetch failed, attempting direct load for ${targetUrl}:`, error);
+            // Proceed with direct load (newUrl is unchanged)
           }
         }
         

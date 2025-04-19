@@ -45,53 +45,78 @@ export default async function handler(req: Request) {
   // Helper: perform header‑only check
   // -------------------------------
   const checkSiteEmbeddingAllowed = async () => {
-    // Some servers reject HEAD, so we try HEAD first, then fall back to GET (headers‑only).
-    let res = await fetch(normalizedUrl, {
-      method: "HEAD",
-      redirect: "follow",
-    });
-
-    if (!res.ok && res.status === 405) {
-      res = await fetch(normalizedUrl, {
+    try {
+      let res = await fetch(normalizedUrl, {
         method: "GET",
         redirect: "follow",
       });
+
+      if (!res.ok) {
+          throw new Error(`Upstream fetch failed with status ${res.status}`);
+      }
+
+      const xFrameOptions = res.headers.get("x-frame-options") || "";
+      const headerCsp = res.headers.get("content-security-policy") || "";
+
+      // Check meta tags only for HTML content
+      let metaCsp = "";
+      const contentType = res.headers.get("content-type") || "";
+      if (contentType.includes("text/html")) {
+          const html = await res.text();
+          const metaTagMatch = html.match(
+              /<meta\s+http-equiv=['\"]Content-Security-Policy['\"]\s+content=['\"]([^\'\"]*)['\"][^>]*>/i
+          );
+          if (metaTagMatch && metaTagMatch[1]) {
+              metaCsp = metaTagMatch[1];
+          }
+      }
+
+      // Helper to check frame-ancestors directive
+      const checkFrameAncestors = (cspString: string): boolean => {
+          if (!cspString) return false; // No policy = no restriction
+          const directiveMatch = cspString
+              .toLowerCase()
+              .split(";")
+              .map((d) => d.trim())
+              .find((d) => d.startsWith("frame-ancestors"));
+          if (!directiveMatch) return false; // No frame-ancestors = no restriction from this policy
+
+          const directiveValue = directiveMatch.replace("frame-ancestors", "").trim();
+          // If the value is exactly 'none', it's definitely blocked.
+          if (directiveValue === "'none'") return true; // Blocked
+
+          // Simplified: if it doesn't contain '*', assume it blocks cross-origin.
+          return !directiveValue.includes("*");
+      };
+
+      const isBlockedByCsp = (() => {
+        // Blocked if *either* header OR meta tag CSP restricts frame-ancestors
+        return checkFrameAncestors(headerCsp) || checkFrameAncestors(metaCsp);
+      })();
+
+      const isBlockedByXfo = (() => {
+        if (!xFrameOptions) return false;
+        const value = xFrameOptions.toLowerCase();
+        return value.includes("deny") || value.includes("sameorigin");
+      })();
+
+      const allowed = !(isBlockedByXfo || isBlockedByCsp);
+      // Add meta CSP to reason if relevant
+      const finalReason = !allowed
+        ? isBlockedByXfo
+            ? `X-Frame-Options: ${xFrameOptions}`
+            : metaCsp && checkFrameAncestors(metaCsp)
+                ? `Content-Security-Policy (meta): ${metaCsp}`
+                : `Content-Security-Policy (header): ${headerCsp}`
+        : undefined;
+
+      return { allowed, reason: finalReason };
+
+    } catch (error) {
+        // If fetching upstream headers failed, assume embedding is blocked
+        console.error(`[iframe-check] Failed to fetch upstream headers for ${normalizedUrl}:`, error);
+        return { allowed: false, reason: `Proxy check failed: ${(error as Error).message}` }; // Renamed reason
     }
-
-    const xFrameOptions = res.headers.get("x-frame-options") || "";
-    const contentSecurityPolicy =
-      res.headers.get("content-security-policy") || "";
-
-    const isBlockedByCsp = (() => {
-      if (!contentSecurityPolicy) return false;
-      const directiveMatch = contentSecurityPolicy
-        .toLowerCase()
-        .split(";")
-        .map((d) => d.trim())
-        .find((d) => d.startsWith("frame-ancestors"));
-      if (!directiveMatch) return false;
-      const directiveValue = directiveMatch.replace("frame-ancestors", "").trim();
-      const allowedTokens = ["*", "'self'", "data:"];
-      const containsAllowedToken = allowedTokens.some((tok) =>
-        directiveValue.includes(tok)
-      );
-      return !containsAllowedToken;
-    })();
-
-    const isBlockedByXfo = (() => {
-      if (!xFrameOptions) return false;
-      const value = xFrameOptions.toLowerCase();
-      return value.includes("deny") || value.includes("sameorigin");
-    })();
-
-    const allowed = !(isBlockedByXfo || isBlockedByCsp);
-    const reason = !allowed
-      ? isBlockedByXfo
-        ? `X-Frame-Options: ${xFrameOptions}`
-        : `Content-Security-Policy: frame-ancestors restriction`
-      : undefined;
-
-    return { allowed, reason } as { allowed: boolean; reason?: string };
   };
 
   try {
