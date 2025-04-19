@@ -103,10 +103,13 @@ export function InternetExplorerAppComponent({
     (_, i) => (1996 + i).toString()
   ).reverse(); // Reverse to get newest to oldest
 
-  // Create future years array (from 2100 down to 2030)
+  // Create a richer set of future years – covering near, mid, and far future
   const futureYears = [
-    "2030", "2040", "2050", "2060", "2070", "2080", "2090", "2100"
-  ].sort((a, b) => parseInt(b) - parseInt(a)); // Reverse chronological order (newest first)
+    // Near‑future (every decade up to 2100)
+    ...Array.from({ length: 8 }, (_, i) => (2030 + i * 10).toString()), // 2030 → 2100
+    // Mid & far‑future milestones
+    "2150", "2200", "2250", "2300", "2400", "2500", "2750", "3000"
+  ].sort((a, b) => parseInt(b) - parseInt(a)); // Newest (largest) first
 
   // We'll handle the display in the select component, no need to combine them here
 
@@ -221,7 +224,7 @@ export function InternetExplorerAppComponent({
     // Attempt to fetch existing website content (best-effort)
     const existingContent = await fetchExistingWebsiteContent(url);
     
-    // Create prompt for AI
+    // Create a more inspirational prompt for AI‑generated future designs
     const prompt = `
 Below are details about the current website and the task:
 
@@ -229,15 +232,17 @@ Below are details about the current website and the task:
 - URL: ${url}
 ${existingContent ? `- A snapshot of the existing website's readable content (truncated to 4,000 characters) is provided between the fences below:\n"""\n${existingContent}\n"""\n` : ""}
 
-Please generate an HTML preview showing how this website could look in the year ${year}. When crafting the futuristic version, consider potential design trends, technological advancements, cultural shifts, and new interaction patterns that might emerge by ${year}.
+Imagine you are a visionary web architect living in the year ${year}. Redesign this website so that it feels perfectly at home in that era. Think boldly—embrace the cultural context, aesthetics, interface paradigms, and breakthrough technologies that could exist by then (e.g. ambient or holographic layouts, embedded AI concierges, climate‑adaptive themes, neuro‑responsive controls, zero‑click navigation, etc.).
 
-Guidelines:
-1. Use TailwindCSS classes for styling.
-2. Include a short note at the top indicating that this is a speculative future vision.
-3. Aim for a clean, responsive, and visually engaging interface, employing a futuristic aesthetic.
-4. Use placeholder content where real data would normally appear.
-5. Return ONLY the HTML code (within a single block, no markdown fences) and ensure it is completely self‑contained with inline TailwindCSS styles and no external dependencies.
-`;
+DELIVERABLE
+Return a single, fully self‑contained HTML document (NO markdown fences) that demonstrates this speculative design. Use TailwindCSS classes for styling and add inline \`<style>\` or \`<script>\` blocks when needed, but avoid external dependencies apart from Tailwind's CDN.
+
+REQUIREMENTS
+1. Include a small banner or note at the very top indicating that this is a speculative concept for ${year}.
+2. Keep the layout responsive and accessible (screen‑reader friendly, respect reduced‑motion preferences, etc.).
+3. Use imaginative placeholder content, visuals, or SVG illustrations.
+4. Ensure the overall experience is visually striking yet still loads in a normal browser.
+5. Output ONLY the raw HTML markup as the final answer.`;
 
     try {
       // Send message to AI - the response will be handled by the useEffect
