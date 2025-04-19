@@ -139,6 +139,7 @@ interface HtmlPreviewProps {
   playDingSound?: () => void;
   maximizeSound?: { play: () => void };
   minimizeSound?: { play: () => void };
+  isInternetExplorer?: boolean;
 }
 
 export default function HtmlPreview({
@@ -154,6 +155,7 @@ export default function HtmlPreview({
   playDingSound,
   maximizeSound: propMaximizeSound,
   minimizeSound: propMinimizeSound,
+  isInternetExplorer = false,
 }: HtmlPreviewProps) {
   const [isFullScreen, setIsFullScreen] = useState(initialFullScreen);
   const [copySuccess, setCopySuccess] = useState(false);
@@ -177,9 +179,11 @@ export default function HtmlPreview({
   ).current;
   const prevStreamingRef = useRef(isStreaming);
   const contentTimestamp = useRef(Date.now());
-  const lastUpdateRef = useRef<number>(0);
-  const pendingContentRef = useRef<string | null>(null);
   const dragControls = useDragControls();
+  // Ref to store the final processed HTML content after streaming
+  const finalProcessedHtmlRef = useRef<string | null>(null);
+  const [streamPreviewHtml, setStreamPreviewHtml] = useState<string>(""); // NEW state to hold live HTML preview during streaming
+  const lastStreamRenderRef = useRef<number>(0); // To throttle updates
 
   // Add sound hooks - fallback to local sound hooks if props not provided
   const localMaximizeSound = useSound(Sounds.WINDOW_EXPAND);
@@ -240,8 +244,9 @@ export default function HtmlPreview({
     // Add a timestamp comment to force the browser to treat this as new content
     const timestamp = `<!-- ts=${contentTimestamp.current} -->`;
 
-    // Define the script tags that should be added after streaming
-    const scriptTags = `
+    // Define the script tags and styles that should be added ONLY after streaming
+    // Note: Tailwind is added via CDN in this version.
+    const postStreamHeadContent = `
   <link rel="stylesheet" href="/fonts/fonts.css">
   <script type="module" src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.174.0/three.module.min.js"></script>
   <script src="https://cdn.tailwindcss.com/3.4.16"></script>
@@ -257,100 +262,102 @@ export default function HtmlPreview({
         }
       }
     }
-  </script>`;
-
-    // Add blur transition CSS for streaming
-    const blurStyle = `
-  <style>
-    body {
-      transition: filter 0.5s ease-out;
-      ${isStreaming ? "filter: blur(2px);" : ""}
-    }
-  </style>`;
-
-    // Check if content already has complete HTML structure
-    if (
-      htmlContent.includes("<!DOCTYPE html>") ||
-      htmlContent.includes("<html")
-    ) {
-      // For complete HTML documents, inject the timestamp at the start
-      return timestamp + htmlContent;
-    }
-
-    // Wrap with proper HTML tags and add timestamp
-    return `${timestamp}
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  ${!isStreaming ? scriptTags : ""}
-  ${blurStyle}
+  </script>
   <style>
     * {
       box-sizing: border-box;
     }
     html, body {
       margin: 0;
-      overflow-x: auto;
+      overflow-x: auto; /* Allow horizontal scroll if content overflows */
       width: 100%;
       height: 100%;
-      max-width: 100%;
+      max-width: 100%; /* Prevent body from exceeding viewport width */
+    }
+    /* Ensure pre doesn't break layout */
+    pre {
+      white-space: pre-wrap; /* Allow wrapping */
+      word-break: break-all; /* Break long words */
     }
   </style>
+`;
+
+    // REMOVED: Blur effect is no longer applied
+    // const blurStyle = `
+    // <style>
+    //   body {
+    //     transition: filter 0.5s ease-out;
+    //     ${isStreaming ? "filter: blur(2px);" : "filter: blur(0px);"}
+    //   }
+    // </style>`;
+
+    // Common base structure
+    const baseHtmlStart = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+`; // Removed blurStyle from here
+    const baseHtmlEnd = `
 </head>
 <body>
   ${htmlContent}
 </body>
 </html>`;
+
+    // If the provided content is already a full HTML document, inject carefully
+    if (
+      htmlContent.includes("<!DOCTYPE html>") ||
+      htmlContent.includes("<html")
+    ) {
+        let modifiedContent = timestamp + htmlContent;
+        // Inject post-stream content into head
+        // Removed blurStyle injection
+        if (modifiedContent.includes("</head>")) {
+            modifiedContent = modifiedContent.replace("</head>", `${postStreamHeadContent}</head>`);
+        } else if (modifiedContent.includes("<body")) {
+             modifiedContent = modifiedContent.replace("<body", `<head>${postStreamHeadContent}</head><body`);
+        } else if (modifiedContent.includes("<html>")) {
+            // Fallback if no head or body tag found but html tag exists
+             modifiedContent = modifiedContent.replace("<html>", `<html><head>${postStreamHeadContent}</head>`);
+        } else {
+            // Add head if no html tag found (very unlikely)
+            modifiedContent = `<head>${postStreamHeadContent}</head>` + modifiedContent;
+        }
+        return modifiedContent;
+    }
+
+    // For partial HTML content, construct the document
+    const headContent = postStreamHeadContent; // Always include post-stream content
+
+    return `${timestamp}${baseHtmlStart}${headContent}${baseHtmlEnd}`;
   })();
 
-  // Throttled update function to update iframe content
-  const updateIframeContent = (content: string) => {
+  // Function to update iframe content (now only called after streaming)
+  const updateIframeContent = (finalContent: string) => {
     // Update inline iframe
     if (iframeRef.current) {
-      iframeRef.current.srcdoc = content;
+      iframeRef.current.srcdoc = finalContent;
     }
 
     // Update fullscreen iframe if it exists
     if (fullscreenIframeRef.current) {
-      fullscreenIframeRef.current.srcdoc = content;
+      fullscreenIframeRef.current.srcdoc = finalContent;
     }
-
-    // Update last update timestamp
-    lastUpdateRef.current = Date.now();
-    pendingContentRef.current = null;
   };
 
-  // Update iframe content with throttling during streaming
+  // NEW: Effect to update iframe *after* streaming finishes or when content changes while not streaming
   useEffect(() => {
-    if (isStreaming) {
-      const now = Date.now();
-      const timeSinceLastUpdate = now - lastUpdateRef.current;
-
-      // Store the most recent content
-      pendingContentRef.current = processedHtmlContent;
-
-      // If we haven't updated in 1 second, update immediately
-      if (timeSinceLastUpdate >= 1000) {
-        updateIframeContent(processedHtmlContent);
-      } else {
-        // Otherwise schedule an update for when the 1 second has passed
-        const timeToNextUpdate = 1000 - timeSinceLastUpdate;
-        const timeoutId = setTimeout(() => {
-          // Only update if there's pending content
-          if (pendingContentRef.current) {
-            updateIframeContent(pendingContentRef.current);
-          }
-        }, timeToNextUpdate);
-
-        return () => clearTimeout(timeoutId);
-      }
-    } else {
-      // When not streaming, update immediately
-      updateIframeContent(processedHtmlContent);
+    if (!isStreaming) {
+      // Generate the final content ONLY when needed
+      const finalContent = processedHtmlContent;
+      finalProcessedHtmlRef.current = finalContent; // Store for fullscreen/code view
+      updateIframeContent(finalContent);
     }
-  }, [processedHtmlContent, isStreaming]);
+    // Dependency: htmlContent ensures update if content changes *after* streaming
+    // Dependency: isStreaming ensures update when streaming stops
+  }, [isStreaming, htmlContent]);
 
   // Initialize syntax highlighting only when code view is active
   useEffect(() => {
@@ -359,8 +366,10 @@ export default function HtmlPreview({
     const highlight = async () => {
       try {
         const highlighter = await getHighlighterInstance();
-        if (isMounted) {
-          const highlighted = highlighter.codeToHtml(processedHtmlContent, {
+        // Use the stored final HTML content for highlighting
+        const contentToHighlight = finalProcessedHtmlRef.current || processedHtmlContent;
+        if (isMounted && contentToHighlight) {
+          const highlighted = highlighter.codeToHtml(contentToHighlight, {
             lang: "html",
             theme: "github-dark",
           });
@@ -372,14 +381,19 @@ export default function HtmlPreview({
     };
 
     // Only initialize Shiki and highlight code when code view is active
-    if (showCode && !highlightedCode) {
-      highlight();
+    // Reset highlightedCode if showCode becomes false
+    if (showCode) {
+        if (!highlightedCode) {
+            highlight();
+        }
+    } else {
+        setHighlightedCode(""); // Clear when code view is hidden
     }
 
     return () => {
       isMounted = false;
     };
-  }, [processedHtmlContent, showCode, highlightedCode]);
+  }, [showCode, finalProcessedHtmlRef.current]); // Depend on showCode and the final content ref
 
   // Play elevator music when streaming starts, stop when streaming ends
   useEffect(() => {
@@ -392,22 +406,6 @@ export default function HtmlPreview({
       }
       if (playDingSound) {
         playDingSound();
-      }
-
-      // When streaming ends, animate blur away
-      if (iframeRef.current) {
-        const body = iframeRef.current.contentDocument?.body;
-        if (body) {
-          body.style.filter = "blur(0px)";
-        }
-      }
-
-      if (fullscreenIframeRef.current) {
-        const fullscreenBody =
-          fullscreenIframeRef.current.contentDocument?.body;
-        if (fullscreenBody) {
-          fullscreenBody.style.filter = "blur(0px)";
-        }
       }
     }
 
@@ -530,27 +528,45 @@ export default function HtmlPreview({
     maximizeSound.play();
   };
 
+  // NEW Effect: Update stream preview HTML with throttling while streaming
+  useEffect(() => {
+    if (isStreaming) {
+      const now = Date.now();
+      // Throttle updates to once every 500ms
+      if (now - lastStreamRenderRef.current > 500) {
+        lastStreamRenderRef.current = now;
+        const { htmlContent: extracted } = extractHtmlContent(htmlContent);
+        if (extracted) {
+          setStreamPreviewHtml(extracted);
+        }
+      }
+    } else {
+      // Reset when not streaming
+      setStreamPreviewHtml("");
+    }
+  }, [htmlContent, isStreaming]);
+
   // Normal inline display with optional maximized height
   return (
     <>
       <motion.div
         ref={previewRef}
-        className={`rounded bg-white overflow-auto m-0 relative ${className}`}
+        className={`${isInternetExplorer ? '' : 'rounded'} bg-white overflow-auto m-0 relative ${className} ${isStreaming ? 'loading-pulse' : ''}`}
         style={{
-          maxHeight: isFullScreen ? originalHeight || minHeight : maxHeight,
-          pointerEvents: isStreaming ? "none" : "auto",
+          maxHeight: isInternetExplorer ? "100%" : (isFullScreen ? originalHeight || minHeight : maxHeight),
+          // pointerEvents: isStreaming ? "none" : "auto", // Allow interaction with text stream potentially
           opacity: isFullScreen ? 0 : 1,
-          height: isFullScreen ? originalHeight || minHeight : "auto",
-          boxShadow: isFullScreen ? "none" : "0 0 0 1px rgba(0, 0, 0, 0.3)",
+          height: isInternetExplorer ? "100%" : (isFullScreen ? originalHeight || minHeight : "auto"),
+          boxShadow: isInternetExplorer ? "none" : (isFullScreen ? "none" : "0 0 0 1px rgba(0, 0, 0, 0.3)"),
           visibility: isFullScreen ? "hidden" : "visible",
+          minHeight: minHeight, // Ensure minHeight is respected
         }}
         animate={{
-          opacity: isStreaming ? [0.6, 0.8, 0.6] : isFullScreen ? 0 : 1,
+          opacity: isFullScreen ? 0 : 1,
         }}
         transition={{
           opacity: {
-            duration: 2.5,
-            repeat: isStreaming ? Infinity : 0,
+            duration: 0.3,
             ease: "easeInOut",
           },
         }}
@@ -560,94 +576,126 @@ export default function HtmlPreview({
         onMouseLeave={() => !isStreaming && onInteractionChange?.(false)}
         tabIndex={-1}
       >
-        <motion.div
-          className="flex justify-end p-1 absolute top-2 right-4 z-20"
-          animate={{
-            opacity: isStreaming ? 0 : 1,
-          }}
-          transition={{
-            duration: 0.3,
-          }}
-          style={{
-            pointerEvents: isStreaming ? "none" : "auto",
-          }}
-        >
-          <button
-            onClick={handleSaveToDisk}
-            onMouseDown={(e) => e.stopPropagation()}
-            className="flex items-center justify-center w-6 h-6 hover:bg-black/10 rounded mr-1 group"
-            aria-label="Save HTML to disk"
-            disabled={isStreaming}
+        {/* Loading PULSE overlay (kept for visual feedback) */}
+        {isStreaming && (
+          <div
+            className="absolute inset-0 bg-gray-200 z-10 pointer-events-none"
+            style={{ opacity: 0.2 }}
           >
-            <Save
-              size={16}
-              className="text-neutral-400/50 group-hover:text-neutral-300"
+            <motion.div
+              className="w-full h-full bg-gray-400"
+              animate={{
+                opacity: [0.05, 0.2, 0.05]
+              }}
+              transition={{
+                duration: 1.5,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
             />
-          </button>
-          <button
-            onClick={handleCopy}
-            onMouseDown={(e) => e.stopPropagation()}
-            className="flex items-center justify-center w-6 h-6 hover:bg-black/10 rounded mr-1 group"
-            aria-label="Copy HTML code"
-            disabled={isStreaming}
+          </div>
+        )}
+
+        {!isInternetExplorer && (
+          <motion.div
+            className="flex justify-end p-1 absolute top-2 right-4 z-20"
+            animate={{
+              opacity: isStreaming ? 0 : 1, // Hide when streaming
+            }}
+            transition={{
+              duration: 0.3,
+            }}
+            style={{
+              pointerEvents: isStreaming ? "none" : "auto", // Disable interaction when streaming
+            }}
           >
-            {copySuccess ? (
-              <Check
+            <button
+              onClick={handleSaveToDisk}
+              onMouseDown={(e) => e.stopPropagation()}
+              className="flex items-center justify-center w-6 h-6 hover:bg-black/10 rounded mr-1 group"
+              aria-label="Save HTML to disk"
+              disabled={isStreaming}
+            >
+              <Save
                 size={16}
                 className="text-neutral-400/50 group-hover:text-neutral-300"
+              />
+            </button>
+            <button
+              onClick={handleCopy}
+              onMouseDown={(e) => e.stopPropagation()}
+              className="flex items-center justify-center w-6 h-6 hover:bg-black/10 rounded mr-1 group"
+              aria-label="Copy HTML code"
+              disabled={isStreaming}
+            >
+              {copySuccess ? (
+                <Check
+                  size={16}
+                  className="text-neutral-400/50 group-hover:text-neutral-300"
+                />
+              ) : (
+                <Copy
+                  size={16}
+                  className="text-neutral-400/50 group-hover:text-neutral-300"
+                />
+              )}
+            </button>
+            <button
+              onClick={toggleFullScreen}
+              onMouseDown={(e) => e.stopPropagation()}
+              className="flex items-center justify-center w-6 h-6 hover:bg-black/10 rounded group"
+              aria-label={isFullScreen ? "Minimize preview" : "Maximize preview"}
+              disabled={isStreaming}
+            >
+              {isFullScreen ? (
+                <Minimize
+                  size={16}
+                  className="text-neutral-400/50 group-hover:text-neutral-300"
+                />
+              ) : (
+                <Maximize
+                  size={16}
+                  className="text-neutral-400/50 group-hover:text-neutral-300"
+                />
+              )}
+            </button>
+          </motion.div>
+        )}
+        {/* Conditional Rendering: Text Stream or Iframe */}
+        {isStreaming ? (
+          <div
+            className="h-full w-full relative overflow-hidden"
+          >
+            {streamPreviewHtml ? (
+              <div
+                className="generated-html-stream font-geneva-12"
+                dangerouslySetInnerHTML={{ __html: streamPreviewHtml }}
               />
             ) : (
-              <Copy
-                size={16}
-                className="text-neutral-400/50 group-hover:text-neutral-300"
-              />
+              <pre className="p-2 text-xs font-geneva-12 text-gray-700 whitespace-pre-wrap break-words">
+                {htmlContent.split('\n').slice(-8).join('\n')}
+              </pre>
             )}
-          </button>
-          <button
-            onClick={toggleFullScreen}
+          </div>
+        ) : (
+          <motion.iframe
+            ref={iframeRef}
+            id={iframeId}
+            // srcDoc is now set by useEffect after streaming finishes
+            // srcDoc={processedHtmlContent()}
+            title="ryOS Code Preview"
+            className="w-full h-full border-0"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation allow-modals allow-pointer-lock allow-downloads allow-storage-access-by-user-activation"
+            style={{
+              height: isInternetExplorer ? "100%" : (typeof minHeight === "string" ? minHeight : `${minHeight}px`),
+              display: "block",
+              // pointerEvents: isStreaming ? "none" : "auto", // Already handled by parent div conditional
+              position: "relative",
+              zIndex: 1,
+            }}
             onMouseDown={(e) => e.stopPropagation()}
-            className="flex items-center justify-center w-6 h-6 hover:bg-black/10 rounded group"
-            aria-label={isFullScreen ? "Minimize preview" : "Maximize preview"}
-            disabled={isStreaming}
-          >
-            {isFullScreen ? (
-              <Minimize
-                size={16}
-                className="text-neutral-400/50 group-hover:text-neutral-300"
-              />
-            ) : (
-              <Maximize
-                size={16}
-                className="text-neutral-400/50 group-hover:text-neutral-300"
-              />
-            )}
-          </button>
-        </motion.div>
-        <motion.iframe
-          ref={iframeRef}
-          id={iframeId}
-          srcDoc={processedHtmlContent}
-          title="ryOS Code Preview"
-          className="w-full h-full border-0"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation allow-modals allow-pointer-lock allow-downloads allow-storage-access-by-user-activation"
-          style={{
-            height:
-              typeof minHeight === "string" ? minHeight : `${minHeight}px`,
-            display: "block",
-            pointerEvents: isStreaming ? "none" : "auto",
-          }}
-          animate={{
-            opacity: isStreaming ? [0.6, 0.8, 0.6] : 1,
-          }}
-          transition={{
-            opacity: {
-              duration: 2.5,
-              repeat: isStreaming ? Infinity : 0,
-              ease: "easeInOut",
-            },
-          }}
-          onMouseDown={(e) => e.stopPropagation()}
-        />
+          />
+        )}
       </motion.div>
 
       {/* Fullscreen overlay */}
@@ -706,9 +754,9 @@ export default function HtmlPreview({
                     ) : null}
                   </AnimatePresence>
 
-                  {/* Preview iframe layer - positioned above code */}
+                  {/* Preview iframe layer - positioned above code OR Text stream */}
                   <motion.div
-                    className="absolute z-100"
+                    className="absolute z-100 bg-white" // Added bg-white for text stream background
                     initial={false}
                     animate={{
                       width:
@@ -734,21 +782,65 @@ export default function HtmlPreview({
                       position: "absolute",
                       top: showCode && isSplitView && isMobile ? "50%" : 0,
                       right: 0,
+                      overflow: "hidden", // Clip content
                     }}
                   >
-                    <iframe
-                      ref={fullscreenIframeRef}
-                      id={`fullscreen-${iframeId}`}
-                      srcDoc={processedHtmlContent}
-                      title="ryOS Code Preview Fullscreen"
-                      className="border-0 bg-white w-full h-full"
-                      sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation allow-modals allow-pointer-lock allow-downloads allow-storage-access-by-user-activation"
-                      onClick={(e) => e.stopPropagation()}
-                      onMouseDown={(e) => e.stopPropagation()}
-                      style={{
-                        pointerEvents: isDragging ? "none" : "auto",
-                      }}
-                    />
+                    {/* Fullscreen Conditional Rendering: Text Stream or Iframe */}
+                    {isStreaming ? (
+                      <motion.div
+                        className="p-4 h-full overflow-auto"
+                        initial={{ opacity: 0.8, y: 3 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.15, ease: "easeOut" }}
+                      >
+                        {streamPreviewHtml ? (
+                          <div
+                            className="generated-html-stream text-sm"
+                            dangerouslySetInnerHTML={{ __html: streamPreviewHtml }}
+                          />
+                        ) : (
+                          <pre className="text-xs font-geneva-12 text-gray-700 whitespace-pre-wrap break-words">
+                            {htmlContent.split('\n').slice(-15).join('\n')}
+                          </pre>
+                        )}
+                      </motion.div>
+                    ) : (
+                      <iframe
+                        ref={fullscreenIframeRef}
+                        id={`fullscreen-${iframeId}`}
+                        // srcDoc is now set by useEffect after streaming finishes
+                        // srcDoc={processedHtmlContent()}
+                        title="ryOS Code Preview Fullscreen"
+                        className="border-0 bg-white w-full h-full"
+                        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation allow-modals allow-pointer-lock allow-downloads allow-storage-access-by-user-activation"
+                        onClick={(e) => e.stopPropagation()}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        style={{
+                          pointerEvents: isDragging ? "none" : "auto",
+                          ...(isInternetExplorer && { position: 'absolute', inset: 0 })
+                        }}
+                      />
+                    )}
+
+                    {/* Loading PULSE overlay for fullscreen (kept for visual feedback) */}
+                    {isStreaming && (
+                      <div
+                        className="absolute inset-0 bg-gray-100 z-10 pointer-events-none"
+                        style={{ opacity: 0.2 }}
+                      >
+                        <motion.div
+                          className="w-full h-full bg-gray-400"
+                          animate={{
+                            opacity: [0.05, 0.2, 0.05]
+                          }}
+                          transition={{
+                            duration: 1.5,
+                            repeat: Infinity,
+                            ease: "easeInOut"
+                          }}
+                        />
+                      </div>
+                    )}
                   </motion.div>
 
                   {/* Toolbar - topmost layer */}

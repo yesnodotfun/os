@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Message as UIMessage } from "ai/react"; // Import Message type
 import { AppProps } from "../../base/types";
 import { WindowFrame } from "@/components/layout/WindowFrame";
 import { ChatsMenuBar } from "./ChatsMenuBar";
@@ -8,7 +9,7 @@ import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { InputDialog } from "@/components/dialogs/InputDialog";
 import { helpItems, appMetadata } from "..";
 import { useLaunchApp } from "@/hooks/useLaunchApp";
-import { useChat } from "ai/react";
+import { useChat } from "ai/react"; // Keep the original useChat import
 import Pusher from 'pusher-js'; // Import Pusher
 import {
   loadChatMessages,
@@ -3107,33 +3108,42 @@ export function ChatsAppComponent({
               isRoomView={!!currentRoom} // Pass the new prop
             />
 
-            <ChatInput
-              input={input}
-              isLoading={isLoading}
-              isForeground={isForeground}
-              onInputChange={handleInputChange}
-              onSubmit={handleSubmit}
-              onStop={stop}
-              onDirectMessageSubmit={handleDirectMessageSubmit}
-              onNudge={handleNudge}
-              previousMessages={Array.from(
-                new Set(
-                  (currentRoom ? roomMessages : messages)
-                    .filter((msg) => {
-                      // Check if msg is a ChatMessage (room) or Message (AI)
-                      if ('username' in msg && msg.username) {
-                        // For ChatMessage (room messages), filter by current user's username
-                        return msg.username === username;
-                      } else if ('role' in msg) {
-                        // For AI Message, filter by role 'user'
-                        return msg.role === "user";
-                      }
-                      return false;
-                    })
-                    .map((msg) => msg.content)
-                )
-              ).reverse()}
-            />
+            {(() => {
+              // Determine the source array based on whether it's a room chat or Ryo chat
+              const sourceMessages = currentRoom ? roomMessages : messages;
+
+              // Filter messages based on the current user, casting to unknown[] to allow filtering union type
+              const userMessages = (sourceMessages as unknown[]).filter((msg: unknown) => {
+                // Type guard for UIMessage (from Ryo chat)
+                if (typeof msg === 'object' && msg !== null && 'role' in msg && (msg as UIMessage).role === "user") {
+                  return true;
+                }
+                // Type guard for ChatMessage (from room chat)
+                if (typeof msg === 'object' && msg !== null && 'username' in msg && (msg as ChatMessage).username === username) {
+                  return true;
+                }
+                return false;
+              });
+
+              // Extract content, ensure uniqueness, reverse, and cast to string[]
+              const prevMessagesContent = Array.from(
+                new Set(userMessages.map((msg: any) => msg.content)) // Use any here after filtering
+              ).reverse() as string[];
+
+              return (
+                <ChatInput
+                  input={input}
+                  isLoading={isLoading}
+                  isForeground={isForeground}
+                  onInputChange={handleInputChange}
+                  onSubmit={handleSubmit}
+                  onStop={stop}
+                  onDirectMessageSubmit={handleDirectMessageSubmit}
+                  onNudge={handleNudge}
+                  previousMessages={prevMessagesContent}
+                />
+              );
+            })()}
             {textEditContext && (
               <div className="font-geneva-12 flex items-center gap-1 text-[10px] text-gray-600 mt-1 px-0 py-0.5">
                 <FileText className="w-3 h-3" />

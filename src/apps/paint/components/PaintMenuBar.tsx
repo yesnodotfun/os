@@ -98,7 +98,9 @@ const filters: Filter[] = [
         for (let x = 0; x < canvas.width; x += size) {
           // Get the color of the first pixel in the block
           const imageData = tempCtx.getImageData(x, y, 1, 1);
-          const [r, g, b] = imageData.data;
+          const r = imageData.data[0];
+          const g = imageData.data[1];
+          const b = imageData.data[2];
 
           // Draw a block of that color
           ctx.fillStyle = `rgb(${r},${g},${b})`;

@@ -33,11 +33,15 @@ import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { helpItems, appMetadata } from "..";
+import { useChat } from "ai/react";
+import HtmlPreview from "@/components/shared/HtmlPreview";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface NavigationState {
   url: string;
   year: string;
   currentUrl: string | null;
+  aiGeneratedHtml?: string | null;
 }
 
 export function InternetExplorerAppComponent({
@@ -52,6 +56,7 @@ export function InternetExplorerAppComponent({
     url: initialUrl,
     year: initialYear,
     currentUrl: null,
+    aiGeneratedHtml: null,
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -75,59 +80,287 @@ export function InternetExplorerAppComponent({
   // Add a ref to track navigation in progress
   const navigationInProgressRef = useRef(false);
 
-  const years = Array.from(
-    { length: new Date().getFullYear() - 1996 },
+  // Add useChat hook for AI-generated content
+  const {
+    messages: aiMessages,
+    append: appendAiMessage,
+    isLoading: isAiLoading,
+    setMessages: resetAiMessages,
+    stop,
+  } = useChat({
+    initialMessages: [
+      {
+        id: "system",
+        role: "system",
+        content: "You are a web designer specialized in futuristic UI/UX designs.",
+      },
+    ],
+  });
+
+  // Create past years array (from 1996 to current year)
+  const pastYears = Array.from(
+    { length: new Date().getFullYear() - 1996 + 1 },
     (_, i) => (1996 + i).toString()
-  );
+  ).reverse(); // Reverse to get newest to oldest
+
+  // Create future years array (from 2100 down to 2030)
+  const futureYears = [
+    "2030", "2040", "2050", "2060", "2070", "2080", "2090", "2100"
+  ].sort((a, b) => parseInt(b) - parseInt(a)); // Reverse chronological order (newest first)
+
+  // We'll handle the display in the select component, no need to combine them here
+
+  // Effect to watch for AI responses and update the UI accordingly
+  useEffect(() => {
+    // Always check the latest message for updates
+    if (aiMessages.length > 1) {
+      const lastMessage = aiMessages[aiMessages.length - 1];
+      if (lastMessage.role === "assistant") {
+        // Extract HTML content from the response (remove markdown code blocks if present)
+        const htmlContent = lastMessage.content
+          // Use a more robust regex to remove fences and optional language tag, including surrounding whitespace/newlines
+          .replace(/^\s*```(?:html)?\s*\n?|\n?\s*```\s*$/g, "")
+          .trim();
+
+        setNavigation((_prev) => ({
+          ..._prev,
+          aiGeneratedHtml: htmlContent,
+        }));
+      }
+    }
+
+    // Determine if the current navigation is for a future year (AI mode)
+    const currentYearNum = parseInt(navigation.year);
+    const systemCurrentYear = new Date().getFullYear();
+    const isFutureNav = navigation.year !== "current" && currentYearNum > systemCurrentYear;
+
+    // If we are in AI mode, the main loading state should directly reflect the AI loading state.
+    if (isFutureNav) {
+      // Keep the loading bar visible while either the AI is streaming OR the overall navigation is still marked in progress
+      setIsLoading(navigationInProgressRef.current || isAiLoading);
+
+      // Once the AI finishes streaming, clear the navigation lock so future actions can proceed
+      if (!isAiLoading && navigationInProgressRef.current) {
+        navigationInProgressRef.current = false;
+      }
+    } 
+    // For non-AI navigation (iframe/current year), isLoading is managed by handleNavigate start/timeouts
+    // and iframe load/error handlers. This effect should not interfere in those cases,
+    // except if AI was *interrupted* during a non-AI navigation, in which case isAiLoading might
+    // become false unexpectedly. Let's ensure isLoading is false if isAiLoading is false
+    // and we are NOT in future nav mode (as a safeguard).
+    else if (!isAiLoading && isLoading) {
+        // Only turn off loading if AI is not loading AND we are not in future nav mode.
+        // This prevents turning off loading prematurely if an iframe is still loading.
+        // The iframe handlers (handleIframeLoad/Error) or timeouts should eventually set isLoading to false.
+        // However, if an AI interruption happened during iframe load, this ensures cleanup.
+        // Let's reconsider if this 'else if' is truly needed or might cause issues.
+        // For now, let's stick to only controlling isLoading during isFutureNav.
+        // The original logic might be sufficient:
+        // Original logic was: if (!isAiLoading) setIsLoading(false);
+        // Let's refine: Only set false if !isAiLoading *and* it was a future nav.
+        // This seems implicitly covered by the `if (isFutureNav)` block.
+    }
+
+    // --- Simplified approach: ---
+    // If it's a future navigation, sync isLoading with isAiLoading.
+    // Otherwise, only set isLoading to false if AI *finishes* (which might happen
+    // after an interruption of a non-AI navigation, requiring cleanup).
+    // if (isFutureNav) {
+    //   setIsLoading(isAiLoading);
+    // } else if (!isAiLoading) {
+    //   // If AI is not loading (e.g., finished or was interrupted) and we are NOT in future nav,
+    //   // ensure loading is off *if* it was previously on due to AI.
+    //   // This check might still be complex. Let's stick to the clear isFutureNav check for now.
+    // }
+
+  }, [aiMessages, isAiLoading, navigation.year]); // Depend on messages, AI loading state, and the current year
+
+  // Helper to fetch existing website content (readability text via jina.ai)
+  const fetchExistingWebsiteContent = async (targetUrl: string): Promise<string | null> => {
+    try {
+      // Ensure we always have a protocol for encoding
+      const normalized = targetUrl.startsWith("http") ? targetUrl : `https://${targetUrl}`;
+      // jina.ai provides readable text extraction with permissive CORS
+      // Format: https://r.jina.ai/http://example.com/path
+      const jinaEndpoint = `https://r.jina.ai/http://${normalized.replace(/^https?:\/\//, "")}`;
+
+      const res = await fetch(jinaEndpoint);
+      if (!res.ok) return null;
+      const text = await res.text();
+      // Return a trimmed version to avoid blowing up the prompt size (max 4k chars)
+      return text.slice(0, 4000);
+    } catch (err) {
+      console.warn("Failed to fetch existing website content:", err);
+      return null;
+    }
+  };
+
+  // Function to generate futuristic website content using AI
+  const generateFuturisticWebsite = async (url: string, year: string) => {
+    // Show loading state - REMOVED: This is already handled by the calling function (handleNavigate/initializeState)
+    // setIsLoading(true); 
+    
+    // Clear any existing AI-generated content
+    setNavigation((_prev) => ({
+      ..._prev,
+      aiGeneratedHtml: null,
+    }));
+    
+    // Reset previous AI messages to start a fresh conversation
+    resetAiMessages([
+      {
+        id: "system",
+        role: "system",
+        content: "You are a web designer specialized in futuristic UI/UX designs.",
+      },
+    ]);
+    
+    // Extract domain name for better prompt
+    const domainName = new URL(url.startsWith("http") ? url : `https://${url}`).hostname;
+    // Attempt to fetch existing website content (best-effort)
+    const existingContent = await fetchExistingWebsiteContent(url);
+    
+    // Create prompt for AI
+    const prompt = `
+Below are details about the current website and the task:
+
+- Domain: ${domainName}
+- URL: ${url}
+${existingContent ? `- A snapshot of the existing website's readable content (truncated to 4,000 characters) is provided between the fences below:\n"""\n${existingContent}\n"""\n` : ""}
+
+Please generate an HTML preview showing how this website could look in the year ${year}. When crafting the futuristic version, consider potential design trends, technological advancements, cultural shifts, and new interaction patterns that might emerge by ${year}.
+
+Guidelines:
+1. Use TailwindCSS classes for styling.
+2. Include a short note at the top indicating that this is a speculative future vision.
+3. Aim for a clean, responsive, and visually engaging interface, employing a futuristic aesthetic.
+4. Use placeholder content where real data would normally appear.
+5. Return ONLY the HTML code (within a single block, no markdown fences) and ensure it is completely self‑contained with inline TailwindCSS styles and no external dependencies.
+`;
+
+    try {
+      // Send message to AI - the response will be handled by the useEffect
+      await appendAiMessage({ role: "user", content: prompt });
+    } catch (error) {
+      console.error("Failed to generate futuristic website:", error);
+      setError("Failed to generate futuristic website preview");
+      setIsLoading(false);
+    }
+  };
 
   // Effect to load initial state and start initial navigation
   useEffect(() => {
+    // Store initial year locally for use in finally block
+    let initialYearValue = loadWaybackYear(); 
+
     const initializeState = async () => {
-      setFavorites(loadFavorites());
-      const loadedHistory = loadHistory();
-      setHistory(loadedHistory);
-      if (loadedHistory.length > 0) {
-        setHistoryIndex(0);
-      }
+      // Prevent concurrent initializations
+      if (navigationInProgressRef.current) return;
 
-      // Start initial navigation with the loaded URL and year
-      const initialUrl = loadLastUrl();
-      const initialYear = loadWaybackYear();
-
-      // Keep loading state true during initial navigation
-      setIsLoading(true);
+      // Set navigation lock
       navigationInProgressRef.current = true;
+      setIsLoading(true); // Keep loading state during initial navigation
 
-      // First set the navigation state without triggering navigation
-      setNavigation({
-        url: initialUrl,
-        year: initialYear,
-        currentUrl: null,
-      });
-
-      // Then explicitly trigger navigation after state is set
-      if (initialYear !== "current") {
-        const waybackUrl = await getWaybackUrl(initialUrl, initialYear);
-        if (waybackUrl) {
-          setNavigation((prev) => ({
-            ...prev,
-            currentUrl: waybackUrl,
-          }));
+      try {
+        setFavorites(loadFavorites());
+        const loadedHistory = loadHistory();
+        setHistory(loadedHistory);
+        if (loadedHistory.length > 0) {
+          setHistoryIndex(0);
         }
-      } else {
-        // For current year, just use the URL directly
-        setNavigation((prev) => ({
-          ...prev,
-          currentUrl: initialUrl.startsWith("http")
-            ? initialUrl
-            : `https://${initialUrl}`,
-        }));
-      }
 
-      // Don't set isLoading to false here - let the iframe load handler handle it
+        // Start initial navigation with the loaded URL and year
+        const initialUrl = loadLastUrl();
+        // Use the locally stored initialYearValue
+        initialYearValue = loadWaybackYear();
+
+        // First set the navigation state without triggering navigation
+        setNavigation({
+          url: initialUrl,
+          year: initialYearValue,
+          currentUrl: null,
+          aiGeneratedHtml: null,
+        });
+
+        try {
+          // Then explicitly trigger navigation after state is set
+          if (initialYearValue !== "current") {
+            // Check if it's a future year
+            const currentSystemYear = new Date().getFullYear();
+            const yearNum = parseInt(initialYearValue);
+
+            if (yearNum > currentSystemYear) {
+              // Handle future year navigation
+              await generateFuturisticWebsite(initialUrl, initialYearValue);
+              // AI useEffect handles isLoading for this case
+              // Inner finally block handles ref lock
+            } else {
+              // Handle past year (Wayback Machine)
+              const waybackUrl = await getWaybackUrl(initialUrl, initialYearValue);
+              if (waybackUrl) {
+                setNavigation((_prev) => ({
+                  ..._prev,
+                  currentUrl: waybackUrl,
+                }));
+                // Let iframe load handler clear loading state & ref lock
+              } else {
+                // If wayback URL fails, error will be handled by outer finally
+                // Inner finally block handles ref lock
+              }
+            }
+          } else {
+            // For current year, just use the URL directly
+            setNavigation((_prev) => ({
+              ..._prev,
+              currentUrl: initialUrl.startsWith("http")
+                ? initialUrl
+                : `https://${initialUrl}`,
+            }));
+            // Let iframe load handler manage loading state & ref lock
+          }
+        } catch (error) {
+          console.error("Error during initial navigation setup:", error);
+          // Error handling is deferred to outer finally/catch
+        } finally {
+            // This finally block now ONLY handles the ref lock for specific cases
+            const isFuture = initialYearValue !== "current" && parseInt(initialYearValue) > new Date().getFullYear();
+            // If AI was called, or if Wayback/Current failed *before* setting currentUrl
+            if (isFuture || (!isFuture && navigation.currentUrl === null)) { 
+                 if (navigationInProgressRef.current) { 
+                     navigationInProgressRef.current = false;
+                 }
+            }
+            // If successful Wayback/Current, iframe handlers clear the lock.
+        }
+      } catch (error) {
+          console.error("Error during state initialization:", error);
+          // Outer catch ensures lock is released on any setup error
+          if (navigationInProgressRef.current) {
+            navigationInProgressRef.current = false;
+          }
+          // Let outer finally handle isLoading
+      } finally {
+        // Outer finally: Guaranteed cleanup for isLoading and potentially ref lock
+        const isFutureNav = initialYearValue !== "current" && parseInt(initialYearValue) > new Date().getFullYear();
+        
+        // If the initial navigation wasn't AI-based, ensure loading is turned off.
+        // (AI useEffect handles isLoading for future navs)
+        if (!isFutureNav) {
+          setIsLoading(false);
+        }
+
+        // Fallback check for navigation lock, although it should be handled
+        // by inner finally or iframe handlers or outer catch.
+        if (navigationInProgressRef.current) {
+           console.warn("Initial navigation lock still held in outer finally block.");
+           // navigationInProgressRef.current = false; // Optionally force release
+        } 
+      }
     };
 
     initializeState();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run on mount
 
   // Effect to persist navigation state - but don't trigger navigation
@@ -187,8 +420,11 @@ export function InternetExplorerAppComponent({
 
   // Update iframe load handler
   const handleIframeLoad = () => {
-    setIsLoading(false);
-    navigationInProgressRef.current = false;
+    // Only update state if this load corresponds to an active navigation attempt
+    if (navigationInProgressRef.current) {
+        setIsLoading(false);
+        navigationInProgressRef.current = false;
+    }
   };
 
   const handleNavigate = async (
@@ -196,14 +432,35 @@ export function InternetExplorerAppComponent({
     addToHistoryStack = true,
     year: string = navigation.year
   ) => {
-    setIsLoading(true);
+    // --- Interrupt ongoing AI generation --- 
+    if (isAiLoading) {
+      console.log("Interrupting ongoing AI generation...");
+      stop(); // Abort the current AI stream
+      // We don't return here; we let the new navigation proceed.
+      // The existing navigationInProgressRef logic below will handle the new lock.
+      // We might need a brief delay or check if stop() updates isAiLoading immediately
+      // but let's try without first.
+    }
+    // --- End interruption logic ---
+
+    // Prevent concurrent navigations (unless it was AI generation we just stopped)
+    if (navigationInProgressRef.current) {
+        console.log("Navigation already in progress, ignoring new request.");
+        return;
+    }
+
+    // Set navigation lock
     navigationInProgressRef.current = true;
+    setIsLoading(true);
     setError(null);
 
-    // Add a timeout to clear loading state after 10 seconds
+    // Add a timeout to clear loading state after 10 seconds for regular navigation
     const loadingTimeout = setTimeout(() => {
-      setIsLoading(false);
-      navigationInProgressRef.current = false;
+      // Only clear loading if still in progress (ref hasn't been cleared by success/error)
+      if (navigationInProgressRef.current) {
+        setIsLoading(false);
+        navigationInProgressRef.current = false; // Clear lock on timeout too
+      }
     }, 10000);
 
     let newUrl = targetUrl.startsWith("http")
@@ -216,45 +473,132 @@ export function InternetExplorerAppComponent({
     const originalFavicon = `https://www.google.com/s2/favicons?domain=${originalHostname}&sz=32`;
 
     try {
-      if (year !== "current") {
+      // Reset any previous AI-generated content
+      setNavigation((_prev) => ({
+        ..._prev,
+        aiGeneratedHtml: null,
+      }));
+
+      // Check if this is a future year
+      const currentYear = new Date().getFullYear();
+      const yearNum = parseInt(year);
+      
+      if (year !== "current" && yearNum > currentYear) {
+        // For future years, generate AI content
+        clearTimeout(loadingTimeout); // AI generation handles its own loading
+        
+        // First, update the navigation state with the new URL and year
+        setNavigation((_prev) => ({
+          url: targetUrl,
+          year: year,
+          currentUrl: null,
+          aiGeneratedHtml: null,
+        }));
+        
+        if (addToHistoryStack && !isNavigatingHistory) {
+          const newEntry = {
+            url: targetUrl,
+            title: originalHostname,
+            favicon: originalFavicon,
+            timestamp: Date.now(),
+            year: year,
+          };
+
+          setHistory((prev) => [newEntry, ...prev]);
+          setHistoryIndex(0);
+          addToHistory(newEntry);
+        }
+        
+        // Then generate the AI content - this will handle its own loading state
+        // Note: generateFuturisticWebsite itself doesn't manage the ref lock
+        await generateFuturisticWebsite(targetUrl, year);
+        // AI generation completion is handled by its useEffect, which sets isLoading(false).
+        // We still need to clear the ref lock here after await completes.
+      } else if (year !== "current") {
+        // For past years, use Wayback Machine
         const waybackUrl = await getWaybackUrl(newUrl, year);
         if (!waybackUrl) {
           clearTimeout(loadingTimeout);
           setIsLoading(false);
-          navigationInProgressRef.current = false;
-          return;
+          // navigationInProgressRef.current = false; // Moved to finally block
+          return; // Return early, finally block will execute
         }
         newUrl = waybackUrl;
-      }
-
-      // Update navigation state atomically
-      setNavigation((prev) => ({
-        url: targetUrl,
-        year: year,
-        currentUrl:
-          newUrl === prev.currentUrl
-            ? `${newUrl}${newUrl.includes("?") ? "&" : "?"}_t=${Date.now()}`
-            : newUrl,
-      }));
-
-      if (addToHistoryStack && !isNavigatingHistory) {
-        const newEntry = {
+        
+        // Update navigation state atomically
+        setNavigation((_prev) => ({
           url: targetUrl,
-          title: originalHostname,
-          favicon: originalFavicon,
-          timestamp: Date.now(),
-          year: year !== "current" ? year : undefined,
-        };
+          year: year,
+          currentUrl:
+            newUrl === _prev.currentUrl
+              ? `${newUrl}${newUrl.includes("?") ? "&" : "?"}_t=${Date.now()}`
+              : newUrl,
+          aiGeneratedHtml: null,
+        }));
 
-        setHistory((prev) => [newEntry, ...prev]);
-        setHistoryIndex(0);
-        addToHistory(newEntry);
+        if (addToHistoryStack && !isNavigatingHistory) {
+          const newEntry = {
+            url: targetUrl,
+            title: originalHostname,
+            favicon: originalFavicon,
+            timestamp: Date.now(),
+            year: year !== "current" ? year : undefined,
+          };
+
+          setHistory((prev) => [newEntry, ...prev]);
+          setHistoryIndex(0);
+          addToHistory(newEntry);
+        }
+      } else {
+        // For current year, just use the URL directly
+        setNavigation((_prev) => ({
+          url: targetUrl,
+          year: year,
+          currentUrl:
+            newUrl === _prev.currentUrl
+              ? `${newUrl}${newUrl.includes("?") ? "&" : "?"}_t=${Date.now()}`
+              : newUrl,
+          aiGeneratedHtml: null,
+        }));
+
+        if (addToHistoryStack && !isNavigatingHistory) {
+          const newEntry = {
+            url: targetUrl,
+            title: originalHostname,
+            favicon: originalFavicon,
+            timestamp: Date.now(),
+            year: year !== "current" ? year : undefined,
+          };
+
+          setHistory((prev) => [newEntry, ...prev]);
+          setHistoryIndex(0);
+          addToHistory(newEntry);
+        }
       }
     } catch (error) {
       clearTimeout(loadingTimeout);
       setError(`Failed to navigate: ${error}`);
       setIsLoading(false);
-      navigationInProgressRef.current = false;
+      // navigationInProgressRef.current = false; // Moved to finally block
+    } finally {
+        // Clear the loading timeout if it hasn't fired yet
+        clearTimeout(loadingTimeout);
+        // Ensure the navigation lock is released unless handled by iframe load/error
+        // If it's AI generation or Wayback failed, release the lock.
+        // If it's a normal iframe load, handleIframeLoad/Error will release it.
+        // Need to differentiate: was this an AI call or iframe navigation attempt?
+        const isFuture = year !== "current" && parseInt(year) > new Date().getFullYear();
+
+        // Release lock if it was AI, or if it was Wayback/Current and didn't result in an iframe load (e.g., Wayback URL failed)
+        // Iframe load/error handlers will set the ref to false if they are triggered.
+        // If AI generation finished, its useEffect sets isLoading, but we need to clear the lock here.
+        if (isFuture || (!isFuture && navigation.currentUrl === null)) {
+             // If AI was called, or if Wayback/Current failed before setting currentUrl for iframe
+             if (navigationInProgressRef.current) { // Check again in case iframe handler ran quickly
+                 navigationInProgressRef.current = false;
+             }
+        }
+        // If it was a successful Wayback/Current navigation, handleIframeLoad/Error will set the ref.
     }
   };
 
@@ -324,13 +668,16 @@ export function InternetExplorerAppComponent({
   };
 
   const handleIframeError = () => {
-    setIsLoading(false);
-    navigationInProgressRef.current = false;
-    setError(
-      `Cannot access ${
-        navigation.currentUrl || navigation.url
-      }. The website might be blocking access or requires authentication.`
-    );
+    // Only update state if this error corresponds to an active navigation attempt
+    if (navigationInProgressRef.current) {
+        setIsLoading(false);
+        navigationInProgressRef.current = false;
+        setError(
+          `Cannot access ${
+            navigation.currentUrl || navigation.url
+          }. The website might be blocking access or requires authentication.`
+        );
+    }
   };
 
   const handleRefresh = () => {
@@ -338,11 +685,16 @@ export function InternetExplorerAppComponent({
   };
 
   const handleStop = () => {
-    setIsLoading(false);
-    navigationInProgressRef.current = false;
-    if (iframeRef.current) {
-      iframeRef.current.src = "about:blank";
+    // Clear loading state and release the lock if navigation was in progress
+    if (navigationInProgressRef.current) {
+        setIsLoading(false);
+        navigationInProgressRef.current = false;
     }
+    // Also stop the iframe loading
+    if (iframeRef.current) {
+      iframeRef.current.src = "about:blank"; // Stop loading
+    }
+    // Consider stopping AI generation if possible (e.g., if useChat provides an abort controller)
   };
 
   const handleGoToUrl = () => {
@@ -366,6 +718,25 @@ export function InternetExplorerAppComponent({
   };
 
   if (!isWindowOpen) return null;
+
+  // Extract current year for display purposes
+  const currentYear = new Date().getFullYear();
+  const selectedYearNum = parseInt(navigation.year);
+  const isFutureYear = navigation.year !== "current" && selectedYearNum > currentYear;
+
+  // Animation variants for the loading bar
+  const loadingBarVariants = {
+    hidden: { 
+      height: 0,
+      opacity: 0,
+      transition: { duration: 0.3 }
+    },
+    visible: { 
+      height: "0.25rem", // equivalent to h-1
+      opacity: 1,
+      transition: { duration: 0.3 }
+    },
+  };
 
   return (
     <>
@@ -427,7 +798,7 @@ export function InternetExplorerAppComponent({
                 ref={urlInputRef}
                 value={navigation.url}
                 onChange={(e) =>
-                  setNavigation((prev) => ({ ...prev, url: e.target.value }))
+                  setNavigation((_prev) => ({ ..._prev, url: e.target.value }))
                 }
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
@@ -448,8 +819,16 @@ export function InternetExplorerAppComponent({
                     <SelectValue placeholder="Year" />
                   </SelectTrigger>
                   <SelectContent>
+                    {/* Future years first, in reverse chronological order (newest to oldest) */}
+                    {futureYears.map((year) => (
+                      <SelectItem key={year} value={year} className="text-blue-600 font-semibold">
+                        {year}
+                      </SelectItem>
+                    ))}
+                    {/* Now option */}
                     <SelectItem value="current">Now</SelectItem>
-                    {years.reverse().map((year) => (
+                    {/* Past years in reverse chronological order (newest to oldest) */}
+                    {pastYears.map((year) => (
                       <SelectItem key={year} value={year}>
                         {year}
                       </SelectItem>
@@ -493,22 +872,49 @@ export function InternetExplorerAppComponent({
             </div>
           </div>
           <div className="flex-1 relative">
-            {isLoading && (
-              <div className="absolute top-0 left-0 right-0 h-1 bg-gray-100 overflow-hidden z-50">
-                <div className="h-full bg-blue-500 animate-progress-indeterminate" />
-              </div>
-            )}
+            {/* Content first */} 
             {error ? (
               <div className="p-4 text-red-500">{error}</div>
+            ) : isFutureYear ? ( // Render HtmlPreview if it's a future year
+              <div className="w-full h-full overflow-hidden absolute inset-0">
+                <HtmlPreview
+                  // Pass the potentially partial HTML content
+                  htmlContent={navigation.aiGeneratedHtml || ""} 
+                  onInteractionChange={() => {}}
+                  className="border-none"
+                  maxHeight="none"
+                  minHeight="100%"
+                  initialFullScreen={false}
+                  isInternetExplorer={true}
+                  // Use isAiLoading directly for the preview's streaming state
+                  isStreaming={isAiLoading} 
+                />
+              </div>
             ) : (
+              // Render iframe for current/past years
               <iframe
                 ref={iframeRef}
                 src={navigation.currentUrl || ""}
-                className="w-full h-full"
+                className="w-full h-full border-0"
                 onLoad={handleIframeLoad}
                 onError={handleIframeError}
               />
             )}
+
+            {/* Loading Bar last (to ensure it's on top with z-50) */}
+            <AnimatePresence>
+              {isLoading && (
+                <motion.div
+                  className="absolute top-0 left-0 right-0 bg-white/75 backdrop-blur-sm overflow-hidden z-50"
+                  variants={loadingBarVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="hidden"
+                >
+                  <div className="h-full bg-blue-500 animate-progress-indeterminate" />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
         <InputDialog

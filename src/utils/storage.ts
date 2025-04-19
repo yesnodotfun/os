@@ -267,13 +267,7 @@ export const DEFAULT_FAVORITES: Favorite[] = [
     title: "Apple",
     url: "https://apple.com",
     favicon: "https://www.google.com/s2/favicons?domain=apple.com&sz=32",
-    year: "2002",
-  },
-  {
-    title: "Notion",
-    url: "https://notion.so",
-    favicon: "https://www.google.com/s2/favicons?domain=notion.so&sz=32",
-    year: "2019",
+    year: "2007",
   },
   {
     title: "NewJeans",
@@ -300,12 +294,6 @@ export const DEFAULT_FAVORITES: Favorite[] = [
     year: "current",
   },
   {
-    title: "Theo",
-    url: "https://tmb.sh",
-    favicon: "https://www.google.com/s2/favicons?domain=tmb.sh&sz=32",
-    year: "current",
-  },
-  {
     title: "Ian",
     url: "https://shaoruu.io",
     favicon: "https://www.google.com/s2/favicons?domain=shaoruu.io&sz=32",
@@ -316,6 +304,12 @@ export const DEFAULT_FAVORITES: Favorite[] = [
     url: "https://www.samuelcatania.com",
     favicon:
       "https://www.google.com/s2/favicons?domain=www.samuelcatania.com&sz=32",
+    year: "current",
+  },
+  {
+    title: "Theo",
+    url: "https://tmb.sh",
+    favicon: "https://www.google.com/s2/favicons?domain=tmb.sh&sz=32",
     year: "current",
   },
   {

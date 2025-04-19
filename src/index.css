@@ -123,20 +123,23 @@
 
 @keyframes progress-indeterminate {
   0% {
-    transform: translateX(-100%);
-  }
-  50% {
-    transform: translateX(0%);
+    background-position: 200% 0;
   }
   100% {
-    transform: translateX(100%);
+    background-position: -200% 0;
   }
 }
 
 .animate-progress-indeterminate {
-  animation: progress-indeterminate 1.5s ease-in-out infinite;
-  background: linear-gradient(90deg, transparent, #3b82f6, transparent);
-  width: 50%;
+  animation: progress-indeterminate 2.5s linear infinite;
+  background: linear-gradient(
+    90deg,
+    transparent 20%,
+    #3b82f6 50%,
+    transparent 80%
+  );
+  background-size: 200% 100%;
+  width: 100%;
 }
 
 @keyframes marquee {

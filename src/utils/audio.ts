@@ -60,5 +60,9 @@ export const getSupportedMimeType = (): string => {
 
 export const base64FromBlob = async (blob: Blob): Promise<string> => {
   const buffer = await blob.arrayBuffer();
-  return btoa(String.fromCharCode(...new Uint8Array(buffer)));
+  return btoa(String.fromCharCode(...Array.from(new Uint8Array(buffer))));
 };
+
+export function bufferToBase64(buffer: ArrayBuffer): string {
+  return btoa(String.fromCharCode(...Array.from(new Uint8Array(buffer))));
+}
