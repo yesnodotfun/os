@@ -1,12 +1,13 @@
 import { useChat } from "ai/react";
 import { useState, useEffect } from "react";
+import { loadCachedAiPage, saveCachedAiPage } from "@/utils/storage";
 
 interface UseAiGenerationProps {
   onLoadingChange?: (isLoading: boolean) => void;
 }
 
 interface UseAiGenerationReturn {
-  generateFuturisticWebsite: (url: string, year: string) => Promise<void>;
+  generateFuturisticWebsite: (url: string, year: string, forceRegenerate?: boolean) => Promise<void>;
   aiGeneratedHtml: string | null;
   isAiLoading: boolean;
   stopGeneration: () => void;
@@ -52,7 +53,16 @@ export function useAiGeneration({ onLoadingChange }: UseAiGenerationProps = {}):
   };
 
   // Function to generate futuristic website content using AI
-  const generateFuturisticWebsite = async (url: string, year: string) => {
+  const generateFuturisticWebsite = async (url: string, year: string, forceRegenerate = false) => {
+    // Check cache first unless force regenerating
+    if (!forceRegenerate) {
+      const cachedHtml = loadCachedAiPage(url, year);
+      if (cachedHtml) {
+        setAiGeneratedHtml(cachedHtml);
+        return;
+      }
+    }
+
     // Clear any existing AI-generated content
     setAiGeneratedHtml(null);
     
@@ -111,6 +121,22 @@ REQUIREMENTS
           // Use a more robust regex to remove fences and optional language tag, including surrounding whitespace/newlines
           .replace(/^\s*```(?:html)?\s*\n?|\n?\s*```\s*$/g, "")
           .trim();
+
+        // Save to cache when generation completes
+        if (aiMessages.length >= 2) {
+          const userMessage = aiMessages[aiMessages.length - 2];
+          if (userMessage.role === "user") {
+            // Extract URL and year from the prompt
+            const urlMatch = userMessage.content.match(/URL: (https?:\/\/[^\n]+)/);
+            const yearMatch = userMessage.content.match(/It is the year (\d+)/);
+            
+            if (urlMatch && yearMatch) {
+              const [, url] = urlMatch;
+              const [, year] = yearMatch;
+              saveCachedAiPage(url, year, htmlContent);
+            }
+          }
+        }
 
         setAiGeneratedHtml(htmlContent);
       }

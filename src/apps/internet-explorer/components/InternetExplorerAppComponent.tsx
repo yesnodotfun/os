@@ -293,12 +293,13 @@ export function InternetExplorerAppComponent({
   const handleNavigate = async (
     targetUrl: string = navigation.url,
     addToHistoryStack = true,
-    year: string = navigation.year
+    year: string = navigation.year,
+    forceRegenerate = false
   ) => {
     // --- Interrupt ongoing AI generation --- 
     if (isAiLoading) {
       console.log("Interrupting ongoing AI generation...");
-      stopGeneration(); // Use the new stopGeneration from hook
+      stopGeneration();
     }
 
     // Prevent concurrent navigations (unless it was AI generation we just stopped)
@@ -367,9 +368,9 @@ export function InternetExplorerAppComponent({
           addToHistory(newEntry);
         }
         
-        // Then generate the AI content using the new hook
+        // Then generate the AI content using the new hook with caching
         try {
-          await generateFuturisticWebsite(targetUrl, year);
+          await generateFuturisticWebsite(targetUrl, year, forceRegenerate);
           // Update navigation state with the generated HTML
           setNavigation((_prev) => ({
             ..._prev,
@@ -548,7 +549,7 @@ export function InternetExplorerAppComponent({
   };
 
   const handleRefresh = () => {
-    handleNavigate();
+    handleNavigate(navigation.url, false, navigation.year, true);
   };
 
   const handleStop = () => {
