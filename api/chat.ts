@@ -7,7 +7,7 @@ import { SystemState } from "../src/utils/storage";
 type SupportedModel = "gpt-4o" | "claude-3.5" | "claude-3.7" | "o3-mini";
 
 // Default model to use
-const DEFAULT_MODEL: SupportedModel = "claude-3.7";
+const DEFAULT_MODEL: SupportedModel = "claude-3.5";
 
 // Function to get the appropriate model instance
 const getModelInstance = (model: SupportedModel): LanguageModelV1 => {
