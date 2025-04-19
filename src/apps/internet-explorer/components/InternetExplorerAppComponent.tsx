@@ -232,11 +232,11 @@ Below are details about the current website and the task:
 - URL: ${url}
 ${existingContent ? `- A snapshot of the existing website's readable content (truncated to 4,000 characters) is provided between the fences below:\n"""\n${existingContent}\n"""\n` : ""}
 
-It is the year ${year}. Redesign this website so it feels perfectly at home in this era. Think boldly and creatively about future outcomes, embrace the brand, cultural context, aesthetics, interface paradigms, and breakthrough technologies that could happen by then.
+It is the year ${year}. Redesign this website so it feels perfectly at home in this era. Think boldly and creatively about future outcomes (don't always reference neural quantum etc, be more surprising), embrace the original brand, language, cultural context, aesthetics, interface paradigms, and breakthroughs that could happen by then.
 If you think the entity may disappear due to changes, show a 404 or memorial page.
 
 DELIVERABLE
-Return a single, fully self‑contained HTML document in markdown codeblock that demonstrates this speculative design. Use TailwindCSS classes for styling and add inline \`<style>\` or \`<script>\` blocks when needed, but avoid external dependencies.
+Return a single, fully self‑contained HTML document in markdown codeblock for this speculative design. Use TailwindCSS classes for styling and add inline \`<style>\` or \`<script>\` blocks when needed, but avoid external dependencies.
 
 REQUIREMENTS
 1. DO NOT respond in any text except the html markdown codeblock.
