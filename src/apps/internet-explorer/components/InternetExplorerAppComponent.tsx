@@ -367,6 +367,31 @@ export function InternetExplorerAppComponent({
           if (waybackUrl) {
             newUrl = waybackUrl;
           }
+        } else if (mode === "now") {
+          // Before navigating to a current site, check if it can be embedded
+          try {
+            const checkRes = await fetch(
+              `/api/iframe-check?mode=check&url=${encodeURIComponent(newUrl)}`,
+              { signal: abortController.signal }
+            );
+            if (!checkRes.ok) throw new Error(`Status ${checkRes.status}`);
+            const { allowed, reason } = (await checkRes.json()) as {
+              allowed: boolean;
+              reason?: string;
+            };
+            if (!allowed) {
+              // Fallback: proxy the content through the same endpoint so we can embed it
+              newUrl = `/api/iframe-check?url=${encodeURIComponent(newUrl)}`;
+              console.info(
+                `[IE] Using proxy for ${targetUrl} because direct embedding is blocked${
+                  reason ? ` (${reason})` : ""
+                }.`
+              );
+            }
+          } catch (error) {
+            // If the check fails (network error etc.), continue – iframe onError will handle
+            console.warn("iframe-check failed", error);
+          }
         }
         
         // Add cache buster if URL is the same to force reload
