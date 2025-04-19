@@ -553,12 +553,12 @@ export default function HtmlPreview({
     };
     
     // Process standard HTML class attributes
-    sanitized = sanitized.replace(/class="([^"]*)"/gi, (match, classContent) => {
+    sanitized = sanitized.replace(/class="([^"]*)"/gi, (_match, classContent) => {
       return `class="${processTailwindClasses(classContent)}"`;
     });
     
     // Process React className attributes
-    sanitized = sanitized.replace(/className="([^"]*)"/gi, (match, classContent) => {
+    sanitized = sanitized.replace(/className="([^"]*)"/gi, (_match, classContent) => {
       return `className="${processTailwindClasses(classContent)}"`;
     });
     
