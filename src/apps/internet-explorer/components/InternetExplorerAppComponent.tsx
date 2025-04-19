@@ -33,7 +33,6 @@ import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { helpItems, appMetadata } from "..";
-import { useChat } from "ai/react";
 import HtmlPreview from "@/components/shared/HtmlPreview";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAiGeneration } from "../hooks/useAiGeneration";
@@ -176,14 +175,7 @@ export function InternetExplorerAppComponent({
     aiGeneratedHtml,
     isAiLoading,
     stopGeneration,
-  } = useAiGeneration({
-    onLoadingChange: (loading) => {
-      // Only update if this is the current navigation attempt
-      if (loading === false) {
-        dispatchNav({ type: 'LOAD_SUCCESS', aiGeneratedHtml });
-      }
-    },
-  });
+  } = useAiGeneration();
 
   // Create past years array (from 1996 to current year)
   const pastYears = Array.from(
@@ -219,14 +211,14 @@ export function InternetExplorerAppComponent({
 
   // Effect to persist navigation state
   useEffect(() => {
-    if (navState.url && navState.year) {
+    if (navState.status === 'success' && navState.url && navState.year) {
       saveLastUrl(navState.url);
       saveWaybackYear(navState.year);
       
       // Update global browser state for system state tracking
       updateBrowserState(navState.url, navState.year);
     }
-  }, [navState.url, navState.year]);
+  }, [navState.status, navState.url, navState.year]);
 
   // Effect to check for scrollable favorites
   useEffect(() => {
@@ -278,7 +270,13 @@ export function InternetExplorerAppComponent({
   const handleIframeLoad = () => {
     // Only update if the iframe has a data-token attribute matching the current navigation token
     if (iframeRef.current && iframeRef.current.dataset.navToken === navState.token.toString()) {
-      dispatchNav({ type: 'LOAD_SUCCESS' });
+      // Introduce a tiny delay to ensure the loading state renders reliably
+      setTimeout(() => {
+        // Check token again inside timeout in case another navigation started very quickly
+        if (iframeRef.current && iframeRef.current.dataset.navToken === navState.token.toString()) {
+          dispatchNav({ type: 'LOAD_SUCCESS' });
+        }
+      }, 50); // 50ms should be imperceptible but enough for rendering
     }
   };
 
@@ -286,10 +284,16 @@ export function InternetExplorerAppComponent({
   const handleIframeError = () => {
     // Only update if the iframe has a data-token attribute matching the current navigation token
     if (iframeRef.current && iframeRef.current.dataset.navToken === navState.token.toString()) {
-      dispatchNav({ 
-        type: 'LOAD_ERROR', 
-        error: `Cannot access ${navState.finalUrl || navState.url}. The website might be blocking access or requires authentication.` 
-      });
+      // Introduce a tiny delay
+      setTimeout(() => {
+        // Check token again inside timeout
+        if (iframeRef.current && iframeRef.current.dataset.navToken === navState.token.toString()) {
+          dispatchNav({ 
+            type: 'LOAD_ERROR', 
+            error: `Cannot access ${navState.finalUrl || navState.url}. The website might be blocking access or requires authentication.` 
+          });
+        }
+      }, 50); // 50ms delay
     }
   };
 
@@ -348,18 +352,18 @@ export function InternetExplorerAppComponent({
       // Handle navigation based on mode
       if (mode === "future") {
         // For future years, generate AI content
-        if (!forceRegenerate) {
-          // This will update aiGeneratedHtml and trigger the onLoadingChange callback
-          await generateFuturisticWebsite(targetUrl, year, forceRegenerate, abortController.signal);
-        } else {
-          // Force regenerate
-          await generateFuturisticWebsite(targetUrl, year, true, abortController.signal);
-        }
+        await generateFuturisticWebsite(targetUrl, year, forceRegenerate, abortController.signal);
+        // Check if aborted during generation
+        if (abortController.signal.aborted) return;
+        // Dispatch success *after* generation completes
+        dispatchNav({ type: 'LOAD_SUCCESS', aiGeneratedHtml });
       } else {
         // For past or current, use direct URL or Wayback
         if (mode === "past") {
           // Get Wayback URL for past years
           const waybackUrl = await getWaybackUrl(newUrl, year);
+          // Check if aborted while getting wayback URL
+          if (abortController.signal.aborted) return;
           if (waybackUrl) {
             newUrl = waybackUrl;
           }
@@ -374,6 +378,7 @@ export function InternetExplorerAppComponent({
         dispatchNav({ type: 'SET_FINAL_URL', finalUrl: newUrl });
         
         // Set iframe src with the token for tracking
+        // The iframe handlers (onLoad/onError) will dispatch LOAD_SUCCESS/LOAD_ERROR
         if (iframeRef.current) {
           iframeRef.current.dataset.navToken = token.toString();
           iframeRef.current.src = newUrl;
@@ -399,7 +404,7 @@ export function InternetExplorerAppComponent({
       if (!abortController.signal.aborted) {
         dispatchNav({ 
           type: 'LOAD_ERROR', 
-          error: `Failed to navigate: ${error}` 
+          error: `Failed to navigate: ${error instanceof Error ? error.message : String(error)}`
         });
       }
     }
@@ -520,7 +525,6 @@ export function InternetExplorerAppComponent({
   if (!isWindowOpen) return null;
 
   // Extract current year for display purposes
-  const currentYear = new Date().getFullYear();
   const isFutureYear = navState.mode === "future";
   const isLoading = navState.status === "loading" || isAiLoading;
 
