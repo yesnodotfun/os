@@ -26,6 +26,8 @@ import {
   loadWaybackYear,
   saveWaybackYear,
   updateBrowserState,
+  loadCachedAiPage,
+  saveCachedAiPage,
 } from "@/utils/storage";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { InputDialog } from "@/components/dialogs/InputDialog";
@@ -122,13 +124,18 @@ export function InternetExplorerAppComponent({
         // Extract HTML content from the response (remove markdown code blocks if present)
         const htmlContent = lastMessage.content
           // Use a more robust regex to remove fences and optional language tag, including surrounding whitespace/newlines
-          .replace(/^\s*```(?:html)?\s*\n?|\n?\s*```\s*$/g, "")
+          .replace(/^[\s\n]*```(?:html)?[\s\n]*|[\s\n]*```[\s\n]*$/g, "")
           .trim();
 
-        setNavigation((_prev) => ({
-          ..._prev,
+        setNavigation(() => ({
+          ...navigation,
           aiGeneratedHtml: htmlContent,
         }));
+
+        // If the AI finished streaming (isAiLoading is false), persist to cache
+        if (!isAiLoading) {
+          saveCachedAiPage(navigation.url, navigation.year, htmlContent);
+        }
       }
     }
 
@@ -205,8 +212,8 @@ export function InternetExplorerAppComponent({
     // setIsLoading(true); 
     
     // Clear any existing AI-generated content
-    setNavigation((_prev) => ({
-      ..._prev,
+    setNavigation(() => ({
+      ...navigation,
       aiGeneratedHtml: null,
     }));
     
@@ -403,8 +410,8 @@ REQUIREMENTS
 
     try {
       // Reset any previous AI-generated content
-      setNavigation((_prev) => ({
-        ..._prev,
+      setNavigation(() => ({
+        ...navigation,
         aiGeneratedHtml: null,
       }));
 
@@ -413,11 +420,48 @@ REQUIREMENTS
       const yearNum = parseInt(year);
       
       if (year !== "current" && yearNum > currentYear) {
-        // For future years, generate AI content
+        // For future years, first try to load from cache unless forceReload
+        // Determine if we should skip cache (only on manual refresh)
+        const skipCache = forceReload && addToHistoryStack;
+        const cachedHtml = !skipCache ? loadCachedAiPage(targetUrl, year) : null;
+
+        if (cachedHtml) {
+          // Serve cached content immediately
+          clearTimeout(loadingTimeout);
+
+          setNavigation(() => ({
+            url: targetUrl,
+            year: year,
+            currentUrl: null,
+            aiGeneratedHtml: cachedHtml,
+          }));
+
+          // Add to history if required
+          if (addToHistoryStack && !isNavigatingHistory) {
+            const newEntry = {
+              url: targetUrl,
+              title: originalHostname,
+              favicon: originalFavicon,
+              timestamp: Date.now(),
+              year: year,
+            };
+
+            setHistory((prev) => [newEntry, ...prev]);
+            setHistoryIndex(0);
+            addToHistory(newEntry);
+          }
+
+          // No need to generate via AI; clear loading and lock
+          setIsLoading(false);
+          navigationInProgressRef.current = false;
+          return; // Exit early
+        }
+
+        // For future years (no cache), generate AI content
         clearTimeout(loadingTimeout); // AI generation handles its own loading
         
         // First, update the navigation state with the new URL and year
-        setNavigation((_prev) => ({
+        setNavigation(() => ({
           url: targetUrl,
           year: year,
           currentUrl: null,
@@ -455,11 +499,11 @@ REQUIREMENTS
         newUrl = waybackUrl;
         
         // Update navigation state atomically
-        setNavigation((_prev) => ({
+        setNavigation(() => ({
           url: targetUrl,
           year: year,
           currentUrl:
-            newUrl === _prev.currentUrl
+            newUrl === navigation.currentUrl
               ? `${newUrl}${newUrl.includes("?") ? "&" : "?"}_t=${Date.now()}`
               : newUrl,
           aiGeneratedHtml: null,
@@ -480,11 +524,11 @@ REQUIREMENTS
         }
       } else {
         // For current year, just use the URL directly
-        setNavigation((_prev) => ({
+        setNavigation(() => ({
           url: targetUrl,
           year: year,
           currentUrl:
-            newUrl === _prev.currentUrl
+            newUrl === navigation.currentUrl
               ? `${newUrl}${newUrl.includes("?") ? "&" : "?"}_t=${Date.now()}`
               : newUrl,
           aiGeneratedHtml: null,

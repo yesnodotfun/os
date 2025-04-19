@@ -35,6 +35,7 @@ export const APP_STORAGE_KEYS = {
     HISTORY: "internet-explorer:history",
     FAVORITES: "internet-explorer:favorites",
     LAST_URL: "internet-explorer:last-url",
+    AI_CACHE: "internet-explorer:ai-cache",
   },
   chats: {
     WINDOW: "chats:window",
@@ -1555,4 +1556,41 @@ export const saveRoomMessagesToCache = (
   } catch (error) {
     console.error(`Error saving cached messages for room ${roomId}:`, error);
   }
+};
+
+export const loadAiPageCache = (): Record<string, { html: string; updatedAt: number }> => {
+  const saved = localStorage.getItem(APP_STORAGE_KEYS["internet-explorer"].AI_CACHE);
+  return saved ? JSON.parse(saved) : {};
+};
+
+export const saveAiPageCache = (cache: Record<string, { html: string; updatedAt: number }>): void => {
+  try {
+    localStorage.setItem(
+      APP_STORAGE_KEYS["internet-explorer"].AI_CACHE,
+      JSON.stringify(cache)
+    );
+  } catch (err) {
+    // Potentially quota exceeded; consider clearing older entries.
+    console.warn("Failed to save AI cache", err);
+  }
+};
+
+// Helper to generate cache key from URL and year
+export const getAiCacheKey = (url: string, year: string): string => {
+  // Normalize URL to ensure consistency (remove trailing slash, ensure protocol)
+  const normalizedUrl = url.startsWith("http") ? url : `https://${url}`;
+  return `${normalizedUrl}|${year}`;
+};
+
+export const loadCachedAiPage = (url: string, year: string): string | null => {
+  const cache = loadAiPageCache();
+  const key = getAiCacheKey(url, year);
+  return cache[key]?.html || null;
+};
+
+export const saveCachedAiPage = (url: string, year: string, html: string): void => {
+  const cache = loadAiPageCache();
+  const key = getAiCacheKey(url, year);
+  cache[key] = { html, updatedAt: Date.now() };
+  saveAiPageCache(cache);
 };
