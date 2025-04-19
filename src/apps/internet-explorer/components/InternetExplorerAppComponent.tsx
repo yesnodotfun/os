@@ -232,15 +232,16 @@ Below are details about the current website and the task:
 - URL: ${url}
 ${existingContent ? `- A snapshot of the existing website's readable content (truncated to 4,000 characters) is provided between the fences below:\n"""\n${existingContent}\n"""\n` : ""}
 
-You living in the year ${year}. Redesign this website so that it feels perfectly at home in that era. Think boldly—embrace the cultural context, aesthetics, interface paradigms, and breakthrough technologies that could exist by then. If you think the company may disappear due to changes, show a 404 page.
+It is the year ${year}. Redesign this website so it feels perfectly at home in this era. Think boldly and creatively about future outcomes, embrace the brand, cultural context, aesthetics, interface paradigms, and breakthrough technologies that could happen by then.
+If you think the entity may disappear due to changes, show a 404 or memorial page.
 
 DELIVERABLE
 Return a single, fully self‑contained HTML document in markdown codeblock that demonstrates this speculative design. Use TailwindCSS classes for styling and add inline \`<style>\` or \`<script>\` blocks when needed, but avoid external dependencies.
 
 REQUIREMENTS
-1. Include a small banner or note at the very top indicating that this is a speculative concept for ${year}.
+1. DO NOT respond in any text except the html markdown codeblock.
 2. Keep the layout responsive and accessible (screen‑reader friendly, respect reduced‑motion preferences, etc.).
-3. Use imaginative placeholder content, visuals, or SVG illustrations.
+3. Use imaginative, crazy content, visuals, emojis, or SVG illustrations.
 4. Ensure the overall experience is visually striking yet still loads in a normal browser.
 5. Output ONLY the raw HTML markup as the final answer.`;
 
