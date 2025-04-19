@@ -118,10 +118,25 @@ export default async function handler(req: Request) {
     );
     headers.set("access-control-allow-origin", "*");
 
-    // If it's HTML, inject the <base> tag
+    // If it's HTML, inject the <base> tag and click interceptor script
     if (contentType.includes("text/html")) {
         let html = await upstreamRes.text();
         const baseTag = `<base href="${normalizedUrl}">`;
+        const clickInterceptorScript = `
+<script>
+  document.addEventListener('click', function(event) {
+    var targetElement = event.target.closest('a');
+    if (targetElement && targetElement.href) {
+      event.preventDefault();
+      event.stopPropagation();
+      try {
+        const absoluteUrl = new URL(targetElement.getAttribute('href'), document.baseURI || window.location.href).href;
+        window.parent.postMessage({ type: 'iframeNavigation', url: absoluteUrl }, '*');
+      } catch (e) { console.error("Error resolving/posting URL:", e); }
+    }
+  }, true);
+</script>
+`;
 
         // Inject <base> tag right after <head> (case‑insensitive)
         const headIndex = html.search(/<head[^>]*>/i);
@@ -129,8 +144,17 @@ export default async function handler(req: Request) {
             const insertPos = headIndex + html.match(/<head[^>]*>/i)![0].length;
             html = html.slice(0, insertPos) + baseTag + html.slice(insertPos);
         } else {
-            // Fallback: Prepend to body or the whole document if no <head>
+            // Fallback: Prepend <base> if no <head>
             html = baseTag + html;
+        }
+
+        // Inject script right before </body> (case‑insensitive)
+        const bodyEndIndex = html.search(/<\/body>/i);
+        if (bodyEndIndex !== -1) {
+          html = html.slice(0, bodyEndIndex) + clickInterceptorScript + html.slice(bodyEndIndex);
+        } else {
+          // Fallback: Append script if no </body>
+          html += clickInterceptorScript;
         }
 
         return new Response(html, {

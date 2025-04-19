@@ -209,6 +209,31 @@ export function InternetExplorerAppComponent({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run on mount
 
+  // Effect to handle messages from the iframe (for intercepted link clicks)
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      // Basic security check: ensure the message has the expected structure
+      // In production, you might want to verify event.origin as well
+      if (
+        event.data &&
+        event.data.type === "iframeNavigation" &&
+        typeof event.data.url === "string"
+      ) {
+        console.log(`[IE] Received navigation request from iframe: ${event.data.url}`);
+        // Trigger navigation using the current year setting
+        handleNavigate(event.data.url, true, navState.year);
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+
+    // Cleanup listener on component unmount
+    return () => {
+      window.removeEventListener("message", handleMessage);
+    };
+    // Add navState.year as a dependency so handleNavigate uses the current year
+  }, [navState.year]); 
+
   // Effect to persist navigation state
   useEffect(() => {
     if (navState.status === 'success' && navState.url && navState.year) {
