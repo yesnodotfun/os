@@ -241,7 +241,7 @@ Return a single, fully self‑contained HTML document in markdown codeblock that
 REQUIREMENTS
 1. DO NOT respond in any text except the html markdown codeblock.
 2. Keep the layout responsive and accessible (screen‑reader friendly, respect reduced‑motion preferences, etc.).
-3. Use imaginative, crazy content, visuals, emojis, or SVG illustrations.
+3. Use imaginative, crazy content. Keep visuals minimal but futuristic, use simple colors, avoid crazy gradients. Use emojis, or simple SVG icons.
 4. Ensure the overall experience is visually striking yet still loads in a normal browser.
 5. Output ONLY the raw HTML markup as the final answer.`;
 
