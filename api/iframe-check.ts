@@ -196,8 +196,8 @@ export default async function handler(req: Request) {
   </style>
 </head>
 <body>
-  <h1>Cannot display this page via proxy</h1> <!-- More IE-like title -->
-  <p>Could not load the requested URL via proxy:</p>
+  <h1>Cannot display this page</h1> <!-- More IE-like title -->
+  <p>Could not load the requested URL:</p>
   <p><code><a href="${normalizedUrl}" target="_blank" rel="noopener noreferrer">${normalizedUrl}</a></code></p>
   <p>Reason: ${upstreamRes.statusText || "(No reason provided)"} (Status Code: ${upstreamRes.status})</p>
   <hr style="border: none; border-top: 1px solid #cccccc; margin-top: 20px;">
