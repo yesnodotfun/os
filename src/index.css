@@ -43,6 +43,13 @@
   font-style: normal;
 }
 
+@font-face {
+  font-family: "Monaco";
+  src: url("/fonts/monacottf.otf") format("opentype");
+  font-weight: normal;
+  font-style: normal;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -167,6 +174,13 @@
     font-family: "AppleGaramond", "Georgia", "Palatino", serif;
     -webkit-font-smoothing: antialiased;
     font-smooth: always;
+  }
+
+  .font-monaco {
+    font-family: "Monaco", "ArkPixel", "SerenityOS-Emoji", monospace;
+    /* -webkit-font-smoothing: none; */
+    /* font-smooth: never; */
+    letter-spacing: -0.03em;
   }
 }
 

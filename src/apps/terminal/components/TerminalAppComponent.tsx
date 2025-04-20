@@ -377,7 +377,7 @@ export function TerminalAppComponent({
   const [commandHistory, setCommandHistory] = useState<CommandHistory[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [historyCommands, setHistoryCommands] = useState<string[]>([]);
-  const [fontSize, setFontSize] = useState(12); // Default font size in pixels
+  const [fontSize, setFontSize] = useState(13); // Default font size in pixels
   const [isInAiMode, setIsInAiMode] = useState(false);
   const [isInVimMode, setIsInVimMode] = useState(false);
   const [vimFile, setVimFile] = useState<{
@@ -2574,7 +2574,7 @@ assistant
         : 100;
 
     return (
-      <div className="vim-editor font-mono text-white">
+      <div className="vim-editor font-monaco text-white">
         {visibleLines.map((line, i) => {
           const lineNumber = position + i;
           const isCursorLine = lineNumber === vimCursorLine;
@@ -2947,11 +2947,11 @@ assistant
         transparentBackground={true}
       >
         <motion.div
-          className="flex flex-col h-full w-full bg-black/80 backdrop-blur-lg text-white antialiased font-mono p-2 overflow-hidden select-text"
+          className="flex flex-col h-full w-full bg-black/80 backdrop-blur-lg text-white antialiased font-monaco p-2 overflow-hidden select-text"
           style={{
             fontSize: `${fontSize}px`,
             fontFamily:
-              'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+              '"Monaco", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
           }}
           animate={
             terminalFlash

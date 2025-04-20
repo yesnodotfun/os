@@ -40,3 +40,11 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: "Monaco";
+  src: url("/fonts/monacottf.otf") format("opentype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
