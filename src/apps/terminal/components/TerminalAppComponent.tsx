@@ -2951,7 +2951,7 @@ assistant
           style={{
             fontSize: `${fontSize}px`,
             fontFamily:
-              '"Monaco", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+              '"Monaco", "ArkPixel", "SerenityOS-Emoji", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", "Courier New", monospace',
           }}
           animate={
             terminalFlash

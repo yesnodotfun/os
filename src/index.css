@@ -176,11 +176,10 @@
     font-smooth: always;
   }
 
-  .font-monaco {
+  .font-monaco, .font-monaco-9 {
     font-family: "Monaco", "ArkPixel", "SerenityOS-Emoji", monospace;
-    /* -webkit-font-smoothing: none; */
-    /* font-smooth: never; */
-    letter-spacing: -0.03em;
+    letter-spacing: -0.02em;
+    line-height: 1.3;
   }
 }
 

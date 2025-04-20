@@ -336,15 +336,17 @@ export default function HtmlPreview({
 
   // Function to update iframe content (now only called after streaming)
   const updateIframeContent = (finalContent: string) => {
-    // Update inline iframe
-    if (iframeRef.current) {
-      iframeRef.current.srcdoc = finalContent;
-    }
+    requestAnimationFrame(() => {
+      // Update inline iframe
+      if (iframeRef.current) {
+        iframeRef.current.srcdoc = finalContent;
+      }
 
-    // Update fullscreen iframe if it exists
-    if (fullscreenIframeRef.current) {
-      fullscreenIframeRef.current.srcdoc = finalContent;
-    }
+      // Update fullscreen iframe if it exists
+      if (fullscreenIframeRef.current) {
+        fullscreenIframeRef.current.srcdoc = finalContent;
+      }
+    });
   };
 
   // NEW: Effect to update iframe *after* streaming finishes or when content changes while not streaming
@@ -455,11 +457,22 @@ export default function HtmlPreview({
     e.stopPropagation();
     if (!isFullScreen) {
       maximizeSound.play();
+      // Ensure content is updated when going fullscreen
+      const finalContent = finalProcessedHtmlRef.current || processedHtmlContent;
+      updateIframeContent(finalContent);
     } else {
       minimizeSound.play();
     }
     setIsFullScreen(!isFullScreen);
   };
+
+  // Add effect to update fullscreen content when it changes
+  useEffect(() => {
+    if (isFullScreen && !isStreaming) {
+      const finalContent = finalProcessedHtmlRef.current || processedHtmlContent;
+      updateIframeContent(finalContent);
+    }
+  }, [isFullScreen, isStreaming, processedHtmlContent]);
 
   // Document-level mouse move handler
   const handleDocumentMouseMove = (e: MouseEvent) => {
