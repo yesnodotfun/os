@@ -271,12 +271,6 @@ export const DEFAULT_FAVORITES: Favorite[] = [
     year: "2007",
   },
   {
-    title: "NewJeans",
-    url: "https://newjeans.kr",
-    favicon: "https://www.google.com/s2/favicons?domain=newjeans.kr&sz=32",
-    year: "current",
-  },
-  {
     title: "HyperCards",
     url: "https://hcsimulator.com",
     favicon: "https://www.google.com/s2/favicons?domain=hcsimulator.com&sz=32",
