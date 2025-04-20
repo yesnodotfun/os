@@ -131,6 +131,91 @@ export default async function handler(req: Request) {
     // 2. Proxy mode – stream the upstream resource, removing blocking headers
     const upstreamRes = await fetch(normalizedUrl, { method: "GET", redirect: "follow" });
 
+    // If the upstream fetch failed (e.g., 403 Forbidden, 404 Not Found), return an error page
+    if (!upstreamRes.ok) {
+        // Basic styled error page resembling ryOS components
+        const errorHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Proxy Error ${upstreamRes.status}</title>
+  <link rel="stylesheet" href="https://os.ryo.lu/fonts/fonts.css"> 
+  <style>
+    /* Apply base font to all elements */
+    * {
+      box-sizing: border-box;
+    }
+    html, body {
+      font-family: "Geneva-12", "ArkPixel", system-ui, sans-serif;
+      font-size: 12px; /* typical system font size */
+      margin: 0;
+      padding: 0;
+      height: 100%;
+    }
+    body {
+      background-color: #ffffff; /* White background */
+      color: #000000; /* Black text */
+      padding: 30px 40px; /* Padding similar to IE pages */
+      /* Remove flex centering */
+      /* display: flex; */
+      /* flex-direction: column; */
+      /* align-items: center; */
+      /* justify-content: center; */
+      /* min-height: 100vh; */
+      text-align: left; /* Left align text */
+    }
+    h1 {
+      font-size: 1.4em; /* Slightly larger heading */
+      color: #000000; /* Black heading */
+      margin-bottom: 20px;
+      font-weight: normal; /* Less bold */
+      border-bottom: 1px solid #cccccc; /* Separator line */
+      padding-bottom: 10px;
+    }
+    p {
+      margin: 10px 0;
+      line-height: 1.4;
+    }
+    a {
+      color: #0033cc; /* Standard IE blue */
+      text-decoration: underline;
+    }
+    a:hover {
+      color: #cc0000; /* Red hover, common in older UIs */
+    }
+    code {
+      font-family: "Geneva-12", "ArkPixel", monospace; /* Ensure monospace fallback */
+      /* Remove distinct background */
+      background-color: transparent;
+      padding: 0;
+      border-radius: 0;
+      font-size: 1em;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <h1>Cannot display this page via proxy</h1> <!-- More IE-like title -->
+  <p>Could not load the requested URL via proxy:</p>
+  <p><code><a href="${normalizedUrl}" target="_blank" rel="noopener noreferrer">${normalizedUrl}</a></code></p>
+  <p>Reason: ${upstreamRes.statusText || "(No reason provided)"} (Status Code: ${upstreamRes.status})</p>
+  <hr style="border: none; border-top: 1px solid #cccccc; margin-top: 20px;">
+  <p style="font-size: 0.9em; color: #666;">Please check the address and try again, or contact the system administrator.</p>
+</body>
+</html>`;
+
+        return new Response(errorHtml, {
+            status: upstreamRes.status, // Return the original error status
+            headers: { 
+                "Content-Type": "text/html",
+                // Add permissive headers even for the error page
+                "Access-Control-Allow-Origin": "*",
+                "Content-Security-Policy": "frame-ancestors *; sandbox allow-scripts allow-forms allow-same-origin allow-popups"
+            }
+        });
+    }
+
     // Clone headers so we can edit them
     const headers = new Headers(upstreamRes.headers);
     const contentType = headers.get("content-type") || "";
