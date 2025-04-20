@@ -289,6 +289,12 @@ export const DEFAULT_FAVORITES: Favorite[] = [
     year: "current",
   },
   {
+    title: "Notion",
+    url: "https://notion.com",
+    favicon: "https://www.google.com/s2/favicons?domain=notion.com&sz=32",
+    year: "2050",
+  },
+  {
     title: "Ryo",
     url: "https://ryo.lu",
     favicon: "https://www.google.com/s2/favicons?domain=ryo.lu&sz=32",
@@ -332,6 +338,11 @@ export const DEFAULT_FAVORITES: Favorite[] = [
     year: "current",
   },
   {
+    title: "Andrew",
+    url: "https://www.andrewl.ee",
+    favicon: "https://www.google.com/s2/favicons?domain=www.andrewl.ee&sz=32",
+    year: "current",
+  },  {
     title: "Lucas",
     url: "https://www.lucasn.com",
     favicon: "https://www.google.com/s2/favicons?domain=www.lucasn.com&sz=32",
@@ -341,18 +352,6 @@ export const DEFAULT_FAVORITES: Favorite[] = [
     title: "Frank",
     url: "https://okfrank.co",
     favicon: "https://www.google.com/s2/favicons?domain=okfrank.co&sz=32",
-    year: "current",
-  },
-  {
-    title: "Andrew",
-    url: "https://www.andrewl.ee",
-    favicon: "https://www.google.com/s2/favicons?domain=www.andrewl.ee&sz=32",
-    year: "current",
-  },
-  {
-    title: "PS7",
-    url: "https://play.ryo.lu",
-    favicon: "https://www.google.com/s2/favicons?domain=play.ryo.lu&sz=32",
     year: "current",
   },
 ];

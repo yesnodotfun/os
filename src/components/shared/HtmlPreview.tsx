@@ -709,7 +709,10 @@ export default function HtmlPreview({
         {/* Conditional Rendering: Text Stream or Iframe */}
         {isStreaming ? (
           <div
-            className="h-full w-full relative overflow-hidden"
+            className="h-full w-full relative overflow-auto"
+            style={{
+              maxHeight: isInternetExplorer ? "100%" : (typeof minHeight === "string" ? minHeight : `${minHeight}px`),
+            }}
           >
             {streamPreviewHtml ? (
               <div
@@ -833,18 +836,18 @@ export default function HtmlPreview({
                     {/* Fullscreen Conditional Rendering: Text Stream or Iframe */}
                     {isStreaming ? (
                       <motion.div
-                        className="p-4 h-full overflow-auto"
+                        className="h-full w-full overflow-auto"
                         initial={{ opacity: 0.8, y: 3 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.15, ease: "easeOut" }}
                       >
                         {streamPreviewHtml ? (
                           <div
-                            className="generated-html-stream text-sm"
+                            className="generated-html-stream text-sm p-4"
                             dangerouslySetInnerHTML={{ __html: streamPreviewHtml }}
                           />
                         ) : (
-                          <pre className="text-xs font-geneva-12 text-gray-700 whitespace-pre-wrap break-words">
+                          <pre className="p-4 text-xs font-geneva-12 text-gray-700 whitespace-pre-wrap break-words">
                             {htmlContent.split('\n').slice(-15).join('\n')}
                           </pre>
                         )}
