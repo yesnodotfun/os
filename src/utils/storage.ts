@@ -848,6 +848,12 @@ export const DEFAULT_VIDEOS: Video[] = [
     artist: "Hearts2Hearts (하츠투하츠)",
   },
   {
+    id: "1FNI1i7H1Kc",
+    url: "https://www.youtube.com/watch?v=1FNI1i7H1Kc",
+    title: "The Chase (R&B Remix)",
+    artist: "Hearts2Hearts (하츠투하츠)",
+  },
+  {
     id: "hJ9Wp3PO3c8",
     url: "https://www.youtube.com/watch?v=hJ9Wp3PO3c8",
     title: "Butterfly",
