@@ -41,12 +41,6 @@ const FutureSettingsDialog = ({
     setSelectedYear(year);
   };
 
-  const handleSave = () => {
-    const newSettings = { ...timelineSettings, [selectedYear]: timelineSettings[selectedYear] || getDefaultTimelineText(selectedYear) };
-    setTimelineSettings(newSettings);
-    onOpenChange(false);
-  };
-
   const handleReset = () => {
     const newSettings = { ...timelineSettings };
     delete newSettings[selectedYear]; // Remove custom text for this year

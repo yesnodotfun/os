@@ -60,7 +60,6 @@ export function InternetExplorerAppComponent({
     clearHistory,
     updateBrowserState,
     timelineSettings,
-    setTimelineSettings,
   } = useInternetExplorerStore();
 
   // State for reset favorites dialog
