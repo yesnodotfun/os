@@ -137,12 +137,12 @@ Redesign this website so it feels perfectly at home in this era. Think boldly an
 If you think the entity may disappear due to changes, show a 404 or memorial page.
 
 DELIVERABLE
-Return a single, fully self‑contained HTML document in markdown codeblock for this speculative design. Use TailwindCSS classes for styling and add inline \`<style>\` or \`<script>\` blocks when needed, but avoid external dependencies.
+Return a single, fully self‑contained HTML document in markdown codeblock for this speculative design. MUST use TailwindCSS classes for styling. Can use inline \`<script>\` blocks when needed, but avoid external dependencies. Use Three.js for 3D with script already loaded. 
 
 REQUIREMENTS
 1. DO NOT respond in any text except the html markdown codeblock.
-2. Keep the layout responsive and accessible (screen‑reader friendly, respect reduced‑motion preferences, etc.).
-3. Use imaginative, crazy content. Keep visuals minimal but futuristic, use simple colors, avoid crazy gradients. Use emojis, or simple SVG icons.
+2. Keep the layout responsive. Keep visuals minimal but futuristic, use simple colors, avoid crazy gradients. Use emojis, or simple SVG icons.
+3. Use imaginative, crazy content.
 4. Ensure the overall experience is visually striking yet still loads in a normal browser.
 5. Output ONLY the raw HTML markup as the final answer.
 
