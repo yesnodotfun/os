@@ -22,6 +22,7 @@ interface InternetExplorerMenuBarProps extends Omit<AppProps, "onClose"> {
   history?: HistoryEntry[];
   onAddFavorite?: () => void;
   onClearFavorites?: () => void;
+  onResetFavorites?: () => void;
   onNavigateToFavorite?: (url: string, year?: string) => void;
   onNavigateToHistory?: (url: string, year?: string) => void;
   onFocusUrlInput?: () => void;
@@ -44,6 +45,7 @@ export function InternetExplorerMenuBar({
   history = [],
   onAddFavorite,
   onClearFavorites,
+  onResetFavorites,
   onNavigateToFavorite,
   onNavigateToHistory,
   onFocusUrlInput,
@@ -178,6 +180,12 @@ export function InternetExplorerMenuBar({
               </DropdownMenuItem>
             </>
           )}
+          <DropdownMenuItem
+            onClick={onResetFavorites}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            Reset Favorites...
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 

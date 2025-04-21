@@ -5,6 +5,31 @@ export const config = {
 };
 
 /**
+ * List of domains that should be automatically proxied.
+ * Domains should be lowercase and without protocol.
+ */
+const AUTO_PROXY_DOMAINS = [
+  "wikipedia.org",
+  "wikimedia.org",
+  "wikipedia.com",
+  // Add more domains as needed
+];
+
+/**
+ * Check if a URL's domain matches or is a subdomain of any auto-proxy domain
+ */
+const shouldAutoProxy = (url: string): boolean => {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase();
+    return AUTO_PROXY_DOMAINS.some(domain => 
+      hostname === domain || hostname.endsWith(`.${domain}`)
+    );
+  } catch (e) {
+    return false;
+  }
+};
+
+/**
  * Edge function that checks if a remote website allows itself to be embedded in an iframe.
  * We look at two common headers:
  *   1. `X-Frame-Options` – if present with values like `deny` or `sameorigin` we treat it as blocked.
@@ -24,7 +49,7 @@ export const config = {
 export default async function handler(req: Request) {
   const { searchParams } = new URL(req.url);
   const urlParam = searchParams.get("url");
-  const mode = searchParams.get("mode") || "proxy"; // "check" | "proxy" (default)
+  let mode = searchParams.get("mode") || "proxy"; // "check" | "proxy" (default)
 
   if (!urlParam) {
     return new Response(
@@ -40,6 +65,27 @@ export default async function handler(req: Request) {
   const normalizedUrl = urlParam.startsWith("http")
     ? urlParam
     : `https://${urlParam}`;
+    
+  // Check if this is an auto-proxy domain
+  const isAutoProxyDomain = shouldAutoProxy(normalizedUrl);
+  
+  // For auto-proxy domains in check mode, return JSON indicating embedding is not allowed
+  if (isAutoProxyDomain && mode === "check") {
+    return new Response(
+      JSON.stringify({ 
+        allowed: false, 
+        reason: "Auto-proxied domain" 
+      }),
+      {
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  }
+  
+  // Force proxy mode for auto-proxy domains
+  if (isAutoProxyDomain) {
+    mode = "proxy";
+  }
 
   // -------------------------------
   // Helper: perform header‑only check

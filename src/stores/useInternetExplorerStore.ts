@@ -22,7 +22,7 @@ export type NavigationStatus = "idle" | "loading" | "success" | "error";
 
 // Default constants
 export const DEFAULT_URL = "https://apple.com";
-export const DEFAULT_YEAR = "2002";
+export const DEFAULT_YEAR = "2007";
 
 export const DEFAULT_FAVORITES: Favorite[] = [
   {
@@ -30,6 +30,12 @@ export const DEFAULT_FAVORITES: Favorite[] = [
     url: "https://apple.com",
     favicon: "https://www.google.com/s2/favicons?domain=apple.com&sz=32",
     year: "2007",
+  },
+  {
+    title: "Wikipedia",
+    url: "https://en.wikipedia.org",
+    favicon: "https://www.google.com/s2/favicons?domain=en.wikipedia.org&sz=32",
+    year: "current",
   },
   {
     title: "HyperCards",

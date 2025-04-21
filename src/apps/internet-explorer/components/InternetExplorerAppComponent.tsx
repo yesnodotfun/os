@@ -20,7 +20,7 @@ import { helpItems, appMetadata } from "..";
 import HtmlPreview from "@/components/shared/HtmlPreview";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAiGeneration } from "../hooks/useAiGeneration";
-import { useInternetExplorerStore } from "@/stores/useInternetExplorerStore";
+import { useInternetExplorerStore, DEFAULT_FAVORITES } from "@/stores/useInternetExplorerStore";
 
 export function InternetExplorerAppComponent({
   isWindowOpen,
@@ -59,6 +59,9 @@ export function InternetExplorerAppComponent({
     clearHistory,
     updateBrowserState
   } = useInternetExplorerStore();
+
+  // State for reset favorites dialog
+  const [isResetFavoritesDialogOpen, setResetFavoritesDialogOpen] = useState(false);
 
   // Unified AbortController for cancellations
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -403,6 +406,22 @@ export function InternetExplorerAppComponent({
     setTitleDialogOpen(false);
   };
 
+  const handleResetFavorites = () => {
+    // Reset favorites to DEFAULT_FAVORITES
+    useInternetExplorerStore.setState((state) => ({
+      ...state,
+      favorites: DEFAULT_FAVORITES
+    }));
+    setResetFavoritesDialogOpen(false);
+  };
+
+  const handleClearFavorites = () => {
+    // Clear favorites
+    clearFavorites();
+    // Close the dialog
+    setClearFavoritesDialogOpen(false);
+  };
+
   const handleRefresh = () => {
     handleNavigate(url, false, year, true);
   };
@@ -472,6 +491,7 @@ export function InternetExplorerAppComponent({
         history={history}
         onAddFavorite={handleAddFavorite}
         onClearFavorites={() => setClearFavoritesDialogOpen(true)}
+        onResetFavorites={() => setResetFavoritesDialogOpen(true)}
         onNavigateToFavorite={(url, year) =>
           handleNavigateWithHistory(url, year)
         }
@@ -652,7 +672,7 @@ export function InternetExplorerAppComponent({
         <ConfirmDialog
           isOpen={isClearFavoritesDialogOpen}
           onOpenChange={setClearFavoritesDialogOpen}
-          onConfirm={clearFavorites}
+          onConfirm={handleClearFavorites}
           title="Clear Favorites"
           description="Are you sure you want to clear all favorites?"
         />
@@ -662,6 +682,13 @@ export function InternetExplorerAppComponent({
           onConfirm={clearHistory}
           title="Clear History"
           description="Are you sure you want to clear all history?"
+        />
+        <ConfirmDialog
+          isOpen={isResetFavoritesDialogOpen}
+          onOpenChange={setResetFavoritesDialogOpen}
+          onConfirm={handleResetFavorites}
+          title="Reset Favorites"
+          description="Are you sure you want to reset favorites to default?"
         />
       </WindowFrame>
     </>
