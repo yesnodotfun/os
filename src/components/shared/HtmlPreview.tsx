@@ -733,7 +733,7 @@ export default function HtmlPreview({
                 dangerouslySetInnerHTML={{ __html: streamPreviewHtml }}
               />
             ) : (
-              <pre className="p-2 text-xs font-geneva-12 text-gray-700 whitespace-pre-wrap break-words">
+              <pre className="p-2 text-[12px] font-monaco antialiased text-gray-700 whitespace-pre-wrap break-words">
                 {htmlContent.split('\n').slice(-8).join('\n')}
               </pre>
             )}

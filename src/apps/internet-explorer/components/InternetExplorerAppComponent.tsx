@@ -30,7 +30,7 @@ export function InternetExplorerAppComponent({
   // Use the Zustand store instead of local state
   const {
     url, setUrl,
-    year, setYear,
+    year,
     mode,
     status,
     finalUrl,
