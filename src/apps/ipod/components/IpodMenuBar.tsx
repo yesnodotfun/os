@@ -8,74 +8,54 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-
-interface Track {
-  id: string;
-  url: string;
-  title: string;
-  artist?: string;
-  album?: string;
-}
+import { useIpodStore } from "@/stores/useIpodStore";
 
 interface IpodMenuBarProps {
   onClose: () => void;
   onShowHelp: () => void;
   onShowAbout: () => void;
-  tracks: Track[];
-  currentIndex: number;
-  onPlayTrack: (index: number) => void;
   onClearLibrary: () => void;
   onResetLibrary: () => void;
-  onShuffleLibrary: () => void;
-  onToggleLoopAll: () => void;
-  onToggleLoopCurrent: () => void;
-  onTogglePlay: () => void;
-  onNext: () => void;
-  onPrevious: () => void;
   onAddTrack: () => void;
-  onToggleBacklight: () => void;
-  onToggleVideo: () => void;
-  onToggleLcdFilter: () => void;
-  onChangeTheme: (theme: string) => void;
-  isLoopAll: boolean;
-  isLoopCurrent: boolean;
-  isPlaying: boolean;
-  isShuffled: boolean;
-  isBacklightOn: boolean;
-  isVideoOn: boolean;
-  isLcdFilterOn: boolean;
-  currentTheme: string;
 }
 
 export function IpodMenuBar({
   onClose,
   onShowHelp,
   onShowAbout,
-  tracks,
-  currentIndex,
-  onPlayTrack,
   onClearLibrary,
   onResetLibrary,
-  onShuffleLibrary,
-  onToggleLoopAll,
-  onToggleLoopCurrent,
-  onTogglePlay,
-  onNext,
-  onPrevious,
   onAddTrack,
-  onToggleBacklight,
-  onToggleVideo,
-  onToggleLcdFilter,
-  onChangeTheme,
-  isLoopAll,
-  isLoopCurrent,
-  isPlaying,
-  isShuffled,
-  isBacklightOn,
-  isVideoOn,
-  isLcdFilterOn,
-  currentTheme,
 }: IpodMenuBarProps) {
+  const tracks = useIpodStore((s) => s.tracks);
+  const currentIndex = useIpodStore((s) => s.currentIndex);
+  const isLoopAll = useIpodStore((s) => s.loopAll);
+  const isLoopCurrent = useIpodStore((s) => s.loopCurrent);
+  const isPlaying = useIpodStore((s) => s.isPlaying);
+  const isShuffled = useIpodStore((s) => s.isShuffled);
+  const isBacklightOn = useIpodStore((s) => s.backlightOn);
+  const isVideoOn = useIpodStore((s) => s.showVideo);
+  const isLcdFilterOn = useIpodStore((s) => s.lcdFilterOn);
+  const currentTheme = useIpodStore((s) => s.theme);
+
+  const setCurrentIndex = useIpodStore((s) => s.setCurrentIndex);
+  const setIsPlaying = useIpodStore((s) => s.setIsPlaying);
+  const toggleLoopAll = useIpodStore((s) => s.toggleLoopAll);
+  const toggleLoopCurrent = useIpodStore((s) => s.toggleLoopCurrent);
+  const toggleShuffle = useIpodStore((s) => s.toggleShuffle);
+  const togglePlay = useIpodStore((s) => s.togglePlay);
+  const nextTrack = useIpodStore((s) => s.nextTrack);
+  const previousTrack = useIpodStore((s) => s.previousTrack);
+  const toggleBacklight = useIpodStore((s) => s.toggleBacklight);
+  const toggleVideo = useIpodStore((s) => s.toggleVideo);
+  const toggleLcdFilter = useIpodStore((s) => s.toggleLcdFilter);
+  const setTheme = useIpodStore((s) => s.setTheme);
+
+  const handlePlayTrack = (index: number) => {
+    setCurrentIndex(index);
+    setIsPlaying(true);
+  };
+
   return (
     <MenuBar>
       {/* File Menu */}
@@ -119,21 +99,21 @@ export function IpodMenuBar({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" sideOffset={1} className="px-0">
           <DropdownMenuItem
-            onClick={onTogglePlay}
+            onClick={togglePlay}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
             disabled={tracks.length === 0}
           >
             {isPlaying ? "Pause" : "Play"}
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={onPrevious}
+            onClick={previousTrack}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
             disabled={tracks.length === 0}
           >
             Previous
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={onNext}
+            onClick={nextTrack}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
             disabled={tracks.length === 0}
           >
@@ -141,7 +121,7 @@ export function IpodMenuBar({
           </DropdownMenuItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           <DropdownMenuItem
-            onClick={onShuffleLibrary}
+            onClick={toggleShuffle}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
             <span className={cn(!isShuffled && "pl-4")}>
@@ -149,7 +129,7 @@ export function IpodMenuBar({
             </span>
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={onToggleLoopAll}
+            onClick={toggleLoopAll}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
             <span className={cn(!isLoopAll && "pl-4")}>
@@ -157,7 +137,7 @@ export function IpodMenuBar({
             </span>
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={onToggleLoopCurrent}
+            onClick={toggleLoopCurrent}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
             <span className={cn(!isLoopCurrent && "pl-4")}>
@@ -180,7 +160,7 @@ export function IpodMenuBar({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" sideOffset={1} className="px-0">
           <DropdownMenuItem
-            onClick={onToggleBacklight}
+            onClick={toggleBacklight}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
             <span className={cn(!isBacklightOn && "pl-4")}>
@@ -189,7 +169,7 @@ export function IpodMenuBar({
           </DropdownMenuItem>
 
           <DropdownMenuItem
-            onClick={onToggleLcdFilter}
+            onClick={toggleLcdFilter}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
             <span className={cn(!isLcdFilterOn && "pl-4")}>
@@ -197,7 +177,7 @@ export function IpodMenuBar({
             </span>
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={onToggleVideo}
+            onClick={toggleVideo}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
             disabled={!isPlaying}
           >
@@ -207,7 +187,7 @@ export function IpodMenuBar({
           </DropdownMenuItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           <DropdownMenuItem
-            onClick={() => onChangeTheme("classic")}
+            onClick={() => setTheme("classic")}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
             <span className={cn(currentTheme !== "classic" && "pl-4")}>
@@ -215,7 +195,7 @@ export function IpodMenuBar({
             </span>
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={() => onChangeTheme("black")}
+            onClick={() => setTheme("black")}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
             <span className={cn(currentTheme !== "black" && "pl-4")}>
@@ -261,7 +241,7 @@ export function IpodMenuBar({
               {tracks.map((track, index) => (
                 <DropdownMenuItem
                   key={track.id}
-                  onClick={() => onPlayTrack(index)}
+                  onClick={() => handlePlayTrack(index)}
                   className={cn(
                     "text-md h-6 px-3 active:bg-gray-900 active:text-white max-w-[220px] truncate",
                     index === currentIndex && "bg-gray-200"
