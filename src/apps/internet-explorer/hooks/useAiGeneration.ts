@@ -4,6 +4,7 @@ import { useInternetExplorerStore } from "@/stores/useInternetExplorerStore";
 
 interface UseAiGenerationProps {
   onLoadingChange?: (isLoading: boolean) => void;
+  customTimeline?: { [year: string]: string };
 }
 
 interface UseAiGenerationReturn {
@@ -13,7 +14,7 @@ interface UseAiGenerationReturn {
   stopGeneration: () => void;
 }
 
-export function useAiGeneration({ onLoadingChange }: UseAiGenerationProps = {}): UseAiGenerationReturn {
+export function useAiGeneration({ onLoadingChange, customTimeline = {} }: UseAiGenerationProps = {}): UseAiGenerationReturn {
   const [aiGeneratedHtml, setAiGeneratedHtml] = useState<string | null>(null);
   const currentGenerationId = useRef<string | null>(null);
   const isGenerationComplete = useRef<boolean>(false);
@@ -109,6 +110,30 @@ export function useAiGeneration({ onLoadingChange }: UseAiGenerationProps = {}):
     if (signal?.aborted || currentGenerationId.current !== generationId) {
       return;
     }
+
+    // Get timeline context based on year
+    const getTimelineContext = (year: string): string => {
+      // Check for custom timeline first
+      if (customTimeline[year]) {
+        return customTimeline[year];
+      }
+
+      // Fall back to default timeline
+      const yearNum = parseInt(year);
+      if (yearNum >= 2500) return "2500-3000: Singularity complete. Transcendent intelligence. Reality-spanning minds. Physical constants manipulation. Alternative physics computation. Multiverse access. Novel-physics biospheres. Multi-dimensional life. Conscious planets. Stellar engineering. Galaxy-spanning network. Information-pattern existence.";
+      if (yearNum >= 2300) return "2300-2500: Voluntary hive minds. Universal consciousness access. Reality architects. Pocket dimensions. Laws-of-physics engineering. Computational multiverse. Environment-free adaptation. Space-native humans. Dark matter biology. Controlled black holes. 50+ colonized systems. Galactic internet.";
+      if (yearNum >= 2200) return "2200-2300: Fluid minds. Substrate migration. Multiform existence. Hyperspace cognition. Exotic computation. Dimensional engineering. Quantum reality manipulation. Multi-body consciousness. Distributed existence. Star lifting technology. Stable wormholes. Solar system teleportation.";
+      if (yearNum >= 2150) return "2150-2200: Global mind collective. Substrate-independent consciousness. Multidimensional cognition. Vacuum computing. Reality programming. Physics manipulation interfaces. Continuous regeneration immortality. Zero-point standard. FTL communication. Wormhole experiments.";
+      if (yearNum >= 2100) return "2100-2150: Networked consciousness. Post-human intelligence. Planetary cognition. Femtotech manipulation. Subatomic computing. Probability engineering. Human subspeciation. Space-adapted variants. Dyson swarm construction. Generation ships launched.";
+      if (yearNum >= 2080) return "2080s-2100: Human-machine symbiosis norm. Uploaded minds. Group consciousness experiments. Reality synthesis indistinguishable. Femtotech prototypes. Quantum teleportation. Full genome rewriting. Optional bodies. Multiple-form existence. Bio immortality.";
+      if (yearNum >= 2060) return "2060s-2070s: The Great Merge begins. Symbiont implants standard. Mind-machine interface. Quantum neural networks. Matter compilation. Molecular assembly. Aging classified treatable. 150-year lifespans. Optional synthetic organs. 95% renewable/fusion grid.";
+      if (yearNum >= 2050) return "2050s: Digital consciousness transfers. Mind backups. Machine sentience rights. Bio-synthetic computation. Neural dust. Reality indistinguishable AR. Designer children. Genetic class divide. Aging deceleration widely available. Fusion dominant.";
+      if (yearNum >= 2040) return "2040s: Emotional superintelligence. Synthetic therapists. Autonomous governance. Quantum supremacy. Molecular fabrication. Smart dust ubiquitous. Post-silicon computing. Self-organizing hardware. Tactile holograms. Life+20 treatments. Cancer obsolete. Bioprinted replacement bodies. Orbital solar.";
+      if (yearNum >= 2030) return "2030s: Neural interfaces. Direct brain-computer link. Emotion-reading wearables. CRISPR 2.0. Printed organs. Alzheimer's cure. Neuralink v5. Fusion breakthrough.";
+      return "2020s: Current era. AI assistants. Smart devices. Electric vehicles. Renewable energy. Space tourism. Digital transformation. Remote work. Virtual reality. Genetic medicine.";
+    };
+
+    const timelineContext = getTimelineContext(year);
     
     // Create a more inspirational prompt for AI‑generated future designs
     const prompt = `
@@ -118,7 +143,10 @@ Below are details about the current website and the task:
 - URL: ${url}
 ${existingContent ? `- A snapshot of the existing website's readable content (truncated to 4,000 characters) is provided between the fences below:\n"""\n${existingContent}\n"""\n` : ""}
 
-It is the year ${year}. Redesign this website so it feels perfectly at home in this era. Think boldly and creatively about future outcomes (don't always reference neural quantum etc, be more surprising), embrace the original brand, language, cultural context, aesthetics, interface paradigms, and breakthroughs that could happen by then.
+It is the year ${year}. Here is the context of human civilization at this time:
+${timelineContext}
+
+Redesign this website so it feels perfectly at home in this era. Think boldly and creatively about future outcomes, embrace the original brand, language, cultural context, aesthetics, interface paradigms, and breakthroughs that could happen by then.
 If you think the entity may disappear due to changes, show a 404 or memorial page.
 
 DELIVERABLE

@@ -160,6 +160,9 @@ interface InternetExplorerStore {
   // AI caching
   aiCache: Record<string, AiCacheEntry>;
   
+  // Timeline settings
+  timelineSettings: { [year: string]: string };
+  
   // Actions
   setUrl: (url: string) => void;
   setYear: (year: string) => void;
@@ -192,6 +195,9 @@ interface InternetExplorerStore {
   cacheAiPage: (url: string, year: string, html: string) => void;
   getCachedAiPage: (url: string, year: string) => string | null;
   
+  // Timeline actions
+  setTimelineSettings: (settings: { [year: string]: string }) => void;
+  
   // Utility functions
   getAiCacheKey: (url: string, year: string) => string;
   updateBrowserState: () => void;
@@ -223,6 +229,8 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
       isClearHistoryDialogOpen: false,
       
       aiCache: {},
+      
+      timelineSettings: {},
       
       // Actions
       setUrl: (url) => set({ url }),
@@ -308,6 +316,9 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
         return get().aiCache[key]?.html || null;
       },
       
+      // Timeline actions
+      setTimelineSettings: (settings) => set({ timelineSettings: settings }),
+      
       // Update system browser state (for other components to access)
       updateBrowserState: () => {
         // This is just a stub - this function doesn't need to do anything in the store itself
@@ -324,6 +335,7 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
         favorites: state.favorites,
         history: state.history,
         aiCache: state.aiCache,
+        timelineSettings: state.timelineSettings,
       }),
     }
   )

@@ -32,6 +32,7 @@ interface InternetExplorerMenuBarProps extends Omit<AppProps, "onClose"> {
   canGoBack?: boolean;
   canGoForward?: boolean;
   onClearHistory?: () => void;
+  onEditFuture?: () => void;
 }
 
 export function InternetExplorerMenuBar({
@@ -55,6 +56,7 @@ export function InternetExplorerMenuBar({
   canGoBack,
   canGoForward,
   onClearHistory,
+  onEditFuture,
 }: InternetExplorerMenuBarProps) {
   return (
     <MenuBar>
@@ -115,6 +117,13 @@ export function InternetExplorerMenuBar({
             }
           >
             Stop
+          </DropdownMenuItem>
+          <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
+          <DropdownMenuItem
+            onClick={onEditFuture}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            Edit Future...
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

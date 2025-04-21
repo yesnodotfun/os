@@ -21,6 +21,7 @@ import HtmlPreview from "@/components/shared/HtmlPreview";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAiGeneration } from "../hooks/useAiGeneration";
 import { useInternetExplorerStore, DEFAULT_FAVORITES } from "@/stores/useInternetExplorerStore";
+import FutureSettingsDialog from "@/components/dialogs/FutureSettingsDialog";
 
 export function InternetExplorerAppComponent({
   isWindowOpen,
@@ -57,7 +58,9 @@ export function InternetExplorerAppComponent({
     addHistoryEntry,
     setHistoryIndex,
     clearHistory,
-    updateBrowserState
+    updateBrowserState,
+    timelineSettings,
+    setTimelineSettings,
   } = useInternetExplorerStore();
 
   // State for reset favorites dialog
@@ -73,13 +76,21 @@ export function InternetExplorerAppComponent({
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const favoritesContainerRef = useRef<HTMLDivElement>(null);
 
-  // AI generation hook
+  // State for future settings dialog
+  const [isFutureSettingsDialogOpen, setFutureSettingsDialogOpen] = useState(false);
+
+  // AI generation hook with custom timeline from store
   const {
     generateFuturisticWebsite,
     aiGeneratedHtml: generatedHtml,
     isAiLoading,
     stopGeneration,
-  } = useAiGeneration();
+  } = useAiGeneration({
+    onLoadingChange: () => {
+      // Update loading state
+    },
+    customTimeline: timelineSettings,
+  });
 
   // Create past years array (from 1996 to current year)
   const pastYears = Array.from(
@@ -502,6 +513,7 @@ export function InternetExplorerAppComponent({
         canGoForward={historyIndex > 0}
         onClearHistory={() => setClearHistoryDialogOpen(true)}
         onClose={onClose}
+        onEditFuture={() => setFutureSettingsDialogOpen(true)}
       />
       <WindowFrame
         title="Internet Explorer"
@@ -689,6 +701,12 @@ export function InternetExplorerAppComponent({
           onConfirm={handleResetFavorites}
           title="Reset Favorites"
           description="Are you sure you want to reset favorites to default?"
+        />
+        <FutureSettingsDialog
+          isOpen={isFutureSettingsDialogOpen}
+          onOpenChange={setFutureSettingsDialogOpen}
+          onSave={setTimelineSettings}
+          currentSettings={timelineSettings}
         />
       </WindowFrame>
     </>
