@@ -10,20 +10,7 @@ import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { InputDialog } from "@/components/dialogs/InputDialog";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { helpItems, appMetadata } from "..";
-import {
-  loadPlaylist,
-  savePlaylist,
-  loadCurrentIndex,
-  saveCurrentIndex,
-  loadIsLoopAll,
-  saveIsLoopAll,
-  loadIsLoopCurrent,
-  saveIsLoopCurrent,
-  loadIsShuffled,
-  saveIsShuffled,
-  DEFAULT_VIDEOS,
-  updateVideoPlayingState,
-} from "@/utils/storage";
+import { useVideoStore, DEFAULT_VIDEOS } from "@/stores/useVideoStore";
 import { Button } from "@/components/ui/button";
 import { useSound, Sounds } from "@/hooks/useSound";
 
@@ -315,17 +302,23 @@ export function VideosAppComponent({
 }: AppProps) {
   const { play: playVideoTape } = useSound(Sounds.VIDEO_TAPE);
   const { play: playButtonClick } = useSound(Sounds.BUTTON_CLICK);
-  const loadedPlaylist = loadPlaylist();
-  const [videos, setVideos] = useState<Video[]>(loadedPlaylist);
-  const [currentIndex, setCurrentIndex] = useState(loadCurrentIndex());
+  const videos = useVideoStore((s) => s.videos);
+  const setVideos = useVideoStore((s) => s.setVideos);
+  const currentIndex = useVideoStore((s) => s.currentIndex);
+  const setCurrentIndex = useVideoStore((s) => s.setCurrentIndex);
+  const loopCurrent = useVideoStore((s) => s.loopCurrent);
+  const setLoopCurrent = useVideoStore((s) => s.setLoopCurrent);
+  const loopAll = useVideoStore((s) => s.loopAll);
+  const setLoopAll = useVideoStore((s) => s.setLoopAll);
+  const isShuffled = useVideoStore((s) => s.isShuffled);
+  const setIsShuffled = useVideoStore((s) => s.setIsShuffled);
+  const isPlaying = useVideoStore((s) => s.isPlaying);
+  const togglePlayStore = useVideoStore((s) => s.togglePlay);
+  const setIsPlaying = useVideoStore((s) => s.setIsPlaying);
   const [animationDirection, setAnimationDirection] = useState<"next" | "prev">(
     "next"
   );
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [loopCurrent, setLoopCurrent] = useState(loadIsLoopCurrent());
-  const [loopAll, setLoopAll] = useState(loadIsLoopAll());
-  const [isShuffled, setIsShuffled] = useState(loadIsShuffled());
-  const [originalOrder, setOriginalOrder] = useState<Video[]>(loadedPlaylist);
+  const [originalOrder, setOriginalOrder] = useState<Video[]>(videos);
   const [urlInput, setUrlInput] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
@@ -394,27 +387,6 @@ export function VideosAppComponent({
     });
     setIsPlaying(true);
   };
-
-  // Save state to storage whenever it changes
-  useEffect(() => {
-    savePlaylist(videos);
-  }, [videos]);
-
-  useEffect(() => {
-    saveCurrentIndex(currentIndex);
-  }, [currentIndex]);
-
-  useEffect(() => {
-    saveIsLoopAll(loopAll);
-  }, [loopAll]);
-
-  useEffect(() => {
-    saveIsLoopCurrent(loopCurrent);
-  }, [loopCurrent]);
-
-  useEffect(() => {
-    saveIsShuffled(isShuffled);
-  }, [isShuffled]);
 
   // Reset elapsed time when changing tracks
   useEffect(() => {
@@ -535,10 +507,9 @@ export function VideosAppComponent({
   };
 
   const togglePlay = () => {
-    setIsPlaying(!isPlaying);
-    showStatus(isPlaying ? "PAUSED ❙❙" : "PLAY ▶");
+    togglePlayStore();
+    showStatus(!isPlaying ? "PLAY ▶" : "PAUSED ❙❙");
     playVideoTape();
-    updateVideoPlayingState(!isPlaying);
   };
 
   const toggleShuffle = () => {
@@ -562,19 +533,16 @@ export function VideosAppComponent({
   // Add new handlers for YouTube player state sync
   const handlePlay = () => {
     setIsPlaying(true);
-    updateVideoPlayingState(true);
   };
 
   const handlePause = () => {
     setIsPlaying(false);
-    updateVideoPlayingState(false);
   };
 
   const handleReady = () => {
-    // If we want to start playing immediately after loading
-    if (isPlaying) {
-      playerRef.current?.seekTo(0);
-    }
+    // Always start from beginning but don't auto-play
+    playerRef.current?.seekTo(0);
+    // setIsPlaying(false);
   };
 
   const handleFullScreen = () => {
@@ -637,7 +605,6 @@ export function VideosAppComponent({
         onPlayVideo={(index) => {
           setCurrentIndex(index);
           setIsPlaying(true);
-          playVideoTape();
         }}
         onClearPlaylist={() => {
           setIsConfirmClearOpen(true);
@@ -650,7 +617,6 @@ export function VideosAppComponent({
         onToggleLoopCurrent={() => setLoopCurrent(!loopCurrent)}
         onTogglePlay={() => {
           togglePlay();
-          playVideoTape();
         }}
         onNext={() => {
           if (currentIndex < videos.length - 1) {
@@ -705,6 +671,7 @@ export function VideosAppComponent({
                     onPause={handlePause}
                     onReady={handleReady}
                     loop={loopCurrent}
+                    playsinline
                     config={{
                       youtube: {
                         playerVars: {
@@ -715,6 +682,7 @@ export function VideosAppComponent({
                           fs: 0,
                           disablekb: 1,
                           playsinline: 1,
+                          autoplay: 0, // Ensure no autoplay
                         },
                       },
                     }}
