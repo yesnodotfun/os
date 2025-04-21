@@ -705,8 +705,6 @@ export function InternetExplorerAppComponent({
         <FutureSettingsDialog
           isOpen={isFutureSettingsDialogOpen}
           onOpenChange={setFutureSettingsDialogOpen}
-          onSave={setTimelineSettings}
-          currentSettings={timelineSettings}
         />
       </WindowFrame>
     </>

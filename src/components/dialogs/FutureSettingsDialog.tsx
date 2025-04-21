@@ -3,23 +3,22 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState, useRef } from "react";
+import { useInternetExplorerStore } from "@/stores/useInternetExplorerStore";
 
 interface FutureSettingsDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (settings: { [year: string]: string }) => void;
-  currentSettings: { [year: string]: string };
 }
 
 const FutureSettingsDialog = ({
   isOpen,
   onOpenChange,
-  onSave,
-  currentSettings,
 }: FutureSettingsDialogProps) => {
   const [selectedYear, setSelectedYear] = useState<string>("2030");
-  const [timelineText, setTimelineText] = useState<string>(currentSettings[selectedYear] || "");
   const saveButtonRef = useRef<HTMLButtonElement>(null);
+  
+  // Use the store directly
+  const { timelineSettings, setTimelineSettings } = useInternetExplorerStore();
 
   // Create future years array
   const futureYears = [
@@ -44,13 +43,18 @@ const FutureSettingsDialog = ({
 
   const handleYearChange = (year: string) => {
     setSelectedYear(year);
-    setTimelineText(currentSettings[year] || getDefaultTimelineText(year));
   };
 
   const handleSave = () => {
-    const newSettings = { ...currentSettings, [selectedYear]: timelineText };
-    onSave(newSettings);
+    const newSettings = { ...timelineSettings, [selectedYear]: timelineSettings[selectedYear] || getDefaultTimelineText(selectedYear) };
+    setTimelineSettings(newSettings);
     onOpenChange(false);
+  };
+
+  const handleReset = () => {
+    const newSettings = { ...timelineSettings };
+    delete newSettings[selectedYear]; // Remove custom text for this year
+    setTimelineSettings(newSettings);
   };
 
   return (
@@ -81,17 +85,20 @@ const FutureSettingsDialog = ({
               </Select>
             </div>
             <Textarea
-              value={timelineText}
-              onChange={(e) => setTimelineText(e.target.value)}
+              value={timelineSettings[selectedYear] || getDefaultTimelineText(selectedYear)}
+              onChange={(e) => {
+                const newSettings = { ...timelineSettings, [selectedYear]: e.target.value };
+                setTimelineSettings(newSettings);
+              }}
               placeholder={getDefaultTimelineText(selectedYear)}
               className="min-h-[200px] font-geneva-12 text-[12px]"
             />
             <div className="flex justify-end gap-2">
-              <Button variant="retro" onClick={() => onOpenChange(false)}>
-                Cancel
+              <Button variant="retro" onClick={handleReset}>
+                Reset
               </Button>
-              <Button variant="retro" onClick={handleSave} ref={saveButtonRef}>
-                Save
+              <Button variant="retro" onClick={() => onOpenChange(false)} ref={saveButtonRef}>
+                Done
               </Button>
             </div>
           </div>
