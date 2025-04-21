@@ -132,21 +132,7 @@ export function useAiGeneration({ onLoadingChange, customTimeline = {} }: UseAiG
     
     // Create a more inspirational prompt for AI‑generated future designs
     const prompt = `
-Below are details about the current website and the task:
-
-- Domain: ${domainName}
-- URL: ${url}
-${existingContent ? `- A snapshot of the existing website's readable content (truncated to 4,000 characters) is provided between the fences below:\n"""\n${existingContent}\n"""\n` : ""}
-
-It is the year ${year}. Here is the complete timeline of human civilization leading up to this point:
-
-${Object.entries({ ...DEFAULT_TIMELINE, ...timelineSettings, ...customTimeline })
-  .sort(([a], [b]) => parseInt(a) - parseInt(b))
-  .map(([y, desc]) => `${y}: ${desc}`)
-  .join('\n')}
-
-${timelineContext}
-
+REDESIGN INSTRUCTIONS
 Redesign this website so it feels perfectly at home in this era. Think boldly and creatively about future outcomes, embrace the original brand, language, cultural context, aesthetics, interface paradigms, and breakthroughs that could happen by then.
 If you think the entity may disappear due to changes, show a 404 or memorial page.
 
@@ -158,7 +144,24 @@ REQUIREMENTS
 2. Keep the layout responsive and accessible (screen‑reader friendly, respect reduced‑motion preferences, etc.).
 3. Use imaginative, crazy content. Keep visuals minimal but futuristic, use simple colors, avoid crazy gradients. Use emojis, or simple SVG icons.
 4. Ensure the overall experience is visually striking yet still loads in a normal browser.
-5. Output ONLY the raw HTML markup as the final answer.`;
+5. Output ONLY the raw HTML markup as the final answer.
+
+CONTEXT
+Below are details about the current website and the task:
+
+- Domain: ${domainName}
+- URL: ${url}
+${existingContent ? `- A snapshot of the existing website's readable content (truncated to 4,000 characters) is provided between the fences below:\n"""\n${existingContent}\n"""\n` : ""}
+
+It is the year ${year}. Here is the timeline of human civilization leading up to this point:
+
+${Object.entries({ ...DEFAULT_TIMELINE, ...timelineSettings, ...customTimeline })
+  .filter(([y]) => parseInt(y) <= parseInt(year))
+  .sort(([a], [b]) => parseInt(a) - parseInt(b))
+  .map(([y, desc]) => `${y}: ${desc}`)
+  .join('\n')}
+
+${timelineContext}`;
 
     try {
       // Final check if operation was aborted before sending to AI
