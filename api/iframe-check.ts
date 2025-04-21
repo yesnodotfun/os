@@ -208,7 +208,7 @@ export default async function handler(req: Request) {
   <ul>
     <li>If you typed the page address in the Address bar, make sure that it is spelled correctly.</li>
     <li>Open <a href="https://${new URL(normalizedUrl).hostname}" target="_blank" rel="noopener noreferrer">${new URL(normalizedUrl).hostname}</a> in a new tab, and then look for links to the information you want.</li>
-    <li>Click the <a href="javascript:history.back()">Back</a> button to try another link.</li>
+    <li>Click the <a href="javascript:void(0)" onclick="window.parent.postMessage({type: 'goBack'}, '*')">Back</a> button to try another link.</li>
   </ul>
   
   <div class="footer">

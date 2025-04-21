@@ -111,6 +111,10 @@ export function InternetExplorerAppComponent({
         console.log(`[IE] Received navigation request from iframe: ${event.data.url}`);
         // Trigger navigation using the current year setting
         handleNavigate(event.data.url, true, year);
+      } else if (event.data && event.data.type === "goBack") {
+        // Handle back button click from error page
+        console.log(`[IE] Received back button request from iframe`);
+        handleGoBack();
       }
     };
 
