@@ -27,10 +27,13 @@ const FutureSettingsDialog = ({
     }
   }, [isOpen, currentYear]);
 
-  // Create future years array
+  // Create a richer set of future years – covering near, mid, and far future
   const futureYears = [
-    "2030", "2040", "2050", "2060", "2080", "2100", "2150", "2200", "2300", "2500", "3000"
-  ];
+    // Near‑future (every decade up to 2100)
+    ...Array.from({ length: 8 }, (_, i) => (2030 + i * 10).toString()), // 2030 → 2100
+    // Mid & far‑future milestones
+    "2150", "2200", "2250", "2300", "2400", "2500", "2750", "3000"
+  ].sort((a, b) => parseInt(b) - parseInt(a)); // Newest (largest) first
 
   // Get default timeline text for a year
   const getDefaultTimelineText = (year: string): string => {

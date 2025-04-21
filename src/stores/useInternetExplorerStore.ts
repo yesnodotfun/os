@@ -25,16 +25,22 @@ export const DEFAULT_URL = "https://apple.com";
 export const DEFAULT_YEAR = "2007";
 
 export const DEFAULT_TIMELINE: { [year: string]: string } = {
-  "2030": "2030s: Neural interfaces. Direct brain-computer link. Emotion-reading wearables. CRISPR 2.0. Printed organs. Alzheimer's cure. Neuralink v5. Fusion breakthrough.",
-  "2040": "2040s: Emotional superintelligence. Synthetic therapists. Autonomous governance. Quantum supremacy. Molecular fabrication. Smart dust ubiquitous. Post-silicon computing. Self-organizing hardware. Tactile holograms. Life+20 treatments. Cancer obsolete. Bioprinted replacement bodies. Orbital solar.",
-  "2050": "2050s: Digital consciousness transfers. Mind backups. Machine sentience rights. Bio-synthetic computation. Neural dust. Reality indistinguishable AR. Designer children. Genetic class divide. Aging deceleration widely available. Fusion dominant.",
-  "2060": "2060s-2070s: The Great Merge begins. Symbiont implants standard. Mind-machine interface. Quantum neural networks. Matter compilation. Molecular assembly. Aging classified treatable. 150-year lifespans. Optional synthetic organs. 95% renewable/fusion grid.",
-  "2080": "2080s-2100: Human-machine symbiosis norm. Uploaded minds. Group consciousness experiments. Reality synthesis indistinguishable. Femtotech prototypes. Quantum teleportation. Full genome rewriting. Optional bodies. Multiple-form existence. Bio immortality.",
-  "2100": "2100-2150: Networked consciousness. Post-human intelligence. Planetary cognition. Femtotech manipulation. Subatomic computing. Probability engineering. Human subspeciation. Space-adapted variants. Dyson swarm construction. Generation ships launched.",
-  "2150": "2150-2200: Global mind collective. Substrate-independent consciousness. Multidimensional cognition. Vacuum computing. Reality programming. Physics manipulation interfaces. Continuous regeneration immortality. Zero-point standard. FTL communication. Wormhole experiments.",
-  "2200": "2200-2300: Fluid minds. Substrate migration. Multiform existence. Hyperspace cognition. Exotic computation. Dimensional engineering. Quantum reality manipulation. Multi-body consciousness. Distributed existence. Star lifting technology. Stable wormholes. Solar system teleportation.",
-  "2300": "2300-2500: Voluntary hive minds. Universal consciousness access. Reality architects. Pocket dimensions. Laws-of-physics engineering. Computational multiverse. Environment-free adaptation. Space-native humans. Dark matter biology. Controlled black holes. 50+ colonized systems. Galactic internet.",
-  "2500": "2500-3000: Singularity complete. Transcendent intelligence. Reality-spanning minds. Physical constants manipulation. Alternative physics computation. Multiverse access. Novel-physics biospheres. Multi-dimensional life. Conscious planets. Stellar engineering. Galaxy-spanning network. Information-pattern existence."
+  "2030": "FDA neural implants. Emotion wearables mainstream. CRISPR prime+base. Organ-print trials. Alzheimer halt drug. Neuralink-v5 patients. Net-positive fusion demo.",
+  "2040": "AI city governance. Quantum-profit compute. Desktop molecular printers. Smart-dust logistics. Neuromorphic cores. Tactile-holo rooms. Life+20 gene edits. Cancer cured. Orbital-solar farms.",
+  "2050": "Cloud mind-backups. Digital-heir laws. Sentient-AI rights fight. Medical neural-dust. Photoreal AR lenses. Designer embryos. Age-decel commonplace. Fusion grids dominant.",
+  "2060": "Human-AI merge wave. Symbiont organs stock. Quantum neural mesh. Home matter assembler. Age reversal < 40. 150-yr median lives. Zero-carbon fusion grid.",
+  "2070": "Post-scarcity UBI. Auto fab-cities. Climate healed. Ocean revival. Terraform Moon & Mars. Asteroid-mining boom.",
+  "2080": "Daily uploads. Hive-mind trials. Synth-reality on demand. Femtotech labs. Quantum-teleport cargo. Genome rewrite opt-in. Rental avatars. Bio-immortality near.",
+  "2090": "QC standard. Home molecular-fab. Nanomed auto-repair. Seamless brain-cloud. Space elevator. Orbital ring. Dyson-swarm phase-1. Mars tera-phase-2. Venus cloud cities.",
+  "2100": "Planet mind-net. Supra-AI council. Subatomic chips. Probability-hack toys. Space-adapted clades. Dyson complete. Generation ships depart.",
+  "2150": "Solar mind-mesh. Substrate-free selves. Vacuum computing. Reality-script APIs. Zero-point norm. FTL entangle chat. Stable micro-wormholes.",
+  "2200": "Fluid minds. Shape-shift avatars. Hyperspace thought. Exotic compute lattices. Dimensional forging. Star-lifting works. Teleport loops.",
+  "2250": "Stars reached. Exoplanet colonies. Alien microbe meet. Universal translator. Galaxy entangle-net. Anti-dilate meds.",
+  "2300": "Opt-in hives. Reality-architect guilds. Pocket universes. Dark-matter biotech. Tame micro-black holes. 50+ colonized systems.",
+  "2400": "Galactic grid mature. Multi-species federation. Stellar gardening. Planet sculpting. Culture hyper-exchange.",
+  "2500": "Meta-singularity era. Transcendent minds. Constant tuning. Multiverse portals. Conscious nebulae. Galaxy infosphere.",
+  "2750": "Inter-galactic leap. Dyson-cluster swarms. Higher-D labs. Time-canal experiments. Cosmic AI overseer.",
+  "3000": "Omniverse civilization. Plastic physics. Infinite realms. Boundless cognition."
 };
 
 export const DEFAULT_FAVORITES: Favorite[] = [
