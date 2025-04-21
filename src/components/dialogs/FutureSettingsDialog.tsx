@@ -2,8 +2,8 @@ import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState, useRef } from "react";
-import { useInternetExplorerStore } from "@/stores/useInternetExplorerStore";
+import { useState, useRef, useEffect } from "react";
+import { useInternetExplorerStore, DEFAULT_TIMELINE } from "@/stores/useInternetExplorerStore";
 
 interface FutureSettingsDialogProps {
   isOpen: boolean;
@@ -18,7 +18,14 @@ const FutureSettingsDialog = ({
   const saveButtonRef = useRef<HTMLButtonElement>(null);
   
   // Use the store directly
-  const { timelineSettings, setTimelineSettings } = useInternetExplorerStore();
+  const { timelineSettings, setTimelineSettings, year: currentYear } = useInternetExplorerStore();
+
+  // Update selectedYear when dialog opens
+  useEffect(() => {
+    if (isOpen && currentYear !== "current") {
+      setSelectedYear(currentYear);
+    }
+  }, [isOpen, currentYear]);
 
   // Create future years array
   const futureYears = [
@@ -27,18 +34,7 @@ const FutureSettingsDialog = ({
 
   // Get default timeline text for a year
   const getDefaultTimelineText = (year: string): string => {
-    const yearNum = parseInt(year);
-    if (yearNum >= 2500) return "2500-3000: Singularity complete. Transcendent intelligence. Reality-spanning minds. Physical constants manipulation. Alternative physics computation. Multiverse access. Novel-physics biospheres. Multi-dimensional life. Conscious planets. Stellar engineering. Galaxy-spanning network. Information-pattern existence.";
-    if (yearNum >= 2300) return "2300-2500: Voluntary hive minds. Universal consciousness access. Reality architects. Pocket dimensions. Laws-of-physics engineering. Computational multiverse. Environment-free adaptation. Space-native humans. Dark matter biology. Controlled black holes. 50+ colonized systems. Galactic internet.";
-    if (yearNum >= 2200) return "2200-2300: Fluid minds. Substrate migration. Multiform existence. Hyperspace cognition. Exotic computation. Dimensional engineering. Quantum reality manipulation. Multi-body consciousness. Distributed existence. Star lifting technology. Stable wormholes. Solar system teleportation.";
-    if (yearNum >= 2150) return "2150-2200: Global mind collective. Substrate-independent consciousness. Multidimensional cognition. Vacuum computing. Reality programming. Physics manipulation interfaces. Continuous regeneration immortality. Zero-point standard. FTL communication. Wormhole experiments.";
-    if (yearNum >= 2100) return "2100-2150: Networked consciousness. Post-human intelligence. Planetary cognition. Femtotech manipulation. Subatomic computing. Probability engineering. Human subspeciation. Space-adapted variants. Dyson swarm construction. Generation ships launched.";
-    if (yearNum >= 2080) return "2080s-2100: Human-machine symbiosis norm. Uploaded minds. Group consciousness experiments. Reality synthesis indistinguishable. Femtotech prototypes. Quantum teleportation. Full genome rewriting. Optional bodies. Multiple-form existence. Bio immortality.";
-    if (yearNum >= 2060) return "2060s-2070s: The Great Merge begins. Symbiont implants standard. Mind-machine interface. Quantum neural networks. Matter compilation. Molecular assembly. Aging classified treatable. 150-year lifespans. Optional synthetic organs. 95% renewable/fusion grid.";
-    if (yearNum >= 2050) return "2050s: Digital consciousness transfers. Mind backups. Machine sentience rights. Bio-synthetic computation. Neural dust. Reality indistinguishable AR. Designer children. Genetic class divide. Aging deceleration widely available. Fusion dominant.";
-    if (yearNum >= 2040) return "2040s: Emotional superintelligence. Synthetic therapists. Autonomous governance. Quantum supremacy. Molecular fabrication. Smart dust ubiquitous. Post-silicon computing. Self-organizing hardware. Tactile holograms. Life+20 treatments. Cancer obsolete. Bioprinted replacement bodies. Orbital solar.";
-    if (yearNum >= 2030) return "2030s: Neural interfaces. Direct brain-computer link. Emotion-reading wearables. CRISPR 2.0. Printed organs. Alzheimer's cure. Neuralink v5. Fusion breakthrough.";
-    return "2020s: Current era. AI assistants. Smart devices. Electric vehicles. Renewable energy. Space tourism. Digital transformation. Remote work. Virtual reality. Genetic medicine.";
+    return DEFAULT_TIMELINE[year] || "2020s: Current era. AI assistants. Smart devices. Electric vehicles. Renewable energy. Space tourism. Digital transformation. Remote work. Virtual reality. Genetic medicine.";
   };
 
   const handleYearChange = (year: string) => {
