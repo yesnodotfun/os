@@ -133,83 +133,95 @@ export default async function handler(req: Request) {
 
     // If the upstream fetch failed (e.g., 403 Forbidden, 404 Not Found), return an error page
     if (!upstreamRes.ok) {
-        // Basic styled error page resembling ryOS components
+        // Classic IE-style error page
         const errorHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Proxy Error ${upstreamRes.status}</title>
+  <title>Error ${upstreamRes.status}</title>
   <link rel="stylesheet" href="https://os.ryo.lu/fonts/fonts.css"> 
   <style>
-    /* Apply base font to all elements */
     * {
       box-sizing: border-box;
     }
     html, body {
       font-family: "Geneva-12", "ArkPixel", system-ui, sans-serif;
-      font-size: 12px; /* typical system font size */
+      font-size: 12px;
       margin: 0;
       padding: 0;
       height: 100%;
     }
     body {
-      background-color: #ffffff; /* White background */
-      color: #000000; /* Black text */
-      padding: 30px 40px; /* Padding similar to IE pages */
-      /* Remove flex centering */
-      /* display: flex; */
-      /* flex-direction: column; */
-      /* align-items: center; */
-      /* justify-content: center; */
-      /* min-height: 100vh; */
-      text-align: left; /* Left align text */
+      background-color: #ffffff;
+      color: #000000;
+      padding: 24px;
+      text-align: left;
     }
     h1 {
-      font-size: 1.4em; /* Slightly larger heading */
-      color: #000000; /* Black heading */
-      margin-bottom: 20px;
-      font-weight: normal; /* Less bold */
-      border-bottom: 1px solid #cccccc; /* Separator line */
-      padding-bottom: 10px;
+      font-size: 18px;
+      color: #000000;
+      font-weight: normal;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      align-items: center;
     }
     p {
-      margin: 10px 0;
+      margin: 12px 0;
       line-height: 1.4;
     }
+    .divider {
+      height: 1px;
+      background-color: #ccc;
+      margin: 20px 0;
+    }
+    ul {
+      margin: 16px 0;
+      padding-left: 20px;
+    }
+    li {
+      margin-bottom: 8px;
+      list-style-type: disc;
+    }
     a {
-      color: #0033cc; /* Standard IE blue */
+      color: #f00;
       text-decoration: underline;
     }
-    a:hover {
-      color: #cc0000; /* Red hover, common in older UIs */
-    }
-    code {
-      font-family: "Geneva-12", "ArkPixel", monospace; /* Ensure monospace fallback */
-      /* Remove distinct background */
-      background-color: transparent;
-      padding: 0;
-      border-radius: 0;
-      font-size: 1em;
-      color: #555;
+    .footer {
+      margin-top: 40px;
+      color: #333;
     }
   </style>
 </head>
 <body>
-  <h1>Cannot display this page</h1> <!-- More IE-like title -->
-  <p>Could not load the requested URL:</p>
-  <p><code><a href="${normalizedUrl}" target="_blank" rel="noopener noreferrer">${normalizedUrl}</a></code></p>
-  <p>Reason: ${upstreamRes.statusText || "(No reason provided)"} (Status Code: ${upstreamRes.status})</p>
-  <hr style="border: none; border-top: 1px solid #cccccc; margin-top: 20px;">
-  <p style="font-size: 0.9em; color: #666;">Please check the address and try again, or contact the system administrator.</p>
+  <h1>
+    The page cannot be found
+  </h1>
+  
+  <p>The page you are looking for might have been removed, had its name changed, or is temporarily unavailable.</p>
+  
+  <div class="divider"></div>
+  
+  <p>Please try the following:</p>
+  
+  <ul>
+    <li>If you typed the page address in the Address bar, make sure that it is spelled correctly.</li>
+    <li>Open <a href="https://${new URL(normalizedUrl).hostname}" target="_blank" rel="noopener noreferrer">${new URL(normalizedUrl).hostname}</a> in a new tab, and then look for links to the information you want.</li>
+    <li>Click the <a href="javascript:history.back()">Back</a> button to try another link.</li>
+  </ul>
+  
+  <div class="footer">
+    HTTP ${upstreamRes.status} - ${upstreamRes.statusText || "File not found"}<br>
+    Internet Explorer
+  </div>
 </body>
 </html>`;
 
         return new Response(errorHtml, {
-            status: upstreamRes.status, // Return the original error status
+            status: upstreamRes.status,
             headers: { 
                 "Content-Type": "text/html",
-                // Add permissive headers even for the error page
                 "Access-Control-Allow-Origin": "*",
                 "Content-Security-Policy": "frame-ancestors *; sandbox allow-scripts allow-forms allow-same-origin allow-popups"
             }
