@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { AppProps } from "../../base/types";
 import { MenuBar } from "@/components/layout/MenuBar";
-import { Favorite, HistoryEntry } from "@/utils/storage";
+import { Favorite, HistoryEntry } from "@/stores/useInternetExplorerStore";
 
 interface InternetExplorerMenuBarProps extends Omit<AppProps, "onClose"> {
   onRefresh?: () => void;

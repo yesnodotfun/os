@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useReducer } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AppProps } from "../../base/types";
 import { WindowFrame } from "@/components/layout/WindowFrame";
 import { Input } from "@/components/ui/input";
@@ -11,22 +11,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Favorite,
-  loadFavorites,
-  saveFavorites,
-  loadLastUrl,
-  saveLastUrl,
-  DEFAULT_URL,
-  DEFAULT_YEAR,
-  HistoryEntry,
-  loadHistory,
-  addToHistory,
-  APP_STORAGE_KEYS,
-  loadWaybackYear,
-  saveWaybackYear,
-  updateBrowserState,
-} from "@/utils/storage";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { InputDialog } from "@/components/dialogs/InputDialog";
 import { HelpDialog } from "@/components/dialogs/HelpDialog";
@@ -36,133 +20,50 @@ import { helpItems, appMetadata } from "..";
 import HtmlPreview from "@/components/shared/HtmlPreview";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAiGeneration } from "../hooks/useAiGeneration";
-
-// Define the navigation mode type
-type NavigationMode = "past" | "now" | "future";
-
-// Define the navigation status type
-type NavigationStatus = "idle" | "loading" | "success" | "error";
-
-// Define the navigation state interface
-interface NavigationState {
-  url: string;
-  year: string;
-  mode: NavigationMode;
-  status: NavigationStatus;
-  finalUrl: string | null;
-  aiGeneratedHtml: string | null;
-  error: string | null;
-  token: number; // For tracking the current navigation request
-}
-
-// Define the navigation action types
-type NavigationAction = 
-  | { type: 'NAVIGATE_START'; url: string; year: string; token: number; mode: NavigationMode }
-  | { type: 'SET_FINAL_URL'; finalUrl: string }
-  | { type: 'LOAD_SUCCESS'; finalUrl?: string; aiGeneratedHtml?: string | null }
-  | { type: 'LOAD_ERROR'; error: string }
-  | { type: 'CANCEL' }
-  | { type: 'SET_URL'; url: string }
-  | { type: 'SET_YEAR'; year: string };
-
-// Utility function to classify year into navigation mode
-function classifyYear(year: string): NavigationMode {
-  if (year === "current") return "now";
-  const yearNum = parseInt(year);
-  const currentYear = new Date().getFullYear();
-  return yearNum > currentYear ? "future" : "past";
-}
-
-// Navigation reducer
-function navigationReducer(state: NavigationState, action: NavigationAction): NavigationState {
-  switch (action.type) {
-    case 'NAVIGATE_START':
-      return {
-        ...state,
-        url: action.url,
-        year: action.year,
-        mode: action.mode,
-        status: 'loading',
-        finalUrl: null,
-        aiGeneratedHtml: null,
-        error: null,
-        token: action.token,
-      };
-    case 'SET_FINAL_URL':
-      return {
-        ...state,
-        finalUrl: action.finalUrl,
-      };
-    case 'LOAD_SUCCESS':
-      return {
-        ...state,
-        status: 'success',
-        finalUrl: action.finalUrl ?? state.finalUrl,
-        aiGeneratedHtml: action.aiGeneratedHtml ?? state.aiGeneratedHtml,
-        error: null,
-      };
-    case 'LOAD_ERROR':
-      return {
-        ...state,
-        status: 'error',
-        error: action.error,
-      };
-    case 'CANCEL':
-      return {
-        ...state,
-        status: 'idle',
-      };
-    case 'SET_URL':
-      return {
-        ...state,
-        url: action.url,
-      };
-    case 'SET_YEAR':
-      return {
-        ...state,
-        year: action.year,
-      };
-    default:
-      return state;
-  }
-}
+import { useInternetExplorerStore } from "@/stores/useInternetExplorerStore";
 
 export function InternetExplorerAppComponent({
   isWindowOpen,
   onClose,
   isForeground,
 }: AppProps) {
-  // Load initial values
-  const initialUrl = loadLastUrl();
-  const initialYear = loadWaybackYear();
-  const initialMode = classifyYear(initialYear);
-
-  // Navigation state machine with reducer
-  const [navState, dispatchNav] = useReducer(navigationReducer, {
-    url: initialUrl,
-    year: initialYear,
-    mode: initialMode,
-    status: 'idle',
-    finalUrl: null,
-    aiGeneratedHtml: null,
-    error: null,
-    token: 0,
-  });
+  // Use the Zustand store instead of local state
+  const {
+    url, setUrl,
+    year, setYear,
+    mode,
+    status,
+    finalUrl,
+    aiGeneratedHtml,
+    error,
+    token,
+    favorites,
+    history,
+    historyIndex,
+    isTitleDialogOpen, setTitleDialogOpen,
+    newFavoriteTitle, setNewFavoriteTitle,
+    isHelpDialogOpen, setHelpDialogOpen,
+    isAboutDialogOpen, setAboutDialogOpen,
+    isNavigatingHistory, setNavigatingHistory,
+    isClearFavoritesDialogOpen, setClearFavoritesDialogOpen,
+    isClearHistoryDialogOpen, setClearHistoryDialogOpen,
+    navigateStart,
+    setFinalUrl,
+    loadSuccess,
+    loadError,
+    cancel,
+    addFavorite,
+    clearFavorites,
+    addHistoryEntry,
+    setHistoryIndex,
+    clearHistory,
+    updateBrowserState
+  } = useInternetExplorerStore();
 
   // Unified AbortController for cancellations
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // State for favorites, history, and UI dialogs
-  const [favorites, setFavorites] = useState<Favorite[]>([]);
-  const [history, setHistory] = useState<HistoryEntry[]>([]);
-  const [historyIndex, setHistoryIndex] = useState(-1);
-  const [isTitleDialogOpen, setIsTitleDialogOpen] = useState(false);
-  const [newFavoriteTitle, setNewFavoriteTitle] = useState("");
-  const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
-  const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
-  const [isNavigatingHistory, setIsNavigatingHistory] = useState(false);
-  const [isClearFavoritesDialogOpen, setClearFavoritesDialogOpen] = useState(false);
-  const [isClearHistoryDialogOpen, setClearHistoryDialogOpen] = useState(false);
+  // State to track scroll in the favorites bar
   const [hasMoreToScroll, setHasMoreToScroll] = useState(false);
 
   const urlInputRef = useRef<HTMLInputElement>(null);
@@ -172,7 +73,7 @@ export function InternetExplorerAppComponent({
   // AI generation hook
   const {
     generateFuturisticWebsite,
-    aiGeneratedHtml,
+    aiGeneratedHtml: generatedHtml,
     isAiLoading,
     stopGeneration,
   } = useAiGeneration();
@@ -191,21 +92,9 @@ export function InternetExplorerAppComponent({
     "2150", "2200", "2250", "2300", "2400", "2500", "2750", "3000"
   ].sort((a, b) => parseInt(b) - parseInt(a)); // Newest (largest) first
 
-  // Effect to load initial state
+  // Effect to handle initial navigation
   useEffect(() => {
-    const initializeState = async () => {
-      setFavorites(loadFavorites());
-      const loadedHistory = loadHistory();
-      setHistory(loadedHistory);
-      if (loadedHistory.length > 0) {
-        setHistoryIndex(0);
-      }
-
-      // Initialize with the initial URL and year
-      handleNavigate(initialUrl, true, initialYear, false);
-    };
-
-    initializeState();
+    handleNavigate(url, true, year, false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run on mount
 
@@ -221,7 +110,7 @@ export function InternetExplorerAppComponent({
       ) {
         console.log(`[IE] Received navigation request from iframe: ${event.data.url}`);
         // Trigger navigation using the current year setting
-        handleNavigate(event.data.url, true, navState.year);
+        handleNavigate(event.data.url, true, year);
       }
     };
 
@@ -231,19 +120,15 @@ export function InternetExplorerAppComponent({
     return () => {
       window.removeEventListener("message", handleMessage);
     };
-    // Add navState.year as a dependency so handleNavigate uses the current year
-  }, [navState.year]); 
+  }, [year]); 
 
   // Effect to persist navigation state
   useEffect(() => {
-    if (navState.status === 'success' && navState.url && navState.year) {
-      saveLastUrl(navState.url);
-      saveWaybackYear(navState.year);
-      
+    if (status === 'success' && url && year) {
       // Update global browser state for system state tracking
-      updateBrowserState(navState.url, navState.year);
+      updateBrowserState();
     }
-  }, [navState.status, navState.url, navState.year]);
+  }, [status, url, year, updateBrowserState]);
 
   // Effect to check for scrollable favorites
   useEffect(() => {
@@ -294,12 +179,12 @@ export function InternetExplorerAppComponent({
   // Handler for iframe load
   const handleIframeLoad = () => {
     // Only update if the iframe has a data-token attribute matching the current navigation token
-    if (iframeRef.current && iframeRef.current.dataset.navToken === navState.token.toString()) {
+    if (iframeRef.current && iframeRef.current.dataset.navToken === token.toString()) {
       // Introduce a tiny delay to ensure the loading state renders reliably
       setTimeout(() => {
         // Check token again inside timeout in case another navigation started very quickly
-        if (iframeRef.current && iframeRef.current.dataset.navToken === navState.token.toString()) {
-          dispatchNav({ type: 'LOAD_SUCCESS' });
+        if (iframeRef.current && iframeRef.current.dataset.navToken === token.toString()) {
+          loadSuccess();
         }
       }, 50); // 50ms should be imperceptible but enough for rendering
     }
@@ -308,15 +193,12 @@ export function InternetExplorerAppComponent({
   // Handler for iframe error
   const handleIframeError = () => {
     // Only update if the iframe has a data-token attribute matching the current navigation token
-    if (iframeRef.current && iframeRef.current.dataset.navToken === navState.token.toString()) {
+    if (iframeRef.current && iframeRef.current.dataset.navToken === token.toString()) {
       // Introduce a tiny delay
       setTimeout(() => {
         // Check token again inside timeout
-        if (iframeRef.current && iframeRef.current.dataset.navToken === navState.token.toString()) {
-          dispatchNav({ 
-            type: 'LOAD_ERROR', 
-            error: `Cannot access ${navState.finalUrl || navState.url}. The website might be blocking access or requires authentication.` 
-          });
+        if (iframeRef.current && iframeRef.current.dataset.navToken === token.toString()) {
+          loadError(`Cannot access ${finalUrl || url}. The website might be blocking access or requires authentication.`);
         }
       }, 50); // 50ms delay
     }
@@ -324,9 +206,9 @@ export function InternetExplorerAppComponent({
 
   // Main navigation handler
   const handleNavigate = async (
-    targetUrl: string = navState.url,
+    targetUrl: string = url,
     addToHistoryStack = true,
-    year: string = navState.year,
+    targetYear: string = year,
     forceRegenerate = false
   ) => {
     // Cancel any ongoing navigation
@@ -344,24 +226,22 @@ export function InternetExplorerAppComponent({
     }
     
     // Reset iframe if needed to stop any loading
-    if (iframeRef.current && navState.status === 'loading') {
+    if (iframeRef.current && status === 'loading') {
       iframeRef.current.src = 'about:blank';
     }
 
     // Determine navigation mode based on year
-    const mode = classifyYear(year);
+    const newMode = targetYear === "current" 
+      ? "now" 
+      : parseInt(targetYear) > new Date().getFullYear() 
+        ? "future" 
+        : "past";
     
     // Generate a new navigation token
-    const token = Date.now();
+    const newToken = Date.now();
     
     // Update navigation state to start loading
-    dispatchNav({
-      type: 'NAVIGATE_START',
-      url: targetUrl,
-      year,
-      mode,
-      token,
-    });
+    navigateStart(targetUrl, targetYear, newMode, newToken);
 
     // Format URL properly
     let newUrl = targetUrl.startsWith("http")
@@ -375,24 +255,22 @@ export function InternetExplorerAppComponent({
 
     try {
       // Handle navigation based on mode
-      if (mode === "future") {
+      if (newMode === "future") {
         // For future years, generate AI content
-        await generateFuturisticWebsite(targetUrl, year, forceRegenerate, abortController.signal);
+        await generateFuturisticWebsite(targetUrl, targetYear, forceRegenerate, abortController.signal);
         // Check if aborted during generation
         if (abortController.signal.aborted) return;
-        // Dispatch success *after* generation completes
-        dispatchNav({ type: 'LOAD_SUCCESS', aiGeneratedHtml });
       } else {
         // For past or current, use direct URL or Wayback
-        if (mode === "past") {
+        if (newMode === "past") {
           // Get Wayback URL for past years
-          const waybackUrl = await getWaybackUrl(newUrl, year);
+          const waybackUrl = await getWaybackUrl(newUrl, targetYear);
           // Check if aborted while getting wayback URL
           if (abortController.signal.aborted) return;
           if (waybackUrl) {
             newUrl = waybackUrl;
           }
-        } else if (mode === "now") {
+        } else if (newMode === "now") {
           // Check if the site allows embedding before deciding whether to proxy
           try {
             const checkRes = await fetch(
@@ -434,17 +312,17 @@ export function InternetExplorerAppComponent({
         }
         
         // Add cache buster if URL is the same to force reload
-        if (newUrl === navState.finalUrl) {
+        if (newUrl === finalUrl) {
           newUrl = `${newUrl}${newUrl.includes("?") ? "&" : "?"}_t=${Date.now()}`;
         }
         
         // Update final URL in state
-        dispatchNav({ type: 'SET_FINAL_URL', finalUrl: newUrl });
+        setFinalUrl(newUrl);
         
         // Set iframe src with the token for tracking
         // The iframe handlers (onLoad/onError) will dispatch LOAD_SUCCESS/LOAD_ERROR
         if (iframeRef.current) {
-          iframeRef.current.dataset.navToken = token.toString();
+          iframeRef.current.dataset.navToken = newToken.toString();
           iframeRef.current.src = newUrl;
         }
       }
@@ -455,95 +333,74 @@ export function InternetExplorerAppComponent({
           url: targetUrl,
           title: originalHostname,
           favicon: originalFavicon,
-          timestamp: Date.now(),
-          year: year !== "current" ? year : undefined,
+          year: targetYear !== "current" ? targetYear : undefined,
         };
 
-        setHistory((prev) => [newEntry, ...prev]);
-        setHistoryIndex(0);
-        addToHistory(newEntry);
+        addHistoryEntry(newEntry);
       }
     } catch (error) {
       // Only update error state if this navigation is still active
       if (!abortController.signal.aborted) {
-        dispatchNav({ 
-          type: 'LOAD_ERROR', 
-          error: `Failed to navigate: ${error instanceof Error ? error.message : String(error)}`
-        });
+        loadError(`Failed to navigate: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
   };
 
   const handleNavigateWithHistory = async (
     targetUrl: string,
-    year?: string
+    targetYear?: string
   ) => {
-    setIsNavigatingHistory(false);
+    setNavigatingHistory(false);
     // When navigating from history, we want to use cache if available
-    handleNavigate(targetUrl, true, year || navState.year, false);
+    handleNavigate(targetUrl, true, targetYear || year, false);
   };
 
   const handleGoBack = () => {
     if (historyIndex < history.length - 1) {
-      setIsNavigatingHistory(true);
+      setNavigatingHistory(true);
       const nextIndex = historyIndex + 1;
       setHistoryIndex(nextIndex);
       const entry = history[nextIndex];
       // When going back, we want to use cache if available
       handleNavigate(entry.url, false, entry.year || "current", false);
-      setIsNavigatingHistory(false);
+      setNavigatingHistory(false);
     }
   };
 
   const handleGoForward = () => {
     if (historyIndex > 0) {
-      setIsNavigatingHistory(true);
+      setNavigatingHistory(true);
       const nextIndex = historyIndex - 1;
       setHistoryIndex(nextIndex);
       const entry = history[nextIndex];
       // When going forward, we want to use cache if available
       handleNavigate(entry.url, false, entry.year || "current", false);
-      setIsNavigatingHistory(false);
+      setNavigatingHistory(false);
     }
   };
 
   const handleAddFavorite = () => {
     setNewFavoriteTitle(
-      new URL(navState.finalUrl || navState.url).hostname
+      new URL(finalUrl || url).hostname
     );
-    setIsTitleDialogOpen(true);
+    setTitleDialogOpen(true);
   };
 
   const handleTitleSubmit = () => {
     if (!newFavoriteTitle) return;
-    const newFavorites = [
-      ...favorites,
-      {
-        title: newFavoriteTitle,
-        url: navState.url,
-        favicon: `https://www.google.com/s2/favicons?domain=${
-          new URL(navState.finalUrl || navState.url).hostname
-        }&sz=32`,
-        year: navState.year !== "current" ? navState.year : undefined,
-      },
-    ];
-    setFavorites(newFavorites);
-    saveFavorites(newFavorites);
-    setIsTitleDialogOpen(false);
-  };
-
-  const handleClearFavorites = () => {
-    setClearFavoritesDialogOpen(true);
-  };
-
-  const confirmClearFavorites = () => {
-    setFavorites([]);
-    saveFavorites([]);
-    setClearFavoritesDialogOpen(false);
+    addFavorite({
+      title: newFavoriteTitle,
+      url: url,
+      favicon: `https://www.google.com/s2/favicons?domain=${
+        new URL(finalUrl || url).hostname
+      }&sz=32`,
+      year: year !== "current" ? year : undefined,
+    });
+    setTitleDialogOpen(false);
   };
 
   const handleRefresh = () => {
-    handleNavigate(navState.url, false, navState.year, true);
+    handleNavigate(url, false, year, true);
   };
 
   const handleStop = () => {
@@ -553,7 +410,7 @@ export function InternetExplorerAppComponent({
     }
     
     // Reset navigation state
-    dispatchNav({ type: 'CANCEL' });
+    cancel();
     
     // Stop AI generation if in progress
     if (isAiLoading) {
@@ -572,25 +429,14 @@ export function InternetExplorerAppComponent({
   };
 
   const handleHome = () => {
-    handleNavigate(DEFAULT_URL, true, DEFAULT_YEAR);
-  };
-
-  const handleClearHistory = () => {
-    setClearHistoryDialogOpen(true);
-  };
-
-  const confirmClearHistory = () => {
-    setHistory([]);
-    setHistoryIndex(-1);
-    localStorage.removeItem(APP_STORAGE_KEYS["internet-explorer"].HISTORY);
-    setClearHistoryDialogOpen(false);
+    handleNavigate("apple.com", true, "2002");
   };
 
   if (!isWindowOpen) return null;
 
   // Extract current year for display purposes
-  const isFutureYear = navState.mode === "future";
-  const isLoading = navState.status === "loading" || isAiLoading;
+  const isFutureYear = mode === "future";
+  const isLoading = status === "loading" || isAiLoading;
 
   // Animation variants for the loading bar
   const loadingBarVariants = {
@@ -615,13 +461,13 @@ export function InternetExplorerAppComponent({
         onStop={handleStop}
         onFocusUrlInput={handleGoToUrl}
         onHome={handleHome}
-        onShowHelp={() => setIsHelpDialogOpen(true)}
-        onShowAbout={() => setIsAboutDialogOpen(true)}
+        onShowHelp={() => setHelpDialogOpen(true)}
+        onShowAbout={() => setAboutDialogOpen(true)}
         isLoading={isLoading}
         favorites={favorites}
         history={history}
         onAddFavorite={handleAddFavorite}
-        onClearFavorites={handleClearFavorites}
+        onClearFavorites={() => setClearFavoritesDialogOpen(true)}
         onNavigateToFavorite={(url, year) =>
           handleNavigateWithHistory(url, year)
         }
@@ -630,7 +476,7 @@ export function InternetExplorerAppComponent({
         onGoForward={handleGoForward}
         canGoBack={historyIndex < history.length - 1}
         canGoForward={historyIndex > 0}
-        onClearHistory={handleClearHistory}
+        onClearHistory={() => setClearHistoryDialogOpen(true)}
         onClose={onClose}
       />
       <WindowFrame
@@ -664,8 +510,8 @@ export function InternetExplorerAppComponent({
               </div>
               <Input
                 ref={urlInputRef}
-                value={navState.url}
-                onChange={(e) => dispatchNav({ type: 'SET_URL', url: e.target.value })}
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     handleNavigate();
@@ -676,8 +522,8 @@ export function InternetExplorerAppComponent({
               />
               <div className="flex items-center gap-2">
                 <Select
-                  value={navState.year}
-                  onValueChange={(year) => handleNavigate(navState.url, true, year)}
+                  value={year}
+                  onValueChange={(year) => handleNavigate(url, true, year)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Year" />
@@ -737,12 +583,12 @@ export function InternetExplorerAppComponent({
           </div>
           <div className="flex-1 relative">
             {/* Content first */} 
-            {navState.error ? (
-              <div className="p-4 text-red-500">{navState.error}</div>
+            {error ? (
+              <div className="p-4 text-red-500">{error}</div>
             ) : isFutureYear ? ( // Render HtmlPreview if it's a future year
               <div className="w-full h-full overflow-hidden absolute inset-0">
                 <HtmlPreview
-                  htmlContent={aiGeneratedHtml || ""}
+                  htmlContent={isAiLoading ? generatedHtml || "" : aiGeneratedHtml || ""}
                   onInteractionChange={() => {}}
                   className="border-none"
                   maxHeight="none"
@@ -756,7 +602,7 @@ export function InternetExplorerAppComponent({
               // Render iframe for current/past years
               <iframe
                 ref={iframeRef}
-                src={navState.finalUrl || ""}
+                src={finalUrl || ""}
                 className="w-full h-full border-0"
                 onLoad={handleIframeLoad}
                 onError={handleIframeError}
@@ -781,7 +627,7 @@ export function InternetExplorerAppComponent({
         </div>
         <InputDialog
           isOpen={isTitleDialogOpen}
-          onOpenChange={setIsTitleDialogOpen}
+          onOpenChange={setTitleDialogOpen}
           onSubmit={handleTitleSubmit}
           title="Add Favorite"
           description="Enter a title for this favorite"
@@ -790,26 +636,26 @@ export function InternetExplorerAppComponent({
         />
         <HelpDialog
           isOpen={isHelpDialogOpen}
-          onOpenChange={setIsHelpDialogOpen}
+          onOpenChange={setHelpDialogOpen}
           helpItems={helpItems}
           appName="Internet Explorer"
         />
         <AboutDialog
           isOpen={isAboutDialogOpen}
-          onOpenChange={setIsAboutDialogOpen}
+          onOpenChange={setAboutDialogOpen}
           metadata={appMetadata}
         />
         <ConfirmDialog
           isOpen={isClearFavoritesDialogOpen}
           onOpenChange={setClearFavoritesDialogOpen}
-          onConfirm={confirmClearFavorites}
+          onConfirm={clearFavorites}
           title="Clear Favorites"
           description="Are you sure you want to clear all favorites?"
         />
         <ConfirmDialog
           isOpen={isClearHistoryDialogOpen}
           onOpenChange={setClearHistoryDialogOpen}
-          onConfirm={confirmClearHistory}
+          onConfirm={clearHistory}
           title="Clear History"
           description="Are you sure you want to clear all history?"
         />

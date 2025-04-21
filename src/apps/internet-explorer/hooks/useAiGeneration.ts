@@ -1,6 +1,6 @@
 import { useChat } from "ai/react";
 import { useState, useEffect, useRef } from "react";
-import { loadCachedAiPage, saveCachedAiPage } from "@/utils/storage";
+import { useInternetExplorerStore } from "@/stores/useInternetExplorerStore";
 
 interface UseAiGenerationProps {
   onLoadingChange?: (isLoading: boolean) => void;
@@ -16,6 +16,12 @@ interface UseAiGenerationReturn {
 export function useAiGeneration({ onLoadingChange }: UseAiGenerationProps = {}): UseAiGenerationReturn {
   const [aiGeneratedHtml, setAiGeneratedHtml] = useState<string | null>(null);
   const currentGenerationId = useRef<string | null>(null);
+  const isGenerationComplete = useRef<boolean>(false);
+  
+  // Use the Zustand store for caching and updating the store
+  const cacheAiPage = useInternetExplorerStore(state => state.cacheAiPage);
+  const getCachedAiPage = useInternetExplorerStore(state => state.getCachedAiPage);
+  const loadSuccess = useInternetExplorerStore(state => state.loadSuccess);
 
   const {
     messages: aiMessages,
@@ -62,12 +68,16 @@ export function useAiGeneration({ onLoadingChange }: UseAiGenerationProps = {}):
     // Generate a unique ID for this generation request
     const generationId = `${url}-${year}-${Date.now()}`;
     currentGenerationId.current = generationId;
+    isGenerationComplete.current = false;
     
     // Check cache first unless force regenerating
     if (!forceRegenerate) {
-      const cachedHtml = loadCachedAiPage(url, year);
+      const cachedHtml = getCachedAiPage(url, year);
       if (cachedHtml) {
         setAiGeneratedHtml(cachedHtml);
+        // Update the store directly when using cached content
+        loadSuccess(undefined, cachedHtml);
+        isGenerationComplete.current = true;
         return;
       }
     }
@@ -151,26 +161,39 @@ REQUIREMENTS
           .replace(/^\s*```(?:html)?\s*\n?|\n?\s*```\s*$/g, "")
           .trim();
 
-        // Save to cache when generation completes
-        if (aiMessages.length >= 2) {
-          const userMessage = aiMessages[aiMessages.length - 2];
-          if (userMessage.role === "user") {
-            // Extract URL and year from the prompt
-            const urlMatch = userMessage.content.match(/URL: (https?:\/\/[^\n]+)/);
-            const yearMatch = userMessage.content.match(/It is the year (\d+)/);
-            
-            if (urlMatch && yearMatch) {
-              const [, url] = urlMatch;
-              const [, year] = yearMatch;
-              saveCachedAiPage(url, year, htmlContent);
+        // Update local state for streaming display
+        setAiGeneratedHtml(htmlContent);
+
+        // Only save to cache and update store when generation is complete
+        if (!isAiLoading && !isGenerationComplete.current) {
+          isGenerationComplete.current = true;
+          
+          // Get the user message to extract URL and year
+          if (aiMessages.length >= 2) {
+            const userMessage = aiMessages[aiMessages.length - 2];
+            if (userMessage.role === "user") {
+              // Extract URL and year from the prompt
+              const urlMatch = userMessage.content.match(/URL: (https?:\/\/[^\n]+)/);
+              const yearMatch = userMessage.content.match(/It is the year (\d+)/);
+              
+              if (urlMatch && yearMatch) {
+                const [, url] = urlMatch;
+                const [, year] = yearMatch;
+                
+                // Cache the completed HTML
+                cacheAiPage(url, year, htmlContent);
+                
+                // Update the store with the final HTML
+                loadSuccess(undefined, htmlContent);
+                
+                console.log("[IE] AI generation complete, saved to cache and store");
+              }
             }
           }
         }
-
-        setAiGeneratedHtml(htmlContent);
       }
     }
-  }, [aiMessages]);
+  }, [aiMessages, isAiLoading, cacheAiPage, loadSuccess]);
 
   // Effect to notify parent of loading state changes
   useEffect(() => {
