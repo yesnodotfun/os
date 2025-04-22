@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { AppProps } from "../../base/types";
 import { WindowFrame } from "@/components/layout/WindowFrame";
 import { Input } from "@/components/ui/input";
@@ -23,47 +23,35 @@ import { useAiGeneration } from "../hooks/useAiGeneration";
 import { useInternetExplorerStore, DEFAULT_FAVORITES } from "@/stores/useInternetExplorerStore";
 import FutureSettingsDialog from "@/components/dialogs/FutureSettingsDialog";
 
+// Define type for iframe check response
+interface IframeCheckResponse {
+  allowed: boolean;
+  reason?: string;
+  title?: string;
+}
+
 export function InternetExplorerAppComponent({
   isWindowOpen,
   onClose,
   isForeground,
 }: AppProps) {
-  // Use the Zustand store instead of local state
-  const {
-    url, setUrl,
-    year,
-    mode,
-    status,
-    finalUrl,
-    aiGeneratedHtml,
-    error,
-    token,
-    favorites,
-    history,
-    historyIndex,
-    isTitleDialogOpen, setTitleDialogOpen,
-    newFavoriteTitle, setNewFavoriteTitle,
-    isHelpDialogOpen, setHelpDialogOpen,
-    isAboutDialogOpen, setAboutDialogOpen,
-    isNavigatingHistory, setNavigatingHistory,
-    isClearFavoritesDialogOpen, setClearFavoritesDialogOpen,
-    isClearHistoryDialogOpen, setClearHistoryDialogOpen,
-    navigateStart,
-    setFinalUrl,
-    loadSuccess,
-    loadError,
-    cancel,
-    addFavorite,
-    clearFavorites,
-    addHistoryEntry,
-    setHistoryIndex,
-    clearHistory,
-    updateBrowserState,
-    timelineSettings,
-  } = useInternetExplorerStore();
-
   // State for reset favorites dialog
   const [isResetFavoritesDialogOpen, setResetFavoritesDialogOpen] = useState(false);
+
+  // State to hold title prefetched during iframe-check
+  const [prefetchedTitle, setPrefetchedTitle] = useState<string | null>(null);
+
+  // --- Store Selectors/Actions (Destructure them here for stability in callbacks) ---
+  const { 
+    setUrl, navigateStart, setFinalUrl, loadSuccess, loadError, cancel, 
+    addFavorite, clearFavorites, setHistoryIndex, clearHistory, 
+    updateBrowserState, setTitleDialogOpen, setNewFavoriteTitle, setHelpDialogOpen, 
+    setAboutDialogOpen, setNavigatingHistory, setClearFavoritesDialogOpen, 
+    setClearHistoryDialogOpen, url, year, mode, token, favorites, history, historyIndex, 
+    isTitleDialogOpen, newFavoriteTitle, isHelpDialogOpen, isAboutDialogOpen, 
+    isNavigatingHistory, isClearFavoritesDialogOpen, isClearHistoryDialogOpen, currentPageTitle,
+    timelineSettings, status, finalUrl, aiGeneratedHtml, error
+  } = useInternetExplorerStore();
 
   // Unified AbortController for cancellations
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -79,16 +67,14 @@ export function InternetExplorerAppComponent({
   const [isFutureSettingsDialogOpen, setFutureSettingsDialogOpen] = useState(false);
 
   // AI generation hook with custom timeline from store
-  const {
-    generateFuturisticWebsite,
-    aiGeneratedHtml: generatedHtml,
-    isAiLoading,
-    stopGeneration,
-  } = useAiGeneration({
-    onLoadingChange: () => {
-      // Update loading state
-    },
-    customTimeline: timelineSettings,
+  const { 
+    generateFuturisticWebsite, 
+    aiGeneratedHtml: generatedHtml, // Renamed to avoid conflict with store state 
+    isAiLoading, 
+    stopGeneration 
+  } = useAiGeneration({ 
+    onLoadingChange: () => {}, // No need for separate loading state here 
+    customTimeline: timelineSettings 
   });
 
   // Create past years array (from 1996 to current year)
@@ -105,78 +91,9 @@ export function InternetExplorerAppComponent({
     "2150", "2200", "2250", "2300", "2400", "2500", "2750", "3000"
   ].sort((a, b) => parseInt(b) - parseInt(a)); // Newest (largest) first
 
-  // Effect to handle initial navigation
-  useEffect(() => {
-    handleNavigate(url, true, year, false);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run on mount
+  // --- Callback Handlers ---
 
-  // Effect to handle messages from the iframe (for intercepted link clicks)
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      // Basic security check: ensure the message has the expected structure
-      // In production, you might want to verify event.origin as well
-      if (
-        event.data &&
-        event.data.type === "iframeNavigation" &&
-        typeof event.data.url === "string"
-      ) {
-        console.log(`[IE] Received navigation request from iframe: ${event.data.url}`);
-        // Trigger navigation using the current year setting
-        handleNavigate(event.data.url, true, year);
-      } else if (event.data && event.data.type === "goBack") {
-        // Handle back button click from error page
-        console.log(`[IE] Received back button request from iframe`);
-        handleGoBack();
-      }
-    };
-
-    window.addEventListener("message", handleMessage);
-
-    // Cleanup listener on component unmount
-    return () => {
-      window.removeEventListener("message", handleMessage);
-    };
-  }, [year]); 
-
-  // Effect to persist navigation state
-  useEffect(() => {
-    if (status === 'success' && url && year) {
-      // Update global browser state for system state tracking
-      updateBrowserState();
-    }
-  }, [status, url, year, updateBrowserState]);
-
-  // Effect to check for scrollable favorites
-  useEffect(() => {
-    const checkScroll = () => {
-      const container = favoritesContainerRef.current;
-      if (container) {
-        const hasMore =
-          container.scrollWidth > container.clientWidth &&
-          container.scrollLeft < container.scrollWidth - container.clientWidth;
-        setHasMoreToScroll(hasMore);
-      }
-    };
-
-    const container = favoritesContainerRef.current;
-    if (container) {
-      container.addEventListener("scroll", checkScroll);
-      // Also check on resize
-      window.addEventListener("resize", checkScroll);
-      // Initial check
-      checkScroll();
-    }
-
-    return () => {
-      if (container) {
-        container.removeEventListener("scroll", checkScroll);
-        window.removeEventListener("resize", checkScroll);
-      }
-    };
-  }, [favorites]); // Re-run when favorites change
-
-  // Helper function to get Wayback URL
+  // Helper function to get Wayback URL (can remain outside useCallback)
   const getWaybackUrl = async (targetUrl: string, year: string) => {
     if (year === "current") return targetUrl;
 
@@ -192,8 +109,8 @@ export function InternetExplorerAppComponent({
 
     return `https://web.archive.org/web/${year}${month}${day}/${formattedUrl}`;
   };
-
-  // Handler for iframe load
+  
+  // Handler for iframe load (keep outside useCallback for now, depends on refs)
   const handleIframeLoad = () => {
     // Only update if the iframe has a data-token attribute matching the current navigation token
     if (iframeRef.current && iframeRef.current.dataset.navToken === token.toString()) {
@@ -201,13 +118,60 @@ export function InternetExplorerAppComponent({
       setTimeout(() => {
         // Check token again inside timeout in case another navigation started very quickly
         if (iframeRef.current && iframeRef.current.dataset.navToken === token.toString()) {
-          loadSuccess();
+          
+          let loadedTitle: string | null = null;
+          // Use the potentially updated URL from state
+          const fallbackTitle = url ? new URL(url.startsWith("http") ? url : `https://${url}`).hostname : "Internet Explorer";
+
+          // 1. Prioritize the prefetched title if it exists
+          if (prefetchedTitle) {
+              loadedTitle = prefetchedTitle;
+          } else {
+            // 2. If no prefetched title, try reading from iframe document (might fail)
+            try {
+              loadedTitle = iframeRef.current?.contentDocument?.title || null;
+              // Decode potential entities in title
+              if (loadedTitle) {
+                const txt = document.createElement("textarea");
+                txt.innerHTML = loadedTitle;
+                loadedTitle = txt.value.trim();
+              }
+            } catch (e) {
+              console.warn("[IE] Failed to read iframe document title directly:", e);
+            }
+
+            // 3. If still no title and proxied, try reading the injected meta tag
+            if (!loadedTitle && finalUrl?.startsWith('/api/iframe-check')) {
+              try {
+                const metaTitle = iframeRef.current?.contentDocument?.querySelector('meta[name=\"page-title\"]')?.getAttribute('content');
+                if (metaTitle) {
+                  loadedTitle = decodeURIComponent(metaTitle); // Decode the title from meta tag
+                }
+              } catch (e) {
+                console.warn("[IE] Failed to read page-title meta tag:", e);
+              }
+            }
+          }
+          
+          // Call loadSuccess, updating the title if found, otherwise use fallback
+          // Also pass history data using current URL and year state
+          const favicon = `https://www.google.com/s2/favicons?domain=${new URL(url.startsWith("http") ? url : `https://${url}`).hostname}&sz=32`;
+          loadSuccess({ 
+            title: loadedTitle || fallbackTitle, 
+            targetUrl: url, 
+            targetYear: year, 
+            favicon: favicon, 
+            addToHistory: !isNavigatingHistory // Don't add history if we are navigating back/forward
+          });
+
+          // Reset prefetched title after using it (or attempting to)
+          setPrefetchedTitle(null);
         }
       }, 50); // 50ms should be imperceptible but enough for rendering
     }
   };
 
-  // Handler for iframe error
+  // Handler for iframe error (keep outside useCallback for now, depends on refs)
   const handleIframeError = () => {
     // Only update if the iframe has a data-token attribute matching the current navigation token
     if (iframeRef.current && iframeRef.current.dataset.navToken === token.toString()) {
@@ -215,16 +179,16 @@ export function InternetExplorerAppComponent({
       setTimeout(() => {
         // Check token again inside timeout
         if (iframeRef.current && iframeRef.current.dataset.navToken === token.toString()) {
+          // Use potentially updated finalUrl and url from state
           loadError(`Cannot access ${finalUrl || url}. The website might be blocking access or requires authentication.`);
         }
       }, 50); // 50ms delay
     }
   };
 
-  // Main navigation handler
-  const handleNavigate = async (
+  // Main navigation handler (wrapped in useCallback)
+  const handleNavigate = useCallback(async (
     targetUrl: string = url,
-    addToHistoryStack = true,
     targetYear: string = year,
     forceRegenerate = false
   ) => {
@@ -259,101 +223,102 @@ export function InternetExplorerAppComponent({
     
     // Update navigation state to start loading
     navigateStart(targetUrl, targetYear, newMode, newToken);
+    // Reset prefetched title for the new navigation
+    setPrefetchedTitle(null);
 
     // Format URL properly
-    let newUrl = targetUrl.startsWith("http")
+    let normalizedTargetUrl = targetUrl.startsWith("http")
       ? targetUrl
       : `https://${targetUrl}`;
-
-    // Store original URL info for history/favorites
-    const originalUrlInfo = new URL(newUrl);
-    const originalHostname = originalUrlInfo.hostname;
-    const originalFavicon = `https://www.google.com/s2/favicons?domain=${originalHostname}&sz=32`;
 
     try {
       // Handle navigation based on mode
       if (newMode === "future") {
         // For future years, generate AI content
-        await generateFuturisticWebsite(targetUrl, targetYear, forceRegenerate, abortController.signal);
+        // Title is handled by useAiGeneration calling loadSuccess
+        // Pass prefetched title (if available from a previous check) to AI hook
+        await generateFuturisticWebsite(
+          normalizedTargetUrl, 
+          targetYear, 
+          forceRegenerate, 
+          abortController.signal,
+          prefetchedTitle // Pass the title here
+        );
         // Check if aborted during generation
         if (abortController.signal.aborted) return;
       } else {
-        // For past or current, use direct URL or Wayback
+        // For past or current, use direct URL, Wayback, or Proxy
+        let urlToLoad = normalizedTargetUrl; // Initialize URL to load
+
         if (newMode === "past") {
           // Get Wayback URL for past years
-          const waybackUrl = await getWaybackUrl(newUrl, targetYear);
+          const waybackUrl = await getWaybackUrl(normalizedTargetUrl, targetYear);
           // Check if aborted while getting wayback URL
           if (abortController.signal.aborted) return;
           if (waybackUrl) {
-            newUrl = waybackUrl;
+            urlToLoad = waybackUrl;
           }
+          // Title for Wayback will be set in handleIframeLoad
         } else if (newMode === "now") {
           // Check if the site allows embedding before deciding whether to proxy
           try {
             const checkRes = await fetch(
-              `/api/iframe-check?mode=check&url=${encodeURIComponent(targetUrl)}`,
+              `/api/iframe-check?mode=check&url=${encodeURIComponent(normalizedTargetUrl)}`,
               { signal: abortController.signal }
             );
 
-            // Check MUST be ok (200) to proceed
             if (checkRes.ok) {
-              const { allowed, reason } = (await checkRes.json()) as {
-                allowed: boolean;
-                reason?: string;
-              };
+              const checkData = (await checkRes.json()) as IframeCheckResponse;
 
-              if (allowed) {
+              if (checkData.allowed) {
                 // Site allows direct embedding, proceed without proxy
-                console.info(`[IE] Loading ${targetUrl} directly (embedding allowed).`);
-                // newUrl is already correct (direct URL)
+                console.info(`[IE] Loading ${normalizedTargetUrl} directly (embedding allowed).`);
+                urlToLoad = normalizedTargetUrl; // Use original URL
+                // Store the prefetched title if available
+                if (checkData.title) {
+                    setPrefetchedTitle(checkData.title);
+                }
               } else {
                 // Fallback: proxy the content through the endpoint
                 console.info(
-                  `[IE] Using proxy for ${targetUrl} because direct embedding is blocked${
-                    reason ? ` (${reason})` : ""
-                  }.`
+                  `[IE] Using proxy for ${normalizedTargetUrl} because direct embedding is blocked${checkData.reason ? ` (${checkData.reason})` : ""}.`
                 );
-                // IMPORTANT: Proxy the *original* targetUrl, not the potentially modified newUrl
-                newUrl = `/api/iframe-check?url=${encodeURIComponent(targetUrl)}`;
+                urlToLoad = `/api/iframe-check?url=${encodeURIComponent(normalizedTargetUrl)}`;
+                // Title for proxy will be set in handleIframeLoad from meta tag
               }
             } else {
-              // If check response itself is not ok (e.g., 500 error in the API route), try direct load
-              console.warn(`[IE] iframe-check request failed (status ${checkRes.status}), attempting direct load for ${targetUrl}`);
-              // Proceed with direct load (newUrl is unchanged)
+              // If check response itself is not ok, try direct load
+              console.warn(`[IE] iframe-check request failed (status ${checkRes.status}), attempting direct load for ${normalizedTargetUrl}`);
+              urlToLoad = normalizedTargetUrl;
+              // Title will be set in handleIframeLoad
             }
           } catch (error) {
-            // If the check fetch itself fails (network error etc.), try direct load
-            console.warn(`[IE] iframe-check fetch failed, attempting direct load for ${targetUrl}:`, error);
-            // Proceed with direct load (newUrl is unchanged)
+             if (error instanceof Error && error.name === 'AbortError') {
+              console.log("[IE] iframe-check fetch aborted");
+              return; // Don't proceed if aborted
+            }
+            // If the check fetch itself fails, try direct load
+            console.warn(`[IE] iframe-check fetch failed, attempting direct load for ${normalizedTargetUrl}:`, error);
+            urlToLoad = normalizedTargetUrl;
+            // Title will be set in handleIframeLoad
           }
         }
         
         // Add cache buster if URL is the same to force reload
-        if (newUrl === finalUrl) {
-          newUrl = `${newUrl}${newUrl.includes("?") ? "&" : "?"}_t=${Date.now()}`;
+        if (urlToLoad === finalUrl) {
+          urlToLoad = `${urlToLoad}${urlToLoad.includes("?") ? "&" : "?"}_t=${Date.now()}`;
         }
         
-        // Update final URL in state
-        setFinalUrl(newUrl);
+        // Update final URL state
+        setFinalUrl(urlToLoad);
+        // Title will be set by handleIframeLoad for all iframe cases now
         
         // Set iframe src with the token for tracking
         // The iframe handlers (onLoad/onError) will dispatch LOAD_SUCCESS/LOAD_ERROR
         if (iframeRef.current) {
           iframeRef.current.dataset.navToken = newToken.toString();
-          iframeRef.current.src = newUrl;
+          iframeRef.current.src = urlToLoad;
         }
-      }
-
-      // Add to history if needed
-      if (addToHistoryStack && !isNavigatingHistory) {
-        const newEntry = {
-          url: targetUrl,
-          title: originalHostname,
-          favicon: originalFavicon,
-          year: targetYear !== "current" ? targetYear : undefined,
-        };
-
-        addHistoryEntry(newEntry);
       }
     } catch (error) {
       // Only update error state if this navigation is still active
@@ -361,82 +326,84 @@ export function InternetExplorerAppComponent({
         loadError(`Failed to navigate: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
-  };
+  }, [url, year, finalUrl, status, token, isAiLoading, isNavigatingHistory, currentPageTitle, 
+      navigateStart, setFinalUrl, loadError, generateFuturisticWebsite, stopGeneration]);
 
-  const handleNavigateWithHistory = async (
+  const handleNavigateWithHistory = useCallback(async (
     targetUrl: string,
     targetYear?: string
   ) => {
     setNavigatingHistory(false);
     // When navigating from history, we want to use cache if available
-    handleNavigate(targetUrl, true, targetYear || year, false);
-  };
+    handleNavigate(targetUrl, targetYear || year, false);
+  }, [handleNavigate, setNavigatingHistory, year]); 
 
-  const handleGoBack = () => {
+  const handleGoBack = useCallback(() => {
     if (historyIndex < history.length - 1) {
       setNavigatingHistory(true);
       const nextIndex = historyIndex + 1;
       setHistoryIndex(nextIndex);
       const entry = history[nextIndex];
       // When going back, we want to use cache if available
-      handleNavigate(entry.url, false, entry.year || "current", false);
+      handleNavigate(entry.url, entry.year || "current", false);
       setNavigatingHistory(false);
     }
-  };
+  }, [history, historyIndex, setHistoryIndex, handleNavigate, setNavigatingHistory]); 
 
-  const handleGoForward = () => {
+  const handleGoForward = useCallback(() => {
     if (historyIndex > 0) {
       setNavigatingHistory(true);
       const nextIndex = historyIndex - 1;
       setHistoryIndex(nextIndex);
       const entry = history[nextIndex];
       // When going forward, we want to use cache if available
-      handleNavigate(entry.url, false, entry.year || "current", false);
+      handleNavigate(entry.url, entry.year || "current", false);
       setNavigatingHistory(false);
     }
-  };
+  }, [history, historyIndex, setHistoryIndex, handleNavigate, setNavigatingHistory]); 
 
-  const handleAddFavorite = () => {
+  const handleAddFavorite = useCallback(() => {
+    // Use the potentially updated currentPageTitle, finalUrl, url from state
     setNewFavoriteTitle(
-      new URL(finalUrl || url).hostname
+      currentPageTitle || new URL(finalUrl || url).hostname // Use current title or fallback
     );
     setTitleDialogOpen(true);
-  };
+  }, [currentPageTitle, finalUrl, url, setNewFavoriteTitle, setTitleDialogOpen]);
 
-  const handleTitleSubmit = () => {
+  const handleTitleSubmit = useCallback(() => {
     if (!newFavoriteTitle) return;
+    // Use potentially updated finalUrl, url from state
     addFavorite({
       title: newFavoriteTitle,
       url: url,
-      favicon: `https://www.google.com/s2/favicons?domain=${
-        new URL(finalUrl || url).hostname
-      }&sz=32`,
+      favicon: `https://www.google.com/s2/favicons?domain=${new URL(finalUrl || url).hostname}&sz=32`,
       year: year !== "current" ? year : undefined,
     });
     setTitleDialogOpen(false);
-  };
+  }, [newFavoriteTitle, addFavorite, finalUrl, url, year, setTitleDialogOpen]);
 
-  const handleResetFavorites = () => {
+  const handleResetFavorites = useCallback(() => {
     // Reset favorites to DEFAULT_FAVORITES
     useInternetExplorerStore.setState((state) => ({
       ...state,
       favorites: DEFAULT_FAVORITES
     }));
     setResetFavoritesDialogOpen(false);
-  };
+  }, [setResetFavoritesDialogOpen]);
 
-  const handleClearFavorites = () => {
+  const handleClearFavorites = useCallback(() => {
     // Clear favorites
     clearFavorites();
     // Close the dialog
     setClearFavoritesDialogOpen(false);
-  };
+  }, [clearFavorites, setClearFavoritesDialogOpen]);
 
-  const handleRefresh = () => {
-    handleNavigate(url, false, year, true);
-  };
+  const handleRefresh = useCallback(() => {
+    // Use potentially updated url, year from state
+    handleNavigate(url, year, true);
+  }, [handleNavigate, url, year]); 
 
-  const handleStop = () => {
+  const handleStop = useCallback(() => {
     // Cancel any ongoing navigation
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -446,6 +413,7 @@ export function InternetExplorerAppComponent({
     cancel();
     
     // Stop AI generation if in progress
+    // Use potentially updated isAiLoading from state
     if (isAiLoading) {
       stopGeneration();
     }
@@ -454,16 +422,94 @@ export function InternetExplorerAppComponent({
     if (iframeRef.current) {
       iframeRef.current.src = "about:blank";
     }
-  };
+  }, [cancel, isAiLoading, stopGeneration]);
 
-  const handleGoToUrl = () => {
+  const handleGoToUrl = useCallback(() => {
     urlInputRef.current?.focus();
     urlInputRef.current?.select();
-  };
+  }, []);
 
-  const handleHome = () => {
-    handleNavigate("apple.com", true, "2002");
-  };
+  const handleHome = useCallback(() => {
+    handleNavigate("apple.com", "2002");
+  }, [handleNavigate]); 
+
+  // --- Effects ---
+
+  // Effect to handle initial navigation
+  useEffect(() => {
+    // Use the callback version of handleNavigate
+    handleNavigate(url, year, false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount
+
+  // Effect to handle messages from the iframe (for intercepted link clicks)
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      // Basic security check: ensure the message has the expected structure
+      // In production, you might want to verify event.origin as well
+      if (
+        event.data &&
+        event.data.type === "iframeNavigation" &&
+        typeof event.data.url === "string"
+      ) {
+        console.log(`[IE] Received navigation request from iframe: ${event.data.url}`);
+        // Trigger navigation using the current year setting
+        // Use the callback version of handleNavigate
+        handleNavigate(event.data.url, year);
+      } else if (event.data && event.data.type === "goBack") {
+        // Handle back button click from error page
+        console.log(`[IE] Received back button request from iframe`);
+        handleGoBack(); // Use the callback version
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+
+    // Cleanup listener on component unmount
+    return () => {
+      window.removeEventListener("message", handleMessage);
+    };
+    // Add stable handleNavigate and handleGoBack callbacks as dependencies
+  }, [year, handleNavigate, handleGoBack]); 
+
+  // Effect to persist navigation state
+  useEffect(() => {
+    // Use potentially updated status, url, year from state
+    if (status === 'success' && url && year) {
+      // Update global browser state for system state tracking
+      updateBrowserState();
+    }
+  }, [status, url, year, updateBrowserState]);
+
+  // Effect to check for scrollable favorites
+  useEffect(() => {
+    const checkScroll = () => {
+      const container = favoritesContainerRef.current;
+      if (container) {
+        const hasMore =
+          container.scrollWidth > container.clientWidth &&
+          container.scrollLeft < container.scrollWidth - container.clientWidth;
+        setHasMoreToScroll(hasMore);
+      }
+    };
+
+    const container = favoritesContainerRef.current;
+    if (container) {
+      container.addEventListener("scroll", checkScroll);
+      // Also check on resize
+      window.addEventListener("resize", checkScroll);
+      // Initial check
+      checkScroll();
+    }
+
+    return () => {
+      if (container) {
+        container.removeEventListener("scroll", checkScroll);
+        window.removeEventListener("resize", checkScroll);
+      }
+    };
+    // Use potentially updated favorites from state
+  }, [favorites]); // Re-run when favorites change
 
   if (!isWindowOpen) return null;
 
@@ -515,7 +561,7 @@ export function InternetExplorerAppComponent({
         onEditFuture={() => setFutureSettingsDialogOpen(true)}
       />
       <WindowFrame
-        title="Internet Explorer"
+        title={currentPageTitle || "Internet Explorer"}
         onClose={onClose}
         isForeground={isForeground}
         appId="internet-explorer"
@@ -558,7 +604,7 @@ export function InternetExplorerAppComponent({
               <div className="flex items-center gap-2">
                 <Select
                   value={year}
-                  onValueChange={(year) => handleNavigate(url, true, year)}
+                  onValueChange={(year) => handleNavigate(url, year)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Year" />

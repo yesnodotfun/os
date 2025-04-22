@@ -1,4 +1,4 @@
-import { useChat } from "ai/react";
+import { useChat, type Message } from "ai/react";
 import { useState, useEffect, useRef } from "react";
 import { useInternetExplorerStore, DEFAULT_TIMELINE } from "@/stores/useInternetExplorerStore";
 
@@ -8,7 +8,7 @@ interface UseAiGenerationProps {
 }
 
 interface UseAiGenerationReturn {
-  generateFuturisticWebsite: (url: string, year: string, forceRegenerate?: boolean, signal?: AbortSignal) => Promise<void>;
+  generateFuturisticWebsite: (url: string, year: string, forceRegenerate?: boolean, signal?: AbortSignal, prefetchedTitle?: string | null) => Promise<void>;
   aiGeneratedHtml: string | null;
   isAiLoading: boolean;
   stopGeneration: () => void;
@@ -25,6 +25,68 @@ export function useAiGeneration({ onLoadingChange, customTimeline = {} }: UseAiG
   const loadSuccess = useInternetExplorerStore(state => state.loadSuccess);
   const timelineSettings = useInternetExplorerStore(state => state.timelineSettings);
 
+  // Handler for when AI stream finishes
+  const handleAiFinish = (message: Message) => {
+    // Ensure this finish corresponds to the current generation request
+    if (!currentGenerationId.current || isGenerationComplete.current) return;
+
+    // Extract HTML content from the final message
+    const htmlContent = message.content
+      .replace(/^\s*```(?:html)?\s*\n?|\n?\s*```\s*$/g, "")
+      .trim();
+
+    // Extract title using regex
+    const titleMatch = htmlContent.match(/^<!--\s*TITLE:\s*(.*?)\s*-->/);
+    const parsedTitle = titleMatch ? titleMatch[1].trim() : null;
+
+    // Remove the title comment from the HTML content itself
+    const cleanHtmlContent = htmlContent.replace(/^<!--\s*TITLE:.*?-->\s*\n?/,'');
+
+    // Mark generation as complete
+    isGenerationComplete.current = true;
+
+    // Find the corresponding user message to get URL and year
+    const userMessage = aiMessages.find(m => m.role === 'user'); // Assuming one user message per generation
+    if (userMessage) {
+      const urlMatch = userMessage.content.match(/URL: (https?:\/\/[^\n]+)/);
+      const yearMatch = userMessage.content.match(/It is the year (\d+)/);
+      const domainMatch = userMessage.content.match(/Domain: ([^\n]+)/);
+
+      if (urlMatch && yearMatch) {
+        const [, url] = urlMatch;
+        const [, year] = yearMatch;
+        const fallbackTitle = domainMatch ? domainMatch[1] : url;
+        const favicon = `https://www.google.com/s2/favicons?domain=${new URL(url.startsWith("http") ? url : `https://${url}`).hostname}&sz=32`;
+
+        // Cache the completed HTML and title
+        cacheAiPage(url, year, cleanHtmlContent, parsedTitle || fallbackTitle);
+
+        // Update the store with the final HTML, title, and history info
+        loadSuccess({ 
+          aiGeneratedHtml: cleanHtmlContent, 
+          title: parsedTitle || fallbackTitle, 
+          targetUrl: url, 
+          targetYear: year, 
+          favicon: favicon, 
+          addToHistory: true 
+        });
+
+        console.log("[IE] AI generation complete (onFinish), saved to cache and store");
+      } else {
+        console.error("[IE] Could not extract URL/Year from user prompt in onFinish handler.");
+        // Fallback: Update store with HTML but potentially missing title context
+        loadSuccess({ aiGeneratedHtml: cleanHtmlContent });
+      }
+    } else {
+       console.error("[IE] Could not find user prompt in onFinish handler.");
+       // Fallback: Update store with HTML but potentially missing title context
+       loadSuccess({ aiGeneratedHtml: cleanHtmlContent });
+    }
+
+    // Clear the generation ID now that it's processed
+    // currentGenerationId.current = null; // Keep ID to prevent race conditions? Revisit if needed.
+  };
+
   const {
     messages: aiMessages,
     append: appendAiMessage,
@@ -39,6 +101,7 @@ export function useAiGeneration({ onLoadingChange, customTimeline = {} }: UseAiG
         content: "You are a web designer specialized in futuristic UI/UX designs.",
       },
     ],
+    onFinish: handleAiFinish,
   });
 
   // Helper to fetch existing website content (readability text via jina.ai)
@@ -66,7 +129,13 @@ export function useAiGeneration({ onLoadingChange, customTimeline = {} }: UseAiG
   };
 
   // Function to generate futuristic website content using AI
-  const generateFuturisticWebsite = async (url: string, year: string, forceRegenerate = false, signal?: AbortSignal) => {
+  const generateFuturisticWebsite = async (
+    url: string, 
+    year: string, 
+    forceRegenerate = false, 
+    signal?: AbortSignal,
+    prefetchedTitle?: string | null
+  ) => {
     // Generate a unique ID for this generation request
     const generationId = `${url}-${year}-${Date.now()}`;
     currentGenerationId.current = generationId;
@@ -74,11 +143,19 @@ export function useAiGeneration({ onLoadingChange, customTimeline = {} }: UseAiG
     
     // Check cache first unless force regenerating
     if (!forceRegenerate) {
-      const cachedHtml = getCachedAiPage(url, year);
-      if (cachedHtml) {
-        setAiGeneratedHtml(cachedHtml);
-        // Update the store directly when using cached content
-        loadSuccess(undefined, cachedHtml);
+      const cachedEntry = getCachedAiPage(url, year);
+      if (cachedEntry) {
+        setAiGeneratedHtml(cachedEntry.html);
+        // Update the store directly when using cached content, including title and history info
+        const favicon = `https://www.google.com/s2/favicons?domain=${new URL(url.startsWith("http") ? url : `https://${url}`).hostname}&sz=32`;
+        loadSuccess({ 
+          aiGeneratedHtml: cachedEntry.html, 
+          title: cachedEntry.title || url, 
+          targetUrl: url, 
+          targetYear: year, 
+          favicon: favicon, 
+          addToHistory: true 
+        });
         isGenerationComplete.current = true;
         return;
       }
@@ -139,6 +216,8 @@ If you think the entity may disappear due to changes, show a 404 or memorial pag
 DELIVERABLE
 Return a single, fully self‑contained HTML document in markdown codeblock for this speculative design. MUST use TailwindCSS classes for styling. Can use inline \`<script>\` blocks when needed, but avoid external dependencies. Use Three.js for 3D with script already loaded. 
 
+IMPORTANT: Include the generated page title inside an HTML comment at the very beginning of the HTML document, formatted EXACTLY like this: \`<!-- TITLE: Your Generated Page Title -->\`
+
 REQUIREMENTS
 1. DO NOT respond in any text except the html markdown codeblock.
 2. Keep the layout responsive. Keep visuals minimal but futuristic, use simple colors, avoid crazy gradients. Use emojis, or simple SVG icons.
@@ -152,6 +231,7 @@ Below are details about the current website and the task:
 - Domain: ${domainName}
 - URL: ${url}
 ${existingContent ? `- A snapshot of the existing website's readable content (truncated to 4,000 characters) is provided between the fences below:\n"""\n${existingContent}\n"""\n` : ""}
+${prefetchedTitle ? `- Known Title: ${prefetchedTitle}\n` : ""}
 
 It is the year ${year}. Here is the timeline of human civilization leading up to this point:
 
@@ -181,51 +261,22 @@ ${timelineContext}`;
     }
   };
 
-  // Effect to watch for AI responses and update the UI accordingly
+  // Effect to watch for AI responses and update the *streaming* UI preview
   useEffect(() => {
-    // Always check the latest message for updates
+    // Only update the preview, final state is handled by onFinish
     if (aiMessages.length > 1) {
       const lastMessage = aiMessages[aiMessages.length - 1];
       if (lastMessage.role === "assistant") {
-        // Extract HTML content from the response (remove markdown code blocks if present)
         const htmlContent = lastMessage.content
-          // Use a more robust regex to remove fences and optional language tag, including surrounding whitespace/newlines
           .replace(/^\s*```(?:html)?\s*\n?|\n?\s*```\s*$/g, "")
           .trim();
-
-        // Update local state for streaming display
-        setAiGeneratedHtml(htmlContent);
-
-        // Only save to cache and update store when generation is complete
-        if (!isAiLoading && !isGenerationComplete.current) {
-          isGenerationComplete.current = true;
-          
-          // Get the user message to extract URL and year
-          if (aiMessages.length >= 2) {
-            const userMessage = aiMessages[aiMessages.length - 2];
-            if (userMessage.role === "user") {
-              // Extract URL and year from the prompt
-              const urlMatch = userMessage.content.match(/URL: (https?:\/\/[^\n]+)/);
-              const yearMatch = userMessage.content.match(/It is the year (\d+)/);
-              
-              if (urlMatch && yearMatch) {
-                const [, url] = urlMatch;
-                const [, year] = yearMatch;
-                
-                // Cache the completed HTML
-                cacheAiPage(url, year, htmlContent);
-                
-                // Update the store with the final HTML
-                loadSuccess(undefined, htmlContent);
-                
-                console.log("[IE] AI generation complete, saved to cache and store");
-              }
-            }
-          }
-        }
+        // Remove title comment for preview
+        const cleanHtmlContent = htmlContent.replace(/^<!--\s*TITLE:.*?-->\s*\n?/,'');
+        // Update local state for streaming display only
+        setAiGeneratedHtml(cleanHtmlContent);
       }
     }
-  }, [aiMessages, isAiLoading, cacheAiPage, loadSuccess]);
+  }, [aiMessages]); // Only depends on messages for streaming updates
 
   // Effect to notify parent of loading state changes
   useEffect(() => {

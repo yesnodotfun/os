@@ -40,6 +40,7 @@ const shouldAutoProxy = (url: string): boolean => {
  *   {
  *     allowed: boolean,
  *     reason?: string
+ *     title?: string
  *   }
  *
  * On network or other unexpected errors we default to `allowed: true` so that navigation is not
@@ -103,17 +104,38 @@ export default async function handler(req: Request) {
 
       const xFrameOptions = res.headers.get("x-frame-options") || "";
       const headerCsp = res.headers.get("content-security-policy") || "";
-
-      // Check meta tags only for HTML content
-      let metaCsp = "";
       const contentType = res.headers.get("content-type") || "";
+
+      // Check meta tags and extract title only for HTML content
+      let metaCsp = "";
+      let pageTitle: string | undefined = undefined; // Initialize title
+
       if (contentType.includes("text/html")) {
           const html = await res.text();
+          // Extract meta CSP
           const metaTagMatch = html.match(
               /<meta\s+http-equiv=['\"]Content-Security-Policy['\"]\s+content=['\"]([^\'\"]*)['\"][^>]*>/i
           );
           if (metaTagMatch && metaTagMatch[1]) {
               metaCsp = metaTagMatch[1];
+          }
+          // Extract title (case-insensitive)
+          const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+          if (titleMatch && titleMatch[1]) {
+            // Basic sanitization: decode HTML entities and trim whitespace
+            try {
+              // Use a simple approach for common entities; full decoding might need a library
+              pageTitle = titleMatch[1]
+                .replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>')
+                .replace(/&amp;/g, '&')
+                .replace(/&quot;/g, '"')
+                .replace(/&#39;/g, "'")
+                .trim();
+            } catch (e) {
+              console.error("Error decoding title:", e);
+              pageTitle = titleMatch[1].trim(); // Fallback to raw title
+            }
           }
       }
 
@@ -156,11 +178,12 @@ export default async function handler(req: Request) {
                 : `Content-Security-Policy (header): ${headerCsp}`
         : undefined;
 
-      return { allowed, reason: finalReason };
+      return { allowed, reason: finalReason, title: pageTitle }; // Include title in return
 
     } catch (error) {
         // If fetching upstream headers failed, assume embedding is blocked
         console.error(`[iframe-check] Failed to fetch upstream headers for ${normalizedUrl}:`, error);
+        // No title available on error
         return { allowed: false, reason: `Proxy check failed: ${(error as Error).message}` }; // Renamed reason
     }
   };
@@ -277,6 +300,7 @@ export default async function handler(req: Request) {
     // Clone headers so we can edit them
     const headers = new Headers(upstreamRes.headers);
     const contentType = headers.get("content-type") || "";
+    let pageTitle: string | undefined = undefined; // Initialize title for proxy mode
 
     headers.delete("x-frame-options");
     headers.delete("content-security-policy");
@@ -289,7 +313,29 @@ export default async function handler(req: Request) {
     // If it's HTML, inject the <base> tag and click interceptor script
     if (contentType.includes("text/html")) {
         let html = await upstreamRes.text();
+
+        // Extract title before modifying HTML
+        const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+        if (titleMatch && titleMatch[1]) {
+            try {
+              pageTitle = titleMatch[1]
+                .replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>')
+                .replace(/&amp;/g, '&')
+                .replace(/&quot;/g, '"')
+                .replace(/&#39;/g, "'")
+                .trim();
+            } catch (e) {
+              console.error("Error decoding title in proxy:", e);
+              pageTitle = titleMatch[1].trim(); // Fallback
+            }
+        }
+
+        // Inject <base> tag right after <head> (case‑insensitive)
         const baseTag = `<base href="${normalizedUrl}">`;
+        // Inject title meta tag if title was extracted
+        const titleMetaTag = pageTitle ? `<meta name="page-title" content="${encodeURIComponent(pageTitle)}">` : '';
+
         const clickInterceptorScript = `
 <script>
   document.addEventListener('click', function(event) {
@@ -305,15 +351,13 @@ export default async function handler(req: Request) {
   }, true);
 </script>
 `;
-
-        // Inject <base> tag right after <head> (case‑insensitive)
         const headIndex = html.search(/<head[^>]*>/i);
         if (headIndex !== -1) {
             const insertPos = headIndex + html.match(/<head[^>]*>/i)![0].length;
-            html = html.slice(0, insertPos) + baseTag + html.slice(insertPos);
+            html = html.slice(0, insertPos) + baseTag + titleMetaTag + html.slice(insertPos); // Inject base and title meta
         } else {
-            // Fallback: Prepend <base> if no <head>
-            html = baseTag + html;
+            // Fallback: Prepend if no <head>
+            html = baseTag + titleMetaTag + html;
         }
 
         // Inject script right before </body> (case‑insensitive)
@@ -325,12 +369,18 @@ export default async function handler(req: Request) {
           html += clickInterceptorScript;
         }
 
+        // Add the extracted title to a custom header (URL-encoded)
+        if (pageTitle) {
+          headers.set("X-Proxied-Page-Title", encodeURIComponent(pageTitle));
+        }
+
         return new Response(html, {
             status: upstreamRes.status,
             headers,
         });
     } else {
         // For non‑HTML content, stream the body directly
+        // No title extraction or header needed for non-HTML
         return new Response(upstreamRes.body, {
             status: upstreamRes.status,
             headers,

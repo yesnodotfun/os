@@ -149,6 +149,7 @@ function classifyYear(year: string): NavigationMode {
 interface AiCacheEntry {
   html: string;
   updatedAt: number;
+  title?: string;
 }
 
 interface InternetExplorerStore {
@@ -182,12 +183,24 @@ interface InternetExplorerStore {
   // Timeline settings
   timelineSettings: { [year: string]: string };
   
+  // Title management
+  currentPageTitle: string | null;
+  setCurrentPageTitle: (title: string | null) => void;
+  
   // Actions
   setUrl: (url: string) => void;
   setYear: (year: string) => void;
   navigateStart: (url: string, year: string, mode: NavigationMode, token: number) => void;
   setFinalUrl: (finalUrl: string) => void;
-  loadSuccess: (finalUrl?: string, aiGeneratedHtml?: string | null) => void;
+  loadSuccess: (payload: { 
+    title?: string | null;
+    finalUrl?: string; 
+    aiGeneratedHtml?: string | null;
+    targetUrl?: string;
+    targetYear?: string;
+    favicon?: string;
+    addToHistory?: boolean;
+  }) => void;
   loadError: (error: string) => void;
   cancel: () => void;
   
@@ -197,7 +210,6 @@ interface InternetExplorerStore {
   clearFavorites: () => void;
   
   // History actions
-  addHistoryEntry: (entry: Omit<HistoryEntry, "timestamp">) => void;
   setHistoryIndex: (index: number) => void;
   clearHistory: () => void;
   
@@ -211,8 +223,8 @@ interface InternetExplorerStore {
   setClearHistoryDialogOpen: (isOpen: boolean) => void;
   
   // Cache actions
-  cacheAiPage: (url: string, year: string, html: string) => void;
-  getCachedAiPage: (url: string, year: string) => string | null;
+  cacheAiPage: (url: string, year: string, html: string, title?: string) => void;
+  getCachedAiPage: (url: string, year: string) => AiCacheEntry | null;
   
   // Timeline actions
   setTimelineSettings: (settings: { [year: string]: string }) => void;
@@ -251,6 +263,9 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
       
       timelineSettings: {},
       
+      // Initial title state
+      currentPageTitle: null,
+      
       // Actions
       setUrl: (url) => set({ url }),
       
@@ -265,16 +280,47 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
         aiGeneratedHtml: null,
         error: null,
         token,
+        currentPageTitle: null,
       }),
       
       setFinalUrl: (finalUrl) => set({ finalUrl }),
       
-      loadSuccess: (finalUrl, aiGeneratedHtml) => set(state => ({
-        status: 'success',
-        finalUrl: finalUrl ?? state.finalUrl,
-        aiGeneratedHtml: aiGeneratedHtml ?? state.aiGeneratedHtml,
-        error: null,
-      })),
+      loadSuccess: ({ title, finalUrl, aiGeneratedHtml, targetUrl, targetYear, favicon, addToHistory = true }) => set(state => {
+        const newState: Partial<InternetExplorerStore> = {
+          status: 'success',
+          currentPageTitle: title !== undefined ? title : state.currentPageTitle,
+          finalUrl: finalUrl ?? state.finalUrl,
+          aiGeneratedHtml: aiGeneratedHtml ?? state.aiGeneratedHtml,
+          error: null,
+        };
+
+        if (addToHistory && targetUrl) {
+          const historyTitle = newState.currentPageTitle || new URL(targetUrl.startsWith("http") ? targetUrl : `https://${targetUrl}`).hostname;
+          const newEntry: HistoryEntry = { 
+            url: targetUrl, 
+            title: historyTitle, 
+            favicon: favicon || `https://www.google.com/s2/favicons?domain=${new URL(targetUrl.startsWith("http") ? targetUrl : `https://${targetUrl}`).hostname}&sz=32`, 
+            year: targetYear !== "current" ? targetYear : undefined, 
+            timestamp: Date.now() 
+          };
+          const lastEntry = state.history[state.historyIndex];
+          if (!lastEntry || lastEntry.url !== newEntry.url || lastEntry.year !== newEntry.year) {
+            newState.history = [newEntry, ...state.history].slice(0, 100);
+            newState.historyIndex = 0; 
+          } else {
+            if (lastEntry.title !== newEntry.title) {
+              const updatedHistory = [...state.history];
+              updatedHistory[state.historyIndex] = { ...lastEntry, title: newEntry.title };
+              newState.history = updatedHistory;
+            }
+            newState.historyIndex = state.historyIndex;
+          }
+        } else if (addToHistory === false) {
+          newState.historyIndex = state.historyIndex;
+        }
+
+        return newState;
+      }),
       
       loadError: (error) => set({ status: 'error', error }),
       
@@ -292,14 +338,6 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
       clearFavorites: () => set({ favorites: [] }),
       
       // History actions
-      addHistoryEntry: (entry) => set(state => {
-        const newEntry = { ...entry, timestamp: Date.now() };
-        return {
-          history: [newEntry, ...state.history].slice(0, 100), // Keep last 100 entries
-          historyIndex: 0,
-        };
-      }),
-      
       setHistoryIndex: (index) => set({ historyIndex: index }),
       
       clearHistory: () => set({ history: [], historyIndex: -1 }),
@@ -320,23 +358,26 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
         return `${normalizedUrl}|${year}`;
       },
       
-      cacheAiPage: (url, year, html) => set(state => {
+      cacheAiPage: (url, year, html, title) => set(state => {
         const key = get().getAiCacheKey(url, year);
         return {
           aiCache: {
             ...state.aiCache,
-            [key]: { html, updatedAt: Date.now() }
+            [key]: { html, title, updatedAt: Date.now() }
           }
         };
       }),
       
       getCachedAiPage: (url, year) => {
         const key = get().getAiCacheKey(url, year);
-        return get().aiCache[key]?.html || null;
+        return get().aiCache[key] || null;
       },
       
       // Timeline actions
       setTimelineSettings: (settings) => set({ timelineSettings: settings }),
+      
+      // Title management action
+      setCurrentPageTitle: (title) => set({ currentPageTitle: title }),
       
       // Update system browser state (for other components to access)
       updateBrowserState: () => {
