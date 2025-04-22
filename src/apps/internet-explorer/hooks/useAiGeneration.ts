@@ -232,8 +232,8 @@ IMPORTANT: Include the generated page title inside an HTML comment at the very b
 
 REQUIREMENTS
 1. DO NOT respond in any text except the html markdown codeblock.
-2. Keep the layout responsive. ${parseInt(year) > new Date().getFullYear() 
-  ? "Keep visuals minimal but futuristic, use simple colors, avoid crazy gradients. Use emojis, or simple SVG icons. DO NOT use inline data:image base64 images."
+2. Keep the layout responsive. Use emojis, or simple SVG icons. DO NOT use inline data:image base64 images. Import and use Google Fonts if needed. ${parseInt(year) > new Date().getFullYear() 
+  ? "Keep visuals minimal but futuristic, use simple colors, avoid over using gradients."
   : `Use period-appropriate design elements:
      - Typography that matches the era (e.g., serif fonts for early periods, sans-serif for modern)
      - Color schemes that were available or popular in ${year}
