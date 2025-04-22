@@ -256,8 +256,7 @@ export default function HtmlPreview({
         extend: {
           fontFamily: {
             sans: ["Geneva-12", "ArkPixel", "SerenityOS-Emoji", "ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", "monospace"],
-            serif: ["AppleGaramond", "Georgia", "Palatino", "serif"],
-            mono: ["Geneva-12", "ArkPixel", "SerenityOS-Emoji", "ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", "monospace"]
+            mono: ["Monaco", "ArkPixel", "SerenityOS-Emoji", "ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", "monospace"]
           }
         }
       }
@@ -281,15 +280,6 @@ export default function HtmlPreview({
     }
   </style>
 `;
-
-    // REMOVED: Blur effect is no longer applied
-    // const blurStyle = `
-    // <style>
-    //   body {
-    //     transition: filter 0.5s ease-out;
-    //     ${isStreaming ? "filter: blur(2px);" : "filter: blur(0px);"}
-    //   }
-    // </style>`;
 
     // Common base structure
     const baseHtmlStart = `
