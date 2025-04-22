@@ -33,9 +33,14 @@ const shouldAutoProxy = (url: string): boolean => {
  * Check Wayback Machine CDX for a snapshot in the specified year/month
  */
 const checkWaybackCdx = async (url: string, year: string, month: string): Promise<string | null> => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10-second timeout
+
   try {
     const cdxUrl = `https://web.archive.org/cdx/search/cdx?url=${encodeURIComponent(url)}&from=${year}${month}01&to=${year}${month}31&output=json&limit=1`;
-    const response = await fetch(cdxUrl);
+    const response = await fetch(cdxUrl, { signal: controller.signal });
+    clearTimeout(timeoutId); // Clear timeout if fetch succeeds
+
     const data = await response.json();
 
     // CDX API returns an array where the first row is headers
@@ -49,7 +54,12 @@ const checkWaybackCdx = async (url: string, year: string, month: string): Promis
     }
     return null;
   } catch (error) {
-    console.error("[iframe-check] Failed to check Wayback CDX:", error);
+    clearTimeout(timeoutId); // Clear timeout on error as well
+    if ((error as Error).name === 'AbortError') {
+      console.error("[iframe-check] Wayback CDX check timed out:", url);
+    } else {
+      console.error("[iframe-check] Failed to check Wayback CDX:", error);
+    }
     return null;
   }
 };

@@ -18,6 +18,8 @@ export function useAiGeneration({ onLoadingChange, customTimeline = {} }: UseAiG
   const [aiGeneratedHtml, setAiGeneratedHtml] = useState<string | null>(null);
   const currentGenerationId = useRef<string | null>(null);
   const isGenerationComplete = useRef<boolean>(false);
+  const generatingUrlRef = useRef<string | null>(null); // Ref for current URL
+  const generatingYearRef = useRef<string | null>(null); // Ref for current Year
   
   // Use the Zustand store for caching and updating the store
   const cacheAiPage = useInternetExplorerStore(state => state.cacheAiPage);
@@ -45,17 +47,17 @@ export function useAiGeneration({ onLoadingChange, customTimeline = {} }: UseAiG
     // Mark generation as complete
     isGenerationComplete.current = true;
 
-    // Find the corresponding user message to get URL and year
-    const userMessage = aiMessages.find(m => m.role === 'user'); // Assuming one user message per generation
-    if (userMessage) {
-      const urlMatch = userMessage.content.match(/URL: (https?:\/\/[^\n]+)/);
-      const yearMatch = userMessage.content.match(/It is the year (\d+)/);
-      const domainMatch = userMessage.content.match(/Domain: ([^\n]+)/);
+    // Get URL and Year from refs instead of parsing user message
+    const url = generatingUrlRef.current;
+    const year = generatingYearRef.current;
 
-      if (urlMatch && yearMatch) {
-        const [, url] = urlMatch;
-        const [, year] = yearMatch;
-        const fallbackTitle = domainMatch ? domainMatch[1] : url;
+    if (url && year) {
+        let fallbackTitle = url;
+        try {
+          // Use hostname as a better fallback title
+          fallbackTitle = new URL(url.startsWith("http") ? url : `https://${url}`).hostname;
+        } catch (e) { console.warn("Error parsing URL for fallback title:", e); }
+
         const favicon = `https://www.google.com/s2/favicons?domain=${new URL(url.startsWith("http") ? url : `https://${url}`).hostname}&sz=32`;
 
         // Cache the completed HTML and title
@@ -66,26 +68,21 @@ export function useAiGeneration({ onLoadingChange, customTimeline = {} }: UseAiG
         loadSuccess({ 
           aiGeneratedHtml: cleanHtmlContent, 
           title: parsedTitle || fallbackTitle, 
-          targetUrl: url, 
-          targetYear: year, 
+          targetUrl: url, // Use ref value
+          targetYear: year, // Use ref value
           favicon: favicon, 
           addToHistory: true 
         });
 
         console.log(`[IE] AI generation complete (onFinish), saved to cache and store`);
-      } else {
-        console.error("[IE] Could not extract URL/Year from user prompt in onFinish handler.");
-        // Fallback: Update store with HTML but potentially missing title context
-        loadSuccess({ aiGeneratedHtml: cleanHtmlContent });
-      }
     } else {
-       console.error("[IE] Could not find user prompt in onFinish handler.");
-       // Fallback: Update store with HTML but potentially missing title context
-       loadSuccess({ aiGeneratedHtml: cleanHtmlContent });
+      console.error("[IE] Could not retrieve URL/Year from refs in onFinish handler.");
+      // Fallback: Update store with HTML but potentially missing title context
+      loadSuccess({ aiGeneratedHtml: cleanHtmlContent });
     }
 
     // Clear the generation ID now that it's processed
-    // currentGenerationId.current = null; // Keep ID to prevent race conditions? Revisit if needed.
+    // currentGenerationId.current = null; // Revisit if needed.
   };
 
   const {
@@ -142,18 +139,29 @@ export function useAiGeneration({ onLoadingChange, customTimeline = {} }: UseAiG
     currentGenerationId.current = generationId;
     isGenerationComplete.current = false;
     
+    // Format URL properly *before* using it for cache check or storing in ref
+    const normalizedTargetUrl = url.startsWith("http")
+      ? url
+      : `https://${url}`;
+
+    // Store the intended URL and Year in refs *before* potentially returning early from cache or making AI call
+    generatingUrlRef.current = normalizedTargetUrl;
+    generatingYearRef.current = year;
+
     // Check cache first unless force regenerating
     if (!forceRegenerate) {
-      const cachedEntry = getCachedAiPage(url, year);
+      // Use normalizedTargetUrl for cache check
+      const cachedEntry = getCachedAiPage(normalizedTargetUrl, year);
       if (cachedEntry) {
-        console.log(`[IE] Using cached AI page for ${url} in ${year}`);
+        console.log(`[IE] Using cached AI page for ${normalizedTargetUrl} in ${year}`);
         setAiGeneratedHtml(cachedEntry.html);
         // Update the store directly when using cached content, including title and history info
-        const favicon = `https://www.google.com/s2/favicons?domain=${new URL(url.startsWith("http") ? url : `https://${url}`).hostname}&sz=32`;
+        // Use normalizedTargetUrl here too
+        const favicon = `https://www.google.com/s2/favicons?domain=${new URL(normalizedTargetUrl.startsWith("http") ? normalizedTargetUrl : `https://${normalizedTargetUrl}`).hostname}&sz=32`;
         loadSuccess({ 
           aiGeneratedHtml: cachedEntry.html, 
-          title: cachedEntry.title || url, 
-          targetUrl: url, 
+          title: cachedEntry.title || normalizedTargetUrl, // Use normalized
+          targetUrl: normalizedTargetUrl, // Use normalized
           targetYear: year, 
           favicon: favicon, 
           addToHistory: true 
@@ -161,7 +169,7 @@ export function useAiGeneration({ onLoadingChange, customTimeline = {} }: UseAiG
         isGenerationComplete.current = true;
         return;
       } else {
-        console.log(`[IE] No cached AI page found for ${url} in ${year}, generating new content`);
+        console.log(`[IE] No cached AI page found for ${normalizedTargetUrl} in ${year}, generating new content`);
       }
     }
 
@@ -182,11 +190,11 @@ export function useAiGeneration({ onLoadingChange, customTimeline = {} }: UseAiG
       return;
     }
     
-    // Extract domain name for better prompt
-    const domainName = new URL(url.startsWith("http") ? url : `https://${url}`).hostname;
+    // Extract domain name for better prompt (use normalized URL)
+    const domainName = new URL(normalizedTargetUrl).hostname;
     
-    // Attempt to fetch existing website content (best-effort)
-    const existingContent = await fetchExistingWebsiteContent(url, signal);
+    // Attempt to fetch existing website content (best-effort, use normalized URL)
+    const existingContent = await fetchExistingWebsiteContent(normalizedTargetUrl, signal);
     
     // Check if the operation was aborted after fetching content
     if (signal?.aborted || currentGenerationId.current !== generationId) {
@@ -250,9 +258,9 @@ CONTEXT
 Below are details about the current website and the task:
 
 - Domain: ${domainName}
-- URL: ${url}
-${existingContent ? `- A snapshot of the existing website's readable content (truncated to 4,000 characters) is provided between the fences below:\n"""\n${existingContent}\n"""\n` : ""}
-${prefetchedTitle ? `- Known Title: ${prefetchedTitle}\n` : ""}
+- URL: ${normalizedTargetUrl} // Use normalized URL in prompt
+${existingContent ? `- A snapshot of the existing website's readable content (truncated to 4,000 characters) is provided between the fences below:\\n\"\"\"\\n${existingContent}\\n\"\"\"\\n` : ""}
+${prefetchedTitle ? `- Known Title: ${prefetchedTitle}\\n` : ""}
 
 It is the year ${year}. Here is the timeline of human civilization leading up to this point:
 
@@ -260,7 +268,7 @@ ${Object.entries({ ...DEFAULT_TIMELINE, ...timelineSettings, ...customTimeline }
   .filter(([y]) => parseInt(y) <= parseInt(year))
   .sort(([a], [b]) => parseInt(a) - parseInt(b))
   .map(([y, desc]) => `${y}: ${desc}`)
-  .join('\n')}
+  .join('\\n')}
 
 ${timelineContext}`;
 
