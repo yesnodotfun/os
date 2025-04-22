@@ -80,13 +80,13 @@ export function InternetExplorerAppComponent({
   // Create past years array (from 1996 to current year)
   const pastYears = [
     // Historical centuries
-    "1000 BC", "1 CE", "500", "1000", "1300", "1600", "1800", "1900",
+    "1000 BC", "1 CE", "500", "800", "1000", "1200", "1400", "1600", "1700", "1800", "1900",
     // Early 20th century decades
     "1910", "1920", "1930", "1940", "1950", "1960", "1970", "1980", "1990",
     // Modern years
     ...Array.from(
-      { length: new Date().getFullYear() - 1996 + 1 },
-      (_, i) => (1996 + i).toString()
+      { length: new Date().getFullYear() - 1991 + 1 },
+      (_, i) => (1991 + i).toString()
     )
   ].reverse(); // Reverse to get newest to oldest
 
