@@ -30,6 +30,31 @@ const shouldAutoProxy = (url: string): boolean => {
 };
 
 /**
+ * Check Wayback Machine CDX for a snapshot in the specified year/month
+ */
+const checkWaybackCdx = async (url: string, year: string, month: string): Promise<string | null> => {
+  try {
+    const cdxUrl = `https://web.archive.org/cdx/search/cdx?url=${encodeURIComponent(url)}&from=${year}${month}01&to=${year}${month}31&output=json&limit=1`;
+    const response = await fetch(cdxUrl);
+    const data = await response.json();
+
+    // CDX API returns an array where the first row is headers
+    if (data && data.length > 1) {
+      // Get the first snapshot (most recent in the specified month)
+      const snapshot = data[1];
+      if (snapshot) {
+        const timestamp = snapshot[1]; // timestamp is in the second column
+        return `https://web.archive.org/web/${timestamp}/${url}`;
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error("[iframe-check] Failed to check Wayback CDX:", error);
+    return null;
+  }
+};
+
+/**
  * Edge function that checks if a remote website allows itself to be embedded in an iframe.
  * We look at two common headers:
  *   1. `X-Frame-Options` – if present with values like `deny` or `sameorigin` we treat it as blocked.
@@ -41,6 +66,7 @@ const shouldAutoProxy = (url: string): boolean => {
  *     allowed: boolean,
  *     reason?: string
  *     title?: string
+ *     waybackUrl?: string
  *   }
  *
  * On network or other unexpected errors we default to `allowed: true` so that navigation is not
@@ -51,6 +77,8 @@ export default async function handler(req: Request) {
   const { searchParams } = new URL(req.url);
   const urlParam = searchParams.get("url");
   let mode = searchParams.get("mode") || "proxy"; // "check" | "proxy" (default)
+  const year = searchParams.get("year");
+  const month = searchParams.get("month");
 
   if (!urlParam) {
     return new Response(
@@ -86,6 +114,12 @@ export default async function handler(req: Request) {
   // Force proxy mode for auto-proxy domains
   if (isAutoProxyDomain) {
     mode = "proxy";
+  }
+
+  // Check Wayback Machine if year and month are provided
+  let waybackUrl: string | null = null;
+  if (year && month) {
+    waybackUrl = await checkWaybackCdx(normalizedUrl, year, month);
   }
 
   // -------------------------------
@@ -178,13 +212,13 @@ export default async function handler(req: Request) {
                 : `Content-Security-Policy (header): ${headerCsp}`
         : undefined;
 
-      return { allowed, reason: finalReason, title: pageTitle }; // Include title in return
+      return { allowed, reason: finalReason, title: pageTitle, waybackUrl }; // Include waybackUrl in return
 
     } catch (error) {
         // If fetching upstream headers failed, assume embedding is blocked
         console.error(`[iframe-check] Failed to fetch upstream headers for ${normalizedUrl}:`, error);
         // No title available on error
-        return { allowed: false, reason: `Proxy check failed: ${(error as Error).message}` }; // Renamed reason
+        return { allowed: false, reason: `Proxy check failed: ${(error as Error).message}`, waybackUrl }; // Include waybackUrl in return
     }
   };
 

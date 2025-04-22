@@ -114,21 +114,15 @@ export function InternetExplorerAppComponent({
       : `https://${targetUrl}`;
 
     try {
-      // Use CDX API to find the closest snapshot in the specified month
-      const cdxUrl = `https://web.archive.org/cdx/search/cdx?url=${encodeURIComponent(formattedUrl)}&from=${year}${month}01&to=${year}${month}31&output=json&limit=1`;
-      console.log(`[IE] Checking Wayback CDX for ${formattedUrl} in ${year}${month}`);
-      const response = await fetch(cdxUrl);
+      // Check availability using iframe-check API
+      const checkUrl = `/api/iframe-check?url=${encodeURIComponent(formattedUrl)}&mode=check&year=${year}&month=${month}`;
+      console.log(`[IE] Checking Wayback availability for ${formattedUrl} in ${year}${month}`);
+      const response = await fetch(checkUrl);
       const data = await response.json();
 
-      // CDX API returns an array where the first row is headers
-      if (data && data.length > 1) {
-        // Get the first snapshot (most recent in the specified month)
-        const snapshot = data[1];
-        if (snapshot) {
-          const timestamp = snapshot[1]; // timestamp is in the second column
-          console.log(`[IE] Found Wayback snapshot for ${formattedUrl} in ${year}`);
-          return `https://web.archive.org/web/${timestamp}/${formattedUrl}`;
-        }
+      if (data.waybackUrl) {
+        console.log(`[IE] Found Wayback snapshot for ${formattedUrl} in ${year}`);
+        return data.waybackUrl;
       }
 
       console.log(`[IE] No Wayback snapshot found for ${formattedUrl} in ${year}`);
