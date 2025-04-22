@@ -242,10 +242,10 @@ REQUIREMENTS
 2. Keep the layout responsive. DO NOT use inline data:image base64 images. Import and use Google Fonts if needed. ${parseInt(year) > new Date().getFullYear() 
   ? "Keep visuals minimal but futuristic, use simple colors, avoid over using linear gradients, Use emojis, or simple SVG icons."
   : `Use period-appropriate design elements:
-     - Typography that matches the era (e.g., serif fonts for early periods, sans-serif for modern)
+     - Typography that matches the era (e.g., serif fonts for early periods, sans-serif for modern, can use Google Fonts)
      - Color schemes that were available or popular in ${year}
      - Design patterns and layouts that reflect the time period
-     - Historical imagery and decorative elements
+     - Historical imagery and decorative elements, use cultural curs from the site langauge
      - Consider how the website would have been designed with the technology available in ${year}`
 }
 3. Use ${parseInt(year) > new Date().getFullYear() 
