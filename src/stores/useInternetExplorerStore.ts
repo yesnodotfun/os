@@ -300,7 +300,7 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
             url: targetUrl, 
             title: historyTitle, 
             favicon: favicon || `https://www.google.com/s2/favicons?domain=${new URL(targetUrl.startsWith("http") ? targetUrl : `https://${targetUrl}`).hostname}&sz=32`, 
-            year: targetYear !== "current" ? targetYear : undefined, 
+            year: targetYear,
             timestamp: Date.now() 
           };
           const lastEntry = state.history[state.historyIndex];

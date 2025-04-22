@@ -50,7 +50,8 @@ export function InternetExplorerAppComponent({
     setClearHistoryDialogOpen, url, year, mode, token, favorites, history, historyIndex, 
     isTitleDialogOpen, newFavoriteTitle, isHelpDialogOpen, isAboutDialogOpen, 
     isNavigatingHistory, isClearFavoritesDialogOpen, isClearHistoryDialogOpen, currentPageTitle,
-    timelineSettings, status, finalUrl, aiGeneratedHtml, error
+    timelineSettings, status, finalUrl, aiGeneratedHtml, error,
+    getCachedAiPage
   } = useInternetExplorerStore();
 
   // Unified AbortController for cancellations
@@ -269,7 +270,23 @@ export function InternetExplorerAppComponent({
         );
         if (abortController.signal.aborted) return;
       } else {
-        // For past years after 1990 or current, use direct URL, Wayback, or Proxy
+        // For past years after 1990 or current, check AI cache first
+        const cachedEntry = getCachedAiPage(normalizedTargetUrl, targetYear);
+        if (cachedEntry) {
+          console.log(`[IE] Using cached AI page for ${normalizedTargetUrl} in ${targetYear}`);
+          const favicon = `https://www.google.com/s2/favicons?domain=${new URL(normalizedTargetUrl).hostname}&sz=32`;
+          loadSuccess({ 
+            aiGeneratedHtml: cachedEntry.html, 
+            title: cachedEntry.title || normalizedTargetUrl, 
+            targetUrl: normalizedTargetUrl, 
+            targetYear: targetYear, 
+            favicon: favicon, 
+            addToHistory: true 
+          });
+          return;
+        }
+
+        // If no AI cache, try Wayback Machine
         let urlToLoad = normalizedTargetUrl;
 
         if (newMode === "past") {
