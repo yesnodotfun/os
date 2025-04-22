@@ -216,12 +216,11 @@ export function useAiGeneration({ onLoadingChange, customTimeline = {} }: UseAiG
 REDESIGN INSTRUCTIONS
 ${parseInt(year) > new Date().getFullYear() 
   ? "Redesign this website so it feels perfectly at home in this future era. Think boldly and creatively about future outcomes, embrace the original brand, language, cultural context, aesthetics, interface paradigms, and breakthroughs that could happen by then."
-  : `Redesign this website to match the historical era. Consider:
-     - Technological limitations and available design tools of that time
-     - Period-appropriate typography, color schemes, and design elements
-     - Cultural and artistic movements of the era
-     - Historical context and major events
-     - How this website would have been designed if it existed in the era`
+  : `Redesign this website to match the historical era of ${year}. Consider:
+     - How this website would have been designed if it existed in ${year}
+     - What technology and design tools would have been available
+     - What typography, colors, and design elements were common
+     - What cultural and artistic movements influenced design`
 }
 If you think the entity may disappear due to changes, show a 404 or memorial page.
 
