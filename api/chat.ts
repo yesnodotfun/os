@@ -4,7 +4,7 @@ import { streamText, smoothStream, LanguageModelV1 } from "ai";
 import { SystemState } from "../src/utils/storage";
 
 // Define supported model types
-type SupportedModel = "gpt-4o" | "claude-3.5" | "claude-3.7" | "o3-mini";
+type SupportedModel = "gpt-4o" | "gpt-4.1" | "gpt-4.1-mini" | "claude-3.5" | "claude-3.7" | "o3-mini";
 
 // Default model to use
 const DEFAULT_MODEL: SupportedModel = "claude-3.7";
@@ -14,6 +14,10 @@ const getModelInstance = (model: SupportedModel): LanguageModelV1 => {
   switch (model) {
     case "gpt-4o":
       return openai("gpt-4o");
+    case "gpt-4.1":
+      return openai("gpt-4.1");
+    case "gpt-4.1-mini":
+      return openai("gpt-4.1-mini");
     case "o3-mini":
       return openai("o3-mini");
     case "claude-3.7":
@@ -426,7 +430,7 @@ export default async function handler(req: Request) {
     }
 
     // Additional validation for model
-    if (!["gpt-4o", "claude-3.5", "claude-3.7", "o3-mini"].includes(model)) {
+    if (!["gpt-4o", "gpt-4.1", "gpt-4.1-mini", "claude-3.5", "claude-3.7", "o3-mini"].includes(model)) {
       console.error(`400 Error: Unsupported model - ${model}`);
       return new Response(`Unsupported model: ${model}`, { status: 400 });
     }

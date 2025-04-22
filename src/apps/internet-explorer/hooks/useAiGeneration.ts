@@ -181,7 +181,7 @@ export function useAiGeneration({ onLoadingChange, customTimeline = {} }: UseAiG
       {
         id: "system",
         role: "system",
-        content: "You are a web designer specialized in turning present websites into futuristic versions in story and design.",
+        content: "You are a web designer specialized in turning present websites into past and futuristic coherent versions in story and design.",
       },
     ]);
     
@@ -259,8 +259,8 @@ Below are details about the current website and the task:
 
 - Domain: ${domainName}
 - URL: ${normalizedTargetUrl} // Use normalized URL in prompt
-${existingContent ? `- A snapshot of the existing website's readable content (truncated to 4,000 characters) is provided between the fences below:\\n\"\"\"\\n${existingContent}\\n\"\"\"\\n` : ""}
-${prefetchedTitle ? `- Known Title: ${prefetchedTitle}\\n` : ""}
+${existingContent ? `- A snapshot of the existing website's readable content (truncated to 4,000 characters) is provided between the fences below:\n'''\n${existingContent}\n'''\n` : ""}
+${prefetchedTitle ? `- Known Title: ${prefetchedTitle}\n` : ""}
 
 It is the year ${year}. Here is the timeline of human civilization leading up to this point:
 

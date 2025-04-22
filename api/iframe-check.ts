@@ -24,43 +24,9 @@ const shouldAutoProxy = (url: string): boolean => {
     return AUTO_PROXY_DOMAINS.some(domain => 
       hostname === domain || hostname.endsWith(`.${domain}`)
     );
-  } catch (e) {
+  } catch {
+    // Return false if URL parsing fails
     return false;
-  }
-};
-
-/**
- * Check Wayback Machine CDX for a snapshot in the specified year/month
- */
-const checkWaybackCdx = async (url: string, year: string, month: string): Promise<string | null> => {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10-second timeout
-
-  try {
-    const cdxUrl = `https://web.archive.org/cdx/search/cdx?url=${encodeURIComponent(url)}&from=${year}${month}01&to=${year}${month}31&output=json&limit=1`;
-    const response = await fetch(cdxUrl, { signal: controller.signal });
-    clearTimeout(timeoutId); // Clear timeout if fetch succeeds
-
-    const data = await response.json();
-
-    // CDX API returns an array where the first row is headers
-    if (data && data.length > 1) {
-      // Get the first snapshot (most recent in the specified month)
-      const snapshot = data[1];
-      if (snapshot) {
-        const timestamp = snapshot[1]; // timestamp is in the second column
-        return `https://web.archive.org/web/${timestamp}/${url}`;
-      }
-    }
-    return null;
-  } catch (error) {
-    clearTimeout(timeoutId); // Clear timeout on error as well
-    if ((error as Error).name === 'AbortError') {
-      console.error("[iframe-check] Wayback CDX check timed out:", url);
-    } else {
-      console.error("[iframe-check] Failed to check Wayback CDX:", error);
-    }
-    return null;
   }
 };
 
@@ -76,7 +42,6 @@ const checkWaybackCdx = async (url: string, year: string, month: string): Promis
  *     allowed: boolean,
  *     reason?: string
  *     title?: string
- *     waybackUrl?: string
  *   }
  *
  * On network or other unexpected errors we default to `allowed: true` so that navigation is not
@@ -126,10 +91,14 @@ export default async function handler(req: Request) {
     mode = "proxy";
   }
 
-  // Check Wayback Machine if year and month are provided
-  let waybackUrl: string | null = null;
+  // Build wayback URL directly if year and month are provided
+  let targetUrl = normalizedUrl;
   if (year && month) {
-    waybackUrl = await checkWaybackCdx(normalizedUrl, year, month);
+    targetUrl = `https://web.archive.org/web/${year}${month}01/${normalizedUrl}`;
+    console.log(`[iframe-check] Using Wayback Machine URL: ${targetUrl}`);
+    
+    // Force proxy mode for wayback content
+    mode = "proxy";
   }
 
   // -------------------------------
@@ -137,7 +106,7 @@ export default async function handler(req: Request) {
   // -------------------------------
   const checkSiteEmbeddingAllowed = async () => {
     try {
-      let res = await fetch(normalizedUrl, {
+      const res = await fetch(targetUrl, {
         method: "GET",
         redirect: "follow",
       });
@@ -158,7 +127,7 @@ export default async function handler(req: Request) {
           const html = await res.text();
           // Extract meta CSP
           const metaTagMatch = html.match(
-              /<meta\s+http-equiv=['\"]Content-Security-Policy['\"]\s+content=['\"]([^\'\"]*)['\"][^>]*>/i
+              /<meta\s+http-equiv=["']Content-Security-Policy["']\s+content=["']([^"']*)["'][^>]*>/i
           );
           if (metaTagMatch && metaTagMatch[1]) {
               metaCsp = metaTagMatch[1];
@@ -222,13 +191,13 @@ export default async function handler(req: Request) {
                 : `Content-Security-Policy (header): ${headerCsp}`
         : undefined;
 
-      return { allowed, reason: finalReason, title: pageTitle, waybackUrl }; // Include waybackUrl in return
+      return { allowed, reason: finalReason, title: pageTitle };
 
     } catch (error) {
         // If fetching upstream headers failed, assume embedding is blocked
-        console.error(`[iframe-check] Failed to fetch upstream headers for ${normalizedUrl}:`, error);
+        console.error(`[iframe-check] Failed to fetch upstream headers for ${targetUrl}:`, error);
         // No title available on error
-        return { allowed: false, reason: `Proxy check failed: ${(error as Error).message}`, waybackUrl }; // Include waybackUrl in return
+        return { allowed: false, reason: `Proxy check failed: ${(error as Error).message}` };
     }
   };
 
@@ -242,12 +211,23 @@ export default async function handler(req: Request) {
     }
 
     // 2. Proxy mode – stream the upstream resource, removing blocking headers
-    const upstreamRes = await fetch(normalizedUrl, { method: "GET", redirect: "follow" });
-
-    // If the upstream fetch failed (e.g., 403 Forbidden, 404 Not Found), return an error page
-    if (!upstreamRes.ok) {
-        // Classic IE-style error page
-        const errorHtml = `<!DOCTYPE html>
+    // Create an AbortController with timeout for the upstream fetch
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000); // 15-second timeout
+    
+    try {
+      const upstreamRes = await fetch(targetUrl, { 
+        method: "GET", 
+        redirect: "follow",
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeout); // Clear timeout on successful fetch
+      
+      // If the upstream fetch failed (e.g., 403 Forbidden, 404 Not Found), return an error page
+      if (!upstreamRes.ok) {
+          // Classic IE-style error page
+          const errorHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -331,56 +311,56 @@ export default async function handler(req: Request) {
 </body>
 </html>`;
 
-        return new Response(errorHtml, {
-            status: upstreamRes.status,
-            headers: { 
-                "Content-Type": "text/html",
-                "Access-Control-Allow-Origin": "*",
-                "Content-Security-Policy": "frame-ancestors *; sandbox allow-scripts allow-forms allow-same-origin allow-popups"
-            }
-        });
-    }
+          return new Response(errorHtml, {
+              status: upstreamRes.status,
+              headers: { 
+                  "Content-Type": "text/html",
+                  "Access-Control-Allow-Origin": "*",
+                  "Content-Security-Policy": "frame-ancestors *; sandbox allow-scripts allow-forms allow-same-origin allow-popups"
+              }
+          });
+      }
 
-    // Clone headers so we can edit them
-    const headers = new Headers(upstreamRes.headers);
-    const contentType = headers.get("content-type") || "";
-    let pageTitle: string | undefined = undefined; // Initialize title for proxy mode
+      // Clone headers so we can edit them
+      const headers = new Headers(upstreamRes.headers);
+      const contentType = headers.get("content-type") || "";
+      let pageTitle: string | undefined = undefined; // Initialize title for proxy mode
 
-    headers.delete("x-frame-options");
-    headers.delete("content-security-policy");
-    headers.set(
-      "content-security-policy",
-      "frame-ancestors *; sandbox allow-scripts allow-forms allow-same-origin allow-popups"
-    );
-    headers.set("access-control-allow-origin", "*");
+      headers.delete("x-frame-options");
+      headers.delete("content-security-policy");
+      headers.set(
+        "content-security-policy",
+        "frame-ancestors *; sandbox allow-scripts allow-forms allow-same-origin allow-popups"
+      );
+      headers.set("access-control-allow-origin", "*");
 
-    // If it's HTML, inject the <base> tag and click interceptor script
-    if (contentType.includes("text/html")) {
-        let html = await upstreamRes.text();
+      // If it's HTML, inject the <base> tag and click interceptor script
+      if (contentType.includes("text/html")) {
+          let html = await upstreamRes.text();
 
-        // Extract title before modifying HTML
-        const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-        if (titleMatch && titleMatch[1]) {
-            try {
-              pageTitle = titleMatch[1]
-                .replace(/&lt;/g, '<')
-                .replace(/&gt;/g, '>')
-                .replace(/&amp;/g, '&')
-                .replace(/&quot;/g, '"')
-                .replace(/&#39;/g, "'")
-                .trim();
-            } catch (e) {
-              console.error("Error decoding title in proxy:", e);
-              pageTitle = titleMatch[1].trim(); // Fallback
-            }
-        }
+          // Extract title before modifying HTML
+          const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+          if (titleMatch && titleMatch[1]) {
+              try {
+                pageTitle = titleMatch[1]
+                  .replace(/&lt;/g, '<')
+                  .replace(/&gt;/g, '>')
+                  .replace(/&amp;/g, '&')
+                  .replace(/&quot;/g, '"')
+                  .replace(/&#39;/g, "'")
+                  .trim();
+              } catch (e) {
+                console.error("Error decoding title in proxy:", e);
+                pageTitle = titleMatch[1].trim(); // Fallback
+              }
+          }
 
-        // Inject <base> tag right after <head> (case‑insensitive)
-        const baseTag = `<base href="${normalizedUrl}">`;
-        // Inject title meta tag if title was extracted
-        const titleMetaTag = pageTitle ? `<meta name="page-title" content="${encodeURIComponent(pageTitle)}">` : '';
+          // Inject <base> tag right after <head> (case‑insensitive)
+          const baseTag = `<base href="${targetUrl}">`;
+          // Inject title meta tag if title was extracted
+          const titleMetaTag = pageTitle ? `<meta name="page-title" content="${encodeURIComponent(pageTitle)}">` : '';
 
-        const clickInterceptorScript = `
+          const clickInterceptorScript = `
 <script>
   document.addEventListener('click', function(event) {
     var targetElement = event.target.closest('a');
@@ -395,40 +375,151 @@ export default async function handler(req: Request) {
   }, true);
 </script>
 `;
-        const headIndex = html.search(/<head[^>]*>/i);
-        if (headIndex !== -1) {
-            const insertPos = headIndex + html.match(/<head[^>]*>/i)![0].length;
-            html = html.slice(0, insertPos) + baseTag + titleMetaTag + html.slice(insertPos); // Inject base and title meta
-        } else {
-            // Fallback: Prepend if no <head>
-            html = baseTag + titleMetaTag + html;
-        }
+          const headIndex = html.search(/<head[^>]*>/i);
+          if (headIndex !== -1) {
+              const insertPos = headIndex + html.match(/<head[^>]*>/i)![0].length;
+              html = html.slice(0, insertPos) + baseTag + titleMetaTag + html.slice(insertPos); // Inject base and title meta
+          } else {
+              // Fallback: Prepend if no <head>
+              html = baseTag + titleMetaTag + html;
+          }
 
-        // Inject script right before </body> (case‑insensitive)
-        const bodyEndIndex = html.search(/<\/body>/i);
-        if (bodyEndIndex !== -1) {
-          html = html.slice(0, bodyEndIndex) + clickInterceptorScript + html.slice(bodyEndIndex);
-        } else {
-          // Fallback: Append script if no </body>
-          html += clickInterceptorScript;
-        }
+          // Inject script right before </body> (case‑insensitive)
+          const bodyEndIndex = html.search(/<\/body>/i);
+          if (bodyEndIndex !== -1) {
+            html = html.slice(0, bodyEndIndex) + clickInterceptorScript + html.slice(bodyEndIndex);
+          } else {
+            // Fallback: Append script if no </body>
+            html += clickInterceptorScript;
+          }
 
-        // Add the extracted title to a custom header (URL-encoded)
-        if (pageTitle) {
-          headers.set("X-Proxied-Page-Title", encodeURIComponent(pageTitle));
-        }
+          // Add the extracted title to a custom header (URL-encoded)
+          if (pageTitle) {
+            headers.set("X-Proxied-Page-Title", encodeURIComponent(pageTitle));
+          }
 
-        return new Response(html, {
-            status: upstreamRes.status,
-            headers,
-        });
-    } else {
-        // For non‑HTML content, stream the body directly
-        // No title extraction or header needed for non-HTML
-        return new Response(upstreamRes.body, {
-            status: upstreamRes.status,
-            headers,
-        });
+          return new Response(html, {
+              status: upstreamRes.status,
+              headers,
+          });
+      } else {
+          // For non‑HTML content, stream the body directly
+          // No title extraction or header needed for non-HTML
+          return new Response(upstreamRes.body, {
+              status: upstreamRes.status,
+              headers,
+          });
+      }
+    } catch (fetchError) {
+      clearTimeout(timeout);
+      
+      // Special handling for timeout or network errors
+      console.error(`[iframe-check] Fetch error for ${targetUrl}:`, fetchError);
+      
+      // Create a friendly error page for network/timeout issues
+      const networkErrorHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connection Error</title>
+  <link rel="stylesheet" href="https://os.ryo.lu/fonts/fonts.css"> 
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    html, body {
+      font-family: "Geneva-12", "ArkPixel", system-ui, sans-serif;
+      font-size: 12px;
+      margin: 0;
+      padding: 0;
+      height: 100%;
+    }
+    body {
+      background-color: #ffffff;
+      color: #000000;
+      padding: 24px;
+      text-align: left;
+    }
+    h1 {
+      font-size: 18px;
+      color: #000000;
+      font-weight: normal;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      align-items: center;
+    }
+    p {
+      margin: 12px 0;
+      line-height: 1.4;
+    }
+    .divider {
+      height: 1px;
+      background-color: #ccc;
+      margin: 20px 0;
+    }
+    ul {
+      margin: 16px 0;
+      padding-left: 20px;
+    }
+    li {
+      margin-bottom: 8px;
+      list-style-type: disc;
+    }
+    a {
+      color: #f00;
+      text-decoration: underline;
+    }
+    .connection-error {
+      margin-top: 20px;
+      padding: 10px;
+      background-color: #f8f8f8;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    .footer {
+      margin-top: 40px;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <h1>
+    The page cannot be displayed
+  </h1>
+  
+  <p>Internet Explorer cannot access this website. The connection has timed out or failed.</p>
+  
+  <div class="divider"></div>
+  
+  <p>Please try the following:</p>
+  
+  <ul>
+    <li>Check your internet connection</li>
+    <li>Try the website at a different time or year setting</li>
+    <li>Click the <a href="javascript:void(0)" onclick="window.parent.postMessage({type: 'goBack'}, '*')">Back</a> button to visit a different website</li>
+  </ul>
+  
+  <div class="connection-error">
+    <strong>Technical Details:</strong> ${fetchError instanceof Error ? fetchError.message : 'Connection failed or timed out'}
+  </div>
+  
+  <div class="footer">
+    Connection Error<br>
+    Internet Explorer
+  </div>
+</body>
+</html>`;
+
+      return new Response(networkErrorHtml, {
+        status: 503,
+        headers: { 
+          "Content-Type": "text/html",
+          "Access-Control-Allow-Origin": "*",
+          "Content-Security-Policy": "frame-ancestors *; sandbox allow-scripts allow-forms allow-same-origin allow-popups"
+        }
+      });
     }
   } catch (error) {
     return new Response(

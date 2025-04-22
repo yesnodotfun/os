@@ -114,26 +114,9 @@ export function InternetExplorerAppComponent({
       ? targetUrl
       : `https://${targetUrl}`;
 
-    try {
-      // Check availability using iframe-check API
-      const checkUrl = `/api/iframe-check?url=${encodeURIComponent(formattedUrl)}&mode=check&year=${year}&month=${month}`;
-      console.log(`[IE] Checking Wayback availability for ${formattedUrl} in ${year}${month}`);
-      const response = await fetch(checkUrl);
-      const data = await response.json();
-
-      if (data.waybackUrl) {
-        console.log(`[IE] Found Wayback snapshot for ${formattedUrl} in ${year}`);
-        return data.waybackUrl;
-      }
-
-      console.log(`[IE] No Wayback snapshot found for ${formattedUrl} in ${year}`);
-      // If no snapshot is available, return null to trigger AI generation
-      return null;
-    } catch (error) {
-      console.warn("[IE] Failed to check Wayback Machine availability:", error);
-      // On error, try direct wayback URL as fallback
-      return `https://web.archive.org/web/${year}${month}01/${formattedUrl}`;
-    }
+    // Directly construct the Wayback URL without CDX check
+    console.log(`[IE] Using Wayback Machine URL for ${formattedUrl} in ${year}`);
+    return `/api/iframe-check?url=${encodeURIComponent(formattedUrl)}&year=${year}&month=${month}`;
   };
   
   // Handler for iframe load (keep outside useCallback for now, depends on refs)
@@ -169,7 +152,7 @@ export function InternetExplorerAppComponent({
             // 3. If still no title and proxied, try reading the injected meta tag
             if (!loadedTitle && finalUrl?.startsWith('/api/iframe-check')) {
               try {
-                const metaTitle = iframeRef.current?.contentDocument?.querySelector('meta[name=\"page-title\"]')?.getAttribute('content');
+                const metaTitle = iframeRef.current?.contentDocument?.querySelector('meta[name="page-title"]')?.getAttribute('content');
                 if (metaTitle) {
                   loadedTitle = decodeURIComponent(metaTitle); // Decode the title from meta tag
                 }
@@ -253,14 +236,14 @@ export function InternetExplorerAppComponent({
     setPrefetchedTitle(null);
 
     // Format URL properly
-    let normalizedTargetUrl = targetUrl.startsWith("http")
+    const normalizedTargetUrl = targetUrl.startsWith("http")
       ? targetUrl
       : `https://${targetUrl}`;
 
     try {
       // Handle navigation based on mode
-      if (newMode === "future" || (newMode === "past" && parseInt(targetYear) <= 1990)) {
-        // For future years or years 1990 and older, generate AI content
+      if (newMode === "future" || (newMode === "past" && parseInt(targetYear) <= 1995)) {
+        // For future years or years 1995 and older, generate AI content
         await generateFuturisticWebsite(
           normalizedTargetUrl, 
           targetYear, 
@@ -270,7 +253,7 @@ export function InternetExplorerAppComponent({
         );
         if (abortController.signal.aborted) return;
       } else {
-        // For past years after 1990 or current, check AI cache first
+        // For past years after 1995 or current, check AI cache first
         const cachedEntry = getCachedAiPage(normalizedTargetUrl, targetYear);
         if (cachedEntry) {
           console.log(`[IE] Using cached AI page for ${normalizedTargetUrl} in ${targetYear}`);
@@ -291,14 +274,39 @@ export function InternetExplorerAppComponent({
 
         if (newMode === "past") {
           // Get Wayback URL for past years
-          const waybackUrl = await getWaybackUrl(normalizedTargetUrl, targetYear);
-          if (abortController.signal.aborted) return;
+          try {
+            const waybackUrl = await getWaybackUrl(normalizedTargetUrl, targetYear);
+            if (abortController.signal.aborted) return;
 
-          if (waybackUrl) {
-            urlToLoad = waybackUrl;
-          } else {
-            // If no Wayback snapshot is available, fall back to AI generation
-            console.info(`[IE] No Wayback snapshot available for ${normalizedTargetUrl} in ${targetYear}, generating AI content`);
+            if (waybackUrl) {
+              urlToLoad = waybackUrl;
+              console.log(`[IE] Using proxy for Wayback URL: ${urlToLoad}`);
+              
+              // Set a longer timeout for Wayback Machine requests
+              setTimeout(() => {
+                if (status === 'loading' && !abortController.signal.aborted) {
+                  console.warn(`[IE] Wayback Machine load timeout for ${normalizedTargetUrl} in ${targetYear}`);
+                  loadError(`The Wayback Machine is taking too long to respond. Try a different year or website.`);
+                }
+              }, 20000); // 20-second timeout for Wayback Machine
+            } else {
+              // If no Wayback URL is returned, fall back to AI generation
+              console.info(`[IE] No Wayback URL available for ${normalizedTargetUrl} in ${targetYear}, generating AI content`);
+              await generateFuturisticWebsite(
+                normalizedTargetUrl,
+                targetYear,
+                forceRegenerate,
+                abortController.signal,
+                prefetchedTitle
+              );
+              if (abortController.signal.aborted) return;
+              return; // Exit early as AI generation handles its own state updates
+            }
+          } catch (waybackError) {
+            if (abortController.signal.aborted) return;
+            
+            console.warn(`[IE] Wayback Machine error for ${normalizedTargetUrl}:`, waybackError);
+            // Fall back to AI generation on Wayback error
             await generateFuturisticWebsite(
               normalizedTargetUrl,
               targetYear,
@@ -373,6 +381,7 @@ export function InternetExplorerAppComponent({
     } catch (error) {
       // Only update error state if this navigation is still active
       if (!abortController.signal.aborted) {
+        console.error(`[IE] Navigation error:`, error);
         loadError(`Failed to navigate: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
@@ -673,7 +682,7 @@ export function InternetExplorerAppComponent({
                       <SelectItem 
                         key={year} 
                         value={year}
-                        className={parseInt(year) <= 1990 ? "text-blue-600 font-semibold" : ""}
+                        className={parseInt(year) <= 1995 ? "text-blue-600 font-semibold" : ""}
                       >
                         {year}
                       </SelectItem>

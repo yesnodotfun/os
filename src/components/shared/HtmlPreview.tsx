@@ -256,7 +256,8 @@ export default function HtmlPreview({
         extend: {
           fontFamily: {
             sans: ["Geneva-12", "ArkPixel", "SerenityOS-Emoji", "ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", "monospace"],
-            mono: ["Monaco", "ArkPixel", "SerenityOS-Emoji", "ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", "monospace"]
+            mono: ["Monaco", "ArkPixel", "SerenityOS-Emoji", "ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", "monospace"],
+            serif: ["Mondwest", "NeueBit", "AppleGaramond", "Georgia", "Palatino", "serif"]
           }
         }
       }

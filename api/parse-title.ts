@@ -17,8 +17,6 @@ const ParsedTitleSchema = z.object({
   album: z.string().optional().nullable(),
 });
 
-// Infer the TypeScript type from the Zod schema
-type ParsedTitle = z.infer<typeof ParsedTitleSchema>;
 
 export default async function handler(req: Request) {
   if (req.method !== "POST") {
@@ -37,7 +35,7 @@ export default async function handler(req: Request) {
 
     // Use generateObject from the AI SDK
     const { object: parsedData } = await generateObject({
-      model: openai("gpt-4o"),
+      model: openai("gpt-4.1-mini"),
       schema: ParsedTitleSchema, // Provide the Zod schema
       system: `You are an expert music metadata parser. Given a raw YouTube video title, extract the song title and artist. If possible, also extract the album name. Respond ONLY with a valid JSON object matching the provided schema. If you cannot determine a field, omit it or set it to null. Example input: "The Beatles - Hey Jude (Official Video)". Example output: {"title": "Hey Jude", "artist": "The Beatles"}. Example input: "Lofi Hip Hop Radio - Beats to Relax/Study to". Example output: {"title": "Lofi Hip Hop Radio - Beats to Relax/Study to", "artist": null}.`,
       prompt: rawTitle,

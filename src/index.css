@@ -50,6 +50,34 @@
   font-style: normal;
 }
 
+@font-face {
+  font-family: "Mondwest";
+  src: url("/fonts/Mondwest-Regular.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Mondwest";
+  src: url("/fonts/Mondwest-Bold.woff2") format("woff2");
+  font-weight: bold;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "NeueBit";
+  src: url("/fonts/NeueBit-Regular.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "NeueBit";
+  src: url("/fonts/NeueBit-Bold.woff2") format("woff2");
+  font-weight: bold;
+  font-style: normal;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -171,7 +199,19 @@
   }
 
   .font-apple-garamond {
-    font-family: "AppleGaramond", "Georgia", "Palatino", serif;
+    font-family: "Mondwest", "Georgia", "Palatino", serif;
+    -webkit-font-smoothing: antialiased;
+    font-smooth: always;
+  }
+
+  .font-mondwest {
+    font-family: "Mondwest", "Georgia", "Palatino", serif;
+    -webkit-font-smoothing: antialiased;
+    font-smooth: always;
+  }
+
+  .font-neuebit {
+    font-family: "NeueBit", "Georgia", "Palatino", serif;
     -webkit-font-smoothing: antialiased;
     font-smooth: always;
   }
