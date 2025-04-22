@@ -59,6 +59,7 @@ export function useAiGeneration({ onLoadingChange, customTimeline = {} }: UseAiG
         const favicon = `https://www.google.com/s2/favicons?domain=${new URL(url.startsWith("http") ? url : `https://${url}`).hostname}&sz=32`;
 
         // Cache the completed HTML and title
+        console.log(`[IE] Caching AI page for ${url} in ${year}`);
         cacheAiPage(url, year, cleanHtmlContent, parsedTitle || fallbackTitle);
 
         // Update the store with the final HTML, title, and history info
@@ -71,7 +72,7 @@ export function useAiGeneration({ onLoadingChange, customTimeline = {} }: UseAiG
           addToHistory: true 
         });
 
-        console.log("[IE] AI generation complete (onFinish), saved to cache and store");
+        console.log(`[IE] AI generation complete (onFinish), saved to cache and store`);
       } else {
         console.error("[IE] Could not extract URL/Year from user prompt in onFinish handler.");
         // Fallback: Update store with HTML but potentially missing title context
@@ -145,6 +146,7 @@ export function useAiGeneration({ onLoadingChange, customTimeline = {} }: UseAiG
     if (!forceRegenerate) {
       const cachedEntry = getCachedAiPage(url, year);
       if (cachedEntry) {
+        console.log(`[IE] Using cached AI page for ${url} in ${year}`);
         setAiGeneratedHtml(cachedEntry.html);
         // Update the store directly when using cached content, including title and history info
         const favicon = `https://www.google.com/s2/favicons?domain=${new URL(url.startsWith("http") ? url : `https://${url}`).hostname}&sz=32`;
@@ -158,6 +160,8 @@ export function useAiGeneration({ onLoadingChange, customTimeline = {} }: UseAiG
         });
         isGenerationComplete.current = true;
         return;
+      } else {
+        console.log(`[IE] No cached AI page found for ${url} in ${year}, generating new content`);
       }
     }
 

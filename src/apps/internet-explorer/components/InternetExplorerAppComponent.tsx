@@ -104,10 +104,9 @@ export function InternetExplorerAppComponent({
   const getWaybackUrl = async (targetUrl: string, year: string) => {
     if (year === "current") return targetUrl;
 
-    // Get current date for month and day
+    // Get current month
     const now = new Date();
     const month = String(now.getMonth() + 1).padStart(2, "0");
-    const day = String(now.getDate()).padStart(2, "0");
 
     // Format URL properly
     const formattedUrl = targetUrl.startsWith("http")
@@ -115,22 +114,30 @@ export function InternetExplorerAppComponent({
       : `https://${targetUrl}`;
 
     try {
-      // Check availability using Wayback Machine API
-      const availabilityUrl = `https://archive.org/wayback/available?url=${encodeURIComponent(formattedUrl)}&timestamp=${year}${month}${day}`;
-      const response = await fetch(availabilityUrl);
+      // Use CDX API to find the closest snapshot in the specified month
+      const cdxUrl = `https://web.archive.org/cdx/search/cdx?url=${encodeURIComponent(formattedUrl)}&from=${year}${month}01&to=${year}${month}31&output=json&limit=1`;
+      console.log(`[IE] Checking Wayback CDX for ${formattedUrl} in ${year}${month}`);
+      const response = await fetch(cdxUrl);
       const data = await response.json();
 
-      if (data.archived_snapshots?.closest?.available) {
-        // Use the closest available snapshot
-        return data.archived_snapshots.closest.url;
+      // CDX API returns an array where the first row is headers
+      if (data && data.length > 1) {
+        // Get the first snapshot (most recent in the specified month)
+        const snapshot = data[1];
+        if (snapshot) {
+          const timestamp = snapshot[1]; // timestamp is in the second column
+          console.log(`[IE] Found Wayback snapshot for ${formattedUrl} in ${year}`);
+          return `https://web.archive.org/web/${timestamp}/${formattedUrl}`;
+        }
       }
 
+      console.log(`[IE] No Wayback snapshot found for ${formattedUrl} in ${year}`);
       // If no snapshot is available, return null to trigger AI generation
       return null;
     } catch (error) {
       console.warn("[IE] Failed to check Wayback Machine availability:", error);
       // On error, try direct wayback URL as fallback
-      return `https://web.archive.org/web/${year}${month}${day}/${formattedUrl}`;
+      return `https://web.archive.org/web/${year}${month}01/${formattedUrl}`;
     }
   };
   
