@@ -719,6 +719,12 @@ export const clearAllAppStates = (): void => {
 
   // Clear display mode
   localStorage.removeItem("displayMode");
+
+  // Clear persisted zustand stores
+  localStorage.removeItem("ryos:app-store");
+  localStorage.removeItem("ryos:videos");
+  localStorage.removeItem("ryos:internet-explorer");
+  localStorage.removeItem("ryos:ipod");
 };
 
 const SYNTH_PRESET_KEY = "synthPreset";
