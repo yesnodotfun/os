@@ -22,8 +22,12 @@ const FutureSettingsDialog = ({
 
   // Update selectedYear when dialog opens
   useEffect(() => {
-    if (isOpen && currentYear !== "current") {
-      setSelectedYear(currentYear);
+    if (isOpen) {
+      if (currentYear === "current" || parseInt(currentYear) <= new Date().getFullYear()) {
+        setSelectedYear("2030");
+      } else {
+        setSelectedYear(currentYear);
+      }
     }
   }, [isOpen, currentYear]);
 

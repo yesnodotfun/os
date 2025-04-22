@@ -210,18 +210,36 @@ export function useAiGeneration({ onLoadingChange, customTimeline = {} }: UseAiG
     // Create a more inspirational prompt for AI‑generated future designs
     const prompt = `
 REDESIGN INSTRUCTIONS
-Redesign this website so it feels perfectly at home in this era. Think boldly and creatively about future outcomes, embrace the original brand, language, cultural context, aesthetics, interface paradigms, and breakthroughs that could happen by then.
+${parseInt(year) > new Date().getFullYear() 
+  ? "Redesign this website so it feels perfectly at home in this future era. Think boldly and creatively about future outcomes, embrace the original brand, language, cultural context, aesthetics, interface paradigms, and breakthroughs that could happen by then."
+  : `Redesign this website to match the historical era. Consider:
+     - Technological limitations and available design tools of that time
+     - Period-appropriate typography, color schemes, and design elements
+     - Cultural and artistic movements of the era
+     - Historical context and major events
+     - How this website would have been designed if it existed in the era`
+}
 If you think the entity may disappear due to changes, show a 404 or memorial page.
 
 DELIVERABLE
-Return a single, fully self‑contained HTML document in markdown codeblock for this speculative design. MUST use TailwindCSS classes for styling. Can use inline \`<script>\` blocks when needed, but avoid external dependencies. Use Three.js for 3D with script already loaded. 
+Return a single, fully self‑contained HTML document in markdown codeblock for this ${parseInt(year) > new Date().getFullYear() ? "speculative" : "historical"} design. MUST use TailwindCSS classes for styling. Can use inline \`<script>\` blocks when needed, but avoid external dependencies. Use Three.js for 3D with script already loaded. 
 
 IMPORTANT: Include the generated page title inside an HTML comment at the very beginning of the HTML document, formatted EXACTLY like this: \`<!-- TITLE: Your Generated Page Title -->\`
 
 REQUIREMENTS
 1. DO NOT respond in any text except the html markdown codeblock.
-2. Keep the layout responsive. Keep visuals minimal but futuristic, use simple colors, avoid crazy gradients. Use emojis, or simple SVG icons.
-3. Use imaginative, crazy content.
+2. Keep the layout responsive. ${parseInt(year) > new Date().getFullYear() 
+  ? "Keep visuals minimal but futuristic, use simple colors, avoid crazy gradients. Use emojis, or simple SVG icons. NEVER use base64 images."
+  : `Use period-appropriate design elements:
+     - Typography that matches the era (e.g., serif fonts for early periods, sans-serif for modern)
+     - Color schemes that were available or popular in ${year}
+     - Design patterns and layouts that reflect the time period
+     - Historical imagery and decorative elements
+     - Consider how the website would have been designed with the technology available in ${year}`
+}
+3. Use ${parseInt(year) > new Date().getFullYear() 
+  ? "imaginative, crazy" 
+  : "historically accurate and period-appropriate"} content.
 4. Ensure the overall experience is visually striking yet still loads in a normal browser.
 5. Output ONLY the raw HTML markup as the final answer.
 

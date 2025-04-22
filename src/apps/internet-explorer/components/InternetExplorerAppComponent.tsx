@@ -78,10 +78,17 @@ export function InternetExplorerAppComponent({
   });
 
   // Create past years array (from 1996 to current year)
-  const pastYears = Array.from(
-    { length: new Date().getFullYear() - 1996 + 1 },
-    (_, i) => (1996 + i).toString()
-  ).reverse(); // Reverse to get newest to oldest
+  const pastYears = [
+    // Historical centuries
+    "1400", "1500", "1600", "1700", "1800", "1900",
+    // Early 20th century decades
+    "1920", "1930", "1940", "1950", "1960", "1970", "1980", "1990",
+    // Modern years
+    ...Array.from(
+      { length: new Date().getFullYear() - 1996 + 1 },
+      (_, i) => (1996 + i).toString()
+    )
+  ].reverse(); // Reverse to get newest to oldest
 
   // Create a richer set of future years – covering near, mid, and far future
   const futureYears = [
@@ -102,12 +109,29 @@ export function InternetExplorerAppComponent({
     const month = String(now.getMonth() + 1).padStart(2, "0");
     const day = String(now.getDate()).padStart(2, "0");
 
-    // Directly construct the wayback URL without checking availability
+    // Format URL properly
     const formattedUrl = targetUrl.startsWith("http")
       ? targetUrl
       : `https://${targetUrl}`;
 
-    return `https://web.archive.org/web/${year}${month}${day}/${formattedUrl}`;
+    try {
+      // Check availability using Wayback Machine API
+      const availabilityUrl = `https://archive.org/wayback/available?url=${encodeURIComponent(formattedUrl)}&timestamp=${year}${month}${day}`;
+      const response = await fetch(availabilityUrl);
+      const data = await response.json();
+
+      if (data.archived_snapshots?.closest?.available) {
+        // Use the closest available snapshot
+        return data.archived_snapshots.closest.url;
+      }
+
+      // If no snapshot is available, return null to trigger AI generation
+      return null;
+    } catch (error) {
+      console.warn("[IE] Failed to check Wayback Machine availability:", error);
+      // On error, try direct wayback URL as fallback
+      return `https://web.archive.org/web/${year}${month}${day}/${formattedUrl}`;
+    }
   };
   
   // Handler for iframe load (keep outside useCallback for now, depends on refs)
@@ -233,32 +257,40 @@ export function InternetExplorerAppComponent({
 
     try {
       // Handle navigation based on mode
-      if (newMode === "future") {
-        // For future years, generate AI content
-        // Title is handled by useAiGeneration calling loadSuccess
-        // Pass prefetched title (if available from a previous check) to AI hook
+      if (newMode === "future" || (newMode === "past" && parseInt(targetYear) <= 1990)) {
+        // For future years or years 1990 and older, generate AI content
         await generateFuturisticWebsite(
           normalizedTargetUrl, 
           targetYear, 
           forceRegenerate, 
           abortController.signal,
-          prefetchedTitle // Pass the title here
+          prefetchedTitle
         );
-        // Check if aborted during generation
         if (abortController.signal.aborted) return;
       } else {
-        // For past or current, use direct URL, Wayback, or Proxy
-        let urlToLoad = normalizedTargetUrl; // Initialize URL to load
+        // For past years after 1990 or current, use direct URL, Wayback, or Proxy
+        let urlToLoad = normalizedTargetUrl;
 
         if (newMode === "past") {
           // Get Wayback URL for past years
           const waybackUrl = await getWaybackUrl(normalizedTargetUrl, targetYear);
-          // Check if aborted while getting wayback URL
           if (abortController.signal.aborted) return;
+
           if (waybackUrl) {
             urlToLoad = waybackUrl;
+          } else {
+            // If no Wayback snapshot is available, fall back to AI generation
+            console.info(`[IE] No Wayback snapshot available for ${normalizedTargetUrl} in ${targetYear}, generating AI content`);
+            await generateFuturisticWebsite(
+              normalizedTargetUrl,
+              targetYear,
+              forceRegenerate,
+              abortController.signal,
+              prefetchedTitle
+            );
+            if (abortController.signal.aborted) return;
+            return; // Exit early as AI generation handles its own state updates
           }
-          // Title for Wayback will be set in handleIframeLoad
         } else if (newMode === "now") {
           // Check if the site allows embedding before deciding whether to proxy
           try {
@@ -620,7 +652,11 @@ export function InternetExplorerAppComponent({
                     <SelectItem value="current">Now</SelectItem>
                     {/* Past years in reverse chronological order (newest to oldest) */}
                     {pastYears.map((year) => (
-                      <SelectItem key={year} value={year}>
+                      <SelectItem 
+                        key={year} 
+                        value={year}
+                        className={parseInt(year) <= 1990 ? "text-blue-600 font-semibold" : ""}
+                      >
                         {year}
                       </SelectItem>
                     ))}
@@ -666,7 +702,7 @@ export function InternetExplorerAppComponent({
             {/* Content first */} 
             {error ? (
               <div className="p-4 text-red-500">{error}</div>
-            ) : isFutureYear ? ( // Render HtmlPreview if it's a future year
+            ) : isFutureYear || (mode === "past" && (isAiLoading || aiGeneratedHtml)) ? ( // Render HtmlPreview for future years or past years with AI content
               <div className="w-full h-full overflow-hidden absolute inset-0">
                 <HtmlPreview
                   htmlContent={isAiLoading ? generatedHtml || "" : aiGeneratedHtml || ""}
@@ -680,7 +716,7 @@ export function InternetExplorerAppComponent({
                 />
               </div>
             ) : (
-              // Render iframe for current/past years
+              // Render iframe for current/past years with Wayback snapshots
               <iframe
                 ref={iframeRef}
                 src={finalUrl || ""}
