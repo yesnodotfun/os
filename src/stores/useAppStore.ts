@@ -2,11 +2,28 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { AppId } from "@/config/appRegistry";
 import { AppManagerState, AppState } from "@/apps/base/types";
-import { APP_STORAGE_KEYS } from "@/utils/storage";
+
+// Define known app IDs directly here to avoid circular dependency
+const APP_IDS = [
+  "finder",
+  "soundboard",
+  "internet-explorer",
+  "chats",
+  "textedit",
+  "paint",
+  "photo-booth",
+  "minesweeper",
+  "videos",
+  "ipod",
+  "synth",
+  "pc",
+  "terminal",
+  "control-panels",
+] as const;
 
 const getInitialState = (): AppManagerState => ({
   windowOrder: [],
-  apps: Object.keys(APP_STORAGE_KEYS).reduce(
+  apps: APP_IDS.reduce(
     (acc, appId) => ({
       ...acc,
       [appId]: { isOpen: false },
@@ -16,6 +33,8 @@ const getInitialState = (): AppManagerState => ({
 });
 
 interface AppStoreState extends AppManagerState {
+  debugMode: boolean;
+  setDebugMode: (enabled: boolean) => void;
   bringToForeground: (appId: AppId | "") => void;
   toggleApp: (appId: AppId) => void;
   navigateToNextApp: (currentAppId: AppId) => void;
@@ -26,6 +45,8 @@ export const useAppStore = create<AppStoreState>()(
   persist(
     (set, get) => ({
       ...getInitialState(),
+      debugMode: false,
+      setDebugMode: (enabled) => set({ debugMode: enabled }),
 
       bringToForeground: (appId) => {
         set((state) => {

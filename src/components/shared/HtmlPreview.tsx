@@ -532,12 +532,18 @@ export default function HtmlPreview({
     maximizeSound.play();
   };
 
-  // NEW: Function to sanitize HTML for stream preview - removing fixed position elements
+  // NEW: Function to sanitize HTML for stream preview - removing fixed position elements and scripts/styles
   const sanitizeHtmlForStream = (html: string): string => {
     if (!html) return html;
     
+    // Remove all script tags and their contents
+    let sanitized = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+    
+    // Remove all style tags and their contents
+    sanitized = sanitized.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '');
+    
     // Remove inline position:fixed styles
-    let sanitized = html.replace(/position\s*:\s*fixed/gi, "position: relative");
+    sanitized = sanitized.replace(/position\s*:\s*fixed/gi, "position: relative");
     sanitized = sanitized.replace(/position\s*:\s*sticky/gi, "position: relative");
     
     // Handle Tailwind classes - convert fixed/sticky to relative

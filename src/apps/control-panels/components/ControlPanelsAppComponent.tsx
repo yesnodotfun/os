@@ -30,6 +30,7 @@ import {
 } from "@/utils/storage";
 import { SYNTH_PRESETS } from "@/hooks/useChatSynth";
 import { useFileSystem } from "@/apps/finder/hooks/useFileSystem";
+import { useAppStore } from "@/stores/useAppStore";
 
 type PhotoCategory =
   | "3d_graphics"
@@ -145,6 +146,7 @@ export function ControlPanelsAppComponent({
   const [synthPreset, setSynthPreset] = useState("classic");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { formatFileSystem } = useFileSystem();
+  const { debugMode, setDebugMode } = useAppStore();
 
   useEffect(() => {
     setUiSoundsEnabled(loadUISoundsEnabled());
@@ -519,6 +521,20 @@ export function ControlPanelsAppComponent({
               className="mt-0 p-4 bg-[#E3E3E3] border border-t-0 border-[#808080] h-[calc(100%-2rem)]"
             >
               <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col gap-1">
+                    <Label>Debug Mode</Label>
+                    <Label className="text-[11px] text-gray-600 font-geneva-12">
+                      Enable debugging features
+                    </Label>
+                  </div>
+                  <Switch
+                    checked={debugMode}
+                    onCheckedChange={setDebugMode}
+                    className="data-[state=checked]:bg-[#000000]"
+                  />
+                </div>
+
                 <div className="space-y-2">
                   <div className="flex gap-2">
                     <Button

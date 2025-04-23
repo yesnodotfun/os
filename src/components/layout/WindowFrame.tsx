@@ -11,6 +11,7 @@ import { useSwipeNavigation } from "@/hooks/useSwipeNavigation";
 import { AppId } from "@/config/appRegistry";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { saveWindowPositionAndSize } from "@/utils/storage";
+import { useAppStore } from "@/stores/useAppStore";
 
 interface WindowFrameProps {
   children: React.ReactNode;
@@ -73,6 +74,7 @@ export function WindowFrame({
   const lastToggleTimeRef = useRef<number>(0);
   // Keep track of window size before maximizing to restore it later
   const previousSizeRef = useRef({ width: 0, height: 0 });
+  const { debugMode } = useAppStore();
 
   // Setup swipe navigation for mobile
   const {
@@ -121,9 +123,8 @@ export function WindowFrame({
     windowSize,
     isDragging,
     resizeType,
-    handleMouseDown: handleMouseDownBase,
+    handleMouseDown,
     handleResizeStart,
-    maximizeWindowHeight,
     setWindowSize,
     setWindowPosition,
     getSafeAreaBottomInset,
@@ -137,10 +138,10 @@ export function WindowFrame({
     setIsFullHeight(Math.abs(windowSize.height - maxPossibleHeight) < 5);
   }, [windowSize.height]);
 
-  const handleMouseDown = (
+  const handleMouseDownWithForeground = (
     e: React.MouseEvent<HTMLElement> | React.TouchEvent<HTMLElement>
   ) => {
-    handleMouseDownBase(e);
+    handleMouseDown(e);
     if (!isForeground) {
       bringToForeground(appId);
     }
@@ -170,17 +171,40 @@ export function WindowFrame({
 
       // Restore to default height from app's configuration
       setIsFullHeight(false);
-      setWindowSize((prev) => ({
-        ...prev,
+      const newSize = {
+        ...windowSize,
         height: mergedConstraints.defaultSize.height,
-      }));
+      };
+      setWindowSize(newSize);
+      // Save the window state
+      saveWindowPositionAndSize(appId, windowPosition, newSize);
     } else {
       // Play expand sound when maximizing height
       playWindowExpand();
 
       // Set to full height
       setIsFullHeight(true);
-      maximizeWindowHeight(mergedConstraints.maxHeight);
+      const menuBarHeight = 30;
+      const safeAreaBottom = getSafeAreaBottomInset();
+      const maxPossibleHeight = window.innerHeight - menuBarHeight - safeAreaBottom;
+      const maxHeight = mergedConstraints.maxHeight
+        ? typeof mergedConstraints.maxHeight === "string"
+          ? parseInt(mergedConstraints.maxHeight)
+          : mergedConstraints.maxHeight
+        : maxPossibleHeight;
+      const newHeight = Math.min(maxPossibleHeight, maxHeight);
+      const newSize = {
+        ...windowSize,
+        height: newHeight,
+      };
+      const newPosition = {
+        ...windowPosition,
+        y: menuBarHeight,
+      };
+      setWindowSize(newSize);
+      setWindowPosition(newPosition);
+      // Save the window state
+      saveWindowPositionAndSize(appId, newPosition, newSize);
     }
   };
 
@@ -370,7 +394,9 @@ export function WindowFrame({
         "absolute p-2 md:p-0 w-full h-full md:mt-0 select-none",
         "transition-all duration-200 ease-in-out",
         isInitialMount && "animate-in fade-in-0 zoom-in-95 duration-200",
-        isShaking && "animate-shake"
+        isShaking && "animate-shake",
+        // Disable all pointer events when window is closing
+        !isOpen && "pointer-events-none"
       )}
       onTransitionEnd={handleTransitionEnd}
       style={{
@@ -396,9 +422,10 @@ export function WindowFrame({
           <div
             className={cn(
               "absolute left-0 right-0 cursor-n-resize pointer-events-auto transition-[top,height] select-none",
+              debugMode && "bg-red-500/50",
               resizeType?.includes("n")
                 ? "top-[-100px] h-[200px]"
-                : "-top-2 h-6" // reduced from h-10
+                : "top-1 h-2"
             )}
             onMouseDown={(e) =>
               handleResizeStartWithForeground(e, "n" as ResizeType)
@@ -413,9 +440,10 @@ export function WindowFrame({
           <div
             className={cn(
               "absolute left-0 right-0 cursor-s-resize pointer-events-auto transition-[bottom,height] select-none",
+              debugMode && "bg-red-500/50",
               resizeType?.includes("s")
                 ? "bottom-[-100px] h-[200px]"
-                : "-bottom-2 h-6" // reduced from h-10
+                : "bottom-1 h-2"
             )}
             onMouseDown={(e) =>
               handleResizeStartWithForeground(e, "s" as ResizeType)
@@ -430,9 +458,10 @@ export function WindowFrame({
           <div
             className={cn(
               "absolute top-8 cursor-w-resize pointer-events-auto transition-[left,width] select-none",
+              debugMode && "bg-red-500/50",
               resizeType?.includes("w")
                 ? "left-[-100px] w-[200px]"
-                : "-left-2 w-6" // reduced from w-10
+                : "left-1 w-2"
             )}
             style={{ bottom: resizeType?.includes("s") ? "32px" : "32px" }}
             onMouseDown={(e) =>
@@ -447,9 +476,10 @@ export function WindowFrame({
           <div
             className={cn(
               "absolute top-8 cursor-e-resize pointer-events-auto transition-[right,width] select-none",
+              debugMode && "bg-red-500/50",
               resizeType?.includes("e")
                 ? "right-[-100px] w-[200px]"
-                : "-right-2 w-6" // reduced from w-10
+                : "right-1 w-2"
             )}
             style={{ bottom: resizeType?.includes("s") ? "32px" : "32px" }}
             onMouseDown={(e) =>
@@ -464,9 +494,10 @@ export function WindowFrame({
           <div
             className={cn(
               "absolute cursor-ne-resize pointer-events-auto transition-all select-none",
+              debugMode && "bg-red-500/50",
               resizeType === "ne"
                 ? "top-[-100px] right-[-100px] w-[200px] h-[200px]"
-                : "top-0 right-0 w-6 h-6" // reduced from w-8 h-8
+                : "top-0 right-0 w-6 h-6"
             )}
             onMouseDown={(e) =>
               handleResizeStartWithForeground(e, "ne" as ResizeType)
@@ -479,9 +510,10 @@ export function WindowFrame({
           <div
             className={cn(
               "absolute cursor-sw-resize pointer-events-auto transition-all select-none",
+              debugMode && "bg-red-500/50",
               resizeType === "sw"
                 ? "bottom-[-100px] left-[-100px] w-[200px] h-[200px]"
-                : "bottom-0 left-0 w-6 h-6" // reduced from w-8 h-8
+                : "bottom-0 left-0 w-6 h-6"
             )}
             onMouseDown={(e) =>
               handleResizeStartWithForeground(e, "sw" as ResizeType)
@@ -494,9 +526,10 @@ export function WindowFrame({
           <div
             className={cn(
               "absolute cursor-se-resize pointer-events-auto transition-all select-none",
+              debugMode && "bg-red-500/50",
               resizeType === "se"
                 ? "bottom-[-100px] right-[-100px] w-[200px] h-[200px]"
-                : "bottom-0 right-0 w-6 h-6" // reduced from w-8 h-8
+                : "bottom-0 right-0 w-6 h-6"
             )}
             onMouseDown={(e) =>
               handleResizeStartWithForeground(e, "se" as ResizeType)
@@ -528,9 +561,9 @@ export function WindowFrame({
                 ? "bg-white/20 backdrop-blur-sm border-b-black"
                 : "bg-white border-b-gray-400"
             )}
-            onMouseDown={handleMouseDown}
+            onMouseDown={handleMouseDownWithForeground}
             onTouchStart={(e: React.TouchEvent<HTMLElement>) => {
-              handleMouseDown(e);
+              handleMouseDownWithForeground(e);
               if (isMobile) {
                 handleTouchStart(e);
               }
@@ -572,7 +605,7 @@ export function WindowFrame({
               onTouchStart={(e) => {
                 handleTitleBarTap(e);
                 // Allow the event to bubble up to the titlebar for drag handling
-                handleMouseDown(e);
+                handleMouseDownWithForeground(e);
               }}
               onTouchMove={(e) => e.preventDefault()}
             >
