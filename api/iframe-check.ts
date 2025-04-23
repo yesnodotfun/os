@@ -303,46 +303,7 @@ export default async function handler(req: Request) {
           // Add font override styles
           const fontOverrideStyles = `
 <link rel="stylesheet" href="https://os.ryo.lu/fonts/fonts.css">
-<style>
-  /* Force pixelated rendering for images */
-  img {
-    image-rendering: pixelated !important;
-  }
-
-  /* Override system and sans-serif fonts with Geneva-12 */
-  body, div, span, p, h1, h2, h3, h4, h5, h6, button, input, select, textarea,
-  [style*="font-family"],
-  [style*="Helvetica"],
-  [style*="Arial"],
-  [style*="-apple-system"],
-  [style*="BlinkMacSystemFont"],
-  [style*="Segoe UI"],
-  [style*="Roboto"],
-  [style*="sans-serif"] {
-    font-family: "Geneva-12", "ArkPixel", "SerenityOS-Emoji", sans-serif !important;
-  }
-
-  /* Override serif fonts with Mondwest */
-  [style*="Georgia"],
-  [style*="Times New Roman"],
-  [style*="serif"] {
-    font-family: "Mondwest", "Yu Mincho", "Hiragino Mincho Pro", "Georgia", "Palatino", "SerenityOS-Emoji", serif !important;
-  }
-
-  /* Override monospace fonts with Monaco */
-  code, pre,
-  [style*="monospace"],
-  [style*="Courier"],
-  [style*="Monaco"],
-  [style*="Consolas"] {
-    font-family: "Monaco", "ArkPixel", "SerenityOS-Emoji", monospace !important;
-  }
-
-  /* Default to Geneva-12 for anything else */
-  * {
-    font-family: "Geneva-12", "ArkPixel", "SerenityOS-Emoji", sans-serif;
-  }
-</style>`;
+<style>img{image-rendering:pixelated!important}body,div,span,p,h1,h2,h3,h4,h5,h6,button,input,select,textarea,[style*="font-family"],[style*="sans-serif"],[style*="-apple-system"],[style*="BlinkMacSystemFont"],[style*="Segoe UI"],[style*="Roboto"],[style*="Oxygen"],[style*="Ubuntu"],[style*="Cantarell"],[style*="Fira Sans"],[style*="Droid Sans"],[style*="Helvetica Neue"],[style*="Helvetica"],[style*="Arial"],[style*="Verdana"],[style*="Geneva"],[style*="Inter"],[style*="Hiragino Sans"],[style*="Hiragino Kaku Gothic"],[style*="Yu Gothic"],[style*="Meiryo"],[style*="MS PGothic"],[style*="MS Gothic"],[style*="Microsoft YaHei"],[style*="PingFang"],[style*="Noto Sans"],[style*="Source Han Sans"],[style*="WenQuanYi"]{font-family:"Geneva-12","ArkPixel","SerenityOS-Emoji",sans-serif!important}[style*="serif"],[style*="Georgia"],[style*="Times New Roman"],[style*="Times"],[style*="Palatino"],[style*="Bookman"],[style*="Garamond"],[style*="Cambria"],[style*="Constantia"],[style*="Hiragino Mincho"],[style*="Yu Mincho"],[style*="MS Mincho"],[style*="SimSun"],[style*="NSimSun"],[style*="Source Han Serif"],[style*="Noto Serif CJK"]{font-family:"Mondwest","Yu Mincho","Hiragino Mincho Pro","Songii TC","Georgia","Palatino","SerenityOS-Emoji",serif!important}code,pre,[style*="monospace"],[style*="Courier New"],[style*="Courier"],[style*="Lucida Console"],[style*="Monaco"],[style*="Consolas"],[style*="Inconsolata"],[style*="Source Code Pro"],[style*="Menlo"],[style*="Andale Mono"],[style*="Ubuntu Mono"]{font-family:"Monaco","ArkPixel","SerenityOS-Emoji",monospace!important}*{font-family:"Geneva-12","ArkPixel","SerenityOS-Emoji",sans-serif}</style>`;
 
           const clickInterceptorScript = `
 <script>

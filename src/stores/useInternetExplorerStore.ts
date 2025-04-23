@@ -22,7 +22,7 @@ export type NavigationStatus = "idle" | "loading" | "success" | "error";
 
 // Default constants
 export const DEFAULT_URL = "https://apple.com";
-export const DEFAULT_YEAR = "2007";
+export const DEFAULT_YEAR = "2002";
 
 export const DEFAULT_TIMELINE: { [year: string]: string } = {
   "2030": "FDA neural implants. Emotion wearables mainstream. CRISPR prime+base. Organ-print trials. Alzheimer halt drug. Neuralink-v5 patients. Net-positive fusion demo.",
@@ -48,7 +48,7 @@ export const DEFAULT_FAVORITES: Favorite[] = [
     title: "Apple",
     url: "https://apple.com",
     favicon: "https://www.google.com/s2/favicons?domain=apple.com&sz=32",
-    year: "2007",
+    year: "2002",
   },
   {
     title: "Wikipedia",
@@ -152,6 +152,27 @@ interface AiCacheEntry {
   title?: string;
 }
 
+// Define type for iframe check response (copied from component)
+/*
+interface IframeCheckResponse {
+  allowed: boolean;
+  reason?: string;
+  title?: string;
+}
+*/
+
+// Define type for error response (copied from component)
+export interface ErrorResponse { // Make exportable if needed elsewhere
+  error: boolean;
+  type: string;
+  status?: number;
+  statusText?: string;
+  message: string;
+  details?: string;
+  hostname?: string;
+  targetUrl?: string;
+}
+
 interface InternetExplorerStore {
   // Navigation state
   url: string;
@@ -160,8 +181,10 @@ interface InternetExplorerStore {
   status: NavigationStatus;
   finalUrl: string | null;
   aiGeneratedHtml: string | null;
-  error: string | null;
+  error: string | null; // Keep simple error string for general errors? Or remove if errorDetails covers all? Let's keep for now.
   token: number;
+  prefetchedTitle: string | null; // New: Store prefetched title
+  errorDetails: ErrorResponse | null; // New: Store detailed error info
   
   // Favorites and history
   favorites: Favorite[];
@@ -176,6 +199,8 @@ interface InternetExplorerStore {
   isNavigatingHistory: boolean;
   isClearFavoritesDialogOpen: boolean;
   isClearHistoryDialogOpen: boolean;
+  isResetFavoritesDialogOpen: boolean; // New
+  isFutureSettingsDialogOpen: boolean; // New
   
   // AI caching
   aiCache: Record<string, AiCacheEntry>;
@@ -185,7 +210,6 @@ interface InternetExplorerStore {
   
   // Title management
   currentPageTitle: string | null;
-  setCurrentPageTitle: (title: string | null) => void;
   
   // Actions
   setUrl: (url: string) => void;
@@ -196,13 +220,14 @@ interface InternetExplorerStore {
     title?: string | null;
     finalUrl?: string; 
     aiGeneratedHtml?: string | null;
-    targetUrl?: string;
-    targetYear?: string;
+    targetUrl?: string; // Renamed from url in payload for clarity
+    targetYear?: string; // Renamed from year for clarity
     favicon?: string;
     addToHistory?: boolean;
   }) => void;
-  loadError: (error: string) => void;
+  loadError: (error: string, errorDetails?: ErrorResponse) => void; // Modified to accept optional errorDetails
   cancel: () => void;
+  handleNavigationError: (errorData: ErrorResponse, targetUrlOnError: string) => void; // New action for specific error handling
   
   // Favorites actions
   addFavorite: (favorite: Favorite) => void;
@@ -221,6 +246,8 @@ interface InternetExplorerStore {
   setNavigatingHistory: (isNavigating: boolean) => void;
   setClearFavoritesDialogOpen: (isOpen: boolean) => void;
   setClearHistoryDialogOpen: (isOpen: boolean) => void;
+  setResetFavoritesDialogOpen: (isOpen: boolean) => void; // New
+  setFutureSettingsDialogOpen: (isOpen: boolean) => void; // New
   
   // Cache actions
   cacheAiPage: (url: string, year: string, html: string, title?: string) => void;
@@ -229,10 +256,29 @@ interface InternetExplorerStore {
   // Timeline actions
   setTimelineSettings: (settings: { [year: string]: string }) => void;
   
+  // Title management action
+  setCurrentPageTitle: (title: string | null) => void;
+  
+  // Prefetched title action
+  setPrefetchedTitle: (title: string | null) => void; // New
+  
+  // Error details actions
+  setErrorDetails: (details: ErrorResponse | null) => void; // New
+  clearErrorDetails: () => void; // New specific action
+  
   // Utility functions
   getAiCacheKey: (url: string, year: string) => string;
   updateBrowserState: () => void;
 }
+
+// Helper function to get hostname (copied from component)
+const getHostname = (targetUrl: string): string => {
+  try {
+    return new URL(targetUrl.startsWith('http') ? targetUrl : `https://${targetUrl}`).hostname;
+  } catch {
+    return targetUrl; // Return the target URL itself if it can't be parsed
+  }
+};
 
 export const useInternetExplorerStore = create<InternetExplorerStore>()(
   persist(
@@ -246,6 +292,8 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
       aiGeneratedHtml: null,
       error: null,
       token: 0,
+      prefetchedTitle: null, // New initial state
+      errorDetails: null, // New initial state
       
       favorites: DEFAULT_FAVORITES,
       history: [],
@@ -258,12 +306,13 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
       isNavigatingHistory: false,
       isClearFavoritesDialogOpen: false,
       isClearHistoryDialogOpen: false,
+      isResetFavoritesDialogOpen: false, // New initial state
+      isFutureSettingsDialogOpen: false, // New initial state
       
       aiCache: {},
       
       timelineSettings: {},
       
-      // Initial title state
       currentPageTitle: null,
       
       // Actions
@@ -281,6 +330,8 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
         error: null,
         token,
         currentPageTitle: null,
+        errorDetails: null, // Reset error details on new navigation
+        prefetchedTitle: null, // Reset prefetched title
       }),
       
       setFinalUrl: (finalUrl) => set({ finalUrl }),
@@ -288,43 +339,81 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
       loadSuccess: ({ title, finalUrl, aiGeneratedHtml, targetUrl, targetYear, favicon, addToHistory = true }) => set(state => {
         const newState: Partial<InternetExplorerStore> = {
           status: 'success',
-          currentPageTitle: title !== undefined ? title : state.currentPageTitle,
+          error: null, // Clear simple error
+          errorDetails: null, // Clear detailed error
+          // Use prefetched title if title payload is undefined, otherwise use payload title
+          currentPageTitle: title !== undefined ? title : state.prefetchedTitle,
           finalUrl: finalUrl ?? state.finalUrl,
           aiGeneratedHtml: aiGeneratedHtml ?? state.aiGeneratedHtml,
-          error: null,
+          prefetchedTitle: null, // Clear prefetched title after use
         };
 
+        // History management (keep existing logic)
         if (addToHistory && targetUrl) {
-          const historyTitle = newState.currentPageTitle || new URL(targetUrl.startsWith("http") ? targetUrl : `https://${targetUrl}`).hostname;
+          const historyTitle = newState.currentPageTitle || getHostname(targetUrl);
           const newEntry: HistoryEntry = { 
             url: targetUrl, 
             title: historyTitle, 
-            favicon: favicon || `https://www.google.com/s2/favicons?domain=${new URL(targetUrl.startsWith("http") ? targetUrl : `https://${targetUrl}`).hostname}&sz=32`, 
+            favicon: favicon || `https://www.google.com/s2/favicons?domain=${getHostname(targetUrl)}&sz=32`, 
             year: targetYear,
             timestamp: Date.now() 
           };
           const lastEntry = state.history[state.historyIndex];
-          if (!lastEntry || lastEntry.url !== newEntry.url || lastEntry.year !== newEntry.year) {
-            newState.history = [newEntry, ...state.history].slice(0, 100);
-            newState.historyIndex = 0; 
+          // Check if navigating back/forward (addToHistory should be false in that case)
+          // OR check if it's a duplicate of the *current* history entry
+          const isDuplicateOfCurrent = state.historyIndex !== -1 &&
+                                        lastEntry?.url === newEntry.url &&
+                                        lastEntry?.year === newEntry.year;
+
+          if (!isDuplicateOfCurrent) {
+            // Prune history forward of the current index if we're branching off
+            const historyBeforeCurrent = state.history.slice(state.historyIndex + 1);
+            newState.history = [newEntry, ...historyBeforeCurrent].slice(0, 100); // Limit history size
+            newState.historyIndex = 0;
+          } else if (lastEntry && lastEntry.title !== newEntry.title) {
+            // Update title of the current entry if it changed
+            const updatedHistory = [...state.history];
+            updatedHistory[state.historyIndex] = { ...lastEntry, title: newEntry.title };
+            newState.history = updatedHistory;
+            newState.historyIndex = state.historyIndex; // Keep index same
           } else {
-            if (lastEntry.title !== newEntry.title) {
-              const updatedHistory = [...state.history];
-              updatedHistory[state.historyIndex] = { ...lastEntry, title: newEntry.title };
-              newState.history = updatedHistory;
-            }
+            // No change needed if it's a duplicate in content and position
             newState.historyIndex = state.historyIndex;
           }
-        } else if (addToHistory === false) {
+        } else if (!addToHistory) {
+          // If explicitly not adding to history (like during back/forward), just keep index
           newState.historyIndex = state.historyIndex;
         }
+
+        // Call updateBrowserState logic (if any actual logic existed)
+        get().updateBrowserState();
 
         return newState;
       }),
       
-      loadError: (error) => set({ status: 'error', error }),
+      // Keep simple error for now, but set detailed error if provided
+      loadError: (error, errorDetails) => set({
+        status: 'error',
+        error,
+        errorDetails: errorDetails ?? null // Set detailed error if available
+      }),
       
-      cancel: () => set({ status: 'idle' }),
+      // New action to handle specific errors and set detailed info
+      handleNavigationError: (errorData, targetUrlOnError) => set(() => {
+        const newErrorDetails: ErrorResponse = {
+          ...errorData,
+          targetUrl: targetUrlOnError, // Ensure target URL is set
+          hostname: getHostname(targetUrlOnError) // Ensure hostname is set
+        };
+        return {
+          status: 'error',
+          error: newErrorDetails.message.split('.')[0] || 'Navigation Error', // Set simple error from message
+          errorDetails: newErrorDetails, // Set detailed error object
+          aiGeneratedHtml: null, // Clear any partial AI HTML
+        };
+      }),
+      
+      cancel: () => set({ status: 'idle', errorDetails: null }), // Clear error details on cancel
       
       // Favorites actions
       addFavorite: (favorite) => set(state => ({
@@ -350,12 +439,24 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
       setNavigatingHistory: (isNavigating) => set({ isNavigatingHistory: isNavigating }),
       setClearFavoritesDialogOpen: (isOpen) => set({ isClearFavoritesDialogOpen: isOpen }),
       setClearHistoryDialogOpen: (isOpen) => set({ isClearHistoryDialogOpen: isOpen }),
+      setResetFavoritesDialogOpen: (isOpen) => set({ isResetFavoritesDialogOpen: isOpen }), // New
+      setFutureSettingsDialogOpen: (isOpen) => set({ isFutureSettingsDialogOpen: isOpen }), // New
       
       // Cache actions
       getAiCacheKey: (url, year) => {
-        // Normalize URL to ensure consistency (remove trailing slash, ensure protocol)
         const normalizedUrl = url.startsWith("http") ? url : `https://${url}`;
-        return `${normalizedUrl}|${year}`;
+        try {
+          // More robust normalization: handle ports, remove trailing slash, lowercase hostname
+          const parsed = new URL(normalizedUrl);
+          parsed.pathname = parsed.pathname.replace(/\/$/, ''); // Remove trailing slash
+          parsed.hostname = parsed.hostname.toLowerCase();
+          // Keep common ports (80, 443) implicit, include others
+          const portString = (parsed.port && parsed.port !== '80' && parsed.port !== '443') ? `:${parsed.port}` : '';
+          return `${parsed.protocol}//${parsed.hostname}${portString}${parsed.pathname}${parsed.search}${parsed.hash}|${year}`;
+        } catch {
+          // Fallback for invalid URLs
+          return `${normalizedUrl}|${year}`;
+        }
       },
       
       cacheAiPage: (url, year, html, title) => set(state => {
@@ -379,23 +480,28 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
       // Title management action
       setCurrentPageTitle: (title) => set({ currentPageTitle: title }),
       
-      // Update system browser state (for other components to access)
+      // Prefetched title action
+      setPrefetchedTitle: (title) => set({ prefetchedTitle: title }), // New
+      
+      // Error details actions
+      setErrorDetails: (details) => set({ errorDetails: details }), // New
+      clearErrorDetails: () => set({ errorDetails: null, error: null }), // New, also clear simple error
+      
+      // Update system browser state
       updateBrowserState: () => {
-        // This is just a stub - this function doesn't need to do anything in the store itself
-        // as the browser state can be accessed directly from the store
-        // It's included for API compatibility with the original storage.ts functions
+        // Stub remains empty, actual state is readable from the store
       }
     }),
     {
       name: "ryos:internet-explorer",
       partialize: (state) => ({
-        // Only persist these values to localStorage
         url: state.url,
         year: state.year,
         favorites: state.favorites,
-        history: state.history,
-        aiCache: state.aiCache,
+        history: state.history.slice(0, 50), // Limit persisted history size further
+        aiCache: state.aiCache, // Consider limiting cache size too if it grows large
         timelineSettings: state.timelineSettings,
+        // Don't persist transient state like dialogs, errorDetails, prefetchedTitle
       }),
     }
   )
