@@ -96,6 +96,38 @@ function ErrorPage({
   );
 }
 
+// Add this constant for title truncation
+const MAX_TITLE_LENGTH = 50;
+
+// Add these utility functions after the imports and before the component
+const getHostnameFromUrl = (url: string): string => {
+  try {
+    const urlToUse = url.startsWith("http") ? url : `https://${url}`;
+    return new URL(urlToUse).hostname;
+  } catch {
+    return url; // Return original if parsing fails
+  }
+};
+
+const formatTitle = (title: string): string => {
+  if (!title) return "Internet Explorer";
+  return title.length > MAX_TITLE_LENGTH 
+    ? title.substring(0, MAX_TITLE_LENGTH) + "..."
+    : title;
+};
+
+const getLoadingTitle = (baseTitle: string): string => {
+  // If it looks like a URL, extract the hostname
+  const titleToUse = baseTitle.includes("/") || baseTitle.includes(".") 
+    ? getHostnameFromUrl(baseTitle)
+    : baseTitle;
+  
+  const formattedTitle = formatTitle(titleToUse);
+  return formattedTitle === "Internet Explorer" 
+    ? "Internet Explorer - Loading" 
+    : `${formattedTitle} - Loading`;
+};
+
 export function InternetExplorerAppComponent({
   isWindowOpen,
   onClose,
@@ -153,6 +185,7 @@ export function InternetExplorerAppComponent({
   const { playElevatorMusic, stopElevatorMusic, playDingSound } = useTerminalSounds();
 
   // Create past/future years arrays (keep this logic)
+  const currentYear = new Date().getFullYear();
   const pastYears = [
     // Historical centuries
     "1000 BC", "1 CE", "500", "800", "1000", "1200", "1400", "1600", "1700", "1800", "1900",
@@ -160,16 +193,46 @@ export function InternetExplorerAppComponent({
     "1910", "1920", "1930", "1940", "1950", "1960", "1970", "1980", "1985", "1990",
     // Modern years
     ...Array.from(
-      { length: new Date().getFullYear() - 1991 + 1 },
+      { length: currentYear - 1991 + 1 },
       (_, i) => (1991 + i).toString()
-    )
+    ).filter(year => parseInt(year) !== currentYear) // Filter out current year
   ].reverse();
   const futureYears = [
     // Near‑future (every decade up to 2100)
-    ...Array.from({ length: 8 }, (_, i) => (2030 + i * 10).toString()), // 2030 → 2100
+    ...Array.from(
+      { length: 8 }, 
+      (_, i) => (2030 + i * 10).toString()
+    ).filter(year => parseInt(year) !== currentYear), // Filter out current year if it's 2030
     // Mid & far‑future milestones
     "2150", "2200", "2250", "2300", "2400", "2500", "2750", "3000"
   ].sort((a, b) => parseInt(b) - parseInt(a));
+
+  // Add new state for tracking the current display title
+  const [displayTitle, setDisplayTitle] = useState<string>("Internet Explorer");
+
+  // Update title when we get it from various sources
+  useEffect(() => {
+    let newTitle = "Internet Explorer";
+    
+    if (status === "loading") {
+      // Use current page title if available, otherwise use URL
+      const baseTitle = currentPageTitle || url;
+      newTitle = getLoadingTitle(baseTitle);
+    } else if (currentPageTitle) {
+      newTitle = formatTitle(currentPageTitle);
+    } else if (finalUrl) {
+      // Extract hostname as fallback title
+      try {
+        const hostname = new URL(finalUrl.startsWith("http") ? finalUrl : `https://${finalUrl}`).hostname;
+        newTitle = formatTitle(hostname);
+      } catch {
+        // Keep default if URL parsing fails
+        console.debug("[IE] Failed to parse URL for title:", finalUrl);
+      }
+    }
+
+    setDisplayTitle(newTitle);
+  }, [status, currentPageTitle, finalUrl, url]);
 
   // --- Callback Handlers (Update to use store actions/state) ---
 
@@ -783,7 +846,7 @@ export function InternetExplorerAppComponent({
         onEditFuture={() => setFutureSettingsDialogOpen(true)} // Use store action
       />
       <WindowFrame
-        title={currentPageTitle || "Internet Explorer"} // Use store state
+        title={displayTitle}
         onClose={onClose}
         isForeground={isForeground}
         appId="internet-explorer"
