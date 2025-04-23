@@ -7,7 +7,7 @@ import { SystemState } from "../src/utils/storage";
 type SupportedModel = "gpt-4o" | "gpt-4.1" | "gpt-4.1-mini" | "claude-3.5" | "claude-3.7" | "o3-mini";
 
 // Default model to use
-const DEFAULT_MODEL: SupportedModel = "claude-3.7";
+const DEFAULT_MODEL: SupportedModel = "claude-3.5";
 
 // Function to get the appropriate model instance
 const getModelInstance = (model: SupportedModel): LanguageModelV1 => {
@@ -442,7 +442,7 @@ export default async function handler(req: Request) {
       system: generateSystemPrompt(textEditContext, systemState),
       messages,
       temperature: 0.7,
-      maxTokens: 4000,
+      maxTokens: 6000,
       experimental_transform: smoothStream(),
     });
 
