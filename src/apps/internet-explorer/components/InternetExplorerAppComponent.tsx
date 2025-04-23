@@ -213,26 +213,49 @@ export function InternetExplorerAppComponent({
   // Update title when we get it from various sources
   useEffect(() => {
     let newTitle = "Internet Explorer";
+    const baseTitle = currentPageTitle || url; // Use current URL if no title yet
     
-    if (status === "loading") {
-      // Use current page title if available, otherwise use URL
-      const baseTitle = currentPageTitle || url;
+    // Simplified condition: Show "Time Travelling" if loading and year is not "current"
+    const isTimeTravelling = status === 'loading' && year !== 'current';
+
+    if (isTimeTravelling) {
+      // Time Travelling
+      const titleToUse = baseTitle.includes("/") || baseTitle.includes(".") 
+        ? getHostnameFromUrl(baseTitle)
+        : baseTitle;
+      const formattedTitle = formatTitle(titleToUse);
+      newTitle = formattedTitle === "Internet Explorer" 
+        ? "Internet Explorer - Time Travelling" 
+        : `${formattedTitle} - Time Travelling`;
+    } else if (status === "loading") {
+      // Regular loading (year is "current")
       newTitle = getLoadingTitle(baseTitle);
     } else if (currentPageTitle) {
+      // Success with title
       newTitle = formatTitle(currentPageTitle);
     } else if (finalUrl) {
-      // Extract hostname as fallback title
+      // Success without title, use hostname
       try {
-        const hostname = new URL(finalUrl.startsWith("http") ? finalUrl : `https://${finalUrl}`).hostname;
+        // Ensure finalUrl is treated as a URL
+        const urlToParse = finalUrl.startsWith("http") || finalUrl.startsWith("/") ? finalUrl : `https://${finalUrl}`;
+        // Handle potential proxy URLs
+        const effectiveUrl = urlToParse.startsWith('/api/iframe-check') ? url : urlToParse; 
+        const hostname = new URL(effectiveUrl).hostname;
         newTitle = formatTitle(hostname);
       } catch {
-        // Keep default if URL parsing fails
-        console.debug("[IE] Failed to parse URL for title:", finalUrl);
+        // Fallback to original URL if parsing fails, then get hostname
+        try {
+          const fallbackHostname = getHostnameFromUrl(url);
+          newTitle = formatTitle(fallbackHostname);
+        } catch {
+          console.debug("[IE] Failed to parse both finalUrl and url for title:", finalUrl, url);
+          newTitle = "Internet Explorer"; // Ultimate fallback
+        }
       }
     }
 
     setDisplayTitle(newTitle);
-  }, [status, currentPageTitle, finalUrl, url]);
+  }, [status, currentPageTitle, finalUrl, url, year]); 
 
   // --- Callback Handlers (Update to use store actions/state) ---
 
@@ -706,6 +729,31 @@ export function InternetExplorerAppComponent({
     };
   }, [favorites]); // Re-run when favorites change (or on mount)
 
+  // Effect for horizontal mouse wheel scrolling on favorites bar
+  useEffect(() => {
+    const container = favoritesContainerRef.current;
+
+    const handleWheel = (e: WheelEvent) => {
+      if (!container) return;
+      // Check if there's significant vertical scroll
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        e.preventDefault(); // Prevent default vertical page scroll
+        container.scrollLeft += e.deltaY;
+      } 
+      // Allow default horizontal scroll if deltaX is greater (e.g., trackpad swipe)
+    };
+
+    if (container) {
+      container.addEventListener('wheel', handleWheel, { passive: false }); // Need passive: false to preventDefault
+    }
+
+    return () => {
+      if (container) {
+        container.removeEventListener('wheel', handleWheel);
+      }
+    };
+  }, []); // Run only once on mount
+
   // --- Remove Effect to sync error state --- 
   // useEffect(() => {
   //   if (error && !errorDetails) { ... } // Handled by store actions
@@ -910,19 +958,28 @@ export function InternetExplorerAppComponent({
                </div>
              </div>
              {/* Favorites bar uses store state */}
-            <div className="relative">
+            <div className="relative flex items-center">
+               {/* Add scroll buttons if needed later, for now just the container */}
               <div
                 ref={favoritesContainerRef}
-                className="overflow-x-auto scrollbar-none relative"
+                className="overflow-x-auto scrollbar-none relative flex-1"
               >
-                <div className="flex items-center min-w-full ">
+                <div className="flex items-center min-w-full w-max">
                   {favorites.map((favorite, index) => ( // Use store state
                     <Button
                       key={index}
                       variant="ghost"
                       size="sm"
                       className="whitespace-nowrap hover:bg-gray-200 font-geneva-12 text-[10px] gap-1 px-1 mr-1 w-content min-w-[60px] max-w-[120px] flex-shrink-0"
-                      onClick={() => handleNavigateWithHistory(favorite.url, favorite.year)}
+                      onClick={(e) => {
+                        handleNavigateWithHistory(favorite.url, favorite.year);
+                        // Scroll the clicked button into view within its container
+                        e.currentTarget.scrollIntoView({ 
+                          behavior: 'smooth', 
+                          block: 'nearest', 
+                          inline: 'nearest' 
+                        });
+                      }}
                     >
                       <img
                         src={favorite.favicon || "/icons/ie-site.png"}
