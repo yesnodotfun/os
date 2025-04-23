@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, ReactNode } from "react";
 import { AppProps } from "../../base/types";
 import { WindowFrame } from "@/components/layout/WindowFrame";
 import { Input } from "@/components/ui/input";
@@ -42,163 +42,73 @@ interface ErrorResponse {
   targetUrl?: string;
 }
 
-// Error Page Component for HTTP errors
-function HttpErrorPage({ 
-  status, 
-  statusText, 
-  hostname,
-  onGoBack 
-}: { 
-  status: number; 
-  statusText: string; 
-  hostname: string;
-  onGoBack: () => void;
-}) {
-  return (
-    <div className="p-6 font-geneva-12 text-sm">
-      <h1 className="text-lg mb-4 font-normal flex items-center">
-        The page cannot be found
-      </h1>
-      
-      <p className="mb-3">The page you are looking for might have been removed, had its name changed, or is temporarily unavailable.</p>
-      
-      <div className="h-px bg-gray-300 my-5"></div>
-      
-      <p className="mb-3">Please try the following:</p>
-      
-      <ul className="list-disc pl-6 mb-5 space-y-2">
-        <li>If you typed the page address in the Address bar, make sure that it is spelled correctly.</li>
-        <li>Open <a href={`https://${hostname}`} target="_blank" rel="noopener noreferrer" className="text-red-600 underline">{hostname}</a> in a new tab, and then look for links to the information you want.</li>
-        <li>Click the <button onClick={onGoBack} className="text-red-600 underline">Back</button> button to try another link.</li>
-      </ul>
-      
-      <div className="mt-10 text-gray-700">
-        HTTP {status} - {statusText}<br />
-        Internet Explorer
-      </div>
-    </div>
-  );
-}
-
-// Error Page Component for connection errors
-function ConnectionErrorPage({ 
-  details,
-  onGoBack 
-}: { 
-  details: string;
-  onGoBack: () => void;
-}) {
-  return (
-    <div className="p-6 font-geneva-12 text-sm">
-      <h1 className="text-lg mb-4 font-normal flex items-center">
-        The page cannot be displayed
-      </h1>
-      
-      <p className="mb-3">Internet Explorer cannot access this website. The connection has timed out or failed.</p>
-      
-      <div className="h-px bg-gray-300 my-5"></div>
-      
-      <p className="mb-3">Please try the following:</p>
-      
-      <ul className="list-disc pl-6 mb-5 space-y-2">
-        <li>Try time traveling to a different year</li>
-        <li>Click the <button onClick={onGoBack} className="text-red-600 underline">Back</button> button to visit a different website</li>
-      </ul>
-      
-      <div className="p-3 bg-gray-100 border border-gray-300 rounded mb-5">
-        <strong>Details:</strong> {details}
-      </div>
-      
-      <div className="mt-10 text-gray-700">
-        Connection Error<br />
-        Internet Explorer
-      </div>
-    </div>
-  );
-}
-
-// Error Page Component for AI generation errors
-function AiGenerationErrorPage({ 
-  message,
-  details,
-  onGoBack,
-  onRetry
-}: { 
-  message: string;
+interface ErrorPageProps {
+  title: string;
+  primaryMessage: string;
+  secondaryMessage?: string;
+  suggestions: (string | ReactNode)[];
   details?: string;
+  footerText: string;
+  showGoBackButtonInSuggestions?: boolean;
   onGoBack: () => void;
-  onRetry: () => void;
-}) {
+  onRetry?: () => void;
+}
+
+function ErrorPage({
+  title,
+  primaryMessage,
+  secondaryMessage,
+  suggestions,
+  details,
+  footerText,
+  showGoBackButtonInSuggestions = true,
+  onGoBack,
+  onRetry,
+}: ErrorPageProps) {
   return (
-    <div className="p-6 font-geneva-12 text-sm">
-      <h1 className="text-lg mb-4 font-normal flex items-center">
-        The page cannot be imagined
-      </h1>
-      
-      <p className="mb-3">{message}</p>
-      
+    <div className="p-6 font-geneva-12 text-sm h-full overflow-y-auto">
+      <h1 className="text-lg mb-4 font-normal flex items-center">{title}</h1>
+
+      <p className="mb-3">{primaryMessage}</p>
+      {secondaryMessage && <p className="mb-3">{secondaryMessage}</p>}
+
       <div className="h-px bg-gray-300 my-5"></div>
-      
+
       <p className="mb-3">Please try the following:</p>
-      
+
       <ul className="list-disc pl-6 mb-5 space-y-2">
-        <li>Click <button onClick={onRetry} className="text-red-600 underline">Refresh</button> to attempt generation again</li>
-        <li>Try a different year</li>
-        <li>Try a different website</li>
-        <li>Click the <button onClick={onGoBack} className="text-red-600 underline">Back</button> button to visit a different website</li>
+        {suggestions.map((suggestion, index) => (
+          <li key={index}>
+            {typeof suggestion === 'string' && suggestion.includes('{hostname}') ? (
+              // Special handling for hostname link (assuming details contains hostname)
+              suggestion.split('{hostname}').map((part, i) => 
+                i === 0 ? part : <><a href={`https://${details}`} target="_blank" rel="noopener noreferrer" className="text-red-600 underline">{details}</a>{part}</>
+              )
+            ) : typeof suggestion === 'string' && suggestion.includes('{backButton}') && showGoBackButtonInSuggestions ? (
+              // Special handling for inline back button
+              suggestion.split('{backButton}').map((part, i) => 
+                i === 0 ? part : <><a href="#" role="button" onClick={(e) => { e.preventDefault(); onGoBack(); }} className="text-red-600 underline">Back</a>{part}</>
+              )
+            ) : typeof suggestion === 'string' && suggestion.includes('{refreshButton}') && onRetry ? (
+              // Special handling for inline refresh button
+              suggestion.split('{refreshButton}').map((part, i) =>
+                i === 0 ? part : <><a href="#" role="button" onClick={(e) => { e.preventDefault(); onRetry(); }} className="text-red-600 underline">Refresh</a>{part}</>
+              )
+            ) : (
+              suggestion // Render directly if it's a node or simple string
+            )}
+          </li>
+        ))}
       </ul>
-      
-      {details && (
+
+      {details && !footerText.includes('HTTP') && ( // Don't show details box if info is in footer
         <div className="p-3 bg-gray-100 border border-gray-300 rounded mb-5">
           <strong>Details:</strong> {details}
         </div>
       )}
-      
-      <div className="mt-10 text-gray-700">
-        Time Machine Error<br />
-        Internet Explorer
-      </div>
-    </div>
-  );
-}
 
-// General error page for simple string errors
-function GeneralErrorPage({ 
-  errorMessage,
-  onGoBack,
-  onRetry
-}: { 
-  errorMessage: string;
-  onGoBack: () => void;
-  onRetry: () => void;
-}) {
-  return (
-    <div className="p-6 font-geneva-12 text-sm">
-      <h1 className="text-lg mb-4 font-normal flex items-center">
-        An error occurred
-      </h1>
-      
-      <p className="mb-3">{errorMessage}</p>
-      
-      <div className="h-px bg-gray-300 my-5"></div>
-      
-      <div className="flex gap-3 mt-5">
-        <button 
-          onClick={onRetry}
-          className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded border border-gray-400"
-        >
-          Retry
-        </button>
-        <button 
-          onClick={onGoBack}
-          className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded border border-gray-400"
-        >
-          Go Back
-        </button>
-      </div>
-      
-      <div className="mt-10 text-gray-700">
-        Internet Explorer
+      <div className="mt-10 text-gray-700 whitespace-pre-wrap">
+        {footerText}
       </div>
     </div>
   );
@@ -932,36 +842,72 @@ export function InternetExplorerAppComponent({
     const errorUrl = errorDetails.targetUrl || url;
     const errorHostname = errorDetails.hostname || getHostname(errorUrl);
 
+    const commonSuggestions = [
+      "Try time traveling to a different year",
+      "Go {backButton} or change the URL to visit a different website",
+    ];
+
     switch (errorDetails.type) {
       case "http_error":
         return (
-          <HttpErrorPage
-            status={errorDetails.status || 404}
-            statusText={errorDetails.statusText || "Not Found"}
-            hostname={errorHostname}
-            onGoBack={handleGoBack}
-          />
-        );
-      case "connection_error":
-        return (
-          <ConnectionErrorPage
-            details={errorDetails.details || "Unknown connection error"}
-            onGoBack={handleGoBack}
-          />
-        );
-      case "ai_generation_error":
-        return (
-          <AiGenerationErrorPage
-            message={errorDetails.message}
-            details={errorDetails.details}
+          <ErrorPage
+            title="The page cannot be displayed"
+            primaryMessage="The page you are looking for might have been removed, had its name changed, or is temporarily unavailable."
+            suggestions={[
+              "If you typed the page address in the Address bar, make sure that it is spelled correctly.",
+              `Open {hostname} in a new tab, and then look for links to the information you want.`,
+              "Go {backButton} or change the URL to try another page.",
+            ]}
+            details={errorHostname}
+            footerText={`HTTP ${errorDetails.status || 404} - ${errorDetails.statusText || "Not Found"}\nInternet Explorer`}
             onGoBack={handleGoBack}
             onRetry={handleRefresh}
           />
         );
+
+      case "connection_error":
+        return (
+          <ErrorPage
+            title="The page cannot be displayed"
+            primaryMessage={errorDetails.message || "Internet Explorer cannot access this website. The connection has timed out or failed."}
+            suggestions={[
+              "Click the {refreshButton} link to try again",
+              ...commonSuggestions
+            ]}
+            details={errorDetails.details || "Connection failed"}
+            footerText="Connection Error\nInternet Explorer"
+            onGoBack={handleGoBack}
+            onRetry={handleRefresh}
+          />
+        );
+
+      case "ai_generation_error":
+        return (
+          <ErrorPage
+            title="The page cannot be imagined"
+            primaryMessage={errorDetails.message}
+            suggestions={[
+              "Click the {refreshButton} link to attempt generation again",
+              ...commonSuggestions
+            ]}
+            details={errorDetails.details}
+            footerText="Time Machine Error\nInternet Explorer"
+            onGoBack={handleGoBack}
+            onRetry={handleRefresh}
+          />
+        );
+
       default:
         return (
-          <GeneralErrorPage
-            errorMessage={errorDetails.message}
+          <ErrorPage
+            title="An error occurred"
+            primaryMessage={errorDetails.message}
+            suggestions={[
+              "Click the {refreshButton} link to try again",
+              ...commonSuggestions
+            ]}
+            details={errorDetails.details}
+            footerText="Error\nInternet Explorer"
             onGoBack={handleGoBack}
             onRetry={handleRefresh}
           />
