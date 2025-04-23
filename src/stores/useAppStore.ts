@@ -162,6 +162,8 @@ export const useAppStore = create<AppStoreState>()(
       partialize: (state) => ({
         windowOrder: state.windowOrder,
         apps: state.apps,
+        debugMode: state.debugMode,
+        aiModel: state.aiModel,
       }),
     }
   )

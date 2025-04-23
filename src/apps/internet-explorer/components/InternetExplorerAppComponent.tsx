@@ -260,7 +260,7 @@ export function InternetExplorerAppComponent({
     // Historical centuries
     "1000 BC", "1 CE", "500", "800", "1000", "1200", "1400", "1600", "1700", "1800", "1900",
     // Early 20th century decades
-    "1910", "1920", "1930", "1940", "1950", "1960", "1970", "1980", "1990",
+    "1910", "1920", "1930", "1940", "1950", "1960", "1970", "1980", "1985", "1990",
     // Modern years
     ...Array.from(
       { length: new Date().getFullYear() - 1991 + 1 },
