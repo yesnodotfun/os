@@ -139,7 +139,7 @@ export function InternetExplorerMenuBar({
             Favorites
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" sideOffset={1} className="px-0">
+        <DropdownMenuContent align="start" sideOffset={1} className="px-0 max-w-xs">
           <DropdownMenuItem
             onClick={onHome}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
@@ -212,7 +212,7 @@ export function InternetExplorerMenuBar({
         <DropdownMenuContent
           align="start"
           sideOffset={1}
-          className="px-0 max-h-[400px] overflow-y-auto"
+          className="px-0 max-h-[400px] overflow-y-auto max-w-xs"
         >
           <DropdownMenuItem
             onClick={onGoBack}

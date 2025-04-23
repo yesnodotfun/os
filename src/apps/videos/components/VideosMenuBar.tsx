@@ -170,7 +170,7 @@ export function VideosMenuBar({
             Library
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" sideOffset={1} className="px-0">
+        <DropdownMenuContent align="start" sideOffset={1} className="px-0 max-w-xs">
           <DropdownMenuItem
             onClick={onAddVideo}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
