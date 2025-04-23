@@ -22,6 +22,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAiGeneration } from "../hooks/useAiGeneration";
 import { useInternetExplorerStore, DEFAULT_FAVORITES, ErrorResponse } from "@/stores/useInternetExplorerStore";
 import FutureSettingsDialog from "@/components/dialogs/FutureSettingsDialog";
+import { useTerminalSounds } from "@/hooks/useTerminalSounds";
 
 interface ErrorPageProps {
   title: string;
@@ -147,6 +148,9 @@ export function InternetExplorerAppComponent({
     onLoadingChange: () => {}, 
     customTimeline: timelineSettings 
   });
+
+  // Add terminal sounds hook
+  const { playElevatorMusic, stopElevatorMusic, playDingSound } = useTerminalSounds();
 
   // Create past/future years arrays (keep this logic)
   const pastYears = [
@@ -711,7 +715,7 @@ export function InternetExplorerAppComponent({
               ...commonSuggestions
             ]}
             details={errorDetails.details || "Connection failed"}
-            footerText="Connection Error\nInternet Explorer"
+            footerText={`Connection Error\nInternet Explorer`}
             onGoBack={handleGoBack}
             onRetry={handleRefresh}
           />
@@ -727,7 +731,7 @@ export function InternetExplorerAppComponent({
               ...commonSuggestions
             ]}
             details={errorDetails.details}
-            footerText="Time Machine Error\nInternet Explorer"
+            footerText={`Time Machine Error\nInternet Explorer`}
             onGoBack={handleGoBack}
             onRetry={handleRefresh}
           />
@@ -742,7 +746,7 @@ export function InternetExplorerAppComponent({
               ...commonSuggestions
             ]}
             details={errorDetails.details}
-            footerText="Error\nInternet Explorer"
+            footerText={`Error\nInternet Explorer`}
             onGoBack={handleGoBack}
             onRetry={handleRefresh}
           />
@@ -890,6 +894,9 @@ export function InternetExplorerAppComponent({
                   initialFullScreen={false}
                   isInternetExplorer={true}
                   isStreaming={isAiLoading}
+                  playElevatorMusic={playElevatorMusic}
+                  stopElevatorMusic={stopElevatorMusic}
+                  playDingSound={playDingSound}
                 />
               </div>
             ) : (
