@@ -348,7 +348,7 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
           prefetchedTitle: null, // Clear prefetched title after use
         };
 
-        // History management (keep existing logic)
+        // History management
         if (addToHistory && targetUrl) {
           const historyTitle = newState.currentPageTitle || getHostname(targetUrl);
           const newEntry: HistoryEntry = { 
@@ -358,34 +358,44 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
             year: targetYear,
             timestamp: Date.now() 
           };
-          const lastEntry = state.history[state.historyIndex];
-          // Check if navigating back/forward (addToHistory should be false in that case)
-          // OR check if it's a duplicate of the *current* history entry
-          const isDuplicateOfCurrent = state.historyIndex !== -1 &&
-                                        lastEntry?.url === newEntry.url &&
-                                        lastEntry?.year === newEntry.year;
-
-          if (!isDuplicateOfCurrent) {
-            // Prune history forward of the current index if we're branching off
-            const historyBeforeCurrent = state.history.slice(state.historyIndex + 1);
-            newState.history = [newEntry, ...historyBeforeCurrent].slice(0, 100); // Limit history size
-            newState.historyIndex = 0;
-          } else if (lastEntry && lastEntry.title !== newEntry.title) {
-            // Update title of the current entry if it changed
-            const updatedHistory = [...state.history];
-            updatedHistory[state.historyIndex] = { ...lastEntry, title: newEntry.title };
-            newState.history = updatedHistory;
-            newState.historyIndex = state.historyIndex; // Keep index same
+          
+          if (state.isNavigatingHistory) {
+            // If navigating through history (back/forward), just update title if needed
+            const lastEntry = state.history[state.historyIndex];
+            if (lastEntry && lastEntry.title !== newEntry.title) {
+              // Update title of the current entry if it changed
+              const updatedHistory = [...state.history];
+              updatedHistory[state.historyIndex] = { ...lastEntry, title: newEntry.title };
+              newState.history = updatedHistory;
+              newState.historyIndex = state.historyIndex; // Keep index same
+            }
           } else {
-            // No change needed if it's a duplicate in content and position
-            newState.historyIndex = state.historyIndex;
+            // Check if this is an exact duplicate of the most recent history entry
+            const mostRecentEntry = state.history[0];
+            const isExactDuplicate = mostRecentEntry && 
+                                    mostRecentEntry.url === newEntry.url && 
+                                    mostRecentEntry.year === newEntry.year;
+            
+            if (isExactDuplicate) {
+              // If it's an exact duplicate, just update the title if needed
+              if (mostRecentEntry.title !== newEntry.title) {
+                const updatedHistory = [...state.history];
+                updatedHistory[0] = { ...mostRecentEntry, title: newEntry.title };
+                newState.history = updatedHistory;
+              }
+              newState.historyIndex = 0; // Maintain current index
+            } else {
+              // Always add a new entry at the beginning of history
+              newState.history = [newEntry, ...state.history].slice(0, 100); // Limit history size
+              newState.historyIndex = 0;
+            }
           }
         } else if (!addToHistory) {
           // If explicitly not adding to history (like during back/forward), just keep index
           newState.historyIndex = state.historyIndex;
         }
 
-        // Call updateBrowserState logic (if any actual logic existed)
+        // Call updateBrowserState logic
         get().updateBrowserState();
 
         return newState;
