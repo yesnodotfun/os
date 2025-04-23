@@ -671,7 +671,7 @@ export function InternetExplorerAppComponent({
                   <SelectContent>
                     {/* Future years first, in reverse chronological order (newest to oldest) */}
                     {futureYears.map((year) => (
-                      <SelectItem key={year} value={year} className="text-blue-600 font-semibold">
+                      <SelectItem key={year} value={year} className="text-blue-600">
                         {year}
                       </SelectItem>
                     ))}
@@ -682,7 +682,7 @@ export function InternetExplorerAppComponent({
                       <SelectItem 
                         key={year} 
                         value={year}
-                        className={parseInt(year) <= 1995 ? "text-blue-600 font-semibold" : ""}
+                        className={parseInt(year) <= 1995 ? "text-blue-600" : ""}
                       >
                         {year}
                       </SelectItem>
