@@ -304,6 +304,11 @@ export default async function handler(req: Request) {
           const fontOverrideStyles = `
 <link rel="stylesheet" href="https://os.ryo.lu/fonts/fonts.css">
 <style>
+  /* Force pixelated rendering for images */
+  img {
+    image-rendering: pixelated !important;
+  }
+
   /* Override system and sans-serif fonts with Geneva-12 */
   body, div, span, p, h1, h2, h3, h4, h5, h6, button, input, select, textarea,
   [style*="font-family"],
