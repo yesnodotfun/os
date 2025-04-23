@@ -632,24 +632,20 @@ export default function HtmlPreview({
         onMouseLeave={() => !isStreaming && onInteractionChange?.(false)}
         tabIndex={-1}
       >
-        {/* Loading PULSE overlay (kept for visual feedback) */}
+        {/* Loading PULSE overlay (now breathing effect) */}
         {isStreaming && (
-          <div
+          <motion.div
             className="absolute inset-0 bg-gray-200 z-10 pointer-events-none"
-            style={{ opacity: 0.2 }}
-          >
-            <motion.div
-              className="w-full h-full bg-gray-400"
-              animate={{
-                opacity: [0.05, 0.2, 0.05]
-              }}
-              transition={{
-                duration: 1.5,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-            />
-          </div>
+            initial={{ opacity: 0.2 }} // Start at lower opacity
+            animate={{
+              opacity: [0.2, 0.4, 0.2] // Loop between 0.6 and 1
+            }}
+            transition={{
+              duration: 3, // Slower duration for breathing effect
+              repeat: Infinity,
+              ease: "ease"
+            }}
+          />
         )}
 
         {!isInternetExplorer && (
