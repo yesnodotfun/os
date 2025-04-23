@@ -1,6 +1,7 @@
 import { useChat, type Message } from "ai/react";
 import { useState, useEffect, useRef } from "react";
 import { useInternetExplorerStore, DEFAULT_TIMELINE } from "@/stores/useInternetExplorerStore";
+import { useAppStore } from "@/stores/useAppStore";
 
 interface UseAiGenerationProps {
   onLoadingChange?: (isLoading: boolean) => void;
@@ -20,6 +21,9 @@ export function useAiGeneration({ onLoadingChange, customTimeline = {} }: UseAiG
   const isGenerationComplete = useRef<boolean>(false);
   const generatingUrlRef = useRef<string | null>(null); // Ref for current URL
   const generatingYearRef = useRef<string | null>(null); // Ref for current Year
+  
+  // Get the selected AI model from app store
+  const { aiModel } = useAppStore();
   
   // Use the Zustand store for caching and updating the store
   const cacheAiPage = useInternetExplorerStore(state => state.cacheAiPage);
@@ -100,6 +104,10 @@ export function useAiGeneration({ onLoadingChange, customTimeline = {} }: UseAiG
       },
     ],
     onFinish: handleAiFinish,
+    body: {
+      model: aiModel // Pass the selected model to the API
+    },
+    api: "/api/chat", // Make sure this is pointing to your chat API endpoint
   });
 
   // Helper to fetch existing website content (readability text via jina.ai)

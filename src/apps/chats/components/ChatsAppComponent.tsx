@@ -3127,7 +3127,7 @@ export function ChatsAppComponent({
 
               // Extract content, ensure uniqueness, reverse, and cast to string[]
               const prevMessagesContent = Array.from(
-                new Set(userMessages.map((msg: any) => msg.content)) // Use any here after filtering
+                new Set(userMessages.map((msg) => (msg as {content: string}).content))
               ).reverse() as string[];
 
               return (

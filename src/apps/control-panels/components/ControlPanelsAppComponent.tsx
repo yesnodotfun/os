@@ -30,7 +30,7 @@ import {
 } from "@/utils/storage";
 import { SYNTH_PRESETS } from "@/hooks/useChatSynth";
 import { useFileSystem } from "@/apps/finder/hooks/useFileSystem";
-import { useAppStore } from "@/stores/useAppStore";
+import { useAppStore, AIModel } from "@/stores/useAppStore";
 
 type PhotoCategory =
   | "3d_graphics"
@@ -132,6 +132,16 @@ Object.entries(PHOTO_WALLPAPERS).forEach(([category, photos]) => {
   );
 });
 
+// Supported AI models
+const AI_MODELS: {id: AIModel; name: string; provider: string}[] = [
+  { id: "claude-3.7", name: "claude-3.7", provider: "" },
+  { id: "claude-3.5", name: "claude-3.5", provider: "" },
+  { id: "gpt-4o", name: "gpt-4o", provider: "" },
+  { id: "gpt-4.1", name: "gpt-4.1", provider: "" },
+  { id: "gpt-4.1-mini", name: "gpt-4.1-mini", provider: "" },
+  { id: "o3-mini", name: "o3-mini", provider: "" }
+];
+
 export function ControlPanelsAppComponent({
   isWindowOpen,
   onClose,
@@ -146,7 +156,7 @@ export function ControlPanelsAppComponent({
   const [synthPreset, setSynthPreset] = useState("classic");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { formatFileSystem } = useFileSystem();
-  const { debugMode, setDebugMode } = useAppStore();
+  const { debugMode, setDebugMode, aiModel, setAiModel } = useAppStore();
 
   useEffect(() => {
     setUiSoundsEnabled(loadUISoundsEnabled());
@@ -534,7 +544,30 @@ export function ControlPanelsAppComponent({
                     className="data-[state=checked]:bg-[#000000]"
                   />
                 </div>
-
+                
+                {debugMode && (
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-1">
+                      <Label>AI Model</Label>
+                      <Label className="text-[11px] text-gray-600 font-geneva-12">
+                        Used in Chats, IE, and more
+                      </Label>
+                    </div>
+                    <Select value={aiModel} onValueChange={(value) => setAiModel(value as AIModel)}>
+                      <SelectTrigger className="w-[120px]">
+                        <SelectValue placeholder="Select model" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {AI_MODELS.map((model) => (
+                          <SelectItem key={model.id} value={model.id}>
+                            {model.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+ <hr className="border-gray-400"></hr>
                 <div className="space-y-2">
                   <div className="flex gap-2">
                     <Button

@@ -3,6 +3,9 @@ import { persist } from "zustand/middleware";
 import { AppId } from "@/config/appRegistry";
 import { AppManagerState, AppState } from "@/apps/base/types";
 
+// Define available AI models (matching API options from chat.ts)
+export type AIModel = "gpt-4o" | "gpt-4.1" | "gpt-4.1-mini" | "claude-3.5" | "claude-3.7" | "o3-mini";
+
 // Define known app IDs directly here to avoid circular dependency
 const APP_IDS = [
   "finder",
@@ -35,6 +38,8 @@ const getInitialState = (): AppManagerState => ({
 interface AppStoreState extends AppManagerState {
   debugMode: boolean;
   setDebugMode: (enabled: boolean) => void;
+  aiModel: AIModel;
+  setAiModel: (model: AIModel) => void;
   bringToForeground: (appId: AppId | "") => void;
   toggleApp: (appId: AppId) => void;
   navigateToNextApp: (currentAppId: AppId) => void;
@@ -47,6 +52,8 @@ export const useAppStore = create<AppStoreState>()(
       ...getInitialState(),
       debugMode: false,
       setDebugMode: (enabled) => set({ debugMode: enabled }),
+      aiModel: "claude-3.7", // Default model
+      setAiModel: (model) => set({ aiModel: model }),
 
       bringToForeground: (appId) => {
         set((state) => {
