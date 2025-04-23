@@ -1,7 +1,37 @@
 import { openai } from "@ai-sdk/openai";
 import { anthropic } from "@ai-sdk/anthropic";
 import { streamText, smoothStream, LanguageModelV1 } from "ai";
-import { SystemState } from "../src/utils/storage";
+
+// Update SystemState type to match new store structure
+interface SystemState {
+  aiModel: string;
+  debugMode: boolean;
+  windowOrder: string[];
+  apps: {
+    [appId: string]: {
+      isOpen: boolean;
+      isForeground?: boolean;
+    };
+  };
+  internetExplorer: {
+    url: string;
+    year: string;
+    status: string;
+    currentPageTitle: string | null;
+  };
+  video: {
+    currentVideo: {
+      id: string;
+      url: string;
+      title: string;
+      artist?: string;
+    } | null;
+    isPlaying: boolean;
+    loopAll: boolean;
+    loopCurrent: boolean;
+    isShuffled: boolean;
+  };
+}
 
 // Define supported model types
 type SupportedModel = "gpt-4o" | "gpt-4.1" | "gpt-4.1-mini" | "claude-3.5" | "claude-3.7" | "o3-mini";
@@ -186,23 +216,20 @@ CURRENT SYSTEM STATE:
 - Current local time: ${timeString} on ${dateString}
 
 ${
-  systemState.video.currentVideo
-    ? `- Last video played: ${systemState.video.currentVideo.title}
-- Video Settings: ${systemState.video.isLoopAll ? "Loop All" : ""} ${
-        systemState.video.isLoopCurrent ? "Loop Current" : ""
-      } ${systemState.video.isShuffled ? "Shuffled" : ""}`
+  systemState.video.currentVideo && systemState.video.isPlaying
+    ? `- Now Playing: ${systemState.video.currentVideo.title}${
+        systemState.video.currentVideo.artist ? ` by ${systemState.video.currentVideo.artist}` : ''
+      }`
     : ""
 }
 ${
-  systemState.browser.currentUrl !== "https://apple.com"
-    ? `- Browser URL: ${systemState.browser.currentUrl}
-- Wayback Year: ${systemState.browser.currentYear}`
-    : ""
-}
-${
-  systemState.textEdit.currentFilePath
-    ? `- TextEdit File: ${systemState.textEdit.currentFilePath}
-- Has Unsaved Changes: ${systemState.textEdit.hasUnsavedChanges ? "Yes" : "No"}`
+  systemState.internetExplorer.url !== "https://apple.com"
+    ? `- Browser URL: ${systemState.internetExplorer.url}
+- Wayback Year: ${systemState.internetExplorer.year}${
+        systemState.internetExplorer.currentPageTitle 
+          ? `\n- Page Title: ${systemState.internetExplorer.currentPageTitle}` 
+          : ''
+      }`
     : ""
 }
 </system_state_instructions>`

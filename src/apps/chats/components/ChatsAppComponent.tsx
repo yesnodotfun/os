@@ -11,11 +11,13 @@ import { helpItems, appMetadata } from "..";
 import { useLaunchApp } from "@/hooks/useLaunchApp";
 import { useChat } from "ai/react"; // Keep the original useChat import
 import Pusher from 'pusher-js'; // Import Pusher
+import { useAppStore } from "@/stores/useAppStore"; // Add store imports
+import { useInternetExplorerStore } from "@/stores/useInternetExplorerStore";
+import { useVideoStore } from "@/stores/useVideoStore";
 import {
   loadChatMessages,
   saveChatMessages,
   APP_STORAGE_KEYS,
-  getSystemState,
   loadChatRoomUsername,
   saveChatRoomUsername,
   loadLastOpenedRoomId,
@@ -1737,6 +1739,40 @@ const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
       </div>
     </div>
   );
+};
+
+// Replace or update the getSystemState function to use stores
+const getSystemState = () => {
+  const appStore = useAppStore.getState();
+  const ieStore = useInternetExplorerStore.getState();
+  const videoStore = useVideoStore.getState();
+
+  const currentVideo = videoStore.videos[videoStore.currentIndex];
+
+  return {
+    aiModel: appStore.aiModel,
+    debugMode: appStore.debugMode,
+    windowOrder: appStore.windowOrder,
+    apps: appStore.apps,
+    internetExplorer: {
+      url: ieStore.url,
+      year: ieStore.year,
+      status: ieStore.status,
+      currentPageTitle: ieStore.currentPageTitle,
+    },
+    video: {
+      currentVideo: currentVideo ? {
+        id: currentVideo.id,
+        url: currentVideo.url,
+        title: currentVideo.title,
+        artist: currentVideo.artist,
+      } : null,
+      isPlaying: videoStore.isPlaying,
+      loopAll: videoStore.loopAll,
+      loopCurrent: videoStore.loopCurrent,
+      isShuffled: videoStore.isShuffled,
+    }
+  };
 };
 
 export function ChatsAppComponent({
