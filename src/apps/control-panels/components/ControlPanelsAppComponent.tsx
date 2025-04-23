@@ -472,18 +472,18 @@ export function ControlPanelsAppComponent({
 
             <TabsContent
               value="appearance"
-              className="mt-0 p-4 bg-[#E3E3E3] border border-t-0 border-[#808080] h-[calc(100%-2rem)]"
+              className="mt-0 bg-[#E3E3E3] border border-t-0 border-[#808080] h-[calc(100%-2rem)]"
             >
-              <div className="space-y-4 h-full">
+              <div className="space-y-4 h-full overflow-y-auto p-4">
                 <WallpaperPicker />
               </div>
             </TabsContent>
 
             <TabsContent
               value="sound"
-              className="mt-0 p-4 bg-[#E3E3E3] border border-t-0 border-[#808080] h-[calc(100%-2rem)]"
+              className="mt-0 bg-[#E3E3E3] border border-t-0 border-[#808080] h-[calc(100%-2rem)]"
             >
-              <div className="space-y-4">
+              <div className="space-y-4 h-full overflow-y-auto p-4">
                 <div className="flex items-center justify-between">
                   <Label>UI Sounds</Label>
                   <Switch
@@ -528,9 +528,9 @@ export function ControlPanelsAppComponent({
 
             <TabsContent
               value="system"
-              className="mt-0 p-4 bg-[#E3E3E3] border border-t-0 border-[#808080] h-[calc(100%-2rem)]"
+              className="mt-0 bg-[#E3E3E3] border border-t-0 border-[#808080] h-[calc(100%-2rem)]"
             >
-              <div className="space-y-4">
+              <div className="space-y-4 h-full overflow-y-auto p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col gap-1">
                     <Label>Debug Mode</Label>
