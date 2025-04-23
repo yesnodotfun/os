@@ -2,11 +2,11 @@
   "devCommand": "bun run dev",
   "headers": [
     {
-      "source": "/(.*)",
+      "source": "/api/(.*)",
       "headers": [
         {
-          "key": "Permissions-Policy",
-          "value": "camera=(self)"
+          "key": "Access-Control-Allow-Origin",
+          "value": "https://os.ryo.lu http://localhost:3000"
         }
       ]
     },

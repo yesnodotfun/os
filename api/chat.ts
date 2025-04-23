@@ -9,6 +9,19 @@ type SupportedModel = "gpt-4o" | "gpt-4.1" | "gpt-4.1-mini" | "claude-3.5" | "cl
 // Default model to use
 const DEFAULT_MODEL: SupportedModel = "claude-3.5";
 
+// Allowed origins for API requests
+const ALLOWED_ORIGINS = new Set([
+  'https://os.ryo.lu',
+  'http://localhost:3000'
+]);
+
+// Function to validate request origin
+// Only allow explicit origins defined in ALLOWED_ORIGINS – no wildcard ports or IP fallbacks
+const isValidOrigin = (origin: string | null): boolean => {
+  if (!origin) return false;
+  return ALLOWED_ORIGINS.has(origin);
+};
+
 // Function to get the appropriate model instance
 const getModelInstance = (model: SupportedModel): LanguageModelV1 => {
   switch (model) {
@@ -399,6 +412,25 @@ After applying these edits, you will see a note in your message saying the docum
 };
 
 export default async function handler(req: Request) {
+  // Check origin before processing request
+  const origin = req.headers.get('origin');
+  if (!isValidOrigin(origin)) {
+    return new Response('Unauthorized', { status: 403 });
+  }
+
+  // At this point origin is guaranteed to be a valid string from ALLOWED_ORIGINS
+  const validOrigin = origin as string;
+
+  if (req.method === 'OPTIONS') {
+    return new Response(null, {
+      headers: {
+        'Access-Control-Allow-Origin': validOrigin,
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+      }
+    });
+  }
+
   if (req.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
   }
@@ -442,11 +474,21 @@ export default async function handler(req: Request) {
       system: generateSystemPrompt(textEditContext, systemState),
       messages,
       temperature: 0.7,
-      maxTokens: 6000,
+      maxTokens: 4000,
       experimental_transform: smoothStream(),
     });
 
-    return result.toDataStreamResponse();
+    const response = result.toDataStreamResponse();
+    
+    // Add CORS headers to the response
+    const headers = new Headers(response.headers);
+    headers.set('Access-Control-Allow-Origin', validOrigin);
+    
+    return new Response(response.body, {
+      status: response.status,
+      headers
+    });
+
   } catch (error) {
     console.error("Chat API error:", error);
 
