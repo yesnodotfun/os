@@ -421,7 +421,7 @@ export function WindowFrame({
           {/* Top resize handle */}
           <div
             className={cn(
-              "absolute left-0 right-0 cursor-n-resize pointer-events-auto transition-[top,height] select-none",
+              "absolute left-1 right-0 cursor-n-resize pointer-events-auto transition-[top,height] select-none",
               debugMode && "bg-red-500/50",
               resizeType?.includes("n")
                 ? "top-[-100px] h-[200px]"
@@ -457,13 +457,13 @@ export function WindowFrame({
           {/* Left resize handle */}
           <div
             className={cn(
-              "absolute top-8 cursor-w-resize pointer-events-auto transition-[left,width] select-none",
+              "absolute top-3 cursor-w-resize pointer-events-auto transition-[left,width] select-none",
               debugMode && "bg-red-500/50",
               resizeType?.includes("w")
                 ? "left-[-100px] w-[200px]"
                 : "left-1 w-2"
             )}
-            style={{ bottom: resizeType?.includes("s") ? "32px" : "32px" }}
+            style={{ bottom: resizeType?.includes("s") ? "32px" : "24px" }}
             onMouseDown={(e) =>
               handleResizeStartWithForeground(e, "w" as ResizeType)
             }
@@ -475,13 +475,13 @@ export function WindowFrame({
           {/* Right resize handle */}
           <div
             className={cn(
-              "absolute top-8 cursor-e-resize pointer-events-auto transition-[right,width] select-none",
+              "absolute top-6 cursor-e-resize pointer-events-auto transition-[right,width] select-none",
               debugMode && "bg-red-500/50",
               resizeType?.includes("e")
                 ? "right-[-100px] w-[200px]"
                 : "right-1 w-2"
             )}
-            style={{ bottom: resizeType?.includes("s") ? "32px" : "32px" }}
+            style={{ bottom: resizeType?.includes("s") ? "32px" : "24px" }}
             onMouseDown={(e) =>
               handleResizeStartWithForeground(e, "e" as ResizeType)
             }
