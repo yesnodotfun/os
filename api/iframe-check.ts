@@ -285,9 +285,9 @@ export default async function handler(req: Request) {
 
           // Add font override styles
           const fontOverrideStyles = `
-<link rel="stylesheet" href="/fonts/fonts.css">
+<link rel="stylesheet" href="https://os.ryo.lu/fonts/fonts.css">
 <style>
-  /* Override system and sans-serif fonts with NeueBit */
+  /* Override system and sans-serif fonts with Geneva-12 */
   body, div, span, p, h1, h2, h3, h4, h5, h6, button, input, select, textarea,
   [style*="font-family"],
   [style*="Helvetica"],
@@ -297,7 +297,7 @@ export default async function handler(req: Request) {
   [style*="Segoe UI"],
   [style*="Roboto"],
   [style*="sans-serif"] {
-    font-family: "NeueBit", "Geneva-12", "ArkPixel", "SerenityOS-Emoji", sans-serif !important;
+    font-family: "Geneva-12", "ArkPixel", "SerenityOS-Emoji", sans-serif !important;
   }
 
   /* Override serif fonts with Mondwest */
