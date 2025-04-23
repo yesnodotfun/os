@@ -160,9 +160,6 @@ export function InternetExplorerAppComponent({
     getCachedAiPage, // Keep this one, used in handleNavigate
   } = useInternetExplorerStore();
 
-  // --- Add state to track previous status for sound effect transitions ---
-  const [prevStatus, setPrevStatus] = useState<string | null>(null);
-
   // Unified AbortController for cancellations
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -674,40 +671,6 @@ export function InternetExplorerAppComponent({
     };
   }, [year, handleNavigate, handleGoBack]); // Add store state/actions if needed
 
-  // --- Effect to control loading sounds based on status transitions ---
-  useEffect(() => {
-    const wasLoading = prevStatus === 'loading';
-    const isLoadingNow = status === 'loading';
-    const isSuccess = status === 'success';
-    const isError = status === 'error';
-    const wasAIGeneration = mode === 'future' || (mode === 'past' && year && parseInt(year) <= 1995);
-
-    // Start elevator music when AI loading begins
-    if (!wasLoading && isLoadingNow && wasAIGeneration) {
-      playElevatorMusic();
-    }
-
-    // Stop elevator music when loading finishes (success or error)
-    if (wasLoading && (isSuccess || isError)) {
-      stopElevatorMusic();
-      // Play ding sound only on successful AI generation completion
-      if (isSuccess && wasAIGeneration) {
-        playDingSound();
-      }
-    }
-
-    // Update previous status for the next render
-    setPrevStatus(status);
-
-  // Cleanup function to stop music if component unmounts while loading
-  return () => {
-    if (status === 'loading') {
-        stopElevatorMusic();
-    }
-  };
-  // Ensure all dependencies are listed
-  }, [status, prevStatus, mode, year, playElevatorMusic, stopElevatorMusic, playDingSound]);
-
   // --- Remove Effect to persist navigation state --- 
   // useEffect(() => {
   //   if (status === 'success' && url && year) {
@@ -994,6 +957,9 @@ export function InternetExplorerAppComponent({
                   initialFullScreen={false}
                   isInternetExplorer={true}
                   isStreaming={isAiLoading}
+                  playElevatorMusic={playElevatorMusic}
+                  stopElevatorMusic={stopElevatorMusic}
+                  playDingSound={playDingSound}
                 />
               </div>
             ) : (
