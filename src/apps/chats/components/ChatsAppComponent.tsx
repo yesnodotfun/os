@@ -1774,7 +1774,7 @@ export function ChatsAppComponent({
   const [username, setUsername] = useState<string | null>(null);
   const [roomMessages, setRoomMessages] = useState<ChatMessage[]>([]);
   // Initialize with default, load from storage in useEffect
-  const [isSidebarVisible, setIsSidebarVisible] = useState(true); // Default to true initially
+  const [isSidebarVisible, setIsSidebarVisible] = useState(false); // Default to false initially
 
   // State for username dialog
   const [isUsernameDialogOpen, setIsUsernameDialogOpen] = useState(false);
@@ -1809,13 +1809,16 @@ export function ChatsAppComponent({
     });
   }, []);
 
-  // Add useEffect to handle responsive behavior - hide sidebar on small screens by default
+  // Add useEffect to handle responsive behavior - keep sidebar hidden by default
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth < 768) {
-        setIsSidebarVisible(false);
-      } else {
+      // Load saved state first
+      const savedState = loadChatSidebarVisible();
+      // Only show automatically on larger screens if it was previously shown
+      if (window.innerWidth >= 768 && savedState) {
         setIsSidebarVisible(true);
+      } else {
+        setIsSidebarVisible(false);
       }
     };
 
@@ -1829,13 +1832,14 @@ export function ChatsAppComponent({
     return () => {
       window.removeEventListener('resize', handleResize);
     };
-  }, []);
+  }, []); // Empty dependency array ensures this runs only once on mount
 
   // Load sidebar state from storage once on mount
   useEffect(() => {
     const savedState = loadChatSidebarVisible();
     console.log("[Component Mount] Loading sidebar visibility from storage:", savedState);
-    setIsSidebarVisible(savedState);
+    // Only respect saved state if explicitly set to true
+    setIsSidebarVisible(savedState === true);
   }, []); // Empty dependency array ensures this runs only once
 
   // Add Pusher instance ref to avoid recreating it on each render
