@@ -643,7 +643,7 @@ export default function HtmlPreview({
             transition={{
               duration: 3, // Slower duration for breathing effect
               repeat: Infinity,
-              ease: "ease"
+              ease: "easeInOut"
             }}
           />
         )}
