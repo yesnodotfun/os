@@ -262,7 +262,7 @@ IMPORTANT: Include the generated page title inside an HTML comment at the very b
 
 REQUIREMENTS
 1. DO NOT respond in any text except the html markdown codeblock.
-2. Keep the layout responsive. DO NOT use inline data:image base64 or link to unknown images in <img> tags. Use tailwind font-sans, font-serif, or font-mono. For fancy/crazy fonts, import and use Google Fonts. ${parseInt(year) > new Date().getFullYear() 
+2. Keep the layout responsive. DO NOT use inline data:image base64 or link to unknown images in <img> tags. Use tailwind font-sans, font-serif, or font-mono for most text. For fancy/crazy heading, you can import and use Google Fonts. ${parseInt(year) > new Date().getFullYear() 
   ? "Keep visuals minimal but futuristic, use simple colors, avoid over using linear gradients. Use emojis, or simple SVG icons. Use 3D graphics when possible."
   : `Use period-appropriate design elements:
      - Typography that matches the era
