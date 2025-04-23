@@ -283,6 +283,45 @@ export default async function handler(req: Request) {
           // Inject title meta tag if title was extracted
           const titleMetaTag = pageTitle ? `<meta name="page-title" content="${encodeURIComponent(pageTitle)}">` : '';
 
+          // Add font override styles
+          const fontOverrideStyles = `
+<link rel="stylesheet" href="/fonts/fonts.css">
+<style>
+  /* Override system and sans-serif fonts with NeueBit */
+  body, div, span, p, h1, h2, h3, h4, h5, h6, button, input, select, textarea,
+  [style*="font-family"],
+  [style*="Helvetica"],
+  [style*="Arial"],
+  [style*="-apple-system"],
+  [style*="BlinkMacSystemFont"],
+  [style*="Segoe UI"],
+  [style*="Roboto"],
+  [style*="sans-serif"] {
+    font-family: "NeueBit", "Geneva-12", "ArkPixel", "SerenityOS-Emoji", sans-serif !important;
+  }
+
+  /* Override serif fonts with Mondwest */
+  [style*="Georgia"],
+  [style*="Times New Roman"],
+  [style*="serif"] {
+    font-family: "Mondwest", "Yu Mincho", "Hiragino Mincho Pro", "Georgia", "Palatino", "SerenityOS-Emoji", serif !important;
+  }
+
+  /* Override monospace fonts with Monaco */
+  code, pre,
+  [style*="monospace"],
+  [style*="Courier"],
+  [style*="Monaco"],
+  [style*="Consolas"] {
+    font-family: "Monaco", "ArkPixel", "SerenityOS-Emoji", monospace !important;
+  }
+
+  /* Default to Geneva-12 for anything else */
+  * {
+    font-family: "Geneva-12", "ArkPixel", "SerenityOS-Emoji", sans-serif;
+  }
+</style>`;
+
           const clickInterceptorScript = `
 <script>
   document.addEventListener('click', function(event) {
@@ -301,10 +340,10 @@ export default async function handler(req: Request) {
           const headIndex = html.search(/<head[^>]*>/i);
           if (headIndex !== -1) {
               const insertPos = headIndex + html.match(/<head[^>]*>/i)![0].length;
-              html = html.slice(0, insertPos) + baseTag + titleMetaTag + html.slice(insertPos); // Inject base and title meta
+              html = html.slice(0, insertPos) + baseTag + titleMetaTag + fontOverrideStyles + html.slice(insertPos); // Add fontOverrideStyles
           } else {
               // Fallback: Prepend if no <head>
-              html = baseTag + titleMetaTag + html;
+              html = baseTag + titleMetaTag + fontOverrideStyles + html;
           }
 
           // Inject script right before </body> (case‑insensitive)

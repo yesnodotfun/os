@@ -1110,7 +1110,7 @@ export function InternetExplorerAppComponent({
               renderErrorPage()
             ) : isFutureYear || (mode === "past" && (isAiLoading || aiGeneratedHtml)) ? (
               /* Render HtmlPreview for future years or past years with AI content */
-              <div className="w-full h-full overflow-hidden absolute inset-0">
+              <div className="w-full h-full overflow-hidden absolute inset-0 font-geneva-12">
                 <HtmlPreview
                   htmlContent={isAiLoading ? generatedHtml || "" : aiGeneratedHtml || ""}
                   onInteractionChange={() => {}}
