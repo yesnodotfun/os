@@ -52,7 +52,7 @@ export const useAppStore = create<AppStoreState>()(
       ...getInitialState(),
       debugMode: false,
       setDebugMode: (enabled) => set({ debugMode: enabled }),
-      aiModel: "claude-3.7", // Default model
+      aiModel: "claude-3.5", // Default model
       setAiModel: (model) => set({ aiModel: model }),
 
       bringToForeground: (appId) => {

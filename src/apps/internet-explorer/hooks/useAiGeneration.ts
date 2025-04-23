@@ -29,6 +29,7 @@ export function useAiGeneration({ onLoadingChange, customTimeline = {} }: UseAiG
   const cacheAiPage = useInternetExplorerStore(state => state.cacheAiPage);
   const getCachedAiPage = useInternetExplorerStore(state => state.getCachedAiPage);
   const loadSuccess = useInternetExplorerStore(state => state.loadSuccess);
+  const loadError = useInternetExplorerStore(state => state.loadError);
   const timelineSettings = useInternetExplorerStore(state => state.timelineSettings);
 
   // Handler for when AI stream finishes
@@ -199,10 +200,24 @@ export function useAiGeneration({ onLoadingChange, customTimeline = {} }: UseAiG
     }
     
     // Extract domain name for better prompt (use normalized URL)
-    const domainName = new URL(normalizedTargetUrl).hostname;
+    let domainName;
+    try {
+      domainName = new URL(normalizedTargetUrl).hostname;
+    } catch (error) {
+      console.error(`[IE] Error parsing URL for prompt: ${normalizedTargetUrl}`, error);
+      const errorMessage = "Invalid URL format. Please enter a valid website address.";
+      loadError(errorMessage);
+      return;
+    }
     
     // Attempt to fetch existing website content (best-effort, use normalized URL)
-    const existingContent = await fetchExistingWebsiteContent(normalizedTargetUrl, signal);
+    let existingContent;
+    try {
+      existingContent = await fetchExistingWebsiteContent(normalizedTargetUrl, signal);
+    } catch (error) {
+      console.warn(`[IE] Error fetching website content, continuing without it:`, error);
+      // Non-fatal, continue without content
+    }
     
     // Check if the operation was aborted after fetching content
     if (signal?.aborted || currentGenerationId.current !== generationId) {
@@ -294,7 +309,7 @@ ${timelineContext}`;
         return;
       }
       console.error("Failed to generate futuristic website:", error);
-      throw new Error("Failed to generate futuristic website preview");
+      loadError(`Failed to generate website preview for ${normalizedTargetUrl} in ${year}. ${error instanceof Error ? error.message : String(error)}`);
     }
   };
 

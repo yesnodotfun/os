@@ -30,6 +30,180 @@ interface IframeCheckResponse {
   title?: string;
 }
 
+// Define type for error response
+interface ErrorResponse {
+  error: boolean;
+  type: string;
+  status?: number;
+  statusText?: string;
+  message: string;
+  details?: string;
+  hostname?: string;
+  targetUrl?: string;
+}
+
+// Error Page Component for HTTP errors
+function HttpErrorPage({ 
+  status, 
+  statusText, 
+  hostname,
+  onGoBack 
+}: { 
+  status: number; 
+  statusText: string; 
+  hostname: string;
+  onGoBack: () => void;
+}) {
+  return (
+    <div className="p-6 font-geneva-12 text-sm">
+      <h1 className="text-lg mb-4 font-normal flex items-center">
+        The page cannot be found
+      </h1>
+      
+      <p className="mb-3">The page you are looking for might have been removed, had its name changed, or is temporarily unavailable.</p>
+      
+      <div className="h-px bg-gray-300 my-5"></div>
+      
+      <p className="mb-3">Please try the following:</p>
+      
+      <ul className="list-disc pl-6 mb-5 space-y-2">
+        <li>If you typed the page address in the Address bar, make sure that it is spelled correctly.</li>
+        <li>Open <a href={`https://${hostname}`} target="_blank" rel="noopener noreferrer" className="text-red-600 underline">{hostname}</a> in a new tab, and then look for links to the information you want.</li>
+        <li>Click the <button onClick={onGoBack} className="text-red-600 underline">Back</button> button to try another link.</li>
+      </ul>
+      
+      <div className="mt-10 text-gray-700">
+        HTTP {status} - {statusText}<br />
+        Internet Explorer
+      </div>
+    </div>
+  );
+}
+
+// Error Page Component for connection errors
+function ConnectionErrorPage({ 
+  details,
+  onGoBack 
+}: { 
+  details: string;
+  onGoBack: () => void;
+}) {
+  return (
+    <div className="p-6 font-geneva-12 text-sm">
+      <h1 className="text-lg mb-4 font-normal flex items-center">
+        The page cannot be displayed
+      </h1>
+      
+      <p className="mb-3">Internet Explorer cannot access this website. The connection has timed out or failed.</p>
+      
+      <div className="h-px bg-gray-300 my-5"></div>
+      
+      <p className="mb-3">Please try the following:</p>
+      
+      <ul className="list-disc pl-6 mb-5 space-y-2">
+        <li>Try time traveling to a different year</li>
+        <li>Click the <button onClick={onGoBack} className="text-red-600 underline">Back</button> button to visit a different website</li>
+      </ul>
+      
+      <div className="p-3 bg-gray-100 border border-gray-300 rounded mb-5">
+        <strong>Details:</strong> {details}
+      </div>
+      
+      <div className="mt-10 text-gray-700">
+        Connection Error<br />
+        Internet Explorer
+      </div>
+    </div>
+  );
+}
+
+// Error Page Component for AI generation errors
+function AiGenerationErrorPage({ 
+  message,
+  details,
+  onGoBack,
+  onRetry
+}: { 
+  message: string;
+  details?: string;
+  onGoBack: () => void;
+  onRetry: () => void;
+}) {
+  return (
+    <div className="p-6 font-geneva-12 text-sm">
+      <h1 className="text-lg mb-4 font-normal flex items-center">
+        The page cannot be imagined
+      </h1>
+      
+      <p className="mb-3">{message}</p>
+      
+      <div className="h-px bg-gray-300 my-5"></div>
+      
+      <p className="mb-3">Please try the following:</p>
+      
+      <ul className="list-disc pl-6 mb-5 space-y-2">
+        <li>Click <button onClick={onRetry} className="text-red-600 underline">Refresh</button> to attempt generation again</li>
+        <li>Try a different year</li>
+        <li>Try a different website</li>
+        <li>Click the <button onClick={onGoBack} className="text-red-600 underline">Back</button> button to visit a different website</li>
+      </ul>
+      
+      {details && (
+        <div className="p-3 bg-gray-100 border border-gray-300 rounded mb-5">
+          <strong>Details:</strong> {details}
+        </div>
+      )}
+      
+      <div className="mt-10 text-gray-700">
+        Time Machine Error<br />
+        Internet Explorer
+      </div>
+    </div>
+  );
+}
+
+// General error page for simple string errors
+function GeneralErrorPage({ 
+  errorMessage,
+  onGoBack,
+  onRetry
+}: { 
+  errorMessage: string;
+  onGoBack: () => void;
+  onRetry: () => void;
+}) {
+  return (
+    <div className="p-6 font-geneva-12 text-sm">
+      <h1 className="text-lg mb-4 font-normal flex items-center">
+        An error occurred
+      </h1>
+      
+      <p className="mb-3">{errorMessage}</p>
+      
+      <div className="h-px bg-gray-300 my-5"></div>
+      
+      <div className="flex gap-3 mt-5">
+        <button 
+          onClick={onRetry}
+          className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded border border-gray-400"
+        >
+          Retry
+        </button>
+        <button 
+          onClick={onGoBack}
+          className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded border border-gray-400"
+        >
+          Go Back
+        </button>
+      </div>
+      
+      <div className="mt-10 text-gray-700">
+        Internet Explorer
+      </div>
+    </div>
+  );
+}
+
 export function InternetExplorerAppComponent({
   isWindowOpen,
   onClose,
@@ -40,6 +214,9 @@ export function InternetExplorerAppComponent({
 
   // State to hold title prefetched during iframe-check
   const [prefetchedTitle, setPrefetchedTitle] = useState<string | null>(null);
+
+  // State to hold error information for rendering error pages
+  const [errorDetails, setErrorDetails] = useState<ErrorResponse | null>(null);
 
   // --- Store Selectors/Actions (Destructure them here for stability in callbacks) ---
   const { 
@@ -119,10 +296,70 @@ export function InternetExplorerAppComponent({
     return `/api/iframe-check?url=${encodeURIComponent(formattedUrl)}&year=${year}&month=${month}`;
   };
   
+  // Function to get hostname from URL (for error pages)
+  const getHostname = useCallback((targetUrl: string) => {
+    try {
+      return new URL(targetUrl.startsWith('http') ? targetUrl : `https://${targetUrl}`).hostname;
+    } catch {
+      // Return the target URL itself if it can't be parsed
+      return targetUrl;
+    }
+  }, []);
+
+  // First, add a helper function to set error details and stop loading
+  const setErrorAndStopLoading = useCallback((errorData: ErrorResponse) => {
+    // Include the current URL in the error details when setting the error
+    setErrorDetails({
+      ...errorData,
+      targetUrl: url // Store current URL at time of error
+    });
+    // Update store to stop loading state
+    loadSuccess({ 
+      aiGeneratedHtml: null, 
+      title: errorData.message.split('.')[0], // Use first sentence of error as title
+      targetUrl: url,
+      targetYear: year,
+      favicon: url ? `https://www.google.com/s2/favicons?domain=${getHostname(url)}&sz=32` : '',
+      addToHistory: false // Don't add errors to history
+    });
+  }, [loadSuccess, url, year, getHostname]);
+
+  // Helper function to clear error details
+  const clearErrorDetails = useCallback(() => {
+    setErrorDetails(null);
+  }, []);
+
   // Handler for iframe load (keep outside useCallback for now, depends on refs)
-  const handleIframeLoad = () => {
+  const handleIframeLoad = async () => {
     // Only update if the iframe has a data-token attribute matching the current navigation token
     if (iframeRef.current && iframeRef.current.dataset.navToken === token.toString()) {
+      // For API error responses, we need to try to read the JSON content
+      const iframeSrc = iframeRef.current.src;
+      if (iframeSrc.startsWith('/api/iframe-check') && iframeRef.current.contentDocument) {
+        try {
+          // Try to parse the content as JSON (for error responses)
+          const contentType = iframeRef.current.contentDocument.contentType;
+          if (contentType === 'application/json') {
+            const text = iframeRef.current.contentDocument.body.textContent;
+            if (text) {
+              const errorData = JSON.parse(text) as ErrorResponse;
+              if (errorData.error) {
+                console.log('[IE] Detected error response:', errorData);
+                // Set error details for rendering error page
+                setErrorAndStopLoading(errorData);
+                return;
+              }
+            }
+          }
+        } catch (error) {
+          console.warn('[IE] Error parsing iframe content as JSON:', error);
+          // Continue with normal load handling
+        }
+      }
+
+      // Reset error details on successful load
+      clearErrorDetails();
+
       // Introduce a tiny delay to ensure the loading state renders reliably
       setTimeout(() => {
         // Check token again inside timeout in case another navigation started very quickly
@@ -145,8 +382,8 @@ export function InternetExplorerAppComponent({
                 txt.innerHTML = loadedTitle;
                 loadedTitle = txt.value.trim();
               }
-            } catch (e) {
-              console.warn("[IE] Failed to read iframe document title directly:", e);
+            } catch (error) {
+              console.warn("[IE] Failed to read iframe document title directly:", error);
             }
 
             // 3. If still no title and proxied, try reading the injected meta tag
@@ -156,8 +393,8 @@ export function InternetExplorerAppComponent({
                 if (metaTitle) {
                   loadedTitle = decodeURIComponent(metaTitle); // Decode the title from meta tag
                 }
-              } catch (e) {
-                console.warn("[IE] Failed to read page-title meta tag:", e);
+              } catch (error) {
+                console.warn("[IE] Failed to read page-title meta tag:", error);
               }
             }
           }
@@ -188,8 +425,22 @@ export function InternetExplorerAppComponent({
       setTimeout(() => {
         // Check token again inside timeout
         if (iframeRef.current && iframeRef.current.dataset.navToken === token.toString()) {
-          // Use potentially updated finalUrl and url from state
-          loadError(`Cannot access ${finalUrl || url}. The website might be blocking access or requires authentication.`);
+          // Set up error details for client-side error page
+          try {
+            const targetUrl = finalUrl || url;
+            // Include hostname in the error details for use in the error page
+            setErrorAndStopLoading({
+              error: true,
+              type: "connection_error",
+              status: 404,
+              message: `Cannot access ${targetUrl}. The website might be blocking access or requires authentication.`,
+              details: "The page could not be loaded in the iframe. This could be due to security restrictions or network issues.",
+              hostname: getHostname(targetUrl) // Pass hostname through error details
+            });
+          } catch (error) {
+            // Fallback if URL parsing fails
+            loadError(`Cannot access the requested website. ${error instanceof Error ? error.message : String(error)}`);
+          }
         }
       }, 50); // 50ms delay
     }
@@ -201,6 +452,9 @@ export function InternetExplorerAppComponent({
     targetYear: string = year,
     forceRegenerate = false
   ) => {
+    // Reset error state
+    clearErrorDetails();
+
     // Cancel any ongoing navigation
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -282,11 +536,43 @@ export function InternetExplorerAppComponent({
               urlToLoad = waybackUrl;
               console.log(`[IE] Using proxy for Wayback URL: ${urlToLoad}`);
               
+              // For proxy URLs, use pre-fetch to check for JSON error responses
+              if (urlToLoad.startsWith('/api/iframe-check')) {
+                try {
+                  // Attempt to fetch the proxy content first to check for errors
+                  const proxyResponse = await fetch(urlToLoad, { signal: abortController.signal });
+                  
+                  // Check if response is JSON (which indicates an error)
+                  const contentType = proxyResponse.headers.get('content-type');
+                  if (contentType && contentType.includes('application/json')) {
+                    // Parse the JSON error response
+                    const errorData = await proxyResponse.json() as ErrorResponse;
+                    if (errorData.error) {
+                      console.log('[IE] Detected proxy error response:', errorData);
+                      setErrorAndStopLoading(errorData);
+                      return;
+                    }
+                  }
+                  
+                  // If it's not a JSON error response, proceed with loading in iframe
+                } catch (proxyError) {
+                  if (abortController.signal.aborted) return;
+                  console.warn('[IE] Error pre-fetching proxy content:', proxyError);
+                  // Continue with iframe load, error will be handled by iframe error event
+                }
+              }
+              
               // Set a longer timeout for Wayback Machine requests
               setTimeout(() => {
                 if (status === 'loading' && !abortController.signal.aborted) {
                   console.warn(`[IE] Wayback Machine load timeout for ${normalizedTargetUrl} in ${targetYear}`);
-                  loadError(`The Wayback Machine is taking too long to respond. Try a different year or website.`);
+                  setErrorAndStopLoading({
+                    error: true,
+                    type: "connection_error",
+                    status: 408,
+                    message: "The Wayback Machine is taking too long to respond.",
+                    details: "Try a different year or website."
+                  });
                 }
               }, 20000); // 20-second timeout for Wayback Machine
             } else {
@@ -342,7 +628,30 @@ export function InternetExplorerAppComponent({
                   `[IE] Using proxy for ${normalizedTargetUrl} because direct embedding is blocked${checkData.reason ? ` (${checkData.reason})` : ""}.`
                 );
                 urlToLoad = `/api/iframe-check?url=${encodeURIComponent(normalizedTargetUrl)}`;
-                // Title for proxy will be set in handleIframeLoad from meta tag
+                
+                // For proxy URLs, use pre-fetch to check for JSON error responses
+                try {
+                  // Attempt to fetch the proxy content first to check for errors
+                  const proxyResponse = await fetch(urlToLoad, { signal: abortController.signal });
+                  
+                  // Check if response is JSON (which indicates an error)
+                  const contentType = proxyResponse.headers.get('content-type');
+                  if (contentType && contentType.includes('application/json')) {
+                    // Parse the JSON error response
+                    const errorData = await proxyResponse.json() as ErrorResponse;
+                    if (errorData.error) {
+                      console.log('[IE] Detected proxy error response:', errorData);
+                      setErrorAndStopLoading(errorData);
+                      return;
+                    }
+                  }
+                  
+                  // If it's not a JSON error response, proceed with loading in iframe
+                } catch (proxyError) {
+                  if (abortController.signal.aborted) return;
+                  console.warn('[IE] Error pre-fetching proxy content:', proxyError);
+                  // Continue with iframe load, error will be handled by iframe error event
+                }
               }
             } else {
               // If check response itself is not ok, try direct load
@@ -382,11 +691,17 @@ export function InternetExplorerAppComponent({
       // Only update error state if this navigation is still active
       if (!abortController.signal.aborted) {
         console.error(`[IE] Navigation error:`, error);
-        loadError(`Failed to navigate: ${error instanceof Error ? error.message : String(error)}`);
+        setErrorAndStopLoading({
+          error: true,
+          type: "navigation_error",
+          message: `Failed to navigate: ${error instanceof Error ? error.message : String(error)}`,
+          details: error instanceof Error ? error.stack : undefined
+        });
       }
     }
   }, [url, year, finalUrl, status, token, isAiLoading, isNavigatingHistory, currentPageTitle, 
-      navigateStart, setFinalUrl, loadError, generateFuturisticWebsite, stopGeneration]);
+      navigateStart, setFinalUrl, loadError, generateFuturisticWebsite, stopGeneration, loadSuccess, getCachedAiPage, 
+      clearErrorDetails, setErrorAndStopLoading]);
 
   const handleNavigateWithHistory = useCallback(async (
     targetUrl: string,
@@ -481,7 +796,10 @@ export function InternetExplorerAppComponent({
     if (iframeRef.current) {
       iframeRef.current.src = "about:blank";
     }
-  }, [cancel, isAiLoading, stopGeneration]);
+
+    // Clear error details
+    clearErrorDetails();
+  }, [cancel, isAiLoading, stopGeneration, clearErrorDetails]);
 
   const handleGoToUrl = useCallback(() => {
     urlInputRef.current?.focus();
@@ -570,6 +888,22 @@ export function InternetExplorerAppComponent({
     // Use potentially updated favorites from state
   }, [favorites]); // Re-run when favorites change
 
+  // Effect to update error state based on error from store
+  useEffect(() => {
+    if (error && !errorDetails) {
+      // If there's an error in the store but no errorDetails, create an error object
+      setErrorAndStopLoading({
+        error: true,
+        type: "generic_error",
+        message: error,
+        details: undefined
+      });
+    } else if (!error && errorDetails && errorDetails.type === "generic_error") {
+      // If store error is cleared but we still have generic error details, clear them
+      clearErrorDetails();
+    }
+  }, [error, errorDetails, setErrorAndStopLoading, clearErrorDetails]);
+
   if (!isWindowOpen) return null;
 
   // Extract current year for display purposes
@@ -588,6 +922,51 @@ export function InternetExplorerAppComponent({
       opacity: 1,
       transition: { duration: 0.3 }
     },
+  };
+
+  // Determine which error page to show based on error type
+  const renderErrorPage = () => {
+    if (!errorDetails) return null;
+
+    // Use the stored targetUrl from error details for hostname calculation
+    const errorUrl = errorDetails.targetUrl || url;
+    const errorHostname = errorDetails.hostname || getHostname(errorUrl);
+
+    switch (errorDetails.type) {
+      case "http_error":
+        return (
+          <HttpErrorPage
+            status={errorDetails.status || 404}
+            statusText={errorDetails.statusText || "Not Found"}
+            hostname={errorHostname}
+            onGoBack={handleGoBack}
+          />
+        );
+      case "connection_error":
+        return (
+          <ConnectionErrorPage
+            details={errorDetails.details || "Unknown connection error"}
+            onGoBack={handleGoBack}
+          />
+        );
+      case "ai_generation_error":
+        return (
+          <AiGenerationErrorPage
+            message={errorDetails.message}
+            details={errorDetails.details}
+            onGoBack={handleGoBack}
+            onRetry={handleRefresh}
+          />
+        );
+      default:
+        return (
+          <GeneralErrorPage
+            errorMessage={errorDetails.message}
+            onGoBack={handleGoBack}
+            onRetry={handleRefresh}
+          />
+        );
+    }
   };
 
   return (
@@ -726,10 +1105,11 @@ export function InternetExplorerAppComponent({
             </div>
           </div>
           <div className="flex-1 relative">
-            {/* Content first */} 
-            {error ? (
-              <div className="p-4 text-red-500">{error}</div>
-            ) : isFutureYear || (mode === "past" && (isAiLoading || aiGeneratedHtml)) ? ( // Render HtmlPreview for future years or past years with AI content
+            {/* Error Pages */}
+            {errorDetails ? (
+              renderErrorPage()
+            ) : isFutureYear || (mode === "past" && (isAiLoading || aiGeneratedHtml)) ? (
+              /* Render HtmlPreview for future years or past years with AI content */
               <div className="w-full h-full overflow-hidden absolute inset-0">
                 <HtmlPreview
                   htmlContent={isAiLoading ? generatedHtml || "" : aiGeneratedHtml || ""}
@@ -743,7 +1123,7 @@ export function InternetExplorerAppComponent({
                 />
               </div>
             ) : (
-              // Render iframe for current/past years with Wayback snapshots
+              /* Render iframe for current/past years with Wayback snapshots */
               <iframe
                 ref={iframeRef}
                 src={finalUrl || ""}

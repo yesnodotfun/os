@@ -224,101 +224,24 @@ export default async function handler(req: Request) {
       
       clearTimeout(timeout); // Clear timeout on successful fetch
       
-      // If the upstream fetch failed (e.g., 403 Forbidden, 404 Not Found), return an error page
+      // If the upstream fetch failed (e.g., 403 Forbidden, 404 Not Found), return an error response
       if (!upstreamRes.ok) {
-          // Classic IE-style error page
-          const errorHtml = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Error ${upstreamRes.status}</title>
-  <link rel="stylesheet" href="https://os.ryo.lu/fonts/fonts.css"> 
-  <style>
-    * {
-      box-sizing: border-box;
-    }
-    html, body {
-      font-family: "Geneva-12", "ArkPixel", system-ui, sans-serif;
-      font-size: 12px;
-      margin: 0;
-      padding: 0;
-      height: 100%;
-    }
-    body {
-      background-color: #ffffff;
-      color: #000000;
-      padding: 24px;
-      text-align: left;
-    }
-    h1 {
-      font-size: 18px;
-      color: #000000;
-      font-weight: normal;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      align-items: center;
-    }
-    p {
-      margin: 12px 0;
-      line-height: 1.4;
-    }
-    .divider {
-      height: 1px;
-      background-color: #ccc;
-      margin: 20px 0;
-    }
-    ul {
-      margin: 16px 0;
-      padding-left: 20px;
-    }
-    li {
-      margin-bottom: 8px;
-      list-style-type: disc;
-    }
-    a {
-      color: #f00;
-      text-decoration: underline;
-    }
-    .footer {
-      margin-top: 40px;
-      color: #333;
-    }
-  </style>
-</head>
-<body>
-  <h1>
-    The page cannot be found
-  </h1>
-  
-  <p>The page you are looking for might have been removed, had its name changed, or is temporarily unavailable.</p>
-  
-  <div class="divider"></div>
-  
-  <p>Please try the following:</p>
-  
-  <ul>
-    <li>If you typed the page address in the Address bar, make sure that it is spelled correctly.</li>
-    <li>Open <a href="https://${new URL(normalizedUrl).hostname}" target="_blank" rel="noopener noreferrer">${new URL(normalizedUrl).hostname}</a> in a new tab, and then look for links to the information you want.</li>
-    <li>Click the <a href="javascript:void(0)" onclick="window.parent.postMessage({type: 'goBack'}, '*')">Back</a> button to try another link.</li>
-  </ul>
-  
-  <div class="footer">
-    HTTP ${upstreamRes.status} - ${upstreamRes.statusText || "File not found"}<br>
-    Internet Explorer
-  </div>
-</body>
-</html>`;
-
-          return new Response(errorHtml, {
+          return new Response(
+            JSON.stringify({
+              error: true,
+              status: upstreamRes.status,
+              statusText: upstreamRes.statusText || "File not found",
+              type: "http_error",
+              message: `The page cannot be found. HTTP ${upstreamRes.status} - ${upstreamRes.statusText || "File not found"}`
+            }),
+            {
               status: upstreamRes.status,
               headers: { 
-                  "Content-Type": "text/html",
-                  "Access-Control-Allow-Origin": "*",
-                  "Content-Security-Policy": "frame-ancestors *; sandbox allow-scripts allow-forms allow-same-origin allow-popups"
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*"
               }
-          });
+            }
+          );
       }
 
       // Clone headers so we can edit them
@@ -416,110 +339,23 @@ export default async function handler(req: Request) {
       // Special handling for timeout or network errors
       console.error(`[iframe-check] Fetch error for ${targetUrl}:`, fetchError);
       
-      // Create a friendly error page for network/timeout issues
-      const networkErrorHtml = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Connection Error</title>
-  <link rel="stylesheet" href="https://os.ryo.lu/fonts/fonts.css"> 
-  <style>
-    * {
-      box-sizing: border-box;
-    }
-    html, body {
-      font-family: "Geneva-12", "ArkPixel", system-ui, sans-serif;
-      font-size: 12px;
-      margin: 0;
-      padding: 0;
-      height: 100%;
-    }
-    body {
-      background-color: #ffffff;
-      color: #000000;
-      padding: 24px;
-      text-align: left;
-    }
-    h1 {
-      font-size: 18px;
-      color: #000000;
-      font-weight: normal;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      align-items: center;
-    }
-    p {
-      margin: 12px 0;
-      line-height: 1.4;
-    }
-    .divider {
-      height: 1px;
-      background-color: #ccc;
-      margin: 20px 0;
-    }
-    ul {
-      margin: 16px 0;
-      padding-left: 20px;
-    }
-    li {
-      margin-bottom: 8px;
-      list-style-type: disc;
-    }
-    a {
-      color: #f00;
-      text-decoration: underline;
-    }
-    .connection-error {
-      margin-top: 20px;
-      padding: 10px;
-      background-color: #f8f8f8;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-    }
-    .footer {
-      margin-top: 40px;
-      color: #333;
-    }
-  </style>
-</head>
-<body>
-  <h1>
-    The page cannot be displayed
-  </h1>
-  
-  <p>Internet Explorer cannot access this website. The connection has timed out or failed.</p>
-  
-  <div class="divider"></div>
-  
-  <p>Please try the following:</p>
-  
-  <ul>
-    <li>Check your internet connection</li>
-    <li>Try the website at a different time or year setting</li>
-    <li>Click the <a href="javascript:void(0)" onclick="window.parent.postMessage({type: 'goBack'}, '*')">Back</a> button to visit a different website</li>
-  </ul>
-  
-  <div class="connection-error">
-    <strong>Technical Details:</strong> ${fetchError instanceof Error ? fetchError.message : 'Connection failed or timed out'}
-  </div>
-  
-  <div class="footer">
-    Connection Error<br>
-    Internet Explorer
-  </div>
-</body>
-</html>`;
-
-      return new Response(networkErrorHtml, {
-        status: 503,
-        headers: { 
-          "Content-Type": "text/html",
-          "Access-Control-Allow-Origin": "*",
-          "Content-Security-Policy": "frame-ancestors *; sandbox allow-scripts allow-forms allow-same-origin allow-popups"
+      // Return JSON with error information instead of HTML
+      return new Response(
+        JSON.stringify({
+          error: true,
+          type: "connection_error",
+          status: 503,
+          message: "The page cannot be displayed. Internet Explorer cannot access this website.",
+          details: fetchError instanceof Error ? fetchError.message : 'Connection failed or timed out'
+        }),
+        { 
+          status: 503, 
+          headers: { 
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*"
+          }
         }
-      });
+      );
     }
   } catch (error) {
     return new Response(
