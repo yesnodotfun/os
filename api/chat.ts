@@ -35,7 +35,7 @@ interface SystemState {
 type SupportedModel = "gpt-4o" | "gpt-4.1" | "gpt-4.1-mini" | "claude-3.5" | "claude-3.7" | "o3-mini" | "gemini-2.5-pro-exp-03-25" | null;
 
 // Default model to use
-const DEFAULT_MODEL: SupportedModel = "claude-3.7";
+const DEFAULT_MODEL: SupportedModel = "claude-3.5";
 
 // Allowed origins for API requests
 const ALLOWED_ORIGINS = new Set([
