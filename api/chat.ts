@@ -5,9 +5,6 @@ import { streamText, smoothStream, LanguageModelV1 } from "ai";
 
 // Update SystemState type to match new store structure
 interface SystemState {
-  aiModel: string;
-  debugMode: boolean;
-  windowOrder: string[];
   apps: {
     [appId: string]: {
       isOpen: boolean;

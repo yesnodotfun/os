@@ -1750,9 +1750,6 @@ const getSystemState = () => {
   const currentVideo = videoStore.videos[videoStore.currentIndex];
 
   return {
-    aiModel: appStore.aiModel,
-    debugMode: appStore.debugMode,
-    windowOrder: appStore.windowOrder,
     apps: appStore.apps,
     internetExplorer: {
       url: ieStore.url,
