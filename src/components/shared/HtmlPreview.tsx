@@ -536,13 +536,15 @@ export default function HtmlPreview({
   // NEW: Function to sanitize HTML for stream preview - removing fixed position elements and scripts/styles
   const sanitizeHtmlForStream = (html: string): string => {
     if (!html) return html;
-    
+
+    // Remove all <style> blocks and any remaining style tags
+    let sanitized = html.replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '');
+    sanitized = sanitized.replace(/<style\b[^>]*>/gi, '');
+    sanitized = sanitized.replace(/<\/style>/gi, '');
+
     // Remove all script tags and their contents
-    let sanitized = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
-    
-    // Remove all style tags and their contents
-    sanitized = sanitized.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '');
-    
+    sanitized = sanitized.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+
     // Remove inline position:fixed styles
     sanitized = sanitized.replace(/position\s*:\s*fixed/gi, "position: relative");
     sanitized = sanitized.replace(/position\s*:\s*sticky/gi, "position: relative");
