@@ -368,7 +368,8 @@ export default async function handler(req: Request) {
           type: "connection_error",
           status: 503,
           message: "The page cannot be displayed. Internet Explorer cannot access this website.",
-          details: fetchError instanceof Error ? fetchError.message : 'Connection failed or timed out'
+          // Include the target URL in the details for better debugging
+          details: `Failed to fetch the requested URL. Reason: ${fetchError instanceof Error ? fetchError.message : 'Connection failed or timed out'}`
         }),
         { 
           status: 503, 

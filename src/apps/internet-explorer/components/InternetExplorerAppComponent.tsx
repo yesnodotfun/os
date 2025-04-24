@@ -94,7 +94,7 @@ function ErrorPage({
 
       {details && !footerText.includes('HTTP') && ( // Don't show details box if info is in footer
         <div className="p-3 bg-gray-100 border border-gray-300 rounded mb-5">
-          <strong>Details:</strong> {details}
+          {details}
         </div>
       )}
 
@@ -284,31 +284,63 @@ export function InternetExplorerAppComponent({
   const handleIframeLoad = async () => {
     if (iframeRef.current && iframeRef.current.dataset.navToken === token.toString()) {
       const iframeSrc = iframeRef.current.src;
-      if (iframeSrc.startsWith('/api/iframe-check') && iframeRef.current.contentDocument) {
+      // Check if the source is our proxy/check endpoint
+      if (iframeSrc.includes('/api/iframe-check') && iframeRef.current.contentDocument) {
         try {
-          const contentType = iframeRef.current.contentDocument.contentType;
-          if (contentType === 'application/json') {
-            const text = iframeRef.current.contentDocument.body.textContent;
-            if (text) {
-              const errorData = JSON.parse(text) as ErrorResponse;
-              if (errorData.error) {
-                console.log('[IE] Detected error response:', errorData);
+          // Attempt to read the body content directly as text
+          const textContent = iframeRef.current.contentDocument.body?.textContent?.trim();
+          if (textContent) {
+            // Try parsing the text content as JSON
+            try {
+              const potentialErrorData = JSON.parse(textContent) as ErrorResponse;
+              // Check if it looks like our error structure
+              if (potentialErrorData && potentialErrorData.error === true && potentialErrorData.type) {
+                console.log('[IE] Detected JSON error response in iframe body:', potentialErrorData);
                 // Track navigation error
                 track(IE_ANALYTICS.NAVIGATION_ERROR, {
-                  url: iframeSrc,
-                  type: errorData.type,
-                  status: errorData.status || 500, // Provide default status
+                  url: iframeSrc, // Log the proxy URL that returned the error
+                  type: potentialErrorData.type,
+                  status: potentialErrorData.status || 500,
+                  message: potentialErrorData.message,
                 });
                 // Use store action to set error details
-                handleNavigationError(errorData, iframeSrc);
-                return;
+                handleNavigationError(potentialErrorData, url); // Use original requested URL for context
+                return; // Stop further processing
               }
+            } catch (parseError) {
+              // It wasn't JSON or not our error format, proceed with normal loading checks
+              console.debug('[IE] Iframe body content was not a JSON error:', parseError);
             }
           }
+
+          // Original content type check (fallback or for non-error JSON cases if any)
+          const contentType = iframeRef.current.contentDocument.contentType;
+          if (contentType === 'application/json') {
+              // This block might be redundant now if the above handles errors,
+              // but keep it in case the proxy returns non-error JSON for some reason.
+              const text = iframeRef.current.contentDocument.body.textContent;
+              if (text) {
+                  const errorData = JSON.parse(text) as ErrorResponse;
+                  if (errorData.error) {
+                      console.log('[IE] Detected error response (via content-type check):', errorData);
+                      track(IE_ANALYTICS.NAVIGATION_ERROR, {
+                          url: iframeSrc,
+                          type: errorData.type,
+                          status: errorData.status || 500,
+                      });
+                      handleNavigationError(errorData, url);
+                      return;
+                  }
+              }
+          }
         } catch (error) {
-          console.warn('[IE] Error parsing iframe content as JSON:', error);
+          console.warn('[IE] Error processing iframe content:', error);
+          // Potentially fall through to success if error handling failed,
+          // or consider triggering a generic error here?
         }
       }
+
+      // --- If no JSON error was detected and handled, proceed with success logic ---
 
       // Reset error details on successful load using store action
       clearErrorDetails();
