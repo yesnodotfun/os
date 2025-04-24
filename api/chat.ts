@@ -241,7 +241,7 @@ DELIVERABLE REQUIREMENTS:
 6. Keep the layout responsive
 7. For <img> tags, only reuse image urls fed into context
 8. DO NOT link to imgur or other unknown image urls or inline data:image base64
-9. MUST use Tailwind font-sans, font-serif, or font-mono for fonts, feel free to use Any Casing
+9. MUST use Tailwind font-sans, font-serif, or font-mono for fonts, feel free to use Any Casing 中文必須使用繁體中文輸出
 10. For <h1> and <h2> tags, replace Arial/Helvetica with "NeueBit" for sans-serif, or "Mondwest" for serif
 11. For buttons and hyperlinks, use <a href="..."> tags. Generate realistic, readable hrefs (e.g., /about, https://ryo.lu/products/cool-item) instead of using placeholders like # or in href
 
