@@ -1108,6 +1108,11 @@ export function InternetExplorerAppComponent({
               />
             )}
 
+            {/* Add foreground overlay */}
+            {!isForeground && (
+              <div className="absolute inset-0 bg-transparent z-50" />
+            )}
+
             {/* Loading Bar uses store status */}
             <AnimatePresence>
               {isLoading && (
