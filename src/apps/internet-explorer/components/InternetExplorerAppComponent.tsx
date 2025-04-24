@@ -822,13 +822,25 @@ export function InternetExplorerAppComponent({
     if (!isLoading) return null;
 
     const hostname = url ? getHostnameFromUrl(url) : "unknown";
+    const aiModel = useAppStore.getState().aiModel;
+    const modelInfo = aiModel ? `${aiModel} ` : '';
     
     switch (mode) {
       case "future":
-        return `Generating futuristic version of ${hostname} for year ${year}...`;
+        return (
+          <div className="flex items-center gap-1">
+            <span className="text-gray-500">{modelInfo}</span>
+            <span>{`Generating futuristic version of ${hostname} for year ${year}...`}</span>
+          </div>
+        );
       case "past":
         if (parseInt(year) <= 1995) {
-          return `Generating historical reconstruction of ${hostname} for year ${year}...`;
+          return (
+            <div className="flex items-center gap-1">
+              <span className="text-gray-500">{modelInfo}</span>
+              <span>{`Generating historical reconstruction of ${hostname} for year ${year}...`}</span>
+            </div>
+          );
         }
         return `Fetching ${hostname} from year ${year}...`;
       case "now":
