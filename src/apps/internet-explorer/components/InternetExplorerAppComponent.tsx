@@ -23,6 +23,14 @@ import { useAiGeneration } from "../hooks/useAiGeneration";
 import { useInternetExplorerStore, DEFAULT_FAVORITES, ErrorResponse } from "@/stores/useInternetExplorerStore";
 import FutureSettingsDialog from "@/components/dialogs/FutureSettingsDialog";
 import { useTerminalSounds } from "@/hooks/useTerminalSounds";
+import { track } from "@vercel/analytics";
+
+// Analytics event namespace for Internet Explorer events
+export const IE_ANALYTICS = {
+  NAVIGATION_START: "internet-explorer:navigation_start",
+  NAVIGATION_ERROR: "internet-explorer:navigation_error",
+  NAVIGATION_SUCCESS: "internet-explorer:navigation_success",
+};
 
 interface ErrorPageProps {
   title: string;
@@ -281,6 +289,12 @@ export function InternetExplorerAppComponent({
               const errorData = JSON.parse(text) as ErrorResponse;
               if (errorData.error) {
                 console.log('[IE] Detected error response:', errorData);
+                // Track navigation error
+                track(IE_ANALYTICS.NAVIGATION_ERROR, {
+                  url: iframeSrc,
+                  type: errorData.type,
+                  status: errorData.status || 500, // Provide default status
+                });
                 // Use store action to set error details
                 handleNavigationError(errorData, iframeSrc);
                 return;
@@ -326,8 +340,15 @@ export function InternetExplorerAppComponent({
 
           const favicon = `https://www.google.com/s2/favicons?domain=${new URL(currentUrlForFallback.startsWith("http") ? currentUrlForFallback : `https://${currentUrlForFallback}`).hostname}&sz=32`;
           
+          // Track navigation success
+          track(IE_ANALYTICS.NAVIGATION_SUCCESS, {
+            url: currentUrlForFallback,
+            year: year,
+            mode: mode,
+            title: loadedTitle || fallbackTitle,
+          });
+
           // Call loadSuccess from store
-          // The store action now handles using prefetchedTitle internally if title isn't provided
           loadSuccess({
             title: loadedTitle || fallbackTitle, // Pass extracted or fallback title
             targetUrl: currentUrlForFallback, // Pass current URL from state
@@ -349,6 +370,12 @@ export function InternetExplorerAppComponent({
         if (iframeRef.current && iframeRef.current.dataset.navToken === token.toString()) {
           try {
             const targetUrlForError = finalUrl || url; // Use the URL that was attempted
+            // Track navigation error
+            track(IE_ANALYTICS.NAVIGATION_ERROR, {
+              url: targetUrlForError,
+              type: "connection_error",
+              status: 404,
+            });
             // Use store action to set error details
             handleNavigationError({
               error: true,
@@ -360,6 +387,12 @@ export function InternetExplorerAppComponent({
             }, targetUrlForError);
           } catch (error) {
             const errorMsg = `Cannot access the requested website. ${error instanceof Error ? error.message : String(error)}`;
+            // Track navigation error
+            track(IE_ANALYTICS.NAVIGATION_ERROR, {
+              url: finalUrl || url,
+              type: "generic_error",
+              error: errorMsg,
+            });
             // Use store action for generic fallback error
             loadError(errorMsg, { 
               error: true, 
@@ -400,6 +433,13 @@ export function InternetExplorerAppComponent({
         ? "future"
         : "past";
     const newToken = Date.now();
+
+    // Track navigation start
+    track(IE_ANALYTICS.NAVIGATION_START, {
+      url: targetUrlParam,
+      year: targetYearParam,
+      mode: newMode,
+    });
 
     // Start navigation using store action
     navigateStart(targetUrlParam, targetYearParam, newMode, newToken);
