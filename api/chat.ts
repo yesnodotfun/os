@@ -35,7 +35,7 @@ interface SystemState {
 type SupportedModel = "gpt-4o" | "gpt-4.1" | "gpt-4.1-mini" | "claude-3.5" | "claude-3.7" | "o3-mini" | "gemini-2.5-pro-exp-03-25" | null;
 
 // Default model to use
-const DEFAULT_MODEL: SupportedModel = "claude-3.7";
+const DEFAULT_MODEL: SupportedModel = "gemini-2.5-pro-exp-03-25";
 
 // Allowed origins for API requests
 const ALLOWED_ORIGINS = new Set([
@@ -243,7 +243,7 @@ DELIVERABLE REQUIREMENTS:
 6. Keep the layout responsive
 7. For <img> tags, only reuse image urls fed into context
 8. DO NOT link to imgur or other unknown image urls or inline data:image base64
-9. MUST use Tailwind font-sans, font-serif, or font-mono for fonts, feel free to use Any Casing 中文必須使用繁體中文輸出
+9. MUST use Tailwind font-sans, font-serif, or font-mono for fonts, feel free to use Any Casing. 中文必須使用繁體中文輸出，並保持完整標點符號。
 10. For <h1> and <h2> tags, replace Arial/Helvetica with "NeueBit" for sans-serif, or "Mondwest" for serif
 11. For buttons and hyperlinks, use <a href="..."> tags. Always generate realistic, readable hrefs (e.g., /about, https://ryo.lu/products/cool-item) instead of using placeholders like # or in href. 
 
