@@ -9,7 +9,14 @@ interface UseAiGenerationProps {
 }
 
 interface UseAiGenerationReturn {
-  generateFuturisticWebsite: (url: string, year: string, forceRegenerate?: boolean, signal?: AbortSignal, prefetchedTitle?: string | null) => Promise<void>;
+  generateFuturisticWebsite: (
+    url: string,
+    year: string,
+    forceRegenerate?: boolean,
+    signal?: AbortSignal,
+    prefetchedTitle?: string | null,
+    currentHtmlContent?: string | null
+  ) => Promise<void>;
   aiGeneratedHtml: string | null;
   isAiLoading: boolean;
   stopGeneration: () => void;
@@ -137,11 +144,12 @@ export function useAiGeneration({ onLoadingChange, customTimeline = {} }: UseAiG
 
   // Function to generate futuristic website content using AI
   const generateFuturisticWebsite = async (
-    url: string, 
-    year: string, 
-    forceRegenerate = false, 
+    url: string,
+    year: string,
+    forceRegenerate = false,
     signal?: AbortSignal,
-    prefetchedTitle?: string | null
+    prefetchedTitle?: string | null,
+    currentHtmlContent?: string | null
   ) => {
     // Generate a unique ID for this generation request
     const generationId = `${url}-${year}-${Date.now()}`;
@@ -210,13 +218,15 @@ export function useAiGeneration({ onLoadingChange, customTimeline = {} }: UseAiG
       return;
     }
     
-    // Attempt to fetch existing website content (best-effort, use normalized URL)
-    let existingContent;
-    try {
-      existingContent = await fetchExistingWebsiteContent(normalizedTargetUrl, signal);
-    } catch (error) {
-      console.warn(`[IE] Error fetching website content, continuing without it:`, error);
-      // Non-fatal, continue without content
+    // Attempt to fetch existing website content ONLY if currentHtmlContent is not provided
+    let existingContent = currentHtmlContent; // Use provided content if available
+    if (!existingContent) {
+      try {
+        existingContent = await fetchExistingWebsiteContent(normalizedTargetUrl, signal);
+      } catch (error) {
+        console.warn(`[IE] Error fetching website content, continuing without it:`, error);
+        // Non-fatal, continue without content
+      }
     }
     
     // Check if the operation was aborted after fetching content
@@ -248,7 +258,12 @@ Below are details about the current website and the task:
 
 - Domain: ${domainName}
 - URL: ${normalizedTargetUrl}
-${existingContent ? `- A snapshot of the existing website's readable content (truncated to 4,000 characters) is provided between the fences below:\n'''\n${existingContent}\n'''\n` : ""}
+${currentHtmlContent
+  ? `- The HTML content of the *previous* AI-generated page view for year ${year} is provided below:\n'''\n${currentHtmlContent.slice(0, 4000)}\n'''\n` 
+  : existingContent 
+    ? `- A snapshot of the *live* website's readable content (fetched via Jina, truncated to 4,000 characters) is provided below:\n'''\n${existingContent}\n'''\n` 
+    : "- No current website content available for context."
+}
 ${prefetchedTitle ? `- Known Title: ${prefetchedTitle}\n` : ""}
 
 It is the year ${year}. Here is the timeline of human civilization leading up to this point:

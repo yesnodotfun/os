@@ -140,6 +140,7 @@ interface HtmlPreviewProps {
   maximizeSound?: { play: () => void };
   minimizeSound?: { play: () => void };
   isInternetExplorer?: boolean;
+  baseUrlForAiContent?: string;
 }
 
 export default function HtmlPreview({
@@ -156,6 +157,7 @@ export default function HtmlPreview({
   maximizeSound: propMaximizeSound,
   minimizeSound: propMinimizeSound,
   isInternetExplorer = false,
+  baseUrlForAiContent,
 }: HtmlPreviewProps) {
   const [isFullScreen, setIsFullScreen] = useState(initialFullScreen);
   const [copySuccess, setCopySuccess] = useState(false);
@@ -184,6 +186,13 @@ export default function HtmlPreview({
   const finalProcessedHtmlRef = useRef<string | null>(null);
   const [streamPreviewHtml, setStreamPreviewHtml] = useState<string>(""); // NEW state to hold live HTML preview during streaming
   const lastStreamRenderRef = useRef<number>(0); // To throttle updates
+
+  // Ensure base URL has a protocol
+  const normalizedBaseUrl = baseUrlForAiContent
+    ? baseUrlForAiContent.startsWith("http")
+      ? baseUrlForAiContent
+      : `https://${baseUrlForAiContent}`
+    : null;
 
   // Add sound hooks - fallback to local sound hooks if props not provided
   const localMaximizeSound = useSound(Sounds.WINDOW_EXPAND);
@@ -241,13 +250,15 @@ export default function HtmlPreview({
 
   // Enhanced processedHtmlContent with timestamp to force fresh execution
   const processedHtmlContent = (() => {
-    // Add a timestamp comment to force the browser to treat this as new content
     const timestamp = `<!-- ts=${contentTimestamp.current} -->`;
+    const baseTag = normalizedBaseUrl ? `<base href="${normalizedBaseUrl}">` : '';
 
     // Define the script tags and styles that should be added ONLY after streaming
-    // Note: Tailwind is added via CDN in this version.
+    // Font link MUST be first for potentially faster loading/application
     const postStreamHeadContent = `
   <link rel="stylesheet" href="/fonts/fonts.css">
+  ${timestamp} 
+  ${baseTag}
   <script type="module" src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.174.0/three.module.min.js"></script>
   <script src="https://cdn.tailwindcss.com/3.4.16"></script>
   <script>
@@ -283,47 +294,80 @@ export default function HtmlPreview({
   </style>
 `;
 
-    // Common base structure
-    const baseHtmlStart = `
-<!DOCTYPE html>
+    // Define the click interceptor script
+    const clickInterceptorScript = `
+<script>
+  document.addEventListener('click', function(event) {
+    var targetElement = event.target.closest('a');
+    // Only intercept if it's a valid link and NOT inside the draggable toolbar
+    if (targetElement && targetElement.href && !targetElement.closest('[data-drag-controls]')) { 
+      event.preventDefault();
+      event.stopPropagation();
+      try {
+        // Resolve relative URLs against the document's base URI (if set) or window location
+        const absoluteUrl = new URL(targetElement.getAttribute('href'), document.baseURI || window.location.href).href;
+        // Use a specific message type for AI HTML navigation
+        window.parent.postMessage({ type: 'aiHtmlNavigation', url: absoluteUrl }, '*'); 
+      } catch (e) { console.error("Error resolving/posting URL:", e); }
+    }
+  }, true); // Use capture phase to intercept early
+</script>
+`;
+
+    // Sanitize input slightly - primarily trim whitespace
+    const trimmedHtmlContent = htmlContent.trim();
+    const isFullHtmlDoc = /<!DOCTYPE html>/i.test(trimmedHtmlContent) || /<html[\s>]/i.test(trimmedHtmlContent);
+
+    if (isFullHtmlDoc) {
+        let modifiedContent = trimmedHtmlContent;
+
+        // Attempt to inject into <head>
+        const headEndMatch = /<\/head>/i.exec(modifiedContent);
+        if (headEndMatch) {
+            // Inject just before closing </head> tag
+            modifiedContent = modifiedContent.slice(0, headEndMatch.index) + postStreamHeadContent + modifiedContent.slice(headEndMatch.index);
+        } else {
+            // No </head>, try injecting after <head> or <html>, or prepend a new head
+            const headStartMatch = /<head[^>]*>/i.exec(modifiedContent);
+            if (headStartMatch) {
+                 modifiedContent = modifiedContent.slice(0, headStartMatch.index + headStartMatch[0].length) + postStreamHeadContent + modifiedContent.slice(headStartMatch.index + headStartMatch[0].length);
+            } else {
+                const htmlStartMatch = /<html[^>]*>/i.exec(modifiedContent);
+                if (htmlStartMatch) {
+                    // Inject head after opening <html> tag
+                     modifiedContent = modifiedContent.slice(0, htmlStartMatch.index + htmlStartMatch[0].length) + `<head>${postStreamHeadContent}</head>` + modifiedContent.slice(htmlStartMatch.index + htmlStartMatch[0].length);
+                } else {
+                    // Prepend head if no <html> tag found (very unlikely, might be invalid HTML)
+                    modifiedContent = `<head>${postStreamHeadContent}</head>` + modifiedContent;
+                }
+            }
+        }
+
+        // Inject click interceptor script before </body> or append
+        const bodyEndMatch = /<\/body>/i.exec(modifiedContent);
+        if (bodyEndMatch) {
+          modifiedContent = modifiedContent.slice(0, bodyEndMatch.index) + clickInterceptorScript + modifiedContent.slice(bodyEndMatch.index);
+        } else {
+          // Append if no </body> tag
+          modifiedContent += clickInterceptorScript;
+        }
+        return modifiedContent;
+
+    } else {
+      // Construct the document for partial HTML fragments
+      return `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-`; // Removed blurStyle from here
-    const baseHtmlEnd = `
+  ${postStreamHeadContent} 
 </head>
 <body>
-  ${htmlContent}
+  ${trimmedHtmlContent}
+  ${clickInterceptorScript}
 </body>
 </html>`;
-
-    // If the provided content is already a full HTML document, inject carefully
-    if (
-      htmlContent.includes("<!DOCTYPE html>") ||
-      htmlContent.includes("<html")
-    ) {
-        let modifiedContent = timestamp + htmlContent;
-        // Inject post-stream content into head
-        // Removed blurStyle injection
-        if (modifiedContent.includes("</head>")) {
-            modifiedContent = modifiedContent.replace("</head>", `${postStreamHeadContent}</head>`);
-        } else if (modifiedContent.includes("<body")) {
-             modifiedContent = modifiedContent.replace("<body", `<head>${postStreamHeadContent}</head><body`);
-        } else if (modifiedContent.includes("<html>")) {
-            // Fallback if no head or body tag found but html tag exists
-             modifiedContent = modifiedContent.replace("<html>", `<html><head>${postStreamHeadContent}</head>`);
-        } else {
-            // Add head if no html tag found (very unlikely)
-            modifiedContent = `<head>${postStreamHeadContent}</head>` + modifiedContent;
-        }
-        return modifiedContent;
     }
-
-    // For partial HTML content, construct the document
-    const headContent = postStreamHeadContent; // Always include post-stream content
-
-    return `${timestamp}${baseHtmlStart}${headContent}${baseHtmlEnd}`;
   })();
 
   // Function to update iframe content (now only called after streaming)
@@ -637,7 +681,7 @@ export default function HtmlPreview({
         {/* Loading PULSE overlay (now breathing effect) */}
         {isStreaming && (
           <motion.div
-            className="absolute inset-0 bg-gray-200 z-10 pointer-events-none"
+            className="absolute inset-0 bg-gray-300 z-10 pointer-events-none"
             initial={{ opacity: 0.2 }} // Start at lower opacity
             animate={{
               opacity: [0.2, 0.4, 0.2] // Loop between 0.6 and 1

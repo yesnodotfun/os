@@ -445,7 +445,8 @@ export function InternetExplorerAppComponent({
   const handleNavigate = useCallback(async (
     targetUrlParam: string = url, // Use different param name to avoid shadowing store state
     targetYearParam: string = year,
-    forceRegenerate = false
+    forceRegenerate = false,
+    currentHtmlContent: string | null = null // Add parameter for context
   ) => {
     // Reset error state using store action
     clearErrorDetails();
@@ -493,7 +494,8 @@ export function InternetExplorerAppComponent({
             targetYearParam,
             forceRegenerate,
             abortController.signal,
-            null // Pass null for prefetchedTitle, store handles it
+            null, // Pass null for prefetchedTitle, store handles it
+            currentHtmlContent // Pass through the current HTML content
           );
           if (abortController.signal.aborted) return;
         } catch (error) {
@@ -539,7 +541,14 @@ export function InternetExplorerAppComponent({
               // and the proxy endpoint already handles them correctly
             } else {
               // Fallback to AI if no Wayback URL
-              await generateFuturisticWebsite(normalizedTargetUrl, targetYearParam, forceRegenerate, abortController.signal, null);
+              await generateFuturisticWebsite(
+                normalizedTargetUrl, 
+                targetYearParam, 
+                forceRegenerate, 
+                abortController.signal, 
+                null,
+                currentHtmlContent // Pass context here too
+              );
               if (abortController.signal.aborted) return;
               return;
             }
@@ -547,7 +556,14 @@ export function InternetExplorerAppComponent({
             if (abortController.signal.aborted) return;
             console.warn(`[IE] Wayback Machine error for ${normalizedTargetUrl}:`, waybackError);
             // Fallback to AI
-            await generateFuturisticWebsite(normalizedTargetUrl, targetYearParam, forceRegenerate, abortController.signal, null);
+            await generateFuturisticWebsite(
+              normalizedTargetUrl, 
+              targetYearParam, 
+              forceRegenerate, 
+              abortController.signal, 
+              null,
+              currentHtmlContent // And here
+            );
             if (abortController.signal.aborted) return;
             return;
           }
@@ -639,7 +655,7 @@ export function InternetExplorerAppComponent({
       }
     }
   // Add store actions/state used in the function to dependency array
-  }, [url, year, finalUrl, status, token, isAiLoading, isNavigatingHistory, currentPageTitle,
+  }, [url, year, finalUrl, status, token, isAiLoading, isNavigatingHistory, currentPageTitle, aiGeneratedHtml,
       navigateStart, setFinalUrl, loadError, generateFuturisticWebsite, stopGeneration, loadSuccess, getCachedAiPage,
       clearErrorDetails, handleNavigationError, setPrefetchedTitle, setYear, setUrl, // Added store actions
       // Removed component state setters: setErrorAndStopLoading, clearErrorDetails
@@ -776,13 +792,22 @@ export function InternetExplorerAppComponent({
       } else if (event.data && event.data.type === "goBack") {
         console.log(`[IE] Received back button request from iframe`);
         handleGoBack(); // Uses store action via useCallback wrapper
+      } else if (
+        event.data &&
+        event.data.type === "aiHtmlNavigation" &&
+        typeof event.data.url === "string"
+      ) {
+        console.log(`[IE] Received navigation request from AI HTML preview: ${event.data.url}`);
+        // Use store state for year - navigate in the *same* year as the current AI view
+        // Pass the *current* AI-generated HTML as context
+        handleNavigate(event.data.url, year, false, aiGeneratedHtml);
       }
     };
     window.addEventListener("message", handleMessage);
     return () => {
       window.removeEventListener("message", handleMessage);
     };
-  }, [year, handleNavigate, handleGoBack]); // Add store state/actions if needed
+  }, [year, handleNavigate, handleGoBack, aiGeneratedHtml]); // Add aiGeneratedHtml to dependencies
 
   // --- Remove Effect to persist navigation state --- 
   // useEffect(() => {
@@ -1140,6 +1165,7 @@ export function InternetExplorerAppComponent({
                   playElevatorMusic={playElevatorMusic}
                   stopElevatorMusic={stopElevatorMusic}
                   playDingSound={playDingSound}
+                  baseUrlForAiContent={url} // Pass the original URL as base
                 />
               </div>
             ) : (
