@@ -38,7 +38,7 @@ interface SystemState {
 type SupportedModel = "gpt-4o" | "gpt-4.1" | "gpt-4.1-mini" | "claude-3.5" | "claude-3.7" | "o3-mini" | "gemini-2.5-pro-exp-03-25" | null;
 
 // Default model to use
-const DEFAULT_MODEL: SupportedModel = "gpt-4.1";
+const DEFAULT_MODEL: SupportedModel = "claude-3.7";
 
 // Allowed origins for API requests
 const ALLOWED_ORIGINS = new Set([
@@ -537,7 +537,7 @@ export default async function handler(req: Request) {
     const model = queryModel || bodyModel;
 
     console.log(
-      `Using model: ${model} (from ${queryModel ? "query" : "body"})`
+      `Using model: ${model || DEFAULT_MODEL} (${queryModel ? "from query" : model ? "from body" : "using default"})`
     );
 
     if (!messages || !Array.isArray(messages)) {
