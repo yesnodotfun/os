@@ -243,7 +243,7 @@ DELIVERABLE REQUIREMENTS:
 8. DO NOT link to imgur or other unknown image urls or inline data:image base64
 9. MUST use Tailwind font-sans, font-serif, or font-mono for fonts, feel free to use Any Casing
 10. For <h1> and <h2> tags, replace Arial/Helvetica with "NeueBit" for sans-serif, or "Mondwest" for serif
-11. For buttons and hyperlinks, use <a href="..."> tags. These links will be automatically intercepted by the browser to trigger navigation within the time machine. Generate realistic, human-readable URLs (e.g., https://ryo.lu/about, https://ryo.lu/products/cool-item) instead of using placeholders like #
+11. For buttons and hyperlinks, use <a href="..."> tags. Generate realistic, readable hrefs (e.g., /about, https://ryo.lu/products/cool-item) instead of using placeholders like # or in href
 
 For future designs:
 - Keep visuals minimal but futuristic
