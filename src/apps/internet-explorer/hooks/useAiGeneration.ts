@@ -243,45 +243,11 @@ export function useAiGeneration({ onLoadingChange, customTimeline = {} }: UseAiG
     const timelineContext = getTimelineContext(year);
     
     // Create a more inspirational prompt for AI‑generated future designs
-    const prompt = `
-REDESIGN INSTRUCTIONS
-${parseInt(year) > new Date().getFullYear() 
-  ? "Redesign this website so it feels perfectly at home in this future era. Think boldly and creatively about future outcomes, embrace the original brand, language, cultural context, aesthetics, interface paradigms, and breakthroughs that could happen by then."
-  : `Redesign this website to match the historical era of ${year}. Consider:
-     - How this website would have been designed if it existed in ${year}
-     - What technology and design tools would have been available
-     - What typography, colors, and design elements were common
-     - What cultural and artistic movements influenced design`
-}
-If you think the entity may disappear due to changes, show a 404 or memorial page.
-
-DELIVERABLE
-Return a single, fully self‑contained HTML document in markdown codeblock for this ${parseInt(year) > new Date().getFullYear() ? "speculative" : "historical"} design. MUST use TailwindCSS classes for styling. Can use inline \`<script>\` blocks when needed, but avoid external dependencies. Use Three.js for 3D with script already loaded. 
-
-IMPORTANT: Include the generated page title inside an HTML comment at the very beginning of the HTML document, formatted EXACTLY like this: \`<!-- TITLE: Your Generated Page Title -->\`
-
-REQUIREMENTS
-1. DO NOT respond in any text except the html markdown codeblock.
-2. Keep the layout responsive. For <img> tags, only reuse image urls fed into context. DO NOT link to imgur or other unknown image urls or inline data:image base64. MUST use Tailwind font-sans, font-serif, or font-mono for fonts, feel free to pair them. For headings you can use NeueBit for sans-serif (Helvetica replacement), or Mondwest for serif. ${parseInt(year) > new Date().getFullYear() 
-  ? "Keep visuals minimal but futuristic, use simple colors, avoid over using gradients. Use emojis, or simple SVG icons. Use simple 3D graphics when possible."
-  : `Use period-appropriate design elements:
-     - Typography that matches the era
-     - Color schemes that were available or popular in ${year}
-     - Design patterns and layouts that reflect the time period
-     - Historical imagery and decorative elements, use cultural cues from the site language
-     - Consider how the website would have been designed with the technology available in ${year}`
-}
-3. Use ${parseInt(year) > new Date().getFullYear() 
-  ? "imaginative, plausible, and surprising, but still coherent" 
-  : "historically accurate and period-appropriate"} content.
-4. Ensure the overall experience is visually striking yet still loads in a normal browser.
-5. Output ONLY the raw HTML markup as the final answer.
-
-CONTEXT
+    const prompt = `CONTEXT
 Below are details about the current website and the task:
 
 - Domain: ${domainName}
-- URL: ${normalizedTargetUrl} // Use normalized URL in prompt
+- URL: ${normalizedTargetUrl}
 ${existingContent ? `- A snapshot of the existing website's readable content (truncated to 4,000 characters) is provided between the fences below:\n'''\n${existingContent}\n'''\n` : ""}
 ${prefetchedTitle ? `- Known Title: ${prefetchedTitle}\n` : ""}
 
@@ -291,7 +257,7 @@ ${Object.entries({ ...DEFAULT_TIMELINE, ...timelineSettings, ...customTimeline }
   .filter(([y]) => parseInt(y) <= parseInt(year))
   .sort(([a], [b]) => parseInt(a) - parseInt(b))
   .map(([y, desc]) => `${y}: ${desc}`)
-  .join('\\n')}
+  .join('\n')}
 
 ${timelineContext}`;
 
