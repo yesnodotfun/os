@@ -187,6 +187,7 @@ export function InternetExplorerAppComponent({
     generateFuturisticWebsite,
     aiGeneratedHtml: generatedHtml, // Renamed to avoid conflict with store state
     isAiLoading,
+    isFetchingWebsiteContent, // Get the new state
     stopGeneration
   } = useAiGeneration({ 
     onLoadingChange: () => {}, 
@@ -876,18 +877,29 @@ export function InternetExplorerAppComponent({
 
   // Add a function to get debug status message
   const getDebugStatusMessage = () => {
-    if (!isLoading) return null;
+    // Only show a message when something is loading/happening
+    if (!(status === "loading" || isAiLoading || isFetchingWebsiteContent)) return null;
 
     const hostname = url ? getHostnameFromUrl(url) : "unknown";
     const aiModel = useAppStore.getState().aiModel;
     const modelInfo = aiModel ? `${aiModel} ` : '';
+    
+    // Check if we're fetching website content
+    if (isFetchingWebsiteContent) {
+      return (
+        <div className="flex items-center gap-1">
+          <span className="text-gray-500">Fetch</span>
+          <span>{`Fetching content of ${hostname} for reconstruction...`}</span>
+        </div>
+      );
+    }
     
     switch (mode) {
       case "future":
         return (
           <div className="flex items-center gap-1">
             <span className="text-gray-500">{modelInfo}</span>
-            <span>{`Generating futuristic version of ${hostname} for year ${year}...`}</span>
+            <span>{`Reimagining ${hostname} for year ${year}...`}</span>
           </div>
         );
       case "past":
@@ -895,7 +907,7 @@ export function InternetExplorerAppComponent({
           return (
             <div className="flex items-center gap-1">
               <span className="text-gray-500">{modelInfo}</span>
-              <span>{`Generating historical reconstruction of ${hostname} for year ${year}...`}</span>
+              <span>{`Reconstructing history of ${hostname} for year ${year}...`}</span>
             </div>
           );
         }
@@ -910,7 +922,7 @@ export function InternetExplorerAppComponent({
   if (!isWindowOpen) return null;
 
   // Use store state for loading status
-  const isLoading = status === "loading" || isAiLoading;
+  const isLoading = status === "loading" || isAiLoading || isFetchingWebsiteContent;
   const isFutureYear = mode === "future"; // Use mode from store
 
   // Loading bar variants (keep)
@@ -1193,7 +1205,7 @@ export function InternetExplorerAppComponent({
                   animate="visible"
                   exit="hidden"
                 >
-                  <div className="h-full bg-blue-500 animate-progress-indeterminate" />
+                  <div className={`h-full ${isFetchingWebsiteContent ? 'bg-green-500' : 'bg-blue-500'} animate-progress-indeterminate`} />
                 </motion.div>
               )}
             </AnimatePresence>
@@ -1201,7 +1213,7 @@ export function InternetExplorerAppComponent({
 
           {/* Add debug status bar at bottom */}
           <AnimatePresence>
-            {debugMode && isLoading && (
+            {debugMode && (status === "loading" || isAiLoading || isFetchingWebsiteContent) && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}

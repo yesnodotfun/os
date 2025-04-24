@@ -19,11 +19,13 @@ interface UseAiGenerationReturn {
   ) => Promise<void>;
   aiGeneratedHtml: string | null;
   isAiLoading: boolean;
+  isFetchingWebsiteContent: boolean;
   stopGeneration: () => void;
 }
 
 export function useAiGeneration({ onLoadingChange, customTimeline = {} }: UseAiGenerationProps = {}): UseAiGenerationReturn {
   const [aiGeneratedHtml, setAiGeneratedHtml] = useState<string | null>(null);
+  const [isFetchingWebsiteContent, setIsFetchingWebsiteContent] = useState(false);
   const currentGenerationId = useRef<string | null>(null);
   const isGenerationComplete = useRef<boolean>(false);
   const generatingUrlRef = useRef<string | null>(null); // Ref for current URL
@@ -121,6 +123,8 @@ export function useAiGeneration({ onLoadingChange, customTimeline = {} }: UseAiG
   // Helper to fetch existing website content (readability text via jina.ai)
   const fetchExistingWebsiteContent = async (targetUrl: string, signal?: AbortSignal): Promise<string | null> => {
     try {
+      setIsFetchingWebsiteContent(true);
+      
       // Ensure we always have a protocol for encoding
       const normalized = targetUrl.startsWith("http") ? targetUrl : `https://${targetUrl}`;
       // jina.ai provides readable text extraction with permissive CORS
@@ -139,6 +143,8 @@ export function useAiGeneration({ onLoadingChange, customTimeline = {} }: UseAiG
       }
       console.warn("Failed to fetch existing website content:", err);
       return null;
+    } finally {
+      setIsFetchingWebsiteContent(false);
     }
   };
 
@@ -320,6 +326,7 @@ ${timelineContext}`;
     generateFuturisticWebsite,
     aiGeneratedHtml,
     isAiLoading,
+    isFetchingWebsiteContent,
     stopGeneration: () => {
       stop();
       // Reset current generation ID to prevent further processing

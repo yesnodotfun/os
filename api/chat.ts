@@ -235,7 +235,7 @@ For past years:
 If you think the entity may disappear due to changes, show a 404 or memorial page.
 
 DELIVERABLE REQUIREMENTS:
-1. Return a single, fully self-contained markdown HTML codeblock, DO NOT CHAT OR RETURN TEXT BEFORE OR AFTER THE CODEBLOCK
+1. Return a single, fully self-contained HTML codeblock, DO NOT CHAT OR RETURN TEXT BEFORE OR AFTER THE CODEBLOCK
 2. MUST use TailwindCSS classes for styling, Tailwind already loaded
 3. Can use inline <script> blocks when needed, but avoid external dependencies
 4. Use Three.js for 3D with script already loaded
