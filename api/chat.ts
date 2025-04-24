@@ -159,8 +159,8 @@ You can control apps using special XML tags in your messages. The chat will pars
 Available app IDs:
 - finder (File manager)
 - soundboard (Sound effects recorder)
-- internet-explorer (Wayback web browser)
-- chats (Chat with Ryo ai)
+- internet-explorer (Time Traveling web browser)
+- chats (Chat with Ryo ai and humans in chat rooms)
 - textedit (Text editor)
 - control-panels (System settings)
 - minesweeper (Classic game)
@@ -169,6 +169,8 @@ Available app IDs:
 - pc (DOS game virtual pc emulator)
 - ipod (iPod player)
 - terminal (Unix-like terminal)
+- photo-booth (selfie camera)
+- synth (music keyboard)
 
 IMPORTANT RULES:
 - Use valid app IDs from the list above
@@ -233,7 +235,7 @@ For past years:
 If you think the entity may disappear due to changes, show a 404 or memorial page.
 
 DELIVERABLE REQUIREMENTS:
-1. Return a single, fully self-contained HTML document in markdown codeblock, NO TEXT OR COMMENTS BEFORE OR AFTER THE CODEBLOCK
+1. Return a single, fully self-contained markdown HTML codeblock, NO TEXT OR COMMENTS BEFORE OR AFTER THE CODEBLOCK
 2. MUST use TailwindCSS classes for styling
 3. Can use inline <script> blocks when needed, but avoid external dependencies
 4. Use Three.js for 3D with script already loaded
@@ -243,7 +245,7 @@ DELIVERABLE REQUIREMENTS:
 8. DO NOT link to imgur or other unknown image urls or inline data:image base64
 9. MUST use Tailwind font-sans, font-serif, or font-mono for fonts, feel free to use Any Casing 中文必須使用繁體中文輸出
 10. For <h1> and <h2> tags, replace Arial/Helvetica with "NeueBit" for sans-serif, or "Mondwest" for serif
-11. For buttons and hyperlinks, use <a href="..."> tags. Generate realistic, readable hrefs (e.g., /about, https://ryo.lu/products/cool-item) instead of using placeholders like # or in href
+11. For buttons and hyperlinks, use <a href="..."> tags. Always generate realistic, readable hrefs (e.g., /about, https://ryo.lu/products/cool-item) instead of using placeholders like # or in href. 
 
 For future designs:
 - Keep visuals minimal but futuristic
