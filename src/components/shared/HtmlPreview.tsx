@@ -582,17 +582,19 @@ export default function HtmlPreview({
     if (!html) return html;
 
     // Selectively filter style tags content instead of removing them completely
-    let sanitized = html.replace(/<style\b[^>]*>([\s\S]*?)<\/style>/gi, (match, styleContent) => {
-      // Filter out global font/color styles but keep other styles
-      const filteredStyle = styleContent
-        .replace(/(\s|^)(html|body|:root)\s*{[^}]*}/gi, '') // Remove global element styles
-        .replace(/font-family\s*:\s*[^;}]+(;|$)/gi, '') // Remove font-family declarations
-        .replace(/color\s*:\s*[^;}]+(;|$)/gi, '') // Remove color declarations
-        .replace(/\s*@font-face\s*{[^}]*}/gi, ''); // Remove font-face declarations
-      
-      // Return the style tag with filtered content
-      return `<style>${filteredStyle}</style>`;
-    });
+    let sanitized = html.replace(
+  /<style\b[^>]*>([\s\S]*?)<\/style>/gi,
+  (_match, styleContent) => {
+    // Filter out global font/color styles but keep other styles
+    const filteredStyle = styleContent
+      .replace(/(\s|^)(html|body|:root)\s*{[^}]*}/gi, '')    // Remove global element styles
+      .replace(/font-family\s*:\s*[^;}]+(;|$)/gi, '')         // Remove font-family declarations
+      .replace(/color\s*:\s*[^;}]+(;|$)/gi, '')               // Remove color declarations
+      .replace(/\s*@font-face\s*{[^}]*}/gi, '');              // Remove @font-face blocks
+
+    return `<style>${filteredStyle}</style>`;
+  }
+);
 
     // Remove all script tags and their contents
     sanitized = sanitized.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
