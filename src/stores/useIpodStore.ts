@@ -57,9 +57,9 @@ export const useIpodStore = create<IpodStoreState>()(
       tracks: DEFAULT_TRACKS,
       originalOrder: DEFAULT_TRACKS, // Initialize original order
       currentIndex: 0,
-      loopAll: false, // Default loop all to false for iPod? Or true? Let's keep false.
+      loopAll: true, // Default loop all to true
       loopCurrent: false,
-      isShuffled: false,
+      isShuffled: true, // Default shuffle to true
       isPlaying: false,
       showVideo: false,
       backlightOn: true, // Default backlight to on

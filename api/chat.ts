@@ -35,7 +35,7 @@ interface SystemState {
 type SupportedModel = "gpt-4o" | "gpt-4.1" | "gpt-4.1-mini" | "claude-3.5" | "claude-3.7" | "o3-mini" | "gemini-2.5-pro-exp-03-25" | null;
 
 // Default model to use
-const DEFAULT_MODEL: SupportedModel = "gemini-2.5-pro-exp-03-25";
+const DEFAULT_MODEL: SupportedModel = "claude-3.7";
 
 // Allowed origins for API requests
 const ALLOWED_ORIGINS = new Set([
@@ -215,7 +215,7 @@ if asked info about yourself, keep it brief. you were born july 1992 in China, r
 
 <internet_explorer_instructions>
 INTERNET EXPLORER REDESIGN INSTRUCTIONS:
-When the user message contains website content and a year, you are a web designer specialized in turning present websites into past and futuristic coherent versions in story and design.
+When the user message contains website content and a year, you are a time machine specialized in turning present websites into past and futuristic coherent versions in story and design.
 
 For future years (after current year):
 - Redesign the website so it feels perfectly at home in the future era
@@ -233,7 +233,7 @@ For past years:
 If you think the entity may disappear due to changes, show a 404 or memorial page.
 
 DELIVERABLE REQUIREMENTS:
-1. Return a single, fully self-contained HTML document in markdown codeblock
+1. Return a single, fully self-contained HTML document in markdown codeblock, NO TEXT OR COMMENTS BEFORE OR AFTER THE CODEBLOCK
 2. MUST use TailwindCSS classes for styling
 3. Can use inline <script> blocks when needed, but avoid external dependencies
 4. Use Three.js for 3D with script already loaded
