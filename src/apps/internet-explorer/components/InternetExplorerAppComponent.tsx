@@ -411,14 +411,26 @@ export function InternetExplorerAppComponent({
     try {
       if (newMode === "future" || (newMode === "past" && parseInt(targetYearParam) <= 1995)) {
         // AI generation branch (uses hook, updates store via loadSuccess/loadError/cacheAiPage within hook or here)
-        await generateFuturisticWebsite(
-          normalizedTargetUrl,
-          targetYearParam,
-          forceRegenerate,
-          abortController.signal,
-          null // Pass null for prefetchedTitle, store handles it
-        );
-        if (abortController.signal.aborted) return;
+        try {
+          await generateFuturisticWebsite(
+            normalizedTargetUrl,
+            targetYearParam,
+            forceRegenerate,
+            abortController.signal,
+            null // Pass null for prefetchedTitle, store handles it
+          );
+          if (abortController.signal.aborted) return;
+        } catch (error) {
+          if (abortController.signal.aborted) return;
+          console.error("[IE] AI generation error:", error);
+          handleNavigationError({
+            error: true,
+            type: "ai_generation_error",
+            message: "Failed to generate futuristic website. AI model may not be selected.",
+            details: error instanceof Error ? error.message : String(error)
+          }, normalizedTargetUrl);
+          return;
+        }
         // Assuming generateFuturisticWebsite calls loadSuccess/loadError/cacheAiPage internally
 
       } else {
@@ -447,7 +459,8 @@ export function InternetExplorerAppComponent({
             if (abortController.signal.aborted) return;
             if (waybackUrl) {
               urlToLoad = waybackUrl;
-              requiresProxyCheck = true; // Proxy endpoint used
+              // Don't set requiresProxyCheck for Wayback URLs - we know they need proxying
+              // and the proxy endpoint already handles them correctly
             } else {
               // Fallback to AI if no Wayback URL
               await generateFuturisticWebsite(normalizedTargetUrl, targetYearParam, forceRegenerate, abortController.signal, null);
@@ -455,12 +468,12 @@ export function InternetExplorerAppComponent({
               return;
             }
           } catch (waybackError) {
-             if (abortController.signal.aborted) return;
-              console.warn(`[IE] Wayback Machine error for ${normalizedTargetUrl}:`, waybackError);
-              // Fallback to AI
-              await generateFuturisticWebsite(normalizedTargetUrl, targetYearParam, forceRegenerate, abortController.signal, null);
-              if (abortController.signal.aborted) return;
-              return;
+            if (abortController.signal.aborted) return;
+            console.warn(`[IE] Wayback Machine error for ${normalizedTargetUrl}:`, waybackError);
+            // Fallback to AI
+            await generateFuturisticWebsite(normalizedTargetUrl, targetYearParam, forceRegenerate, abortController.signal, null);
+            if (abortController.signal.aborted) return;
+            return;
           }
         } else if (newMode === "now") {
           // Direct load / check & proxy logic
@@ -469,7 +482,7 @@ export function InternetExplorerAppComponent({
               `/api/iframe-check?mode=check&url=${encodeURIComponent(normalizedTargetUrl)}`,
               { signal: abortController.signal }
             );
-             if (abortController.signal.aborted) return;
+            if (abortController.signal.aborted) return;
 
             if (checkRes.ok) {
               const checkData = await checkRes.json(); // Assume IframeCheckResponse structure
@@ -495,7 +508,8 @@ export function InternetExplorerAppComponent({
         }
         
         // Pre-flight check for proxy URLs before setting finalUrl
-        if (requiresProxyCheck) {
+        // Skip pre-flight check for Wayback Machine URLs since we know they need proxying
+        if (requiresProxyCheck && !urlToLoad.includes('/web/')) {
             try {
                 const proxyResponse = await fetch(urlToLoad, { signal: abortController.signal });
                 if (abortController.signal.aborted) return;

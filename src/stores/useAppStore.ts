@@ -4,7 +4,7 @@ import { AppId } from "@/config/appRegistry";
 import { AppManagerState, AppState } from "@/apps/base/types";
 
 // Define available AI models (matching API options from chat.ts)
-export type AIModel = "gpt-4o" | "gpt-4.1" | "gpt-4.1-mini" | "claude-3.5" | "claude-3.7" | "o3-mini" | "gemini-2.5-pro-exp-03-25";
+export type AIModel = "gpt-4o" | "gpt-4.1" | "gpt-4.1-mini" | "claude-3.5" | "claude-3.7" | "o3-mini" | "gemini-2.5-pro-exp-03-25" | null;
 
 // Define known app IDs directly here to avoid circular dependency
 const APP_IDS = [
@@ -52,7 +52,7 @@ export const useAppStore = create<AppStoreState>()(
       ...getInitialState(),
       debugMode: false,
       setDebugMode: (enabled) => set({ debugMode: enabled }),
-      aiModel: "claude-3.7", // Default model
+      aiModel: null, // Default model set to null for client-side
       setAiModel: (model) => set({ aiModel: model }),
 
       bringToForeground: (appId) => {

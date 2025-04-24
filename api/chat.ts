@@ -35,10 +35,10 @@ interface SystemState {
 }
 
 // Define supported model types
-type SupportedModel = "gpt-4o" | "gpt-4.1" | "gpt-4.1-mini" | "claude-3.5" | "claude-3.7" | "o3-mini" | "gemini-2.5-pro-exp-03-25";
+type SupportedModel = "gpt-4o" | "gpt-4.1" | "gpt-4.1-mini" | "claude-3.5" | "claude-3.7" | "o3-mini" | "gemini-2.5-pro-exp-03-25" | null;
 
 // Default model to use
-const DEFAULT_MODEL: SupportedModel = "claude-3.5";
+const DEFAULT_MODEL: SupportedModel = "gpt-4.1";
 
 // Allowed origins for API requests
 const ALLOWED_ORIGINS = new Set([
@@ -55,7 +55,10 @@ const isValidOrigin = (origin: string | null): boolean => {
 
 // Function to get the appropriate model instance
 const getModelInstance = (model: SupportedModel): LanguageModelV1 => {
-  switch (model) {
+  // If model is null, use the default model
+  const modelToUse = model || DEFAULT_MODEL;
+
+  switch (modelToUse) {
     case "gpt-4o":
       return openai("gpt-4o");
     case "gpt-4.1":
@@ -69,8 +72,10 @@ const getModelInstance = (model: SupportedModel): LanguageModelV1 => {
     case "claude-3.7":
       return anthropic("claude-3-7-sonnet-20250219");
     case "claude-3.5":
-    default:
       return anthropic("claude-3-5-sonnet-20241022");
+    default:
+      // This should never happen since we handle null above
+      return openai("gpt-4.1");
   }
 };
 
@@ -492,7 +497,7 @@ export default async function handler(req: Request) {
     }
 
     // Additional validation for model
-    if (!["gpt-4o", "gpt-4.1", "gpt-4.1-mini", "claude-3.5", "claude-3.7", "o3-mini", "gemini-2.5-pro-exp-03-25"].includes(model)) {
+    if (model !== null && !["gpt-4o", "gpt-4.1", "gpt-4.1-mini", "claude-3.5", "claude-3.7", "o3-mini", "gemini-2.5-pro-exp-03-25"].includes(model)) {
       console.error(`400 Error: Unsupported model - ${model}`);
       return new Response(`Unsupported model: ${model}`, { status: 400 });
     }

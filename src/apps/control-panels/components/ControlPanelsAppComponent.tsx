@@ -621,13 +621,18 @@ export function ControlPanelsAppComponent({
                         Used in Chats, IE, and more
                       </Label>
                     </div>
-                    <Select value={aiModel} onValueChange={(value) => setAiModel(value as AIModel)}>
+                    <Select 
+                      value={aiModel || undefined} 
+                      onValueChange={(value) => setAiModel(value as AIModel)}
+                    >
                       <SelectTrigger className="w-[120px]">
-                        <SelectValue placeholder="Select model" />
+                        <SelectValue placeholder="Select model">
+                          {aiModel || "Select model"}
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         {AI_MODELS.map((model) => (
-                          <SelectItem key={model.id} value={model.id}>
+                          <SelectItem key={model.id} value={model.id as string}>
                             {model.name}
                           </SelectItem>
                         ))}
