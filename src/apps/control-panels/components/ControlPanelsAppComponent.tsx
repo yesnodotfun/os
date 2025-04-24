@@ -622,15 +622,16 @@ export function ControlPanelsAppComponent({
                       </Label>
                     </div>
                     <Select 
-                      value={aiModel || undefined} 
-                      onValueChange={(value) => setAiModel(value as AIModel)}
+                      value={aiModel || "__null__"}
+                      onValueChange={(value) => setAiModel(value === "__null__" ? null : (value as AIModel))}
                     >
                       <SelectTrigger className="w-[120px]">
-                        <SelectValue placeholder="Select model">
-                          {aiModel || "Select model"}
+                        <SelectValue placeholder="Select">
+                          {aiModel || "Select"}
                         </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="__null__">Default</SelectItem>
                         {AI_MODELS.map((model) => (
                           <SelectItem key={model.id} value={model.id as string}>
                             {model.name}
