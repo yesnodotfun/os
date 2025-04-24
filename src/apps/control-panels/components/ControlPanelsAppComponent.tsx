@@ -134,6 +134,7 @@ Object.entries(PHOTO_WALLPAPERS).forEach(([category, photos]) => {
 
 // Supported AI models
 const AI_MODELS: {id: AIModel; name: string; provider: string}[] = [
+  { id: "gemini-2.5-pro-exp-03-25", name: "gemini-2.5-pro", provider: "Google" },
   { id: "claude-3.7", name: "claude-3.7", provider: "" },
   { id: "claude-3.5", name: "claude-3.5", provider: "" },
   { id: "gpt-4o", name: "gpt-4o", provider: "" },

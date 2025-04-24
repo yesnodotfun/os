@@ -1,5 +1,6 @@
 import { openai } from "@ai-sdk/openai";
 import { anthropic } from "@ai-sdk/anthropic";
+import { google } from "@ai-sdk/google";
 import { streamText, smoothStream, LanguageModelV1 } from "ai";
 
 // Update SystemState type to match new store structure
@@ -34,7 +35,7 @@ interface SystemState {
 }
 
 // Define supported model types
-type SupportedModel = "gpt-4o" | "gpt-4.1" | "gpt-4.1-mini" | "claude-3.5" | "claude-3.7" | "o3-mini";
+type SupportedModel = "gpt-4o" | "gpt-4.1" | "gpt-4.1-mini" | "claude-3.5" | "claude-3.7" | "o3-mini" | "gemini-2.5-pro-exp-03-25";
 
 // Default model to use
 const DEFAULT_MODEL: SupportedModel = "claude-3.5";
@@ -63,6 +64,8 @@ const getModelInstance = (model: SupportedModel): LanguageModelV1 => {
       return openai("gpt-4.1-mini");
     case "o3-mini":
       return openai("o3-mini");
+    case "gemini-2.5-pro-exp-03-25":
+      return google("gemini-2.5-pro-exp-03-25");
     case "claude-3.7":
       return anthropic("claude-3-7-sonnet-20250219");
     case "claude-3.5":
@@ -489,7 +492,7 @@ export default async function handler(req: Request) {
     }
 
     // Additional validation for model
-    if (!["gpt-4o", "gpt-4.1", "gpt-4.1-mini", "claude-3.5", "claude-3.7", "o3-mini"].includes(model)) {
+    if (!["gpt-4o", "gpt-4.1", "gpt-4.1-mini", "claude-3.5", "claude-3.7", "o3-mini", "gemini-2.5-pro-exp-03-25"].includes(model)) {
       console.error(`400 Error: Unsupported model - ${model}`);
       return new Response(`Unsupported model: ${model}`, { status: 400 });
     }
