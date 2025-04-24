@@ -22,7 +22,7 @@ export type NavigationStatus = "idle" | "loading" | "success" | "error";
 
 // Default constants
 export const DEFAULT_URL = "https://apple.com";
-export const DEFAULT_YEAR = "2002";
+export const DEFAULT_YEAR = "2003";
 
 export const DEFAULT_TIMELINE: { [year: string]: string } = {
   "2030": "FDA neural implants. Emotion wearables mainstream. CRISPR prime+base. Organ-print trials. Alzheimer halt drug. Neuralink-v5 patients. Net-positive fusion demo.",
@@ -48,7 +48,7 @@ export const DEFAULT_FAVORITES: Favorite[] = [
     title: "Apple",
     url: "https://apple.com",
     favicon: "https://www.google.com/s2/favicons?domain=apple.com&sz=32",
-    year: "2002",
+    year: "2003",
   },
   {
     title: "Wikipedia",

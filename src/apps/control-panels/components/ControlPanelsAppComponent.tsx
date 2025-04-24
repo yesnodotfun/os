@@ -226,6 +226,13 @@ export function ControlPanelsAppComponent({
         backup.localStorage[key] = localStorage.getItem(key);
       }
     }
+    
+    // Note: This includes all Zustand persisted stores with the following keys:
+    // - "ryos:app-store" - App window states, debug mode, AI model settings
+    // - "ryos:videos" - Video player state and custom videos
+    // - "ryos:internet-explorer" - Browser history, bookmarks
+    // - "ryos:ipod" - Music tracks, playback settings
+    // When adding new stores, ensure they use the persist middleware with "ryos:[store-name]" naming pattern
 
     // Backup IndexedDB data
     try {
@@ -502,7 +509,7 @@ export function ControlPanelsAppComponent({
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col gap-1">
-                    <Label>Chat synth</Label>
+                    <Label>Chat Synth</Label>
                     <Label className="text-[11px] text-gray-600 font-geneva-12 pr-1">
                       ryOS will restart to apply new settings
                     </Label>
@@ -531,43 +538,6 @@ export function ControlPanelsAppComponent({
               className="mt-0 bg-[#E3E3E3] border border-t-0 border-[#808080] h-[calc(100%-2rem)]"
             >
               <div className="space-y-4 h-full overflow-y-auto p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex flex-col gap-1">
-                    <Label>Debug Mode</Label>
-                    <Label className="text-[11px] text-gray-600 font-geneva-12">
-                      Enable debugging features
-                    </Label>
-                  </div>
-                  <Switch
-                    checked={debugMode}
-                    onCheckedChange={setDebugMode}
-                    className="data-[state=checked]:bg-[#000000]"
-                  />
-                </div>
-                
-                {debugMode && (
-                  <div className="flex items-center justify-between">
-                    <div className="flex flex-col gap-1">
-                      <Label>AI Model</Label>
-                      <Label className="text-[11px] text-gray-600 font-geneva-12">
-                        Used in Chats, IE, and more
-                      </Label>
-                    </div>
-                    <Select value={aiModel} onValueChange={(value) => setAiModel(value as AIModel)}>
-                      <SelectTrigger className="w-[120px]">
-                        <SelectValue placeholder="Select model" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {AI_MODELS.map((model) => (
-                          <SelectItem key={model.id} value={model.id}>
-                            {model.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
- <hr className="border-gray-400"></hr>
                 <div className="space-y-2">
                   <div className="flex gap-2">
                     <Button
@@ -625,6 +595,45 @@ export function ControlPanelsAppComponent({
                     format.
                   </p>
                 </div>
+
+                <hr className="border-gray-400"></hr>
+                
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col gap-1">
+                    <Label>Debug Mode</Label>
+                    <Label className="text-[11px] text-gray-600 font-geneva-12">
+                      Enable debugging features
+                    </Label>
+                  </div>
+                  <Switch
+                    checked={debugMode}
+                    onCheckedChange={setDebugMode}
+                    className="data-[state=checked]:bg-[#000000]"
+                  />
+                </div>
+                
+                {debugMode && (
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-1">
+                      <Label>AI Model</Label>
+                      <Label className="text-[11px] text-gray-600 font-geneva-12">
+                        Used in Chats, IE, and more
+                      </Label>
+                    </div>
+                    <Select value={aiModel} onValueChange={(value) => setAiModel(value as AIModel)}>
+                      <SelectTrigger className="w-[120px]">
+                        <SelectValue placeholder="Select model" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {AI_MODELS.map((model) => (
+                          <SelectItem key={model.id} value={model.id}>
+                            {model.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
             </TabsContent>
           </Tabs>

@@ -721,10 +721,14 @@ export const clearAllAppStates = (): void => {
   localStorage.removeItem("displayMode");
 
   // Clear persisted zustand stores
-  localStorage.removeItem("ryos:app-store");
-  localStorage.removeItem("ryos:videos");
-  localStorage.removeItem("ryos:internet-explorer");
-  localStorage.removeItem("ryos:ipod");
+  // IMPORTANT: Keep this list in sync with stores in @/stores directory
+  // This list is used by both clear operations and backup/restore functionality
+  localStorage.removeItem("ryos:app-store");     // App window states from useAppStore
+  localStorage.removeItem("ryos:videos");        // Video player state from useVideoStore
+  localStorage.removeItem("ryos:internet-explorer"); // Browser history from useInternetExplorerStore
+  localStorage.removeItem("ryos:ipod");          // Music player state from useIpodStore
+  
+  // Any new stores that use the persist middleware must be added here
 };
 
 const SYNTH_PRESET_KEY = "synthPreset";
