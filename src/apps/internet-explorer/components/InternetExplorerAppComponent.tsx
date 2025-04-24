@@ -24,6 +24,7 @@ import { useInternetExplorerStore, DEFAULT_FAVORITES, ErrorResponse } from "@/st
 import FutureSettingsDialog from "@/components/dialogs/FutureSettingsDialog";
 import { useTerminalSounds } from "@/hooks/useTerminalSounds";
 import { track } from "@vercel/analytics";
+import { useAppStore } from "@/stores/useAppStore";
 
 // Analytics event namespace for Internet Explorer events
 export const IE_ANALYTICS = {
@@ -141,6 +142,9 @@ export function InternetExplorerAppComponent({
   onClose,
   isForeground,
 }: AppProps) {
+  // Add debugMode from useAppStore
+  const debugMode = useAppStore(state => state.debugMode);
+
   // --- Store Selectors/Actions (Destructure them here for stability in callbacks) ---
   const {
     // State
@@ -813,6 +817,27 @@ export function InternetExplorerAppComponent({
   //   if (error && !errorDetails) { ... } // Handled by store actions
   // }, [error, errorDetails, setErrorAndStopLoading, clearErrorDetails]);
 
+  // Add a function to get debug status message
+  const getDebugStatusMessage = () => {
+    if (!isLoading) return null;
+
+    const hostname = url ? getHostnameFromUrl(url) : "unknown";
+    
+    switch (mode) {
+      case "future":
+        return `Generating futuristic version of ${hostname} for year ${year}...`;
+      case "past":
+        if (parseInt(year) <= 1995) {
+          return `Generating historical reconstruction of ${hostname} for year ${year}...`;
+        }
+        return `Fetching ${hostname} from year ${year}...`;
+      case "now":
+        return `Loading ${hostname}...`;
+      default:
+        return `Loading ${hostname}...`;
+    }
+  };
+
   if (!isWindowOpen) return null;
 
   // Use store state for loading status
@@ -953,7 +978,7 @@ export function InternetExplorerAppComponent({
         isForeground={isForeground}
         appId="internet-explorer"
       >
-        <div className="flex flex-col h-full w-full">
+        <div className="flex flex-col h-full w-full relative">
           {/* Toolbar uses store state/actions via props or direct calls */}
           <div className="flex flex-col gap-1 p-1 bg-gray-100 border-b border-black">
              {/* ... (Toolbar UI remains largely the same, button disabled state uses store historyIndex) ... */}
@@ -1098,6 +1123,23 @@ export function InternetExplorerAppComponent({
               )}
             </AnimatePresence>
           </div>
+
+          {/* Add debug status bar at bottom */}
+          <AnimatePresence>
+            {debugMode && isLoading && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                transition={{ duration: 0.15 }}
+                className="absolute bottom-0 left-0 right-0 bg-gray-100 border-t border-black font-geneva-12 text-[10px] px-2 py-1 flex items-center z-50"
+              >
+                <div className="flex-1 truncate">
+                  {getDebugStatusMessage()}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
         
         {/* Dialogs use store state and actions */}
