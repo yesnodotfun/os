@@ -304,26 +304,58 @@ export default function HtmlPreview({
   document.addEventListener('click', function(event) {
     var targetElement = event.target.closest('a');
     // Only intercept if it's a valid link and NOT inside the draggable toolbar
-    if (targetElement && targetElement.href && !targetElement.closest('[data-drag-controls]')) { 
+    if (targetElement && targetElement.href && !targetElement.closest('[data-drag-controls]')) {
       event.preventDefault();
       event.stopPropagation();
       try {
         // Resolve relative URLs against the document's base URI (if set) or window location
         const absoluteUrl = new URL(targetElement.getAttribute('href'), document.baseURI || window.location.href).href;
         // Use a specific message type for AI HTML navigation
-        window.parent.postMessage({ type: 'aiHtmlNavigation', url: absoluteUrl }, '*'); 
+        window.parent.postMessage({ type: 'aiHtmlNavigation', url: absoluteUrl }, '*');
       } catch (e) { console.error("Error resolving/posting URL:", e); }
     }
   }, true); // Use capture phase to intercept early
 </script>
 `;
 
-    // Sanitize input slightly - primarily trim whitespace
+    // --- Start modification: Extract core HTML content ---
     const trimmedHtmlContent = htmlContent.trim();
-    const isFullHtmlDoc = /<!DOCTYPE html>/i.test(trimmedHtmlContent) || /<html[\s>]/i.test(trimmedHtmlContent);
+    let coreHtmlContent = trimmedHtmlContent; // Default to use trimmed content
+
+    // NEW: First, strip potential markdown code block fence
+    if (coreHtmlContent.startsWith('```html')) {
+      coreHtmlContent = coreHtmlContent.substring('```html'.length).trim();
+    } else if (coreHtmlContent.startsWith('```')) {
+      coreHtmlContent = coreHtmlContent.substring('```'.length).trim();
+    }
+
+    // Remove trailing ``` if present
+    if (coreHtmlContent.endsWith('```')) {
+        coreHtmlContent = coreHtmlContent.substring(0, coreHtmlContent.length - '```'.length).trim();
+    }
+
+    // Now, check for and extract content within <html> tags
+    const htmlStartIndex = coreHtmlContent.toLowerCase().indexOf('<html');
+    const htmlEndIndex = coreHtmlContent.toLowerCase().lastIndexOf('</html>');
+
+    if (htmlStartIndex !== -1) {
+        // Found <html> tag
+        if (htmlEndIndex > htmlStartIndex) {
+            // Found both <html> and </html>, extract the content between them (inclusive)
+            coreHtmlContent = coreHtmlContent.substring(htmlStartIndex, htmlEndIndex + '</html>'.length);
+        } else {
+            // Found <html> but no </html> after it, take content from <html> to the end
+            coreHtmlContent = coreHtmlContent.substring(htmlStartIndex);
+        }
+    }
+    // If no <html> tag, coreHtmlContent remains the original trimmedHtmlContent (fragment)
+    // --- End modification ---
+
+    // Use coreHtmlContent for subsequent checks and processing
+    const isFullHtmlDoc = /<!DOCTYPE html>/i.test(coreHtmlContent) || /<html[\s>]/i.test(coreHtmlContent);
 
     if (isFullHtmlDoc) {
-        let modifiedContent = trimmedHtmlContent;
+        let modifiedContent = coreHtmlContent; // Start with the potentially extracted content
 
         // Attempt to inject into <head>
         const headEndMatch = /<\/head>/i.exec(modifiedContent);
@@ -367,7 +399,7 @@ export default function HtmlPreview({
   ${postStreamHeadContent} 
 </head>
 <body>
-  ${trimmedHtmlContent}
+  ${coreHtmlContent}
   ${clickInterceptorScript}
 </body>
 </html>`;
