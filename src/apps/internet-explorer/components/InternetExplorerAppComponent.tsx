@@ -213,7 +213,7 @@ export function InternetExplorerAppComponent({
   } = useInternetExplorerStore();
 
   const abortControllerRef = useRef<AbortController | null>(null);
-  const [hasMoreToScroll, setHasMoreToScroll] = useState(false);
+  const [hasMoreToScroll] = useState(false);
 
   const urlInputRef = useRef<HTMLInputElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -856,8 +856,8 @@ export function InternetExplorerAppComponent({
               {debugMode && (
                 <span className="text-gray-500">
                   {modelInfo}
-                  {language !== "auto" && ` | Lang: ${languageDisplayName}`}
-                  {location !== "auto" && ` | Loc: ${locationDisplayName}`}
+                  {language !== "auto" && ` ${languageDisplayName}`}
+                  {location !== "auto" && ` ${locationDisplayName}`}
                 </span>
               )}
               <span>{`Reconstructing history of ${hostname} for year ${year}...`}</span>
