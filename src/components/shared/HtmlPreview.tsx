@@ -271,8 +271,8 @@ export default function HtmlPreview({
             serif: ["Mondwest", "Yu Mincho", "Hiragino Mincho Pro", "Georgia", "Palatino", "SerenityOS-Emoji", "serif"],
             emoji: ["SerenityOS-Emoji", "AppleColorEmoji", "AppleColorEmojiFallback"],
             'geneva': ["Geneva-12", "ArkPixel", "SerenityOS-Emoji", "system-ui", "-apple-system", "sans-serif"],
-            'mondwest': ["Mondwest", "Georgia", "Palatino", "Yu Mincho", "Hiragino Mincho Pro","serif"],
-            'neuebit': ["NeueBit", "Georgia", "Palatino", "Yu Mincho", "Hiragino Mincho Pro", "serif"],
+            'mondwest': ["Mondwest", "Yu Mincho", "Hiragino Mincho Pro", "Georgia", "Palatino", "Yu Mincho", "Hiragino Mincho Pro", "serif"],
+            'neuebit': ["NeueBit", "ArkPixel", "SerenityOS-Emoji", "Helvetica", "Arial", "Hiragino Sans", "sans-serif"],
             'monaco': ["Monaco", "ArkPixel", "SerenityOS-Emoji", "monospace"]
           }
         }

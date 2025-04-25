@@ -205,13 +205,13 @@
   }
 
   .font-mondwest {
-    font-family: "Mondwest", "Georgia", "Palatino", serif;
+    font-family: "Mondwest", "Yu Mincho", "Hiragino Mincho Pro", "Georgia", "Palatino", "Yu Mincho", "Hiragino Mincho Pro", serif;
     -webkit-font-smoothing: antialiased;
     font-smooth: always;
   }
 
   .font-neuebit {
-    font-family: "NeueBit", "Georgia", "Palatino", serif;
+    font-family: "NeueBit", "ArkPixel", "SerenityOS-Emoji", "Helvetica", "Arial", "Hiragino Sans", sans-serif;
     -webkit-font-smoothing: antialiased;
     font-smooth: always;
   }
