@@ -51,6 +51,12 @@ export const DEFAULT_FAVORITES: Favorite[] = [
     year: "2003",
   },
   {
+    title: "NewJeans",
+    url: "https://newjeans.jp",
+    favicon: "https://www.google.com/s2/favicons?domain=newjeans.jp&sz=32",
+    year: "current",
+  },
+  {
     title: "Wikipedia",
     url: "https://en.wikipedia.org",
     favicon: "https://www.google.com/s2/favicons?domain=en.wikipedia.org&sz=32",
@@ -128,13 +134,7 @@ export const DEFAULT_FAVORITES: Favorite[] = [
     url: "https://www.lucasn.com",
     favicon: "https://www.google.com/s2/favicons?domain=www.lucasn.com&sz=32",
     year: "current",
-  },
-  {
-    title: "Frank",
-    url: "https://okfrank.co",
-    favicon: "https://www.google.com/s2/favicons?domain=okfrank.co&sz=32",
-    year: "current",
-  },
+  }
 ];
 
 // Helper function to classify year into navigation mode
