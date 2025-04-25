@@ -244,8 +244,8 @@ DELIVERABLE REQUIREMENTS:
 7. For <img> tags, only reuse image urls included in context
 8. DO NOT link to imgur or other unknown image urls or inline data:image base64
 9. MUST use Tailwind font-sans, font-serif, or font-mono for fonts
-10. For <h1><h2> tags, replace Arial/Helvetica with "NeueBit" for sans-serif, or Times/Georgia/etc with "Mondwest" for serif
-11. For buttons and hyperlinks, use <a href="..."> tags. Always generate realistic, readable hrefs (e.g., /about, https://ryo.lu/products/cool-item) instead of using placeholders like "#" or "" in href. 
+10. For <h1><h2> tags, replace Arial/Helvetica/sans-serif with font-neuebit, or Times/Georgia/serif with font-mondwest, or Monaco/monospace with font-monaco
+11. For buttons and hyperlinks, use <a href="..."> tags. All links must include a valid href attribute e.g., "/about", "https://ryo.lu/products/cool-item" instead of using placeholders like "#" or "". 
 
 For future designs:
 - Keep visuals minimal but futuristic

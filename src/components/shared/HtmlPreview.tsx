@@ -270,6 +270,10 @@ export default function HtmlPreview({
             mono: ["Monaco", "ArkPixel", "SerenityOS-Emoji", "ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", "monospace"],
             serif: ["Mondwest", "Yu Mincho", "Hiragino Mincho Pro", "Georgia", "Palatino", "SerenityOS-Emoji", "serif"],
             emoji: ["SerenityOS-Emoji", "AppleColorEmoji", "AppleColorEmojiFallback"],
+            'geneva': ["Geneva-12", "ArkPixel", "SerenityOS-Emoji", "system-ui", "-apple-system", "sans-serif"],
+            'mondwest': ["Mondwest", "Georgia", "Palatino", "Yu Mincho", "Hiragino Mincho Pro","serif"],
+            'neuebit': ["NeueBit", "Georgia", "Palatino", "Yu Mincho", "Hiragino Mincho Pro", "serif"],
+            'monaco': ["Monaco", "ArkPixel", "SerenityOS-Emoji", "monospace"]
           }
         }
       }
@@ -646,7 +650,9 @@ export default function HtmlPreview({
       if (now - lastStreamRenderRef.current > 500) {
         lastStreamRenderRef.current = now;
         const { htmlContent: extracted } = extractHtmlContent(htmlContent);
-        if (extracted) {
+        
+        // Don't sanitize or update if content hasn't meaningfully changed
+        if (extracted && streamPreviewHtml !== extracted) {
           // Apply sanitization to remove fixed positioning before setting stream preview
           const sanitizedHtml = sanitizeHtmlForStream(extracted);
           setStreamPreviewHtml(sanitizedHtml);
@@ -656,7 +662,7 @@ export default function HtmlPreview({
       // Reset when not streaming
       setStreamPreviewHtml("");
     }
-  }, [htmlContent, isStreaming]);
+  }, [htmlContent, isStreaming, streamPreviewHtml]);
 
   // Normal inline display with optional maximized height
   return (
@@ -770,7 +776,7 @@ export default function HtmlPreview({
           </motion.div>
         )}
         {/* Conditional Rendering: Text Stream or Iframe */}
-        {isStreaming ? (
+        {isStreaming && htmlContent ? (
           <div
             className="h-full w-full relative overflow-auto"
             style={{
@@ -897,7 +903,7 @@ export default function HtmlPreview({
                     }}
                   >
                     {/* Fullscreen Conditional Rendering: Text Stream or Iframe */}
-                    {isStreaming ? (
+                    {isStreaming && htmlContent ? (
                       <motion.div
                         className="h-full w-full overflow-auto"
                         initial={{ opacity: 0.8, y: 3 }}
@@ -934,7 +940,7 @@ export default function HtmlPreview({
                     )}
 
                     {/* Loading PULSE overlay for fullscreen (kept for visual feedback) */}
-                    {isStreaming && (
+                    {isStreaming && htmlContent && (
                       <div
                         className="absolute inset-0 bg-gray-100 z-10 pointer-events-none"
                         style={{ opacity: 0.2 }}

@@ -756,7 +756,12 @@ export function InternetExplorerAppComponent({
     }
     // Clear error details via store action
     clearErrorDetails();
-  }, [cancel, isAiLoading, stopGeneration, clearErrorDetails]);
+    
+    // Force reset all loading states immediately
+    if (stopElevatorMusic) {
+      stopElevatorMusic();
+    }
+  }, [cancel, isAiLoading, stopGeneration, clearErrorDetails, stopElevatorMusic]);
 
   const handleGoToUrl = useCallback(() => {
     urlInputRef.current?.focus();
@@ -888,7 +893,7 @@ export function InternetExplorerAppComponent({
     if (isFetchingWebsiteContent) {
       return (
         <div className="flex items-center gap-1">
-          <span className="text-gray-500">Fetch</span>
+          {debugMode && <span className="text-gray-500">Fetch</span>}
           <span>{`Fetching content of ${hostname} for reconstruction...`}</span>
         </div>
       );
@@ -898,7 +903,7 @@ export function InternetExplorerAppComponent({
       case "future":
         return (
           <div className="flex items-center gap-1">
-            <span className="text-gray-500">{modelInfo}</span>
+            {debugMode && <span className="text-gray-500">{modelInfo}</span>}
             <span>{`Reimagining ${hostname} for year ${year}...`}</span>
           </div>
         );
@@ -906,7 +911,7 @@ export function InternetExplorerAppComponent({
         if (parseInt(year) <= 1995) {
           return (
             <div className="flex items-center gap-1">
-              <span className="text-gray-500">{modelInfo}</span>
+              {debugMode && <span className="text-gray-500">{modelInfo}</span>}
               <span>{`Reconstructing history of ${hostname} for year ${year}...`}</span>
             </div>
           );
@@ -1173,7 +1178,8 @@ export function InternetExplorerAppComponent({
                   minHeight="100%"
                   initialFullScreen={false}
                   isInternetExplorer={true}
-                  isStreaming={isAiLoading}
+                  // Only use streaming mode when actively generating new content
+                  isStreaming={isAiLoading && generatedHtml !== aiGeneratedHtml}
                   playElevatorMusic={playElevatorMusic}
                   stopElevatorMusic={stopElevatorMusic}
                   playDingSound={playDingSound}
@@ -1197,7 +1203,7 @@ export function InternetExplorerAppComponent({
 
             {/* Loading Bar uses store status */}
             <AnimatePresence>
-              {isLoading && (
+              {(status === "loading" || (isAiLoading && generatedHtml !== aiGeneratedHtml) || isFetchingWebsiteContent) && (
                 <motion.div
                   className="absolute top-0 left-0 right-0 bg-white/75 backdrop-blur-sm overflow-hidden z-50"
                   variants={loadingBarVariants}
@@ -1213,7 +1219,7 @@ export function InternetExplorerAppComponent({
 
           {/* Add debug status bar at bottom */}
           <AnimatePresence>
-            {debugMode && (status === "loading" || isAiLoading || isFetchingWebsiteContent) && (
+            { (status === "loading" || (isAiLoading && generatedHtml !== aiGeneratedHtml) || isFetchingWebsiteContent) && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
