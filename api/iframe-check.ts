@@ -4,6 +4,8 @@ export const config = {
   runtime: "edge",
 };
 
+import { normalizeUrlForCacheKey } from "./utils/url"; // Import the function
+
 /**
  * List of domains that should be automatically proxied.
  * Domains should be lowercase and without protocol.
@@ -123,13 +125,21 @@ export default async function handler(req: Request) {
       return new Response(JSON.stringify({ error: "Missing year" }), { status: 400, headers: { "Content-Type": "application/json" } });
     }
 
+    // Normalize the URL for the cache key
+    const normalizedUrlForKey = normalizeUrlForCacheKey(aiUrl);
+
+    if (!normalizedUrlForKey) {
+        // Handle case where normalization failed, though it shouldn't with prior https:// addition
+        return new Response(JSON.stringify({ error: "URL normalization failed" }), { status: 500, headers: { "Content-Type": "application/json" } });
+    }
+
     try {
       const redis = new (await import("@upstash/redis")).Redis({
         url: process.env.REDIS_KV_REST_API_URL as string,
         token: process.env.REDIS_KV_REST_API_TOKEN as string,
       });
       const IE_CACHE_PREFIX = "ie:cache:";
-      const key = `${IE_CACHE_PREFIX}${encodeURIComponent(aiUrl)}:${year}`;
+      const key = `${IE_CACHE_PREFIX}${encodeURIComponent(normalizedUrlForKey)}:${year}`;
       const html = (await redis.lindex(key, 0)) as string | null;
       if (html) {
         return new Response(html, {

@@ -1,6 +1,7 @@
 import { streamText, smoothStream } from "ai";
 import { SupportedModel, DEFAULT_MODEL, getModelInstance } from "./utils/aiModels";
 import { Redis } from "@upstash/redis";
+import { normalizeUrlForCacheKey } from "./utils/url";
 
 // Allowed origins for API requests (reuse list from chat.ts)
 const ALLOWED_ORIGINS = new Set([
@@ -121,15 +122,19 @@ export default async function handler(req: Request) {
     const bodyYear = (bodyData as any)?.year as string | undefined;
     
     // Build a safe cache key using url/year present in query string or body
-    const effectiveUrl = targetUrl || bodyUrl;
+    const rawUrl = targetUrl || bodyUrl; // Get the url before normalization
     const effectiveYear = targetYear || bodyYear;
 
-    logRequest(req.method, req.url, `${effectiveUrl} (${effectiveYear})`, requestId);
+    // Normalize the URL for the cache key
+    const normalizedUrlForKey = normalizeUrlForCacheKey(rawUrl);
+
+    logRequest(req.method, req.url, `${rawUrl} (${effectiveYear})`, requestId); // Log original requested URL
 
     const { messages = [], model: bodyModel = DEFAULT_MODEL } = bodyData as any;
 
-    const cacheKey = effectiveUrl && effectiveYear ?
-      `${IE_CACHE_PREFIX}${encodeURIComponent(effectiveUrl)}:${effectiveYear}` : null;
+    // Use normalized URL for the cache key
+    const cacheKey = normalizedUrlForKey && effectiveYear ?
+      `${IE_CACHE_PREFIX}${encodeURIComponent(normalizedUrlForKey)}:${effectiveYear}` : null;
 
     // Removed cache read to avoid duplicate generation; cache handled through iframe-check AI mode
 
