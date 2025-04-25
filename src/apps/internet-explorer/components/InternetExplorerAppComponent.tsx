@@ -1220,7 +1220,14 @@ export function InternetExplorerAppComponent({
                   animate="visible"
                   exit="hidden"
                 >
-                  <div className={`h-full ${isFetchingWebsiteContent ? 'bg-green-500' : 'bg-blue-500'} animate-progress-indeterminate`} />
+                  <div className={`h-full ${
+                    isAiLoading && mode === "past" && parseInt(year) <= 1995 ? 'animate-progress-indeterminate-purple-reverse' :
+                    isAiLoading ? 'animate-progress-indeterminate-purple' : 
+                    isFetchingWebsiteContent && mode === "past" ? 'animate-progress-indeterminate-green-reverse' :
+                    isFetchingWebsiteContent ? 'animate-progress-indeterminate-green' : 
+                    mode === "past" && !isAiLoading ? 'animate-progress-indeterminate-reverse' : 
+                    'animate-progress-indeterminate'
+                  }`} />
                 </motion.div>
               )}
             </AnimatePresence>

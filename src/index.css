@@ -177,6 +177,87 @@
   width: 100%;
 }
 
+.animate-progress-indeterminate-reverse {
+  animation: progress-indeterminate-reverse 2.5s linear infinite;
+  background: linear-gradient(
+    90deg,
+    transparent 20%,
+    #3b82f6 50%,
+    transparent 80%
+  );
+  background-size: 200% 100%;
+  width: 100%;
+}
+
+@keyframes progress-indeterminate-reverse {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-progress-indeterminate-green {
+  animation: progress-indeterminate 2.5s linear infinite;
+  background: linear-gradient(
+    90deg,
+    transparent 20%,
+    #22c55e 50%,
+    transparent 80%
+  );
+  background-size: 200% 100%;
+  width: 100%;
+}
+
+.animate-progress-indeterminate-green-reverse {
+  animation: progress-indeterminate-reverse 2.5s linear infinite;
+  background: linear-gradient(
+    90deg,
+    transparent 20%,
+    #22c55e 50%,
+    transparent 80%
+  );
+  background-size: 200% 100%;
+  width: 100%;
+}
+
+.animate-progress-indeterminate-purple {
+  animation: progress-indeterminate 2.5s linear infinite;
+  background: linear-gradient(
+    90deg,
+    transparent 20%,
+    #a855f7 50%,
+    transparent 80%
+  );
+  background-size: 200% 100%;
+  width: 100%;
+}
+
+.animate-progress-indeterminate-purple-reverse {
+  animation: progress-indeterminate-reverse 2.5s linear infinite;
+  background: linear-gradient(
+    90deg,
+    transparent 20%,
+    #a855f7 50%,
+    transparent 80%
+  );
+  background-size: 200% 100%;
+  width: 100%;
+}
+
+.animate-progress-indeterminate-yellow {
+  animation: progress-indeterminate 2.5s linear infinite;
+  background: linear-gradient(
+    90deg,
+    transparent 20%,
+    #eab308 50%,
+    transparent 80%
+  );
+  background-size: 200% 100%;
+  width: 100%;
+}
+
 @keyframes marquee {
   0% {
     transform: translateX(120px);
