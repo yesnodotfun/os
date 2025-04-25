@@ -2,6 +2,7 @@ import { streamText, smoothStream } from "ai";
 import { SupportedModel, DEFAULT_MODEL, getModelInstance } from "./utils/aiModels";
 import { Redis } from "@upstash/redis";
 import { normalizeUrlForCacheKey } from "./utils/url";
+import { RYO_PERSONA_INSTRUCTIONS } from "./utils/aiPrompts"; // Import the shared prompt
 
 // Allowed origins for API requests (reuse list from chat.ts)
 const ALLOWED_ORIGINS = new Set([
@@ -52,42 +53,42 @@ export const config = { runtime: "edge" };
 // --- Handler --------------------------------------------------------------
 
 // Function to generate the conditional system prompt
-const getConditionalSystemPrompt = (year: number | null): string => {
+const getConditionalSystemPrompt = (
+  year: number | null,
+  rawUrl: string | null // Add rawUrl parameter
+): string => {
   const currentYear = new Date().getFullYear();
-  let yearSpecificInstructions = "";
 
-  if (year === null) {
-    // Default case or handle error appropriately if year is required
-    yearSpecificInstructions = `Year not specified. Assume current year ${currentYear}.`;
-  } else if (year > currentYear) {
-    yearSpecificInstructions = `For the future year ${year}:
+  // --- Prompt Sections ---
+
+  const BASE_INTRO = `The user is in ryOS Internet Explorer asking to time travel with website context and a specific year. You are Ryo, a visionary designer specialized in turning present websites into past and futuristic coherent versions in story and design.
+Generate content for the URL path, the year provided (${year ?? 'current'}), original site content, and use provided HTML as template if provided.`;
+
+  const FUTURE_YEAR_INSTRUCTIONS = `For the future year ${year}:
 - Redesign the website so it feels perfectly at home in the future context provided
 - Think boldly and creatively about future outcomes
 - Embrace the original brand, language, cultural context, aesthetics
 - Consider design trends and breakthroughs that could happen by then
 - Use simple colors, avoid gradients, use backdrop-blur, use simple animations
 - Use emojis or simple SVGs for icons`;
-  } else if (year < currentYear) {
-    yearSpecificInstructions = `For the past year ${year}:
+
+  const PAST_YEAR_INSTRUCTIONS = `For the past year ${year}:
 - Redesign the website to match the historical era
 - Consider how it would have been designed if it existed then
 - What technology and design tools would have been available (can be print, telegram, newspaper, etc.)
 - What typography, colors, and design elements were common
 - What cultural and artistic movements influenced design`;
-  } else { // year === currentYear
-    yearSpecificInstructions = `For the current year ${year}:
+
+  const CURRENT_YEAR_INSTRUCTIONS = `For the current year ${year}:
 - Reflect the current state of the website's design and branding accurately.
 - Ensure the content is up-to-date and relevant for today.`;
-  }
 
-  return `The user is in ryOS Internet Explorer asking to time travel with website context and a specific year. You are Ryo, a visionary designer specialized in turning present websites into past and futuristic coherent versions in story and design.
-Generate content for the URL path, the year provided (${year ?? 'current'}), original site content, and use provided HTML as template if provided.
+  const YEAR_NOT_SPECIFIED_INSTRUCTIONS = `Year not specified. Assume current year ${currentYear}.`;
 
-${yearSpecificInstructions}
+  const PERSONA_INSTRUCTIONS_BLOCK = `ABOUT THE DESIGNER (RYO LU):
+${RYO_PERSONA_INSTRUCTIONS}`;
 
-If you think the entity may disappear due to changes, show a 404 or memorial page.
-
-DELIVERABLE REQUIREMENTS:
+  const DELIVERABLE_REQUIREMENTS = `DELIVERABLE REQUIREMENTS:
 1. Return a single, fully HTML page with only the body content, no <head> or <body> tags, no chat before or after.
 2. Use inline TailwindCSS utility classes; do not include <style> <link> tags.
 3. Use Three.js for 3D with <script> from cdn already loaded.
@@ -96,6 +97,33 @@ DELIVERABLE REQUIREMENTS:
 6. For <img> tags, always try to reuse image URLs included in site context. Do NOT link to imgur or unknown placeholders.
 7. Map fonts: body -> font-geneva, headings (sans-serif) -> font-neuebit font-bold, serif -> font-mondwest, monospace -> font-monaco.
 8. Ensure hyperlinks/buttons use <a href="/..."> with real or plausible destinations.`;
+
+  // --- Determine Year Specific Instructions ---
+
+  let yearSpecificInstructions = "";
+  if (year === null) {
+    yearSpecificInstructions = YEAR_NOT_SPECIFIED_INSTRUCTIONS;
+  } else if (year > currentYear) {
+    yearSpecificInstructions = FUTURE_YEAR_INSTRUCTIONS;
+  } else if (year < currentYear) {
+    yearSpecificInstructions = PAST_YEAR_INSTRUCTIONS;
+  } else { // year === currentYear
+    yearSpecificInstructions = CURRENT_YEAR_INSTRUCTIONS;
+  }
+
+  // --- Assemble the Final Prompt ---
+
+  let finalPrompt = `${BASE_INTRO}\n\n${yearSpecificInstructions}`;
+
+  // Conditionally add Ryo's persona instructions
+  if (rawUrl && (rawUrl.includes('ryo.lu') || rawUrl.includes('notion.com') || rawUrl.includes('cursor.com'))) {
+    finalPrompt += `\n\n${PERSONA_INSTRUCTIONS_BLOCK}`;
+  }
+
+  // Add deliverable requirements
+  finalPrompt += `\n\n${DELIVERABLE_REQUIREMENTS}`;
+
+  return finalPrompt;
 };
 
 export default async function handler(req: Request) {
@@ -180,8 +208,8 @@ export default async function handler(req: Request) {
 
     const selectedModel = getModelInstance(model as SupportedModel);
 
-    // Generate conditional system prompt
-    const systemPrompt = getConditionalSystemPrompt(effectiveYear);
+    // Generate conditional system prompt, passing the rawUrl
+    const systemPrompt = getConditionalSystemPrompt(effectiveYear, rawUrl ?? null);
 
     // Prepend IE system prompt
     const enrichedMessages = [
