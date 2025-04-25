@@ -99,6 +99,12 @@ export const DEFAULT_VIDEOS: Video[] = [
     title: "BEBE",
     artist: "STAYC (스테이씨)",
   },
+  {
+    id: "HB4Rp2KKeu4",
+    url: "https://www.youtube.com/watch?v=HB4Rp2KKeu4",
+    title: "野子",
+    artist: "PO8",
+  },
 ];
 
 interface VideoStoreState {
