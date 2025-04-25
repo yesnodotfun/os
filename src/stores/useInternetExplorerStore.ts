@@ -50,16 +50,24 @@ export const DEFAULT_FAVORITES: Favorite[] = [
     favicon: "https://www.google.com/s2/favicons?domain=apple.com&sz=32",
     year: "2003",
   },
-  {
-    title: "NewJeans",
-    url: "https://newjeans.jp",
-    favicon: "https://www.google.com/s2/favicons?domain=newjeans.jp&sz=32",
-    year: "current",
-  },
+
   {
     title: "Wikipedia",
     url: "https://en.wikipedia.org",
     favicon: "https://www.google.com/s2/favicons?domain=en.wikipedia.org&sz=32",
+    year: "current",
+  },
+
+  {
+    title: "NYTimes",
+    url: "https://nytimes.com",
+    favicon: "https://www.google.com/s2/favicons?domain=nytimes.com&sz=32",
+    year: "current",
+  },
+  {
+    title: "NewJeans",
+    url: "https://newjeans.jp",
+    favicon: "https://www.google.com/s2/favicons?domain=newjeans.jp&sz=32",
     year: "current",
   },
   {
