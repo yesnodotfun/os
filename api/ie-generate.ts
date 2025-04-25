@@ -107,7 +107,6 @@ export default async function handler(req: Request) {
     const requestId = generateRequestId();
     const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
     const urlObj = new URL(req.url);
-    logRequest(req.method, req.url, 'ie-generate', requestId);
 
     const queryModel = urlObj.searchParams.get("model") as SupportedModel | null;
     // Extract caching parameters from query string
@@ -120,12 +119,14 @@ export default async function handler(req: Request) {
 
     const bodyUrl = (bodyData as any)?.url as string | undefined;
     const bodyYear = (bodyData as any)?.year as string | undefined;
-
-    const { messages = [], model: bodyModel = DEFAULT_MODEL } = bodyData as any;
-
+    
     // Build a safe cache key using url/year present in query string or body
     const effectiveUrl = targetUrl || bodyUrl;
     const effectiveYear = targetYear || bodyYear;
+
+    logRequest(req.method, req.url, `${effectiveUrl} (${effectiveYear})`, requestId);
+
+    const { messages = [], model: bodyModel = DEFAULT_MODEL } = bodyData as any;
 
     const cacheKey = effectiveUrl && effectiveYear ?
       `${IE_CACHE_PREFIX}${encodeURIComponent(effectiveUrl)}:${effectiveYear}` : null;
