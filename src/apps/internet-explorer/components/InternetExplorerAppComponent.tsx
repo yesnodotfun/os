@@ -762,7 +762,15 @@ export function InternetExplorerAppComponent({
   }, [clearFavorites, setClearFavoritesDialogOpen]);
 
   const handleRefresh = useCallback(() => {
-    // Use store state
+    // Clear any existing navigation
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    if (iframeRef.current) {
+      iframeRef.current.src = 'about:blank';
+    }
+    
+    // Navigate with force refresh
     handleNavigate(url, year, true);
   }, [handleNavigate, url, year]);
 
