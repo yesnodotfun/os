@@ -996,8 +996,10 @@ export function InternetExplorerAppComponent({
         onEditFuture={() => setFutureSettingsDialogOpen(true)}
         language={language}
         location={location}
+        year={year}
         onLanguageChange={setLanguage}
         onLocationChange={setLocation}
+        onYearChange={(newYear) => handleNavigate(url, newYear)}
       />
       <WindowFrame
         title={displayTitle}

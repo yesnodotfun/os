@@ -41,6 +41,8 @@ interface InternetExplorerMenuBarProps extends Omit<AppProps, "onClose"> {
   location?: LocationOption;
   onLanguageChange?: (language: LanguageOption) => void;
   onLocationChange?: (location: LocationOption) => void;
+  year?: string;
+  onYearChange?: (year: string) => void;
 }
 
 export function InternetExplorerMenuBar({
@@ -69,7 +71,30 @@ export function InternetExplorerMenuBar({
   location = "auto",
   onLanguageChange,
   onLocationChange,
+  year = "current",
+  onYearChange,
 }: InternetExplorerMenuBarProps) {
+  // Get current year for generating year lists
+  const currentYear = new Date().getFullYear();
+  
+  // Generate lists of future and past years
+  const futureYears = [
+    ...Array.from(
+      { length: 8 }, 
+      (_, i) => (2030 + i * 10).toString()
+    ).filter(yr => parseInt(yr) !== currentYear),
+    "2150", "2200", "2250", "2300", "2400", "2500", "2750", "3000"
+  ].sort((a, b) => parseInt(b) - parseInt(a));
+
+  const pastYears = [
+    "1000 BC", "1 CE", "500", "800", "1000", "1200", "1400", "1600", "1700", "1800", "1900",
+    "1910", "1920", "1930", "1940", "1950", "1960", "1970", "1980", "1985", "1990",
+    ...Array.from(
+      { length: currentYear - 1991 + 1 },
+      (_, i) => (1991 + i).toString()
+    ).filter(yr => parseInt(yr) !== currentYear)
+  ].reverse();
+
   return (
     <MenuBar>
       {/* File Menu */}
@@ -131,6 +156,50 @@ export function InternetExplorerMenuBar({
             Stop
           </DropdownMenuItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
+          
+          {/* Year Submenu */}
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
+              Year
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className="min-w-[120px] max-h-[400px] overflow-y-auto">
+              {/* Future Years */}
+              {futureYears.map((yearOption) => (
+                <DropdownMenuItem
+                  key={yearOption}
+                  onClick={() => onYearChange?.(yearOption)}
+                  className="text-md h-6 px-3 active:bg-gray-900 active:text-white text-blue-600"
+                >
+                  <span className={cn(year !== yearOption && "pl-4")}>
+                    {year === yearOption ? `✓ ${yearOption}` : yearOption}
+                  </span>
+                </DropdownMenuItem>
+              ))}
+              
+              {/* Current Year */}
+              <DropdownMenuItem
+                onClick={() => onYearChange?.("current")}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+              >
+                <span className={cn(year !== "current" && "pl-4")}>
+                  {year === "current" ? "✓ Now" : "Now"}
+                </span>
+              </DropdownMenuItem>
+              
+              {/* Past Years */}
+              {pastYears.map((yearOption) => (
+                <DropdownMenuItem
+                  key={yearOption}
+                  onClick={() => onYearChange?.(yearOption)}
+                  className={`text-md h-6 px-3 active:bg-gray-900 active:text-white ${parseInt(yearOption) <= 1995 ? "text-blue-600" : ""}`}
+                >
+                  <span className={cn(year !== yearOption && "pl-4")}>
+                    {year === yearOption ? `✓ ${yearOption}` : yearOption}
+                  </span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
           
           {/* Language Submenu */}
           <DropdownMenuSub>
