@@ -300,26 +300,52 @@ export default function HtmlPreview({
       word-break: break-all; /* Break long words */
     }
   </style>
+  
+  <!-- Move click interceptor script to head for earlier execution -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      document.addEventListener('click', function(event) {
+        var targetElement = event.target.closest('a');
+        // Only intercept if it's a valid link and NOT inside the draggable toolbar
+        if (targetElement && targetElement.href && !targetElement.closest('[data-drag-controls]')) {
+          event.preventDefault();
+          event.stopPropagation();
+          try {
+            // Resolve relative URLs against the document's base URI (if set) or window location
+            const absoluteUrl = new URL(targetElement.getAttribute('href'), document.baseURI || window.location.href).href;
+            // Use a specific message type for AI HTML navigation
+            window.parent.postMessage({ type: 'aiHtmlNavigation', url: absoluteUrl }, '*');
+            console.log('Intercepted link click:', absoluteUrl);
+          } catch (e) { console.error("Error resolving/posting URL:", e); }
+        }
+      }, true); // Use capture phase to intercept early
+    });
+    
+    // Also add immediate execution version for documents that load quickly
+    // This helps ensure we don't miss any clicks during initial page load
+    (function() {
+      document.addEventListener('click', function(event) {
+        var targetElement = event.target.closest('a');
+        // Only intercept if it's a valid link and NOT inside the draggable toolbar
+        if (targetElement && targetElement.href && !targetElement.closest('[data-drag-controls]')) {
+          event.preventDefault();
+          event.stopPropagation();
+          try {
+            // Resolve relative URLs against the document's base URI (if set) or window location
+            const absoluteUrl = new URL(targetElement.getAttribute('href'), document.baseURI || window.location.href).href;
+            // Use a specific message type for AI HTML navigation
+            window.parent.postMessage({ type: 'aiHtmlNavigation', url: absoluteUrl }, '*');
+            console.log('Intercepted link click (immediate handler):', absoluteUrl);
+          } catch (e) { console.error("Error resolving/posting URL:", e); }
+        }
+      }, true); // Use capture phase to intercept early
+    })();
+  </script>
 `;
 
     // Define the click interceptor script
     const clickInterceptorScript = `
-<script>
-  document.addEventListener('click', function(event) {
-    var targetElement = event.target.closest('a');
-    // Only intercept if it's a valid link and NOT inside the draggable toolbar
-    if (targetElement && targetElement.href && !targetElement.closest('[data-drag-controls]')) {
-      event.preventDefault();
-      event.stopPropagation();
-      try {
-        // Resolve relative URLs against the document's base URI (if set) or window location
-        const absoluteUrl = new URL(targetElement.getAttribute('href'), document.baseURI || window.location.href).href;
-        // Use a specific message type for AI HTML navigation
-        window.parent.postMessage({ type: 'aiHtmlNavigation', url: absoluteUrl }, '*');
-      } catch (e) { console.error("Error resolving/posting URL:", e); }
-    }
-  }, true); // Use capture phase to intercept early
-</script>
+<!-- Legacy click interceptor (now moved to head) -->
 `;
 
     // --- Start modification: Extract core HTML content ---
@@ -383,14 +409,8 @@ export default function HtmlPreview({
             }
         }
 
-        // Inject click interceptor script before </body> or append
-        const bodyEndMatch = /<\/body>/i.exec(modifiedContent);
-        if (bodyEndMatch) {
-          modifiedContent = modifiedContent.slice(0, bodyEndMatch.index) + clickInterceptorScript + modifiedContent.slice(bodyEndMatch.index);
-        } else {
-          // Append if no </body> tag
-          modifiedContent += clickInterceptorScript;
-        }
+        // We no longer need to inject the click interceptor script since it's already in the head
+        // Just return the modified content
         return modifiedContent;
 
     } else {
@@ -404,7 +424,6 @@ export default function HtmlPreview({
 </head>
 <body>
   ${coreHtmlContent}
-  ${clickInterceptorScript}
 </body>
 </html>`;
     }
@@ -742,7 +761,7 @@ export default function HtmlPreview({
             className="absolute inset-0 bg-gray-300 z-10 pointer-events-none"
             initial={{ opacity: 0.2 }} // Start at lower opacity
             animate={{
-              opacity: [0.2, 0.4, 0.2] // Loop between 0.6 and 1
+              opacity: [0.2, 0.6, 0.2] // Loop between 0.6 and 1
             }}
             transition={{
               duration: 3, // Slower duration for breathing effect

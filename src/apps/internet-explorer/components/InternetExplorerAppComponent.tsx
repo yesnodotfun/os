@@ -832,7 +832,12 @@ export function InternetExplorerAppComponent({
         console.log(`[IE] Received navigation request from AI HTML preview: ${event.data.url}`);
         // Use store state for year - navigate in the *same* year as the current AI view
         // Pass the *current* AI-generated HTML as context
-        handleNavigate(event.data.url, year, false, aiGeneratedHtml);
+        
+        // Get the most recent HTML content to use as context - prefer the one in the hook first 
+        // (which might be more up-to-date during streaming) and fall back to the store version
+        const contextHtml = generatedHtml || aiGeneratedHtml;
+        
+        handleNavigate(event.data.url, year, false, contextHtml);
       }
     };
     window.addEventListener("message", handleMessage);

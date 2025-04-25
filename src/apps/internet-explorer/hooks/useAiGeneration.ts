@@ -229,7 +229,7 @@ Below are details about the current website and the task:
 - Domain: ${domainName}
 - URL: ${normalizedTargetUrl}
 ${currentHtmlContent
-  ? `- The HTML content of the *previous* AI-generated page view for year ${year} is provided below:\n'''\n${currentHtmlContent.slice(0, 4000)}\n'''\n` 
+  ? `- The HTML content of the *previous* AI-generated page view for year ${year} is provided below. This is a navigation source - the user clicked a link in this page to navigate to the current URL:\n'''\n${currentHtmlContent.slice(0, 4000)}\n'''\n` 
   : existingContent 
     ? `- A snapshot of the *live* website's readable content (fetched via Jina, truncated to 4,000 characters) is provided below:\n'''\n${existingContent}\n'''\n` 
     : "- No current website content available for context."
@@ -244,7 +244,15 @@ ${Object.entries({ ...DEFAULT_TIMELINE, ...timelineSettings, ...customTimeline }
   .map(([y, desc]) => `${y}: ${desc}`)
   .join('\n')}
 
-${timelineContext}`;
+${timelineContext}
+${currentHtmlContent ? `
+
+IMPORTANT NAVIGATION CONTEXT:
+- The user was viewing a previously generated page and clicked a link to navigate to "${normalizedTargetUrl}"
+- Your task is to generate the destination page that would be shown after clicking this link
+- Maintain visual consistency with the source page (similar design language, colors, UI elements)
+- The new page should feel like part of the same website/experience as the source page
+- Preserve any context or theme from the source page that would be relevant` : ""}`;
 
     try {
       // Final check if operation was aborted before sending to AI
