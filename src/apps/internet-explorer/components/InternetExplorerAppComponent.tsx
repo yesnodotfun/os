@@ -144,6 +144,7 @@ export function InternetExplorerAppComponent({
 }: AppProps) {
   // Add debugMode from useAppStore
   const debugMode = useAppStore(state => state.debugMode);
+  const bringToForeground = useAppStore(state => state.bringToForeground);
 
   // --- Store Selectors/Actions (Destructure them here for stability in callbacks) ---
   const {
@@ -1198,7 +1199,15 @@ export function InternetExplorerAppComponent({
 
             {/* Add foreground overlay */}
             {!isForeground && (
-              <div className="absolute inset-0 bg-transparent z-50" />
+              <div 
+                className="absolute inset-0 bg-transparent z-50"
+                onClick={() => bringToForeground("internet-explorer")}
+                onMouseDown={() => bringToForeground("internet-explorer")}
+                onTouchStart={() => bringToForeground("internet-explorer")}
+                onWheel={() => bringToForeground("internet-explorer")}
+                onDragStart={() => bringToForeground("internet-explorer")}
+                onKeyDown={() => bringToForeground("internet-explorer")}
+              />
             )}
 
             {/* Loading Bar uses store status */}
