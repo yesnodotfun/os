@@ -606,7 +606,6 @@ export function InternetExplorerAppComponent({
         // ---> END REMOVAL <---
 
         let urlToLoad = normalizedTargetUrl;
-        let requiresProxyCheck = false;
 
         if (newMode === "past") {
           try {
@@ -663,7 +662,6 @@ export function InternetExplorerAppComponent({
                 }
               } else {
                 urlToLoad = `/api/iframe-check?url=${encodeURIComponent(normalizedTargetUrl)}`;
-                requiresProxyCheck = true; // Proxy endpoint used
               }
             } else {
               console.warn(`[IE] iframe-check failed (${checkRes.status}), attempting direct.`);
@@ -676,36 +674,6 @@ export function InternetExplorerAppComponent({
           }
         }
         
-        // Pre-flight check for proxy URLs before setting finalUrl
-        // Skip pre-flight check for Wayback Machine URLs since we know they need proxying
-        if (requiresProxyCheck && !urlToLoad.includes('/web/')) {
-            try {
-                const proxyResponse = await fetch(urlToLoad, { signal: abortController.signal });
-                if (abortController.signal.aborted) return;
-                const contentType = proxyResponse.headers.get('content-type');
-                if (contentType && contentType.includes('application/json')) {
-                    const errorData = await proxyResponse.json() as ErrorResponse;
-                    if (errorData.error) {
-                        console.log('[IE] Detected proxy error response during pre-flight:', errorData);
-                        handleNavigationError(errorData, urlToLoad); // Use store action
-                        return;
-                    }
-                }
-                // If pre-flight succeeds, proceed with iframe load
-            } catch (proxyError) {
-                if (abortController.signal.aborted) return;
-                console.warn('[IE] Error pre-fetching proxy content:', proxyError);
-                handleNavigationError({ // Use store action
-                  error: true,
-                  type: "connection_error",
-                  status: 503,
-                  message: "Failed to connect to the proxy service.",
-                  details: proxyError instanceof Error ? proxyError.message : String(proxyError)
-                }, urlToLoad);
-                return;
-            }
-        }
-
         // Add cache buster if needed (check against store's finalUrl)
         if (urlToLoad === finalUrl) {
           urlToLoad = `${urlToLoad}${urlToLoad.includes("?") ? "&" : "?"}_t=${Date.now()}`;

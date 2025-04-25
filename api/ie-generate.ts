@@ -51,34 +51,52 @@ export const config = { runtime: "edge" };
 
 // --- Handler --------------------------------------------------------------
 
-const IE_SYSTEM_PROMPT = `The user is in Internet Explorer asking to time travel with website context and a past or future a year, you are a web designer specialized in turning present websites into past and futuristic coherent versions in story and design.
-Generate content for the URL path, the year, original site content, and use provided HTML as template if provided.
+// Function to generate the conditional system prompt
+const getConditionalSystemPrompt = (year: number | null): string => {
+  const currentYear = new Date().getFullYear();
+  let yearSpecificInstructions = "";
 
-For future years (after current year):
+  if (year === null) {
+    // Default case or handle error appropriately if year is required
+    yearSpecificInstructions = `Year not specified. Assume current year ${currentYear}.`;
+  } else if (year > currentYear) {
+    yearSpecificInstructions = `For the future year ${year}:
 - Redesign the website so it feels perfectly at home in the future context provided
 - Think boldly and creatively about future outcomes
 - Embrace the original brand, language, cultural context, aesthetics
 - Consider design trends and breakthroughs that could happen by then
 - Use simple colors, avoid gradients, use backdrop-blur, use simple animations
-
-For past years:
+- Use emojis or simple SVGs for icons`;
+  } else if (year < currentYear) {
+    yearSpecificInstructions = `For the past year ${year}:
 - Redesign the website to match the historical era
 - Consider how it would have been designed if it existed then
 - What technology and design tools would have been available (can be print, telegram, newspaper, etc.)
 - What typography, colors, and design elements were common
-- What cultural and artistic movements influenced design
+- What cultural and artistic movements influenced design`;
+  } else { // year === currentYear
+    yearSpecificInstructions = `For the current year ${year}:
+- Reflect the current state of the website's design and branding accurately.
+- Ensure the content is up-to-date and relevant for today.`;
+  }
+
+  return `The user is in ryOS Internet Explorer asking to time travel with website context and a specific year. You are Ryo, a visionary designer specialized in turning present websites into past and futuristic coherent versions in story and design.
+Generate content for the URL path, the year provided (${year ?? 'current'}), original site content, and use provided HTML as template if provided.
+
+${yearSpecificInstructions}
 
 If you think the entity may disappear due to changes, show a 404 or memorial page.
 
 DELIVERABLE REQUIREMENTS:
 1. Return a single, fully HTML page with only the body content, no <head> or <body> tags, no chat before or after.
 2. Use inline TailwindCSS utility classes; do not include <style> <link> tags.
-4. Use Three.js for 3D with <script> from cdn already loaded.
-5. Include the generated page title inside an HTML comment at the very beginning: <!-- TITLE: Your Generated Page Title -->
-6. Keep the layout responsive. 中文必須使用繁體中文並保持完整標點符號。
-7. For <img> tags, always try to reuse image URLs included in site context. Do NOT link to imgur or unknown placeholders.
-8. Map fonts: body -> font-geneva, headings (sans-serif) -> font-neuebit font-bold, serif -> font-mondwest, monospace -> font-monaco.
-9. Ensure hyperlinks/buttons use <a href="/..."> with real or plausible destinations.`;
+3. Use Three.js for 3D with <script> from cdn already loaded.
+4. Include the generated page title inside an HTML comment at the very beginning: <!-- TITLE: Your Generated Page Title -->
+5. Keep the layout responsive. 中文必須使用繁體中文並保持完整標點符號。
+6. For <img> tags, always try to reuse image URLs included in site context. Do NOT link to imgur or unknown placeholders.
+7. Map fonts: body -> font-geneva, headings (sans-serif) -> font-neuebit font-bold, serif -> font-mondwest, monospace -> font-monaco.
+8. Ensure hyperlinks/buttons use <a href="/..."> with real or plausible destinations.`;
+};
 
 export default async function handler(req: Request) {
   // CORS / Origin validation
@@ -123,18 +141,19 @@ export default async function handler(req: Request) {
     
     // Build a safe cache key using url/year present in query string or body
     const rawUrl = targetUrl || bodyUrl; // Get the url before normalization
-    const effectiveYear = targetYear || bodyYear;
+    const effectiveYearStr = targetYear || bodyYear;
+    const effectiveYear = effectiveYearStr ? parseInt(effectiveYearStr, 10) : null; // Parse year to number
 
     // Normalize the URL for the cache key
     const normalizedUrlForKey = normalizeUrlForCacheKey(rawUrl);
 
-    logRequest(req.method, req.url, `${rawUrl} (${effectiveYear})`, requestId); // Log original requested URL
+    logRequest(req.method, req.url, `${rawUrl} (${effectiveYearStr || 'N/A'})`, requestId); // Log original requested URL
 
     const { messages = [], model: bodyModel = DEFAULT_MODEL } = bodyData as any;
 
     // Use normalized URL for the cache key
-    const cacheKey = normalizedUrlForKey && effectiveYear ?
-      `${IE_CACHE_PREFIX}${encodeURIComponent(normalizedUrlForKey)}:${effectiveYear}` : null;
+    const cacheKey = normalizedUrlForKey && effectiveYearStr ?
+      `${IE_CACHE_PREFIX}${encodeURIComponent(normalizedUrlForKey)}:${effectiveYearStr}` : null;
 
     // Removed cache read to avoid duplicate generation; cache handled through iframe-check AI mode
 
@@ -161,9 +180,12 @@ export default async function handler(req: Request) {
 
     const selectedModel = getModelInstance(model as SupportedModel);
 
+    // Generate conditional system prompt
+    const systemPrompt = getConditionalSystemPrompt(effectiveYear);
+
     // Prepend IE system prompt
     const enrichedMessages = [
-      { role: "system", content: IE_SYSTEM_PROMPT },
+      { role: "system", content: systemPrompt },
       ...messages,
     ];
 

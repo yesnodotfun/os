@@ -343,11 +343,6 @@ export default function HtmlPreview({
   </script>
 `;
 
-    // Define the click interceptor script
-    const clickInterceptorScript = `
-<!-- Legacy click interceptor (now moved to head) -->
-`;
-
     // --- Start modification: Extract core HTML content ---
     const trimmedHtmlContent = htmlContent.trim();
     let coreHtmlContent = trimmedHtmlContent; // Default to use trimmed content
