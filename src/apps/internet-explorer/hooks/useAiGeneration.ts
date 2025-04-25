@@ -1,6 +1,6 @@
 import { useChat, type Message } from "ai/react";
 import { useState, useEffect, useRef } from "react";
-import { useInternetExplorerStore, DEFAULT_TIMELINE } from "@/stores/useInternetExplorerStore";
+import { useInternetExplorerStore, DEFAULT_TIMELINE, LanguageOption, LocationOption } from "@/stores/useInternetExplorerStore";
 import { useAppStore } from "@/stores/useAppStore";
 
 interface UseAiGenerationProps {
@@ -39,6 +39,47 @@ export function useAiGeneration({ onLoadingChange, customTimeline = {} }: UseAiG
   const loadSuccess = useInternetExplorerStore(state => state.loadSuccess);
   const loadError = useInternetExplorerStore(state => state.loadError);
   const timelineSettings = useInternetExplorerStore(state => state.timelineSettings);
+  // Get language and location from store
+  const language = useInternetExplorerStore(state => state.language);
+  const location = useInternetExplorerStore(state => state.location);
+
+  // Helper function to get language display name
+  const getLanguageDisplayName = (lang: LanguageOption): string => {
+    const languageMap: Record<LanguageOption, string> = {
+      auto: "Auto-detected",
+      english: "English",
+      chinese: "Chinese (Traditional)",
+      japanese: "Japanese",
+      korean: "Korean",
+      french: "French",
+      spanish: "Spanish",
+      portuguese: "Portuguese",
+      german: "German"
+    };
+    return languageMap[lang] || "Auto-detected";
+  };
+
+  // Helper function to get location display name
+  const getLocationDisplayName = (loc: LocationOption): string => {
+    const locationMap: Record<LocationOption, string> = {
+      auto: "Auto-detected",
+      united_states: "United States",
+      china: "China",
+      japan: "Japan",
+      korea: "South Korea",
+      france: "France",
+      spain: "Spain",
+      portugal: "Portugal",
+      germany: "Germany",
+      canada: "Canada",
+      uk: "United Kingdom",
+      india: "India",
+      brazil: "Brazil",
+      australia: "Australia",
+      russia: "Russia"
+    };
+    return locationMap[loc] || "Auto-detected";
+  };
 
   // Handler for when AI stream finishes
   const handleAiFinish = (message: Message) => {
@@ -222,12 +263,21 @@ export function useAiGeneration({ onLoadingChange, customTimeline = {} }: UseAiG
 
     const timelineContext = getTimelineContext(year);
     
+    // Add language and location context
+    const languageContext = language !== "auto" 
+      ? `\n- Primary Language: ${getLanguageDisplayName(language)}. The content should be primarily in ${getLanguageDisplayName(language)}.` 
+      : "";
+    
+    const locationContext = location !== "auto" 
+      ? `\n- Location Context: ${getLocationDisplayName(location)}. The content should be culturally relevant to ${getLocationDisplayName(location)}.` 
+      : "";
+    
     // Create a more inspirational prompt for AI‑generated future designs
     const prompt = `CONTEXT
 Below are details about the current website and the task:
 
 - Domain: ${domainName}
-- URL: ${normalizedTargetUrl}
+- URL: ${normalizedTargetUrl}${languageContext}${locationContext}
 ${currentHtmlContent
   ? `- The HTML content of the *previous* AI-generated page view for year ${year} is provided below. This is a navigation source - the user clicked a link in this page to navigate to the current URL:\n'''\n${currentHtmlContent.slice(0, 4000)}\n'''\n` 
   : existingContent 
@@ -267,6 +317,8 @@ IMPORTANT NAVIGATION CONTEXT:
           body: {
             url: normalizedTargetUrl,
             year,
+            language, // Include language in the API call
+            location, // Include location in the API call
           },
         }
       );

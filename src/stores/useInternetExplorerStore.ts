@@ -20,6 +20,10 @@ export interface HistoryEntry {
 export type NavigationMode = "past" | "now" | "future";
 export type NavigationStatus = "idle" | "loading" | "success" | "error";
 
+// Language and location options
+export type LanguageOption = "auto" | "english" | "chinese" | "japanese" | "korean" | "french" | "spanish" | "portuguese" | "german";
+export type LocationOption = "auto" | "united_states" | "china" | "japan" | "korea" | "france" | "spain" | "portugal" | "germany" | "canada" | "uk" | "india" | "brazil" | "australia" | "russia";
+
 // Default constants
 export const DEFAULT_URL = "https://apple.com";
 export const DEFAULT_YEAR = "2003";
@@ -199,6 +203,10 @@ interface InternetExplorerStore {
   history: HistoryEntry[];
   historyIndex: number;
   
+  // Language and location settings
+  language: LanguageOption;
+  location: LocationOption;
+  
   // Dialog states
   isTitleDialogOpen: boolean;
   newFavoriteTitle: string;
@@ -274,6 +282,10 @@ interface InternetExplorerStore {
   setErrorDetails: (details: ErrorResponse | null) => void; // New
   clearErrorDetails: () => void; // New specific action
   
+  // Language and location actions
+  setLanguage: (language: LanguageOption) => void;
+  setLocation: (location: LocationOption) => void;
+  
   // Utility functions
   getAiCacheKey: (url: string, year: string) => string;
   updateBrowserState: () => void;
@@ -309,6 +321,10 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
       favorites: DEFAULT_FAVORITES,
       history: [],
       historyIndex: -1,
+      
+      // Initialize language and location
+      language: "auto" as LanguageOption,
+      location: "auto" as LocationOption,
       
       isTitleDialogOpen: false,
       newFavoriteTitle: "",
@@ -541,7 +557,11 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
       setErrorDetails: (details) => set({ errorDetails: details }), // New
       clearErrorDetails: () => set({ errorDetails: null, error: null }), // New, also clear simple error
       
-      // Update system browser state
+      // Language and location actions
+      setLanguage: (language) => set({ language }),
+      setLocation: (location) => set({ location }),
+      
+      // Update browser state
       updateBrowserState: () => {
         // Stub remains empty, actual state is readable from the store
       }
@@ -555,6 +575,8 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
         history: state.history.slice(0, 50), // Limit persisted history size further
         aiCache: state.aiCache, // Consider limiting cache size too if it grows large
         timelineSettings: state.timelineSettings,
+        language: state.language, // Persist language setting
+        location: state.location, // Persist location setting
         // Don't persist transient state like dialogs, errorDetails, prefetchedTitle
       }),
     }

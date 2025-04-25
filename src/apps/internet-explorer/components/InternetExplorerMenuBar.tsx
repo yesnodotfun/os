@@ -5,10 +5,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
 import { AppProps } from "../../base/types";
 import { MenuBar } from "@/components/layout/MenuBar";
-import { Favorite, HistoryEntry } from "@/stores/useInternetExplorerStore";
+import { Favorite, HistoryEntry, LanguageOption, LocationOption } from "@/stores/useInternetExplorerStore";
+import { cn } from "@/lib/utils";
 
 interface InternetExplorerMenuBarProps extends Omit<AppProps, "onClose"> {
   onRefresh?: () => void;
@@ -33,6 +37,10 @@ interface InternetExplorerMenuBarProps extends Omit<AppProps, "onClose"> {
   canGoForward?: boolean;
   onClearHistory?: () => void;
   onEditFuture?: () => void;
+  language?: LanguageOption;
+  location?: LocationOption;
+  onLanguageChange?: (language: LanguageOption) => void;
+  onLocationChange?: (location: LocationOption) => void;
 }
 
 export function InternetExplorerMenuBar({
@@ -57,6 +65,10 @@ export function InternetExplorerMenuBar({
   canGoForward,
   onClearHistory,
   onEditFuture,
+  language = "auto",
+  location = "auto",
+  onLanguageChange,
+  onLocationChange,
 }: InternetExplorerMenuBarProps) {
   return (
     <MenuBar>
@@ -118,6 +130,218 @@ export function InternetExplorerMenuBar({
           >
             Stop
           </DropdownMenuItem>
+          <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
+          
+          {/* Language Submenu */}
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
+              Language
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className="min-w-[160px]">
+              <DropdownMenuItem
+                onClick={() => onLanguageChange?.("auto")}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+              >
+                <span className={cn(language !== "auto" && "pl-4")}>
+                  {language === "auto" ? "✓ Auto" : "Auto"}
+                </span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onLanguageChange?.("english")}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+              >
+                <span className={cn(language !== "english" && "pl-4")}>
+                  {language === "english" ? "✓ English" : "English"}
+                </span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onLanguageChange?.("chinese")}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+              >
+                <span className={cn(language !== "chinese" && "pl-4")}>
+                  {language === "chinese" ? "✓ Chinese" : "Chinese"}
+                </span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onLanguageChange?.("japanese")}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+              >
+                <span className={cn(language !== "japanese" && "pl-4")}>
+                  {language === "japanese" ? "✓ Japanese" : "Japanese"}
+                </span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onLanguageChange?.("korean")}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+              >
+                <span className={cn(language !== "korean" && "pl-4")}>
+                  {language === "korean" ? "✓ Korean" : "Korean"}
+                </span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onLanguageChange?.("french")}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+              >
+                <span className={cn(language !== "french" && "pl-4")}>
+                  {language === "french" ? "✓ French" : "French"}
+                </span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onLanguageChange?.("spanish")}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+              >
+                <span className={cn(language !== "spanish" && "pl-4")}>
+                  {language === "spanish" ? "✓ Spanish" : "Spanish"}
+                </span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onLanguageChange?.("portuguese")}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+              >
+                <span className={cn(language !== "portuguese" && "pl-4")}>
+                  {language === "portuguese" ? "✓ Portuguese" : "Portuguese"}
+                </span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onLanguageChange?.("german")}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+              >
+                <span className={cn(language !== "german" && "pl-4")}>
+                  {language === "german" ? "✓ German" : "German"}
+                </span>
+              </DropdownMenuItem>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+
+          {/* Location Submenu */}
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
+              Location
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className="min-w-[160px]">
+              <DropdownMenuItem
+                onClick={() => onLocationChange?.("auto")}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+              >
+                <span className={cn(location !== "auto" && "pl-4")}>
+                  {location === "auto" ? "✓ Auto" : "Auto"}
+                </span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onLocationChange?.("united_states")}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+              >
+                <span className={cn(location !== "united_states" && "pl-4")}>
+                  {location === "united_states" ? "✓ United States" : "United States"}
+                </span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onLocationChange?.("china")}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+              >
+                <span className={cn(location !== "china" && "pl-4")}>
+                  {location === "china" ? "✓ China" : "China"}
+                </span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onLocationChange?.("japan")}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+              >
+                <span className={cn(location !== "japan" && "pl-4")}>
+                  {location === "japan" ? "✓ Japan" : "Japan"}
+                </span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onLocationChange?.("korea")}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+              >
+                <span className={cn(location !== "korea" && "pl-4")}>
+                  {location === "korea" ? "✓ Korea" : "Korea"}
+                </span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onLocationChange?.("canada")}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+              >
+                <span className={cn(location !== "canada" && "pl-4")}>
+                  {location === "canada" ? "✓ Canada" : "Canada"}
+                </span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onLocationChange?.("uk")}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+              >
+                <span className={cn(location !== "uk" && "pl-4")}>
+                  {location === "uk" ? "✓ United Kingdom" : "United Kingdom"}
+                </span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onLocationChange?.("france")}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+              >
+                <span className={cn(location !== "france" && "pl-4")}>
+                  {location === "france" ? "✓ France" : "France"}
+                </span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onLocationChange?.("germany")}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+              >
+                <span className={cn(location !== "germany" && "pl-4")}>
+                  {location === "germany" ? "✓ Germany" : "Germany"}
+                </span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onLocationChange?.("spain")}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+              >
+                <span className={cn(location !== "spain" && "pl-4")}>
+                  {location === "spain" ? "✓ Spain" : "Spain"}
+                </span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onLocationChange?.("portugal")}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+              >
+                <span className={cn(location !== "portugal" && "pl-4")}>
+                  {location === "portugal" ? "✓ Portugal" : "Portugal"}
+                </span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onLocationChange?.("india")}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+              >
+                <span className={cn(location !== "india" && "pl-4")}>
+                  {location === "india" ? "✓ India" : "India"}
+                </span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onLocationChange?.("brazil")}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+              >
+                <span className={cn(location !== "brazil" && "pl-4")}>
+                  {location === "brazil" ? "✓ Brazil" : "Brazil"}
+                </span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onLocationChange?.("australia")}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+              >
+                <span className={cn(location !== "australia" && "pl-4")}>
+                  {location === "australia" ? "✓ Australia" : "Australia"}
+                </span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onLocationChange?.("russia")}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+              >
+                <span className={cn(location !== "russia" && "pl-4")}>
+                  {location === "russia" ? "✓ Russia" : "Russia"}
+                </span>
+              </DropdownMenuItem>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+          
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           <DropdownMenuItem
             onClick={onEditFuture}

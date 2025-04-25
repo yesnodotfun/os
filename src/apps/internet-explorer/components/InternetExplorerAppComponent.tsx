@@ -158,6 +158,8 @@ export function InternetExplorerAppComponent({
     errorDetails, 
     isResetFavoritesDialogOpen,
     isFutureSettingsDialogOpen,
+    language,
+    location,
 
     // Actions
     setUrl, setYear, navigateStart, setFinalUrl, loadSuccess, loadError, cancel,
@@ -172,6 +174,8 @@ export function InternetExplorerAppComponent({
     setResetFavoritesDialogOpen, // New
     setFutureSettingsDialogOpen, // New
     getCachedAiPage, cacheAiPage, // Keep this one, used in handleNavigate
+    setLanguage,
+    setLocation,
   } = useInternetExplorerStore();
 
   // Unified AbortController for cancellations
@@ -1160,6 +1164,10 @@ export function InternetExplorerAppComponent({
         onClearHistory={() => setClearHistoryDialogOpen(true)} // Use store action
         onClose={onClose}
         onEditFuture={() => setFutureSettingsDialogOpen(true)} // Use store action
+        language={language}
+        location={location}
+        onLanguageChange={setLanguage}
+        onLocationChange={setLocation}
       />
       <WindowFrame
         title={displayTitle}
