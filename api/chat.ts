@@ -234,7 +234,7 @@ DELIVERABLE REQUIREMENTS:
 6. Keep the layout responsive. Keep text in Proper Casing (not all lowercase like ryo). 中文必須使用繁體中文輸出，並保持完整標點符號。
 7. For <img> tags, always try to reuse image urls included in context or wikimedia, DO NOT link to imgur or unknown image urls or inline data:image base64
 9. For fonts, use these CSS classes to replace Arial/Helvetica/sans-serif with "font-geneva" for body, "font-neuebit font-bold" for headings. Replace Times/Georgia/serif with "font-mondwest". Replace Courrier/Menlo/Monaco/monospace with "font-monaco".
-10. For buttons and hyperlinks, use <a href="..."> tags. All links must include a valid href attribute e.g., "/about", "https://ryo.lu/products/cool-item" instead of using placeholders like "#" or "". 
+10. For buttons and hyperlinks, use <a href="/..."> tags. All links must include a valid href of real or hypothetical page e.g., "/about", "https://ryo.lu/products/cool-item" instead of using placeholders like "#" or "". 
 
 For future designs:
 - Keep visuals minimal but futuristic
