@@ -195,6 +195,36 @@ export default async function handler(req: Request) {
         logInfo(requestId, "Forcing proxy mode for Wayback URL");
         mode = "proxy";
     }
+
+    // Check Wayback cache if this is a Wayback request
+    try {
+      logInfo(requestId, `Initializing Wayback cache check for ${normalizedUrl} (${year}/${month})`);
+      const redis = new (await import("@upstash/redis")).Redis({
+        url: process.env.REDIS_KV_REST_API_URL as string,
+        token: process.env.REDIS_KV_REST_API_TOKEN as string,
+      });
+      const WAYBACK_CACHE_PREFIX = "wayback:cache:";
+      const normalizedUrlForKey = normalizeUrlForCacheKey(normalizedUrl);
+      if (normalizedUrlForKey) {
+        const cacheKey = `${WAYBACK_CACHE_PREFIX}${encodeURIComponent(normalizedUrlForKey)}:${year}${month}`;
+        logInfo(requestId, `Generated Wayback cache key: ${cacheKey}`);
+        const cachedContent = await redis.get(cacheKey) as string | null;
+        if (cachedContent) {
+          logInfo(requestId, `Wayback Cache HIT for ${cacheKey} (content length: ${cachedContent.length})`);
+          const headers = new Headers();
+          headers.set("Content-Type", "text/html; charset=utf-8");
+          headers.set("Access-Control-Allow-Origin", "*");
+          headers.set("X-Wayback-Cache", "HIT");
+          return new Response(cachedContent, { headers });
+        }
+        logInfo(requestId, `Wayback Cache MISS for ${cacheKey}, proceeding with Wayback Machine request`);
+      } else {
+        logInfo(requestId, `URL normalization failed for Wayback cache: ${normalizedUrl}`);
+      }
+    } catch (e) {
+      logError(requestId, `Wayback cache check failed for ${normalizedUrl} (${year}/${month})`, e);
+      // Continue with normal flow if cache check fails
+    }
   }
 
   // Force proxy mode for auto-proxy domains only if NOT a Wayback request
@@ -435,6 +465,28 @@ export default async function handler(req: Request) {
           // Add the extracted title to a custom header (URL-encoded)
           if (pageTitle) {
             headers.set("X-Proxied-Page-Title", encodeURIComponent(pageTitle));
+          }
+
+          if (isWayback && contentType.includes("text/html")) {
+            try {
+              logInfo(requestId, `Attempting to cache Wayback content for ${normalizedUrl} (${year}/${month})`);
+              const redis = new (await import("@upstash/redis")).Redis({
+                url: process.env.REDIS_KV_REST_API_URL as string,
+                token: process.env.REDIS_KV_REST_API_TOKEN as string,
+              });
+              const WAYBACK_CACHE_PREFIX = "wayback:cache:";
+              const normalizedUrlForKey = normalizeUrlForCacheKey(normalizedUrl);
+              if (normalizedUrlForKey) {
+                const cacheKey = `${WAYBACK_CACHE_PREFIX}${encodeURIComponent(normalizedUrlForKey)}:${year}${month}`;
+                logInfo(requestId, `Writing to Wayback cache key: ${cacheKey} (content length: ${html.length})`);
+                await redis.set(cacheKey, html);
+                logInfo(requestId, `Successfully cached Wayback content for ${cacheKey}`);
+              } else {
+                logInfo(requestId, `Skipped Wayback caching - URL normalization failed: ${normalizedUrl}`);
+              }
+            } catch (cacheErr) {
+              logError(requestId, `Failed to cache Wayback content for ${normalizedUrl} (${year}/${month})`, cacheErr);
+            }
           }
 
           return new Response(html, {
