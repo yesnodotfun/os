@@ -157,7 +157,14 @@ export function ControlPanelsAppComponent({
   const [synthPreset, setSynthPreset] = useState("classic");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { formatFileSystem } = useFileSystem();
-  const { debugMode, setDebugMode, aiModel, setAiModel } = useAppStore();
+  const { 
+    debugMode, 
+    setDebugMode, 
+    aiModel, 
+    setAiModel,
+    terminalSoundsEnabled,
+    setTerminalSoundsEnabled 
+  } = useAppStore();
 
   useEffect(() => {
     setUiSoundsEnabled(loadUISoundsEnabled());
@@ -505,6 +512,19 @@ export function ControlPanelsAppComponent({
                   <Switch
                     checked={typingSynthEnabled}
                     onCheckedChange={handleTypingSynthChange}
+                    className="data-[state=checked]:bg-[#000000]"
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col gap-1">
+                    <Label>Terminal & IE Ambient Sounds</Label>
+                    <Label className="text-[11px] text-gray-600 font-geneva-12">
+                      Music for time travel and AI generation
+                    </Label>
+                  </div>
+                  <Switch
+                    checked={terminalSoundsEnabled}
+                    onCheckedChange={setTerminalSoundsEnabled}
                     className="data-[state=checked]:bg-[#000000]"
                   />
                 </div>

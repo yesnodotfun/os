@@ -40,6 +40,8 @@ interface AppStoreState extends AppManagerState {
   setDebugMode: (enabled: boolean) => void;
   aiModel: AIModel;
   setAiModel: (model: AIModel) => void;
+  terminalSoundsEnabled: boolean;
+  setTerminalSoundsEnabled: (enabled: boolean) => void;
   bringToForeground: (appId: AppId | "") => void;
   toggleApp: (appId: AppId) => void;
   navigateToNextApp: (currentAppId: AppId) => void;
@@ -54,6 +56,8 @@ export const useAppStore = create<AppStoreState>()(
       setDebugMode: (enabled) => set({ debugMode: enabled }),
       aiModel: null, // Default model set to null for client-side
       setAiModel: (model) => set({ aiModel: model }),
+      terminalSoundsEnabled: true, // Default to true for terminal/IE sounds
+      setTerminalSoundsEnabled: (enabled) => set({ terminalSoundsEnabled: enabled }),
 
       bringToForeground: (appId) => {
         set((state) => {
@@ -164,6 +168,7 @@ export const useAppStore = create<AppStoreState>()(
         apps: state.apps,
         debugMode: state.debugMode,
         aiModel: state.aiModel,
+        terminalSoundsEnabled: state.terminalSoundsEnabled,
       }),
     }
   )

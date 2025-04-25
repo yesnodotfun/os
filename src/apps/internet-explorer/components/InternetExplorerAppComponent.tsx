@@ -142,8 +142,9 @@ export function InternetExplorerAppComponent({
   onClose,
   isForeground,
 }: AppProps) {
-  // Add debugMode from useAppStore
+  // Add debugMode and terminalSoundsEnabled from useAppStore
   const debugMode = useAppStore(state => state.debugMode);
+  const terminalSoundsEnabled = useAppStore(state => state.terminalSoundsEnabled);
   const bringToForeground = useAppStore(state => state.bringToForeground);
 
   // --- Store Selectors/Actions (Destructure them here for stability in callbacks) ---
@@ -490,6 +491,28 @@ export function InternetExplorerAppComponent({
     try {
       if (newMode === "future" || (newMode === "past" && parseInt(targetYearParam) <= 1995)) {
         // AI generation branch (uses hook, updates store via loadSuccess/loadError/cacheAiPage within hook or here)
+        
+        // Check for cached AI page first
+        const cachedEntry = getCachedAiPage(normalizedTargetUrl, targetYearParam);
+        if (cachedEntry) {
+          console.log(`[IE] Using cached AI page for ${normalizedTargetUrl} in ${targetYearParam}`);
+          const favicon = `https://www.google.com/s2/favicons?domain=${new URL(normalizedTargetUrl).hostname}&sz=32`;
+          loadSuccess({ 
+            aiGeneratedHtml: cachedEntry.html, 
+            title: cachedEntry.title || normalizedTargetUrl, 
+            targetUrl: normalizedTargetUrl, 
+            targetYear: targetYearParam, 
+            favicon: favicon, 
+            addToHistory: true 
+          });
+          return;
+        }
+        
+        // No cached content, need to generate - start music now
+        if (playElevatorMusic && terminalSoundsEnabled) {
+          playElevatorMusic(newMode);
+        }
+        
         try {
           await generateFuturisticWebsite(
             normalizedTargetUrl,
@@ -1185,6 +1208,7 @@ export function InternetExplorerAppComponent({
                   stopElevatorMusic={stopElevatorMusic}
                   playDingSound={playDingSound}
                   baseUrlForAiContent={url} // Pass the original URL as base
+                  mode={mode} // Pass the mode from store state
                 />
               </div>
             ) : (

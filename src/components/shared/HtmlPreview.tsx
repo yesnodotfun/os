@@ -8,6 +8,7 @@ import {
   saveHtmlPreviewSplit,
 } from "../../utils/storage";
 import { useSound, Sounds } from "../../hooks/useSound";
+import { useAppStore } from "@/stores/useAppStore";
 
 // Create a singleton highlighter instance
 let highlighterPromise: Promise<shiki.Highlighter> | null = null;
@@ -134,13 +135,14 @@ interface HtmlPreviewProps {
   minHeight?: number | string;
   initialFullScreen?: boolean;
   className?: string;
-  playElevatorMusic?: () => void;
+  playElevatorMusic?: (mode?: "past" | "future" | "now") => void;
   stopElevatorMusic?: () => void;
   playDingSound?: () => void;
   maximizeSound?: { play: () => void };
   minimizeSound?: { play: () => void };
   isInternetExplorer?: boolean;
   baseUrlForAiContent?: string;
+  mode?: "past" | "future" | "now";
 }
 
 export default function HtmlPreview({
@@ -158,6 +160,7 @@ export default function HtmlPreview({
   minimizeSound: propMinimizeSound,
   isInternetExplorer = false,
   baseUrlForAiContent,
+  mode = "now",
 }: HtmlPreviewProps) {
   const [isFullScreen, setIsFullScreen] = useState(initialFullScreen);
   const [copySuccess, setCopySuccess] = useState(false);
@@ -186,6 +189,7 @@ export default function HtmlPreview({
   const finalProcessedHtmlRef = useRef<string | null>(null);
   const [streamPreviewHtml, setStreamPreviewHtml] = useState<string>(""); // NEW state to hold live HTML preview during streaming
   const lastStreamRenderRef = useRef<number>(0); // To throttle updates
+  const terminalSoundsEnabled = useAppStore(state => state.terminalSoundsEnabled);
 
   // Ensure base URL has a protocol
   const normalizedBaseUrl = baseUrlForAiContent
@@ -469,29 +473,32 @@ export default function HtmlPreview({
     };
   }, [showCode, finalProcessedHtmlRef.current]); // Depend on showCode and the final content ref
 
-  // Play elevator music when streaming starts, stop when streaming ends
+  // Play music and cancel when unmounting for streaming content
   useEffect(() => {
-    if (isStreaming && playElevatorMusic) {
-      playElevatorMusic();
-    } else if (prevStreamingRef.current && !isStreaming) {
-      // If we were streaming but now we're not, stop music and play ding
-      if (stopElevatorMusic) {
-        stopElevatorMusic();
-      }
-      if (playDingSound) {
-        playDingSound();
-      }
+    if (isStreaming && playElevatorMusic && terminalSoundsEnabled) {
+      playElevatorMusic(mode);
+      return () => {
+        if (stopElevatorMusic) {
+          stopElevatorMusic();
+        }
+      };
     }
+  }, [isStreaming, playElevatorMusic, stopElevatorMusic, mode, terminalSoundsEnabled]);
 
+  // Play a completion sound when streaming ends
+  useEffect(() => {
+    if (
+      prevStreamingRef.current &&
+      !isStreaming &&
+      playDingSound &&
+      stopElevatorMusic &&
+      terminalSoundsEnabled
+    ) {
+      playDingSound();
+      stopElevatorMusic();
+    }
     prevStreamingRef.current = isStreaming;
-
-    // Clean up on unmount
-    return () => {
-      if (stopElevatorMusic) {
-        stopElevatorMusic();
-      }
-    };
-  }, [isStreaming, playElevatorMusic, stopElevatorMusic, playDingSound]);
+  }, [isStreaming, playDingSound, stopElevatorMusic, terminalSoundsEnabled]);
 
   const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
