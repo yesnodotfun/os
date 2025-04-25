@@ -36,7 +36,6 @@ export function useAiGeneration({ onLoadingChange, customTimeline = {} }: UseAiG
   
   // Use the Zustand store for caching and updating the store
   const cacheAiPage = useInternetExplorerStore(state => state.cacheAiPage);
-  const getCachedAiPage = useInternetExplorerStore(state => state.getCachedAiPage);
   const loadSuccess = useInternetExplorerStore(state => state.loadSuccess);
   const loadError = useInternetExplorerStore(state => state.loadError);
   const timelineSettings = useInternetExplorerStore(state => state.timelineSettings);
