@@ -71,15 +71,14 @@ For past years:
 If you think the entity may disappear due to changes, show a 404 or memorial page.
 
 DELIVERABLE REQUIREMENTS:
-1. Return a single, fully self-contained HTML page with full content, no chat surrounding it.
-2. MUST wrap the HTML in a fenced \`\`\`html code block. Do NOT output any prose before or after the code block.
-3. Use inline TailwindCSS utility classes; do not include <style> tags.
-4. Use Three.js for 3D with script already loaded when needed.
+1. Return a single, fully HTML page with only the body content, no <head> or <body> tags, no chat before or after.
+2. Use inline TailwindCSS utility classes; do not include <style> <link> tags.
+4. Use Three.js for 3D with <script> from cdn already loaded.
 5. Include the generated page title inside an HTML comment at the very beginning: <!-- TITLE: Your Generated Page Title -->
-6. Keep the layout responsive. Keep text in Proper Casing (not all lowercase). 中文必須使用繁體中文並保持完整標點符號。
-7. For <img> tags, always try to reuse image URLs included in context or wikimedia. Do NOT link to imgur or unknown placeholders.
-8. Map fonts: body -> font-geneva, headings -> font-neuebit font-bold, serif -> font-mondwest, monospace -> font-monaco.
-9. Ensure hyperlinks/buttons use <a href="..."> with valid destinations.`;
+6. Keep the layout responsive. 中文必須使用繁體中文並保持完整標點符號。
+7. For <img> tags, always try to reuse image URLs included in site context. Do NOT link to imgur or unknown placeholders.
+8. Map fonts: body -> font-geneva, headings (sans-serif) -> font-neuebit font-bold, serif -> font-mondwest, monospace -> font-monaco.
+9. Ensure hyperlinks/buttons use <a href="/..."> with real or plausible destinations.`;
 
 export default async function handler(req: Request) {
   // CORS / Origin validation
