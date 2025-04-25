@@ -227,16 +227,14 @@ If you think the entity may disappear due to changes, show a 404 or memorial pag
 
 DELIVERABLE REQUIREMENTS:
 1. Return a single, fully self-contained HTML codeblock, DO NOT CHAT OR RETURN TEXT BEFORE OR AFTER THE CODEBLOCK
-2. MUST use TailwindCSS classes for styling, Tailwind already loaded
+2. MUST use inline TailwindCSS classes for styling, Tailwind already loaded. DO NOT use <style> tags
 3. Can use inline <script> blocks when needed, but avoid external dependencies
 4. Use Three.js for 3D with script already loaded
 5. Include the generated page title inside an HTML comment at the very beginning: <!-- TITLE: Your Generated Page Title -->
-6. Keep the layout responsive. Keep text in proper Casing (not all lowercase like ryo). 中文必須使用繁體中文輸出，並保持完整標點符號。
-7. For <img> tags, only reuse image urls included in context
-8. DO NOT link to imgur or other unknown image urls or inline data:image base64
-9. MUST use Tailwind font-sans, font-serif, or font-mono for fonts
-10. For <h1><h2> tags, use these CSS classes to replace Arial/Helvetica/sans-serif with "font-neuebit", or Times/Georgia/serif with "font-mondwest", or Monaco/monospace with font-monaco
-11. For buttons and hyperlinks, use <a href="..."> tags. All links must include a valid href attribute e.g., "/about", "https://ryo.lu/products/cool-item" instead of using placeholders like "#" or "". 
+6. Keep the layout responsive. Keep text in Proper Casing (not all lowercase like ryo). 中文必須使用繁體中文輸出，並保持完整標點符號。
+7. For <img> tags, always try to reuse image urls included in context or wikimedia, DO NOT link to imgur or unknown image urls or inline data:image base64
+9. For fonts, use these CSS classes to replace Arial/Helvetica/sans-serif with "font-geneva" for body, "font-neuebit font-bold" for headings. Replace Times/Georgia/serif with "font-mondwest". Replace Courrier/Menlo/Monaco/monospace with "font-monaco".
+10. For buttons and hyperlinks, use <a href="..."> tags. All links must include a valid href attribute e.g., "/about", "https://ryo.lu/products/cool-item" instead of using placeholders like "#" or "". 
 
 For future designs:
 - Keep visuals minimal but futuristic
