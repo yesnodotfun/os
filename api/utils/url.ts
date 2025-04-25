@@ -18,8 +18,8 @@ export function normalizeUrlForCacheKey(url: string | undefined | null): string 
         keyPath = ''; // Treat root '/' as an empty path for key generation consistency
     }
 
-    // Reconstruct the normalized URL without query params or hash
-    const keyBase = `${parsed.origin}${keyPath}`;
+    // Reconstruct the normalized URL without query params but include hash
+    const keyBase = `${parsed.origin}${keyPath}${parsed.hash}`;
     return keyBase;
 
   } catch (e) {
