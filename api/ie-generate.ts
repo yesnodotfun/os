@@ -1,11 +1,37 @@
 import { streamText, smoothStream } from "ai";
 import { SupportedModel, DEFAULT_MODEL, getModelInstance } from "./utils/aiModels";
+import { Redis } from "@upstash/redis";
 
 // Allowed origins for API requests (reuse list from chat.ts)
 const ALLOWED_ORIGINS = new Set([
   "https://os.ryo.lu",
   "http://localhost:3000",
 ]);
+
+// After ALLOWED_ORIGINS const block, add Redis setup and cache prefix
+
+const redis = new Redis({
+  url: process.env.REDIS_KV_REST_API_URL as string,
+  token: process.env.REDIS_KV_REST_API_TOKEN as string,
+});
+
+const IE_CACHE_PREFIX = "ie:cache:"; // Key prefix for stored generated pages
+
+// --- Logging Utilities ---------------------------------------------------
+
+const logRequest = (method: string, url: string, action: string | null, id: string) => {
+  console.log(`[${id}] ${method} ${url} - Action: ${action || 'none'}`);
+};
+
+const logInfo = (id: string, message: string, data?: unknown) => {
+  console.log(`[${id}] INFO: ${message}`, data ?? '');
+};
+
+const logError = (id: string, message: string, error: unknown) => {
+  console.error(`[${id}] ERROR: ${message}`, error);
+};
+
+const generateRequestId = (): string => Math.random().toString(36).substring(2, 10);
 
 // --- Utility Functions ----------------------------------------------------
 
@@ -78,10 +104,33 @@ export default async function handler(req: Request) {
   }
 
   try {
-    const url = new URL(req.url);
-    const queryModel = url.searchParams.get("model") as SupportedModel | null;
+    const requestId = generateRequestId();
+    const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    const urlObj = new URL(req.url);
+    logRequest(req.method, req.url, 'ie-generate', requestId);
 
-    const { messages = [], model: bodyModel = DEFAULT_MODEL } = await req.json();
+    const queryModel = urlObj.searchParams.get("model") as SupportedModel | null;
+    // Extract caching parameters from query string
+    const targetUrl = urlObj.searchParams.get("url");
+    const targetYear = urlObj.searchParams.get("year");
+    const forceGenerate = urlObj.searchParams.get("force") === "true";
+
+    // Parse JSON body once
+    const bodyData = await req.json().catch(() => ({}));
+
+    const bodyUrl = (bodyData as any)?.url as string | undefined;
+    const bodyYear = (bodyData as any)?.year as string | undefined;
+
+    const { messages = [], model: bodyModel = DEFAULT_MODEL } = bodyData as any;
+
+    // Build a safe cache key using url/year present in query string or body
+    const effectiveUrl = targetUrl || bodyUrl;
+    const effectiveYear = targetYear || bodyYear;
+
+    const cacheKey = effectiveUrl && effectiveYear ?
+      `${IE_CACHE_PREFIX}${encodeURIComponent(effectiveUrl)}:${effectiveYear}` : null;
+
+    // Removed cache read to avoid duplicate generation; cache handled through iframe-check AI mode
 
     const model = queryModel || bodyModel;
 
@@ -119,6 +168,38 @@ export default async function handler(req: Request) {
       temperature: 0.7,
       maxTokens: 6000,
       experimental_transform: smoothStream(),
+      onFinish: async ({ text }) => {
+        if (!cacheKey) {
+          logInfo(requestId, 'No cacheKey available, skipping cache save');
+          return;
+        }
+        try {
+          // Attempt to extract HTML inside fenced block
+          let cleaned = text.trim();
+          const blockMatch = cleaned.match(/```(?:html)?\s*([\s\S]*?)```/);
+          if (blockMatch) {
+            cleaned = blockMatch[1].trim();
+          } else {
+            // Remove any stray fences if present
+            cleaned = cleaned.replace(/```(?:html)?\s*/g, "").replace(/```/g, "").trim();
+          }
+          // Remove duplicate TITLE comments beyond first
+          const titleCommentMatch = cleaned.match(/<!--\s*TITLE:[\s\S]*?-->/);
+          if (titleCommentMatch) {
+            const titleComment = titleCommentMatch[0];
+            // Remove any additional copies of title comment
+            cleaned = titleComment + cleaned.replace(new RegExp(titleComment, "g"), "");
+          }
+          await redis.lpush(cacheKey, cleaned);
+          await redis.ltrim(cacheKey, 0, 4);
+          logInfo(requestId, `Cached result for ${cacheKey} (length=${cleaned.length})`);
+          const duration = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - startTime;
+          logInfo(requestId, `Request completed in ${duration.toFixed(2)}ms (generated)`);
+        } catch (cacheErr) {
+          logError(requestId, 'Cache write error', cacheErr);
+          logInfo(requestId, 'Failed to cache HTML, length', text?.length);
+        }
+      },
     });
 
     const response = result.toDataStreamResponse();
@@ -126,12 +207,15 @@ export default async function handler(req: Request) {
     const headers = new Headers(response.headers);
     headers.set("Access-Control-Allow-Origin", validOrigin);
 
-    return new Response(response.body, {
+    const resp = new Response(response.body, {
       status: response.status,
       headers,
     });
+
+    return resp;
   } catch (error) {
-    console.error("IE Generate API error:", error);
+    const requestId = generateRequestId(); // fallback id
+    logError(requestId, 'IE Generate API error', error);
 
     if (error instanceof SyntaxError) {
       return new Response(`Bad Request: Invalid JSON - ${error.message}`, {

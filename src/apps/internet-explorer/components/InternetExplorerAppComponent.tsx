@@ -171,7 +171,7 @@ export function InternetExplorerAppComponent({
     clearErrorDetails,
     setResetFavoritesDialogOpen, // New
     setFutureSettingsDialogOpen, // New
-    getCachedAiPage, // Keep this one, used in handleNavigate
+    getCachedAiPage, cacheAiPage, // Keep this one, used in handleNavigate
   } = useInternetExplorerStore();
 
   // Unified AbortController for cancellations
@@ -492,20 +492,21 @@ export function InternetExplorerAppComponent({
       if (newMode === "future" || (newMode === "past" && parseInt(targetYearParam) <= 1995)) {
         // AI generation branch (uses hook, updates store via loadSuccess/loadError/cacheAiPage within hook or here)
         
-        // Check for cached AI page first
-        const cachedEntry = getCachedAiPage(normalizedTargetUrl, targetYearParam);
-        if (cachedEntry && !forceRegenerate) {
-          console.log(`[IE] Using cached AI page for ${normalizedTargetUrl} in ${targetYearParam}`);
-          const favicon = `https://www.google.com/s2/favicons?domain=${new URL(normalizedTargetUrl).hostname}&sz=32`;
-          loadSuccess({ 
-            aiGeneratedHtml: cachedEntry.html, 
-            title: cachedEntry.title || normalizedTargetUrl, 
-            targetUrl: normalizedTargetUrl, 
-            targetYear: targetYearParam, 
-            favicon: favicon, 
-            addToHistory: true 
-          });
-          return;
+        // Attempt remote AI cache via iframe-check (only if not force regeneration)
+        if (!forceRegenerate) {
+          try {
+            const res = await fetch(`/api/iframe-check?mode=ai&url=${encodeURIComponent(normalizedTargetUrl)}&year=${targetYearParam}`);
+            if (res.ok && (res.headers.get("content-type")||"").includes("text/html")) {
+              const html = await res.text();
+              const titleMatch = html.match(/^<!--\s*TITLE:\s*(.*?)\s*-->/);
+              const parsedTitle = titleMatch ? titleMatch[1].trim() : null;
+              const cleanHtml = html.replace(/^<!--\s*TITLE:.*?-->\s*\n?/, "");
+              cacheAiPage(normalizedTargetUrl, targetYearParam, cleanHtml, parsedTitle || normalizedTargetUrl);
+              const favicon = `https://www.google.com/s2/favicons?domain=${new URL(normalizedTargetUrl).hostname}&sz=32`;
+              loadSuccess({ aiGeneratedHtml: cleanHtml, title: parsedTitle || normalizedTargetUrl, targetUrl: normalizedTargetUrl, targetYear: targetYearParam, favicon, addToHistory: true });
+              return;
+            }
+          } catch(e){ console.warn('[IE] AI iframe cache fetch failed',e); }
         }
         
         // No cached content, need to generate - start music now
@@ -762,16 +763,9 @@ export function InternetExplorerAppComponent({
   }, [clearFavorites, setClearFavoritesDialogOpen]);
 
   const handleRefresh = useCallback(() => {
-    // Clear any existing navigation
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    if (iframeRef.current) {
-      iframeRef.current.src = 'about:blank';
-    }
-    
-    // Navigate with force refresh
-    handleNavigate(url, year, true);
+    if (abortControllerRef.current) abortControllerRef.current.abort();
+    if (iframeRef.current) iframeRef.current.src = 'about:blank';
+    handleNavigate(url, year, true); // always force regenerate / bypass cache
   }, [handleNavigate, url, year]);
 
   const handleStop = useCallback(() => {
@@ -863,13 +857,6 @@ export function InternetExplorerAppComponent({
     }
   }, [isWindowOpen, stopElevatorMusic]);
 
-  // --- Remove Effect to persist navigation state --- 
-  // useEffect(() => {
-  //   if (status === 'success' && url && year) {
-  //     updateBrowserState(); // Moved to loadSuccess action
-  //   }
-  // }, [status, url, year, updateBrowserState]);
-
   // Effect to check for scrollable favorites (Keep this, depends on DOM)
   useEffect(() => {
     const checkScroll = () => {
@@ -922,6 +909,50 @@ export function InternetExplorerAppComponent({
       }
     };
   }, []); // Run only once on mount
+
+  // Effect to stop elevator music when all loading is finished (including cached loads)
+  useEffect(() => {
+    if (!isAiLoading && !isFetchingWebsiteContent && status !== "loading") {
+      if (stopElevatorMusic) {
+        stopElevatorMusic();
+      }
+    }
+  }, [isAiLoading, isFetchingWebsiteContent, status, stopElevatorMusic]);
+
+  // --- Remove Effect to persist navigation state --- 
+  // useEffect(() => {
+  //   if (status === 'success' && url && year) {
+  //     updateBrowserState(); // Moved to loadSuccess action
+  //   }
+  // }, [status, url, year, updateBrowserState]);
+
+  // Effect to check for scrollable favorites (Keep this, depends on DOM)
+  useEffect(() => {
+    const checkScroll = () => {
+      const container = favoritesContainerRef.current;
+      if (container) {
+        const hasMore = container.scrollWidth > container.clientWidth &&
+          container.scrollLeft < container.scrollWidth - container.clientWidth - 1; // Add tolerance
+        setHasMoreToScroll(hasMore);
+      }
+    };
+    const container = favoritesContainerRef.current;
+    let resizeObserver: ResizeObserver | null = null;
+    if (container) {
+      container.addEventListener("scroll", checkScroll);
+      resizeObserver = new ResizeObserver(checkScroll);
+      resizeObserver.observe(container);
+      checkScroll(); // Initial check
+    }
+    return () => {
+      if (container) {
+        container.removeEventListener("scroll", checkScroll);
+      }
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
+    };
+  }, [favorites]); // Re-run when favorites change (or on mount)
 
   // --- Remove Effect to sync error state --- 
   // useEffect(() => {

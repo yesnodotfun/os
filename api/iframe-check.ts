@@ -116,6 +116,39 @@ export default async function handler(req: Request) {
     mode = "proxy";
   }
 
+  // --- AI cache retrieval mode ---
+  if (mode === "ai") {
+    const aiUrl = normalizedUrl;
+    if (!year) {
+      return new Response(JSON.stringify({ error: "Missing year" }), { status: 400, headers: { "Content-Type": "application/json" } });
+    }
+
+    try {
+      const redis = new (await import("@upstash/redis")).Redis({
+        url: process.env.REDIS_KV_REST_API_URL as string,
+        token: process.env.REDIS_KV_REST_API_TOKEN as string,
+      });
+      const IE_CACHE_PREFIX = "ie:cache:";
+      const key = `${IE_CACHE_PREFIX}${encodeURIComponent(aiUrl)}:${year}`;
+      const html = (await redis.lindex(key, 0)) as string | null;
+      if (html) {
+        return new Response(html, {
+          headers: {
+            "Content-Type": "text/html; charset=utf-8",
+            "Access-Control-Allow-Origin": "*",
+            "X-AI-Cache": "HIT",
+          },
+        });
+      }
+      return new Response(JSON.stringify({ aiCache: false }), {
+        status: 404,
+        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+      });
+    } catch (e) {
+      return new Response(JSON.stringify({ error: (e as Error).message }), { status: 500, headers: { "Content-Type": "application/json" } });
+    }
+  }
+
   // -------------------------------
   // Helper: perform header‑only check
   // -------------------------------

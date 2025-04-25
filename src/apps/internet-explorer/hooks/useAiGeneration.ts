@@ -146,7 +146,7 @@ export function useAiGeneration({ onLoadingChange, customTimeline = {} }: UseAiG
   const generateFuturisticWebsite = async (
     url: string,
     year: string,
-    forceRegenerate = false,
+    _forceRegenerate = false,
     signal?: AbortSignal,
     prefetchedTitle?: string | null,
     currentHtmlContent?: string | null
@@ -165,31 +165,8 @@ export function useAiGeneration({ onLoadingChange, customTimeline = {} }: UseAiG
     generatingUrlRef.current = normalizedTargetUrl;
     generatingYearRef.current = year;
 
-    // Check cache first unless force regenerating
-    if (!forceRegenerate) {
-      // Use normalizedTargetUrl for cache check
-      const cachedEntry = getCachedAiPage(normalizedTargetUrl, year);
-      if (cachedEntry) {
-        console.log(`[IE] Using cached AI page for ${normalizedTargetUrl} in ${year}`);
-        setAiGeneratedHtml(cachedEntry.html);
-        // Update the store directly when using cached content, including title and history info
-        // Use normalizedTargetUrl here too
-        const favicon = `https://www.google.com/s2/favicons?domain=${new URL(normalizedTargetUrl.startsWith("http") ? normalizedTargetUrl : `https://${normalizedTargetUrl}`).hostname}&sz=32`;
-        loadSuccess({ 
-          aiGeneratedHtml: cachedEntry.html, 
-          title: cachedEntry.title || normalizedTargetUrl, // Use normalized
-          targetUrl: normalizedTargetUrl, // Use normalized
-          targetYear: year, 
-          favicon: favicon, 
-          addToHistory: true 
-        });
-        isGenerationComplete.current = true;
-        return;
-      } else {
-        console.log(`[IE] No cached AI page found for ${normalizedTargetUrl} in ${year}, generating new content`);
-      }
-    }
-
+    // Removed remote cache fetch to avoid duplicate API calls; cache handled server-side during streaming
+    
     // Clear any existing AI-generated content
     setAiGeneratedHtml(null);
     
@@ -277,7 +254,15 @@ ${timelineContext}`;
       }
       
       // Send message to AI - the response will be handled by the useEffect
-      await appendAiMessage({ role: "user", content: prompt });
+      await appendAiMessage(
+        { role: "user", content: prompt },
+        {
+          body: {
+            url: normalizedTargetUrl,
+            year,
+          },
+        }
+      );
     } catch (error: unknown) {
       if (error instanceof Error && error.name === 'AbortError') {
         console.log('AI generation was aborted');
