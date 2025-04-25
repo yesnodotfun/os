@@ -110,14 +110,14 @@ export function useAiGeneration({ onLoadingChange, customTimeline = {} }: UseAiG
       {
         id: "system",
         role: "system",
-        content: "You are a web designer specialized in futuristic UI/UX designs.",
+        content: `You are a web designer specialized in turning present websites into past and futuristic coherent versions in story and design. \n\nDELIVERABLE REQUIREMENTS:\n1. Return a single, fully self-contained HTML page with full content, no chat surrounding it.\n2. MUST wrap the HTML in a fenced \`\`\`html code block. Do NOT output any prose before or after the code block.\n3. Use inline Tailwind CSS utility classes; do not include <style> tags.\n4. Keep layout responsive and typography mappings: body -> font-geneva, headings -> font-neuebit font-bold, serif -> font-mondwest, monospace -> font-monaco.\n5. Include an HTML comment at the very beginning containing the page title like <!-- TITLE: My Title -->\n6. For future years embrace futuristic design; for past years use period-appropriate design.\n7. Use <img> tags with existing or wikimedia-friendly URLs, avoid placeholders.\n8. Ensure buttons/links use <a href="..."> with valid URLs.`,
       },
     ],
     onFinish: handleAiFinish,
     body: {
       model: aiModel // Pass the selected model to the API
     },
-    api: "/api/chat", // Make sure this is pointing to your chat API endpoint
+    api: "/api/ie-generate", // Point to dedicated IE generation endpoint
   });
 
   // Helper to fetch existing website content (readability text via jina.ai)
@@ -204,7 +204,7 @@ export function useAiGeneration({ onLoadingChange, customTimeline = {} }: UseAiG
       {
         id: "system",
         role: "system",
-        content: "You are a web designer specialized in turning present websites into past and futuristic coherent versions in story and design.",
+        content: `You are a web designer specialized in turning present websites into past and futuristic coherent versions in story and design. \n\nDELIVERABLE REQUIREMENTS:\n1. Return a single, fully self-contained HTML page with full content, no chat surrounding it.\n2. MUST wrap the HTML in a fenced \`\`\`html code block. Do NOT output any prose before or after the code block.\n3. Use inline Tailwind CSS utility classes; do not include <style> tags.\n4. Keep layout responsive and typography mappings: body -> font-geneva, headings -> font-neuebit font-bold, serif -> font-mondwest, monospace -> font-monaco.\n5. Include an HTML comment at the very beginning containing the page title like <!-- TITLE: My Title -->\n6. For future years embrace futuristic design; for past years use period-appropriate design.\n7. Use <img> tags with existing or wikimedia-friendly URLs, avoid placeholders.\n8. Ensure buttons/links use <a href="..."> with valid URLs.`,
       },
     ]);
     
