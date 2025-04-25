@@ -494,7 +494,7 @@ export function InternetExplorerAppComponent({
         
         // Check for cached AI page first
         const cachedEntry = getCachedAiPage(normalizedTargetUrl, targetYearParam);
-        if (cachedEntry) {
+        if (cachedEntry && !forceRegenerate) {
           console.log(`[IE] Using cached AI page for ${normalizedTargetUrl} in ${targetYearParam}`);
           const favicon = `https://www.google.com/s2/favicons?domain=${new URL(normalizedTargetUrl).hostname}&sz=32`;
           loadSuccess({ 
@@ -539,7 +539,7 @@ export function InternetExplorerAppComponent({
       } else {
         // Non-AI branch (Wayback/Proxy/Direct)
         const cachedEntry = getCachedAiPage(normalizedTargetUrl, targetYearParam);
-        if (cachedEntry) {
+        if (cachedEntry && !forceRegenerate) {
           console.log(`[IE] Using cached AI page for ${normalizedTargetUrl} in ${targetYearParam}`);
           const favicon = `https://www.google.com/s2/favicons?domain=${new URL(normalizedTargetUrl).hostname}&sz=32`;
           loadSuccess({ 
@@ -846,6 +846,22 @@ export function InternetExplorerAppComponent({
       window.removeEventListener("message", handleMessage);
     };
   }, [year, handleNavigate, handleGoBack, aiGeneratedHtml]); // Add aiGeneratedHtml to dependencies
+
+  // Add effect to stop sounds when window is closed
+  useEffect(() => {
+    if (!isWindowOpen) {
+      if (stopElevatorMusic) {
+        stopElevatorMusic();
+      }
+      // Also stop any ongoing navigation
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      if (iframeRef.current) {
+        iframeRef.current.src = 'about:blank';
+      }
+    }
+  }, [isWindowOpen, stopElevatorMusic]);
 
   // --- Remove Effect to persist navigation state --- 
   // useEffect(() => {
