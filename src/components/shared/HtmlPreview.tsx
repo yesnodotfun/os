@@ -620,7 +620,7 @@ export default function HtmlPreview({
     maximizeSound.play();
   };
 
-  // NEW: Function to sanitize HTML for stream preview - removing fixed position elements and scripts/styles
+  // Function to sanitize HTML for stream preview - removing fixed position elements, scripts, styles, and link tags
   const sanitizeHtmlForStream = (html: string): string => {
     if (!html) return html;
 
@@ -641,6 +641,9 @@ export default function HtmlPreview({
 
     // Remove all script tags and their contents
     sanitized = sanitized.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+    
+    // Remove all link tags
+    sanitized = sanitized.replace(/<link\b[^>]*>/gi, '');
 
     // Remove inline position:fixed styles
     sanitized = sanitized.replace(/position\s*:\s*fixed/gi, "position: relative");
