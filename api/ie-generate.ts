@@ -65,7 +65,7 @@ const getConditionalSystemPrompt = (
 Generate content for the URL path, the year provided (${year ?? 'current'}), original site content, and use provided HTML as template if provided.`;
 
   const FUTURE_YEAR_INSTRUCTIONS = `For the future year ${year}:
-- Redesign the website so it feels perfectly at home in the future context provided
+- Redesign the website so it feels perfectly at home in the future context provided in design, typography, colors, layout, storytelling, and technology
 - Think boldly and creatively about future outcomes
 - Embrace the original brand, language, cultural context, aesthetics
 - Consider design trends and breakthroughs that could happen by then
@@ -73,11 +73,11 @@ Generate content for the URL path, the year provided (${year ?? 'current'}), ori
 - Use emojis or simple SVGs for icons`;
 
   const PAST_YEAR_INSTRUCTIONS = `For the past year ${year}:
-- Redesign the website to match the historical era
+- Redesign the website to match the historical era in design, typography, colors, layout, storytelling, and technology
 - Consider how it would have been designed if it existed then
-- What technology and design tools would have been available (can be print, telegram, newspaper, etc.)
-- What typography, colors, and design elements were common
-- What cultural and artistic movements influenced design`;
+- Consider what technology, design tools, medium would have been available (can be print, telegram, newspaper, typerwriter, letter, etc.)
+- Consider cultural and artistic movements that could have influenced design and major events
+- Use simple colors, great typesetting, and simulate past materials and textures`;
 
   const CURRENT_YEAR_INSTRUCTIONS = `For the current year ${year}:
 - Reflect the current state of the website's design and branding accurately.
