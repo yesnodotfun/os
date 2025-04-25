@@ -1291,7 +1291,7 @@ export function InternetExplorerAppComponent({
 
             {/* Loading Bar uses store status */}
             <AnimatePresence>
-              {(status === "loading" || (isAiLoading && generatedHtml !== aiGeneratedHtml) || isFetchingWebsiteContent) && (
+              {(status === "loading" || isAiLoading || isFetchingWebsiteContent) && (
                 <motion.div
                   className="absolute top-0 left-0 right-0 bg-white/75 backdrop-blur-sm overflow-hidden z-50"
                   variants={loadingBarVariants}

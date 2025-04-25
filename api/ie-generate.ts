@@ -172,7 +172,7 @@ export default async function handler(req: Request) {
       messages: enrichedMessages,
       // We assume prompt/messages already include necessary system/user details
       temperature: 0.7,
-      maxTokens: 6000,
+      maxTokens: 4000,
       experimental_transform: smoothStream(),
       onFinish: async ({ text }) => {
         if (!cacheKey) {
