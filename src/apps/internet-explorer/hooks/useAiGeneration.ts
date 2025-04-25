@@ -54,7 +54,12 @@ export function useAiGeneration({ onLoadingChange, customTimeline = {} }: UseAiG
       french: "French",
       spanish: "Spanish",
       portuguese: "Portuguese",
-      german: "German"
+      german: "German",
+      sanskrit: "Sanskrit",
+      latin: "Latin",
+      alien: "Alien Language",
+      ai_language: "AI Language",
+      digital_being: "Digital Being Language"
     };
     return languageMap[lang] || "Auto-detected";
   };
@@ -264,8 +269,25 @@ export function useAiGeneration({ onLoadingChange, customTimeline = {} }: UseAiG
     const timelineContext = getTimelineContext(year);
     
     // Add language and location context
+    const getLanguageInstructions = (lang: LanguageOption): string => {
+      switch(lang) {
+        case "latin":
+          return "The content should be primarily in Latin. Use classical Latin vocabulary and grammar structures typical of ancient Rome. Include appropriate Roman cultural references.";
+        case "sanskrit":
+          return "The content should be primarily in Sanskrit. Use Devanagari script when possible, or romanized Sanskrit. Include appropriate ancient Indian cultural references.";
+        case "alien":
+          return "The content should appear to be in an alien language. Create a believable alien writing system with internal consistency. Include some untranslated alien text alongside a partial 'translation'. The UI should have an alien aesthetic.";
+        case "ai_language":
+          return "The content should be in a language created by artificial intelligence. Mix natural language with code-like syntax, mathematical symbols, and structured data patterns. Include machine learning terminology and computational concepts.";
+        case "digital_being":
+          return "The content should be in a language used by digital entities. Use a combination of binary patterns, hexadecimal codes, and network protocol references. The language should feel like it was designed for machine-to-machine communication but adapted for human interface.";
+        default:
+          return `The content should be primarily in ${getLanguageDisplayName(lang)}.`;
+      }
+    };
+    
     const languageContext = language !== "auto" 
-      ? `\n- Primary Language: ${getLanguageDisplayName(language)}. The content should be primarily in ${getLanguageDisplayName(language)}.` 
+      ? `\n- Primary Language: ${getLanguageDisplayName(language)}. ${getLanguageInstructions(language)}` 
       : "";
     
     const locationContext = location !== "auto" 

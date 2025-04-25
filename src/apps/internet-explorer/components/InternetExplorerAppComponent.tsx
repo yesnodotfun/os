@@ -20,7 +20,7 @@ import { helpItems, appMetadata } from "..";
 import HtmlPreview from "@/components/shared/HtmlPreview";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAiGeneration } from "../hooks/useAiGeneration";
-import { useInternetExplorerStore, DEFAULT_FAVORITES, ErrorResponse } from "@/stores/useInternetExplorerStore";
+import { useInternetExplorerStore, DEFAULT_FAVORITES, ErrorResponse, LanguageOption, LocationOption } from "@/stores/useInternetExplorerStore";
 import FutureSettingsDialog from "@/components/dialogs/FutureSettingsDialog";
 import { useTerminalSounds } from "@/hooks/useTerminalSounds";
 import { track } from "@vercel/analytics";
@@ -31,6 +31,49 @@ export const IE_ANALYTICS = {
   NAVIGATION_START: "internet-explorer:navigation_start",
   NAVIGATION_ERROR: "internet-explorer:navigation_error",
   NAVIGATION_SUCCESS: "internet-explorer:navigation_success",
+};
+
+// Helper function to get language display name
+const getLanguageDisplayName = (lang: LanguageOption): string => {
+  const languageMap: Record<LanguageOption, string> = {
+    auto: "Auto-detected",
+    english: "English",
+    chinese: "Chinese (Traditional)",
+    japanese: "Japanese",
+    korean: "Korean",
+    french: "French",
+    spanish: "Spanish",
+    portuguese: "Portuguese",
+    german: "German",
+    sanskrit: "Sanskrit",
+    latin: "Latin",
+    alien: "Alien Language",
+    ai_language: "AI Language",
+    digital_being: "Digital Being Language"
+  };
+  return languageMap[lang] || "Auto-detected";
+};
+
+// Helper function to get location display name
+const getLocationDisplayName = (loc: LocationOption): string => {
+  const locationMap: Record<LocationOption, string> = {
+    auto: "Auto-detected",
+    united_states: "United States",
+    china: "China",
+    japan: "Japan",
+    korea: "South Korea",
+    france: "France",
+    spain: "Spain",
+    portugal: "Portugal",
+    germany: "Germany",
+    canada: "Canada",
+    uk: "United Kingdom",
+    india: "India",
+    brazil: "Brazil",
+    australia: "Australia",
+    russia: "Russia"
+  };
+  return locationMap[loc] || "Auto-detected";
 };
 
 interface ErrorPageProps {
@@ -219,8 +262,8 @@ export function InternetExplorerAppComponent({
         : baseTitle;
       const formattedTitle = formatTitle(titleToUse);
       newTitle = formattedTitle === "Internet Explorer" 
-        ? "Internet Explorer - Time Travelling" 
-        : `${formattedTitle} - Time Travelling`;
+        ? "Internet Explorer - Travelling" 
+        : `${formattedTitle} - Travelling`;
     } else if (status === "loading") {
       newTitle = getLoadingTitle(baseTitle);
     } else if (currentPageTitle) {
@@ -715,7 +758,9 @@ export function InternetExplorerAppComponent({
         typeof event.data.url === "string"
       ) {
         console.log(`[IE] Received navigation request from AI HTML preview: ${event.data.url}`);
-        const contextHtml = generatedHtml || aiGeneratedHtml;
+        // Fetch the most up-to-date HTML from the store in case the closure is stale
+        const latestAiHtml = useInternetExplorerStore.getState().aiGeneratedHtml;
+        const contextHtml = generatedHtml || latestAiHtml;
         
         handleNavigate(event.data.url, year, false, contextHtml);
       }
@@ -724,7 +769,7 @@ export function InternetExplorerAppComponent({
     return () => {
       window.removeEventListener("message", handleMessage);
     };
-  }, [year, handleNavigate, handleGoBack, aiGeneratedHtml]);
+  }, [year, handleNavigate, handleGoBack]);
 
   useEffect(() => {
     if (!isWindowOpen) {
@@ -777,6 +822,10 @@ export function InternetExplorerAppComponent({
     const aiModel = useAppStore.getState().aiModel;
     const modelInfo = aiModel ? `${aiModel} ` : '';
     
+    // Get language and location display names
+    const languageDisplayName = language !== "auto" ? getLanguageDisplayName(language) : "";
+    const locationDisplayName = location !== "auto" ? getLocationDisplayName(location) : "";
+    
     if (isFetchingWebsiteContent) {
       return (
         <div className="flex items-center gap-1">
@@ -790,7 +839,13 @@ export function InternetExplorerAppComponent({
       case "future":
         return (
           <div className="flex items-center gap-1">
-            {debugMode && <span className="text-gray-500">{modelInfo}</span>}
+            {debugMode && (
+              <span className="text-gray-500">
+                {modelInfo}
+                {language !== "auto" && ` ${languageDisplayName}`}
+                {location !== "auto" && ` ${locationDisplayName}`}
+              </span>
+            )}
             <span>{`Reimagining ${hostname} for year ${year}...`}</span>
           </div>
         );
@@ -798,7 +853,13 @@ export function InternetExplorerAppComponent({
         if (parseInt(year) <= 1995) {
           return (
             <div className="flex items-center gap-1">
-              {debugMode && <span className="text-gray-500">{modelInfo}</span>}
+              {debugMode && (
+                <span className="text-gray-500">
+                  {modelInfo}
+                  {language !== "auto" && ` | Lang: ${languageDisplayName}`}
+                  {location !== "auto" && ` | Loc: ${locationDisplayName}`}
+                </span>
+              )}
               <span>{`Reconstructing history of ${hostname} for year ${year}...`}</span>
             </div>
           );

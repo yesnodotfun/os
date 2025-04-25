@@ -210,6 +210,52 @@ export function InternetExplorerMenuBar({
                   {language === "german" ? "✓ German" : "German"}
                 </span>
               </DropdownMenuItem>
+              
+              {/* Ancient Languages */}
+              <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
+              <DropdownMenuItem
+                onClick={() => onLanguageChange?.("latin")}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+              >
+                <span className={cn(language !== "latin" && "pl-4")}>
+                  {language === "latin" ? "✓ Latin" : "Latin"}
+                </span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onLanguageChange?.("sanskrit")}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+              >
+                <span className={cn(language !== "sanskrit" && "pl-4")}>
+                  {language === "sanskrit" ? "✓ Sanskrit" : "Sanskrit"}
+                </span>
+              </DropdownMenuItem>
+              
+              {/* Futuristic/Non-human Languages */}
+              <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
+              <DropdownMenuItem
+                onClick={() => onLanguageChange?.("alien")}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+              >
+                <span className={cn(language !== "alien" && "pl-4")}>
+                  {language === "alien" ? "✓ Alien" : "Alien"}
+                </span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onLanguageChange?.("ai_language")}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+              >
+                <span className={cn(language !== "ai_language" && "pl-4")}>
+                  {language === "ai_language" ? "✓ AI Language" : "AI Language"}
+                </span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onLanguageChange?.("digital_being")}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+              >
+                <span className={cn(language !== "digital_being" && "pl-4")}>
+                  {language === "digital_being" ? "✓ Digital Being" : "Digital Being"}
+                </span>
+              </DropdownMenuItem>
             </DropdownMenuSubContent>
           </DropdownMenuSub>
 

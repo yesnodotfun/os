@@ -21,7 +21,7 @@ export type NavigationMode = "past" | "now" | "future";
 export type NavigationStatus = "idle" | "loading" | "success" | "error";
 
 // Language and location options
-export type LanguageOption = "auto" | "english" | "chinese" | "japanese" | "korean" | "french" | "spanish" | "portuguese" | "german";
+export type LanguageOption = "auto" | "english" | "chinese" | "japanese" | "korean" | "french" | "spanish" | "portuguese" | "german" | "sanskrit" | "latin" | "alien" | "ai_language" | "digital_being";
 export type LocationOption = "auto" | "united_states" | "china" | "japan" | "korea" | "france" | "spain" | "portugal" | "germany" | "canada" | "uk" | "india" | "brazil" | "australia" | "russia";
 
 // Default constants
