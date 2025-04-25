@@ -57,6 +57,12 @@ export const DEFAULT_FAVORITES: Favorite[] = [
     favicon: "https://www.google.com/s2/favicons?domain=en.wikipedia.org&sz=32",
     year: "current",
   },
+  {
+    title: "Ryo",
+    url: "https://ryo.lu",
+    favicon: "https://www.google.com/s2/favicons?domain=ryo.lu&sz=32",
+    year: "current",
+  },
 
   {
     title: "NYTimes",
@@ -87,12 +93,6 @@ export const DEFAULT_FAVORITES: Favorite[] = [
     url: "https://notion.com",
     favicon: "https://www.google.com/s2/favicons?domain=notion.com&sz=32",
     year: "2050",
-  },
-  {
-    title: "Ryo",
-    url: "https://ryo.lu",
-    favicon: "https://www.google.com/s2/favicons?domain=ryo.lu&sz=32",
-    year: "current",
   },
   {
     title: "Ian",

@@ -94,7 +94,7 @@ ${RYO_PERSONA_INSTRUCTIONS}`;
 3. Use Three.js for 3D with <script> from cdn already loaded.
 4. Include the generated page title inside an HTML comment at the very beginning: <!-- TITLE: Your Generated Page Title -->
 5. Keep the layout responsive. 中文必須使用繁體中文並保持完整標點符號。
-6. For <img> tags, always try to reuse image URLs included in site context. Do NOT link to imgur or unknown placeholders.
+6. For <img> tags: if there are images in site context, always try to use them. Do NOT link to imgur or image placeholders. Do NOT use data: base64 images.
 7. Map fonts: body -> font-geneva, headings (sans-serif) -> font-neuebit font-bold, serif -> font-mondwest, monospace -> font-monaco.
 8. Ensure hyperlinks/buttons use <a href="/..."> with real or plausible destinations.`;
 
