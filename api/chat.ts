@@ -1,7 +1,5 @@
-import { openai } from "@ai-sdk/openai";
-import { anthropic } from "@ai-sdk/anthropic";
-import { google } from "@ai-sdk/google";
-import { streamText, smoothStream, LanguageModelV1 } from "ai";
+import { streamText, smoothStream } from "ai";
+import { SupportedModel, DEFAULT_MODEL, getModelInstance } from "./utils/aiModels";
 
 // Update SystemState type to match new store structure
 interface SystemState {
@@ -31,12 +29,6 @@ interface SystemState {
   };
 }
 
-// Define supported model types
-type SupportedModel = "gpt-4o" | "gpt-4.1" | "gpt-4.1-mini" | "claude-3.5" | "claude-3.7" | "o3-mini" | "gemini-2.5-pro-exp-03-25" | null;
-
-// Default model to use
-const DEFAULT_MODEL: SupportedModel = "claude-3.7";
-
 // Allowed origins for API requests
 const ALLOWED_ORIGINS = new Set([
   'https://os.ryo.lu',
@@ -48,32 +40,6 @@ const ALLOWED_ORIGINS = new Set([
 const isValidOrigin = (origin: string | null): boolean => {
   if (!origin) return false;
   return ALLOWED_ORIGINS.has(origin);
-};
-
-// Function to get the appropriate model instance
-const getModelInstance = (model: SupportedModel): LanguageModelV1 => {
-  // If model is null, use the default model
-  const modelToUse = model || DEFAULT_MODEL;
-
-  switch (modelToUse) {
-    case "gpt-4o":
-      return openai("gpt-4o");
-    case "gpt-4.1":
-      return openai("gpt-4.1");
-    case "gpt-4.1-mini":
-      return openai("gpt-4.1-mini");
-    case "o3-mini":
-      return openai("o3-mini");
-    case "gemini-2.5-pro-exp-03-25":
-      return google("gemini-2.5-pro-exp-03-25");
-    case "claude-3.7":
-      return anthropic("claude-3-7-sonnet-20250219");
-    case "claude-3.5":
-      return anthropic("claude-3-5-sonnet-20241022");
-    default:
-      // This should never happen since we handle null above
-      return openai("gpt-4.1");
-  }
 };
 
 // Allow streaming responses up to 60 seconds
@@ -205,55 +171,6 @@ Examples:
 <misc_instructions>
 if user replied with '👋 *nudge sent*', comment on current system state (song playing, doc content, browser url, etc.) if any, give the user a random tip of wisdom, interesting inspo from history, feature tip about ryOS, or a bit about yourself (but don't call it out as tip of wisdom), then end with a greeting.
 </misc_instructions>
-
-<internet_explorer_instructions>
-When the user is in Internet Explorer asking to time travel with website context and a past or future a year, you are a web designer specialized in turning present websites into past and futuristic coherent versions in story and design.
-Generate content for the URL path, the year, original site content, use provided HTML as template if provided. 
-
-For future years (after current year):
-- Redesign the website so it feels perfectly at home in the future context provided
-- Think boldly and creatively about future outcomes
-- Embrace the original brand, language, cultural context, aesthetics
-- Consider design trends and breakthroughs that could happen by then
-
-For past years:
-- Redesign the website to match the historical era
-- Consider how it would have been designed if it existed then
-- What technology and design tools would have been available
-- What typography, colors, and design elements were common
-- What cultural and artistic movements influenced design
-
-If you think the entity may disappear due to changes, show a 404 or memorial page.
-
-DELIVERABLE REQUIREMENTS:
-1. Return a single, fully self-contained HTML page with full content not just a boilerplate, DO NOT CHAT OR RETURN TEXT BEFORE OR AFTER THE CODEBLOCK
-2. MUST use inline TailwindCSS classes for styling, Tailwind already loaded. DO NOT use <style> tags
-3. Can use inline <script> blocks when needed, but avoid external dependencies
-4. Use Three.js for 3D with script already loaded
-5. Include the generated page title inside an HTML comment at the very beginning: <!-- TITLE: Your Generated Page Title -->
-6. Keep the layout responsive. Keep text in Proper Casing (not all lowercase like ryo). 中文必須使用繁體中文輸出，並保持完整標點符號。
-7. For <img> tags, always try to reuse image urls included in context or wikimedia, DO NOT link to imgur or unknown image urls or inline data:image base64
-9. For fonts, use these CSS classes to replace Arial/Helvetica/sans-serif with "font-geneva" for body, "font-neuebit font-bold" for headings. Replace Times/Georgia/serif with "font-mondwest". Replace Courrier/Menlo/Monaco/monospace with "font-monaco".
-10. For buttons and hyperlinks, use <a href="/..."> tags. All links must include a valid href of real or hypothetical page e.g., "/about", "https://ryo.lu/products/cool-item" instead of using placeholders like "#" or "". 
-
-For future designs:
-- Keep visuals minimal but futuristic
-- Use flat colors, avoid over-using gradients
-- Use emojis, or simple SVG icons
-- Use simple 3D graphics when possible
-- Content should be imaginative, plausible, and surprising, but still coherent
-
-For historical designs:
-- Use period-appropriate design elements and typography that matches the era
-- Color schemes that were available/popular then
-- Design patterns and layouts that reflect the time period
-- Historical imagery and decorative elements
-- Use cultural cues from the site language
-- Consider technology limitations of the era
-- Content should be historically accurate and period-appropriate
-
-The overall experience should be visually striking yet still load in a normal browser.
-</internet_explorer_instructions>
 
 <persona_instructions>
 your name is Ryo Lu, head of design at Cursor, early designer at Notion. your chinese name is 魯赫. you live in San Francisco with cat buba.
