@@ -6,6 +6,24 @@ export const config = {
 
 import { normalizeUrlForCacheKey } from "./utils/url"; // Import the function
 
+// --- Logging Utilities ---------------------------------------------------
+
+const logRequest = (method: string, url: string, action: string | null, id: string) => {
+  console.log(`[${id}] ${method} ${url} - Action: ${action || 'none'}`);
+};
+
+const logInfo = (id: string, message: string, data?: unknown) => {
+  console.log(`[${id}] INFO: ${message}`, data ?? '');
+};
+
+const logError = (id: string, message: string, error: unknown) => {
+  console.error(`[${id}] ERROR: ${message}`, error);
+};
+
+const generateRequestId = (): string => Math.random().toString(36).substring(2, 10);
+
+// --- Utility Functions ----------------------------------------------------
+
 /**
  * List of domains that should be automatically proxied.
  * Domains should be lowercase and without protocol.
@@ -68,11 +86,16 @@ const BROWSER_HEADERS = {
 export default async function handler(req: Request) {
   const { searchParams } = new URL(req.url);
   const urlParam = searchParams.get("url");
-  let mode = searchParams.get("mode") || "proxy"; // "check" | "proxy" (default)
+  let mode = searchParams.get("mode") || "proxy"; // "check" | "proxy" | "ai"
   const year = searchParams.get("year");
   const month = searchParams.get("month");
+  const requestId = generateRequestId(); // Generate request ID
+
+  // Log incoming request
+  logRequest(req.method, req.url, mode, requestId);
 
   if (!urlParam) {
+    logError(requestId, "Missing 'url' query parameter", null);
     return new Response(
       JSON.stringify({ error: "Missing 'url' query parameter" }),
       {
@@ -87,49 +110,24 @@ export default async function handler(req: Request) {
     ? urlParam
     : `https://${urlParam}`;
     
-  // Check if this is an auto-proxy domain
-  const isAutoProxyDomain = shouldAutoProxy(normalizedUrl);
-  
-  // For auto-proxy domains in check mode, return JSON indicating embedding is not allowed
-  if (isAutoProxyDomain && mode === "check") {
-    return new Response(
-      JSON.stringify({ 
-        allowed: false, 
-        reason: "Auto-proxied domain" 
-      }),
-      {
-        headers: { "Content-Type": "application/json" },
-      }
-    );
-  }
-  
-  // Force proxy mode for auto-proxy domains
-  if (isAutoProxyDomain) {
-    mode = "proxy";
-  }
+  // Log normalized URL
+  logInfo(requestId, `Normalized URL: ${normalizedUrl}`);
 
-  // Build wayback URL directly if year and month are provided
-  let targetUrl = normalizedUrl;
-  if (year && month) {
-    targetUrl = `https://web.archive.org/web/${year}${month}01/${normalizedUrl}`;
-    console.log(`[iframe-check] Using Wayback Machine URL: ${targetUrl}`);
-    
-    // Force proxy mode for wayback content
-    mode = "proxy";
-  }
-
-  // --- AI cache retrieval mode ---
+  // --- AI cache retrieval mode (PRIORITIZE THIS) ---
   if (mode === "ai") {
     const aiUrl = normalizedUrl;
     if (!year) {
+      logError(requestId, "Missing year for AI cache mode", null);
       return new Response(JSON.stringify({ error: "Missing year" }), { status: 400, headers: { "Content-Type": "application/json" } });
     }
 
     // Normalize the URL for the cache key
     const normalizedUrlForKey = normalizeUrlForCacheKey(aiUrl);
+    logInfo(requestId, `Normalized URL for AI cache key: ${normalizedUrlForKey}`);
 
     if (!normalizedUrlForKey) {
-        // Handle case where normalization failed, though it shouldn't with prior https:// addition
+        // Handle case where normalization failed
+        logError(requestId, "URL normalization failed for AI cache key", null);
         return new Response(JSON.stringify({ error: "URL normalization failed" }), { status: 500, headers: { "Content-Type": "application/json" } });
     }
 
@@ -140,8 +138,10 @@ export default async function handler(req: Request) {
       });
       const IE_CACHE_PREFIX = "ie:cache:";
       const key = `${IE_CACHE_PREFIX}${encodeURIComponent(normalizedUrlForKey)}:${year}`;
+      logInfo(requestId, `Checking AI cache with key: ${key}`);
       const html = (await redis.lindex(key, 0)) as string | null;
       if (html) {
+        logInfo(requestId, `AI Cache HIT for key: ${key}`);
         return new Response(html, {
           headers: {
             "Content-Type": "text/html; charset=utf-8",
@@ -150,13 +150,57 @@ export default async function handler(req: Request) {
           },
         });
       }
+      logInfo(requestId, `AI Cache MISS for key: ${key}`);
       return new Response(JSON.stringify({ aiCache: false }), {
         status: 404,
         headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
       });
     } catch (e) {
+      logError(requestId, "Error checking AI cache", e);
       return new Response(JSON.stringify({ error: (e as Error).message }), { status: 500, headers: { "Content-Type": "application/json" } });
     }
+  }
+
+  // --- Regular Check/Proxy Logic --- 
+
+  // Check if this is an auto-proxy domain
+  const isAutoProxyDomain = shouldAutoProxy(normalizedUrl);
+  if (isAutoProxyDomain) {
+    logInfo(requestId, `Domain ${new URL(normalizedUrl).hostname} is auto-proxied`);
+  }
+
+  // For auto-proxy domains in check mode (and NOT an AI cache request), return JSON indicating embedding is not allowed
+  if (isAutoProxyDomain && mode === "check") {
+    logInfo(requestId, "Auto-proxy domain in 'check' mode, returning allowed: false");
+    return new Response(
+      JSON.stringify({
+        allowed: false,
+        reason: "Auto-proxied domain"
+      }),
+      {
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  }
+
+  // Determine target URL (Wayback or original)
+  let targetUrl = normalizedUrl;
+  let isWayback = false;
+  if (year && month) {
+    targetUrl = `https://web.archive.org/web/${year}${month}01/${normalizedUrl}`;
+    logInfo(requestId, `Using Wayback Machine URL: ${targetUrl}`);
+    isWayback = true;
+    // Force proxy mode for wayback content
+    if (mode !== "proxy") {
+        logInfo(requestId, "Forcing proxy mode for Wayback URL");
+        mode = "proxy";
+    }
+  }
+
+  // Force proxy mode for auto-proxy domains only if NOT a Wayback request
+  if (isAutoProxyDomain && !isWayback && mode !== "proxy") {
+      logInfo(requestId, "Forcing proxy mode for auto-proxied domain");
+      mode = "proxy";
   }
 
   // -------------------------------
@@ -164,6 +208,7 @@ export default async function handler(req: Request) {
   // -------------------------------
   const checkSiteEmbeddingAllowed = async () => {
     try {
+      logInfo(requestId, `Performing header check for: ${targetUrl}`);
       const res = await fetch(targetUrl, {
         method: "GET",
         redirect: "follow",
@@ -250,11 +295,13 @@ export default async function handler(req: Request) {
                 : `Content-Security-Policy (header): ${headerCsp}`
         : undefined;
 
+      logInfo(requestId, `Header check result: Allowed=${allowed}, Reason=${finalReason || 'N/A'}, Title=${pageTitle || 'N/A'}`);
+
       return { allowed, reason: finalReason, title: pageTitle };
 
     } catch (error) {
         // If fetching upstream headers failed, assume embedding is blocked
-        console.error(`[iframe-check] Failed to fetch upstream headers for ${targetUrl}:`, error);
+        logError(requestId, `Header check failed for ${targetUrl}`, error);
         // No title available on error
         return { allowed: false, reason: `Proxy check failed: ${(error as Error).message}` };
     }
@@ -263,6 +310,7 @@ export default async function handler(req: Request) {
   try {
     // 1. Pure header‑check mode
     if (mode === "check") {
+      logInfo(requestId, "Executing in 'check' mode");
       const result = await checkSiteEmbeddingAllowed();
       return new Response(JSON.stringify(result), {
         headers: { "Content-Type": "application/json" },
@@ -270,6 +318,7 @@ export default async function handler(req: Request) {
     }
 
     // 2. Proxy mode – stream the upstream resource, removing blocking headers
+    logInfo(requestId, `Executing in 'proxy' mode for: ${targetUrl}`);
     // Create an AbortController with timeout for the upstream fetch
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000); // 15-second timeout
@@ -286,6 +335,7 @@ export default async function handler(req: Request) {
       
       // If the upstream fetch failed (e.g., 403 Forbidden, 404 Not Found), return an error response
       if (!upstreamRes.ok) {
+          logError(requestId, `Upstream fetch failed with status ${upstreamRes.status}`, { url: targetUrl });
           return new Response(
             JSON.stringify({
               error: true,
@@ -307,6 +357,7 @@ export default async function handler(req: Request) {
       // Clone headers so we can edit them
       const headers = new Headers(upstreamRes.headers);
       const contentType = headers.get("content-type") || "";
+      logInfo(requestId, `Proxying content type: ${contentType}`);
       let pageTitle: string | undefined = undefined; // Initialize title for proxy mode
 
       headers.delete("x-frame-options");
@@ -391,6 +442,7 @@ export default async function handler(req: Request) {
               headers,
           });
       } else {
+          logInfo(requestId, "Proxying non-HTML content directly");
           // For non‑HTML content, stream the body directly
           // No title extraction or header needed for non-HTML
           return new Response(upstreamRes.body, {
@@ -402,7 +454,7 @@ export default async function handler(req: Request) {
       clearTimeout(timeout);
       
       // Special handling for timeout or network errors
-      console.error(`[iframe-check] Fetch error for ${targetUrl}:`, fetchError);
+      logError(requestId, `Proxy fetch error for ${targetUrl}`, fetchError);
       
       // Return JSON with error information instead of HTML
       return new Response(
@@ -424,6 +476,7 @@ export default async function handler(req: Request) {
       );
     }
   } catch (error) {
+    logError(requestId, "General handler error", error);
     return new Response(
       JSON.stringify({ error: (error as Error).message }),
       { status: 500, headers: { "Content-Type": "application/json" } }

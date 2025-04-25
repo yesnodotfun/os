@@ -53,7 +53,7 @@ export const DEFAULT_FAVORITES: Favorite[] = [
 
   {
     title: "Wikipedia",
-    url: "https://en.wikipedia.org",
+    url: "https://en.wikipedia.org/wiki",
     favicon: "https://www.google.com/s2/favicons?domain=en.wikipedia.org&sz=32",
     year: "current",
   },
@@ -279,6 +279,9 @@ interface InternetExplorerStore {
   updateBrowserState: () => void;
 }
 
+// Define the maximum number of entries for the AI cache
+const MAX_AI_CACHE_ENTRIES = 20;
+
 // Helper function to get hostname (copied from component)
 const getHostname = (targetUrl: string): string => {
   try {
@@ -470,7 +473,7 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
           parsed.hostname = parsed.hostname.toLowerCase();
           // Keep common ports (80, 443) implicit, include others
           const portString = (parsed.port && parsed.port !== '80' && parsed.port !== '443') ? `:${parsed.port}` : '';
-          return `${parsed.protocol}//${parsed.hostname}${portString}${parsed.pathname}${parsed.search}${parsed.hash}|${year}`;
+          return `${parsed.protocol}//${parsed.hostname}${portString}${parsed.pathname}${parsed.hash}|${year}`;
         } catch {
           // Fallback for invalid URLs
           return `${normalizedUrl}|${year}`;
@@ -479,16 +482,49 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
       
       cacheAiPage: (url, year, html, title) => set(state => {
         const key = get().getAiCacheKey(url, year);
-        return {
-          aiCache: {
-            ...state.aiCache,
-            [key]: { html, title, updatedAt: Date.now() }
+        const newCacheEntry = { html, title, updatedAt: Date.now() };
+        const currentCache = { ...state.aiCache }; // Create a mutable copy
+
+        // Check if cache size exceeds the limit
+        if (Object.keys(currentCache).length >= MAX_AI_CACHE_ENTRIES) {
+          console.log(`[IE Store] AI Cache limit (${MAX_AI_CACHE_ENTRIES}) reached. Evicting oldest entry.`);
+          // Find the oldest entry (least recently used)
+          let oldestKey: string | null = null;
+          let oldestTimestamp = Infinity;
+
+          for (const [cacheKey, entry] of Object.entries(currentCache)) {
+            if (entry.updatedAt < oldestTimestamp) {
+              oldestTimestamp = entry.updatedAt;
+              oldestKey = cacheKey;
+            }
           }
+
+          // Remove the oldest entry if found
+          if (oldestKey) {
+            console.log(`[IE Store] Evicting cache key: ${oldestKey}`);
+            delete currentCache[oldestKey];
+          }
+        }
+
+        // Add the new entry
+        currentCache[key] = newCacheEntry;
+
+        return {
+          aiCache: currentCache // Update state with the potentially pruned cache
         };
       }),
       
       getCachedAiPage: (url, year) => {
         const key = get().getAiCacheKey(url, year);
+        // Optionally update the timestamp when an item is accessed (true LRU)
+        // If needed, this would require modifying state here:
+        // const entry = get().aiCache[key];
+        // if (entry) { 
+        //   set(state => ({ aiCache: { ...state.aiCache, [key]: { ...entry, updatedAt: Date.now() } } }));
+        //   return entry; 
+        // }
+        // return null;
+        // For simplicity, we'll just return without updating timestamp for now.
         return get().aiCache[key] || null;
       },
       

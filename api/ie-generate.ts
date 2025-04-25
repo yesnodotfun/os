@@ -59,11 +59,12 @@ For future years (after current year):
 - Think boldly and creatively about future outcomes
 - Embrace the original brand, language, cultural context, aesthetics
 - Consider design trends and breakthroughs that could happen by then
+- Use simple colors, avoid gradients, use backdrop-blur, use simple animations
 
 For past years:
 - Redesign the website to match the historical era
 - Consider how it would have been designed if it existed then
-- What technology and design tools would have been available
+- What technology and design tools would have been available (can be print, telegram, newspaper, etc.)
 - What typography, colors, and design elements were common
 - What cultural and artistic movements influenced design
 

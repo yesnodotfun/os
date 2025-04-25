@@ -492,24 +492,73 @@ export function InternetExplorerAppComponent({
       if (newMode === "future" || (newMode === "past" && parseInt(targetYearParam) <= 1995)) {
         // AI generation branch (uses hook, updates store via loadSuccess/loadError/cacheAiPage within hook or here)
         
+        // ---> ADD LOCAL CACHE CHECK HERE <---
+        const cachedEntry = getCachedAiPage(normalizedTargetUrl, targetYearParam);
+        if (cachedEntry && !forceRegenerate) {
+          console.log(`[IE] Using LOCAL cached AI page for ${normalizedTargetUrl} in ${targetYearParam}`);
+          const favicon = `https://www.google.com/s2/favicons?domain=${new URL(normalizedTargetUrl).hostname}&sz=32`;
+          loadSuccess({
+            aiGeneratedHtml: cachedEntry.html,
+            title: cachedEntry.title || normalizedTargetUrl,
+            targetUrl: normalizedTargetUrl,
+            targetYear: targetYearParam,
+            favicon: favicon,
+            addToHistory: true
+          });
+          return; // Return early if local cache hit
+        }
+        // ---> END LOCAL CACHE CHECK <---
+        
         // Attempt remote AI cache via iframe-check (only if not force regeneration)
+        let remoteCacheHit = false; // Flag to track if remote cache hit
         if (!forceRegenerate) {
           try {
+            console.log(`[IE] Checking REMOTE cache for ${normalizedTargetUrl} in ${targetYearParam}...`);
             const res = await fetch(`/api/iframe-check?mode=ai&url=${encodeURIComponent(normalizedTargetUrl)}&year=${targetYearParam}`);
+            console.log(`[IE] Remote cache response status: ${res.status}, ok: ${res.ok}, content-type: ${res.headers.get("content-type")}`);
+
             if (res.ok && (res.headers.get("content-type")||"").includes("text/html")) {
+              remoteCacheHit = true; // Mark remote cache hit
               const html = await res.text();
+              console.log(`[IE] REMOTE cache HIT. Processing content (length: ${html.length})`);
               const titleMatch = html.match(/^<!--\s*TITLE:\s*(.*?)\s*-->/);
               const parsedTitle = titleMatch ? titleMatch[1].trim() : null;
               const cleanHtml = html.replace(/^<!--\s*TITLE:.*?-->\s*\n?/, "");
-              cacheAiPage(normalizedTargetUrl, targetYearParam, cleanHtml, parsedTitle || normalizedTargetUrl);
+              
+              // ---> Wrap cacheAiPage in try...catch <--- 
+              try {
+                // Use the local cache action to store the result fetched from the remote cache
+                cacheAiPage(normalizedTargetUrl, targetYearParam, cleanHtml, parsedTitle || normalizedTargetUrl);
+              } catch (cacheError) {
+                if (cacheError instanceof DOMException && cacheError.name === 'QuotaExceededError') {
+                  console.warn(`[IE] LocalStorage quota exceeded. Failed to save remote cache locally for ${normalizedTargetUrl} (${targetYearParam}).`);
+                } else {
+                  console.error('[IE] Error saving remote cache to local store:', cacheError);
+                }
+                // Continue even if local caching fails, as we have the data from remote
+              }
+              // ---> End try...catch <--- 
+
               const favicon = `https://www.google.com/s2/favicons?domain=${new URL(normalizedTargetUrl).hostname}&sz=32`;
+              // Update the UI immediately using loadSuccess
               loadSuccess({ aiGeneratedHtml: cleanHtml, title: parsedTitle || normalizedTargetUrl, targetUrl: normalizedTargetUrl, targetYear: targetYearParam, favicon, addToHistory: true });
-              return;
+              console.log("[IE] Returning early after remote cache hit.");
+              return; // Return early on remote hit
+            } else {
+              console.log(`[IE] REMOTE cache MISS or invalid response.`);
             }
-          } catch(e){ console.warn('[IE] AI iframe cache fetch failed',e); }
+          } catch(e){ console.warn('[IE] AI remote cache fetch failed',e); }
+        }
+
+        // Check if we should proceed to generation - explicit check added
+        if (remoteCacheHit) {
+           console.error("[IE] Logic error: Should have returned on remote cache hit, but didn't!");
+           // Force return just in case something went wrong above
+           return;
         }
         
-        // No cached content, need to generate - start music now
+        // No cached content (local or remote), need to generate - start music now
+        console.log(`[IE] No cache hit (Local: ${!!cachedEntry}, Remote: ${remoteCacheHit}, Force: ${forceRegenerate}). Proceeding to generate...`);
         if (playElevatorMusic && terminalSoundsEnabled) {
           playElevatorMusic(newMode);
         }
@@ -539,20 +588,22 @@ export function InternetExplorerAppComponent({
 
       } else {
         // Non-AI branch (Wayback/Proxy/Direct)
-        const cachedEntry = getCachedAiPage(normalizedTargetUrl, targetYearParam);
-        if (cachedEntry && !forceRegenerate) {
-          console.log(`[IE] Using cached AI page for ${normalizedTargetUrl} in ${targetYearParam}`);
-          const favicon = `https://www.google.com/s2/favicons?domain=${new URL(normalizedTargetUrl).hostname}&sz=32`;
-          loadSuccess({ 
-            aiGeneratedHtml: cachedEntry.html, 
-            title: cachedEntry.title || normalizedTargetUrl, 
-            targetUrl: normalizedTargetUrl, 
-            targetYear: targetYearParam, 
-            favicon: favicon, 
-            addToHistory: true 
-          });
-          return;
-        }
+        // ---> REMOVE DUPLICATE LOCAL CACHE CHECK FROM HERE <---
+        // const cachedEntry = getCachedAiPage(normalizedTargetUrl, targetYearParam);
+        // if (cachedEntry && !forceRegenerate) {
+        //   console.log(`[IE] Using cached AI page for ${normalizedTargetUrl} in ${targetYearParam}`);
+        //   const favicon = `https://www.google.com/s2/favicons?domain=${new URL(normalizedTargetUrl).hostname}&sz=32`;
+        //   loadSuccess({
+        //     aiGeneratedHtml: cachedEntry.html,
+        //     title: cachedEntry.title || normalizedTargetUrl,
+        //     targetUrl: normalizedTargetUrl,
+        //     targetYear: targetYearParam,
+        //     favicon: favicon,
+        //     addToHistory: true
+        //   });
+        //   return;
+        // }
+        // ---> END REMOVAL <---
 
         let urlToLoad = normalizedTargetUrl;
         let requiresProxyCheck = false;
