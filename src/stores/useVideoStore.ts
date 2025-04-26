@@ -46,6 +46,12 @@ export const DEFAULT_VIDEOS: Video[] = [
     artist: "Steve Jobs",
   },
   {
+    id: "mE_bDNaYAr8",
+    url: "https://youtu.be/mE_bDNaYAr8?si=5f09g9MAmAsvK-OZ",
+    title: "iPod Commercial (2001)",
+    artist: "Apple",
+  },
+  {
     id: "b5P3QDm61go",
     url: "https://youtu.be/b5P3QDm61go?si=6KH24_Y41mYZCqDi",
     title: "iMac G4 \"Lamp\" Ad (2002)",
