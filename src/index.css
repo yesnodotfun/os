@@ -302,6 +302,12 @@
     letter-spacing: -0.02em;
     line-height: 1.3;
   }
+
+  .font-jacquard {
+    font-family: "Jacquard", "Yu Mincho", "Hiragino Mincho Pro", "Georgia", "Palatino", serif;
+    -webkit-font-smoothing: antialiased;
+    font-smooth: always;
+  }
 }
 
 /* CRT Scanline Effect */

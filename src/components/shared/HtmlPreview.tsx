@@ -277,7 +277,8 @@ export default function HtmlPreview({
             'geneva': ["Geneva-12", "ArkPixel", "SerenityOS-Emoji", "system-ui", "-apple-system", "sans-serif"],
             'mondwest': ["Mondwest", "Yu Mincho", "Hiragino Mincho Pro", "Georgia", "Palatino", "Yu Mincho", "Hiragino Mincho Pro", "serif"],
             'neuebit': ["NeueBit", "ArkPixel", "SerenityOS-Emoji", "Helvetica", "Arial", "Hiragino Sans", "sans-serif"],
-            'monaco': ["Monaco", "ArkPixel", "SerenityOS-Emoji", "monospace"]
+            'monaco': ["Monaco", "ArkPixel", "SerenityOS-Emoji", "monospace"],
+            'jacquard': ["Jacquard", "Yu Mincho", "Hiragino Mincho Pro", "Georgia", "Palatino", "serif"]
           }
         }
       }

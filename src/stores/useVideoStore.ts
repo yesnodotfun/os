@@ -75,11 +75,16 @@ export const DEFAULT_VIDEOS: Video[] = [
     title: "WWDC 2008 Keynote (2008)",
     artist: "Steve Jobs",
   },
-
   {
     id: "Bts6EkUZrRY",
     url: "https://youtu.be/Bts6EkUZrRY?si=YOUR_SI_PARAM",
     title: "MacBook Air Introduction (2008)",
+    artist: "Steve Jobs",
+  },
+  {
+    id: "MbU3R-TzoJo",
+    url: "https://www.youtube.com/watch?v=MbU3R-TzoJo",
+    title: "iPhone 4 Introduction (2010)",
     artist: "Steve Jobs",
   },
 ];
