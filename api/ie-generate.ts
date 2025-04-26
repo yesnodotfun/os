@@ -95,7 +95,7 @@ ${RYO_PERSONA_INSTRUCTIONS}`;
 4. Include the generated page title inside an HTML comment at the very beginning: <!-- TITLE: Your Generated Page Title -->
 5. Keep the layout responsive. 中文必須使用繁體中文並保持完整標點符號。
 6. For <img> tags: if there are image URLs provided in context, always try to use them. Do NOT link to imgur or image placeholders. Do NOT use data: base64 images.
-7. Map fonts: body -> font-geneva, headings (sans-serif) -> font-neuebit font-bold, serif -> font-mondwest, monospace -> font-monaco.
+7. Map fonts: body -> font-geneva, headings (sans-serif) -> font-neuebit font-bold, serif -> font-mondwest, monospace -> font-monaco. For Gothic letters, use "Jacquard 12" by importing Google Fonts.
 8. Ensure hyperlinks/buttons use <a href="/..."> or <a href="https://..."> with real or plausible destinations.`;
 
   // --- Determine Year Specific Instructions ---
