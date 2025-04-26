@@ -30,7 +30,7 @@ export const DEFAULT_VIDEOS: Video[] = [
   {
     id: "2B-XwPjn9YY",
     url: "https://youtu.be/2B-XwPjn9YY?si=1HX8K8wA_i9-HIui",
-    title: "Macintosh Announcement (1984)",
+    title: "Macintosh Introduction (1984)",
     artist: "Steve Jobs",
   },
   {
@@ -58,9 +58,28 @@ export const DEFAULT_VIDEOS: Video[] = [
     artist: "Apple",
   },
   {
+    id: "7GRv-kv5XEg",
+    url: "https://www.youtube.com/watch?v=7GRv-kv5XEg",
+    title: "iPod Nano Announcement (2005)",
+    artist: "Steve Jobs",
+  },
+  {
     id: "VQKMoT-6XSg",
     url: "https://youtu.be/VQKMoT-6XSg?si=XzKqJ_mnXDH_P4zH",
     title: "iPhone Introduction (2007)",
+    artist: "Steve Jobs",
+  },
+  {
+    id: "FKci-cMsiwo",
+    url: "https://youtu.be/FKci-cMsiwo?si=YOUR_SI_PARAM",
+    title: "App Store Introduction (WWDC 2008)",
+    artist: "Steve Jobs",
+  },
+
+  {
+    id: "Bts6EkUZrRY",
+    url: "https://youtu.be/Bts6EkUZrRY?si=YOUR_SI_PARAM",
+    title: "MacBook Air Introduction (2008)",
     artist: "Steve Jobs",
   },
 ];
@@ -82,7 +101,7 @@ interface VideoStoreState {
   setIsPlaying: (val: boolean) => void;
 }
 
-const CURRENT_VIDEO_STORE_VERSION = 2; // Define the current version
+const CURRENT_VIDEO_STORE_VERSION = 3; // Define the current version
 
 const getInitialState = () => ({
   videos: DEFAULT_VIDEOS,
