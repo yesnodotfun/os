@@ -48,7 +48,13 @@ export const DEFAULT_VIDEOS: Video[] = [
   {
     id: "Ko4V3G4NqII",
     url: "https://youtu.be/Ko4V3G4NqII",
-    title: "Macworld San Francisco (2000) - Mac OS X Introduction",
+    title: "Mac OS X Introduction Part 1 (2000)",
+    artist: "Steve Jobs",
+  },
+  {
+    id: "6-fkYFV7rOY",
+    url: "https://youtu.be/6-fkYFV7rOY",
+    title: "Mac OS X Introduction Part 2 (2000)",
     artist: "Steve Jobs",
   },
   {
