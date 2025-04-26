@@ -36,7 +36,7 @@ export const DEFAULT_VIDEOS: Video[] = [
   {
     id: "VFP-VZtgb0s",
     url: "https://youtu.be/VFP-VZtgb0s?si=CydyWRq96F-RM7Jt",
-    title: "iMac G3 vs PC Simplicity",
+    title: "iMac G3 vs PC Simplicity (1998)",
     artist: "Steve Jobs",
   },
   {
@@ -72,7 +72,7 @@ export const DEFAULT_VIDEOS: Video[] = [
   {
     id: "FKci-cMsiwo",
     url: "https://youtu.be/FKci-cMsiwo?si=YOUR_SI_PARAM",
-    title: "App Store Introduction (WWDC 2008)",
+    title: "WWDC 2008 Keynote (2008)",
     artist: "Steve Jobs",
   },
 
