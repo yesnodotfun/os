@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, History } from "lucide-react";
 import { InputDialog } from "@/components/dialogs/InputDialog";
 import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
@@ -25,6 +25,13 @@ import FutureSettingsDialog from "@/components/dialogs/FutureSettingsDialog";
 import { useTerminalSounds } from "@/hooks/useTerminalSounds";
 import { track } from "@vercel/analytics";
 import { useAppStore } from "@/stores/useAppStore";
+import TimeMachineView from "./TimeMachineView";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 // Analytics event namespace for Internet Explorer events
 export const IE_ANALYTICS = {
@@ -196,6 +203,7 @@ export function InternetExplorerAppComponent({
     isFutureSettingsDialogOpen,
     language,
     location,
+    isTimeMachineViewOpen,
 
     setUrl, setYear, navigateStart, setFinalUrl, loadSuccess, loadError, cancel,
     addFavorite, clearFavorites, setHistoryIndex, clearHistory,
@@ -210,6 +218,10 @@ export function InternetExplorerAppComponent({
     getCachedAiPage, cacheAiPage,
     setLanguage,
     setLocation,
+    cachedYears,
+    isFetchingCachedYears,
+    setTimeMachineViewOpen,
+    fetchCachedYears,
   } = useInternetExplorerStore();
 
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -250,6 +262,15 @@ export function InternetExplorerAppComponent({
   ].sort((a, b) => parseInt(b) - parseInt(a));
 
   const [displayTitle, setDisplayTitle] = useState<string>("Internet Explorer");
+
+  // Fetch cached years when URL changes (No debouncing for now)
+  // const debouncedUrl = useDebounce(url, 500); // Debounce URL changes by 500ms
+
+  useEffect(() => {
+    if (url) {
+      fetchCachedYears(url);
+    }
+  }, [url, fetchCachedYears]);
 
   useEffect(() => {
     let newTitle = "Internet Explorer";
@@ -969,7 +990,7 @@ export function InternetExplorerAppComponent({
   };
 
   return (
-    <>
+    <TooltipProvider delayDuration={100}>
       <InternetExplorerMenuBar
         isWindowOpen={isWindowOpen}
         isForeground={isForeground}
@@ -1030,18 +1051,40 @@ export function InternetExplorerAppComponent({
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </div>
-              <Input
-                ref={urlInputRef}
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    handleNavigate();
-                  }
-                }}
-                className="flex-1"
-                placeholder="Enter URL"
-              />
+              <div className="flex-1 relative flex items-center">
+                <Input
+                  ref={urlInputRef}
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      handleNavigate();
+                    }
+                  }}
+                  className="flex-1 pr-8"
+                  placeholder="Enter URL"
+                />
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setTimeMachineViewOpen(true)}
+                      disabled={isFetchingCachedYears || cachedYears.length === 0}
+                      className={`h-7 w-7 absolute right-1 top-1/2 -translate-y-1/2 focus-visible:ring-0 focus-visible:ring-offset-0 ${cachedYears.length > 0 ? '' : 'opacity-50 cursor-not-allowed'}`}
+                      aria-label="Show cached versions (Time Machine)"
+                      style={{ pointerEvents: cachedYears.length === 0 ? 'none' : 'auto' }}
+                    >
+                      <History className={`h-4 w-4 ${cachedYears.length > 0 ? 'text-orange-500' : 'text-neutral-400'}`} />
+                    </Button>
+                  </TooltipTrigger>
+                  {cachedYears.length > 0 && (
+                    <TooltipContent side="bottom">
+                      <p>{cachedYears.length} cached version{cachedYears.length !== 1 ? 's' : ''}</p>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </div>
               <div className="flex items-center gap-2">
                 <Select
                   value={year}
@@ -1230,7 +1273,16 @@ export function InternetExplorerAppComponent({
           isOpen={isFutureSettingsDialogOpen}
           onOpenChange={setFutureSettingsDialogOpen}
         />
+        <TimeMachineView 
+          isOpen={isTimeMachineViewOpen}
+          onClose={() => setTimeMachineViewOpen(false)}
+          cachedYears={cachedYears}
+          currentUrl={url}
+          onSelectYear={(selectedYear) => {
+            handleNavigate(url, selectedYear);
+          }}
+        />
       </WindowFrame>
-    </>
+    </TooltipProvider>
   );
 }

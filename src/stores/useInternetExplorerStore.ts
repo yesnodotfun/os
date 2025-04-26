@@ -233,6 +233,11 @@ interface InternetExplorerStore {
   // Title management
   currentPageTitle: string | null;
   
+  // Time Machine Feature
+  isTimeMachineViewOpen: boolean;
+  cachedYears: string[];
+  isFetchingCachedYears: boolean;
+  
   // Actions
   setUrl: (url: string) => void;
   setYear: (year: string) => void;
@@ -292,6 +297,10 @@ interface InternetExplorerStore {
   setLanguage: (language: LanguageOption) => void;
   setLocation: (location: LocationOption) => void;
   
+  // Time Machine Actions
+  setTimeMachineViewOpen: (isOpen: boolean) => void;
+  fetchCachedYears: (url: string) => Promise<void>;
+  
   // Utility functions
   getAiCacheKey: (url: string, year: string) => string;
   updateBrowserState: () => void;
@@ -347,6 +356,11 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
       timelineSettings: {},
       
       currentPageTitle: null,
+      
+      // Time Machine Feature Initial State
+      isTimeMachineViewOpen: false,
+      cachedYears: [],
+      isFetchingCachedYears: false,
       
       // Actions
       setUrl: (url) => set({ url }),
@@ -566,6 +580,25 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
       // Language and location actions
       setLanguage: (language) => set({ language }),
       setLocation: (location) => set({ location }),
+      
+      // Time Machine Actions
+      setTimeMachineViewOpen: (isOpen) => set({ isTimeMachineViewOpen: isOpen }),
+      fetchCachedYears: async (url) => {
+        if (!url) return;
+        set({ isFetchingCachedYears: true, cachedYears: [] });
+        try {
+          const normalizedUrl = url.startsWith("http") ? url : `https://${url}`;
+          const response = await fetch(`/api/iframe-check?mode=list-cache&url=${encodeURIComponent(normalizedUrl)}`);
+          if (!response.ok) {
+            throw new Error(`Failed to fetch cached years: ${response.statusText}`);
+          }
+          const data = await response.json();
+          set({ cachedYears: data.years || [], isFetchingCachedYears: false });
+        } catch (error) {
+          console.error("Error fetching cached years:", error);
+          set({ isFetchingCachedYears: false, cachedYears: [] }); // Reset on error
+        }
+      },
       
       // Update browser state
       updateBrowserState: () => {

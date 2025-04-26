@@ -86,7 +86,7 @@ const BROWSER_HEADERS = {
 export default async function handler(req: Request) {
   const { searchParams } = new URL(req.url);
   const urlParam = searchParams.get("url");
-  let mode = searchParams.get("mode") || "proxy"; // "check" | "proxy" | "ai"
+  let mode = searchParams.get("mode") || "proxy"; // "check" | "proxy" | "ai" | "list-cache"
   const year = searchParams.get("year");
   const month = searchParams.get("month");
   const requestId = generateRequestId(); // Generate request ID
@@ -157,6 +157,62 @@ export default async function handler(req: Request) {
       });
     } catch (e) {
       logError(requestId, "Error checking AI cache", e);
+      return new Response(JSON.stringify({ error: (e as Error).message }), { status: 500, headers: { "Content-Type": "application/json" } });
+    }
+  }
+
+  // --- List Cache mode ---
+  if (mode === "list-cache") {
+    const listUrl = normalizedUrl;
+    logInfo(requestId, `Executing in 'list-cache' mode for: ${listUrl}`);
+    
+    // Normalize the URL for the cache key
+    const normalizedUrlForKey = normalizeUrlForCacheKey(listUrl);
+    logInfo(requestId, `Normalized URL for list-cache key: ${normalizedUrlForKey}`);
+
+    if (!normalizedUrlForKey) {
+        logError(requestId, "URL normalization failed for list-cache key", null);
+        return new Response(JSON.stringify({ error: "URL normalization failed" }), { status: 500, headers: { "Content-Type": "application/json" } });
+    }
+
+    try {
+      const redis = new (await import("@upstash/redis")).Redis({
+        url: process.env.REDIS_KV_REST_API_URL as string,
+        token: process.env.REDIS_KV_REST_API_TOKEN as string,
+      });
+      const IE_CACHE_PREFIX = "ie:cache:";
+      const pattern = `${IE_CACHE_PREFIX}${encodeURIComponent(normalizedUrlForKey)}:*`;
+      logInfo(requestId, `Scanning Redis with pattern: ${pattern}`);
+      
+      // Use SCAN for better performance than KEYS in production
+      let cursor = 0;
+      const years: string[] = [];
+      const keyPrefixLength = `${IE_CACHE_PREFIX}${encodeURIComponent(normalizedUrlForKey)}:`.length;
+
+      do {
+        const [nextCursor, keys] = await redis.scan(cursor, { match: pattern, count: 100 });
+        cursor = parseInt(nextCursor as unknown as string, 10); // Ensure cursor is number
+        
+        for (const key of keys) {
+          const yearPart = key.substring(keyPrefixLength);
+          // Basic validation: Ensure it's a number or specific string like 'current'
+          if (yearPart && (/\d{1,4}( BC)?$/.test(yearPart) || yearPart === 'current')) { 
+            years.push(yearPart);
+          } else {
+            logInfo(requestId, `Skipping invalid year format in key: ${key}`);
+          }
+        }
+      } while (cursor !== 0);
+
+      logInfo(requestId, `Found ${years.length} cached years for pattern: ${pattern}`, years);
+      return new Response(JSON.stringify({ years: years.sort((a, b) => parseInt(b) - parseInt(a)) }), { // Sort years descending
+        headers: { 
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*" 
+        },
+      });
+    } catch (e) {
+      logError(requestId, "Error listing AI cache keys", e);
       return new Response(JSON.stringify({ error: (e as Error).message }), { status: 500, headers: { "Content-Type": "application/json" } });
     }
   }
