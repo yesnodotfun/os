@@ -12,7 +12,49 @@ export const DEFAULT_VIDEOS: Video[] = [
   {
     id: "0pP3ZjMDzF4",
     url: "https://www.youtube.com/watch?v=0pP3ZjMDzF4",
-    title: "Make something wonderful and put it out there",
+    title: "Make Something Wonderful",
+    artist: "Steve Jobs",
+  },
+  {
+    id: "EKBVLzOZyLw",
+    url: "https://youtu.be/EKBVLzOZyLw?si=H3D6ENKKWRsVwbIM",
+    title: "On Focus",
+    artist: "Jony Ive",
+  },
+  {
+    id: "3vq9p00T08I",
+    url: "https://youtu.be/3vq9p00T08I?si=MYUqu4-71lB24_lM",
+    title: "Macintosh (1984)",
+    artist: "Apple",
+  },
+  {
+    id: "2B-XwPjn9YY",
+    url: "https://youtu.be/2B-XwPjn9YY?si=1HX8K8wA_i9-HIui",
+    title: "Macintosh Announcement (1984)",
+    artist: "Steve Jobs",
+  },
+  {
+    id: "VFP-VZtgb0s",
+    url: "https://youtu.be/VFP-VZtgb0s?si=CydyWRq96F-RM7Jt",
+    title: "iMac G3 vs PC Simplicity",
+    artist: "Steve Jobs",
+  },
+  {
+    id: "dtaSDVpAo4c",
+    url: "https://youtu.be/dtaSDVpAo4c?si=DdbadlisyCMIOYDg",
+    title: "Apple Back on Track (1998)",
+    artist: "Steve Jobs",
+  },
+  {
+    id: "b5P3QDm61go",
+    url: "https://youtu.be/b5P3QDm61go?si=6KH24_Y41mYZCqDi",
+    title: "iMac G4 \"Lamp\" Ad (2002)",
+    artist: "Apple",
+  },
+  {
+    id: "VQKMoT-6XSg",
+    url: "https://youtu.be/VQKMoT-6XSg?si=XzKqJ_mnXDH_P4zH",
+    title: "iPhone Introduction (2007)",
     artist: "Steve Jobs",
   },
 ];
@@ -33,6 +75,8 @@ interface VideoStoreState {
   togglePlay: () => void;
   setIsPlaying: (val: boolean) => void;
 }
+
+const CURRENT_VIDEO_STORE_VERSION = 2; // Define the current version
 
 const getInitialState = () => ({
   videos: DEFAULT_VIDEOS,
@@ -66,13 +110,50 @@ export const useVideoStore = create<VideoStoreState>()(
     }),
     {
       name: "ryos:videos",
+      version: CURRENT_VIDEO_STORE_VERSION, // Set the current version
       partialize: (state) => ({
+        // Keep videos here initially for migration
         videos: state.videos,
         currentIndex: state.currentIndex,
         loopAll: state.loopAll,
         loopCurrent: state.loopCurrent,
         isShuffled: state.isShuffled,
       }),
+      migrate: (persistedState, version) => {
+        let state = persistedState as Partial<VideoStoreState>; // Type assertion
+
+        // If the persisted version is older than the current version, update defaults
+        if (version < CURRENT_VIDEO_STORE_VERSION) {
+          console.log(
+            `Migrating video store from version ${version} to ${CURRENT_VIDEO_STORE_VERSION}`
+          );
+          state = {
+            ...state, // Keep other persisted state
+            videos: DEFAULT_VIDEOS, // Update to new defaults
+            currentIndex: 0, // Reset index
+            // isPlaying is not persisted, so no need to reset here
+          };
+        }
+
+        // Ensure the returned state matches the latest partialized structure
+        const partializedState = {
+          videos: state.videos,
+          currentIndex: state.currentIndex,
+          loopAll: state.loopAll,
+          loopCurrent: state.loopCurrent,
+          isShuffled: state.isShuffled,
+        };
+
+        return partializedState as VideoStoreState; // Return the potentially migrated state
+      },
+      // Optional: Re-add partialize here if you want to exclude videos AFTER migration
+      // if they match defaults and you want to save space
+      // partialize: (state) => ({
+      //   currentIndex: state.currentIndex,
+      //   loopAll: state.loopAll,
+      //   loopCurrent: state.loopCurrent,
+      //   isShuffled: state.isShuffled,
+      // }),
     }
   )
 ); 

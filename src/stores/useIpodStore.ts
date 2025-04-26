@@ -150,6 +150,8 @@ interface IpodStoreState {
   previousTrack: () => void;
 }
 
+const CURRENT_IPOD_STORE_VERSION = 1; // Define the current version
+
 export const useIpodStore = create<IpodStoreState>()(
   persist(
     (set, get) => ({
@@ -276,8 +278,9 @@ export const useIpodStore = create<IpodStoreState>()(
     }),
     {
       name: "ryos:ipod", // Unique name for localStorage persistence
-      // Persist only specific parts of the state
+      version: CURRENT_IPOD_STORE_VERSION, // Set the current version
       partialize: (state) => ({
+        // Keep tracks and originalOrder here initially for migration
         tracks: state.tracks,
         originalOrder: state.originalOrder,
         currentIndex: state.currentIndex,
@@ -286,11 +289,55 @@ export const useIpodStore = create<IpodStoreState>()(
         isShuffled: state.isShuffled,
         theme: state.theme,
         lcdFilterOn: state.lcdFilterOn,
-        // We might not want to persist isPlaying, showVideo, backlightOn
       }),
-      // Handle migration from old storage if needed (optional)
-      // version: 1, // example versioning
-      // migrate: (persistedState, version) => { ... }
+      migrate: (persistedState, version) => {
+        let state = persistedState as IpodStoreState; // Type assertion
+
+        // If the persisted version is older than the current version, update defaults
+        if (version < CURRENT_IPOD_STORE_VERSION) {
+          console.log(
+            `Migrating iPod store from version ${version} to ${CURRENT_IPOD_STORE_VERSION}`
+          );
+          state = {
+            ...state, // Keep other persisted state
+            tracks: DEFAULT_TRACKS, // Update to new defaults
+            originalOrder: DEFAULT_TRACKS, // Update to new defaults
+            currentIndex: 0, // Reset index
+            // Reset other potentially conflicting state if necessary
+            isPlaying: false,
+            isShuffled: state.isShuffled, // Keep shuffle preference maybe? Or reset? Let's keep it for now.
+          };
+        }
+        // Clean up potentially outdated fields if needed in future migrations
+        // Example: delete state.someOldField;
+
+        // Ensure the returned state matches the latest IpodStoreState structure
+        // Remove fields not present in the latest partialize if necessary
+        const partializedState = {
+          tracks: state.tracks,
+          originalOrder: state.originalOrder,
+          currentIndex: state.currentIndex,
+          loopAll: state.loopAll,
+          loopCurrent: state.loopCurrent,
+          isShuffled: state.isShuffled,
+          theme: state.theme,
+          lcdFilterOn: state.lcdFilterOn,
+        };
+
+
+        return partializedState as IpodStoreState; // Return the potentially migrated state
+      },
+      // Optional: Re-add partialize here if you want to exclude tracks/originalOrder AFTER migration
+      // This prevents large defaults from always being in storage if they are static
+      // partialize: (state) => ({
+      //   currentIndex: state.currentIndex,
+      //   loopAll: state.loopAll,
+      //   loopCurrent: state.loopCurrent,
+      //   isShuffled: state.isShuffled,
+      //   theme: state.theme,
+      //   lcdFilterOn: state.lcdFilterOn,
+      //   // Exclude tracks and originalOrder if they match defaults and you want to save space
+      // }),
     }
   )
 ); 

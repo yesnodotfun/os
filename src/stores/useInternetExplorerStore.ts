@@ -105,7 +105,7 @@ export const DEFAULT_FAVORITES: Favorite[] = [
     year: "current",
   },
   {
-    title: "LongMuseum",
+    title: "Long",
     url: "https://os.rocorgi.wang",
     favicon: "https://www.google.com/s2/favicons?domain=os.rocorgi.wang&sz=32",
     year: "current",
