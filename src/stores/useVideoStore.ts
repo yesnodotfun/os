@@ -78,7 +78,7 @@ export const DEFAULT_VIDEOS: Video[] = [
   {
     id: "TDVYfgRoVAo",
     url: "https://youtu.be/TDVYfgRoVAo",
-    title: "Macworld San Francisco (2002) - iMac G4 Introduction",
+    title: "iMac G4 Introduction (2002)",
     artist: "Steve Jobs",
   },
   {
@@ -90,7 +90,7 @@ export const DEFAULT_VIDEOS: Video[] = [
   {
     id: "VQKMoT-6XSg",
     url: "https://youtu.be/VQKMoT-6XSg?si=XzKqJ_mnXDH_P4zH",
-    title: "Macworld 2007 - iPhone Introduction (2007)",
+    title: "iPhone Introduction (2007)",
     artist: "Steve Jobs",
   },
   {
@@ -130,7 +130,7 @@ interface VideoStoreState {
   setIsPlaying: (val: boolean) => void;
 }
 
-const CURRENT_VIDEO_STORE_VERSION = 3; // Define the current version
+const CURRENT_VIDEO_STORE_VERSION = 4; // Define the current version
 
 const getInitialState = () => ({
   videos: DEFAULT_VIDEOS,
