@@ -46,6 +46,12 @@ export const DEFAULT_VIDEOS: Video[] = [
     artist: "Steve Jobs",
   },
   {
+    id: "Ko4V3G4NqII",
+    url: "https://youtu.be/Ko4V3G4NqII",
+    title: "Macworld San Francisco (2000) - Mac OS X Introduction",
+    artist: "Steve Jobs",
+  },
+  {
     id: "mE_bDNaYAr8",
     url: "https://youtu.be/mE_bDNaYAr8",
     title: "iPod Commercial (2001)",
@@ -54,7 +60,7 @@ export const DEFAULT_VIDEOS: Video[] = [
   {
     id: "Mc_FiHTITHE",
     url: "https://youtu.be/Mc_FiHTITHE",
-    title: "iPod Announcement (2001)",
+    title: "iPod Introduction (2001)",
     artist: "Steve Jobs",
   },
   {
@@ -66,7 +72,7 @@ export const DEFAULT_VIDEOS: Video[] = [
   {
     id: "TDVYfgRoVAo",
     url: "https://youtu.be/TDVYfgRoVAo",
-    title: "Macworld Expo San Francisco 2002",
+    title: "Macworld San Francisco (2002) - iMac G4 Introduction",
     artist: "Steve Jobs",
   },
   {
@@ -78,13 +84,7 @@ export const DEFAULT_VIDEOS: Video[] = [
   {
     id: "VQKMoT-6XSg",
     url: "https://youtu.be/VQKMoT-6XSg?si=XzKqJ_mnXDH_P4zH",
-    title: "iPhone Introduction (2007)",
-    artist: "Steve Jobs",
-  },
-  {
-    id: "FKci-cMsiwo",
-    url: "https://youtu.be/FKci-cMsiwo",
-    title: "WWDC 2008 Keynote (2008)",
+    title: "Macworld 2007 - iPhone Introduction (2007)",
     artist: "Steve Jobs",
   },
   {
@@ -92,12 +92,6 @@ export const DEFAULT_VIDEOS: Video[] = [
     url: "https://youtu.be/dMBW1G4U54g",
     title: "MacBook Air Commercial (2008)",
     artist: "Apple Computer",
-  },
-  {
-    id: "Bts6EkUZrRY",
-    url: "https://youtu.be/Bts6EkUZrRY",
-    title: "MacBook Air Introduction (2008)",
-    artist: "Steve Jobs",
   },
   {
     id: "KEaLJpFxR9Q",
