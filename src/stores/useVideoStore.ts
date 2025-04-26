@@ -60,7 +60,7 @@ export const DEFAULT_VIDEOS: Video[] = [
   {
     id: "mE_bDNaYAr8",
     url: "https://youtu.be/mE_bDNaYAr8",
-    title: "iPod Commercial (2001)",
+    title: "iPod Ad (2001)",
     artist: "Apple Computer",
   },
   {
@@ -84,7 +84,7 @@ export const DEFAULT_VIDEOS: Video[] = [
   {
     id: "9AJ1oSXlzCo",
     url: "https://youtu.be/9AJ1oSXlzCo",
-    title: "iPod Nano Commercial (2005)",
+    title: "iPod Nano Ad (2005)",
     artist: "Apple Computer",
   },
   {
@@ -96,13 +96,13 @@ export const DEFAULT_VIDEOS: Video[] = [
   {
     id: "dMBW1G4U54g",
     url: "https://youtu.be/dMBW1G4U54g",
-    title: "MacBook Air Commercial (2008)",
+    title: "MacBook Air Ad (2008)",
     artist: "Apple Computer",
   },
   {
     id: "KEaLJpFxR9Q",
     url: "https://www.youtube.com/watch?v=KEaLJpFxR9Q",
-    title: "iPhone 4 Commercial (2010)",
+    title: "iPhone 4 Ad (2010)",
     artist: "Apple Computer",
   },
   {
