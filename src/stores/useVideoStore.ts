@@ -64,6 +64,12 @@ export const DEFAULT_VIDEOS: Video[] = [
     artist: "Apple Computer",
   },
   {
+    id: "TDVYfgRoVAo",
+    url: "https://youtu.be/TDVYfgRoVAo",
+    title: "Macworld Expo San Francisco 2002",
+    artist: "Steve Jobs",
+  },
+  {
     id: "9AJ1oSXlzCo",
     url: "https://youtu.be/9AJ1oSXlzCo",
     title: "iPod Nano Commercial (2005)",
