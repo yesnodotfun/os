@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronUp, ChevronDown, MoreHorizontal } from 'lucide-react';
+import { X, ChevronUp, ChevronDown, Blend } from 'lucide-react';
 import HtmlPreview from '@/components/shared/HtmlPreview';
 import { Button } from '@/components/ui/button';
 import { useInternetExplorerStore } from '@/stores/useInternetExplorerStore';
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 // Import useAppStore for shader selection
 import { useAppStore } from '@/stores/useAppStore';
+import { cn } from '@/lib/utils';
 
 // Define type for preview content source
 type PreviewSource = 'html' | 'url';
@@ -58,6 +59,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
   // Get debug mode and shader support status
   const debugMode = useAppStore((state) => state.debugMode);
   const shaderEffectEnabled = useAppStore((state) => state.shaderEffectEnabled);
+  const setShaderEffectEnabled = useAppStore((state) => state.setShaderEffectEnabled);
 
   // Determine the currently focused year in the timeline
   const activeYear = cachedYears[activeYearIndex] ?? null;
@@ -69,12 +71,16 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
   const selectedShaderType = useAppStore((state) => state.selectedShaderType);
   const setSelectedShaderType = useAppStore((state) => state.setSelectedShaderType);
 
-  // Map of shader types to display names
-  const shaderNames: Record<ShaderType, string> = {
+  // Define shader names including Off option
+  const shaderNames: Record<ShaderType | 'off', string> = {
     [ShaderType.GALAXY]: 'Galaxy',
     [ShaderType.AURORA]: 'Aurora',
     [ShaderType.NEBULA]: 'Nebula',
+    'off': 'Off',
   };
+
+  // Define type for shader menu options
+  type ShaderOption = ShaderType | 'off';
 
   // --- Scroll Mask Logic ---
   const getMaskStyle = (isTop: boolean, isBottom: boolean, canScroll: boolean) => {
@@ -633,19 +639,35 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                         size="icon"
                         className="h-7 w-7 rounded-full hover:bg-white/10"
                       >
-                        <MoreHorizontal size={16} className="text-neutral-300" />
+                        <Blend size={16} className="text-neutral-300" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      {Object.values(ShaderType).map((type) => (
-                        <DropdownMenuItem
-                          key={type}
-                          className={selectedShaderType === type ? "bg-accent text-accent-foreground" : ""}
-                          onClick={() => setSelectedShaderType(type)}
-                        >
-                          {shaderNames[type]}
-                        </DropdownMenuItem>
-                      ))}
+                    <DropdownMenuContent align="end" className="bg-black border-[#3a3a3a] text-white">
+                      {[...Object.values(ShaderType), 'off'].map((type) => {
+                        const isSelected = type === 'off' ? !shaderEffectEnabled : (shaderEffectEnabled && selectedShaderType === type);
+                        return (
+                          <DropdownMenuItem
+                            key={type}
+                            className={cn(
+                              "font-geneva-12 text-[12px] flex items-center justify-between",
+                              isSelected && "bg-accent text-accent-foreground"
+                            )}
+                            onClick={() => {
+                              if (type === 'off') {
+                                setShaderEffectEnabled(false);
+                              } else {
+                                setShaderEffectEnabled(true);
+                                setSelectedShaderType(type as ShaderType);
+                              }
+                            }}
+                          >
+                            {shaderNames[type as ShaderOption]}
+                            {isSelected && (
+                              <span className="ml-2">✓</span>
+                            )}
+                          </DropdownMenuItem>
+                        );
+                      })}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
