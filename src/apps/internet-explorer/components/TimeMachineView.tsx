@@ -417,9 +417,9 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
             <motion.div
               className="relative w-full h-full flex flex-col items-center justify-start perspective-[1000px] p-2 gap-2 pt-12 pb-10
                            sm:flex-row sm:items-center sm:pt-16 sm:pb-24 sm:px-4 sm:pr-0 sm:gap-4"
-              initial={{ opacity: 0, y: 20 , scale: 1.04}}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 20, scale: 1.04 }}
+              initial={{ opacity: 0, scale: 1.04}}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 1.04 }}
               transition={{ duration: 0.4, delay: 0.1, ease: "easeInOut" }}
             >
 
@@ -459,7 +459,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                                         zIndex: zIndex,
                                         transformOrigin: 'center center',
                                         // Add a slight tilt for perspective
-                                        // rotateX: distance !== 0 ? (distance > 0 ? -5 : 5) : 0,
+                                        rotateX: distance !== 0 ? (distance > 0 ? -5 : 5) : 0,
                                     }}
                                 >
                                     {/* Placeholder Content / HtmlPreview container */}
