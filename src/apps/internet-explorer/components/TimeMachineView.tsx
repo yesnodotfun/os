@@ -249,7 +249,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
 
                 {/* Stacked Previews Area - Removed sm:w-[calc(...)] and added sm:order-none */}
                 <div ref={previewContainerRef} className="relative w-full h-full flex items-center justify-center preserve-3d flex-grow order-1
-                                                       sm:h-[calc(100%-6rem)] sm:flex-grow sm:order-none">
+                                                        sm:flex-grow sm:order-none">
                     <AnimatePresence initial={false}>
                         {cachedYears.map((year, index) => {
                             const distance = index - activeYearIndex;
