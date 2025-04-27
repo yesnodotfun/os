@@ -339,18 +339,18 @@ export function useTerminalSounds() {
       wet: 0.5,  // Less wet for more clarity
     }).toDestination();
 
-    // Simple delay for space
-    const delay = new Tone.FeedbackDelay({
-      delayTime: 0.25, // Short delay time for definition
-      feedback: 0.3, // Moderate feedback
-      wet: 0.25     // Subtle delay presence
+    // Use PingPongDelay for a more stereo, sparkly effect
+    const delay = new Tone.PingPongDelay({
+      delayTime: "16n", // Shorter delay time for faster echoes
+      feedback: 0.4,   // Slightly higher feedback
+      wet: 0.35,       // Increase wetness for more prominent delay
     }).connect(reverb);
 
-    // Simple filter for clarity
+    // Adjust filter slightly for brightness
     const filter = new Tone.Filter({
-      type: "lowpass",  // Back to lowpass for warmth
-      frequency: 2000,  // Moderate frequency cutoff
-      Q: 0.5,
+      type: "lowpass",
+      frequency: 2500, // Slightly higher cutoff
+      Q: 0.7,          // Slightly higher Q for resonance
     }).connect(delay);
 
     // Create a note pool for simple, clean arpeggios
@@ -361,26 +361,26 @@ export function useTerminalSounds() {
     ];
     elevatorMusicRef.current.notePool = notePool;
 
-    // Create main synth for arpeggios - quieter and softer
+    // Create main synth for arpeggios - brighter sound
     const leadSynth = new Tone.MonoSynth().connect(filter);
     leadSynth.set({
-      volume: -18, // Much quieter
+      volume: -17, // Slightly louder
       oscillator: {
-        type: "sine", // Back to sine for softer sound
+        type: "triangle", // Brighter oscillator
       },
       envelope: {
-        attack: 0.05,   // Gentle attack
-        decay: 0.2,
-        sustain: 0.3,
-        release: 0.8,
+        attack: 0.02,   // Faster attack
+        decay: 0.15,    // Faster decay
+        sustain: 0.2,
+        release: 0.6,   // Shorter release
       },
       filterEnvelope: {
-        attack: 0.05,
-        decay: 0.2,
-        sustain: 0.4,
-        release: 0.8,
-        baseFrequency: 800,
-        octaves: 1.5,
+        attack: 0.02,
+        decay: 0.1,
+        sustain: 0.3,
+        release: 0.5,
+        baseFrequency: 1200, // Higher base frequency for brightness
+        octaves: 2.5,        // More octaves for sparkle
       },
     });
 
@@ -392,19 +392,30 @@ export function useTerminalSounds() {
       timeout: null,
     };
 
-    // Create a very subtle pad synth
+    // Create a more complex, futuristic pad synth using FMSynth
     const createSimplePadSynth = () => {
-      const padSynth = new Tone.PolySynth(Tone.Synth).connect(filter);
+      const padSynth = new Tone.PolySynth(Tone.FMSynth).connect(filter); // Use FMSynth
       padSynth.set({
-        volume: -25, // Very quiet
+        volume: -22, // Slightly louder pad
+        harmonicity: 1.5, // Lower harmonicity for cleaner FM sound
+        modulationIndex: 5, // Lower modulation index
         oscillator: {
           type: "sine"
         },
         envelope: {
-          attack: 2,
-          decay: 0.5,
-          sustain: 0.5,
-          release: 3,
+          attack: 1.5, // Faster attack
+          decay: 1.0,
+          sustain: 0.4,
+          release: 4.0, // Slightly longer release
+        },
+        modulation: {
+          type: "triangle" // Triangle modulator for brighter FM
+        },
+        modulationEnvelope: {
+          attack: 2.0,
+          decay: 0.8,
+          sustain: 0.2,
+          release: 5.0,
         }
       });
       return padSynth;
