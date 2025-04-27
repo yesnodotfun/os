@@ -357,7 +357,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className="fixed inset-0 z-[10000] bg-black/70 backdrop-blur-xl flex flex-col items-center justify-center font-geneva-12 overflow-hidden"
+          className={`fixed inset-0 z-[10000] ${shaderEffectEnabled ? 'bg-black/90' : 'bg-black/70 backdrop-blur-xl'} flex flex-col items-center justify-center font-geneva-12 overflow-hidden`}
           initial={{ opacity: 0, scale: 1.05 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 1.05 }}
@@ -594,8 +594,8 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
             </motion.div>
 
             {/* Footer Bar - Use calc() for bottom padding: 0.5rem base + safe area */}
-            <div className="relative order-3 w-full mt-auto bg-neutral-900/60 backdrop-blur-sm border-t border-white/10 flex items-center justify-between px-4 z-20 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]
-                           sm:absolute sm:bottom-0 sm:left-0 sm:right-0 sm:mt-0 sm:h-10 sm:pt-0 sm:pb-0">
+            <div className={`relative order-3 w-full mt-auto ${shaderEffectEnabled ? 'bg-neutral-900/80' : 'bg-neutral-900/60 backdrop-blur-sm'} border-t border-white/10 flex items-center justify-between px-4 z-20 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]
+                           sm:absolute sm:bottom-0 sm:left-0 sm:right-0 sm:mt-0 sm:h-10 sm:pt-0 sm:pb-0`}>
               {/* Left spacer - Takes up same width as shader dropdown */}
               <div className="w-8 flex-shrink-0"></div>
               

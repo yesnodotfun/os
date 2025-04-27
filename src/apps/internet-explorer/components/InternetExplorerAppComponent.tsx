@@ -1215,8 +1215,8 @@ export function InternetExplorerAppComponent({
                   exit="hidden"
                 >
                   <div className={`h-full ${
-                    isAiLoading && mode === "past" && parseInt(year) <= 1995 ? 'animate-progress-indeterminate-purple-reverse' :
-                    isAiLoading ? 'animate-progress-indeterminate-purple' : 
+                    isAiLoading && mode === "past" && parseInt(year) <= 1995 ? 'animate-progress-indeterminate-orange-reverse' :
+                    isAiLoading ? 'animate-progress-indeterminate-orange' : 
                     isFetchingWebsiteContent && mode === "past" ? 'animate-progress-indeterminate-green-reverse' :
                     isFetchingWebsiteContent ? 'animate-progress-indeterminate-green' : 
                     mode === "past" && !isAiLoading ? 'animate-progress-indeterminate-reverse' : 

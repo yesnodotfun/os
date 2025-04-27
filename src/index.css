@@ -222,24 +222,24 @@
   width: 100%;
 }
 
-.animate-progress-indeterminate-purple {
+.animate-progress-indeterminate-orange {
   animation: progress-indeterminate 2.5s linear infinite;
   background: linear-gradient(
     90deg,
     transparent 20%,
-    #a855f7 50%,
+    #f97316 50%,
     transparent 80%
   );
   background-size: 200% 100%;
   width: 100%;
 }
 
-.animate-progress-indeterminate-purple-reverse {
+.animate-progress-indeterminate-orange-reverse {
   animation: progress-indeterminate-reverse 2.5s linear infinite;
   background: linear-gradient(
     90deg,
     transparent 20%,
-    #a855f7 50%,
+    #f97316 50%,
     transparent 80%
   );
   background-size: 200% 100%;
