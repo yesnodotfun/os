@@ -1089,17 +1089,17 @@ export function InternetExplorerAppComponent({
                       variant="ghost"
                       size="icon"
                       onClick={() => setTimeMachineViewOpen(true)}
-                      disabled={isFetchingCachedYears || cachedYears.length === 0}
-                      className={`h-7 w-7 absolute right-1 top-1/2 -translate-y-1/2 focus-visible:ring-0 focus-visible:ring-offset-0 ${cachedYears.length > 0 ? '' : 'opacity-50 cursor-not-allowed'}`}
+                      disabled={isFetchingCachedYears || cachedYears.length <= 1}
+                      className={`h-7 w-7 absolute right-1 top-1/2 -translate-y-1/2 focus-visible:ring-0 focus-visible:ring-offset-0 ${cachedYears.length > 1 ? '' : 'opacity-50 cursor-not-allowed'}`}
                       aria-label="Show cached versions (Time Machine)"
-                      style={{ pointerEvents: cachedYears.length === 0 ? 'none' : 'auto' }}
+                      style={{ pointerEvents: cachedYears.length <= 1 ? 'none' : 'auto' }}
                     >
-                      <History className={`h-4 w-4 ${cachedYears.length > 0 ? 'text-orange-500' : 'text-neutral-400'}`} />
+                      <History className={`h-4 w-4 ${cachedYears.length > 1 ? 'text-orange-500' : 'text-neutral-400'}`} />
                     </Button>
                   </TooltipTrigger>
-                  {cachedYears.length > 0 && (
+                  {cachedYears.length > 1 && (
                     <TooltipContent side="bottom">
-                      <p>{cachedYears.length} cached version{cachedYears.length !== 1 ? 's' : ''}</p>
+                      <p>{cachedYears.length} Time Node{cachedYears.length !== 1 ? 's' : ''}</p>
                     </TooltipContent>
                   )}
                 </Tooltip>

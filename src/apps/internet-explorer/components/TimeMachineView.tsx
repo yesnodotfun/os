@@ -26,6 +26,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
 }) => {
   // Index of the year currently in focus (0 is the newest/frontmost)
   const [activeYearIndex, setActiveYearIndex] = useState<number>(0);
+  const [scrollState, setScrollState] = useState({ isTop: true, isBottom: false, canScroll: false });
   
   // --- Time Machine Local Preview State ---
   const [previewYear, setPreviewYear] = useState<string | null>(null);
@@ -48,6 +49,72 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
 
   // Determine if the Go button should be disabled
   const isGoButtonDisabled = !activeYear || (storeUrl === currentUrl && storeYear === activeYear);
+
+  // --- Scroll Mask Logic ---
+  const getMaskStyle = (isTop: boolean, isBottom: boolean, canScroll: boolean) => {
+    // Only apply mask if scrolling is possible and on desktop view
+    if (!canScroll || window.innerWidth < 640) return 'none';
+    // No fade at top if scrolled to top
+    const topColor = isTop ? 'black' : 'transparent';
+    // No fade at bottom if scrolled to bottom
+    const bottomColor = isBottom ? 'black' : 'transparent';
+    // Define gradient stops
+    return `linear-gradient(to bottom, ${topColor} 0%, black 10%, black 90%, ${bottomColor} 100%)`;
+  };
+
+  const handleScroll = useCallback(() => {
+    const element = timelineRef.current;
+    if (!element) return;
+
+    // Check vertical scroll on desktop layout (sm+)
+    if (window.innerWidth >= 640) { // Tailwind 'sm' breakpoint
+      const scrollTop = element.scrollTop;
+      const scrollHeight = element.scrollHeight;
+      const clientHeight = element.clientHeight;
+      const threshold = 5; // Small tolerance
+
+      const isTop = scrollTop < threshold;
+      const isBottom = scrollHeight - scrollTop - clientHeight < threshold;
+      // Check if content height is greater than container height
+      const canScroll = scrollHeight > clientHeight + threshold;
+
+      // Check if state actually changed to prevent unnecessary re-renders
+      setScrollState(prevState => {
+        if (prevState.isTop !== isTop || prevState.isBottom !== isBottom || prevState.canScroll !== canScroll) {
+          return { isTop, isBottom, canScroll };
+        }
+        return prevState;
+      });
+    } else {
+      // Reset on mobile (no vertical scroll/mask)
+      setScrollState(prevState => {
+          if (prevState.isTop !== true || prevState.isBottom !== false || prevState.canScroll !== false) {
+              return { isTop: true, isBottom: false, canScroll: false };
+          }
+          return prevState;
+      });
+    }
+  }, []); // Empty dependency array, relies on timelineRef.current
+
+  // Effect to setup scroll listeners and initial check
+  useEffect(() => {
+    const element = timelineRef.current;
+    if (isOpen && element) {
+      // Delay slightly to ensure layout is stable after opening animation/resize
+      const timer = setTimeout(() => {
+        handleScroll(); // Initial check
+        element.addEventListener('scroll', handleScroll, { passive: true });
+        window.addEventListener('resize', handleScroll);
+      }, 100); // Increased delay slightly
+
+      return () => {
+        clearTimeout(timer);
+        element.removeEventListener('scroll', handleScroll);
+        window.removeEventListener('resize', handleScroll);
+      };
+    }
+  }, [isOpen, handleScroll, cachedYears]); // Re-run if cachedYears changes height or component opens/closes
+  // --- End Scroll Mask Logic ---
 
   // Initialize index and preview year when opening
   useEffect(() => {
@@ -102,10 +169,10 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     if (!isOpen) return;
 
-    if (event.key === 'ArrowDown') {
+    if (event.key === 'ArrowUp') {
       event.preventDefault();
       setActiveYearIndex((prevIndex) => Math.min(prevIndex + 1, cachedYears.length - 1));
-    } else if (event.key === 'ArrowUp') {
+    } else if (event.key === 'ArrowDown') {
       event.preventDefault();
       setActiveYearIndex((prevIndex) => Math.max(prevIndex - 1, 0));
     } else if (event.key === 'Enter') {
@@ -141,13 +208,18 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
       return;
     }
 
-    const fetchPreview = async () => {
-      console.log(`[TimeMachine] Fetch triggered for year: ${previewYear}`);
-      setPreviewStatus('loading');
-      setPreviewHtml(null); 
-      setPreviewError(null);
+    // Set loading state immediately when previewYear changes or fetch starts
+    console.log(`[TimeMachine] Fetch triggered for year: ${previewYear}`);
+    setPreviewStatus('loading');
+    setPreviewHtml(null); // Clear previous HTML
+    setPreviewError(null);
 
+    const fetchPreview = async () => {
       try {
+        let html: string;
+        let cleanHtml: string | null = null;
+        let parsedTitle: string | undefined = undefined;
+
         if (previewYear === 'current') {
           // Fetch current content
           const response = await fetch(`/api/iframe-check?url=${encodeURIComponent(currentUrl)}`);
@@ -159,48 +231,53 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
             } catch { /* Ignore parse error */ }
             throw new Error(`API Error (${response.status}): ${errorText || response.statusText}`);
           }
-          const html = await response.text();
-          setPreviewHtml(html);
-          setPreviewStatus('success');
+          html = await response.text();
+          cleanHtml = html; // Use raw HTML for current view
         } else {
           // Handle specific past/future years
           const cachedEntry = getCachedAiPage(currentUrl, previewYear);
           if (cachedEntry) {
             console.log(`[TimeMachine] Cache HIT for ${currentUrl} (${previewYear})`);
-            setPreviewHtml(cachedEntry.html);
-            setPreviewStatus('success');
+            cleanHtml = cachedEntry.html;
           } else {
             console.log(`[TimeMachine] Cache MISS for ${currentUrl} (${previewYear}). Fetching...`);
             const response = await fetch(`/api/iframe-check?mode=ai&url=${encodeURIComponent(currentUrl)}&year=${previewYear}`);
             if (!response.ok) {
               if (response.status === 404) {
                  console.warn(`[TimeMachine] No remote cache found for ${currentUrl} (${previewYear}).`);
-                 throw new Error(`No cached version available for ${previewYear}.`); // Throw error instead of setting state directly
+                 throw new Error(`No cached version available for ${previewYear}.`);
               } else {
                 const errorText = await response.text();
                 throw new Error(`API Error (${response.status}): ${errorText}`);
               }
             }
-            const html = await response.text();
+            html = await response.text();
             const titleMatch = html.match(/^<!--\s*TITLE:\s*(.*?)\s*-->/);
-            const parsedTitle = titleMatch ? titleMatch[1].trim() : null;
-            const cleanHtml = html.replace(/^<!--\s*TITLE:.*?-->\s*\n?/, "");
-            setPreviewHtml(cleanHtml);
-            setPreviewStatus('success');
+            parsedTitle = titleMatch ? titleMatch[1].trim() : undefined;
+            cleanHtml = html.replace(/^<!--\s*TITLE:.*?-->\s*\n?/, "");
             // Cache the fetched result locally
-            cacheAiPage(currentUrl, previewYear, cleanHtml, parsedTitle || undefined);
+            cacheAiPage(currentUrl, previewYear, cleanHtml, parsedTitle);
           }
         }
+        
+        // Set success state only after successful fetch/cache retrieval
+        setPreviewHtml(cleanHtml);
+        setPreviewStatus('success');
+
       } catch (error) {
         console.error("[TimeMachine] Error fetching preview content:", error);
         setPreviewError(error instanceof Error ? error.message : "Failed to load preview.");
         setPreviewStatus('error');
+        // Ensure HTML is null on error
+        setPreviewHtml(null);
       }
-      // No finally block needed, status is set in try/catch
     };
 
-    fetchPreview();
-    // Cleanup function or AbortController could be added here if needed
+    // Use a small timeout to allow the loading state to render before fetch starts
+    // This ensures the UI updates to "loading" before potentially blocking network request
+    const timerId = setTimeout(fetchPreview, 10); 
+
+    return () => clearTimeout(timerId); // Cleanup timeout if component unmounts or deps change
 
   }, [previewYear, isOpen, currentUrl, getCachedAiPage, cacheAiPage]); // Dependencies for fetching
 
@@ -216,6 +293,8 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
   const PREVIEW_Z_SPACING = -80; // Spacing between previews on Z-axis
   const PREVIEW_SCALE_FACTOR = 0.05; // How much smaller each preview gets
   const PREVIEW_Y_SPACING = -20; // Vertical spacing between previews
+
+  const maskStyle = getMaskStyle(scrollState.isTop, scrollState.isBottom, scrollState.canScroll);
 
   return (
     <AnimatePresence>
@@ -259,7 +338,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                             return (
                                 <motion.div
                                     key={year}
-                                    className="absolute w-[100%] h-[80%] rounded-[12px] border border-white/10 shadow-2xl overflow-hidden bg-neutral-900/50 preserve-3d"
+                                    className="absolute w-[100%] h-[80%] rounded-[12px] border border-white/10 shadow-2xl overflow-hidden preserve-3d"
                                     initial={{
                                         z: distance * PREVIEW_Z_SPACING,
                                         scale: 1 - Math.abs(distance) * PREVIEW_SCALE_FACTOR,
@@ -271,6 +350,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                                         scale: 1 - Math.abs(distance) * PREVIEW_SCALE_FACTOR,
                                         opacity: isInvisible ? 0 : 1 / (Math.abs(distance) + 1), // More transparent further back
                                         pointerEvents: distance === 0 ? 'auto' : 'none',
+                                        backgroundColor: distance === 0 ? 'rgba(38, 38, 38, 0.7)' : 'rgba(255, 255, 255, 0.2)' // Active vs inactive background
                                     }}
                                     exit={{ opacity: 0, scale: 0.5 }}
                                     transition={{ type: 'spring', stiffness: 150, damping: 20 }}
@@ -281,43 +361,48 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                                         // rotateX: distance !== 0 ? (distance > 0 ? -5 : 5) : 0,
                                     }}
                                 >
-                                    {/* Placeholder Content - Replace with HtmlPreview later */}
-                                    <div className="flex items-center justify-center h-full text-white/50 bg-black/30">
-                                        {distance === 0 ? (
-                                            <>
-                                                {/* Remove loading text */}
-                                                {/* {previewStatus === 'loading' && <p className='text-sm animate-pulse w-full text-center'>Loading {previewYear}...</p>} */}
-                                                {previewStatus === 'error' && <p className='text-red-400 p-4 text-center'>{previewError || 'Error loading preview.'}</p>}
-                                                <div 
-                                                  className="w-full h-full overflow-hidden bg-neutral-900" 
-                                                  style={{ contentVisibility: 'auto' }}
-                                                > 
-                                                    <AnimatePresence>
-                                                         {/* Render previewHtml when status is success */} 
-                                                         {previewHtml && previewStatus === 'success' && (
-                                                              <motion.div
-                                                                  key={`${currentUrl}-${previewYear}`}
-                                                                  initial={{ opacity: 0 }}
-                                                                  animate={{ opacity: 1 }}
-                                                                  exit={{ opacity: 0 }}
-                                                                  transition={{ duration: 0.5, delay: 0.2 }}
-                                                                  className="w-full h-full"
-                                                              >
-                                                                  <HtmlPreview
-                                                                      htmlContent={previewHtml}
-                                                                      isInternetExplorer={true}
-                                                                      maxHeight="100%"
-                                                                      minHeight="100%"
-                                                                      className="border-none rounded-none"
-                                                                  />
-                                                              </motion.div>
-                                                         )}
-                                                    </AnimatePresence>
-                                                </div>
-                                            </>
-                                        ) : (
-                                            null // Render nothing for inactive panes
-                                        )}
+                                    {/* Placeholder Content / HtmlPreview container */}
+                                    <div className="w-full h-full"> { /* Removed background */}
+                                       {/* Only render content for the active pane */}
+                                       {distance === 0 && (
+                                         <AnimatePresence mode="wait">
+                                           {/* Single motion div keyed by status/content */}
+                                           <motion.div
+                                             key={previewStatus === 'success' ? `${currentUrl}-${previewYear}` : previewStatus} // Key changes with status/content
+                                             initial={{ opacity: 0 }}
+                                             animate={{ opacity: 1, transition: { duration: 0.3, delay: 0.15 } }} // Added delay to fade-in
+                                             exit={{ opacity: 0, transition: { duration: 0.15 } }}    // Fade out faster
+                                             className="w-full h-full flex items-center justify-center" // Center loading/error
+                                           >
+                                             {previewStatus === 'loading' && (
+                                               <div className="p-4"> {/* Wrapper for padding */}
+                                                 <p className="text-neutral-400">Loading...</p>
+                                               </div>
+                                             )}
+                                             {previewStatus === 'error' && (
+                                               <div className="p-4"> {/* Wrapper for padding */}
+                                                 <p className='text-red-400 text-center'>{previewError || 'Error loading preview.'}</p>
+                                               </div>
+                                             )}
+                                             {previewStatus === 'success' && previewHtml && (
+                                               // Container for HtmlPreview, takes full space
+                                               <div
+                                                   className="w-full h-full overflow-hidden"
+                                                   style={{ contentVisibility: 'auto' }}
+                                               >
+                                                   <HtmlPreview
+                                                       htmlContent={previewHtml}
+                                                       isInternetExplorer={true}
+                                                       maxHeight="100%"
+                                                       minHeight="100%"
+                                                       className="border-none rounded-none"
+                                                   />
+                                               </div>
+                                             )}
+                                             {/* Render nothing specific for 'idle' or if success but html is null */}
+                                           </motion.div>
+                                         </AnimatePresence>
+                                       )}
                                     </div>
                                 </motion.div>
                             );
@@ -349,14 +434,19 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                 <div className="w-full h-auto flex flex-row justify-center order-2 py-1 px-2 z-10
                            sm:h-full sm:flex-col sm:items-center sm:justify-center sm:w-48 sm:flex-shrink-0 sm:order-none">
                     {/* Container for the timeline bars */}
-                    <div className="relative w-full flex-1 flex flex-row items-center justify-center overflow-hidden px-2 py-1
-                                   sm:flex-col sm:px-6 sm:py-4">
-                        {/* Timeline Bars Container - Default: mobile (horizontal scroll), sm: desktop (vertical scroll) */}
-                        <div 
-                           ref={timelineRef} 
+                    <div
+                        className="relative w-full flex-1 flex flex-row items-center justify-center overflow-hidden px-2 py-1
+                                   sm:flex-col sm:px-6 sm:py-4"
+                        style={{
+                           maskImage: maskStyle,
+                           WebkitMaskImage: maskStyle, // For Safari
+                        }}
+                    >
+                        {/* Timeline Bars Container - Remove sm:[mask-image:...] class */}
+                        <div
+                           ref={timelineRef}
                            className="w-auto max-w-full overflow-x-auto scrollbar-none flex flex-row items-center space-x-4 space-y-0 justify-start py-0 h-12
-                                      sm:w-full sm:overflow-y-auto sm:flex-col-reverse sm:items-center sm:space-y-0.5 sm:space-x-0 sm:py-2 sm:h-auto sm:max-w-none sm:justify-center
-                                      sm:[mask-image:linear-gradient(to_bottom,transparent_0%,black_10%,black_90%,transparent_100%)]"
+                                      sm:w-full sm:overflow-y-auto sm:flex-col-reverse sm:items-center sm:space-y-0.5 sm:space-x-0 sm:py-2 sm:h-auto sm:max-w-none sm:justify-center"
                         >
                             {cachedYears.map((year, index) => {
                                 const isActive = activeYearIndex === index;
