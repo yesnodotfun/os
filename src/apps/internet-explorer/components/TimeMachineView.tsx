@@ -46,6 +46,8 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
   // Index of the year currently in focus (0 is the newest/frontmost)
   const [activeYearIndex, setActiveYearIndex] = useState<number>(0);
   const [scrollState, setScrollState] = useState({ isTop: true, isBottom: false, canScroll: false });
+  // State to track navigation direction for animations
+  const [navigationDirection, setNavigationDirection] = useState<'forward' | 'backward' | 'none'>('none');
   
   // --- Time Machine Local Preview State ---
   const [previewYear, setPreviewYear] = useState<string | null>(null);
@@ -237,13 +239,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
   }, [onClose, playClose]);
 
   // Helper function to navigate to the 'current' year
-  const goToNow = useCallback(() => {
-    const nowIndex = cachedYears.findIndex(year => year === 'current');
-    if (nowIndex !== -1) {
-      playClick(); // Play click sound
-      setActiveYearIndex(nowIndex);
-    }
-  }, [cachedYears, playClick]);
+  // REMOVED const goToNow = useCallback(...)
 
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     if (!isOpen) return;
@@ -402,9 +398,84 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
 
   const maskStyle = getMaskStyle(scrollState.canScroll);
 
+  // --- Animation Variants (defined inside component to access constants) ---
+  const exitVariants = {
+    // Define a single 'exit' variant as a function accepting the custom prop
+    exit: (direction: 'forward' | 'backward' | 'none') => {
+      if (direction === 'forward') {
+        // scaleUp animation target
+        return {
+          opacity: 0,
+          z: 50, // Bring slightly forward
+          scale: 1.05, // Scale up a bit
+          y: -PREVIEW_Y_SPACING,
+          transition: { type: 'spring', stiffness: 150, damping: 25 }
+        };
+      } else {
+        // pushBack animation target (default/backward navigation)
+        return {
+          opacity: 0,
+          z: (MAX_VISIBLE_PREVIEWS + 1) * PREVIEW_Z_SPACING,
+          scale: 1 - (MAX_VISIBLE_PREVIEWS + 1) * PREVIEW_SCALE_FACTOR,
+          y: (MAX_VISIBLE_PREVIEWS + 1) * PREVIEW_Y_SPACING,
+          transition: { type: 'spring', stiffness: 150, damping: 25 }
+        };
+      }
+    }
+    /* Original approach - keeping for reference if needed
+       opacity: 0,
+       z: (MAX_VISIBLE_PREVIEWS + 1) * PREVIEW_Z_SPACING,
+       scale: 1 - (MAX_VISIBLE_PREVIEWS + 1) * PREVIEW_SCALE_FACTOR,
+       y: (MAX_VISIBLE_PREVIEWS + 1) * PREVIEW_Y_SPACING,
+       transition: { type: 'spring', stiffness: 150, damping: 25 } // Smoothed damping
+     },
+     scaleUp: { // New exit: card moves towards user/scales up when navigating forward (older)
+       opacity: 0,
+       z: 50, // Bring slightly forward
+       scale: 1.05, // Scale up a bit
+       y: 0,
+       transition: { type: 'spring', stiffness: 150, damping: 25 } // Smoothed damping
+     }
+    */
+  };
+  // --- End Animation Variants ---
+
   // Calculate tooltip labels
   const olderYearLabel = activeYearIndex < cachedYears.length - 1 ? cachedYears[activeYearIndex + 1] : 'Oldest';
   const newerYearLabel = activeYearIndex > 0 ? cachedYears[activeYearIndex - 1] : 'Newest';
+
+  // --- Calculate the slice of years to actually render ---
+  const startIndex = Math.max(0, activeYearIndex); // The active card is the first one we want
+  // +1 because slice end is exclusive, +1 again because MAX_VISIBLE_PREVIEWS is *behind* active
+  const endIndexExclusive = Math.min(cachedYears.length, activeYearIndex + MAX_VISIBLE_PREVIEWS + 1); 
+  const visibleYears = cachedYears.slice(startIndex, endIndexExclusive);
+  // --- End Slice Calculation ---
+
+  // --- Helper to set Active Index and Direction ---
+  const changeActiveYearIndex = useCallback((newIndexOrCallback: number | ((prevIndex: number) => number)) => {
+    setActiveYearIndex(prevIndex => {
+      let newIndex: number;
+      if (typeof newIndexOrCallback === 'function') {
+        newIndex = newIndexOrCallback(prevIndex);
+      } else {
+        newIndex = newIndexOrCallback;
+      }
+
+      // Clamp index to valid range
+      newIndex = Math.max(0, Math.min(cachedYears.length - 1, newIndex));
+
+      // Determine direction
+      if (newIndex > prevIndex) {
+        setNavigationDirection('forward'); // Moving to older year (index increases)
+      } else if (newIndex < prevIndex) {
+        setNavigationDirection('backward'); // Moving to newer year (index decreases)
+      } else {
+        setNavigationDirection('none'); // No change or initial set
+      }
+      return newIndex;
+    });
+  }, [cachedYears.length]); // Dependency on cachedYears.length to ensure clamping is correct
+  // --- End Helper ---
 
   return (
     <AnimatePresence>
@@ -444,115 +515,127 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                 {/* Stacked Previews Area - Let it grow within the row on desktop */}
                 <div ref={previewContainerRef} className="relative w-full flex-grow flex items-center justify-center preserve-3d order-1
                                                         sm:order-none sm:h-[80%]">
-                    <AnimatePresence initial={false}>
-                        {cachedYears.map((year, index) => {
-                            const distance = index - activeYearIndex;
-                            const isInvisible = Math.abs(distance) > MAX_VISIBLE_PREVIEWS || distance < 0; // Hide previews in front or too far back
-                            const zIndex = cachedYears.length - index; // Ensure correct stacking order
+                    <AnimatePresence initial={false} custom={navigationDirection}>
+                        {/* Map over the SLICED array */}
+                        {visibleYears.map((year, indexInSlicedArray) => {
+                            // Calculate the ORIGINAL index in the full cachedYears array
+                            const originalIndex = startIndex + indexInSlicedArray;
+                            // Calculate distance from the currently active card (will always be >= 0)
+                            const distance = originalIndex - activeYearIndex;
+                            // Opacity based on distance (1 / (distance + 1))
+                            const opacity = 1 / (distance + 1);
+                            // zIndex needs to be based on the original position for correct stacking
+                            const zIndex = cachedYears.length - originalIndex;
 
                             return (
                                 <motion.div
-                                    key={year}
+                                    key={year} // Use year from the sliced array as key
                                     className="absolute w-[100%] h-full rounded-[12px] border border-white/10 shadow-2xl overflow-hidden preserve-3d bg-neutral-800/50" // Changed h-[80%] to h-full
                                     initial={{
                                         z: distance * PREVIEW_Z_SPACING,
-                                        scale: 1 - Math.abs(distance) * PREVIEW_SCALE_FACTOR,
+                                        scale: 1 - distance * PREVIEW_SCALE_FACTOR, // distance >= 0
                                         opacity: 0
                                     }}
                                     animate={{
                                         z: distance * PREVIEW_Z_SPACING,
                                         y: distance * PREVIEW_Y_SPACING,
-                                        scale: 1 - Math.abs(distance) * PREVIEW_SCALE_FACTOR,
-                                        opacity: isInvisible ? 0 : 1 / (Math.abs(distance) + 1), // More transparent further back
+                                        scale: 1 - distance * PREVIEW_SCALE_FACTOR, // distance >= 0
+                                        opacity: opacity, // Opacity based on distance
                                         pointerEvents: distance === 0 ? 'auto' : 'none',
                                         // Keep background subtle, maybe slightly lighter when active
                                         backgroundColor: distance === 0 ? 'rgba(38, 38, 38, 0.7)' : 'rgba(20, 20, 20, 0.5)'
                                     }}
-                                    exit={{ opacity: 0, scale: 0.5 }}
-                                    transition={{ type: 'spring', stiffness: 150, damping: 20 }}
+                                    variants={exitVariants} // Define variants for the component
+                                    exit="exit" // Use the single 'exit' variant name
+                                    // Apply base transition - variants can override or add to this
+                                    transition={{ type: 'spring', stiffness: 150, damping: 25 }} // Smoothed damping
                                     style={{
                                         zIndex: zIndex,
                                         transformOrigin: 'center center',
-                                        // Add a slight tilt for perspective
-                                        rotateX: distance !== 0 ? (distance > 0 ? -5 : 5) : 0,
+                                        // Add a slight tilt for perspective (only non-active cards)
+                                        rotateX: distance !== 0 ? -5 : 0, // distance >= 0, so only negative tilt
                                     }}
                                 >
                                     {/* Placeholder Content / HtmlPreview container */}
-                                    <div className="w-full h-full"> { /* Removed background */}
-                                       {/* Only render content for the active pane */}
-                                       {distance === 0 && (
-                                         <div className="w-full h-full flex items-center justify-center">
-                                           <AnimatePresence mode="wait">
-                                             <motion.div
-                                               key={previewStatus} // Animate based on status change
-                                               initial={{ opacity: 0 }}
-                                               animate={{ opacity: 1 }}
-                                               exit={{ opacity: 0 }}
-                                               transition={{ duration: 0.2 }}
-                                               className="w-full h-full"
-                                             >
-                                               {previewStatus === 'loading' && (
-                                                 <div className="w-full h-full flex items-center justify-center">
-                                                   <p className="text-neutral-400 shimmer">Loading...</p>
-                                                 </div>
-                                               )}
-                                               {previewStatus === 'error' && (
-                                                 <div className="w-full h-full flex items-center justify-center p-4">
-                                                   <p className='text-red-400 text-center'>{previewError || 'Error loading preview.'}</p>
-                                                 </div>
-                                               )}
-                                               {previewStatus === 'success' && previewContent && (
-                                                 <motion.div // Outer container for content fade-in
-                                                   initial={{ opacity: 0 }}
-                                                   animate={{ opacity: 1 }} // This fades in the container after loading/error
-                                                   transition={{ duration: 0.3, delay: 0.1 }}
-                                                   className="w-full h-full overflow-hidden"
-                                                 >
-                                                   {previewSourceType === 'url' && (
-                                                     <motion.div // Animate iframe opacity based on load state
-                                                       initial={{ opacity: 0 }} // Start fully transparent
-                                                       animate={{ opacity: isIframeLoaded ? 1 : 0.6 }} // Animate to 0.6, then 1 on load
-                                                       transition={{ duration: 0.3 }} // Smooth transition for opacity changes
-                                                       className="w-full h-full"
-                                                     >
-                                                       <iframe
-                                                         src={previewContent}
-                                                         className="w-full h-full border-none bg-white"
-                                                         sandbox="allow-scripts allow-same-origin"
-                                                         title={`Preview for ${previewYear}`}
-                                                         onLoad={() => {
-                                                           console.log(`[TimeMachine] iframe for ${previewYear} loaded.`);
-                                                           setIsIframeLoaded(true);
-                                                         }}
-                                                       />
-                                                     </motion.div>
-                                                   )}
-                                                   {previewSourceType === 'html' && (
-                                                     <motion.div // Keep consistent structure, though opacity is handled by parent
-                                                       initial={{ opacity: 0 }} // Start transparent
-                                                       animate={{ opacity: 1 }} // Fade in fully
-                                                       transition={{ duration: 0.3 }} // Match iframe fade duration
-                                                       className="w-full h-full"
-                                                     >
-                                                       <HtmlPreview
-                                                         htmlContent={previewContent}
-                                                         isInternetExplorer={true}
-                                                         maxHeight="100%"
-                                                         minHeight="100%"
-                                                         className="border-none rounded-none"
-                                                       />
-                                                     </motion.div>
-                                                   )}
-                                                 </motion.div>
-                                               )}
-                                               {/* Handle idle state or success with no content (shouldn't normally happen) */}
-                                               {(previewStatus === 'idle' || (previewStatus === 'success' && !previewContent)) && (
-                                                   <div className="w-full h-full flex items-center justify-center"> {/* Placeholder/Idle */} </div>
-                                               )}
-                                             </motion.div>
-                                           </AnimatePresence>
-                                         </div>
-                                       )}
+                                    <div className="w-full h-full">
+                                        {/* Only render content for the active pane */}
+                                        {distance === 0 && (
+                                          <div className="w-full h-full flex items-center justify-center">
+                                            <AnimatePresence mode="wait">
+                                              <motion.div
+                                                key={previewStatus} // Animate based on status change
+                                                initial={{ opacity: 0 }}
+                                                animate={{ opacity: 1 }}
+                                                exit={{ opacity: 0 }}
+                                                transition={{ duration: 0.2 }}
+                                                className="w-full h-full"
+                                              >
+                                                {previewStatus === 'loading' && (
+                                                  <div className="w-full h-full flex items-center justify-center">
+                                                    <p className="text-neutral-400 shimmer">Loading...</p>
+                                                  </div>
+                                                )}
+                                                {previewStatus === 'error' && (
+                                                  <div className="w-full h-full flex items-center justify-center p-4">
+                                                    <p className='text-red-400 text-center'>{previewError || 'Error loading preview.'}</p>
+                                                  </div>
+                                                )}
+                                                {previewStatus === 'success' && previewContent && (
+                                                  <motion.div // Outer container for content fade-in
+                                                    initial={{ opacity: 0 }}
+                                                    animate={{ opacity: 1 }} // This fades in the container after loading/error
+                                                    transition={{ duration: 0.3, delay: 0.1 }}
+                                                    className="w-full h-full overflow-hidden"
+                                                  >
+                                                    {previewSourceType === 'url' && (
+                                                      <motion.div // Animate iframe opacity based on load state
+                                                        initial={{ opacity: 0 }} // Start fully transparent
+                                                        animate={{ opacity: isIframeLoaded ? 1 : 0.6 }} // Animate to 0.6, then 1 on load
+                                                        transition={{ duration: 0.3 }} // Smooth transition for opacity changes
+                                                        className="w-full h-full"
+                                                      >
+                                                        <iframe
+                                                          src={previewContent}
+                                                          className="w-full h-full border-none bg-white"
+                                                          sandbox="allow-scripts allow-same-origin"
+                                                          title={`Preview for ${previewYear}`}
+                                                          onLoad={() => {
+                                                            console.log(`[TimeMachine] iframe for ${previewYear} loaded.`);
+                                                            setIsIframeLoaded(true);
+                                                          }}
+                                                        />
+                                                      </motion.div>
+                                                    )}
+                                                    {previewSourceType === 'html' && (
+                                                      <motion.div // Keep consistent structure, though opacity is handled by parent
+                                                        initial={{ opacity: 0 }} // Start transparent
+                                                        animate={{ opacity: 1 }} // Fade in fully
+                                                        transition={{ duration: 0.3 }} // Match iframe fade duration
+                                                        className="w-full h-full"
+                                                      >
+                                                        <HtmlPreview
+                                                          htmlContent={previewContent}
+                                                          isInternetExplorer={true}
+                                                          maxHeight="100%"
+                                                          minHeight="100%"
+                                                          className="border-none rounded-none"
+                                                        />
+                                                      </motion.div>
+                                                    )}
+                                                  </motion.div>
+                                                )}
+                                                {/* Handle idle state or success with no content (shouldn't normally happen) */}
+                                                {(previewStatus === 'idle' || (previewStatus === 'success' && !previewContent)) && (
+                                                    <div className="w-full h-full flex items-center justify-center"> {/* Placeholder/Idle */} </div>
+                                                )}
+                                              </motion.div>
+                                            </AnimatePresence>
+                                          </div>
+                                        )}
+                                        {/* Add a subtle background or placeholder for non-active cards */}
+                                        {distance !== 0 && (
+                                            <div className="w-full h-full bg-neutral-900/30"></div> // Simple background
+                                        )}
                                     </div>
                                 </motion.div>
                             );
@@ -567,10 +650,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                      <Tooltip>
                        <TooltipTrigger asChild>
                          <button
-                           onClick={() => {
-                               playClick(); // Play click sound
-                               setActiveYearIndex((prev) => Math.min(cachedYears.length - 1, prev + 1));
-                           }}
+                           onClick={() => { playClick(); changeActiveYearIndex((prev) => prev + 1); }}
                            className="text-neutral-200 bg-neutral-700/50 hover:bg-neutral-600/70 rounded p-1.5 h-8 w-8 flex items-center justify-center disabled:opacity-30 transition-colors"
                            disabled={activeYearIndex === cachedYears.length - 1}
                            aria-label="Older Version"
@@ -587,7 +667,13 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <button
-                          onClick={goToNow}
+                          onClick={() => {
+                            playClick(); // Play click sound
+                            const nowIndex = cachedYears.findIndex(year => year === 'current');
+                            if (nowIndex !== -1) {
+                              changeActiveYearIndex(nowIndex);
+                            }
+                          }}
                           className="text-neutral-200 bg-neutral-700/50 hover:bg-neutral-600/70 rounded p-1.5 h-8 w-8 flex items-center justify-center transition-colors"
                           disabled={cachedYears[activeYearIndex] === 'current'}
                           aria-label="Go to Now"
@@ -604,10 +690,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                      <Tooltip>
                        <TooltipTrigger asChild>
                          <button
-                           onClick={() => {
-                               playClick(); // Play click sound
-                               setActiveYearIndex((prev) => Math.max(0, prev - 1));
-                           }}
+                           onClick={() => { playClick(); changeActiveYearIndex((prev) => prev - 1); }}
                            className="text-neutral-200 bg-neutral-700/50 hover:bg-neutral-600/70 rounded p-1.5 h-8 w-8 flex items-center justify-center disabled:opacity-30 transition-colors"
                            disabled={activeYearIndex === 0}
                            aria-label="Newer Version"
@@ -703,10 +786,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                     <div className="w-full flex items-center justify-center gap-4 pt-2 pb-4 sm:hidden">
                         {/* Previous Button (Left Arrow) */}
                         <button
-                            onClick={() => {
-                                playClick(); // Play click sound
-                                setActiveYearIndex((prev) => Math.max(0, prev - 1));
-                            }}
+                            onClick={() => { playClick(); changeActiveYearIndex((prev) => prev - 1); }}
                             className="text-white bg-neutral-700/50 hover:bg-neutral-600/70 rounded p-1.5 h-8 w-8 flex items-center justify-center disabled:opacity-30 transition-colors"
                             disabled={activeYearIndex === 0}
                             aria-label="Newer Version"
@@ -715,7 +795,13 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                         </button>
                         {/* Go to Now Button */}
                         <button
-                            onClick={goToNow}
+                            onClick={() => {
+                              playClick(); // Play click sound
+                              const nowIndex = cachedYears.findIndex(year => year === 'current');
+                              if (nowIndex !== -1) {
+                                changeActiveYearIndex(nowIndex);
+                              }
+                            }}
                             className="text-white bg-neutral-700/50 hover:bg-neutral-600/70 rounded p-1.5 h-8 w-8 flex items-center justify-center transition-colors"
                             disabled={cachedYears[activeYearIndex] === 'current'}
                             aria-label="Go to Now"
@@ -724,10 +810,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                         </button>
                         {/* Next Button (Right Arrow) */}
                         <button
-                            onClick={() => {
-                                playClick(); // Play click sound
-                                setActiveYearIndex((prev) => Math.min(cachedYears.length - 1, prev + 1));
-                            }}
+                            onClick={() => { playClick(); changeActiveYearIndex((prev) => prev + 1); }}
                             className="text-white bg-neutral-700/50 hover:bg-neutral-600/70 rounded p-1.5 h-8 w-8 flex items-center justify-center disabled:opacity-30 transition-colors"
                             disabled={activeYearIndex === cachedYears.length - 1}
                             aria-label="Older Version"
