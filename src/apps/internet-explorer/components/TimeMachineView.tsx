@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { useInternetExplorerStore } from '@/stores/useInternetExplorerStore';
 // Import ErrorResponse
 import type { ErrorResponse } from '@/stores/useInternetExplorerStore';
+// Import GalaxyBackground
+import GalaxyBackground from '@/components/shared/GalaxyBackground';
 
 interface TimeMachineViewProps {
   isOpen: boolean;
@@ -304,12 +306,10 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 1.05 }}
           transition={{ duration: 0.3, ease: "easeInOut" }}
-          style={{
-            // Placeholder for Three.js galaxy background later
-            // For now, a simple gradient or image can suffice
-            // background: 'radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%)',
-          }}
         >
+            {/* Galaxy Background */}
+            <GalaxyBackground />
+
             {/* Top Close Button */}
             <button
                 onClick={onClose}
