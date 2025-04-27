@@ -14,6 +14,12 @@ import {
 // Import useAppStore for shader selection
 import { useAppStore } from '@/stores/useAppStore';
 import { cn } from '@/lib/utils';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 // Define type for preview content source
 type PreviewSource = 'html' | 'url';
@@ -381,6 +387,10 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
 
   const maskStyle = getMaskStyle(scrollState.canScroll);
 
+  // Calculate tooltip labels
+  const olderYearLabel = activeYearIndex < cachedYears.length - 1 ? cachedYears[activeYearIndex + 1] : 'Oldest';
+  const newerYearLabel = activeYearIndex > 0 ? cachedYears[activeYearIndex - 1] : 'Newest';
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -537,33 +547,58 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
 
                 {/* Up/Now/Down Controls Area - Only visible on desktop - Same Size Buttons */}
                 <div className="hidden h-full flex-col items-center justify-center w-auto flex-shrink-0 z-10 py-8 gap-2 sm:flex"> 
+                  <TooltipProvider delayDuration={100}>
                      {/* Previous Button (Up Arrow) */}
-                     <button
-                        onClick={() => setActiveYearIndex((prev) => Math.min(cachedYears.length - 1, prev + 1))}
-                        className="text-neutral-200 bg-neutral-700/50 hover:bg-neutral-600/70 rounded p-1.5 h-8 w-8 flex items-center justify-center disabled:opacity-30 transition-colors"
-                        disabled={activeYearIndex === cachedYears.length - 1}
-                        aria-label="Older Version"
-                    >
-                        <ChevronUp size={18} />
-                    </button>
+                     <Tooltip>
+                       <TooltipTrigger asChild>
+                         <button
+                           onClick={() => setActiveYearIndex((prev) => Math.min(cachedYears.length - 1, prev + 1))}
+                           className="text-neutral-200 bg-neutral-700/50 hover:bg-neutral-600/70 rounded p-1.5 h-8 w-8 flex items-center justify-center disabled:opacity-30 transition-colors"
+                           disabled={activeYearIndex === cachedYears.length - 1}
+                           aria-label="Older Version"
+                         >
+                           <ChevronUp size={18} />
+                         </button>
+                       </TooltipTrigger>
+                       <TooltipContent side="right">
+                         <p>{olderYearLabel}</p>
+                       </TooltipContent>
+                     </Tooltip>
+
                     {/* Go to Now Button */}
-                    <button
-                        onClick={goToNow}
-                        className="text-neutral-200 bg-neutral-700/50 hover:bg-neutral-600/70 rounded p-1.5 h-8 w-8 flex items-center justify-center transition-colors"
-                        disabled={cachedYears[activeYearIndex] === 'current'}
-                        aria-label="Go to Now"
-                    >
-                        <Dot size={24} />
-                    </button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={goToNow}
+                          className="text-neutral-200 bg-neutral-700/50 hover:bg-neutral-600/70 rounded p-1.5 h-8 w-8 flex items-center justify-center transition-colors"
+                          disabled={cachedYears[activeYearIndex] === 'current'}
+                          aria-label="Go to Now"
+                        >
+                          <Dot size={24} />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="right">
+                        <p>Now</p>
+                      </TooltipContent>
+                    </Tooltip>
+
                     {/* Next Button (Down Arrow) */}
-                     <button
-                        onClick={() => setActiveYearIndex((prev) => Math.max(0, prev - 1))}
-                        className="text-neutral-200 bg-neutral-700/50 hover:bg-neutral-600/70 rounded p-1.5 h-8 w-8 flex items-center justify-center disabled:opacity-30 transition-colors"
-                        disabled={activeYearIndex === 0}
-                        aria-label="Newer Version"
-                    >
-                        <ChevronDown size={18} />
-                    </button>
+                     <Tooltip>
+                       <TooltipTrigger asChild>
+                         <button
+                           onClick={() => setActiveYearIndex((prev) => Math.max(0, prev - 1))}
+                           className="text-neutral-200 bg-neutral-700/50 hover:bg-neutral-600/70 rounded p-1.5 h-8 w-8 flex items-center justify-center disabled:opacity-30 transition-colors"
+                           disabled={activeYearIndex === 0}
+                           aria-label="Newer Version"
+                         >
+                           <ChevronDown size={18} />
+                         </button>
+                       </TooltipTrigger>
+                       <TooltipContent side="right">
+                         <p>{newerYearLabel}</p>
+                       </TooltipContent>
+                     </Tooltip>
+                   </TooltipProvider>
                 </div>
 
                 {/* Timeline Area - Added sm:order-none */}
@@ -684,8 +719,11 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                 {/* Add spacer here to balance the right icon */}
                 <div className="w-8 flex-shrink-0"></div> 
                 <p className="text-sm text-neutral-300 truncate text-center">
-                  {/* Show URL */}
+                  {/* Show URL and conditionally year */}
                   {getHostname(currentUrl)}
+                  {activeYear !== 'current' && (
+                    <span className="text-neutral-400 ml-1">in {activeYear}</span>
+                  )}
                 </p>
                 
                 <Button 
@@ -712,7 +750,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-7 w-7 rounded-full hover:bg-white/10"
+                        className="h-7 w-7 rounded-full hover:bg-white/10 opacity-60 hover:opacity-100 transition-opacity"
                       >
                         <Blend size={16} className="text-neutral-300" />
                       </Button>
