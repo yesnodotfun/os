@@ -1013,6 +1013,7 @@ export function InternetExplorerAppComponent({
         canGoBack={historyIndex < history.length - 1}
         canGoForward={historyIndex > 0}
         onClearHistory={() => setClearHistoryDialogOpen(true)}
+        onOpenTimeMachine={() => setTimeMachineViewOpen(true)}
         onClose={onClose}
         onEditFuture={() => setFutureSettingsDialogOpen(true)}
         language={language}

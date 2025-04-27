@@ -36,6 +36,7 @@ interface InternetExplorerMenuBarProps extends Omit<AppProps, "onClose"> {
   canGoBack?: boolean;
   canGoForward?: boolean;
   onClearHistory?: () => void;
+  onOpenTimeMachine?: () => void;
   onEditFuture?: () => void;
   language?: LanguageOption;
   location?: LocationOption;
@@ -66,6 +67,7 @@ export function InternetExplorerMenuBar({
   canGoBack,
   canGoForward,
   onClearHistory,
+  onOpenTimeMachine,
   onEditFuture,
   language = "auto",
   location = "auto",
@@ -115,7 +117,12 @@ export function InternetExplorerMenuBar({
           >
             Go to URL
           </DropdownMenuItem>
-
+          <DropdownMenuItem
+            onClick={onOpenTimeMachine}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            Open Time Machine
+          </DropdownMenuItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           <DropdownMenuItem
             onClick={onClose}
