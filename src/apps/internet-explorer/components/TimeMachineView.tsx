@@ -273,11 +273,10 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
       }
     };
 
-    // Use a small timeout to allow the loading state to render before fetch starts
-    // This ensures the UI updates to "loading" before potentially blocking network request
-    const timerId = setTimeout(fetchPreview, 10); 
+    // Fetch immediately without timeout
+    fetchPreview(); 
 
-    return () => clearTimeout(timerId); // Cleanup timeout if component unmounts or deps change
+    // No cleanup needed for timeout anymore
 
   }, [previewYear, isOpen, currentUrl, getCachedAiPage, cacheAiPage]); // Dependencies for fetching
 
@@ -366,17 +365,18 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                                        {/* Only render content for the active pane */}
                                        {distance === 0 && (
                                          <AnimatePresence mode="wait">
-                                           {/* Single motion div keyed by status/content */}
+                                           {/* Key changes ONLY when the target year changes */}
                                            <motion.div
-                                             key={previewStatus === 'success' ? `${currentUrl}-${previewYear}` : previewStatus} // Key changes with status/content
+                                             key={previewYear ?? 'initial'} // Use previewYear to trigger exit/enter
                                              initial={{ opacity: 0 }}
-                                             animate={{ opacity: 1, transition: { duration: 0.3, delay: 0.15 } }} // Added delay to fade-in
-                                             exit={{ opacity: 0, transition: { duration: 0.15 } }}    // Fade out faster
+                                             animate={{ opacity: 1 }}
+                                             exit={{ opacity: 0 }}
+                                             transition={{ duration: 0.2 }} // Faster transition for the container swap
                                              className="w-full h-full flex items-center justify-center" // Center loading/error
                                            >
                                              {previewStatus === 'loading' && (
                                                <div className="p-4"> {/* Wrapper for padding */}
-                                                 <p className="text-neutral-400">Loading...</p>
+                                                 <p className="text-neutral-400 shimmer">Loading...</p>
                                                </div>
                                              )}
                                              {previewStatus === 'error' && (
@@ -385,10 +385,12 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                                                </div>
                                              )}
                                              {previewStatus === 'success' && previewHtml && (
-                                               // Container for HtmlPreview, takes full space
-                                               <div
-                                                   className="w-full h-full overflow-hidden"
-                                                   style={{ contentVisibility: 'auto' }}
+                                               <motion.div // Add motion here for fade-in of actual content
+                                                 initial={{ opacity: 0 }}
+                                                 animate={{ opacity: 1 }}
+                                                 transition={{ duration: 0.3, delay: 0.1 }} // Slightly delayed fade-in for content
+                                                 className="w-full h-full overflow-hidden"
+                                                 style={{ contentVisibility: 'auto' }}
                                                >
                                                    <HtmlPreview
                                                        htmlContent={previewHtml}
@@ -397,9 +399,12 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                                                        minHeight="100%"
                                                        className="border-none rounded-none"
                                                    />
-                                               </div>
+                                               </motion.div>
                                              )}
-                                             {/* Render nothing specific for 'idle' or if success but html is null */}
+                                             {/* Handle idle or success with null html */}
+                                             {(previewStatus === 'idle' || (previewStatus === 'success' && !previewHtml)) && (
+                                                 <div className="p-4"> {/* Placeholder if needed */} </div>
+                                             )}
                                            </motion.div>
                                          </AnimatePresence>
                                        )}
