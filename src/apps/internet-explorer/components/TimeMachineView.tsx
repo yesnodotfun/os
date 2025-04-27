@@ -327,19 +327,19 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
 
                 {/* Up/Now/Down Controls Area - Only visible on desktop */}
                 <div className="hidden h-full flex-col items-center justify-center w-auto flex-shrink-0 z-10 py-8 space-y-1 sm:flex">
-                    <button
-                        onClick={() => setActiveYearIndex((prev) => Math.max(0, prev - 1))}
+                     <button
+                        onClick={() => setActiveYearIndex((prev) => Math.min(cachedYears.length - 1, prev + 1))}
                         className="text-neutral-200 bg-neutral-700/50 hover:bg-neutral-600/70 rounded p-1.5 mb-2 disabled:opacity-30 transition-colors"
-                        disabled={activeYearIndex === 0}
-                        aria-label="Previous Version"
+                        disabled={activeYearIndex === cachedYears.length - 1}
+                        aria-label="Next Version"
                     >
                         <ChevronUp size={18} />
                     </button>
                      <button
-                        onClick={() => setActiveYearIndex((prev) => Math.min(cachedYears.length - 1, prev + 1))}
+                        onClick={() => setActiveYearIndex((prev) => Math.max(0, prev - 1))}
                         className="text-neutral-200 bg-neutral-700/50 hover:bg-neutral-600/70 rounded p-1.5 mt-2 disabled:opacity-30 transition-colors"
-                        disabled={activeYearIndex === cachedYears.length - 1}
-                        aria-label="Next Version"
+                        disabled={activeYearIndex === 0}
+                        aria-label="Previous Version"
                     >
                         <ChevronDown size={18} />
                     </button>
