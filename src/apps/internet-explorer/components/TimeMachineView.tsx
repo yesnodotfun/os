@@ -81,16 +81,12 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
   // Define type for shader menu options
   type ShaderOption = ShaderType | 'off';
 
-  // --- Scroll Mask Logic ---
-  const getMaskStyle = (isTop: boolean, isBottom: boolean, canScroll: boolean) => {
+  // Simplified mask function - always shows mask at both ends
+  const getMaskStyle = (_isTop: boolean, _isBottom: boolean, canScroll: boolean) => {
     // Only apply mask if scrolling is possible and on desktop view
     if (!canScroll || window.innerWidth < 640) return 'none';
-    // No fade at top if scrolled to top
-    const topColor = isTop ? 'black' : 'transparent';
-    // No fade at bottom if scrolled to bottom
-    const bottomColor = isBottom ? 'black' : 'transparent';
-    // Define gradient stops
-    return `linear-gradient(to bottom, ${topColor} 0%, black 10%, black 90%, ${bottomColor} 100%)`;
+    // Always show gradient mask at both ends
+    return `linear-gradient(to bottom, transparent 0%, black 5%, black 95%, transparent 100%)`;
   };
 
   const handleScroll = useCallback(() => {
@@ -99,30 +95,27 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
 
     // Check vertical scroll on desktop layout (sm+)
     if (window.innerWidth >= 640) { // Tailwind 'sm' breakpoint
-      const scrollTop = element.scrollTop;
       const scrollHeight = element.scrollHeight;
       const clientHeight = element.clientHeight;
       const threshold = 5; // Small tolerance
 
-      const isTop = scrollTop < threshold;
-      const isBottom = scrollHeight - scrollTop - clientHeight < threshold;
-      // Check if content height is greater than container height
+      // Only check if scrolling is possible, not position
       const canScroll = scrollHeight > clientHeight + threshold;
 
-      // Check if state actually changed to prevent unnecessary re-renders
+      // Update scroll state with simplified values
       setScrollState(prevState => {
-        if (prevState.isTop !== isTop || prevState.isBottom !== isBottom || prevState.canScroll !== canScroll) {
-          return { isTop, isBottom, canScroll };
+        if (prevState.canScroll !== canScroll) {
+          return { isTop: false, isBottom: false, canScroll };
         }
         return prevState;
       });
     } else {
       // Reset on mobile (no vertical scroll/mask)
       setScrollState(prevState => {
-          if (prevState.isTop !== true || prevState.isBottom !== false || prevState.canScroll !== false) {
-              return { isTop: true, isBottom: false, canScroll: false };
-          }
-          return prevState;
+        if (prevState.canScroll !== false) {
+          return { isTop: true, isBottom: false, canScroll: false };
+        }
+        return prevState;
       });
     }
   }, []); // Empty dependency array, relies on timelineRef.current
@@ -193,9 +186,10 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
     if (isOpen && timelineRef.current) {
       const activeElement = timelineRef.current.children[activeYearIndex] as HTMLElement;
       if (activeElement) {
+        // Use center alignment for more natural scrolling
         activeElement.scrollIntoView({
           behavior: 'smooth',
-          block: 'nearest',
+          block: 'center',
         });
       }
     }
@@ -382,7 +376,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
 
             {/* Main Content Area - Default: mobile (vertical), sm: desktop (horizontal) */}
             <motion.div
-              className="relative w-full h-full flex flex-col items-center justify-start perspective-[1000px] p-2 gap-2 pt-12 pb-10 pr-0
+              className="relative w-full h-full flex flex-col items-center justify-start perspective-[1000px] p-2 gap-2 pt-12 pb-10
                            sm:flex-row sm:items-center sm:pt-16 sm:pb-24 sm:px-4 sm:pr-0 sm:gap-4"
               initial={{ opacity: 0, y: 20 , scale: 1.04}}
               animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -533,12 +527,12 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                 </div>
 
                 {/* Timeline Area - Added sm:order-none */}
-                <div className="w-full h-auto flex flex-row justify-center order-2 py-1 px-2 z-10
+                <div className="w-full h-auto max-h-[80%] flex flex-row justify-center order-2 px-2 z-10
                            sm:h-full sm:flex-col sm:items-center sm:justify-center sm:w-48 sm:flex-shrink-0 sm:order-none">
                     {/* Container for the timeline bars */}
                     <div
-                        className="relative w-full flex-1 flex flex-row items-center justify-center overflow-hidden px-2 py-1
-                                   sm:flex-col sm:px-6 sm:py-4"
+                        className="relative w-full flex-1 flex flex-row items-center justify-center overflow-hidden px-2
+                                   sm:flex-col sm:px-6 sm:py-2 sm:h-[calc(100%-2rem)]"
                         style={{
                            maskImage: maskStyle,
                            WebkitMaskImage: maskStyle, // For Safari
@@ -547,8 +541,9 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                         {/* Timeline Bars Container */}
                         <div
                            ref={timelineRef}
-                           className="w-auto max-w-full overflow-x-auto flex flex-row items-center space-x-4 space-y-0 justify-start py-0 h-12
-                                      sm:w-full sm:overflow-y-auto sm:flex-col-reverse sm:items-center sm:space-y-0.5 sm:space-x-0 sm:py-2 sm:h-auto sm:max-w-none sm:justify-center
+                           className="w-auto max-w-full overflow-x-auto flex flex-row items-center space-x-4 space-y-0 justify-start py-0 h-full
+                                      sm:w-full sm:overflow-y-auto sm:flex-col-reverse sm:items-center sm:space-y-1 sm:space-x-0 sm:py-4 sm:h-auto sm:max-h-full sm:max-w-none
+                                      sm:justify-start sm:min-h-full
                                       [&::-webkit-scrollbar]:hidden
                                       [&::-webkit-scrollbar]:sm:w-1
                                       [&::-webkit-scrollbar]:sm:hover:block
@@ -570,14 +565,14 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                                     : 'h-1 w-8 group-hover:w-10 sm:w-8 sm:h-0.5 group-hover:sm:w-10'; // Inactive bar (mobile / desktop)
                                 const barColorClasses = isActive 
                                     ? (isNow ? 'bg-red-500' : 'bg-white') 
-                                    : 'bg-neutral-600/70 group-hover:bg-white'; // Inactive color, white on hover
+                                    : 'bg-white/30 group-hover:bg-white'; // Inactive color, white on hover (previously bg-neutral-600/70)
 
                                 return (
                                     // Default: mobile layout (vertical stack), sm: desktop layout (horizontal)
                                     <div
                                         key={year}
                                         className="w-auto flex flex-col items-center justify-center h-full py-1 cursor-pointer group
-                                                   sm:w-full sm:flex-row sm:items-center sm:justify-end sm:h-auto sm:py-0"
+                                                   sm:w-full sm:flex-row sm:items-center sm:justify-end sm:h-6 sm:py-0 sm:my-0.5"
                                         onClick={() => setActiveYearIndex(index)}
                                     >
                                         {/* Year Label - Default: mobile (always visible, dimmed inactive), sm: desktop (opacity change) */}

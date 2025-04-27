@@ -124,9 +124,21 @@ export default async function handler(req: Request) {
   // --- AI cache retrieval mode (PRIORITIZE THIS) ---
   if (mode === "ai") {
     const aiUrl = normalizedUrl;
-    if (!year || year.length !== 4) { // Ensure year is 4 digits for AI
-      logError(requestId, "Missing or invalid year for AI cache mode", { year });
-      return new Response(JSON.stringify({ error: "Missing or invalid year (YYYY required)" }), { status: 400, headers: { "Content-Type": "application/json" } });
+    if (!year) {
+      logError(requestId, "Missing year for AI cache mode", { year });
+      return new Response(JSON.stringify({ error: "Missing year parameter" }), { status: 400, headers: { "Content-Type": "application/json" } });
+    }
+
+    // Validate year format
+    const isValidYear = (
+      /^\d{1,4}( BC)?$/.test(year) || // Handles "500", "800", "1000 BC" etc.
+      /^\d+ CE$/.test(year) || // Handles "1 CE"
+      year === "current" // Special case
+    );
+
+    if (!isValidYear) {
+      logError(requestId, "Invalid year format for AI cache mode", { year });
+      return new Response(JSON.stringify({ error: "Invalid year format" }), { status: 400, headers: { "Content-Type": "application/json" } });
     }
 
     // Normalize the URL for the cache key
@@ -247,7 +259,7 @@ export default async function handler(req: Request) {
         return valB - valA; // Sort AD descending (newer first)
       });
 
-      logInfo(requestId, `Found ${sortedYears.length} unique cached years for URL: ${listUrl}`, sortedYears);
+      logInfo(requestId, `Found ${sortedYears.length} unique cached years for URL: ${listUrl}`);
 
       return new Response(JSON.stringify({ years: sortedYears }), {
         headers: {
