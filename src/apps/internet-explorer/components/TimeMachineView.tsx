@@ -240,13 +240,16 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                 <X size={24} />
             </button>
 
-            {/* Main Content Area - Using Flexbox */}
-            <div className="relative w-full h-full flex items-center justify-between perspective-[1000px] pt-16 pb-24 px-4 pr-0 gap-4"> {/* Use flex, add gap */}
+            {/* Main Content Area - Default: mobile (vertical), sm: desktop (horizontal) */}
+            <div className="relative w-full h-full flex flex-col items-center justify-start perspective-[1000px] p-2 gap-2 pt-12 pb-10 pr-2
+                           sm:flex-row sm:items-center sm:pt-16 sm:pb-24 sm:px-4 sm:pr-0 sm:gap-4">
 
-                <div className="w-20 flex-shrink-0"></div> 
+                {/* Left spacer - Only visible on desktop */}
+                <div className="w-20 flex-shrink-0 hidden sm:block"></div>
 
-                {/* Stacked Previews Area - Adjusted width */}
-                <div ref={previewContainerRef} className="relative w-[calc(100%-12rem-2rem)] h-full flex items-center justify-center preserve-3d flex-grow"> {/* Calculate width, allow grow */}
+                {/* Stacked Previews Area - Removed sm:w-[calc(...)] and added sm:order-none */}
+                <div ref={previewContainerRef} className="relative w-full h-[calc(100%-6rem)] flex items-center justify-center preserve-3d flex-grow order-1
+                                                       sm:h-full sm:flex-grow sm:order-none">
                     <AnimatePresence initial={false}>
                         {cachedYears.map((year, index) => {
                             const distance = index - activeYearIndex;
@@ -322,56 +325,64 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                     </AnimatePresence>
                 </div>
 
-                {/* Up/Now/Down Controls Area */}
-                <div className="h-full flex flex-col items-center justify-center w-auto flex-shrink-0 z-10 py-8 space-y-1">
-                    <button 
-                        onClick={() => setActiveYearIndex((prev) => Math.max(0, prev - 1))} 
+                {/* Up/Now/Down Controls Area - Only visible on desktop */}
+                <div className="hidden h-full flex-col items-center justify-center w-auto flex-shrink-0 z-10 py-8 space-y-1 sm:flex">
+                    <button
+                        onClick={() => setActiveYearIndex((prev) => Math.max(0, prev - 1))}
                         className="text-neutral-200 bg-neutral-700/50 hover:bg-neutral-600/70 rounded p-1.5 mb-2 disabled:opacity-30 transition-colors"
-                        disabled={activeYearIndex === 0} 
+                        disabled={activeYearIndex === 0}
                         aria-label="Previous Version"
                     >
                         <ChevronUp size={18} />
                     </button>
-                     <button 
-                        onClick={() => setActiveYearIndex((prev) => Math.min(cachedYears.length - 1, prev + 1))} 
+                     <button
+                        onClick={() => setActiveYearIndex((prev) => Math.min(cachedYears.length - 1, prev + 1))}
                         className="text-neutral-200 bg-neutral-700/50 hover:bg-neutral-600/70 rounded p-1.5 mt-2 disabled:opacity-30 transition-colors"
-                        disabled={activeYearIndex === cachedYears.length - 1} 
+                        disabled={activeYearIndex === cachedYears.length - 1}
                         aria-label="Next Version"
                     >
                         <ChevronDown size={18} />
                     </button>
                 </div>
 
-                {/* Timeline Area - Adjusted Padding and Styles */}
-                <div className="h-full flex flex-col items-center justify-center w-48 flex-shrink-0 z-10"> {/* Removed py-16 */}
-                    {/* Vertical container for the timeline bars and controls */}
-                    <div className="relative w-full flex-1 flex flex-col items-center justify-center overflow-hidden px-6 py-4"> {/* Added py-4 for internal spacing */}
-                        {/* Timeline Bars Container */}
-                        <div ref={timelineRef} className="w-full overflow-y-auto scrollbar-none flex flex-col items-center space-y-0.5 py-2">
+                {/* Timeline Area - Added sm:order-none */}
+                <div className="w-full h-auto flex flex-row justify-center order-2 py-1 px-2 z-10
+                           sm:h-full sm:flex-col sm:items-center sm:justify-center sm:w-48 sm:flex-shrink-0 sm:order-none">
+                    {/* Container for the timeline bars */}
+                    <div className="relative w-full flex-1 flex flex-row items-center justify-center overflow-hidden px-2 py-1
+                                   sm:flex-col sm:px-6 sm:py-4">
+                        {/* Timeline Bars Container - Default: mobile (horizontal scroll), sm: desktop (vertical scroll) */}
+                        <div ref={timelineRef} className="w-auto max-w-full overflow-x-auto scrollbar-none flex flex-row items-center space-x-4 space-y-0 justify-start py-0 h-16
+                                                       sm:w-full sm:overflow-y-auto sm:flex-col sm:items-center sm:space-y-0.5 sm:space-x-0 sm:py-2 sm:h-auto sm:max-w-none sm:justify-center">
                             {cachedYears.map((year, index) => {
                                 const isActive = activeYearIndex === index;
-                                const isNow = year === 'current'; // Assuming 'current' is the string for now
-                                
-                                // Define base, size, and color classes for the bar
+                                const isNow = year === 'current';
+
+                                // Define base, size, and color classes
                                 const barBaseClasses = 'rounded-sm transition-all duration-200 ease-out';
-                                const barSizeClasses = isActive ? 'w-14 h-1' : 'w-8 h-0.5 group-hover:w-10'; // Active: wider & taller. Hover: wider non-active.
+                                // Default: mobile sizes, sm: desktop sizes
+                                const barSizeClasses = isActive
+                                    ? 'h-1.5 w-12 sm:w-14 sm:h-1' // Active bar (mobile / desktop)
+                                    : 'h-1 w-8 group-hover:w-10 sm:w-8 sm:h-0.5 group-hover:sm:w-10'; // Inactive bar (mobile / desktop)
                                 const barColorClasses = isActive ? (isNow ? 'bg-red-500' : 'bg-white') : 'bg-neutral-600/70';
 
                                 return (
-                                    <div 
-                                        key={year} 
-                                        className="w-full flex items-center justify-end cursor-pointer group"
+                                    // Default: mobile layout (vertical stack), sm: desktop layout (horizontal)
+                                    <div
+                                        key={year}
+                                        className="w-auto flex flex-col items-center justify-center h-full py-1 cursor-pointer group
+                                                   sm:w-full sm:flex-row sm:items-center sm:justify-end sm:h-auto sm:py-0"
                                         onClick={() => setActiveYearIndex(index)}
                                     >
-                                        {/* Year Label: Visible when active or hovered */}
+                                        {/* Year Label - Default: mobile (centered above bar), sm: desktop (right of bar) */}
                                         <span
-                                            className={`mr-2 text-xs font-medium transition-opacity duration-150 ${
+                                            className={`text-xs font-medium transition-opacity duration-150 mb-1 sm:mr-2 sm:mb-0 ${
                                                 isActive
-                                                ? (isNow ? 'text-red-400 opacity-100' : 'text-white opacity-100') // Active: Visible, specific colors
-                                                : 'text-neutral-400 opacity-0 group-hover:opacity-100' // Inactive: Hidden, but visible on hover
+                                                ? (isNow ? 'text-red-400 opacity-100' : 'text-white opacity-100')
+                                                : 'text-neutral-400 opacity-0 group-hover:opacity-100'
                                             }`}
                                         >
-                                            {isNow ? 'Now' : year} {/* Always render correct text, visibility controlled by opacity */}
+                                            {isNow ? 'Now' : year}
                                         </span>
                                         {/* Timeline Bar */}
                                         <div
@@ -385,8 +396,9 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                 </div>
             </div>
 
-            {/* Footer Bar - Display URL, Year, and Go Button */}
-            <div className="absolute bottom-0 left-0 right-0 h-10 bg-neutral-900/60 backdrop-blur-sm border-t border-white/10 flex items-center justify-center gap-4 px-4 z-20">
+            {/* Footer Bar - Default: mobile (relative flow), sm: desktop (absolute bottom) */}
+            <div className="relative order-3 h-10 w-full mt-auto bg-neutral-900/60 backdrop-blur-sm border-t border-white/10 flex items-center justify-center gap-4 px-4 z-20
+                           sm:absolute sm:bottom-0 sm:left-0 sm:right-0 sm:mt-0">
               <p className="text-sm text-neutral-300 truncate">
                 {/* Show URL and the *active* year from the timeline */}
                 {getHostname(currentUrl)} in {activeYear || '...'}
