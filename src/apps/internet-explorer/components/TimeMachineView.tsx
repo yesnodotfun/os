@@ -5,7 +5,6 @@ import HtmlPreview from '@/components/shared/HtmlPreview';
 import { Button } from '@/components/ui/button';
 import { useInternetExplorerStore } from '@/stores/useInternetExplorerStore';
 // Import ErrorResponse
-import type { ErrorResponse } from '@/stores/useInternetExplorerStore';
 // Import GalaxyBackground and ShaderType
 import GalaxyBackground, { ShaderType } from '@/components/shared/GalaxyBackground';
 // Import dropdown menu components
@@ -450,22 +449,36 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                                                    className="w-full h-full overflow-hidden"
                                                  >
                                                    {previewSourceType === 'url' && (
-                                                     <iframe
-                                                       src={previewContent} // Use the URL directly
-                                                       className="w-full h-full border-none bg-white" // Added bg-white for iframe
-                                                       sandbox="allow-scripts allow-same-origin" // Basic sandbox
-                                                       title={`Preview for ${previewYear}`}
-                                                       // Consider adding an onLoad/onError handler for the iframe itself
-                                                     />
+                                                     <motion.div // Apply fade-in to iframe as well
+                                                       initial={{ opacity: 0 }}
+                                                       animate={{ opacity: 1 }}
+                                                       transition={{ duration: 0.3, delay: 0.1 }} // Consistent fade-in
+                                                       className="w-full h-full"
+                                                     >
+                                                       <iframe
+                                                         src={previewContent} // Use the URL directly
+                                                         className="w-full h-full border-none bg-white" // Added bg-white for iframe
+                                                         sandbox="allow-scripts allow-same-origin" // Basic sandbox
+                                                         title={`Preview for ${previewYear}`}
+                                                         // Consider adding an onLoad/onError handler for the iframe itself
+                                                       />
+                                                     </motion.div>
                                                    )}
                                                    {previewSourceType === 'html' && (
-                                                     <HtmlPreview
-                                                       htmlContent={previewContent} // Use the HTML string
-                                                       isInternetExplorer={true}
-                                                       maxHeight="100%"
-                                                       minHeight="100%"
-                                                       className="border-none rounded-none"
-                                                     />
+                                                     <motion.div // Wrap HtmlPreview too for consistency (though parent already fades)
+                                                       initial={{ opacity: 0 }}
+                                                       animate={{ opacity: 1 }}
+                                                       transition={{ duration: 0.3, delay: 0.1 }}
+                                                       className="w-full h-full"
+                                                     >
+                                                       <HtmlPreview
+                                                         htmlContent={previewContent} // Use the HTML string
+                                                         isInternetExplorer={true}
+                                                         maxHeight="100%"
+                                                         minHeight="100%"
+                                                         className="border-none rounded-none"
+                                                       />
+                                                     </motion.div>
                                                    )}
                                                  </motion.div>
                                                )}
