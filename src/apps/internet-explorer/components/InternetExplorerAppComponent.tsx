@@ -1052,18 +1052,18 @@ export function InternetExplorerAppComponent({
                 </Button>
               </div>
               <div className="flex-1 relative flex items-center">
-                <Input
-                  ref={urlInputRef}
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      handleNavigate();
-                    }
-                  }}
+              <Input
+                ref={urlInputRef}
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleNavigate();
+                  }
+                }}
                   className="flex-1 pr-8"
-                  placeholder="Enter URL"
-                />
+                placeholder="Enter URL"
+              />
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
@@ -1278,6 +1278,7 @@ export function InternetExplorerAppComponent({
           onClose={() => setTimeMachineViewOpen(false)}
           cachedYears={cachedYears}
           currentUrl={url}
+          currentSelectedYear={year}
           onSelectYear={(selectedYear) => {
             handleNavigate(url, selectedYear);
           }}

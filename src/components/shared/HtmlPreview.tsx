@@ -360,6 +360,18 @@ export default function HtmlPreview({
         coreHtmlContent = coreHtmlContent.substring(0, coreHtmlContent.length - '```'.length).trim();
     }
 
+    // NEW: Strip leading text before the first tag '<'
+    const firstTagIndex = coreHtmlContent.indexOf('<');
+    if (firstTagIndex > 0) {
+      // If '<' is found and it's not the first character, strip the leading text
+      coreHtmlContent = coreHtmlContent.substring(firstTagIndex);
+    } else if (firstTagIndex === -1) {
+      // If no '<' is found at all, the content is likely just text, clear it or handle as needed
+      // For now, let's assume we want to render nothing if there's no HTML tag.
+      coreHtmlContent = ''; 
+    }
+    // If firstTagIndex is 0, it already starts with a tag, no stripping needed.
+
     // Now, check for and extract content within <html> tags
     const htmlStartIndex = coreHtmlContent.toLowerCase().indexOf('<html');
     const htmlEndIndex = coreHtmlContent.toLowerCase().lastIndexOf('</html>');

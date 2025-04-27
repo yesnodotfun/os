@@ -593,10 +593,38 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
             throw new Error(`Failed to fetch cached years: ${response.statusText}`);
           }
           const data = await response.json();
-          set({ cachedYears: data.years || [], isFetchingCachedYears: false });
+          // Prepend 'current' to the fetched years
+          // const yearsWithCurrent = ['current', ...(data.years || [])];
+          // --- New Sorting Logic ---
+          const fetchedYears: string[] = data.years || [];
+          const currentActualYear = new Date().getFullYear();
+
+          const futureYearsApi = fetchedYears
+            .filter(year => !isNaN(parseInt(year)) && parseInt(year) > currentActualYear)
+            .sort((a, b) => parseInt(b) - parseInt(a)); // Sort descending
+
+          const pastYearsApi = fetchedYears
+            .filter(year => !isNaN(parseInt(year)) && parseInt(year) <= currentActualYear)
+            .sort((a, b) => parseInt(b) - parseInt(a)); // Sort descending
+            
+          // Also handle non-numeric years (like '1000 BC') if they exist in fetchedYears?
+          // For now, assuming API returns numeric years primarily.
+          // Let's include non-numeric ones at the end of past years for now.
+          const nonNumericPastYears = fetchedYears
+             .filter(year => isNaN(parseInt(year)) && year !== 'current'); // Exclude 'current' just in case
+
+          const sortedYears = [
+            ...futureYearsApi,
+            'current',
+            ...pastYearsApi,
+            ...nonNumericPastYears // Add any non-numeric years here
+          ];
+          // --- End New Sorting Logic ---
+          set({ cachedYears: sortedYears, isFetchingCachedYears: false });
         } catch (error) {
           console.error("Error fetching cached years:", error);
-          set({ isFetchingCachedYears: false, cachedYears: [] }); // Reset on error
+          // Also add 'current' when resetting on error, so it's always there
+          set({ isFetchingCachedYears: false, cachedYears: ['current'] }); 
         }
       },
       
