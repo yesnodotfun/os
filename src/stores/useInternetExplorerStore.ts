@@ -109,6 +109,12 @@ export const DEFAULT_FAVORITES: Favorite[] = [
     year: "current",
   },
   {
+    title: "Maya",
+    url: "https://mayabakir.com",
+    favicon: "https://www.google.com/s2/favicons?domain=mayabakir.com&sz=32",
+    year: "current",
+  },
+  {
     title: "Sam",
     url: "https://www.samuelcatania.com",
     favicon:
@@ -125,12 +131,6 @@ export const DEFAULT_FAVORITES: Favorite[] = [
     title: "Stephen",
     url: "https://wustep.me",
     favicon: "https://www.google.com/s2/favicons?domain=wustep.me&sz=32",
-    year: "current",
-  },
-  {
-    title: "Maya",
-    url: "https://mayabakir.com",
-    favicon: "https://www.google.com/s2/favicons?domain=mayabakir.com&sz=32",
     year: "current",
   },
   {
