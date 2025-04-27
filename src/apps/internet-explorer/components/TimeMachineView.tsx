@@ -4,10 +4,7 @@ import { X, ChevronUp, ChevronDown, MoreHorizontal } from 'lucide-react';
 import HtmlPreview from '@/components/shared/HtmlPreview';
 import { Button } from '@/components/ui/button';
 import { useInternetExplorerStore } from '@/stores/useInternetExplorerStore';
-// Import ErrorResponse
-// Import GalaxyBackground and ShaderType
 import GalaxyBackground, { ShaderType } from '@/components/shared/GalaxyBackground';
-// Import dropdown menu components
 import {
   DropdownMenu,
   DropdownMenuContent,
