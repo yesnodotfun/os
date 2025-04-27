@@ -353,7 +353,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                                    sm:flex-col sm:px-6 sm:py-4">
                         {/* Timeline Bars Container - Default: mobile (horizontal scroll), sm: desktop (vertical scroll) */}
                         <div ref={timelineRef} className="w-auto max-w-full overflow-x-auto scrollbar-none flex flex-row items-center space-x-4 space-y-0 justify-start py-0 h-12
-                                                       sm:w-full sm:overflow-y-auto sm:flex-col sm:items-center sm:space-y-0.5 sm:space-x-0 sm:py-2 sm:h-auto sm:max-w-none sm:justify-center">
+                                                       sm:w-full sm:overflow-y-auto sm:flex-col-reverse sm:items-center sm:space-y-0.5 sm:space-x-0 sm:py-2 sm:h-auto sm:max-w-none sm:justify-center">
                             {cachedYears.map((year, index) => {
                                 const isActive = activeYearIndex === index;
                                 const isNow = year === 'current';

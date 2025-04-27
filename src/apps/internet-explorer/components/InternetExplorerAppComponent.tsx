@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback, ReactNode } from "react";
+import { useEffect, useRef, useState, useCallback, ReactNode, useMemo } from "react";
 import { AppProps } from "../../base/types";
 import { WindowFrame } from "@/components/layout/WindowFrame";
 import { Input } from "@/components/ui/input";
@@ -893,6 +893,24 @@ export function InternetExplorerAppComponent({
     }
   };
 
+  // --- Add custom sorting logic for TimeMachineView --- 
+  const chronologicallySortedYears = useMemo(() => {
+    const parseYear = (yearStr: string): number => {
+      if (yearStr === 'current') return new Date().getFullYear() + 0.5; // Place 'current' slightly after the current year number
+      if (yearStr.endsWith(' BC')) {
+        return -parseInt(yearStr.replace(' BC', ''), 10);
+      } 
+      if (yearStr.endsWith(' CE')) {
+        return parseInt(yearStr.replace(' CE', ''), 10);
+      }
+      const yearNum = parseInt(yearStr, 10);
+      return isNaN(yearNum) ? Infinity : yearNum; // Handle potential non-numeric strings
+    };
+
+    return [...cachedYears].sort((a, b) => parseYear(a) - parseYear(b));
+  }, [cachedYears]);
+  // --- End custom sorting logic ---
+
   if (!isWindowOpen) return null;
 
   const isLoading = status === "loading" || isAiLoading || isFetchingWebsiteContent;
@@ -1277,7 +1295,7 @@ export function InternetExplorerAppComponent({
         <TimeMachineView 
           isOpen={isTimeMachineViewOpen}
           onClose={() => setTimeMachineViewOpen(false)}
-          cachedYears={cachedYears}
+          cachedYears={chronologicallySortedYears}
           currentUrl={url}
           currentSelectedYear={year}
           onSelectYear={(selectedYear) => {
