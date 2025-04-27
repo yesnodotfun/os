@@ -356,7 +356,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                                         scale: 1 - Math.abs(distance) * PREVIEW_SCALE_FACTOR,
                                         opacity: isInvisible ? 0 : 1 / (Math.abs(distance) + 1), // More transparent further back
                                         pointerEvents: distance === 0 ? 'auto' : 'none',
-                                        backgroundColor: distance === 0 ? 'rgba(38, 38, 38, 0.7)' : 'rgba(255, 255, 255, 0.2)' // Active vs inactive background
+                                        backgroundColor: distance === 0 ? 'rgba(38, 38, 38, 0.7)' : 'rgba(0, 0, 0, 0.5)' // Active vs inactive background
                                     }}
                                     exit={{ opacity: 0, scale: 0.5 }}
                                     transition={{ type: 'spring', stiffness: 150, damping: 20 }}
