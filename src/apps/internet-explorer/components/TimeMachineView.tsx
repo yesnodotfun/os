@@ -404,7 +404,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                            sm:absolute sm:bottom-0 sm:left-0 sm:right-0 sm:mt-0 sm:h-10 sm:pt-0 sm:pb-0">
               <p className="text-sm text-neutral-300 truncate">
                 {/* Show URL and the *active* year from the timeline */}
-                {getHostname(currentUrl)} in {activeYear || '...'}
+                {getHostname(currentUrl)}
               </p>
               <Button 
                 size="sm" 
