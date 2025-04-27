@@ -18,6 +18,9 @@ import {
 // Import useAppStore for shader selection
 import { useAppStore } from '@/stores/useAppStore';
 
+// Define type for preview content source
+type PreviewSource = 'html' | 'url';
+
 interface TimeMachineViewProps {
   isOpen: boolean;
   onClose: () => void;
@@ -41,7 +44,10 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
   
   // --- Time Machine Local Preview State ---
   const [previewYear, setPreviewYear] = useState<string | null>(null);
-  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
+  // Combined state for content (HTML string or URL string)
+  const [previewContent, setPreviewContent] = useState<string | null>(null);
+  // State to track the type of content
+  const [previewSourceType, setPreviewSourceType] = useState<PreviewSource | null>(null);
   const [previewStatus, setPreviewStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [previewError, setPreviewError] = useState<string | null>(null);
   // --- End Local Preview State ---
@@ -154,12 +160,14 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
         setPreviewYear(null);
       }
       setPreviewStatus('idle'); // Reset status on open
-      setPreviewHtml(null);
+      setPreviewContent(null);
+      setPreviewSourceType(null);
       setPreviewError(null);
     } else {
        // Reset preview state when closed
        setPreviewYear(null);
-       setPreviewHtml(null);
+       setPreviewContent(null);
+       setPreviewSourceType(null);
        setPreviewStatus('idle');
        setPreviewError(null);
     }
@@ -224,86 +232,105 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
     };
   }, [isOpen, handleKeyDown]);
 
-  // --- Effect to Fetch Preview Content based on previewYear ---
+  // --- Effect to Set Preview Content (HTML or URL) based on previewYear ---
   useEffect(() => {
     if (!isOpen || !previewYear || !currentUrl) {
-      setPreviewHtml(null);
+      setPreviewContent(null);
+      setPreviewSourceType(null);
       setPreviewStatus('idle');
       setPreviewError(null);
       return;
     }
 
-    // Set loading state immediately when previewYear changes or fetch starts
-    console.log(`[TimeMachine] Fetch triggered for year: ${previewYear}`);
+    console.log(`[TimeMachine] Determining content source for year: ${previewYear}`);
     setPreviewStatus('loading');
-    setPreviewHtml(null); // Clear previous HTML
+    setPreviewContent(null);
+    setPreviewSourceType(null);
     setPreviewError(null);
 
-    const fetchPreview = async () => {
+    const determineSource = async () => {
       try {
-        let html: string;
-        let cleanHtml: string | null = null;
-        let parsedTitle: string | undefined = undefined;
+        // 1. Check local cache first (always yields HTML)
+        const cachedEntry = getCachedAiPage(currentUrl, previewYear);
+        if (cachedEntry) {
+            console.log(`[TimeMachine] Local Cache HIT for ${currentUrl} (${previewYear})`);
+            setPreviewContent(cachedEntry.html);
+            setPreviewSourceType('html');
+            setPreviewStatus('success');
+            return; // Done if cache hit
+        }
 
+        console.log(`[TimeMachine] Local Cache MISS for ${currentUrl} (${previewYear}). Determining API source...`);
+
+        // 2. Determine API source based on year
         if (previewYear === 'current') {
-          // Fetch current content
-          const response = await fetch(`/api/iframe-check?url=${encodeURIComponent(currentUrl)}`);
-          if (!response.ok) {
-            const errorText = await response.text();
-            try {
-              const errorJson = JSON.parse(errorText) as ErrorResponse;
-              if (errorJson.error && errorJson.message) throw new Error(`API Error (${response.status}): ${errorJson.message}`);
-            } catch { /* Ignore parse error */ }
-            throw new Error(`API Error (${response.status}): ${errorText || response.statusText}`);
-          }
-          html = await response.text();
-          cleanHtml = html; // Use raw HTML for current view
+          // 2a. 'current' uses direct proxy URL
+          console.log(`[TimeMachine] Source: current -> URL`);
+          const proxyUrl = `/api/iframe-check?url=${encodeURIComponent(currentUrl)}`;
+          setPreviewContent(proxyUrl);
+          setPreviewSourceType('url');
+          setPreviewStatus('success'); // Let iframe handle loading/errors
+
         } else {
-          // Handle specific past/future years
-          const cachedEntry = getCachedAiPage(currentUrl, previewYear);
-          if (cachedEntry) {
-            console.log(`[TimeMachine] Cache HIT for ${currentUrl} (${previewYear})`);
-            cleanHtml = cachedEntry.html;
+          const yearString = previewYear.replace(' BC', '');
+          const yearInt = parseInt(yearString);
+          const currentYear = new Date().getFullYear();
+          const isBC = previewYear.includes(' BC');
+
+          if (!isBC && yearInt >= 1995 && yearInt <= currentYear) {
+            // 2b. Year >= 1995 uses Wayback proxy URL
+            console.log(`[TimeMachine] Source: ${previewYear} >= 1995 -> URL (Wayback Proxy)`);
+            const currentMonth = (new Date().getMonth() + 1).toString().padStart(2, '0');
+            const proxyUrl = `/api/iframe-check?mode=proxy&url=${encodeURIComponent(currentUrl)}&year=${yearString}&month=${currentMonth}`;
+            setPreviewContent(proxyUrl);
+            setPreviewSourceType('url');
+            setPreviewStatus('success'); // Let iframe handle loading/errors
+
           } else {
-            console.log(`[TimeMachine] Cache MISS for ${currentUrl} (${previewYear}). Fetching...`);
-            const response = await fetch(`/api/iframe-check?mode=ai&url=${encodeURIComponent(currentUrl)}&year=${previewYear}`);
-            if (!response.ok) {
-              if (response.status === 404) {
-                 console.warn(`[TimeMachine] No remote cache found for ${currentUrl} (${previewYear}).`);
-                 throw new Error(`No cached version available for ${previewYear}.`);
-              } else {
-                const errorText = await response.text();
-                throw new Error(`API Error (${response.status}): ${errorText}`);
-              }
+            // 2c. Year < 1995 or BC uses AI cache (fetches HTML)
+            console.log(`[TimeMachine] Source: ${previewYear} < 1995 or BC -> HTML (AI Fetch)`);
+            const aiResponse = await fetch(`/api/iframe-check?mode=ai&url=${encodeURIComponent(currentUrl)}&year=${previewYear}`);
+
+            if (aiResponse.ok) {
+              console.log(`[TimeMachine] AI Fetch SUCCESS for ${currentUrl} (${previewYear})`);
+              const html = await aiResponse.text();
+              const cleanHtml = html.replace(/^<!--\s*TITLE:.*?-->\s*\n?/, "");
+              const titleMatch = html.match(/^<!--\s*TITLE:\s*(.*?)\s*-->/);
+              const parsedTitle = titleMatch ? titleMatch[1].trim() : undefined;
+
+              setPreviewContent(cleanHtml);
+              setPreviewSourceType('html');
+              setPreviewStatus('success');
+              // Cache the AI result locally
+              cacheAiPage(currentUrl, previewYear, cleanHtml, parsedTitle);
+            } else if (aiResponse.status === 404) {
+              console.log(`[TimeMachine] AI Fetch MISS (404) for ${currentUrl} (${previewYear}).`);
+              throw new Error(`No AI-generated version available for ${previewYear}.`);
+            } else {
+              // Handle non-404 errors from AI fetch
+              console.error(`[TimeMachine] AI Fetch FAILED for ${currentUrl} (${previewYear}). Status: ${aiResponse.status}`);
+              const errorText = await aiResponse.text();
+              let errorMessage = `API Error (${aiResponse.status})`;
+              try {
+                const errorJson = JSON.parse(errorText);
+                if (errorJson.message) errorMessage = errorJson.message;
+              } catch { /* Ignore */ }
+              throw new Error(errorMessage);
             }
-            html = await response.text();
-            const titleMatch = html.match(/^<!--\s*TITLE:\s*(.*?)\s*-->/);
-            parsedTitle = titleMatch ? titleMatch[1].trim() : undefined;
-            cleanHtml = html.replace(/^<!--\s*TITLE:.*?-->\s*\n?/, "");
-            // Cache the fetched result locally
-            cacheAiPage(currentUrl, previewYear, cleanHtml, parsedTitle);
           }
         }
-        
-        // Set success state only after successful fetch/cache retrieval
-        setPreviewHtml(cleanHtml);
-        setPreviewStatus('success');
-
       } catch (error) {
-        console.error("[TimeMachine] Error fetching preview content:", error);
+        console.error("[TimeMachine] Error determining preview content:", error);
         setPreviewError(error instanceof Error ? error.message : "Failed to load preview.");
         setPreviewStatus('error');
-        // Ensure HTML is null on error
-        setPreviewHtml(null);
+        setPreviewContent(null);
+        setPreviewSourceType(null);
       }
     };
 
-    // Fetch immediately without timeout
-    fetchPreview(); 
+    determineSource();
 
-    // No cleanup needed for timeout anymore
-
-  }, [previewYear, isOpen, currentUrl, getCachedAiPage, cacheAiPage]); // Dependencies for fetching
+  }, [previewYear, isOpen, currentUrl, getCachedAiPage, cacheAiPage]); // Dependencies
 
   const getHostname = (targetUrl: string): string => {
     try {
@@ -367,7 +394,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                             return (
                                 <motion.div
                                     key={year}
-                                    className="absolute w-[100%] h-[80%] rounded-[12px] border border-white/10 shadow-2xl overflow-hidden preserve-3d"
+                                    className="absolute w-[100%] h-[80%] rounded-[12px] border border-white/10 shadow-2xl overflow-hidden preserve-3d bg-neutral-800/50" // Added base background
                                     initial={{
                                         z: distance * PREVIEW_Z_SPACING,
                                         scale: 1 - Math.abs(distance) * PREVIEW_SCALE_FACTOR,
@@ -379,7 +406,8 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                                         scale: 1 - Math.abs(distance) * PREVIEW_SCALE_FACTOR,
                                         opacity: isInvisible ? 0 : 1 / (Math.abs(distance) + 1), // More transparent further back
                                         pointerEvents: distance === 0 ? 'auto' : 'none',
-                                        backgroundColor: distance === 0 ? 'rgba(38, 38, 38, 0.7)' : 'rgba(0, 0, 0, 0.5)' // Active vs inactive background
+                                        // Keep background subtle, maybe slightly lighter when active
+                                        backgroundColor: distance === 0 ? 'rgba(38, 38, 38, 0.7)' : 'rgba(20, 20, 20, 0.5)'
                                     }}
                                     exit={{ opacity: 0, scale: 0.5 }}
                                     transition={{ type: 'spring', stiffness: 150, damping: 20 }}
@@ -394,49 +422,60 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                                     <div className="w-full h-full"> { /* Removed background */}
                                        {/* Only render content for the active pane */}
                                        {distance === 0 && (
-                                         <AnimatePresence mode="wait">
-                                           {/* Key changes ONLY when the target year changes */}
-                                           <motion.div
-                                             key={previewYear ?? 'initial'} // Use previewYear to trigger exit/enter
-                                             initial={{ opacity: 0 }}
-                                             animate={{ opacity: 1 }}
-                                             exit={{ opacity: 0 }}
-                                             transition={{ duration: 0.2 }} // Faster transition for the container swap
-                                             className="w-full h-full flex items-center justify-center" // Center loading/error
-                                           >
-                                             {previewStatus === 'loading' && (
-                                               <div className="p-4"> {/* Wrapper for padding */}
-                                                 <p className="text-neutral-400 shimmer">Loading...</p>
-                                               </div>
-                                             )}
-                                             {previewStatus === 'error' && (
-                                               <div className="p-4"> {/* Wrapper for padding */}
-                                                 <p className='text-red-400 text-center'>{previewError || 'Error loading preview.'}</p>
-                                               </div>
-                                             )}
-                                             {previewStatus === 'success' && previewHtml && (
-                                               <motion.div // Add motion here for fade-in of actual content
-                                                 initial={{ opacity: 0 }}
-                                                 animate={{ opacity: 1 }}
-                                                 transition={{ duration: 0.3, delay: 0.1 }} // Slightly delayed fade-in for content
-                                                 className="w-full h-full overflow-hidden"
-                                                 style={{ contentVisibility: 'auto' }}
-                                               >
-                                                   <HtmlPreview
-                                                       htmlContent={previewHtml}
+                                         <div className="w-full h-full flex items-center justify-center">
+                                           <AnimatePresence mode="wait">
+                                             <motion.div
+                                               key={previewStatus} // Animate based on status change
+                                               initial={{ opacity: 0 }}
+                                               animate={{ opacity: 1 }}
+                                               exit={{ opacity: 0 }}
+                                               transition={{ duration: 0.2 }}
+                                               className="w-full h-full"
+                                             >
+                                               {previewStatus === 'loading' && (
+                                                 <div className="w-full h-full flex items-center justify-center">
+                                                   <p className="text-neutral-400 shimmer">Loading...</p>
+                                                 </div>
+                                               )}
+                                               {previewStatus === 'error' && (
+                                                 <div className="w-full h-full flex items-center justify-center p-4">
+                                                   <p className='text-red-400 text-center'>{previewError || 'Error loading preview.'}</p>
+                                                 </div>
+                                               )}
+                                               {previewStatus === 'success' && previewContent && (
+                                                 <motion.div // Fade in success content
+                                                   initial={{ opacity: 0 }}
+                                                   animate={{ opacity: 1 }}
+                                                   transition={{ duration: 0.3, delay: 0.1 }}
+                                                   className="w-full h-full overflow-hidden"
+                                                 >
+                                                   {previewSourceType === 'url' && (
+                                                     <iframe
+                                                       src={previewContent} // Use the URL directly
+                                                       className="w-full h-full border-none bg-white" // Added bg-white for iframe
+                                                       sandbox="allow-scripts allow-same-origin" // Basic sandbox
+                                                       title={`Preview for ${previewYear}`}
+                                                       // Consider adding an onLoad/onError handler for the iframe itself
+                                                     />
+                                                   )}
+                                                   {previewSourceType === 'html' && (
+                                                     <HtmlPreview
+                                                       htmlContent={previewContent} // Use the HTML string
                                                        isInternetExplorer={true}
                                                        maxHeight="100%"
                                                        minHeight="100%"
                                                        className="border-none rounded-none"
-                                                   />
-                                               </motion.div>
-                                             )}
-                                             {/* Handle idle or success with null html */}
-                                             {(previewStatus === 'idle' || (previewStatus === 'success' && !previewHtml)) && (
-                                                 <div className="p-4"> {/* Placeholder if needed */} </div>
-                                             )}
-                                           </motion.div>
-                                         </AnimatePresence>
+                                                     />
+                                                   )}
+                                                 </motion.div>
+                                               )}
+                                               {/* Handle idle state or success with no content (shouldn't normally happen) */}
+                                               {(previewStatus === 'idle' || (previewStatus === 'success' && !previewContent)) && (
+                                                   <div className="w-full h-full flex items-center justify-center"> {/* Placeholder/Idle */} </div>
+                                               )}
+                                             </motion.div>
+                                           </AnimatePresence>
+                                         </div>
                                        )}
                                     </div>
                                 </motion.div>

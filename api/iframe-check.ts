@@ -1,5 +1,7 @@
 // No Next.js types needed – omit unused import to keep file framework‑agnostic.
 
+import { Redis } from "@upstash/redis"; // Use direct import
+
 export const config = {
   runtime: "edge",
 };
@@ -65,6 +67,11 @@ const BROWSER_HEADERS = {
   'Upgrade-Insecure-Requests': '1',
 };
 
+// --- Constants ---
+const IE_CACHE_PREFIX = "ie:cache:";
+const WAYBACK_CACHE_PREFIX = "wayback:cache:";
+// --- End Constants ---
+
 /**
  * Edge function that checks if a remote website allows itself to be embedded in an iframe.
  * We look at two common headers:
@@ -116,9 +123,9 @@ export default async function handler(req: Request) {
   // --- AI cache retrieval mode (PRIORITIZE THIS) ---
   if (mode === "ai") {
     const aiUrl = normalizedUrl;
-    if (!year) {
-      logError(requestId, "Missing year for AI cache mode", null);
-      return new Response(JSON.stringify({ error: "Missing year" }), { status: 400, headers: { "Content-Type": "application/json" } });
+    if (!year || year.length !== 4) { // Ensure year is 4 digits for AI
+      logError(requestId, "Missing or invalid year for AI cache mode", { year });
+      return new Response(JSON.stringify({ error: "Missing or invalid year (YYYY required)" }), { status: 400, headers: { "Content-Type": "application/json" } });
     }
 
     // Normalize the URL for the cache key
@@ -132,11 +139,10 @@ export default async function handler(req: Request) {
     }
 
     try {
-      const redis = new (await import("@upstash/redis")).Redis({
+      const redis = new Redis({
         url: process.env.REDIS_KV_REST_API_URL as string,
         token: process.env.REDIS_KV_REST_API_TOKEN as string,
       });
-      const IE_CACHE_PREFIX = "ie:cache:";
       const key = `${IE_CACHE_PREFIX}${encodeURIComponent(normalizedUrlForKey)}:${year}`;
       logInfo(requestId, `Checking AI cache with key: ${key}`);
       const html = (await redis.lindex(key, 0)) as string | null;
@@ -161,58 +167,95 @@ export default async function handler(req: Request) {
     }
   }
 
-  // --- List Cache mode ---
+  // --- List Cache mode (Combined AI and Wayback) ---
   if (mode === "list-cache") {
     const listUrl = normalizedUrl;
     logInfo(requestId, `Executing in 'list-cache' mode for: ${listUrl}`);
-    
-    // Normalize the URL for the cache key
+
     const normalizedUrlForKey = normalizeUrlForCacheKey(listUrl);
     logInfo(requestId, `Normalized URL for list-cache key: ${normalizedUrlForKey}`);
-
     if (!normalizedUrlForKey) {
         logError(requestId, "URL normalization failed for list-cache key", null);
         return new Response(JSON.stringify({ error: "URL normalization failed" }), { status: 500, headers: { "Content-Type": "application/json" } });
     }
 
     try {
-      const redis = new (await import("@upstash/redis")).Redis({
+      const redis = new Redis({
         url: process.env.REDIS_KV_REST_API_URL as string,
         token: process.env.REDIS_KV_REST_API_TOKEN as string,
       });
-      const IE_CACHE_PREFIX = "ie:cache:";
-      const pattern = `${IE_CACHE_PREFIX}${encodeURIComponent(normalizedUrlForKey)}:*`;
-      logInfo(requestId, `Scanning Redis with pattern: ${pattern}`);
-      
-      // Use SCAN for better performance than KEYS in production
-      let cursor = 0;
-      const years: string[] = [];
-      const keyPrefixLength = `${IE_CACHE_PREFIX}${encodeURIComponent(normalizedUrlForKey)}:`.length;
 
+      const uniqueYears = new Set<string>();
+
+      // Scan for AI Cache keys (ie:cache:...)
+      const aiPattern = `${IE_CACHE_PREFIX}${encodeURIComponent(normalizedUrlForKey)}:*`;
+      const aiKeyPrefixLength = `${IE_CACHE_PREFIX}${encodeURIComponent(normalizedUrlForKey)}:`.length;
+      logInfo(requestId, `Scanning Redis for AI cache with pattern: ${aiPattern}`);
+      let aiCursor = 0;
       do {
-        const [nextCursor, keys] = await redis.scan(cursor, { match: pattern, count: 100 });
-        cursor = parseInt(nextCursor as unknown as string, 10); // Ensure cursor is number
-        
+        const [nextCursor, keys] = await redis.scan(aiCursor, { match: aiPattern, count: 100 });
+        aiCursor = parseInt(nextCursor as unknown as string, 10);
         for (const key of keys) {
-          const yearPart = key.substring(keyPrefixLength);
-          // Basic validation: Ensure it's a number or specific string like 'current'
-          if (yearPart && (/\d{1,4}( BC)?$/.test(yearPart) || yearPart === 'current')) { 
-            years.push(yearPart);
+          const yearPart = key.substring(aiKeyPrefixLength);
+          // Validate AI year (YYYY or YYYY BC)
+          if (yearPart && /^\d{1,4}( BC)?$/.test(yearPart)) {
+            uniqueYears.add(yearPart);
           } else {
-            logInfo(requestId, `Skipping invalid year format in key: ${key}`);
+            logInfo(requestId, `Skipping invalid AI year format in key: ${key}`);
           }
         }
-      } while (cursor !== 0);
+      } while (aiCursor !== 0);
 
-      logInfo(requestId, `Found ${years.length} cached years for pattern: ${pattern}`, years);
-      return new Response(JSON.stringify({ years: years.sort((a, b) => parseInt(b) - parseInt(a)) }), { // Sort years descending
-        headers: { 
+      // Scan for Wayback Cache keys (wayback:cache:...)
+      const waybackPattern = `${WAYBACK_CACHE_PREFIX}${encodeURIComponent(normalizedUrlForKey)}:*`;
+      const waybackKeyPrefixLength = `${WAYBACK_CACHE_PREFIX}${encodeURIComponent(normalizedUrlForKey)}:`.length;
+      logInfo(requestId, `Scanning Redis for Wayback cache with pattern: ${waybackPattern}`);
+      let waybackCursor = 0;
+      do {
+        const [nextCursor, keys] = await redis.scan(waybackCursor, { match: waybackPattern, count: 100 });
+        waybackCursor = parseInt(nextCursor as unknown as string, 10);
+        for (const key of keys) {
+           const yearMonthPart = key.substring(waybackKeyPrefixLength);
+           // Validate Wayback year-month (YYYYMM) and extract year
+           if (yearMonthPart && /^\d{6}$/.test(yearMonthPart)) {
+             const year = yearMonthPart.substring(0, 4);
+             uniqueYears.add(year);
+           } else {
+             logInfo(requestId, `Skipping invalid Wayback year-month format in key: ${key}`);
+           }
+        }
+      } while (waybackCursor !== 0);
+
+      // Convert Set to Array
+      const sortedYears = Array.from(uniqueYears);
+
+      // Sort the unique years chronologically (newest first)
+      sortedYears.sort((a, b) => {
+        // Handle 'current' separately if it exists (should always be first/newest)
+        if (a === 'current') return -1;
+        if (b === 'current') return 1;
+
+        const valA = parseInt(a.replace(' BC', ''), 10);
+        const valB = parseInt(b.replace(' BC', ''), 10);
+        const isABC = a.includes(' BC');
+        const isBBC = b.includes(' BC');
+
+        if (isABC && !isBBC) return 1; // BC is older
+        if (!isABC && isBBC) return -1; // AD is newer
+        if (isABC && isBBC) return valA - valB; // Sort BC ascending (older first)
+        return valB - valA; // Sort AD descending (newer first)
+      });
+
+      logInfo(requestId, `Found ${sortedYears.length} unique cached years for URL: ${listUrl}`, sortedYears);
+
+      return new Response(JSON.stringify({ years: sortedYears }), {
+        headers: {
           "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*" 
+          "Access-Control-Allow-Origin": "*"
         },
       });
     } catch (e) {
-      logError(requestId, "Error listing AI cache keys", e);
+      logError(requestId, "Error listing combined cache keys", e);
       return new Response(JSON.stringify({ error: (e as Error).message }), { status: 500, headers: { "Content-Type": "application/json" } });
     }
   }
@@ -241,50 +284,59 @@ export default async function handler(req: Request) {
 
   // Determine target URL (Wayback or original)
   let targetUrl = normalizedUrl;
-  let isWayback = false;
-  if (year && month) {
-    targetUrl = `https://web.archive.org/web/${year}${month}01/${normalizedUrl}`;
-    logInfo(requestId, `Using Wayback Machine URL: ${targetUrl}`);
-    isWayback = true;
-    // Force proxy mode for wayback content
-    if (mode !== "proxy") {
-        logInfo(requestId, "Forcing proxy mode for Wayback URL");
-        mode = "proxy";
-    }
+  let isWaybackRequest = false;
+  let waybackYear: string | null = null;
+  let waybackMonth: string | null = null;
 
-    // Check Wayback cache if this is a Wayback request
-    try {
-      logInfo(requestId, `Initializing Wayback cache check for ${normalizedUrl} (${year}/${month})`);
-      const redis = new (await import("@upstash/redis")).Redis({
-        url: process.env.REDIS_KV_REST_API_URL as string,
-        token: process.env.REDIS_KV_REST_API_TOKEN as string,
-      });
-      const WAYBACK_CACHE_PREFIX = "wayback:cache:";
-      const normalizedUrlForKey = normalizeUrlForCacheKey(normalizedUrl);
-      if (normalizedUrlForKey) {
-        const cacheKey = `${WAYBACK_CACHE_PREFIX}${encodeURIComponent(normalizedUrlForKey)}:${year}${month}`;
-        logInfo(requestId, `Generated Wayback cache key: ${cacheKey}`);
-        const cachedContent = await redis.get(cacheKey) as string | null;
-        if (cachedContent) {
-          logInfo(requestId, `Wayback Cache HIT for ${cacheKey} (content length: ${cachedContent.length})`);
-          const headers = new Headers();
-          headers.set("Content-Type", "text/html; charset=utf-8");
-          headers.set("Access-Control-Allow-Origin", "*");
-          headers.set("X-Wayback-Cache", "HIT");
-          return new Response(cachedContent, { headers });
-        }
-        logInfo(requestId, `Wayback Cache MISS for ${cacheKey}, proceeding with Wayback Machine request`);
-      } else {
-        logInfo(requestId, `URL normalization failed for Wayback cache: ${normalizedUrl}`);
-      }
-    } catch (e) {
-      logError(requestId, `Wayback cache check failed for ${normalizedUrl} (${year}/${month})`, e);
-      // Continue with normal flow if cache check fails
+  // If year and month are provided (likely from a YYYYMM entry click), construct Wayback URL
+  if (year && month && mode === "proxy") { // Only construct Wayback URL if proxying with year/month
+    if (/^\d{4}$/.test(year) && /^\d{2}$/.test(month)) {
+      targetUrl = `https://web.archive.org/web/${year}${month}01/${normalizedUrl}`;
+      logInfo(requestId, `Using Wayback Machine URL: ${targetUrl}`);
+      isWaybackRequest = true;
+      waybackYear = year;
+      waybackMonth = month;
+      // No need to force proxy mode here, it's already required
+    } else {
+       logError(requestId, "Invalid year/month format for Wayback request", { year, month });
+       // Potentially return an error or fall back to non-Wayback? Let's return error.
+       return new Response(JSON.stringify({ error: "Invalid year/month format for Wayback proxy" }), { status: 400, headers: { "Content-Type": "application/json" } });
     }
   }
 
-  // Force proxy mode for auto-proxy domains only if NOT a Wayback request
-  if (isAutoProxyDomain && !isWayback && mode !== "proxy") {
+  // Check Wayback cache *only* if this is a Wayback request being proxied
+  if (isWaybackRequest && waybackYear && waybackMonth) {
+      try {
+          logInfo(requestId, `Initializing Wayback cache check for ${normalizedUrl} (${waybackYear}/${waybackMonth})`);
+          const redis = new Redis({
+              url: process.env.REDIS_KV_REST_API_URL as string,
+              token: process.env.REDIS_KV_REST_API_TOKEN as string,
+          });
+          const normalizedUrlForKey = normalizeUrlForCacheKey(normalizedUrl);
+          if (normalizedUrlForKey) {
+              const cacheKey = `${WAYBACK_CACHE_PREFIX}${encodeURIComponent(normalizedUrlForKey)}:${waybackYear}${waybackMonth}`;
+              logInfo(requestId, `Generated Wayback cache key: ${cacheKey}`);
+              const cachedContent = await redis.get(cacheKey) as string | null;
+              if (cachedContent) {
+                  logInfo(requestId, `Wayback Cache HIT for ${cacheKey} (content length: ${cachedContent.length})`);
+                  const headers = new Headers();
+                  headers.set("Content-Type", "text/html; charset=utf-8");
+                  headers.set("Access-Control-Allow-Origin", "*");
+                  headers.set("X-Wayback-Cache", "HIT");
+                  return new Response(cachedContent, { headers });
+              }
+              logInfo(requestId, `Wayback Cache MISS for ${cacheKey}, proceeding with Wayback Machine request`);
+          } else {
+              logInfo(requestId, `URL normalization failed for Wayback cache: ${normalizedUrl}`);
+          }
+      } catch (e) {
+          logError(requestId, `Wayback cache check failed for ${normalizedUrl} (${waybackYear}/${waybackMonth})`, e);
+          // Continue with normal flow if cache check fails
+      }
+  }
+
+  // Force proxy mode for auto-proxy domains only if NOT a Wayback request already
+  if (isAutoProxyDomain && !isWaybackRequest && mode !== "proxy") {
       logInfo(requestId, "Forcing proxy mode for auto-proxied domain");
       mode = "proxy";
   }
@@ -523,26 +575,27 @@ export default async function handler(req: Request) {
             headers.set("X-Proxied-Page-Title", encodeURIComponent(pageTitle));
           }
 
-          if (isWayback && contentType.includes("text/html")) {
-            try {
-              logInfo(requestId, `Attempting to cache Wayback content for ${normalizedUrl} (${year}/${month})`);
-              const redis = new (await import("@upstash/redis")).Redis({
-                url: process.env.REDIS_KV_REST_API_URL as string,
-                token: process.env.REDIS_KV_REST_API_TOKEN as string,
-              });
-              const WAYBACK_CACHE_PREFIX = "wayback:cache:";
-              const normalizedUrlForKey = normalizeUrlForCacheKey(normalizedUrl);
-              if (normalizedUrlForKey) {
-                const cacheKey = `${WAYBACK_CACHE_PREFIX}${encodeURIComponent(normalizedUrlForKey)}:${year}${month}`;
-                logInfo(requestId, `Writing to Wayback cache key: ${cacheKey} (content length: ${html.length})`);
-                await redis.set(cacheKey, html);
-                logInfo(requestId, `Successfully cached Wayback content for ${cacheKey}`);
-              } else {
-                logInfo(requestId, `Skipped Wayback caching - URL normalization failed: ${normalizedUrl}`);
+          // Cache Wayback content *after* successful fetch and modification
+          if (isWaybackRequest && waybackYear && waybackMonth && contentType.includes("text/html")) {
+              try {
+                  logInfo(requestId, `Attempting to cache Wayback content for ${normalizedUrl} (${waybackYear}/${waybackMonth})`);
+                  const redis = new Redis({
+                      url: process.env.REDIS_KV_REST_API_URL as string,
+                      token: process.env.REDIS_KV_REST_API_TOKEN as string,
+                  });
+                  const normalizedUrlForKey = normalizeUrlForCacheKey(normalizedUrl);
+                  if (normalizedUrlForKey) {
+                      const cacheKey = `${WAYBACK_CACHE_PREFIX}${encodeURIComponent(normalizedUrlForKey)}:${waybackYear}${waybackMonth}`;
+                      logInfo(requestId, `Writing to Wayback cache key: ${cacheKey} (content length: ${html.length})`);
+                      // Use SET with expiration for Wayback cache (e.g., 30 days)
+                      await redis.set(cacheKey, html, { ex: 60 * 60 * 24 * 30 });
+                      logInfo(requestId, `Successfully cached Wayback content for ${cacheKey}`);
+                  } else {
+                      logInfo(requestId, `Skipped Wayback caching - URL normalization failed: ${normalizedUrl}`);
+                  }
+              } catch (cacheErr) {
+                  logError(requestId, `Failed to cache Wayback content for ${normalizedUrl} (${waybackYear}/${waybackMonth})`, cacheErr);
               }
-            } catch (cacheErr) {
-              logError(requestId, `Failed to cache Wayback content for ${normalizedUrl} (${year}/${month})`, cacheErr);
-            }
           }
 
           return new Response(html, {
