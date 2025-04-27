@@ -352,8 +352,12 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                     <div className="relative w-full flex-1 flex flex-row items-center justify-center overflow-hidden px-2 py-1
                                    sm:flex-col sm:px-6 sm:py-4">
                         {/* Timeline Bars Container - Default: mobile (horizontal scroll), sm: desktop (vertical scroll) */}
-                        <div ref={timelineRef} className="w-auto max-w-full overflow-x-auto scrollbar-none flex flex-row items-center space-x-4 space-y-0 justify-start py-0 h-12
-                                                       sm:w-full sm:overflow-y-auto sm:flex-col-reverse sm:items-center sm:space-y-0.5 sm:space-x-0 sm:py-2 sm:h-auto sm:max-w-none sm:justify-center">
+                        <div 
+                           ref={timelineRef} 
+                           className="w-auto max-w-full overflow-x-auto scrollbar-none flex flex-row items-center space-x-4 space-y-0 justify-start py-0 h-12
+                                      sm:w-full sm:overflow-y-auto sm:flex-col-reverse sm:items-center sm:space-y-0.5 sm:space-x-0 sm:py-2 sm:h-auto sm:max-w-none sm:justify-center
+                                      sm:[mask-image:linear-gradient(to_bottom,transparent_0%,black_10%,black_90%,transparent_100%)]"
+                        >
                             {cachedYears.map((year, index) => {
                                 const isActive = activeYearIndex === index;
                                 const isNow = year === 'current';
@@ -364,7 +368,9 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                                 const barSizeClasses = isActive
                                     ? 'h-1.5 w-12 sm:w-14 sm:h-1' // Active bar (mobile / desktop)
                                     : 'h-1 w-8 group-hover:w-10 sm:w-8 sm:h-0.5 group-hover:sm:w-10'; // Inactive bar (mobile / desktop)
-                                const barColorClasses = isActive ? (isNow ? 'bg-red-500' : 'bg-white') : 'bg-neutral-600/70';
+                                const barColorClasses = isActive 
+                                    ? (isNow ? 'bg-red-500' : 'bg-white') 
+                                    : 'bg-neutral-600/70 group-hover:bg-white'; // Inactive color, white on hover
 
                                 return (
                                     // Default: mobile layout (vertical stack), sm: desktop layout (horizontal)
@@ -376,14 +382,15 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                                     >
                                         {/* Year Label - Default: mobile (always visible, dimmed inactive), sm: desktop (opacity change) */}
                                         <span
-                                            className={`text-xs font-medium transition-colors duration-150 mb-1 whitespace-nowrap 
-                                                        ${isActive 
-                                                          ? (isNow ? 'text-red-400' : 'text-white') 
-                                                          : 'text-neutral-500 group-hover:text-neutral-300'} 
-                                                        sm:mr-2 sm:mb-0 sm:transition-opacity 
-                                                        ${isActive 
-                                                          ? 'sm:opacity-100' 
-                                                          : 'sm:opacity-0 sm:group-hover:opacity-100 sm:text-neutral-400'}`}
+                                            className={`text-xs font-medium transition-colors duration-150 mb-1 whitespace-nowrap sm:mr-2 sm:mb-0 sm:transition-opacity ${ 
+                                                          isActive 
+                                                            ? (isNow ? 'text-red-400' : 'text-white')  // Active colors
+                                                            : 'text-neutral-500 group-hover:text-neutral-300 sm:text-neutral-400' // Inactive colors (mobile base, hover, sm base)
+                                                        } ${ 
+                                                          isActive 
+                                                            ? 'sm:opacity-100' // Active opacity
+                                                            : (isNow ? 'sm:opacity-100' : 'sm:opacity-0 sm:group-hover:opacity-100') // Inactive opacity (Now always visible, others on hover)
+                                                        }`}
                                         >
                                             {isNow ? 'Now' : year}
                                         </span>
