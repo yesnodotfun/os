@@ -415,8 +415,8 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
 
             {/* Main Content Area - Make this grow and handle overflow */}
             <motion.div
-              className="relative w-full flex-grow overflow-auto flex flex-col items-center justify-start perspective-[1000px] p-2 gap-2 pt-16
-                           sm:flex-row sm:items-center sm:pt-16 sm:pb-4 sm:px-4 sm:pr-0 sm:gap-4"
+              className="relative w-full flex-grow overflow-auto flex flex-col items-center justify-start perspective-[1000px] px-2 gap-2 pt-16 overflow-hidden
+                           sm:flex-row sm:items-center sm:pt-0 sm:pb-0 sm:px-4 sm:gap-4 sm:pr-0"
               initial={{ opacity: 0, scale: 1.04}}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 1.04 }}
