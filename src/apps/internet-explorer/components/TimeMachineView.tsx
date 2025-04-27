@@ -291,7 +291,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
   const MAX_VISIBLE_PREVIEWS = 4; // How many previews to show behind the active one
   const PREVIEW_Z_SPACING = -80; // Spacing between previews on Z-axis
   const PREVIEW_SCALE_FACTOR = 0.05; // How much smaller each preview gets
-  const PREVIEW_Y_SPACING = -20; // Vertical spacing between previews
+  const PREVIEW_Y_SPACING = -28; // Vertical spacing between previews
 
   const maskStyle = getMaskStyle(scrollState.isTop, scrollState.isBottom, scrollState.canScroll);
 
@@ -300,9 +300,10 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
       {isOpen && (
         <motion.div
           className="fixed inset-0 z-[10000] bg-black/70 backdrop-blur-xl flex flex-col items-center justify-center font-geneva-12 overflow-hidden"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          transition={{ duration: 0.3, ease: "easeInOut" }}
           style={{
             // Placeholder for Three.js galaxy background later
             // For now, a simple gradient or image can suffice
@@ -319,8 +320,14 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
             </button>
 
             {/* Main Content Area - Default: mobile (vertical), sm: desktop (horizontal) */}
-            <div className="relative w-full h-full flex flex-col items-center justify-start perspective-[1000px] p-2 gap-2 pt-12 pb-10 pr-2
-                           sm:flex-row sm:items-center sm:pt-16 sm:pb-24 sm:px-4 sm:pr-0 sm:gap-4">
+            <motion.div
+              className="relative w-full h-full flex flex-col items-center justify-start perspective-[1000px] p-2 gap-2 pt-12 pb-10 pr-2
+                           sm:flex-row sm:items-center sm:pt-16 sm:pb-24 sm:px-4 sm:pr-0 sm:gap-4"
+              initial={{ opacity: 0, y: 20 , scale: 1.04}}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 1.04 }}
+              transition={{ duration: 0.4, delay: 0.1, ease: "easeInOut" }}
+            >
 
                 {/* Left spacer - Only visible on desktop */}
                 <div className="w-20 flex-shrink-0 hidden sm:block"></div>
@@ -499,7 +506,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                         </div>
                     </div>
                 </div>
-            </div>
+            </motion.div>
 
             {/* Footer Bar - Use calc() for bottom padding: 0.5rem base + safe area */}
             <div className="relative order-3 w-full mt-auto bg-neutral-900/60 backdrop-blur-sm border-t border-white/10 flex items-center justify-center gap-4 px-4 z-20 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]
