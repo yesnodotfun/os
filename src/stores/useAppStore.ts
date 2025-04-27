@@ -38,6 +38,8 @@ const getInitialState = (): AppManagerState => ({
 interface AppStoreState extends AppManagerState {
   debugMode: boolean;
   setDebugMode: (enabled: boolean) => void;
+  shaderEffectEnabled: boolean;
+  setShaderEffectEnabled: (enabled: boolean) => void;
   aiModel: AIModel;
   setAiModel: (model: AIModel) => void;
   terminalSoundsEnabled: boolean;
@@ -54,6 +56,8 @@ export const useAppStore = create<AppStoreState>()(
       ...getInitialState(),
       debugMode: false,
       setDebugMode: (enabled) => set({ debugMode: enabled }),
+      shaderEffectEnabled: false,
+      setShaderEffectEnabled: (enabled) => set({ shaderEffectEnabled: enabled }),
       aiModel: null, // Default model set to null for client-side
       setAiModel: (model) => set({ aiModel: model }),
       terminalSoundsEnabled: true, // Default to true for terminal/IE sounds
@@ -167,6 +171,7 @@ export const useAppStore = create<AppStoreState>()(
         windowOrder: state.windowOrder,
         apps: state.apps,
         debugMode: state.debugMode,
+        shaderEffectEnabled: state.shaderEffectEnabled,
         aiModel: state.aiModel,
         terminalSoundsEnabled: state.terminalSoundsEnabled,
       }),

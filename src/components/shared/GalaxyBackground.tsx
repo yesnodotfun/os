@@ -1,5 +1,6 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import * as THREE from 'three';
+import { useAppStore } from '@/stores/useAppStore'; // Import the store
 
 // Removed props as they are no longer used by the shader
 // interface GalaxyBackgroundProps {
@@ -11,9 +12,27 @@ import * as THREE from 'three';
 const GalaxyBackground: React.FC = () => { // Simplified props
   const mountRef = useRef<HTMLDivElement>(null);
   const clockRef = useRef(new THREE.Clock()); // Use Clock for time uniform
+  const [isLargeScreen, setIsLargeScreen] = useState(true); // State for screen size
+  const shaderEffectEnabled = useAppStore((state) => state.shaderEffectEnabled); // Get state from store
+
+  // Combined state for rendering condition
+  const shouldRender = isLargeScreen && shaderEffectEnabled;
+
+  // Check initial screen width and add resize listener
+  useEffect(() => {
+    const checkScreenWidth = () => {
+      // Use a common breakpoint like 768px (Tailwind 'md') or 640px ('sm')
+      setIsLargeScreen(window.innerWidth >= 640); // Update screen size state
+    };
+
+    checkScreenWidth(); // Initial check
+    window.addEventListener('resize', checkScreenWidth);
+
+    return () => window.removeEventListener('resize', checkScreenWidth);
+  }, []);
 
   useEffect(() => {
-    if (!mountRef.current) return;
+    if (!shouldRender || !mountRef.current) return;
 
     const currentMount = mountRef.current;
 
@@ -129,9 +148,12 @@ const GalaxyBackground: React.FC = () => { // Simplified props
       renderer.dispose();
     };
   // }, [particleCount, starSpeed]); // Update dependencies
-  }, []); // No dependencies needed now
+  }, [shouldRender]); // Re-run effect if rendering condition changes
 
-  return <div ref={mountRef} style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, zIndex: -1 }} />;
+  // Conditionally render the container div
+  return shouldRender ? (
+    <div ref={mountRef} style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, zIndex: -1 }} />
+  ) : null; // Render nothing if condition not met
 };
 
 export default GalaxyBackground; 
