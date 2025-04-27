@@ -634,6 +634,22 @@ export function ControlPanelsAppComponent({
                     className="data-[state=checked]:bg-[#000000]"
                   />
                 </div>
+
+                {debugMode && (
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-1">
+                      <Label>Shader Effect</Label>
+                      <Label className="text-[11px] text-gray-600 font-geneva-12">
+                        Performance intensive background effect
+                      </Label>
+                    </div>
+                    <Switch
+                      checked={shaderEffectEnabled}
+                      onCheckedChange={setShaderEffectEnabled}
+                      className="data-[state=checked]:bg-[#000000]"
+                    />
+                  </div>
+                )}
                 
                 {debugMode && (
                   <div className="flex items-center justify-between">
@@ -664,21 +680,7 @@ export function ControlPanelsAppComponent({
                   </div>
                 )}
 
-                {debugMode && (
-                  <div className="flex items-center justify-between">
-                    <div className="flex flex-col gap-1">
-                      <Label>Enable Shader Effect</Label>
-                      <Label className="text-[11px] text-gray-600 font-geneva-12">
-                        Performance intensive background effect
-                      </Label>
-                    </div>
-                    <Switch
-                      checked={shaderEffectEnabled}
-                      onCheckedChange={setShaderEffectEnabled}
-                      className="data-[state=checked]:bg-[#000000]"
-                    />
-                  </div>
-                )}
+                
               </div>
             </TabsContent>
           </Tabs>
