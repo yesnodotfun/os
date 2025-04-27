@@ -531,11 +531,30 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                                 <motion.div
                                     key={year} // Use year from the sliced array as key
                                     className="absolute w-[100%] h-full rounded-[12px] border border-white/10 shadow-2xl overflow-hidden preserve-3d bg-neutral-800/50" // Changed h-[80%] to h-full
-                                    initial={{
-                                        z: distance * PREVIEW_Z_SPACING,
-                                        scale: 1 - distance * PREVIEW_SCALE_FACTOR, // distance >= 0
-                                        opacity: 0
-                                    }}
+                                    initial={(() => {
+                                        // Default starting transform based on distance in the stack
+                                        const base = {
+                                          z: distance * PREVIEW_Z_SPACING,
+                                          scale: 1 - distance * PREVIEW_SCALE_FACTOR,
+                                          y: distance * PREVIEW_Y_SPACING,
+                                          opacity: 0,
+                                        } as const;
+
+                                        // If this card will become the new *active* card **and** we're
+                                        // navigating *backward* (i.e. to a newer year), give it the
+                                        // reversed scale-up entrance so it appears to push towards the
+                                        // user before settling into place.
+                                        if (distance === 0 && navigationDirection === 'backward') {
+                                          return {
+                                            z: 50,                     // bring slightly forward
+                                            scale: 1.05,               // small scale-up
+                                            y: -PREVIEW_Y_SPACING,     // subtle upward shift (matches exit)
+                                            opacity: 0,                // fade-in from 0
+                                          } as const;
+                                        }
+
+                                        return base;
+                                    })()}
                                     animate={{
                                         z: distance * PREVIEW_Z_SPACING,
                                         y: distance * PREVIEW_Y_SPACING,
