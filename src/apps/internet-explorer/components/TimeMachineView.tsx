@@ -56,8 +56,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
   // Get main app state for comparison
   const storeUrl = useInternetExplorerStore((state) => state.url);
   const storeYear = useInternetExplorerStore((state) => state.year);
-  // Get debug mode and shader support status
-  const debugMode = useAppStore((state) => state.debugMode);
+  // Get shader support status
   const shaderEffectEnabled = useAppStore((state) => state.shaderEffectEnabled);
   const setShaderEffectEnabled = useAppStore((state) => state.setShaderEffectEnabled);
 
@@ -383,7 +382,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
 
             {/* Main Content Area - Default: mobile (vertical), sm: desktop (horizontal) */}
             <motion.div
-              className="relative w-full h-full flex flex-col items-center justify-start perspective-[1000px] p-2 gap-2 pt-12 pb-10 pr-2
+              className="relative w-full h-full flex flex-col items-center justify-start perspective-[1000px] p-2 gap-2 pt-12 pb-10 pr-0
                            sm:flex-row sm:items-center sm:pt-16 sm:pb-24 sm:px-4 sm:pr-0 sm:gap-4"
               initial={{ opacity: 0, y: 20 , scale: 1.04}}
               animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -545,11 +544,19 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                            WebkitMaskImage: maskStyle, // For Safari
                         }}
                     >
-                        {/* Timeline Bars Container - Remove sm:[mask-image:...] class */}
+                        {/* Timeline Bars Container */}
                         <div
                            ref={timelineRef}
-                           className="w-auto max-w-full overflow-x-auto scrollbar-none flex flex-row items-center space-x-4 space-y-0 justify-start py-0 h-12
-                                      sm:w-full sm:overflow-y-auto sm:flex-col-reverse sm:items-center sm:space-y-0.5 sm:space-x-0 sm:py-2 sm:h-auto sm:max-w-none sm:justify-center"
+                           className="w-auto max-w-full overflow-x-auto flex flex-row items-center space-x-4 space-y-0 justify-start py-0 h-12
+                                      sm:w-full sm:overflow-y-auto sm:flex-col-reverse sm:items-center sm:space-y-0.5 sm:space-x-0 sm:py-2 sm:h-auto sm:max-w-none sm:justify-center
+                                      [&::-webkit-scrollbar]:hidden
+                                      [&::-webkit-scrollbar]:sm:w-1
+                                      [&::-webkit-scrollbar]:sm:hover:block
+                                      [&::-webkit-scrollbar]:sm:translate-x-1
+                                      [&::-webkit-scrollbar-thumb]:rounded-full
+                                      [&::-webkit-scrollbar-thumb]:bg-white/20
+                                      [&::-webkit-scrollbar-track]:bg-transparent
+                                      sm:pr-2"
                         >
                             {cachedYears.map((year, index) => {
                                 const isActive = activeYearIndex === index;
@@ -628,9 +635,8 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                 </Button>
               </div>
               
-              {/* Right shader menu - Conditionally render based on shader support or debug mode */}
-              { (shaderEffectEnabled || debugMode) && (
-                <div className="w-8 flex items-center justify-end">
+              {/* Right shader menu - Always shown */}
+              <div className="w-8 flex items-center justify-end">
                   {/* Shader selector dropdown */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -671,7 +677,6 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
-              )}
             </div>
         </motion.div>
       )}
