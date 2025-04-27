@@ -328,9 +328,9 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                 {/* Timeline Area - Adjusted Padding and Styles */}
                 <div className="h-full flex flex-col items-center justify-center w-48 flex-shrink-0 z-10"> {/* Removed py-16 */}
                     {/* Vertical container for the timeline bars and controls */}
-                    <div className="relative w-full flex-1 flex flex-col items-center overflow-hidden px-6 py-4"> {/* Added py-4 for internal spacing */}
+                    <div className="relative w-full flex-1 flex flex-col items-center justify-center overflow-hidden px-6 py-4"> {/* Added py-4 for internal spacing */}
                         {/* Timeline Bars Container */}
-                        <div ref={timelineRef} className="flex-1 w-full overflow-y-auto scrollbar-none flex flex-col items-center space-y-0.5 py-2">
+                        <div ref={timelineRef} className="w-full overflow-y-auto scrollbar-none flex flex-col items-center space-y-0.5 py-2">
                             {cachedYears.map((year, index) => {
                                 const isActive = activeYearIndex === index;
                                 const isNow = year === 'current'; // Assuming 'current' is the string for now
