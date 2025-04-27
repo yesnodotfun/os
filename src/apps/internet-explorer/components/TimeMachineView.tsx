@@ -676,7 +676,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                     </div>
 
                     {/* Mobile Prev/Next Buttons - Only visible on mobile - Same Size Buttons */}
-                    <div className="w-full flex items-center justify-center gap-4 py-2 sm:hidden">
+                    <div className="w-full flex items-center justify-center gap-4 pt-2 pb-4 sm:hidden">
                         {/* Previous Button (Left Arrow) */}
                         <button
                             onClick={() => setActiveYearIndex((prev) => Math.max(0, prev - 1))}
