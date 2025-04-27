@@ -34,6 +34,7 @@ const AUTO_PROXY_DOMAINS = [
   "wikipedia.org",
   "wikimedia.org",
   "wikipedia.com",
+  "cursor.com",
   // Add more domains as needed
 ];
 

@@ -54,7 +54,6 @@ export const DEFAULT_FAVORITES: Favorite[] = [
     favicon: "https://www.google.com/s2/favicons?domain=apple.com&sz=32",
     year: "2003",
   },
-
   {
     title: "Wikipedia",
     url: "https://en.wikipedia.org/wiki",
@@ -67,7 +66,6 @@ export const DEFAULT_FAVORITES: Favorite[] = [
     favicon: "https://www.google.com/s2/favicons?domain=ryo.lu&sz=32",
     year: "current",
   },
-
   {
     title: "NYTimes",
     url: "https://nytimes.com",
@@ -154,6 +152,9 @@ export const DEFAULT_FAVORITES: Favorite[] = [
     year: "current",
   }
 ];
+
+// Define the current version for the store
+const CURRENT_IE_STORE_VERSION = 1;
 
 // Helper function to classify year into navigation mode
 function classifyYear(year: string): NavigationMode {
@@ -318,10 +319,47 @@ const getHostname = (targetUrl: string): string => {
   }
 };
 
+// Define the initial state structure more explicitly for migration
+const getInitialState = () => ({
+  url: DEFAULT_URL,
+  year: DEFAULT_YEAR,
+  mode: classifyYear(DEFAULT_YEAR),
+  status: 'idle' as NavigationStatus,
+  finalUrl: null as string | null,
+  aiGeneratedHtml: null as string | null,
+  error: null as string | null,
+  token: 0,
+  prefetchedTitle: null as string | null,
+  errorDetails: null as ErrorResponse | null,
+  favorites: DEFAULT_FAVORITES,
+  history: [] as HistoryEntry[],
+  historyIndex: -1,
+  language: "auto" as LanguageOption,
+  location: "auto" as LocationOption,
+  isTitleDialogOpen: false,
+  newFavoriteTitle: "",
+  isHelpDialogOpen: false,
+  isAboutDialogOpen: false,
+  isNavigatingHistory: false,
+  isClearFavoritesDialogOpen: false,
+  isClearHistoryDialogOpen: false,
+  isResetFavoritesDialogOpen: false,
+  isFutureSettingsDialogOpen: false,
+  aiCache: {} as Record<string, AiCacheEntry>,
+  timelineSettings: {} as { [year: string]: string },
+  currentPageTitle: null as string | null,
+  isTimeMachineViewOpen: false,
+  cachedYears: [] as string[],
+  isFetchingCachedYears: false,
+});
+
 export const useInternetExplorerStore = create<InternetExplorerStore>()(
   persist(
     (set, get) => ({
-      // Initial state
+      // Use the initial state function
+      ...getInitialState(),
+      /*
+      // Initial state (commented out as it's now handled by getInitialState)
       url: DEFAULT_URL,
       year: DEFAULT_YEAR,
       mode: classifyYear(DEFAULT_YEAR),
@@ -332,15 +370,15 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
       token: 0,
       prefetchedTitle: null, // New initial state
       errorDetails: null, // New initial state
-      
+
       favorites: DEFAULT_FAVORITES,
       history: [],
       historyIndex: -1,
-      
+
       // Initialize language and location
       language: "auto" as LanguageOption,
       location: "auto" as LocationOption,
-      
+
       isTitleDialogOpen: false,
       newFavoriteTitle: "",
       isHelpDialogOpen: false,
@@ -350,18 +388,18 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
       isClearHistoryDialogOpen: false,
       isResetFavoritesDialogOpen: false, // New initial state
       isFutureSettingsDialogOpen: false, // New initial state
-      
+
       aiCache: {},
-      
+
       timelineSettings: {},
-      
+
       currentPageTitle: null,
-      
+
       // Time Machine Feature Initial State
       isTimeMachineViewOpen: false,
       cachedYears: [],
       isFetchingCachedYears: false,
-      
+      */
       // Actions
       setUrl: (url) => set({ url }),
       
@@ -635,17 +673,64 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
     }),
     {
       name: "ryos:internet-explorer",
+      version: CURRENT_IE_STORE_VERSION, // Add version number
       partialize: (state) => ({
+        // Define what gets persisted
         url: state.url,
         year: state.year,
         favorites: state.favorites,
-        history: state.history.slice(0, 50), // Limit persisted history size further
+        history: state.history.slice(0, 50), // Limit persisted history size
         aiCache: state.aiCache, // Consider limiting cache size too if it grows large
         timelineSettings: state.timelineSettings,
         language: state.language, // Persist language setting
         location: state.location, // Persist location setting
-        // Don't persist transient state like dialogs, errorDetails, prefetchedTitle
+        // Don't persist transient state like dialogs, errorDetails, prefetchedTitle, status, etc.
       }),
+      migrate: (persistedState, version) => {
+        let state = persistedState as any; // Use 'any' for flexibility during migration
+
+        if (version < CURRENT_IE_STORE_VERSION) {
+          console.log(
+            `Migrating Internet Explorer store from version ${version} to ${CURRENT_IE_STORE_VERSION}`
+          );
+          // Example migration: If older versions exist, reset to default state
+          // You can add more specific migration logic here for future versions
+          state = {
+            ...getInitialState(), // Start with fresh defaults
+            // Selectively keep some old state if desired, e.g., history or favorites
+            // For this example, we'll just reset everything for simplicity
+            // favorites: state.favorites || DEFAULT_FAVORITES, // Example: keep old favorites if they exist
+            // history: state.history || [], // Example: keep old history
+          };
+          console.log("IE Store migration applied, resetting to defaults.");
+        }
+
+        // Ensure the returned state includes only the partialized fields
+        // This is important because the full state might have extra fields not defined
+        // in the partialize function after migration.
+        const initialStateDefaults = getInitialState(); // Get defaults to compare against
+        const partializedKeys = [
+          'url', 'year', 'favorites', 'history', 'aiCache',
+          'timelineSettings', 'language', 'location'
+        ];
+        const finalState: Partial<InternetExplorerStore> = {};
+
+        for (const key of partializedKeys) {
+          // Use the migrated state value if it exists, otherwise use the default
+          // This ensures that if a key was removed from partialize, it doesn't get persisted incorrectly.
+          finalState[key as keyof InternetExplorerStore] = state?.[key] ?? initialStateDefaults[key as keyof ReturnType<typeof getInitialState>];
+        }
+
+
+        // Special handling for history and favorites to ensure they are arrays
+        finalState.history = Array.isArray(finalState.history) ? finalState.history.slice(0, 50) : [];
+        finalState.favorites = Array.isArray(finalState.favorites) ? finalState.favorites : DEFAULT_FAVORITES;
+        // Ensure aiCache is an object
+        finalState.aiCache = typeof finalState.aiCache === 'object' && finalState.aiCache !== null ? finalState.aiCache : {};
+
+
+        return finalState as InternetExplorerStore; // Return the potentially migrated and cleaned state
+      },
     }
   )
 ); 

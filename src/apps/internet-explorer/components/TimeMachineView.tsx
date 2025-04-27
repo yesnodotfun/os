@@ -40,12 +40,11 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
   
   // --- Time Machine Local Preview State ---
   const [previewYear, setPreviewYear] = useState<string | null>(null);
-  // Combined state for content (HTML string or URL string)
   const [previewContent, setPreviewContent] = useState<string | null>(null);
-  // State to track the type of content
   const [previewSourceType, setPreviewSourceType] = useState<PreviewSource | null>(null);
   const [previewStatus, setPreviewStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [previewError, setPreviewError] = useState<string | null>(null);
+  const [isIframeLoaded, setIsIframeLoaded] = useState<boolean>(false); // State for iframe load status
   // --- End Local Preview State ---
   
   const timelineRef = useRef<HTMLDivElement>(null);
@@ -159,6 +158,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
       setPreviewContent(null);
       setPreviewSourceType(null);
       setPreviewError(null);
+      setIsIframeLoaded(false); // Reset iframe state on open
     } else {
        // Reset preview state when closed
        setPreviewYear(null);
@@ -166,6 +166,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
        setPreviewSourceType(null);
        setPreviewStatus('idle');
        setPreviewError(null);
+       setIsIframeLoaded(false); // Reset iframe state on close
     }
   }, [cachedYears, isOpen, currentSelectedYear]);
 
@@ -235,6 +236,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
       setPreviewSourceType(null);
       setPreviewStatus('idle');
       setPreviewError(null);
+      setIsIframeLoaded(false); // Reset iframe state
       return;
     }
 
@@ -243,6 +245,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
     setPreviewContent(null);
     setPreviewSourceType(null);
     setPreviewError(null);
+    setIsIframeLoaded(false); // Reset iframe state on new preview
 
     const determineSource = async () => {
       try {
@@ -253,6 +256,8 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
             setPreviewContent(cachedEntry.html);
             setPreviewSourceType('html');
             setPreviewStatus('success');
+            // No iframe involved here, so loaded state is irrelevant or true
+            setIsIframeLoaded(true); 
             return; // Done if cache hit
         }
 
@@ -265,7 +270,8 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
           const proxyUrl = `/api/iframe-check?url=${encodeURIComponent(currentUrl)}`;
           setPreviewContent(proxyUrl);
           setPreviewSourceType('url');
-          setPreviewStatus('success'); // Let iframe handle loading/errors
+          setPreviewStatus('success'); // Status is success, iframe handles actual load
+          // isIframeLoaded remains false until iframe onLoad fires
 
         } else {
           const yearString = previewYear.replace(' BC', '');
@@ -280,7 +286,8 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
             const proxyUrl = `/api/iframe-check?mode=proxy&url=${encodeURIComponent(currentUrl)}&year=${yearString}&month=${currentMonth}`;
             setPreviewContent(proxyUrl);
             setPreviewSourceType('url');
-            setPreviewStatus('success'); // Let iframe handle loading/errors
+            setPreviewStatus('success'); // Status is success, iframe handles actual load
+            // isIframeLoaded remains false until iframe onLoad fires
 
           } else {
             // 2c. Year < 1995 or BC uses AI cache (fetches HTML)
@@ -297,6 +304,8 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
               setPreviewContent(cleanHtml);
               setPreviewSourceType('html');
               setPreviewStatus('success');
+              // No iframe involved
+              setIsIframeLoaded(true); 
               // Cache the AI result locally
               cacheAiPage(currentUrl, previewYear, cleanHtml, parsedTitle);
             } else if (aiResponse.status === 404) {
@@ -321,6 +330,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
         setPreviewStatus('error');
         setPreviewContent(null);
         setPreviewSourceType(null);
+        setIsIframeLoaded(false);
       }
     };
 
@@ -439,37 +449,40 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                                                  </div>
                                                )}
                                                {previewStatus === 'success' && previewContent && (
-                                                 <motion.div // Fade in success content
+                                                 <motion.div // Outer container for content fade-in
                                                    initial={{ opacity: 0 }}
-                                                   animate={{ opacity: 1 }}
+                                                   animate={{ opacity: 1 }} // This fades in the container after loading/error
                                                    transition={{ duration: 0.3, delay: 0.1 }}
                                                    className="w-full h-full overflow-hidden"
                                                  >
                                                    {previewSourceType === 'url' && (
-                                                     <motion.div // Apply fade-in to iframe as well
-                                                       initial={{ opacity: 0 }}
-                                                       animate={{ opacity: 1 }}
-                                                       transition={{ duration: 0.3, delay: 0.1 }} // Consistent fade-in
+                                                     <motion.div // Animate iframe opacity based on load state
+                                                       initial={{ opacity: 0 }} // Start fully transparent
+                                                       animate={{ opacity: isIframeLoaded ? 1 : 0.6 }} // Animate to 0.6, then 1 on load
+                                                       transition={{ duration: 0.3 }} // Smooth transition for opacity changes
                                                        className="w-full h-full"
                                                      >
                                                        <iframe
-                                                         src={previewContent} // Use the URL directly
-                                                         className="w-full h-full border-none bg-white" // Added bg-white for iframe
-                                                         sandbox="allow-scripts allow-same-origin" // Basic sandbox
+                                                         src={previewContent}
+                                                         className="w-full h-full border-none bg-white"
+                                                         sandbox="allow-scripts allow-same-origin"
                                                          title={`Preview for ${previewYear}`}
-                                                         // Consider adding an onLoad/onError handler for the iframe itself
+                                                         onLoad={() => {
+                                                           console.log(`[TimeMachine] iframe for ${previewYear} loaded.`);
+                                                           setIsIframeLoaded(true);
+                                                         }}
                                                        />
                                                      </motion.div>
                                                    )}
                                                    {previewSourceType === 'html' && (
-                                                     <motion.div // Wrap HtmlPreview too for consistency (though parent already fades)
-                                                       initial={{ opacity: 0 }}
-                                                       animate={{ opacity: 1 }}
-                                                       transition={{ duration: 0.3, delay: 0.1 }}
+                                                     <motion.div // Keep consistent structure, though opacity is handled by parent
+                                                       initial={{ opacity: 0 }} // Start transparent
+                                                       animate={{ opacity: 1 }} // Fade in fully
+                                                       transition={{ duration: 0.3 }} // Match iframe fade duration
                                                        className="w-full h-full"
                                                      >
                                                        <HtmlPreview
-                                                         htmlContent={previewContent} // Use the HTML string
+                                                         htmlContent={previewContent}
                                                          isInternetExplorer={true}
                                                          maxHeight="100%"
                                                          minHeight="100%"
