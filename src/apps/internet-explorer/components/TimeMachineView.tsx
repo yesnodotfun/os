@@ -395,7 +395,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className={`fixed inset-0 z-[10000] ${shaderEffectEnabled ? 'bg-black/90' : 'bg-black/70 backdrop-blur-xl'} flex flex-col items-center justify-center font-geneva-12 overflow-hidden h-screen`}
+          className={`fixed inset-0 z-[10000] ${shaderEffectEnabled ? 'bg-black/90' : 'bg-black/70 backdrop-blur-xl'} flex flex-col items-center justify-center font-geneva-12 min-h-screen`}
           initial={{ opacity: 0, scale: 1.05 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 1.05 }}
