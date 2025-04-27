@@ -395,7 +395,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className={`fixed inset-0 z-[10000] ${shaderEffectEnabled ? 'bg-black/90' : 'bg-black/70 backdrop-blur-xl'} flex flex-col items-center justify-center font-geneva-12 min-h-screen`}
+          className={`fixed inset-0 z-[10000] ${shaderEffectEnabled ? 'bg-black/90' : 'bg-black/70 backdrop-blur-xl'} flex flex-col items-center font-geneva-12 min-h-[100dvh] max-h-[100dvh]`}
           initial={{ opacity: 0, scale: 1.05 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 1.05 }}
@@ -413,10 +413,10 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                 <X size={24} />
             </button>
 
-            {/* Main Content Area - Default: mobile (vertical), sm: desktop (horizontal) */}
+            {/* Main Content Area - Make this grow and handle overflow */}
             <motion.div
-              className="relative w-full h-full flex flex-col items-center justify-start perspective-[1000px] p-2 gap-2 pt-12 pb-10
-                           sm:flex-row sm:items-center sm:pt-16 sm:pb-24 sm:px-4 sm:pr-0 sm:gap-4"
+              className="relative w-full flex-grow overflow-auto flex flex-col items-center justify-start perspective-[1000px] p-2 gap-2 pt-12
+                           sm:flex-row sm:items-center sm:pt-16 sm:pb-4 sm:px-4 sm:pr-0 sm:gap-4"
               initial={{ opacity: 0, scale: 1.04}}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 1.04 }}
@@ -426,9 +426,9 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                 {/* Left spacer - Only visible on desktop */}
                 <div className="w-20 flex-shrink-0 hidden sm:block"></div>
 
-                {/* Stacked Previews Area - Removed sm:w-[calc(...)] and added sm:order-none */}
-                <div ref={previewContainerRef} className="relative w-full h-full flex items-center justify-center preserve-3d flex-grow order-1
-                                                        sm:flex-grow sm:order-none">
+                {/* Stacked Previews Area - Let it grow within the row on desktop */}
+                <div ref={previewContainerRef} className="relative w-full flex-grow flex items-center justify-center preserve-3d order-1
+                                                        sm:order-none">
                     <AnimatePresence initial={false}>
                         {cachedYears.map((year, index) => {
                             const distance = index - activeYearIndex;
@@ -438,7 +438,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                             return (
                                 <motion.div
                                     key={year}
-                                    className="absolute w-[100%] h-[80%] rounded-[12px] border border-white/10 shadow-2xl overflow-hidden preserve-3d bg-neutral-800/50" // Added base background
+                                    className="absolute w-[100%] h-full rounded-[12px] border border-white/10 shadow-2xl overflow-hidden preserve-3d bg-neutral-800/50" // Changed h-[80%] to h-full
                                     initial={{
                                         z: distance * PREVIEW_Z_SPACING,
                                         scale: 1 - Math.abs(distance) * PREVIEW_SCALE_FACTOR,
@@ -601,19 +601,19 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                    </TooltipProvider>
                 </div>
 
-                {/* Timeline Area - Added sm:order-none */}
-                <div className="w-full h-auto max-h-[80%] flex flex-col justify-center order-2 px-2 z-10
-                           sm:h-full sm:flex-col sm:items-center sm:justify-center sm:w-48 sm:flex-shrink-0 sm:order-none">
-                    
-                    {/* Container for the timeline bars - MOVED UP */}
+                {/* Timeline Area - Adjust height/max-height */}
+                <div className="w-full flex flex-col justify-center order-2 px-2 z-10 flex-shrink-0 gap-1
+                           sm:h-full sm:flex-col sm:items-center sm:justify-center sm:w-48 sm:flex-shrink-0 sm:order-none sm:gap-2">
+
+                    {/* Container for the timeline bars - Adjust height/max-height */}
                     <div
-                        className="relative w-full flex-1 flex flex-row items-center justify-center overflow-hidden px-2 mb-2 sm:mb-0 
-                                   sm:flex-col sm:px-4 sm:py-2 sm:h-[calc(100%-2rem)]"
+                        className="relative w-full flex-grow flex flex-row items-center justify-center overflow-hidden px-2 mb-2
+                                   sm:mb-0 sm:flex-col sm:px-4 sm:py-2 sm:h-auto sm:max-h-full"
                     >
                         {/* Timeline Bars Container - APPLY MASK STYLE HERE */}
                         <div
                            ref={timelineRef}
-                           className="w-auto max-w-full overflow-x-auto flex flex-row items-center space-x-4 space-y-0 justify-start py-0 h-full
+                           className="w-auto max-w-full overflow-x-auto flex flex-row items-center space-x-4 space-y-0 justify-start py-2 flex-shrink-0
                                       sm:w-full sm:overflow-y-auto sm:flex-col-reverse sm:items-center sm:space-y-1 sm:space-x-0 sm:py-4 sm:h-auto sm:max-h-full sm:max-w-none
                                       sm:justify-start sm:min-h-full
                                       [&::-webkit-scrollbar]:hidden
@@ -676,7 +676,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                     </div>
 
                     {/* Mobile Prev/Next Buttons - Only visible on mobile - Same Size Buttons */}
-                    <div className="w-full flex items-center justify-center gap-4 sm:hidden">
+                    <div className="w-full flex items-center justify-center gap-4 py-2 sm:hidden">
                         {/* Previous Button (Left Arrow) */}
                         <button
                             onClick={() => setActiveYearIndex((prev) => Math.max(0, prev - 1))}
@@ -708,9 +708,8 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                 </div>
             </motion.div>
 
-            {/* Footer Bar - Use calc() for bottom padding: 0.5rem base + safe area */}
-            <div className={`relative order-3 w-full mt-auto ${shaderEffectEnabled ? 'bg-neutral-900/80' : 'bg-neutral-900/60 backdrop-blur-sm'} border-t border-white/10 flex items-center justify-between px-4 z-20 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]
-                           sm:absolute sm:bottom-0 sm:left-0 sm:right-0 sm:mt-0 sm:h-10 sm:pt-0 sm:pb-0`}>
+            {/* Footer Bar - Remove absolute positioning, place at end of flex column */}
+            <div className={`relative w-full flex-shrink-0 ${shaderEffectEnabled ? 'bg-neutral-900/80' : 'bg-neutral-900/60 backdrop-blur-sm'} border-t border-white/10 flex items-center justify-between px-4 z-20 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]\n                           sm:h-10 sm:pt-0 sm:pb-0`}>
               {/* Left spacer - Takes up same width as shader dropdown */}
               {/* Removed outer left spacer */}
               
