@@ -20,6 +20,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+// Import sound hook and paths
+import { useSound, Sounds } from '@/hooks/useSound';
 
 // Define type for preview content source
 type PreviewSource = 'html' | 'url';
@@ -68,6 +70,12 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
 
   // Determine the currently focused year in the timeline
   const activeYear = cachedYears[activeYearIndex] ?? null;
+
+  // --- Sound Effects ---
+  const { play: playOpen } = useSound(Sounds.WINDOW_OPEN, 0.5);
+  const { play: playClose } = useSound(Sounds.WINDOW_CLOSE, 0.5);
+  const { play: playClick } = useSound(Sounds.BUTTON_CLICK, 0.4);
+  // --- End Sound Effects ---
 
   // Determine if the Go button should be disabled
   const isGoButtonDisabled = !activeYear || (storeUrl === currentUrl && storeYear === activeYear);
@@ -157,6 +165,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
   // Initialize index and preview year when opening
   useEffect(() => {
     if (isOpen) {
+      playOpen(); // Play open sound
       const initialIndex = cachedYears.findIndex(y => y === currentSelectedYear);
       const validIndex = initialIndex !== -1 ? initialIndex : 0;
       setActiveYearIndex(validIndex);
@@ -222,13 +231,19 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
     }
   }, [activeYearIndex, isOpen]);
 
+  const handleClose = useCallback(() => {
+    playClose(); // Play close sound
+    onClose();
+  }, [onClose, playClose]);
+
   // Helper function to navigate to the 'current' year
   const goToNow = useCallback(() => {
     const nowIndex = cachedYears.findIndex(year => year === 'current');
     if (nowIndex !== -1) {
+      playClick(); // Play click sound
       setActiveYearIndex(nowIndex);
     }
-  }, [cachedYears]);
+  }, [cachedYears, playClick]);
 
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     if (!isOpen) return;
@@ -250,7 +265,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
       event.preventDefault();
       onClose();
     }
-  }, [isOpen, cachedYears, activeYearIndex, onSelectYear, onClose]);
+  }, [isOpen, cachedYears, activeYearIndex, onSelectYear, handleClose]);
 
   useEffect(() => {
     if (isOpen) {
@@ -313,9 +328,9 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
           const currentYear = new Date().getFullYear();
           const isBC = previewYear.includes(' BC');
 
-          if (!isBC && yearInt >= 1995 && yearInt <= currentYear) {
-            // 2b. Year >= 1995 uses Wayback proxy URL
-            console.log(`[TimeMachine] Source: ${previewYear} >= 1995 -> URL (Wayback Proxy)`);
+          if (!isBC && yearInt >= 1996 && yearInt <= currentYear) {
+            // 2b. Year >= 1996 uses Wayback proxy URL
+            console.log(`[TimeMachine] Source: ${previewYear} >= 1996 -> URL (Wayback Proxy)`);
             const currentMonth = (new Date().getMonth() + 1).toString().padStart(2, '0');
             const proxyUrl = `/api/iframe-check?mode=proxy&url=${encodeURIComponent(currentUrl)}&year=${yearString}&month=${currentMonth}`;
             setPreviewContent(proxyUrl);
@@ -324,8 +339,8 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
             // isIframeLoaded remains false until iframe onLoad fires
 
           } else {
-            // 2c. Year < 1995 or BC uses AI cache (fetches HTML)
-            console.log(`[TimeMachine] Source: ${previewYear} < 1995 or BC -> HTML (AI Fetch)`);
+            // 2c. Year < 1996 or BC uses AI cache (fetches HTML)
+            console.log(`[TimeMachine] Source: ${previewYear} < 1996 or BC -> HTML (AI Fetch)`);
             const aiResponse = await fetch(`/api/iframe-check?mode=ai&url=${encodeURIComponent(currentUrl)}&year=${previewYear}`);
 
             if (aiResponse.ok) {
@@ -406,7 +421,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
 
             {/* Top Close Button */}
             <button
-                onClick={onClose}
+                onClick={handleClose}
                 className="absolute top-4 right-4 text-neutral-400 hover:text-white transition-colors p-2 rounded-full hover:bg-white/10 z-20"
                 aria-label="Close Time Machine"
             >
@@ -552,7 +567,10 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                      <Tooltip>
                        <TooltipTrigger asChild>
                          <button
-                           onClick={() => setActiveYearIndex((prev) => Math.min(cachedYears.length - 1, prev + 1))}
+                           onClick={() => {
+                               playClick(); // Play click sound
+                               setActiveYearIndex((prev) => Math.min(cachedYears.length - 1, prev + 1));
+                           }}
                            className="text-neutral-200 bg-neutral-700/50 hover:bg-neutral-600/70 rounded p-1.5 h-8 w-8 flex items-center justify-center disabled:opacity-30 transition-colors"
                            disabled={activeYearIndex === cachedYears.length - 1}
                            aria-label="Older Version"
@@ -586,7 +604,10 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                      <Tooltip>
                        <TooltipTrigger asChild>
                          <button
-                           onClick={() => setActiveYearIndex((prev) => Math.max(0, prev - 1))}
+                           onClick={() => {
+                               playClick(); // Play click sound
+                               setActiveYearIndex((prev) => Math.max(0, prev - 1));
+                           }}
                            className="text-neutral-200 bg-neutral-700/50 hover:bg-neutral-600/70 rounded p-1.5 h-8 w-8 flex items-center justify-center disabled:opacity-30 transition-colors"
                            disabled={activeYearIndex === 0}
                            aria-label="Newer Version"
@@ -649,7 +670,10 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                                         key={year}
                                         className="w-auto flex flex-col items-center justify-center h-full py-1 cursor-pointer group
                                                    sm:w-full sm:flex-row sm:items-center sm:justify-end sm:h-6 sm:py-0 sm:my-0.5"
-                                        onClick={() => setActiveYearIndex(index)}
+                                        onClick={() => {
+                                            playClick(); // Play click sound
+                                            setActiveYearIndex(index);
+                                        }}
                                     >
                                         {/* Year Label - Default: mobile (always visible, dimmed inactive), sm: desktop (opacity change) */}
                                         <span
@@ -679,7 +703,10 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                     <div className="w-full flex items-center justify-center gap-4 pt-2 pb-4 sm:hidden">
                         {/* Previous Button (Left Arrow) */}
                         <button
-                            onClick={() => setActiveYearIndex((prev) => Math.max(0, prev - 1))}
+                            onClick={() => {
+                                playClick(); // Play click sound
+                                setActiveYearIndex((prev) => Math.max(0, prev - 1));
+                            }}
                             className="text-white bg-neutral-700/50 hover:bg-neutral-600/70 rounded p-1.5 h-8 w-8 flex items-center justify-center disabled:opacity-30 transition-colors"
                             disabled={activeYearIndex === 0}
                             aria-label="Newer Version"
@@ -697,7 +724,10 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                         </button>
                         {/* Next Button (Right Arrow) */}
                         <button
-                            onClick={() => setActiveYearIndex((prev) => Math.min(cachedYears.length - 1, prev + 1))}
+                            onClick={() => {
+                                playClick(); // Play click sound
+                                setActiveYearIndex((prev) => Math.min(cachedYears.length - 1, prev + 1));
+                            }}
                             className="text-white bg-neutral-700/50 hover:bg-neutral-600/70 rounded p-1.5 h-8 w-8 flex items-center justify-center disabled:opacity-30 transition-colors"
                             disabled={activeYearIndex === cachedYears.length - 1}
                             aria-label="Older Version"
@@ -732,8 +762,9 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                   disabled={isGoButtonDisabled}
                   onClick={() => {
                     if (activeYear) {
+                      playClick(); // Play click sound
                       onSelectYear(activeYear);
-                      onClose();
+                      handleClose(); // Use handleClose to play sound
                     }
                   }}
                 >
@@ -771,6 +802,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                                 setShaderEffectEnabled(true);
                                 setSelectedShaderType(type as ShaderType);
                               }
+                              playClick(); // Play click sound on shader change
                             }}
                           >
                             {shaderNames[type as ShaderOption]}
