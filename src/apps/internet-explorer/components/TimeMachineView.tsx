@@ -54,6 +54,9 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
   // Get main app state for comparison
   const storeUrl = useInternetExplorerStore((state) => state.url);
   const storeYear = useInternetExplorerStore((state) => state.year);
+  // Get debug mode and shader support status
+  const debugMode = useAppStore((state) => state.debugMode);
+  const shaderEffectEnabled = useAppStore((state) => state.shaderEffectEnabled);
 
   // Determine the currently focused year in the timeline
   const activeYear = cachedYears[activeYearIndex] ?? null;
@@ -557,32 +560,34 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                 </Button>
               </div>
               
-              {/* Right shader menu */}
-              <div className="w-8 flex items-center justify-end">
-                {/* Shader selector dropdown */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      className="h-7 w-7 rounded-full hover:bg-white/10"
-                    >
-                      <MoreHorizontal size={16} className="text-neutral-300" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {Object.values(ShaderType).map((type) => (
-                      <DropdownMenuItem
-                        key={type}
-                        className={selectedShaderType === type ? "bg-accent text-accent-foreground" : ""}
-                        onClick={() => setSelectedShaderType(type)}
+              {/* Right shader menu - Conditionally render based on shader support or debug mode */}
+              { (shaderEffectEnabled || debugMode) && (
+                <div className="w-8 flex items-center justify-end">
+                  {/* Shader selector dropdown */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 rounded-full hover:bg-white/10"
                       >
-                        {shaderNames[type]}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+                        <MoreHorizontal size={16} className="text-neutral-300" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {Object.values(ShaderType).map((type) => (
+                        <DropdownMenuItem
+                          key={type}
+                          className={selectedShaderType === type ? "bg-accent text-accent-foreground" : ""}
+                          onClick={() => setSelectedShaderType(type)}
+                        >
+                          {shaderNames[type]}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              )}
             </div>
         </motion.div>
       )}
