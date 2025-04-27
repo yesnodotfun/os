@@ -374,19 +374,22 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                                                    sm:w-full sm:flex-row sm:items-center sm:justify-end sm:h-auto sm:py-0"
                                         onClick={() => setActiveYearIndex(index)}
                                     >
-                                        {/* Year Label - Default: mobile (centered above bar), sm: desktop (right of bar) */}
+                                        {/* Year Label - Default: mobile (always visible, dimmed inactive), sm: desktop (opacity change) */}
                                         <span
-                                            className={`text-xs font-medium transition-opacity duration-150 mb-1 sm:mr-2 sm:mb-0 ${
-                                                isActive
-                                                ? (isNow ? 'text-red-400 opacity-100' : 'text-white opacity-100')
-                                                : 'text-neutral-400 opacity-0 group-hover:opacity-100'
-                                            }`}
+                                            className={`text-xs font-medium transition-colors duration-150 mb-1 
+                                                        ${isActive 
+                                                          ? (isNow ? 'text-red-400' : 'text-white') 
+                                                          : 'text-neutral-500 group-hover:text-neutral-300'} 
+                                                        sm:mr-2 sm:mb-0 sm:transition-opacity 
+                                                        ${isActive 
+                                                          ? 'sm:opacity-100' 
+                                                          : 'sm:opacity-0 sm:group-hover:opacity-100 sm:text-neutral-400'}`}
                                         >
                                             {isNow ? 'Now' : year}
                                         </span>
-                                        {/* Timeline Bar */}
+                                        {/* Timeline Bar - Hidden on mobile, visible on desktop */}
                                         <div
-                                            className={`${barBaseClasses} ${barSizeClasses} ${barColorClasses}`}
+                                            className={`${barBaseClasses} ${barSizeClasses} ${barColorClasses} hidden sm:block`}
                                         />
                                     </div>
                                 );
@@ -396,9 +399,9 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                 </div>
             </div>
 
-            {/* Footer Bar - Default: mobile (relative flow), sm: desktop (absolute bottom) */}
-            <div className="relative order-3 h-10 w-full mt-auto bg-neutral-900/60 backdrop-blur-sm border-t border-white/10 flex items-center justify-center gap-4 px-4 z-20
-                           sm:absolute sm:bottom-0 sm:left-0 sm:right-0 sm:mt-0">
+            {/* Footer Bar - Added pb-[env(safe-area-inset-bottom)] for mobile safe area */}
+            <div className="relative order-3 h-10 w-full mt-auto bg-neutral-900/60 backdrop-blur-sm border-t border-white/10 flex items-center justify-center gap-4 px-4 z-20 pb-[env(safe-area-inset-bottom)]
+                           sm:absolute sm:bottom-0 sm:left-0 sm:right-0 sm:mt-0 sm:pb-0">
               <p className="text-sm text-neutral-300 truncate">
                 {/* Show URL and the *active* year from the timeline */}
                 {getHostname(currentUrl)} in {activeYear || '...'}
