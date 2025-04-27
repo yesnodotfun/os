@@ -415,7 +415,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
 
             {/* Main Content Area - Make this grow and handle overflow */}
             <motion.div
-              className="relative w-full flex-grow overflow-auto flex flex-col items-center justify-start perspective-[1000px] p-2 gap-2 pt-12
+              className="relative w-full flex-grow overflow-auto flex flex-col items-center justify-start perspective-[1000px] p-2 gap-2 pt-16
                            sm:flex-row sm:items-center sm:pt-16 sm:pb-4 sm:px-4 sm:pr-0 sm:gap-4"
               initial={{ opacity: 0, scale: 1.04}}
               animate={{ opacity: 1, scale: 1 }}
@@ -428,7 +428,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
 
                 {/* Stacked Previews Area - Let it grow within the row on desktop */}
                 <div ref={previewContainerRef} className="relative w-full flex-grow flex items-center justify-center preserve-3d order-1
-                                                        sm:order-none">
+                                                        sm:order-none sm:h-[80%]">
                     <AnimatePresence initial={false}>
                         {cachedYears.map((year, index) => {
                             const distance = index - activeYearIndex;
@@ -602,13 +602,13 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                 </div>
 
                 {/* Timeline Area - Adjust height/max-height */}
-                <div className="w-full flex flex-col justify-center order-2 px-2 z-10 flex-shrink-0 gap-1
+                <div className="w-full flex flex-col justify-center order-2 px-2 z-10 flex-shrink-0 gap-0
                            sm:h-full sm:flex-col sm:items-center sm:justify-center sm:w-48 sm:flex-shrink-0 sm:order-none sm:gap-2">
 
                     {/* Container for the timeline bars - Adjust height/max-height */}
                     <div
-                        className="relative w-full flex-grow flex flex-row items-center justify-center overflow-hidden px-2 mb-2
-                                   sm:mb-0 sm:flex-col sm:px-4 sm:py-2 sm:h-auto sm:max-h-full"
+                        className="relative w-full flex-grow flex flex-row items-center justify-center overflow-hidden px-2
+                                   sm:flex-col sm:px-4 sm:py-2 sm:h-auto sm:max-h-full"
                     >
                         {/* Timeline Bars Container - APPLY MASK STYLE HERE */}
                         <div
