@@ -553,7 +553,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                     {/* Container for the timeline bars */}
                     <div
                         className="relative w-full flex-1 flex flex-row items-center justify-center overflow-hidden px-2
-                                   sm:flex-col sm:px-2 sm:py-2 sm:h-[calc(100%-2rem)]"
+                                   sm:flex-col sm:px-4 sm:py-2 sm:h-[calc(100%-2rem)]"
                         style={{
                            maskImage: maskStyle,
                            WebkitMaskImage: maskStyle, // For Safari
