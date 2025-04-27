@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronUp, ChevronDown, Blend, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, ChevronUp, ChevronDown, Blend, ChevronLeft, ChevronRight, Dot } from 'lucide-react';
 import HtmlPreview from '@/components/shared/HtmlPreview';
 import { Button } from '@/components/ui/button';
 import { useInternetExplorerStore } from '@/stores/useInternetExplorerStore';
@@ -81,43 +81,51 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
   // Define type for shader menu options
   type ShaderOption = ShaderType | 'off';
 
-  // Simplified mask function - always shows mask at both ends
-  const getMaskStyle = (_isTop: boolean, _isBottom: boolean, canScroll: boolean) => {
-    // Only apply mask if scrolling is possible and on desktop view
-    if (!canScroll || window.innerWidth < 640) return 'none';
-    // Always show gradient mask at both ends
-    return `linear-gradient(to bottom, transparent 0%, black 5%, black 95%, transparent 100%)`;
+  // Updated mask function to handle horizontal mobile mask
+  const getMaskStyle = (canScroll: boolean) => {
+    const isMobile = window.innerWidth < 640;
+
+    if (!canScroll) return 'none'; // No mask if no scrolling is possible
+
+    if (isMobile) {
+      // Mobile: Horizontal mask (always show at both ends if scrollable)
+      return `linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%)`;
+    } else {
+      // Desktop: Vertical mask (always show at both ends if scrollable)
+      return `linear-gradient(to bottom, transparent 0%, black 5%, black 95%, transparent 100%)`;
+    }
   };
 
   const handleScroll = useCallback(() => {
     const element = timelineRef.current;
     if (!element) return;
 
-    // Check vertical scroll on desktop layout (sm+)
-    if (window.innerWidth >= 640) { // Tailwind 'sm' breakpoint
+    const isMobile = window.innerWidth < 640;
+    let canScroll = false;
+
+    if (isMobile) {
+      // Check horizontal scroll on mobile
+      const scrollWidth = element.scrollWidth;
+      const clientWidth = element.clientWidth;
+      const threshold = 1; // Minimal tolerance needed for horizontal
+      canScroll = scrollWidth > clientWidth + threshold;
+    } else {
+      // Check vertical scroll on desktop
       const scrollHeight = element.scrollHeight;
       const clientHeight = element.clientHeight;
-      const threshold = 5; // Small tolerance
-
-      // Only check if scrolling is possible, not position
-      const canScroll = scrollHeight > clientHeight + threshold;
-
-      // Update scroll state with simplified values
-      setScrollState(prevState => {
-        if (prevState.canScroll !== canScroll) {
-          return { isTop: false, isBottom: false, canScroll };
-        }
-        return prevState;
-      });
-    } else {
-      // Reset on mobile (no vertical scroll/mask)
-      setScrollState(prevState => {
-        if (prevState.canScroll !== false) {
-          return { isTop: true, isBottom: false, canScroll: false };
-        }
-        return prevState;
-      });
+      const threshold = 5;
+      canScroll = scrollHeight > clientHeight + threshold;
     }
+
+    // Update scroll state only if scrollability changed
+    setScrollState(prevState => {
+      if (prevState.canScroll !== canScroll) {
+        // Reset isTop/isBottom as they are not used in simplified mask
+        return { isTop: false, isBottom: false, canScroll }; 
+      }
+      return prevState;
+    });
+
   }, []); // Empty dependency array, relies on timelineRef.current
 
   // Effect to setup scroll listeners and initial check
@@ -186,14 +194,35 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
     if (isOpen && timelineRef.current) {
       const activeElement = timelineRef.current.children[activeYearIndex] as HTMLElement;
       if (activeElement) {
-        // Use center alignment for more natural scrolling
-        activeElement.scrollIntoView({
-          behavior: 'smooth',
-          block: 'center',
-        });
+        // Check screen width to apply correct scroll behavior
+        const isMobile = window.innerWidth < 640; // Tailwind 'sm' breakpoint
+
+        if (isMobile) {
+          // Mobile: Center horizontally
+          activeElement.scrollIntoView({
+            behavior: 'smooth',
+            block: 'nearest', // Avoid unnecessary vertical scroll if possible
+            inline: 'center', // Center horizontally
+          });
+        } else {
+          // Desktop: Center vertically
+          activeElement.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center', // Center vertically
+            inline: 'nearest', // Avoid unnecessary horizontal scroll
+          });
+        }
       }
     }
   }, [activeYearIndex, isOpen]);
+
+  // Helper function to navigate to the 'current' year
+  const goToNow = useCallback(() => {
+    const nowIndex = cachedYears.findIndex(year => year === 'current');
+    if (nowIndex !== -1) {
+      setActiveYearIndex(nowIndex);
+    }
+  }, [cachedYears]);
 
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     if (!isOpen) return;
@@ -350,7 +379,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
   const PREVIEW_SCALE_FACTOR = 0.05; // How much smaller each preview gets
   const PREVIEW_Y_SPACING = -28; // Vertical spacing between previews
 
-  const maskStyle = getMaskStyle(scrollState.isTop, scrollState.isBottom, scrollState.canScroll);
+  const maskStyle = getMaskStyle(scrollState.canScroll);
 
   return (
     <AnimatePresence>
@@ -506,21 +535,32 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                     </AnimatePresence>
                 </div>
 
-                {/* Up/Now/Down Controls Area - Only visible on desktop */}
-                <div className="hidden h-full flex-col items-center justify-center w-auto flex-shrink-0 z-10 py-8 space-y-1 sm:flex">
+                {/* Up/Now/Down Controls Area - Only visible on desktop - Same Size Buttons */}
+                <div className="hidden h-full flex-col items-center justify-center w-auto flex-shrink-0 z-10 py-8 gap-2 sm:flex"> 
+                     {/* Previous Button (Up Arrow) */}
                      <button
                         onClick={() => setActiveYearIndex((prev) => Math.min(cachedYears.length - 1, prev + 1))}
-                        className="text-neutral-200 bg-neutral-700/50 hover:bg-neutral-600/70 rounded p-1.5 mb-2 disabled:opacity-30 transition-colors"
+                        className="text-neutral-200 bg-neutral-700/50 hover:bg-neutral-600/70 rounded p-1.5 h-8 w-8 flex items-center justify-center disabled:opacity-30 transition-colors"
                         disabled={activeYearIndex === cachedYears.length - 1}
-                        aria-label="Next Version"
+                        aria-label="Older Version"
                     >
                         <ChevronUp size={18} />
                     </button>
+                    {/* Go to Now Button */}
+                    <button
+                        onClick={goToNow}
+                        className="text-neutral-200 bg-neutral-700/50 hover:bg-neutral-600/70 rounded p-1.5 h-8 w-8 flex items-center justify-center transition-colors"
+                        disabled={cachedYears[activeYearIndex] === 'current'}
+                        aria-label="Go to Now"
+                    >
+                        <Dot size={24} />
+                    </button>
+                    {/* Next Button (Down Arrow) */}
                      <button
                         onClick={() => setActiveYearIndex((prev) => Math.max(0, prev - 1))}
-                        className="text-neutral-200 bg-neutral-700/50 hover:bg-neutral-600/70 rounded p-1.5 mt-2 disabled:opacity-30 transition-colors"
+                        className="text-neutral-200 bg-neutral-700/50 hover:bg-neutral-600/70 rounded p-1.5 h-8 w-8 flex items-center justify-center disabled:opacity-30 transition-colors"
                         disabled={activeYearIndex === 0}
-                        aria-label="Previous Version"
+                        aria-label="Newer Version"
                     >
                         <ChevronDown size={18} />
                     </button>
@@ -530,36 +570,12 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                 <div className="w-full h-auto max-h-[80%] flex flex-col justify-center order-2 px-2 z-10
                            sm:h-full sm:flex-col sm:items-center sm:justify-center sm:w-48 sm:flex-shrink-0 sm:order-none">
                     
-                    {/* Mobile Prev/Next Buttons - Only visible on mobile */}
-                    <div className="w-full flex items-center justify-center mb-2 sm:hidden">
-                        <button
-                            onClick={() => setActiveYearIndex((prev) => Math.min(cachedYears.length - 1, prev + 1))}
-                            className="text-white bg-neutral-700/50 hover:bg-neutral-600/70 rounded-full p-1.5 mr-4 disabled:opacity-30 transition-colors"
-                            disabled={activeYearIndex === cachedYears.length - 1}
-                            aria-label="Previous Version"
-                        >
-                            <ChevronLeft size={18} />
-                        </button>
-                        <button
-                            onClick={() => setActiveYearIndex((prev) => Math.max(0, prev - 1))}
-                            className="text-white bg-neutral-700/50 hover:bg-neutral-600/70 rounded-full p-1.5 disabled:opacity-30 transition-colors"
-                            disabled={activeYearIndex === 0}
-                            aria-label="Next Version"
-                        >
-                            <ChevronRight size={18} />
-                        </button>
-                    </div>
-                    
-                    {/* Container for the timeline bars */}
+                    {/* Container for the timeline bars - MOVED UP */}
                     <div
-                        className="relative w-full flex-1 flex flex-row items-center justify-center overflow-hidden px-2
+                        className="relative w-full flex-1 flex flex-row items-center justify-center overflow-hidden px-2 mb-2 sm:mb-0 
                                    sm:flex-col sm:px-4 sm:py-2 sm:h-[calc(100%-2rem)]"
-                        style={{
-                           maskImage: maskStyle,
-                           WebkitMaskImage: maskStyle, // For Safari
-                        }}
                     >
-                        {/* Timeline Bars Container */}
+                        {/* Timeline Bars Container - APPLY MASK STYLE HERE */}
                         <div
                            ref={timelineRef}
                            className="w-auto max-w-full overflow-x-auto flex flex-row items-center space-x-4 space-y-0 justify-start py-0 h-full
@@ -573,6 +589,10 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                                       [&::-webkit-scrollbar-thumb]:bg-white/20
                                       [&::-webkit-scrollbar-track]:bg-transparent
                                       sm:pr-2"
+                           style={{
+                               maskImage: maskStyle,
+                               WebkitMaskImage: maskStyle, // For Safari
+                           }}
                         >
                             {cachedYears.map((year, index) => {
                                 const isActive = activeYearIndex === index;
@@ -619,6 +639,37 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                             })}
                         </div>
                     </div>
+
+                    {/* Mobile Prev/Next Buttons - Only visible on mobile - Same Size Buttons */}
+                    <div className="w-full flex items-center justify-center gap-4 sm:hidden">
+                        {/* Previous Button (Left Arrow) */}
+                        <button
+                            onClick={() => setActiveYearIndex((prev) => Math.max(0, prev - 1))}
+                            className="text-white bg-neutral-700/50 hover:bg-neutral-600/70 rounded p-1.5 h-8 w-8 flex items-center justify-center disabled:opacity-30 transition-colors"
+                            disabled={activeYearIndex === 0}
+                            aria-label="Newer Version"
+                        >
+                            <ChevronLeft size={18} />
+                        </button>
+                        {/* Go to Now Button */}
+                        <button
+                            onClick={goToNow}
+                            className="text-white bg-neutral-700/50 hover:bg-neutral-600/70 rounded p-1.5 h-8 w-8 flex items-center justify-center transition-colors"
+                            disabled={cachedYears[activeYearIndex] === 'current'}
+                            aria-label="Go to Now"
+                        >
+                           <Dot size={24} />
+                        </button>
+                        {/* Next Button (Right Arrow) */}
+                        <button
+                            onClick={() => setActiveYearIndex((prev) => Math.min(cachedYears.length - 1, prev + 1))}
+                            className="text-white bg-neutral-700/50 hover:bg-neutral-600/70 rounded p-1.5 h-8 w-8 flex items-center justify-center disabled:opacity-30 transition-colors"
+                            disabled={activeYearIndex === cachedYears.length - 1}
+                            aria-label="Older Version"
+                        >
+                            <ChevronRight size={18} />
+                        </button>
+                    </div>
                 </div>
             </motion.div>
 
@@ -626,10 +677,12 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
             <div className={`relative order-3 w-full mt-auto ${shaderEffectEnabled ? 'bg-neutral-900/80' : 'bg-neutral-900/60 backdrop-blur-sm'} border-t border-white/10 flex items-center justify-between px-4 z-20 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]
                            sm:absolute sm:bottom-0 sm:left-0 sm:right-0 sm:mt-0 sm:h-10 sm:pt-0 sm:pb-0`}>
               {/* Left spacer - Takes up same width as shader dropdown */}
-              <div className="w-8 flex-shrink-0"></div>
+              {/* Removed outer left spacer */}
               
               {/* Center URL and Travel button group */}
               <div className="flex items-center justify-center gap-3 flex-grow">
+                {/* Add spacer here to balance the right icon */}
+                <div className="w-8 flex-shrink-0"></div> 
                 <p className="text-sm text-neutral-300 truncate text-center">
                   {/* Show URL */}
                   {getHostname(currentUrl)}

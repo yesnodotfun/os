@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { useAppStore } from '@/stores/useAppStore'; // Import the store
 
@@ -18,24 +18,23 @@ const GalaxyBackground: React.FC<GalaxyBackgroundProps> = ({
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const clockRef = useRef(new THREE.Clock()); // Use Clock for time uniform
-  const [isLargeScreen, setIsLargeScreen] = useState(true); // State for screen size
   const shaderEffectEnabled = useAppStore((state) => state.shaderEffectEnabled); // Get state from store
 
-  // Combined state for rendering condition
-  const shouldRender = isLargeScreen && shaderEffectEnabled;
+  // Combined state for rendering condition - removed screen size check
+  const shouldRender = shaderEffectEnabled;
 
-  // Check initial screen width and add resize listener
-  useEffect(() => {
-    const checkScreenWidth = () => {
-      // Use a common breakpoint like 768px (Tailwind 'md') or 640px ('sm')
-      setIsLargeScreen(window.innerWidth >= 640); // Update screen size state
-    };
-
-    checkScreenWidth(); // Initial check
-    window.addEventListener('resize', checkScreenWidth);
-
-    return () => window.removeEventListener('resize', checkScreenWidth);
-  }, []);
+  // Check initial screen width and add resize listener - REMOVED
+  // useEffect(() => {
+  //   const checkScreenWidth = () => {
+  //     // Use a common breakpoint like 768px (Tailwind 'md') or 640px ('sm')
+  //     setIsLargeScreen(window.innerWidth >= 640); // Update screen size state
+  //   };
+  //
+  //   checkScreenWidth(); // Initial check
+  //   window.addEventListener('resize', checkScreenWidth);
+  //
+  //   return () => window.removeEventListener('resize', checkScreenWidth);
+  // }, []);
 
   useEffect(() => {
     if (!shouldRender || !mountRef.current) return;
@@ -67,7 +66,7 @@ const GalaxyBackground: React.FC<GalaxyBackgroundProps> = ({
 
     // --- Fragment Shader Selection ---
     let fragmentShader: string;
-    let customUniforms: { [uniform: string]: { value: any } } = {
+    const customUniforms: { [uniform: string]: { value: unknown } } = {
       resolution: { value: new THREE.Vector2(currentMount.clientWidth, currentMount.clientHeight) },
       time: { value: 0.0 },
     };
