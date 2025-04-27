@@ -603,7 +603,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
 
                 {/* Timeline Area - Adjust height/max-height */}
                 <div className="w-full flex flex-col justify-center order-2 px-2 z-10 flex-shrink-0 gap-0
-                           sm:h-full sm:flex-col sm:items-center sm:justify-center sm:w-48 sm:flex-shrink-0 sm:order-none sm:gap-2">
+                           sm:h-[80dvh] sm:flex-col sm:items-center sm:justify-center sm:w-48 sm:flex-shrink-0 sm:order-none sm:gap-2">
 
                     {/* Container for the timeline bars - Adjust height/max-height */}
                     <div
