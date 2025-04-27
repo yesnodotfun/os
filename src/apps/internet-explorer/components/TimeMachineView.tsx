@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronUp, ChevronDown, Blend } from 'lucide-react';
+import { X, ChevronUp, ChevronDown, Blend, ChevronLeft, ChevronRight } from 'lucide-react';
 import HtmlPreview from '@/components/shared/HtmlPreview';
 import { Button } from '@/components/ui/button';
 import { useInternetExplorerStore } from '@/stores/useInternetExplorerStore';
@@ -527,12 +527,33 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                 </div>
 
                 {/* Timeline Area - Added sm:order-none */}
-                <div className="w-full h-auto max-h-[80%] flex flex-row justify-center order-2 px-2 z-10
+                <div className="w-full h-auto max-h-[80%] flex flex-col justify-center order-2 px-2 z-10
                            sm:h-full sm:flex-col sm:items-center sm:justify-center sm:w-48 sm:flex-shrink-0 sm:order-none">
+                    
+                    {/* Mobile Prev/Next Buttons - Only visible on mobile */}
+                    <div className="w-full flex items-center justify-center mb-2 sm:hidden">
+                        <button
+                            onClick={() => setActiveYearIndex((prev) => Math.min(cachedYears.length - 1, prev + 1))}
+                            className="text-white bg-neutral-700/50 hover:bg-neutral-600/70 rounded-full p-1.5 mr-4 disabled:opacity-30 transition-colors"
+                            disabled={activeYearIndex === cachedYears.length - 1}
+                            aria-label="Previous Version"
+                        >
+                            <ChevronLeft size={18} />
+                        </button>
+                        <button
+                            onClick={() => setActiveYearIndex((prev) => Math.max(0, prev - 1))}
+                            className="text-white bg-neutral-700/50 hover:bg-neutral-600/70 rounded-full p-1.5 disabled:opacity-30 transition-colors"
+                            disabled={activeYearIndex === 0}
+                            aria-label="Next Version"
+                        >
+                            <ChevronRight size={18} />
+                        </button>
+                    </div>
+                    
                     {/* Container for the timeline bars */}
                     <div
                         className="relative w-full flex-1 flex flex-row items-center justify-center overflow-hidden px-2
-                                   sm:flex-col sm:px-6 sm:py-2 sm:h-[calc(100%-2rem)]"
+                                   sm:flex-col sm:px-2 sm:py-2 sm:h-[calc(100%-2rem)]"
                         style={{
                            maskImage: maskStyle,
                            WebkitMaskImage: maskStyle, // For Safari
