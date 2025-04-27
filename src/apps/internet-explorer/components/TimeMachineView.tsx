@@ -248,8 +248,8 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                 <div className="w-20 flex-shrink-0 hidden sm:block"></div>
 
                 {/* Stacked Previews Area - Removed sm:w-[calc(...)] and added sm:order-none */}
-                <div ref={previewContainerRef} className="relative w-full h-[calc(100%-6rem)] flex items-center justify-center preserve-3d flex-grow order-1
-                                                       sm:h-full sm:flex-grow sm:order-none">
+                <div ref={previewContainerRef} className="relative w-full h-full flex items-center justify-center preserve-3d flex-grow order-1
+                                                       sm:h-[calc(100%-6rem)] sm:flex-grow sm:order-none">
                     <AnimatePresence initial={false}>
                         {cachedYears.map((year, index) => {
                             const distance = index - activeYearIndex;
@@ -352,7 +352,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                     <div className="relative w-full flex-1 flex flex-row items-center justify-center overflow-hidden px-2 py-1
                                    sm:flex-col sm:px-6 sm:py-4">
                         {/* Timeline Bars Container - Default: mobile (horizontal scroll), sm: desktop (vertical scroll) */}
-                        <div ref={timelineRef} className="w-auto max-w-full overflow-x-auto scrollbar-none flex flex-row items-center space-x-4 space-y-0 justify-start py-0 h-16
+                        <div ref={timelineRef} className="w-auto max-w-full overflow-x-auto scrollbar-none flex flex-row items-center space-x-4 space-y-0 justify-start py-0 h-4
                                                        sm:w-full sm:overflow-y-auto sm:flex-col sm:items-center sm:space-y-0.5 sm:space-x-0 sm:py-2 sm:h-auto sm:max-w-none sm:justify-center">
                             {cachedYears.map((year, index) => {
                                 const isActive = activeYearIndex === index;
@@ -399,9 +399,9 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                 </div>
             </div>
 
-            {/* Footer Bar - Added pb-[env(safe-area-inset-bottom)] for mobile safe area */}
-            <div className="relative order-3 h-10 w-full mt-auto bg-neutral-900/60 backdrop-blur-sm border-t border-white/10 flex items-center justify-center gap-4 px-4 z-20 pb-[env(safe-area-inset-bottom)]
-                           sm:absolute sm:bottom-0 sm:left-0 sm:right-0 sm:mt-0 sm:pb-0">
+            {/* Footer Bar - Use calc() for bottom padding: 0.5rem base + safe area */}
+            <div className="relative order-3 w-full mt-auto bg-neutral-900/60 backdrop-blur-sm border-t border-white/10 flex items-center justify-center gap-4 px-4 z-20 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]
+                           sm:absolute sm:bottom-0 sm:left-0 sm:right-0 sm:mt-0 sm:h-10 sm:pt-0 sm:pb-0">
               <p className="text-sm text-neutral-300 truncate">
                 {/* Show URL and the *active* year from the timeline */}
                 {getHostname(currentUrl)} in {activeYear || '...'}
