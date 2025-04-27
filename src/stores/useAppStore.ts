@@ -3,6 +3,7 @@ import { persist } from "zustand/middleware";
 import { AppId } from "@/config/appRegistry";
 import { AppManagerState, AppState } from "@/apps/base/types";
 import { checkShaderPerformance } from "@/utils/performanceCheck";
+import { ShaderType } from "@/components/shared/GalaxyBackground";
 
 // Define available AI models (matching API options from chat.ts)
 export type AIModel = "gpt-4o" | "gpt-4.1" | "gpt-4.1-mini" | "claude-3.5" | "claude-3.7" | "o3-mini" | "gemini-2.5-pro-exp-03-25" | null;
@@ -41,6 +42,8 @@ interface AppStoreState extends AppManagerState {
   setDebugMode: (enabled: boolean) => void;
   shaderEffectEnabled: boolean;
   setShaderEffectEnabled: (enabled: boolean) => void;
+  selectedShaderType: ShaderType;
+  setSelectedShaderType: (shaderType: ShaderType) => void;
   aiModel: AIModel;
   setAiModel: (model: AIModel) => void;
   terminalSoundsEnabled: boolean;
@@ -62,6 +65,8 @@ export const useAppStore = create<AppStoreState>()(
       setDebugMode: (enabled) => set({ debugMode: enabled }),
       shaderEffectEnabled: initialShaderState,
       setShaderEffectEnabled: (enabled) => set({ shaderEffectEnabled: enabled }),
+      selectedShaderType: ShaderType.AURORA,
+      setSelectedShaderType: (shaderType) => set({ selectedShaderType: shaderType }),
       aiModel: null, // Default model set to null for client-side
       setAiModel: (model) => set({ aiModel: model }),
       terminalSoundsEnabled: true, // Default to true for terminal/IE sounds
@@ -176,6 +181,7 @@ export const useAppStore = create<AppStoreState>()(
         apps: state.apps,
         debugMode: state.debugMode,
         shaderEffectEnabled: state.shaderEffectEnabled,
+        selectedShaderType: state.selectedShaderType,
         aiModel: state.aiModel,
         terminalSoundsEnabled: state.terminalSoundsEnabled,
       }),

@@ -1,13 +1,22 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronUp, ChevronDown } from 'lucide-react';
+import { X, ChevronUp, ChevronDown, MoreHorizontal } from 'lucide-react';
 import HtmlPreview from '@/components/shared/HtmlPreview';
 import { Button } from '@/components/ui/button';
 import { useInternetExplorerStore } from '@/stores/useInternetExplorerStore';
 // Import ErrorResponse
 import type { ErrorResponse } from '@/stores/useInternetExplorerStore';
-// Import GalaxyBackground
-import GalaxyBackground from '@/components/shared/GalaxyBackground';
+// Import GalaxyBackground and ShaderType
+import GalaxyBackground, { ShaderType } from '@/components/shared/GalaxyBackground';
+// Import dropdown menu components
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+// Import useAppStore for shader selection
+import { useAppStore } from '@/stores/useAppStore';
 
 interface TimeMachineViewProps {
   isOpen: boolean;
@@ -51,6 +60,17 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
 
   // Determine if the Go button should be disabled
   const isGoButtonDisabled = !activeYear || (storeUrl === currentUrl && storeYear === activeYear);
+
+  // Add shader selection state from app store
+  const selectedShaderType = useAppStore((state) => state.selectedShaderType);
+  const setSelectedShaderType = useAppStore((state) => state.setSelectedShaderType);
+
+  // Map of shader types to display names
+  const shaderNames: Record<ShaderType, string> = {
+    [ShaderType.GALAXY]: 'Galaxy',
+    [ShaderType.AURORA]: 'Aurora',
+    [ShaderType.NEBULA]: 'Nebula',
+  };
 
   // --- Scroll Mask Logic ---
   const getMaskStyle = (isTop: boolean, isBottom: boolean, canScroll: boolean) => {
@@ -308,7 +328,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
           transition={{ duration: 0.3, ease: "easeInOut" }}
         >
             {/* Galaxy Background */}
-            <GalaxyBackground />
+            <GalaxyBackground shaderType={selectedShaderType} />
 
             {/* Top Close Button */}
             <button
@@ -509,26 +529,60 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
             </motion.div>
 
             {/* Footer Bar - Use calc() for bottom padding: 0.5rem base + safe area */}
-            <div className="relative order-3 w-full mt-auto bg-neutral-900/60 backdrop-blur-sm border-t border-white/10 flex items-center justify-center gap-4 px-4 z-20 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]
+            <div className="relative order-3 w-full mt-auto bg-neutral-900/60 backdrop-blur-sm border-t border-white/10 flex items-center justify-between px-4 z-20 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]
                            sm:absolute sm:bottom-0 sm:left-0 sm:right-0 sm:mt-0 sm:h-10 sm:pt-0 sm:pb-0">
-              <p className="text-sm text-neutral-300 truncate">
-                {/* Show URL and the *active* year from the timeline */}
-                {getHostname(currentUrl)}
-              </p>
-              <Button 
-                size="sm" 
-                variant="secondary"
-                className="rounded-full px-2 py-0.5 h-6"
-                disabled={isGoButtonDisabled}
-                onClick={() => {
-                  if (activeYear) {
-                    onSelectYear(activeYear);
-                    onClose();
-                  }
-                }}
-              >
-                Travel
-              </Button>
+              {/* Left spacer - Takes up same width as shader dropdown */}
+              <div className="w-8 flex-shrink-0"></div>
+              
+              {/* Center URL and Travel button group */}
+              <div className="flex items-center justify-center gap-3 flex-grow">
+                <p className="text-sm text-neutral-300 truncate text-center">
+                  {/* Show URL */}
+                  {getHostname(currentUrl)}
+                </p>
+                
+                <Button 
+                  size="sm" 
+                  variant="secondary"
+                  className="rounded-full px-2 py-0.5 h-6"
+                  disabled={isGoButtonDisabled}
+                  onClick={() => {
+                    if (activeYear) {
+                      onSelectYear(activeYear);
+                      onClose();
+                    }
+                  }}
+                >
+                  Travel
+                </Button>
+              </div>
+              
+              {/* Right shader menu */}
+              <div className="w-8 flex items-center justify-end">
+                {/* Shader selector dropdown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      className="h-7 w-7 rounded-full hover:bg-white/10"
+                    >
+                      <MoreHorizontal size={16} className="text-neutral-300" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {Object.values(ShaderType).map((type) => (
+                      <DropdownMenuItem
+                        key={type}
+                        className={selectedShaderType === type ? "bg-accent text-accent-foreground" : ""}
+                        onClick={() => setSelectedShaderType(type)}
+                      >
+                        {shaderNames[type]}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
         </motion.div>
       )}
