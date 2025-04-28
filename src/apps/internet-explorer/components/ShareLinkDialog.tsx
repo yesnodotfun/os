@@ -63,7 +63,8 @@ export function ShareLinkDialog({
       
       // Construct the URL using the current window location
       const baseUrl = window.location.origin;
-      const formattedUrl = `${baseUrl}/internet-explorer/share/${code}`;
+      // Remove /share/ from the path
+      const formattedUrl = `${baseUrl}/internet-explorer/${code}`;
 
       setShareUrl(formattedUrl);
     } catch (error) {
