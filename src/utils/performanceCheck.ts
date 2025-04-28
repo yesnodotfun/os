@@ -12,7 +12,7 @@ export function checkShaderPerformance(): boolean {
 
   // 1. Check CPU Cores
   const coreCount = navigator.hardwareConcurrency;
-  const hasEnoughCores = coreCount && coreCount >= 12;
+  const hasEnoughCores = coreCount && coreCount >= 8;
   console.log(`[PerformanceCheck] CPU Cores: ${coreCount} (Pass: ${hasEnoughCores})`);
   if (!hasEnoughCores) {
       return false; // Early exit if CPU core count is low
