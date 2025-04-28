@@ -3,9 +3,10 @@ import { BaseApp } from "./types";
 import { AppContext } from "@/contexts/AppContext";
 import { MenuBar } from "@/components/layout/MenuBar";
 import { Desktop } from "@/components/layout/Desktop";
-import { AppId, getAppComponent } from "@/config/appRegistry";
+import { AppId, getAppComponent, appRegistry } from "@/config/appRegistry";
 import { useWallpaper } from "@/hooks/useWallpaper";
 import { useAppStore } from "@/stores/useAppStore";
+import { useInternetExplorerStore } from "@/stores/useInternetExplorerStore";
 import { extractCodeFromPath, decodeSharedUrl } from "@/utils/sharedUrl";
 import { toast } from "sonner";
 
@@ -41,30 +42,24 @@ export function AppManager({ apps }: AppManagerProps) {
     return () => clearTimeout(timer);
   }, []);
 
-  // Process shared URLs
+  // Process shared URLs and direct app launch paths
   useEffect(() => {
-    const handleSharedUrl = async () => {
+    const handleUrlNavigation = async () => {
       const path = window.location.pathname;
-      const code = extractCodeFromPath(path);
-      
+      const code = extractCodeFromPath(path); // Specifically checks for /internet-explorer/:code format
+
       if (code) {
+        // Handle shared Internet Explorer URL
         toast.loading("Decoding shared link...", {
           id: "decode-shared-url",
         });
-        
+
         const sharedData = await decodeSharedUrl(code);
-        
+
         if (sharedData) {
-          
-          // Store the shared URL data for Internet Explorer
-          localStorage.setItem('ryos:shared_ie_url', sharedData.url);
-          localStorage.setItem('ryos:shared_ie_year', sharedData.year);
-          
-          // Launch Internet Explorer
           const event = new CustomEvent('launchApp', {
-            detail: { 
+            detail: {
               appId: 'internet-explorer',
-              // Pass additional data that will be processed by IE
               initialData: {
                 url: sharedData.url,
                 year: sharedData.year
@@ -72,38 +67,77 @@ export function AppManager({ apps }: AppManagerProps) {
             }
           });
           window.dispatchEvent(event);
-          
-          // Update the URL to remove the share code
-          window.history.replaceState({}, '', '/');
+          window.history.replaceState({}, '', '/'); // Clean URL
+          toast.success("Shared link loaded!", { id: "decode-shared-url" });
         } else {
           toast.error("Invalid shared link", {
             id: "decode-shared-url",
             description: "Could not decode the shared URL",
           });
+          window.history.replaceState({}, '', '/'); // Clean URL even on error
+        }
+      } else if (path.startsWith('/') && path.length > 1) {
+        // Handle direct app launch path (e.g., /soundboard)
+        const potentialAppId = path.substring(1) as AppId;
+
+        // Check if it's a valid app ID from the registry
+        if (potentialAppId in appRegistry) {
+           const appName = appRegistry[potentialAppId]?.name || potentialAppId;
+           toast.info(`Launching ${appName}...`);
+
+           // Use a slight delay to ensure the app launch event is caught
+           setTimeout(() => {
+             const event = new CustomEvent('launchApp', {
+               detail: { appId: potentialAppId }
+             });
+             window.dispatchEvent(event);
+             window.history.replaceState({}, '', '/'); // Clean URL
+           }, 100); // Small delay might help robustness
+        } else {
+          // Optional: Handle invalid app paths if necessary, or just ignore
+          // console.log(`Path ${path} does not correspond to a known app.`);
+          // Maybe redirect to root or show a 404 within the app context
+          // For now, just clean the URL if it wasn't a valid app path or IE code
+           if (!path.startsWith('/internet-explorer/')) { // Avoid cleaning IE path if code was invalid
+               window.history.replaceState({}, '', '/');
+           }
         }
       }
     };
 
-    // Process shared URLs on initial load
-    handleSharedUrl();
-  }, []);
+    // Process URL on initial load
+    handleUrlNavigation();
+  }, []); // Run only once on mount
 
-  // Listen for app launch events from Finder
+  // Listen for app launch events (e.g., from Finder, URL handling)
   useEffect(() => {
     const handleAppLaunch = (
       event: CustomEvent<{ appId: AppId; initialPath?: string; initialData?: any }>
     ) => {
       const { appId, initialPath, initialData } = event.detail;
-      if (!appStates[appId]?.isOpen) {
+      const isAppOpen = appStates[appId]?.isOpen;
+
+      console.log(`[AppManager] Launch event received for ${appId}`, event.detail);
+
+
+      // Handle IE-specific initial data
+      if (appId === 'internet-explorer' && initialData) {
+        console.log("[AppManager] Setting pending IE data:", initialData);
+        useInternetExplorerStore.getState().setPendingInitialNavigationData(initialData);
+      }
+
+      if (!isAppOpen) {
+        console.log(`[AppManager] Toggling app ${appId} to open.`);
         toggleApp(appId);
+        // Keep localStorage for path for now, as it might be used differently
         if (initialPath) {
           localStorage.setItem(`app_${appId}_initialPath`, initialPath);
         }
-        if (initialData) {
-          localStorage.setItem(`app_${appId}_initialData`, JSON.stringify(initialData));
-        }
       } else {
+        console.log(`[AppManager] Bringing app ${appId} to foreground.`);
         bringToForeground(appId);
+        // If app is already open and it's IE, the pending data is set above
+        // No extra action needed here besides bringing to front
       }
     };
 
@@ -111,7 +145,9 @@ export function AppManager({ apps }: AppManagerProps) {
     return () => {
       window.removeEventListener("launchApp", handleAppLaunch as EventListener);
     };
+  // Update dependencies to include appStates for checking if app is open
   }, [appStates, bringToForeground, toggleApp]);
+
 
   return (
     <AppContext.Provider

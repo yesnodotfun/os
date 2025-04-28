@@ -83,16 +83,16 @@ export function ShareLinkDialog({
       }
       
       setShareUrl(formattedUrl);
-      toast.success("Share link created", {
-        id: "share-link-loading",
-        description: "Now you can copy and share it with others"
-      });
+      // toast.success("Share link created", {
+      //   id: "share-link-loading",
+      //   description: "Now you can copy and share it with others"
+      // });
     } catch (error) {
       console.error("Error generating share link:", error);
-      toast.error("Failed to generate share link", {
-        id: "share-link-loading",
-        description: "Please try again later",
-      });
+      // toast.error("Failed to generate share link", {
+      //   id: "share-link-loading",
+      //   description: "Please try again later",
+      // });
     } finally {
       setIsLoading(false);
     }
@@ -118,16 +118,16 @@ export function ShareLinkDialog({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="bg-system7-window-bg border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)] max-w-sm"
+        className="bg-system7-window-bg border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)] max-w-xs"
         onKeyDown={(e: React.KeyboardEvent) => e.stopPropagation()}
       >
         <DialogHeader>Share Page</DialogHeader>
-        <div className="p-3">
-          <div className="flex flex-col items-center space-y-3">
+        <div className="p-3 w-full">
+          <div className="flex flex-col items-center space-y-3 w-full">
             {/* QR Code */}
             {isLoading ? (
               <div className="w-32 h-32 flex items-center justify-center bg-gray-100 rounded">
-                <p className="text-gray-500 text-sm">Generating...</p>
+                <p className="text-gray-500 text-[10px] font-geneva-12">Generating...</p>
               </div>
             ) : shareUrl ? (
               <div className="bg-white p-1.5 w-32 h-32 flex items-center justify-center">
@@ -140,9 +140,14 @@ export function ShareLinkDialog({
               </div>
             ) : (
               <div className="w-32 h-32 flex items-center justify-center bg-gray-100 rounded">
-                <p className="text-gray-500 text-sm">QR code will appear here</p>
+                <p className="text-gray-500 text-[10px] font-geneva-12">QR code</p>
               </div>
             )}
+            {/* Add descriptive text below QR code */}
+            {/* Always show the original URL and year */}
+            <p className="text-xs text-neutral-500 text-center mt-0 mb-4 break-words font-geneva-12 w-[80%]">
+              Share link or scan to view {url} in year {year}
+            </p>
             
             {/* URL Input */}
             <Input
@@ -154,17 +159,18 @@ export function ShareLinkDialog({
             />
           </div>
           
-          <DialogFooter className="mt-4 flex justify-end gap-1">
-            <Button 
+          <DialogFooter className="mt-2 flex justify-end gap-1">
+            {/* <Button 
               onClick={onClose} 
               variant="retro"
             >
               Cancel
-            </Button>
+            </Button> */}
             <Button 
               onClick={handleCopyToClipboard} 
               disabled={!shareUrl || isLoading}
               variant="retro"
+              className="w-full"
             >
               Copy Link
             </Button>

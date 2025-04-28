@@ -16,7 +16,7 @@ import { InputDialog } from "@/components/dialogs/InputDialog";
 import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
-import { helpItems, appMetadata } from "..";
+import { appMetadata } from "..";
 import HtmlPreview from "@/components/shared/HtmlPreview";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAiGeneration } from "../hooks/useAiGeneration";
@@ -192,6 +192,7 @@ export function InternetExplorerAppComponent({
   onClose,
   isForeground,
   skipInitialSound,
+  helpItems,
 }: AppProps) {
   const debugMode = useAppStore(state => state.debugMode);
   const terminalSoundsEnabled = useAppStore(state => state.terminalSoundsEnabled);
@@ -226,6 +227,8 @@ export function InternetExplorerAppComponent({
     isFetchingCachedYears,
     setTimeMachineViewOpen,
     fetchCachedYears,
+    pendingInitialNavigationData,
+    setPendingInitialNavigationData,
   } = useInternetExplorerStore();
 
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -234,6 +237,7 @@ export function InternetExplorerAppComponent({
   const urlInputRef = useRef<HTMLInputElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const favoritesContainerRef = useRef<HTMLDivElement>(null);
+  const pendingDataProcessedRef = useRef(false);
 
   const {
     generateFuturisticWebsite,
@@ -808,6 +812,36 @@ export function InternetExplorerAppComponent({
     };
   }, [year, handleNavigate, handleGoBack]);
 
+  // Effect to handle pending navigation data
+  useEffect(() => {
+    if (isWindowOpen && pendingInitialNavigationData && !pendingDataProcessedRef.current) {
+      pendingDataProcessedRef.current = true;
+
+      const { url: navigateUrl, year: navigateYear } = pendingInitialNavigationData;
+      const source = 'pendingData';
+
+      console.log(`[IE] Processing ${source}: ${navigateUrl} (${navigateYear})`);
+      toast.info(
+        `Opening requested page`, 
+        {
+          description: `Loading ${navigateUrl}${navigateYear && navigateYear !== 'current' ? ` from ${navigateYear}` : ''}`,
+          duration: 4000,
+        }
+      );
+
+      handleNavigate(navigateUrl, navigateYear || 'current', false);
+
+      track(IE_ANALYTICS.NAVIGATION_FROM_SHARED_URL, {
+        url: navigateUrl,
+        year: navigateYear || 'current',
+        source: source, 
+      });
+
+      initialNavigationRef.current = true;
+      setPendingInitialNavigationData(null);
+    }
+  }, [isWindowOpen, pendingInitialNavigationData, handleNavigate, setPendingInitialNavigationData]);
+
   useEffect(() => {
     if (!isWindowOpen) {
       if (stopElevatorMusic) {
@@ -929,67 +963,6 @@ export function InternetExplorerAppComponent({
 
   const handleSharePage = useCallback(() => {
     setIsShareDialogOpen(true);
-    toast.loading("Preparing share link...", {
-      id: "share-link-loading",
-      duration: 2000
-    });
-  }, []);
-
-  // Check for shared URLs on component mount
-  useEffect(() => {
-    // Only run this once when the app is opened
-    const sharedUrl = localStorage.getItem('ryos:shared_ie_url');
-    const sharedYear = localStorage.getItem('ryos:shared_ie_year');
-    
-    if (sharedUrl) {
-      // Clear the shared data to prevent it from being used again
-      localStorage.removeItem('ryos:shared_ie_url');
-      localStorage.removeItem('ryos:shared_ie_year');
-      
-      // Show toast notification for shared URL
-      toast.info(
-        "Opening shared page",
-        {
-          description: `Loading ${sharedUrl}${sharedYear && sharedYear !== 'current' ? ` from ${sharedYear}` : ''}`,
-          duration: 4000,
-        }
-      );
-      
-      // Navigate to the shared URL
-      handleNavigate(sharedUrl, sharedYear || 'current', false);
-      
-      // Track the navigation from shared URL
-      track(IE_ANALYTICS.NAVIGATION_FROM_SHARED_URL, {
-        url: sharedUrl,
-        year: sharedYear || 'current',
-      });
-    }
-  }, []);
-
-  // Also check for initialData from the AppManager
-  useEffect(() => {
-    const initialDataStr = localStorage.getItem('app_internet-explorer_initialData');
-    if (initialDataStr) {
-      try {
-        const initialData = JSON.parse(initialDataStr);
-        if (initialData && initialData.url) {
-          // Clear the initialData
-          localStorage.removeItem('app_internet-explorer_initialData');
-          
-          // Navigate to the specified URL
-          handleNavigate(initialData.url, initialData.year || 'current', false);
-          
-          // Track the navigation
-          track(IE_ANALYTICS.NAVIGATION_FROM_SHARED_URL, {
-            url: initialData.url,
-            year: initialData.year || 'current',
-          });
-        }
-      } catch (e) {
-        console.error('Error parsing initialData for Internet Explorer:', e);
-        localStorage.removeItem('app_internet-explorer_initialData');
-      }
-    }
   }, []);
 
   if (!isWindowOpen) return null;
@@ -1355,7 +1328,7 @@ export function InternetExplorerAppComponent({
         <HelpDialog
           isOpen={isHelpDialogOpen}
           onOpenChange={setHelpDialogOpen}
-          helpItems={helpItems}
+          helpItems={helpItems || []}
           appName="Internet Explorer"
         />
         <AboutDialog

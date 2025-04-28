@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronUp, ChevronDown, Blend, ChevronLeft, ChevronRight, Dot } from 'lucide-react';
+import { X, ChevronUp, ChevronDown, Blend, ChevronLeft, ChevronRight, Dot, Share } from 'lucide-react';
 import HtmlPreview from '@/components/shared/HtmlPreview';
 import { Button } from '@/components/ui/button';
 import { useInternetExplorerStore } from '@/stores/useInternetExplorerStore';
@@ -22,6 +22,8 @@ import {
 } from "@/components/ui/tooltip";
 // Import sound hook and paths
 import { useSound, Sounds } from '@/hooks/useSound';
+// Import ShareLinkDialog
+import { ShareLinkDialog } from './ShareLinkDialog';
 
 // Define type for preview content source
 type PreviewSource = 'html' | 'url';
@@ -78,6 +80,10 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
   const { play: playClose } = useSound(Sounds.WINDOW_CLOSE, 0.5);
   const { play: playClick } = useSound(Sounds.BUTTON_CLICK, 0.4);
   // --- End Sound Effects ---
+
+  // --- Add state for Share Dialog ---
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  // --- End Share Dialog State ---
 
   // Determine if the Go button should be disabled
   const isGoButtonDisabled = !activeYear || (storeUrl === currentUrl && storeYear === activeYear);
@@ -507,7 +513,17 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
     }
   };
 
+  // --- Add handler for Share button ---
+  const handleSharePage = useCallback(() => {
+    if (activeYear) {
+      setIsShareDialogOpen(true);
+      // No toast needed here, dialog handles its own flow
+    }
+  }, [activeYear]);
+  // --- End Share handler ---
+
   return (
+    <>
     <AnimatePresence>
       {isOpen && (
         <motion.div
@@ -894,14 +910,24 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
             </motion.div>
 
             {/* Footer Bar - Remove absolute positioning, place at end of flex column */}
-            <div className={`relative w-full flex-shrink-0 ${shaderEffectEnabled ? 'bg-neutral-900/80' : 'bg-neutral-900/60 backdrop-blur-sm'} border-t border-white/10 flex items-center justify-between px-4 z-20 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]\n                           sm:h-10 sm:pt-0 sm:pb-0`}>
-              {/* Left spacer - Takes up same width as shader dropdown */}
+            <div className={`relative w-full flex-shrink-0 ${shaderEffectEnabled ? 'bg-neutral-900/80' : 'bg-neutral-900/60 backdrop-blur-sm'} border-t border-white/10 flex items-center justify-between px-4 z-20 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]
+                           sm:h-10 sm:pt-0 sm:pb-0`}>
+              {/* Add Share button to the far left */}
+              <div className="w-8 flex items-center justify-start">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 rounded-full hover:bg-white/10 opacity-60 hover:opacity-100 transition-opacity"
+                  onClick={handleSharePage}
+                  aria-label="Share this page and time"
+                >
+                  <Share size={16} className="text-neutral-300" />
+                </Button>
+              </div>
               {/* Removed outer left spacer */}
               
               {/* Center URL and Travel button group */}
               <div className="flex items-center justify-center gap-3 flex-grow">
-                {/* Add spacer here to balance the right icon */}
-                <div className="w-8 flex-shrink-0"></div> 
                 <p className="text-sm text-neutral-300 truncate text-center">
                   {/* Show URL and conditionally year */}
                   {getHostname(currentUrl)}
@@ -909,7 +935,6 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                     <span className="text-neutral-400 ml-1">in {activeYear}</span>
                   )}
                 </p>
-                
                 <Button 
                   size="sm" 
                   variant="secondary"
@@ -974,6 +999,14 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
         </motion.div>
       )}
     </AnimatePresence>
+    {/* Add ShareLinkDialog outside the main motion div but within the component's fragment */}
+    <ShareLinkDialog
+      isOpen={isShareDialogOpen}
+      onClose={() => setIsShareDialogOpen(false)}
+      url={currentUrl} // Pass the main URL
+      year={activeYear || currentSelectedYear} // Pass the currently selected year
+    />
+  </>
   );
 };
 

@@ -46,10 +46,16 @@ export default async function handler(
 
       const { url, year } = result.data;
       const code = encodeData(url, year);
+
+      const isLocal = !process.env.VERCEL_URL;
+      const protocol = isLocal ? 'http' : 'https';
+      // Defaulting to Vite's common dev port 5173 for local development
+      const domain = process.env.VERCEL_URL || 'localhost:5173'; 
+      const baseUrl = `${protocol}://${domain}`;
       
       return response.status(200).json({
         code,
-        shareUrl: `${process.env.VERCEL_URL || 'https://os.ryo.lu'}/share/${code}`,
+        shareUrl: `${baseUrl}/share/${code}`,
       });
     }
     
