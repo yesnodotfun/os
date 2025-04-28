@@ -15,27 +15,39 @@ export const appMetadata = {
 export const helpItems = [
   {
     icon: "📸",
-    title: "Taking Photos",
+    title: "Taking a Photo",
     description:
-      "Click the 'Take Photo' button to capture an image from your camera.",
+      "Click the large red camera button to capture a single image.",
+  },
+  {
+    icon: "⏱️",
+    title: "Quick Snaps",
+    description:
+      "Click the timer button (left of the camera button) to start a sequence of four photos taken one second apart.",
   },
   {
     icon: "🎨",
-    title: "Effects",
+    title: "Applying Effects",
     description:
-      "Use the effect dropdown to apply different filters to your photos.",
-  },
-  {
-    icon: "⚡",
-    title: "Adjustments",
-    description:
-      "Use the brightness and contrast sliders to fine-tune your photos.",
+      "Click the 'Effects' button (right of the camera button) to open the effects panel and apply fun filters to your live camera view.",
   },
   {
     icon: "🖼️",
-    title: "Photo Gallery",
+    title: "Viewing Photos",
     description:
-      "Your captured photos appear in the gallery at the bottom of the window.",
+      "Click the photo stack button (far left) to show or hide the photo strip at the bottom, displaying all your saved photos.",
+  },
+  {
+    icon: "💾",
+    title: "Downloading Photos",
+    description:
+      "Photos are automatically saved. Click on a photo in the photo strip to download it.",
+  },
+  {
+    icon: "📷",
+    title: "Switching Cameras",
+    description:
+      "Use the 'View' menu in the menu bar to switch between available cameras if you have more than one connected.",
   },
 ];
 

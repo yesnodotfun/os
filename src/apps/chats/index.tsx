@@ -4,19 +4,39 @@ import { ChatsAppComponent } from "./components/ChatsAppComponent";
 export const helpItems = [
   {
     icon: "💬",
-    title: "Chat",
+    title: "Chat with Ryo",
     description:
-      "Type your message and press Enter or click Send to chat with Ryo",
+      "Type your message to chat with Ryo, generate code, or help with ryOS.",
+  },
+  {
+    icon: "#️⃣",
+    title: "Join Chat Rooms",
+    description:
+      "Connect with netizens in public chat rooms.",
   },
   {
     icon: "🎤",
-    title: "Voice",
-    description: "Hold Space or tap microphone button to record voice",
+    title: "Push to Talk",
+    description:
+      "Hold Space or tap the microphone button to record and send voice messages.",
   },
   {
-    icon: "🎵",
-    title: "Sounds",
-    description: "Chat synthesizer plays retro sounds while typing",
+    icon: "📝",
+    title: "Control TextEdit",
+    description:
+      "Ask Ryo to read, insert, replace, or delete lines in your open TextEdit document.",
+  },
+  {
+    icon: "🚀",
+    title: "Control Apps",
+    description:
+      "Ask Ryo to launch or close other applications like Internet Explorer or Video Player.",
+  },
+  {
+    icon: "💾",
+    title: "Save Transcript",
+    description:
+      "Save your current chat conversation with Ryo as a Markdown file.",
   },
 ];
 
