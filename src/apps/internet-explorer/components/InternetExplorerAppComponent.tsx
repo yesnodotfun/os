@@ -234,7 +234,6 @@ export function InternetExplorerAppComponent({
   const urlInputRef = useRef<HTMLInputElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const favoritesContainerRef = useRef<HTMLDivElement>(null);
-  const pendingDataProcessedRef = useRef(false);
 
   const {
     generateFuturisticWebsite,

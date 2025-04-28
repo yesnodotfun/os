@@ -6,7 +6,6 @@ import { Desktop } from "@/components/layout/Desktop";
 import { AppId, getAppComponent, appRegistry } from "@/config/appRegistry";
 import { useWallpaper } from "@/hooks/useWallpaper";
 import { useAppStore } from "@/stores/useAppStore";
-import { useInternetExplorerStore } from "@/stores/useInternetExplorerStore";
 import { extractCodeFromPath, decodeSharedUrl } from "@/utils/sharedUrl";
 import { toast } from "sonner";
 
@@ -112,19 +111,13 @@ export function AppManager({ apps }: AppManagerProps) {
   // Listen for app launch events (e.g., from Finder, URL handling)
   useEffect(() => {
     const handleAppLaunch = (
-      event: CustomEvent<{ appId: AppId; initialPath?: string; initialData?: any }>
+      event: CustomEvent<{ appId: AppId; initialPath?: string; }>
     ) => {
-      const { appId, initialPath, initialData } = event.detail;
+      const { appId, initialPath } = event.detail;
       const isAppOpen = appStates[appId]?.isOpen;
 
       console.log(`[AppManager] Launch event received for ${appId}`, event.detail);
 
-
-      // Handle IE-specific initial data
-      if (appId === 'internet-explorer' && initialData) {
-        console.log("[AppManager] Setting pending IE data:", initialData);
-        useInternetExplorerStore.getState().setPendingInitialNavigationData(initialData);
-      }
 
       if (!isAppOpen) {
         console.log(`[AppManager] Toggling app ${appId} to open.`);
