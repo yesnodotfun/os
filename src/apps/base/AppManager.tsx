@@ -6,7 +6,7 @@ import { Desktop } from "@/components/layout/Desktop";
 import { AppId, getAppComponent, appRegistry } from "@/config/appRegistry";
 import { useWallpaper } from "@/hooks/useWallpaper";
 import { useAppStore } from "@/stores/useAppStore";
-import { extractCodeFromPath, decodeSharedUrl } from "@/utils/sharedUrl";
+import { extractCodeFromPath } from "@/utils/sharedUrl";
 import { toast } from "sonner";
 
 interface AppManagerProps {
@@ -45,36 +45,32 @@ export function AppManager({ apps }: AppManagerProps) {
   useEffect(() => {
     const handleUrlNavigation = async () => {
       const path = window.location.pathname;
+      console.log("[AppManager] Checking path:", path); // Keep this log for debugging
       const code = extractCodeFromPath(path); // Specifically checks for /internet-explorer/:code format
 
       if (code) {
-        // Handle shared Internet Explorer URL
-        toast.loading("Decoding shared link...", {
-          id: "decode-shared-url",
-        });
+        // Handle shared Internet Explorer URL - Pass code directly
+        console.log("[AppManager] Detected IE share code:", code);
+        toast.info("Opening shared Internet Explorer link...");
 
-        const sharedData = await decodeSharedUrl(code);
-
-        if (sharedData) {
+        // Use setTimeout to ensure the event listener is ready
+        setTimeout(() => {
           const event = new CustomEvent('launchApp', {
             detail: {
               appId: 'internet-explorer',
-              initialData: {
-                url: sharedData.url,
-                year: sharedData.year
+              initialData: { // Pass the raw code
+                shareCode: code
               }
             }
           });
           window.dispatchEvent(event);
-          window.history.replaceState({}, '', '/'); // Clean URL
-          toast.success("Shared link loaded!", { id: "decode-shared-url" });
-        } else {
-          toast.error("Invalid shared link", {
-            id: "decode-shared-url",
-            description: "Could not decode the shared URL",
-          });
-          window.history.replaceState({}, '', '/'); // Clean URL even on error
-        }
+          console.log("[AppManager] Dispatched launchApp event for IE share code."); // Add log
+        }, 0);
+
+        window.history.replaceState({}, '', '/'); // Clean URL
+        // Remove toast messages related to server-side decoding
+        // toast.loading("Decoding shared link...", { id: "decode-shared-url" }); ... etc
+
       } else if (path.startsWith('/') && path.length > 1) {
         // Handle direct app launch path (e.g., /soundboard)
         const potentialAppId = path.substring(1) as AppId;
@@ -97,7 +93,8 @@ export function AppManager({ apps }: AppManagerProps) {
           // console.log(`Path ${path} does not correspond to a known app.`);
           // Maybe redirect to root or show a 404 within the app context
           // For now, just clean the URL if it wasn't a valid app path or IE code
-           if (!path.startsWith('/internet-explorer/')) { // Avoid cleaning IE path if code was invalid
+           // Update condition: Only clean if it's not an IE path (we handle cleaning IE path above)
+           if (!path.startsWith('/internet-explorer/')) {
                window.history.replaceState({}, '', '/');
            }
         }
@@ -111,9 +108,9 @@ export function AppManager({ apps }: AppManagerProps) {
   // Listen for app launch events (e.g., from Finder, URL handling)
   useEffect(() => {
     const handleAppLaunch = (
-      event: CustomEvent<{ appId: AppId; initialPath?: string; }>
+      event: CustomEvent<{ appId: AppId; initialPath?: string; initialData?: any; }>
     ) => {
-      const { appId, initialPath } = event.detail;
+      const { appId, initialPath, initialData } = event.detail; // Destructure initialData
       const isAppOpen = appStates[appId]?.isOpen;
 
       console.log(`[AppManager] Launch event received for ${appId}`, event.detail);
@@ -121,7 +118,8 @@ export function AppManager({ apps }: AppManagerProps) {
 
       if (!isAppOpen) {
         console.log(`[AppManager] Toggling app ${appId} to open.`);
-        toggleApp(appId);
+        // Pass initialData when toggling the app open
+        toggleApp(appId, initialData); // Pass initialData to toggleApp
         // Keep localStorage for path for now, as it might be used differently
         if (initialPath) {
           localStorage.setItem(`app_${appId}_initialPath`, initialPath);
@@ -129,8 +127,14 @@ export function AppManager({ apps }: AppManagerProps) {
       } else {
         console.log(`[AppManager] Bringing app ${appId} to foreground.`);
         bringToForeground(appId);
-        // If app is already open and it's IE, the pending data is set above
-        // No extra action needed here besides bringing to front
+        // If app is already open and it's IE with shareCode, handle it in the component
+        // We might need to send an event or update state if the app needs to react while already open
+        if (appId === 'internet-explorer' && initialData?.shareCode) {
+           // Option 1: Dispatch another event specifically for the open app
+           const updateEvent = new CustomEvent('updateApp', { detail: { appId, initialData } });
+           window.dispatchEvent(updateEvent);
+           // Option 2: Update zustand store directly if needed (less preferred for cross-component)
+        }
       }
     };
 
@@ -161,6 +165,8 @@ export function AppManager({ apps }: AppManagerProps) {
         const isForeground = appStates[appId]?.isForeground ?? false;
         const zIndex = getZIndexForApp(appId);
         const AppComponent = getAppComponent(appId);
+        // Retrieve initialData associated with this app instance from the store
+        const initialData = appStates[appId]?.initialData;
 
         return isOpen ? (
           <div
@@ -176,6 +182,7 @@ export function AppManager({ apps }: AppManagerProps) {
               className="pointer-events-auto"
               helpItems={app.helpItems}
               skipInitialSound={isInitialMount}
+              initialData={initialData} // Pass initialData to the component
             />
           </div>
         ) : null;

@@ -49,7 +49,7 @@ interface AppStoreState extends AppManagerState {
   terminalSoundsEnabled: boolean;
   setTerminalSoundsEnabled: (enabled: boolean) => void;
   bringToForeground: (appId: AppId | "") => void;
-  toggleApp: (appId: AppId) => void;
+  toggleApp: (appId: AppId, initialData?: any) => void;
   navigateToNextApp: (currentAppId: AppId) => void;
   navigateToPreviousApp: (currentAppId: AppId) => void;
 }
@@ -114,7 +114,7 @@ export const useAppStore = create<AppStoreState>()(
         });
       },
 
-      toggleApp: (appId) => {
+      toggleApp: (appId, initialData) => {
         set((state) => {
           const isCurrentlyOpen = state.apps[appId]?.isOpen;
           let newWindowOrder = [...state.windowOrder];
@@ -139,6 +139,7 @@ export const useAppStore = create<AppStoreState>()(
                 ...newApps[id],
                 isOpen: !isCurrentlyOpen,
                 isForeground: !isCurrentlyOpen,
+                initialData: !isCurrentlyOpen ? initialData : undefined,
               };
             } else {
               newApps[id] = {

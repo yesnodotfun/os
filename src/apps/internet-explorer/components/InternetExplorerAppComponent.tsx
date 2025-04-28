@@ -186,12 +186,33 @@ const getLoadingTitle = (baseTitle: string): string => {
     : `${formattedTitle} - Loading`;
 };
 
+// Helper function to decode Base64 data (client-side)
+function decodeData(code: string): { url: string; year: string } | null {
+  try {
+    // Use atob for client-side Base64 decoding
+    // Replace URL-safe characters just in case they were used, though btoa typically doesn't produce them
+    const base64 = code.replace(/-/g, '+').replace(/_/g, '/');
+    const decoded = atob(base64);
+    const data = JSON.parse(decoded);
+    // Basic validation
+    if (typeof data.url === 'string' && typeof data.year === 'string') {
+      return { url: data.url, year: data.year };
+    }
+    console.error("[IE] Decoded data structure invalid:", data);
+    return null;
+  } catch (error) {
+    console.error("[IE] Error decoding share code:", error);
+    return null;
+  }
+}
+
 export function InternetExplorerAppComponent({
   isWindowOpen,
   onClose,
   isForeground,
   skipInitialSound,
   helpItems,
+  initialData,
 }: AppProps) {
   const debugMode = useAppStore(state => state.debugMode);
   const terminalSoundsEnabled = useAppStore(state => state.terminalSoundsEnabled);
@@ -767,37 +788,21 @@ export function InternetExplorerAppComponent({
     handleNavigate("apple.com", "2002");
   }, [handleNavigate]);
 
-  // A simple decoding function that uses Base64
-  function decodeData(code: string): { url: string; year: string } | null {
-    try {
-      const decoded = atob(code); // Use atob for client-side Base64 decoding
-      const data = JSON.parse(decoded);
-      // Basic validation
-      if (typeof data.url === 'string' && typeof data.year === 'string') {
-        return { url: data.url, year: data.year };
-      }
-      return null;
-    } catch (error) {
-      console.error("[IE] Error decoding share code:", error);
-      return null;
-    }
-  }
-
   // Use a ref to prevent duplicate initial navigations
   const initialNavigationRef = useRef(false);
   useEffect(() => {
+    // Only run initial navigation logic once when the window opens
     if (!initialNavigationRef.current && isWindowOpen) {
-      console.log("[IE] Running initial navigation check");
       initialNavigationRef.current = true;
+      console.log("[IE] Running initial navigation check. Received initialData:", initialData);
 
-      // Check if the current URL is a share link
-      const pathSegments = window.location.pathname.split('/').filter(Boolean);
-      if (pathSegments[0] === 'internet-explorer' && pathSegments[1] === 'share' && pathSegments[2]) {
-        const code = pathSegments[2];
+      // Check if initialData contains a shareCode
+      if (initialData?.shareCode) {
+        const code = initialData.shareCode;
         const decodedData = decodeData(code);
 
         if (decodedData) {
-          console.log(`[IE] Decoded share link: ${decodedData.url} (${decodedData.year})`);
+          console.log(`[IE] Decoded share link from initialData: ${decodedData.url} (${decodedData.year})`);
           toast.info(
             `Opening shared page`,
             {
@@ -806,25 +811,38 @@ export function InternetExplorerAppComponent({
             }
           );
           // Navigate using decoded data, potentially overriding store defaults
-          handleNavigate(decodedData.url, decodedData.year || 'current', false);
-          // Clean the URL in the address bar without reloading the page
-          window.history.replaceState(null, '', '/');
+          // Use a timeout to ensure store hydration/component readiness if needed, although often not necessary
+          setTimeout(() => {
+             handleNavigate(decodedData.url, decodedData.year || 'current', false);
+          }, 0);
+          // Clean the URL in the address bar if it was set by AppManager
+          // AppManager should have already cleaned it, but double-check just in case
+          if (window.location.pathname.startsWith('/internet-explorer/')) {
+             window.history.replaceState(null, '', '/');
+          }
           return; // Skip default navigation
         } else {
-          console.warn("[IE] Failed to decode share link code.");
+          console.warn("[IE] Failed to decode share link code from initialData.");
           toast.error("Invalid Share Link", {
             description: "The share link provided is invalid or corrupted.",
             duration: 5000,
           });
-          // Clean the URL in the address bar without reloading the page
-          window.history.replaceState(null, '', '/');
+          // Clean the URL if it was set by AppManager
+          if (window.location.pathname.startsWith('/internet-explorer/')) {
+            window.history.replaceState(null, '', '/');
+          }
+           // Fall through to default navigation might be desired, or maybe show an error
         }
       }
 
-      // Proceed with default navigation if not a share link
-      handleNavigate(url, year, false);
+      // Proceed with default navigation if not a share link or if decoding failed
+      console.log("[IE] Proceeding with default navigation.");
+      // Use timeout here as well for consistency, ensures state is stable before nav
+      setTimeout(() => {
+         handleNavigate(url, year, false);
+      }, 0);
     }
-  }, [handleNavigate, url, year, isWindowOpen]);
+  }, [initialData, isWindowOpen, handleNavigate, url, year]); // Add dependencies
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {

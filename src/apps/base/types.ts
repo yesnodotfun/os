@@ -6,6 +6,7 @@ export interface AppProps {
   isForeground?: boolean;
   className?: string;
   skipInitialSound?: boolean;
+  initialData?: any;
   helpItems?: Array<{
     icon: string;
     title: string;
@@ -60,6 +61,7 @@ export interface AppState {
   isOpen: boolean;
   position?: { x: number; y: number };
   isForeground?: boolean;
+  initialData?: any;
 }
 
 export interface AppManagerState {
