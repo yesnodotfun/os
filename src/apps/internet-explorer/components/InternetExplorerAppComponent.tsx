@@ -796,13 +796,13 @@ export function InternetExplorerAppComponent({
       initialNavigationRef.current = true;
       console.log("[IE] Running initial navigation check. Received initialData:", initialData);
 
-      // Check if initialData contains a shareCode
+      // Check if initialData contains a shareCode (passed via props on first open)
       if (initialData?.shareCode) {
         const code = initialData.shareCode;
         const decodedData = decodeData(code);
 
         if (decodedData) {
-          console.log(`[IE] Decoded share link from initialData: ${decodedData.url} (${decodedData.year})`);
+          console.log(`[IE] Decoded share link from initialData prop: ${decodedData.url} (${decodedData.year})`);
           toast.info(
             `Opening shared page`,
             {
@@ -810,39 +810,73 @@ export function InternetExplorerAppComponent({
               duration: 4000,
             }
           );
-          // Navigate using decoded data, potentially overriding store defaults
-          // Use a timeout to ensure store hydration/component readiness if needed, although often not necessary
+          // Navigate using decoded data
           setTimeout(() => {
              handleNavigate(decodedData.url, decodedData.year || 'current', false);
           }, 0);
-          // Clean the URL in the address bar if it was set by AppManager
-          // AppManager should have already cleaned it, but double-check just in case
-          if (window.location.pathname.startsWith('/internet-explorer/')) {
-             window.history.replaceState(null, '', '/');
-          }
+          // AppManager should have already cleaned the URL
           return; // Skip default navigation
         } else {
-          console.warn("[IE] Failed to decode share link code from initialData.");
+          console.warn("[IE] Failed to decode share link code from initialData prop.");
           toast.error("Invalid Share Link", {
             description: "The share link provided is invalid or corrupted.",
             duration: 5000,
           });
-          // Clean the URL if it was set by AppManager
-          if (window.location.pathname.startsWith('/internet-explorer/')) {
-            window.history.replaceState(null, '', '/');
-          }
-           // Fall through to default navigation might be desired, or maybe show an error
+           // Fall through to default navigation
         }
       }
 
       // Proceed with default navigation if not a share link or if decoding failed
       console.log("[IE] Proceeding with default navigation.");
-      // Use timeout here as well for consistency, ensures state is stable before nav
       setTimeout(() => {
          handleNavigate(url, year, false);
       }, 0);
     }
-  }, [initialData, isWindowOpen, handleNavigate, url, year]); // Add dependencies
+  }, [initialData, isWindowOpen, handleNavigate, url, year]); // Dependencies remain
+
+  // --- Add listener for updateApp event (handles share links when app is already open) ---
+  useEffect(() => {
+    const handleUpdateApp = (event: CustomEvent<{ appId: string; initialData?: any }>) => {
+      if (event.detail.appId === 'internet-explorer' && event.detail.initialData?.shareCode) {
+        const code = event.detail.initialData.shareCode;
+        console.log("[IE] Received updateApp event with shareCode:", code);
+        const decodedData = decodeData(code);
+
+        if (decodedData) {
+          console.log(`[IE] Decoded share link from updateApp event: ${decodedData.url} (${decodedData.year})`);
+          // Bring the window to the foreground if it's not already
+          if (!isForeground) {
+            bringToForeground('internet-explorer');
+          }
+          // Show toast and navigate
+          toast.info(
+            `Opening shared page`,
+            {
+              description: `Loading ${decodedData.url}${decodedData.year && decodedData.year !== 'current' ? ` from ${decodedData.year}` : ''}`,
+              duration: 4000,
+            }
+          );
+          // Use timeout to allow potential state updates (like foreground) to settle
+          setTimeout(() => {
+            handleNavigate(decodedData.url, decodedData.year || 'current', false);
+          }, 50); // Small delay
+        } else {
+          console.warn("[IE] Failed to decode share link code from updateApp event.");
+          toast.error("Invalid Share Link", {
+            description: "The share link provided is invalid or corrupted.",
+            duration: 5000,
+          });
+        }
+      }
+    };
+
+    window.addEventListener("updateApp", handleUpdateApp as EventListener);
+    return () => {
+      window.removeEventListener("updateApp", handleUpdateApp as EventListener);
+    };
+  // Add bringToForeground and isForeground to dependencies
+  }, [handleNavigate, bringToForeground, isForeground]);
+  // --- End updateApp listener ---
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
