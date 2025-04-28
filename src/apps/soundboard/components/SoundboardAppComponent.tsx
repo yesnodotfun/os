@@ -35,6 +35,7 @@ export function SoundboardAppComponent({
   isWindowOpen,
   isForeground,
   helpItems = [],
+  skipInitialSound,
 }: AppProps) {
   const {
     boards,
@@ -317,6 +318,7 @@ export function SoundboardAppComponent({
         onClose={onClose}
         isForeground={isForeground}
         appId="soundboard"
+        skipInitialSound={skipInitialSound}
         windowConstraints={{
           minHeight: window.innerWidth >= 768 ? 475 : 625,
         }}

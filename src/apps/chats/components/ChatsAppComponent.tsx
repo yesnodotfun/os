@@ -1776,6 +1776,7 @@ export function ChatsAppComponent({
   isWindowOpen,
   onClose,
   isForeground,
+  skipInitialSound,
 }: AppProps) {
   const initialMessage = {
     id: "1",
@@ -3104,6 +3105,7 @@ export function ChatsAppComponent({
         onClose={onClose}
         isForeground={isForeground}
         appId="chats"
+        skipInitialSound={skipInitialSound}
         isShaking={isShaking}
       >
         {/* Main container - changed to flex-col on mobile, flex-row on desktop */}

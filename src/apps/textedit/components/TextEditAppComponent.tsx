@@ -49,6 +49,7 @@ export function TextEditAppComponent({
   isWindowOpen,
   onClose,
   isForeground,
+  skipInitialSound,
 }: AppProps) {
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
@@ -737,6 +738,7 @@ export function TextEditAppComponent({
         onClose={onClose}
         isForeground={isForeground}
         appId="textedit"
+        skipInitialSound={skipInitialSound}
       >
         <div className="flex flex-col h-full w-full">
           <div

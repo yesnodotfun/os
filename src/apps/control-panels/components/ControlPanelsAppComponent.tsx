@@ -147,6 +147,7 @@ export function ControlPanelsAppComponent({
   isWindowOpen,
   onClose,
   isForeground,
+  skipInitialSound,
 }: AppProps) {
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
@@ -463,6 +464,7 @@ export function ControlPanelsAppComponent({
         onClose={onClose}
         isForeground={isForeground}
         appId="control-panels"
+        skipInitialSound={skipInitialSound}
       >
         <div className="flex flex-col h-full bg-[#E3E3E3] p-4 w-full">
           <Tabs defaultValue="appearance" className="w-full h-full">

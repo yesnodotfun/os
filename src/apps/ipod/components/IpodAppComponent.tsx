@@ -19,6 +19,7 @@ export function IpodAppComponent({
   isWindowOpen,
   onClose,
   isForeground,
+  skipInitialSound,
 }: AppProps) {
   const { play: playClickSound } = useSound(Sounds.BUTTON_CLICK);
   const { play: playScrollSound } = useSound(Sounds.MENU_OPEN);
@@ -735,6 +736,7 @@ export function IpodAppComponent({
         isForeground={isForeground}
         appId="ipod"
         transparentBackground
+        skipInitialSound={skipInitialSound}
       >
         <div
           ref={containerRef}

@@ -188,6 +188,7 @@ export function InternetExplorerAppComponent({
   isWindowOpen,
   onClose,
   isForeground,
+  skipInitialSound,
 }: AppProps) {
   const debugMode = useAppStore(state => state.debugMode);
   const terminalSoundsEnabled = useAppStore(state => state.terminalSoundsEnabled);
@@ -1046,6 +1047,7 @@ export function InternetExplorerAppComponent({
         onClose={onClose}
         isForeground={isForeground}
         appId="internet-explorer"
+        skipInitialSound={skipInitialSound}
       >
         <div className="flex flex-col h-full w-full relative">
           <div className="flex flex-col gap-1 p-1 bg-gray-100 border-b border-black">

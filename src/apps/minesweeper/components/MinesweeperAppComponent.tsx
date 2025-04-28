@@ -133,6 +133,7 @@ export function MinesweeperAppComponent({
   isWindowOpen,
   onClose,
   isForeground,
+  skipInitialSound,
 }: AppProps) {
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
@@ -371,6 +372,7 @@ export function MinesweeperAppComponent({
         onClose={onClose}
         isForeground={isForeground}
         appId="minesweeper"
+        skipInitialSound={skipInitialSound}
         windowConstraints={{
           minWidth: 270,
           maxWidth: 270,

@@ -5,6 +5,7 @@ export interface AppProps {
   isWindowOpen: boolean;
   isForeground?: boolean;
   className?: string;
+  skipInitialSound?: boolean;
   helpItems?: Array<{
     icon: string;
     title: string;

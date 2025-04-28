@@ -299,6 +299,7 @@ export function VideosAppComponent({
   isWindowOpen,
   onClose,
   isForeground,
+  skipInitialSound,
 }: AppProps) {
   const { play: playVideoTape } = useSound(Sounds.VIDEO_TAPE);
   const { play: playButtonClick } = useSound(Sounds.BUTTON_CLICK);
@@ -649,6 +650,7 @@ export function VideosAppComponent({
         onClose={onClose}
         isForeground={isForeground}
         appId="videos"
+        skipInitialSound={skipInitialSound}
       >
         <div className="flex flex-col w-full h-full bg-[#1a1a1a] text-white">
           <div className="flex-1 relative">

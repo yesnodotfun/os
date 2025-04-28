@@ -21,6 +21,7 @@ interface WindowFrameProps {
   appId: keyof typeof APP_STORAGE_KEYS;
   isShaking?: boolean;
   transparentBackground?: boolean;
+  skipInitialSound?: boolean;
   windowConstraints?: {
     minWidth?: number;
     minHeight?: number;
@@ -37,6 +38,7 @@ export function WindowFrame({
   isShaking = false,
   appId,
   transparentBackground = false,
+  skipInitialSound = false,
   windowConstraints = {},
 }: WindowFrameProps) {
   const config = getWindowConfig(appId);
@@ -92,7 +94,9 @@ export function WindowFrame({
   });
 
   useEffect(() => {
-    playWindowOpen();
+    if (!skipInitialSound) {
+      playWindowOpen();
+    }
     // Remove initial mount state after animation
     const timer = setTimeout(() => setIsInitialMount(false), 200);
     return () => clearTimeout(timer);

@@ -370,6 +370,7 @@ export function TerminalAppComponent({
   onClose,
   isWindowOpen,
   isForeground = true,
+  skipInitialSound,
 }: AppProps) {
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
@@ -2945,6 +2946,7 @@ assistant
         onClose={onClose}
         isForeground={isForeground}
         transparentBackground={true}
+        skipInitialSound={skipInitialSound}
       >
         <motion.div
           className="flex flex-col h-full w-full bg-black/80 backdrop-blur-lg text-white antialiased font-monaco p-2 overflow-hidden select-text"

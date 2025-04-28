@@ -20,6 +20,7 @@ export const PaintAppComponent: React.FC<AppProps> = ({
   isWindowOpen,
   onClose,
   isForeground = false,
+  skipInitialSound,
 }) => {
   const [selectedTool, setSelectedTool] = useState<string>("pencil");
   const [selectedPattern, setSelectedPattern] = useState<string>("pattern-1");
@@ -517,6 +518,7 @@ export const PaintAppComponent: React.FC<AppProps> = ({
         onClose={onClose}
         isForeground={isForeground}
         appId="paint"
+        skipInitialSound={skipInitialSound}
       >
         <div
           className="flex flex-col h-full w-full min-h-0 p-2"

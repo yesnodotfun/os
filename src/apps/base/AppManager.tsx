@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { BaseApp } from "./types";
 import { AppContext } from "@/contexts/AppContext";
 import { MenuBar } from "@/components/layout/MenuBar";
@@ -24,12 +24,19 @@ export function AppManager({ apps }: AppManagerProps) {
     (state) => state.navigateToPreviousApp
   );
   const { currentWallpaper } = useWallpaper();
+  const [isInitialMount, setIsInitialMount] = useState(true);
 
   const getZIndexForApp = (appId: AppId) => {
     const index = windowOrder.indexOf(appId);
     if (index === -1) return BASE_Z_INDEX;
     return BASE_Z_INDEX + (index + 1) * FOREGROUND_Z_INDEX_OFFSET;
   };
+
+  // Set isInitialMount to false after a short delay
+  useEffect(() => {
+    const timer = setTimeout(() => setIsInitialMount(false), 500);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Listen for app launch events from Finder
   useEffect(() => {
@@ -86,6 +93,7 @@ export function AppManager({ apps }: AppManagerProps) {
               onClose={() => toggleApp(appId)}
               className="pointer-events-auto"
               helpItems={app.helpItems}
+              skipInitialSound={isInitialMount}
             />
           </div>
         ) : null;

@@ -19,6 +19,12 @@ export const IPOD_DEFAULT_VIDEOS = [
     artist: "Hearts2Hearts (하츠투하츠)",
   },
   {
+    id: "xsimigInsBQ",
+    url: "https://www.youtube.com/watch?v=xsimigInsBQ",
+    title: "How Sweet (BRLLNT Remix)",
+    artist: "NewJeans (뉴진스)",
+  },
+  {
     id: "PO8",
     url: "https://www.youtube.com/watch?v=HB4Rp2KKeu4",
     title: "野子",
@@ -40,12 +46,6 @@ export const IPOD_DEFAULT_VIDEOS = [
     id: "hJ9Wp3PO3c8",
     url: "https://www.youtube.com/watch?v=hJ9Wp3PO3c8",
     title: "Butterfly",
-    artist: "Hearts2Hearts (하츠투하츠)",
-  },
-  {
-    id: "kxUA2wwYiME",
-    url: "https://www.youtube.com/watch?v=kxUA2wwYiME",
-    title: "The Chase",
     artist: "Hearts2Hearts (하츠투하츠)",
   },
   {

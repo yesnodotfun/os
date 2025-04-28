@@ -14,6 +14,7 @@ export function PcAppComponent({
   isWindowOpen,
   onClose,
   isForeground,
+  skipInitialSound,
 }: AppProps) {
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
@@ -251,6 +252,7 @@ export function PcAppComponent({
         onClose={onClose}
         isForeground={isForeground}
         appId="pc"
+        skipInitialSound={skipInitialSound}
       >
         <div className="flex flex-col h-full w-full bg-[#1a1a1a]">
           <div className="flex-1 relative h-full">
