@@ -188,18 +188,18 @@ const TILE_WALLPAPERS = [
 
 // Add video wallpapers
 const VIDEO_WALLPAPERS = [
-  "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/cancun_sunset_loop-9ANCNr8P6N24yiSjr39WOjKadDT3X3.mp4",
-  "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/clouds-JvRX6JrjKjXk0nxPljwO8okrEVhRH5.mp4",
-  "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/red_clouds_loop-g6I8T9DlXNkPxUfgrJtCkrQh5slAKp.mp4",
-  "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/galway_bay-aDogTnnmx92MpkpuOwX8QjS9GjGqXG.mp4",
-  "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/glacier_national_park-zU5Sre6MixUSMcMw1mOjCJZDexLFqe.mp4",
-  "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/lily_pad-ewDMSKULDgURywNkocVRnuRJHkAjvh.mp4",
-  "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/golden_poppy_loop-3L7WvZYDFI4NBcMZOPqGctYptFZZ0u.mp4",
-  "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/red_tulips-2xvdKI4P13vFVRs35XRDScruE3RUiT.mp4",
-  "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/blue_flowers_loop-p42FtjYrf2DMZ8ZlgNR2tWZrCfDuSL.mp4",
-  "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/golden_gate_dusk-vwlMXQIHDKMOPQnqPlTPB5fGTZAtTK.mp4",
-  "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/fish_eagle-nnO0aaeeLdliCSHg3jsHiJHf7r6kdd.mp4",
-  "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/bliss_og-FRrs4u8TrHCBTgwfk9GzInMKaQBIGh.mp4",
+  "/wallpapers/videos/cancun_sunset_loop.mp4",
+  "/wallpapers/videos/clouds.mp4",
+  "/wallpapers/videos/red_clouds_loop.mp4",
+  "/wallpapers/videos/galway_bay.mp4",
+  "/wallpapers/videos/glacier_national_park.mp4",
+  "/wallpapers/videos/lily_pad.mp4",
+  "/wallpapers/videos/golden_poppy_loop.mp4",
+  "/wallpapers/videos/red_tulips.mp4",
+  "/wallpapers/videos/blue_flowers_loop.mp4",
+  "/wallpapers/videos/golden_gate_dusk.mp4",
+  "/wallpapers/videos/fish_eagle.mp4",
+  "/wallpapers/videos/bliss_og.mp4",
 ];
 
 const PHOTO_WALLPAPERS: Record<PhotoCategory, string[]> = {

@@ -568,7 +568,7 @@ export const calculateStorageSpace = () => {
 export const loadWallpaper = (): string => {
   return (
     localStorage.getItem(APP_STORAGE_KEYS["control-panels"].WALLPAPER) ||
-    "https://j7dwymn73wqwkbwj.public.blob.vercel-storage.com/videos/blue_flowers_loop-p42FtjYrf2DMZ8ZlgNR2tWZrCfDuSL.mp4"
+    "/wallpapers/videos/blue_flowers_loop.mp4"
   );
 };
 
