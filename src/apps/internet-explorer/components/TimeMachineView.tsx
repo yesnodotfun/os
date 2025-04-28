@@ -403,22 +403,22 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
     // Define a single 'exit' variant as a function accepting the custom prop
     exit: (direction: 'forward' | 'backward' | 'none') => {
       if (direction === 'forward') {
-        // scaleUp animation target: Exiting card moves forward/scales up
-        return {
-          opacity: 0,
-          z: 50, // Bring slightly forward
-          scale: 1.05, // Scale up a bit
-          y: -PREVIEW_Y_SPACING, // Subtle upward shift
-          transition: { type: 'spring', stiffness: 150, damping: 25 }
-        };
-      } else { // direction === 'backward' or 'none'
-        // pushBack animation target: Exiting card moves smoothly to the distance=1 position
+        // Forward exit: Exiting card moves smoothly back to the distance=1 position
         return {
           opacity: 0, // Fade out smoothly
           z: PREVIEW_Z_SPACING, // Target z for distance = 1
           scale: 1 - PREVIEW_SCALE_FACTOR, // Target scale for distance = 1
           y: PREVIEW_Y_SPACING, // Target y for distance = 1
           transition: { type: 'spring', stiffness: 150, damping: 25 } // Use the same spring physics
+        };
+      } else { // direction === 'backward' or 'none'
+        // Backward exit: Exiting card scales *out* (up and forward)
+        return {
+          opacity: 0,
+          z: 50, // Bring slightly forward
+          scale: 1.05, // Scale up a bit
+          y: -PREVIEW_Y_SPACING, // Subtle upward shift
+          transition: { type: 'spring', stiffness: 150, damping: 25 }
         };
       }
     }
