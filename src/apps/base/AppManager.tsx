@@ -11,6 +11,7 @@ interface AppManagerProps {
   apps: BaseApp[];
 }
 
+
 const BASE_Z_INDEX = 1;
 const FOREGROUND_Z_INDEX_OFFSET = 1;
 

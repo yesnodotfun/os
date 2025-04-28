@@ -402,8 +402,8 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
   const exitVariants = {
     // Define a single 'exit' variant as a function accepting the custom prop
     exit: (direction: 'forward' | 'backward' | 'none') => {
-      if (direction === 'forward') {
-        // Forward exit: Exiting card moves smoothly back to the distance=1 position
+      if (direction === 'backward') { // Changed from 'forward' to 'backward'
+        // Backward exit (going to future): Exiting card moves smoothly back to the distance=1 position
         return {
           opacity: 0, // Fade out smoothly
           z: PREVIEW_Z_SPACING, // Target z for distance = 1
@@ -411,8 +411,8 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
           y: PREVIEW_Y_SPACING, // Target y for distance = 1
           transition: { type: 'spring', stiffness: 150, damping: 25 }
         };
-      } else { // direction === 'backward' or 'none'
-        // Backward exit: Exiting card scales *out* (up and forward)
+      } else { // direction === 'forward' or 'none'
+        // Forward exit (going to past): Exiting card scales *out* (up and forward)
         return {
           opacity: 0,
           z: 50, // Bring slightly forward
@@ -466,11 +466,11 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
 
       // Determine direction
       if (newIndex > prevIndex) {
-        setNavigationDirection('forward'); // Moving to older year (index increases)
+        setNavigationDirection('forward'); // Moving to older year (past)
       } else if (newIndex < prevIndex) {
-        setNavigationDirection('backward'); // Moving to newer year (index decreases)
+        setNavigationDirection('backward'); // Moving to newer year (future)
       } else {
-        setNavigationDirection('none'); // No change or initial set
+        setNavigationDirection('none'); // No change
       }
       return newIndex;
     });
@@ -574,7 +574,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                                         // navigating *backward* (i.e. to a newer year), give it the
                                         // reversed scale-up entrance so it appears to push towards the
                                         // user before settling into place.
-                                        if (distance === 0 && navigationDirection === 'backward') {
+                                        if (distance === 0 && navigationDirection === 'forward') {
                                           return {
                                             z: 50,                     // bring slightly forward
                                             scale: 1.05,               // small scale-up
@@ -823,11 +823,11 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                                             playClick(); // Play click sound
                                             // Determine direction before updating index
                                             if (index > activeYearIndex) {
-                                                setNavigationDirection('forward');
+                                                setNavigationDirection('forward'); // Moving to older year (past)
                                             } else if (index < activeYearIndex) {
-                                                setNavigationDirection('backward');
+                                                setNavigationDirection('backward'); // Moving to newer year (future)
                                             } else {
-                                                setNavigationDirection('none');
+                                                setNavigationDirection('none'); // No change
                                             }
                                             setActiveYearIndex(index); // Update index directly
                                         }}
