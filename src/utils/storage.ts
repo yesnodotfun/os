@@ -953,65 +953,56 @@ const DEFAULT_GAMES: Game[] = [
   {
     id: "doom",
     name: "Doom",
-    path: "https://cdn.dos.zone/custom/dos/doom.jsdos",
-    image:
-      "https://dos.zone/images/containers/assets/backgrounds/doom_1.jpg/4f71dd317326a9a9722bdd9cd2151390.webp",
+    path: "/assets/games/jsdos/doom.jsdos",
+    image: "/assets/games/images/doom.webp",
   },
   {
     id: "simcity2000",
     name: "SimCity 2000",
-    path: "https://cdn.dos.zone/original/2X/b/b1ed3b93829bdff0c9062c5642767825dd52baf1.jsdos",
-    image:
-      "https://dos.zone/images/http/original/2X/4/41f12cbd023b7732e669b6ade8e811bb5e7c28b1.jpeg/082780351bd2601b6da9741b2ed45eed.webp",
+    path: "/assets/games/jsdos/simcity2000.jsdos",
+    image: "/assets/games/images/simcity2000.webp",
   },
   {
     id: "mario",
     name: "Mario & Luigi",
-    path: "https://cdn.dos.zone/custom/dos/mario-luigi.jsdos",
-    image:
-      "https://dos.zone/images/http/original/2X/8/8e82677e3744f3d72049b6a8042412066312198e.png/cf6f1f35180540104cdb09ae7d909ca2.webp",
+    path: "/assets/games/jsdos/mario-luigi.jsdos",
+    image: "/assets/games/images/mario.webp",
   },
   {
     id: "ageofempires",
     name: "Age of Empires",
-    path: "https://cdn.dos.zone/custom/dos/aoe-nic.jsdos",
-    image:
-      "https://dos.zone/images/containers/assets/backgrounds/aoe.jpg/8e9b9790eb7b714952713aafc169c802.webp",
+    path: "/assets/games/jsdos/aoe.jsdos",
+    image: "/assets/games/images/aoe.webp",
   },
   {
     id: "ageofempires2",
     name: "Age of Empires II",
-    path: "https://br.cdn.dos.zone/published/br.clfmbm.AgeOfEmpires2eng.jsdos",
-    image:
-      "https://dos.zone/images/containers/assets/backgrounds/clfmbm.ss_9ccf9acb373b3e26f9e42a053147845561b2c224.1920x1080.jpg/6d8639336a03258300ab31f690f569ba.webp",
+    path: "/assets/games/jsdos/aoe2.jsdos",
+    image: "/assets/games/images/aoe2.webp",
   },
   {
     id: "princeofpersia",
     name: "Prince of Persia",
-    path: "https://cdn.dos.zone/original/2X/1/1179a7c9e05b1679333ed6db08e7884f6e86c155.jsdos",
-    image:
-      "https://dos.zone/images/http/original/2X/9/9c5f757776e4e9891e063c3e935889ec857dce92.jpeg/66435bae6f294c35ad3c7de8a48f90cf.webp",
+    path: "/assets/games/jsdos/prince.jsdos",
+    image: "/assets/games/images/prince.webp",
   },
   {
     id: "aladdin",
     name: "Aladdin",
-    path: "https://cdn.dos.zone/original/2X/6/64ae157f1baa4317f626ccbc74364d9da87d5558.jsdos",
-    image:
-      "https://dos.zone/images/http/original/2X/0/0c804843419df5ca544296ed56b41967b0c6a0d9.gif/7847075ce59afcb0c973b259f6e92946.webp",
+    path: "/assets/games/jsdos/aladdin.jsdos",
+    image: "/assets/games/images/aladdin.webp",
   },
   {
     id: "oregontrail",
     name: "The Oregon Trail",
-    path: "https://cdn.dos.zone/original/2X/5/53e616496b4da1d95136e235ad90c9cc3f3f760d.jsdos",
-    image:
-      "https://dos.zone/images/http/original/2X/1/1df856616f960f116e21b33a2fa104bd86f6ee33.jpeg/4756dbf35d654c8815b708c03cc0df22.webp",
+    path: "/assets/games/jsdos/oregon-trail.jsdos",
+    image: "/assets/games/images/oregon-trail.webp",
   },
   {
     id: "commandandconquer",
     name: "Command & Conquer",
-    path: "https://cdn.dos.zone/custom/dos/cc_gdi_novid.jsdos",
-    image:
-      "https://dos.zone/images/http/original/2X/a/ae3116154ac2b9725465dc1fe59fa39507886432.png/7bf1bed5bf22f0a6ecc8c7fb43d74591.webp",
+    path: "/assets/games/jsdos/command-conquer.jsdos",
+    image: "/assets/games/images/command-conquer.webp",
   },
 ];
 
