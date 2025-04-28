@@ -409,7 +409,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
           z: PREVIEW_Z_SPACING, // Target z for distance = 1
           scale: 1 - PREVIEW_SCALE_FACTOR, // Target scale for distance = 1
           y: PREVIEW_Y_SPACING, // Target y for distance = 1
-          transition: { type: 'spring', stiffness: 150, damping: 25 } // Use the same spring physics
+          transition: { type: 'spring', stiffness: 150, damping: 25, delay: 0.2 } // Add delay before exit
         };
       } else { // direction === 'backward' or 'none'
         // Backward exit: Exiting card scales *out* (up and forward)
@@ -418,7 +418,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
           z: 50, // Bring slightly forward
           scale: 1.05, // Scale up a bit
           y: -PREVIEW_Y_SPACING, // Subtle upward shift
-          transition: { type: 'spring', stiffness: 150, damping: 25 }
+          transition: { type: 'spring', stiffness: 150, damping: 25, delay: 0.2 }
         };
       }
     }
@@ -476,6 +476,36 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
     });
   }, [cachedYears.length]); // Dependency on cachedYears.length to ensure clamping is correct
   // --- End Helper ---
+
+  // Loading bar animation variants
+  const loadingBarVariants = {
+    hidden: { 
+      height: 0,
+      opacity: 0,
+      transition: { duration: 0.3 }
+    },
+    visible: { 
+      height: "0.25rem",
+      opacity: 1,
+      transition: { duration: 0.3 }
+    },
+  };
+  
+  // Pulsing animation variants for loading content
+  const pulsingAnimationVariants = {
+    loading: {
+      opacity: [0.4, 0.7, 0.4],
+      transition: {
+        duration: 2.5,
+        ease: "easeInOut",
+        repeat: Infinity,
+      }
+    },
+    loaded: {
+      opacity: 1,
+      transition: { duration: 0.5 }
+    }
+  };
 
   return (
     <AnimatePresence>
@@ -590,9 +620,13 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                                                 className="w-full h-full"
                                               >
                                                 {previewStatus === 'loading' && (
-                                                  <div className="w-full h-full flex items-center justify-center">
+                                                  <motion.div 
+                                                    className="w-full h-full flex items-center justify-center bg-white"
+                                                    variants={pulsingAnimationVariants}
+                                                    animate="loading"
+                                                  >
                                                     <p className="text-neutral-400 shimmer">Loading...</p>
-                                                  </div>
+                                                  </motion.div>
                                                 )}
                                                 {previewStatus === 'error' && (
                                                   <div className="w-full h-full flex items-center justify-center p-4">
@@ -603,16 +637,29 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                                                   <motion.div // Outer container for content fade-in
                                                     initial={{ opacity: 0 }}
                                                     animate={{ opacity: 1 }} // This fades in the container after loading/error
-                                                    transition={{ duration: 0.3, delay: 0.1 }}
+                                                    transition={{ duration: 0.5, delay: 0.1 }}
                                                     className="w-full h-full overflow-hidden"
                                                   >
                                                     {previewSourceType === 'url' && (
                                                       <motion.div // Animate iframe opacity based on load state
                                                         initial={{ opacity: 0 }} // Start fully transparent
-                                                        animate={{ opacity: isIframeLoaded ? 1 : 0.6 }} // Animate to 0.6, then 1 on load
-                                                        transition={{ duration: 0.3 }} // Smooth transition for opacity changes
-                                                        className="w-full h-full"
+                                                        variants={pulsingAnimationVariants}
+                                                        animate={isIframeLoaded ? "loaded" : "loading"} // Use pulsing when loading, solid when loaded
+                                                        className="w-full h-full relative"
                                                       >
+                                                        <AnimatePresence>
+                                                          {!isIframeLoaded && (
+                                                            <motion.div
+                                                              className="absolute top-0 left-0 right-0 bg-white/75 backdrop-blur-sm overflow-hidden z-50"
+                                                              variants={loadingBarVariants}
+                                                              initial="hidden"
+                                                              animate="visible"
+                                                              exit="hidden"
+                                                            >
+                                                              <div className={`h-full ${previewYear === 'current' ? 'animate-progress-indeterminate' : 'animate-progress-indeterminate-reverse'}`} />
+                                                            </motion.div>
+                                                          )}
+                                                        </AnimatePresence>
                                                         <iframe
                                                           src={previewContent}
                                                           className="w-full h-full border-none bg-white"
@@ -628,8 +675,8 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                                                     {previewSourceType === 'html' && (
                                                       <motion.div // Keep consistent structure, though opacity is handled by parent
                                                         initial={{ opacity: 0 }} // Start transparent
-                                                        animate={{ opacity: 1 }} // Fade in fully
-                                                        transition={{ duration: 0.3 }} // Match iframe fade duration
+                                                        animate={{ opacity: 1 }} // Always fade in fully for HTML content
+                                                        transition={{ duration: 0.5 }} // Match iframe fade duration
                                                         className="w-full h-full"
                                                       >
                                                         <HtmlPreview
@@ -647,6 +694,19 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                                                 {(previewStatus === 'idle' || (previewStatus === 'success' && !previewContent)) && (
                                                     <div className="w-full h-full flex items-center justify-center"> {/* Placeholder/Idle */} </div>
                                                 )}
+                                                <AnimatePresence>
+                                                  {previewStatus === 'loading' && (
+                                                    <motion.div
+                                                      className="absolute top-0 left-0 right-0 bg-white/75 backdrop-blur-sm overflow-hidden z-50"
+                                                      variants={loadingBarVariants}
+                                                      initial="hidden"
+                                                      animate="visible"
+                                                      exit="hidden"
+                                                    >
+                                                      <div className={`h-full ${previewYear === 'current' ? 'animate-progress-indeterminate' : 'animate-progress-indeterminate-reverse'}`} />
+                                                    </motion.div>
+                                                  )}
+                                                </AnimatePresence>
                                               </motion.div>
                                             </AnimatePresence>
                                           </div>
