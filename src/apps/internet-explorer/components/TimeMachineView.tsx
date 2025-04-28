@@ -834,7 +834,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                                                    sm:w-full sm:flex-row sm:items-center sm:justify-end sm:h-6 sm:py-0 sm:my-0.5"
                                         onClick={() => {
                                             playClick(); // Play click sound
-                                            setActiveYearIndex(index);
+                                            changeActiveYearIndex(index);
                                         }}
                                     >
                                         {/* Year Label - Default: mobile (always visible, dimmed inactive), sm: desktop (opacity change) */}
