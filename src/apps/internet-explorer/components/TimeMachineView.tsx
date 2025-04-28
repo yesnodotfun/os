@@ -244,18 +244,43 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
     onClose();
   }, [onClose, playClose]);
 
-  // Helper function to navigate to the 'current' year
-  // REMOVED const goToNow = useCallback(...)
+  // --- Helper to set Active Index and Direction ---
+  const changeActiveYearIndex = useCallback((newIndexOrCallback: number | ((prevIndex: number) => number)) => {
+    setActiveYearIndex(prevIndex => {
+      let newIndex: number;
+      if (typeof newIndexOrCallback === 'function') {
+        newIndex = newIndexOrCallback(prevIndex);
+      } else {
+        newIndex = newIndexOrCallback;
+      }
+
+      // Clamp index to valid range
+      newIndex = Math.max(0, Math.min(cachedYears.length - 1, newIndex));
+
+      // Determine direction
+      if (newIndex > prevIndex) {
+        setNavigationDirection('forward'); // Moving to older year (past)
+      } else if (newIndex < prevIndex) {
+        setNavigationDirection('backward'); // Moving to newer year (future)
+      } else {
+        setNavigationDirection('none'); // No change
+      }
+      return newIndex;
+    });
+  }, [cachedYears.length]); // Dependency on cachedYears.length to ensure clamping is correct
+  // --- End Helper ---
 
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     if (!isOpen) return;
 
     if (event.key === 'ArrowUp') {
       event.preventDefault();
-      setActiveYearIndex((prevIndex) => Math.min(prevIndex + 1, cachedYears.length - 1));
+      // Use helper function to set direction
+      changeActiveYearIndex((prevIndex) => prevIndex + 1); 
     } else if (event.key === 'ArrowDown') {
       event.preventDefault();
-      setActiveYearIndex((prevIndex) => Math.max(prevIndex - 1, 0));
+      // Use helper function to set direction
+      changeActiveYearIndex((prevIndex) => prevIndex - 1); 
     } else if (event.key === 'Enter') {
       event.preventDefault();
       if (cachedYears[activeYearIndex]) {
@@ -267,7 +292,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
       event.preventDefault();
       onClose();
     }
-  }, [isOpen, cachedYears, activeYearIndex, onSelectYear, handleClose]);
+  }, [isOpen, cachedYears, activeYearIndex, onSelectYear, handleClose, changeActiveYearIndex]); // Add changeActiveYearIndex to dependencies
 
   useEffect(() => {
     if (isOpen) {
@@ -456,32 +481,6 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
   const endIndexExclusive = Math.min(cachedYears.length, activeYearIndex + MAX_VISIBLE_PREVIEWS + 1); 
   const visibleYears = cachedYears.slice(startIndex, endIndexExclusive);
   // --- End Slice Calculation ---
-
-  // --- Helper to set Active Index and Direction ---
-  const changeActiveYearIndex = useCallback((newIndexOrCallback: number | ((prevIndex: number) => number)) => {
-    setActiveYearIndex(prevIndex => {
-      let newIndex: number;
-      if (typeof newIndexOrCallback === 'function') {
-        newIndex = newIndexOrCallback(prevIndex);
-      } else {
-        newIndex = newIndexOrCallback;
-      }
-
-      // Clamp index to valid range
-      newIndex = Math.max(0, Math.min(cachedYears.length - 1, newIndex));
-
-      // Determine direction
-      if (newIndex > prevIndex) {
-        setNavigationDirection('forward'); // Moving to older year (past)
-      } else if (newIndex < prevIndex) {
-        setNavigationDirection('backward'); // Moving to newer year (future)
-      } else {
-        setNavigationDirection('none'); // No change
-      }
-      return newIndex;
-    });
-  }, [cachedYears.length]); // Dependency on cachedYears.length to ensure clamping is correct
-  // --- End Helper ---
 
   // Loading bar animation variants
   const loadingBarVariants = {
