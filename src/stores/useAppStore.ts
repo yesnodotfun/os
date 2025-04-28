@@ -117,12 +117,21 @@ export const useAppStore = create<AppStoreState>()(
       toggleApp: (appId) => {
         set((state) => {
           const isCurrentlyOpen = state.apps[appId]?.isOpen;
+          let newWindowOrder = [...state.windowOrder];
 
-          const newWindowOrder = isCurrentlyOpen
-            ? state.windowOrder.filter((id) => id !== appId)
-            : [...state.windowOrder, appId];
+          if (isCurrentlyOpen) {
+            // Remove the app from window order
+            newWindowOrder = newWindowOrder.filter((id) => id !== appId);
+          } else {
+            // Add the app to window order
+            newWindowOrder = [...newWindowOrder, appId];
+          }
 
           const newApps: { [appId: string]: AppState } = { ...state.apps };
+
+          // If closing the app and there are other open apps, bring the most recent one to foreground
+          const shouldBringPreviousToForeground = isCurrentlyOpen && newWindowOrder.length > 0;
+          const previousAppId = shouldBringPreviousToForeground ? newWindowOrder[newWindowOrder.length - 1] : null;
 
           Object.keys(newApps).forEach((id) => {
             if (id === appId) {
@@ -132,7 +141,10 @@ export const useAppStore = create<AppStoreState>()(
                 isForeground: !isCurrentlyOpen,
               };
             } else {
-              newApps[id] = { ...newApps[id], isForeground: false };
+              newApps[id] = {
+                ...newApps[id],
+                isForeground: shouldBringPreviousToForeground && id === previousAppId,
+              };
             }
           });
 
