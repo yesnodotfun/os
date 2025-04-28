@@ -13,15 +13,81 @@ export interface Track {
 // Original video collection moved here
 export const IPOD_DEFAULT_VIDEOS = [
   {
-    id: "In7e1knX7rQ",
-    url: "https://www.youtube.com/watch?v=In7e1knX7rQ",
-    title: "ETA/MTLA (feat. E SENS 이센스)",
-    artist: "NJZ",
+    id: "1FNI1i7H1Kc",
+    url: "https://www.youtube.com/watch?v=1FNI1i7H1Kc",
+    title: "The Chase (R&B Remix)",
+    artist: "Hearts2Hearts (하츠투하츠)",
   },
   {
-    id: "WpqXjRrZqa0",
-    url: "https://www.youtube.com/watch?v=WpqXjRrZqa0",
-    title: "Cool with You (2025)",
+    id: "PO8",
+    url: "https://www.youtube.com/watch?v=HB4Rp2KKeu4",
+    title: "野子",
+    artist: "PO8",
+  },
+  {
+    id: "z-xfGoabprU",
+    url: "https://www.youtube.com/watch?v=z-xfGoabprU",
+    title: "BEBE",
+    artist: "STAYC (스테이씨)",
+  },
+  {
+    id: "aFrQIJ5cbRc",
+    url: "https://www.youtube.com/watch?v=aFrQIJ5cbRc",
+    title: "Know About Me",
+    artist: "NMIXX",
+  },
+  {
+    id: "hJ9Wp3PO3c8",
+    url: "https://www.youtube.com/watch?v=hJ9Wp3PO3c8",
+    title: "Butterfly",
+    artist: "Hearts2Hearts (하츠투하츠)",
+  },
+  {
+    id: "kxUA2wwYiME",
+    url: "https://www.youtube.com/watch?v=kxUA2wwYiME",
+    title: "The Chase",
+    artist: "Hearts2Hearts (하츠투하츠)",
+  },
+  {
+    id: "PICpEtPHyZI",
+    url: "https://www.youtube.com/watch?v=PICpEtPHyZI",
+    title: "Damn Right",
+    artist: "JENNIE, Childish Gambino, Kali Uchis",
+  },
+  {
+    id: "osNYssIep5w",
+    url: "https://www.youtube.com/watch?v=osNYssIep5w",
+    title: "Mantra (House Remix)",
+    artist: "JENNIE",
+  },
+  {
+    id: "DskqpUrvlmw",
+    url: "https://www.youtube.com/watch?v=DskqpUrvlmw",
+    title: "GPT",
+    artist: "STAYC (스테이씨)",
+  },
+  {
+    id: "Rk6aQvlmsWo",
+    url: "https://www.youtube.com/watch?v=Rk6aQvlmsWo",
+    title: "Dandelion",
+    artist: "grentperez & Ruel",
+  },
+  {
+    id: "FonjL7DQAUQ",
+    url: "https://www.youtube.com/watch?v=FonjL7DQAUQ",
+    title: "海浪 (Waves)",
+    artist: "deca joins",
+  },
+  {
+    id: "ZncbtRo7RXs",
+    url: "https://www.youtube.com/watch?v=ZncbtRo7RXs",
+    title: "Supernatural (Part.1)",
+    artist: "NewJeans (뉴진스)",
+  },
+  {
+    id: "hgNJ_qy6LCw",
+    url: "https://www.youtube.com/watch?v=hgNJ_qy6LCw",
+    title: "ASAP",
     artist: "NJZ",
   },
   {
@@ -31,82 +97,16 @@ export const IPOD_DEFAULT_VIDEOS = [
     artist: "NJZ",
   },
   {
-    id: "hgNJ_qy6LCw",
-    url: "https://www.youtube.com/watch?v=hgNJ_qy6LCw",
-    title: "ASAP",
+    id: "WpqXjRrZqa0",
+    url: "https://www.youtube.com/watch?v=WpqXjRrZqa0",
+    title: "Cool with You (2025)",
     artist: "NJZ",
   },
   {
-    id: "ZncbtRo7RXs",
-    url: "https://www.youtube.com/watch?v=ZncbtRo7RXs",
-    title: "Supernatural (Part.1)",
-    artist: "NewJeans (뉴진스)",
-  },
-  {
-    id: "FonjL7DQAUQ",
-    url: "https://www.youtube.com/watch?v=FonjL7DQAUQ",
-    title: "海浪 (Waves)",
-    artist: "deca joins",
-  },
-  {
-    id: "Rk6aQvlmsWo",
-    url: "https://www.youtube.com/watch?v=Rk6aQvlmsWo",
-    title: "Dandelion",
-    artist: "grentperez & Ruel",
-  },
-  {
-    id: "DskqpUrvlmw",
-    url: "https://www.youtube.com/watch?v=DskqpUrvlmw",
-    title: "GPT",
-    artist: "STAYC (스테이씨)",
-  },
-  {
-    id: "osNYssIep5w",
-    url: "https://www.youtube.com/watch?v=osNYssIep5w",
-    title: "Mantra (House Remix)",
-    artist: "JENNIE",
-  },
-  {
-    id: "PICpEtPHyZI",
-    url: "https://www.youtube.com/watch?v=PICpEtPHyZI",
-    title: "Damn Right",
-    artist: "JENNIE, Childish Gambino, Kali Uchis",
-  },
-  {
-    id: "kxUA2wwYiME",
-    url: "https://www.youtube.com/watch?v=kxUA2wwYiME",
-    title: "The Chase",
-    artist: "Hearts2Hearts (하츠투하츠)",
-  },
-  {
-    id: "1FNI1i7H1Kc",
-    url: "https://www.youtube.com/watch?v=1FNI1i7H1Kc",
-    title: "The Chase (R&B Remix)",
-    artist: "Hearts2Hearts (하츠투하츠)",
-  },
-  {
-    id: "hJ9Wp3PO3c8",
-    url: "https://www.youtube.com/watch?v=hJ9Wp3PO3c8",
-    title: "Butterfly",
-    artist: "Hearts2Hearts (하츠투하츠)",
-  },
-  {
-    id: "aFrQIJ5cbRc",
-    url: "https://www.youtube.com/watch?v=aFrQIJ5cbRc",
-    title: "Know About Me",
-    artist: "NMIXX",
-  },
-  {
-    id: "z-xfGoabprU",
-    url: "https://www.youtube.com/watch?v=z-xfGoabprU",
-    title: "BEBE",
-    artist: "STAYC (스테이씨)",
-  },
-  {
-    id: "HB4Rp2KKeu4",
-    url: "https://www.youtube.com/watch?v=HB4Rp2KKeu4",
-    title: "野子",
-    artist: "PO8",
+    id: "In7e1knX7rQ",
+    url: "https://www.youtube.com/watch?v=In7e1knX7rQ",
+    title: "ETA/MTLA (feat. E SENS 이센스)",
+    artist: "NJZ",
   },
 ];
 
@@ -150,7 +150,7 @@ interface IpodStoreState {
   previousTrack: () => void;
 }
 
-const CURRENT_IPOD_STORE_VERSION = 1; // Define the current version
+const CURRENT_IPOD_STORE_VERSION = 2; // Define the current version
 
 export const useIpodStore = create<IpodStoreState>()(
   persist(
