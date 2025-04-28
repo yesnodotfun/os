@@ -356,51 +356,8 @@ const getInitialState = () => ({
 export const useInternetExplorerStore = create<InternetExplorerStore>()(
   persist(
     (set, get) => ({
-      // Use the initial state function
       ...getInitialState(),
-      /*
-      // Initial state (commented out as it's now handled by getInitialState)
-      url: DEFAULT_URL,
-      year: DEFAULT_YEAR,
-      mode: classifyYear(DEFAULT_YEAR),
-      status: 'idle',
-      finalUrl: null,
-      aiGeneratedHtml: null,
-      error: null,
-      token: 0,
-      prefetchedTitle: null, // New initial state
-      errorDetails: null, // New initial state
-
-      favorites: DEFAULT_FAVORITES,
-      history: [],
-      historyIndex: -1,
-
-      // Initialize language and location
-      language: "auto" as LanguageOption,
-      location: "auto" as LocationOption,
-
-      isTitleDialogOpen: false,
-      newFavoriteTitle: "",
-      isHelpDialogOpen: false,
-      isAboutDialogOpen: false,
-      isNavigatingHistory: false,
-      isClearFavoritesDialogOpen: false,
-      isClearHistoryDialogOpen: false,
-      isResetFavoritesDialogOpen: false, // New initial state
-      isFutureSettingsDialogOpen: false, // New initial state
-
-      aiCache: {},
-
-      timelineSettings: {},
-
-      currentPageTitle: null,
-
-      // Time Machine Feature Initial State
-      isTimeMachineViewOpen: false,
-      cachedYears: [],
-      isFetchingCachedYears: false,
-      */
-      // Actions
+      
       setUrl: (url) => set({ url }),
       
       setYear: (year) => set({ year }),
@@ -415,8 +372,8 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
         error: null,
         token,
         currentPageTitle: null,
-        errorDetails: null, // Reset error details on new navigation
-        prefetchedTitle: null, // Reset prefetched title
+        errorDetails: null,
+        prefetchedTitle: null,
       }),
       
       setFinalUrl: (finalUrl) => set({ finalUrl }),
@@ -424,16 +381,14 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
       loadSuccess: ({ title, finalUrl, aiGeneratedHtml, targetUrl, targetYear, favicon, addToHistory = true }) => set(state => {
         const newState: Partial<InternetExplorerStore> = {
           status: 'success',
-          error: null, // Clear simple error
-          errorDetails: null, // Clear detailed error
-          // Use prefetched title if title payload is undefined, otherwise use payload title
+          error: null,
+          errorDetails: null,
           currentPageTitle: title !== undefined ? title : state.prefetchedTitle,
           finalUrl: finalUrl ?? state.finalUrl,
           aiGeneratedHtml: aiGeneratedHtml ?? state.aiGeneratedHtml,
-          prefetchedTitle: null, // Clear prefetched title after use
+          prefetchedTitle: null,
         };
 
-        // History management
         if (addToHistory && targetUrl) {
           const historyTitle = newState.currentPageTitle || getHostname(targetUrl);
           const newEntry: HistoryEntry = { 
@@ -445,72 +400,62 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
           };
           
           if (state.isNavigatingHistory) {
-            // If navigating through history (back/forward), just update title if needed
             const lastEntry = state.history[state.historyIndex];
             if (lastEntry && lastEntry.title !== newEntry.title) {
-              // Update title of the current entry if it changed
               const updatedHistory = [...state.history];
               updatedHistory[state.historyIndex] = { ...lastEntry, title: newEntry.title };
               newState.history = updatedHistory;
-              newState.historyIndex = state.historyIndex; // Keep index same
+              newState.historyIndex = state.historyIndex;
             }
           } else {
-            // Check if this is an exact duplicate of the most recent history entry
             const mostRecentEntry = state.history[0];
             const isExactDuplicate = mostRecentEntry && 
                                     mostRecentEntry.url === newEntry.url && 
                                     mostRecentEntry.year === newEntry.year;
             
             if (isExactDuplicate) {
-              // If it's an exact duplicate, just update the title if needed
               if (mostRecentEntry.title !== newEntry.title) {
                 const updatedHistory = [...state.history];
                 updatedHistory[0] = { ...mostRecentEntry, title: newEntry.title };
                 newState.history = updatedHistory;
               }
-              newState.historyIndex = 0; // Maintain current index
+              newState.historyIndex = 0;
             } else {
-              // Always add a new entry at the beginning of history
-              newState.history = [newEntry, ...state.history].slice(0, 100); // Limit history size
+              newState.history = [newEntry, ...state.history].slice(0, 100);
               newState.historyIndex = 0;
             }
           }
         } else if (!addToHistory) {
-          // If explicitly not adding to history (like during back/forward), just keep index
           newState.historyIndex = state.historyIndex;
         }
 
-        // Call updateBrowserState logic
         get().updateBrowserState();
 
         return newState;
       }),
       
-      // Keep simple error for now, but set detailed error if provided
       loadError: (error, errorDetails) => set({
         status: 'error',
         error,
-        errorDetails: errorDetails ?? null // Set detailed error if available
+        errorDetails: errorDetails ?? null
       }),
       
-      // New action to handle specific errors and set detailed info
       handleNavigationError: (errorData, targetUrlOnError) => set(() => {
         const newErrorDetails: ErrorResponse = {
           ...errorData,
-          targetUrl: targetUrlOnError, // Ensure target URL is set
-          hostname: getHostname(targetUrlOnError) // Ensure hostname is set
+          targetUrl: targetUrlOnError,
+          hostname: getHostname(targetUrlOnError)
         };
         return {
           status: 'error',
-          error: newErrorDetails.message.split('.')[0] || 'Navigation Error', // Set simple error from message
-          errorDetails: newErrorDetails, // Set detailed error object
-          aiGeneratedHtml: null, // Clear any partial AI HTML
+          error: newErrorDetails.message.split('.')[0] || 'Navigation Error',
+          errorDetails: newErrorDetails,
+          aiGeneratedHtml: null,
         };
       }),
       
-      cancel: () => set({ status: 'idle', errorDetails: null }), // Clear error details on cancel
+      cancel: () => set({ status: 'idle', errorDetails: null }),
       
-      // Favorites actions
       addFavorite: (favorite) => set(state => ({
         favorites: [...state.favorites, favorite],
       })),
@@ -521,12 +466,10 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
       
       clearFavorites: () => set({ favorites: [] }),
       
-      // History actions
       setHistoryIndex: (index) => set({ historyIndex: index }),
       
       clearHistory: () => set({ history: [], historyIndex: -1 }),
       
-      // Dialog actions
       setTitleDialogOpen: (isOpen) => set({ isTitleDialogOpen: isOpen }),
       setNewFavoriteTitle: (title) => set({ newFavoriteTitle: title }),
       setHelpDialogOpen: (isOpen) => set({ isHelpDialogOpen: isOpen }),
@@ -534,22 +477,18 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
       setNavigatingHistory: (isNavigating) => set({ isNavigatingHistory: isNavigating }),
       setClearFavoritesDialogOpen: (isOpen) => set({ isClearFavoritesDialogOpen: isOpen }),
       setClearHistoryDialogOpen: (isOpen) => set({ isClearHistoryDialogOpen: isOpen }),
-      setResetFavoritesDialogOpen: (isOpen) => set({ isResetFavoritesDialogOpen: isOpen }), // New
-      setFutureSettingsDialogOpen: (isOpen) => set({ isFutureSettingsDialogOpen: isOpen }), // New
+      setResetFavoritesDialogOpen: (isOpen) => set({ isResetFavoritesDialogOpen: isOpen }),
+      setFutureSettingsDialogOpen: (isOpen) => set({ isFutureSettingsDialogOpen: isOpen }),
       
-      // Cache actions
       getAiCacheKey: (url, year) => {
         const normalizedUrl = url.startsWith("http") ? url : `https://${url}`;
         try {
-          // More robust normalization: handle ports, remove trailing slash, lowercase hostname
           const parsed = new URL(normalizedUrl);
-          parsed.pathname = parsed.pathname.replace(/\/$/, ''); // Remove trailing slash
+          parsed.pathname = parsed.pathname.replace(/\/$/, '');
           parsed.hostname = parsed.hostname.toLowerCase();
-          // Keep common ports (80, 443) implicit, include others
           const portString = (parsed.port && parsed.port !== '80' && parsed.port !== '443') ? `:${parsed.port}` : '';
           return `${parsed.protocol}//${parsed.hostname}${portString}${parsed.pathname}${parsed.hash}|${year}`;
         } catch {
-          // Fallback for invalid URLs
           return `${normalizedUrl}|${year}`;
         }
       },
@@ -557,12 +496,10 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
       cacheAiPage: (url, year, html, title) => set(state => {
         const key = get().getAiCacheKey(url, year);
         const newCacheEntry = { html, title, updatedAt: Date.now() };
-        const currentCache = { ...state.aiCache }; // Create a mutable copy
+        const currentCache = { ...state.aiCache };
 
-        // Check if cache size exceeds the limit
         if (Object.keys(currentCache).length >= MAX_AI_CACHE_ENTRIES) {
           console.log(`[IE Store] AI Cache limit (${MAX_AI_CACHE_ENTRIES}) reached. Evicting oldest entry.`);
-          // Find the oldest entry (least recently used)
           let oldestKey: string | null = null;
           let oldestTimestamp = Infinity;
 
@@ -573,53 +510,36 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
             }
           }
 
-          // Remove the oldest entry if found
           if (oldestKey) {
             console.log(`[IE Store] Evicting cache key: ${oldestKey}`);
             delete currentCache[oldestKey];
           }
         }
 
-        // Add the new entry
         currentCache[key] = newCacheEntry;
 
         return {
-          aiCache: currentCache // Update state with the potentially pruned cache
+          aiCache: currentCache
         };
       }),
       
       getCachedAiPage: (url, year) => {
         const key = get().getAiCacheKey(url, year);
-        // Optionally update the timestamp when an item is accessed (true LRU)
-        // If needed, this would require modifying state here:
-        // const entry = get().aiCache[key];
-        // if (entry) { 
-        //   set(state => ({ aiCache: { ...state.aiCache, [key]: { ...entry, updatedAt: Date.now() } } }));
-        //   return entry; 
-        // }
-        // return null;
-        // For simplicity, we'll just return without updating timestamp for now.
         return get().aiCache[key] || null;
       },
       
-      // Timeline actions
       setTimelineSettings: (settings) => set({ timelineSettings: settings }),
       
-      // Title management action
       setCurrentPageTitle: (title) => set({ currentPageTitle: title }),
       
-      // Prefetched title action
-      setPrefetchedTitle: (title) => set({ prefetchedTitle: title }), // New
+      setPrefetchedTitle: (title) => set({ prefetchedTitle: title }),
       
-      // Error details actions
-      setErrorDetails: (details) => set({ errorDetails: details }), // New
-      clearErrorDetails: () => set({ errorDetails: null, error: null }), // New, also clear simple error
+      setErrorDetails: (details) => set({ errorDetails: details }),
+      clearErrorDetails: () => set({ errorDetails: null, error: null }),
       
-      // Language and location actions
       setLanguage: (language) => set({ language }),
       setLocation: (location) => set({ location }),
       
-      // Time Machine Actions
       setTimeMachineViewOpen: (isOpen) => set({ isTimeMachineViewOpen: isOpen }),
       fetchCachedYears: async (url) => {
         if (!url) return;
@@ -631,84 +551,63 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
             throw new Error(`Failed to fetch cached years: ${response.statusText}`);
           }
           const data = await response.json();
-          // Prepend 'current' to the fetched years
-          // const yearsWithCurrent = ['current', ...(data.years || [])];
-          // --- New Sorting Logic ---
           const fetchedYears: string[] = data.years || [];
           const currentActualYear = new Date().getFullYear();
 
           const futureYearsApi = fetchedYears
             .filter(year => !isNaN(parseInt(year)) && parseInt(year) > currentActualYear)
-            .sort((a, b) => parseInt(b) - parseInt(a)); // Sort descending
+            .sort((a, b) => parseInt(b) - parseInt(a));
 
           const pastYearsApi = fetchedYears
             .filter(year => !isNaN(parseInt(year)) && parseInt(year) <= currentActualYear)
-            .sort((a, b) => parseInt(b) - parseInt(a)); // Sort descending
+            .sort((a, b) => parseInt(b) - parseInt(a));
             
-          // Also handle non-numeric years (like '1000 BC') if they exist in fetchedYears?
-          // For now, assuming API returns numeric years primarily.
-          // Let's include non-numeric ones at the end of past years for now.
           const nonNumericPastYears = fetchedYears
-             .filter(year => isNaN(parseInt(year)) && year !== 'current'); // Exclude 'current' just in case
+             .filter(year => isNaN(parseInt(year)) && year !== 'current');
 
           const sortedYears = [
             ...futureYearsApi,
             'current',
             ...pastYearsApi,
-            ...nonNumericPastYears // Add any non-numeric years here
+            ...nonNumericPastYears
           ];
-          // --- End New Sorting Logic ---
           set({ cachedYears: sortedYears, isFetchingCachedYears: false });
         } catch (error) {
           console.error("Error fetching cached years:", error);
-          // Also add 'current' when resetting on error, so it's always there
           set({ isFetchingCachedYears: false, cachedYears: ['current'] }); 
         }
       },
       
-      // Update browser state
       updateBrowserState: () => {
-        // Stub remains empty, actual state is readable from the store
       }
     }),
     {
       name: "ryos:internet-explorer",
-      version: CURRENT_IE_STORE_VERSION, // Add version number
+      version: CURRENT_IE_STORE_VERSION,
       partialize: (state) => ({
-        // Define what gets persisted
         url: state.url,
         year: state.year,
         favorites: state.favorites,
-        history: state.history.slice(0, 50), // Limit persisted history size
-        aiCache: state.aiCache, // Consider limiting cache size too if it grows large
+        history: state.history.slice(0, 50),
+        aiCache: state.aiCache,
         timelineSettings: state.timelineSettings,
-        language: state.language, // Persist language setting
-        location: state.location, // Persist location setting
-        // Don't persist transient state like dialogs, errorDetails, prefetchedTitle, status, etc.
+        language: state.language,
+        location: state.location,
       }),
       migrate: (persistedState, version) => {
-        let state = persistedState as any; // Use 'any' for flexibility during migration
+        let state = persistedState as any;
 
         if (version < CURRENT_IE_STORE_VERSION) {
           console.log(
             `Migrating Internet Explorer store from version ${version} to ${CURRENT_IE_STORE_VERSION}`
           );
-          // Example migration: If older versions exist, reset to default state
-          // You can add more specific migration logic here for future versions
           state = {
-            ...getInitialState(), // Start with fresh defaults
-            // Selectively keep some old state if desired, e.g., history or favorites
-            // For this example, we'll just reset everything for simplicity
-            // favorites: state.favorites || DEFAULT_FAVORITES, // Example: keep old favorites if they exist
-            // history: state.history || [], // Example: keep old history
+            ...getInitialState(),
           };
           console.log("IE Store migration applied, resetting to defaults.");
         }
 
-        // Ensure the returned state includes only the partialized fields
-        // This is important because the full state might have extra fields not defined
-        // in the partialize function after migration.
-        const initialStateDefaults = getInitialState(); // Get defaults to compare against
+        const initialStateDefaults = getInitialState();
         const partializedKeys = [
           'url', 'year', 'favorites', 'history', 'aiCache',
           'timelineSettings', 'language', 'location'
@@ -716,20 +615,14 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
         const finalState: Partial<InternetExplorerStore> = {};
 
         for (const key of partializedKeys) {
-          // Use the migrated state value if it exists, otherwise use the default
-          // This ensures that if a key was removed from partialize, it doesn't get persisted incorrectly.
           finalState[key as keyof InternetExplorerStore] = state?.[key] ?? initialStateDefaults[key as keyof ReturnType<typeof getInitialState>];
         }
 
-
-        // Special handling for history and favorites to ensure they are arrays
         finalState.history = Array.isArray(finalState.history) ? finalState.history.slice(0, 50) : [];
         finalState.favorites = Array.isArray(finalState.favorites) ? finalState.favorites : DEFAULT_FAVORITES;
-        // Ensure aiCache is an object
         finalState.aiCache = typeof finalState.aiCache === 'object' && finalState.aiCache !== null ? finalState.aiCache : {};
 
-
-        return finalState as InternetExplorerStore; // Return the potentially migrated and cleaned state
+        return finalState as InternetExplorerStore;
       },
     }
   )
