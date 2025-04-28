@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, ArrowRight, History } from "lucide-react";
+import { ArrowLeft, ArrowRight, History, Share } from "lucide-react";
 import { InputDialog } from "@/components/dialogs/InputDialog";
 import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
@@ -32,12 +32,15 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { ShareLinkDialog } from "./ShareLinkDialog";
+import { toast } from "sonner";
 
 // Analytics event namespace for Internet Explorer events
 export const IE_ANALYTICS = {
   NAVIGATION_START: "internet-explorer:navigation_start",
   NAVIGATION_ERROR: "internet-explorer:navigation_error",
   NAVIGATION_SUCCESS: "internet-explorer:navigation_success",
+  NAVIGATION_FROM_SHARED_URL: "internet-explorer:navigation_from_shared_url",
 };
 
 // Helper function to get language display name
@@ -263,6 +266,7 @@ export function InternetExplorerAppComponent({
   ].sort((a, b) => parseInt(b) - parseInt(a));
 
   const [displayTitle, setDisplayTitle] = useState<string>("Internet Explorer");
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
 
   // Fetch cached years when URL changes (No debouncing for now)
   // const debouncedUrl = useDebounce(url, 500); // Debounce URL changes by 500ms
@@ -923,6 +927,71 @@ export function InternetExplorerAppComponent({
   }, [cachedYears]);
   // --- End custom sorting logic ---
 
+  const handleSharePage = useCallback(() => {
+    setIsShareDialogOpen(true);
+    toast.loading("Preparing share link...", {
+      id: "share-link-loading",
+      duration: 2000
+    });
+  }, []);
+
+  // Check for shared URLs on component mount
+  useEffect(() => {
+    // Only run this once when the app is opened
+    const sharedUrl = localStorage.getItem('ryos:shared_ie_url');
+    const sharedYear = localStorage.getItem('ryos:shared_ie_year');
+    
+    if (sharedUrl) {
+      // Clear the shared data to prevent it from being used again
+      localStorage.removeItem('ryos:shared_ie_url');
+      localStorage.removeItem('ryos:shared_ie_year');
+      
+      // Show toast notification for shared URL
+      toast.info(
+        "Opening shared page",
+        {
+          description: `Loading ${sharedUrl}${sharedYear && sharedYear !== 'current' ? ` from ${sharedYear}` : ''}`,
+          duration: 4000,
+        }
+      );
+      
+      // Navigate to the shared URL
+      handleNavigate(sharedUrl, sharedYear || 'current', false);
+      
+      // Track the navigation from shared URL
+      track(IE_ANALYTICS.NAVIGATION_FROM_SHARED_URL, {
+        url: sharedUrl,
+        year: sharedYear || 'current',
+      });
+    }
+  }, []);
+
+  // Also check for initialData from the AppManager
+  useEffect(() => {
+    const initialDataStr = localStorage.getItem('app_internet-explorer_initialData');
+    if (initialDataStr) {
+      try {
+        const initialData = JSON.parse(initialDataStr);
+        if (initialData && initialData.url) {
+          // Clear the initialData
+          localStorage.removeItem('app_internet-explorer_initialData');
+          
+          // Navigate to the specified URL
+          handleNavigate(initialData.url, initialData.year || 'current', false);
+          
+          // Track the navigation
+          track(IE_ANALYTICS.NAVIGATION_FROM_SHARED_URL, {
+            url: initialData.url,
+            year: initialData.year || 'current',
+          });
+        }
+      } catch (e) {
+        console.error('Error parsing initialData for Internet Explorer:', e);
+        localStorage.removeItem('app_internet-explorer_initialData');
+      }
+    }
+  }, []);
+
   if (!isWindowOpen) return null;
 
   const isLoading = status === "loading" || isAiLoading || isFetchingWebsiteContent;
@@ -1052,6 +1121,7 @@ export function InternetExplorerAppComponent({
         onLanguageChange={setLanguage}
         onLocationChange={setLocation}
         onYearChange={(newYear) => handleNavigate(url, newYear)}
+        onSharePage={handleSharePage}
       />
       <WindowFrame
         title={displayTitle}
@@ -1063,7 +1133,7 @@ export function InternetExplorerAppComponent({
         <div className="flex flex-col h-full w-full relative">
           <div className="flex flex-col gap-1 p-1 bg-gray-100 border-b border-black">
             <div className="flex gap-2 items-center">
-              <div className="flex gap-1">
+              <div className="flex gap-0 items-center">
                 <Button
                   variant="ghost"
                   size="icon"
@@ -1082,6 +1152,22 @@ export function InternetExplorerAppComponent({
                 >
                   <ArrowRight className="h-4 w-4" />
                 </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleSharePage}
+                      className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0"
+                      aria-label="Share this page"
+                    >
+                      <Share className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>Share this page</p>
+                  </TooltipContent>
+                </Tooltip>
               </div>
               <div className="flex-1 relative flex items-center">
               <Input
@@ -1316,6 +1402,13 @@ export function InternetExplorerAppComponent({
           }}
         />
       </WindowFrame>
+
+      <ShareLinkDialog
+        isOpen={isShareDialogOpen}
+        onClose={() => setIsShareDialogOpen(false)}
+        url={url}
+        year={year}
+      />
     </TooltipProvider>
   );
 }

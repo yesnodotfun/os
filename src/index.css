@@ -100,6 +100,12 @@
     --ring: 0 0% 0%;
     --radius: 0px;
     --sat-safe-area-bottom: env(safe-area-inset-bottom, 0px);
+    --font-geneva-12: "Geneva-12", "ArkPixel", "SerenityOS-Emoji", system-ui;
+    --font-apple-garamond: "AppleGaramond", "ArkPixel", "SerenityOS-Emoji", system-ui;
+    --font-mondwest: "Mondwest", "ArkPixel", "SerenityOS-Emoji", system-ui;
+    --font-neuebit: "NeueBit", "ArkPixel", "SerenityOS-Emoji", system-ui;
+    --font-monaco: "Monaco", "ArkPixel", "SerenityOS-Emoji", system-ui;
+    --font-jacquard: "Jacquard", "ArkPixel", "SerenityOS-Emoji", system-ui;
   }
 
   .dark {

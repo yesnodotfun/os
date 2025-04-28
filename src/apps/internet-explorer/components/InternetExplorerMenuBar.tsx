@@ -44,6 +44,7 @@ interface InternetExplorerMenuBarProps extends Omit<AppProps, "onClose"> {
   onLocationChange?: (location: LocationOption) => void;
   year?: string;
   onYearChange?: (year: string) => void;
+  onSharePage?: () => void;
 }
 
 export function InternetExplorerMenuBar({
@@ -75,6 +76,7 @@ export function InternetExplorerMenuBar({
   onLocationChange,
   year = "current",
   onYearChange,
+  onSharePage,
 }: InternetExplorerMenuBarProps) {
   // Get current year for generating year lists
   const currentYear = new Date().getFullYear();
@@ -122,6 +124,12 @@ export function InternetExplorerMenuBar({
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
             Open Time Machine
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={onSharePage}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            Share Page...
           </DropdownMenuItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           <DropdownMenuItem

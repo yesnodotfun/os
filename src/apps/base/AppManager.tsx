@@ -6,6 +6,8 @@ import { Desktop } from "@/components/layout/Desktop";
 import { AppId, getAppComponent } from "@/config/appRegistry";
 import { useWallpaper } from "@/hooks/useWallpaper";
 import { useAppStore } from "@/stores/useAppStore";
+import { extractCodeFromPath, decodeSharedUrl } from "@/utils/sharedUrl";
+import { toast } from "sonner";
 
 interface AppManagerProps {
   apps: BaseApp[];
@@ -39,16 +41,66 @@ export function AppManager({ apps }: AppManagerProps) {
     return () => clearTimeout(timer);
   }, []);
 
+  // Process shared URLs
+  useEffect(() => {
+    const handleSharedUrl = async () => {
+      const path = window.location.pathname;
+      const code = extractCodeFromPath(path);
+      
+      if (code) {
+        toast.loading("Decoding shared link...", {
+          id: "decode-shared-url",
+        });
+        
+        const sharedData = await decodeSharedUrl(code);
+        
+        if (sharedData) {
+          
+          // Store the shared URL data for Internet Explorer
+          localStorage.setItem('ryos:shared_ie_url', sharedData.url);
+          localStorage.setItem('ryos:shared_ie_year', sharedData.year);
+          
+          // Launch Internet Explorer
+          const event = new CustomEvent('launchApp', {
+            detail: { 
+              appId: 'internet-explorer',
+              // Pass additional data that will be processed by IE
+              initialData: {
+                url: sharedData.url,
+                year: sharedData.year
+              }
+            }
+          });
+          window.dispatchEvent(event);
+          
+          // Update the URL to remove the share code
+          window.history.replaceState({}, '', '/');
+        } else {
+          toast.error("Invalid shared link", {
+            id: "decode-shared-url",
+            description: "Could not decode the shared URL",
+          });
+        }
+      }
+    };
+
+    // Process shared URLs on initial load
+    handleSharedUrl();
+  }, []);
+
   // Listen for app launch events from Finder
   useEffect(() => {
     const handleAppLaunch = (
-      event: CustomEvent<{ appId: AppId; initialPath?: string }>
+      event: CustomEvent<{ appId: AppId; initialPath?: string; initialData?: any }>
     ) => {
-      const { appId, initialPath } = event.detail;
+      const { appId, initialPath, initialData } = event.detail;
       if (!appStates[appId]?.isOpen) {
         toggleApp(appId);
         if (initialPath) {
           localStorage.setItem(`app_${appId}_initialPath`, initialPath);
+        }
+        if (initialData) {
+          localStorage.setItem(`app_${appId}_initialData`, JSON.stringify(initialData));
         }
       } else {
         bringToForeground(appId);
