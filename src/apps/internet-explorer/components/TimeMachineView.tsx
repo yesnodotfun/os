@@ -409,7 +409,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
           z: PREVIEW_Z_SPACING, // Target z for distance = 1
           scale: 1 - PREVIEW_SCALE_FACTOR, // Target scale for distance = 1
           y: PREVIEW_Y_SPACING, // Target y for distance = 1
-          transition: { type: 'spring', stiffness: 150, damping: 25, delay: 0.2 } // Add delay before exit
+          transition: { type: 'spring', stiffness: 150, damping: 25 }
         };
       } else { // direction === 'backward' or 'none'
         // Backward exit: Exiting card scales *out* (up and forward)
@@ -418,7 +418,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
           z: 50, // Bring slightly forward
           scale: 1.05, // Scale up a bit
           y: -PREVIEW_Y_SPACING, // Subtle upward shift
-          transition: { type: 'spring', stiffness: 150, damping: 25, delay: 0.2 }
+          transition: { type: 'spring', stiffness: 150, damping: 25 }
         };
       }
     }
@@ -621,7 +621,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                                               >
                                                 {previewStatus === 'loading' && (
                                                   <motion.div 
-                                                    className="w-full h-full flex items-center justify-center bg-white"
+                                                    className="w-full h-full flex items-center justify-center bg-transparent"
                                                     variants={pulsingAnimationVariants}
                                                     animate="loading"
                                                   >
@@ -656,7 +656,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                                                               animate="visible"
                                                               exit="hidden"
                                                             >
-                                                              <div className={`h-full ${previewYear === 'current' ? 'animate-progress-indeterminate' : 'animate-progress-indeterminate-reverse'}`} />
+                                                              {/* Removed the inner div with animation */}
                                                             </motion.div>
                                                           )}
                                                         </AnimatePresence>
@@ -694,19 +694,6 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                                                 {(previewStatus === 'idle' || (previewStatus === 'success' && !previewContent)) && (
                                                     <div className="w-full h-full flex items-center justify-center"> {/* Placeholder/Idle */} </div>
                                                 )}
-                                                <AnimatePresence>
-                                                  {previewStatus === 'loading' && (
-                                                    <motion.div
-                                                      className="absolute top-0 left-0 right-0 bg-white/75 backdrop-blur-sm overflow-hidden z-50"
-                                                      variants={loadingBarVariants}
-                                                      initial="hidden"
-                                                      animate="visible"
-                                                      exit="hidden"
-                                                    >
-                                                      <div className={`h-full ${previewYear === 'current' ? 'animate-progress-indeterminate' : 'animate-progress-indeterminate-reverse'}`} />
-                                                    </motion.div>
-                                                  )}
-                                                </AnimatePresence>
                                               </motion.div>
                                             </AnimatePresence>
                                           </div>
@@ -834,15 +821,21 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                                                    sm:w-full sm:flex-row sm:items-center sm:justify-end sm:h-6 sm:py-0 sm:my-0.5"
                                         onClick={() => {
                                             playClick(); // Play click sound
-                                            changeActiveYearIndex(index);
+                                            // Determine direction before updating index
+                                            if (index > activeYearIndex) {
+                                                setNavigationDirection('forward');
+                                            } else if (index < activeYearIndex) {
+                                                setNavigationDirection('backward');
+                                            } else {
+                                                setNavigationDirection('none');
+                                            }
+                                            setActiveYearIndex(index); // Update index directly
                                         }}
                                     >
                                         {/* Year Label - Default: mobile (always visible, dimmed inactive), sm: desktop (opacity change) */}
                                         <span
                                             className={`text-xs font-medium transition-colors duration-150 mb-1 whitespace-nowrap sm:mr-2 sm:mb-0 sm:transition-opacity ${ 
-                                                          isActive 
-                                                            ? (isNow ? 'text-red-400' : 'text-white')  // Active colors
-                                                            : 'text-neutral-500 group-hover:text-neutral-300 sm:text-neutral-400' // Inactive colors (mobile base, hover, sm base)
+                                                          isActive ? (isNow ? 'text-red-400' : 'text-white') : 'text-neutral-500 group-hover:text-neutral-300 sm:text-neutral-400'
                                                         } ${ 
                                                           isActive 
                                                             ? 'sm:opacity-100' // Active opacity

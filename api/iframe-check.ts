@@ -210,8 +210,8 @@ export default async function handler(req: Request) {
         aiCursor = parseInt(nextCursor as unknown as string, 10);
         for (const key of keys) {
           const yearPart = key.substring(aiKeyPrefixLength);
-          // Validate AI year (YYYY or YYYY BC)
-          if (yearPart && /^\d{1,4}( BC)?$/.test(yearPart)) {
+          // Validate AI year (YYYY, YYYY BC, or Y CE)
+          if (yearPart && /^(\d{1,4}( BC)?|\d+ CE)$/.test(yearPart)) {
             uniqueYears.add(yearPart);
           } else {
             logInfo(requestId, `Skipping invalid AI year format in key: ${key}`);
