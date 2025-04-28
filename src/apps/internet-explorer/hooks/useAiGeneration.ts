@@ -39,6 +39,7 @@ export function useAiGeneration({ onLoadingChange, customTimeline = {} }: UseAiG
   const loadSuccess = useInternetExplorerStore(state => state.loadSuccess);
   const loadError = useInternetExplorerStore(state => state.loadError);
   const timelineSettings = useInternetExplorerStore(state => state.timelineSettings);
+  const fetchCachedYears = useInternetExplorerStore(state => state.fetchCachedYears);
   // Get language and location from store
   const language = useInternetExplorerStore(state => state.language);
   const location = useInternetExplorerStore(state => state.location);
@@ -122,6 +123,9 @@ export function useAiGeneration({ onLoadingChange, customTimeline = {} }: UseAiG
         // Cache the completed HTML and title
         console.log(`[IE] Caching AI page for ${url} in ${year}`);
         cacheAiPage(url, year, cleanHtmlContent, parsedTitle || fallbackTitle);
+        
+        // Refresh cached years to update the count
+        fetchCachedYears(url);
 
         // Update the store with the final HTML, title, and history info
         loadSuccess({ 

@@ -266,9 +266,12 @@ export function InternetExplorerAppComponent({
 
   // Fetch cached years when URL changes (No debouncing for now)
   // const debouncedUrl = useDebounce(url, 500); // Debounce URL changes by 500ms
-
+  
+  const cachedYearsFetchedRef = useRef<{[url: string]: boolean}>({});
   useEffect(() => {
-    if (url) {
+    if (url && !cachedYearsFetchedRef.current[url]) {
+      console.log(`[IE] Fetching cached years for URL: ${url}`);
+      cachedYearsFetchedRef.current[url] = true;
       fetchCachedYears(url);
     }
   }, [url, fetchCachedYears]);
@@ -526,6 +529,8 @@ export function InternetExplorerAppComponent({
               
               try {
                 cacheAiPage(normalizedTargetUrl, targetYearParam, cleanHtml, parsedTitle || normalizedTargetUrl);
+                // Refresh cached years to update the count
+                fetchCachedYears(normalizedTargetUrl);
               } catch (cacheError) {
                 if (cacheError instanceof DOMException && cacheError.name === 'QuotaExceededError') {
                   console.warn(`[IE] LocalStorage quota exceeded. Failed to save remote cache locally for ${normalizedTargetUrl} (${targetYearParam}).`);
@@ -664,7 +669,7 @@ export function InternetExplorerAppComponent({
     }
   }, [url, year, finalUrl, status, token, isAiLoading, isNavigatingHistory, currentPageTitle, aiGeneratedHtml,
       navigateStart, setFinalUrl, loadError, generateFuturisticWebsite, stopGeneration, loadSuccess, getCachedAiPage,
-      clearErrorDetails, handleNavigationError, setPrefetchedTitle, setYear, setUrl]);
+      clearErrorDetails, handleNavigationError, setPrefetchedTitle, setYear, setUrl, fetchCachedYears]);
 
   const handleNavigateWithHistory = useCallback(async (
     targetUrl: string,
@@ -758,9 +763,15 @@ export function InternetExplorerAppComponent({
     handleNavigate("apple.com", "2002");
   }, [handleNavigate]);
 
+  // Use a ref to prevent duplicate initial navigations
+  const initialNavigationRef = useRef(false);
   useEffect(() => {
-    handleNavigate(url, year, false);
-  }, []);
+    if (!initialNavigationRef.current) {
+      console.log("[IE] Running initial navigation");
+      initialNavigationRef.current = true;
+      handleNavigate(url, year, false);
+    }
+  }, [handleNavigate, url, year]);
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
