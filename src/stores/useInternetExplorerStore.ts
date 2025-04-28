@@ -234,9 +234,6 @@ interface InternetExplorerStore {
   // Title management
   currentPageTitle: string | null;
   
-  // Pending navigation triggered externally
-  pendingInitialNavigationData: { url: string; year: string } | null;
-  
   // Time Machine Feature
   isTimeMachineViewOpen: boolean;
   cachedYears: string[];
@@ -305,9 +302,6 @@ interface InternetExplorerStore {
   setTimeMachineViewOpen: (isOpen: boolean) => void;
   fetchCachedYears: (url: string) => Promise<void>;
   
-  // Action for pending navigation
-  setPendingInitialNavigationData: (data: { url: string; year: string } | null) => void;
-  
   // Utility functions
   getAiCacheKey: (url: string, year: string) => string;
   updateBrowserState: () => void;
@@ -354,7 +348,6 @@ const getInitialState = () => ({
   aiCache: {} as Record<string, AiCacheEntry>,
   timelineSettings: {} as { [year: string]: string },
   currentPageTitle: null as string | null,
-  pendingInitialNavigationData: null, // Initialize pending data
   isTimeMachineViewOpen: false,
   cachedYears: [] as string[],
   isFetchingCachedYears: false,
@@ -672,9 +665,6 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
           set({ isFetchingCachedYears: false, cachedYears: ['current'] }); 
         }
       },
-      
-      // Action implementation for pending navigation
-      setPendingInitialNavigationData: (data) => set({ pendingInitialNavigationData: data }),
       
       // Update browser state
       updateBrowserState: () => {

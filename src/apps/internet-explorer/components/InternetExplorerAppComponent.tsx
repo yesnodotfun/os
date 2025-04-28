@@ -40,7 +40,6 @@ export const IE_ANALYTICS = {
   NAVIGATION_START: "internet-explorer:navigation_start",
   NAVIGATION_ERROR: "internet-explorer:navigation_error",
   NAVIGATION_SUCCESS: "internet-explorer:navigation_success",
-  NAVIGATION_FROM_SHARED_URL: "internet-explorer:navigation_from_shared_url",
 };
 
 // Helper function to get language display name
@@ -227,8 +226,6 @@ export function InternetExplorerAppComponent({
     isFetchingCachedYears,
     setTimeMachineViewOpen,
     fetchCachedYears,
-    pendingInitialNavigationData,
-    setPendingInitialNavigationData,
   } = useInternetExplorerStore();
 
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -771,15 +768,64 @@ export function InternetExplorerAppComponent({
     handleNavigate("apple.com", "2002");
   }, [handleNavigate]);
 
+  // A simple decoding function that uses Base64
+  function decodeData(code: string): { url: string; year: string } | null {
+    try {
+      const decoded = atob(code); // Use atob for client-side Base64 decoding
+      const data = JSON.parse(decoded);
+      // Basic validation
+      if (typeof data.url === 'string' && typeof data.year === 'string') {
+        return { url: data.url, year: data.year };
+      }
+      return null;
+    } catch (error) {
+      console.error("[IE] Error decoding share code:", error);
+      return null;
+    }
+  }
+
   // Use a ref to prevent duplicate initial navigations
   const initialNavigationRef = useRef(false);
   useEffect(() => {
-    if (!initialNavigationRef.current) {
-      console.log("[IE] Running initial navigation");
+    if (!initialNavigationRef.current && isWindowOpen) {
+      console.log("[IE] Running initial navigation check");
       initialNavigationRef.current = true;
+
+      // Check if the current URL is a share link
+      const pathSegments = window.location.pathname.split('/').filter(Boolean);
+      if (pathSegments[0] === 'internet-explorer' && pathSegments[1] === 'share' && pathSegments[2]) {
+        const code = pathSegments[2];
+        const decodedData = decodeData(code);
+
+        if (decodedData) {
+          console.log(`[IE] Decoded share link: ${decodedData.url} (${decodedData.year})`);
+          toast.info(
+            `Opening shared page`,
+            {
+              description: `Loading ${decodedData.url}${decodedData.year && decodedData.year !== 'current' ? ` from ${decodedData.year}` : ''}`,
+              duration: 4000,
+            }
+          );
+          // Navigate using decoded data, potentially overriding store defaults
+          handleNavigate(decodedData.url, decodedData.year || 'current', false);
+          // Clean the URL in the address bar without reloading the page
+          window.history.replaceState(null, '', '/');
+          return; // Skip default navigation
+        } else {
+          console.warn("[IE] Failed to decode share link code.");
+          toast.error("Invalid Share Link", {
+            description: "The share link provided is invalid or corrupted.",
+            duration: 5000,
+          });
+          // Clean the URL in the address bar without reloading the page
+          window.history.replaceState(null, '', '/');
+        }
+      }
+
+      // Proceed with default navigation if not a share link
       handleNavigate(url, year, false);
     }
-  }, [handleNavigate, url, year]);
+  }, [handleNavigate, url, year, isWindowOpen]);
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
@@ -811,36 +857,6 @@ export function InternetExplorerAppComponent({
       window.removeEventListener("message", handleMessage);
     };
   }, [year, handleNavigate, handleGoBack]);
-
-  // Effect to handle pending navigation data
-  useEffect(() => {
-    if (isWindowOpen && pendingInitialNavigationData && !pendingDataProcessedRef.current) {
-      pendingDataProcessedRef.current = true;
-
-      const { url: navigateUrl, year: navigateYear } = pendingInitialNavigationData;
-      const source = 'pendingData';
-
-      console.log(`[IE] Processing ${source}: ${navigateUrl} (${navigateYear})`);
-      toast.info(
-        `Opening requested page`, 
-        {
-          description: `Loading ${navigateUrl}${navigateYear && navigateYear !== 'current' ? ` from ${navigateYear}` : ''}`,
-          duration: 4000,
-        }
-      );
-
-      handleNavigate(navigateUrl, navigateYear || 'current', false);
-
-      track(IE_ANALYTICS.NAVIGATION_FROM_SHARED_URL, {
-        url: navigateUrl,
-        year: navigateYear || 'current',
-        source: source, 
-      });
-
-      initialNavigationRef.current = true;
-      setPendingInitialNavigationData(null);
-    }
-  }, [isWindowOpen, pendingInitialNavigationData, handleNavigate, setPendingInitialNavigationData]);
 
   useEffect(() => {
     if (!isWindowOpen) {

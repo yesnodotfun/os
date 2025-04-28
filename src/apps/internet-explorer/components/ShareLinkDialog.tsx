@@ -26,6 +26,13 @@ export function ShareLinkDialog({
   const [shareUrl, setShareUrl] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // A simple encoding function that uses Base64
+  function encodeData(url: string, year: string): string {
+    const data = JSON.stringify({ url, year });
+    // Use btoa for client-side Base64 encoding
+    return btoa(data);
+  }
+
   // Generate the share link when the dialog opens
   useEffect(() => {
     if (isOpen && url) {
@@ -51,48 +58,19 @@ export function ShareLinkDialog({
   const generateShareLink = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch("/api/share-link?action=encode", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ url, year }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to generate share link");
-      }
-
-      const data = await response.json();
-      // Format URL with /internet-explorer/ path
-      let rawUrl = data.shareUrl;
-      if (rawUrl && !rawUrl.startsWith('http')) {
-        rawUrl = `https://${rawUrl}`;
-      }
+      // Client-side encoding
+      const code = encodeData(url, year);
       
-      let formattedUrl = rawUrl;
-      try {
-        const urlObj = new URL(rawUrl);
-        // Replace /share/ with /internet-explorer/ in the pathname
-        urlObj.pathname = urlObj.pathname.replace(/^\/share\//, '/internet-explorer/');
-        formattedUrl = urlObj.toString();
-      } catch (e) {
-        console.error("[ShareLinkDialog] Error formatting URL:", e);
-        // Fallback if URL parsing fails, though unlikely with the https check
-        formattedUrl = rawUrl.replace('/share/', '/internet-explorer/'); 
-      }
-      
+      // Construct the URL using the current window location
+      const baseUrl = window.location.origin;
+      const formattedUrl = `${baseUrl}/internet-explorer/share/${code}`;
+
       setShareUrl(formattedUrl);
-      // toast.success("Share link created", {
-      //   id: "share-link-loading",
-      //   description: "Now you can copy and share it with others"
-      // });
     } catch (error) {
       console.error("Error generating share link:", error);
-      // toast.error("Failed to generate share link", {
-      //   id: "share-link-loading",
-      //   description: "Please try again later",
-      // });
+      toast.error("Failed to generate share link", {
+        description: "Please try again later",
+      });
     } finally {
       setIsLoading(false);
     }
