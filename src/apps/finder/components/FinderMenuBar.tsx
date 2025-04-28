@@ -9,6 +9,8 @@ import {
   DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
 import { FileItem } from "./FileList";
+import { toast } from "sonner";
+import { generateAppShareUrl } from "@/utils/sharedUrl";
 
 export type ViewType = "small" | "large" | "list";
 export type SortType = "name" | "date" | "size" | "kind";
@@ -332,6 +334,27 @@ export function FinderMenuBar({
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
             Finder Help
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onSelect={async () => {
+              const appId = "finder"; // Specific app ID
+              const shareUrl = generateAppShareUrl(appId);
+              if (!shareUrl) return;
+              try {
+                await navigator.clipboard.writeText(shareUrl);
+                toast.success("App link copied!", {
+                  description: `Link to ${appId} copied to clipboard.`,
+                });
+              } catch (err) {
+                console.error("Failed to copy app link: ", err);
+                toast.error("Failed to copy link", {
+                  description: "Could not copy link to clipboard.",
+                });
+              }
+            }}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            Share App...
           </DropdownMenuItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           <DropdownMenuItem

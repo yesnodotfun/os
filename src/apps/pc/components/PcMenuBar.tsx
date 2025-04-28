@@ -11,6 +11,8 @@ import {
   DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Game, loadGames } from "@/utils/storage";
+import { toast } from "sonner";
+import { generateAppShareUrl } from "@/utils/sharedUrl";
 
 interface PcMenuBarProps {
   onClose: () => void;
@@ -194,6 +196,27 @@ export function PcMenuBar({
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
             Virtual PC Help
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onSelect={async () => {
+              const appId = "pc"; // Specific app ID
+              const shareUrl = generateAppShareUrl(appId);
+              if (!shareUrl) return;
+              try {
+                await navigator.clipboard.writeText(shareUrl);
+                toast.success("App link copied!", {
+                  description: `Link to ${appId} copied to clipboard.`,
+                });
+              } catch (err) {
+                console.error("Failed to copy app link: ", err);
+                toast.error("Failed to copy link", {
+                  description: "Could not copy link to clipboard.",
+                });
+              }
+            }}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            Share App...
           </DropdownMenuItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           <DropdownMenuItem

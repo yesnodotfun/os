@@ -7,6 +7,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
+import { generateAppShareUrl } from "@/utils/sharedUrl";
 
 interface ControlPanelsMenuBarProps {
   onClose: () => void;
@@ -57,6 +59,27 @@ export function ControlPanelsMenuBar({
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
             Help Topics
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onSelect={async () => {
+              const appId = "control-panels"; // Specific app ID
+              const shareUrl = generateAppShareUrl(appId);
+              if (!shareUrl) return;
+              try {
+                await navigator.clipboard.writeText(shareUrl);
+                toast.success("App link copied!", {
+                  description: `Link to ${appId} copied to clipboard.`,
+                });
+              } catch (err) {
+                console.error("Failed to copy app link: ", err);
+                toast.error("Failed to copy link", {
+                  description: "Could not copy link to clipboard.",
+                });
+              }
+            }}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            Share App...
           </DropdownMenuItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           <DropdownMenuItem

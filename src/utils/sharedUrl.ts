@@ -25,4 +25,18 @@ export function extractCodeFromPath(path: string): string | null {
   // Match /internet-explorer/{code} pattern
   const match = path.match(/^\/internet-explorer\/([^\/]+)$/);
   return match ? match[1] : null;
+}
+
+/**
+ * Generates a shareable URL for a specific app.
+ * @param appId The ID of the app (e.g., 'internet-explorer', 'soundboard').
+ * @returns The full shareable URL (e.g., 'https://hostname.com/internet-explorer').
+ */
+export function generateAppShareUrl(appId: string): string {
+  if (typeof window === 'undefined') {
+    // Handle server-side rendering or environments without window
+    console.warn('Cannot generate app share URL: window object is not available.');
+    return ''; // Or throw an error, depending on desired behavior
+  }
+  return `${window.location.origin}/${appId}`;
 } 

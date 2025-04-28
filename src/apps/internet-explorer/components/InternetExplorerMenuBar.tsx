@@ -13,6 +13,8 @@ import { AppProps } from "../../base/types";
 import { MenuBar } from "@/components/layout/MenuBar";
 import { Favorite, HistoryEntry, LanguageOption, LocationOption } from "@/stores/useInternetExplorerStore";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { generateAppShareUrl } from "@/utils/sharedUrl";
 
 interface InternetExplorerMenuBarProps extends Omit<AppProps, "onClose"> {
   onRefresh?: () => void;
@@ -648,6 +650,27 @@ export function InternetExplorerMenuBar({
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
             Internet Explorer Help
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onSelect={async () => {
+              const appId = "internet-explorer";
+              const shareUrl = generateAppShareUrl(appId);
+              if (!shareUrl) return;
+              try {
+                await navigator.clipboard.writeText(shareUrl);
+                toast.success("App link copied!", {
+                  description: `Link to ${appId} copied to clipboard.`,
+                });
+              } catch (err) {
+                console.error("Failed to copy app link: ", err);
+                toast.error("Failed to copy link", {
+                  description: "Could not copy link to clipboard.",
+                });
+              }
+            }}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            Share App...
           </DropdownMenuItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           <DropdownMenuItem
