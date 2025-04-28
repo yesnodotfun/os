@@ -120,16 +120,17 @@ export function InternetExplorerMenuBar({
             Go to URL
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={onOpenTimeMachine}
-            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
-          >
-            Open Time Machine
-          </DropdownMenuItem>
-          <DropdownMenuItem
             onClick={onSharePage}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
             Share Page...
+          </DropdownMenuItem>
+          <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
+          <DropdownMenuItem
+            onClick={onOpenTimeMachine}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            Open Time Machine
           </DropdownMenuItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           <DropdownMenuItem
