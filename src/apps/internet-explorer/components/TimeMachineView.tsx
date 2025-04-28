@@ -670,7 +670,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                        <TooltipTrigger asChild>
                          <button
                            onClick={() => { playClick(); changeActiveYearIndex((prev) => prev + 1); }}
-                           className="text-neutral-200 bg-neutral-700/50 hover:bg-neutral-600/70 rounded p-1.5 h-8 w-8 flex items-center justify-center disabled:opacity-30 transition-colors"
+                           className="text-white/60 hover:text-white hover:bg-white/10 rounded p-1.5 h-8 w-8 flex items-center justify-center disabled:opacity-30 transition-colors"
                            disabled={activeYearIndex === cachedYears.length - 1}
                            aria-label="Older Version"
                          >
@@ -693,7 +693,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                               changeActiveYearIndex(nowIndex);
                             }
                           }}
-                          className="text-neutral-200 bg-neutral-700/50 hover:bg-neutral-600/70 rounded p-1.5 h-8 w-8 flex items-center justify-center transition-colors"
+                          className="text-white/60 hover:text-white hover:bg-white/10 rounded p-1.5 h-8 w-8 flex items-center justify-center transition-colors"
                           disabled={cachedYears[activeYearIndex] === 'current'}
                           aria-label="Go to Now"
                         >
@@ -710,7 +710,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                        <TooltipTrigger asChild>
                          <button
                            onClick={() => { playClick(); changeActiveYearIndex((prev) => prev - 1); }}
-                           className="text-neutral-200 bg-neutral-700/50 hover:bg-neutral-600/70 rounded p-1.5 h-8 w-8 flex items-center justify-center disabled:opacity-30 transition-colors"
+                           className="text-white/60 hover:text-white hover:bg-white/10 rounded p-1.5 h-8 w-8 flex items-center justify-center disabled:opacity-30 transition-colors"
                            disabled={activeYearIndex === 0}
                            aria-label="Newer Version"
                          >
@@ -806,7 +806,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                         {/* Previous Button (Left Arrow) */}
                         <button
                             onClick={() => { playClick(); changeActiveYearIndex((prev) => prev - 1); }}
-                            className="text-white bg-neutral-700/50 hover:bg-neutral-600/70 rounded p-1.5 h-8 w-8 flex items-center justify-center disabled:opacity-30 transition-colors"
+                            className="text-white/60 hover:text-white hover:bg-neutral-600/70 rounded p-1.5 h-8 w-8 flex items-center justify-center disabled:opacity-30 transition-colors"
                             disabled={activeYearIndex === 0}
                             aria-label="Newer Version"
                         >
@@ -821,7 +821,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                                 changeActiveYearIndex(nowIndex);
                               }
                             }}
-                            className="text-white bg-neutral-700/50 hover:bg-neutral-600/70 rounded p-1.5 h-8 w-8 flex items-center justify-center transition-colors"
+                            className="text-white/60 hover:text-white hover:bg-neutral-600/70 rounded p-1.5 h-8 w-8 flex items-center justify-center transition-colors"
                             disabled={cachedYears[activeYearIndex] === 'current'}
                             aria-label="Go to Now"
                         >
@@ -830,7 +830,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                         {/* Next Button (Right Arrow) */}
                         <button
                             onClick={() => { playClick(); changeActiveYearIndex((prev) => prev + 1); }}
-                            className="text-white bg-neutral-700/50 hover:bg-neutral-600/70 rounded p-1.5 h-8 w-8 flex items-center justify-center disabled:opacity-30 transition-colors"
+                            className="text-white/60 hover:text-white hover:bg-neutral-600/70 rounded p-1.5 h-8 w-8 flex items-center justify-center disabled:opacity-30 transition-colors"
                             disabled={activeYearIndex === cachedYears.length - 1}
                             aria-label="Older Version"
                         >
