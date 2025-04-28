@@ -11,7 +11,7 @@
       ]
     },
     {
-      "source": "/fonts/(.*)",
+      "source": "/fonts/:path*",
       "headers": [
         {
           "key": "Access-Control-Allow-Origin",
@@ -24,7 +24,7 @@
       ]
     },
     {
-      "source": "/wallpapers/(.*\\.(mp4|webm))",
+      "source": "/wallpapers/:path*",
       "headers": [
         {
           "key": "Cache-Control",
@@ -33,7 +33,7 @@
       ]
     },
     {
-      "source": "/wallpapers/(.*\\.(jpg|jpeg|png|gif|webp))",
+      "source": "/icons/:path*",
       "headers": [
         {
           "key": "Cache-Control",
@@ -42,7 +42,7 @@
       ]
     },
     {
-      "source": "/icons/(.*\\.(png|svg|ico))",
+      "source": "/sounds/:path*",
       "headers": [
         {
           "key": "Cache-Control",
@@ -51,11 +51,29 @@
       ]
     },
     {
-      "source": "/assets/(.*\\.(mp3|wav|ogg))",
+      "source": "/patterns/:path*",
       "headers": [
         {
           "key": "Cache-Control",
           "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/:path(apple-touch-icon.png|favicon.ico|vite.svg)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/:path(manifest.json|all-sounds.json|soundboards.json)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600"
         }
       ]
     }
