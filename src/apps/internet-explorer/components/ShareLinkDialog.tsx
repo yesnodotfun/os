@@ -76,14 +76,24 @@ export function ShareLinkDialog({
     }
   };
 
-  const handleCopyToClipboard = () => {
+  const handleCopyToClipboard = async () => {
     if (inputRef.current && shareUrl) {
-      inputRef.current.select();
-      document.execCommand("copy");
-      toast.success("Link copied", {
-        description: "Share link copied to clipboard"
-      });
-      onClose(); // Dismiss the dialog after copying
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        toast.success("Link copied", {
+          description: "Share link copied to clipboard",
+        });
+        onClose(); // Dismiss the dialog after copying
+      } catch (err) {
+        console.error("Failed to copy text: ", err);
+        toast.error("Failed to copy link", {
+          description:
+            "Could not copy to clipboard. Please try manually selecting and copying.",
+        });
+        // Fallback for older browsers or if permission denied, select the text
+        inputRef.current.focus();
+        inputRef.current.select();
+      }
     }
   };
 
