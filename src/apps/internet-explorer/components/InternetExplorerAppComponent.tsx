@@ -189,16 +189,29 @@ const getLoadingTitle = (baseTitle: string): string => {
 // Helper function to decode Base64 data (client-side)
 function decodeData(code: string): { url: string; year: string } | null {
   try {
-    // Use atob for client-side Base64 decoding
-    // Replace URL-safe characters just in case they were used, though btoa typically doesn't produce them
+    // Replace URL-safe characters back to standard Base64
     const base64 = code.replace(/-/g, '+').replace(/_/g, '/');
-    const decoded = atob(base64);
-    const data = JSON.parse(decoded);
-    // Basic validation
-    if (typeof data.url === 'string' && typeof data.year === 'string') {
-      return { url: data.url, year: data.year };
+    // Add padding if needed
+    const paddedBase64 = base64 + '='.repeat((4 - base64.length % 4) % 4);
+    const decoded = atob(paddedBase64);
+    
+    // Try compact format first (url|year)
+    const [url, year] = decoded.split('|');
+    if (typeof url === 'string' && typeof year === 'string') {
+      return { url, year };
     }
-    console.error("[IE] Decoded data structure invalid:", data);
+
+    // If compact format fails, try JSON format
+    try {
+      const data = JSON.parse(decoded);
+      if (typeof data.url === 'string' && typeof data.year === 'string') {
+        return { url: data.url, year: data.year };
+      }
+    } catch (jsonError) {
+      console.debug("[IE] Failed to parse as JSON, not a valid share code format");
+    }
+
+    console.error("[IE] Decoded data structure invalid:", { url, year });
     return null;
   } catch (error) {
     console.error("[IE] Error decoding share code:", error);

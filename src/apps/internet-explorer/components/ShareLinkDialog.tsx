@@ -28,9 +28,13 @@ export function ShareLinkDialog({
 
   // A simple encoding function that uses Base64
   function encodeData(url: string, year: string): string {
-    const data = JSON.stringify({ url, year });
-    // Use btoa for client-side Base64 encoding
-    return btoa(data);
+    // Combine url and year with a separator
+    const combined = `${url}|${year}`;
+    // Use btoa for client-side Base64 encoding and make it URL-safe
+    return btoa(combined)
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
   }
 
   // Generate the share link when the dialog opens
