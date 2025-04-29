@@ -819,7 +819,7 @@ export function InternetExplorerAppComponent({
           toast.info(
             `Opening shared page`,
             {
-              description: `Loading ${decodedData.url}${decodedData.year && decodedData.year !== 'current' ? ` from ${decodedData.year}` : ''}`,
+              description: `${decodedData.url}${decodedData.year && decodedData.year !== 'current' ? ` from ${decodedData.year}` : ''}`,
               duration: 4000,
             }
           );
@@ -865,7 +865,7 @@ export function InternetExplorerAppComponent({
           toast.info(
             `Opening shared page`,
             {
-              description: `Loading ${decodedData.url}${decodedData.year && decodedData.year !== 'current' ? ` from ${decodedData.year}` : ''}`,
+              description: `${decodedData.url}${decodedData.year && decodedData.year !== 'current' ? ` from ${decodedData.year}` : ''}`,
               duration: 4000,
             }
           );
