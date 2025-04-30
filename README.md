@@ -100,6 +100,17 @@ bun run build
   - Play classic games like Doom and SimCity
   - DOS environment emulation
   - Game save states
+- **Terminal**: Unix-like command-line interface
+  - Navigate the virtual file system with familiar commands (ls, cd, cat, pwd, clear)
+  - Command history using ↑/↓ keys
+  - System sounds for output, errors, and AI responses
+  - Shares the same file system as Finder for seamless interaction
+- **iPod**: 1st-generation iPod-style music player
+  - Import any YouTube URL to build your music library
+  - Classic click-wheel navigation and back-light toggle
+  - Shuffle and loop playback modes
+  - Create playlists and organize tracks
+  - Library persisted locally for offline playback
 
 ### Core Features
 
