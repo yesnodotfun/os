@@ -100,6 +100,17 @@ bun run build
   - Play classic games like Doom and SimCity
   - DOS environment emulation
   - Game save states
+- **Terminal**: Unix-like command-line interface
+  - Navigate the virtual file system with familiar commands (ls, cd, cat, pwd, clear)
+  - Command history using ↑/↓ keys
+  - System sounds for output, errors, and AI responses
+  - Shares the same file system as Finder for seamless interaction
+- **iPod**: 1st-generation iPod-style music player
+  - Import any YouTube URL to build your music library
+  - Classic click-wheel navigation and back-light toggle
+  - Shuffle and loop playback modes
+  - Create playlists and organize tracks
+  - Library persisted locally for offline playback
 
 ### Core Features
 
@@ -127,6 +138,21 @@ project/
 │   │   ├── soundboard/ # Audio recording app
 │   │   ├── chats/      # Chat application
 │   │   └── minesweeper/# Game implementation
+│   │   ├── base/               # Base app functionality
+│   │   ├── finder/             # File system app
+│   │   ├── textedit/           # Text editor app
+│   │   ├── videos/             # YouTube playlist app
+│   │   ├── soundboard/         # Audio recording & playback app
+│   │   ├── synth/              # Virtual synthesizer
+│   │   ├── paint/              # MacPaint-style drawing app
+│   │   ├── photo-booth/        # Camera & effects app
+│   │   ├── internet-explorer/  # Retro web browser
+│   │   ├── control-panels/     # System settings panels
+│   │   ├── pc/                 # DOS emulator (Virtual PC)
+│   │   ├── chats/              # AI chat application
+│   │   ├── minesweeper/        # Classic game implementation
+│   │   ├── terminal/           # Command-line interface
+│   │   └── ipod/               # iPod music player
 │   ├── components/     # Shared React components
 │   │   ├── layout/     # Core layout components
 │   │   ├── ui/         # shadcn/ui components
