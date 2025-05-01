@@ -53,6 +53,9 @@ const CHAT_ROOM_USERS_PREFIX = 'chat:room:users:';
 // USER TTL (in seconds) – after this period of inactivity the user record expires automatically
 const USER_TTL_SECONDS = 60 * 30; // 30 minutes
 
+// Add constant for max message length
+const MAX_MESSAGE_LENGTH = 280;
+
 /**
  * Helper to set (or update) a user record **with** an expiry so stale
  * users are automatically evicted by Redis.
@@ -212,6 +215,8 @@ export async function POST(request) {
         return await handleLeaveRoom(body, requestId);
       case 'sendMessage':
         return await handleSendMessage(body, requestId);
+      case 'deleteMessage':
+        return await handleDeleteMessage(body, requestId);
       case 'createUser':
         return await handleCreateUser(body, requestId);
       case 'clearAllMessages':
@@ -833,9 +838,30 @@ async function handleSendMessage(data, requestId) {
       return createErrorResponse('User not found', 404);
     }
 
+    // Validate message length
+    if (content.length > MAX_MESSAGE_LENGTH) {
+      logInfo(requestId, `Message too long from ${username}: length ${content.length}`);
+      return createErrorResponse(`Message exceeds maximum length of ${MAX_MESSAGE_LENGTH} characters`, 400);
+    }
+
+    // Fetch last message from this user in this room to prevent duplicates
+    const lastMessagesRaw = await redis.lrange(`${CHAT_MESSAGES_PREFIX}${roomId}`, 0, 0); // Most recent
+    if (lastMessagesRaw.length > 0) {
+      try {
+        const lastMsgObj = JSON.parse(lastMessagesRaw[0]);
+        if (lastMsgObj.username === username && lastMsgObj.content === content) {
+          logInfo(requestId, `Duplicate message prevented from ${username}`);
+          return createErrorResponse('Duplicate message detected', 400);
+        }
+      } catch (e) {
+        // ignore parse errors
+      }
+    }
+
     // Create and save the message
+    const messageId = generateId();
     const message = {
-      id: generateId(),
+      id: messageId,
       roomId,
       username,
       content,
@@ -878,5 +904,74 @@ async function handleSendMessage(data, requestId) {
   } catch (error) {
     logError(requestId, `Error sending message in room ${roomId} from user ${username}:`, error);
     return createErrorResponse('Failed to send message', 500);
+  }
+}
+
+async function handleDeleteMessage(data, requestId) {
+  const { roomId, messageId, username } = data;
+
+  if (!roomId || !messageId || !username) {
+    logInfo(requestId, 'Message deletion failed: Missing required fields', { roomId, messageId, username });
+    return createErrorResponse('Room ID, message ID and username are required', 400);
+  }
+
+  // Only admin user (ryo) can delete via this endpoint
+  if (username !== 'ryo') {
+    logInfo(requestId, `Unauthorized delete attempt by ${username}`);
+    return createErrorResponse('Forbidden', 403);
+  }
+
+  logInfo(requestId, `Deleting message ${messageId} from room ${roomId} by admin ${username}`);
+  try {
+    // Check if room exists
+    const roomExists = await redis.exists(`${CHAT_ROOM_PREFIX}${roomId}`);
+    if (!roomExists) {
+      logInfo(requestId, `Room not found: ${roomId}`);
+      return createErrorResponse('Room not found', 404);
+    }
+
+    const listKey = `${CHAT_MESSAGES_PREFIX}${roomId}`;
+    // Fetch all messages
+    const messagesRaw = await redis.lrange(listKey, 0, -1);
+    let targetRaw = null;
+    for (const raw of messagesRaw) {
+      try {
+        const obj = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        if (obj && obj.id === messageId) {
+          targetRaw = raw;
+          break;
+        }
+      } catch {
+        // skip parse errors
+      }
+    }
+
+    if (!targetRaw) {
+      logInfo(requestId, `Message not found in list: ${messageId}`);
+      return createErrorResponse('Message not found', 404);
+    }
+
+    // Remove the specific raw string from list
+    await redis.lrem(listKey, 1, targetRaw);
+    logInfo(requestId, `Message deleted: ${messageId}`);
+
+    // Trigger Pusher event for message deletion
+    try {
+      await pusher.trigger('chats', 'message-deleted', {
+        roomId,
+        messageId,
+      });
+      logInfo(requestId, `Pusher event triggered: message-deleted for room ${roomId}`);
+    } catch (pusherError) {
+      logError(requestId, 'Error triggering Pusher event for message deletion:', pusherError);
+      // Continue with response - Pusher error shouldn't block message deletion
+    }
+
+    return new Response(JSON.stringify({ success: true }), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (error) {
+    logError(requestId, `Error deleting message ${messageId} from room ${roomId}:`, error);
+    return createErrorResponse('Failed to delete message', 500);
   }
 } 

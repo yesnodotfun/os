@@ -1,5 +1,5 @@
 import { Message as VercelMessage } from "ai";
-import { Loader2, AlertCircle, MessageSquare, Copy, Check, ChevronDown } from "lucide-react";
+import { Loader2, AlertCircle, MessageSquare, Copy, Check, ChevronDown, Trash } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { AnimatePresence, motion } from "framer-motion";
@@ -108,7 +108,11 @@ interface ChatMessagesProps {
   error?: Error;
   onRetry?: () => void;
   onClear?: () => void;
-  isRoomView: boolean; // Add prop to indicate if this is a room view
+  isRoomView: boolean; // Indicates if this is a room view (vs Ryo chat)
+  roomId?: string; // Needed for message deletion calls
+  isAdmin?: boolean; // Whether the current user has admin privileges (e.g. username === "ryo")
+  username?: string; // Current client username (needed for delete request)
+  onMessageDeleted?: (messageId: string) => void; // Callback when a message is deleted locally
 }
 
 // Component to render the scroll-to-bottom button using the library's context
@@ -141,6 +145,10 @@ export function ChatMessages({
   onRetry,
   onClear,
   isRoomView,
+  roomId,
+  isAdmin = false,
+  username,
+  onMessageDeleted,
 }: ChatMessagesProps) {
   const { playNote } = useChatSynth();
   const { playElevatorMusic, stopElevatorMusic, playDingSound } =
@@ -208,6 +216,24 @@ export function ChatMessages({
       } catch (fallbackErr) {
         console.error("Fallback copy failed:", fallbackErr);
       }
+    }
+  };
+
+  const deleteMessage = async (message: ChatMessage) => {
+    if (!roomId || !message.id) return;
+    try {
+      const res = await fetch(`/api/chat-rooms?action=deleteMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roomId, messageId: message.id, username }),
+      });
+      if (!res.ok) {
+        console.error("Failed to delete message", await res.text());
+      } else {
+        onMessageDeleted?.(message.id);
+      }
+    } catch (err) {
+      console.error("Error deleting message", err);
     }
   };
 
@@ -327,6 +353,19 @@ export function ChatMessages({
                       ) : (
                         <Copy className="h-3 w-3" />
                       )}
+                    </motion.button>
+                  )}
+                  {isAdmin && isRoomView && (
+                    <motion.button
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{
+                        opacity: hoveredMessageId === messageKey ? 1 : 0,
+                        scale: 1,
+                      }}
+                      className="h-3 w-3 text-gray-400 hover:text-red-600 transition-colors"
+                      onClick={() => deleteMessage(message)}
+                    >
+                      <Trash className="h-3 w-3" />
                     </motion.button>
                   )}
                 </motion.div>
