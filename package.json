@@ -7,7 +7,8 @@
     "dev": "vite --port $PORT",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "clear-chats": "bun scripts/clear-chat-data.js"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^1.2.10",

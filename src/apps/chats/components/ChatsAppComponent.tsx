@@ -1972,6 +1972,20 @@ export function ChatsAppComponent({
       });
     });
 
+    // Bind to messages-cleared event
+    channel.bind('messages-cleared', (data: { timestamp: number }) => {
+      console.log('[Pusher] Received messages-cleared event:', data);
+      
+      // Clear all room messages in state
+      setRoomMessages([]);
+      
+      // Clear local cache for the current room
+      if (currentRoom) {
+        saveRoomMessagesToCache(currentRoom.id, []);
+        console.log(`[Pusher] Cleared local messages for room ${currentRoom.id} after server clear`);
+      }
+    });
+
     // Clean up function
     return () => {
       console.log('[Pusher] Cleaning up subscriptions...');
@@ -2011,8 +2025,15 @@ export function ChatsAppComponent({
 
   // Load room messages when currentRoom changes
   useEffect(() => {
-    const fetchRoomMessages = async () => { // Restore async keyword
-      if (currentRoom) {
+    // Always clear existing messages when switching rooms to avoid duplicates
+    setRoomMessages([]);
+
+    // If no room is selected (i.e., Ryo chat), nothing more to do
+    if (!currentRoom) {
+      return;
+    }
+
+    const fetchRoomMessages = async () => {
         try {
           // Load from cache first
           const cachedMessages = loadCachedRoomMessages(currentRoom.id);
@@ -2028,52 +2049,41 @@ export function ChatsAppComponent({
             console.error(`Error fetching messages: ${response.statusText}`);
             return; 
           }
+
           const data = await response.json();
           
-          // Assume API returns timestamps that can be parsed into numbers, sort
-          const fetchedMessages: ChatMessage[] = [...(data.messages || [])]
-            .map(msg => ({
+        // Ensure timestamps are numbers and sort
+        const fetchedMessages: ChatMessage[] = (data.messages || []).map((msg: ChatMessage) => ({
                ...msg, 
-               // Ensure timestamp is number, handle potential string/number from API
-               timestamp: typeof msg.timestamp === 'string' || typeof msg.timestamp === 'number' 
+          timestamp:
+            typeof msg.timestamp === 'string' || typeof msg.timestamp === 'number'
                           ? new Date(msg.timestamp).getTime() 
-                          : msg.timestamp 
+              : msg.timestamp,
             })); 
 
-          // Don't replace cached messages, merge them instead
-          setRoomMessages(currentMessages => {
-            // Create a map of existing message IDs for quick lookup
-            const existingMessageIds = new Set(currentMessages.map(msg => msg.id));
-            
-            // Only add messages that aren't already in the cache
-            const newMessages = fetchedMessages.filter(msg => !existingMessageIds.has(msg.id));
+        // Merge with currently loaded messages (which may be from cache)
+        setRoomMessages((currentMessages) => {
+          const existingIds = new Set(currentMessages.map((msg) => msg.id));
+          const newMessages = fetchedMessages.filter((msg) => !existingIds.has(msg.id));
             
             if (newMessages.length === 0) {
               console.log('No new messages from API that aren\'t already in cache');
-              return currentMessages; // No changes needed
+            return currentMessages;
             }
             
-            // Merge cached and new messages
             const mergedMessages = [...currentMessages, ...newMessages];
-            
-            // Sort by timestamp
             mergedMessages.sort((a, b) => a.timestamp - b.timestamp);
             
             console.log(`Added ${newMessages.length} new messages from API`);
-            
-            // Save the merged set to cache
             saveRoomMessagesToCache(currentRoom.id, mergedMessages);
-            
             return mergedMessages;
           });
         } catch (error) {
           console.error('Error processing room messages:', error);
           // If fetch or processing fails, we rely on the cached messages (if any) loaded earlier
-        }
-      } else {
-        setRoomMessages([]); // Clear messages if switching to Ryo chat
       }
     };
+
     fetchRoomMessages();
   }, [currentRoom]);
 
@@ -2747,6 +2757,13 @@ export function ChatsAppComponent({
         // Reset to initial state - only use the hook's methods
         setAiMessages([initialMessage]);
         saveChatMessages([initialMessage]);
+
+        // Clear room messages in state
+        setRoomMessages([]);
+
+        // Clear cached room messages in localStorage
+        localStorage.removeItem(APP_STORAGE_KEYS.chats.CACHED_ROOM_MESSAGES);
+        console.log("Cleared all cached room messages");
 
         // Reset input state
         handleInputChange({

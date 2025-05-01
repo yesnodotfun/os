@@ -135,6 +135,10 @@ export async function POST(request) {
         return await handleSendMessage(body, requestId);
       case 'createUser':
         return await handleCreateUser(body, requestId);
+      case 'clearAllMessages':
+        return await handleClearAllMessages(requestId);
+      case 'resetUserCounts':
+        return await handleResetUserCounts(requestId);
       default:
         logInfo(requestId, `Invalid action: ${action}`);
         return createErrorResponse('Invalid action', 400);
@@ -369,103 +373,8 @@ async function handleGetMessages(roomId, requestId) {
   }
 }
 
-async function handleSendMessage(data, requestId) {
-  const { roomId, username, content: originalContent } = data;
-
-  if (!roomId || !username || !originalContent) {
-    logInfo(requestId, 'Message sending failed: Missing required fields', { roomId, username, hasContent: !!originalContent });
-    return createErrorResponse('Room ID, username, and content are required', 400);
-  }
-
-  // Filter profanity from message content
-  const content = filter.clean(originalContent);
-
-  logInfo(requestId, `Sending message in room ${roomId} from user ${username}`);
-  
-  try {
-    // Check if room exists
-    const roomExists = await redis.exists(`${CHAT_ROOM_PREFIX}${roomId}`);
-    if (!roomExists) {
-      logInfo(requestId, `Room not found: ${roomId}`);
-      return createErrorResponse('Room not found', 404);
-    }
-
-    // Check if user exists
-    const userExists = await redis.exists(`${CHAT_USERS_PREFIX}${username}`);
-    if (!userExists) {
-      logInfo(requestId, `User not found: ${username}`);
-      return createErrorResponse('User not found', 404);
-    }
-
-    // Create and save the message
-    const message = {
-      id: generateId(),
-      roomId,
-      username,
-      content,
-      timestamp: getCurrentTimestamp()
-    };
-
-    // Store message as stringified JSON in the list
-    await redis.lpush(`${CHAT_MESSAGES_PREFIX}${roomId}`, JSON.stringify(message));
-    // Keep only the latest 100 messages per room
-    await redis.ltrim(`${CHAT_MESSAGES_PREFIX}${roomId}`, 0, 99);
-    logInfo(requestId, `Message saved with ID: ${message.id}`);
-
-    // Update user's last active timestamp (assuming user data is stored as JSON string)
-    const currentUserData = await redis.get(`${CHAT_USERS_PREFIX}${username}`);
-    if (currentUserData) {
-      const updatedUser = { ...currentUserData, lastActive: getCurrentTimestamp() };
-      await redis.set(`${CHAT_USERS_PREFIX}${username}`, updatedUser);
-      logInfo(requestId, `Updated user ${username} last active timestamp`);
-    }
-
-    // Trigger Pusher event for new message
-    try {
-      await pusher.trigger('chats', 'room-message', { 
-        roomId,
-        message
-      });
-      logInfo(requestId, `Pusher event triggered: room-message for room ${roomId}`);
-    } catch (pusherError) {
-      logError(requestId, 'Error triggering Pusher event for new message:', pusherError);
-      // Continue with response - Pusher error shouldn't block message sending
-    }
-
-    return new Response(JSON.stringify({ message }), {
-      status: 201,
-      headers: { 'Content-Type': 'application/json' }
-    });
-  } catch (error) {
-    logError(requestId, `Error sending message in room ${roomId} from user ${username}:`, error);
-    return createErrorResponse('Failed to send message', 500);
-  }
-}
-
-// User functions
-async function handleGetUsers(requestId) {
-  logInfo(requestId, 'Fetching all users');
-  try {
-    const keys = await redis.keys(`${CHAT_USERS_PREFIX}*`);
-    logInfo(requestId, `Found ${keys.length} users`);
-    
-    if (keys.length === 0) {
-      return new Response(JSON.stringify({ users: [] }), {
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-
-    const usersData = await redis.mget(...keys);
-    const users = usersData.map(user => user).filter(Boolean);
-
-    return new Response(JSON.stringify({ users }), {
-      headers: { 'Content-Type': 'application/json' }
-    });
-  } catch (error) {
-    logError(requestId, 'Error fetching users:', error);
-    return createErrorResponse('Failed to fetch users', 500);
-  }
-}
+// User expiration time in seconds (1 day)
+const USER_EXPIRATION_TIME = 86400;
 
 async function handleCreateUser(data, requestId) {
   const { username: originalUsername } = data;
@@ -495,11 +404,29 @@ async function handleCreateUser(data, requestId) {
     const created = await redis.setnx(userKey, JSON.stringify(user));
 
     if (!created) {
+      // If username exists, update the last active timestamp
+      const userData = await redis.get(userKey);
+      if (userData) {
+        const parsedUser = typeof userData === 'object' ? userData : JSON.parse(userData);
+        const updatedUser = { ...parsedUser, lastActive: getCurrentTimestamp() };
+        await redis.set(userKey, JSON.stringify(updatedUser));
+        // Refresh expiration time
+        await redis.expire(userKey, USER_EXPIRATION_TIME);
+        logInfo(requestId, `User ${username} last active time updated and expiration reset`);
+        return new Response(JSON.stringify({ user: updatedUser }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+      
       logInfo(requestId, `Username already taken: ${username}`);
       return createErrorResponse('Username already taken', 409);
     }
 
-    logInfo(requestId, `User created: ${username}`);
+    // Set expiration time for the new user
+    await redis.expire(userKey, USER_EXPIRATION_TIME);
+    logInfo(requestId, `User created with 1-day expiration: ${username}`);
+    
     return new Response(JSON.stringify({ user }), {
       status: 201,
       headers: { 'Content-Type': 'application/json' }
@@ -549,6 +476,9 @@ async function handleJoinRoom(data, requestId) {
     // Update user's last active timestamp
     const updatedUser = { ...userData, lastActive: getCurrentTimestamp() };
     await redis.set(`${CHAT_USERS_PREFIX}${username}`, updatedUser);
+    // Refresh user expiration
+    await redis.expire(`${CHAT_USERS_PREFIX}${username}`, USER_EXPIRATION_TIME);
+    logInfo(requestId, `User ${username} last active time updated and expiration reset to 1 day`);
 
     // Trigger Pusher events for room update and user count
     try {
@@ -636,5 +566,225 @@ async function handleLeaveRoom(data, requestId) {
   } catch (error) {
     logError(requestId, `Error leaving room ${roomId} for user ${username}:`, error);
     return createErrorResponse('Failed to leave room', 500);
+  }
+}
+
+// Function to clear all messages from all rooms
+async function handleClearAllMessages(requestId) {
+  logInfo(requestId, 'Clearing all chat messages from all rooms');
+  try {
+    // Get all message keys
+    const messageKeys = await redis.keys(`${CHAT_MESSAGES_PREFIX}*`);
+    logInfo(requestId, `Found ${messageKeys.length} message collections to clear`);
+    
+    if (messageKeys.length === 0) {
+      return new Response(JSON.stringify({ success: true, message: 'No messages to clear' }), {
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+    
+    // Delete all message keys
+    const pipeline = redis.pipeline();
+    messageKeys.forEach(key => {
+      pipeline.del(key);
+    });
+    await pipeline.exec();
+    
+    logInfo(requestId, `Successfully cleared messages from ${messageKeys.length} rooms`);
+    
+    // Notify clients that messages have been cleared
+    try {
+      // For each room, trigger a room-message event with an empty message list
+      const roomKeys = await redis.keys(`${CHAT_ROOM_PREFIX}*`);
+      const roomsData = await redis.mget(...roomKeys);
+      const rooms = roomsData.map(room => room).filter(Boolean);
+      
+      // Trigger a single event for all rooms to refresh
+      await pusher.trigger('chats', 'messages-cleared', { 
+        timestamp: getCurrentTimestamp()
+      });
+      
+      logInfo(requestId, 'Pusher event triggered: messages-cleared');
+    } catch (pusherError) {
+      logError(requestId, 'Error triggering Pusher event for message clearing:', pusherError);
+      // Continue with response - Pusher error shouldn't block the operation
+    }
+    
+    return new Response(JSON.stringify({ 
+      success: true, 
+      message: `Cleared messages from ${messageKeys.length} rooms` 
+    }), {
+      headers: { 'Content-Type': 'application/json' }
+    });
+  } catch (error) {
+    logError(requestId, 'Error clearing all messages:', error);
+    return createErrorResponse('Failed to clear messages', 500);
+  }
+}
+
+// Function to reset all user counts in rooms and clear room user lists
+async function handleResetUserCounts(requestId) {
+  logInfo(requestId, 'Resetting all user counts and clearing room memberships');
+  try {
+    // Get all room keys
+    const roomKeys = await redis.keys(`${CHAT_ROOM_PREFIX}*`);
+    logInfo(requestId, `Found ${roomKeys.length} rooms to update`);
+    
+    if (roomKeys.length === 0) {
+      return new Response(JSON.stringify({ success: true, message: 'No rooms to update' }), {
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+    
+    // Get all room user set keys
+    const roomUserKeys = await redis.keys(`${CHAT_ROOM_USERS_PREFIX}*`);
+    
+    // First, clear all room user sets
+    const deleteRoomUsersPipeline = redis.pipeline();
+    roomUserKeys.forEach(key => {
+      deleteRoomUsersPipeline.del(key);
+    });
+    await deleteRoomUsersPipeline.exec();
+    logInfo(requestId, `Cleared ${roomUserKeys.length} room user sets`);
+    
+    // Then update all room objects to set userCount to 0
+    const roomsData = await redis.mget(...roomKeys);
+    const updateRoomsPipeline = redis.pipeline();
+    
+    roomsData.forEach((roomData, index) => {
+      if (roomData) {
+        const room = typeof roomData === 'object' ? roomData : JSON.parse(roomData);
+        const updatedRoom = { ...room, userCount: 0 };
+        updateRoomsPipeline.set(roomKeys[index], updatedRoom);
+      }
+    });
+    
+    await updateRoomsPipeline.exec();
+    logInfo(requestId, `Reset user count to 0 for ${roomKeys.length} rooms`);
+    
+    // Notify clients that user counts have been reset
+    try {
+      // Get the updated rooms
+      const updatedRoomsData = await redis.mget(...roomKeys);
+      const updatedRooms = updatedRoomsData.map(room => room).filter(Boolean);
+      
+      // Trigger a rooms-updated event
+      await pusher.trigger('chats', 'rooms-updated', { rooms: updatedRooms });
+      logInfo(requestId, 'Pusher event triggered: rooms-updated after user count reset');
+    } catch (pusherError) {
+      logError(requestId, 'Error triggering Pusher event for user count reset:', pusherError);
+      // Continue with response - Pusher error shouldn't block the operation
+    }
+    
+    return new Response(JSON.stringify({ 
+      success: true, 
+      message: `Reset user counts for ${roomKeys.length} rooms` 
+    }), {
+      headers: { 'Content-Type': 'application/json' }
+    });
+  } catch (error) {
+    logError(requestId, 'Error resetting user counts:', error);
+    return createErrorResponse('Failed to reset user counts', 500);
+  }
+}
+
+// User functions
+async function handleGetUsers(requestId) {
+  logInfo(requestId, 'Fetching all users');
+  try {
+    const keys = await redis.keys(`${CHAT_USERS_PREFIX}*`);
+    logInfo(requestId, `Found ${keys.length} users`);
+    
+    if (keys.length === 0) {
+      return new Response(JSON.stringify({ users: [] }), {
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    const usersData = await redis.mget(...keys);
+    const users = usersData.map(user => user).filter(Boolean);
+
+    return new Response(JSON.stringify({ users }), {
+      headers: { 'Content-Type': 'application/json' }
+    });
+  } catch (error) {
+    logError(requestId, 'Error fetching users:', error);
+    return createErrorResponse('Failed to fetch users', 500);
+  }
+}
+
+async function handleSendMessage(data, requestId) {
+  const { roomId, username, content: originalContent } = data;
+
+  if (!roomId || !username || !originalContent) {
+    logInfo(requestId, 'Message sending failed: Missing required fields', { roomId, username, hasContent: !!originalContent });
+    return createErrorResponse('Room ID, username, and content are required', 400);
+  }
+
+  // Filter profanity from message content
+  const content = filter.clean(originalContent);
+
+  logInfo(requestId, `Sending message in room ${roomId} from user ${username}`);
+  
+  try {
+    // Check if room exists
+    const roomExists = await redis.exists(`${CHAT_ROOM_PREFIX}${roomId}`);
+    if (!roomExists) {
+      logInfo(requestId, `Room not found: ${roomId}`);
+      return createErrorResponse('Room not found', 404);
+    }
+
+    // Check if user exists
+    const userExists = await redis.exists(`${CHAT_USERS_PREFIX}${username}`);
+    if (!userExists) {
+      logInfo(requestId, `User not found: ${username}`);
+      return createErrorResponse('User not found', 404);
+    }
+
+    // Create and save the message
+    const message = {
+      id: generateId(),
+      roomId,
+      username,
+      content,
+      timestamp: getCurrentTimestamp()
+    };
+
+    // Store message as stringified JSON in the list
+    await redis.lpush(`${CHAT_MESSAGES_PREFIX}${roomId}`, JSON.stringify(message));
+    // Keep only the latest 100 messages per room
+    await redis.ltrim(`${CHAT_MESSAGES_PREFIX}${roomId}`, 0, 99);
+    logInfo(requestId, `Message saved with ID: ${message.id}`);
+
+    // Update user's last active timestamp (assuming user data is stored as JSON string)
+    const currentUserData = await redis.get(`${CHAT_USERS_PREFIX}${username}`);
+    if (currentUserData) {
+      const parsedUser = typeof currentUserData === 'object' ? currentUserData : JSON.parse(currentUserData);
+      const updatedUser = { ...parsedUser, lastActive: getCurrentTimestamp() };
+      await redis.set(`${CHAT_USERS_PREFIX}${username}`, updatedUser);
+      // Refresh expiration time when user sends a message
+      await redis.expire(`${CHAT_USERS_PREFIX}${username}`, USER_EXPIRATION_TIME);
+      logInfo(requestId, `Updated user ${username} last active timestamp and reset expiration`);
+    }
+
+    // Trigger Pusher event for new message
+    try {
+      await pusher.trigger('chats', 'room-message', { 
+        roomId,
+        message
+      });
+      logInfo(requestId, `Pusher event triggered: room-message for room ${roomId}`);
+    } catch (pusherError) {
+      logError(requestId, 'Error triggering Pusher event for new message:', pusherError);
+      // Continue with response - Pusher error shouldn't block message sending
+    }
+
+    return new Response(JSON.stringify({ message }), {
+      status: 201,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  } catch (error) {
+    logError(requestId, `Error sending message in room ${roomId} from user ${username}:`, error);
+    return createErrorResponse('Failed to send message', 500);
   }
 } 
