@@ -215,12 +215,11 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
   // Scroll timeline to active item
   useEffect(() => {
     if (isOpen && timelineRef.current && cachedYears.length > 0) {
-      // Calculate the reversed index for finding the correct child element
-      const reversedIndex = cachedYears.length - 1 - activeYearIndex;
+      // Use activeYearIndex directly since timeline is no longer reversed
       
       // Ensure index is valid
-      if (reversedIndex >= 0 && reversedIndex < timelineRef.current.children.length) {
-        const activeElement = timelineRef.current.children[reversedIndex] as HTMLElement;
+      if (activeYearIndex >= 0 && activeYearIndex < timelineRef.current.children.length) {
+        const activeElement = timelineRef.current.children[activeYearIndex] as HTMLElement;
         
         if (activeElement) {
           // Check screen width to apply correct scroll behavior
@@ -857,8 +856,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                                WebkitMaskImage: maskStyle, // For Safari
                            }}
                         >
-                            {[...cachedYears].reverse().map((year, reversedIndex) => {
-                                const index = cachedYears.length - 1 - reversedIndex; // Convert back to original index
+                            {cachedYears.map((year, index) => {
                                 const isActive = activeYearIndex === index;
                                 const isNow = year === 'current';
 
