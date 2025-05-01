@@ -551,14 +551,14 @@ export function useFileSystem(initialPath: string = "/") {
             name: "Music",
             isDirectory: true,
             path: "/Music",
-            icon: "/icons/music.png",
+            icon: "/icons/sounds.png",
             type: "directory-virtual",
           },
           {
             name: "Videos",
             isDirectory: true,
             path: "/Videos",
-            icon: "/icons/videos.png",
+            icon: "/icons/movies.png",
             type: "directory-virtual",
           },
           {
