@@ -6,13 +6,34 @@ import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { FileList } from "./FileList";
-import { useFileSystem } from "../hooks/useFileSystem";
+import { useFileSystem, dbOperations, STORES, Document } from "../hooks/useFileSystem";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { appMetadata, helpItems } from "../index";
 import { calculateStorageSpace } from "@/utils/storage";
 import { InputDialog } from "@/components/dialogs/InputDialog";
+import { useTextEditStore } from "@/stores/useTextEditStore";
+
+// Helper function to determine file type from extension
+const getFileType = (fileName: string): string => {
+  const ext = fileName.split(".").pop()?.toLowerCase() || "";
+  switch (ext) {
+    case "png":
+    case "jpg":
+    case "jpeg":
+    case "gif":
+    case "webp":
+    case "bmp":
+      return "image";
+    case "md":
+      return "markdown";
+    case "txt":
+      return "text";
+    default:
+      return "unknown";
+  }
+};
 
 export function FinderAppComponent({
   onClose,
@@ -35,14 +56,16 @@ export function FinderAppComponent({
   const pathInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [storageSpace, setStorageSpace] = useState(calculateStorageSpace());
+  const textEditStore = useTextEditStore();
 
+  // Get all functionality from useFileSystem hook
   const {
     currentPath,
     files,
     selectedFile,
     isLoading,
     error,
-    handleFileOpen,
+    handleFileOpen: originalHandleFileOpen,
     handleFileSelect,
     navigateUp,
     navigateToPath,
@@ -54,15 +77,90 @@ export function FinderAppComponent({
     navigateForward,
     canNavigateBack,
     canNavigateForward,
-    saveFile,
-    renameFile,
+    saveFile: originalSaveFile,
+    renameFile: originalRenameFile,
   } = useFileSystem();
+
+  // Wrap the original handleFileOpen to integrate with TextEditStore
+  const handleFileOpen = async (file: any) => {
+    // Let the original handler do its work, but also update TextEditStore
+    // for text documents
+    originalHandleFileOpen(file);
+
+    // If this is a document, also update TextEditStore
+    if (file.path?.startsWith("/Documents/") && !file.isDirectory) {
+      try {
+        // Get the document to ensure we have the latest content
+        const doc = await dbOperations.get<Document>(STORES.DOCUMENTS, file.name);
+        if (doc) {
+          // Update TextEditStore with the file path
+          textEditStore.setLastFilePath(file.path);
+          textEditStore.setHasUnsavedChanges(false);
+          
+          // Try to parse the content as JSON if possible
+          if (typeof doc.content === 'string') {
+            try {
+              const jsonContent = JSON.parse(doc.content);
+              textEditStore.setContentJson(jsonContent);
+            } catch (e) {
+              // Not JSON content, will be handled by TextEdit when it loads
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Error updating TextEditStore:", err);
+      }
+    }
+  };
+
+  // Wrap the original saveFile to integrate with TextEditStore
+  const saveFile = async (file: any) => {
+    // Call the original saveFile function
+    await originalSaveFile(file);
+
+    // If this is a document and it matches the currently open document in TextEdit,
+    // update the TextEditStore to mark changes as saved
+    if (file.path?.startsWith("/Documents/") && textEditStore.lastFilePath === file.path) {
+      textEditStore.setHasUnsavedChanges(false);
+    }
+  };
+
+  // Wrap the original renameFile to integrate with TextEditStore
+  const renameFile = async (oldName: string, newName: string) => {
+    // Check if this file is currently open in TextEdit
+    const currentDoc = await dbOperations.get<Document>(STORES.DOCUMENTS, oldName);
+    if (!currentDoc) return;
+
+    // Calculate old and new paths
+    const oldPath = `/Documents/${oldName}`;
+    const newPath = `/Documents/${newName}`;
+    const isCurrentFile = textEditStore.lastFilePath === oldPath;
+
+    // Call the original renameFile function
+    await originalRenameFile(oldName, newName);
+
+    // If this is the currently open file in TextEdit, update the path
+    if (isCurrentFile) {
+      textEditStore.setLastFilePath(newPath);
+    }
+
+    // Dispatch a rename event so other components can update
+    const event = new CustomEvent("fileRenamed", {
+      detail: {
+        oldPath,
+        newPath,
+        oldName,
+        newName,
+      },
+    });
+    window.dispatchEvent(event);
+  };
 
   // Update storage space periodically
   useEffect(() => {
     const interval = setInterval(() => {
       setStorageSpace(calculateStorageSpace());
-    }, 5000); // Update every 5 seconds
+    }, 15000); // Update every 15 seconds
 
     return () => clearInterval(interval);
   }, []);
@@ -137,16 +235,31 @@ export function FinderAppComponent({
         return;
       }
 
-      const text = await file.text();
+      try {
+        const text = await file.text();
+        const filePath = `/Documents/${file.name}`;
 
-      // Save the file to the virtual filesystem
-      saveFile({
-        name: file.name,
-        path: `/Documents/${file.name}`,
-        content: text,
-        icon: "/icons/file-text.png",
-        isDirectory: false,
-      });
+        // Use the saveFile function that integrates with TextEditStore
+        await saveFile({
+          name: file.name,
+          path: filePath,
+          content: text,
+          icon: "/icons/file-text.png",
+          isDirectory: false,
+          type: getFileType(file.name),
+        });
+
+        // Notify file was added
+        const event = new CustomEvent("fileUpdated", {
+          detail: {
+            name: file.name,
+            path: filePath,
+          },
+        });
+        window.dispatchEvent(event);
+      } catch (err) {
+        console.error("Error saving dropped file:", err);
+      }
     }
   };
 
@@ -154,9 +267,7 @@ export function FinderAppComponent({
     fileInputRef.current?.click();
   };
 
-  const handleFileInputChange = async (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleFileInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       // Only accept text and markdown files
@@ -164,19 +275,34 @@ export function FinderAppComponent({
         return;
       }
 
-      const text = await file.text();
+      try {
+        const text = await file.text();
+        const filePath = `${currentPath}/${file.name}`;
 
-      // Save the file to the virtual filesystem
-      saveFile({
-        name: file.name,
-        path: `${currentPath}/${file.name}`,
-        content: text,
-        icon: "/icons/file-text.png",
-        isDirectory: false,
-      });
+        // Use the saveFile function that integrates with TextEditStore
+        await saveFile({
+          name: file.name,
+          path: filePath,
+          content: text,
+          icon: "/icons/file-text.png",
+          isDirectory: false,
+          type: getFileType(file.name),
+        });
 
-      // Clear the input
-      e.target.value = "";
+        // Notify file was added
+        const event = new CustomEvent("fileUpdated", {
+          detail: {
+            name: file.name,
+            path: filePath,
+          },
+        });
+        window.dispatchEvent(event);
+
+        // Clear the input
+        e.target.value = "";
+      } catch (err) {
+        console.error("Error importing file:", err);
+      }
     }
   };
 
@@ -186,7 +312,7 @@ export function FinderAppComponent({
     setIsRenameDialogOpen(true);
   };
 
-  const handleRenameSubmit = (newName: string) => {
+  const handleRenameSubmit = async (newName: string) => {
     if (!selectedFile || !newName) return;
 
     // Only proceed if the name actually changed
@@ -195,29 +321,43 @@ export function FinderAppComponent({
       return;
     }
 
-    // Rename the file
-    renameFile(selectedFile.name, newName);
+    // Use our wrapped renameFile that integrates with TextEditStore
+    await renameFile(selectedFile.name, newName);
 
     // Close dialog
     setIsRenameDialogOpen(false);
   };
 
-  const handleDuplicate = () => {
+  const handleDuplicate = async () => {
     if (!selectedFile) return;
 
-    // Create a copy name by adding " (copy)" before the extension
-    const ext = selectedFile.name.includes(".")
-      ? `.${selectedFile.name.split(".").pop()}`
-      : "";
-    const baseName = selectedFile.name.replace(ext, "");
-    const copyName = `${baseName} (copy)${ext}`;
+    try {
+      // Create a copy name by adding " (copy)" before the extension
+      const ext = selectedFile.name.includes(".")
+        ? `.${selectedFile.name.split(".").pop()}`
+        : "";
+      const baseName = selectedFile.name.replace(ext, "");
+      const copyName = `${baseName} (copy)${ext}`;
+      const copyPath = `${currentPath}/${copyName}`;
 
-    // Save the duplicate file
-    saveFile({
-      ...selectedFile,
-      name: copyName,
-      path: `${currentPath}/${copyName}`,
-    });
+      // Use original saveFile with a new name but same content
+      await saveFile({
+        ...selectedFile,
+        name: copyName,
+        path: copyPath,
+      });
+
+      // Notify file was duplicated
+      const event = new CustomEvent("fileUpdated", {
+        detail: {
+          name: copyName,
+          path: copyPath,
+        },
+      });
+      window.dispatchEvent(event);
+    } catch (err) {
+      console.error("Error duplicating file:", err);
+    }
   };
 
   const handleRestore = () => {
