@@ -33,7 +33,6 @@ import {
 } from "@/utils/storage";
 import { ChatMessages } from "./ChatMessages";
 import { ChatInput } from "./ChatInput";
-import { useAppContext } from "@/contexts/AppContext";
 import { Plus, Trash } from "lucide-react";
 import { AppId } from "@/config/appRegistry";
 import { type ChatRoom, type ChatMessage } from "../../../../src/types/chat";
