@@ -3,6 +3,8 @@ import { FileItem } from "../components/FileList";
 import { APP_STORAGE_KEYS, ensureIndexedDBInitialized } from "@/utils/storage";
 import { getNonFinderApps } from "@/config/appRegistry";
 import { useLaunchApp } from "@/hooks/useLaunchApp";
+import { useIpodStore } from "@/stores/useIpodStore";
+import { useVideoStore } from "@/stores/useVideoStore";
 
 // Store names
 const STORES = {
@@ -16,6 +18,7 @@ const STORES = {
 interface ExtendedFileItem extends Omit<FileItem, "content"> {
   content?: string | Blob;
   contentUrl?: string;
+  data?: any; // Add optional data field for virtual files
 }
 
 // Generic CRUD operations
@@ -417,6 +420,8 @@ export function useFileSystem(initialPath: string = "/") {
   const [history, setHistory] = useState<string[]>([initialPath]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const launchApp = useLaunchApp();
+  const { tracks: ipodTracks, setCurrentIndex: setIpodIndex, setIsPlaying: setIpodPlaying } = useIpodStore();
+  const { videos: videoTracks, setCurrentIndex: setVideoIndex, setIsPlaying: setVideoPlaying } = useVideoStore();
 
   // Initialize database and load data
   useEffect(() => {
@@ -442,7 +447,7 @@ export function useFileSystem(initialPath: string = "/") {
   // Load files whenever path, documents, or trash items change
   useEffect(() => {
     loadFiles();
-  }, [currentPath, documents, images, trashItems]);
+  }, [currentPath, documents, images, trashItems, ipodTracks, videoTracks]);
 
   // Listen for file save events
   useEffect(() => {
@@ -543,6 +548,20 @@ export function useFileSystem(initialPath: string = "/") {
             type: "directory",
           },
           {
+            name: "Music",
+            isDirectory: true,
+            path: "/Music",
+            icon: "/icons/music.png",
+            type: "directory-virtual",
+          },
+          {
+            name: "Videos",
+            isDirectory: true,
+            path: "/Videos",
+            icon: "/icons/videos.png",
+            type: "directory-virtual",
+          },
+          {
             name: "Trash",
             isDirectory: true,
             path: "/Trash",
@@ -621,6 +640,30 @@ export function useFileSystem(initialPath: string = "/") {
           };
         });
       }
+      // Music directory (virtual)
+      else if (currentPath === "/Music") {
+        simulatedFiles = ipodTracks.map((track, index) => ({
+          name: `${track.title}${track.artist ? ` - ${track.artist}` : ''}`,
+          isDirectory: false,
+          path: `/Music/${track.id}`,
+          icon: "/icons/sound.png",
+          appId: "ipod",
+          type: "Music",
+          data: { index },
+        }));
+      }
+      // Videos directory (virtual)
+      else if (currentPath === "/Videos") {
+        simulatedFiles = videoTracks.map((video, index) => ({
+          name: `${video.title}${video.artist ? ` - ${video.artist}` : ''}`,
+          isDirectory: false,
+          path: `/Videos/${video.id}`,
+          icon: "/icons/video-tape.png",
+          appId: "videos",
+          type: "Video",
+          data: { index },
+        }));
+      }
       // Trash directory
       else if (currentPath === "/Trash") {
         simulatedFiles = trashItems.map((item) => ({
@@ -641,7 +684,9 @@ export function useFileSystem(initialPath: string = "/") {
 
   function handleFileOpen(file: ExtendedFileItem) {
     if (file.isDirectory) {
-      setCurrentPath(file.path);
+      if (file.type === "directory" || file.type === "directory-virtual") {
+        navigateToPath(file.path);
+      }
       return;
     }
 
@@ -659,7 +704,7 @@ export function useFileSystem(initialPath: string = "/") {
       contentUrlToUse = URL.createObjectURL(file.content);
     }
 
-    // Handle opening files based on their location
+    // Handle opening files based on their location or type
     if (file.path.startsWith("/Applications/")) {
       // Launch the corresponding app
       if (file.appId) {
@@ -733,6 +778,14 @@ export function useFileSystem(initialPath: string = "/") {
 
       // Launch Paint
       launchApp("paint");
+    } else if (file.appId === "ipod" && file.data?.index !== undefined) {
+      setIpodIndex(file.data.index);
+      setIpodPlaying(true);
+      launchApp("ipod");
+    } else if (file.appId === "videos" && file.data?.index !== undefined) {
+      setVideoIndex(file.data.index);
+      setVideoPlaying(true);
+      launchApp("videos");
     }
   }
 
@@ -749,6 +802,9 @@ export function useFileSystem(initialPath: string = "/") {
   function navigateToPath(path: string) {
     // Ensure path starts with /
     const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+
+    // Clear selected file when navigating
+    setSelectedFile(undefined);
 
     // Add to history if it's a new path
     if (normalizedPath !== currentPath) {

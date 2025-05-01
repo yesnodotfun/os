@@ -34,7 +34,12 @@ interface FileListProps {
 // Helper function to get human-readable file type
 function getHumanReadableType(file: FileItem): string {
   if (file.isDirectory) return "Folder";
-  if (file.appId) return "Application";
+
+  // Prioritize specific virtual types
+  if (file.type === "Music") return "Music";
+  if (file.type === "Video") return "Video";
+
+  if (file.appId) return "Application"; // Keep this for actual applications
   if (!file.type) return "Document";
 
   switch (file.type) {
@@ -44,10 +49,11 @@ function getHumanReadableType(file: FileItem): string {
       return "Markdown Document";
     case "text":
       return "Text Document";
-    case "application":
+    case "application": // This case might be redundant now but keep for safety
       return "Application";
-    case "directory":
+    case "directory": // Should be handled by the first check
       return "Folder";
+    // No need for Music/Video cases here as they are handled above
     default:
       return file.type.charAt(0).toUpperCase() + file.type.slice(1);
   }

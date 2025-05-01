@@ -779,7 +779,7 @@ export function VideosAppComponent({
                   <div className="relative overflow-hidden">
                     <AnimatedTitle
                       title={videos[currentIndex].artist 
-                        ? `${videos[currentIndex].artist} - ${videos[currentIndex].title}`
+                        ? `${videos[currentIndex].title} - ${videos[currentIndex].artist}`
                         : videos[currentIndex].title}
                       direction={animationDirection}
                       isPlaying={isPlaying}

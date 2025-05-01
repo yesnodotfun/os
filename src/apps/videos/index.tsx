@@ -42,13 +42,13 @@ export const appMetadata = {
     url: "https://ryo.lu",
   },
   github: "https://github.com/ryokun6/ryos",
-  icon: "/icons/videos.png",
+  icon: "/icons/tv.png",
 };
 
 export const VideosApp: BaseApp = {
   id: "videos",
   name: "Videos",
-  icon: { type: "image", src: appMetadata.icon },
+  icon: { type: "image", src: "/icons/tv.png" },
   description: "A retro-style YouTube playlist player",
   component: VideosAppComponent,
   helpItems,
