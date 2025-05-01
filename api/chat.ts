@@ -28,6 +28,18 @@ interface SystemState {
     loopCurrent: boolean;
     isShuffled: boolean;
   };
+  ipod?: {
+    currentTrack: {
+      id: string;
+      url: string;
+      title: string;
+      artist?: string;
+    } | null;
+    isPlaying: boolean;
+    loopAll: boolean;
+    loopCurrent: boolean;
+    isShuffled: boolean;
+  };
 }
 
 // Allowed origins for API requests
@@ -188,6 +200,15 @@ ${
   systemState.video.currentVideo && systemState.video.isPlaying
     ? `- Now Playing: ${systemState.video.currentVideo.title}${
         systemState.video.currentVideo.artist ? ` by ${systemState.video.currentVideo.artist}` : ''
+      }`
+    : ""
+}
+${
+  systemState.ipod &&
+  systemState.ipod.currentTrack &&
+  systemState.ipod.isPlaying
+    ? `- iPod Now Playing: ${systemState.ipod.currentTrack.title}${
+        systemState.ipod.currentTrack.artist ? ` by ${systemState.ipod.currentTrack.artist}` : ''
       }`
     : ""
 }

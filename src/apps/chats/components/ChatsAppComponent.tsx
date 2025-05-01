@@ -14,6 +14,7 @@ import Pusher from 'pusher-js'; // Import Pusher
 import { useAppStore } from "@/stores/useAppStore"; // Add store imports
 import { useInternetExplorerStore } from "@/stores/useInternetExplorerStore";
 import { useVideoStore } from "@/stores/useVideoStore";
+import { useIpodStore } from "@/stores/useIpodStore";
 import {
   loadChatMessages,
   saveChatMessages,
@@ -1746,8 +1747,10 @@ const getSystemState = () => {
   const appStore = useAppStore.getState();
   const ieStore = useInternetExplorerStore.getState();
   const videoStore = useVideoStore.getState();
+  const ipodStore = useIpodStore.getState();
 
   const currentVideo = videoStore.videos[videoStore.currentIndex];
+  const currentTrack = ipodStore.tracks[ipodStore.currentIndex];
 
   return {
     apps: appStore.apps,
@@ -1768,7 +1771,21 @@ const getSystemState = () => {
       loopAll: videoStore.loopAll,
       loopCurrent: videoStore.loopCurrent,
       isShuffled: videoStore.isShuffled,
-    }
+    },
+    ipod: {
+      currentTrack: currentTrack
+        ? {
+            id: currentTrack.id,
+            url: currentTrack.url,
+            title: currentTrack.title,
+            artist: currentTrack.artist,
+          }
+        : null,
+      isPlaying: ipodStore.isPlaying,
+      loopAll: ipodStore.loopAll,
+      loopCurrent: ipodStore.loopCurrent,
+      isShuffled: ipodStore.isShuffled,
+    },
   };
 };
 
