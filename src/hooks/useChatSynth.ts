@@ -142,7 +142,11 @@ export const SYNTH_PRESETS: Record<string, SynthPreset> = {
 
 // Pentatonic scale for an exotic jungle feel
 const notes = ["C4", "D4", "F4", "G4", "A4", "C5", "D5"];
+// Increase the minimum interval between notes slightly to reduce the chance of audio buffer congestion
 const minTimeBetweenNotes = 0.1;
+
+// Allow more simultaneous voices so that quick successive notes don't cut each other off (helps prevent choppiness)
+const VOICE_COUNT = 10;
 
 export function useChatSynth() {
   const [isInitialized, setIsInitialized] = useState(false);
@@ -229,10 +233,14 @@ function createSynth(preset: SynthPreset) {
     wet: preset.effects.reverb.wet,
   }).connect(tremolo);
 
+  // Use a larger polyphony count to minimise voice-stealing artefacts when many notes are triggered quickly
   const newSynth = new Tone.PolySynth(Tone.Synth, {
     oscillator: preset.oscillator,
     envelope: preset.envelope,
-  }).connect(reverb);
+  });
+  // Increase the maximum polyphony to allow more simultaneous notes without voice stealing.
+  newSynth.maxPolyphony = VOICE_COUNT;
+  newSynth.connect(reverb);
 
   newSynth.volume.value = -12;
   return newSynth;
