@@ -63,7 +63,7 @@ export function TextEditAppComponent({
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const [isConfirmNewDialogOpen, setIsConfirmNewDialogOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { files, saveFile } = useFileSystem("/Documents");
+  const { saveFile } = useFileSystem("/Documents");
   const launchApp = useLaunchApp();
   const { play: playButtonClick } = useSound(Sounds.BUTTON_CLICK);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
@@ -72,7 +72,6 @@ export function TextEditAppComponent({
   const {
     lastFilePath: currentFilePath,
     setLastFilePath,
-    contentJson: storedContentJson,
     setContentJson,
     hasUnsavedChanges,
     setHasUnsavedChanges,
