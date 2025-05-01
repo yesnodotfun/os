@@ -17,18 +17,30 @@ export const helpItems: BaseApp["helpItems"] = [
     icon: "🖱️",
     title: "Desktop Controls",
     description:
-      "Left click to reveal, right click to flag, double click numbers to reveal adjacent cells.",
+      "Left-click to reveal, right-click to flag, double-click numbers to auto-reveal neighbors.",
   },
   {
     icon: "📱",
     title: "Mobile Controls",
-    description: "Tap to reveal, long press to flag.",
+    description: "Tap to reveal, long-press to flag a mine.",
   },
   {
     icon: "📖",
     title: "Game Rules",
     description:
-      "Numbers show adjacent mines. Flag all mines to win. Double click numbers after flagging neighbors.",
+      "Numbers show adjacent mines. Flag every mine and reveal all safe cells to win.",
+  },
+  {
+    icon: "⏱️",
+    title: "Timer & Counter",
+    description:
+      "Top bar shows elapsed time and remaining unflagged mines.",
+  },
+  {
+    icon: "🔄",
+    title: "Restart",
+    description:
+      "Press the smiley face or choose Game ▸ New to start a fresh board.",
   },
 ];
 

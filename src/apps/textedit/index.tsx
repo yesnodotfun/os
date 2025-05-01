@@ -4,19 +4,18 @@ import { TextEditAppComponent } from "./components/TextEditAppComponent";
 export const helpItems = [
   {
     icon: "📝",
-    title: "Basic Editing",
-    description: "Type, copy, cut, paste, and undo/redo your text",
+    title: "Rich Editing",
+    description: "Type, copy, cut, paste, undo & redo your text with ease",
   },
   {
     icon: "🎨",
-    title: "Text Formatting",
-    description:
-      "Style with bold, italic, underline, headings, and text alignment",
+    title: "Formatting",
+    description: "Bold, italic, underline, headings & alignment options",
   },
   {
     icon: "📋",
-    title: "Lists & Organization",
-    description: "Create bullet, numbered, and task lists to organize content",
+    title: "Lists & Tasks",
+    description: "Create bullet, numbered & check-box task lists",
   },
   {
     icon: "💾",
@@ -26,14 +25,13 @@ export const helpItems = [
   },
   {
     icon: "🎤",
-    title: "Voice Input",
-    description:
-      "Dictate text using voice transcription for hands-free editing",
+    title: "Voice Dictation",
+    description: "Dictate text hands-free right into the document",
   },
   {
     icon: "⚡",
-    title: "Quick Commands",
-    description: "Type / to access formatting and editing shortcuts",
+    title: "Slash Commands",
+    description: "Type / for quick actions or let Ryo AI edit lines remotely",
   },
 ];
 

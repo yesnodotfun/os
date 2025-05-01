@@ -17,37 +17,37 @@ export const helpItems = [
     icon: "🔍",
     title: "Browse & Navigate",
     description:
-      "Navigate files using Back/Forward buttons and access quick locations from the Go menu",
+      "Back/Forward buttons, address bar & Go menu for fast navigation",
   },
   {
     icon: "📁",
     title: "File Management",
     description:
-      "Create new folders, move files to Trash, and organize your content",
+      "Create folders, rename, move, and drag items to organize files",
   },
   {
     icon: "👀",
     title: "View & Sort",
     description:
-      "Switch between Icon views and sort files by name, kind, size, or date",
+      "Switch Icon sizes and sort by name, kind, size, or date",
   },
   {
     icon: "📍",
     title: "Quick Access",
     description:
-      "Quickly access Documents, Applications, and Trash from the Go menu",
+      "Jump to Documents, Applications, or Trash instantly from Go menu",
+  },
+  {
+    icon: "ℹ️",
+    title: "Storage Info",
+    description:
+      "See free space & item count in the window footer",
   },
   {
     icon: "🗑️",
     title: "Trash",
     description:
-      "Move unwanted files to Trash and permanently delete them when emptying",
-  },
-  {
-    icon: "💾",
-    title: "Storage Info",
-    description:
-      "View available storage space and item count at the bottom of the window",
+      "Drag files to Trash & Empty to permanently delete",
   },
 ];
 

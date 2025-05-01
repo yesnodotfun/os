@@ -35,13 +35,16 @@ bun run build
 - Desktop icons and dock
 - Window minimize/maximize controls
 - Menu bar with application-specific menus
-- Customizable wallpapers (tiled patterns and photos)
+- Customizable wallpapers (photos, patterns, or videos)
 - System-wide sound effects
 - Local storage persistence
+- Optional CRT, Galaxy & Aurora shader effects
+- System-wide UI, Chats, and Terminal sounds
+- Local storage persistence with one-click Backup / Restore
 
 ### Built-in Applications
 
-- **Finder**: File system navigation and management with Documents, Applications, and Trash
+- **Finder**: File manager with Quick Access & Storage Info
 - **TextEdit**: Rich text editing with markdown support and task lists
 - **MacPaint**: Classic bitmap graphics editor
   - Drawing tools (pencil, brush, eraser)
@@ -84,27 +87,28 @@ bun run build
   - Wayback Machine integration for time travel
   - Classic UI with modern browsing capabilities
   - Historical web content viewing
-- **Chats**: AI-powered chat interface
+- **Chats**: AI-powered chat & rooms
   - Natural conversation with Ryo AI
-  - System control through chat
-  - App launching and management
-  - Document editing capabilities
-- **Control Panels**: System settings
-  - Appearance customization
-  - Sound settings and synth controls
-  - System management
-  - Backup and restore functionality
-  - Wallpaper management
+  - Join public chat rooms
+  - Push-to-talk voice messages
+  - Control apps or edit documents via chat commands
+  - Save transcript to Markdown
+- **Control Panels**: System preferences & power tools
+  - Appearance & shader selection (CRT, Galaxy, Aurora)
+  - UI / typing / Terminal sound toggles
+  - One-click full Backup / Restore
+  - Format or reset the virtual file system
 - **Minesweeper**: Classic game implementation
 - **Virtual PC**: DOS game emulator
   - Play classic games like Doom and SimCity
   - DOS environment emulation
   - Game save states
-- **Terminal**: Unix-like command-line interface
-  - Navigate the virtual file system with familiar commands (ls, cd, cat, pwd, clear)
-  - Command history using ↑/↓ keys
-  - System sounds for output, errors, and AI responses
-  - Shares the same file system as Finder for seamless interaction
+- **Terminal**: Unix-like CLI with built-in AI
+  - Familiar commands (ls, cd, cat, touch, vim, edit, …)
+  - ↑ / ↓ history & auto-completion
+  - "ryo <prompt>" to chat with AI assistant
+  - Open documents in TextEdit or Vim straight from prompt
+  - Toggle distinctive Terminal sounds in View ▸ Sounds
 - **iPod**: 1st-generation iPod-style music player
   - Import any YouTube URL to build your music library
   - Classic click-wheel navigation and back-light toggle
@@ -114,16 +118,16 @@ bun run build
 
 ### Core Features
 
-- Window management system with z-index handling
-- Application state management
-- Local storage persistence
-- Keyboard shortcuts
-- Dark mode support
-- Responsive design
-- File system with Documents and Applications
-- System-wide audio controls
-- Import/Export functionality
-- Backup and restore capabilities
+- Window management with draggable, resizable windows & z-index
+- Shader-powered backgrounds (CRT scanlines, Galaxy, Aurora)
+- System context Ryo AI across Terminal & Chats
+- One-click Backup / Restore (localStorage & IndexedDB)
+- Local persistence for every app (videos, music, docs…)
+- Keyboard shortcuts & mobile-friendly gestures
+- Responsive design for mobile and tablet
+- Full virtual file system shared by Finder, Terminal, TextEdit & others
+- System-wide audio with per-app toggles
+- Import / Export for documents, sounds & wallpapers
 
 ## Project Structure
 

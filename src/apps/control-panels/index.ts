@@ -6,19 +6,37 @@ export const helpItems = [
     icon: "🎨",
     title: "Appearance",
     description:
-      "Customize your desktop wallpaper with a variety of beautiful photos and patterns",
+      "Choose photos, patterns, or shader effects for your desktop wallpaper",
   },
   {
     icon: "🔊",
-    title: "Sound",
+    title: "Sounds",
     description:
-      "Configure UI sounds, typing synth, and chat synthesizer settings",
+      "Toggle UI sounds, typing synth, and Terminal / IE effects",
+  },
+  {
+    icon: "🤖",
+    title: "AI Model",
+    description:
+      "Select the AI model used by Chats and Terminal assistant",
+  },
+  {
+    icon: "🌌",
+    title: "Shader Effects",
+    description:
+      "Enable CRT, Galaxy, or Aurora visual effects",
+  },
+  {
+    icon: "📦",
+    title: "Backup & Restore",
+    description:
+      "Export or restore all settings and files",
   },
   {
     icon: "⚙️",
     title: "System",
     description:
-      "Backup/restore settings, reset preferences, or format the virtual file system",
+      "Reset preferences or format the virtual file system",
   },
 ];
 

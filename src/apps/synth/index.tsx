@@ -5,33 +5,32 @@ export const helpItems = [
   {
     icon: "🎹",
     title: "Virtual Keyboard",
-    description: "Play notes using on-screen keyboard or your computer keys",
+    description: "Play notes with on-screen keys or computer keyboard",
   },
   {
     icon: "🎛️",
-    title: "Oscillators",
-    description:
-      "Choose between sine, square, sawtooth, and triangle waveforms",
-  },
-  {
-    icon: "🎚️",
-    title: "Effects",
-    description: "Add reverb, delay, distortion and more to your sound",
-  },
-  {
-    icon: "⚙️",
-    title: "Settings",
-    description: "Customize synth parameters and MIDI input options",
+    title: "Controls Panel",
+    description: "Toggle CONTROLS to tweak oscillators, envelope & effects",
   },
   {
     icon: "🔊",
     title: "Presets",
-    description: "Save and load your favorite synth settings",
+    description: "Save, load & manage custom sound presets",
   },
   {
-    icon: "🎨",
-    title: "Retro UI",
-    description: "Classic synthesizer aesthetics",
+    icon: "🌈",
+    title: "3D Waveform",
+    description: "Live animated waveform when controls panel is open",
+  },
+  {
+    icon: "🎚️",
+    title: "Effects",
+    description: "Reverb, delay, distortion, chorus, phaser & bit-crusher",
+  },
+  {
+    icon: "�",
+    title: "MIDI Input",
+    description: "Plug in a MIDI keyboard and play instantly",
   },
 ];
 

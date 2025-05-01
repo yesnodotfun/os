@@ -15,25 +15,37 @@ export const TerminalApp: BaseApp = {
       icon: "💻",
       title: "Basic Commands",
       description:
-        "Use commands like ls, cd, cat, pwd, and clear to navigate and view files.",
+        "Use commands like ls, cd, cat, pwd, clear, and touch to navigate and manage files.",
     },
     {
       icon: "🧭",
       title: "Navigation",
       description:
-        "The terminal allows you to browse the same file system as Finder.",
+        "Browse the same virtual file system as Finder with familiar Unix commands.",
     },
     {
       icon: "⌨️",
       title: "Command History",
       description:
-        "Press Up and Down arrow keys to cycle through previous commands.",
+        "Press ↑ / ↓ arrows to cycle through previous commands and re-run them quickly.",
+    },
+    {
+      icon: "🤖",
+      title: "AI Assistant",
+      description:
+        "Type \"ryo &lt;prompt&gt;\" to chat with Ryo AI directly inside the terminal.",
+    },
+    {
+      icon: "📝",
+      title: "File Editing",
+      description:
+        "Open documents in TextEdit (edit) or Vim-style editor (vim) right from the prompt.",
     },
     {
       icon: "🔊",
       title: "Terminal Sounds",
       description:
-        "Terminal makes distinctive sounds for commands, errors, and AI responses. Toggle sounds in the View menu.",
+        "Distinct sounds for output, errors & AI replies. Toggle in View ▸ Sounds.",
     },
   ],
   metadata: {

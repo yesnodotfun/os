@@ -4,33 +4,33 @@ import { SoundboardAppComponent } from "./components/SoundboardAppComponent";
 export const helpItems = [
   {
     icon: "🎙️",
-    title: "Record",
-    description: "Click slot to record, click again to stop",
+    title: "Record Slot",
+    description: "Click a slot to record audio; click again to stop",
   },
   {
     icon: "▶️",
-    title: "Play",
-    description: "Click or push numbers 1-9 to play",
+    title: "Keyboard Play",
+    description: "Press 1-9 to trigger sounds instantly",
+  },
+  {
+    icon: "🌊",
+    title: "Waveform View",
+    description: "See live waveform while recording or playing back",
   },
   {
     icon: "✏️",
-    title: "Customize",
-    description: "Add emojis and name your sounds",
+    title: "Customize Slot",
+    description: "Add emoji & title to each sample for quick ID",
   },
   {
     icon: "📂",
-    title: "Organize",
-    description: "Make multiple soundboards",
+    title: "Multiple Boards",
+    description: "Create, rename & switch boards for sets of sounds",
   },
   {
-    icon: "🌎",
-    title: "Export & share",
-    description: "Or import from file downloaded",
-  },
-  {
-    icon: "🖥️",
-    title: "Modern GUI",
-    description: "System 7 style aesthetics",
+    icon: "🌍",
+    title: "Import / Export",
+    description: "Share boards as files; drag-drop to import",
   },
 ];
 

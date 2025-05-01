@@ -16,17 +16,32 @@ export const helpItems = [
   {
     icon: "🎮",
     title: "PC Emulator",
-    description: "Run classic DOS games and applications in your browser",
+    description: "Runs classic DOS games & apps right in your browser",
   },
   {
     icon: "⌨️",
     title: "Keyboard Controls",
-    description: "Use your keyboard to control the DOS environment",
+    description: "Use your physical keyboard for in-game input",
+  },
+  {
+    icon: "🖱️",
+    title: "Mouse Capture",
+    description: "Click inside the window to capture / release the mouse",
+  },
+  {
+    icon: "⛶",
+    title: "Full-Screen Mode",
+    description: "Toggle View ▸ Full Screen for an immersive display",
   },
   {
     icon: "💾",
     title: "Save States",
-    description: "Save and load your game progress",
+    description: "Save or load game progress any time from File menu",
+  },
+  {
+    icon: "🔳",
+    title: "Aspect Ratio",
+    description: "Switch between 4∶3 or widescreen to fit your monitor",
   },
 ];
 

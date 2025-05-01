@@ -32,10 +32,10 @@ export const helpItems = [
       "Choose from various patterns in the bottom palette to fill shapes and areas.",
   },
   {
-    icon: "⭕",
-    title: "Shapes",
+    icon: "✨",
+    title: "Filters",
     description:
-      "Draw rectangles, ovals, and lines using the shape tools in the toolbar.",
+      "Apply invert, grayscale, brightness & more from the Filters menu.",
   },
 ];
 
