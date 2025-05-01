@@ -214,29 +214,33 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
 
   // Scroll timeline to active item
   useEffect(() => {
-    if (isOpen && timelineRef.current) {
+    if (isOpen && timelineRef.current && cachedYears.length > 0) {
       // Calculate the reversed index for finding the correct child element
       const reversedIndex = cachedYears.length - 1 - activeYearIndex;
-      const activeElement = timelineRef.current.children[reversedIndex] as HTMLElement;
       
-      if (activeElement) {
-        // Check screen width to apply correct scroll behavior
-        const isMobile = window.innerWidth < 640; // Tailwind 'sm' breakpoint
+      // Ensure index is valid
+      if (reversedIndex >= 0 && reversedIndex < timelineRef.current.children.length) {
+        const activeElement = timelineRef.current.children[reversedIndex] as HTMLElement;
+        
+        if (activeElement) {
+          // Check screen width to apply correct scroll behavior
+          const isMobile = window.innerWidth < 640; // Tailwind 'sm' breakpoint
 
-        if (isMobile) {
-          // Mobile: Center horizontally
-          activeElement.scrollIntoView({
-            behavior: 'smooth',
-            block: 'nearest', // Avoid unnecessary vertical scroll if possible
-            inline: 'center', // Center horizontally
-          });
-        } else {
-          // Desktop: Center vertically
-          activeElement.scrollIntoView({
-            behavior: 'smooth',
-            block: 'center', // Center vertically
-            inline: 'nearest', // Avoid unnecessary horizontal scroll
-          });
+          if (isMobile) {
+            // Mobile: Center horizontally
+            activeElement.scrollIntoView({
+              behavior: 'smooth',
+              block: 'nearest', // Avoid unnecessary vertical scroll if possible
+              inline: 'center', // Center horizontally
+            });
+          } else {
+            // Desktop: Center vertically
+            activeElement.scrollIntoView({
+              behavior: 'smooth',
+              block: 'center', // Center vertically
+              inline: 'nearest', // Avoid unnecessary horizontal scroll
+            });
+          }
         }
       }
     }
