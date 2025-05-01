@@ -157,9 +157,8 @@ export function useChatSynth() {
   const synthRef = useRef<Tone.PolySynth | null>(null);
   const vibrate = useVibration(50, 30);
 
-  // Initialize synth on mount
+  // Setup cleanup on unmount (creation is now lazy)
   useEffect(() => {
-    synthRef.current = createSynth(SYNTH_PRESETS[currentPreset]);
     return () => {
       if (synthRef.current) {
         synthRef.current.dispose();
@@ -172,7 +171,12 @@ export function useChatSynth() {
       await Tone.start();
       setIsInitialized(true);
     }
-  }, [isInitialized]);
+
+    // Lazily create the synth only after Tone has been started
+    if (!synthRef.current) {
+      synthRef.current = createSynth(SYNTH_PRESETS[currentPreset]);
+    }
+  }, [isInitialized, currentPreset]);
 
   useEffect(() => {
     const handleFirstInteraction = () => {
@@ -196,6 +200,12 @@ export function useChatSynth() {
   const playNote = useCallback(() => {
     if (!isInitialized || Tone.context.state !== "running" || !synthRef.current)
       return;
+
+    // Skip if poly synth voice limit exceeded to prevent audio congestion
+    const activeVoices = (synthRef.current as any).activeVoices as any[] | undefined;
+    if (activeVoices && activeVoices.length > VOICE_COUNT * 2) {
+      return;
+    }
 
     const now = Tone.now();
     if (now - lastNoteTimeRef.current >= minTimeBetweenNotes) {

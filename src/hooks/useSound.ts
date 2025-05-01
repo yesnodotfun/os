@@ -100,6 +100,12 @@ export function useSound(soundPath: string, volume: number = 0.3) {
       // Set volume
       gainNodeRef.current!.gain.value = volume;
 
+      // If too many concurrent sources are active, skip to avoid audio congestion
+      if (activeSources.size > 32) {
+        console.debug("Skipping sound – too many concurrent sources");
+        return;
+      }
+
       // Play the sound
       source.start(0);
 
@@ -183,5 +189,18 @@ export const Sounds = {
   PHOTO_SHUTTER: "/sounds/PhotoShutter.mp3",
 } as const;
 
-// Preload all predefined sounds
+// Lazily preload sounds after the first user interaction (click or touch)
+if (typeof document !== "undefined") {
+  const handleFirstInteraction = () => {
 preloadSounds(Object.values(Sounds));
+    // Remove listeners after first invocation to avoid repeated work
+    document.removeEventListener("click", handleFirstInteraction);
+    document.removeEventListener("touchstart", handleFirstInteraction);
+  };
+
+  // Use `once: true` to ensure the handler fires a single time
+  document.addEventListener("click", handleFirstInteraction, { once: true });
+  document.addEventListener("touchstart", handleFirstInteraction, {
+    once: true,
+  });
+}

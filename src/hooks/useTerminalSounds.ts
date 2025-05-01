@@ -725,29 +725,6 @@ export function useTerminalSounds() {
   // For completion ding
   const dingSynthRef = useRef<Tone.Synth | null>(null);
 
-  // Initialize synth on mount
-  useEffect(() => {
-    // Create synths for each sound type
-    Object.entries(TERMINAL_SOUND_PRESETS).forEach(([type, preset]) => {
-      const synth = createSynth(preset);
-      synthsRef.current[type as SoundType] = synth;
-    });
-
-    // Create ding synth
-    dingSynthRef.current = createSynth(DING_PRESET);
-
-    return () => {
-      // Dispose synths on unmount
-      Object.values(synthsRef.current).forEach((synth) => {
-        if (synth) synth.dispose();
-      });
-
-      if (dingSynthRef.current) {
-        dingSynthRef.current.dispose();
-      }
-    };
-  }, []);
-
   const resumeAudioContext = async () => {
     if (Tone.context.state === "suspended") {
       try {
@@ -769,6 +746,14 @@ export function useTerminalSounds() {
         // For iOS, explicitly resume the audio context
         if (Tone.context.state === "suspended") {
           await Tone.context.resume();
+        }
+
+        // Lazily create synths once Tone has started
+        if (!synthsRef.current.command) {
+          Object.entries(TERMINAL_SOUND_PRESETS).forEach(([type, preset]) => {
+            synthsRef.current[type as SoundType] = createSynth(preset);
+          });
+          dingSynthRef.current = createSynth(DING_PRESET);
         }
         return true;
       } catch (error) {
@@ -945,6 +930,20 @@ export function useTerminalSounds() {
 
   const toggleMute = useCallback(() => {
     setIsMuted((prev) => !prev);
+  }, []);
+
+  // Cleanup on unmount (synths are created lazily now)
+  useEffect(() => {
+    return () => {
+      // Dispose synths on unmount
+      Object.values(synthsRef.current).forEach((synth) => {
+        if (synth) synth.dispose();
+      });
+
+      if (dingSynthRef.current) {
+        dingSynthRef.current.dispose();
+      }
+    };
   }, []);
 
   return {
