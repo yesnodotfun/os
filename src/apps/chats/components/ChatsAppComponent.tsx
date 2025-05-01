@@ -2050,58 +2050,64 @@ export function ChatsAppComponent({
       return;
     }
 
-    const fetchRoomMessages = async () => {
+    // Capture the room ID at the start of the effect so we can detect stale async responses
+    const roomId = currentRoom.id;
+    let isCancelled = false;
+
+    const loadMessagesForRoom = async () => {
         try {
-          // Load from cache first
-          const cachedMessages = loadCachedRoomMessages(currentRoom.id);
-          if (cachedMessages) {
-            // Timestamps from cache are numbers, directly update state
+        // 1. Load from cache first (synchronous)
+        const cachedMessages = loadCachedRoomMessages(roomId);
+        if (!isCancelled && cachedMessages) {
             setRoomMessages(cachedMessages);
-            console.log(`Loaded ${cachedMessages.length} cached messages for room ${currentRoom.id}`);
+          console.log(`Loaded ${cachedMessages.length} cached messages for room ${roomId}`);
           }
 
-          const response = await fetch(`/api/chat-rooms?action=getMessages&roomId=${currentRoom.id}`);
+        // 2. Fetch latest messages from the server
+        const response = await fetch(`/api/chat-rooms?action=getMessages&roomId=${roomId}`);
+        if (isCancelled) return; // Component switched rooms while fetching
           if (!response.ok) {
-            // If fetch fails, log error but rely on cache (if loaded)
-            console.error(`Error fetching messages: ${response.statusText}`);
-            return; 
+          console.error(`Error fetching messages for room ${roomId}: ${response.statusText}`);
+          return; // fall back to whatever we already have
           }
 
           const data = await response.json();
+        if (isCancelled) return;
           
-        // Ensure timestamps are numbers and sort
         const fetchedMessages: ChatMessage[] = (data.messages || []).map((msg: ChatMessage) => ({
                ...msg, 
           timestamp:
-            typeof msg.timestamp === 'string' || typeof msg.timestamp === 'number'
+            typeof msg.timestamp === "string" || typeof msg.timestamp === "number"
                           ? new Date(msg.timestamp).getTime() 
               : msg.timestamp,
             })); 
 
-        // Merge with currently loaded messages (which may be from cache)
         setRoomMessages((currentMessages) => {
-          const existingIds = new Set(currentMessages.map((msg) => msg.id));
-          const newMessages = fetchedMessages.filter((msg) => !existingIds.has(msg.id));
-            
+          if (isCancelled) return currentMessages; // Another late-arrival guard
+          // Avoid duplicates by id
+          const existingIds = new Set(currentMessages.map((m) => m.id));
+          const newMessages = fetchedMessages.filter((m) => !existingIds.has(m.id));
             if (newMessages.length === 0) {
-              console.log('No new messages from API that aren\'t already in cache');
+            console.log(`No new messages for room ${roomId}`);
             return currentMessages;
             }
-            
-            const mergedMessages = [...currentMessages, ...newMessages];
-            mergedMessages.sort((a, b) => a.timestamp - b.timestamp);
-            
-            console.log(`Added ${newMessages.length} new messages from API`);
-            saveRoomMessagesToCache(currentRoom.id, mergedMessages);
-            return mergedMessages;
+          const merged = [...currentMessages, ...newMessages].sort((a, b) => a.timestamp - b.timestamp);
+          saveRoomMessagesToCache(roomId, merged);
+          return merged;
           });
-        } catch (error) {
-          console.error('Error processing room messages:', error);
-          // If fetch or processing fails, we rely on the cached messages (if any) loaded earlier
+      } catch (err) {
+        if (!isCancelled) {
+          console.error("Error processing room messages:", err);
+        }
       }
     };
 
-    fetchRoomMessages();
+    loadMessagesForRoom();
+
+    // Cleanup – mark any pending async operations as cancelled
+    return () => {
+      isCancelled = true;
+    };
   }, [currentRoom]);
 
   // The polling effect for room messages has been replaced by Pusher real-time subscription
