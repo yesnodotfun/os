@@ -1392,15 +1392,12 @@ export const saveHtmlPreviewSplit = (isSplit: boolean): void => {
 // Add functions for chat sidebar visibility
 export const loadChatSidebarVisible = (): boolean => {
   const saved = localStorage.getItem(APP_STORAGE_KEYS.chats.SIDEBAR_VISIBLE);
-  console.log("[Storage] Loading chat sidebar visibility:", saved);
   // Default to true if not set
   const isVisible = saved === null ? true : saved === "true";
-  console.log("[Storage] Parsed visibility:", isVisible);
   return isVisible;
 };
 
 export const saveChatSidebarVisible = (isVisible: boolean): void => {
-  console.log("[Storage] Saving chat sidebar visibility:", isVisible);
   localStorage.setItem(
     APP_STORAGE_KEYS.chats.SIDEBAR_VISIBLE,
     isVisible.toString()

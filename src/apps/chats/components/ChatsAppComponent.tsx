@@ -15,6 +15,7 @@ import { useAppStore } from "@/stores/useAppStore"; // Add store imports
 import { useInternetExplorerStore } from "@/stores/useInternetExplorerStore";
 import { useVideoStore } from "@/stores/useVideoStore";
 import { useIpodStore } from "@/stores/useIpodStore";
+import { toast } from "@/hooks/useToast"; // Import toast
 import {
   loadChatMessages,
   saveChatMessages,
@@ -1827,6 +1828,8 @@ export function ChatsAppComponent({
   const [roomMessages, setRoomMessages] = useState<ChatMessage[]>([]);
   // Initialize with default, load from storage in useEffect
   const [isSidebarVisible, setIsSidebarVisible] = useState(false); // Default to false initially
+  // Add state to store the initially loaded preference
+  const [initialSidebarPreference, setInitialSidebarPreference] = useState<boolean | null>(null);
 
   // State for username dialog
   const [isUsernameDialogOpen, setIsUsernameDialogOpen] = useState(false);
@@ -1864,34 +1867,40 @@ export function ChatsAppComponent({
   // Add useEffect to handle responsive behavior - keep sidebar hidden by default
   useEffect(() => {
     const handleResize = () => {
-      // Load saved state first
-      const savedState = loadChatSidebarVisible();
-      // Only show automatically on larger screens if it was previously shown
-      if (window.innerWidth >= 768 && savedState) {
-        setIsSidebarVisible(true);
+      // Don't run if preference not loaded yet
+      if (initialSidebarPreference === null) return;
+
+      const isLargeScreen = window.innerWidth >= 768;
+      if (isLargeScreen) {
+        // On large screens, show it only if the user *initially* saved it as visible
+        setIsSidebarVisible(initialSidebarPreference === true);
       } else {
+        // On small screens, always hide it
         setIsSidebarVisible(false);
       }
     };
 
-    // Set initial state
-    handleResize();
+    // No need to call handleResize() here initially, the other useEffect handles it.
 
     // Add event listener
     window.addEventListener('resize', handleResize);
-    
+
     // Clean up
     return () => {
       window.removeEventListener('resize', handleResize);
     };
-  }, []); // Empty dependency array ensures this runs only once on mount
+  // Depend on the loaded preference state
+  }, [initialSidebarPreference]);
 
-  // Load sidebar state from storage once on mount
+  // Load sidebar state from storage once on mount and set initial visibility
   useEffect(() => {
     const savedState = loadChatSidebarVisible();
     console.log("[Component Mount] Loading sidebar visibility from storage:", savedState);
-    // Only respect saved state if explicitly set to true
-    setIsSidebarVisible(savedState === true);
+    setInitialSidebarPreference(savedState); // Store the preference
+    // Set initial visibility based on preference AND screen size
+    const isLargeScreen = window.innerWidth >= 768;
+    // Default to false on small screens or if preference is explicitly false
+    setIsSidebarVisible(isLargeScreen && savedState === true);
   }, []); // Empty dependency array ensures this runs only once
 
   // Add Pusher instance ref to avoid recreating it on each render
@@ -1972,6 +1981,19 @@ export function ChatsAppComponent({
           
           return prevMessages;
         });
+      } else if (data.roomId !== currentRoom?.id && data.message.username !== username) {
+        // Show toast notification if message is for a different room and not from self
+        const room = rooms.find(r => r.id === data.roomId);
+        if (room) {
+          toast(`${data.message.username} in #${room.name}`, {
+            description: data.message.content.length > 50 ? data.message.content.substring(0, 47) + '...' : data.message.content,
+            action: {
+              label: "View",
+              onClick: () => handleRoomSelect(room), // Switch to the room on click
+            },
+            duration: 4000,
+          });
+        }
       }
     });
     
@@ -2021,7 +2043,7 @@ export function ChatsAppComponent({
         pusherRef.current = null;
       }
     };
-  }, [isWindowOpen, isForeground, currentRoom]); // Dependencies include currentRoom for filtering messages
+  }, [isWindowOpen, isForeground, currentRoom, username, rooms]); // Dependencies include currentRoom for filtering messages
 
   // Load or register username
   useEffect(() => {
