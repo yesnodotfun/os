@@ -3197,6 +3197,7 @@ export function ChatsAppComponent({
                   onDirectMessageSubmit={handleDirectMessageSubmit}
                   onNudge={handleNudge}
                   previousMessages={prevMessagesContent}
+                  showNudgeButton={!currentRoom}
                 />
               );
             })()}

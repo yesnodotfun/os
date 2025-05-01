@@ -33,6 +33,12 @@ interface ChatInputProps {
   onDirectMessageSubmit?: (message: string) => void;
   onNudge?: () => void;
   previousMessages?: string[];
+  /**
+   * Whether to display the "nudge" (👋) button. Defaults to true so that the
+   * button is shown in the regular Ryo chat, and can be disabled for chat-room
+   * contexts where nudging is not available.
+   */
+  showNudgeButton?: boolean;
 }
 
 export function ChatInput({
@@ -45,6 +51,7 @@ export function ChatInput({
   onDirectMessageSubmit,
   onNudge,
   previousMessages = [],
+  showNudgeButton = true,
 }: ChatInputProps) {
   const [isFocused, setIsFocused] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -231,6 +238,7 @@ export function ChatInput({
             }}
           />
           <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+            {showNudgeButton && (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -250,6 +258,7 @@ export function ChatInput({
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
+            )}
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
