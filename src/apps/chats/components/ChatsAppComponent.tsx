@@ -15,6 +15,7 @@ import { useAppStore } from "@/stores/useAppStore"; // Add store imports
 import { useInternetExplorerStore } from "@/stores/useInternetExplorerStore";
 import { useVideoStore } from "@/stores/useVideoStore";
 import { useIpodStore } from "@/stores/useIpodStore";
+import { useTextEditStore } from "@/stores/useTextEditStore";
 import { toast } from "@/hooks/useToast"; // Import toast
 import {
   loadChatMessages,
@@ -766,11 +767,23 @@ export function ChatsAppComponent({
     const finalFileName = fileName.endsWith(".md") ? fileName : `${fileName}.md`;
     const filePath = `/Documents/${finalFileName}`;
 
+    // Create and dispatch saveFile event
     const saveEvent = new CustomEvent("saveFile", {
       detail: { name: finalFileName, path: filePath, content: transcript, icon: "/icons/file-text.png", isDirectory: false },
     });
     window.dispatchEvent(saveEvent);
+    
+    // Also update TextEditStore to maintain sync with file system
+    // This ensures the file can be properly opened in TextEdit later
+    const textEditStore = useTextEditStore.getState();
+    textEditStore.setLastFilePath(null); // Reset to prevent auto-save of current content
     setIsSaveDialogOpen(false);
+    
+    // Show success notification
+    toast.success("Transcript saved", {
+      description: `Saved to ${finalFileName}`,
+      duration: 3000,
+    });
   };
 
   // Define callRoomAction here, after username state is defined
