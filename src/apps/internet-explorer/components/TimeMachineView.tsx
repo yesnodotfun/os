@@ -215,7 +215,10 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
   // Scroll timeline to active item
   useEffect(() => {
     if (isOpen && timelineRef.current) {
-      const activeElement = timelineRef.current.children[activeYearIndex] as HTMLElement;
+      // Calculate the reversed index for finding the correct child element
+      const reversedIndex = cachedYears.length - 1 - activeYearIndex;
+      const activeElement = timelineRef.current.children[reversedIndex] as HTMLElement;
+      
       if (activeElement) {
         // Check screen width to apply correct scroll behavior
         const isMobile = window.innerWidth < 640; // Tailwind 'sm' breakpoint
@@ -237,7 +240,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
         }
       }
     }
-  }, [activeYearIndex, isOpen]);
+  }, [activeYearIndex, isOpen, cachedYears.length]);
 
   const handleClose = useCallback(() => {
     playClose(); // Play close sound
@@ -305,7 +308,13 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
     };
   }, [isOpen, handleKeyDown]);
 
-  // --- Effect to Set Preview Content (HTML or URL) based on previewYear ---
+  // --- Concurrency handling for preview fetches ---
+  // Each time we start resolving a preview source we increment this counter.
+  // Only the most-recent async chain is allowed to commit state updates.
+  const previewRequestIdRef = useRef(0);
+  // Keep an AbortController so that previous network requests are cancelled
+  const previewAbortControllerRef = useRef<AbortController | null>(null);
+
   useEffect(() => {
     if (!isOpen || !previewYear || !currentUrl) {
       setPreviewContent(null);
@@ -315,6 +324,16 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
       setIsIframeLoaded(false); // Reset iframe state
       return;
     }
+
+    // Abort any previous in-flight request
+    if (previewAbortControllerRef.current) {
+      previewAbortControllerRef.current.abort();
+    }
+    const abortController = new AbortController();
+    previewAbortControllerRef.current = abortController;
+
+    // Generate an id so that we can ignore stale async completions
+    const myRequestId = ++previewRequestIdRef.current;
 
     console.log(`[TimeMachine] Determining content source for year: ${previewYear}`);
     setPreviewStatus('loading');
@@ -329,6 +348,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
         const cachedEntry = getCachedAiPage(currentUrl, previewYear);
         if (cachedEntry) {
             console.log(`[TimeMachine] Local Cache HIT for ${currentUrl} (${previewYear})`);
+            if (abortController.signal.aborted || previewRequestIdRef.current !== myRequestId) return;
             setPreviewContent(cachedEntry.html);
             setPreviewSourceType('html');
             setPreviewStatus('success');
@@ -344,6 +364,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
           // 2a. 'current' uses direct proxy URL
           console.log(`[TimeMachine] Source: current -> URL`);
           const proxyUrl = `/api/iframe-check?url=${encodeURIComponent(currentUrl)}`;
+          if (abortController.signal.aborted || previewRequestIdRef.current !== myRequestId) return;
           setPreviewContent(proxyUrl);
           setPreviewSourceType('url');
           setPreviewStatus('success'); // Status is success, iframe handles actual load
@@ -360,6 +381,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
             console.log(`[TimeMachine] Source: ${previewYear} >= 1996 -> URL (Wayback Proxy)`);
             const currentMonth = (new Date().getMonth() + 1).toString().padStart(2, '0');
             const proxyUrl = `/api/iframe-check?mode=proxy&url=${encodeURIComponent(currentUrl)}&year=${yearString}&month=${currentMonth}`;
+            if (abortController.signal.aborted || previewRequestIdRef.current !== myRequestId) return;
             setPreviewContent(proxyUrl);
             setPreviewSourceType('url');
             setPreviewStatus('success'); // Status is success, iframe handles actual load
@@ -368,7 +390,11 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
           } else {
             // 2c. Year < 1996 or BC uses AI cache (fetches HTML)
             console.log(`[TimeMachine] Source: ${previewYear} < 1996 or BC -> HTML (AI Fetch)`);
-            const aiResponse = await fetch(`/api/iframe-check?mode=ai&url=${encodeURIComponent(currentUrl)}&year=${previewYear}`);
+            const aiResponse = await fetch(`/api/iframe-check?mode=ai&url=${encodeURIComponent(currentUrl)}&year=${previewYear}`, {
+              signal: abortController.signal,
+            });
+
+            if (abortController.signal.aborted || previewRequestIdRef.current !== myRequestId) return;
 
             if (aiResponse.ok) {
               console.log(`[TimeMachine] AI Fetch SUCCESS for ${currentUrl} (${previewYear})`);
@@ -377,6 +403,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
               const titleMatch = html.match(/^<!--\s*TITLE:\s*(.*?)\s*-->/);
               const parsedTitle = titleMatch ? titleMatch[1].trim() : undefined;
 
+              if (abortController.signal.aborted || previewRequestIdRef.current !== myRequestId) return;
               setPreviewContent(cleanHtml);
               setPreviewSourceType('html');
               setPreviewStatus('success');
@@ -401,6 +428,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
           }
         }
       } catch (error) {
+        if (abortController.signal.aborted || previewRequestIdRef.current !== myRequestId) return;
         console.error("[TimeMachine] Error determining preview content:", error);
         setPreviewError(error instanceof Error ? error.message : "Failed to load preview.");
         setPreviewStatus('error');
@@ -411,6 +439,11 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
     };
 
     determineSource();
+
+    // Cleanup – abort fetches when previewYear changes or component unmounts
+    return () => {
+      abortController.abort();
+    };
 
   }, [previewYear, isOpen, currentUrl, getCachedAiPage, cacheAiPage]); // Dependencies
 
@@ -684,6 +717,12 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                                                             console.log(`[TimeMachine] iframe for ${previewYear} loaded.`);
                                                             setIsIframeLoaded(true);
                                                           }}
+                                                          onError={() => {
+                                                            console.warn(`[TimeMachine] iframe for ${previewYear} failed to load.`);
+                                                            setPreviewError('Unable to load preview.');
+                                                            setPreviewStatus('error');
+                                                            setIsIframeLoaded(false);
+                                                          }}
                                                         />
                                                       </motion.div>
                                                     )}
@@ -799,7 +838,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                         <div
                            ref={timelineRef}
                            className="w-auto max-w-full overflow-x-auto flex flex-row items-center space-x-4 space-y-0 justify-start py-2 flex-shrink-0
-                                      sm:w-full sm:overflow-y-auto sm:flex-col-reverse sm:items-center sm:space-y-1 sm:space-x-0 sm:py-4 sm:h-auto sm:max-h-full sm:max-w-none
+                                      sm:w-full sm:overflow-y-auto sm:flex-col sm:items-center sm:space-y-1 sm:space-x-0 sm:py-4 sm:h-auto sm:max-h-full sm:max-w-none
                                       sm:justify-start sm:min-h-full
                                       [&::-webkit-scrollbar]:hidden
                                       [&::-webkit-scrollbar]:sm:w-1
@@ -814,7 +853,8 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                                WebkitMaskImage: maskStyle, // For Safari
                            }}
                         >
-                            {cachedYears.map((year, index) => {
+                            {[...cachedYears].reverse().map((year, reversedIndex) => {
+                                const index = cachedYears.length - 1 - reversedIndex; // Convert back to original index
                                 const isActive = activeYearIndex === index;
                                 const isNow = year === 'current';
 
