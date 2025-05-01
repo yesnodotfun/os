@@ -36,54 +36,42 @@ const getUserColorClass = (username?: string): string => {
 // --- End Color Hashing ---
 
 // Helper function to parse markdown and segment text
-const parseMarkdown = (text: string): { type: string; content: string }[] => {
-  const tokens: { type: string; content: string }[] = [];
+const parseMarkdown = (text: string): { type: string; content: string, url?: string }[] => {
+  const tokens: { type: string; content: string, url?: string }[] = [];
   let currentIndex = 0;
+  // Regex to match URLs, Markdown links, bold, italic, CJK, emojis, words, spaces, or other characters
+  const regex = /(\[([^\]]+?)\]\((https?:\/\/[^\s]+?)\))|(\*\*(.*?)\*\*)|(\*(.*?)\*)|(https?:\/\/[^\s]+)|([\p{Emoji_Presentation}\p{Extended_Pictographic}]|[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]|[a-zA-Z0-9]+|[^\S\n]+|[^a-zA-Z0-9\s\p{Emoji_Presentation}\p{Extended_Pictographic}\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}*]+)/gu;
+  let match;
 
-  while (currentIndex < text.length) {
-    // Check for bold text (**text**)
-    const boldMatch = text.slice(currentIndex).match(/^\*\*(.*?)\*\*/);
-    if (boldMatch) {
-      tokens.push({ type: "bold", content: boldMatch[1] });
-      currentIndex += boldMatch[0].length;
-      continue;
+  while ((match = regex.exec(text)) !== null) {
+    if (match[1]) { // Markdown link: [text](url)
+      tokens.push({ type: "link", content: match[2], url: match[3] });
+    } else if (match[4]) { // Bold: **text**
+      tokens.push({ type: "bold", content: match[5] });
+    } else if (match[6]) { // Italic: *text*
+      tokens.push({ type: "italic", content: match[7] });
+    } else if (match[8]) { // Plain URL
+      tokens.push({ type: "link", content: match[8], url: match[8] });
+    } else if (match[9]) { // Other text (CJK, emoji, word, space, etc.)
+      tokens.push({ type: "text", content: match[9] });
     }
+    currentIndex = regex.lastIndex;
+  }
 
-    // Check for italic text (*text*)
-    const italicMatch = text.slice(currentIndex).match(/^\*(.*?)\*/);
-    if (italicMatch) {
-      tokens.push({ type: "italic", content: italicMatch[1] });
-      currentIndex += italicMatch[0].length;
-      continue;
-    }
-
-    // Match CJK characters, emojis, words, spaces, or other characters
-    const wordMatch = text
-      .slice(currentIndex)
-      .match(
-        /^([\p{Emoji_Presentation}\p{Extended_Pictographic}]|[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]|[a-zA-Z0-9]+|[^\S\n]+|[^a-zA-Z0-9\s\p{Emoji_Presentation}\p{Extended_Pictographic}\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}*]+)/u
-      );
-
-    if (wordMatch) {
-      tokens.push({ type: "text", content: wordMatch[0] });
-      currentIndex += wordMatch[0].length;
-      continue;
-    }
-
-    // If no match found (shouldn't happen), move forward one character
-    tokens.push({ type: "text", content: text[currentIndex] });
-    currentIndex++;
+  // Capture any remaining text (shouldn't happen with the current regex, but good practice)
+  if (currentIndex < text.length) {
+    tokens.push({ type: "text", content: text.slice(currentIndex) });
   }
 
   return tokens;
 };
 
 // Helper function to segment text properly for CJK and emojis
-const segmentText = (text: string): { type: string; content: string }[] => {
+const segmentText = (text: string): { type: string; content: string; url?: string }[] => {
   // First split by line breaks to preserve them
   return text.split(/(\n)/).flatMap((segment) => {
     if (segment === "\n") return [{ type: "text", content: "\n" }];
-    // Parse markdown and maintain word boundaries in the segment
+    // Parse markdown (including links) and maintain word boundaries in the segment
     return parseMarkdown(segment);
   });
 };
@@ -297,21 +285,39 @@ export function ChatMessages({
               >
                 <motion.div layout="position" className="text-[16px] text-gray-500 mb-0.5 font-['Geneva-9'] mb-[-2px] select-text flex items-center gap-2">
                   {message.role === "user" && (
-                    <motion.button
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{
-                        opacity: hoveredMessageId === messageKey ? 1 : 0,
-                        scale: 1,
-                      }}
-                      className="h-3 w-3 text-gray-400 hover:text-gray-600 transition-colors"
-                      onClick={() => copyMessage(message)}
-                    >
-                      {copiedMessageId === messageKey ? (
-                        <Check className="h-3 w-3" />
-                      ) : (
-                        <Copy className="h-3 w-3" />
+                    <>
+                      {/* Trash button moved here for user messages */}
+                      {isAdmin && isRoomView && (
+                        <motion.button
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{
+                            opacity: hoveredMessageId === messageKey ? 1 : 0,
+                            scale: 1,
+                          }}
+                          className="h-3 w-3 text-gray-400 hover:text-red-600 transition-colors"
+                          onClick={() => deleteMessage(message)}
+                          aria-label="Delete message"
+                        >
+                          <Trash className="h-3 w-3" />
+                        </motion.button>
                       )}
-                    </motion.button>
+                      <motion.button
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{
+                          opacity: hoveredMessageId === messageKey ? 1 : 0,
+                          scale: 1,
+                        }}
+                        className="h-3 w-3 text-gray-400 hover:text-gray-600 transition-colors"
+                        onClick={() => copyMessage(message)}
+                        aria-label="Copy message"
+                      >
+                        {copiedMessageId === messageKey ? (
+                          <Check className="h-3 w-3" />
+                        ) : (
+                          <Copy className="h-3 w-3" />
+                        )}
+                      </motion.button>
+                    </>
                   )}
                   {message.username || (message.role === "user" ? "You" : "Ryo")}{" "}
                   <span className="text-gray-400 select-text">
@@ -355,7 +361,8 @@ export function ChatMessages({
                       )}
                     </motion.button>
                   )}
-                  {isAdmin && isRoomView && (
+                  {/* Trash button removed from here for non-user messages, only show if NOT user message */}
+                  {isAdmin && isRoomView && message.role !== 'user' && (
                     <motion.button
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{
@@ -364,6 +371,7 @@ export function ChatMessages({
                       }}
                       className="h-3 w-3 text-gray-400 hover:text-red-600 transition-colors"
                       onClick={() => deleteMessage(message)}
+                      aria-label="Delete message"
                     >
                       <Trash className="h-3 w-3" />
                     </motion.button>
@@ -475,7 +483,7 @@ export function ChatMessages({
                             {textContent &&
                               segmentText(textContent).map((segment, idx) => (
                                 <motion.span
-                                  key={idx}
+                                  key={`${messageKey}-segment-${idx}`} // More unique key
                                   initial={isInitialMessage ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
                                   animate={{ opacity: 1, y: 0 }}
                                   className={`select-text ${
@@ -501,7 +509,19 @@ export function ChatMessages({
                                     },
                                   }}
                                 >
-                                  {segment.content}
+                                  {segment.type === "link" && segment.url ? (
+                                    <a
+                                      href={segment.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-blue-600 hover:underline"
+                                      onClick={(e) => e.stopPropagation()} // Prevent hover effects on parent
+                                    >
+                                      {segment.content}
+                                    </a>
+                                  ) : (
+                                    segment.content
+                                  )}
                                 </motion.span>
                               ))}
 
@@ -528,7 +548,7 @@ export function ChatMessages({
                       >
                         {segmentText(message.content).map((segment, idx) => (
                           <span
-                            key={idx}
+                            key={`${messageKey}-segment-${idx}`} // More unique key
                             className={
                               segment.type === "bold"
                                 ? "font-bold"
@@ -537,7 +557,19 @@ export function ChatMessages({
                                 : ""
                             }
                           >
-                            {segment.content}
+                            {segment.type === "link" && segment.url ? (
+                              <a
+                                href={segment.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:underline"
+                                onClick={(e) => e.stopPropagation()} // Prevent hover effects on parent
+                              >
+                                {segment.content}
+                              </a>
+                            ) : (
+                              segment.content
+                            )}
                           </span>
                         ))}
                       </span>
