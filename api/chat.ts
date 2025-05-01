@@ -41,6 +41,10 @@ interface SystemState {
     loopCurrent: boolean;
     isShuffled: boolean;
   };
+  runningApps?: {
+    foreground: string;
+    background: string[];
+  };
 }
 
 // Allowed origins for API requests
@@ -191,6 +195,16 @@ CURRENT SYSTEM STATE:
 
 - Current local time: ${timeString} on ${dateString}
 
+${
+  systemState.runningApps?.foreground 
+    ? `- Foreground App: ${systemState.runningApps.foreground}`
+    : "- No apps in foreground"
+}
+${
+  systemState.runningApps?.background && systemState.runningApps.background.length > 0
+    ? `- Background Apps: ${systemState.runningApps.background.join(", ")}`
+    : ""
+}
 ${
   systemState.apps['videos']?.isOpen && systemState.video.currentVideo && systemState.video.isPlaying
     ? `- Now Playing: ${systemState.video.currentVideo.title}${

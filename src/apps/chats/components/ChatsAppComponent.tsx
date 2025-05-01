@@ -201,8 +201,29 @@ const getSystemState = () => {
   const currentVideo = videoStore.videos[videoStore.currentIndex];
   const currentTrack = ipodStore.tracks[ipodStore.currentIndex];
 
+  // Get list of all running apps (both foreground and background)
+  const runningApps = Object.entries(appStore.apps)
+    .filter(([_, appState]) => appState.isOpen)
+    .map(([appId, appState]) => ({
+      id: appId,
+      isForeground: appState.isForeground || false
+    }));
+
+  // Get foreground app if any
+  const foregroundApp = runningApps.find(app => app.isForeground)?.id || null;
+  
+  // Get background apps
+  const backgroundApps = runningApps
+    .filter(app => !app.isForeground)
+    .map(app => app.id);
+
   return {
     apps: appStore.apps,
+    runningApps: {
+      foreground: foregroundApp,
+      background: backgroundApps,
+      windowOrder: appStore.windowOrder
+    },
     internetExplorer: {
       url: ieStore.url,
       year: ieStore.year,
@@ -252,10 +273,11 @@ export function ChatsAppComponent({
     createdAt: new Date(),
   };
 
-  const { toggleApp } = useAppContext();
   const launchApp = useLaunchApp();
+  const closeApp = useAppStore((state) => state.closeApp); // Use closeApp directly from the store
   const initialMessagesLoaded = useRef(false);
   const componentMountedAt = useRef(new Date());
+
   // Add chat room state
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
   const [currentRoom, setCurrentRoom] = useState<ChatRoom | null>(null);
@@ -628,7 +650,7 @@ export function ChatsAppComponent({
         if (operations.length > 0) {
           operations.forEach((op) => {
             if (op.type === "launch") launchApp(op.id as AppId);
-            else if (op.type === "close") toggleApp(op.id);
+            else if (op.type === "close") closeApp(op.id as AppId);
           });
 
           const cleanedMessage = cleanAppControlMarkup(lastMessage.content);
@@ -639,7 +661,7 @@ export function ChatsAppComponent({
         }
       }
     }
-  }, [aiMessages, setAiMessages, launchApp, toggleApp]);
+  }, [aiMessages, setAiMessages, launchApp, closeApp]);
 
   const handleDirectMessageSubmit = useCallback(
     (message: string) => {

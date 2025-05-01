@@ -50,6 +50,7 @@ interface AppStoreState extends AppManagerState {
   setTerminalSoundsEnabled: (enabled: boolean) => void;
   bringToForeground: (appId: AppId | "") => void;
   toggleApp: (appId: AppId, initialData?: any) => void;
+  closeApp: (appId: AppId) => void;
   navigateToNextApp: (currentAppId: AppId) => void;
   navigateToPreviousApp: (currentAppId: AppId) => void;
 }
@@ -162,6 +163,59 @@ export const useAppStore = create<AppStoreState>()(
             },
           });
           window.dispatchEvent(appStateChangeEvent);
+
+          return newState;
+        });
+      },
+
+      closeApp: (appId) => {
+        set((state) => {
+          if (!state.apps[appId]?.isOpen) {
+            console.log(`App ${appId} is already closed. No action taken.`);
+            return state; // App is already closed, do nothing
+          }
+
+          console.log(`Closing app: ${appId}`);
+
+          const newWindowOrder = state.windowOrder.filter((id) => id !== appId);
+          const newApps: { [id: string]: AppState } = { ...state.apps };
+
+          // Determine the next app to bring to foreground
+          const nextForegroundAppId = newWindowOrder.length > 0 ? newWindowOrder[newWindowOrder.length - 1] : null;
+
+          Object.keys(newApps).forEach((id) => {
+            if (id === appId) {
+              newApps[id] = {
+                ...newApps[id],
+                isOpen: false,
+                isForeground: false,
+                initialData: undefined, // Clear initial data on close
+              };
+            } else {
+              newApps[id] = {
+                ...newApps[id],
+                // Bring the next app in order to foreground if this wasn't the last app closed
+                isForeground: id === nextForegroundAppId,
+              };
+            }
+          });
+
+          const newState: AppManagerState = {
+            windowOrder: newWindowOrder,
+            apps: newApps,
+          };
+
+          // Emit DOM event for closing
+          const appStateChangeEvent = new CustomEvent("appStateChange", {
+            detail: {
+              appId,
+              isOpen: false,
+              isForeground: false,
+            },
+          });
+          window.dispatchEvent(appStateChangeEvent);
+          console.log(`App ${appId} closed. New window order:`, newWindowOrder);
+          console.log(`App ${nextForegroundAppId || 'none'} brought to foreground.`);
 
           return newState;
         });
