@@ -153,19 +153,17 @@ IMPORTANT RULES:
 - Each tag must be properly closed
 - Self-closing tag format (<tag/>) is required
 - The id attribute is required and must be quoted
-- You can combine multiple app control operations in one message
+- You can only include ONE <app:launch> tag per message.
+- You can include multiple <app:close> tags in a single message.
 - Apps will be launched/closed in the order specified
 
 Examples:
 
-1. Launch Paint and close TextEdit:
+1. Launch Paint:
 <app:launch id="paint"/>
-<app:close id="textedit"/>
 
-2. Launch multiple apps:
-<app:launch id="paint"/>
-<app:launch id="soundboard"/>
-<app:launch id="videos"/>
+2. Close TextEdit:
+<app:close id="textedit"/>
 
 3. Close multiple apps:
 <app:close id="paint"/>
