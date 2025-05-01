@@ -13,9 +13,10 @@ import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { InputDialog } from "@/components/dialogs/InputDialog";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { appMetadata, helpItems } from "..";
-import { APP_STORAGE_KEYS } from "@/utils/storage";
+import { useTextEditStore } from "@/stores/useTextEditStore";
 import { SlashCommands } from "../extensions/SlashCommands";
 import { useFileSystem } from "@/apps/finder/hooks/useFileSystem";
+import { dbOperations, STORES, Document } from "@/apps/finder/hooks/useFileSystem";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,6 +46,11 @@ const getContentAsString = async (
   return content;
 };
 
+// Helper function to extract filename from path
+const getFileNameFromPath = (path: string): string => {
+  return path.split("/").pop() || "";
+};
+
 export function TextEditAppComponent({
   isWindowOpen,
   onClose,
@@ -56,14 +62,27 @@ export function TextEditAppComponent({
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const [isConfirmNewDialogOpen, setIsConfirmNewDialogOpen] = useState(false);
-  const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
-  const [saveFileName, setSaveFileName] = useState("");
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { files, saveFile } = useFileSystem("/Documents");
   const launchApp = useLaunchApp();
   const { play: playButtonClick } = useSound(Sounds.BUTTON_CLICK);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
+
+  // Zustand TextEdit store
+  const {
+    lastFilePath: currentFilePath,
+    setLastFilePath,
+    contentJson: storedContentJson,
+    setContentJson,
+    hasUnsavedChanges,
+    setHasUnsavedChanges,
+  } = useTextEditStore();
+
+  // Alias for existing code references
+  const setCurrentFilePath = setLastFilePath;
+
+  // Local UI-only state for Save dialog filename
+  const [saveFileName, setSaveFileName] = useState("");
 
   const editor = useEditor({
     extensions: [
@@ -93,11 +112,8 @@ export function TextEditAppComponent({
       // Store both JSON for internal use and Markdown for file saving
       const jsonContent = editor.getJSON();
       
-      // Always save to localStorage for recovery
-      localStorage.setItem(
-        APP_STORAGE_KEYS.textedit.CONTENT,
-        JSON.stringify(jsonContent)
-      );
+      // Persist to zustand store for recovery
+      setContentJson(jsonContent);
 
       if (currentFilePath) {
         // If we have a current file path, autosave to that location
@@ -121,60 +137,61 @@ export function TextEditAppComponent({
 
   // Initial load - try to restore last opened file or pending content
   useEffect(() => {
-    if (editor && !hasUnsavedChanges) {
-      const lastFilePath = localStorage.getItem(
-        APP_STORAGE_KEYS.textedit.LAST_FILE_PATH
-      );
+    if (editor) {
+      const loadInitialContent = async () => {
+        const { lastFilePath, contentJson } = useTextEditStore.getState();
+        let loadedContent = false;
 
-      if (lastFilePath?.startsWith("/Documents/")) {
-        // Try to restore the last opened file
-        const file = files.find((f) => f.path === lastFilePath);
-        if (file?.content && !currentFilePath) {
+        if (lastFilePath?.startsWith("/Documents/")) {
           try {
-            // Handle file content that could be string or Blob
-            const processContent = async () => {
-              const contentStr = await getContentAsString(file.content);
+            const fileName = getFileNameFromPath(lastFilePath);
+            const doc = await dbOperations.get<Document>(STORES.DOCUMENTS, fileName);
 
-              // If the file has .md extension, always use markdown parser
+            if (doc?.content) {
+              const contentStr = await getContentAsString(doc.content);
+              let editorContent;
+
               if (lastFilePath.endsWith(".md")) {
-                const htmlContent = markdownToHtml(contentStr);
-                editor.commands.setContent(htmlContent);
+                editorContent = markdownToHtml(contentStr);
               } else {
-                // For other files, try parsing as JSON first, then fallback to plain text
+                // Try parsing as JSON first (legacy format?)
                 try {
-                  const jsonContent = JSON.parse(contentStr);
-                  editor.commands.setContent(jsonContent);
+                  editorContent = JSON.parse(contentStr);
                 } catch {
-                  // Not JSON, treat as plain text
-                  editor.commands.setContent(`<p>${contentStr}</p>`);
+                  // Fallback to plain text wrapped in paragraph
+                  editorContent = `<p>${contentStr}</p>`;
                 }
               }
               
-              setCurrentFilePath(lastFilePath);
-              setHasUnsavedChanges(false);
-            };
-            processContent();
+              if (editorContent) {
+                editor.commands.setContent(editorContent, false); // Set false to avoid triggering onUpdate
+                setHasUnsavedChanges(false);
+                loadedContent = true;
+                console.log("Loaded content from file:", lastFilePath);
+              }
+            } else {
+               console.warn("Document not found or empty:", lastFilePath);
+            }
           } catch (err) {
-            console.error("Error processing file content:", err);
+            console.error("Error loading file content from DB:", err);
           }
         }
-      } else if (!currentFilePath) {
-        // Only load from localStorage if we don't have any file path
-        const savedContent = localStorage.getItem(
-          APP_STORAGE_KEYS.textedit.CONTENT
-        );
-        if (savedContent) {
-          try {
-            const jsonContent = JSON.parse(savedContent);
-            editor.commands.setContent(jsonContent);
-          } catch {
-            // Fallback to treating content as HTML if not JSON
-            editor.commands.setContent(savedContent);
-          }
+        
+        // Fallback to stored JSON if file load failed or no path was set
+        if (!loadedContent && contentJson) {
+           try {
+             editor.commands.setContent(contentJson, false); // Set false to avoid triggering onUpdate
+             setHasUnsavedChanges(false); // Assume stored JSON is saved state unless proven otherwise
+             console.log("Loaded content from store JSON");
+           } catch (err) {
+             console.warn("Failed to restore stored TextEdit content:", err);
+           }
         }
-      }
+      };
+
+      loadInitialContent();
     }
-  }, [editor, files, currentFilePath, hasUnsavedChanges]);
+  }, [editor]); // Run only when editor is initialized
 
   // Add listeners for external document updates (like from Chat app)
   useEffect(() => {
@@ -216,20 +233,10 @@ export function TextEditAppComponent({
     const handleContentChanged = (e: CustomEvent) => {
       if (editor && e.detail?.path === currentFilePath) {
         // Reload content from localStorage
-        const savedContent = localStorage.getItem(
-          APP_STORAGE_KEYS.textedit.CONTENT
-        );
-        if (savedContent) {
-          try {
-            const jsonContent = JSON.parse(savedContent);
-            editor.commands.setContent(jsonContent);
+        const latest = useTextEditStore.getState().contentJson;
+        if (latest) {
+          editor.commands.setContent(latest);
             setHasUnsavedChanges(false);
-            console.log(
-              "Editor content reloaded from localStorage after content changed event"
-            );
-          } catch (error) {
-            console.error("Failed to reload content:", error);
-          }
         }
       }
     };
@@ -369,15 +376,9 @@ export function TextEditAppComponent({
                 setCurrentFilePath(path);
                 setHasUnsavedChanges(false);
                 // Store the file path for next time
-                localStorage.setItem(
-                  APP_STORAGE_KEYS.textedit.LAST_FILE_PATH,
-                  path
-                );
+                setLastFilePath(path);
                 // Store JSON for internal recovery
-                localStorage.setItem(
-                  APP_STORAGE_KEYS.textedit.CONTENT,
-                  JSON.stringify(editor.getJSON())
-                );
+                setContentJson(editor.getJSON());
               };
 
               processContent();
@@ -426,9 +427,8 @@ export function TextEditAppComponent({
   const createNewFile = () => {
     if (editor) {
       editor.commands.clearContent();
-      localStorage.removeItem(APP_STORAGE_KEYS.textedit.CONTENT);
-      localStorage.removeItem(APP_STORAGE_KEYS.textedit.LAST_FILE_PATH);
-      setCurrentFilePath(null);
+      setContentJson(null);
+      setLastFilePath(null);
       setHasUnsavedChanges(false);
 
       // Check if there's a pending file to open after creating new file
@@ -444,15 +444,9 @@ export function TextEditAppComponent({
             setCurrentFilePath(path);
             setHasUnsavedChanges(false);
             // Store the file path for next time
-            localStorage.setItem(
-              APP_STORAGE_KEYS.textedit.LAST_FILE_PATH,
-              path
-            );
+            setLastFilePath(path);
             // Store content in case app crashes
-            localStorage.setItem(
-              APP_STORAGE_KEYS.textedit.CONTENT,
-              JSON.stringify(editor.getJSON())
-            );
+            setContentJson(editor.getJSON());
           }
         } catch (e) {
           console.error("Failed to parse pending file open data:", e);
@@ -488,16 +482,10 @@ export function TextEditAppComponent({
       });
       
       // Store JSON content in case app crashes
-      localStorage.setItem(
-        APP_STORAGE_KEYS.textedit.CONTENT,
-        JSON.stringify(jsonContent)
-      );
+      setContentJson(jsonContent);
       
       // Store the file path for next time
-      localStorage.setItem(
-        APP_STORAGE_KEYS.textedit.LAST_FILE_PATH,
-        currentFilePath
-      );
+      setLastFilePath(currentFilePath);
       
       setHasUnsavedChanges(false);
     }
@@ -517,16 +505,10 @@ export function TextEditAppComponent({
     });
 
     // Store JSON content in case app crashes (for editor recovery)
-    localStorage.setItem(
-      APP_STORAGE_KEYS.textedit.CONTENT,
-      JSON.stringify(jsonContent)
-    );
+    setContentJson(jsonContent);
     
     // Store the file path for next time
-    localStorage.setItem(
-      APP_STORAGE_KEYS.textedit.LAST_FILE_PATH,
-      filePath
-    );
+    setLastFilePath(filePath);
     
     setCurrentFilePath(filePath);
     setHasUnsavedChanges(false);
@@ -571,13 +553,10 @@ export function TextEditAppComponent({
       setHasUnsavedChanges(false);
       
       // Store JSON for internal recovery
-      localStorage.setItem(
-        APP_STORAGE_KEYS.textedit.CONTENT,
-        JSON.stringify(editor.getJSON())
-      );
+      setContentJson(editor.getJSON());
       
       // Store the file path for next time
-      localStorage.setItem(APP_STORAGE_KEYS.textedit.LAST_FILE_PATH, filePath);
+      setLastFilePath(filePath);
     }
     
     // Reset the input
@@ -692,16 +671,10 @@ export function TextEditAppComponent({
         setHasUnsavedChanges(false);
         
         // Store JSON for internal recovery
-        localStorage.setItem(
-          APP_STORAGE_KEYS.textedit.CONTENT,
-          JSON.stringify(editor.getJSON())
-        );
+        setContentJson(editor.getJSON());
         
         // Store the file path for next time
-        localStorage.setItem(
-          APP_STORAGE_KEYS.textedit.LAST_FILE_PATH,
-          filePath
-        );
+        setLastFilePath(filePath);
       }
     }
   };

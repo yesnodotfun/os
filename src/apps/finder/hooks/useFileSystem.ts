@@ -19,7 +19,7 @@ interface ExtendedFileItem extends Omit<FileItem, "content"> {
 }
 
 // Generic CRUD operations
-const dbOperations = {
+export const dbOperations = {
   async getAll<T>(storeName: string): Promise<T[]> {
     const db = await ensureIndexedDBInitialized();
     return new Promise((resolve, reject) => {
@@ -141,8 +141,11 @@ const dbOperations = {
   },
 };
 
+// Export STORE names
+export { STORES };
+
 // Sample documents
-interface Document {
+export interface Document {
   name: string;
   content: string | Blob;
   type?: string;
