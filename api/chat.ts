@@ -218,11 +218,11 @@ ${
     ? `- Browser URL: ${systemState.internetExplorer.url}
 - Wayback Year: ${systemState.internetExplorer.year}${
         systemState.internetExplorer.currentPageTitle
-          ? `\n- Page Title: ${systemState.internetExplorer.currentPageTitle}`
+          ? `\\n- Page Title: ${systemState.internetExplorer.currentPageTitle}`
           : ''
       }${
         systemState.internetExplorer.aiGeneratedHtml
-          ? `\n- AI HTML Length: ${systemState.internetExplorer.aiGeneratedHtml.length}`
+          ? `\\n- AI HTML Content:\\n${systemState.internetExplorer.aiGeneratedHtml}`
           : ''
       }`
     : ''

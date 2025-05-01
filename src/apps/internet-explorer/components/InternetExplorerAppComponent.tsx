@@ -1329,7 +1329,7 @@ export function InternetExplorerAppComponent({
           <div className="flex-1 relative">
             {errorDetails ? (
               renderErrorPage()
-            ) : isFutureYear || (mode === "past" && (isAiLoading || aiGeneratedHtml)) ? (
+            ) : isFutureYear || (mode === "past" && (isAiLoading || aiGeneratedHtml !== null)) ? (
               <div className="w-full h-full overflow-hidden absolute inset-0 font-geneva-12">
                 <HtmlPreview
                   htmlContent={isAiLoading ? generatedHtml || "" : aiGeneratedHtml || ""}
