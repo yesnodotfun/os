@@ -239,6 +239,10 @@ interface InternetExplorerStore {
   cachedYears: string[];
   isFetchingCachedYears: boolean;
   
+  // New state for pending navigation from Finder
+  pendingUrl: string | null;
+  pendingYear: string | null;
+  
   // Actions
   setUrl: (url: string) => void;
   setYear: (year: string) => void;
@@ -302,6 +306,10 @@ interface InternetExplorerStore {
   setTimeMachineViewOpen: (isOpen: boolean) => void;
   fetchCachedYears: (url: string) => Promise<void>;
   
+  // New actions for pending navigation
+  setPendingNavigation: (url: string, year?: string) => void;
+  clearPendingNavigation: () => void;
+  
   // Utility functions
   getAiCacheKey: (url: string, year: string) => string;
   updateBrowserState: () => void;
@@ -351,6 +359,9 @@ const getInitialState = () => ({
   isTimeMachineViewOpen: false,
   cachedYears: [] as string[],
   isFetchingCachedYears: false,
+  // Add initial state for pending navigation
+  pendingUrl: null as string | null,
+  pendingYear: null as string | null,
 });
 
 export const useInternetExplorerStore = create<InternetExplorerStore>()(
@@ -577,6 +588,10 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
           set({ isFetchingCachedYears: false, cachedYears: ['current'] }); 
         }
       },
+      
+      // Add implementations for new actions
+      setPendingNavigation: (url, year) => set({ pendingUrl: url, pendingYear: year || null }),
+      clearPendingNavigation: () => set({ pendingUrl: null, pendingYear: null }),
       
       updateBrowserState: () => {
       }

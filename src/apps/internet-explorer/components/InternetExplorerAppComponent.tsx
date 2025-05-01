@@ -260,6 +260,10 @@ export function InternetExplorerAppComponent({
     isFetchingCachedYears,
     setTimeMachineViewOpen,
     fetchCachedYears,
+    // Get pending navigation state and clear action
+    pendingUrl,
+    pendingYear,
+    clearPendingNavigation,
   } = useInternetExplorerStore();
 
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -1056,6 +1060,21 @@ export function InternetExplorerAppComponent({
   const handleSharePage = useCallback(() => {
     setIsShareDialogOpen(true);
   }, []);
+
+  // --- ADDED useEffect to handle pending navigation from the store ---
+  useEffect(() => {
+    if (pendingUrl) {
+      console.log(`[IE] Handling pending navigation from store: ${pendingUrl} (${pendingYear || 'current'})`);
+      // Use timeout to ensure initial navigation logic doesn't interfere
+      // and that the store/state is ready.
+      setTimeout(() => {
+        handleNavigate(pendingUrl, pendingYear || "current", false);
+        // Clear the pending state in the store after initiating navigation
+        clearPendingNavigation();
+      }, 100);
+    }
+  }, [pendingUrl, pendingYear, handleNavigate, clearPendingNavigation]); // Depend on pending state and actions
+  // --- End pending navigation handler ---
 
   if (!isWindowOpen) return null;
 

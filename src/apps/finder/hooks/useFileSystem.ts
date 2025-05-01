@@ -5,6 +5,7 @@ import { getNonFinderApps } from "@/config/appRegistry";
 import { useLaunchApp } from "@/hooks/useLaunchApp";
 import { useIpodStore } from "@/stores/useIpodStore";
 import { useVideoStore } from "@/stores/useVideoStore";
+import { useInternetExplorerStore, type Favorite } from "@/stores/useInternetExplorerStore";
 
 // Store names
 const STORES = {
@@ -422,6 +423,7 @@ export function useFileSystem(initialPath: string = "/") {
   const launchApp = useLaunchApp();
   const { tracks: ipodTracks, setCurrentIndex: setIpodIndex, setIsPlaying: setIpodPlaying } = useIpodStore();
   const { videos: videoTracks, setCurrentIndex: setVideoIndex, setIsPlaying: setVideoPlaying } = useVideoStore();
+  const internetExplorerStore = useInternetExplorerStore();
 
   // Initialize database and load data
   useEffect(() => {
@@ -447,7 +449,7 @@ export function useFileSystem(initialPath: string = "/") {
   // Load files whenever path, documents, or trash items change
   useEffect(() => {
     loadFiles();
-  }, [currentPath, documents, images, trashItems, ipodTracks, videoTracks]);
+  }, [currentPath, documents, images, trashItems, ipodTracks, videoTracks, internetExplorerStore.favorites]);
 
   // Listen for file save events
   useEffect(() => {
@@ -562,6 +564,13 @@ export function useFileSystem(initialPath: string = "/") {
             type: "directory-virtual",
           },
           {
+            name: "Sites",
+            isDirectory: true,
+            path: "/Sites",
+            icon: "/icons/sites.png",
+            type: "directory-virtual",
+          },
+          {
             name: "Trash",
             isDirectory: true,
             path: "/Trash",
@@ -662,6 +671,18 @@ export function useFileSystem(initialPath: string = "/") {
           appId: "videos",
           type: "Video",
           data: { index },
+        }));
+      }
+      // Sites directory (virtual)
+      else if (currentPath === "/Sites") {
+        simulatedFiles = internetExplorerStore.favorites.map((fav: Favorite, index: number) => ({
+          name: fav.title || `Favorite ${index + 1}`,
+          isDirectory: false,
+          path: `/Sites/${fav.url}`,
+          icon: "/icons/site.png",
+          appId: "internet-explorer",
+          type: "site-link",
+          data: { url: fav.url, year: fav.year || 'current' },
         }));
       }
       // Trash directory
@@ -786,6 +807,28 @@ export function useFileSystem(initialPath: string = "/") {
       setVideoIndex(file.data.index);
       setVideoPlaying(true);
       launchApp("videos");
+    }
+    // Handle opening site links - Modified this block
+    else if (file.type === "site-link" && file.data?.url) {
+      const ieState = localStorage.getItem(APP_STORAGE_KEYS["internet-explorer"].WINDOW);
+      if (!ieState) {
+        localStorage.setItem(
+          APP_STORAGE_KEYS["internet-explorer"].WINDOW,
+          JSON.stringify({
+            position: { x: 150, y: 150 },
+            size: { width: 800, height: 600 },
+          })
+        );
+      }
+
+      // Set pending navigation in the store instead of localStorage
+      internetExplorerStore.setPendingNavigation(
+        file.data.url,
+        file.data.year || "current"
+      );
+
+      // Launch Internet Explorer
+      launchApp("internet-explorer");
     }
   }
 
