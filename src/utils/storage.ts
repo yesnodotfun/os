@@ -1496,15 +1496,39 @@ export const saveLastOpenedRoomId = (roomId: string | null): void => {
 };
 
 // Add functions for loading and saving cached chat rooms
+// Cache TTL for chat rooms (30 minutes)
+const CHAT_ROOMS_CACHE_TTL_MS = 30 * 60 * 1000;
+
 export const loadCachedChatRooms = (): ChatRoom[] | null => {
   const saved = localStorage.getItem(APP_STORAGE_KEYS.chats.CACHED_ROOMS);
-  return saved ? JSON.parse(saved) : null;
+  if (!saved) return null;
+  try {
+    const parsed = JSON.parse(saved);
+    // For backward compatibility with older plain-array cache
+    if (Array.isArray(parsed)) {
+      return parsed;
+    }
+    const { rooms, updatedAt } = parsed as { rooms?: ChatRoom[]; updatedAt?: number };
+    if (!rooms || !updatedAt) return null;
+    if (Date.now() - updatedAt > CHAT_ROOMS_CACHE_TTL_MS) {
+      // Cache expired
+      return null;
+    }
+    return rooms;
+  } catch (err) {
+    console.warn("Failed to parse cached chat rooms", err);
+    return null;
+  }
 };
 
 export const saveCachedChatRooms = (rooms: ChatRoom[]): void => {
+  const payload = {
+    rooms,
+    updatedAt: Date.now(),
+  };
   localStorage.setItem(
     APP_STORAGE_KEYS.chats.CACHED_ROOMS,
-    JSON.stringify(rooms)
+    JSON.stringify(payload)
   );
 };
 

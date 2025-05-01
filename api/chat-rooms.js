@@ -50,6 +50,72 @@ const CHAT_MESSAGES_PREFIX = 'chat:messages:';
 const CHAT_USERS_PREFIX = 'chat:users:';
 const CHAT_ROOM_USERS_PREFIX = 'chat:room:users:';
 
+// USER TTL (in seconds) – after this period of inactivity the user record expires automatically
+const USER_TTL_SECONDS = 60 * 30; // 30 minutes
+
+/**
+ * Helper to set (or update) a user record **with** an expiry so stale
+ * users are automatically evicted by Redis.
+ */
+const setUserWithTTL = async (username, data) => {
+  await redis.set(`${CHAT_USERS_PREFIX}${username}`, JSON.stringify(data), {
+    ex: USER_TTL_SECONDS,
+  });
+};
+
+/**
+ * Returns the list of active usernames in a room (based on presence of the
+ * user key). Any stale usernames that no longer have a backing user key are
+ * pruned from the room set so that future SCARD operations are accurate.
+ */
+const getActiveUsersAndPrune = async (roomId) => {
+  const roomUsersKey = `${CHAT_ROOM_USERS_PREFIX}${roomId}`;
+  const usernames = await redis.smembers(roomUsersKey);
+
+  if (usernames.length === 0) return [];
+
+  // Fetch all user keys in a single round-trip
+  const userKeys = usernames.map((u) => `${CHAT_USERS_PREFIX}${u}`);
+  const userDataList = await redis.mget(...userKeys);
+
+  const activeUsers = [];
+  const staleUsers = [];
+
+  usernames.forEach((username, idx) => {
+    if (userDataList[idx]) {
+      activeUsers.push(username);
+    } else {
+      staleUsers.push(username);
+    }
+  });
+
+  // Remove stale users from the set so counts stay in sync
+  if (staleUsers.length > 0) {
+    await redis.srem(roomUsersKey, ...staleUsers);
+  }
+
+  return activeUsers;
+};
+
+/**
+ * Re-calculates the active user count for a room, updates the stored room
+ * object and returns the fresh count.
+ */
+const refreshRoomUserCount = async (roomId) => {
+  const activeUsers = await getActiveUsersAndPrune(roomId);
+  const userCount = activeUsers.length;
+
+  const roomKey = `${CHAT_ROOM_PREFIX}${roomId}`;
+  const roomDataRaw = await redis.get(roomKey);
+  const roomData = typeof roomDataRaw === 'string' ? (() => { try { return JSON.parse(roomDataRaw); } catch { return null; } })() : roomDataRaw;
+  if (roomData) {
+    const updatedRoom = { ...roomData, userCount };
+    await redis.set(roomKey, updatedRoom);
+  }
+
+  return userCount;
+};
+
 // Helper functions
 const generateId = () => {
   return Math.random().toString(36).substring(2, 15);
@@ -65,6 +131,19 @@ const createErrorResponse = (message, status) => {
     status,
     headers: { 'Content-Type': 'application/json' }
   });
+};
+
+// Utility to ensure user data is an object
+const parseUserData = (data) => {
+  if (!data) return null;
+  if (typeof data === 'string') {
+    try {
+      return JSON.parse(data);
+    } catch {
+      return null;
+    }
+  }
+  return data; // Already object
 };
 
 // GET handler
@@ -198,7 +277,17 @@ async function handleGetRooms(requestId) {
     }
 
     const roomsData = await redis.mget(...keys);
-    const rooms = roomsData.map(room => room).filter(Boolean);
+
+    // Refresh user counts for each room concurrently
+    const rooms = await Promise.all(
+      roomsData.map(async (room) => {
+        if (!room) return null;
+        const roomObj = typeof room === 'string' ? (() => { try { return JSON.parse(room); } catch { return null; } })() : room;
+        if (!roomObj || !roomObj.id) return null;
+        const userCount = await refreshRoomUserCount(roomObj.id);
+        return { ...roomObj, userCount };
+      })
+    ).then(list => list.filter(Boolean));
 
     return new Response(JSON.stringify({ rooms }), {
       headers: { 'Content-Type': 'application/json' }
@@ -212,12 +301,17 @@ async function handleGetRooms(requestId) {
 async function handleGetRoom(roomId, requestId) {
   logInfo(requestId, `Fetching room: ${roomId}`);
   try {
-    const room = await redis.get(`${CHAT_ROOM_PREFIX}${roomId}`);
+    const roomRaw = await redis.get(`${CHAT_ROOM_PREFIX}${roomId}`);
+    const roomObj = typeof roomRaw === 'string' ? (() => { try { return JSON.parse(roomRaw); } catch { return null; } })() : roomRaw;
 
-    if (!room) {
+    if (!roomObj) {
       logInfo(requestId, `Room not found: ${roomId}`);
       return createErrorResponse('Room not found', 404);
     }
+
+    // Refresh user count before returning
+    const userCount = await refreshRoomUserCount(roomId);
+    const room = { ...roomObj, userCount };
 
     return new Response(JSON.stringify({ room }), {
       headers: { 'Content-Type': 'application/json' }
@@ -531,11 +625,9 @@ async function handleLeaveRoom(data, requestId) {
 
     // If user was actually removed, update the count
     if (removed) {
-      // Fetch latest count after removing
-      const userCount = await redis.scard(`${CHAT_ROOM_USERS_PREFIX}${roomId}`);
-      const updatedRoom = { ...roomData, userCount };
-      await redis.set(`${CHAT_ROOM_PREFIX}${roomId}`, updatedRoom);
-      logInfo(requestId, `User ${username} left room ${roomId}, new user count: ${userCount}`);
+      // Re-calculate active user count after possible pruning of stale users
+      const userCount = await refreshRoomUserCount(roomId);
+      logInfo(requestId, `User ${username} left room ${roomId}, new active user count: ${userCount}`);
       
       // Trigger Pusher events for user count update
       try {
