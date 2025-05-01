@@ -207,7 +207,7 @@ function decodeData(code: string): { url: string; year: string } | null {
       if (typeof data.url === 'string' && typeof data.year === 'string') {
         return { url: data.url, year: data.year };
       }
-    } catch (jsonError) {
+    } catch {
       console.debug("[IE] Failed to parse as JSON, not a valid share code format");
     }
 
@@ -849,7 +849,12 @@ export function InternetExplorerAppComponent({
 
   // --- Add listener for updateApp event (handles share links when app is already open) ---
   useEffect(() => {
-    const handleUpdateApp = (event: CustomEvent<{ appId: string; initialData?: any }>) => {
+    // Define a type for the initialData expected in the event detail
+    interface AppUpdateInitialData {
+      shareCode?: string;
+    }
+
+    const handleUpdateApp = (event: CustomEvent<{ appId: string; initialData?: AppUpdateInitialData }>) => {
       if (event.detail.appId === 'internet-explorer' && event.detail.initialData?.shareCode) {
         const code = event.detail.initialData.shareCode;
         console.log("[IE] Received updateApp event with shareCode:", code);
