@@ -15,6 +15,7 @@ interface SystemState {
     year: string;
     status: string;
     currentPageTitle: string | null;
+    aiGeneratedHtml: string | null;
   };
   video: {
     currentVideo: {
@@ -210,20 +211,24 @@ ${
     ? `- iPod Now Playing: ${systemState.ipod.currentTrack.title}${
         systemState.ipod.currentTrack.artist ? ` by ${systemState.ipod.currentTrack.artist}` : ''
       }`
-    : ""
+    : ''
 }
 ${
-  systemState.internetExplorer.url !== "https://apple.com"
+  systemState.internetExplorer.url
     ? `- Browser URL: ${systemState.internetExplorer.url}
 - Wayback Year: ${systemState.internetExplorer.year}${
-        systemState.internetExplorer.currentPageTitle 
-          ? `\n- Page Title: ${systemState.internetExplorer.currentPageTitle}` 
+        systemState.internetExplorer.currentPageTitle
+          ? `\n- Page Title: ${systemState.internetExplorer.currentPageTitle}`
+          : ''
+      }${
+        systemState.internetExplorer.aiGeneratedHtml
+          ? `\n- AI HTML Length: ${systemState.internetExplorer.aiGeneratedHtml.length}`
           : ''
       }`
-    : ""
+    : ''
 }
 </system_state_instructions>`
-    : ""
+    : ''
 }`;
 
   // Add TextEdit content if available
@@ -468,8 +473,7 @@ export default async function handler(req: Request) {
     const model = queryModel || bodyModel;
 
     console.log(
-      `Using model: ${model || DEFAULT_MODEL} (${queryModel ? "from query" : model ? "from body" : "using default"})`
-    );
+      `Using model: ${model || DEFAULT_MODEL} (${queryModel ? "from query" : model ? "from body" : "using default"})`    );
 
     if (!messages || !Array.isArray(messages)) {
       console.error(
@@ -520,3 +524,4 @@ export default async function handler(req: Request) {
     return new Response("Internal Server Error", { status: 500 });
   }
 }
+

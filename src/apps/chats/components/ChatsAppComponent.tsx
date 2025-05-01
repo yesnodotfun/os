@@ -1759,6 +1759,7 @@ const getSystemState = () => {
       year: ieStore.year,
       status: ieStore.status,
       currentPageTitle: ieStore.currentPageTitle,
+      aiGeneratedHtml: ieStore.aiGeneratedHtml,
     },
     video: {
       currentVideo: currentVideo ? {

@@ -841,7 +841,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                         <div
                            ref={timelineRef}
                            className="w-auto max-w-full overflow-x-auto flex flex-row items-center space-x-4 space-y-0 justify-start py-2 flex-shrink-0
-                                      sm:w-full sm:overflow-y-auto sm:flex-col sm:items-center sm:space-y-1 sm:space-x-0 sm:py-4 sm:h-auto sm:max-h-full sm:max-w-none
+                                      sm:w-full sm:overflow-y-auto sm:flex-col-reverse sm:items-center sm:space-y-1 sm:space-x-0 sm:py-4 sm:h-auto sm:max-h-full sm:max-w-none
                                       sm:justify-start sm:min-h-full
                                       [&::-webkit-scrollbar]:hidden
                                       [&::-webkit-scrollbar]:sm:w-1
