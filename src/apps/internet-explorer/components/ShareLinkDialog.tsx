@@ -4,6 +4,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogFooter,
+  DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -114,7 +116,10 @@ export function ShareLinkDialog({
         className="bg-system7-window-bg border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)] max-w-xs"
         onKeyDown={(e: React.KeyboardEvent) => e.stopPropagation()}
       >
-        <DialogHeader>Share Page</DialogHeader>
+        <DialogHeader>
+          <DialogTitle className="font-normal text-[16px]">Share Page</DialogTitle>
+          <DialogDescription className="sr-only">Share this page via link or QR code</DialogDescription>
+        </DialogHeader>
         <div className="p-3 w-full">
           <div className="flex flex-col items-center space-y-3 w-full">
             {/* QR Code */}
