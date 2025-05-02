@@ -2,8 +2,10 @@ import React from "react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogFooter,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -43,9 +45,12 @@ export function InputDialog({
         className="bg-system7-window-bg border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)]"
         onKeyDown={(e: React.KeyboardEvent) => e.stopPropagation()}
       >
-        <DialogHeader>{title}</DialogHeader>
+        <DialogHeader>
+          <DialogTitle className="font-normal text-[16px]">{title}</DialogTitle>
+          <DialogDescription className="sr-only">{description}</DialogDescription>
+        </DialogHeader>
         <div className="p-4 px-6">
-          <p className="text-gray-500 mb-2">{description}</p>
+          <p className="text-gray-500 mb-2" id="dialog-description">{description}</p>
           <Input
             autoFocus
             value={value}

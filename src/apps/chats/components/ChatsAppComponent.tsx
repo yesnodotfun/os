@@ -15,6 +15,7 @@ import { ChatRoomSidebar } from "./ChatRoomSidebar"; // Import ChatRoomSidebar
 import { useChatsStore } from "@/stores/useChatsStore";
 import { type Message as UIMessage } from "ai/react";
 import { type ChatMessage, type ChatRoom } from "@/types/chat";
+import { Button } from "@/components/ui/button";
 
 export function ChatsAppComponent({
   isWindowOpen,
@@ -172,38 +173,51 @@ export function ChatsAppComponent({
             isAdmin={isAdmin}
           />
           <div className="flex flex-col flex-1 p-2 overflow-hidden">
-            <ChatMessages
-              key={currentRoomId || 'ryo'}
-              messages={currentMessagesToDisplay as any}
-              isLoading={isLoading}
-              error={error}
-              onRetry={reload}
-              onClear={() => setIsClearDialogOpen(true)}
-              isRoomView={!!currentRoomId}
-              roomId={currentRoomId ?? undefined}
-              isAdmin={isAdmin}
-              username={username || undefined}
-            />
+            {/* Chat Messages Area - takes up remaining space */}
+            <div className="flex-1 overflow-y-auto">
+              <ChatMessages
+                key={currentRoomId || 'ryo'} // Re-render on room change
+                messages={currentMessagesToDisplay as any}
+                isLoading={isLoading && !currentRoomId} // Only show AI loading state
+                error={!currentRoomId ? error : undefined} // Pass actual error object only for AI chat
+                onRetry={reload}
+                onClear={() => setIsClearDialogOpen(true)} // AI Clear only
+                isRoomView={!!currentRoomId}
+                roomId={currentRoomId ?? undefined}
+                isAdmin={isAdmin}
+                username={username || undefined} // Pass username for message deletion check
+              />
+            </div>
 
-            {(() => {
-               const userMessages = aiMessages.filter((msg: UIMessage) => msg.role === "user");
-               const prevMessagesContent = Array.from(new Set(userMessages.map((msg) => msg.content))).reverse() as string[];
+            {/* Input Area or Set Username Prompt */}
+            <div className="flex-shrink-0 pt-2 border-t border-gray-400">
+              {currentRoomId && !username ? (
+                  <Button onClick={promptSetUsername} className="w-full h-8 font-geneva-12 text-[12px] bg-black text-white hover:opacity-80 transition-opacity duration-200">
+                    Set Username to Chat
+                  </Button>
+              ) : (
+                // AI Chat or in a room with username set
+                (() => {
+                  const userMessages = aiMessages.filter((msg: UIMessage) => msg.role === "user");
+                  const prevMessagesContent = Array.from(new Set(userMessages.map((msg) => msg.content))).reverse() as string[];
 
-              return (
-                <ChatInput
-                  input={input}
-                  isLoading={isLoading}
-                  isForeground={isForeground}
-                  onInputChange={handleInputChange}
-                  onSubmit={handleSubmit}
-                  onStop={stop}
-                  onDirectMessageSubmit={handleDirectSubmit}
-                  onNudge={handleNudgeClick}
-                  previousMessages={prevMessagesContent}
-                  showNudgeButton={!currentRoomId}
-                />
-              );
-            })()}
+                  return (
+                    <ChatInput
+                      input={input}
+                      isLoading={isLoading}
+                      isForeground={isForeground}
+                      onInputChange={handleInputChange}
+                      onSubmit={handleSubmit}
+                      onStop={stop}
+                      onDirectMessageSubmit={handleDirectSubmit}
+                      onNudge={handleNudgeClick}
+                      previousMessages={prevMessagesContent}
+                      showNudgeButton={!currentRoomId} // Only show nudge for AI chat
+                    />
+                  );
+                })()
+              )}
+            </div>
           </div>
         </div>
         <HelpDialog
@@ -235,7 +249,10 @@ export function ChatsAppComponent({
         />
         <InputDialog
           isOpen={isUsernameDialogOpen}
-          onOpenChange={setIsUsernameDialogOpen}
+          onOpenChange={(open) => {
+              console.log(`[ChatApp Debug] Username InputDialog onOpenChange called with: ${open}`);
+              setIsUsernameDialogOpen(open);
+          }}
           onSubmit={submitUsernameDialog}
           title="Set Username"
           description="Enter the username you want to use in Chat Rooms"

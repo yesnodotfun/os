@@ -230,7 +230,7 @@ export function ChatMessages({
   return (
     // Use StickToBottom component as the main container
     <StickToBottom
-      className="flex-1 relative flex flex-col overflow-hidden bg-white border-2 border-gray-800 rounded mb-2 w-full"
+      className="flex-1 relative flex flex-col overflow-hidden bg-white border-2 border-gray-800 rounded mb-2 w-full h-full"
       // Optional props for smooth scrolling behavior
       resize="smooth"
       initial="smooth"

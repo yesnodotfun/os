@@ -151,23 +151,21 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
     // --- Room Actions ---
     const handleRoomSelect = useCallback((newRoomId: string | null) => {
         const previousRoomId = previousRoomIdRef.current;
-        console.log(`[Room Select] Switching from ${previousRoomId || '@ryo'} to ${newRoomId || '@ryo'}`);
+        console.log(`[Room Select] User selected room: ${newRoomId || '@ryo'} (from ${previousRoomId || '@ryo'})`);
 
-        if (username) {
-            if (previousRoomId && previousRoomId !== newRoomId) {
-                callRoomAction('leaveRoom', { roomId: previousRoomId, username });
+        // Only fetch messages and update state if the room ID actually changes
+        if (newRoomId !== previousRoomId) {
+            setCurrentRoomId(newRoomId);
+            // Fetch messages for the newly selected room *if* it's a real room ID
+            if (newRoomId) {
+                fetchMessagesForRoom(newRoomId);
             }
-            if (newRoomId && newRoomId !== previousRoomId) {
-                callRoomAction('joinRoom', { roomId: newRoomId, username });
-                fetchMessagesForRoom(newRoomId); // Fetch messages when joining a new room
-            }
+            // Note: Joining/leaving the room is handled by a separate effect reacting to currentRoomId change
+            // The effect will handle the actual API calls based on this state change + username.
+        } else {
+             console.log(`[Room Select] Room ID ${newRoomId} is the same as the current one, skipping state update and fetch.`);
         }
-
-        setCurrentRoomId(newRoomId);
-        previousRoomIdRef.current = newRoomId;
-        // Persistence of last room ID will be handled by the store's persist middleware
-
-    }, [username, callRoomAction, setCurrentRoomId, fetchMessagesForRoom]);
+    }, [setCurrentRoomId, fetchMessagesForRoom]); // Removed username, callRoomAction dependencies
 
     const sendRoomMessage = useCallback(async (content: string) => {
         if (!currentRoomId || !username || !content.trim()) return;
@@ -313,33 +311,34 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
         };
     }, [isWindowOpen, isForeground, addMessageToRoom, removeMessageFromRoom, clearRoomMessages, currentRoomId, username, handleRoomSelect]); // Dependencies that affect event handlers
 
-    // Effect 2: Fetch initial data and join room once Pusher is connected and username is set
+    // Effect 2: Fetch initial data once Pusher is connected
     useEffect(() => {
-        // Only run if Pusher is connected, username exists, and initial data hasn't been fetched yet
-        if (pusherRef.current && channelRef.current && username && !hasFetchedInitialData.current) {
-            console.log("[Pusher Hook] Connected and username set. Fetching initial data and joining room...");
-            hasFetchedInitialData.current = true; // Set flag
+        // Only run if Pusher is connected and initial data hasn't been fetched yet
+        if (pusherRef.current && channelRef.current && !hasFetchedInitialData.current) {
+            console.log("[Pusher Hook] Connected. Fetching initial room data...");
+            hasFetchedInitialData.current = true; // Set flag immediately
 
-            const fetchDataAndJoin = async () => {
+            const fetchData = async () => {
                 await fetchRooms(); // Fetch rooms first
                 // After rooms are fetched, the store might update currentRoomId if restoring last opened
                 const finalRoomId = useChatsStore.getState().currentRoomId; // Get potentially updated room ID
 
+                // If a room was restored, fetch its messages
                 if (finalRoomId) {
-                    console.log("[Pusher Hook] Joining initial room:", finalRoomId);
-                    await callRoomAction('joinRoom', { roomId: finalRoomId, username });
+                    console.log("[Pusher Hook] Restored room:", finalRoomId, "Fetching messages.");
                     await fetchMessagesForRoom(finalRoomId); // Fetch messages for the initial room
                     previousRoomIdRef.current = finalRoomId; // Set the initial previous room ID
+                    // Note: Joining the room is handled by Effect 4 based on username and currentRoomId
                 }
             };
 
-            fetchDataAndJoin();
+            fetchData();
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [username, fetchRooms, fetchMessagesForRoom, callRoomAction]); // Run when username changes (or other deps change)
+    }, [fetchRooms, fetchMessagesForRoom]); // Dependencies: only fetch functions
 
-     // Effect 3: Handle leaving room on component unmount or window close
-     useEffect(() => {
+    // Effect 3: Handle leaving room on component unmount or window close
+    useEffect(() => {
         const handleBeforeUnload = () => {
             const roomToLeave = previousRoomIdRef.current;
             if (roomToLeave && username) {
@@ -364,8 +363,55 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [username]); // Only depends on username for the cleanup action
 
+    // Effect 4: Manage joining/leaving rooms based on username and currentRoomId changes
+    useEffect(() => {
+        const previousRoomId = previousRoomIdRef.current;
+        const roomToLeave = previousRoomId;
+        const roomToJoin = currentRoomId;
+
+        console.log(`[Room Membership Effect] Running. User: ${username}, Current: ${roomToJoin}, Previous: ${roomToLeave}`);
+
+        // Ensure Pusher is connected before attempting actions
+        if (!pusherRef.current || !channelRef.current) {
+            console.log("[Room Membership Effect] Pusher not ready, skipping.");
+            return;
+        }
+
+        // Only proceed if username is set
+        if (username) {
+            // Leave previous room if it's different from the new one
+            if (roomToLeave && roomToLeave !== roomToJoin) {
+                console.log(`[Room Membership Effect] Leaving room: ${roomToLeave}`);
+                callRoomAction('leaveRoom', { roomId: roomToLeave, username });
+            }
+
+            // Join new room if it exists and is different from the previous one
+            if (roomToJoin && roomToJoin !== roomToLeave) {
+                console.log(`[Room Membership Effect] Joining room: ${roomToJoin}`);
+                callRoomAction('joinRoom', { roomId: roomToJoin, username });
+            }
+        } else {
+            // If username becomes null (e.g., user logs out?), leave the current room
+            if (roomToLeave) {
+                console.log(`[Room Membership Effect] User logged out or username cleared, leaving room: ${roomToLeave}`);
+                // We need the username *before* it became null to leave the room
+                // This case might be complex or handled elsewhere (e.g., on explicit logout)
+                // For now, we assume the username was available just before this effect ran.
+                // If not, leaving might fail silently.
+                // Consider passing the previous username if implementing logout.
+            }
+        }
+
+        // Update the ref *after* performing actions based on the *previous* value
+        if (previousRoomIdRef.current !== currentRoomId) {
+             console.log(`[Room Membership Effect] Updating previousRoomIdRef to: ${currentRoomId}`);
+             previousRoomIdRef.current = currentRoomId;
+        }
+
+    }, [username, currentRoomId, callRoomAction]); // Depend on username and current room ID
+
     // --- Dialog States & Handlers ---
-    const [isUsernameDialogOpen, setIsUsernameDialogOpen] = useState(!username);
+    const [isUsernameDialogOpen, setIsUsernameDialogOpen] = useState(false);
     const [newUsername, setNewUsername] = useState("");
     const [isSettingUsername, setIsSettingUsername] = useState(false);
     const [usernameError, setUsernameError] = useState<string | null>(null);
@@ -378,13 +424,9 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
     const [isDeleteRoomDialogOpen, setIsDeleteRoomDialogOpen] = useState(false);
     const [roomToDelete, setRoomToDelete] = useState<ChatRoom | null>(null);
 
-    // Update username dialog visibility when username changes in store
-    useEffect(() => {
-        setIsUsernameDialogOpen(!username);
-    }, [username]);
-
     const promptSetUsername = useCallback(() => {
-        setNewUsername(username || "");
+        console.log("[ChatRoom Hook Debug] promptSetUsername called. Current username:", username);
+        setNewUsername(username || ""); // Ensure input field starts with current username or empty
         setUsernameError(null);
         setIsUsernameDialogOpen(true);
     }, [username]);
@@ -402,10 +444,16 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
     }, [handleUsernameSubmit, newUsername, setIsUsernameDialogOpen]);
 
      const promptAddRoom = useCallback(() => {
+        if (!username) {
+            // If no username, prompt to set one first instead of opening the add room dialog
+            promptSetUsername();
+            toast("Set Username", { description: "Please set a username before creating a room." });
+            return;
+        }
         setNewRoomName("");
         setRoomError(null);
         setIsNewRoomDialogOpen(true);
-    }, []);
+    }, [username, promptSetUsername]);
 
      const submitNewRoomDialog = useCallback(async () => {
         setIsCreatingRoom(true);

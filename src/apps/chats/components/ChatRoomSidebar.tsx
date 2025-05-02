@@ -50,7 +50,7 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
           {/* Ryo (@ryo) Chat Selection */}
           <div
             className={cn(
-              'px-2 py-1 cursor-pointer',
+              'px-2 py-1',
               currentRoom === null ? 'bg-black text-white' : 'hover:bg-black/5'
             )}
             onClick={() => onRoomSelect(null)} // Select null for @ryo
@@ -62,7 +62,7 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
             <div
               key={room.id}
               className={cn(
-                'group relative px-2 py-1 cursor-pointer',
+                'group relative px-2 py-1',
                 currentRoom?.id === room.id ? 'bg-black text-white' : 'hover:bg-black/5'
               )}
               onClick={() => onRoomSelect(room)}
