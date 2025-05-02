@@ -3,6 +3,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogFooter,
+  DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useRef, useEffect } from "react";
@@ -42,7 +44,10 @@ export function ConfirmDialog({
           confirmButtonRef.current?.focus();
         }}
       >
-        <DialogHeader>{title}</DialogHeader>
+        <DialogHeader>
+          <DialogTitle className="font-normal text-[16px]">{title}</DialogTitle>
+          <DialogDescription className="sr-only">{description}</DialogDescription>
+        </DialogHeader>
         <div className="p-4 px-6">
           <div className="flex gap-3 items-start">
             <img

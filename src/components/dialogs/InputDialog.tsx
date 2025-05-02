@@ -50,7 +50,7 @@ export function InputDialog({
           <DialogDescription className="sr-only">{description}</DialogDescription>
         </DialogHeader>
         <div className="p-4 px-6">
-          <p className="text-gray-500 mb-2" id="dialog-description">{description}</p>
+          <p className="text-gray-500 mb-2 text-[12px] font-geneva-12" id="dialog-description">{description}</p>
           <Input
             autoFocus
             value={value}
@@ -61,7 +61,7 @@ export function InputDialog({
                 handleSubmit();
               }
             }}
-            className="shadow-none"
+            className="shadow-none font-geneva-12 text-[12px]"
             disabled={isLoading}
           />
           {errorMessage && (

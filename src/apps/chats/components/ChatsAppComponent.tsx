@@ -192,7 +192,7 @@ export function ChatsAppComponent({
             {/* Input Area or Set Username Prompt */}
             <div className="flex-shrink-0 pt-2 border-t border-gray-400">
               {currentRoomId && !username ? (
-                  <Button onClick={promptSetUsername} className="w-full h-8 font-geneva-12 text-[12px] bg-black text-white hover:opacity-80 transition-opacity duration-200">
+                  <Button onClick={promptSetUsername} className="w-full h-8 font-geneva-12 text-[12px] bg-orange-600 text-white hover:bg-orange-700 transition-all duration-200">
                     Set Username to Chat
                   </Button>
               ) : (

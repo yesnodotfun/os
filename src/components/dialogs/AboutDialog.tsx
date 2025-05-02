@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 interface AboutDialogProps {
   isOpen: boolean;
@@ -23,7 +23,10 @@ export function AboutDialog({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="bg-system7-window-bg border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)] max-w-[280px]">
-        <DialogHeader>About</DialogHeader>
+        <DialogHeader>
+          <DialogTitle className="font-normal text-[16px]">About</DialogTitle>
+          <DialogDescription className="sr-only">Information about the application</DialogDescription>
+        </DialogHeader>
         <div className="space-y-2 text-center p-4 pb-8">
           <div>
             <img

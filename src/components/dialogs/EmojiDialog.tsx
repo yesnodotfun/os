@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 interface EmojiDialogProps {
   isOpen: boolean;
@@ -226,9 +226,12 @@ export function EmojiDialog({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="bg-system7-window-bg border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)]">
-        <DialogHeader>Set Emoji</DialogHeader>
+        <DialogHeader>
+          <DialogTitle className="font-normal text-[16px]">Set Emoji</DialogTitle>
+          <DialogDescription className="sr-only">Choose an emoji for this sound slot</DialogDescription>
+        </DialogHeader>
         <div className="p-4 pt-0">
-          <p className="text-gray-500 mb-4">
+          <p id="dialog-description" className="text-gray-500 mb-2 text-[12px] font-geneva-12">
             Choose an emoji for this sound slot
           </p>
           <div className="grid grid-cols-10 gap-1 max-h-[300px] overflow-y-auto">

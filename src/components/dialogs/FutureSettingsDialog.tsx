@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -63,7 +63,10 @@ const FutureSettingsDialog = ({
           saveButtonRef.current?.focus();
         }}
       >
-        <DialogHeader>Edit Future Timeline</DialogHeader>
+        <DialogHeader>
+          <DialogTitle className="font-normal text-[16px]">Edit Future Timeline</DialogTitle>
+          <DialogDescription className="sr-only">Edit settings for the future timeline</DialogDescription>
+        </DialogHeader>
         <div className="p-4 px-6">
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-2">

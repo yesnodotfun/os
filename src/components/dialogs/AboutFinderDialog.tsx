@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { getNonFinderApps } from "@/config/appRegistry";
 import { useAppContext } from "@/contexts/AppContext";
 import { useMemo } from "react";
@@ -55,7 +55,10 @@ export function AboutFinderDialog({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="bg-system7-window-bg border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)] max-w-[400px] focus:outline-none">
-        <DialogHeader>About This Computer</DialogHeader>
+        <DialogHeader>
+          <DialogTitle className="font-normal text-[16px]">About This Computer</DialogTitle>
+          <DialogDescription className="sr-only">Information about ryOS on this computer</DialogDescription>
+        </DialogHeader>
 
         <div className="flex">
           {/* Right side with system info */}
