@@ -10,12 +10,12 @@ export function normalizeUrlForCacheKey(url: string | undefined | null): string 
   try {
     const parsed = new URL(tempUrl);
     // Key is based on origin + pathname.
-    // Remove trailing slash only if it's the root path ('/').
     let keyPath = parsed.pathname;
-    if (keyPath !== '/' && keyPath.endsWith('/')) {
-      keyPath = keyPath.slice(0, -1); // Remove trailing slash for non-root paths
-    } else if (keyPath === '/') {
-        keyPath = ''; // Treat root '/' as an empty path for key generation consistency
+    if (keyPath.endsWith('/')) {
+      keyPath = keyPath.slice(0, -1); // Remove trailing slash from all paths
+    }
+    if (keyPath === '') {
+      keyPath = ''; // Empty path for consistency with previous behavior
     }
 
     // Reconstruct the normalized URL including query params and hash
@@ -28,4 +28,4 @@ export function normalizeUrlForCacheKey(url: string | undefined | null): string 
     // This might happen with invalid URLs.
     return tempUrl;
   }
-} 
+}  

@@ -1601,7 +1601,9 @@ export const saveAiPageCache = (cache: Record<string, { html: string; updatedAt:
 export const getAiCacheKey = (url: string, year: string): string => {
   // Normalize URL to ensure consistency (remove trailing slash, ensure protocol)
   const normalizedUrl = url.startsWith("http") ? url : `https://${url}`;
-  return `${normalizedUrl}|${year}`;
+  // Remove trailing slash if present
+  const trimmedUrl = normalizedUrl.replace(/\/+$/, '');
+  return `${trimmedUrl}|${year}`;
 };
 
 export const loadCachedAiPage = (url: string, year: string): string | null => {
