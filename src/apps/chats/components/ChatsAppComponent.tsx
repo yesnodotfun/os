@@ -65,6 +65,7 @@ export function ChatsAppComponent({
     isSettingUsername,
     usernameError,
     submitUsernameDialog,
+    setUsernameError,
     isNewRoomDialogOpen,
     setIsNewRoomDialogOpen,
     newRoomName,
@@ -239,7 +240,10 @@ export function ChatsAppComponent({
           title="Set Username"
           description="Enter the username you want to use in Chat Rooms"
           value={newUsername}
-          onChange={(value) => { setNewUsername(value); }}
+          onChange={(value) => { 
+            setNewUsername(value); 
+            setUsernameError(null);
+          }}
           isLoading={isSettingUsername}
           errorMessage={usernameError}
         />

@@ -391,15 +391,15 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
 
     const submitUsernameDialog = useCallback(async () => {
         setIsSettingUsername(true);
-        setUsernameError(null);
         const result = await handleUsernameSubmit(newUsername);
         setIsSettingUsername(false);
         if (result.ok) {
             setIsUsernameDialogOpen(false);
+            setUsernameError(null);
         } else {
             setUsernameError(result.error);
         }
-    }, [handleUsernameSubmit, newUsername]);
+    }, [handleUsernameSubmit, newUsername, setIsUsernameDialogOpen]);
 
      const promptAddRoom = useCallback(() => {
         setNewRoomName("");
@@ -477,5 +477,8 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
         setIsDeleteRoomDialogOpen,
         roomToDelete,
         confirmDeleteRoom,
+        
+        // Explicitly add setter for username error
+        setUsernameError
     };
 } 

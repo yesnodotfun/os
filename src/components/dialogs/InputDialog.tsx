@@ -32,7 +32,7 @@ export function InputDialog({
   errorMessage = null,
 }: InputDialogProps) {
   const handleSubmit = () => {
-    if (!isLoading && !errorMessage) {
+    if (!isLoading) {
       onSubmit(value);
     }
   };
