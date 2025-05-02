@@ -15,7 +15,6 @@ export interface ChatsStoreState {
     roomMessages: Record<string, ChatMessage[]>; // roomId -> messages map
     // UI State
     isSidebarVisible: boolean;
-    isAdmin: boolean;
 
     // Actions
     setAiMessages: (messages: Message[]) => void;
@@ -53,11 +52,10 @@ export const useChatsStore = create<ChatsStoreState>()(
     persist(
         (set, get) => ({
             ...getInitialState(),
-            isAdmin: false, // Initial value, will update based on username
 
             // --- Actions ---
             setAiMessages: (messages) => set({ aiMessages: messages }),
-            setUsername: (username) => set({ username, isAdmin: username === 'ryo' }), // Update isAdmin when username changes
+            setUsername: (username) => set({ username }),
             setRooms: (newRooms) => {
                 // Ensure incoming data is an array
                 if (!Array.isArray(newRooms)) {
@@ -209,14 +207,14 @@ export const useChatsStore = create<ChatsStoreState>()(
                 if (persistedState) {
                      console.log("[ChatsStore] Using persisted state.");
                      const state = persistedState as ChatsStoreState;
-                     const finalState = { ...state, isAdmin: state.username === 'ryo' };
+                     const finalState = { ...state };
                      console.log("[ChatsStore] Final state from persisted:", finalState);
                      console.log("[ChatsStore] Persisted state rooms type:", typeof finalState.rooms, "Is Array:", Array.isArray(finalState.rooms));
                      return finalState;
                 }
                 // Fallback to initial state if migration fails or no persisted state
                 console.log("[ChatsStore] Falling back to initial state.");
-                return { ...getInitialState(), isAdmin: false } as ChatsStoreState;
+                return { ...getInitialState() } as ChatsStoreState;
             },
         }
     )

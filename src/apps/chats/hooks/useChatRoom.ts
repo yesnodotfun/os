@@ -38,8 +38,10 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
         clearRoomMessages,
         isSidebarVisible,
         toggleSidebarVisibility,
-        isAdmin,
     } = useChatsStore();
+
+    // Derive isAdmin directly from the username
+    const isAdmin = username === 'ryo';
 
     const pusherRef = useRef<Pusher | null>(null);
     const channelRef = useRef<Channel | null>(null); // Use imported Channel type

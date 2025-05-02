@@ -237,7 +237,7 @@ export function ChatsAppComponent({
           onOpenChange={setIsUsernameDialogOpen}
           onSubmit={submitUsernameDialog}
           title="Set Username"
-          description="Enter the username you want to use in chat rooms"
+          description="Enter the username you want to use in Chat Rooms"
           value={newUsername}
           onChange={(value) => { setNewUsername(value); }}
           isLoading={isSettingUsername}
