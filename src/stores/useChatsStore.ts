@@ -167,7 +167,11 @@ export const useChatsStore = create<ChatsStoreState>()(
 
                         // Migrate Username
                         const oldUsername = localStorage.getItem('chats:chatRoomUsername');
-                        if (oldUsername) migratedState.username = oldUsername;
+                        if (oldUsername) {
+                            migratedState.username = oldUsername;
+                            localStorage.removeItem('chats:chatRoomUsername');
+                            console.log("[ChatsStore] Migrated and removed 'chats:chatRoomUsername' key");
+                        }
 
                         // Migrate Last Opened Room ID
                         const oldCurrentRoomId = localStorage.getItem('chats:lastOpenedRoomId');
@@ -221,6 +225,23 @@ export const useChatsStore = create<ChatsStoreState>()(
                      console.log("[ChatsStore] Using persisted state.");
                      const state = persistedState as ChatsStoreState;
                      const finalState = { ...state };
+                     
+                     // Check if username is null and if ryos:chats exists in localStorage
+                     if (finalState.username === null) {
+                         try {
+                             const ryosChatsData = localStorage.getItem(STORE_NAME);
+                             if (ryosChatsData) {
+                                 const parsedData = JSON.parse(ryosChatsData);
+                                 if (parsedData.state && parsedData.state.username) {
+                                     finalState.username = parsedData.state.username;
+                                     console.log("[ChatsStore] Migrated username from existing ryos:chats storage");
+                                 }
+                             }
+                         } catch (e) {
+                             console.warn("[ChatsStore] Failed to parse ryos:chats data during username migration", e);
+                         }
+                     }
+                     
                      console.log("[ChatsStore] Final state from persisted:", finalState);
                      console.log("[ChatsStore] Persisted state rooms type:", typeof finalState.rooms, "Is Array:", Array.isArray(finalState.rooms));
                      return finalState;
@@ -231,4 +252,4 @@ export const useChatsStore = create<ChatsStoreState>()(
             },
         }
     )
-); 
+);    
