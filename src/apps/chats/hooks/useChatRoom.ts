@@ -19,14 +19,6 @@ function debounce<T extends (...args: any[]) => void>(func: T, wait: number): (.
     };
 }
 
-// TODO: Move relevant state and logic from ChatsAppComponent here
-// - Pusher connection/subscriptions
-// - Room state (rooms, currentRoom, roomMessages)
-// - Room actions (select, add, delete, send message, join/leave)
-// - Username state and actions
-// - Dialog states (username, new room, delete room)
-// - Sidebar visibility state/toggle
-
 const PUSHER_APP_KEY = 'b47fd563805c8c42da1a';
 const PUSHER_CLUSTER = 'us3';
 const PUSHER_CHANNEL = 'chats';

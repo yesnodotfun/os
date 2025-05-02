@@ -489,35 +489,22 @@ async function handleCreateUser(data, requestId) {
     return createErrorResponse('Username contains inappropriate language', 400);
   }
 
-  const username = originalUsername;
+  // Normalize username to lowercase
+  const username = originalUsername.toLowerCase();
 
   logInfo(requestId, `Creating user: ${username}`);
   try {
     // Check if username already exists using setnx for atomicity
     const userKey = `${CHAT_USERS_PREFIX}${username}`;
     const user = {
-      username,
+      username, // Store the normalized lowercase username
       lastActive: getCurrentTimestamp()
     };
 
     const created = await redis.setnx(userKey, JSON.stringify(user));
 
     if (!created) {
-      // If username exists, update the last active timestamp
-      const userData = await redis.get(userKey);
-      if (userData) {
-        const parsedUser = typeof userData === 'object' ? userData : JSON.parse(userData);
-        const updatedUser = { ...parsedUser, lastActive: getCurrentTimestamp() };
-        await redis.set(userKey, JSON.stringify(updatedUser));
-        // Refresh expiration time
-        await redis.expire(userKey, USER_EXPIRATION_TIME);
-        logInfo(requestId, `User ${username} last active time updated and expiration reset`);
-        return new Response(JSON.stringify({ user: updatedUser }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' }
-        });
-      }
-      
+      // User already exists - return conflict error
       logInfo(requestId, `Username already taken: ${username}`);
       return createErrorResponse('Username already taken', 409);
     }
@@ -538,7 +525,8 @@ async function handleCreateUser(data, requestId) {
 
 // Room membership functions
 async function handleJoinRoom(data, requestId) {
-  const { roomId, username } = data;
+  const { roomId, username: originalUsername } = data;
+  const username = originalUsername?.toLowerCase(); // Normalize
 
   if (!roomId || !username) {
     logInfo(requestId, 'Room join failed: Missing required fields', { roomId, username });
@@ -614,7 +602,8 @@ async function handleJoinRoom(data, requestId) {
 }
 
 async function handleLeaveRoom(data, requestId) {
-  const { roomId, username } = data;
+  const { roomId, username: originalUsername } = data;
+  const username = originalUsername?.toLowerCase(); // Normalize
 
   if (!roomId || !username) {
     logInfo(requestId, 'Room leave failed: Missing required fields', { roomId, username });
@@ -821,7 +810,8 @@ async function handleGetUsers(requestId) {
 }
 
 async function handleSendMessage(data, requestId) {
-  const { roomId, username, content: originalContent } = data;
+  const { roomId, username: originalUsername, content: originalContent } = data;
+  const username = originalUsername?.toLowerCase(); // Normalize
 
   if (!roomId || !username || !originalContent) {
     logInfo(requestId, 'Message sending failed: Missing required fields', { roomId, username, hasContent: !!originalContent });
@@ -918,7 +908,8 @@ async function handleSendMessage(data, requestId) {
 }
 
 async function handleDeleteMessage(data, requestId) {
-  const { roomId, messageId, username } = data;
+  const { roomId, messageId, username: originalUsername } = data;
+  const username = originalUsername?.toLowerCase(); // Normalize
 
   if (!roomId || !messageId || !username) {
     logInfo(requestId, 'Message deletion failed: Missing required fields', { roomId, messageId, username });
@@ -926,7 +917,7 @@ async function handleDeleteMessage(data, requestId) {
   }
 
   // Only admin user (ryo) can delete via this endpoint
-  if (username !== 'ryo') {
+  if (username !== 'ryo') { // Check against normalized lowercase
     logInfo(requestId, `Unauthorized delete attempt by ${username}`);
     return createErrorResponse('Forbidden', 403);
   }
