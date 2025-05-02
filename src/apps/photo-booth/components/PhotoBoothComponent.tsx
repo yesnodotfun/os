@@ -24,21 +24,74 @@ interface PhotoReference {
   timestamp: number;
 }
 
-const effects: Effect[] = [
-  // Keep Normal in the middle (5th position)
+// Split effects into two categories
+const cssFilters: Effect[] = [
   { name: "Rainbow", filter: "hue-rotate(180deg) saturate(200%)" },
   { name: "Vibrant", filter: "saturate(200%) contrast(150%)" },
   { name: "Cold Blue", filter: "hue-rotate(240deg) saturate(150%)" },
-  { name: "Warm Orange", filter: "sepia(70%) hue-rotate(20deg)" },
+  { name: "High Contrast", filter: "contrast(200%) brightness(110%)" },
   { name: "Normal", filter: "none" },
-  // Special distortion effects using our custom shader effects
-  { name: "Bulge", filter: "bulge(2.0)" },
-  { name: "Pinch", filter: "pinch(2.0)" },
-  { name: "Twirl", filter: "twist(4.0)" },
-  { name: "Fish Eye", filter: "fisheye(2.0)" },
-  { name: "Squeeze", filter: "squeeze(1.5)" },
-  { name: "Stretch", filter: "stretch(1.2)" },
+  { name: "Vintage", filter: "sepia(80%) brightness(90%) contrast(120%)" },
+  { name: "X-Ray", filter: "invert(100%) hue-rotate(180deg) hue-rotate(180deg)" },
+  { name: "Neon", filter: "brightness(120%) contrast(120%) saturate(200%) hue-rotate(310deg)" },
+  { name: "Black & White", filter: "brightness(90%) hue-rotate(20deg) saturate(0%)" },
 ];
+
+const distortionFilters: Effect[] = [
+  { name: "Bulge", filter: "bulge(-0.5)" },
+  { name: "Stretch", filter: "stretch(1.0)" },
+  { name: "Pinch", filter: "pinch(2.0)" },
+  { name: "Twirl", filter: "twist(-8.0)" },
+  { name: "Fish Eye", filter: "fisheye(1.5)" },
+  { name: "Squeeze", filter: "squeeze(1.0)" },
+  // New exciting effects
+  { name: "Kaleidoscope", filter: "kaleidoscope(0.5)" },
+  { name: "Ripple", filter: "ripple(1.5)" },
+  { name: "Glitch", filter: "glitch(2.0)" },
+];
+
+// Combined array for compatibility with existing code
+const effects: Effect[] = [...cssFilters, ...distortionFilters];
+
+// Add function to detect swipe gestures
+function useSwipeDetection(onSwipeLeft: () => void, onSwipeRight: () => void) {
+  const touchStartX = useRef<number | null>(null);
+  const touchEndX = useRef<number | null>(null);
+  
+  // Minimum distance required for a swipe
+  const MIN_SWIPE_DISTANCE = 50;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.targetTouches[0].clientX;
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    touchEndX.current = e.targetTouches[0].clientX;
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStartX.current || !touchEndX.current) return;
+    
+    const distance = touchStartX.current - touchEndX.current;
+    const isSwipe = Math.abs(distance) > MIN_SWIPE_DISTANCE;
+    
+    if (isSwipe) {
+      if (distance > 0) {
+        // Swipe left
+        onSwipeLeft();
+      } else {
+        // Swipe right
+        onSwipeRight();
+      }
+    }
+    
+    // Reset
+    touchStartX.current = null;
+    touchEndX.current = null;
+  };
+
+  return { onTouchStart, onTouchMove, onTouchEnd };
+}
 
 export function PhotoBoothComponent({
   isWindowOpen,
@@ -50,6 +103,7 @@ export function PhotoBoothComponent({
   const [showAbout, setShowAbout] = useState(false);
   const [showEffects, setShowEffects] = useState(false);
   const [showPhotoStrip, setShowPhotoStrip] = useState(false);
+  const [currentEffectsPage, setCurrentEffectsPage] = useState(0); // 0 = CSS filters, 1 = distortions
   const videoRef = useRef<HTMLVideoElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -706,6 +760,22 @@ export function PhotoBoothComponent({
     setShowPhotoStrip(!showPhotoStrip);
   };
 
+  const toggleEffectsPage = (pageIndex: number) => {
+    setCurrentEffectsPage(pageIndex);
+  };
+
+  // Handlers for page navigation
+  const goToNextPage = () => {
+    setCurrentEffectsPage(1);
+  };
+
+  const goToPrevPage = () => {
+    setCurrentEffectsPage(0);
+  };
+
+  // Setup swipe handlers
+  const swipeHandlers = useSwipeDetection(goToNextPage, goToPrevPage);
+
   // Add handler for camera selection
   const handleCameraSelect = async (deviceId: string) => {
     console.log("Switching to camera:", deviceId);
@@ -839,14 +909,15 @@ export function PhotoBoothComponent({
               <AnimatePresence>
                 {showEffects && (
                   <motion.div
-                    className="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50"
+                    className="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center z-50"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.2 }}
+                    {...swipeHandlers}
                   >
                     <motion.div
-                      className="grid grid-cols-3 gap-4 p-4 w-full max-w-4xl max-h-full overflow-auto"
+                      className="grid grid-cols-3 gap-4 p-4 w-full max-w-4xl max-h-[calc(100%-40px)] overflow-auto"
                       initial={{ scale: 0.85, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
                       exit={{ scale: 0.85, opacity: 0 }}
@@ -856,7 +927,7 @@ export function PhotoBoothComponent({
                       }}
                       style={{ originX: 0.5, originY: 0.5 }}
                     >
-                      {effects.map((effect) => (
+                      {(currentEffectsPage === 0 ? cssFilters : distortionFilters).map((effect) => (
                         <motion.div
                           key={effect.name}
                           className={`relative aspect-video overflow-hidden rounded-lg cursor-pointer border-2 ${
@@ -895,6 +966,22 @@ export function PhotoBoothComponent({
                         </motion.div>
                       ))}
                     </motion.div>
+
+                    {/* Pagination dots - smaller with less space */}
+                    <div className="flex items-center justify-center mt-2 space-x-2">
+                      <button
+                        className="text-white rounded-full p-0.5 hover:bg-white/10"
+                        onClick={() => toggleEffectsPage(0)}
+                      >
+                        <div className={`w-2 h-2 rounded-full ${currentEffectsPage === 0 ? 'bg-white' : 'bg-white/40'}`} />
+                      </button>
+                      <button
+                        className="text-white rounded-full p-0.5 hover:bg-white/10"
+                        onClick={() => toggleEffectsPage(1)}
+                      >
+                        <div className={`w-2 h-2 rounded-full ${currentEffectsPage === 1 ? 'bg-white' : 'bg-white/40'}`} />
+                      </button>
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>

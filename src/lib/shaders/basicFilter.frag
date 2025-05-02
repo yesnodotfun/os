@@ -19,6 +19,11 @@ uniform float u_twist;
 uniform float u_fisheye;
 uniform float u_stretch;
 uniform float u_squeeze;
+uniform float u_tunnel;
+// New effect uniforms
+uniform float u_kaleidoscope;
+uniform float u_ripple;
+uniform float u_glitch;
 uniform vec2 u_center; // Default center point for distortions (0.5, 0.5)
 
 // from: https://gist.github.com/mjackson/5311256
@@ -54,9 +59,14 @@ vec2 bulge(vec2 uv, vec2 center, float strength) {
   vec2 delta = uv - center;
   float dist = length(delta);
   
-  // Apply bulge formula
-  float f = 1.0 + dist * strength;
-  delta *= f;
+  // Create a stronger, more localized bulge that fades towards the edges
+  // factor is highest (1) at the center and 0 at radius 1
+  float factor = 1.0 - dist;
+  factor = clamp(factor, 0.0, 1.0);
+  
+  // Square the factor for smoother fall-off, then scale by strength
+  float scale = 1.0 + strength * factor * factor;
+  delta *= scale;
   
   // Return to original coordinate system
   return center + delta;
@@ -126,6 +136,80 @@ vec2 squeeze(vec2 uv, vec2 center, float strength) {
   return center + delta;
 }
 
+// Tunnel / spiral effect – angle increases with radius creating a vortex
+vec2 tunnel(vec2 uv, vec2 center, float strength) {
+  vec2 delta = uv - center;
+  float r = length(delta);
+  float angle = strength * r * 6.28318; // 2π * strength * r
+  float sinA = sin(angle);
+  float cosA = cos(angle);
+  delta = vec2(
+    delta.x * cosA - delta.y * sinA,
+    delta.x * sinA + delta.y * cosA
+  );
+  return center + delta;
+}
+
+// Kaleidoscope effect - creates mirror reflections in a circular pattern
+vec2 kaleidoscope(vec2 uv, vec2 center, float segments) {
+  if (segments <= 0.0) return uv;
+  
+  // Convert to polar coordinates
+  vec2 delta = uv - center;
+  float radius = length(delta);
+  float angle = atan(delta.y, delta.x);
+  
+  // Calculate the segment angle
+  float segmentAngle = 3.14159 * 2.0 / segments;
+  
+  // Normalize the angle to a segment
+  angle = mod(angle, segmentAngle);
+  
+  // Mirror within the segment
+  if (mod(floor(angle / segmentAngle) + 1.0, 2.0) >= 1.0) {
+    angle = segmentAngle - angle;
+  }
+  
+  // Convert back to Cartesian coordinates
+  return center + radius * vec2(cos(angle), sin(angle));
+}
+
+// Ripple effect - creates water-like rippling distortion
+vec2 ripple(vec2 uv, vec2 center, float strength) {
+  vec2 delta = uv - center;
+  float dist = length(delta);
+  
+  // Create concentric ripples
+  float phase = dist * 50.0;
+  float offset = sin(phase) * strength * 0.01;
+  
+  // Apply offset along the direction from center
+  return uv + normalize(delta) * offset;
+}
+
+// Glitch effect - creates digital distortion with RGB shift
+vec2 glitch(vec2 uv, float strength) {
+  if (strength <= 0.0) return uv;
+  
+  // Create some random values based on uv position
+  float lineJitter = 0.0;
+  
+  // Only apply to certain lines for a scanline effect
+  if (mod(floor(uv.y * 50.0), 5.0) == 0.0) {
+    // Random horizontal shifts on specific lines
+    lineJitter = (sin(uv.y * 2053.0) * 0.5 + 0.5) * strength * 0.05;
+  }
+  
+  // Vertical block noise - larger chunks that shift left/right
+  float blockJitter = 0.0;
+  float blockThreshold = 0.9 - strength * 0.2;
+  if (fract(sin(floor(uv.y * 10.0) * 4000.0)) > blockThreshold) {
+    blockJitter = (fract(sin(floor(uv.y * 12.0) * 5432.0)) - 0.5) * strength * 0.1;
+  }
+  
+  return uv + vec2(lineJitter + blockJitter, 0.0);
+}
+
 void main() {
   // Apply distortion effects to get sampling coordinates
   vec2 uv = v;
@@ -158,11 +242,35 @@ void main() {
     distortedUV = squeeze(distortedUV, u_center, u_squeeze);
   }
   
+  if (u_tunnel != 0.0) {
+    distortedUV = tunnel(distortedUV, u_center, u_tunnel);
+  }
+  
+  // Apply new effects
+  if (u_kaleidoscope != 0.0) {
+    distortedUV = kaleidoscope(distortedUV, u_center, u_kaleidoscope * 16.0);
+  }
+  
+  if (u_ripple != 0.0) {
+    distortedUV = ripple(distortedUV, u_center, u_ripple);
+  }
+  
+  if (u_glitch != 0.0) {
+    distortedUV = glitch(distortedUV, u_glitch);
+  }
+  
   // Clamp to avoid sampling outside texture bounds
   distortedUV = clamp(distortedUV, 0.0, 1.0);
   
   // Sample texture with distorted coordinates
   vec4 col = texture2D(u_image, distortedUV);
+
+  // Apply RGB shift for glitch effect
+  if (u_glitch > 0.0) {
+    float rgbShift = u_glitch * 0.01;
+    col.r = texture2D(u_image, distortedUV + vec2(rgbShift, 0.0)).r;
+    col.b = texture2D(u_image, distortedUV - vec2(rgbShift, 0.0)).b;
+  }
 
   // Apply color filters
   

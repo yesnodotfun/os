@@ -11,6 +11,9 @@ type Uniforms = {
   // Distortion effects
   bulge?: number; pinch?: number; twist?: number;
   fisheye?: number; stretch?: number; squeeze?: number;
+  tunnel?: number;
+  // New effects
+  kaleidoscope?: number; ripple?: number; glitch?: number;
   center?: [number, number]; // Center point for distortions (default: [0.5, 0.5])
 };
 
@@ -33,6 +36,10 @@ export function mapCssFilterStringToUniforms(filterString: string): Record<strin
     fisheye: 0.0,
     stretch: 0.0, 
     squeeze: 0.0,
+    tunnel: 0.0,
+    kaleidoscope: 0.0,
+    ripple: 0.0,
+    glitch: 0.0,
     center: [0.5, 0.5]
   };
 
@@ -51,6 +58,10 @@ export function mapCssFilterStringToUniforms(filterString: string): Record<strin
     'fisheye': 'fisheye',
     'stretch': 'stretch',
     'squeeze': 'squeeze',
+    'tunnel': 'tunnel',
+    'kaleidoscope': 'kaleidoscope', // New effects
+    'ripple': 'ripple',
+    'glitch': 'glitch'
   };
   
   // First check for special effect keywords
@@ -190,6 +201,10 @@ export async function runFilter(
     fisheye: uniforms.fisheye ?? 0.0,
     stretch: uniforms.stretch ?? 0.0,
     squeeze: uniforms.squeeze ?? 0.0,
+    tunnel: uniforms.tunnel ?? 0.0,
+    kaleidoscope: uniforms.kaleidoscope ?? 0.0, // New effects
+    ripple: uniforms.ripple ?? 0.0,
+    glitch: uniforms.glitch ?? 0.0
   };
 
   // Set all color filter uniforms

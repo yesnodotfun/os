@@ -27,10 +27,12 @@ export function Webcam({
   const rafRef = useRef<number | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const captureCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const lastRenderTimeRef = useRef<number>(0);
 
   // Detect if the current filter string requires WebGL preview (distortion keywords)
   const needsWebGLPreview = useMemo(() => {
-    return /bulge|pinch|twist|fisheye|stretch|squeeze/i.test(filter);
+    return /bulge|pinch|twist|fisheye|stretch|squeeze|tunnel|kaleidoscope|ripple|glitch/i.test(filter);
   }, [filter]);
 
   // Start camera when component mounts or shared stream changes
@@ -68,17 +70,48 @@ export function Webcam({
     const canvas = previewCanvasRef.current;
     if (!canvas || !videoRef.current) return;
 
-    const render = async () => {
+    // Prepare reusable capture canvas
+    if (!captureCanvasRef.current) {
+      captureCanvasRef.current = document.createElement("canvas");
+    }
+    const captureCanvas = captureCanvasRef.current;
+
+    const render = async (time: number) => {
       if (!canvas || !videoRef.current) return;
 
+      // Throttle to 30fps (~33ms)
+      if (time - lastRenderTimeRef.current < 33) {
+        rafRef.current = requestAnimationFrame(render);
+        return;
+      }
+      lastRenderTimeRef.current = time;
+
       try {
+        const video = videoRef.current;
+
+        const scale = 0.5; // render preview at 50% size for performance
+        const targetW = Math.max(1, Math.floor(video.videoWidth * scale));
+        const targetH = Math.max(1, Math.floor(video.videoHeight * scale));
+        if (captureCanvas.width !== targetW || captureCanvas.height !== targetH) {
+          captureCanvas.width = targetW;
+          captureCanvas.height = targetH;
+        }
+
+        const ctxCap = captureCanvas.getContext("2d");
+        if (!ctxCap) return;
+        // Draw video frame into capture canvas (no flip; preview canvas CSS flips)
+        ctxCap.drawImage(video, 0, 0, captureCanvas.width, captureCanvas.height);
+
         const uniforms = mapCssFilterStringToUniforms(filter);
-        const glCanvas = await runFilter(videoRef.current, uniforms, fragSrc);
-        // Draw the GL canvas onto the preview canvas (resizes automatically)
+        const glCanvas = await runFilter(captureCanvas, uniforms, fragSrc);
+
         const ctx2d = canvas.getContext("2d");
         if (ctx2d) {
-          canvas.width = glCanvas.width;
-          canvas.height = glCanvas.height;
+          if (canvas.width !== targetW || canvas.height !== targetH) {
+            canvas.width = targetW;
+            canvas.height = targetH;
+          }
+          ctx2d.clearRect(0, 0, canvas.width, canvas.height);
           ctx2d.drawImage(glCanvas, 0, 0);
         }
       } catch (e) {
