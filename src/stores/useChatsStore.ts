@@ -44,7 +44,7 @@ const getInitialState = (): Omit<ChatsStoreState, 'isAdmin' | 'reset' | 'setAiMe
     isSidebarVisible: true,
 });
 
-const STORE_VERSION = 1;
+const STORE_VERSION = 2;
 const STORE_NAME = "ryos:chats";
 
 export const useChatsStore = create<ChatsStoreState>()(
@@ -166,11 +166,12 @@ export const useChatsStore = create<ChatsStoreState>()(
                         }
 
                         // Migrate Username
-                        const oldUsername = localStorage.getItem('chats:chatRoomUsername');
+                        const oldUsernameKey = 'chats:chatRoomUsername'; // Define old key
+                        const oldUsername = localStorage.getItem(oldUsernameKey);
                         if (oldUsername) {
                             migratedState.username = oldUsername;
-                            localStorage.removeItem('chats:chatRoomUsername');
-                            console.log("[ChatsStore] Migrated and removed 'chats:chatRoomUsername' key");
+                            localStorage.removeItem(oldUsernameKey); // Remove here during primary migration
+                            console.log(`[ChatsStore] Migrated and removed '${oldUsernameKey}' key during version upgrade.`);
                         }
 
                         // Migrate Last Opened Room ID
@@ -204,7 +205,6 @@ export const useChatsStore = create<ChatsStoreState>()(
 
                         // Clean up old keys (Optional - uncomment if desired after confirming migration)
                         // localStorage.removeItem('chats:messages');
-                        // localStorage.removeItem('chats:chatRoomUsername');
                         // localStorage.removeItem('chats:lastOpenedRoomId');
                         // localStorage.removeItem('chats:sidebarVisible');
                         // localStorage.removeItem('chats:cachedRooms');
@@ -220,27 +220,10 @@ export const useChatsStore = create<ChatsStoreState>()(
                     }
                 }
                 // If persistedState exists, use it (already in new format or newer version)
-                // Ensure isAdmin is recalculated on load
                 if (persistedState) {
                      console.log("[ChatsStore] Using persisted state.");
                      const state = persistedState as ChatsStoreState;
                      const finalState = { ...state };
-                     
-                     // Check if username is null and if ryos:chats exists in localStorage
-                     if (finalState.username === null) {
-                         try {
-                             const ryosChatsData = localStorage.getItem(STORE_NAME);
-                             if (ryosChatsData) {
-                                 const parsedData = JSON.parse(ryosChatsData);
-                                 if (parsedData.state && parsedData.state.username) {
-                                     finalState.username = parsedData.state.username;
-                                     console.log("[ChatsStore] Migrated username from existing ryos:chats storage");
-                                 }
-                             }
-                         } catch (e) {
-                             console.warn("[ChatsStore] Failed to parse ryos:chats data during username migration", e);
-                         }
-                     }
                      
                      console.log("[ChatsStore] Final state from persisted:", finalState);
                      console.log("[ChatsStore] Persisted state rooms type:", typeof finalState.rooms, "Is Array:", Array.isArray(finalState.rooms));
@@ -249,6 +232,30 @@ export const useChatsStore = create<ChatsStoreState>()(
                 // Fallback to initial state if migration fails or no persisted state
                 console.log("[ChatsStore] Falling back to initial state.");
                 return { ...getInitialState() } as ChatsStoreState;
+            },
+            // --- Rehydration Check for Null Username ---
+            onRehydrateStorage: () => {
+              console.log("[ChatsStore] Rehydrating storage...");
+              return (state, error) => {
+                if (error) {
+                  console.error("[ChatsStore] Error during rehydration:", error);
+                } else if (state) {
+                  console.log("[ChatsStore] Rehydration complete. Current state username:", state.username);
+                  // Check if username is null AFTER rehydration
+                  if (state.username === null) {
+                    const oldUsernameKey = "chats:chatRoomUsername"; // Define the old key
+                    const oldUsername = localStorage.getItem(oldUsernameKey);
+                    if (oldUsername) {
+                      console.log(`[ChatsStore] Found old username '${oldUsername}' in localStorage during rehydration check. Applying.`);
+                      state.username = oldUsername; // Modify the state object directly before it's set
+                      localStorage.removeItem(oldUsernameKey); // Clean up the old key
+                      console.log(`[ChatsStore] Removed old key '${oldUsernameKey}' after rehydration fix.`);
+                    } else {
+                        console.log("[ChatsStore] Username is null, but no old username found in localStorage during rehydration check.");
+                    }
+                  }
+                }
+              };
             },
         }
     )

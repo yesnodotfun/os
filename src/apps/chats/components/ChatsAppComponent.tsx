@@ -14,8 +14,15 @@ import { ChatInput } from "./ChatInput";
 import { ChatRoomSidebar } from "./ChatRoomSidebar"; // Import ChatRoomSidebar
 import { useChatsStore } from "@/stores/useChatsStore";
 import { type Message as UIMessage } from "ai/react";
-import { type ChatMessage, type ChatRoom } from "@/types/chat";
+import { type ChatMessage as AppChatMessage, type ChatRoom } from "@/types/chat";
 import { Button } from "@/components/ui/button";
+
+// Define the expected message structure locally, matching ChatMessages internal type
+interface DisplayMessage extends Omit<UIMessage, 'role'> {
+  username?: string;
+  role: UIMessage['role'] | 'human';
+  createdAt?: Date; // Ensure createdAt is optional Date
+}
 
 export function ChatsAppComponent({
   isWindowOpen,
@@ -121,16 +128,19 @@ export function ChatsAppComponent({
 
   if (!isWindowOpen) return null;
 
-  const currentMessagesToDisplay = currentRoomId
-    ? currentRoomMessages.map((msg: ChatMessage) => ({
+  // Explicitly type the array using the local DisplayMessage interface
+  const currentMessagesToDisplay: DisplayMessage[] = currentRoomId
+    ? currentRoomMessages.map((msg: AppChatMessage) => ({ // Use AppChatMessage here
         id: msg.id,
         role: msg.username === username ? 'user' : 'human',
         content: msg.content,
-        createdAt: new Date(msg.timestamp),
+        createdAt: new Date(msg.timestamp), // Ensure this is a Date object
         username: msg.username,
       }))
     : messages.map((msg: UIMessage) => ({
         ...msg,
+        // Ensure createdAt is a Date object if it exists, otherwise undefined
+        createdAt: msg.createdAt ? new Date(msg.createdAt) : undefined,
         username: msg.role === 'user' ? (username || 'You') : 'Ryo'
       }));
 
@@ -177,7 +187,7 @@ export function ChatsAppComponent({
             <div className="flex-1 overflow-y-auto">
               <ChatMessages
                 key={currentRoomId || 'ryo'} // Re-render on room change
-                messages={currentMessagesToDisplay as any}
+                messages={currentMessagesToDisplay} // Remove 'as any'
                 isLoading={isLoading && !currentRoomId} // Only show AI loading state
                 error={!currentRoomId ? error : undefined} // Pass actual error object only for AI chat
                 onRetry={reload}
@@ -280,7 +290,7 @@ export function ChatsAppComponent({
           onOpenChange={setIsDeleteRoomDialogOpen}
           onConfirm={confirmDeleteRoom}
           title="Delete Chat Room"
-          description={`Are you sure you want to delete the room \"${roomToDelete?.name}\"?. This action cannot be undone.`}
+          description={`Are you sure you want to delete the room "${roomToDelete?.name}"?. This action cannot be undone.`}
         />
       </WindowFrame>
     </>
