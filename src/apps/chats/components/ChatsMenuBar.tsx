@@ -124,7 +124,7 @@ export function ChatsMenuBar({
           </DropdownMenuItem>
           
           {/* Room List */}
-          {rooms.map(room => (
+          {Array.isArray(rooms) && rooms.map(room => (
             <DropdownMenuItem
               key={room.id}
               onClick={() => onRoomSelect(room)}

@@ -110,7 +110,6 @@ export const APP_STORAGE_KEYS = {
   ipod: {
     WINDOW: "ipod:window" as const,
     HAS_SEEN_HELP: "ipod:hasSeenHelp" as const,
-    LIBRARY: "ipod:library" as const,
     CURRENT_INDEX: "ipod:currentIndex" as const,
     IS_LOOP_ALL: "ipod:isLoopAll" as const,
     IS_LOOP_CURRENT: "ipod:isLoopCurrent" as const,
@@ -714,8 +713,8 @@ export const clearAllAppStates = (): void => {
   // Clear app manager state
   localStorage.removeItem("app:state");
 
-  // Clear synth preset
-  localStorage.removeItem("synthPreset");
+  // Clear specific keys managed by stores or specific logic
+  localStorage.removeItem("synthPreset"); // Managed by control panel state?
 
   // Clear display mode
   localStorage.removeItem("displayMode");
@@ -727,6 +726,8 @@ export const clearAllAppStates = (): void => {
   localStorage.removeItem("ryos:videos");        // Video player state from useVideoStore
   localStorage.removeItem("ryos:internet-explorer"); // Browser history from useInternetExplorerStore
   localStorage.removeItem("ryos:ipod");          // Music player state from useIpodStore
+  localStorage.removeItem("ryos:chats"); // NEW: Clear chat store
+  localStorage.removeItem("ryos:textedit"); // Clear textedit store
   
   // Any new stores that use the persist middleware must be added here
 };

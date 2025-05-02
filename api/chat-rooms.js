@@ -579,24 +579,29 @@ async function handleJoinRoom(data, requestId) {
     await redis.expire(`${CHAT_USERS_PREFIX}${username}`, USER_EXPIRATION_TIME);
     logInfo(requestId, `User ${username} last active time updated and expiration reset to 1 day`);
 
-    // Trigger Pusher events for room update and user count
-    try {
-      // Trigger user count update
-      await pusher.trigger('chats', 'user-count-updated', {
-        roomId,
-        userCount
-      });
-      logInfo(requestId, `Pusher event triggered: user-count-updated for room ${roomId}`);
-      
-      // Also send a rooms-updated event to refresh room lists in all clients
-      const keys = await redis.keys(`${CHAT_ROOM_PREFIX}*`);
-      const roomsData = await redis.mget(...keys);
-      const rooms = roomsData.map(room => room).filter(Boolean);
-      await pusher.trigger('chats', 'rooms-updated', { rooms });
-      logInfo(requestId, 'Pusher event triggered: rooms-updated after user join');
-    } catch (pusherError) {
-      logError(requestId, 'Error triggering Pusher events for room join:', pusherError);
-      // Continue with response - Pusher error shouldn't block operation
+    // Trigger Pusher events only if user count changed
+    const previousUserCount = roomData.userCount; // Get count before update
+    if (userCount !== previousUserCount) {
+        try {
+            // Trigger user count update
+            await pusher.trigger('chats', 'user-count-updated', {
+                roomId,
+                userCount
+            });
+            logInfo(requestId, `Pusher event triggered: user-count-updated for room ${roomId}`);
+
+            // Also send a rooms-updated event to refresh room lists in all clients
+            const keys = await redis.keys(`${CHAT_ROOM_PREFIX}*`);
+            const roomsData = await redis.mget(...keys);
+            const rooms = roomsData.map(room => room).filter(Boolean);
+            await pusher.trigger('chats', 'rooms-updated', { rooms });
+            logInfo(requestId, 'Pusher event triggered: rooms-updated after user join');
+        } catch (pusherError) {
+            logError(requestId, 'Error triggering Pusher events for room join:', pusherError);
+            // Continue with response - Pusher error shouldn't block operation
+        }
+    } else {
+         logInfo(requestId, `Skipping Pusher events: user count (${userCount}) did not change.`);
     }
 
     return new Response(JSON.stringify({ success: true }), {
@@ -631,27 +636,32 @@ async function handleLeaveRoom(data, requestId) {
     // If user was actually removed, update the count
     if (removed) {
       // Re-calculate active user count after possible pruning of stale users
+      const previousUserCount = roomData.userCount; // Get count before update
       const userCount = await refreshRoomUserCount(roomId);
       logInfo(requestId, `User ${username} left room ${roomId}, new active user count: ${userCount}`);
-      
-      // Trigger Pusher events for user count update
-      try {
-        // Trigger user count update
-        await pusher.trigger('chats', 'user-count-updated', {
-          roomId,
-          userCount
-        });
-        logInfo(requestId, `Pusher event triggered: user-count-updated for room ${roomId}`);
-        
-        // Also send a rooms-updated event
-        const keys = await redis.keys(`${CHAT_ROOM_PREFIX}*`);
-        const roomsData = await redis.mget(...keys);
-        const rooms = roomsData.map(room => room).filter(Boolean);
-        await pusher.trigger('chats', 'rooms-updated', { rooms });
-        logInfo(requestId, 'Pusher event triggered: rooms-updated after user leave');
-      } catch (pusherError) {
-        logError(requestId, 'Error triggering Pusher events for room leave:', pusherError);
-        // Continue with response - Pusher error shouldn't block operation
+
+      // Trigger Pusher events only if user count changed
+      if (userCount !== previousUserCount) {
+          try {
+            // Trigger user count update
+            await pusher.trigger('chats', 'user-count-updated', {
+              roomId,
+              userCount
+            });
+            logInfo(requestId, `Pusher event triggered: user-count-updated for room ${roomId}`);
+
+            // Also send a rooms-updated event
+            const keys = await redis.keys(`${CHAT_ROOM_PREFIX}*`);
+            const roomsData = await redis.mget(...keys);
+            const rooms = roomsData.map(room => room).filter(Boolean);
+            await pusher.trigger('chats', 'rooms-updated', { rooms });
+            logInfo(requestId, 'Pusher event triggered: rooms-updated after user leave');
+          } catch (pusherError) {
+            logError(requestId, 'Error triggering Pusher events for room leave:', pusherError);
+            // Continue with response - Pusher error shouldn't block operation
+          }
+      } else {
+          logInfo(requestId, `Skipping Pusher events: user count (${userCount}) did not change.`);
       }
     } else {
       logInfo(requestId, `User ${username} was not in room ${roomId}`);
