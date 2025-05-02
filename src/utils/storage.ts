@@ -1468,9 +1468,7 @@ export const ensureIndexedDBInitialized = async (): Promise<IDBDatabase> => {
 
 // Chat room user storage
 export const loadChatRoomUsername = (): string | null => {
-  return (
-    localStorage.getItem(APP_STORAGE_KEYS.chats.CHAT_ROOM_USERNAME) || null
-  );
+  return localStorage.getItem(APP_STORAGE_KEYS.chats.CHAT_ROOM_USERNAME);
 };
 
 export const saveChatRoomUsername = (username: string): void => {
