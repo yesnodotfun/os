@@ -25,15 +25,19 @@ interface PhotoReference {
 }
 
 const effects: Effect[] = [
-  { name: "Green Tint", filter: "hue-rotate(90deg) saturate(200%)" },
-  { name: "High Contrast", filter: "contrast(150%) brightness(120%)" },
-  { name: "Warm Vintage", filter: "saturate(200%) sepia(50%)" },
-  { name: "Soft Sepia", filter: "sepia(50%) hue-rotate(-30deg)" },
+  // Keep Normal in the middle (5th position)
+  { name: "Rainbow", filter: "hue-rotate(180deg) saturate(200%)" },
+  { name: "Vibrant", filter: "saturate(200%) contrast(150%)" },
+  { name: "Cold Blue", filter: "hue-rotate(240deg) saturate(150%)" },
+  { name: "Warm Orange", filter: "sepia(70%) hue-rotate(20deg)" },
   { name: "Normal", filter: "none" },
-  { name: "Soft Focus", filter: "blur(2px) brightness(120%)" },
-  { name: "Black & White", filter: "grayscale(100%) brightness(120%)" },
-  { name: "Inverted", filter: "contrast(200%) hue-rotate(180deg)" },
-  { name: "Green Boost", filter: "hue-rotate(120deg) saturate(150%)" },
+  // Special distortion effects using our custom shader effects
+  { name: "Bulge", filter: "bulge(2.0)" },
+  { name: "Pinch", filter: "pinch(2.0)" },
+  { name: "Twirl", filter: "twist(4.0)" },
+  { name: "Fish Eye", filter: "fisheye(2.0)" },
+  { name: "Squeeze", filter: "squeeze(1.5)" },
+  { name: "Stretch", filter: "stretch(1.2)" },
 ];
 
 export function PhotoBoothComponent({

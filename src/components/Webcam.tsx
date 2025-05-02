@@ -1,5 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { CameraOff } from "lucide-react";
+import { runFilter, mapCssFilterStringToUniforms } from "@/lib/webglFilterRunner";
+import fragSrc from "@/lib/shaders/basicFilter.frag?raw";
 
 interface WebcamProps {
   onPhoto?: (photoDataUrl: string) => void;
@@ -21,8 +23,15 @@ export function Webcam({
   selectedCameraId,
 }: WebcamProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const previewCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const rafRef = useRef<number | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Detect if the current filter string requires WebGL preview (distortion keywords)
+  const needsWebGLPreview = useMemo(() => {
+    return /bulge|pinch|twist|fisheye|stretch|squeeze/i.test(filter);
+  }, [filter]);
 
   // Start camera when component mounts or shared stream changes
   useEffect(() => {
@@ -45,33 +54,83 @@ export function Webcam({
     }
   }, [stream, onStreamReady, isPreview]);
 
+  // Real-time WebGL preview loop for distortion filters
+  useEffect(() => {
+    if (!needsWebGLPreview) {
+      // Clean up any running loop
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      return;
+    }
+
+    const canvas = previewCanvasRef.current;
+    if (!canvas || !videoRef.current) return;
+
+    const render = async () => {
+      if (!canvas || !videoRef.current) return;
+
+      try {
+        const uniforms = mapCssFilterStringToUniforms(filter);
+        const glCanvas = await runFilter(videoRef.current, uniforms, fragSrc);
+        // Draw the GL canvas onto the preview canvas (resizes automatically)
+        const ctx2d = canvas.getContext("2d");
+        if (ctx2d) {
+          canvas.width = glCanvas.width;
+          canvas.height = glCanvas.height;
+          ctx2d.drawImage(glCanvas, 0, 0);
+        }
+      } catch (e) {
+        console.error("Preview WebGL render failed:", e);
+      }
+
+      rafRef.current = requestAnimationFrame(render);
+    };
+
+    rafRef.current = requestAnimationFrame(render);
+
+    return () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    };
+  }, [needsWebGLPreview, filter]);
+
   // Listen for webcam-capture events
   useEffect(() => {
-    const handleCapture = () => {
+    const handleCapture = async () => {
       if (videoRef.current && stream) {
-        const canvas = document.createElement("canvas");
         const video = videoRef.current;
 
+        // Use the video element directly as the source for WebGL
         // Set canvas dimensions to match video
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-
-        const ctx = canvas.getContext("2d");
+        const captureCanvas = document.createElement("canvas");
+        captureCanvas.width = video.videoWidth;
+        captureCanvas.height = video.videoHeight;
+        const ctx = captureCanvas.getContext("2d");
         if (!ctx) return;
 
-        // Reset any existing transformations
+        // Apply the horizontal flip using Canvas 2D first
         ctx.setTransform(1, 0, 0, 1, 0, 0);
-
-        // Apply the filter first
-        ctx.filter = filter;
-        console.log("Applying filter during capture:", filter);
-
-        // Then apply the horizontal flip
         ctx.scale(-1, 1);
-        ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+        ctx.drawImage(video, -captureCanvas.width, 0, captureCanvas.width, captureCanvas.height);
 
-        // Convert to JPEG data URL
-        const photoDataUrl = canvas.toDataURL("image/jpeg", 0.85);
+        let finalCanvas: HTMLCanvasElement = captureCanvas;
+
+        // Apply filter using WebGL if a filter is selected
+        if (filter !== "none") {
+            try {
+                const uniforms = mapCssFilterStringToUniforms(filter);
+                // Use the canvas with the flip applied as the source for the GL filter
+                finalCanvas = await runFilter(captureCanvas, uniforms, fragSrc);
+            } catch (error) {
+                console.error("WebGL filtering failed, falling back to no filter:", error);
+                // If WebGL fails, use the canvas with just the flip
+                 finalCanvas = captureCanvas;
+            }
+        }
+
+        // Convert the final canvas (with flip and potentially WebGL filter) to JPEG data URL
+        const photoDataUrl = finalCanvas.toDataURL("image/jpeg", 0.85);
 
         // Call the onPhoto callback
         onPhoto?.(photoDataUrl);
@@ -81,12 +140,15 @@ export function Webcam({
           detail: photoDataUrl,
         });
         window.dispatchEvent(photoTakenEvent);
+
+        // Clean up temporary canvas
+        // No explicit cleanup needed for canvas elements, they are garbage collected
       }
     };
 
     if (!isPreview) {
-      window.addEventListener("webcam-capture", handleCapture);
-      return () => window.removeEventListener("webcam-capture", handleCapture);
+      window.addEventListener("webcam-capture", handleCapture as EventListener);
+      return () => window.removeEventListener("webcam-capture", handleCapture as EventListener);
     }
   }, [stream, onPhoto, isPreview, filter]);
 
@@ -133,14 +195,23 @@ export function Webcam({
           <CameraOff size={48} className="text-white/30 cursor-pointer" />
         </div>
       ) : (
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          className="w-full h-full object-cover"
-          style={{ filter, transform: "scaleX(-1)" }}
-        />
+        <>
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            className="w-full h-full object-cover"
+            style={{ filter: needsWebGLPreview ? "none" : filter, transform: "scaleX(-1)" }}
+          />
+          {needsWebGLPreview && (
+            <canvas
+              ref={previewCanvasRef}
+              className="absolute inset-0 w-full h-full object-cover"
+              style={{ transform: "scaleX(-1)" }}
+            />
+          )}
+        </>
       )}
     </div>
   );
