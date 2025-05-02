@@ -2,7 +2,6 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { type Message } from "ai/react";
 import { type ChatRoom, type ChatMessage } from "@/types/chat";
-import { APP_STORAGE_KEYS, loadChatMessages, loadChatRoomUsername, loadLastOpenedRoomId, loadChatSidebarVisible, loadCachedChatRooms /*, loadCachedRoomMessages */ } from "@/utils/storage"; // Import old loaders for migration
 
 // Define the state structure
 export interface ChatsStoreState {
@@ -158,40 +157,54 @@ export const useChatsStore = create<ChatsStoreState>()(
                     try {
                         const migratedState: Partial<ChatsStoreState> = {};
 
-                        const oldAiMessages = loadChatMessages();
-                        if (oldAiMessages) migratedState.aiMessages = oldAiMessages;
+                        // Migrate AI Messages
+                        const oldAiMessagesRaw = localStorage.getItem('chats:messages');
+                        if (oldAiMessagesRaw) {
+                            try {
+                                migratedState.aiMessages = JSON.parse(oldAiMessagesRaw);
+                            } catch (e) { console.warn("Failed to parse old AI messages during migration", e); }
+                        }
 
-                        const oldUsername = loadChatRoomUsername();
+                        // Migrate Username
+                        const oldUsername = localStorage.getItem('chats:chatRoomUsername');
                         if (oldUsername) migratedState.username = oldUsername;
 
-                        const oldCurrentRoomId = loadLastOpenedRoomId();
+                        // Migrate Last Opened Room ID
+                        const oldCurrentRoomId = localStorage.getItem('chats:lastOpenedRoomId');
                         if (oldCurrentRoomId) migratedState.currentRoomId = oldCurrentRoomId;
 
-                        const oldSidebarVisible = loadChatSidebarVisible();
-                        // Check if it's explicitly false, otherwise default to true (initial state)
-                        if (oldSidebarVisible === false) migratedState.isSidebarVisible = false;
+                        // Migrate Sidebar Visibility
+                        const oldSidebarVisibleRaw = localStorage.getItem('chats:sidebarVisible');
+                        if (oldSidebarVisibleRaw) {
+                            // Check if it's explicitly "false", otherwise default to true (initial state)
+                            migratedState.isSidebarVisible = oldSidebarVisibleRaw !== 'false';
+                        }
 
-                        const oldCachedRooms = loadCachedChatRooms();
-                        if (oldCachedRooms) migratedState.rooms = oldCachedRooms;
+                        // Migrate Cached Rooms
+                        const oldCachedRoomsRaw = localStorage.getItem('chats:cachedRooms');
+                        if (oldCachedRoomsRaw) {
+                            try {
+                                migratedState.rooms = JSON.parse(oldCachedRoomsRaw);
+                            } catch (e) { console.warn("Failed to parse old cached rooms during migration", e); }
+                        }
 
-                        const oldCachedRoomMessages = localStorage.getItem(APP_STORAGE_KEYS.chats.CACHED_ROOM_MESSAGES);
-                        if (oldCachedRoomMessages) {
+                        // Migrate Cached Room Messages
+                        const oldCachedRoomMessagesRaw = localStorage.getItem('chats:cachedRoomMessages'); // Assuming this key
+                        if (oldCachedRoomMessagesRaw) {
                              try {
-                                migratedState.roomMessages = JSON.parse(oldCachedRoomMessages);
+                                migratedState.roomMessages = JSON.parse(oldCachedRoomMessagesRaw);
                             } catch (e) { console.warn("Failed to parse old cached room messages during migration", e); }
                         }
 
                         console.log("[ChatsStore] Migration data:", migratedState);
 
-                        // Clean up old keys after successful migration attempt
-                        // We might want to delay this until after the store is fully initialized
-                        // Or do it manually after confirming migration works.
-                        // localStorage.removeItem(APP_STORAGE_KEYS.chats.MESSAGES);
-                        // localStorage.removeItem(APP_STORAGE_KEYS.chats.CHAT_ROOM_USERNAME);
-                        // localStorage.removeItem(APP_STORAGE_KEYS.chats.LAST_OPENED_ROOM_ID);
-                        // localStorage.removeItem(APP_STORAGE_KEYS.chats.SIDEBAR_VISIBLE);
-                        // localStorage.removeItem(APP_STORAGE_KEYS.chats.CACHED_ROOMS);
-                        // localStorage.removeItem(APP_STORAGE_KEYS.chats.CACHED_ROOM_MESSAGES);
+                        // Clean up old keys (Optional - uncomment if desired after confirming migration)
+                        // localStorage.removeItem('chats:messages');
+                        // localStorage.removeItem('chats:chatRoomUsername');
+                        // localStorage.removeItem('chats:lastOpenedRoomId');
+                        // localStorage.removeItem('chats:sidebarVisible');
+                        // localStorage.removeItem('chats:cachedRooms');
+                        // localStorage.removeItem('chats:cachedRoomMessages');
                         // console.log("[ChatsStore] Old localStorage keys potentially removed.");
 
                         const finalMigratedState = { ...getInitialState(), ...migratedState } as ChatsStoreState;
