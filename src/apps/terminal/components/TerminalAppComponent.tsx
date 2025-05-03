@@ -25,6 +25,7 @@ import HtmlPreview, {
   extractHtmlContent,
 } from "@/components/shared/HtmlPreview";
 import { useSound, Sounds } from "@/hooks/useSound";
+import { useChatsStore } from "@/stores/useChatsStore";
 
 // Analytics event namespace for terminal AI events
 export const TERMINAL_ANALYTICS = {
@@ -454,6 +455,8 @@ export function TerminalAppComponent({
     stopElevatorMusic,
     playDingSound,
   } = useTerminalSounds();
+  
+  const { username } = useChatsStore();
 
   // Load command history from storage
   useEffect(() => {
@@ -1876,7 +1879,7 @@ assistant
 
       case "whoami": {
         return {
-          output: "you",
+          output: username || "you",
           isError: false,
         };
       }
