@@ -15,6 +15,25 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+// Animated ellipsis component (copied from TerminalAppComponent)
+function AnimatedEllipsis() {
+  const [dots, setDots] = useState("");
+
+  useEffect(() => {
+    const patterns = [".", "..", "...", "..", ".", ".", "..", "..."];
+    let index = 0;
+
+    const interval = setInterval(() => {
+      setDots(patterns[index]);
+      index = (index + 1) % patterns.length;
+    }, 200);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return <span>{dots}</span>;
+}
+
 // Analytics event namespace for chat events
 export const CHAT_ANALYTICS = {
   TEXT_MESSAGE: "chats:text",
@@ -220,7 +239,9 @@ export function ChatInput({
             value={input}
             onChange={handleInputChangeWithSound}
             placeholder={
-              isRecording
+              isLoading
+                ? ""
+                : isRecording
                 ? "Recording..."
                 : isTranscribing
                 ? "Transcribing..."
@@ -236,7 +257,16 @@ export function ChatInput({
             onTouchStart={(e) => {
               e.preventDefault();
             }}
+            disabled={isLoading}
           />
+          {isLoading && (
+            <div className="absolute top-0 left-0 w-full h-full pointer-events-none flex items-center pl-3">
+              <span className="text-gray-500 opacity-70 shimmer-gray text-[13px] font-geneva-12">
+                Thinking
+                <AnimatedEllipsis />
+              </span>
+            </div>
+          )}
           <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
             {showNudgeButton && (
             <TooltipProvider>
@@ -319,6 +349,7 @@ export function ChatInput({
             <Button
               type="submit"
               className="bg-black hover:bg-black/80 text-white text-xs border-2 border-gray-800 w-8 h-8 p-0 flex items-center justify-center"
+              disabled={isLoading}
             >
               <ArrowUp className="h-4 w-4" />
             </Button>

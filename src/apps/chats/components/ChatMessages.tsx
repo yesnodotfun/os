@@ -591,22 +591,6 @@ export function ChatMessages({
               </motion.div>
             );
           })}
-          {isLoading && (
-            <motion.div
-              layout="position"
-              key="thinking-indicator"
-              initial={{ opacity: 0, y: 10, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 10, scale: 0.9 }}
-              transition={{ duration: 0.2 }}
-              className="flex items-center gap-2 text-gray-500 font-['Geneva-9'] text-[16px] antialiased h-[12px] z-1 pl-1"
-              style={{ transformOrigin: "bottom left" }}
-              // Remove onAnimationComplete related to scrolling
-            >
-              <Loader2 className="h-3 w-3 animate-spin" />
-              Thinking...
-            </motion.div>
-          )}
           {error && (
             <motion.div
               layout="position"
