@@ -426,10 +426,6 @@ export function ChatMessages({
                         : {}
                     }
                   className={`${
-                    // isHtmlCodeBlock(message.content).isHtml ||
-                    // (isLoading && message === messages[messages.length - 1] && message.content.includes("```"))
-                    //   ? "w-full p-[1px] m-0 outline-0 ring-0 !bg-transparent"
-                    //   : 
                     `w-fit max-w-[90%] p-1.5 px-2 ${bgColorClass || (message.role === "user" ? "bg-yellow-100 text-black" : "bg-blue-100 text-black")}`
                   } min-h-[12px] rounded leading-snug text-[12px] font-geneva-12 break-words select-text`}
                 >
@@ -495,6 +491,7 @@ export function ChatMessages({
                                     playElevatorMusic={playElevatorMusic}
                                     stopElevatorMusic={stopElevatorMusic}
                                     playDingSound={playDingSound}
+                                    className="my-1"
                                   />
                                 )}
                               </div>
