@@ -890,38 +890,63 @@ export function InternetExplorerAppComponent({
     // Define a type for the initialData expected in the event detail
     interface AppUpdateInitialData {
       shareCode?: string;
+      url?: string; // Add url
+      year?: string; // Add year
     }
 
     const handleUpdateApp = (event: CustomEvent<{ appId: string; initialData?: AppUpdateInitialData }>) => {
-      if (event.detail.appId === 'internet-explorer' && event.detail.initialData?.shareCode) {
-        const code = event.detail.initialData.shareCode;
-        console.log("[IE] Received updateApp event with shareCode:", code);
-        const decodedData = decodeData(code);
+      if (event.detail.appId === 'internet-explorer') {
+        const initialData = event.detail.initialData;
+        if (initialData?.shareCode) {
+          const code = initialData.shareCode;
+          console.log("[IE] Received updateApp event with shareCode:", code);
+          const decodedData = decodeData(code);
 
-        if (decodedData) {
-          console.log(`[IE] Decoded share link from updateApp event: ${decodedData.url} (${decodedData.year})`);
-          // Bring the window to the foreground if it's not already
-          if (!isForeground) {
-            bringToForeground('internet-explorer');
+          if (decodedData) {
+            console.log(`[IE] Decoded share link from updateApp event: ${decodedData.url} (${decodedData.year})`);
+            // Bring the window to the foreground if it's not already
+            if (!isForeground) {
+              bringToForeground('internet-explorer');
+            }
+            // Show toast and navigate
+            toast.info(
+              `Opening shared page`,
+              {
+                description: `${decodedData.url}${decodedData.year && decodedData.year !== 'current' ? ` from ${decodedData.year}` : ''}`,
+                duration: 4000,
+              }
+            );
+            // Use timeout to allow potential state updates (like foreground) to settle
+            setTimeout(() => {
+              handleNavigate(decodedData.url, decodedData.year || 'current', false);
+            }, 50); // Small delay
+          } else {
+            console.warn("[IE] Failed to decode share link code from updateApp event.");
+            toast.error("Invalid Share Link", {
+              description: "The share link provided is invalid or corrupted.",
+              duration: 5000,
+            });
           }
+        } else if (initialData?.url && typeof initialData.url === 'string') {
+          // --- NEW: Handle direct url/year from updateApp event ---
+          const directUrl = initialData.url;
+          const directYear = typeof initialData.year === 'string' ? initialData.year : 'current';
+          console.log(`[IE] Received updateApp event with direct url/year: ${directUrl} (${directYear})`);
+
           // Show toast and navigate
           toast.info(
-            `Opening shared page`,
+            `Opening requested page`,
             {
-              description: `${decodedData.url}${decodedData.year && decodedData.year !== 'current' ? ` from ${decodedData.year}` : ''}`,
+              description: `${directUrl}${directYear !== 'current' ? ` from ${directYear}` : ''}`,
               duration: 4000,
             }
           );
+
           // Use timeout to allow potential state updates (like foreground) to settle
           setTimeout(() => {
-            handleNavigate(decodedData.url, decodedData.year || 'current', false);
+            handleNavigate(directUrl, directYear, false);
           }, 50); // Small delay
-        } else {
-          console.warn("[IE] Failed to decode share link code from updateApp event.");
-          toast.error("Invalid Share Link", {
-            description: "The share link provided is invalid or corrupted.",
-            duration: 5000,
-          });
+          // --- END NEW ---
         }
       }
     };
