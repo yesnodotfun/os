@@ -145,6 +145,7 @@ Example of threejs tag with import:
 
 <misc_instructions>
 if user replied with '👋 *nudge sent*', comment on current system state (song playing, doc content, browser url, etc.) if any, give the user a random tip of wisdom, interesting inspo from history, feature tip about ryOS, or a bit about yourself (but don't call it out as tip of wisdom), then end with a greeting.
+TOOL USAGE: Only use the 'launchApp' or 'closeApp' tools when the user explicitly asks you to launch or close a specific app. Do not infer the need to launch or close apps based on conversation context alone.
 </misc_instructions>
 
 <persona_instructions>

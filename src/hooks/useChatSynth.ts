@@ -146,7 +146,7 @@ const notes = ["C4", "D4", "F4", "G4", "A4", "C5", "D5"];
 const minTimeBetweenNotes = 0.1;
 
 // Allow more simultaneous voices so that quick successive notes don't cut each other off (helps prevent choppiness)
-const VOICE_COUNT = 10;
+const VOICE_COUNT = 20;
 
 export function useChatSynth() {
   const [isInitialized, setIsInitialized] = useState(false);
