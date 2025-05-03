@@ -433,112 +433,114 @@ export function ChatMessages({
                   } min-h-[12px] rounded leading-snug text-[12px] font-geneva-12 break-words select-text`}
                 >
                   {message.role === "assistant" ? (
-                    <motion.div className="select-text whitespace-pre-wrap">
-                      {(() => {
-                        // Check for XML tags and their completeness
-                        const hasXmlTags =
-                          /<textedit:(insert|replace|delete)/i.test(
-                            message.content
-                          );
-                        if (hasXmlTags) {
-                          // Count opening and closing tags
-                          const openTags = (
-                            message.content.match(
-                              /<textedit:(insert|replace|delete)/g
-                            ) || []
-                          ).length;
-                          const closeTags = (
-                            message.content.match(
-                              /<\/textedit:(insert|replace)>|<textedit:delete[^>]*\/>/g
-                            ) || []
-                          ).length;
+                    <motion.div className="select-text whitespace-pre-wrap flex flex-col gap-1">
+                      {message.parts?.map((part, partIndex) => {
+                        const partKey = `${messageKey}-part-${partIndex}`;
+                        switch (part.type) {
+                          case "text": {
+                            // Check for XML tags and their completeness (only relevant if text might contain them)
+                            const hasXmlTags = /<textedit:(insert|replace|delete)/i.test(part.text);
+                            if (hasXmlTags) {
+                              const openTags = (part.text.match(/<textedit:(insert|replace|delete)/g) || []).length;
+                              const closeTags = (part.text.match(/<\/textedit:(insert|replace)>|<textedit:delete[^>]*\/>/g) || []).length;
+                              if (openTags !== closeTags) {
+                                return (
+                                  <motion.span key={partKey} initial={{ opacity: 1 }} animate={{ opacity: 1 }} transition={{ duration: 0 }} className="select-text italic">
+                                    editing...
+                                  </motion.span>
+                                );
+                              }
+                            }
 
-                          // If tags are incomplete, show *editing*
-                          if (openTags !== closeTags) {
+                            // Remove "!!!!" prefix and following space from urgent messages
+                            const displayContent = isUrgentMessage(part.text) ? part.text.slice(4).trimStart() : part.text;
+
+                            // Check for HTML content
+                            const { hasHtml, htmlContent, textContent } = extractHtmlContent(displayContent);
+
                             return (
-                              <motion.span
-                                initial={{ opacity: 1 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ duration: 0 }}
-                                className="select-text italic"
-                              >
-                                editing...
-                              </motion.span>
+                              <div key={partKey} className="w-auto"> {/* Wrap text content */}
+                                {/* Show only non-HTML text content */}
+                                {/* Trim textContent before segmenting */}
+                                {textContent && segmentText(textContent.trim()).map((segment, idx) => (
+                                  <motion.span
+                                    key={`${partKey}-segment-${idx}`} // More unique key
+                                    initial={isInitialMessage ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className={`select-text ${isEmojiOnly(textContent) ? "text-[24px]" : ""} ${segment.type === "bold" ? "font-bold" : segment.type === "italic" ? "italic" : ""}`}
+                                    style={{ userSelect: "text" }}
+                                    transition={{
+                                      duration: 0.15,
+                                      delay: idx * 0.05,
+                                      ease: "easeOut",
+                                      onComplete: () => { if (idx % 2 === 0) { playNote(); } },
+                                    }}
+                                  >
+                                    {segment.type === "link" && segment.url ? (
+                                      <a href={segment.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline" onClick={(e) => e.stopPropagation()}>
+                                        {segment.content}
+                                      </a>
+                                    ) : (
+                                      segment.content
+                                    )}
+                                  </motion.span>
+                                ))}
+                                {/* Show HTML preview if there's HTML content */}
+                                {hasHtml && htmlContent && (
+                                  <HtmlPreview
+                                    htmlContent={htmlContent}
+                                    onInteractionChange={setIsInteractingWithPreview}
+                                    isStreaming={isLoading && message === messages[messages.length - 1]}
+                                    playElevatorMusic={playElevatorMusic}
+                                    stopElevatorMusic={stopElevatorMusic}
+                                    playDingSound={playDingSound}
+                                  />
+                                )}
+                              </div>
                             );
                           }
+                          case "tool-invocation": {
+                            const { toolName, state } = part.toolInvocation;
+                            // Access result safely only when state is 'result'
+                            const result = state === 'result' ? part.toolInvocation.result : undefined;
+
+                            return (
+                              <div key={partKey} className="my-1 p-1.5 bg-white/70 rounded text-xs">
+                                {state === 'call' && (
+                                  <div className="flex items-center gap-1 text-gray-700">
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                    <span>Calling tool: <strong>{toolName}</strong>...</span>
+                                    {/* Optionally display args: <pre className="text-xs overflow-auto">{JSON.stringify(args, null, 2)}</pre> */}
+                                  </div>
+                                )}
+                                {state === 'result' && (
+                                  <div className="flex items-center gap-1 text-gray-700">
+                                    <Check className="h-3 w-3 text-blue-600" />
+                                    {/* Special handling for launch/close app results */}
+                                    {(toolName === 'launchApp' || toolName === 'closeApp') && typeof result === 'string' ? (
+                                      <span>{result}</span>
+                                    ) : (
+                                      <>
+                                        <span>Tool <strong>{toolName}</strong> executed.</span>
+                                        {/* Display simple result, adjust formatting as needed */}
+                                        {typeof result === 'string' && result.length > 0 && result.length < 100 && (
+                                          <span className="ml-1 text-gray-500 italic">Result: "{result}"</span>
+                                        )}
+                                      </>
+                                    )}
+                                    {/* Add more detailed result display if necessary */}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          }
+                          // Add case for 'step-start' if you want visual separators between steps
+                          // case 'step-start':
+                          //   return partIndex > 0 ? <hr key={partKey} className="my-1 border-gray-200" /> : null;
+                          default:
+                            return null; // Or some fallback rendering
                         }
-
-                        // Remove "!!!!" prefix and following space from urgent messages
-                        const displayContent = isUrgentMessage(message.content)
-                          ? message.content.slice(4).trimStart()
-                          : message.content;
-
-                        // Check for HTML content
-                        const { hasHtml, htmlContent, textContent } =
-                          extractHtmlContent(displayContent);
-
-                        return (
-                          <>
-                            {/* Show only non-HTML text content */}
-                            {textContent &&
-                              segmentText(textContent).map((segment, idx) => (
-                                <motion.span
-                                  key={`${messageKey}-segment-${idx}`} // More unique key
-                                  initial={isInitialMessage ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
-                                  animate={{ opacity: 1, y: 0 }}
-                                  className={`select-text ${
-                                    isEmojiOnly(textContent) ? "text-[24px]" : ""
-                                  } ${
-                                    segment.type === "bold"
-                                      ? "font-bold"
-                                      : segment.type === "italic"
-                                      ? "italic"
-                                      : ""
-                                  }`}
-                                  style={{ userSelect: "text" }}
-                                  transition={{
-                                    duration: 0.15,
-                                    delay: idx * 0.05,
-                                    ease: "easeOut",
-                                    onComplete: () => {
-                                      // Play sound on animation complete
-                                      if (idx % 2 === 0) {
-                                        playNote();
-                                      }
-                                      // No need for handleAnimationComplete for scrolling
-                                    },
-                                  }}
-                                >
-                                  {segment.type === "link" && segment.url ? (
-                                    <a
-                                      href={segment.url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="text-blue-600 hover:underline"
-                                      onClick={(e) => e.stopPropagation()} // Prevent hover effects on parent
-                                    >
-                                      {segment.content}
-                                    </a>
-                                  ) : (
-                                    segment.content
-                                  )}
-                                </motion.span>
-                              ))}
-
-                            {/* Show HTML preview if there's HTML content */}
-                            {hasHtml && htmlContent && (
-                              <HtmlPreview
-                                htmlContent={htmlContent}
-                                onInteractionChange={setIsInteractingWithPreview}
-                                isStreaming={isLoading && message === messages[messages.length - 1]}
-                                playElevatorMusic={playElevatorMusic}
-                                stopElevatorMusic={stopElevatorMusic}
-                                playDingSound={playDingSound}
-                              />
-                            )}
-                          </>
-                        );
-                      })()}
+                      })}
                     </motion.div>
                   ) : (
                     <>

@@ -9,6 +9,7 @@ import { useTextEditStore } from "@/stores/useTextEditStore";
 import { toast } from "@/hooks/useToast";
 import { useLaunchApp } from "@/hooks/useLaunchApp";
 import { AppId } from "@/config/appIds";
+import { appRegistry } from "@/config/appRegistry";
 
 // TODO: Move relevant state and logic from ChatsAppComponent here
 // - AI chat state (useChat hook)
@@ -93,15 +94,17 @@ export function useAiChat() {
                 switch (toolCall.toolName) {
                     case "launchApp": {
                         const { id } = toolCall.args as { id: string };
+                        const appName = appRegistry[id as AppId]?.name || id;
                         console.log("[ToolCall] launchApp:", id);
                         launchApp(id as AppId);
-                        return `Launched ${id}`;
+                        return `Launched ${appName}`;
                     }
                     case "closeApp": {
                         const { id } = toolCall.args as { id: string };
+                        const appName = appRegistry[id as AppId]?.name || id;
                         console.log("[ToolCall] closeApp:", id);
                         closeApp(id as AppId);
-                        return `Closed ${id}`;
+                        return `Closed ${appName}`;
                     }
                     default:
                         console.warn("Unhandled tool call:", toolCall.toolName);
