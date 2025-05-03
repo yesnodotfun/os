@@ -904,10 +904,7 @@ export function InternetExplorerAppComponent({
 
           if (decodedData) {
             console.log(`[IE] Decoded share link from updateApp event: ${decodedData.url} (${decodedData.year})`);
-            // Bring the window to the foreground if it's not already
-            if (!isForeground) {
-              bringToForeground('internet-explorer');
-            }
+            
             // Show toast and navigate
             toast.info(
               `Opening shared page`,

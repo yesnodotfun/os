@@ -276,20 +276,38 @@ export default async function handler(req: Request) {
               .describe("Optional: The year for the Wayback Machine or AI generation (e.g., '1000 BC', '1995', 'current', '2030', '3000'). Used only with Internet Explorer.")
               .refine(year => {
                 if (year === undefined) return true; // Optional field is valid if not provided
-                // Check if it's 'current' or matches the year formats (e.g., '1999', '500 CE', '1000 BC')
-                const isValidFormat = year === 'current' || /^\d{1,4}( BC| CE)?$/.test(year);
+                // Check if it's 'current' or matches the specific allowed year formats
+                const allowedYearsRegex = /^(current|1000 BC|1 CE|500|800|1000|1200|1400|1600|1700|1800|19[0-8][0-9]|199[0-5]|199[1-9]|20[0-2][0-9]|2030|2040|2050|2060|2070|2080|2090|2100|2150|2200|2250|2300|2400|2500|2750|3000)$/;
+                // Adjust the regex dynamically based on current year if needed, but for simplicity, using fixed ranges that cover the logic.
+                // The regex covers: 'current', specific BC/CE/early years, 1900-1989, 1990-1995, 1991-currentYear-1 (approximated by 1991-2029), future decades, and specific future years.
+                const currentYearNum = new Date().getFullYear();
+                if (/^\d{4}$/.test(year)) {
+                    const numericYear = parseInt(year, 10);
+                    // Allow years from 1991 up to currentYear - 1
+                    if (numericYear >= 1991 && numericYear < currentYearNum) {
+                        return true;
+                    }
+                }
+                const isValidFormat = allowedYearsRegex.test(year);
                 return isValidFormat;
               }, {
-                message: "Invalid year format. Use 'current', a numeric year (e.g., '1995'), or a historical year (e.g., '500 CE', '1000 BC')."
+                message: "Invalid year format or value. Use 'current', a valid past year (e.g., '1995', '1000 BC'), or a valid future year (e.g., '2030', '3000'). Check allowed years."
               }),
           }).refine(data => {
-            // Ensure url/year are only provided when id is 'internet-explorer'
-            if (data.id !== 'internet-explorer' && (data.url !== undefined || data.year !== undefined)) {
-              return false; // Invalid: url/year provided for non-IE app
+            // If id is 'internet-explorer', either both url and year must be provided, or neither should be.
+            if (data.id === 'internet-explorer') {
+              const urlProvided = data.url !== undefined && data.url !== null && data.url !== '';
+              const yearProvided = data.year !== undefined && data.year !== null && data.year !== '';
+              // Return true if (both provided) or (neither provided). Return false otherwise.
+              return (urlProvided && yearProvided) || (!urlProvided && !yearProvided);
+            }
+            // If id is not 'internet-explorer', url/year should not be provided.
+            if (data.url !== undefined || data.year !== undefined) {
+              return false;
             }
             return true; // Valid otherwise
           }, {
-            message: "The 'url' and 'year' parameters can only be used when launching 'internet-explorer'.",
+            message: "For 'internet-explorer', provide both 'url' and 'year', or neither. For other apps, do not provide 'url' or 'year'.",
           }),
         },
         closeApp: {
