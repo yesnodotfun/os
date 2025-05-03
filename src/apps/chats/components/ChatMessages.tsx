@@ -459,6 +459,7 @@ export function ChatMessages({
                               <div key={partKey} className="w-full"> {/* Wrap text content */}
                                 {/* Show only non-HTML text content */}
                                 {/* Trim textContent before segmenting */}
+                                <div className="whitespace-pre-wrap">
                                 {textContent && segmentText(textContent.trim()).map((segment, idx) => (
                                   <motion.span
                                     key={`${partKey}-segment-${idx}`} // More unique key
@@ -482,6 +483,7 @@ export function ChatMessages({
                                     )}
                                   </motion.span>
                                 ))}
+                                </div>
                                 {/* Show HTML preview if there's HTML content */}
                                 {hasHtml && htmlContent && (
                                   <HtmlPreview
@@ -566,13 +568,13 @@ export function ChatMessages({
                         {segmentText(message.content).map((segment, idx) => (
                           <span
                             key={`${messageKey}-segment-${idx}`} // More unique key
-                            className={
-                              segment.type === "bold"
+                            className={`
+                              ${segment.type === "bold"
                                 ? "font-bold"
                                 : segment.type === "italic"
                                 ? "italic"
-                                : ""
-                            }
+                                : ""}
+                            `}
                           >
                             {segment.type === "link" && segment.url ? (
                               <a
