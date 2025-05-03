@@ -8,51 +8,13 @@ import { useIpodStore } from "@/stores/useIpodStore";
 import { useTextEditStore } from "@/stores/useTextEditStore";
 import { toast } from "@/hooks/useToast";
 import { useLaunchApp } from "@/hooks/useLaunchApp";
-import { AppId } from "@/config/appRegistry";
+import { AppId } from "@/config/appIds";
 
 // TODO: Move relevant state and logic from ChatsAppComponent here
 // - AI chat state (useChat hook)
 // - Message processing (app control markup)
 // - System state generation
 // - Dialog states (clear, save)
-
-// Define types for app control markup
-interface AppControlOperation {
-    type: "launch" | "close";
-    id: string;
-}
-
-// Helper function to parse app control markup
-const parseAppControlMarkup = (message: string): AppControlOperation[] => {
-    const operations: AppControlOperation[] = [];
-    try {
-        const launchRegex = /<app:launch\s+id\s*=\s*"([^"]+)"\s*\/>/g;
-        const closeRegex = /<app:close\s+id\s*=\s*"([^"]+)"\s*\/>/g;
-        let match;
-        while ((match = launchRegex.exec(message)) !== null) {
-            operations.push({ type: "launch", id: match[1] });
-        }
-        while ((match = closeRegex.exec(message)) !== null) {
-            operations.push({ type: "close", id: match[1] });
-        }
-    } catch (error) {
-        console.error("Error parsing app control markup:", error);
-    }
-    return operations;
-};
-
-// Helper function to clean app control markup from message
-const cleanAppControlMarkup = (message: string): string => {
-    message = message.replace(
-        /<app:launch\s+id\s*=\s*"([^"]+)"\s*\/>/g,
-        (_match, id) => `*opened ${id}*`
-    );
-    message = message.replace(
-        /<app:close\s+id\s*=\s*"([^"]+)"\s*\/>/g,
-        (_match, id) => `*closed ${id}*`
-    );
-    return message.trim();
-};
 
 // Replace or update the getSystemState function to use stores
 const getSystemState = () => {
@@ -107,8 +69,6 @@ export function useAiChat() {
     const launchApp = useLaunchApp();
     const closeApp = useAppStore((state) => state.closeApp);
 
-    const componentMountedAt = useRef(new Date()); // To track historical messages
-
     // --- AI Chat Hook (Vercel AI SDK) ---
     const {
         messages: currentSdkMessages,
@@ -127,9 +87,36 @@ export function useAiChat() {
         body: {
             systemState: getSystemState(), // Initial system state
         },
-        onFinish: (message) => {
-            // Optional: Any actions after AI finishes responding
-            console.log("AI finished:", message);
+        maxSteps: 5,
+        async onToolCall({ toolCall }) {
+            try {
+                switch (toolCall.toolName) {
+                    case "launchApp": {
+                        const { id } = toolCall.args as { id: string };
+                        console.log("[ToolCall] launchApp:", id);
+                        launchApp(id as AppId);
+                        return `Launched ${id}`;
+                    }
+                    case "closeApp": {
+                        const { id } = toolCall.args as { id: string };
+                        console.log("[ToolCall] closeApp:", id);
+                        closeApp(id as AppId);
+                        return `Closed ${id}`;
+                    }
+                    default:
+                        console.warn("Unhandled tool call:", toolCall.toolName);
+                        return "";
+                }
+            } catch (err) {
+                console.error("Error executing tool call:", err);
+                return `Failed to execute ${toolCall.toolName}`;
+            }
+        },
+        onFinish: () => {
+            // Use the ref to get the latest SDK messages when stream finishes
+            const finalMessages = currentSdkMessagesRef.current;
+            console.log(`AI finished, syncing ${finalMessages.length} final messages to store.`);
+            setAiMessages(finalMessages); // Update Zustand with the definitive list from useChat
         },
         onError: (err) => {
             console.error("AI Chat Error:", err);
@@ -137,95 +124,67 @@ export function useAiChat() {
         }
     });
 
+    // Ref to hold the latest SDK messages for use in callbacks
+    const currentSdkMessagesRef = useRef<Message[]>([]);
+    useEffect(() => {
+        currentSdkMessagesRef.current = currentSdkMessages;
+    }, [currentSdkMessages]);
+
     // --- State Synchronization & Message Processing ---
+    // Sync store to SDK ONLY on initial load or external store changes
     useEffect(() => {
-        // Sync SDK state back to Zustand store
+        // If aiMessages (from store) differs from the SDK state, update SDK.
+        // This handles loading persisted messages.
         // Avoid deep comparison issues by comparing lengths and last message ID/content
-        if (currentSdkMessages.length !== aiMessages.length ||
-            (currentSdkMessages.length > 0 &&
-             (currentSdkMessages[currentSdkMessages.length - 1].id !== aiMessages[aiMessages.length - 1]?.id ||
-              currentSdkMessages[currentSdkMessages.length - 1].content !== aiMessages[aiMessages.length - 1]?.content)))
+        if (aiMessages.length !== currentSdkMessages.length ||
+            (aiMessages.length > 0 &&
+             (aiMessages[aiMessages.length - 1].id !== currentSdkMessages[currentSdkMessages.length - 1]?.id ||
+              aiMessages[aiMessages.length - 1].content !== currentSdkMessages[currentSdkMessages.length - 1]?.content)))
         {
-
-            const lastMessage = currentSdkMessages[currentSdkMessages.length - 1];
-            let processedMessages = [...currentSdkMessages];
-
-            // Process last message for app control markup if it's from assistant and new
-            if (currentSdkMessages.length > 0 && lastMessage.role === "assistant") {
-                // Check if message is historical (loaded from store initially)
-                const isHistorical = lastMessage.createdAt && lastMessage.createdAt < componentMountedAt.current;
-                const alreadyProcessed = lastMessage.content.includes("*opened") || lastMessage.content.includes("*closed");
-
-                if (!isHistorical && !alreadyProcessed) {
-                    const containsAppControl = /<app:(launch|close)/i.test(lastMessage.content);
-                    if (containsAppControl) {
-                        console.log("Processing app control markup for message:", lastMessage.id);
-                        const operations = parseAppControlMarkup(lastMessage.content);
-                        if (operations.length > 0) {
-                            operations.forEach((op) => {
-                                console.log(`Executing app control: ${op.type} ${op.id}`);
-                                if (op.type === "launch") launchApp(op.id as AppId);
-                                else if (op.type === "close") closeApp(op.id as AppId);
-                            });
-
-                            const cleanedMessage = cleanAppControlMarkup(lastMessage.content);
-                            processedMessages = [...currentSdkMessages]; // Create new array instance
-                            processedMessages[processedMessages.length - 1] = { ...lastMessage, content: cleanedMessage };
-                        } else {
-                             console.log("No operations found in markup:", lastMessage.content);
-                        }
-                    } else {
-                         console.log("No app control markup found in message:", lastMessage.id);
-                    }
-                } else {
-                     console.log("Skipping app control processing (historical or already processed):", lastMessage.id);
-                }
-            }
-
-            console.log("Syncing SDK messages to Zustand store.");
-            setAiMessages(processedMessages);
-        }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [currentSdkMessages, setAiMessages, launchApp, closeApp]); // Add aiMessages to deps? Careful with loops.
-
-    // When store messages change (e.g., loaded from persistence), update SDK state
-    useEffect(() => {
-        // Compare deeply to avoid unnecessary updates if the array reference changes but content is identical
-        if (JSON.stringify(aiMessages) !== JSON.stringify(currentSdkMessages)) {
             console.log("Syncing Zustand store messages to SDK.");
             setSdkMessages(aiMessages);
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [aiMessages, setSdkMessages]); // Add setSdkMessages dependency
+    }, [aiMessages, setSdkMessages]); // Only run when aiMessages changes
 
     // --- Action Handlers ---
     const handleSubmit = useCallback(
         (e: React.FormEvent<HTMLFormElement>) => {
             e.preventDefault();
+            const messageContent = input; // Capture input before clearing
+            if (!messageContent.trim()) return; // Don't submit empty messages
+
+            // Proceed with the actual submission using useChat
+            // useChat's handleSubmit will add the user message to its internal state
             const freshSystemState = getSystemState();
             console.log("Submitting AI chat with system state:", freshSystemState);
             originalHandleSubmit(e, {
+                // Pass options correctly - body is a direct property
                 body: { systemState: freshSystemState },
             });
         },
-        [originalHandleSubmit]
+        [originalHandleSubmit, input] // Removed setAiMessages, aiMessages from deps
     );
 
     const handleDirectMessageSubmit = useCallback(
         (message: string) => {
+            if (!message.trim()) return; // Don't submit empty messages
+
+            // Proceed with the actual submission using useChat
+            // useChat's append will add the user message to its internal state
             console.log("Appending direct message to AI chat");
             append(
-                { content: message, role: "user" },
-                { body: { systemState: getSystemState() } }
+                { content: message, role: "user" }, // append only needs content/role
+                { body: { systemState: getSystemState() } } // Pass options correctly - body is direct property
             );
         },
-        [append]
+        [append] // Removed setAiMessages, aiMessages from deps
     );
 
     const handleNudge = useCallback(() => {
         handleDirectMessageSubmit("👋 *nudge sent*");
         // Consider adding shake effect trigger here if needed
-    }, [handleDirectMessageSubmit]);
+    }, [aiMessages, username]);
 
     const clearChats = useCallback(() => {
         console.log("Clearing AI chats");
@@ -293,7 +252,7 @@ export function useAiChat() {
 
     return {
         // AI Chat State & Actions
-        messages: aiMessages, // Return messages from store
+        messages: currentSdkMessages, // <-- Return messages from useChat directly
         input,
         handleInputChange,
         handleSubmit,

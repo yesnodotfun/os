@@ -4,8 +4,8 @@ import { AppId } from "@/config/appRegistry";
 
 interface AppContextType {
   appStates: { [appId: string]: AppState };
-  toggleApp: (appId: string) => void;
-  bringToForeground: (appId: string) => void;
+  toggleApp: (appId: AppId, initialData?: any) => void;
+  bringToForeground: (appId: AppId) => void;
   apps: BaseApp[];
   navigateToNextApp: (currentAppId: AppId) => void;
   navigateToPreviousApp: (currentAppId: AppId) => void;

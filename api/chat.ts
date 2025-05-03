@@ -1,6 +1,25 @@
 import { streamText, smoothStream } from "ai";
 import { SupportedModel, DEFAULT_MODEL, getModelInstance } from "./utils/aiModels";
 import { RYO_PERSONA_INSTRUCTIONS } from "./utils/aiPrompts";
+import { z } from "zod";
+
+// Explicitly define allowed App IDs for the edge function
+const validAppIds = [
+  "finder",
+  "soundboard",
+  "internet-explorer",
+  "chats",
+  "textedit",
+  "paint",
+  "photo-booth",
+  "minesweeper",
+  "videos",
+  "ipod",
+  "synth",
+  "pc",
+  "terminal",
+  "control-panels",
+] as const;
 
 // Update SystemState type to match new store structure
 interface SystemState {
@@ -124,62 +143,6 @@ Example of threejs tag with import:
 //... rest of threejs code</script>
 </code_generation_instructions>
 
-<app_control_instructions>
-APP CONTROL INSTRUCTIONS:
-You can control apps using special XML tags in your messages. The chat will parse these tags and launch or close apps automatically.
-
-1. Launch an app:
-   <app:launch id="appId"/>
-   Example: <app:launch id="paint"/>
-
-2. Close an app:
-   <app:close id="appId"/>
-   Example: <app:close id="textedit"/>
-
-Available app IDs:
-- finder (File manager)
-- soundboard (Sound effects recorder)
-- internet-explorer (Time Traveling web browser)
-- chats (Chat with Ryo ai and humans in chat rooms)
-- textedit (Text editor)
-- control-panels (System settings)
-- minesweeper (Classic game)
-- paint (MacPaint-style editor)
-- videos (VCR-style video player)
-- pc (DOS game virtual pc emulator)
-- ipod (iPod player)
-- terminal (Unix-like terminal)
-- photo-booth (selfie camera)
-- synth (music keyboard)
-
-IMPORTANT RULES:
-- Use valid app IDs from the list above
-- Each tag must be properly closed
-- Self-closing tag format (<tag/>) is required
-- The id attribute is required and must be quoted
-- You can only include ONE <app:launch> tag per message.
-- You can include multiple <app:close> tags in a single message.
-- Apps will be launched/closed in the order specified
-
-Examples:
-
-1. Launch Paint:
-<app:launch id="paint"/>
-
-2. Close TextEdit:
-<app:close id="textedit"/>
-
-3. Close multiple apps:
-<app:close id="paint"/>
-<app:close id="soundboard"/>
-<app:close id="videos"/>
-
-4. Launch one app and close another:
-<app:close id="internet-explorer"/>
-<app:launch id="videos"/>
-
-</app_control_instructions>
-
 <misc_instructions>
 if user replied with '👋 *nudge sent*', comment on current system state (song playing, doc content, browser url, etc.) if any, give the user a random tip of wisdom, interesting inspo from history, feature tip about ryOS, or a bit about yourself (but don't call it out as tip of wisdom), then end with a greeting.
 </misc_instructions>
@@ -302,6 +265,16 @@ export default async function handler(req: Request) {
       model: selectedModel,
       system: generateSystemPrompt(systemState), // Removed textEditContext
       messages,
+      tools: {
+        launchApp: {
+          description: "Launch an application by its id in the ryOS interface",
+          parameters: z.object({ id: z.enum(validAppIds).describe("The app id to launch") }),
+        },
+        closeApp: {
+          description: "Close an application by its id in the ryOS interface",
+          parameters: z.object({ id: z.enum(validAppIds).describe("The app id to close") }),
+        },
+      },
       temperature: 0.7,
       maxTokens: 6000,
       experimental_transform: smoothStream(),

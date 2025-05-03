@@ -1,5 +1,6 @@
 import { BaseApp } from "@/apps/base/types";
 import { AppManagerState } from "@/apps/base/types";
+import { AppId } from "@/config/appRegistry";
 import { useState, useEffect, useRef } from "react";
 import { FileIcon } from "@/apps/finder/components/FileIcon";
 import { getAppIconPath } from "@/config/appRegistry";
@@ -16,7 +17,7 @@ interface DesktopStyles {
 interface DesktopProps {
   apps: BaseApp[];
   appStates: AppManagerState;
-  toggleApp: (appId: string) => void;
+  toggleApp: (appId: AppId, initialData?: any) => void;
   onClick?: () => void;
   desktopStyles?: DesktopStyles;
   wallpaperPath: string;

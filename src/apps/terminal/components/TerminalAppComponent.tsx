@@ -2062,7 +2062,7 @@ assistant
             launchedAppsRef.current.add(op.id);
           }
         } else if (op.type === "close") {
-          toggleApp(op.id);
+          toggleApp(op.id as AppId);
           // Remove from launched apps so it can be launched again later
           launchedAppsRef.current.delete(op.id);
         }

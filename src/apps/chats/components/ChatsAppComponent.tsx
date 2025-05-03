@@ -184,7 +184,7 @@ export function ChatsAppComponent({
           />
           <div className="flex flex-col flex-1 p-2 overflow-hidden">
             {/* Chat Messages Area - takes up remaining space */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-hidden">
               <ChatMessages
                 key={currentRoomId || 'ryo'} // Re-render on room change
                 messages={currentMessagesToDisplay} // Remove 'as any'
@@ -200,7 +200,7 @@ export function ChatsAppComponent({
             </div>
 
             {/* Input Area or Set Username Prompt */}
-            <div className="flex-shrink-0 pt-2 border-t border-gray-400">
+            <div className="flex-shrink-0 pt-2">
               {currentRoomId && !username ? (
                   <Button onClick={promptSetUsername} className="w-full h-8 font-geneva-12 text-[12px] bg-orange-600 text-white hover:bg-orange-700 transition-all duration-200">
                     Set Username to Chat

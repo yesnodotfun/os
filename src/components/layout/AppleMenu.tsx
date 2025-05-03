@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { AboutFinderDialog } from "@/components/dialogs/AboutFinderDialog";
 import { BaseApp } from "@/apps/base/types";
-
+import { AppId } from "@/config/appRegistry";
 interface AppleMenuProps {
   apps: BaseApp[];
 }
@@ -22,9 +22,9 @@ export function AppleMenu({ apps }: AppleMenuProps) {
   const handleAppClick = (appId: string) => {
     const isOpen = appStates[appId]?.isOpen;
     if (!isOpen) {
-      toggleApp(appId);
+      toggleApp(appId as AppId);
     } else {
-      bringToForeground(appId);
+      bringToForeground(appId as AppId);
     }
   };
 

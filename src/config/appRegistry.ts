@@ -12,6 +12,9 @@ import { PhotoBoothApp } from "@/apps/photo-booth";
 import { SynthApp } from "@/apps/synth";
 import { IpodApp } from "@/apps/ipod";
 import { TerminalApp } from "@/apps/terminal";
+import { appIds } from './appIds';
+
+export type AppId = (typeof appIds)[number];
 
 export interface WindowSize {
   width: number;
@@ -137,9 +140,6 @@ export const appRegistry = {
     } as WindowConstraints,
   },
 } as const;
-
-// Type for app IDs
-export type AppId = keyof typeof appRegistry & string;
 
 // Helper function to get app icon path
 export const getAppIconPath = (appId: AppId): string => {

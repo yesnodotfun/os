@@ -5,7 +5,7 @@ interface LaunchAppOptions {
 }
 
 export function useLaunchApp() {
-  const launchApp = (appId: AppId, options: LaunchAppOptions = {}) => {
+  const launchApp = (appId: AppId | string, options: LaunchAppOptions = {}) => {
     window.dispatchEvent(
       new CustomEvent("launchApp", {
         detail: {
