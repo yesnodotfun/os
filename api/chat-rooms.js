@@ -149,6 +149,51 @@ const parseUserData = (data) => {
   return data; // Already object
 };
 
+// Helper function to ensure user exists or create them
+async function ensureUserExists(username, requestId) {
+  const userKey = `${CHAT_USERS_PREFIX}${username}`;
+
+  // Check for profanity first
+  if (filter.isProfane(username)) {
+      logInfo(requestId, `User check failed: Username contains inappropriate language: ${username}`);
+      throw new Error('Username contains inappropriate language');
+  }
+
+  // Attempt to get existing user
+  let userData = await redis.get(userKey);
+  if (userData) {
+    logInfo(requestId, `User ${username} exists. Refreshing TTL.`);
+    await redis.expire(userKey, USER_EXPIRATION_TIME); // Refresh TTL
+    return parseUserData(userData);
+  }
+
+  // User doesn't exist, attempt atomic creation
+  logInfo(requestId, `User ${username} not found. Attempting creation.`);
+  const newUser = {
+    username,
+    lastActive: getCurrentTimestamp()
+  };
+  const created = await redis.setnx(userKey, JSON.stringify(newUser));
+
+  if (created) {
+    logInfo(requestId, `User ${username} created successfully. Setting TTL.`);
+    await redis.expire(userKey, USER_EXPIRATION_TIME);
+    return newUser;
+  } else {
+    // Race condition: User was created between GET and SETNX. Fetch the existing user.
+    logInfo(requestId, `User ${username} created concurrently. Fetching existing data.`);
+    userData = await redis.get(userKey);
+    if (userData) {
+       await redis.expire(userKey, USER_EXPIRATION_TIME); // Refresh TTL just in case
+       return parseUserData(userData);
+    } else {
+       // Should be rare, but handle case where user disappeared again
+       logError(requestId, `User ${username} existed momentarily but is now gone. Race condition?`);
+       throw new Error('Failed to ensure user existence due to race condition.');
+    }
+  }
+}
+
 // GET handler
 export async function GET(request) {
   const requestId = generateRequestId();
@@ -818,11 +863,11 @@ async function handleSendMessage(data, requestId) {
     return createErrorResponse('Room ID, username, and content are required', 400);
   }
 
-  // Filter profanity from message content
+  // Filter profanity from message content AFTER checking username profanity
   const content = filter.clean(originalContent);
 
   logInfo(requestId, `Sending message in room ${roomId} from user ${username}`);
-  
+
   try {
     // Check if room exists
     const roomExists = await redis.exists(`${CHAT_ROOM_PREFIX}${roomId}`);
@@ -831,11 +876,24 @@ async function handleSendMessage(data, requestId) {
       return createErrorResponse('Room not found', 404);
     }
 
-    // Check if user exists
-    const userExists = await redis.exists(`${CHAT_USERS_PREFIX}${username}`);
-    if (!userExists) {
-      logInfo(requestId, `User not found: ${username}`);
-      return createErrorResponse('User not found', 404);
+    // Ensure user exists (or create if not) - This now handles profanity check for username
+    let userData;
+    try {
+      userData = await ensureUserExists(username, requestId);
+       if (!userData) { // Should not happen if ensureUserExists throws errors correctly
+         logError(requestId, `Failed to ensure user ${username} exists, ensureUserExists returned falsy.`);
+         return createErrorResponse('Failed to verify or create user', 500);
+      }
+    } catch (error) {
+      logError(requestId, `Error ensuring user ${username} exists:`, error);
+      if (error.message === 'Username contains inappropriate language') {
+          return createErrorResponse('Username contains inappropriate language', 400);
+      }
+      // Handle the rare race condition error specifically if needed, or just generic error
+      if (error.message.includes('race condition')) {
+          return createErrorResponse('Failed to send message due to temporary issue, please try again.', 500);
+      }
+      return createErrorResponse('Failed to verify or create user', 500);
     }
 
     // Validate message length
@@ -851,10 +909,12 @@ async function handleSendMessage(data, requestId) {
         const lastMsgObj = JSON.parse(lastMessagesRaw[0]);
         if (lastMsgObj.username === username && lastMsgObj.content === content) {
           logInfo(requestId, `Duplicate message prevented from ${username}`);
+          // Return 400 for duplicate
           return createErrorResponse('Duplicate message detected', 400);
         }
       } catch (e) {
         // ignore parse errors
+        logError(requestId, `Error parsing last message for duplicate check`, e);
       }
     }
 
@@ -874,20 +934,18 @@ async function handleSendMessage(data, requestId) {
     await redis.ltrim(`${CHAT_MESSAGES_PREFIX}${roomId}`, 0, 99);
     logInfo(requestId, `Message saved with ID: ${message.id}`);
 
-    // Update user's last active timestamp (assuming user data is stored as JSON string)
-    const currentUserData = await redis.get(`${CHAT_USERS_PREFIX}${username}`);
-    if (currentUserData) {
-      const parsedUser = typeof currentUserData === 'object' ? currentUserData : JSON.parse(currentUserData);
-      const updatedUser = { ...parsedUser, lastActive: getCurrentTimestamp() };
-      await redis.set(`${CHAT_USERS_PREFIX}${username}`, updatedUser);
-      // Refresh expiration time when user sends a message
-      await redis.expire(`${CHAT_USERS_PREFIX}${username}`, USER_EXPIRATION_TIME);
-      logInfo(requestId, `Updated user ${username} last active timestamp and reset expiration`);
-    }
+    // Update user's last active timestamp (userData is already parsed)
+    // ensureUserExists already refreshed TTL, but updating lastActive is still correct
+    const updatedUser = { ...userData, lastActive: getCurrentTimestamp() };
+    await redis.set(`${CHAT_USERS_PREFIX}${username}`, JSON.stringify(updatedUser)); // Ensure it's stringified for Redis
+    // Refresh expiration time again just to be safe upon activity
+    await redis.expire(`${CHAT_USERS_PREFIX}${username}`, USER_EXPIRATION_TIME);
+    logInfo(requestId, `Updated user ${username} last active timestamp and reset expiration`);
+
 
     // Trigger Pusher event for new message
     try {
-      await pusher.trigger('chats', 'room-message', { 
+      await pusher.trigger('chats', 'room-message', {
         roomId,
         message
       });
@@ -902,8 +960,9 @@ async function handleSendMessage(data, requestId) {
       headers: { 'Content-Type': 'application/json' }
     });
   } catch (error) {
-    logError(requestId, `Error sending message in room ${roomId} from user ${username}:`, error);
-    return createErrorResponse('Failed to send message', 500);
+     // Catch any unexpected errors from the main try block
+    logError(requestId, `Unexpected error sending message in room ${roomId} from user ${username}:`, error);
+    return createErrorResponse('Failed to send message due to an internal error', 500);
   }
 }
 
