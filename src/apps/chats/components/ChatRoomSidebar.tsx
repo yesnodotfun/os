@@ -3,6 +3,7 @@ import { Plus, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { type ChatRoom } from "@/types/chat";
+import { useSound, Sounds } from "@/hooks/useSound";
 
 // Extracted ChatRoomSidebar component
 interface ChatRoomSidebarProps {
@@ -24,6 +25,8 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
   isVisible,
   isAdmin,
 }) => {
+  const { play: playButtonClick } = useSound(Sounds.BUTTON_CLICK);
+
   if (!isVisible) {
     return null;
   }
@@ -53,7 +56,10 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
               'px-2 py-1',
               currentRoom === null ? 'bg-black text-white' : 'hover:bg-black/5'
             )}
-            onClick={() => onRoomSelect(null)} // Select null for @ryo
+            onClick={() => {
+              playButtonClick();
+              onRoomSelect(null);
+            }}
           >
             @ryo
           </div>
@@ -65,7 +71,10 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
                 'group relative px-2 py-1',
                 currentRoom?.id === room.id ? 'bg-black text-white' : 'hover:bg-black/5'
               )}
-              onClick={() => onRoomSelect(room)}
+              onClick={() => {
+                playButtonClick();
+                onRoomSelect(room);
+              }}
             >
               <div className="flex items-center">
                 <span>#{room.name}</span>
@@ -81,6 +90,7 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
                   className="absolute right-1 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-red-500 p-1 rounded hover:bg-black/5"
                   onClick={(e) => {
                     e.stopPropagation();
+                    playButtonClick();
                     onDeleteRoom(room);
                   }}
                   aria-label="Delete room"
