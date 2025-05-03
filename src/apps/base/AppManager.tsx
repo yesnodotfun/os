@@ -127,14 +127,23 @@ export function AppManager({ apps }: AppManagerProps) {
       } else {
         console.log(`[AppManager] Bringing app ${appId} to foreground.`);
         bringToForeground(appId);
-        // If app is already open and it's IE with shareCode, handle it in the component
-        // We might need to send an event or update state if the app needs to react while already open
-        if (appId === 'internet-explorer' && initialData?.shareCode) {
-           // Option 1: Dispatch another event specifically for the open app
+        
+        // --- FIX: Handle generic initialData (like url/year) for already open IE --- 
+        if (appId === 'internet-explorer' && initialData) { 
+           // Dispatch updateApp event with the received initialData
+           console.log(`[AppManager] Dispatching updateApp event for already open IE with initialData:`, initialData);
            const updateEvent = new CustomEvent('updateApp', { detail: { appId, initialData } });
            window.dispatchEvent(updateEvent);
-           // Option 2: Update zustand store directly if needed (less preferred for cross-component)
         }
+        // --- END FIX ---
+        
+        // Existing shareCode specific logic (can be potentially removed if the above handles it, but keep for now for safety)
+        // if (appId === 'internet-explorer' && initialData?.shareCode) {
+        //    // Option 1: Dispatch another event specifically for the open app
+        //    const updateEvent = new CustomEvent('updateApp', { detail: { appId, initialData } });
+        //    window.dispatchEvent(updateEvent);
+        //    // Option 2: Update zustand store directly if needed (less preferred for cross-component)
+        // }
       }
     };
 

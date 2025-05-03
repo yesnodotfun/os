@@ -268,8 +268,29 @@ export default async function handler(req: Request) {
       messages,
       tools: {
         launchApp: {
-          description: "Launch an application by its id in the ryOS interface",
-          parameters: z.object({ id: z.enum(validAppIds).describe("The app id to launch") }),
+          description: "Launch an application by its id in the ryOS interface. For 'internet-explorer', you can optionally provide a 'url' and 'year' (e.g., 1999, 2023, current).",
+          parameters: z.object({
+            id: z.enum(validAppIds).describe("The app id to launch"),
+            url: z.string().optional().describe("Optional: The URL to load in Internet Explorer."),
+            year: z.string().optional()
+              .describe("Optional: The year for the Wayback Machine or AI generation (e.g., '1000 BC', '1995', 'current', '2030', '3000'). Used only with Internet Explorer.")
+              .refine(year => {
+                if (year === undefined) return true; // Optional field is valid if not provided
+                // Check if it's 'current' or matches the year formats (e.g., '1999', '500 CE', '1000 BC')
+                const isValidFormat = year === 'current' || /^\d{1,4}( BC| CE)?$/.test(year);
+                return isValidFormat;
+              }, {
+                message: "Invalid year format. Use 'current', a numeric year (e.g., '1995'), or a historical year (e.g., '500 CE', '1000 BC')."
+              }),
+          }).refine(data => {
+            // Ensure url/year are only provided when id is 'internet-explorer'
+            if (data.id !== 'internet-explorer' && (data.url !== undefined || data.year !== undefined)) {
+              return false; // Invalid: url/year provided for non-IE app
+            }
+            return true; // Valid otherwise
+          }, {
+            message: "The 'url' and 'year' parameters can only be used when launching 'internet-explorer'.",
+          }),
         },
         closeApp: {
           description: "Close an application by its id in the ryOS interface",

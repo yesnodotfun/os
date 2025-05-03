@@ -502,24 +502,41 @@ export function ChatMessages({
                           }
                           case "tool-invocation": {
                             const { toolName, state } = part.toolInvocation;
+                            // Access args safely
+                            const args = state === 'result' || state === 'call' ? part.toolInvocation.args : undefined;
                             // Access result safely only when state is 'result'
                             const result = state === 'result' ? part.toolInvocation.result : undefined;
 
+                            // --- Custom message for launchApp/closeApp --- 
+                            let displayMessage = null;
+                            if (state === 'result') {
+                              if (toolName === 'launchApp' && args?.id === 'internet-explorer') {
+                                const urlPart = args.url ? ` to ${args.url}` : '';
+                                const yearPart = args.year && args.year !== 'current' ? ` in ${args.year}` : '';
+                                displayMessage = `Launched Internet Explorer${urlPart}${yearPart}`;
+                              } else if (toolName === 'launchApp') {
+                                displayMessage = `Launched ${args?.id || 'app'}`;
+                              } else if (toolName === 'closeApp') {
+                                displayMessage = `Closed ${args?.id || 'app'}`;
+                              }
+                            }
+                            // --- End custom message --- 
+
                             return (
-                              <div key={partKey} className="my-1 p-1.5 bg-white/70 rounded text-xs">
+                              <div key={partKey} className="my-1 p-1.5 bg-white/50 rounded text-xs italic">
                                 {state === 'call' && (
                                   <div className="flex items-center gap-1 text-gray-700">
                                     <Loader2 className="h-3 w-3 animate-spin" />
-                                    <span>Calling tool: <strong>{toolName}</strong>...</span>
+                                    <span>Calling <strong>{toolName}</strong>...</span>
                                     {/* Optionally display args: <pre className="text-xs overflow-auto">{JSON.stringify(args, null, 2)}</pre> */}
                                   </div>
                                 )}
                                 {state === 'result' && (
-                                  <div className="flex items-center gap-1 text-gray-700">
+                                  <div className="flex items-start gap-1 text-gray-700">
                                     <Check className="h-3 w-3 text-blue-600" />
-                                    {/* Special handling for launch/close app results */}
-                                    {(toolName === 'launchApp' || toolName === 'closeApp') && typeof result === 'string' ? (
-                                      <span>{result}</span>
+                                    {/* Use custom message if available, otherwise generic */} 
+                                    {displayMessage ? (
+                                      <span>{displayMessage}</span>
                                     ) : (
                                       <>
                                         <span>Tool <strong>{toolName}</strong> executed.</span>

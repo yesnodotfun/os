@@ -839,16 +839,43 @@ export function InternetExplorerAppComponent({
              handleNavigate(decodedData.url, decodedData.year || 'current', false);
           }, 0);
           // AppManager should have already cleaned the URL
-          return; // Skip default navigation
+          return; // Skip other initial navigation
         } else {
           console.warn("[IE] Failed to decode share link code from initialData prop.");
           toast.error("Invalid Share Link", {
             description: "The share link provided is invalid or corrupted.",
             duration: 5000,
           });
-           // Fall through to default navigation
+           // Fall through to check for direct url/year or default navigation
         }
       }
+
+      // --- NEW: Check for direct url and year in initialData ---
+      if (initialData?.url && typeof initialData.url === 'string') {
+        const initialUrl = initialData.url;
+        const initialYear = typeof initialData.year === 'string' ? initialData.year : 'current'; // Default to 'current' if year is missing or invalid
+        console.log(`[IE] Navigating based on initialData url/year: ${initialUrl} (${initialYear})`);
+        
+        // --- FIX: Update store state BEFORE navigating and pass values directly --- 
+        setUrl(initialUrl);
+        setYear(initialYear);
+        // --- END FIX ---
+        
+        toast.info(
+          `Opening requested page`,
+          {
+            description: `${initialUrl}${initialYear !== 'current' ? ` from ${initialYear}` : ''}`,
+            duration: 4000,
+          }
+        );
+        setTimeout(() => {
+          // --- FIX: Pass initialUrl and initialYear directly ---
+          handleNavigate(initialUrl, initialYear, false);
+          // --- END FIX ---
+        }, 0);
+        return; // Skip default navigation
+      }
+      // --- END NEW ---
 
       // Proceed with default navigation if not a share link or if decoding failed
       console.log("[IE] Proceeding with default navigation.");

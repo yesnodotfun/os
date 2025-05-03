@@ -7,7 +7,7 @@ import { useVideoStore } from "@/stores/useVideoStore";
 import { useIpodStore } from "@/stores/useIpodStore";
 import { useTextEditStore } from "@/stores/useTextEditStore";
 import { toast } from "@/hooks/useToast";
-import { useLaunchApp } from "@/hooks/useLaunchApp";
+import { useLaunchApp, type LaunchAppOptions } from "@/hooks/useLaunchApp";
 import { AppId } from "@/config/appIds";
 import { appRegistry } from "@/config/appRegistry";
 
@@ -93,18 +93,31 @@ export function useAiChat() {
             try {
                 switch (toolCall.toolName) {
                     case "launchApp": {
-                        const { id } = toolCall.args as { id: string };
+                        const { id, url, year } = toolCall.args as { id: string; url?: string; year?: string };
                         const appName = appRegistry[id as AppId]?.name || id;
-                        console.log("[ToolCall] launchApp:", id);
-                        launchApp(id as AppId);
-                        return `Launched ${appName}`;
+                        console.log("[ToolCall] launchApp:", { id, url, year });
+                        
+                        const launchOptions: LaunchAppOptions = {};
+                        if (id === 'internet-explorer' && (url || year)) {
+                            launchOptions.initialData = { url, year: year || 'current' };
+                        }
+                        
+                        launchApp(id as AppId, launchOptions);
+                        
+                        let confirmationMessage = `Launched ${appName}`;
+                        if (id === 'internet-explorer') {
+                            const urlPart = url ? ` to ${url}` : '';
+                            const yearPart = year && year !== 'current' ? ` in ${year}` : '';
+                            confirmationMessage += `${urlPart}${yearPart}`;
+                        }
+                        return confirmationMessage + ".";
                     }
                     case "closeApp": {
                         const { id } = toolCall.args as { id: string };
                         const appName = appRegistry[id as AppId]?.name || id;
                         console.log("[ToolCall] closeApp:", id);
                         closeApp(id as AppId);
-                        return `Closed ${appName}`;
+                        return `Closed ${appName}.`;
                     }
                     default:
                         console.warn("Unhandled tool call:", toolCall.toolName);

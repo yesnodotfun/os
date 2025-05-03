@@ -1,7 +1,9 @@
 import { AppId } from "@/config/appRegistry";
 
-interface LaunchAppOptions {
+// Export the interface
+export interface LaunchAppOptions {
   initialPath?: string;
+  initialData?: any; // Add initialData field
 }
 
 export function useLaunchApp() {
@@ -10,7 +12,9 @@ export function useLaunchApp() {
       new CustomEvent("launchApp", {
         detail: {
           appId,
-          ...options,
+          // Ensure initialData is included if present
+          initialPath: options.initialPath,
+          initialData: options.initialData,
         },
       })
     );
