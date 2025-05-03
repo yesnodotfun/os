@@ -303,7 +303,7 @@ export default async function handler(req: Request) {
       system: generateSystemPrompt(systemState), // Removed textEditContext
       messages,
       temperature: 0.7,
-      maxTokens: 4000,
+      maxTokens: 6000,
       experimental_transform: smoothStream(),
     });
 
