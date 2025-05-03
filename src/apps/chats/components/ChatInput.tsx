@@ -257,16 +257,24 @@ export function ChatInput({
             onTouchStart={(e) => {
               e.preventDefault();
             }}
-            disabled={isLoading}
           />
-          {isLoading && (
-            <div className="absolute top-0 left-0 w-full h-full pointer-events-none flex items-center pl-3">
-              <span className="text-gray-500 opacity-70 shimmer-gray text-[13px] font-geneva-12">
-                Thinking
-                <AnimatedEllipsis />
-              </span>
-            </div>
-          )}
+          <AnimatePresence>
+            {isLoading && input.trim() === "" && (
+              <motion.div
+                key="thinking-overlay"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="absolute top-0 left-0 w-full h-full pointer-events-none flex items-center pl-3"
+              >
+                <span className="text-gray-500 opacity-70 shimmer-gray text-[13px] font-geneva-12">
+                  Thinking
+                  <AnimatedEllipsis />
+                </span>
+              </motion.div>
+            )}
+          </AnimatePresence>
           <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
             {showNudgeButton && (
             <TooltipProvider>
