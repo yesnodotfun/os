@@ -9,6 +9,7 @@ interface FileIconProps {
   contentUrl?: string;
   onDoubleClick?: (event: React.MouseEvent<HTMLDivElement>) => void;
   isSelected?: boolean;
+  isDropTarget?: boolean;
   onClick?: (event: React.MouseEvent<HTMLDivElement>) => void;
   size?: "small" | "large";
   className?: string;
@@ -22,6 +23,7 @@ export function FileIcon({
   contentUrl,
   onDoubleClick,
   isSelected,
+  isDropTarget,
   onClick,
   size = "small",
   className,
@@ -118,7 +120,7 @@ export function FileIcon({
   const sizes = sizeClasses[size];
 
   const handleImageError = () => {
-    console.error(`Error loading thumbnail for ${name}, falling back to icon`);
+    console.error(`Error loading thumbnail for ${name}, fallback to icon. Current imgSrc: ${imgSrc?.substring(0, 50)}...`);
 
     // If we have a Blob but URL failed, try regenerating URL one time
     if (
@@ -129,6 +131,7 @@ export function FileIcon({
     ) {
       // Only try once per blob to avoid loops
       if (!attemptedUrlsRef.current.has("blob-retry")) {
+        console.log(`[FileIcon] Retrying with new URL for ${name}`);
         attemptedUrlsRef.current.add("blob-retry");
 
         // Revoke current URL
@@ -138,11 +141,13 @@ export function FileIcon({
         const newUrl = URL.createObjectURL(contentRef.current);
         blobUrlRef.current = newUrl;
         setImgSrc(newUrl);
+        console.log(`[FileIcon] Created new URL for ${name}: ${newUrl.substring(0, 50)}...`);
         return;
       }
     }
 
     // Otherwise fall back to icon
+    console.log(`[FileIcon] Falling back to icon for ${name}`);
     setFallbackToIcon(true);
   };
 
@@ -166,7 +171,7 @@ export function FileIcon({
       <img
         src={getIconPath()}
         alt={isDirectory ? "Directory" : "File"}
-        className={`object-contain ${sizes.image}`}
+        className={`object-contain ${sizes.image} ${isDirectory && isDropTarget ? "invert" : ""}`}
         style={{ imageRendering: "pixelated" }}
       />
     );
@@ -183,7 +188,7 @@ export function FileIcon({
     >
       <div
         className={`flex items-center justify-center ${sizes.icon} ${
-          isSelected ? "brightness-65 contrast-100" : ""
+          isSelected || (isDropTarget && isDirectory) ? "brightness-65 contrast-100" : ""
         }`}
       >
         {renderIcon()}
@@ -191,7 +196,7 @@ export function FileIcon({
       <span
         className={`text-center px-1 font-geneva-12 break-words truncate ${
           sizes.text
-        } ${isSelected ? "bg-black text-white" : "bg-white text-black"}`}
+        } ${isSelected || (isDropTarget && isDirectory) ? "bg-black text-white" : "bg-white text-black"}`}
       >
         {name}
       </span>

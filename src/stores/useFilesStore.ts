@@ -37,6 +37,7 @@ interface FilesStoreState {
   restoreItem: (path: string) => void;
   emptyTrash: () => string[]; // Returns paths of items whose content should be deleted
   renameItem: (oldPath: string, newPath: string, newName: string) => void;
+  moveItem: (sourcePath: string, destinationPath: string) => boolean; // Add moveItem method
   getItemsInPath: (path: string) => FileSystemItem[];
   getItem: (path: string) => FileSystemItem | undefined;
   getTrashItems: () => FileSystemItem[]; // Helper to get all trashed items
@@ -289,6 +290,66 @@ export const useFilesStore = create<FilesStoreState>()(
 
             return { items: newItems };
          });
+      },
+
+      moveItem: (sourcePath, destinationPath) => {
+        let success = false;
+        set((state) => {
+          const sourceItem = state.items[sourcePath];
+          if (!sourceItem || sourceItem.status !== 'active') {
+            console.warn(`[FilesStore] Cannot move item. Source path "${sourcePath}" not found or not active.`);
+            return state;
+          }
+
+          const destinationParent = getParentPath(destinationPath);
+          if (!state.items[destinationParent] || !state.items[destinationParent].isDirectory) {
+            console.warn(`[FilesStore] Cannot move item. Destination parent "${destinationParent}" not found or not a directory.`);
+            return state;
+          }
+
+          if (state.items[destinationPath]) {
+            console.warn(`[FilesStore] Cannot move item. Destination path "${destinationPath}" already exists.`);
+            return state;
+          }
+
+          // Check if we're trying to move a directory to its own subdirectory
+          if (sourceItem.isDirectory && destinationPath.startsWith(sourcePath + '/')) {
+            console.warn(`[FilesStore] Cannot move directory into its own subdirectory.`);
+            return state;
+          }
+
+          const newItems = { ...state.items };
+          
+          // Remove source entry
+          delete newItems[sourcePath];
+          
+          // Add destination entry
+          const movedItem = { ...sourceItem, path: destinationPath };
+          newItems[destinationPath] = movedItem;
+          
+          // If it's a directory, move all its children
+          if (sourceItem.isDirectory) {
+            Object.keys(state.items).forEach(itemPath => {
+              if (itemPath.startsWith(sourcePath + '/')) {
+                const relativePath = itemPath.substring(sourcePath.length);
+                const childNewPath = destinationPath + relativePath;
+                const childItem = state.items[itemPath];
+                
+                delete newItems[itemPath];
+                
+                newItems[childNewPath] = {
+                  ...childItem,
+                  path: childNewPath
+                };
+              }
+            });
+          }
+          
+          success = true;
+          return { items: newItems };
+        });
+        
+        return success;
       },
 
       getItemsInPath: (path) => {

@@ -107,6 +107,7 @@ export function FinderAppComponent({
     saveFile: originalSaveFile,
     renameFile: originalRenameFile,
     createFolder,
+    moveFile,
   } = useFileSystem();
 
   // Wrap the original handleFileOpen to integrate with TextEditStore
@@ -240,11 +241,17 @@ export function FinderAppComponent({
     setIsEmptyTrashDialogOpen(false);
   };
 
-  // Function to handle file drops
+  // External file drop handler (from outside the app)
   const handleFileDrop = async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDraggingOver(false);
+
+    // Only handle external files (from the user's disk)
+    // If no files in dataTransfer, this might be an internal move which is handled by FileList
+    if (e.dataTransfer.files.length === 0) {
+      return;
+    }
 
     // Only allow drops in the Documents directory
     if (currentPath !== "/Documents") {
@@ -280,6 +287,70 @@ export function FinderAppComponent({
         console.error("Error saving dropped file:", err);
       }
     }
+  };
+
+  // Internal file move handler (between folders in the app)
+  const handleFileMoved = (sourceFile: FileItem, targetFolder: FileItem) => {
+    if (!canCreateFolder) {
+      console.warn("File movement is not allowed in this directory");
+      return;
+    }
+    
+    if (!sourceFile || !targetFolder || !targetFolder.isDirectory) {
+      console.warn("Invalid source or target for file move");
+      return;
+    }
+    
+    // Get the file from the filesystem using the path
+    const sourceItem = fileStore.getItem(sourceFile.path);
+    if (!sourceItem) {
+      console.error(`Source file not found at path: ${sourceFile.path}`);
+      return;
+    }
+    
+    // Construct the destination path
+    const destinationPath = `${targetFolder.path}/${sourceFile.name}`;
+    
+    // Execute the move
+    console.log(`Moving file from ${sourceFile.path} to ${destinationPath}`);
+    moveFile(sourceItem, targetFolder.path);
+  };
+
+  // Handler for dropping files directly into the current directory
+  const handleDropToCurrentDirectory = (sourceFile: FileItem) => {
+    if (!canCreateFolder) {
+      console.warn("File movement is not allowed in this directory");
+      return;
+    }
+    
+    if (!sourceFile) {
+      console.warn("Invalid source file for move");
+      return;
+    }
+    
+    // Get source file from store
+    const sourceItem = fileStore.getItem(sourceFile.path);
+    if (!sourceItem) {
+      console.error(`Source file not found at path: ${sourceFile.path}`);
+      return;
+    }
+    
+    // Don't move a file to the directory it's already in
+    if (getParentPath(sourceFile.path) === currentPath) {
+      console.warn(`File ${sourceFile.name} is already in ${currentPath}`);
+      return;
+    }
+    
+    console.log(`Moving file from ${sourceFile.path} to ${currentPath}/${sourceFile.name}`);
+    moveFile(sourceItem, currentPath);
+  };
+
+  // Helper to get parent path
+  const getParentPath = (path: string): string => {
+    if (path === '/') return '/';
+    const parts = path.split('/').filter(Boolean);
+    if (parts.length <= 1) return '/';
+    return '/' + parts.slice(0, -1).join('/');
   };
 
   const handleImportFile = () => {
@@ -459,7 +530,7 @@ export function FinderAppComponent({
       setIsNewFolderDialogOpen(false);
   };
 
-  // Determine if folder creation is allowed in the current path
+  // Determine if folder creation (and thus file movement) is allowed in the current path
   const canCreateFolder = currentPath === '/Documents' || currentPath === '/Images' || currentPath.startsWith('/Documents/') || currentPath.startsWith('/Images/');
 
   // Get all root folders for the Go menu using fileStore
@@ -473,6 +544,28 @@ export function FinderAppComponent({
     path: item.path,
     icon: item.icon || '/icons/folder.png'
   }));
+
+  // Add a new handler for rename requests
+  const handleRenameRequest = (file: FileItem) => {
+    // Only allow rename in paths where file creation is allowed
+    if (!canCreateFolder) return;
+    
+    // Prevent renaming virtual files and special folders
+    if (file.type?.includes('virtual') || 
+        file.path === '/Documents' || 
+        file.path === '/Images' || 
+        file.path === '/Applications' ||
+        file.path === '/Trash' ||
+        file.path === '/Music' ||
+        file.path === '/Videos' ||
+        file.path === '/Sites') {
+      return;
+    }
+    
+    // Set rename value and open the dialog
+    setRenameValue(file.name);
+    setIsRenameDialogOpen(true);
+  };
 
   if (!isWindowOpen) return null;
 
@@ -537,10 +630,13 @@ export function FinderAppComponent({
               : ""
           }`}
           onDragOver={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            if (!isDraggingOver && currentPath === "/Documents") {
-              setIsDraggingOver(true);
+            // Only handle external file drags, not internal file moves
+            if (e.dataTransfer.types.includes("Files") && e.dataTransfer.files.length > 0) {
+              e.preventDefault();
+              e.stopPropagation();
+              if (!isDraggingOver && currentPath === "/Documents") {
+                setIsDraggingOver(true);
+              }
             }
           }}
           onDragLeave={(e) => {
@@ -621,6 +717,11 @@ export function FinderAppComponent({
                 selectedFile={selectedFile}
                 viewType={viewType}
                 getFileType={getFileType}
+                onFileDrop={handleFileMoved}
+                onDropToCurrentDirectory={handleDropToCurrentDirectory}
+                canDropFiles={canCreateFolder}
+                currentPath={currentPath}
+                onRenameRequest={handleRenameRequest}
               />
             )}
           </div>

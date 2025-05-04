@@ -349,7 +349,7 @@ function getFileTypeFromExtension(fileName: string): string {
     case "md": return "markdown";
     case "txt": return "text";
     case "png": return ext;
-    case "jpg": case "jpeg": return ext;
+    case "jpg": case "jpeg": return "jpg"; // Standardize to jpg for jpeg/jpg files
     case "gif": return ext;
     case "webp": return ext;
     case "bmp": return ext;
@@ -657,25 +657,38 @@ export function useFileSystem(initialPath: string = "/") {
             appId: item.appId,
         }));
 
-        // --- START EDIT: Fetch content URLs for /Images path ---
-        if (currentPath === "/Images") {
+        // --- START EDIT: Fetch content URLs for /Images path and its subdirectories ---
+        if (currentPath === "/Images" || currentPath.startsWith("/Images/")) {
             displayFiles = await Promise.all(itemsMetadata.map(async (item) => {
                 let contentUrl: string | undefined;
                 if (!item.isDirectory) {
                     try {
+                        console.log(`[useFileSystem:loadFiles] Fetching content for ${item.name}, type: ${item.type}`);
                         const contentData = await dbOperations.get<DocumentContent>(STORES.IMAGES, item.name);
+                        
                         if (contentData?.content instanceof Blob) {
+                            console.log(`[useFileSystem:loadFiles] Found Blob content for ${item.name}, creating URL`);
                             contentUrl = URL.createObjectURL(contentData.content);
+                            console.log(`[useFileSystem:loadFiles] Created URL: ${contentUrl}`);
+                        } else {
+                            console.log(`[useFileSystem:loadFiles] No Blob content found for ${item.name}`);
                         }
                     } catch (err) {
                         console.error(`Error fetching image content for ${item.name}:`, err);
                     }
                 }
+                
+                // Ensure the item type is properly set for image files
+                const fileExt = item.name.split('.').pop()?.toLowerCase();
+                const isImageFile = ["png", "jpg", "jpeg", "gif", "webp", "bmp"].includes(fileExt || "");
+                const type = isImageFile ? fileExt || item.type : item.type;
+                
                 return {
                     ...item,
                     icon: getFileIcon(item),
                     appId: item.appId,
-                    contentUrl: contentUrl, // Add the contentUrl
+                    contentUrl: contentUrl,
+                    type: type, // Ensure type is correctly set
                 };
             }));
         }
@@ -841,6 +854,61 @@ export function useFileSystem(initialPath: string = "/") {
         }
     } else {
         console.warn(`[useFileSystem:saveFile] No valid content store for path: ${path}`);
+    }
+  }, [fileStore]);
+
+  const moveFile = useCallback(async (sourceFile: FileSystemItem, targetFolderPath: string) => {
+    if (!sourceFile || sourceFile.isDirectory) {
+      console.error("[useFileSystem:moveFile] Invalid source file or attempting to move a directory");
+      setError("Cannot move this item");
+      return false;
+    }
+
+    const targetFolder = fileStore.getItem(targetFolderPath);
+    if (!targetFolder || !targetFolder.isDirectory) {
+      console.error(`[useFileSystem:moveFile] Target is not a valid directory: ${targetFolderPath}`);
+      setError("Invalid target folder");
+      return false;
+    }
+
+    // Determine new path
+    const newPath = `${targetFolderPath}/${sourceFile.name}`;
+    
+    // Check if destination already exists
+    if (fileStore.getItem(newPath)) {
+      console.error(`[useFileSystem:moveFile] A file with the same name already exists at destination: ${newPath}`);
+      setError("A file with the same name already exists in the destination folder");
+      return false;
+    }
+
+    try {
+      // Determine source and target stores for content
+      const sourcePath = sourceFile.path;
+      const sourceStoreName = sourcePath.startsWith("/Documents/") ? STORES.DOCUMENTS : 
+                            sourcePath.startsWith("/Images/") ? STORES.IMAGES : null;
+      const targetStoreName = targetFolderPath.startsWith("/Documents") ? STORES.DOCUMENTS : 
+                            targetFolderPath.startsWith("/Images") ? STORES.IMAGES : null;
+
+      // If content needs to move between different stores
+      if (sourceStoreName && targetStoreName && sourceStoreName !== targetStoreName) {
+        // Get content from source store
+        const content = await dbOperations.get<DocumentContent>(sourceStoreName, sourceFile.name);
+        if (content) {
+          // Save to target store
+          await dbOperations.put<DocumentContent>(targetStoreName, content);
+          // Delete from source store
+          await dbOperations.delete(sourceStoreName, sourceFile.name);
+        }
+      }
+      
+      // Update metadata in file store
+      fileStore.moveItem(sourcePath, newPath);
+      console.log(`[useFileSystem:moveFile] Successfully moved ${sourcePath} to ${newPath}`);
+      return true;
+    } catch (err) {
+      console.error(`[useFileSystem:moveFile] Error moving file: ${err}`);
+      setError("Failed to move file");
+      return false;
     }
   }, [fileStore]);
 
@@ -1040,5 +1108,6 @@ export function useFileSystem(initialPath: string = "/") {
     renameFile,
     createFolder,
     formatFileSystem,
+    moveFile,
   };
 }
