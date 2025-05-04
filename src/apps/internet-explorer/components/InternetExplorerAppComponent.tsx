@@ -668,6 +668,8 @@ export function InternetExplorerAppComponent({
             return;
           }
         } else if (newMode === "now") {
+          // Always proxy current year sites through iframe-check
+          urlToLoad = `/api/iframe-check?url=${encodeURIComponent(normalizedTargetUrl)}`;
           try {
             const checkRes = await fetch(
               `/api/iframe-check?mode=check&url=${encodeURIComponent(normalizedTargetUrl)}`,
@@ -677,22 +679,13 @@ export function InternetExplorerAppComponent({
 
             if (checkRes.ok) {
               const checkData = await checkRes.json();
-              if (checkData.allowed) {
-                urlToLoad = normalizedTargetUrl;
-                if (checkData.title) {
-                  setPrefetchedTitle(checkData.title);
-                }
-              } else {
-                urlToLoad = `/api/iframe-check?url=${encodeURIComponent(normalizedTargetUrl)}`;
+              if (checkData.title) {
+                setPrefetchedTitle(checkData.title);
               }
-            } else {
-              console.warn(`[IE] iframe-check failed (${checkRes.status}), attempting direct.`);
-              urlToLoad = normalizedTargetUrl;
             }
           } catch (error) {
             if (error instanceof Error && error.name === 'AbortError') return;
-            console.warn(`[IE] iframe-check fetch failed, attempting direct:`, error);
-            urlToLoad = normalizedTargetUrl;
+            console.warn(`[IE] iframe-check fetch failed:`, error);
           }
         }
         

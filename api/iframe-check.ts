@@ -565,13 +565,43 @@ export default async function handler(req: Request) {
   }, true);
 </script>
 `;
+          // Patch history API to avoid cross-origin SecurityError (e.g. Next.js apps inside proxy)
+          const historyPatchScript = `
+<script>
+  (function() {
+    const makeRelative = function(url) {
+      try {
+        if (!url) return url;
+        const parsed = new URL(url, document.baseURI);
+        if (parsed.origin !== window.location.origin) {
+          return parsed.pathname + parsed.search + parsed.hash;
+        }
+      } catch (e) {}
+      return url;
+    };
+    ['pushState', 'replaceState'].forEach(function(fn) {
+      const original = history[fn];
+      if (typeof original === 'function') {
+        history[fn] = function(state, title, url) {
+          try {
+            return original.call(this, state, title, makeRelative(url));
+          } catch (err) {
+            console.warn('[IE Proxy] history.' + fn + ' blocked URL', url, err);
+            return original.call(this, state, title, null);
+          }
+        };
+      }
+    });
+  })();
+</script>
+`;
           const headIndex = html.search(/<head[^>]*>/i);
           if (headIndex !== -1) {
-              const insertPos = headIndex + html.match(/<head[^>]*>/i)![0].length;
-              html = html.slice(0, insertPos) + baseTag + titleMetaTag + fontOverrideStyles + html.slice(insertPos); // Add fontOverrideStyles
+              const insertPos = headIndex + html.match(/<head[^>]*>/i)! [0].length;
+              html = html.slice(0, insertPos) + baseTag + titleMetaTag + fontOverrideStyles + historyPatchScript + html.slice(insertPos); // Add styles and history patch
           } else {
               // Fallback: Prepend if no <head>
-              html = baseTag + titleMetaTag + fontOverrideStyles + html;
+              html = baseTag + titleMetaTag + fontOverrideStyles + historyPatchScript + html;
           }
 
           // Inject script right before </body> (case‑insensitive)
