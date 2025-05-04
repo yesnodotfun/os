@@ -157,7 +157,7 @@ function ErrorPage({
 // Add this constant for title truncation
 const MAX_TITLE_LENGTH = 50;
 
-// Add these utility functions after the imports and before the component
+
 const getHostnameFromUrl = (url: string): string => {
   try {
     const urlToUse = url.startsWith("http") ? url : `https://${url}`;
@@ -218,6 +218,13 @@ function decodeData(code: string): { url: string; year: string } | null {
     return null;
   }
 }
+
+// Helper function to normalize URLs for history/caching
+const normalizeUrlForHistory = (url: string): string => {
+  let normalized = url.replace(/^https?:\/\//, '');
+  normalized = normalized.replace(/\/$/, ''); // Remove trailing slash
+  return normalized;
+};
 
 export function InternetExplorerAppComponent({
   isWindowOpen,
@@ -305,18 +312,6 @@ export function InternetExplorerAppComponent({
 
   const [displayTitle, setDisplayTitle] = useState<string>("Internet Explorer");
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
-
-  // Fetch cached years when URL changes (No debouncing for now)
-  // const debouncedUrl = useDebounce(url, 500); // Debounce URL changes by 500ms
-  
-  const cachedYearsFetchedRef = useRef<{[url: string]: boolean}>({});
-  useEffect(() => {
-    if (url && !cachedYearsFetchedRef.current[url]) {
-      console.log(`[IE] Fetching cached years for URL: ${url}`);
-      cachedYearsFetchedRef.current[url] = true;
-      fetchCachedYears(url);
-    }
-  }, [url, fetchCachedYears]);
 
   useEffect(() => {
     let newTitle = "Internet Explorer";
@@ -528,21 +523,28 @@ export function InternetExplorerAppComponent({
         : "past";
     const newToken = Date.now();
 
+    // --- Trim the URL from input before navigating --- 
+    // Use targetUrlParam directly as it's passed in, or trim the current store url if not passed
+    const urlToNavigate = (targetUrlParam === url ? url.trim() : targetUrlParam).trim();
+    // Update store immediately so the input reflects the trimmed URL during loading
+    setUrl(urlToNavigate); 
+    // --- End Trim --- 
+
     // Store the latest token immediately so that asynchronous iframe load/error
     // handlers fired before the next React render can still validate correctly.
     navTokenRef.current = newToken;
 
     track(IE_ANALYTICS.NAVIGATION_START, {
-      url: targetUrlParam,
+      url: urlToNavigate,
       year: targetYearParam,
       mode: newMode,
     });
 
-    navigateStart(targetUrlParam, targetYearParam, newMode, newToken);
+    navigateStart(urlToNavigate, targetYearParam, newMode, newToken);
 
-    const normalizedTargetUrl = targetUrlParam.startsWith("http")
-      ? targetUrlParam
-      : `https://${targetUrlParam}`;
+    const normalizedTargetUrl = urlToNavigate.startsWith("http")
+      ? urlToNavigate
+      : `https://${urlToNavigate}`;
 
     try {
       if (newMode === "future" || (newMode === "past" && parseInt(targetYearParam) <= 1995)) {
@@ -1312,8 +1314,11 @@ export function InternetExplorerAppComponent({
                     handleNavigate();
                   }
                 }}
-                  className="flex-1 pr-8"
+                className="flex-1 pr-8"
                 placeholder="Enter URL"
+                spellCheck="false"
+                autoComplete="off"
+                autoCapitalize="off"
               />
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -1369,11 +1374,14 @@ export function InternetExplorerAppComponent({
                       size="sm"
                       className="whitespace-nowrap hover:bg-gray-200 font-geneva-12 text-[10px] gap-1 px-1 mr-1 w-content min-w-[60px] max-w-[120px] flex-shrink-0"
                       onClick={(e) => {
-                        handleNavigateWithHistory(favorite.url, favorite.year);
-                        e.currentTarget.scrollIntoView({ 
-                          behavior: 'smooth', 
-                          block: 'nearest', 
-                          inline: 'nearest' 
+                        // Normalize URL before passing
+                        const normalizedFavUrl = normalizeUrlForHistory(favorite.url);
+                        handleNavigateWithHistory(normalizedFavUrl, favorite.year);
+                        // Scroll into view
+                        e.currentTarget.scrollIntoView({
+                          behavior: 'smooth',
+                          block: 'nearest',
+                          inline: 'nearest'
                         });
                       }}
                     >

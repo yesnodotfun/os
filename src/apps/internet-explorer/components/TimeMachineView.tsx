@@ -841,7 +841,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                         <div
                            ref={timelineRef}
                            className="w-auto max-w-full overflow-x-auto flex flex-row items-center space-x-4 space-y-0 justify-start py-2 flex-shrink-0
-                                      sm:w-full sm:overflow-y-auto sm:flex-col-reverse sm:items-center sm:space-y-1 sm:space-x-0 sm:py-4 sm:h-auto sm:max-h-full sm:max-w-none
+                                      sm:w-full sm:overflow-y-auto sm:flex-col-reverse sm:hover:flex-col-reverse sm:items-center sm:space-y-1 sm:space-x-0 sm:py-4 sm:h-auto sm:max-h-full sm:max-w-none
                                       sm:justify-start sm:min-h-full
                                       [&::-webkit-scrollbar]:hidden
                                       [&::-webkit-scrollbar]:sm:w-1
@@ -865,7 +865,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                                 // Default: mobile sizes, sm: desktop sizes
                                 const barSizeClasses = isActive
                                     ? 'h-1.5 w-12 sm:w-14 sm:h-1' // Active bar (mobile / desktop)
-                                    : 'h-1 w-8 group-hover:w-10 sm:w-8 sm:h-0.5 group-hover:sm:w-10'; // Inactive bar (mobile / desktop)
+                                    : 'h-1 w-8 group-hover:w-10 sm:w-8 sm:h-0.5 '; // Inactive bar (mobile / desktop)
                                 const barColorClasses = isActive 
                                     ? (isNow ? 'bg-red-500' : 'bg-white') 
                                     : 'bg-white/30 group-hover:bg-white'; // Inactive color, white on hover (previously bg-neutral-600/70)

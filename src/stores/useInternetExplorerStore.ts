@@ -327,6 +327,13 @@ const getHostname = (targetUrl: string): string => {
   }
 };
 
+// Helper function to normalize URLs for history/caching
+const normalizeUrlForHistory = (url: string): string => {
+  let normalized = url.replace(/^https?:\/\//, '');
+  normalized = normalized.replace(/\/$/, ''); // Remove trailing slash
+  return normalized;
+};
+
 // Define the initial state structure more explicitly for migration
 const getInitialState = () => ({
   url: DEFAULT_URL,
@@ -385,6 +392,9 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
         currentPageTitle: null,
         errorDetails: null,
         prefetchedTitle: null,
+        // Clear cached years on new navigation
+        cachedYears: [],
+        isFetchingCachedYears: false,
       }),
       
       setFinalUrl: (finalUrl) => set({ finalUrl }),
@@ -400,44 +410,67 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
           prefetchedTitle: null,
         };
 
+        let addedToHistory = false; // Flag to track if a new entry was actually added/updated
+
         if (addToHistory && targetUrl) {
+          const normalizedTargetUrl = normalizeUrlForHistory(targetUrl);
           const historyTitle = newState.currentPageTitle || getHostname(targetUrl);
-          const newEntry: HistoryEntry = { 
-            url: targetUrl, 
-            title: historyTitle, 
-            favicon: favicon || `https://www.google.com/s2/favicons?domain=${getHostname(targetUrl)}&sz=32`, 
+          const newEntry: HistoryEntry = {
+            url: normalizedTargetUrl, // Use normalized URL
+            title: historyTitle,
+            favicon: favicon || `https://www.google.com/s2/favicons?domain=${getHostname(targetUrl)}&sz=32`,
             year: targetYear,
-            timestamp: Date.now() 
+            timestamp: Date.now()
           };
-          
+
           if (state.isNavigatingHistory) {
             const lastEntry = state.history[state.historyIndex];
-            if (lastEntry && lastEntry.title !== newEntry.title) {
+            // Update title if navigating back/forward and title changed
+            if (lastEntry && lastEntry.title !== newEntry.title && normalizeUrlForHistory(lastEntry.url) === newEntry.url && lastEntry.year === newEntry.year) {
               const updatedHistory = [...state.history];
               updatedHistory[state.historyIndex] = { ...lastEntry, title: newEntry.title };
               newState.history = updatedHistory;
-              newState.historyIndex = state.historyIndex;
+              addedToHistory = true; // Considered an update
             }
+            // No need to update historyIndex here, it's set by handleGoBack/Forward
+            newState.historyIndex = state.historyIndex;
           } else {
             const mostRecentEntry = state.history[0];
-            const isExactDuplicate = mostRecentEntry && 
-                                    mostRecentEntry.url === newEntry.url && 
+            // Check for duplicates using normalized URL and year
+            const isDuplicate = mostRecentEntry &&
+                                    normalizeUrlForHistory(mostRecentEntry.url) === newEntry.url &&
                                     mostRecentEntry.year === newEntry.year;
-            
-            if (isExactDuplicate) {
+
+            if (isDuplicate) {
+              // If it's a duplicate, potentially update the title if it changed
               if (mostRecentEntry.title !== newEntry.title) {
                 const updatedHistory = [...state.history];
-                updatedHistory[0] = { ...mostRecentEntry, title: newEntry.title };
+                updatedHistory[0] = { ...mostRecentEntry, title: newEntry.title, url: newEntry.url }; // Update URL too, just in case
                 newState.history = updatedHistory;
+                addedToHistory = true; // Considered an update
               }
               newState.historyIndex = 0;
             } else {
+              // Add new entry if not a duplicate
               newState.history = [newEntry, ...state.history].slice(0, 100);
               newState.historyIndex = 0;
+              addedToHistory = true; // New entry added
             }
           }
+
+          // Update the main URL state to the normalized version only if history was modified
+          if (targetUrl) {
+              newState.url = normalizeUrlForHistory(targetUrl);
+          }
+
         } else if (!addToHistory) {
           newState.historyIndex = state.historyIndex;
+        }
+
+        // Fetch cached years after successful navigation if history was added/updated
+        if (addedToHistory && targetUrl) {
+          // Trigger fetch, but don't block state update
+          get().fetchCachedYears(targetUrl);
         }
 
         get().updateBrowserState();

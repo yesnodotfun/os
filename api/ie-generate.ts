@@ -159,7 +159,6 @@ export default async function handler(req: Request) {
     // Extract caching parameters from query string
     const targetUrl = urlObj.searchParams.get("url");
     const targetYear = urlObj.searchParams.get("year");
-    const forceGenerate = urlObj.searchParams.get("force") === "true";
 
     // Parse JSON body once
     const bodyData = await req.json().catch(() => ({}));
