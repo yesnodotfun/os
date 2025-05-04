@@ -73,10 +73,22 @@ export const DEFAULT_FAVORITES: Favorite[] = [
     year: "current",
   },
   {
+    title: "Cursor",
+    url: "https://cursor.com",
+    favicon: "https://www.google.com/s2/favicons?domain=cursor.com&sz=32",
+    year: "1980",
+  },
+  {
     title: "NewJeans",
     url: "https://newjeans.jp",
     favicon: "https://www.google.com/s2/favicons?domain=newjeans.jp&sz=32",
     year: "current",
+  },
+  {
+    title: "Notion",
+    url: "https://notion.com",
+    favicon: "https://www.google.com/s2/favicons?domain=notion.com&sz=32",
+    year: "1800",
   },
   {
     title: "HyperCards",
@@ -89,12 +101,6 @@ export const DEFAULT_FAVORITES: Favorite[] = [
     url: "https://baby-cursor.ryo.lu",
     favicon: "https://www.google.com/s2/favicons?domain=ryo.lu&sz=32",
     year: "current",
-  },
-  {
-    title: "Notion",
-    url: "https://notion.com",
-    favicon: "https://www.google.com/s2/favicons?domain=notion.com&sz=32",
-    year: "2050",
   },
   {
     title: "Ian",
