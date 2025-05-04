@@ -256,6 +256,17 @@ function DefaultMenuItems() {
           </DropdownMenuItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           <DropdownMenuItem
+            onClick={() => handleLaunchFinder("/Applications")}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white flex items-center gap-2"
+          >
+            <img
+              src="/icons/applications.png"
+              alt=""
+              className="w-4 h-4 [image-rendering:pixelated]"
+            />
+            Applications
+          </DropdownMenuItem>
+          <DropdownMenuItem
             onClick={() => handleLaunchFinder("/Documents")}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white flex items-center gap-2"
           >
@@ -267,15 +278,48 @@ function DefaultMenuItems() {
             Documents
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={() => handleLaunchFinder("/Applications")}
+            onClick={() => handleLaunchFinder("/Images")}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white flex items-center gap-2"
           >
             <img
-              src="/icons/applications.png"
+              src="/icons/images.png"
               alt=""
               className="w-4 h-4 [image-rendering:pixelated]"
             />
-            Applications
+            Images
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => handleLaunchFinder("/Music")}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white flex items-center gap-2"
+          >
+            <img
+              src="/icons/sounds.png"
+              alt=""
+              className="w-4 h-4 [image-rendering:pixelated]"
+            />
+            Music
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => handleLaunchFinder("/Sites")}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white flex items-center gap-2"
+          >
+            <img
+              src="/icons/sites.png"
+              alt=""
+              className="w-4 h-4 [image-rendering:pixelated]"
+            />
+            Sites
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => handleLaunchFinder("/Videos")}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white flex items-center gap-2"
+          >
+            <img
+              src="/icons/movies.png"
+              alt=""
+              className="w-4 h-4 [image-rendering:pixelated]"
+            />
+            Videos
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => handleLaunchFinder("/Trash")}

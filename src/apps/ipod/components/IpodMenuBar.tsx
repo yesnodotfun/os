@@ -6,6 +6,9 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { useIpodStore } from "@/stores/useIpodStore";
@@ -57,6 +60,22 @@ export function IpodMenuBar({
     setCurrentIndex(index);
     setIsPlaying(true);
   };
+
+  // Group tracks by artist
+  const tracksByArtist = tracks.reduce<Record<string, { track: typeof tracks[0]; index: number }[]>>(
+    (acc, track, index) => {
+      const artist = track.artist || 'Unknown Artist';
+      if (!acc[artist]) {
+        acc[artist] = [];
+      }
+      acc[artist].push({ track, index });
+      return acc;
+    },
+    {}
+  );
+
+  // Get sorted list of artists
+  const artists = Object.keys(tracksByArtist).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
 
   return (
     <MenuBar>
@@ -225,45 +244,95 @@ export function IpodMenuBar({
           >
             Add to Library...
           </DropdownMenuItem>
+          
+          {tracks.length > 0 && (
+            <>
+              <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
+              
+              {/* All Tracks section */}
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
+                  <div className="flex justify-between w-full items-center">
+                    <span>All Tracks</span>
+                  </div>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="px-0 max-w-xs">
+                  {tracks.map((track, index) => (
+                    <DropdownMenuItem
+                      key={`all-${track.id}`}
+                      onClick={() => handlePlayTrack(index)}
+                      className={cn(
+                        "text-md h-6 px-3 active:bg-gray-900 active:text-white max-w-[220px] truncate",
+                        index === currentIndex && "bg-gray-200"
+                      )}
+                    >
+                      <div className="flex items-center w-full truncate">
+                        <span
+                          className={cn(
+                            "flex-none",
+                            index === currentIndex ? "mr-1" : "pl-5"
+                          )}
+                        >
+                          {index === currentIndex ? "♪ " : ""}
+                        </span>
+                        <span className="truncate">{track.title}</span>
+                      </div>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+              
+              {/* Individual Artist submenus */}
+              {artists.map((artist) => (
+                <DropdownMenuSub key={artist}>
+                  <DropdownMenuSubTrigger className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
+                    <div className="flex justify-between w-full items-center">
+                      <span>{artist}</span>
+                    </div>
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent className="px-0 max-w-xs">
+                    {tracksByArtist[artist].map(({ track, index }) => (
+                      <DropdownMenuItem
+                        key={`${artist}-${track.id}`}
+                        onClick={() => handlePlayTrack(index)}
+                        className={cn(
+                          "text-md h-6 px-3 active:bg-gray-900 active:text-white max-w-[220px] truncate",
+                          index === currentIndex && "bg-gray-200"
+                        )}
+                      >
+                        <div className="flex items-center w-full truncate">
+                          <span
+                            className={cn(
+                              "flex-none",
+                              index === currentIndex ? "mr-1" : "pl-5"
+                            )}
+                          >
+                            {index === currentIndex ? "♪ " : ""}
+                          </span>
+                          <span className="truncate">{track.title}</span>
+                        </div>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+              ))}
+              
+              <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
+            </>
+          )}
+          
           <DropdownMenuItem
             onClick={onClearLibrary}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            Clear Library
+            Clear Library...
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={onResetLibrary}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            Reset Library
+            Reset Library...
           </DropdownMenuItem>
-          {tracks.length > 0 && (
-            <>
-              <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
-              {tracks.map((track, index) => (
-                <DropdownMenuItem
-                  key={track.id}
-                  onClick={() => handlePlayTrack(index)}
-                  className={cn(
-                    "text-md h-6 px-3 active:bg-gray-900 active:text-white max-w-[220px] truncate",
-                    index === currentIndex && "bg-gray-200"
-                  )}
-                >
-                  <div className="flex items-center w-full truncate">
-                    <span
-                      className={cn(
-                        "flex-none",
-                        index === currentIndex ? "mr-1" : "pl-5"
-                      )}
-                    >
-                      {index === currentIndex ? "♪ " : ""}
-                    </span>
-                    <span className="truncate">{track.title}</span>
-                  </div>
-                </DropdownMenuItem>
-              ))}
-            </>
-          )}
         </DropdownMenuContent>
       </DropdownMenu>
 

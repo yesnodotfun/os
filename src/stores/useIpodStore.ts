@@ -52,7 +52,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     id: "PICpEtPHyZI",
     url: "https://www.youtube.com/watch?v=PICpEtPHyZI",
     title: "Damn Right",
-    artist: "JENNIE, Childish Gambino, Kali Uchis",
+    artist: "JENNIE",
   },
   {
     id: "osNYssIep5w",

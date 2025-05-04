@@ -6,6 +6,9 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -15,6 +18,7 @@ interface Video {
   id: string;
   url: string;
   title: string;
+  artist?: string;
 }
 
 interface VideosMenuBarProps {
@@ -64,6 +68,22 @@ export function VideosMenuBar({
   isShuffled,
   onFullScreen,
 }: VideosMenuBarProps) {
+  // Group videos by artist
+  const videosByArtist = videos.reduce<Record<string, { video: Video; index: number }[]>>(
+    (acc, video, index) => {
+      const artist = video.artist || 'Unknown Artist';
+      if (!acc[artist]) {
+        acc[artist] = [];
+      }
+      acc[artist].push({ video, index });
+      return acc;
+    },
+    {}
+  );
+
+  // Get sorted list of artists
+  const artists = Object.keys(videosByArtist).sort();
+
   return (
     <MenuBar>
       {/* File Menu */}
@@ -179,45 +199,95 @@ export function VideosMenuBar({
           >
             Add to Library...
           </DropdownMenuItem>
+          
+          {videos.length > 0 && (
+            <>
+              <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
+              
+              {/* All Videos section */}
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
+                  <div className="flex justify-between w-full items-center">
+                    <span>All Videos</span>
+                  </div>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="px-0 max-w-xs">
+                  {videos.map((video, index) => (
+                    <DropdownMenuItem
+                      key={`all-${video.id}`}
+                      onClick={() => onPlayVideo(index)}
+                      className={cn(
+                        "text-md h-6 px-3 active:bg-gray-900 active:text-white max-w-[220px] truncate",
+                        index === currentIndex && "bg-gray-200"
+                      )}
+                    >
+                      <div className="flex items-center w-full truncate">
+                        <span
+                          className={cn(
+                            "flex-none",
+                            index === currentIndex ? "mr-1" : "pl-5"
+                          )}
+                        >
+                          {index === currentIndex ? "♪ " : ""}
+                        </span>
+                        <span className="truncate">{video.title}</span>
+                      </div>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+              
+              {/* Individual Artist submenus */}
+              {artists.map((artist) => (
+                <DropdownMenuSub key={artist}>
+                  <DropdownMenuSubTrigger className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
+                    <div className="flex justify-between w-full items-center">
+                      <span>{artist}</span>
+                    </div>
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent className="px-0 max-w-xs">
+                    {videosByArtist[artist].map(({ video, index }) => (
+                      <DropdownMenuItem
+                        key={`${artist}-${video.id}`}
+                        onClick={() => onPlayVideo(index)}
+                        className={cn(
+                          "text-md h-6 px-3 active:bg-gray-900 active:text-white max-w-[220px] truncate",
+                          index === currentIndex && "bg-gray-200"
+                        )}
+                      >
+                        <div className="flex items-center w-full truncate">
+                          <span
+                            className={cn(
+                              "flex-none",
+                              index === currentIndex ? "mr-1" : "pl-5"
+                            )}
+                          >
+                            {index === currentIndex ? "♪ " : ""}
+                          </span>
+                          <span className="truncate">{video.title}</span>
+                        </div>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+              ))}
+              
+              <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
+            </>
+          )}
+          
           <DropdownMenuItem
             onClick={onClearPlaylist}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            Clear Library
+            Clear Library...
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={onResetPlaylist}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            Reset Library
+            Reset Library...
           </DropdownMenuItem>
-          {videos.length > 0 && (
-            <>
-              <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
-              {videos.map((video, index) => (
-                <DropdownMenuItem
-                  key={video.id}
-                  onClick={() => onPlayVideo(index)}
-                  className={cn(
-                    "text-md h-6 px-3 active:bg-gray-900 active:text-white max-w-[220px] truncate",
-                    index === currentIndex && "bg-gray-200"
-                  )}
-                >
-                  <div className="flex items-center w-full truncate">
-                    <span
-                      className={cn(
-                        "flex-none",
-                        index === currentIndex ? "mr-1" : "pl-5"
-                      )}
-                    >
-                      {index === currentIndex ? "♪ " : ""}
-                    </span>
-                    <span className="truncate">{video.title}</span>
-                  </div>
-                </DropdownMenuItem>
-              ))}
-            </>
-          )}
         </DropdownMenuContent>
       </DropdownMenu>
 
