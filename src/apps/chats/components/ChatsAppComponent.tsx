@@ -135,6 +135,8 @@ export function ChatsAppComponent({
     setIsShaking(true);
     setTimeout(() => setIsShaking(false), 400);
     handleNudge();
+    // Trigger scroll after nudge
+    setScrollToBottomTrigger(prev => prev + 1);
   }, [handleNudge]);
 
   // Font size handlers using store action
