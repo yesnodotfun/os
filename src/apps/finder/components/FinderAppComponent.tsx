@@ -680,6 +680,42 @@ export function FinderAppComponent({
                   onClick={navigateUp}
                   disabled={currentPath === "/"}
                   className="h-8 w-8"
+                  onDragOver={(e) => {
+                    // Only allow dropping if not at root and if file creation is allowed in parent directory
+                    if (currentPath !== "/" && canCreateFolder) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      e.currentTarget.classList.add("bg-black", "text-white");
+                    }
+                  }}
+                  onDragLeave={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.currentTarget.classList.remove("bg-black", "text-white");
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.currentTarget.classList.remove("bg-black", "text-white");
+                    
+                    // Parse the dragged file data
+                    try {
+                      const jsonData = e.dataTransfer.getData("application/json");
+                      if (jsonData) {
+                        const { path, name } = JSON.parse(jsonData);
+                        const sourceItem = fileStore.getItem(path);
+                        
+                        if (sourceItem && currentPath !== "/") {
+                          // Get parent path
+                          const parentPath = getParentPath(currentPath);
+                          console.log(`Moving file from ${path} to ${parentPath}/${name}`);
+                          moveFile(sourceItem, parentPath);
+                        }
+                      }
+                    } catch (err) {
+                      console.error("Error handling drop on parent folder button:", err);
+                    }
+                  }}
                 >
                   <ArrowLeft className="h-4 w-4 rotate-90" />
                 </Button>
