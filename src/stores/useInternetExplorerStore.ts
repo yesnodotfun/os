@@ -73,16 +73,16 @@ export const DEFAULT_FAVORITES: Favorite[] = [
     year: "current",
   },
   {
-    title: "Cursor",
-    url: "https://cursor.com",
-    favicon: "https://www.google.com/s2/favicons?domain=cursor.com&sz=32",
-    year: "1980",
-  },
-  {
     title: "NewJeans",
     url: "https://newjeans.jp",
     favicon: "https://www.google.com/s2/favicons?domain=newjeans.jp&sz=32",
     year: "current",
+  },
+  {
+    title: "Cursor",
+    url: "https://cursor.com",
+    favicon: "https://www.google.com/s2/favicons?domain=cursor.com&sz=32",
+    year: "1991",
   },
   {
     title: "Notion",
