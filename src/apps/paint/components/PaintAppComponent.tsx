@@ -189,20 +189,31 @@ export const PaintAppComponent: React.FC<AppProps> = ({
   const handleSave = async () => {
     if (!canvasRef.current) return;
     
-    try {
-      const blob = await canvasRef.current.exportCanvas();
-      
-      await saveFile({
-        name: saveFileName,
-        path: `/Images/${saveFileName}`,
-        content: blob,
-        type: "png",
-      });
-      
-      toast.success("Image saved successfully");
-    } catch (err) {
-      console.error("Error saving image:", err);
-      toast.error("Failed to save image");
+    if (!currentFilePath) {
+      // New file - prompt for filename first
+      // Get first few pixels of canvas as suggestion for filename
+      const canvasName = "Untitled.png";
+      setIsSaveDialogOpen(true);
+      setSaveFileName(canvasName);
+    } else {
+      // Existing file - save directly
+      try {
+        const blob = await canvasRef.current.exportCanvas();
+        const fileName = currentFilePath.split("/").pop() || "untitled.png";
+        
+        await saveFile({
+          name: fileName,
+          path: currentFilePath,
+          content: blob,
+          type: "png",
+        });
+        
+        setHasUnsavedChanges(false);
+        toast.success("Image saved successfully");
+      } catch (err) {
+        console.error("Error saving image:", err);
+        toast.error("Failed to save image");
+      }
     }
   };
 
@@ -215,10 +226,11 @@ export const PaintAppComponent: React.FC<AppProps> = ({
         fileName.endsWith(".png") ? "" : ".png"
       }`;
 
-      saveFile({
+      await saveFile({
         name: fileName,
         path: filePath,
         content: blob,
+        type: "png",
       });
 
       const saveEvent = new CustomEvent("saveFile", {
@@ -234,8 +246,10 @@ export const PaintAppComponent: React.FC<AppProps> = ({
       setCurrentFilePath(filePath);
       setHasUnsavedChanges(false);
       setIsSaveDialogOpen(false);
+      toast.success("Image saved successfully");
     } catch (err) {
       console.error("Error saving file:", err);
+      toast.error("Failed to save image");
     }
   };
 

@@ -6,7 +6,7 @@ import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { TerminalMenuBar } from "./TerminalMenuBar";
 import { appMetadata, helpItems } from "../index";
-import { useFileSystem } from "@/apps/finder/hooks/useFileSystem";
+import { useFileSystem, dbOperations, STORES, DocumentContent } from "@/apps/finder/hooks/useFileSystem";
 import {
   loadTerminalCommandHistory,
   saveTerminalCommandHistory,
@@ -360,12 +360,13 @@ function AnimatedEllipsis() {
 }
 
 // Helper function to convert Blob content to string
-const blobToString = async (content: string | Blob): Promise<string> => {
-  if (content instanceof Blob) {
-    return await content.text();
-  }
-  return content;
-};
+// Unused function - removing to fix TS6133 error
+// const blobToString = async (content: string | Blob): Promise<string> => {
+//   if (content instanceof Blob) {
+//     return await content.text();
+//   }
+//   return content;
+// };
 
 export function TerminalAppComponent({
   onClose,
@@ -439,8 +440,14 @@ export function TerminalAppComponent({
   const inputRef = useRef<HTMLInputElement>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
 
-  const { currentPath, files, navigateToPath, saveFile, moveToTrash } =
-    useFileSystem(loadTerminalCurrentPath());
+  // Get file operations from the hook
+  const { 
+    currentPath, 
+    files, 
+    navigateToPath, 
+    saveFile, 
+    moveToTrash
+  } = useFileSystem(loadTerminalCurrentPath());
 
   const launchApp = useLaunchApp();
   const { toggleApp, bringToForeground } = useAppContext();
@@ -1628,54 +1635,92 @@ assistant
           };
         }
 
-        // Handle blob content
-        if (file.content instanceof Blob) {
-          // Since we can't handle async in this function, we'll show a loading message
-          // and update the output later
-          const tempOutput = `Loading ${fileName}...`;
-
-          // Process the blob asynchronously and update the terminal history
-          blobToString(file.content)
-            .then((text) => {
-              setCommandHistory((prev) => {
-                const lastCommand = prev[prev.length - 1];
-                if (lastCommand.output === tempOutput) {
-                  return [
-                    ...prev.slice(0, -1),
-                    {
-                      ...lastCommand,
-                      output: text || `${fileName} is empty`,
-                    },
-                  ];
-                }
-                return prev;
-              });
-            })
-            .catch((err) => {
-              console.error("Error reading file blob:", err);
-              setCommandHistory((prev) => {
-                const lastCommand = prev[prev.length - 1];
-                if (lastCommand.output === tempOutput) {
-                  return [
-                    ...prev.slice(0, -1),
-                    {
-                      ...lastCommand,
-                      output: `Error reading file: ${err.message}`,
-                    },
-                  ];
-                }
-                return prev;
-              });
+        // Use a loading message while we fetch content
+        const tempOutput = `Loading ${fileName}...`;
+        
+        // Create a class to handle file content reading - using same pattern as vim
+        class FileReader {
+          async readContent() {
+            try {
+              if (this.isRealFile()) {
+                await this.loadRealFileContent();
+              } else {
+                this.handleVirtualFile();
+              }
+            } catch (error) {
+              this.handleError(error);
+            }
+          }
+          
+          isRealFile() {
+            // Ensure file exists and check path properties
+            return file && (file.path.startsWith("/Documents/") || file.path.startsWith("/Images/"));
+          }
+          
+          async loadRealFileContent() {
+            // Ensure file exists first
+            if (!file) return;
+            
+            // Determine store based on file path
+            const storeName = file.path.startsWith("/Documents/") 
+              ? STORES.DOCUMENTS 
+              : STORES.IMAGES;
+              
+            const contentData = await dbOperations.get<DocumentContent>(storeName, file.name);
+            
+            if (contentData && contentData.content) {
+              // Convert content to text based on type
+              let fileContent = "";
+              if (contentData.content instanceof Blob) {
+                fileContent = await contentData.content.text();
+              } else if (typeof contentData.content === 'string') {
+                fileContent = contentData.content;
+              }
+              
+              // Update terminal with content
+              this.updateOutput(fileContent || `${fileName} is empty`);
+            } else {
+              // Handle missing content
+              this.updateOutput(`${fileName} is empty or could not be read`);
+            }
+          }
+          
+          handleVirtualFile() {
+            this.updateOutput(`${fileName} content not available (virtual file)`);
+          }
+          
+          updateOutput(content: string) {
+            // Update the terminal history with the content
+            setCommandHistory((prev) => {
+              const lastCommand = prev[prev.length - 1];
+              if (lastCommand.output === tempOutput) {
+                return [
+                  ...prev.slice(0, -1),
+                  {
+                    ...lastCommand,
+                    output: content,
+                  },
+                ];
+              }
+              return prev;
             });
-
-          return {
-            output: tempOutput,
-            isError: false,
-          };
+          }
+          
+          handleError(error: unknown) {
+            const err = error as Error;
+            console.error("Error reading file content:", err);
+            this.updateOutput(`Error reading file: ${err.message || 'Unknown error'}`);
+          }
         }
+        
+        // Start the reading process asynchronously
+        setTimeout(() => {
+          const reader = new FileReader();
+          reader.readContent();
+        }, 100);
 
         return {
-          output: file.content || `${fileName} is empty`,
+          output: tempOutput,
           isError: false,
         };
       }
@@ -1770,36 +1815,59 @@ assistant
           };
         }
 
-        // Check if the file is already in Documents folder
-        let filePath = fileToEditObj.path;
-        if (!filePath.startsWith("/Documents/")) {
+        // Check if the file is already in Documents folder or needs copying
+        if (!fileToEditObj.path.startsWith("/Documents/")) {
           // Create a copy in the Documents folder
           const fileName = fileToEditObj.name;
           const documentsPath = `/Documents/${fileName}`;
 
-          // Save file to Documents
-          saveFile({
-            name: fileName,
-            path: documentsPath,
-            content: fileToEditObj.content || "",
-            type: "text",
-            icon: "/icons/file-text.png"
-          });
-
-          filePath = documentsPath;
+          // Helper function to handle document copying asynchronously
+          setTimeout(async () => {
+            try {
+              // Get the content if it's a real file
+              if (fileToEditObj && fileToEditObj.path.startsWith("/Images/")) {
+                // For image files, we need to get the content from IndexedDB
+                const contentData = await dbOperations.get<DocumentContent>(STORES.IMAGES, fileToEditObj.name);
+                let fileContent = "";
+                
+                if (contentData && contentData.content) {
+                  if (contentData.content instanceof Blob) {
+                    fileContent = await contentData.content.text();
+                  } else if (typeof contentData.content === 'string') {
+                    fileContent = contentData.content;
+                  }
+                }
+                
+                // Save to Documents
+                await saveFile({
+                  name: fileName,
+                  path: documentsPath,
+                  content: fileContent || "",
+                  type: "text",
+                  icon: "/icons/file-text.png"
+                });
+              } else {
+                // For virtual files, create an empty document
+                await saveFile({
+                  name: fileName,
+                  path: documentsPath,
+                  content: "",
+                  type: "text",
+                  icon: "/icons/file-text.png"
+                });
+              }
+              
+              // Launch TextEdit with the copied file
+              launchApp("textedit", { initialData: { path: documentsPath, content: "" } });
+            } catch (error) {
+              console.error("Error preparing file for editing:", error);
+            }
+          }, 100);
+        } else {
+          // If already in Documents, just launch TextEdit directly with the file path
+          // Let TextEdit use its own content loading mechanism
+          launchApp("textedit", { initialData: { path: fileToEditObj.path, content: "" } });
         }
-
-        // Store the file content temporarily for TextEdit to open
-        localStorage.setItem(
-          "pending_file_open",
-          JSON.stringify({
-            path: filePath,
-            content: fileToEditObj.content || "",
-          })
-        );
-
-        // Launch TextEdit
-        launchApp("textedit");
 
         return {
           output: `opening ${fileToEdit} in textedit...`,
@@ -1925,52 +1993,106 @@ assistant
           };
         }
 
-        // Handle blob content
-        if (file.content instanceof Blob) {
-          blobToString(file.content)
-            .then((textContent) => {
-              // Enter vim mode
-              setIsInVimMode(true);
-              setVimFile({
-                name: fileName,
-                content: textContent || "",
-              });
-              setVimPosition(0);
-              setVimCursorLine(0); // Initialize cursor at top of file
-              setVimCursorColumn(0); // Initialize cursor at start of line
-              setVimMode("normal");
-            })
-            .catch((err) => {
-              console.error("Error reading file blob for vim:", err);
-              setCommandHistory((prev) => [
-                ...prev,
-                {
-                  command: `vim ${fileName}`,
-                  output: `Error reading file: ${err.message}`,
-                  path: currentPath,
-                },
-              ]);
+        // Use a loading message while we fetch content
+        const tempOutput = `opening ${fileName} in vim...`;
+
+        // Create a class to capture file content during the async process
+        class FileContentCapture {
+          async captureContent() {
+            try {
+              if (this.isRealFile()) {
+                await this.loadRealFileContent();
+              } else {
+                this.handleVirtualFile();
+              }
+            } catch (error) {
+              this.handleError(error);
+            }
+          }
+          
+          isRealFile() {
+            // Ensure file exists and check path properties
+            return file && (file.path.startsWith("/Documents/") || file.path.startsWith("/Images/"));
+          }
+          
+          async loadRealFileContent() {
+            // Ensure file exists first (this should always be true, but TypeScript doesn't know that)
+            if (!file) return;
+            
+            // Determine if this is a document or image
+            const storeName = file.path.startsWith("/Documents/") 
+              ? STORES.DOCUMENTS 
+              : STORES.IMAGES;
+              
+            const contentData = await dbOperations.get<DocumentContent>(storeName, file.name);
+            
+            if (contentData && contentData.content) {
+              // Convert content to text
+              let textContent = "";
+              if (contentData.content instanceof Blob) {
+                textContent = await contentData.content.text();
+              } else if (typeof contentData.content === 'string') {
+                textContent = contentData.content;
+              }
+              
+              // Enter vim mode with the fetched content
+              this.openInVim(textContent);
+            } else {
+              // File exists in metadata but has no content - create empty
+              this.openInVim("");
+            }
+          }
+          
+          handleVirtualFile() {
+            // For virtual files, just create an empty file in vim
+            this.openInVim("");
+            
+            // Show a warning
+            setCommandHistory((prev) => [
+              ...prev,
+              {
+                command: `vim ${fileName}`,
+                output: `Warning: ${fileName} appears to be a virtual file without content`,
+                path: currentPath,
+              },
+            ]);
+          }
+          
+          openInVim(content: string) {
+            setIsInVimMode(true);
+            setVimFile({
+              name: fileName,
+              content: content || "", 
             });
-
-          return {
-            output: `opening ${fileName} in vim...`,
-            isError: false,
-          };
+            setVimPosition(0);
+            setVimCursorLine(0);
+            setVimCursorColumn(0);
+            setVimMode("normal");
+          }
+          
+          handleError(error: unknown) {
+            const err = error as Error;
+            console.error("Error reading file for vim:", err);
+            
+            setCommandHistory((prev) => [
+              ...prev,
+              {
+                command: `vim ${fileName}`,
+                output: `Error reading file: ${err.message || 'Unknown error'}`,
+                path: currentPath,
+              },
+            ]);
+          }
         }
-
-        // Enter vim mode
-        setIsInVimMode(true);
-        setVimFile({
-          name: fileName,
-          content: file.content || "",
-        });
-        setVimPosition(0);
-        setVimCursorLine(0); // Initialize cursor at top of file
-        setVimCursorColumn(0); // Initialize cursor at start of line
-        setVimMode("normal");
+        
+        // Start the content capture process asynchronously
+        setTimeout(() => {
+          const contentCapture = new FileContentCapture();
+          contentCapture.captureContent();
+        }, 100);
 
         return {
-          output: `opening ${fileName} in vim...`,
+          output: tempOutput,
           isError: false,
         };
       }
@@ -2329,21 +2451,16 @@ assistant
           },
         ]);
 
+        // Save file if using :wq
+        if (input === ":wq" && vimFile) {
+          saveVimFile(vimFile);
+        }
+
+        // Clear vim state
         setIsInVimMode(false);
         setVimFile(null);
         setVimPosition(0);
         setVimMode("normal");
-
-        // Save file if using :wq
-        if (input === ":wq" && vimFile) {
-          const fileObj = files.find((f) => f.name === vimFile.name);
-          if (fileObj) {
-            saveFile({
-              ...fileObj,
-              content: vimFile.content,
-            });
-          }
-        }
       } else {
         // Unsupported vim command
         setCommandHistory([
@@ -2372,6 +2489,42 @@ assistant
 
     // Clear the input field
     setCurrentCommand("");
+  };
+  
+  // Helper function to save vim file content
+  const saveVimFile = async (vimFile: { name: string; content: string }) => {
+    try {
+      // Find the file in the current files list to get its path
+      const fileObj = files.find((f) => f.name === vimFile.name);
+      
+      if (!fileObj) {
+        console.error(`Could not find file ${vimFile.name} for saving`);
+        return;
+      }
+      
+      // Use the saveFile API directly from useFileSystem
+      await saveFile({
+        path: fileObj.path,
+        name: vimFile.name,
+        content: vimFile.content,
+        type: "text",
+      });
+      
+      console.log(`Saved vim file ${vimFile.name} to ${fileObj.path}`);
+    } catch (error) {
+      const err = error as Error;
+      console.error(`Error saving vim file: ${err.message || 'Unknown error'}`);
+      
+      // Show error in terminal
+      setCommandHistory((prev) => [
+        ...prev,
+        {
+          command: "",
+          output: `Error saving file: ${err.message || 'Unknown error'}`,
+          path: currentPath,
+        },
+      ]);
+    }
   };
 
   const handleVimTextInput = (e: React.ChangeEvent<HTMLInputElement>) => {
