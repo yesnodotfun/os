@@ -25,8 +25,8 @@ const getFileType = (file: FileItem): string => {
   }
 
   // Check for specific known virtual types *before* appId
-  if (file.type === "Music") return "Audio File";
-  if (file.type === "Video") return "Video File";
+  if (file.type === "Music") return "MP3 Audio File";
+  if (file.type === "Video") return "QuickTime Movie";
   if (file.type === "site-link") return "Internet Shortcut";
 
   // Check for application
@@ -52,6 +52,10 @@ const getFileType = (file: FileItem): string => {
       return "Markdown Document";
     case "txt":
       return "Text Document";
+    case "mp3":
+      return "MP3 Audio File";
+    case "mov":
+      return "QuickTime Movie";
     default:
       return "Unknown";
   }
@@ -211,6 +215,21 @@ export function FinderAppComponent({
         return 0;
     }
   });
+
+  // Function to decode URL-encoded path for display
+  const getDisplayPath = (path: string): string => {
+    // Split path by segments and decode each segment
+    return path
+      .split('/')
+      .map(segment => {
+        try {
+          return segment ? decodeURIComponent(segment) : segment;
+        } catch (e) {
+          return segment; // If decoding fails, return as-is
+        }
+      })
+      .join('/');
+  };
 
   const handleEmptyTrash = () => {
     setIsEmptyTrashDialogOpen(true);
@@ -443,6 +462,18 @@ export function FinderAppComponent({
   // Determine if folder creation is allowed in the current path
   const canCreateFolder = currentPath === '/Documents' || currentPath === '/Images' || currentPath.startsWith('/Documents/') || currentPath.startsWith('/Images/');
 
+  // Get all root folders for the Go menu using fileStore
+  // This will always show root folders regardless of current path
+  const rootFolders = fileStore.getItemsInPath('/').filter(item => 
+    item.isDirectory && 
+    item.path !== '/Trash' // We'll add Trash separately in the menu
+  ).map(item => ({
+    name: item.name,
+    isDirectory: true,
+    path: item.path,
+    icon: item.icon || '/icons/folder.png'
+  }));
+
   if (!isWindowOpen) return null;
 
   return (
@@ -471,6 +502,7 @@ export function FinderAppComponent({
         onDuplicate={handleDuplicate}
         onNewFolder={handleNewFolder}
         canCreateFolder={canCreateFolder}
+        rootFolders={rootFolders}
       />
       <input
         type="file"
@@ -484,7 +516,15 @@ export function FinderAppComponent({
         title={
           currentPath === "/"
             ? "Macintosh HD"
-            : currentPath.split("/").filter(Boolean).pop() || "Finder"
+            : (() => {
+                // Get the last path segment and decode it
+                const lastSegment = currentPath.split("/").filter(Boolean).pop() || "";
+                try {
+                  return decodeURIComponent(lastSegment) || "Finder";
+                } catch (e) {
+                  return lastSegment || "Finder";
+                }
+              })()
         }
         onClose={onClose}
         isForeground={isForeground}
@@ -550,7 +590,7 @@ export function FinderAppComponent({
               </div>
               <Input
                 ref={pathInputRef}
-                value={currentPath}
+                value={getDisplayPath(currentPath)}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   navigateToPath(e.target.value)
                 }

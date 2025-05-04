@@ -492,25 +492,109 @@ export function useFileSystem(initialPath: string = "/") {
           type: "application",
         }));
       } else if (currentPath === "/Music") {
-         displayFiles = ipodTracks.map((track, index) => ({
-          name: `${track.title}${track.artist ? ` - ${track.artist}` : ''}`,
-          isDirectory: false,
-          path: `/Music/${track.id}`,
-          icon: "/icons/sound.png",
-          appId: "ipod",
-          type: "Music",
-          data: { index },
-        }));
+         // At root music directory, show artist folders
+         const artistSet = new Set<string>();
+         
+         // Collect all unique artists
+         ipodTracks.forEach(track => {
+           if (track.artist) {
+             artistSet.add(track.artist);
+           }
+         });
+         
+         // Create a folder for artists with tracks
+         displayFiles = Array.from(artistSet).map(artist => ({
+           name: artist,
+           isDirectory: true,
+           path: `/Music/${encodeURIComponent(artist)}`,
+           icon: "/icons/directory.png",
+           type: "directory-virtual",
+         }));
+         
+         // Add an "Unknown Artist" folder if there are tracks without artists
+         if (ipodTracks.some(track => !track.artist)) {
+           displayFiles.push({
+             name: "Unknown Artist",
+             isDirectory: true,
+             path: `/Music/Unknown Artist`,
+             icon: "/icons/directory.png",
+             type: "directory-virtual",
+           });
+         }
+      } else if (currentPath.startsWith("/Music/")) {
+         // Inside an artist folder
+         const artistName = decodeURIComponent(currentPath.replace("/Music/", ""));
+         const artistTracks = ipodTracks.filter(track => 
+           artistName === "Unknown Artist" 
+             ? !track.artist 
+             : track.artist === artistName
+         );
+         
+         // Display all tracks for this artist
+         displayFiles = artistTracks.map((track) => {
+           const globalIndex = ipodTracks.findIndex(t => t.id === track.id);
+           return {
+             name: `${track.title}.mp3`,
+             isDirectory: false,
+             path: `/Music/${track.id}`,
+             icon: "/icons/sound.png",
+             appId: "ipod",
+             type: "Music",
+             data: { index: globalIndex },
+           };
+         });
       } else if (currentPath === "/Videos") {
-          displayFiles = videoTracks.map((video, index) => ({
-          name: `${video.title}${video.artist ? ` - ${video.artist}` : ''}`,
-          isDirectory: false,
-          path: `/Videos/${video.id}`,
-          icon: "/icons/video-tape.png",
-          appId: "videos",
-          type: "Video",
-          data: { index },
-        }));
+         // At root videos directory, show artist folders
+         const artistSet = new Set<string>();
+         
+         // Collect all unique artists
+         videoTracks.forEach(video => {
+           if (video.artist) {
+             artistSet.add(video.artist);
+           }
+         });
+         
+         // Create a folder for artists with videos
+         displayFiles = Array.from(artistSet).map(artist => ({
+           name: artist,
+           isDirectory: true,
+           path: `/Videos/${encodeURIComponent(artist)}`,
+           icon: "/icons/directory.png",
+           type: "directory-virtual",
+         }));
+         
+         // Add an "Unknown Artist" folder if there are videos without artists
+         if (videoTracks.some(video => !video.artist)) {
+           displayFiles.push({
+             name: "Unknown Artist",
+             isDirectory: true,
+             path: `/Videos/Unknown Artist`,
+             icon: "/icons/directory.png",
+             type: "directory-virtual",
+           });
+         }
+      } else if (currentPath.startsWith("/Videos/")) {
+         // Inside a video artist folder
+         const artistName = decodeURIComponent(currentPath.replace("/Videos/", ""));
+         const artistVideos = videoTracks.filter(video => 
+           artistName === "Unknown Artist" 
+             ? !video.artist 
+             : video.artist === artistName
+         );
+         
+         // Display all videos for this artist
+         displayFiles = artistVideos.map(video => {
+           const globalIndex = videoTracks.findIndex(v => v.id === video.id);
+           return {
+             name: `${video.title}.mov`,
+             isDirectory: false,
+             path: `/Videos/${video.id}`,
+             icon: "/icons/video-tape.png",
+             appId: "videos",
+             type: "Video",
+             data: { index: globalIndex },
+           };
+         });
       } else if (currentPath.startsWith("/Sites")) {
         console.log(`[useFileSystem:loadFiles] Loading /Sites path: ${currentPath}`); // Log entry
         const pathParts = currentPath.split("/").filter(Boolean);
@@ -660,8 +744,9 @@ export function useFileSystem(initialPath: string = "/") {
             // Pass the Blob object itself to Paint via initialData
             launchApp("paint", { initialData: { path: file.path, content: contentToUse } }); // Pass contentToUse (Blob)
         } else if (file.appId === "ipod" && file.data?.index !== undefined) {
-            // iPod uses data directly, no change needed here for initialData
-            setIpodIndex(file.data.index);
+            // iPod uses data directly from the index we calculated
+            const trackIndex = file.data.index;
+            setIpodIndex(trackIndex);
             setIpodPlaying(true);
             launchApp("ipod");
         } else if (file.appId === "videos" && file.data?.index !== undefined) {

@@ -39,6 +39,7 @@ export interface FinderMenuBarProps {
   onDuplicate?: () => void;
   onNewFolder?: () => void;
   canCreateFolder?: boolean;
+  rootFolders?: FileItem[];
 }
 
 export function FinderMenuBar({
@@ -65,6 +66,7 @@ export function FinderMenuBar({
   onDuplicate,
   onNewFolder,
   canCreateFolder = false,
+  rootFolders,
 }: FinderMenuBarProps) {
   const canMoveToTrash =
     selectedFile &&
@@ -285,28 +287,24 @@ export function FinderMenuBar({
             Forward
           </DropdownMenuItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
-          <DropdownMenuItem
-            onClick={() => onNavigateToPath?.("/Documents")}
-            className="text-md h-6 px-3 active:bg-gray-900 active:text-white flex items-center gap-2"
-          >
-            <img
-              src="/icons/documents.png"
-              alt=""
-              className="w-4 h-4 [image-rendering:pixelated]"
-            />
-            Documents
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => onNavigateToPath?.("/Applications")}
-            className="text-md h-6 px-3 active:bg-gray-900 active:text-white flex items-center gap-2"
-          >
-            <img
-              src="/icons/applications.png"
-              alt=""
-              className="w-4 h-4 [image-rendering:pixelated]"
-            />
-            Applications
-          </DropdownMenuItem>
+          
+          {/* Root directory folders */}
+          {rootFolders?.map((folder) => (
+            <DropdownMenuItem
+              key={folder.path}
+              onClick={() => onNavigateToPath?.(folder.path)}
+              className="text-md h-6 px-3 active:bg-gray-900 active:text-white flex items-center gap-2"
+            >
+              <img
+                src={folder.icon || "/icons/folder.png"}
+                alt=""
+                className="w-4 h-4 [image-rendering:pixelated]"
+              />
+              {folder.name}
+            </DropdownMenuItem>
+          ))}
+          
+          {/* Always show Trash at the end */}
           <DropdownMenuItem
             onClick={() => onNavigateToPath?.("/Trash")}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white flex items-center gap-2"
