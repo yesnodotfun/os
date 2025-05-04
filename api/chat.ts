@@ -317,7 +317,9 @@ export default async function handler(req: Request) {
       },
       temperature: 0.7,
       maxTokens: 6000,
-      experimental_transform: smoothStream(),
+      experimental_transform: smoothStream({
+        chunking: /[\u4E00-\u9FFF]|\S+\s+/,
+      }),
     });
 
     const response = result.toDataStreamResponse();

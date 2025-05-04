@@ -87,9 +87,15 @@ export function ChatsAppComponent({
     confirmDeleteRoom,
   } = useChatRoom(isWindowOpen ?? false, isForeground ?? false);
 
+  // Get font size state from store - select separately for optimization
+  const fontSize = useChatsStore((state) => state.fontSize);
+  const setFontSize = useChatsStore((state) => state.setFontSize);
+
   const [isShaking, setIsShaking] = useState(false);
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
+  // Add state to trigger scroll in ChatMessages
+  const [scrollToBottomTrigger, setScrollToBottomTrigger] = useState(0);
 
   // Add safety check: ensure rooms is an array before finding
   const currentRoom = Array.isArray(rooms) && currentRoomId
@@ -102,8 +108,13 @@ export function ChatsAppComponent({
       if (currentRoomId && username) {
         sendRoomMessage(input);
         handleInputChange({ target: { value: '' } } as React.ChangeEvent<HTMLInputElement>);
+        // Trigger scroll after sending room message
+        setScrollToBottomTrigger(prev => prev + 1);
       } else {
         handleAiSubmit(e);
+        // Trigger scroll after submitting AI message (assuming handleAiSubmit adds the user message immediately or optimistically)
+        // Note: If handleAiSubmit is purely async and doesn't update `messages` immediately, this might need adjustment.
+        setScrollToBottomTrigger(prev => prev + 1);
       }
     },
     [currentRoomId, username, sendRoomMessage, handleAiSubmit, input, handleInputChange]
@@ -125,6 +136,19 @@ export function ChatsAppComponent({
     setTimeout(() => setIsShaking(false), 400);
     handleNudge();
   }, [handleNudge]);
+
+  // Font size handlers using store action
+  const handleIncreaseFontSize = useCallback(() => {
+    setFontSize(prev => Math.min(prev + 1, 24)); // Increase font size, max 24px
+  }, [setFontSize]);
+
+  const handleDecreaseFontSize = useCallback(() => {
+    setFontSize(prev => Math.max(prev - 1, 10)); // Decrease font size, min 10px
+  }, [setFontSize]);
+
+  const handleResetFontSize = useCallback(() => {
+    setFontSize(13); // Reset to default
+  }, [setFontSize]);
 
   if (!isWindowOpen) return null;
 
@@ -163,6 +187,9 @@ export function ChatsAppComponent({
         currentRoom={currentRoom ?? null}
         onRoomSelect={(room) => handleRoomSelect(room ? room.id : null)}
         isAdmin={isAdmin}
+        onIncreaseFontSize={handleIncreaseFontSize}
+        onDecreaseFontSize={handleDecreaseFontSize}
+        onResetFontSize={handleResetFontSize}
       />
       <WindowFrame
         title={currentRoom ? `#${currentRoom.name}` : "@ryo"}
@@ -196,6 +223,9 @@ export function ChatsAppComponent({
                 roomId={currentRoomId ?? undefined}
                 isAdmin={isAdmin}
                 username={username || undefined} // Pass username for message deletion check
+                fontSize={fontSize}
+                // Pass the scroll trigger
+                scrollToBottomTrigger={scrollToBottomTrigger}
               />
             </div>
 

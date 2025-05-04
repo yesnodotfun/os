@@ -14,6 +14,7 @@ export interface ChatsStoreState {
     roomMessages: Record<string, ChatMessage[]>; // roomId -> messages map
     // UI State
     isSidebarVisible: boolean;
+    fontSize: number; // Add font size state
 
     // Actions
     setAiMessages: (messages: Message[]) => void;
@@ -25,6 +26,7 @@ export interface ChatsStoreState {
     removeMessageFromRoom: (roomId: string, messageId: string) => void;
     clearRoomMessages: (roomId: string) => void; // Clears messages for a specific room
     toggleSidebarVisibility: () => void;
+    setFontSize: (size: number | ((prevSize: number) => number)) => void; // Add font size action
     reset: () => void; // Reset store to initial state
 }
 
@@ -35,13 +37,14 @@ const initialAiMessage: Message = {
     createdAt: new Date(),
 };
 
-const getInitialState = (): Omit<ChatsStoreState, 'isAdmin' | 'reset' | 'setAiMessages' | 'setUsername' | 'setRooms' | 'setCurrentRoomId' | 'setRoomMessagesForCurrentRoom' | 'addMessageToRoom' | 'removeMessageFromRoom' | 'clearRoomMessages' | 'toggleSidebarVisibility'> => ({
+const getInitialState = (): Omit<ChatsStoreState, 'isAdmin' | 'reset' | 'setAiMessages' | 'setUsername' | 'setRooms' | 'setCurrentRoomId' | 'setRoomMessagesForCurrentRoom' | 'addMessageToRoom' | 'removeMessageFromRoom' | 'clearRoomMessages' | 'toggleSidebarVisibility' | 'setFontSize'> => ({
     aiMessages: [initialAiMessage],
     username: null,
     rooms: [],
     currentRoomId: null,
     roomMessages: {},
     isSidebarVisible: true,
+    fontSize: 13, // Default font size
 });
 
 const STORE_VERSION = 2;
@@ -130,6 +133,9 @@ export const useChatsStore = create<ChatsStoreState>()(
             toggleSidebarVisibility: () => set((state) => ({
                  isSidebarVisible: !state.isSidebarVisible
             })),
+            setFontSize: (sizeOrFn) => set((state) => ({
+                fontSize: typeof sizeOrFn === 'function' ? sizeOrFn(state.fontSize) : sizeOrFn
+            })),
             reset: () => set(getInitialState()),
         }),
         {
@@ -144,6 +150,7 @@ export const useChatsStore = create<ChatsStoreState>()(
                 isSidebarVisible: state.isSidebarVisible,
                 rooms: state.rooms, // Persist rooms list
                 roomMessages: state.roomMessages, // Persist room messages cache
+                fontSize: state.fontSize, // Persist font size
             }),
             // --- Migration from old localStorage keys ---
             migrate: (persistedState, version) => {

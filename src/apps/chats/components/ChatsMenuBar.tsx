@@ -26,6 +26,9 @@ interface ChatsMenuBarProps {
   currentRoom: ChatRoom | null;
   onRoomSelect: (room: ChatRoom | null) => void;
   isAdmin: boolean;
+  onIncreaseFontSize: () => void;
+  onDecreaseFontSize: () => void;
+  onResetFontSize: () => void;
 }
 
 export function ChatsMenuBar({
@@ -42,6 +45,9 @@ export function ChatsMenuBar({
   currentRoom,
   onRoomSelect,
   isAdmin,
+  onIncreaseFontSize,
+  onDecreaseFontSize,
+  onResetFontSize,
 }: ChatsMenuBarProps) {
   return (
     <MenuBar>
@@ -153,6 +159,28 @@ export function ChatsMenuBar({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" sideOffset={1} className="px-0">
+          {/* Font Size Controls */}
+          <DropdownMenuItem
+            onClick={onIncreaseFontSize}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            Increase Font Size
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={onDecreaseFontSize}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            Decrease Font Size
+          </DropdownMenuItem>
+          <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
+          <DropdownMenuItem
+            onClick={onResetFontSize}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            Reset Font Size
+          </DropdownMenuItem>
+          <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
+          {/* Sidebar Toggle */}
           <DropdownMenuItem
             onClick={() => {
               console.log("[MenuBar] Toggle Sidebar menu item clicked");

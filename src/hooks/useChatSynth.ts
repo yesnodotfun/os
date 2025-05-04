@@ -56,7 +56,7 @@ export const SYNTH_PRESETS: Record<string, SynthPreset> = {
       },
       reverb: {
         decay: 1.5,
-        wet: 0.6,
+        wet: 0.7,
       },
     },
   },
@@ -143,7 +143,7 @@ export const SYNTH_PRESETS: Record<string, SynthPreset> = {
 // Pentatonic scale for an exotic jungle feel
 const notes = ["C4", "D4", "F4", "G4", "A4", "C5", "D5"];
 // Increase the minimum interval between notes slightly to reduce the chance of audio buffer congestion
-const minTimeBetweenNotes = 0.1;
+const minTimeBetweenNotes = 0.09;
 
 // Allow more simultaneous voices so that quick successive notes don't cut each other off (helps prevent choppiness)
 const VOICE_COUNT = 20;
