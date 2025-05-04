@@ -82,7 +82,7 @@ export const DEFAULT_FAVORITES: Favorite[] = [
     title: "Cursor",
     url: "https://cursor.sh",
     favicon: "https://www.google.com/s2/favicons?domain=cursor.com&sz=32",
-    year: "1991",
+    year: "1992",
   },
   {
     title: "Notion",
