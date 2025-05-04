@@ -1710,9 +1710,8 @@ assistant
           name: newFileName,
           path: `${currentPath}/${newFileName}`,
           content: "",
-          isDirectory: false,
-          icon: "/icons/file-text.png",
           type: "text",
+          icon: "/icons/file-text.png"
         });
 
         return {
@@ -1782,10 +1781,9 @@ assistant
           saveFile({
             name: fileName,
             path: documentsPath,
-            content: fileToEditObj.content,
-            isDirectory: false,
-            icon: "/icons/file-text.png",
+            content: fileToEditObj.content || "",
             type: "text",
+            icon: "/icons/file-text.png"
           });
 
           filePath = documentsPath;

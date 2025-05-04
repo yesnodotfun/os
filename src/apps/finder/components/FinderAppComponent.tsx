@@ -14,7 +14,7 @@ import { appMetadata, helpItems } from "../index";
 import { calculateStorageSpace } from "@/utils/storage";
 import { InputDialog } from "@/components/dialogs/InputDialog";
 import { useTextEditStore } from "@/stores/useTextEditStore";
-import { useFilesStore, FileSystemItem } from "@/stores/useFilesStore";
+import { useFilesStore } from "@/stores/useFilesStore";
 import { FileItem } from "./FileList";
 
 // Helper function to determine file type from FileItem
@@ -102,7 +102,6 @@ export function FinderAppComponent({
     canNavigateForward,
     saveFile: originalSaveFile,
     renameFile: originalRenameFile,
-    setSelectedFile: originalSetSelectedFile,
     createFolder,
   } = useFileSystem();
 
@@ -159,42 +158,6 @@ export function FinderAppComponent({
     if (file.path?.startsWith("/Documents/") && textEditStore.lastFilePath === file.path) {
       textEditStore.setHasUnsavedChanges(false);
     }
-  };
-
-  // Wrap the original renameFile to integrate with TextEditStore
-  const renameFile = async (oldName: string, newName: string) => {
-    // Get the full path for the old item
-    const basePath = currentPath === '/' ? '' : currentPath;
-    const oldPath = `${basePath}/${oldName}`;
-    const itemToRename = fileStore.getItem(oldPath);
-
-    if (!itemToRename || itemToRename.isDirectory) {
-        console.warn("[Finder] Cannot rename non-existent file or directory via this wrapper:", oldPath);
-        return; // Only handle files here for TextEdit integration
-    }
-
-    // Calculate new path
-    const newPath = `${basePath}/${newName}`;
-    const isCurrentFile = textEditStore.lastFilePath === oldPath;
-
-    // Call the original renameFile function (which now takes paths)
-    await originalRenameFile(oldPath, newName);
-
-    // If this is the currently open file in TextEdit, update the path
-    if (isCurrentFile) {
-      textEditStore.setLastFilePath(newPath);
-    }
-
-    // Dispatch a rename event so other components can update
-    const event = new CustomEvent("fileRenamed", {
-      detail: {
-        oldPath,
-        newPath,
-        oldName,
-        newName,
-      },
-    });
-    window.dispatchEvent(event);
   };
 
   // Update storage space periodically
@@ -354,20 +317,18 @@ export function FinderAppComponent({
       setIsRenameDialogOpen(false);
       return;
     }
-    // Call our wrapped renameFile which handles TextEdit sync and now expects paths
-    // Pass old name, wrapper calculates paths. Let's double check wrapper uses paths correctly.
-    // Wrapper `renameFile` needs oldPath and newName, calculates newPath internally
-    // Let's call the hook's rename function directly as the wrapper is complex now
+
     const basePath = currentPath === '/' ? '' : currentPath;
     const oldPathForRename = `${basePath}/${selectedFile.name}`;
-    await originalRenameFile(oldPathForRename, trimmedNewName); // Call the hook's renameFile directly
+    await originalRenameFile(oldPathForRename, trimmedNewName);
 
-    // Update TextEditStore if needed (logic from wrapper)
+    // Update TextEditStore if needed
     if (textEditStore.lastFilePath === oldPathForRename) {
-        const newPathForRename = `${basePath}/${trimmedNewName}`;
-        textEditStore.setLastFilePath(newPathForRename);
+      const newPathForRename = `${basePath}/${trimmedNewName}`;
+      textEditStore.setLastFilePath(newPathForRename);
     }
-    // Dispatch rename event (logic from wrapper)
+
+    // Dispatch rename event
     const event = new CustomEvent("fileRenamed", {
       detail: {
         oldPath: oldPathForRename,

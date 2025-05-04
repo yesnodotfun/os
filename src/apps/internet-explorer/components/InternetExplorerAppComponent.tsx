@@ -26,7 +26,7 @@ import { appMetadata } from "..";
 import HtmlPreview from "@/components/shared/HtmlPreview";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAiGeneration } from "../hooks/useAiGeneration";
-import { useInternetExplorerStore, DEFAULT_FAVORITES, ErrorResponse, LanguageOption, LocationOption, DEFAULT_URL, DEFAULT_YEAR, HistoryEntry, Favorite } from "@/stores/useInternetExplorerStore";
+import { useInternetExplorerStore, DEFAULT_FAVORITES, ErrorResponse, LanguageOption, LocationOption } from "@/stores/useInternetExplorerStore";
 import FutureSettingsDialog from "@/components/dialogs/FutureSettingsDialog";
 import { useTerminalSounds } from "@/hooks/useTerminalSounds";
 import { track } from "@vercel/analytics";
@@ -273,10 +273,6 @@ export function InternetExplorerAppComponent({
     isFetchingCachedYears,
     setTimeMachineViewOpen,
     fetchCachedYears,
-    // Get pending navigation state and clear action
-    pendingUrl,
-    pendingYear,
-    clearPendingNavigation,
   } = useInternetExplorerStore();
 
   const abortControllerRef = useRef<AbortController | null>(null);

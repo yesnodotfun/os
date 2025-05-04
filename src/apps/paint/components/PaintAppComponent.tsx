@@ -16,6 +16,7 @@ import { useLaunchApp } from "@/hooks/useLaunchApp";
 import { APP_STORAGE_KEYS } from "@/utils/storage";
 import { Filter } from "./PaintFiltersMenu";
 import { useAppStore } from "@/stores/useAppStore";
+import { toast } from "sonner";
 
 export const PaintAppComponent: React.FC<AppProps> = ({
   isWindowOpen,
@@ -51,7 +52,7 @@ export const PaintAppComponent: React.FC<AppProps> = ({
     paste: () => void;
     applyFilter: (filter: Filter) => void;
   }>();
-  const { files, saveFile } = useFileSystem("/Images");
+  const { saveFile } = useFileSystem("/Images");
   const launchApp = useLaunchApp();
   const contentChangeTimeoutRef = useRef<number | null>(null);
   const clearInitialData = useAppStore((state) => state.clearInitialData);
@@ -88,7 +89,6 @@ export const PaintAppComponent: React.FC<AppProps> = ({
 
         try {
           const blob = await canvasRef.current.exportCanvas();
-          const blobUrl = URL.createObjectURL(blob);
           const fileName = currentFilePath.split("/").pop() || "untitled.png";
 
           saveFile({
@@ -188,38 +188,21 @@ export const PaintAppComponent: React.FC<AppProps> = ({
 
   const handleSave = async () => {
     if (!canvasRef.current) return;
-
-    if (!currentFilePath) {
-      setIsSaveDialogOpen(true);
-      setSaveFileName("untitled.png");
-    } else {
-      try {
-        const blob = await canvasRef.current.exportCanvas();
-        const fileName = currentFilePath.split("/").pop() || "untitled.png";
-
-        saveFile({
-          name: fileName,
-          path: currentFilePath,
-          content: blob,
-        });
-
-        const saveEvent = new CustomEvent("saveFile", {
-          detail: {
-            name: fileName,
-            path: currentFilePath,
-            content: blob,
-          },
-        });
-        window.dispatchEvent(saveEvent);
-
-        localStorage.setItem(
-          APP_STORAGE_KEYS.paint.LAST_FILE_PATH,
-          currentFilePath
-        );
-        setHasUnsavedChanges(false);
-      } catch (err) {
-        console.error("Error saving file:", err);
-      }
+    
+    try {
+      const blob = await canvasRef.current.exportCanvas();
+      
+      await saveFile({
+        name: saveFileName,
+        path: `/Images/${saveFileName}`,
+        content: blob,
+        type: "png",
+      });
+      
+      toast.success("Image saved successfully");
+    } catch (err) {
+      console.error("Error saving image:", err);
+      toast.error("Failed to save image");
     }
   };
 

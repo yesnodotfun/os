@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { FileItem as DisplayFileItem } from "../components/FileList";
 import { ensureIndexedDBInitialized } from "@/utils/storage";
 import { getNonFinderApps, AppId } from "@/config/appRegistry";
-import { useLaunchApp, LaunchAppOptions } from "@/hooks/useLaunchApp";
+import { useLaunchApp } from "@/hooks/useLaunchApp";
 import { useIpodStore } from "@/stores/useIpodStore";
 import { useVideoStore } from "@/stores/useVideoStore";
 import { useInternetExplorerStore, type Favorite } from "@/stores/useInternetExplorerStore";
@@ -34,13 +34,6 @@ interface ExtendedDisplayFileItem extends Omit<DisplayFileItem, "content"> {
   originalPath?: string; // For trash items
   deletedAt?: number; // For trash items
   status?: 'active' | 'trashed'; // Include status for potential UI differences
-}
-
-// Type for items stored in the trash DB (metadata + original path)
-interface TrashItemRecord extends FileSystemItem {
-  originalPath: string;
-  deletedAt: number;
-  // Content is stored separately in the same TRASH store using name as key
 }
 
 // Generic CRUD operations
@@ -391,20 +384,6 @@ function getFileIcon(item: FileSystemItem): string {
       return "/icons/file.png";
   }
 }
-
-// Create/Revoke Blob URLs (Keep as is)
-function createObjectURLIfNeeded(content: string | Blob): string {
-  if (content instanceof Blob) {
-    return URL.createObjectURL(content);
-  }
-  return content;
-}
-
-// function revokeObjectURLIfNeeded(url: string | undefined) {
-//   if (url && url.startsWith("blob:")) {
-//     URL.revokeObjectURL(url);
-//   }
-// }
 
 // --- Global flag for initialization --- //
 let isInitialContentCheckDone = false;
