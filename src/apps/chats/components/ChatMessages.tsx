@@ -440,7 +440,11 @@ function ChatMessagesContent({
                     : {}
                 }
               className={`${ // Apply dynamic font size here
-                `w-fit max-w-[90%] p-1.5 px-2 ${bgColorClass || (message.role === "user" ? "bg-yellow-100 text-black" : "bg-blue-100 text-black")}`
+                `p-1.5 px-2 ${bgColorClass || (message.role === "user" ? "bg-yellow-100 text-black" : "bg-blue-100 text-black")} ${
+                  isHtmlCodeBlock(message.content).isHtml || (message.parts?.some(part => part.type === "text" && extractHtmlContent(part.text).hasHtml)) 
+                    ? "w-full" 
+                    : "w-fit max-w-[90%]"
+                }`
               } min-h-[12px] rounded leading-snug font-geneva-12 break-words select-text`}
               style={{ fontSize: `${fontSize}px` }} // Apply font size via style prop
             >
