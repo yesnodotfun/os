@@ -572,7 +572,7 @@ export function PhotoBoothComponent({
       content: blob,
       contentUrl: blobUrl,
       type: mimeType,
-      path: "/Images/",
+      path: `/Images/${filename}`,
       isDirectory: false,
       size: blob.size,
       modifiedAt: new Date(),
@@ -580,12 +580,6 @@ export function PhotoBoothComponent({
 
     // Save to the file system using hook
     saveFile(fileItem);
-
-    // Dispatch a custom event to notify Finder of the new file
-    const saveEvent = new CustomEvent("saveFile", {
-      detail: fileItem,
-    });
-    window.dispatchEvent(saveEvent);
 
     // Create a reference to the saved photo
     const photoRef: PhotoReference = {
@@ -675,7 +669,7 @@ export function PhotoBoothComponent({
               content: blob,
               contentUrl: blobUrl,
               type: mimeType,
-              path: "/Images/",
+              path: `/Images/${filename}`,
               isDirectory: false,
               size: blob.size,
               modifiedAt: new Date(),
@@ -683,12 +677,6 @@ export function PhotoBoothComponent({
 
             // Save to the file system
             saveFile(fileItem);
-
-            // Dispatch a custom event to notify Finder of the new file
-            const saveEvent = new CustomEvent("saveFile", {
-              detail: fileItem,
-            });
-            window.dispatchEvent(saveEvent);
 
             // Return reference to the saved photo
             return {

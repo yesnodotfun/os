@@ -53,6 +53,8 @@ interface AppStoreState extends AppManagerState {
   closeApp: (appId: AppId) => void;
   navigateToNextApp: (currentAppId: AppId) => void;
   navigateToPreviousApp: (currentAppId: AppId) => void;
+  clearInitialData: (appId: AppId) => void;
+  launchOrFocusApp: (appId: AppId, initialData?: any) => void;
 }
 
 // Run the check once on script load
@@ -221,6 +223,55 @@ export const useAppStore = create<AppStoreState>()(
         });
       },
 
+      launchOrFocusApp: (appId, initialData) => {
+        set((state) => {
+          const isCurrentlyOpen = state.apps[appId]?.isOpen;
+          let newWindowOrder = [...state.windowOrder];
+          const newApps: { [id: string]: AppState } = { ...state.apps };
+
+          console.log(`[AppStore:launchOrFocusApp] App: ${appId}, Currently Open: ${isCurrentlyOpen}, InitialData:`, initialData);
+
+          if (isCurrentlyOpen) {
+            // App is open: Bring to front, update initialData
+            newWindowOrder = newWindowOrder.filter((id) => id !== appId);
+            newWindowOrder.push(appId);
+          } else {
+            // App is closed: Add to end
+            newWindowOrder.push(appId);
+          }
+
+          // Update all apps for foreground status and the target app's data/open state
+          Object.keys(newApps).forEach((id) => {
+            const isTargetApp = id === appId;
+            newApps[id] = {
+              ...newApps[id],
+              isOpen: isTargetApp ? true : newApps[id].isOpen, // Ensure target is open
+              isForeground: isTargetApp, // Target is foreground
+              // Update initialData ONLY for the target app
+              initialData: isTargetApp ? initialData : newApps[id].initialData,
+            };
+          });
+
+          const newState: AppManagerState = {
+            windowOrder: newWindowOrder,
+            apps: newApps,
+          };
+
+          // Emit event (optional, but good for consistency)
+          const appStateChangeEvent = new CustomEvent("appStateChange", {
+            detail: {
+              appId,
+              isOpen: true,
+              isForeground: true,
+              updatedData: !!initialData, // Indicate if data was updated
+            },
+          });
+          window.dispatchEvent(appStateChangeEvent);
+
+          return newState;
+        });
+      },
+
       navigateToNextApp: (currentAppId) => {
         const { windowOrder } = get();
         if (windowOrder.length <= 1) return;
@@ -239,6 +290,24 @@ export const useAppStore = create<AppStoreState>()(
           (currentIndex - 1 + windowOrder.length) % windowOrder.length;
         const prevAppId = windowOrder[prevIndex] as AppId;
         get().bringToForeground(prevAppId);
+      },
+
+      clearInitialData: (appId) => {
+        set((state) => {
+          if (state.apps[appId]?.initialData) {
+            console.log(`[AppStore] Clearing initialData for ${appId}`);
+            return {
+              apps: {
+                ...state.apps,
+                [appId]: {
+                  ...state.apps[appId],
+                  initialData: undefined,
+                },
+              },
+            };
+          }
+          return state; // No change needed
+        });
       },
     }),
     {

@@ -11,6 +11,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ArrowLeft, ArrowRight, History, Share } from "lucide-react";
 import { InputDialog } from "@/components/dialogs/InputDialog";
 import { HelpDialog } from "@/components/dialogs/HelpDialog";
@@ -20,7 +26,7 @@ import { appMetadata } from "..";
 import HtmlPreview from "@/components/shared/HtmlPreview";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAiGeneration } from "../hooks/useAiGeneration";
-import { useInternetExplorerStore, DEFAULT_FAVORITES, ErrorResponse, LanguageOption, LocationOption } from "@/stores/useInternetExplorerStore";
+import { useInternetExplorerStore, DEFAULT_FAVORITES, ErrorResponse, LanguageOption, LocationOption, DEFAULT_URL, DEFAULT_YEAR, HistoryEntry, Favorite } from "@/stores/useInternetExplorerStore";
 import FutureSettingsDialog from "@/components/dialogs/FutureSettingsDialog";
 import { useTerminalSounds } from "@/hooks/useTerminalSounds";
 import { track } from "@vercel/analytics";
@@ -312,6 +318,8 @@ export function InternetExplorerAppComponent({
 
   const [displayTitle, setDisplayTitle] = useState<string>("Internet Explorer");
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+
+  const clearInitialData = useAppStore((state) => state.clearInitialData);
 
   useEffect(() => {
     let newTitle = "Internet Explorer";
@@ -1105,20 +1113,16 @@ export function InternetExplorerAppComponent({
     setIsShareDialogOpen(true);
   }, []);
 
-  // --- ADDED useEffect to handle pending navigation from the store ---
+  // Effect to handle initialData when provided
   useEffect(() => {
-    if (pendingUrl) {
-      console.log(`[IE] Handling pending navigation from store: ${pendingUrl} (${pendingYear || 'current'})`);
-      // Use timeout to ensure initial navigation logic doesn't interfere
-      // and that the store/state is ready.
-      setTimeout(() => {
-        handleNavigate(pendingUrl, pendingYear || "current", false);
-        // Clear the pending state in the store after initiating navigation
-        clearPendingNavigation();
-      }, 100);
+    if (initialData?.url) {
+      const { url, year } = initialData;
+      console.log(`[IE] Received initialData: url=${url}, year=${year}`);
+      handleNavigate(url, year || "current");
+      // Clear initialData after processing
+      clearInitialData('internet-explorer');
     }
-  }, [pendingUrl, pendingYear, handleNavigate, clearPendingNavigation]); // Depend on pending state and actions
-  // --- End pending navigation handler ---
+  }, [initialData]);
 
   if (!isWindowOpen) return null;
 
@@ -1360,33 +1364,89 @@ export function InternetExplorerAppComponent({
                 className="overflow-x-auto scrollbar-none relative flex-1"
               >
                 <div className="flex items-center min-w-full w-max">
-                  {favorites.map((favorite, index) => (
-                    <Button
-                      key={index}
-                      variant="ghost"
-                      size="sm"
-                      className="whitespace-nowrap hover:bg-gray-200 font-geneva-12 text-[10px] gap-1 px-1 mr-1 w-content min-w-[60px] max-w-[120px] flex-shrink-0"
-                      onClick={(e) => {
-                        // Normalize URL before passing
-                        const normalizedFavUrl = normalizeUrlForHistory(favorite.url);
-                        handleNavigateWithHistory(normalizedFavUrl, favorite.year);
-                        // Scroll into view
-                        e.currentTarget.scrollIntoView({
-                          behavior: 'smooth',
-                          block: 'nearest',
-                          inline: 'nearest'
-                        });
-                      }}
-                    >
-                      <img
-                        src={favorite.favicon || "/icons/ie-site.png"}
-                        alt="Site"
-                        className="w-4 h-4 mr-1"
-                        onError={(e) => { e.currentTarget.src = "/icons/ie-site.png"; }}
-                      />
-                      <span className="truncate">{favorite.title}</span>
-                    </Button>
-                  ))}
+                  {favorites.map((favorite, index) => {
+                    // Check if the favorite is a folder
+                    if (favorite.children && favorite.children.length > 0) {
+                      return (
+                        <DropdownMenu key={index}>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="whitespace-nowrap hover:bg-gray-200 font-geneva-12 text-[10px] gap-1 px-1 mr-1 w-content min-w-[60px] max-w-[120px] flex-shrink-0"
+                            >
+                              <img
+                                src={"/icons/directory.png"} // Folder icon
+                                alt="Folder"
+                                className="w-4 h-4 mr-1"
+                              />
+                              <span className="truncate">{favorite.title}</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent 
+                            align="start" 
+                            sideOffset={4} 
+                            className="px-0 max-w-xs"
+                            onCloseAutoFocus={(e) => e.preventDefault()}
+                          >
+                            {favorite.children.map((child) => (
+                              <DropdownMenuItem
+                                key={child.url}
+                                onClick={() =>
+                                  handleNavigateWithHistory(normalizeUrlForHistory(child.url!), child.year)
+                                }
+                                className="text-md h-6 px-3 active:bg-gray-900 active:text-white flex items-center gap-2"
+                              >
+                                <img
+                                  src={child.favicon || "/icons/ie-site.png"}
+                                  alt=""
+                                  className="w-4 h-4"
+                                  onError={(e) => {
+                                    e.currentTarget.src = "/icons/ie-site.png";
+                                  }}
+                                />
+                                {child.title}
+                                {child.year && child.year !== "current" && (
+                                  <span className="text-xs text-gray-500 ml-1">
+                                    ({child.year})
+                                  </span>
+                                )}
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      );
+                    } else if (favorite.url) {
+                      // Render regular favorite button
+                      return (
+                        <Button
+                          key={index}
+                          variant="ghost"
+                          size="sm"
+                          className="whitespace-nowrap hover:bg-gray-200 font-geneva-12 text-[10px] gap-1 px-1 mr-1 w-content min-w-[60px] max-w-[120px] flex-shrink-0"
+                          onClick={(e) => {
+                            const normalizedFavUrl = normalizeUrlForHistory(favorite.url!);
+                            handleNavigateWithHistory(normalizedFavUrl, favorite.year);
+                            e.currentTarget.scrollIntoView({
+                              behavior: 'smooth',
+                              block: 'nearest',
+                              inline: 'nearest'
+                            });
+                          }}
+                        >
+                          <img
+                            src={favorite.favicon || "/icons/ie-site.png"}
+                            alt="Site"
+                            className="w-4 h-4 mr-1"
+                            onError={(e) => { e.currentTarget.src = "/icons/ie-site.png"; }}
+                          />
+                          <span className="truncate">{favorite.title}</span>
+                        </Button>
+                      );
+                    } else {
+                       return null; // Should not happen
+                    }
+                  })}
                 </div>
               </div>
               {favorites.length > 0 && hasMoreToScroll && (

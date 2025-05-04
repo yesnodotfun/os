@@ -29,34 +29,7 @@ interface FileListProps {
   onFileSelect: (file: FileItem) => void;
   selectedFile?: FileItem;
   viewType?: ViewType;
-}
-
-// Helper function to get human-readable file type
-function getHumanReadableType(file: FileItem): string {
-  if (file.isDirectory) return "Folder";
-
-  // Prioritize specific virtual types
-  if (file.type === "Music") return "Music";
-  if (file.type === "Video") return "Video";
-
-  if (file.appId) return "Application"; // Keep this for actual applications
-  if (!file.type) return "Document";
-
-  switch (file.type) {
-    case "image":
-      return "Image";
-    case "markdown":
-      return "Markdown Document";
-    case "text":
-      return "Text Document";
-    case "application": // This case might be redundant now but keep for safety
-      return "Application";
-    case "directory": // Should be handled by the first check
-      return "Folder";
-    // No need for Music/Video cases here as they are handled above
-    default:
-      return file.type.charAt(0).toUpperCase() + file.type.slice(1);
-  }
+  getFileType: (file: FileItem) => string;
 }
 
 export function FileList({
@@ -65,6 +38,7 @@ export function FileList({
   onFileSelect,
   selectedFile,
   viewType = "small",
+  getFileType,
 }: FileListProps) {
   const { play: playClick } = useSound(Sounds.BUTTON_CLICK, 0.3);
 
@@ -112,17 +86,27 @@ export function FileList({
                 onDoubleClick={() => handleFileOpen(file)}
               >
                 <TableCell className="flex items-center gap-2">
-                  <img
-                    src={file.icon}
-                    alt={file.isDirectory ? "Directory" : "File"}
-                    className={`w-4 h-4 ${
-                      selectedFile?.path === file.path ? "invert" : ""
-                    }`}
-                    style={{ imageRendering: "pixelated" }}
-                  />
+                  {file.contentUrl && file.type?.startsWith("image/") ? (
+                    <img
+                      src={file.contentUrl}
+                      alt={file.name}
+                      className="w-4 h-4 object-contain"
+                      style={{ imageRendering: "pixelated" }}
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
+                  ) : (
+                    <img
+                      src={file.icon}
+                      alt={file.isDirectory ? "Directory" : "File"}
+                      className={`w-4 h-4 ${
+                        selectedFile?.path === file.path ? "invert" : ""
+                      }`}
+                      style={{ imageRendering: "pixelated" }}
+                    />
+                  )}
                   {file.name}
                 </TableCell>
-                <TableCell>{getHumanReadableType(file)}</TableCell>
+                <TableCell>{getFileType(file)}</TableCell>
                 <TableCell>
                   {file.size
                     ? file.size < 1024
@@ -153,8 +137,8 @@ export function FileList({
           name={file.name}
           isDirectory={file.isDirectory}
           icon={file.icon}
-          content={file.type === "image" ? file.content : undefined}
-          contentUrl={file.type === "image" ? file.contentUrl : undefined}
+          content={file.type?.startsWith("image/") ? file.content : undefined}
+          contentUrl={file.type?.startsWith("image/") ? file.contentUrl : undefined}
           onDoubleClick={() => handleFileOpen(file)}
           onClick={() => handleFileSelect(file)}
           isSelected={selectedFile?.path === file.path}

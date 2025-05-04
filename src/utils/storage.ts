@@ -1407,7 +1407,7 @@ export const saveChatSidebarVisible = (isVisible: boolean): void => {
 
 // Add these constants for IndexedDB at the end of the file
 const DB_NAME = "ryOS";
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 const STORES = {
   DOCUMENTS: "documents",
   IMAGES: "images",

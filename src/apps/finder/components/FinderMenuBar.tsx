@@ -37,6 +37,8 @@ export interface FinderMenuBarProps {
   onImportFile?: () => void;
   onRename?: () => void;
   onDuplicate?: () => void;
+  onNewFolder?: () => void;
+  canCreateFolder?: boolean;
 }
 
 export function FinderMenuBar({
@@ -61,6 +63,8 @@ export function FinderMenuBar({
   onImportFile,
   onRename,
   onDuplicate,
+  onNewFolder,
+  canCreateFolder = false,
 }: FinderMenuBarProps) {
   const canMoveToTrash =
     selectedFile &&
@@ -92,8 +96,12 @@ export function FinderMenuBar({
           <DropdownMenuItem className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
             New Finder Window
           </DropdownMenuItem>
-          <DropdownMenuItem className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
-            New Folder
+          <DropdownMenuItem
+            onClick={onNewFolder}
+            disabled={!canCreateFolder}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            New Folder...
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={onImportFile}

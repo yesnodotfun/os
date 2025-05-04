@@ -145,11 +145,12 @@ export const createHtmlRenderer = (content: TiptapJSON) => {
  * Works with either a real Tiptap editor or JSON content
  */
 export const saveAsMarkdown = (
-  editor: TiptapEditor | TiptapJSON,  // Can be a Tiptap editor instance or JSON content
+  editor: TiptapEditor | TiptapJSON,
   file: {
     name: string;
     path: string;
-  }
+  },
+  saveFileHook: (fileData: { path: string; name: string; content: string | Blob; type?: string; icon?: string }) => Promise<void>
 ) => {
   let htmlContent: string;
   let jsonContent: TiptapJSON;
@@ -170,19 +171,19 @@ export const saveAsMarkdown = (
   // Convert HTML to Markdown
   const markdownContent = htmlToMarkdown(htmlContent);
   
-  // Dispatch saveFile event
-  const saveEvent = new CustomEvent("saveFile", {
-    detail: {
-      name: file.name,
-      path: file.path,
-      content: markdownContent, // Save as Markdown
-      icon: "/icons/file-text.png",
-      isDirectory: false,
-    },
+  // Call the saveFile hook directly
+  console.log(`[saveAsMarkdown] Calling saveFile hook for: ${file.path}`);
+  saveFileHook({
+    name: file.name,
+    path: file.path,
+    content: markdownContent, // Save as Markdown
+    // Let the hook determine type and icon if needed
+  }).catch(err => {
+      console.error(`[saveAsMarkdown] Error calling saveFile hook for ${file.path}:`, err);
+      // Optionally re-throw or handle error
   });
-  window.dispatchEvent(saveEvent);
   
-  // For recovery purposes, store JSON in localStorage
+  // Return JSON content for recovery purposes
   return {
     markdownContent,
     jsonContent

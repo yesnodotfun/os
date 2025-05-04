@@ -6,7 +6,7 @@ import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { FileList } from "./FileList";
-import { useFileSystem, dbOperations, STORES, Document } from "../hooks/useFileSystem";
+import { useFileSystem, dbOperations, STORES } from "../hooks/useFileSystem";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -14,24 +14,46 @@ import { appMetadata, helpItems } from "../index";
 import { calculateStorageSpace } from "@/utils/storage";
 import { InputDialog } from "@/components/dialogs/InputDialog";
 import { useTextEditStore } from "@/stores/useTextEditStore";
+import { useFilesStore, FileSystemItem } from "@/stores/useFilesStore";
+import { FileItem } from "./FileList";
 
-// Helper function to determine file type from extension
-const getFileType = (fileName: string): string => {
-  const ext = fileName.split(".").pop()?.toLowerCase() || "";
+// Helper function to determine file type from FileItem
+const getFileType = (file: FileItem): string => {
+  // Check for directory first
+  if (file.isDirectory) {
+    return "Folder";
+  }
+
+  // Check for specific known virtual types *before* appId
+  if (file.type === "Music") return "Audio File";
+  if (file.type === "Video") return "Video File";
+  if (file.type === "site-link") return "Internet Shortcut";
+
+  // Check for application
+  if (file.appId) {
+    return "Application";
+  }
+
+  // Now check extension from file.name
+  const ext = file.name.split(".").pop()?.toLowerCase() || "";
   switch (ext) {
     case "png":
+      return "PNG Image";
     case "jpg":
     case "jpeg":
+      return "JPEG Image";
     case "gif":
+      return "GIF Image";
     case "webp":
+      return "WebP Image";
     case "bmp":
-      return "image";
+      return "Bitmap Image";
     case "md":
-      return "markdown";
+      return "Markdown Document";
     case "txt":
-      return "text";
+      return "Text Document";
     default:
-      return "unknown";
+      return "Unknown";
   }
 };
 
@@ -57,6 +79,7 @@ export function FinderAppComponent({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [storageSpace, setStorageSpace] = useState(calculateStorageSpace());
   const textEditStore = useTextEditStore();
+  const fileStore = useFilesStore();
 
   // Get all functionality from useFileSystem hook
   const {
@@ -72,17 +95,30 @@ export function FinderAppComponent({
     moveToTrash,
     restoreFromTrash,
     emptyTrash,
-    trashItems,
+    trashItemsCount,
     navigateBack,
     navigateForward,
     canNavigateBack,
     canNavigateForward,
     saveFile: originalSaveFile,
     renameFile: originalRenameFile,
+    setSelectedFile: originalSetSelectedFile,
+    createFolder,
   } = useFileSystem();
 
   // Wrap the original handleFileOpen to integrate with TextEditStore
   const handleFileOpen = async (file: any) => {
+    // --- DEBUG LOGGING START ---
+    console.log("[Finder] handleFileOpen called with:", {
+      name: file.name,
+      path: file.path,
+      isDirectory: file.isDirectory,
+      type: file.type,
+      appId: file.appId,
+      data: file.data,
+    });
+    // --- DEBUG LOGGING END ---
+
     // Let the original handler do its work, but also update TextEditStore
     // for text documents
     originalHandleFileOpen(file);
@@ -91,7 +127,7 @@ export function FinderAppComponent({
     if (file.path?.startsWith("/Documents/") && !file.isDirectory) {
       try {
         // Get the document to ensure we have the latest content
-        const doc = await dbOperations.get<Document>(STORES.DOCUMENTS, file.name);
+        const doc = await dbOperations.get<any>(STORES.DOCUMENTS, file.name);
         if (doc) {
           // Update TextEditStore with the file path
           textEditStore.setLastFilePath(file.path);
@@ -127,17 +163,22 @@ export function FinderAppComponent({
 
   // Wrap the original renameFile to integrate with TextEditStore
   const renameFile = async (oldName: string, newName: string) => {
-    // Check if this file is currently open in TextEdit
-    const currentDoc = await dbOperations.get<Document>(STORES.DOCUMENTS, oldName);
-    if (!currentDoc) return;
+    // Get the full path for the old item
+    const basePath = currentPath === '/' ? '' : currentPath;
+    const oldPath = `${basePath}/${oldName}`;
+    const itemToRename = fileStore.getItem(oldPath);
 
-    // Calculate old and new paths
-    const oldPath = `/Documents/${oldName}`;
-    const newPath = `/Documents/${newName}`;
+    if (!itemToRename || itemToRename.isDirectory) {
+        console.warn("[Finder] Cannot rename non-existent file or directory via this wrapper:", oldPath);
+        return; // Only handle files here for TextEdit integration
+    }
+
+    // Calculate new path
+    const newPath = `${basePath}/${newName}`;
     const isCurrentFile = textEditStore.lastFilePath === oldPath;
 
-    // Call the original renameFile function
-    await originalRenameFile(oldName, newName);
+    // Call the original renameFile function (which now takes paths)
+    await originalRenameFile(oldPath, newName);
 
     // If this is the currently open file in TextEdit, update the path
     if (isCurrentFile) {
@@ -239,14 +280,10 @@ export function FinderAppComponent({
         const text = await file.text();
         const filePath = `/Documents/${file.name}`;
 
-        // Use the saveFile function that integrates with TextEditStore
         await saveFile({
           name: file.name,
           path: filePath,
           content: text,
-          icon: "/icons/file-text.png",
-          isDirectory: false,
-          type: getFileType(file.name),
         });
 
         // Notify file was added
@@ -277,16 +314,14 @@ export function FinderAppComponent({
 
       try {
         const text = await file.text();
-        const filePath = `${currentPath}/${file.name}`;
+        // Ensure path is correct for current directory
+        const basePath = currentPath === '/' ? '' : currentPath;
+        const filePath = `${basePath}/${file.name}`;
 
-        // Use the saveFile function that integrates with TextEditStore
         await saveFile({
           name: file.name,
           path: filePath,
           content: text,
-          icon: "/icons/file-text.png",
-          isDirectory: false,
-          type: getFileType(file.name),
         });
 
         // Notify file was added
@@ -313,57 +348,139 @@ export function FinderAppComponent({
   };
 
   const handleRenameSubmit = async (newName: string) => {
-    if (!selectedFile || !newName) return;
-
-    // Only proceed if the name actually changed
-    if (selectedFile.name === newName) {
+    if (!selectedFile || !newName || !newName.trim()) return;
+    const trimmedNewName = newName.trim();
+    if (selectedFile.name === trimmedNewName) {
       setIsRenameDialogOpen(false);
       return;
     }
+    // Call our wrapped renameFile which handles TextEdit sync and now expects paths
+    // Pass old name, wrapper calculates paths. Let's double check wrapper uses paths correctly.
+    // Wrapper `renameFile` needs oldPath and newName, calculates newPath internally
+    // Let's call the hook's rename function directly as the wrapper is complex now
+    const basePath = currentPath === '/' ? '' : currentPath;
+    const oldPathForRename = `${basePath}/${selectedFile.name}`;
+    await originalRenameFile(oldPathForRename, trimmedNewName); // Call the hook's renameFile directly
 
-    // Use our wrapped renameFile that integrates with TextEditStore
-    await renameFile(selectedFile.name, newName);
+    // Update TextEditStore if needed (logic from wrapper)
+    if (textEditStore.lastFilePath === oldPathForRename) {
+        const newPathForRename = `${basePath}/${trimmedNewName}`;
+        textEditStore.setLastFilePath(newPathForRename);
+    }
+    // Dispatch rename event (logic from wrapper)
+    const event = new CustomEvent("fileRenamed", {
+      detail: {
+        oldPath: oldPathForRename,
+        newPath: `${basePath}/${trimmedNewName}`,
+        oldName: selectedFile.name,
+        newName: trimmedNewName,
+      },
+    });
+    window.dispatchEvent(event);
 
-    // Close dialog
     setIsRenameDialogOpen(false);
   };
 
   const handleDuplicate = async () => {
-    if (!selectedFile) return;
-
+    if (!selectedFile || selectedFile.isDirectory) return; // Can only duplicate files
     try {
-      // Create a copy name by adding " (copy)" before the extension
-      const ext = selectedFile.name.includes(".")
-        ? `.${selectedFile.name.split(".").pop()}`
-        : "";
-      const baseName = selectedFile.name.replace(ext, "");
-      const copyName = `${baseName} (copy)${ext}`;
-      const copyPath = `${currentPath}/${copyName}`;
+        // Create a copy name
+        const ext = selectedFile.name.includes(".") ? `.${selectedFile.name.split(".").pop()}` : "";
+        const baseName = selectedFile.name.replace(ext, "");
+        let copyIndex = 1;
+        let copyName = `${baseName} copy${ext}`;
+        // Fix path construction here
+        const basePath = currentPath === '/' ? '' : currentPath;
+        let copyPath = `${basePath}/${copyName}`;
 
-      // Use original saveFile with a new name but same content
-      await saveFile({
-        ...selectedFile,
-        name: copyName,
-        path: copyPath,
-      });
+        // Ensure unique name
+        while (fileStore.getItem(copyPath)) {
+            copyIndex++;
+            copyName = `${baseName} copy ${copyIndex}${ext}`;
+            copyPath = `${basePath}/${copyName}`;
+        }
 
-      // Notify file was duplicated
-      const event = new CustomEvent("fileUpdated", {
-        detail: {
-          name: copyName,
-          path: copyPath,
-        },
-      });
-      window.dispatchEvent(event);
+        // Fetch content for the selected file
+        let contentToCopy: string | Blob | undefined;
+        // Determine store based on selectedFile.path, not currentPath
+        const storeName = selectedFile.path.startsWith("/Documents/") ? STORES.DOCUMENTS : selectedFile.path.startsWith("/Images/") ? STORES.IMAGES : null;
+        if (storeName) {
+            const contentData = await dbOperations.get<any>(storeName, selectedFile.name); // Use any type for simplicity here
+            if (contentData) {
+                contentToCopy = contentData.content;
+            }
+        }
+
+        if (contentToCopy === undefined) {
+            console.error("Could not retrieve content for duplication:", selectedFile.path);
+            return; // Or show an error
+        }
+
+        // Use saveFile to create the duplicate
+        await saveFile({
+            name: copyName,
+            path: copyPath,
+            content: contentToCopy,
+            type: selectedFile.type,
+        });
+
+        // Select the new file (optional)
+        // Need to get the updated files list from the hook/store to find the new item
+        // This might require a slight delay or relying on the store update triggering a re-render
+        // For now, let's skip auto-selection after duplication to avoid complexity.
+        // const newItem = files.find(f => f.path === copyPath);
+        // if (newItem) {
+        //     originalSetSelectedFile(newItem);
+        // }
+
     } catch (err) {
-      console.error("Error duplicating file:", err);
+        console.error("Error duplicating file:", err);
     }
   };
 
   const handleRestore = () => {
     if (!selectedFile) return;
+    // restoreFromTrash now expects the DisplayFileItem from the UI
     restoreFromTrash(selectedFile);
   };
+
+  // --- New Folder State & Handlers --- //
+  const [isNewFolderDialogOpen, setIsNewFolderDialogOpen] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("untitled folder");
+
+  const handleNewFolder = () => {
+      // Find a unique default name
+      let folderIndex = 0;
+      let defaultName = "untitled folder";
+      const basePath = currentPath === '/' ? '' : currentPath;
+      let folderPath = `${basePath}/${defaultName}`;
+      while (fileStore.getItem(folderPath)) {
+          folderIndex++;
+          defaultName = `untitled folder ${folderIndex}`;
+          folderPath = `${basePath}/${defaultName}`;
+      }
+      setNewFolderName(defaultName);
+      setIsNewFolderDialogOpen(true);
+  };
+
+  const handleNewFolderSubmit = (name: string) => {
+      if (!name || !name.trim()) return;
+      const trimmedName = name.trim();
+      const basePath = currentPath === '/' ? '' : currentPath;
+      const newPath = `${basePath}/${trimmedName}`;
+
+      // Use the createFolder function from the hook
+      createFolder({ path: newPath, name: trimmedName });
+
+      // No need to manually add to fileStore here
+      // const newFolderItem: FileSystemItem = { ... };
+      // fileStore.addItem(newFolderItem);
+
+      setIsNewFolderDialogOpen(false);
+  };
+
+  // Determine if folder creation is allowed in the current path
+  const canCreateFolder = currentPath === '/Documents' || currentPath === '/Images' || currentPath.startsWith('/Documents/') || currentPath.startsWith('/Images/');
 
   if (!isWindowOpen) return null;
 
@@ -381,11 +498,8 @@ export function FinderAppComponent({
         onMoveToTrash={moveToTrash}
         onEmptyTrash={handleEmptyTrash}
         onRestore={handleRestore}
-        isTrashEmpty={trashItems.length === 0}
-        isInTrash={Boolean(
-          selectedFile?.path === "/Trash" ||
-            selectedFile?.path.startsWith("/Trash/")
-        )}
+        isTrashEmpty={trashItemsCount === 0}
+        isInTrash={Boolean(selectedFile?.path.startsWith("/Trash"))}
         onNavigateBack={navigateBack}
         onNavigateForward={navigateForward}
         canNavigateBack={canNavigateBack()}
@@ -394,6 +508,8 @@ export function FinderAppComponent({
         onImportFile={handleImportFile}
         onRename={handleRename}
         onDuplicate={handleDuplicate}
+        onNewFolder={handleNewFolder}
+        canCreateFolder={canCreateFolder}
       />
       <input
         type="file"
@@ -503,6 +619,7 @@ export function FinderAppComponent({
                 onFileSelect={handleFileSelect}
                 selectedFile={selectedFile}
                 viewType={viewType}
+                getFileType={getFileType}
               />
             )}
           </div>
@@ -539,10 +656,19 @@ export function FinderAppComponent({
         isOpen={isRenameDialogOpen}
         onOpenChange={setIsRenameDialogOpen}
         onSubmit={handleRenameSubmit}
-        title="Rename File"
-        description="Enter a new name for the file"
+        title="Rename Item"
+        description={`Enter a new name for "${selectedFile?.name || 'item'}"`}
         value={renameValue}
         onChange={setRenameValue}
+      />
+      <InputDialog
+        isOpen={isNewFolderDialogOpen}
+        onOpenChange={setIsNewFolderDialogOpen}
+        onSubmit={handleNewFolderSubmit}
+        title="New Folder"
+        description="Enter a name for the new folder:"
+        value={newFolderName}
+        onChange={setNewFolderName}
       />
     </>
   );

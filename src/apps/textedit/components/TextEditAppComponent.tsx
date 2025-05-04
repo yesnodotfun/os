@@ -16,7 +16,7 @@ import { appMetadata, helpItems } from "..";
 import { useTextEditStore } from "@/stores/useTextEditStore";
 import { SlashCommands } from "../extensions/SlashCommands";
 import { useFileSystem } from "@/apps/finder/hooks/useFileSystem";
-import { dbOperations, STORES, Document } from "@/apps/finder/hooks/useFileSystem";
+import { dbOperations, STORES, DocumentContent } from "@/apps/finder/hooks/useFileSystem";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,6 +29,7 @@ import { useLaunchApp } from "@/hooks/useLaunchApp";
 import { useSound, Sounds } from "@/hooks/useSound";
 import { htmlToMarkdown, markdownToHtml, htmlToPlainText } from "@/utils/markdown";
 import { saveAsMarkdown } from "@/utils/markdown/saveUtils";
+import { useAppStore } from "@/stores/useAppStore";
 
 // Function to remove file extension
 const removeFileExtension = (filename: string): string => {
@@ -56,6 +57,7 @@ export function TextEditAppComponent({
   onClose,
   isForeground,
   skipInitialSound,
+  initialData,
 }: AppProps) {
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
@@ -67,6 +69,7 @@ export function TextEditAppComponent({
   const launchApp = useLaunchApp();
   const { play: playButtonClick } = useSound(Sounds.BUTTON_CLICK);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const clearInitialData = useAppStore((state) => state.clearInitialData);
 
   // Zustand TextEdit store
   const {
@@ -82,6 +85,7 @@ export function TextEditAppComponent({
 
   // Local UI-only state for Save dialog filename
   const [saveFileName, setSaveFileName] = useState("");
+  const editorContentRef = useRef<string>(""); // Ref to store latest markdown content for debounced save
 
   const editor = useEditor({
     extensions: [
@@ -104,47 +108,88 @@ export function TextEditAppComponent({
       },
     },
     onUpdate: ({ editor }) => {
-      // Get HTML content and convert to Markdown
-      const htmlContent = editor.getHTML();
-      const markdownContent = htmlToMarkdown(htmlContent);
-      
-      // Store both JSON for internal use and Markdown for file saving
-      const jsonContent = editor.getJSON();
-      
-      // Persist to zustand store for recovery
-      setContentJson(jsonContent);
-
-      if (currentFilePath) {
-        // If we have a current file path, autosave to that location
-        const fileName = currentFilePath.split("/").pop() || "Untitled";
-        // Dispatch saveFile event instead of directly calling saveFile
-        const saveEvent = new CustomEvent("saveFile", {
-          detail: {
-            name: fileName,
-            path: currentFilePath,
-            content: markdownContent, // Save as Markdown instead of JSON
-            icon: "/icons/file-text.png",
-            isDirectory: false,
-          },
-        });
-        window.dispatchEvent(saveEvent);
+      // Only mark changes and store latest content/JSON in onUpdate
+      const currentJson = editor.getJSON();
+      setContentJson(currentJson); // Update store JSON for recovery
+      editorContentRef.current = htmlToMarkdown(editor.getHTML()); // Store latest markdown
+      if (!hasUnsavedChanges) {
+        setHasUnsavedChanges(true);
       }
-
-      setHasUnsavedChanges(true);
     },
   });
 
-  // Initial load - try to restore last opened file or pending content
+  // --- Debounced Autosave Effect --- //
   useEffect(() => {
-    if (editor) {
-      const loadInitialContent = async () => {
+    // Only run if there are changes and a file path exists
+    if (hasUnsavedChanges && currentFilePath) {
+      console.log("[TextEdit] Changes detected, scheduling autosave for:", currentFilePath);
+      const handler = setTimeout(async () => {
+        console.log("[TextEdit] Autosaving:", currentFilePath);
+        const fileName = currentFilePath.split("/").pop() || "Untitled";
+        try {
+          await saveFile({
+            name: fileName,
+            path: currentFilePath,
+            content: editorContentRef.current, // Save the latest markdown content from ref
+          });
+          setHasUnsavedChanges(false); // Mark as saved after successful save
+          console.log("[TextEdit] Autosave successful:", currentFilePath);
+        } catch (error) {
+            console.error("[TextEdit] Autosave failed:", error);
+            // Optionally notify user or leave hasUnsavedChanges true
+        }
+      }, 1500); // Autosave after 1.5 seconds of inactivity
+
+      // Cleanup function to clear timeout if changes occur before saving
+      return () => {
+        console.log("[TextEdit] Keystroke detected, clearing autosave timeout.");
+        clearTimeout(handler);
+      };
+    }
+  }, [hasUnsavedChanges, currentFilePath, saveFile]); // Dependencies: trigger on change flag or path change
+  // --- End Autosave Effect --- //
+
+  // Initial load - Restore last session or use initialData
+  useEffect(() => {
+    if (!editor) return;
+
+    const loadContent = async () => {
+        // Prioritize initialData passed from launch event
+        if (initialData?.path && initialData?.content !== undefined) {
+            console.log("[TextEdit] Loading content from initialData:", initialData.path);
+            const { path, content } = initialData;
+            const contentToUse = typeof content === "string" ? content : "";
+            let editorContent: string | object;
+
+            if (path.endsWith(".md")) {
+                editorContent = markdownToHtml(contentToUse);
+            } else {
+                try {
+                    editorContent = JSON.parse(contentToUse);
+                } catch {
+                    editorContent = `<p>${contentToUse}</p>`;
+                }
+            }
+
+            editor.commands.setContent(editorContent, false);
+            setCurrentFilePath(path);
+            setHasUnsavedChanges(false);
+            setLastFilePath(path);
+            setContentJson(editor.getJSON());
+
+            // Clear the initialData from the store now that we've consumed it
+            clearInitialData('textedit');
+            return; // Don't proceed to load from store/DB if initialData was used
+        }
+
+        // If no initialData, load from store/DB as before
         const { lastFilePath, contentJson } = useTextEditStore.getState();
         let loadedContent = false;
 
         if (lastFilePath?.startsWith("/Documents/")) {
           try {
             const fileName = getFileNameFromPath(lastFilePath);
-            const doc = await dbOperations.get<Document>(STORES.DOCUMENTS, fileName);
+            const doc = await dbOperations.get<DocumentContent>(STORES.DOCUMENTS, fileName);
 
             if (doc?.content) {
               const contentStr = await getContentAsString(doc.content);
@@ -186,11 +231,11 @@ export function TextEditAppComponent({
              console.warn("Failed to restore stored TextEdit content:", err);
            }
         }
-      };
+    };
 
-      loadInitialContent();
-    }
-  }, [editor]); // Run only when editor is initialized
+    loadContent();
+
+  }, [editor, initialData]);
 
   // Add listeners for external document updates (like from Chat app)
   useEffect(() => {
@@ -287,111 +332,6 @@ export function TextEditAppComponent({
     };
   }, [editor, currentFilePath]);
 
-  // Check for pending file open when window becomes active
-  useEffect(() => {
-    if (isForeground && editor) {
-      console.log("Checking for pending file open");
-      const pendingFileOpen = localStorage.getItem("pending_file_open");
-      if (pendingFileOpen) {
-        try {
-          const { path, content } = JSON.parse(pendingFileOpen);
-          if (path.startsWith("/Documents/")) {
-            // Only show discard changes warning if we have unsaved changes in an untitled document
-            if (hasUnsavedChanges && !currentFilePath) {
-              setIsConfirmNewDialogOpen(true);
-            } else {
-              editor.commands.clearContent();
-
-              // Handle content that could be string or a Blob URL
-              const processContent = async () => {
-                let contentToUse: string;
-
-                // Check if content is a Blob URL (starts with blob:)
-                if (
-                  typeof content === "string" &&
-                  content.startsWith("blob:")
-                ) {
-                  try {
-                    const response = await fetch(content);
-                    contentToUse = await response.text();
-                  } catch (error) {
-                    console.error("Error fetching blob URL:", error);
-                    contentToUse = "";
-                  }
-                } else {
-                  contentToUse = typeof content === "string" ? content : "";
-                }
-
-                // When opening a new file, always use markdown parser for .md files
-                if (path.endsWith(".md")) {
-                  // Convert markdown to HTML and set content
-                  const htmlContent = markdownToHtml(contentToUse);
-                  editor.commands.setContent(htmlContent);
-                  
-                  // Save directly as markdown
-                  const fileName = path.split("/").pop() || "Untitled";
-                  saveFile({
-                    name: fileName,
-                    path: path,
-                    content: contentToUse, // Save original markdown content
-                    icon: "/icons/file-text.png",
-                    isDirectory: false,
-                  });
-                } else {
-                  try {
-                    // Try to parse as JSON first
-                    const jsonContent = JSON.parse(contentToUse);
-                    editor.commands.setContent(jsonContent);
-                    
-                    // Convert to markdown for saving
-                    const markdownContent = htmlToMarkdown(editor.getHTML());
-                    // Save the file to ensure it's registered for autosaving
-                    const fileName = path.split("/").pop() || "Untitled";
-                    saveFile({
-                      name: fileName,
-                      path: path,
-                      content: markdownContent,
-                      icon: "/icons/file-text.png",
-                      isDirectory: false,
-                    });
-                  } catch {
-                    // If not JSON, process as plain text
-                    editor.commands.setContent(`<p>${contentToUse}</p>`);
-                    
-                    // Convert to markdown for saving
-                    const markdownContent = htmlToMarkdown(editor.getHTML());
-                    // Save the processed content
-                    const fileName = path.split("/").pop() || "Untitled";
-                    saveFile({
-                      name: fileName,
-                      path: path,
-                      content: markdownContent,
-                      icon: "/icons/file-text.png",
-                      isDirectory: false,
-                    });
-                  }
-                }
-                
-                setCurrentFilePath(path);
-                setHasUnsavedChanges(false);
-                // Store the file path for next time
-                setLastFilePath(path);
-                // Store JSON for internal recovery
-                setContentJson(editor.getJSON());
-              };
-
-              processContent();
-            }
-          }
-        } catch (e) {
-          console.error("Failed to parse pending file open data:", e);
-        } finally {
-          localStorage.removeItem("pending_file_open");
-        }
-      }
-    }
-  }, [isForeground, editor]);
-
   const handleTranscriptionComplete = (text: string) => {
     setIsTranscribing(false);
     if (editor) {
@@ -474,12 +414,12 @@ export function TextEditAppComponent({
       setIsSaveDialogOpen(true);
       setSaveFileName(`${firstLine || "Untitled"}.md`);
     } else {
-      // Use shared utility to save as markdown
+      // Use shared utility to save as markdown, passing the saveFile hook
       const { jsonContent } = saveAsMarkdown(editor, {
         name: currentFilePath.split("/").pop() || "Untitled",
         path: currentFilePath
-      });
-      
+      }, saveFile); // Pass the hook function
+
       // Store JSON content in case app crashes
       setContentJson(jsonContent);
       
@@ -497,11 +437,11 @@ export function TextEditAppComponent({
       fileName.endsWith(".md") ? "" : ".md"
     }`;
 
-    // Use shared utility to save as markdown
+    // Use shared utility to save as markdown, passing the saveFile hook
     const { jsonContent } = saveAsMarkdown(editor, {
       name: fileName,
       path: filePath
-    });
+    }, saveFile); // Pass the hook function
 
     // Store JSON content in case app crashes (for editor recovery)
     setContentJson(jsonContent);
@@ -535,7 +475,7 @@ export function TextEditAppComponent({
       const filePath = `/Documents/${file.name}`;
       
       // Always save in markdown format, converting from HTML if needed
-      const markdownContent = file.name.endsWith(".md") 
+      const markdownContent = file.name.endsWith(".md")
         ? text // Use original markdown if it's already markdown
         : htmlToMarkdown(editor.getHTML()); // Convert to markdown otherwise
 
@@ -544,8 +484,6 @@ export function TextEditAppComponent({
         name: file.name,
         path: filePath,
         content: markdownContent,
-        icon: "/icons/file-text.png",
-        isDirectory: false,
       });
 
       setCurrentFilePath(filePath);
@@ -662,8 +600,6 @@ export function TextEditAppComponent({
           name: file.name,
           path: filePath,
           content: markdownContent,
-          icon: "/icons/file-text.png",
-          isDirectory: false,
         });
 
         setCurrentFilePath(filePath);

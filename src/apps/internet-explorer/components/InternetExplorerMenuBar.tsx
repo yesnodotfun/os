@@ -49,6 +49,58 @@ interface InternetExplorerMenuBarProps extends Omit<AppProps, "onClose"> {
   onSharePage?: () => void;
 }
 
+// Recursive function to render favorite items or submenus
+const renderFavoriteItem = (
+  favorite: Favorite,
+  onNavigate: (url: string, year?: string) => void,
+) => {
+  if (favorite.children && favorite.children.length > 0) {
+    // Render as a submenu (folder)
+    return (
+      <DropdownMenuSub key={favorite.title}>
+        <DropdownMenuSubTrigger className="text-md h-6 px-3 active:bg-gray-900 active:text-white flex items-center gap-2">
+          <img
+            src={"/icons/directory.png"} // Use folder icon
+            alt="Folder"
+            className="w-4 h-4"
+          />
+          {favorite.title}
+        </DropdownMenuSubTrigger>
+        <DropdownMenuSubContent className="max-w-xs">
+          {favorite.children.map((child) => renderFavoriteItem(child, onNavigate))}
+        </DropdownMenuSubContent>
+      </DropdownMenuSub>
+    );
+  } else if (favorite.url) {
+    // Render as a regular favorite item
+    return (
+      <DropdownMenuItem
+        key={favorite.url}
+        onClick={() => onNavigate(favorite.url!, favorite.year)}
+        className="text-md h-6 px-3 active:bg-gray-900 active:text-white flex items-center gap-2"
+      >
+        <img
+          src={favorite.favicon || "/icons/ie-site.png"}
+          alt=""
+          className="w-4 h-4"
+          onError={(e) => {
+            e.currentTarget.src = "/icons/ie-site.png";
+          }}
+        />
+        {favorite.title}
+        {favorite.year && favorite.year !== "current" && (
+          <span className="text-xs text-gray-500 ml-1">
+            ({favorite.year})
+          </span>
+        )}
+      </DropdownMenuItem>
+    );
+  } else {
+    // Should not happen for valid data, but return null as fallback
+    return null;
+  }
+};
+
 export function InternetExplorerMenuBar({
   onRefresh,
   onStop,
@@ -513,30 +565,9 @@ export function InternetExplorerMenuBar({
           {favorites.length > 0 && (
             <>
               <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
-              {favorites.map((favorite) => (
-                <DropdownMenuItem
-                  key={favorite.url}
-                  onClick={() =>
-                    onNavigateToFavorite?.(favorite.url, favorite.year)
-                  }
-                  className="text-md h-6 px-3 active:bg-gray-900 active:text-white flex items-center gap-2"
-                >
-                  <img
-                    src={favorite.favicon || "/icons/ie-site.png"}
-                    alt=""
-                    className="w-4 h-4"
-                    onError={(e) => {
-                      e.currentTarget.src = "/icons/ie-site.png";
-                    }}
-                  />
-                  {favorite.title}
-                  {favorite.year && favorite.year !== "current" && (
-                    <span className="text-xs text-gray-500">
-                      ({favorite.year})
-                    </span>
-                  )}
-                </DropdownMenuItem>
-              ))}
+              {favorites.map((favorite) =>
+                renderFavoriteItem(favorite, (url, year) => onNavigateToFavorite?.(url, year))
+              )}
               <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
               <DropdownMenuItem
                 onClick={onClearFavorites}
