@@ -237,7 +237,7 @@ export function IpodMenuBar({
             Library
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" sideOffset={1} className="px-0 max-w-xs">
+        <DropdownMenuContent align="start" sideOffset={1} className="px-0 max-w-[180px] sm:max-w-[220px]">
           <DropdownMenuItem
             onClick={onAddTrack}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
@@ -252,11 +252,11 @@ export function IpodMenuBar({
               {/* All Tracks section */}
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
-                  <div className="flex justify-between w-full items-center">
-                    <span>All Tracks</span>
+                  <div className="flex justify-between w-full items-center overflow-hidden">
+                    <span className="truncate min-w-0">All Tracks</span>
                   </div>
                 </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent className="px-0 max-w-xs">
+                <DropdownMenuSubContent className="px-0 max-w-[180px] sm:max-w-[220px]">
                   {tracks.map((track, index) => (
                     <DropdownMenuItem
                       key={`all-${track.id}`}
@@ -266,16 +266,16 @@ export function IpodMenuBar({
                         index === currentIndex && "bg-gray-200"
                       )}
                     >
-                      <div className="flex items-center w-full truncate">
+                      <div className="flex items-center w-full">
                         <span
                           className={cn(
-                            "flex-none",
+                            "flex-none whitespace-nowrap",
                             index === currentIndex ? "mr-1" : "pl-5"
                           )}
                         >
                           {index === currentIndex ? "♪ " : ""}
                         </span>
-                        <span className="truncate">{track.title}</span>
+                        <span className="truncate min-w-0">{track.title}</span>
                       </div>
                     </DropdownMenuItem>
                   ))}
@@ -286,30 +286,30 @@ export function IpodMenuBar({
               {artists.map((artist) => (
                 <DropdownMenuSub key={artist}>
                   <DropdownMenuSubTrigger className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
-                    <div className="flex justify-between w-full items-center">
-                      <span>{artist}</span>
+                    <div className="flex justify-between w-full items-center overflow-hidden">
+                      <span className="truncate min-w-0">{artist}</span>
                     </div>
                   </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent className="px-0 max-w-xs">
+                  <DropdownMenuSubContent className="px-0 max-w-[180px] sm:max-w-[220px]">
                     {tracksByArtist[artist].map(({ track, index }) => (
                       <DropdownMenuItem
                         key={`${artist}-${track.id}`}
                         onClick={() => handlePlayTrack(index)}
                         className={cn(
-                          "text-md h-6 px-3 active:bg-gray-900 active:text-white max-w-[220px] truncate",
+                          "text-md h-6 px-3 active:bg-gray-900 active:text-white max-w-[160px] sm:max-w-[200px] truncate",
                           index === currentIndex && "bg-gray-200"
                         )}
                       >
-                        <div className="flex items-center w-full truncate">
+                        <div className="flex items-center w-full">
                           <span
                             className={cn(
-                              "flex-none",
+                              "flex-none whitespace-nowrap",
                               index === currentIndex ? "mr-1" : "pl-5"
                             )}
                           >
                             {index === currentIndex ? "♪ " : ""}
                           </span>
-                          <span className="truncate">{track.title}</span>
+                          <span className="truncate min-w-0">{track.title}</span>
                         </div>
                       </DropdownMenuItem>
                     ))}

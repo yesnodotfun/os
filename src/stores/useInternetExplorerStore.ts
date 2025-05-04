@@ -208,7 +208,7 @@ export const DEFAULT_FAVORITES: Favorite[] = [
         title: "Netscape",
         url: "https://netscape.com", // Might redirect or be an archive
         favicon: "https://www.google.com/s2/favicons?domain=netscape.com&sz=32",
-        year: "1994",
+        year: "1996",
         isDirectory: false,
       },
       {
