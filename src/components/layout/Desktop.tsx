@@ -20,7 +20,6 @@ interface DesktopProps {
   toggleApp: (appId: AppId, initialData?: any) => void;
   onClick?: () => void;
   desktopStyles?: DesktopStyles;
-  wallpaperPath: string;
 }
 
 export function Desktop({
@@ -28,58 +27,13 @@ export function Desktop({
   toggleApp,
   onClick,
   desktopStyles,
-  wallpaperPath,
 }: DesktopProps) {
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
   const {
-    currentWallpaper,
     wallpaperSource,
     isVideoWallpaper,
-    INDEXEDDB_PREFIX,
-    getWallpaperData,
   } = useWallpaper();
-  const [displaySource, setDisplaySource] = useState<string>("");
   const videoRef = useRef<HTMLVideoElement>(null);
-
-  // Keep displaySource in sync with wallpaperSource and currentWallpaper
-  useEffect(() => {
-    setDisplaySource(wallpaperSource);
-  }, [wallpaperSource, currentWallpaper]);
-
-  // Initialize wallpaperPath from props
-  useEffect(() => {
-    if (wallpaperPath && wallpaperPath !== currentWallpaper) {
-      setDisplaySource(wallpaperPath);
-    }
-  }, [wallpaperPath, currentWallpaper]);
-
-  // Listen for wallpaper changes
-  useEffect(() => {
-    const handleWallpaperChange = async (e: CustomEvent<string>) => {
-      const newWallpaper = e.detail;
-
-      if (newWallpaper.startsWith(INDEXEDDB_PREFIX)) {
-        const data = await getWallpaperData(newWallpaper);
-        if (data) {
-          setDisplaySource(data);
-        } else {
-          setDisplaySource(newWallpaper);
-        }
-      } else {
-        setDisplaySource(newWallpaper);
-      }
-    };
-
-    window.addEventListener(
-      "wallpaperChange",
-      handleWallpaperChange as unknown as EventListener
-    );
-    return () =>
-      window.removeEventListener(
-        "wallpaperChange",
-        handleWallpaperChange as unknown as EventListener
-      );
-  }, [INDEXEDDB_PREFIX, getWallpaperData]);
 
   // Add visibility change and focus handlers to resume video playback
   useEffect(() => {
@@ -152,15 +106,7 @@ export function Desktop({
   }, [isVideoWallpaper]);
 
   const getWallpaperStyles = (path: string): DesktopStyles => {
-    if (!path) return {};
-
-    if (
-      path.endsWith(".mp4") ||
-      path.includes("video/") ||
-      (path.startsWith("https://") && /\.(mp4|webm|ogg)($|\?)/.test(path))
-    ) {
-      return {};
-    }
+    if (!path || isVideoWallpaper) return {};
 
     const isTiled = path.includes("/wallpapers/tiles/");
     return {
@@ -173,7 +119,7 @@ export function Desktop({
   };
 
   const finalStyles = {
-    ...getWallpaperStyles(displaySource),
+    ...getWallpaperStyles(wallpaperSource),
     ...desktopStyles,
   };
 
@@ -204,7 +150,7 @@ export function Desktop({
       <video
         ref={videoRef}
         className="absolute inset-0 w-full h-full object-cover z-[-10]"
-        src={displaySource}
+        src={wallpaperSource}
         autoPlay
         loop
         muted

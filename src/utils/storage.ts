@@ -564,20 +564,6 @@ export const calculateStorageSpace = () => {
 };
 
 // Add new functions for control panel settings
-export const loadWallpaper = (): string => {
-  return (
-    localStorage.getItem(APP_STORAGE_KEYS["control-panels"].WALLPAPER) ||
-    "/wallpapers/videos/blue_flowers_loop.mp4"
-  );
-};
-
-export const saveWallpaper = (wallpaperUrl: string): void => {
-  localStorage.setItem(
-    APP_STORAGE_KEYS["control-panels"].WALLPAPER,
-    wallpaperUrl
-  );
-};
-
 export const loadUISoundsEnabled = (): boolean => {
   return (
     localStorage.getItem(

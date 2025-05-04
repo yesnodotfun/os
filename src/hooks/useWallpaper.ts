@@ -1,9 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import {
-  loadWallpaper,
-  saveWallpaper,
-  ensureIndexedDBInitialized,
-} from "@/utils/storage";
+import { ensureIndexedDBInitialized } from "@/utils/storage";
+import { useAppStore } from "@/stores/useAppStore";
 
 // Store loading state for video wallpapers
 const videoLoadingStates: Record<string, boolean> = {};
@@ -16,8 +13,10 @@ const CUSTOM_WALLPAPERS_STORE = "custom_wallpapers";
 const INDEXEDDB_PREFIX = "indexeddb://";
 
 export function useWallpaper() {
-  const [currentWallpaper, setCurrentWallpaper] =
-    useState<string>(loadWallpaper);
+  // Get state and setter from Zustand store
+  const currentWallpaper = useAppStore((state) => state.currentWallpaper);
+  const setCurrentWallpaperInStore = useAppStore((state) => state.setCurrentWallpaper);
+
   const [isVideoLoading, setIsVideoLoading] = useState<boolean>(false);
   const [actualWallpaperData, setActualWallpaperData] = useState<string | null>(
     null
@@ -166,18 +165,6 @@ export function useWallpaper() {
     actualWallpaperData,
     isIndexedDBReference,
   ]);
-
-  // Listen for wallpaper changes in localStorage from other windows
-  useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === "control-panels:wallpaper") {
-        setCurrentWallpaper(loadWallpaper());
-      }
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
-  }, []);
 
   // Helper function to convert a data URL to a Blob
   const dataURLToBlob = (dataURL: string): Blob | null => {
@@ -381,10 +368,9 @@ export function useWallpaper() {
       wallpaperPath = path;
     }
 
-    // Update state immediately for the current window
-    setCurrentWallpaper(wallpaperPath);
-    // Save to localStorage for persistence and other windows
-    saveWallpaper(wallpaperPath);
+    // Update state via Zustand store action
+    setCurrentWallpaperInStore(wallpaperPath);
+
     // Dispatch a custom event for other components in the same window
     window.dispatchEvent(
       new CustomEvent("wallpaperChange", { detail: wallpaperPath })

@@ -55,6 +55,8 @@ interface AppStoreState extends AppManagerState {
   navigateToPreviousApp: (currentAppId: AppId) => void;
   clearInitialData: (appId: AppId) => void;
   launchOrFocusApp: (appId: AppId, initialData?: any) => void;
+  currentWallpaper: string;
+  setCurrentWallpaper: (wallpaperPath: string) => void;
 }
 
 // Run the check once on script load
@@ -74,6 +76,8 @@ export const useAppStore = create<AppStoreState>()(
       setAiModel: (model) => set({ aiModel: model }),
       terminalSoundsEnabled: true, // Default to true for terminal/IE sounds
       setTerminalSoundsEnabled: (enabled) => set({ terminalSoundsEnabled: enabled }),
+      currentWallpaper: "/wallpapers/videos/blue_flowers_loop.mp4", // Default wallpaper
+      setCurrentWallpaper: (wallpaperPath) => set({ currentWallpaper: wallpaperPath }),
 
       bringToForeground: (appId) => {
         set((state) => {
@@ -320,6 +324,7 @@ export const useAppStore = create<AppStoreState>()(
         selectedShaderType: state.selectedShaderType,
         aiModel: state.aiModel,
         terminalSoundsEnabled: state.terminalSoundsEnabled,
+        currentWallpaper: state.currentWallpaper,
       }),
     }
   )
