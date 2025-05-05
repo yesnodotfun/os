@@ -334,7 +334,12 @@ function ChatMessagesContent({
                   </motion.button>
                 </>
               )}
-              {message.username || (message.role === "user" ? "You" : "Ryo")}{" "}
+              <span 
+                className="max-w-[120px] inline-block overflow-hidden text-ellipsis whitespace-nowrap"
+                title={message.username || (message.role === "user" ? "You" : "Ryo")}
+              >
+                {message.username || (message.role === "user" ? "You" : "Ryo")}
+              </span>{" "}
               <span className="text-gray-400 select-text">
                 {message.createdAt ? (
                   (() => {
