@@ -265,7 +265,6 @@ export function IpodAppComponent({
               if (useIpodStore.getState().showVideo) {
                 toggleVideo();
               }
-              showStatus(`Now Playing: ${track.title}`);
             },
             showChevron: false,
           }));
@@ -299,7 +298,6 @@ export function IpodAppComponent({
               if (useIpodStore.getState().showVideo) {
                 toggleVideo();
               }
-              showStatus(`Now Playing: ${track.title}`);
             },
             showChevron: false,
           }));
@@ -676,7 +674,6 @@ export function IpodAppComponent({
               if (useIpodStore.getState().showVideo) {
                 toggleVideo();
               }
-              showStatus(`Now Playing: ${track.title}`);
             },
             showChevron: false,
           })),
@@ -710,7 +707,6 @@ export function IpodAppComponent({
                   if (useIpodStore.getState().showVideo) {
                     toggleVideo();
                   }
-                  showStatus(`Now Playing: ${track.title}`);
                 },
                 showChevron: false,
               })),
