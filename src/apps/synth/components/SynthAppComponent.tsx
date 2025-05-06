@@ -9,16 +9,8 @@ import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { InputDialog } from "@/components/dialogs/InputDialog";
 import { helpItems, appMetadata } from "..";
-import {
-  loadSynthPresets,
-  saveSynthPresets,
-  loadSynthCurrentPreset,
-  saveSynthCurrentPreset,
-  loadSynthLabelType,
-  saveSynthLabelType,
-  APP_STORAGE_KEYS,
-  SynthPreset,
-} from "@/utils/storage";
+// Using store for all Synth settings
+import { useSynthStore, SynthPreset, NoteLabelType } from "@/stores/useSynthStore";
 import { Button } from "@/components/ui/button";
 import { useSound } from "@/hooks/useSound";
 import {
@@ -35,8 +27,7 @@ import { Waveform3D } from "./Waveform3D";
 // Define oscillator type
 type OscillatorType = "sine" | "square" | "triangle" | "sawtooth";
 
-// Define label type
-type NoteLabelType = "note" | "key" | "off";
+// NoteLabelType is now imported from useSynthStore
 
 // Function to shift note by octave
 const shiftNoteByOctave = (note: string, offset: number): string => {
@@ -201,152 +192,9 @@ export function SynthAppComponent({
     isForegroundRef.current = isForeground;
   }, [isForeground]);
 
-  // Default presets
-  const defaultPresets: SynthPreset[] = [
-    {
-      id: "default",
-      name: "Synth",
-      oscillator: {
-        type: "sine" as OscillatorType,
-      },
-      envelope: {
-        attack: 0.01,
-        decay: 0.2,
-        sustain: 0.5,
-        release: 1,
-      },
-      effects: {
-        reverb: 0.2,
-        delay: 0.2,
-        distortion: 0,
-        gain: 0.8,
-        chorus: 0,
-        phaser: 0,
-        bitcrusher: 0,
-      },
-    },
-    {
-      id: "piano",
-      name: "Piano",
-      oscillator: {
-        type: "sine" as OscillatorType,
-      },
-      envelope: {
-        attack: 0.01,
-        decay: 0.3,
-        sustain: 0.1,
-        release: 0.5,
-      },
-      effects: {
-        reverb: 0.4,
-        delay: 0.1,
-        distortion: 0,
-        gain: 0.7,
-        chorus: 0.2,
-        phaser: 0,
-        bitcrusher: 0,
-      },
-    },
-    {
-      id: "analog-pad",
-      name: "Pad",
-      oscillator: {
-        type: "triangle" as OscillatorType,
-      },
-      envelope: {
-        attack: 0.01,
-        decay: 0.3,
-        sustain: 0.7,
-        release: 2,
-      },
-      effects: {
-        reverb: 0.6,
-        delay: 0.3,
-        distortion: 0,
-        gain: 0.6,
-        chorus: 0.4,
-        phaser: 0,
-        bitcrusher: 0,
-      },
-    },
-    {
-      id: "digital-lead",
-      name: "Lead",
-      oscillator: {
-        type: "sawtooth" as OscillatorType,
-      },
-      envelope: {
-        attack: 0.02,
-        decay: 0.6,
-        sustain: 0.5,
-        release: 0.5,
-      },
-      effects: {
-        reverb: 0.5,
-        delay: 0.25,
-        distortion: 0.0,
-        gain: 0.2,
-        chorus: 0.1,
-        phaser: 0.1,
-        bitcrusher: 0.4,
-      },
-    },
-  ];
+  // Default presets are now defined in the store
 
-  const [presets, setPresets] = useState<SynthPreset[]>(() => {
-    try {
-      // Try to load saved presets on initial render
-      const savedPresets = loadSynthPresets();
-      if (savedPresets && savedPresets.length > 0) {
-        // Add default gain to presets that don't have it
-        return savedPresets.map((preset) => ({
-          ...preset,
-          effects: {
-            ...preset.effects,
-            gain: preset.effects.gain ?? 0.8, // Default to 0.8 if gain is missing
-          },
-        }));
-      }
-      return [...defaultPresets];
-    } catch (error) {
-      console.error("Error loading presets:", error);
-      return [...defaultPresets];
-    }
-  });
-
-  const [currentPreset, setCurrentPreset] = useState<SynthPreset>(() => {
-    try {
-      // Try to load saved current preset on initial render
-      const savedCurrentPreset = loadSynthCurrentPreset();
-      const savedPresets = loadSynthPresets();
-      if (
-        savedCurrentPreset &&
-        savedPresets?.find((p) => p.id === savedCurrentPreset.id)
-      ) {
-        // Add default gain if missing
-        return {
-          ...savedCurrentPreset,
-          effects: {
-            ...savedCurrentPreset.effects,
-            gain: savedCurrentPreset.effects.gain ?? 0.8, // Default to 0.8 if gain is missing
-          },
-        };
-      }
-      // Fall back to first preset if no valid saved current preset
-      return savedPresets && savedPresets.length > 0
-        ? {
-            ...savedPresets[0],
-            effects: {
-              ...savedPresets[0].effects,
-              gain: savedPresets[0].effects.gain ?? 0.8,
-            },
-          }
-        : { ...defaultPresets[0] };
-    } catch (error) {
-      console.error("Error loading current preset:", error);
-      return { ...defaultPresets[0] };
-    }
-  });
+  // Presets and currentPreset are now loaded from persisted Zustand store
 
   const [pressedNotes, setPressedNotes] = useState<Record<string, boolean>>({});
   const [activeTouches, setActiveTouches] = useState<Record<string, string>>(
@@ -455,27 +303,18 @@ export function SynthAppComponent({
 
   // Determine default label type based on screen size
   const isMobile = useMediaQuery("(max-width: 768px)");
-  const [labelType, setLabelType] = useState<NoteLabelType>(() => {
-    // Load saved label type, fallback to "off" as default
-    const savedLabelType = loadSynthLabelType();
-    return savedLabelType || "off";
-  });
+  // Use labelType from persisted store
+  const { labelType, setLabelType, presets, setPresets, currentPreset, setCurrentPreset } = useSynthStore();
 
-  // Update label type when screen size changes and save when changed
+  // Update label type when screen size changes - now using store
   useEffect(() => {
     if (!isWindowOpen) return;
 
-    // Only update to default if no saved preference exists
-    if (!localStorage.getItem(APP_STORAGE_KEYS.synth.LABEL_TYPE)) {
+    // Only update to default on mobile if no existing preference
+    if (isMobile) {
       setLabelType("off");
     }
   }, [isMobile, isWindowOpen]);
-
-  // Save label type when it changes
-  useEffect(() => {
-    if (!isWindowOpen) return;
-    saveSynthLabelType(labelType);
-  }, [labelType, isWindowOpen]);
 
   // Initialize synth and effects
   useEffect(() => {
@@ -577,19 +416,7 @@ export function SynthAppComponent({
     };
   }, [isWindowOpen]);
 
-  // Save presets when they change
-  useEffect(() => {
-    if (!isWindowOpen) return;
-    if (presets.length > 0) {
-      saveSynthPresets(presets);
-    }
-  }, [presets, isWindowOpen]);
-
-  // Save current preset when it changes
-  useEffect(() => {
-    if (!isWindowOpen) return;
-    saveSynthCurrentPreset(currentPreset);
-  }, [currentPreset, isWindowOpen]);
+  // Presets and currentPreset are now automatically saved by the Zustand store
 
   // Update synth parameters when current preset changes
   const updateSynthParams = (preset: SynthPreset) => {
@@ -740,21 +567,17 @@ export function SynthAppComponent({
   };
 
   const resetSynth = () => {
-    // Set the presets and current preset
-    const resetPresets = [...defaultPresets]; // Create a new array to trigger state update
-    setPresets(resetPresets);
-    setCurrentPreset(resetPresets[0]);
-    updateSynthParams(resetPresets[0]);
+    // Reset the store to defaults
+    useSynthStore.getState().reset();
+    updateSynthParams(currentPreset);
 
-    // Clear any saved presets
-    saveSynthPresets(resetPresets);
-    saveSynthCurrentPreset(resetPresets[0]);
+    // Store updates handled automatically by Zustand
 
     showStatus("Synth reset to defaults");
     play();
   };
 
-  // Parameter change handlers with autosave
+  // Parameter change handlers (storage handled by Zustand store)
   const handleOscillatorChange = (type: OscillatorType) => {
     const updatedPreset = {
       ...currentPreset,
@@ -763,13 +586,11 @@ export function SynthAppComponent({
     setCurrentPreset(updatedPreset);
     updateSynthParams(updatedPreset);
 
-    // Update and save presets
+    // Update presets in the store
     const updatedPresets = presets.map((p) =>
       p.id === updatedPreset.id ? updatedPreset : p
     );
     setPresets(updatedPresets);
-    saveSynthPresets(updatedPresets);
-    saveSynthCurrentPreset(updatedPreset);
   };
 
   const handleEnvelopeChange = (
@@ -786,13 +607,11 @@ export function SynthAppComponent({
     setCurrentPreset(updatedPreset);
     updateSynthParams(updatedPreset);
 
-    // Update and save presets
+    // Update presets in the store
     const updatedPresets = presets.map((p) =>
       p.id === updatedPreset.id ? updatedPreset : p
     );
     setPresets(updatedPresets);
-    saveSynthPresets(updatedPresets);
-    saveSynthCurrentPreset(updatedPreset);
   };
 
   const handleEffectChange = (
@@ -816,13 +635,11 @@ export function SynthAppComponent({
     setCurrentPreset(updatedPreset);
     updateSynthParams(updatedPreset);
 
-    // Update and save presets
+    // Update presets in the store
     const updatedPresets = presets.map((p) =>
       p.id === updatedPreset.id ? updatedPreset : p
     );
     setPresets(updatedPresets);
-    saveSynthPresets(updatedPresets);
-    saveSynthCurrentPreset(updatedPreset);
   };
 
   // Keyboard event handlers
