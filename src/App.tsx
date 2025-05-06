@@ -27,7 +27,7 @@ function App() {
       if (msg) {
         setCurrentBootMessage(msg);
       } else {
-        setCurrentBootMessage("System Starting..."); // Default message if none found
+        setCurrentBootMessage("Starting Up..."); // Default message if none found
       }
     }
   }, [isFirstBoot]);
@@ -37,7 +37,7 @@ function App() {
       <BootScreen
         isOpen={isFirstBoot}
         onOpenChange={() => {}}
-        title={currentBootMessage || "System Starting..."}
+        title={currentBootMessage || "Starting Up..."}
         onBootComplete={() => {
           setHasBooted();
           setCurrentBootMessage(null);
