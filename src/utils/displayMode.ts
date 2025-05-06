@@ -7,12 +7,7 @@ export type DisplayMode =
   | "dream"
   | "invert";
 
-export const loadDisplayMode = (): DisplayMode => {
-  return (localStorage.getItem("displayMode") as DisplayMode) || "color";
-};
-
 export const applyDisplayMode = (mode: DisplayMode) => {
-  localStorage.setItem("displayMode", mode);
   const root = document.documentElement;
   root.style.filter = "none";
   root.classList.remove("crt-effect");

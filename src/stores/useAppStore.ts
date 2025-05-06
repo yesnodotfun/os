@@ -4,6 +4,8 @@ import { AppId } from "@/config/appRegistry";
 import { AppManagerState, AppState } from "@/apps/base/types";
 import { checkShaderPerformance } from "@/utils/performanceCheck";
 import { ShaderType } from "@/components/shared/GalaxyBackground";
+import { DisplayMode } from "@/utils/displayMode";
+import { clearNextBootMessage } from "@/utils/bootMessage";
 
 // Define available AI models (matching API options from chat.ts)
 export type AIModel = "gpt-4o" | "gpt-4.1" | "gpt-4.1-mini" | "claude-3.5" | "claude-3.7" | "o3-mini" | "gemini-2.5-pro-exp-03-25" | null;
@@ -55,6 +57,8 @@ interface AppStoreState extends AppManagerState {
   setTypingSynthEnabled: (enabled: boolean) => void;
   synthPreset: string;
   setSynthPreset: (preset: string) => void;
+  displayMode: DisplayMode;
+  setDisplayMode: (mode: DisplayMode) => void;
   updateWindowState: (
     appId: AppId,
     position: { x: number; y: number },
@@ -69,6 +73,8 @@ interface AppStoreState extends AppManagerState {
   launchOrFocusApp: (appId: AppId, initialData?: any) => void;
   currentWallpaper: string;
   setCurrentWallpaper: (wallpaperPath: string) => void;
+  isFirstBoot: boolean;
+  setHasBooted: () => void;
 }
 
 // Run the check once on script load
@@ -94,6 +100,13 @@ export const useAppStore = create<AppStoreState>()(
       setTypingSynthEnabled: (enabled) => set({ typingSynthEnabled: enabled }),
       synthPreset: "classic",
       setSynthPreset: (preset) => set({ synthPreset: preset }),
+      displayMode: "color",
+      setDisplayMode: (mode) => set({ displayMode: mode }),
+      isFirstBoot: true,
+      setHasBooted: () => {
+        set({ isFirstBoot: false });
+        clearNextBootMessage();
+      },
       updateWindowState: (appId, position, size) =>
         set((state) => ({
           apps: {
@@ -357,6 +370,8 @@ export const useAppStore = create<AppStoreState>()(
         typingSynthEnabled: state.typingSynthEnabled,
         synthPreset: state.synthPreset,
         currentWallpaper: state.currentWallpaper,
+        displayMode: state.displayMode,
+        isFirstBoot: state.isFirstBoot,
       }),
     }
   )

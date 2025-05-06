@@ -11,10 +11,9 @@ import { useWallpaper } from "@/hooks/useWallpaper";
 import { useSound, Sounds } from "@/hooks/useSound";
 import {
   DisplayMode,
-  loadDisplayMode,
-  applyDisplayMode,
 } from "@/utils/displayMode";
 import { Plus } from "lucide-react";
+import { useAppStore } from "@/stores/useAppStore";
 
 // Remove unused constants
 interface WallpaperItemProps {
@@ -313,9 +312,7 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
   } = useWallpaper();
 
   const { play: playClick } = useSound(Sounds.BUTTON_CLICK, 0.3);
-  const [displayMode, setDisplayMode] = useState<DisplayMode>(() =>
-    loadDisplayMode()
-  );
+  const { displayMode, setDisplayMode } = useAppStore();
   const [customWallpaperRefs, setCustomWallpaperRefs] = useState<string[]>([]);
   const [customWallpaperPreviews, setCustomWallpaperPreviews] = useState<
     Record<string, string>
@@ -447,11 +444,6 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
       .join(" ");
   };
 
-  const handleDisplayModeChange = (mode: DisplayMode) => {
-    setDisplayMode(mode);
-    applyDisplayMode(mode);
-  };
-
   // Determine if a wallpaper is a video
   const isVideoWallpaper = (path: string, previewUrl?: string) => {
     const url = previewUrl || path;
@@ -499,10 +491,9 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
             </SelectContent>
           </Select>
         </div>
-
-        <Select value={displayMode} onValueChange={handleDisplayModeChange}>
+        <Select value={displayMode} onValueChange={(value) => setDisplayMode(value as DisplayMode)}>
           <SelectTrigger className="w-[120px]">
-            <SelectValue />
+            <SelectValue placeholder="Display Mode"/>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="color">Color</SelectItem>

@@ -4,7 +4,6 @@ import { ControlPanelsMenuBar } from "./ControlPanelsMenuBar";
 import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
-import { BootScreen } from "@/components/dialogs/BootScreen";
 import { helpItems, appMetadata } from "..";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -26,6 +25,8 @@ import {
 import { SYNTH_PRESETS } from "@/hooks/useChatSynth";
 import { useFileSystem } from "@/apps/finder/hooks/useFileSystem";
 import { useAppStore, AIModel } from "@/stores/useAppStore";
+import { DisplayMode } from "@/utils/displayMode";
+import { setNextBootMessage, clearNextBootMessage } from "@/utils/bootMessage";
 
 type PhotoCategory =
   | "3d_graphics"
@@ -170,9 +171,6 @@ export function ControlPanelsAppComponent({
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
   const [isConfirmResetOpen, setIsConfirmResetOpen] = useState(false);
   const [isConfirmFormatOpen, setIsConfirmFormatOpen] = useState(false);
-  const [isBootScreenOpen, setIsBootScreenOpen] = useState(false);
-  const [bootScreenTitle, setBootScreenTitle] = useState("System Restoring...");
-  const [pendingOperation, setPendingOperation] = useState<"restore" | "reset" | "format" | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const fileToRestoreRef = useRef<File | null>(null);
   const { formatFileSystem } = useFileSystem();
@@ -191,6 +189,8 @@ export function ControlPanelsAppComponent({
     setTypingSynthEnabled,
     synthPreset,
     setSynthPreset,
+    displayMode,
+    setDisplayMode,
   } = useAppStore();
 
   const handleUISoundsChange = (enabled: boolean) => {
@@ -212,9 +212,8 @@ export function ControlPanelsAppComponent({
 
   const handleConfirmReset = () => {
     setIsConfirmResetOpen(false);
-    setBootScreenTitle("Resetting System...");
-    setPendingOperation("reset");
-    setIsBootScreenOpen(true);
+    setNextBootMessage("Resetting System...");
+    performReset();
   };
 
   const performReset = () => {
@@ -260,31 +259,19 @@ export function ControlPanelsAppComponent({
       }
     }
     
-    // Note: This includes all Zustand persisted stores with the following keys:
-    // - "ryos:app-store" - App window states, debug mode, AI model settings
-    // - "ryos:videos" - Video player state and custom videos
-    // - "ryos:internet-explorer" - Browser history, bookmarks
-    // - "ryos:ipod" - Music tracks, playback settings
-    // When adding new stores, ensure they use the persist middleware with "ryos:[store-name]" naming pattern
-
-    // Backup IndexedDB data
     try {
-      // Open database with our utility function that ensures stores exist
       const db = await ensureIndexedDBInitialized();
-
-      // Get all stores data
       const getStoreData = async (storeName: string): Promise<StoreItem[]> => {
         return new Promise((resolve, reject) => {
           try {
             const transaction = db.transaction(storeName, "readonly");
             const store = transaction.objectStore(storeName);
             const request = store.getAll();
-
             request.onsuccess = () => resolve(request.result);
             request.onerror = () => reject(request.error);
           } catch (error) {
             console.error(`Error accessing store ${storeName}:`, error);
-            resolve([]); // Return empty array if store doesn't exist
+            resolve([]);
           }
         });
       };
@@ -296,7 +283,6 @@ export function ControlPanelsAppComponent({
         getStoreData("custom_wallpapers"),
       ]);
 
-      // Serialize Blob content to base64 strings
       const serializeStore = async (items: StoreItem[]) =>
         Promise.all(
           items.map(async (it) => {
@@ -312,8 +298,6 @@ export function ControlPanelsAppComponent({
       backup.indexedDB.images = await serializeStore(imgs);
       backup.indexedDB.trash = await serializeStore(trash);
       backup.indexedDB.custom_wallpapers = await serializeStore(walls);
-
-      // Close the database
       db.close();
     } catch (error) {
       console.error("Error backing up IndexedDB:", error);
@@ -322,7 +306,6 @@ export function ControlPanelsAppComponent({
       );
     }
 
-    // Compress the data
     const jsonString = JSON.stringify(backup);
     const compressedData = await new Blob([jsonString])
       .arrayBuffer()
@@ -334,7 +317,6 @@ export function ControlPanelsAppComponent({
         return new Response(compressedStream).blob();
       });
 
-    // Create and download compressed file
     const url = URL.createObjectURL(compressedData);
     const a = document.createElement("a");
     a.href = url;
@@ -356,9 +338,7 @@ export function ControlPanelsAppComponent({
     if (!file) return;
     
     fileToRestoreRef.current = file;
-    setBootScreenTitle("Restoring System...");
-    setPendingOperation("restore");
-    setIsBootScreenOpen(true);
+    performRestore();
   };
 
   const performRestore = async () => {
@@ -371,7 +351,6 @@ export function ControlPanelsAppComponent({
         let data: string;
 
         if (file.name.endsWith(".gz")) {
-          // Handle compressed file
           const arrayBuffer = e.target?.result as ArrayBuffer;
           const decompressedStream = new Response(
             arrayBuffer
@@ -380,17 +359,14 @@ export function ControlPanelsAppComponent({
           if (!decompressedStream) {
             throw new Error("Failed to decompress backup file");
           }
-
           const decompressedResponse = new Response(decompressedStream);
           data = await decompressedResponse.text();
         } else {
-          // Handle uncompressed JSON file for backward compatibility
           data = e.target?.result as string;
         }
 
         const backup = JSON.parse(data);
 
-        // Restore localStorage data
         if (backup.localStorage) {
           Object.entries(backup.localStorage).forEach(([key, value]) => {
             if (value !== null) {
@@ -399,44 +375,32 @@ export function ControlPanelsAppComponent({
           });
         }
 
-        // Restore IndexedDB data if available
         if (backup.indexedDB) {
           try {
-            // Open database using our utility function
             const db = await ensureIndexedDBInitialized();
-
-            // Helper function to restore data to a store
             const restoreStoreData = async (
               storeName: string,
-              data: Record<string, unknown>[]
+              dataToRestore: Record<string, unknown>[]
             ): Promise<void> => {
               return new Promise((resolve, reject) => {
                 try {
                   const transaction = db.transaction(storeName, "readwrite");
                   const store = transaction.objectStore(storeName);
-
-                  // Clear existing data
                   const clearRequest = store.clear();
                   clearRequest.onsuccess = async () => {
                     try {
-                      // Add all items
-                      for (const item of data) {
+                      for (const item of dataToRestore) {
                         let toPut = item;
-                        // Re-hydrate Blob if flagged
                         if ((item as any)._isBlob && typeof item.content === "string") {
                           const { _isBlob, ...rest } = item as any;
                           toPut = { ...rest, content: base64ToBlob(item.content as string) };
                         }
-                        await new Promise<void>((resolveItem) => {
-                          // Use put instead of add to handle potential duplicate keys
+                        await new Promise<void>((resolveItem, rejectItem) => {
                           const addRequest = store.put(toPut);
                           addRequest.onsuccess = () => resolveItem();
                           addRequest.onerror = () => {
-                            console.error(
-                              `Error adding item to ${storeName}:`,
-                              addRequest.error
-                            );
-                            resolveItem(); // Continue with other items even if one fails
+                            console.error(`Error adding item to ${storeName}:`, addRequest.error);
+                            rejectItem(addRequest.error);
                           };
                         });
                       }
@@ -448,47 +412,28 @@ export function ControlPanelsAppComponent({
                   clearRequest.onerror = () => reject(clearRequest.error);
                 } catch (error) {
                   console.error(`Error accessing store ${storeName}:`, error);
-                  resolve(); // Resolve anyway to continue with other stores
+                  resolve(); 
                 }
               });
             };
 
-            // Restore data to all stores
-            if (backup.indexedDB.documents) {
-              await restoreStoreData("documents", backup.indexedDB.documents);
-            }
-            if (backup.indexedDB.images) {
-              await restoreStoreData("images", backup.indexedDB.images);
-            }
-            if (backup.indexedDB.trash) {
-              await restoreStoreData("trash", backup.indexedDB.trash);
-            }
-            if (backup.indexedDB.custom_wallpapers) {
-              console.log(
-                "Restoring custom wallpapers:",
-                backup.indexedDB.custom_wallpapers.length
-              );
-              await restoreStoreData(
-                "custom_wallpapers",
-                backup.indexedDB.custom_wallpapers
-              );
-              console.log("Custom wallpapers restored successfully");
-            }
-
-            // Close the database
+            if (backup.indexedDB.documents) await restoreStoreData("documents", backup.indexedDB.documents);
+            if (backup.indexedDB.images) await restoreStoreData("images", backup.indexedDB.images);
+            if (backup.indexedDB.trash) await restoreStoreData("trash", backup.indexedDB.trash);
+            if (backup.indexedDB.custom_wallpapers) await restoreStoreData("custom_wallpapers", backup.indexedDB.custom_wallpapers);
+            
             db.close();
           } catch (error) {
             console.error("Error restoring IndexedDB:", error);
-            alert(
-              "Failed to restore file system data. Only settings were restored."
-            );
+            alert("Failed to restore file system data. Only settings were restored.");
           }
         }
-
+        setNextBootMessage("Restoring System..."); 
         window.location.reload();
       } catch (err) {
         alert("Failed to restore backup. Invalid backup file.");
         console.error("Backup restore failed:", err);
+        clearNextBootMessage();
       }
     };
 
@@ -497,28 +442,19 @@ export function ControlPanelsAppComponent({
     } else {
       reader.readAsText(file);
     }
-  };
-
-  const handleBootComplete = () => {
-    switch (pendingOperation) {
-      case "restore":
-        performRestore();
-        break;
-      case "reset":
-        performReset();
-        break;
-      case "format":
-        performFormat();
-        break;
-      default:
-        break;
-    }
-    setPendingOperation(null);
+    fileToRestoreRef.current = null; 
   };
 
   const performFormat = async () => {
     await formatFileSystem();
+    setNextBootMessage("Formatting File System...");
     window.location.reload();
+  };
+  
+  const handleConfirmFormat = () => {
+    setIsConfirmFormatOpen(false);
+    setNextBootMessage("Formatting File System...");
+    performFormat();
   };
 
   if (!isWindowOpen) return null;
@@ -566,6 +502,27 @@ export function ControlPanelsAppComponent({
             >
               <div className="space-y-4 h-full overflow-y-auto p-4">
                 <WallpaperPicker />
+                <hr className="border-gray-400"></hr>
+                <div className="flex items-center justify-between">
+                  <Label>Display Mode</Label>
+                  <Select
+                    value={displayMode}
+                    onValueChange={(value) => setDisplayMode(value as DisplayMode)}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Select Display Mode" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="color">Color</SelectItem>
+                      <SelectItem value="monotone">Monotone</SelectItem>
+                      <SelectItem value="crt">CRT</SelectItem>
+                      <SelectItem value="sepia">Sepia</SelectItem>
+                      <SelectItem value="high-contrast">High Contrast</SelectItem>
+                      <SelectItem value="dream">Dream</SelectItem>
+                      <SelectItem value="invert">Invert</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </TabsContent>
 
@@ -760,8 +717,8 @@ export function ControlPanelsAppComponent({
                     <Button
                       variant="retro"
                       onClick={() => {
-                        setBootScreenTitle("Debug Boot Screen");
-                        setIsBootScreenOpen(true);
+                        setNextBootMessage("Debug Boot Screen Test...");
+                        window.location.reload(); 
                       }}
                       className="w-full"
                     >
@@ -799,20 +756,9 @@ export function ControlPanelsAppComponent({
         <ConfirmDialog
           isOpen={isConfirmFormatOpen}
           onOpenChange={setIsConfirmFormatOpen}
-          onConfirm={() => {
-            setIsConfirmFormatOpen(false);
-            setBootScreenTitle("Formatting File System...");
-            setPendingOperation("format");
-            setIsBootScreenOpen(true);
-          }}
+          onConfirm={handleConfirmFormat}
           title="Format File System"
           description="Are you sure you want to format the file system? This will permanently delete all documents (except sample documents), images, and custom wallpapers. ryOS will restart after format."
-        />
-        <BootScreen
-          isOpen={isBootScreenOpen}
-          onOpenChange={setIsBootScreenOpen}
-          onBootComplete={handleBootComplete}
-          title={bootScreenTitle}
         />
       </WindowFrame>
     </>

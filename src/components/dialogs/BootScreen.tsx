@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { useSound, Sounds } from "@/hooks/useSound";
 
 interface BootScreenProps {
@@ -28,17 +29,17 @@ export function BootScreen({
       // Play boot sound with a delay
       soundTimer = window.setTimeout(() => {
         play();
-      }, 200);
+      }, 100);
       
       // Simulate boot progress
       interval = window.setInterval(() => {
         setProgress((prev) => {
-          const newProgress = prev + Math.random() * 5;
+          const newProgress = prev + Math.random() * 10;
           return newProgress >= 100 ? 100 : newProgress;
         });
-      }, 200);
+      }, 100);
       
-      // Close after boot completes (5 seconds)
+      // Close after boot completes (2 seconds)
       timer = window.setTimeout(() => {
         window.clearInterval(interval);
         setProgress(100);
@@ -47,10 +48,10 @@ export function BootScreen({
         const completeTimer = window.setTimeout(() => {
           onBootComplete?.();
           onOpenChange(false);
-        }, 1000);
+        }, 500);
         
         return () => window.clearTimeout(completeTimer);
-      }, 5000);
+      }, 2000);
     } else {
       setProgress(0);
     }
@@ -72,9 +73,12 @@ export function BootScreen({
           style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
         />
         <DialogContent 
-          className="bg-blue-500 p-0 border-none shadow-xl max-w-lg z-[80]"
+          className="bg-blue-500 p-0 border-none shadow-xl max-w-lg z-[80] outline-none"
           style={{ position: 'fixed', zIndex: 80 }}
         >
+          <VisuallyHidden>
+            <DialogTitle>{title}</DialogTitle>
+          </VisuallyHidden>
           <div className="flex flex-col items-center justify-center p-8 bg-neutral-100 min-h-[300px] w-full">
             <div className="flex flex-col items-center justify-center border border-neutral-200 bg-white p-8 w-full pb-4">
                 <img src="/assets/macos.svg" alt="macOS" className="w-64 h-32" />
