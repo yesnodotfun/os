@@ -651,6 +651,8 @@ export function ControlPanelsAppComponent({
                   </p>
                 </div>
 
+                <hr className="border-gray-400"></hr>
+
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col gap-1">
                     <Label>Debug Mode</Label>
