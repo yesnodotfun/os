@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { Soundboard, SoundSlot, PlaybackState } from "@/types/types";
+import { loadSelectedDeviceId, saveSelectedDeviceId } from "@/utils/storage";
 
 // Helper to create a default soundboard
 const createDefaultBoard = (): Soundboard => ({
@@ -17,6 +18,7 @@ export interface SoundboardStoreState {
   boards: Soundboard[];
   activeBoardId: string | null;
   playbackStates: PlaybackState[];
+  selectedDeviceId: string | null;
 
   // Actions
   initializeBoards: () => Promise<void>;
@@ -24,6 +26,7 @@ export interface SoundboardStoreState {
   updateBoardName: (boardId: string, name: string) => void;
   deleteBoard: (boardId: string) => void;
   setActiveBoardId: (boardId: string | null) => void;
+  setSelectedDeviceId: (deviceId: string) => void;
   updateSlot: (boardId: string, slotIndex: number, updates: Partial<SoundSlot>) => void;
   deleteSlot: (boardId: string, slotIndex: number) => void;
   setSlotPlaybackState: (slotIndex: number, isPlaying: boolean, isRecording?: boolean) => void;
@@ -40,9 +43,15 @@ export const useSoundboardStore = create<SoundboardStoreState>()(
       boards: [],
       activeBoardId: null,
       playbackStates: Array(9).fill({ isRecording: false, isPlaying: false }) as PlaybackState[],
+      selectedDeviceId: null,
 
       initializeBoards: async () => {
         const currentBoards = get().boards;
+        const currentSelectedDeviceId = loadSelectedDeviceId();
+        if (currentSelectedDeviceId) {
+          set({ selectedDeviceId: currentSelectedDeviceId });
+        }
+
         if (currentBoards.length === 0) {
           try {
             const response = await fetch("/soundboards.json");
@@ -105,6 +114,11 @@ export const useSoundboardStore = create<SoundboardStoreState>()(
 
       setActiveBoardId: (boardId) => set({ activeBoardId: boardId }),
 
+      setSelectedDeviceId: (deviceId) => {
+        set({ selectedDeviceId: deviceId });
+        saveSelectedDeviceId(deviceId);
+      },
+
       updateSlot: (boardId, slotIndex, updates) => {
         set((state) => ({
           boards: state.boards.map((board) => {
@@ -147,7 +161,8 @@ export const useSoundboardStore = create<SoundboardStoreState>()(
         set({ 
           boards: [defaultBoard], 
           activeBoardId: defaultBoard.id, 
-          playbackStates: Array(9).fill({ isRecording: false, isPlaying: false }) 
+          playbackStates: Array(9).fill({ isRecording: false, isPlaying: false }),
+          selectedDeviceId: null
         });
       },
 
@@ -161,6 +176,12 @@ export const useSoundboardStore = create<SoundboardStoreState>()(
           if (error) {
             console.error("Error rehydrating soundboard store:", error);
           } else if (state) {
+            if (!state.selectedDeviceId) {
+              const storedDeviceId = loadSelectedDeviceId();
+              if (storedDeviceId) {
+                state.selectedDeviceId = storedDeviceId;
+              }
+            }
             if (!state.boards || state.boards.length === 0) {
               Promise.resolve(state.initializeBoards()).catch(err => console.error("Initialization failed on rehydrate", err));
             } else {

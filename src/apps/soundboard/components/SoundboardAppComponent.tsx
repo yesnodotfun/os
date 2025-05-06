@@ -5,10 +5,6 @@ import { SoundGrid } from "./SoundGrid";
 import { useSoundboard } from "@/hooks/useSoundboard";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 import { DialogState, Soundboard } from "@/types/types";
-import {
-  loadSelectedDeviceId,
-  saveSelectedDeviceId,
-} from "@/utils/storage";
 import { EmojiDialog } from "@/components/dialogs/EmojiDialog";
 import { InputDialog } from "@/components/dialogs/InputDialog";
 import { HelpDialog } from "@/components/dialogs/HelpDialog";
@@ -59,6 +55,8 @@ export function SoundboardAppComponent({
   };
   const storeSetBoards = useSoundboardStore((state) => state._setBoards_internal);
   const storeDeleteBoard = useSoundboardStore((state) => state.deleteBoard);
+  const selectedDeviceId = useSoundboardStore((state) => state.selectedDeviceId);
+  const storeSetSelectedDeviceId = useSoundboardStore((state) => state.setSelectedDeviceId);
 
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [dialogState, setDialogState] = useState<DialogState>({
@@ -70,8 +68,6 @@ export function SoundboardAppComponent({
 
   const [helpDialogOpen, setHelpDialogOpen] = useState(false);
   const [aboutDialogOpen, setAboutDialogOpen] = useState(false);
-  const [selectedDeviceId, setSelectedDeviceId] =
-    useState(loadSelectedDeviceId);
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
   const importInputRef = useRef<HTMLInputElement>(null);
   const [showWaveforms, setShowWaveforms] = useState(true);
@@ -91,7 +87,7 @@ export function SoundboardAppComponent({
     stopRecording,
   } = useAudioRecorder({
     onRecordingComplete: handleRecordingComplete,
-    selectedDeviceId,
+    selectedDeviceId: selectedDeviceId || "",
     setRecordingState: (isRecording) => {
       const activeSlot = activeSlotRef.current;
       if (activeSlot !== null) {
@@ -109,19 +105,19 @@ export function SoundboardAppComponent({
         );
         setAudioDevices(audioInputs);
 
-        const defaultDevice = audioInputs.find(
-          (d) => d.deviceId === "default" || d.deviceId === selectedDeviceId
-        );
-        if (defaultDevice) {
-          setSelectedDeviceId(defaultDevice.deviceId);
+        if (selectedDeviceId) {
+          const defaultDevice = audioInputs.find(
+            (d) => d.deviceId === "default" || d.deviceId === selectedDeviceId
+          );
+          if (defaultDevice) {
+            storeSetSelectedDeviceId(defaultDevice.deviceId);
+          }
+        } else if (audioInputs.length > 0) {
+            storeSetSelectedDeviceId(audioInputs[0].deviceId);
         }
       });
     }
-  }, [micPermissionGranted, selectedDeviceId, playbackStates]);
-
-  useEffect(() => {
-    saveSelectedDeviceId(selectedDeviceId);
-  }, [selectedDeviceId]);
+  }, [micPermissionGranted, selectedDeviceId, playbackStates, storeSetSelectedDeviceId]);
 
   useEffect(() => {
     playbackStates.forEach((state, index) => {
@@ -345,8 +341,8 @@ export function SoundboardAppComponent({
           activeBoardId={activeBoardId}
           onBoardSelect={setActiveBoardId}
           onNewBoard={addNewBoard}
-          selectedDeviceId={selectedDeviceId}
-          onDeviceSelect={setSelectedDeviceId}
+          selectedDeviceId={selectedDeviceId || ""}
+          onDeviceSelect={storeSetSelectedDeviceId}
           audioDevices={audioDevices}
           micPermissionGranted={micPermissionGranted}
         />
