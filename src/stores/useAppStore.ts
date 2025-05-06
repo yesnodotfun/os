@@ -49,6 +49,12 @@ interface AppStoreState extends AppManagerState {
   setAiModel: (model: AIModel) => void;
   terminalSoundsEnabled: boolean;
   setTerminalSoundsEnabled: (enabled: boolean) => void;
+  uiSoundsEnabled: boolean;
+  setUiSoundsEnabled: (enabled: boolean) => void;
+  typingSynthEnabled: boolean;
+  setTypingSynthEnabled: (enabled: boolean) => void;
+  synthPreset: string;
+  setSynthPreset: (preset: string) => void;
   updateWindowState: (
     appId: AppId,
     position: { x: number; y: number },
@@ -82,6 +88,12 @@ export const useAppStore = create<AppStoreState>()(
       setAiModel: (model) => set({ aiModel: model }),
       terminalSoundsEnabled: true, // Default to true for terminal/IE sounds
       setTerminalSoundsEnabled: (enabled) => set({ terminalSoundsEnabled: enabled }),
+      uiSoundsEnabled: true,
+      setUiSoundsEnabled: (enabled) => set({ uiSoundsEnabled: enabled }),
+      typingSynthEnabled: false,
+      setTypingSynthEnabled: (enabled) => set({ typingSynthEnabled: enabled }),
+      synthPreset: "classic",
+      setSynthPreset: (preset) => set({ synthPreset: preset }),
       updateWindowState: (appId, position, size) =>
         set((state) => ({
           apps: {
@@ -341,6 +353,9 @@ export const useAppStore = create<AppStoreState>()(
         selectedShaderType: state.selectedShaderType,
         aiModel: state.aiModel,
         terminalSoundsEnabled: state.terminalSoundsEnabled,
+        uiSoundsEnabled: state.uiSoundsEnabled,
+        typingSynthEnabled: state.typingSynthEnabled,
+        synthPreset: state.synthPreset,
         currentWallpaper: state.currentWallpaper,
       }),
     }

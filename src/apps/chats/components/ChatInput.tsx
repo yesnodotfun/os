@@ -5,7 +5,7 @@ import { ArrowUp, Square, Hand } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AudioInputButton } from "@/components/ui/audio-input-button";
 import { useChatSynth } from "@/hooks/useChatSynth";
-import { loadTypingSynthEnabled } from "@/utils/storage";
+import { useAppStore } from "@/stores/useAppStore";
 import { useSound, Sounds } from "@/hooks/useSound";
 import { track } from "@vercel/analytics";
 import {
@@ -84,6 +84,7 @@ export function ChatInput({
   const audioButtonRef = useRef<HTMLButtonElement>(null);
   const { playNote } = useChatSynth();
   const { play: playNudgeSound } = useSound(Sounds.MSN_NUDGE);
+  const { typingSynthEnabled } = useAppStore();
 
   useEffect(() => {
     // Check if device has touch capability
@@ -132,7 +133,7 @@ export function ChatInput({
 
     // Only play sound if typing synth is enabled and enough time has passed
     const now = Date.now();
-    if (loadTypingSynthEnabled() && now - lastTypingTime > 50) {
+    if (typingSynthEnabled && now - lastTypingTime > 50) {
       playNote();
       setLastTypingTime(now);
     }

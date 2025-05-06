@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import * as Tone from "tone";
-import { loadSynthPreset } from "@/utils/storage";
+import { useAppStore } from "@/stores/useAppStore";
 import { useVibration } from './useVibration';
 
 export type SynthPreset = {
@@ -177,8 +177,11 @@ function createSynthInstance(preset: SynthPreset) {
 
 export function useChatSynth() {
   const [isAudioReady, setIsAudioReady] = useState(false);
+  // Global preset from store
+  const { synthPreset, setSynthPreset } = useAppStore();
+
   const [currentPresetKey, setCurrentPresetKey] = useState<string>(
-    () => loadSynthPreset() || "classic"
+    () => synthPreset || "classic"
   );
   const synthRef = useRef<{
     synth: Tone.PolySynth;
@@ -309,10 +312,10 @@ export function useChatSynth() {
           console.warn("Audio not ready, preset change deferred until initialization.");
       }
       setCurrentPresetKey(presetKey);
-      // Persist the new preset choice (implement saveSynthPreset if needed)
-      // saveSynthPreset(presetKey);
+      // Persist to global store
+      setSynthPreset(presetKey);
     }
-  }, [currentPresetKey, isAudioReady]); // Depend on current preset key and audio readiness
+  }, [currentPresetKey, isAudioReady, setSynthPreset]); // Depend on current preset key and audio readiness
 
   // Function to play a note
   const playNote = useCallback(() => {

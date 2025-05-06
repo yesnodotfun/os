@@ -716,6 +716,14 @@ export const clearAllAppStates = (): void => {
   localStorage.removeItem("ryos:textedit"); // Clear textedit store
   
   // Any new stores that use the persist middleware must be added here
+
+  // Generic removal for any ryos:* persisted keys to ensure future stores are cleared
+  for (let i = localStorage.length - 1; i >= 0; i--) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith("ryos:")) {
+      localStorage.removeItem(key);
+    }
+  }
 };
 
 const SYNTH_PRESET_KEY = "synthPreset";

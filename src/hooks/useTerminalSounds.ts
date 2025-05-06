@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import * as Tone from "tone";
+import { useAppStore } from "@/stores/useAppStore";
 
 type SoundType = "command" | "error" | "aiResponse";
 type TimeMode = "past" | "future" | "now";
@@ -83,7 +84,8 @@ const DING_PRESET = {
 
 export function useTerminalSounds() {
   const [isInitialized, setIsInitialized] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
+  // Initialize muted state based on global setting
+  const [isMuted, setIsMuted] = useState(!useAppStore.getState().terminalSoundsEnabled);
   const lastSoundTimeRef = useRef(0);
   const synthsRef = useRef<Record<SoundType, Tone.Synth | null>>({
     command: null,
@@ -128,6 +130,14 @@ export function useTerminalSounds() {
     effects: null,
     timeoutIds: [],
   });
+
+  // Sync with global setting changes
+  useEffect(() => {
+    const unsub = useAppStore.subscribe((state) => {
+      setIsMuted(!state.terminalSoundsEnabled);
+    });
+    return () => unsub();
+  }, []);
 
   // Function to generate a Brian Eno inspired ambient sound environment (for past and now)
   const setupAmbientEnvironment = useCallback(() => {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
-import { loadUISoundsEnabled } from "@/utils/storage";
+import { useAppStore } from "@/stores/useAppStore";
 
 // Global audio context and cache
 let audioContext: AudioContext | null = null;
@@ -81,8 +81,8 @@ export function useSound(soundPath: string, volume: number = 0.3) {
   }, [volume]);
 
   const play = useCallback(async () => {
-    // Check if UI sounds are enabled
-    if (!loadUISoundsEnabled()) {
+    // Check if UI sounds are enabled via global store
+    if (!useAppStore.getState().uiSoundsEnabled) {
       return;
     }
 

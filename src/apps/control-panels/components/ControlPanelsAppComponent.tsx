@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { WindowFrame } from "@/components/layout/WindowFrame";
 import { ControlPanelsMenuBar } from "./ControlPanelsMenuBar";
 import { HelpDialog } from "@/components/dialogs/HelpDialog";
@@ -19,13 +19,7 @@ import {
 import { WallpaperPicker } from "./WallpaperPicker";
 import { AppProps } from "@/apps/base/types";
 import {
-  loadUISoundsEnabled,
-  saveUISoundsEnabled,
   clearAllAppStates,
-  loadSynthPreset,
-  saveSynthPreset,
-  loadTypingSynthEnabled,
-  saveTypingSynthEnabled,
   ensureIndexedDBInitialized,
 } from "@/utils/storage";
 import { SYNTH_PRESETS } from "@/hooks/useChatSynth";
@@ -153,9 +147,6 @@ export function ControlPanelsAppComponent({
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
   const [isConfirmResetOpen, setIsConfirmResetOpen] = useState(false);
   const [isConfirmFormatOpen, setIsConfirmFormatOpen] = useState(false);
-  const [uiSoundsEnabled, setUiSoundsEnabled] = useState(true);
-  const [typingSynthEnabled, setTypingSynthEnabled] = useState(false);
-  const [synthPreset, setSynthPreset] = useState("classic");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { formatFileSystem } = useFileSystem();
   const { 
@@ -166,28 +157,25 @@ export function ControlPanelsAppComponent({
     aiModel, 
     setAiModel,
     terminalSoundsEnabled,
-    setTerminalSoundsEnabled 
+    setTerminalSoundsEnabled,
+    uiSoundsEnabled,
+    setUiSoundsEnabled,
+    typingSynthEnabled,
+    setTypingSynthEnabled,
+    synthPreset,
+    setSynthPreset,
   } = useAppStore();
-
-  useEffect(() => {
-    setUiSoundsEnabled(loadUISoundsEnabled());
-    setTypingSynthEnabled(loadTypingSynthEnabled());
-    setSynthPreset(loadSynthPreset() || "classic");
-  }, []);
 
   const handleUISoundsChange = (enabled: boolean) => {
     setUiSoundsEnabled(enabled);
-    saveUISoundsEnabled(enabled);
   };
 
   const handleTypingSynthChange = (enabled: boolean) => {
     setTypingSynthEnabled(enabled);
-    saveTypingSynthEnabled(enabled);
   };
 
   const handleSynthPresetChange = (value: string) => {
     setSynthPreset(value);
-    saveSynthPreset(value);
     window.location.reload();
   };
 
