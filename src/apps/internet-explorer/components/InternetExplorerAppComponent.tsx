@@ -39,6 +39,7 @@ import {
   ErrorResponse,
   LanguageOption,
   LocationOption,
+  Favorite,
 } from "@/stores/useInternetExplorerStore";
 import FutureSettingsDialog from "@/components/dialogs/FutureSettingsDialog";
 import { useTerminalSounds } from "@/hooks/useTerminalSounds";
@@ -379,14 +380,18 @@ export function InternetExplorerAppComponent({
   const abortControllerRef = useRef<AbortController | null>(null);
   const [hasMoreToScroll] = useState(false);
   const [isUrlDropdownOpen, setIsUrlDropdownOpen] = useState(false);
+  // Define suggestion type to reuse
+  type SuggestionItem = {
+    title: string;
+    url: string;
+    type: "favorite" | "history" | "search";
+    year?: string;
+    favicon?: string;
+    normalizedUrl?: string; // Optional prop for internal use
+  };
+
   const [filteredSuggestions, setFilteredSuggestions] = useState<
-    Array<{
-      title: string;
-      url: string;
-      type: "favorite" | "history" | "search";
-      year?: string;
-      favicon?: string;
-    }>
+    Array<SuggestionItem>
   >([]);
   const [localUrl, setLocalUrl] = useState<string>("");
   const [isSelectingText, setIsSelectingText] = useState(false);
@@ -1097,7 +1102,7 @@ export function InternetExplorerAppComponent({
     (inputValue: string) => {
       if (!inputValue.trim()) {
         // When URL bar is empty, show top 3 favorites
-        const topFavorites: Array<any> = [];
+        const topFavorites: Array<SuggestionItem> = [];
 
         // First check for regular favorites (non-folders)
         favorites.forEach((fav) => {
@@ -1149,7 +1154,7 @@ export function InternetExplorerAppComponent({
       };
 
       // Function to process a single favorite
-      const processFavorite = (fav: any) => {
+      const processFavorite = (fav: Favorite) => {
         // Match by title or URL
         if (
           fav.title?.toLowerCase().includes(normalizedInput) ||
@@ -1168,7 +1173,7 @@ export function InternetExplorerAppComponent({
       };
 
       // Array to collect all matched favorites
-      const allFavoriteSuggestions: Array<any> = [];
+      const allFavoriteSuggestions: Array<SuggestionItem> = [];
 
       // Process all favorites, including those in folders
       favorites.forEach((fav) => {
@@ -1222,9 +1227,13 @@ export function InternetExplorerAppComponent({
         return true;
       });
 
-      // Remove the normalizedUrl property before setting state
-      const finalSuggestions = dedupedSuggestions.map(
-        ({ normalizedUrl, ...rest }) => rest
+      // Create final suggestions without the normalizedUrl property
+      const finalSuggestions: SuggestionItem[] = dedupedSuggestions.map(
+        (item) => {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { normalizedUrl, ...rest } = item;
+          return rest;
+        }
       );
 
       console.log(

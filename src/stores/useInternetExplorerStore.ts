@@ -895,8 +895,9 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
         location: state.location,
         directPassthroughDomains: state.directPassthroughDomains,
       }),
-      migrate: (persistedState, version) => {
-        let state = persistedState as any;
+      migrate: (persistedState: unknown, version: number) => {
+        // Use Record<string, unknown> to allow safe property access with type checking
+        let state = persistedState as Record<string, unknown>;
 
         if (version < CURRENT_IE_STORE_VERSION) {
           console.log(
@@ -923,11 +924,17 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
         const finalState: Partial<InternetExplorerStore> = {};
 
         for (const key of partializedKeys) {
-          finalState[key as keyof InternetExplorerStore] =
-            state?.[key] ??
+          const defaultValue =
             initialStateDefaults[
               key as keyof ReturnType<typeof getInitialState>
             ];
+
+          // Explicitly add the property with proper type assertion
+          // Use Record<string, unknown> to avoid 'any' but allow dynamic property access
+          (finalState as Record<string, unknown>)[key] =
+            state?.[key] !== undefined && state?.[key] !== null
+              ? state[key]
+              : defaultValue;
         }
 
         finalState.history = Array.isArray(finalState.history)
