@@ -1,12 +1,10 @@
 import { Input } from "@/components/ui/input";
 import { SoundSlot } from "./SoundSlot";
 import { Soundboard, PlaybackState } from "@/types/types";
-import type WaveSurfer from "wavesurfer.js";
 
 interface SoundGridProps {
   board: Soundboard;
   playbackStates: PlaybackState[];
-  waveformRefs: ((el: HTMLDivElement | null) => void)[];
   isEditingTitle: boolean;
   onTitleChange: (name: string) => void;
   onTitleBlur: (name: string) => void;
@@ -15,7 +13,6 @@ interface SoundGridProps {
   onSlotDelete: (index: number) => void;
   onSlotEmojiClick: (index: number) => void;
   onSlotTitleClick: (index: number) => void;
-  onWaveformCreate?: (index: number, waveform: WaveSurfer) => void;
   setIsEditingTitle: (isEditing: boolean) => void;
   showWaveforms: boolean;
   showEmojis: boolean;
@@ -24,7 +21,6 @@ interface SoundGridProps {
 export function SoundGrid({
   board,
   playbackStates,
-  waveformRefs,
   isEditingTitle,
   onTitleChange,
   onTitleBlur,
@@ -33,7 +29,6 @@ export function SoundGrid({
   onSlotDelete,
   onSlotEmojiClick,
   onSlotTitleClick,
-  onWaveformCreate,
   setIsEditingTitle,
   showWaveforms,
   showEmojis,
@@ -66,16 +61,10 @@ export function SoundGrid({
                 slot={slot}
                 isRecording={playbackStates[index].isRecording}
                 isPlaying={playbackStates[index].isPlaying}
-                waveformRef={waveformRefs[index]}
                 onSlotClick={() => onSlotClick(index)}
                 onDelete={() => onSlotDelete(index)}
                 onEmojiClick={() => onSlotEmojiClick(index)}
                 onTitleClick={() => onSlotTitleClick(index)}
-                onWaveformCreate={
-                  onWaveformCreate
-                    ? (waveform) => onWaveformCreate(index, waveform)
-                    : undefined
-                }
                 showWaveform={showWaveforms}
                 showEmoji={showEmojis}
               />

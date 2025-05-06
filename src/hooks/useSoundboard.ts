@@ -1,110 +1,103 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { Soundboard, SoundSlot, PlaybackState } from "../types/types";
-import {
-  loadSoundboards,
-  saveSoundboards,
-  createDefaultBoard,
-} from "../utils/storage";
-import { createAudioFromBase64 } from "../utils/audio";
-import type WaveSurfer from "wavesurfer.js";
+import { useEffect, useRef, useCallback } from "react";
+import { useSoundboardStore } from "@/stores/useSoundboardStore";
+import { createAudioFromBase64 } from "@/utils/audio";
+// WaveSurfer import will be removed as it's moving to SoundGrid
+// import type WaveSurfer from "wavesurfer.js";
 
 export const useSoundboard = () => {
-  const [boards, setBoards] = useState<Soundboard[]>([]);
-  const [activeBoardId, setActiveBoardId] = useState<string>("");
-  const [playbackStates, setPlaybackStates] = useState<PlaybackState[]>(
-    Array(9).fill({ isRecording: false, isPlaying: false })
-  );
+  // Selectors from Zustand store
+  const boards = useSoundboardStore((state) => state.boards);
+  const activeBoardId = useSoundboardStore((state) => state.activeBoardId);
+  const playbackStates = useSoundboardStore((state) => state.playbackStates);
+  const initializeBoards = useSoundboardStore((state) => state.initializeBoards);
+  const addNewBoardAction = useSoundboardStore((state) => state.addNewBoard);
+  const updateBoardNameAction = useSoundboardStore((state) => state.updateBoardName);
+  const deleteBoardAction = useSoundboardStore((state) => state.deleteBoard);
+  const setActiveBoardIdAction = useSoundboardStore((state) => state.setActiveBoardId);
+  const updateSlotAction = useSoundboardStore((state) => state.updateSlot);
+  const deleteSlotAction = useSoundboardStore((state) => state.deleteSlot);
+  const setSlotPlaybackStateAction = useSoundboardStore((state) => state.setSlotPlaybackState);
+
   const audioRefs = useRef<(HTMLAudioElement | null)[]>(Array(9).fill(null));
-  const waveformRefs = useRef<((el: HTMLDivElement | null) => void)[]>(
-    Array(9).fill(null)
-  );
 
   useEffect(() => {
-    loadSoundboards().then((loadedBoards) => {
-      setBoards(loadedBoards);
-      setActiveBoardId(loadedBoards[0]?.id || "default");
-    });
-  }, []);
+    // Initialize boards if the store is empty after rehydration
+    // The store's onRehydrateStorage also attempts this, but this is a fallback.
+    if (boards.length === 0) {
+      initializeBoards();
+    }
+  }, [boards.length, initializeBoards]);
 
-  const activeBoard =
-    boards.find((b) => b.id === activeBoardId) || createDefaultBoard();
+  const activeBoard = boards.find((b) => b.id === activeBoardId);
 
   const addNewBoard = useCallback(() => {
-    const newBoard = createDefaultBoard();
-    newBoard.id = Date.now().toString();
-    const newBoards = [...boards, newBoard];
-    saveSoundboards(newBoards);
-    setBoards(newBoards);
-    setActiveBoardId(newBoard.id);
-  }, [boards]);
+    addNewBoardAction();
+  }, [addNewBoardAction]);
 
   const updateBoardName = useCallback(
     (name: string) => {
-      const newBoards = boards.map((board) =>
-        board.id === activeBoardId ? { ...board, name } : board
-      );
-      saveSoundboards(newBoards);
-      setBoards(newBoards);
+      if (activeBoardId) {
+        updateBoardNameAction(activeBoardId, name);
+      }
     },
-    [boards, activeBoardId]
+    [activeBoardId, updateBoardNameAction]
   );
 
   const deleteCurrentBoard = useCallback(() => {
-    if (boards.length <= 1) return;
-    const newBoards = boards.filter((b) => b.id !== activeBoardId);
-    saveSoundboards(newBoards);
-    setBoards(newBoards);
-    setActiveBoardId(newBoards[0].id);
-  }, [boards, activeBoardId]);
+    if (activeBoardId && boards.length > 1) {
+      deleteBoardAction(activeBoardId);
+    }
+  }, [activeBoardId, boards.length, deleteBoardAction]);
 
   const updateSlot = useCallback(
-    (index: number, updates: Partial<SoundSlot>) => {
-      const newBoards = boards.map((board) => {
-        if (board.id === activeBoardId) {
-          const newSlots = [...board.slots];
-          newSlots[index] = { ...newSlots[index], ...updates };
-          return { ...board, slots: newSlots };
-        }
-        return board;
-      });
-      saveSoundboards(newBoards);
-      setBoards(newBoards);
+    (index: number, updates: Partial<import("@/types/types").SoundSlot>) => {
+      if (activeBoardId) {
+        // Ensure waveform is not passed to the store action
+        const { waveform, ...restUpdates } = updates;
+        updateSlotAction(activeBoardId, index, restUpdates);
+      }
     },
-    [boards, activeBoardId]
+    [activeBoardId, updateSlotAction]
   );
 
   const deleteSlot = useCallback(
     (index: number) => {
-      updateSlot(index, {
-        audioData: null,
-        emoji: undefined,
-        title: undefined,
-      });
+      if (activeBoardId) {
+        deleteSlotAction(activeBoardId, index);
+      }
     },
-    [updateSlot]
+    [activeBoardId, deleteSlotAction]
   );
 
-  const updateSlotState = useCallback((index: number, isPlaying: boolean) => {
-    setPlaybackStates((prev) => {
-      const newStates = [...prev];
-      newStates[index] = { ...newStates[index], isPlaying };
-      return newStates;
-    });
-  }, []);
+  const updateSlotState = useCallback((index: number, isPlaying: boolean, isRecording?: boolean) => {
+    setSlotPlaybackStateAction(index, isPlaying, isRecording);
+  }, [setSlotPlaybackStateAction]);
 
   const playSound = useCallback(
     (index: number) => {
+      if (!activeBoard) return;
       const slot = activeBoard.slots[index];
-      if (!slot.audioData) return;
+      if (!slot || !slot.audioData) return;
+
+      // Stop any currently playing sound in the same slot or other slots if needed
+      if (audioRefs.current[index]) {
+        audioRefs.current[index]?.pause();
+        audioRefs.current[index] = null;
+      }
+      // Optionally stop other sounds if only one can play at a time
+      // audioRefs.current.forEach((audio, i) => { ... });
 
       const audio = createAudioFromBase64(slot.audioData);
       audioRefs.current[index] = audio;
-      updateSlotState(index, true);
+      updateSlotState(index, true, false); // isPlaying: true, isRecording: false
 
-      audio.play();
+      audio.play().catch(error => {
+        console.error("Error playing sound:", error);
+        updateSlotState(index, false, false);
+      });
 
       audio.onended = () => {
-        updateSlotState(index, false);
+        updateSlotState(index, false, false);
         audioRefs.current[index] = null;
       };
     },
@@ -118,29 +111,23 @@ export const useSoundboard = () => {
         audio.pause();
         audio.currentTime = 0;
         audioRefs.current[index] = null;
-        updateSlotState(index, false);
+        updateSlotState(index, false, false);
       }
     },
     [updateSlotState]
   );
 
-  const handleWaveformCreate = useCallback(
-    (index: number, waveform: WaveSurfer) => {
-      const slot = activeBoard.slots[index];
-      if (!slot.audioData) return;
-
-      updateSlot(index, { waveform });
-    },
-    [activeBoard, updateSlot]
-  );
+  // Waveform related logic is removed from here
+  // handleWaveformCreate is removed
+  // waveformRefs is removed
 
   return {
     boards,
-    activeBoard,
+    activeBoard: activeBoard || (boards.length > 0 ? boards[0] : null), // Fallback for activeBoard
     activeBoardId,
     playbackStates,
-    waveformRefs,
-    setActiveBoardId,
+    // waveformRefs removed
+    setActiveBoardId: setActiveBoardIdAction,
     addNewBoard,
     updateBoardName,
     deleteCurrentBoard,
@@ -148,8 +135,9 @@ export const useSoundboard = () => {
     deleteSlot,
     playSound,
     stopSound,
-    handleWaveformCreate,
-    setBoards,
-    setPlaybackStates,
+    // handleWaveformCreate removed
+    // Expose store setters directly if needed by components, or keep wrapped actions
+    // setBoards: useSoundboardStore((state) => state._setBoards_internal), // Example if needed
+    // setPlaybackStates: useSoundboardStore((state) => state.setPlaybackStates), // Example if needed
   };
 };

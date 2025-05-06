@@ -1,4 +1,4 @@
-import { Soundboard, WindowPosition, WindowSize } from "../types/types";
+import { WindowPosition, WindowSize } from "../types/types";
 import { AppManagerState, AppState } from "../apps/base/types";
 import { Message } from "ai";
 import { getWindowConfig, getMobileWindowSize } from "../config/appRegistry";
@@ -25,7 +25,6 @@ interface TrashItem {
 
 export const APP_STORAGE_KEYS = {
   soundboard: {
-    BOARDS: "soundboard:boards",
     WINDOW: "soundboard:window",
     SELECTED_DEVICE_ID: "soundboard:selectedDeviceId",
     HAS_SEEN_HELP: "soundboard:hasSeenHelp",
@@ -170,6 +169,7 @@ export const saveWindowPositionAndSize = (
 };
 
 // Soundboard specific storage
+/*
 export const loadSoundboards = async (): Promise<Soundboard[]> => {
   const saved = localStorage.getItem(APP_STORAGE_KEYS.soundboard.BOARDS);
   if (saved) {
@@ -214,6 +214,17 @@ export const saveSoundboards = (boards: Soundboard[]): void => {
   );
 };
 
+export const createDefaultBoard = (): Soundboard => ({
+  id: "default",
+  name: "New Soundboard",
+  slots: Array(9).fill({
+    audioData: null,
+    emoji: undefined,
+    title: undefined,
+  }),
+});
+*/
+
 export const loadSelectedDeviceId = (): string => {
   return (
     localStorage.getItem(APP_STORAGE_KEYS.soundboard.SELECTED_DEVICE_ID) || ""
@@ -226,16 +237,6 @@ export const saveSelectedDeviceId = (deviceId: string): void => {
     deviceId
   );
 };
-
-export const createDefaultBoard = (): Soundboard => ({
-  id: "default",
-  name: "New Soundboard",
-  slots: Array(9).fill({
-    audioData: null,
-    emoji: undefined,
-    title: undefined,
-  }),
-});
 
 export const loadHasSeenHelp = (): boolean => {
   return (
@@ -610,7 +611,6 @@ export const saveTypingSynthEnabled = (enabled: boolean): void => {
 
 export const clearAllAppStates = (): void => {
   // Clear all app-specific storage
-  localStorage.removeItem(APP_STORAGE_KEYS.soundboard.BOARDS);
   localStorage.removeItem(APP_STORAGE_KEYS.soundboard.WINDOW);
   localStorage.removeItem(APP_STORAGE_KEYS.soundboard.SELECTED_DEVICE_ID);
   localStorage.removeItem(APP_STORAGE_KEYS.soundboard.HAS_SEEN_HELP);

@@ -2,18 +2,15 @@ import { Button } from "@/components/ui/button";
 import { SoundSlot as SoundSlotType } from "@/types/types";
 import { Trash2 } from "lucide-react";
 import { Waveform } from "./Waveform";
-import type WaveSurfer from "wavesurfer.js";
 
 interface SoundSlotProps {
   slot: SoundSlotType;
   isRecording: boolean;
   isPlaying: boolean;
-  waveformRef: (el: HTMLDivElement | null) => void;
   onSlotClick: () => void;
   onDelete: () => void;
   onEmojiClick: () => void;
   onTitleClick: () => void;
-  onWaveformCreate?: (waveform: WaveSurfer) => void;
   showWaveform: boolean;
   showEmoji: boolean;
 }
@@ -22,12 +19,10 @@ export function SoundSlot({
   slot,
   isRecording,
   isPlaying,
-  waveformRef,
   onSlotClick,
   onDelete,
   onEmojiClick,
   onTitleClick,
-  onWaveformCreate,
   showWaveform,
   showEmoji,
 }: SoundSlotProps) {
@@ -47,10 +42,8 @@ export function SoundSlot({
         {slot.audioData && showWaveform && (
           <>
             <Waveform
-              ref={waveformRef}
               audioData={slot.audioData}
               isPlaying={isPlaying}
-              onWaveformCreate={onWaveformCreate}
               className="z-10"
             />
             <div className="absolute top-1 right-1 flex gap-1 z-10">
