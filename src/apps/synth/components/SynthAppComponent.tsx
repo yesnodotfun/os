@@ -12,7 +12,7 @@ import { helpItems, appMetadata } from "..";
 // Using store for all Synth settings
 import { useSynthStore, SynthPreset, NoteLabelType } from "@/stores/useSynthStore";
 import { Button } from "@/components/ui/button";
-import { useSound } from "@/hooks/useSound";
+import { useSound, Sounds } from "@/hooks/useSound";
 import {
   Select,
   SelectContent,
@@ -206,7 +206,7 @@ export function SynthAppComponent({
     activeTouchesRef.current = activeTouches;
   }, [activeTouches]);
   // Use UI sound for interface feedback
-  const { play } = useSound("/sounds/click.mp3");
+  const { play } = useSound(Sounds.CLICK);
 
   // Define keyboard layout with extended range
   const allWhiteKeys = [
