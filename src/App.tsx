@@ -22,26 +22,26 @@ function App() {
   }, [displayMode]);
 
   useEffect(() => {
+    // Only show boot screen for system operations (reset/restore/format/debug)
     const persistedMessage = getNextBootMessage();
     if (persistedMessage) {
       setBootScreenMessage(persistedMessage);
       setShowBootScreen(true);
-    } else if (isFirstBoot) {
-      setBootScreenMessage("Starting Up...");
-      setShowBootScreen(true);
     }
-  }, [isFirstBoot]);
+
+    // Set first boot flag without showing boot screen
+    if (isFirstBoot) {
+      setHasBooted();
+    }
+  }, [isFirstBoot, setHasBooted]);
 
   if (showBootScreen) {
     return (
       <BootScreen
         isOpen={true}
         onOpenChange={() => {}}
-        title={bootScreenMessage || "Starting Up..."}
+        title={bootScreenMessage || "System Restoring..."}
         onBootComplete={() => {
-          if (isFirstBoot) {
-            setHasBooted();
-          }
           clearNextBootMessage();
           setShowBootScreen(false);
         }}

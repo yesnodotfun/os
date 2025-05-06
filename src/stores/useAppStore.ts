@@ -105,7 +105,6 @@ export const useAppStore = create<AppStoreState>()(
       isFirstBoot: true,
       setHasBooted: () => {
         set({ isFirstBoot: false });
-        clearNextBootMessage();
       },
       updateWindowState: (appId, position, size) =>
         set((state) => ({
