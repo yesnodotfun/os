@@ -279,14 +279,14 @@ export function ChatsAppComponent({
           onOpenChange={setIsClearDialogOpen}
           onConfirm={confirmClearChats}
           title="Clear Chats"
-          description="Are you sure you want to clear all AI chats? This action cannot be undone."
+          description="Are you sure you want to clear this chat? This action cannot be undone."
         />
         <InputDialog
           isOpen={isSaveDialogOpen}
           onOpenChange={setIsSaveDialogOpen}
           onSubmit={handleSaveSubmit}
           title="Save Transcript"
-          description="Enter a name for your AI chat transcript file"
+          description="Enter a name for your chat transcript file"
           value={saveFileName}
           onChange={setSaveFileName}
         />
@@ -298,7 +298,7 @@ export function ChatsAppComponent({
           }}
           onSubmit={submitUsernameDialog}
           title="Set Username"
-          description="Enter the username you want to use in Chat Rooms"
+          description="Set your username for public Chat Rooms"
           value={newUsername}
           onChange={(value) => { 
             setNewUsername(value); 
