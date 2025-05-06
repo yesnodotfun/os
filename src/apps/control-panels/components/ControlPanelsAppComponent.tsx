@@ -4,6 +4,7 @@ import { ControlPanelsMenuBar } from "./ControlPanelsMenuBar";
 import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
+import { BootScreen } from "@/components/dialogs/BootScreen";
 import { helpItems, appMetadata } from "..";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -169,7 +170,11 @@ export function ControlPanelsAppComponent({
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
   const [isConfirmResetOpen, setIsConfirmResetOpen] = useState(false);
   const [isConfirmFormatOpen, setIsConfirmFormatOpen] = useState(false);
+  const [isBootScreenOpen, setIsBootScreenOpen] = useState(false);
+  const [bootScreenTitle, setBootScreenTitle] = useState("System Restoring...");
+  const [pendingOperation, setPendingOperation] = useState<"restore" | "reset" | "format" | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileToRestoreRef = useRef<File | null>(null);
   const { formatFileSystem } = useFileSystem();
   const { 
     debugMode, 
@@ -206,6 +211,13 @@ export function ControlPanelsAppComponent({
   };
 
   const handleConfirmReset = () => {
+    setIsConfirmResetOpen(false);
+    setBootScreenTitle("Resetting System...");
+    setPendingOperation("reset");
+    setIsBootScreenOpen(true);
+  };
+
+  const performReset = () => {
     clearAllAppStates();
     window.location.reload();
   };
@@ -342,6 +354,16 @@ export function ControlPanelsAppComponent({
   const handleRestore = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+    
+    fileToRestoreRef.current = file;
+    setBootScreenTitle("Restoring System...");
+    setPendingOperation("restore");
+    setIsBootScreenOpen(true);
+  };
+
+  const performRestore = async () => {
+    const file = fileToRestoreRef.current;
+    if (!file) return;
 
     const reader = new FileReader();
     reader.onload = async (e) => {
@@ -475,6 +497,28 @@ export function ControlPanelsAppComponent({
     } else {
       reader.readAsText(file);
     }
+  };
+
+  const handleBootComplete = () => {
+    switch (pendingOperation) {
+      case "restore":
+        performRestore();
+        break;
+      case "reset":
+        performReset();
+        break;
+      case "format":
+        performFormat();
+        break;
+      default:
+        break;
+    }
+    setPendingOperation(null);
+  };
+
+  const performFormat = async () => {
+    await formatFileSystem();
+    window.location.reload();
   };
 
   if (!isWindowOpen) return null;
@@ -636,7 +680,9 @@ export function ControlPanelsAppComponent({
                 <div className="space-y-2">
                   <Button
                     variant="retro"
-                    onClick={() => setIsConfirmFormatOpen(true)}
+                    onClick={() => {
+                      setIsConfirmFormatOpen(true);
+                    }}
                     className="w-full"
                   >
                     Format File System
@@ -709,6 +755,23 @@ export function ControlPanelsAppComponent({
                   </div>
                 )}
 
+                {debugMode && (
+                  <div className="space-y-2 mt-4">
+                    <Button
+                      variant="retro"
+                      onClick={() => {
+                        setBootScreenTitle("Debug Boot Screen");
+                        setIsBootScreenOpen(true);
+                      }}
+                      className="w-full"
+                    >
+                      Show Boot Screen
+                    </Button>
+                    <p className="text-[11px] text-gray-600 font-geneva-12">
+                      Test the boot screen animation
+                    </p>
+                  </div>
+                )}
                 
               </div>
             </TabsContent>
@@ -736,12 +799,20 @@ export function ControlPanelsAppComponent({
         <ConfirmDialog
           isOpen={isConfirmFormatOpen}
           onOpenChange={setIsConfirmFormatOpen}
-          onConfirm={async () => {
-            await formatFileSystem();
-            window.location.reload();
+          onConfirm={() => {
+            setIsConfirmFormatOpen(false);
+            setBootScreenTitle("Formatting File System...");
+            setPendingOperation("format");
+            setIsBootScreenOpen(true);
           }}
           title="Format File System"
           description="Are you sure you want to format the file system? This will permanently delete all documents (except sample documents), images, and custom wallpapers. ryOS will restart after format."
+        />
+        <BootScreen
+          isOpen={isBootScreenOpen}
+          onOpenChange={setIsBootScreenOpen}
+          onBootComplete={handleBootComplete}
+          title={bootScreenTitle}
         />
       </WindowFrame>
     </>

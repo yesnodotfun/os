@@ -187,6 +187,8 @@ export const Sounds = {
   VIDEO_TAPE: "/sounds/VideoTapeIn.mp3",
   // Photo booth sounds
   PHOTO_SHUTTER: "/sounds/PhotoShutter.mp3",
+  // Boot sound
+  BOOT: "/sounds/Boot.mp3",
 } as const;
 
 // Lazily preload sounds after the first user interaction (click or touch)
