@@ -632,7 +632,6 @@ export function IpodAppComponent({
               showStatus("▶");
             } else {
               toggleVideo();
-              showStatus(useIpodStore.getState().showVideo ? "Video ON" : "Video OFF");
             }
           }
         }

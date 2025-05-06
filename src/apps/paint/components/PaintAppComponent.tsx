@@ -11,9 +11,9 @@ import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { InputDialog } from "@/components/dialogs/InputDialog";
 import { helpItems, appMetadata } from "..";
-import { useFileSystem } from "@/apps/finder/hooks/useFileSystem";
+import { useFileSystem, dbOperations, STORES } from "@/apps/finder/hooks/useFileSystem";
 import { useLaunchApp } from "@/hooks/useLaunchApp";
-import { APP_STORAGE_KEYS } from "@/utils/storage";
+import { usePaintStore } from "@/stores/usePaintStore";
 import { Filter } from "./PaintFiltersMenu";
 import { useAppStore } from "@/stores/useAppStore";
 import { toast } from "sonner";
@@ -34,7 +34,7 @@ export const PaintAppComponent: React.FC<AppProps> = ({
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
   const [isConfirmNewDialogOpen, setIsConfirmNewDialogOpen] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
+  const { lastFilePath: currentFilePath, setLastFilePath } = usePaintStore();
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const [saveFileName, setSaveFileName] = useState("");
   const [isLoadingFile, setIsLoadingFile] = useState(false);
@@ -57,6 +57,7 @@ export const PaintAppComponent: React.FC<AppProps> = ({
   const contentChangeTimeoutRef = useRef<number | null>(null);
   const clearInitialData = useAppStore((state) => state.clearInitialData);
   const lastConsumedBlobUrl = useRef<string | null>(null);
+  const [initialFileLoaded, setInitialFileLoaded] = useState(false);
 
   useEffect(() => {
     if (initialData?.path && initialData?.content && canvasRef.current) {
@@ -106,10 +107,6 @@ export const PaintAppComponent: React.FC<AppProps> = ({
           });
           window.dispatchEvent(saveEvent);
 
-          localStorage.setItem(
-            APP_STORAGE_KEYS.paint.LAST_FILE_PATH,
-            currentFilePath
-          );
           setHasUnsavedChanges(false);
         } catch (err) {
           console.error("Error auto-saving file:", err);
@@ -134,7 +131,7 @@ export const PaintAppComponent: React.FC<AppProps> = ({
       setCanvasHeight(newHeight);
       setIsLoadingFile(true);
       canvasRef.current?.importImage(blobUrl);
-      setCurrentFilePath(path);
+      setLastFilePath(path);
       setHasUnsavedChanges(false);
       setIsLoadingFile(false);
       setError(null);
@@ -170,7 +167,7 @@ export const PaintAppComponent: React.FC<AppProps> = ({
 
   const handleClear = () => {
     canvasRef.current?.clear();
-    localStorage.removeItem(APP_STORAGE_KEYS.paint.LAST_FILE_PATH);
+    setLastFilePath(null);
     setHasUnsavedChanges(false);
     setCanvasWidth(589);
     setCanvasHeight(418);
@@ -182,7 +179,7 @@ export const PaintAppComponent: React.FC<AppProps> = ({
       return;
     }
     handleClear();
-    setCurrentFilePath(null);
+    setLastFilePath(null);
     setHasUnsavedChanges(false);
   };
 
@@ -242,8 +239,7 @@ export const PaintAppComponent: React.FC<AppProps> = ({
       });
       window.dispatchEvent(saveEvent);
 
-      localStorage.setItem(APP_STORAGE_KEYS.paint.LAST_FILE_PATH, filePath);
-      setCurrentFilePath(filePath);
+      setLastFilePath(filePath);
       setHasUnsavedChanges(false);
       setIsSaveDialogOpen(false);
       toast.success("Image saved successfully");
@@ -349,6 +345,31 @@ export const PaintAppComponent: React.FC<AppProps> = ({
       }
     };
   }, []);
+
+  // Load last opened file (persisted path) on first mount
+  useEffect(() => {
+    const loadPersistedFile = async () => {
+      if (initialFileLoaded) return;
+      if (!currentFilePath || !canvasRef.current) return;
+
+      const fileName = currentFilePath.split("/").pop();
+      if (!fileName) return;
+
+      try {
+        const record = await dbOperations.get<any>(STORES.IMAGES, fileName);
+        if (record && record.content instanceof Blob) {
+          const blobUrl = URL.createObjectURL(record.content);
+          console.log("[Paint] Loading persisted file", currentFilePath);
+          handleFileOpen(currentFilePath, blobUrl);
+          setInitialFileLoaded(true);
+        }
+      } catch (e) {
+        console.warn("[Paint] Could not load persisted file", e);
+      }
+    };
+
+    loadPersistedFile();
+  }, [currentFilePath, initialFileLoaded]);
 
   if (!isWindowOpen) return null;
 
@@ -496,7 +517,7 @@ export const PaintAppComponent: React.FC<AppProps> = ({
         onOpenChange={setIsConfirmNewDialogOpen}
         onConfirm={() => {
           handleClear();
-          setCurrentFilePath(null);
+          setLastFilePath(null);
           setHasUnsavedChanges(false);
           setIsConfirmNewDialogOpen(false);
         }}

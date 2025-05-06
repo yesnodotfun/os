@@ -5,13 +5,13 @@ import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { helpItems, appMetadata } from "..";
 import { PhotoBoothMenuBar } from "./PhotoBoothMenuBar";
-import { APP_STORAGE_KEYS } from "@/utils/storage";
 import { AppProps } from "../../base/types";
 import { Images, Timer, Camera } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSound, Sounds } from "@/hooks/useSound";
 import { Webcam } from "@/components/Webcam";
 import { useFileSystem } from "@/apps/finder/hooks/useFileSystem";
+import { usePhotoBoothStore } from "@/stores/usePhotoBoothStore";
 
 interface Effect {
   name: string;
@@ -115,20 +115,8 @@ export function PhotoBoothComponent({
     []
   );
   const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null);
-  const [photos, setPhotos] = useState<PhotoReference[]>(() => {
-    try {
-      const saved = localStorage.getItem(
-        APP_STORAGE_KEYS["photo-booth"].PHOTOS
-      );
-      if (!saved) return [];
-
-      // Parse stored photo references
-      return JSON.parse(saved) as PhotoReference[];
-    } catch (e) {
-      console.error("Error loading photos from localStorage:", e);
-      return [];
-    }
-  });
+  const { photos, addPhoto, addPhotos, clearPhotos } =
+    usePhotoBoothStore();
   const [isMultiPhotoMode, setIsMultiPhotoMode] = useState(false);
   const [multiPhotoCount, setMultiPhotoCount] = useState(0);
   const [multiPhotoTimer, setMultiPhotoTimer] = useState<NodeJS.Timeout | null>(
@@ -323,21 +311,6 @@ export function PhotoBoothComponent({
       clearTimeout(recoveryTimer);
     };
   }, [stream]);
-
-  // Save photos to localStorage whenever they change
-  useEffect(() => {
-    if (photos.length > 0) {
-      try {
-        localStorage.setItem(
-          APP_STORAGE_KEYS["photo-booth"].PHOTOS,
-          JSON.stringify(photos)
-        );
-      } catch (error) {
-        console.error("Failed to save photos to localStorage:", error);
-        // Continue without saving to localStorage
-      }
-    }
-  }, [photos]);
 
   // Fix playback issues on Chrome in production
   useEffect(() => {
@@ -589,18 +562,7 @@ export function PhotoBoothComponent({
     };
 
     // Add the new photo reference to the photos array
-    setPhotos((prevPhotos) => {
-      const newPhotos = [...prevPhotos, photoRef];
-      try {
-        localStorage.setItem(
-          APP_STORAGE_KEYS["photo-booth"].PHOTOS,
-          JSON.stringify(newPhotos)
-        );
-      } catch (e) {
-        console.error("Error saving to localStorage:", e);
-      }
-      return newPhotos;
-    });
+    addPhoto(photoRef);
 
     setLastPhoto(photoDataUrl); // Use data URL for lastPhoto preview
     setNewPhotoIndex(photos.length);
@@ -687,18 +649,7 @@ export function PhotoBoothComponent({
           });
 
           // Update photos state with the new references
-          setPhotos((prev) => {
-            const updatedPhotos = [...prev, ...batchWithReferences];
-            try {
-              localStorage.setItem(
-                APP_STORAGE_KEYS["photo-booth"].PHOTOS,
-                JSON.stringify(updatedPhotos)
-              );
-            } catch (e) {
-              console.error("Error saving batch to localStorage:", e);
-            }
-            return updatedPhotos;
-          });
+          addPhotos(batchWithReferences);
 
           // Show thumbnail animation for the last photo in the sequence
           if (currentPhotoBatch.length > 0) {
@@ -720,19 +671,8 @@ export function PhotoBoothComponent({
   };
 
   const handleClearPhotos = () => {
-    setPhotos([]);
+    clearPhotos();
     setCurrentPhotoBatch([]);
-
-    // Clear photos from localStorage with Safari compatibility
-    try {
-      localStorage.setItem(
-        APP_STORAGE_KEYS["photo-booth"].PHOTOS,
-        JSON.stringify([])
-      );
-    } catch (storageError) {
-      console.error("Error clearing photos from localStorage:", storageError);
-      // Continue without saving to localStorage
-    }
   };
 
   const handleExportPhotos = () => {
