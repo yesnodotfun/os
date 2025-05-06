@@ -13,16 +13,28 @@ export interface Track {
 // Original video collection moved here
 export const IPOD_DEFAULT_VIDEOS = [
   {
+    id: "LVLOwwGVVZ0",
+    url: "https://www.youtube.com/watch?v=LVLOwwGVVZ0",
+    title: "Right Now (R&B Remix)",
+    artist: "NewJeans (뉴진스)",
+  },
+  {
+    id: "AGaTzDTnYGY",
+    url: "https://www.youtube.com/watch?v=AGaTzDTnYGY",
+    title: "How Sweet (UK Garage Remix)",
+    artist: "NewJeans (뉴진스)",
+  },
+  {
+    id: "yP8nAoFi6JY",
+    url: "https://www.youtube.com/watch?v=yP8nAoFi6JY",
+    title: "Supernatural (Miami Bass Remix)",
+    artist: "NewJeans (뉴진스)",
+  },
+  {
     id: "1FNI1i7H1Kc",
     url: "https://www.youtube.com/watch?v=1FNI1i7H1Kc",
     title: "The Chase (R&B Remix)",
     artist: "Hearts2Hearts (하츠투하츠)",
-  },
-  {
-    id: "xsimigInsBQ",
-    url: "https://www.youtube.com/watch?v=xsimigInsBQ",
-    title: "How Sweet (BRLLNT Remix)",
-    artist: "NewJeans (뉴진스)",
   },
   {
     id: "PO8",
@@ -150,7 +162,7 @@ interface IpodStoreState {
   previousTrack: () => void;
 }
 
-const CURRENT_IPOD_STORE_VERSION = 2; // Define the current version
+const CURRENT_IPOD_STORE_VERSION = 3; // Define the current version
 
 export const useIpodStore = create<IpodStoreState>()(
   persist(
