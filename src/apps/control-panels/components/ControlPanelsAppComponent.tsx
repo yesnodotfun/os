@@ -137,6 +137,28 @@ const AI_MODELS: {id: AIModel; name: string; provider: string}[] = [
   { id: "o3-mini", name: "o3-mini", provider: "" }
 ];
 
+// Utility to convert Blob to base64 string for JSON serialization
+const blobToBase64 = (blob: Blob): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const dataUrl = reader.result as string; // data:<mime>;base64,xxxx
+      resolve(dataUrl);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+
+// Utility to convert base64 data URL back to Blob
+const base64ToBlob = (dataUrl: string): Blob => {
+  const [meta, base64] = dataUrl.split(",");
+  const mimeMatch = meta.match(/data:(.*);base64/);
+  const mime = mimeMatch ? mimeMatch[1] : "application/octet-stream";
+  const binary = atob(base64);
+  const array = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+  return new Blob([array], { type: mime });
+};
+
 export function ControlPanelsAppComponent({
   isWindowOpen,
   onClose,
@@ -255,18 +277,29 @@ export function ControlPanelsAppComponent({
         });
       };
 
-      // Get data from all stores
-      [
-        backup.indexedDB.documents,
-        backup.indexedDB.images,
-        backup.indexedDB.trash,
-        backup.indexedDB.custom_wallpapers,
-      ] = await Promise.all([
+      const [docs, imgs, trash, walls] = await Promise.all([
         getStoreData("documents"),
         getStoreData("images"),
         getStoreData("trash"),
         getStoreData("custom_wallpapers"),
       ]);
+
+      // Serialize Blob content to base64 strings
+      const serializeStore = async (items: StoreItem[]) =>
+        Promise.all(
+          items.map(async (it) => {
+            if ((it as any).content instanceof Blob) {
+              const base64 = await blobToBase64((it as any).content);
+              return { ...it, content: base64, _isBlob: true } as StoreItem;
+            }
+            return it;
+          })
+        );
+
+      backup.indexedDB.documents = await serializeStore(docs);
+      backup.indexedDB.images = await serializeStore(imgs);
+      backup.indexedDB.trash = await serializeStore(trash);
+      backup.indexedDB.custom_wallpapers = await serializeStore(walls);
 
       // Close the database
       db.close();
@@ -366,9 +399,15 @@ export function ControlPanelsAppComponent({
                     try {
                       // Add all items
                       for (const item of data) {
+                        let toPut = item;
+                        // Re-hydrate Blob if flagged
+                        if ((item as any)._isBlob && typeof item.content === "string") {
+                          const { _isBlob, ...rest } = item as any;
+                          toPut = { ...rest, content: base64ToBlob(item.content as string) };
+                        }
                         await new Promise<void>((resolveItem) => {
                           // Use put instead of add to handle potential duplicate keys
-                          const addRequest = store.put(item);
+                          const addRequest = store.put(toPut);
                           addRequest.onsuccess = () => resolveItem();
                           addRequest.onerror = () => {
                             console.error(
