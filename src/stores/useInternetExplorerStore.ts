@@ -14,6 +14,7 @@ export interface Favorite {
 // Define list of domains that bypass the proxy when in "now" mode
 export const DEFAULT_DIRECT_PASSTHROUGH_DOMAINS = [
   "baby-cursor.ryo.lu",
+  "os.ryo.lu",
   "hcsimulator.com",
   "www.hcsimulator.com",
 ];
