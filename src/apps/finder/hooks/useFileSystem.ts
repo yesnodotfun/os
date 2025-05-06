@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { FileItem as DisplayFileItem } from "../components/FileList";
 import { ensureIndexedDBInitialized } from "@/utils/storage";
 import { getNonFinderApps, AppId } from "@/config/appRegistry";
@@ -390,7 +390,13 @@ let isInitialContentCheckDone = false;
 
 // --- useFileSystem Hook --- //
 export function useFileSystem(initialPath: string = "/") {
-  console.log(`[useFileSystem] Hook initialized/re-run for path: ${initialPath}`);
+  // Limit verbose logging to development mode and log only once per hook instance
+  const hasLoggedRef = useRef(false);
+  if (import.meta.env?.MODE === "development" && !hasLoggedRef.current) {
+    // eslint-disable-next-line no-console
+    console.log(`[useFileSystem] Hook initialized for path: ${initialPath}`);
+    hasLoggedRef.current = true;
+  }
   const [currentPath, setCurrentPath] = useState(initialPath);
   const [files, setFiles] = useState<ExtendedDisplayFileItem[]>([]);
   const [selectedFile, setSelectedFile] = useState<ExtendedDisplayFileItem>();
