@@ -172,6 +172,22 @@ export const DEFAULT_FAVORITES: Favorite[] = [
         year: "current",
         isDirectory: false,
       },
+      {
+        title: "Andrew",
+        url: "https://www.andrewl.ee",
+        favicon:
+          "https://www.google.com/s2/favicons?domain=www.andrewl.ee&sz=32",
+        year: "current",
+        isDirectory: false,
+      },
+      {
+        title: "Lucas",
+        url: "https://www.lucasn.com",
+        favicon:
+          "https://www.google.com/s2/favicons?domain=www.lucasn.com&sz=32",
+        year: "current",
+        isDirectory: false,
+      },
     ],
   },
   // Work Folder
