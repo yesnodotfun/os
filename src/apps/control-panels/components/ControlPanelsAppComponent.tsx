@@ -616,7 +616,7 @@ export function ControlPanelsAppComponent({
                     />
                   </div>
                   <p className="text-[11px] text-gray-600 font-geneva-12">
-                    Backup or restore all app settings and documents.
+                    Backup or restore all app settings and files.
                   </p>
                 </div>
 
@@ -645,19 +645,17 @@ export function ControlPanelsAppComponent({
                     Format File System
                   </Button>
                   <p className="text-[11px] text-gray-600 font-geneva-12">
-                    This will clear all documents (except sample documents),
+                    This will clear all files (except sample docs),
                     images, and custom wallpapers. ryOS will restart after
                     format.
                   </p>
                 </div>
 
-                <hr className="border-gray-400"></hr>
-                
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col gap-1">
                     <Label>Debug Mode</Label>
                     <Label className="text-[11px] text-gray-600 font-geneva-12">
-                      Enable debugging features
+                      Enable debugging settings
                     </Label>
                   </div>
                   <Switch
@@ -713,20 +711,23 @@ export function ControlPanelsAppComponent({
                 )}
 
                 {debugMode && (
-                  <div className="space-y-2 mt-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-1">
+                      <Label>Boot Screen</Label>
+                      <Label className="text-[11px] text-gray-600 font-geneva-12">
+                        Test the boot screen animation
+                      </Label>
+                    </div>
                     <Button
                       variant="retro"
                       onClick={() => {
                         setNextBootMessage("Debug Boot Screen Test...");
                         window.location.reload(); 
                       }}
-                      className="w-full"
+                      className="w-fit"
                     >
-                      Show Boot Screen
+                      Show
                     </Button>
-                    <p className="text-[11px] text-gray-600 font-geneva-12">
-                      Test the boot screen animation
-                    </p>
                   </div>
                 )}
                 
