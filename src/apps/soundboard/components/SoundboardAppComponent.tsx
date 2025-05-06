@@ -264,6 +264,8 @@ export function SoundboardAppComponent({
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isForeground) return;
+
       const index = e.keyCode >= 97 ? e.keyCode - 97 : e.keyCode - 49;
       if (
         (e.keyCode >= 97 && e.keyCode <= 105) ||
@@ -284,7 +286,7 @@ export function SoundboardAppComponent({
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [activeBoard.slots, playbackStates, playSound, stopSound]);
+  }, [activeBoard.slots, playbackStates, playSound, stopSound, isForeground]);
 
   return (
     <>
