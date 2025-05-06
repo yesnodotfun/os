@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { Soundboard, SoundSlot, PlaybackState } from "@/types/types";
-import { loadSelectedDeviceId, saveSelectedDeviceId } from "@/utils/storage";
 
 // Helper to create a default soundboard
 const createDefaultBoard = (): Soundboard => ({
@@ -47,11 +46,7 @@ export const useSoundboardStore = create<SoundboardStoreState>()(
 
       initializeBoards: async () => {
         const currentBoards = get().boards;
-        const currentSelectedDeviceId = loadSelectedDeviceId();
-        if (currentSelectedDeviceId) {
-          set({ selectedDeviceId: currentSelectedDeviceId });
-        }
-
+        
         if (currentBoards.length === 0) {
           try {
             const response = await fetch("/soundboards.json");
@@ -116,7 +111,6 @@ export const useSoundboardStore = create<SoundboardStoreState>()(
 
       setSelectedDeviceId: (deviceId) => {
         set({ selectedDeviceId: deviceId });
-        saveSelectedDeviceId(deviceId);
       },
 
       updateSlot: (boardId, slotIndex, updates) => {
@@ -171,17 +165,16 @@ export const useSoundboardStore = create<SoundboardStoreState>()(
     {
       name: SOUNDBOARD_STORE_NAME,
       version: SOUNDBOARD_STORE_VERSION,
+      partialize: (state) => ({
+        boards: state.boards,
+        activeBoardId: state.activeBoardId,
+        selectedDeviceId: state.selectedDeviceId,
+      }),
       onRehydrateStorage: () => {
         return (state, error) => {
           if (error) {
             console.error("Error rehydrating soundboard store:", error);
           } else if (state) {
-            if (!state.selectedDeviceId) {
-              const storedDeviceId = loadSelectedDeviceId();
-              if (storedDeviceId) {
-                state.selectedDeviceId = storedDeviceId;
-              }
-            }
             if (!state.boards || state.boards.length === 0) {
               Promise.resolve(state.initializeBoards()).catch(err => console.error("Initialization failed on rehydrate", err));
             } else {

@@ -7,13 +7,7 @@ import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { TerminalMenuBar } from "./TerminalMenuBar";
 import { appMetadata, helpItems } from "../index";
 import { useFileSystem, dbOperations, STORES, DocumentContent } from "@/apps/finder/hooks/useFileSystem";
-import {
-  loadTerminalCommandHistory,
-  saveTerminalCommandHistory,
-  loadTerminalCurrentPath,
-  saveTerminalCurrentPath,
-  TerminalCommand,
-} from "@/utils/storage";
+import { useTerminalStore } from "@/stores/useTerminalStore";
 import { useLaunchApp } from "@/hooks/useLaunchApp";
 import { useChat } from "ai/react";
 import { useAppContext } from "@/contexts/AppContext";
@@ -441,13 +435,16 @@ export function TerminalAppComponent({
   const terminalRef = useRef<HTMLDivElement>(null);
 
   // Get file operations from the hook
+  // Get terminal state from the store
+  const { currentPath: storedPath } = useTerminalStore();
+  
   const { 
     currentPath, 
     files, 
     navigateToPath, 
     saveFile, 
     moveToTrash
-  } = useFileSystem(loadTerminalCurrentPath());
+  } = useFileSystem(storedPath);
 
   const launchApp = useLaunchApp();
   const { toggleApp, bringToForeground } = useAppContext();
@@ -465,10 +462,10 @@ export function TerminalAppComponent({
   
   const { username } = useChatsStore();
 
-  // Load command history from storage
+  // Load command history from store
   useEffect(() => {
-    const savedCommands = loadTerminalCommandHistory();
-    setHistoryCommands(savedCommands.map((cmd) => cmd.command));
+    const { commandHistory } = useTerminalStore.getState();
+    setHistoryCommands(commandHistory.map((cmd) => cmd.command));
   }, []);
 
   // Initialize with welcome message
@@ -540,9 +537,9 @@ export function TerminalAppComponent({
     }
   }, [isForeground, commandHistory, isInteractingWithPreview]);
 
-  // Save current path when it changes
+  // Save current path to store when it changes
   useEffect(() => {
-    saveTerminalCurrentPath(currentPath);
+    useTerminalStore.getState().setCurrentPath(currentPath);
   }, [currentPath]);
 
   // Spinner animation effect
@@ -579,13 +576,8 @@ export function TerminalAppComponent({
     setHistoryCommands(newHistoryCommands);
     setHistoryIndex(-1);
 
-    // Save to storage
-    const savedCommands = loadTerminalCommandHistory();
-    const newCommands: TerminalCommand[] = [
-      ...savedCommands,
-      { command: currentCommand, timestamp: Date.now() },
-    ];
-    saveTerminalCommandHistory(newCommands);
+    // Store command in history via Zustand store
+    useTerminalStore.getState().addCommand(currentCommand);
 
     // Process the command
     const result = processCommand(currentCommand);
@@ -1349,7 +1341,7 @@ export function TerminalAppComponent({
 
         // If we're not in AI mode and the historic command was from AI mode
         // (doesn't start with 'ryo' and was saved with 'ryo' prefix)
-        const savedCommands = loadTerminalCommandHistory();
+        const savedCommands = useTerminalStore.getState().commandHistory;
         const commandEntry = savedCommands[savedCommands.length - 1 - newIndex];
         if (
           !isInAiMode &&
@@ -1372,7 +1364,7 @@ export function TerminalAppComponent({
           historyCommands[historyCommands.length - 1 - newIndex] || "";
 
         // Same logic for down arrow
-        const savedCommands = loadTerminalCommandHistory();
+        const savedCommands = useTerminalStore.getState().commandHistory;
         const commandEntry = savedCommands[savedCommands.length - 1 - newIndex];
         if (
           !isInAiMode &&
@@ -1883,7 +1875,7 @@ assistant
         };
 
       case "history": {
-        const cmdHistory = loadTerminalCommandHistory();
+        const cmdHistory = useTerminalStore.getState().commandHistory;
         if (cmdHistory.length === 0) {
           return {
             output: "no command history",
@@ -2315,16 +2307,10 @@ assistant
     setHistoryCommands(newHistoryCommands);
     setHistoryIndex(-1);
 
-    // Save to storage (including AI commands)
-    const savedCommands = loadTerminalCommandHistory();
-    const newCommands: TerminalCommand[] = [
-      ...savedCommands,
-      {
-        command: command.startsWith("ryo ") ? command : `ryo ${command}`,
-        timestamp: Date.now(),
-      },
-    ];
-    saveTerminalCommandHistory(newCommands);
+    // Store in Zustand (including AI commands)
+    useTerminalStore.getState().addCommand(
+      command.startsWith("ryo ") ? command : `ryo ${command}`
+    );
 
     // Reset animated lines to ensure only new content gets animated
     setAnimatedLines(new Set());
