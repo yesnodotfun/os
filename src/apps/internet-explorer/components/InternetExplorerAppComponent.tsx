@@ -378,6 +378,26 @@ export function InternetExplorerAppComponent({
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const [hasMoreToScroll] = useState(false);
+  const [isUrlDropdownOpen, setIsUrlDropdownOpen] = useState(false);
+  const [filteredSuggestions, setFilteredSuggestions] = useState<Array<{title: string, url: string, type: 'favorite' | 'history', year?: string, favicon?: string}>>([]);
+  const [localUrl, setLocalUrl] = useState<string>("");
+  const [isSelectingText, setIsSelectingText] = useState(false);
+  
+  // Utility to normalize URLs for comparison
+  const normalizeUrlInline = (url: string): string => {
+    if (!url) return '';
+    let normalized = url.trim().toLowerCase();
+    normalized = normalized.replace(/^(https?:\/\/|ftp:\/\/)/i, '');
+    normalized = normalized.replace(/\/$/g, '');
+    normalized = normalized.replace(/^www\./i, '');
+    return normalized;
+  };
+  
+  // Strip protocol prefixes for display
+  const stripProtocol = (url: string): string => {
+    if (!url) return '';
+    return url.replace(/^(https?:\/\/|ftp:\/\/)/i, '');
+  };
 
   const urlInputRef = useRef<HTMLInputElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -698,7 +718,7 @@ export function InternetExplorerAppComponent({
 
   const handleNavigate = useCallback(
     async (
-      targetUrlParam: string = url,
+      targetUrlParam: string = localUrl || url,
       targetYearParam: string = year,
       forceRegenerate = false,
       currentHtmlContent: string | null = null
@@ -1033,9 +1053,136 @@ export function InternetExplorerAppComponent({
   const handleNavigateWithHistory = useCallback(
     async (targetUrl: string, targetYear?: string) => {
       setNavigatingHistory(false);
+      setIsUrlDropdownOpen(false);
       handleNavigate(targetUrl, targetYear || year, false);
     },
     [handleNavigate, setNavigatingHistory, year]
+  );
+
+  const handleFilterSuggestions = useCallback(
+    (inputValue: string) => {
+      if (!inputValue.trim()) {
+        // When URL bar is empty, show top 3 favorites
+        const topFavorites: Array<any> = [];
+        
+        // First check for regular favorites (non-folders)
+        favorites.forEach(fav => {
+          if (!fav.children && fav.url) {
+            topFavorites.push({
+              title: fav.title || "",
+              url: fav.url,
+              type: 'favorite' as const,
+              year: fav.year,
+              favicon: fav.favicon,
+            });
+          }
+        });
+        
+        // If we still have space, add favorites from folders
+        if (topFavorites.length) {
+          favorites.forEach(fav => {
+            if (fav.children && fav.children.length > 0) {
+              fav.children.forEach(child => {
+                if (child.url) {
+                  topFavorites.push({
+                    title: child.title || "",
+                    url: child.url,
+                    type: 'favorite' as const,
+                    year: child.year,
+                    favicon: child.favicon,
+                  });
+                }
+              });
+            }
+          });
+        }
+        
+        setFilteredSuggestions(topFavorites);
+        return;
+      }
+
+      const normalizedInput = inputValue.toLowerCase();
+      
+      // Utility to normalize URLs inline for comparison
+      const normalizeUrlInline = (url: string): string => {
+        if (!url) return '';
+        let normalized = url.trim().toLowerCase();
+        normalized = normalized.replace(/^(https?:\/\/|ftp:\/\/)/i, '');
+        normalized = normalized.replace(/\/$/g, '');
+        normalized = normalized.replace(/^www\./i, '');
+        return normalized;
+      };
+      
+      // Function to process a single favorite
+      const processFavorite = (fav: any) => {
+        // Match by title or URL
+        if (fav.title?.toLowerCase().includes(normalizedInput) || 
+            fav.url?.toLowerCase().includes(normalizedInput)) {
+          return {
+            title: fav.title || "",
+            url: fav.url || "",
+            type: 'favorite' as const,
+            year: fav.year,
+            favicon: fav.favicon,
+            normalizedUrl: normalizeUrlInline(fav.url || ""),
+          };
+        }
+        return null;
+      };
+      
+      // Array to collect all matched favorites
+      const allFavoriteSuggestions: Array<any> = [];
+      
+      // Process all favorites, including those in folders
+      favorites.forEach(fav => {
+        if (fav.children) {
+          // If it's a folder, process each child
+          fav.children.forEach(child => {
+            const match = processFavorite(child);
+            if (match) allFavoriteSuggestions.push(match);
+          });
+        } else if (fav.url) {
+          // If it's a regular favorite
+          const match = processFavorite(fav);
+          if (match) allFavoriteSuggestions.push(match);
+        }
+      });
+
+      // Process history items
+      const historySuggestions = history
+        .filter(entry => 
+          entry.title?.toLowerCase().includes(normalizedInput) || 
+          entry.url.toLowerCase().includes(normalizedInput)
+        )
+        .slice(0, 5) // Limit history suggestions
+        .map(entry => ({
+          title: entry.title || entry.url,
+          url: entry.url,
+          type: 'history' as const,
+          year: entry.year,
+          favicon: entry.favicon,
+          normalizedUrl: normalizeUrlInline(entry.url),
+        }));
+
+      // Combine all suggestions
+      const combinedSuggestions = [...allFavoriteSuggestions, ...historySuggestions];
+      
+      // Deduplicate based on normalized URL
+      const uniqueUrls = new Set<string>();
+      const dedupedSuggestions = combinedSuggestions.filter(suggestion => {
+        if (!suggestion.normalizedUrl || uniqueUrls.has(suggestion.normalizedUrl)) {
+          return false;
+        }
+        uniqueUrls.add(suggestion.normalizedUrl);
+        return true;
+      });
+      
+      // Remove the normalizedUrl property before setting state
+      const finalSuggestions = dedupedSuggestions.map(({ normalizedUrl, ...rest }) => rest);
+      
+      setFilteredSuggestions(finalSuggestions);
+    },
+    [favorites, history]
   );
 
   const handleGoBack = useCallback(() => {
@@ -1151,6 +1298,25 @@ export function InternetExplorerAppComponent({
   const handleGoToUrl = useCallback(() => {
     urlInputRef.current?.focus();
     urlInputRef.current?.select();
+    setIsSelectingText(true);
+  }, []);
+  
+
+  
+  // Helper to validate if a URL is well-formed enough to be saved
+  const isValidUrl = useCallback((urlString: string): boolean => {
+    // Fairly permissive validation - checks for at least a domain-like structure
+    if (!urlString || !urlString.trim()) return false;
+    
+    // We shouldn't have protocols at this point, but just in case
+    const trimmed = stripProtocol(urlString.trim());
+    
+    // Check for at least something that looks like a domain
+    // Accept: domain.tld, domain, localhost, IP addresses
+    return /^([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z0-9]([a-z0-9-]*[a-z0-9])?/i.test(trimmed) || 
+           /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/i.test(trimmed) || 
+           /^localhost(:[0-9]+)?$/i.test(trimmed) ||
+           /^(\d{1,3}\.){3}\d{1,3}(:[0-9]+)?$/i.test(trimmed);
   }, []);
 
   const handleHome = useCallback(() => {
@@ -1159,6 +1325,11 @@ export function InternetExplorerAppComponent({
 
   // Use a ref to prevent duplicate initial navigations
   const initialNavigationRef = useRef(false);
+  // Sync localUrl with store's url when the component loads or url changes from outside
+  useEffect(() => {
+    setLocalUrl(stripProtocol(url));
+  }, [url]);
+
   useEffect(() => {
     // Only run initial navigation logic once when the window opens
     if (!initialNavigationRef.current && isWindowOpen) {
@@ -1735,12 +1906,58 @@ export function InternetExplorerAppComponent({
               <div className="flex-1 relative flex items-center">
                 <Input
                   ref={urlInputRef}
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
+                  value={localUrl}
+                  onChange={(e) => {
+                    // Strip any https:// prefix on input
+                    const strippedValue = stripProtocol(e.target.value);
+                    setLocalUrl(strippedValue);
+                    handleFilterSuggestions(strippedValue);
+                    setIsUrlDropdownOpen(true);
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
-                      handleNavigate();
+                      setIsUrlDropdownOpen(false);
+                      if (isValidUrl(localUrl)) {
+                        setUrl(localUrl);
+                        handleNavigate(localUrl);
+                      } else {
+                        // If not valid URL, reset to previously valid URL
+                        setLocalUrl(stripProtocol(url));
+                      }
+                                          } else if (e.key === "Escape") {
+                      setIsUrlDropdownOpen(false);
+                      // Reset input to last valid URL
+                      setLocalUrl(stripProtocol(url));
+                    } else if (e.key === "ArrowDown" && filteredSuggestions.length > 0) {
+                      e.preventDefault();
+                      const dropdown = document.querySelector("[data-dropdown-content]");
+                      const firstItem = dropdown?.querySelector("[data-dropdown-item]") as HTMLElement;
+                      if (firstItem) firstItem.focus();
                     }
+                  }}
+                  onBlur={(e) => {
+                    // Don't close dropdown if focus is moving to dropdown items
+                    // Only close if clicking outside completely
+                    if (!e.relatedTarget || !e.relatedTarget.hasAttribute('data-dropdown-item')) {
+                      setTimeout(() => setIsUrlDropdownOpen(false), 150);
+                    }
+                    // Done selecting text
+                    setIsSelectingText(false);
+                  }}
+                  onFocus={() => {
+                    // Select all text when focused
+                    if (!isSelectingText) {
+                      setIsSelectingText(true);
+                      setTimeout(() => {
+                        if (urlInputRef.current) {
+                          urlInputRef.current.select();
+                        }
+                      }, 0);
+                    }
+                    
+                    // Always call handleFilterSuggestions - it will handle empty URL case
+                    handleFilterSuggestions(localUrl);
+                    setIsUrlDropdownOpen(true);
                   }}
                   className="flex-1 pr-8"
                   placeholder="Enter URL"
@@ -1748,6 +1965,73 @@ export function InternetExplorerAppComponent({
                   autoComplete="off"
                   autoCapitalize="off"
                 />
+                {isUrlDropdownOpen && filteredSuggestions.length > 0 && 
+                 // Show dropdown if we have suggestions and either:
+                 // 1. URL is empty (showing our favorites) or
+                 // 2. There isn't just one exact match
+                 (localUrl.trim() === "" || !(filteredSuggestions.length === 1 && normalizeUrlInline(filteredSuggestions[0].url) === normalizeUrlInline(localUrl))) && (
+                                      <div 
+                      className="absolute top-full left-0 right-0 mt-[2px] bg-white border border-neutral-300 shadow-md rounded-md z-50 max-h-48 overflow-y-auto font-geneva-12"
+                      data-dropdown-content
+                  >
+                    {filteredSuggestions.map((suggestion, index) => (
+                      <div
+                        key={`${suggestion.type}-${index}`}
+                        className="px-2 py-1.5 hover:bg-gray-100 focus:bg-gray-200 cursor-pointer flex items-center gap-2 text-sm outline-none"
+                        onClick={() => {
+                          handleNavigateWithHistory(suggestion.url, suggestion.year);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleNavigateWithHistory(suggestion.url, suggestion.year);
+                          } else if (e.key === "ArrowDown") {
+                            e.preventDefault();
+                            const nextItem = e.currentTarget.nextElementSibling as HTMLElement;
+                            if (nextItem) nextItem.focus();
+                          } else if (e.key === "ArrowUp") {
+                            e.preventDefault();
+                            const prevItem = e.currentTarget.previousElementSibling as HTMLElement;
+                            if (prevItem) prevItem.focus();
+                            else urlInputRef.current?.focus();
+                          } else if (e.key === "Escape") {
+                            e.preventDefault();
+                            setIsUrlDropdownOpen(false);
+                            urlInputRef.current?.focus();
+                          }
+                        }}
+                        onFocus={() => {
+                          // Keep dropdown open when focus moves to dropdown items
+                          setIsUrlDropdownOpen(true);
+                        }}
+                        tabIndex={0}
+                        data-dropdown-item
+                      >
+                        <img
+                          src={suggestion.favicon || "/icons/ie-site.png"}
+                          alt=""
+                          className="w-4 h-4"
+                          onError={(e) => {
+                            e.currentTarget.src = "/icons/ie-site.png";
+                          }}
+                        />
+                        <div className="flex-1 truncate">
+                          <div className="font-medium font-geneva-12 text-[11px]">
+                            {suggestion.title}
+                            {suggestion.year && suggestion.year !== "current" && (
+                              <span className="font-normal text-gray-500 ml-1">({suggestion.year})</span>
+                            )}
+                          </div>
+                          <div className="font-geneva-12 text-[10px] text-gray-500 truncate">{stripProtocol(suggestion.url)}</div>
+                        </div>
+                        <div className="font-geneva-12 text-[10px] ml-2 text-gray-500 whitespace-nowrap">
+                          {suggestion.type === 'favorite' && "Favorite"}
+                          {suggestion.type === 'history' && "History"}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
