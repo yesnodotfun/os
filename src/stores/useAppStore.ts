@@ -5,7 +5,6 @@ import { AppManagerState, AppState } from "@/apps/base/types";
 import { checkShaderPerformance } from "@/utils/performanceCheck";
 import { ShaderType } from "@/components/shared/GalaxyBackground";
 import { DisplayMode } from "@/utils/displayMode";
-import { clearNextBootMessage } from "@/utils/bootMessage";
 
 // Define available AI models (matching API options from chat.ts)
 export type AIModel = "gpt-4o" | "gpt-4.1" | "gpt-4.1-mini" | "claude-3.5" | "claude-3.7" | "o3-mini" | "gemini-2.5-pro-exp-03-25" | null;

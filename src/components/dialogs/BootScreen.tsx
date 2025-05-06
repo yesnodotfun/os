@@ -73,20 +73,20 @@ export function BootScreen({
           style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
         />
         <DialogContent 
-          className="bg-blue-500 p-0 border-none shadow-xl max-w-lg z-[80] outline-none"
+          className=" bg-neutral-100 p-0 w-[calc(100%-24px)] border-none shadow-xl max-w-lg z-[80] outline-none"
           style={{ position: 'fixed', zIndex: 80 }}
         >
           <VisuallyHidden>
             <DialogTitle>{title}</DialogTitle>
           </VisuallyHidden>
-          <div className="flex flex-col items-center justify-center p-8 bg-neutral-100 min-h-[300px] w-full">
+          <div className="flex flex-col items-center justify-center p-8 min-h-[300px] w-full">
             <div className="flex flex-col items-center justify-center border border-neutral-200 bg-white p-8 w-full pb-4">
                 <img src="/assets/macos.svg" alt="macOS" className="w-64 h-32" />
-                <h1 className="text-[32px] font-mondwest font-bold mt-4 mb-0">
+                <h1 className="text-[48px] font-mondwest mt-4 mb-0">
                   <span className="text-blue-500">ry</span>OS 8.2
                 </h1>
             </div>
-            <h2 className="text-[16px] font-chicago mt-4">{title}</h2>
+            <h2 className="text-[16px] font-chicago mt-4 mb-1">{title}</h2>
             <div className="w-[50%] h-3 border-1 border-neutral-500 rounded-sm overflow-hidden">
               <div 
                 className="h-full bg-neutral-900 transition-all duration-200"
