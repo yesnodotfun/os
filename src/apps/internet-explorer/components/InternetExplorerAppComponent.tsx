@@ -379,7 +379,7 @@ export function InternetExplorerAppComponent({
   const abortControllerRef = useRef<AbortController | null>(null);
   const [hasMoreToScroll] = useState(false);
   const [isUrlDropdownOpen, setIsUrlDropdownOpen] = useState(false);
-  const [filteredSuggestions, setFilteredSuggestions] = useState<Array<{title: string, url: string, type: 'favorite' | 'history', year?: string, favicon?: string}>>([]);
+  const [filteredSuggestions, setFilteredSuggestions] = useState<Array<{title: string, url: string, type: 'favorite' | 'history' | 'search', year?: string, favicon?: string}>>([]);
   const [localUrl, setLocalUrl] = useState<string>("");
   const [isSelectingText, setIsSelectingText] = useState(false);
   
@@ -398,6 +398,24 @@ export function InternetExplorerAppComponent({
     if (!url) return '';
     return url.replace(/^(https?:\/\/|ftp:\/\/)/i, '');
   };
+
+  // Helper to validate if a URL is well-formed enough to be saved
+  const isValidUrl = useCallback((urlString: string): boolean => {
+    // Fairly permissive validation - checks for at least a domain-like structure
+    if (!urlString || !urlString.trim()) return false;
+    
+    // We shouldn't have protocols at this point, but just in case
+    const trimmed = stripProtocol(urlString.trim());
+    
+    // Check for at least something that looks like a domain
+    // Accept: domain.tld, domain, localhost, IP addresses
+    // Make sure it doesn't start with "bing:" which is our internal marker
+    if (trimmed.startsWith("bing:")) return false;
+
+    return /^([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z0-9]([a-z0-9-]*[a-z0-9])?/i.test(trimmed) || 
+           /^localhost(:[0-9]+)?$/i.test(trimmed) ||
+           /^(\d{1,3}\.){3}\d{1,3}(:[0-9]+)?$/i.test(trimmed);
+  }, [stripProtocol]);
 
   const urlInputRef = useRef<HTMLInputElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -1151,8 +1169,9 @@ export function InternetExplorerAppComponent({
       // Process history items
       const historySuggestions = history
         .filter(entry => 
-          entry.title?.toLowerCase().includes(normalizedInput) || 
-          entry.url.toLowerCase().includes(normalizedInput)
+          !entry.url.startsWith("https://www.bing.com/search?q=") &&
+          (entry.title?.toLowerCase().includes(normalizedInput) || 
+          entry.url.toLowerCase().includes(normalizedInput))
         )
         .slice(0, 5) // Limit history suggestions
         .map(entry => ({
@@ -1178,11 +1197,22 @@ export function InternetExplorerAppComponent({
       });
       
       // Remove the normalizedUrl property before setting state
-      const finalSuggestions = dedupedSuggestions.map(({ normalizedUrl, ...rest }) => rest);
+      let finalSuggestions = dedupedSuggestions.map(({ normalizedUrl, ...rest }) => rest);
+      
+      console.log("[IE Debug] Input:", inputValue, "Is Valid:", isValidUrl(inputValue));
+
+      if (inputValue.trim() && !isValidUrl(inputValue)) {
+        finalSuggestions.push({
+          title: `Search for "${inputValue}"`,
+          url: `bing:${inputValue}`, // Special marker for search
+          type: 'search' as const,
+          favicon: '/icons/bing.png', // Assumes a bing icon exists
+        });
+      }
       
       setFilteredSuggestions(finalSuggestions);
     },
-    [favorites, history]
+    [favorites, history, isValidUrl]
   );
 
   const handleGoBack = useCallback(() => {
@@ -1303,22 +1333,6 @@ export function InternetExplorerAppComponent({
   
 
   
-  // Helper to validate if a URL is well-formed enough to be saved
-  const isValidUrl = useCallback((urlString: string): boolean => {
-    // Fairly permissive validation - checks for at least a domain-like structure
-    if (!urlString || !urlString.trim()) return false;
-    
-    // We shouldn't have protocols at this point, but just in case
-    const trimmed = stripProtocol(urlString.trim());
-    
-    // Check for at least something that looks like a domain
-    // Accept: domain.tld, domain, localhost, IP addresses
-    return /^([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z0-9]([a-z0-9-]*[a-z0-9])?/i.test(trimmed) || 
-           /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/i.test(trimmed) || 
-           /^localhost(:[0-9]+)?$/i.test(trimmed) ||
-           /^(\d{1,3}\.){3}\d{1,3}(:[0-9]+)?$/i.test(trimmed);
-  }, []);
-
   const handleHome = useCallback(() => {
     handleNavigate("apple.com", "2002");
   }, [handleNavigate]);
@@ -1979,12 +1993,22 @@ export function InternetExplorerAppComponent({
                         key={`${suggestion.type}-${index}`}
                         className="px-2 py-1.5 hover:bg-gray-100 focus:bg-gray-200 cursor-pointer flex items-center gap-2 text-sm outline-none"
                         onClick={() => {
-                          handleNavigateWithHistory(suggestion.url, suggestion.year);
+                          if (suggestion.type === 'search') {
+                            const searchQuery = suggestion.url.substring(5); // Remove "bing:"
+                            handleNavigateWithHistory(`https://www.bing.com/search?q=${encodeURIComponent(searchQuery)}`, 'current');
+                          } else {
+                            handleNavigateWithHistory(suggestion.url, suggestion.year);
+                          }
                         }}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
                             e.preventDefault();
-                            handleNavigateWithHistory(suggestion.url, suggestion.year);
+                            if (suggestion.type === 'search') {
+                              const searchQuery = suggestion.url.substring(5); // Remove "bing:"
+                              handleNavigateWithHistory(`https://www.bing.com/search?q=${encodeURIComponent(searchQuery)}`, 'current');
+                            } else {
+                              handleNavigateWithHistory(suggestion.url, suggestion.year);
+                            }
                           } else if (e.key === "ArrowDown") {
                             e.preventDefault();
                             const nextItem = e.currentTarget.nextElementSibling as HTMLElement;
@@ -2022,11 +2046,12 @@ export function InternetExplorerAppComponent({
                               <span className="font-normal text-gray-500 ml-1">({suggestion.year})</span>
                             )}
                           </div>
-                          <div className="font-geneva-12 text-[10px] text-gray-500 truncate">{stripProtocol(suggestion.url)}</div>
+                          <div className="font-geneva-12 text-[10px] text-gray-500 truncate">{suggestion.type !== 'search' ? stripProtocol(suggestion.url.startsWith("bing:") ? suggestion.url.substring(5) : suggestion.url) : ''}</div>
                         </div>
                         <div className="font-geneva-12 text-[10px] ml-2 text-gray-500 whitespace-nowrap">
                           {suggestion.type === 'favorite' && "Favorite"}
                           {suggestion.type === 'history' && "History"}
+                          {suggestion.type === 'search' && "Bing Search"}
                         </div>
                       </div>
                     ))}
