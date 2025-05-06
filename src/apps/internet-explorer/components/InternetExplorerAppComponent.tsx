@@ -24,7 +24,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ArrowLeft, ArrowRight, History, Share } from "lucide-react";
+import { ArrowLeft, ArrowRight, History, Search, Share } from "lucide-react";
 import { InputDialog } from "@/components/dialogs/InputDialog";
 import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
@@ -1203,7 +1203,7 @@ export function InternetExplorerAppComponent({
 
       if (inputValue.trim() && !isValidUrl(inputValue)) {
         finalSuggestions.push({
-          title: `Search for "${inputValue}"`,
+          title: `Search "${inputValue}"`,
           url: `bing:${inputValue}`, // Special marker for search
           type: 'search' as const,
           favicon: '/icons/bing.png', // Assumes a bing icon exists
@@ -2031,14 +2031,18 @@ export function InternetExplorerAppComponent({
                         tabIndex={0}
                         data-dropdown-item
                       >
-                        <img
-                          src={suggestion.favicon || "/icons/ie-site.png"}
-                          alt=""
-                          className="w-4 h-4"
-                          onError={(e) => {
-                            e.currentTarget.src = "/icons/ie-site.png";
-                          }}
-                        />
+                        {suggestion.type === 'search' ? (
+                          <Search className="w-4 h-4 text-neutral-400" />
+                        ) : (
+                          <img
+                            src={suggestion.favicon || "/icons/ie-site.png"}
+                            alt=""
+                            className="w-4 h-4"
+                            onError={(e) => {
+                              e.currentTarget.src = "/icons/ie-site.png";
+                            }}
+                          />
+                        )}
                         <div className="flex-1 truncate">
                           <div className="font-medium font-geneva-12 text-[11px]">
                             {suggestion.title}
@@ -2046,12 +2050,12 @@ export function InternetExplorerAppComponent({
                               <span className="font-normal text-gray-500 ml-1">({suggestion.year})</span>
                             )}
                           </div>
-                          <div className="font-geneva-12 text-[10px] text-gray-500 truncate">{suggestion.type !== 'search' ? stripProtocol(suggestion.url.startsWith("bing:") ? suggestion.url.substring(5) : suggestion.url) : ''}</div>
+                          <div className="font-geneva-12 text-[10px] text-gray-500 truncate">{suggestion.type === 'search' ? "bing.com" : stripProtocol(suggestion.url)}</div>
                         </div>
                         <div className="font-geneva-12 text-[10px] ml-2 text-gray-500 whitespace-nowrap">
                           {suggestion.type === 'favorite' && "Favorite"}
                           {suggestion.type === 'history' && "History"}
-                          {suggestion.type === 'search' && "Bing Search"}
+                          {suggestion.type === 'search' && "Search"}
                         </div>
                       </div>
                     ))}
