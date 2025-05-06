@@ -226,6 +226,11 @@ function ErrorPage({
 // Add this constant for title truncation
 const MAX_TITLE_LENGTH = 50;
 
+// Debug helper to identify direct passthrough URLs
+const logDirectPassthrough = (url: string) => {
+  console.log(`[IE] Direct passthrough mode for: ${url}`);
+};
+
 const getHostnameFromUrl = (url: string): string => {
   try {
     const urlToUse = url.startsWith("http") ? url : `https://${url}`;
@@ -933,10 +938,21 @@ export function InternetExplorerAppComponent({
               return;
             }
           } else if (newMode === "now") {
-            // Always proxy current year sites through iframe-check
-            urlToLoad = `/api/iframe-check?url=${encodeURIComponent(
-              normalizedTargetUrl
-            )}`;
+            // Check if domain should bypass proxy
+            const isDirectBypass = useInternetExplorerStore
+              .getState()
+              .isDirectPassthrough(normalizedTargetUrl);
+
+            if (isDirectBypass) {
+              logDirectPassthrough(normalizedTargetUrl);
+              urlToLoad = normalizedTargetUrl;
+            } else {
+              // Proxy current year sites through iframe-check
+              urlToLoad = `/api/iframe-check?url=${encodeURIComponent(
+                normalizedTargetUrl
+              )}`;
+            }
+
             try {
               const checkRes = await fetch(
                 `/api/iframe-check?mode=check&url=${encodeURIComponent(

@@ -11,6 +11,13 @@ export interface Favorite {
   isDirectory?: boolean; // New: Flag to indicate if it's a folder
 }
 
+// Define list of domains that bypass the proxy when in "now" mode
+export const DEFAULT_DIRECT_PASSTHROUGH_DOMAINS = [
+  "baby-cursor.ryo.lu",
+  "hcsimulator.com",
+  "www.hcsimulator.com",
+];
+
 export interface HistoryEntry {
   url: string;
   title: string;
@@ -353,6 +360,7 @@ interface InternetExplorerStore {
   token: number;
   prefetchedTitle: string | null; // New: Store prefetched title
   errorDetails: ErrorResponse | null; // New: Store detailed error info
+  directPassthroughDomains: string[]; // New: List of domains that bypass proxy in "now" mode
 
   // Favorites and history
   favorites: Favorite[];
@@ -475,6 +483,7 @@ interface InternetExplorerStore {
   // Utility functions
   getAiCacheKey: (url: string, year: string) => string;
   updateBrowserState: () => void;
+  isDirectPassthrough: (url: string) => boolean; // New: Check if URL should bypass proxy
 }
 
 // Define the maximum number of entries for the AI cache
@@ -510,6 +519,7 @@ const getInitialState = () => ({
   token: 0,
   prefetchedTitle: null as string | null,
   errorDetails: null as ErrorResponse | null,
+  directPassthroughDomains: DEFAULT_DIRECT_PASSTHROUGH_DOMAINS,
   favorites: DEFAULT_FAVORITES,
   history: [] as HistoryEntry[],
   historyIndex: -1,
@@ -857,6 +867,19 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
         set({ pendingUrl: null, pendingYear: null }),
 
       updateBrowserState: () => {},
+
+      isDirectPassthrough: (url: string) => {
+        try {
+          const hostname = new URL(
+            url.startsWith("http") ? url : `https://${url}`
+          ).hostname;
+          return get().directPassthroughDomains.some(
+            (domain) => hostname === domain || hostname.endsWith(`.${domain}`)
+          );
+        } catch {
+          return false;
+        }
+      },
     }),
     {
       name: "ryos:internet-explorer",
@@ -870,6 +893,7 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
         timelineSettings: state.timelineSettings,
         language: state.language,
         location: state.location,
+        directPassthroughDomains: state.directPassthroughDomains,
       }),
       migrate: (persistedState, version) => {
         let state = persistedState as any;
@@ -894,6 +918,7 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
           "timelineSettings",
           "language",
           "location",
+          "directPassthroughDomains",
         ];
         const finalState: Partial<InternetExplorerStore> = {};
 
@@ -915,6 +940,11 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
           typeof finalState.aiCache === "object" && finalState.aiCache !== null
             ? finalState.aiCache
             : {};
+        finalState.directPassthroughDomains = Array.isArray(
+          finalState.directPassthroughDomains
+        )
+          ? finalState.directPassthroughDomains
+          : DEFAULT_DIRECT_PASSTHROUGH_DOMAINS;
 
         return finalState as InternetExplorerStore;
       },
