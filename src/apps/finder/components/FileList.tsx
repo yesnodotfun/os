@@ -230,7 +230,7 @@ export function FileList({
       >
         <Table>
           <TableHeader>
-            <TableRow className="text-[9px] border-none font-normal">
+            <TableRow className="text-[10px] border-none font-normal">
               <TableHead className="font-normal bg-gray-100/50 h-[28px]">
                 Name
               </TableHead>
@@ -245,7 +245,7 @@ export function FileList({
               </TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody className="text-[10px]">
+          <TableBody className="text-[11px]">
             {files.map((file) => (
               <TableRow
                 key={file.path}
