@@ -272,7 +272,7 @@ export const DEFAULT_FAVORITES: Favorite[] = [
         url: "https://microsoft.com",
         favicon:
           "https://www.google.com/s2/favicons?domain=microsoft.com&sz=32",
-        year: "1995",
+        year: "1996",
         isDirectory: false,
       },
       {
