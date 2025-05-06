@@ -225,6 +225,8 @@ export function IpodAppComponent({
     };
   }, []);
 
+  const [lastPlayedMenuPath, setLastPlayedMenuPath] = useState<string[]>([]);
+
   const musicMenuItems = useMemo(() => {
     // Group tracks by artist
     const tracksByArtist = tracks.reduce<Record<string, { track: typeof tracks[0]; index: number }[]>>(
@@ -259,6 +261,7 @@ export function IpodAppComponent({
               setMenuDirection("forward");
               setMenuMode(false);
               setCameFromNowPlayingMenuItem(false);
+              setLastPlayedMenuPath(["Music", "All Tracks"]);
               if (useIpodStore.getState().showVideo) {
                 toggleVideo();
               }
@@ -292,6 +295,7 @@ export function IpodAppComponent({
               setMenuDirection("forward");
               setMenuMode(false);
               setCameFromNowPlayingMenuItem(false);
+              setLastPlayedMenuPath(["Music", artist]);
               if (useIpodStore.getState().showVideo) {
                 toggleVideo();
               }
@@ -637,44 +641,119 @@ export function IpodAppComponent({
 
       const musicSubmenu = musicMenuItems;
       
-      // Create the All Tracks submenu directly based on tracks
-      const allTracksMenu = {
-        title: "All Tracks",
-        items: tracks.map((track, index) => ({
-          label: track.title,
-          action: () => {
-            registerActivity();
-            setCurrentIndex(index);
-            setIsPlaying(true);
-            setMenuDirection("forward");
-            setMenuMode(false);
-            setCameFromNowPlayingMenuItem(false);
-            if (useIpodStore.getState().showVideo) {
-              toggleVideo();
-            }
-            showStatus(`Now Playing: ${track.title}`);
-          },
-          showChevron: false,
-        })),
-        selectedIndex: currentTrackIndex
-      };
-
       if (cameFromNowPlayingMenuItem) {
         setMenuHistory([mainMenu]);
         setSelectedMenuItem(mainMenu?.selectedIndex || 0);
         setCameFromNowPlayingMenuItem(false);
       } else {
-        // Set menu hierarchy: Main menu -> Music menu -> All Tracks
-        setMenuHistory([
-          mainMenu,
-          {
-            title: "Music",
-            items: musicSubmenu,
-            selectedIndex: 0 // Select "All Tracks" in the Music menu
+        
+        // Group tracks by artist to find the right artist menu
+        const tracksByArtist = tracks.reduce<Record<string, { track: typeof tracks[0]; index: number }[]>>(
+          (acc, track, index) => {
+            const artist = track.artist || 'Unknown Artist';
+            if (!acc[artist]) {
+              acc[artist] = [];
+            }
+            acc[artist].push({ track, index });
+            return acc;
           },
-          allTracksMenu
-        ]);
-        setSelectedMenuItem(currentTrackIndex);
+          {}
+        );
+        
+        // Create track menus
+        const allTracksMenu = {
+          title: "All Tracks",
+          items: tracks.map((track, index) => ({
+            label: track.title,
+            action: () => {
+              registerActivity();
+              setCurrentIndex(index);
+              setIsPlaying(true);
+              setMenuDirection("forward");
+              setMenuMode(false);
+              setCameFromNowPlayingMenuItem(false);
+              setLastPlayedMenuPath(["Music", "All Tracks"]);
+              if (useIpodStore.getState().showVideo) {
+                toggleVideo();
+              }
+              showStatus(`Now Playing: ${track.title}`);
+            },
+            showChevron: false,
+          })),
+          selectedIndex: currentTrackIndex
+        };
+        
+        // If we have a lastPlayedMenuPath, use it to determine where to go back to
+        if (lastPlayedMenuPath.length > 0 && lastPlayedMenuPath[1] !== "All Tracks") {
+          // We should return to an artist menu
+          const artist = lastPlayedMenuPath[1];
+          
+          // Check if artist exists in our library
+          if (tracksByArtist[artist]) {
+            const artistTracks = tracksByArtist[artist];
+            
+            // Find the index of the current track in this artist's track list
+            const artistTrackIndex = artistTracks.findIndex(item => item.index === currentTrackIndex);
+            
+            const artistMenu = {
+              title: artist,
+              items: artistTracks.map(({ track, index }) => ({
+                label: track.title,
+                action: () => {
+                  registerActivity();
+                  setCurrentIndex(index);
+                  setIsPlaying(true);
+                  setMenuDirection("forward");
+                  setMenuMode(false);
+                  setCameFromNowPlayingMenuItem(false);
+                  setLastPlayedMenuPath(["Music", artist]);
+                  if (useIpodStore.getState().showVideo) {
+                    toggleVideo();
+                  }
+                  showStatus(`Now Playing: ${track.title}`);
+                },
+                showChevron: false,
+              })),
+              selectedIndex: artistTrackIndex !== -1 ? artistTrackIndex : 0
+            };
+            
+            setMenuHistory([
+              mainMenu,
+              {
+                title: "Music",
+                items: musicSubmenu,
+                selectedIndex: musicSubmenu.findIndex(item => item.label === artist)
+              },
+              artistMenu
+            ]);
+            
+            setSelectedMenuItem(artistTrackIndex !== -1 ? artistTrackIndex : 0);
+          } else {
+            // If artist no longer exists, fall back to All Tracks
+            setMenuHistory([
+              mainMenu,
+              {
+                title: "Music",
+                items: musicSubmenu,
+                selectedIndex: 0
+              },
+              allTracksMenu
+            ]);
+            setSelectedMenuItem(currentTrackIndex);
+          }
+        } else {
+          // Default behavior: go to All Tracks
+          setMenuHistory([
+            mainMenu,
+            {
+              title: "Music",
+              items: musicSubmenu,
+              selectedIndex: 0
+            },
+            allTracksMenu
+          ]);
+          setSelectedMenuItem(currentTrackIndex);
+        }
       }
       setMenuMode(true);
     }
@@ -690,6 +769,7 @@ export function IpodAppComponent({
     musicMenuItems,
     tracks,
     cameFromNowPlayingMenuItem,
+    lastPlayedMenuPath,
   ]);
 
   const handleWheelClick = useCallback((area: "top" | "right" | "bottom" | "left" | "center") => {
