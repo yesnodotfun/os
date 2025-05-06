@@ -195,6 +195,12 @@ export function SynthAppComponent({
   const [isControlsVisible, setIsControlsVisible] = useState(false);
   const [octaveOffset, setOctaveOffset] = useState(0);
 
+  // Ref to keep the latest foreground state for global event handlers
+  const isForegroundRef = useRef(isForeground);
+  useEffect(() => {
+    isForegroundRef.current = isForeground;
+  }, [isForeground]);
+
   // Default presets
   const defaultPresets: SynthPreset[] = [
     {
@@ -343,7 +349,9 @@ export function SynthAppComponent({
   });
 
   const [pressedNotes, setPressedNotes] = useState<Record<string, boolean>>({});
-  const [activeTouches, setActiveTouches] = useState<Record<string, string>>({});
+  const [activeTouches, setActiveTouches] = useState<Record<string, string>>(
+    {}
+  );
   // Keep a ref in sync with `activeTouches` so external event listeners always have current data
   const activeTouchesRef = useRef<Record<string, string>>({});
   useEffect(() => {
@@ -656,23 +664,29 @@ export function SynthAppComponent({
   };
 
   // Note press/release handlers
-  const pressNote = useCallback((note: string) => {
-    if (!synthRef.current) return;
+  const pressNote = useCallback(
+    (note: string) => {
+      if (!synthRef.current) return;
 
-    const shiftedNote = shiftNoteByOctave(note, octaveOffset);
-    const now = Tone.context.currentTime; // schedule without extra latency
-    synthRef.current.triggerAttack(shiftedNote, now);
-    setPressedNotes((prev) => ({ ...prev, [note]: true }));
-  }, [octaveOffset]);
+      const shiftedNote = shiftNoteByOctave(note, octaveOffset);
+      const now = Tone.context.currentTime; // schedule without extra latency
+      synthRef.current.triggerAttack(shiftedNote, now);
+      setPressedNotes((prev) => ({ ...prev, [note]: true }));
+    },
+    [octaveOffset]
+  );
 
-  const releaseNote = useCallback((note: string) => {
-    if (!synthRef.current) return;
+  const releaseNote = useCallback(
+    (note: string) => {
+      if (!synthRef.current) return;
 
-    const shiftedNote = shiftNoteByOctave(note, octaveOffset);
-    const now = Tone.context.currentTime;
-    synthRef.current.triggerRelease(shiftedNote, now);
-    setPressedNotes((prev) => ({ ...prev, [note]: false }));
-  }, [octaveOffset]);
+      const shiftedNote = shiftNoteByOctave(note, octaveOffset);
+      const now = Tone.context.currentTime;
+      synthRef.current.triggerRelease(shiftedNote, now);
+      setPressedNotes((prev) => ({ ...prev, [note]: false }));
+    },
+    [octaveOffset]
+  );
 
   // Status message display
   const showStatus = (message: string) => {
@@ -814,7 +828,7 @@ export function SynthAppComponent({
   // Keyboard event handlers
   const handleKeyDown = (e: KeyboardEvent) => {
     if (
-      !isForeground ||
+      !isForegroundRef.current ||
       e.repeat ||
       isPresetDialogOpen ||
       isHelpOpen ||
@@ -868,7 +882,7 @@ export function SynthAppComponent({
 
   const handleKeyUp = (e: KeyboardEvent) => {
     if (
-      !isForeground ||
+      !isForegroundRef.current ||
       isPresetDialogOpen ||
       isHelpOpen ||
       isAboutOpen ||
@@ -946,8 +960,12 @@ export function SynthAppComponent({
     };
 
     // Use non-passive listener so we can call preventDefault if desired (matching component handlers)
-    document.addEventListener("touchend", handleGlobalTouchEnd, { passive: false });
-    document.addEventListener("touchcancel", handleGlobalTouchEnd, { passive: false });
+    document.addEventListener("touchend", handleGlobalTouchEnd, {
+      passive: false,
+    });
+    document.addEventListener("touchcancel", handleGlobalTouchEnd, {
+      passive: false,
+    });
 
     return () => {
       document.removeEventListener("touchend", handleGlobalTouchEnd);
