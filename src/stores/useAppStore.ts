@@ -26,16 +26,17 @@ const APP_IDS = [
   "control-panels",
 ] as const;
 
-const getInitialState = (): AppManagerState => ({
-  windowOrder: [],
-  apps: APP_IDS.reduce(
-    (acc, appId) => ({
-      ...acc,
-      [appId]: { isOpen: false },
-    }),
-    {} as { [appId: string]: AppState }
-  ),
-});
+const getInitialState = (): AppManagerState => {
+  const apps: { [appId: string]: AppState } = APP_IDS.reduce((acc, id) => {
+    acc[id] = { isOpen: false };
+    return acc;
+  }, {} as { [appId: string]: AppState });
+
+  return {
+    windowOrder: [],
+    apps,
+  };
+};
 
 interface AppStoreState extends AppManagerState {
   debugMode: boolean;
@@ -48,6 +49,11 @@ interface AppStoreState extends AppManagerState {
   setAiModel: (model: AIModel) => void;
   terminalSoundsEnabled: boolean;
   setTerminalSoundsEnabled: (enabled: boolean) => void;
+  updateWindowState: (
+    appId: AppId,
+    position: { x: number; y: number },
+    size: { width: number; height: number }
+  ) => void;
   bringToForeground: (appId: AppId | "") => void;
   toggleApp: (appId: AppId, initialData?: any) => void;
   closeApp: (appId: AppId) => void;
@@ -76,6 +82,17 @@ export const useAppStore = create<AppStoreState>()(
       setAiModel: (model) => set({ aiModel: model }),
       terminalSoundsEnabled: true, // Default to true for terminal/IE sounds
       setTerminalSoundsEnabled: (enabled) => set({ terminalSoundsEnabled: enabled }),
+      updateWindowState: (appId, position, size) =>
+        set((state) => ({
+          apps: {
+            ...state.apps,
+            [appId]: {
+              ...state.apps[appId],
+              position,
+              size,
+            },
+          },
+        })),
       currentWallpaper: "/wallpapers/videos/blue_flowers_loop.mp4", // Default wallpaper
       setCurrentWallpaper: (wallpaperPath) => set({ currentWallpaper: wallpaperPath }),
 

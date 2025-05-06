@@ -10,7 +10,6 @@ import { getWindowConfig } from "@/config/appRegistry";
 import { useSwipeNavigation } from "@/hooks/useSwipeNavigation";
 import { AppId } from "@/config/appRegistry";
 import { useIsMobile } from "@/hooks/useIsMobile";
-import { saveWindowPositionAndSize } from "@/utils/storage";
 import { useAppStore } from "@/stores/useAppStore";
 
 interface WindowFrameProps {
@@ -76,7 +75,7 @@ export function WindowFrame({
   const lastToggleTimeRef = useRef<number>(0);
   // Keep track of window size before maximizing to restore it later
   const previousSizeRef = useRef({ width: 0, height: 0 });
-  const { debugMode } = useAppStore();
+  const { debugMode, updateWindowState } = useAppStore();
 
   // Setup swipe navigation for mobile
   const {
@@ -180,8 +179,8 @@ export function WindowFrame({
         height: mergedConstraints.defaultSize.height,
       };
       setWindowSize(newSize);
-      // Save the window state
-      saveWindowPositionAndSize(appId, windowPosition, newSize);
+      // Save the window state to global store
+      updateWindowState(appId as any, windowPosition, newSize);
     } else {
       // Play expand sound when maximizing height
       playWindowExpand();
@@ -207,8 +206,8 @@ export function WindowFrame({
       };
       setWindowSize(newSize);
       setWindowPosition(newPosition);
-      // Save the window state
-      saveWindowPositionAndSize(appId, newPosition, newSize);
+      // Save the window state to global store
+      updateWindowState(appId as any, newPosition, newSize);
     }
   };
 
@@ -251,9 +250,9 @@ export function WindowFrame({
           setWindowPosition(newPosition);
         }
 
-        // Save the new window state to localStorage
-        saveWindowPositionAndSize(
-          appId,
+        // Save the new window state to global store
+        updateWindowState(
+          appId as any,
           window.innerWidth >= 768 ? newPosition : windowPosition,
           defaultSize
         );
@@ -306,8 +305,8 @@ export function WindowFrame({
         // Position at top of screen
         setWindowPosition(newPosition);
 
-        // Save the new window state to localStorage
-        saveWindowPositionAndSize(appId, newPosition, newSize);
+        // Save the new window state to global store
+        updateWindowState(appId as any, newPosition, newSize);
       }
     },
     [

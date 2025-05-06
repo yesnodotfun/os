@@ -5,11 +5,8 @@ import {
   ResizeType,
   ResizeStart,
 } from "../types/types";
-import {
-  loadWindowState,
-  saveWindowState,
-  APP_STORAGE_KEYS,
-} from "../utils/storage";
+import { APP_STORAGE_KEYS } from "../utils/storage";
+import { useAppStore } from "@/stores/useAppStore";
 import { useSound, Sounds } from "./useSound";
 import { getWindowConfig } from "@/config/appRegistry";
 
@@ -18,8 +15,38 @@ interface UseWindowManagerProps {
 }
 
 export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
-  const initialState = loadWindowState(appId);
+  // Fetch the persisted window state from the global app store
+  const appStateFromStore = useAppStore((state) => state.apps[appId]);
+
   const config = getWindowConfig(appId);
+
+  // Helper to compute default window state (mirrors previous logic)
+  const computeDefaultWindowState = (): {
+    position: WindowPosition;
+    size: WindowSize;
+  } => {
+    const isMobile = window.innerWidth < 768;
+    const mobileY = 28; // Fixed Y position for mobile to account for menu bar
+
+    return {
+      position: {
+        x: isMobile ? 0 : 16 + Object.keys(APP_STORAGE_KEYS).indexOf(appId) * 32,
+        y: isMobile ? mobileY : 40 + Object.keys(APP_STORAGE_KEYS).indexOf(appId) * 20,
+      },
+      size: isMobile
+        ? {
+            width: window.innerWidth,
+            height: config.defaultSize.height,
+          }
+        : config.defaultSize,
+    };
+  };
+
+  const initialState = {
+    position: appStateFromStore?.position ?? computeDefaultWindowState().position,
+    size: appStateFromStore?.size ?? computeDefaultWindowState().size,
+  };
+
   const adjustedPosition = { ...initialState.position };
 
   // Ensure window is visible within viewport
@@ -67,6 +94,8 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
   const moveAudioRef = useRef<NodeJS.Timeout | null>(null);
   const resizeAudioRef = useRef<NodeJS.Timeout | null>(null);
 
+  const updateWindowState = useAppStore((state) => state.updateWindowState);
+
   const maximizeWindowHeight = useCallback(
     (maxHeightConstraint?: number | string) => {
       const menuBarHeight = 30;
@@ -88,8 +117,9 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
         ...prev,
         y: menuBarHeight,
       }));
+      updateWindowState(appId as any, windowPosition, windowSize);
     },
-    [getSafeAreaBottomInset]
+    [getSafeAreaBottomInset, updateWindowState, appId, windowPosition, windowSize]
   );
 
   const handleMouseDown = useCallback(
@@ -260,7 +290,7 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
     const handleEnd = () => {
       if (isDragging) {
         setIsDragging(false);
-        saveWindowState(appId, { position: windowPosition, size: windowSize });
+        updateWindowState(appId as any, windowPosition, windowSize);
         // Stop move sound loop and play stop sound
         if (moveAudioRef.current) {
           clearInterval(moveAudioRef.current);
@@ -270,7 +300,7 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
       }
       if (resizeType) {
         setResizeType("");
-        saveWindowState(appId, { position: windowPosition, size: windowSize });
+        updateWindowState(appId as any, windowPosition, windowSize);
         // Stop resize sound loop and play stop sound
         if (resizeAudioRef.current) {
           clearInterval(resizeAudioRef.current);
@@ -313,6 +343,7 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
     playResizeStop,
     config,
     getSafeAreaBottomInset,
+    updateWindowState,
   ]);
 
   return {

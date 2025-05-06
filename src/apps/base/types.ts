@@ -60,6 +60,7 @@ export interface BaseApp {
 export interface AppState {
   isOpen: boolean;
   position?: { x: number; y: number };
+  size?: { width: number; height: number };
   isForeground?: boolean;
   initialData?: any;
 }
