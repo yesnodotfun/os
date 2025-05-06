@@ -3,6 +3,47 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import { type Message } from "ai/react";
 import { type ChatRoom, type ChatMessage } from "@/types/chat";
 
+// Username recovery mechanism - uses different prefix to avoid reset
+const USERNAME_RECOVERY_KEY = "_usr_recovery_key_";
+
+// Simple encoding/decoding functions for username
+const encodeUsername = (username: string): string => {
+    return btoa(username.split('').reverse().join(''));
+};
+
+const decodeUsername = (encoded: string): string | null => {
+    try {
+        return atob(encoded).split('').reverse().join('');
+    } catch (e) {
+        console.error("[ChatsStore] Failed to decode username:", e);
+        return null;
+    }
+};
+
+// Save username to recovery storage
+const saveUsernameToRecovery = (username: string | null) => {
+    if (username) {
+        localStorage.setItem(USERNAME_RECOVERY_KEY, encodeUsername(username));
+    }
+};
+
+// Get username from recovery storage
+const getUsernameFromRecovery = (): string | null => {
+    const encoded = localStorage.getItem(USERNAME_RECOVERY_KEY);
+    if (encoded) {
+        return decodeUsername(encoded);
+    }
+    return null;
+};
+
+// Ensure recovery key is set if username exists in store but not in recovery
+const ensureRecoveryKeyIsSet = (username: string | null) => {
+    if (username && !localStorage.getItem(USERNAME_RECOVERY_KEY)) {
+        console.log("[ChatsStore] Setting recovery key for existing username:", username);
+        saveUsernameToRecovery(username);
+    }
+};
+
 // Define the state structure
 export interface ChatsStoreState {
     // AI Chat State
@@ -37,107 +78,132 @@ const initialAiMessage: Message = {
     createdAt: new Date(),
 };
 
-const getInitialState = (): Omit<ChatsStoreState, 'isAdmin' | 'reset' | 'setAiMessages' | 'setUsername' | 'setRooms' | 'setCurrentRoomId' | 'setRoomMessagesForCurrentRoom' | 'addMessageToRoom' | 'removeMessageFromRoom' | 'clearRoomMessages' | 'toggleSidebarVisibility' | 'setFontSize'> => ({
-    aiMessages: [initialAiMessage],
-    username: null,
-    rooms: [],
-    currentRoomId: null,
-    roomMessages: {},
-    isSidebarVisible: true,
-    fontSize: 13, // Default font size
-});
+const getInitialState = (): Omit<ChatsStoreState, 'isAdmin' | 'reset' | 'setAiMessages' | 'setUsername' | 'setRooms' | 'setCurrentRoomId' | 'setRoomMessagesForCurrentRoom' | 'addMessageToRoom' | 'removeMessageFromRoom' | 'clearRoomMessages' | 'toggleSidebarVisibility' | 'setFontSize'> => {
+    // Try to recover username if available
+    const recoveredUsername = getUsernameFromRecovery();
+    
+    return {
+        aiMessages: [initialAiMessage],
+        username: recoveredUsername,
+        rooms: [],
+        currentRoomId: null,
+        roomMessages: {},
+        isSidebarVisible: true,
+        fontSize: 13, // Default font size
+    };
+};
 
 const STORE_VERSION = 2;
 const STORE_NAME = "ryos:chats";
 
 export const useChatsStore = create<ChatsStoreState>()(
     persist(
-        (set, get) => ({
-            ...getInitialState(),
+        (set, get) => {
+            // Get initial state
+            const initialState = getInitialState();
+            // Ensure recovery key is set if username exists
+            ensureRecoveryKeyIsSet(initialState.username);
+            
+            return {
+                ...initialState,
 
-            // --- Actions ---
-            setAiMessages: (messages) => set({ aiMessages: messages }),
-            setUsername: (username) => set({ username }),
-            setRooms: (newRooms) => {
-                // Ensure incoming data is an array
-                if (!Array.isArray(newRooms)) {
-                  console.warn("[ChatsStore] Attempted to set rooms with a non-array value:", newRooms);
-                  return; // Ignore non-array updates
-                }
-
-                // Deep comparison to prevent unnecessary updates
-                const currentRooms = get().rooms;
-                if (JSON.stringify(currentRooms) === JSON.stringify(newRooms)) {
-                    console.log("[ChatsStore] setRooms skipped: newRooms are identical to current rooms.");
-                    return; // Skip update if rooms haven't actually changed
-                }
-
-                console.log("[ChatsStore] setRooms called. Updating rooms.");
-                set({ rooms: newRooms });
-            },
-            setCurrentRoomId: (roomId) => set({ currentRoomId: roomId }),
-            setRoomMessagesForCurrentRoom: (messages) => {
-                const currentRoomId = get().currentRoomId;
-                if (currentRoomId) {
-                    set((state) => ({
-                        roomMessages: {
-                            ...state.roomMessages,
-                            [currentRoomId]: messages.sort((a, b) => a.timestamp - b.timestamp),
-                        },
-                    }));
-                }
-            },
-            addMessageToRoom: (roomId, message) => {
-                set((state) => {
-                    const existingMessages = state.roomMessages[roomId] || [];
-                    // Avoid duplicates from Pusher echos or optimistic updates
-                    if (existingMessages.some(m => m.id === message.id)) {
-                        return {}; // No change needed
+                // --- Actions ---
+                setAiMessages: (messages) => set({ aiMessages: messages }),
+                setUsername: (username) => {
+                    // Save username to recovery storage when it's set
+                    saveUsernameToRecovery(username);
+                    set({ username });
+                },
+                setRooms: (newRooms) => {
+                    // Ensure incoming data is an array
+                    if (!Array.isArray(newRooms)) {
+                      console.warn("[ChatsStore] Attempted to set rooms with a non-array value:", newRooms);
+                      return; // Ignore non-array updates
                     }
-                    // Handle potential replacement of temp message ID if server ID matches
-                    const tempIdPattern = /^temp_/; // Or use the actual temp ID if passed
-                    const messagesWithoutTemp = existingMessages.filter(m => !(tempIdPattern.test(m.id) && m.content === message.content && m.username === message.username));
 
-                    return {
-                        roomMessages: {
-                            ...state.roomMessages,
-                            [roomId]: [...messagesWithoutTemp, message].sort((a, b) => a.timestamp - b.timestamp),
-                        },
-                    };
-                });
-            },
-            removeMessageFromRoom: (roomId, messageId) => {
-                set((state) => {
-                    const existingMessages = state.roomMessages[roomId] || [];
-                    const updatedMessages = existingMessages.filter(m => m.id !== messageId);
-                    // Only update if a message was actually removed
-                    if (updatedMessages.length < existingMessages.length) {
+                    // Deep comparison to prevent unnecessary updates
+                    const currentRooms = get().rooms;
+                    if (JSON.stringify(currentRooms) === JSON.stringify(newRooms)) {
+                        console.log("[ChatsStore] setRooms skipped: newRooms are identical to current rooms.");
+                        return; // Skip update if rooms haven't actually changed
+                    }
+
+                    console.log("[ChatsStore] setRooms called. Updating rooms.");
+                    set({ rooms: newRooms });
+                },
+                setCurrentRoomId: (roomId) => set({ currentRoomId: roomId }),
+                setRoomMessagesForCurrentRoom: (messages) => {
+                    const currentRoomId = get().currentRoomId;
+                    if (currentRoomId) {
+                        set((state) => ({
+                            roomMessages: {
+                                ...state.roomMessages,
+                                [currentRoomId]: messages.sort((a, b) => a.timestamp - b.timestamp),
+                            },
+                        }));
+                    }
+                },
+                addMessageToRoom: (roomId, message) => {
+                    set((state) => {
+                        const existingMessages = state.roomMessages[roomId] || [];
+                        // Avoid duplicates from Pusher echos or optimistic updates
+                        if (existingMessages.some(m => m.id === message.id)) {
+                            return {}; // No change needed
+                        }
+                        // Handle potential replacement of temp message ID if server ID matches
+                        const tempIdPattern = /^temp_/; // Or use the actual temp ID if passed
+                        const messagesWithoutTemp = existingMessages.filter(m => !(tempIdPattern.test(m.id) && m.content === message.content && m.username === message.username));
+
                         return {
                             roomMessages: {
                                 ...state.roomMessages,
-                                [roomId]: updatedMessages,
+                                [roomId]: [...messagesWithoutTemp, message].sort((a, b) => a.timestamp - b.timestamp),
                             },
                         };
+                    });
+                },
+                removeMessageFromRoom: (roomId, messageId) => {
+                    set((state) => {
+                        const existingMessages = state.roomMessages[roomId] || [];
+                        const updatedMessages = existingMessages.filter(m => m.id !== messageId);
+                        // Only update if a message was actually removed
+                        if (updatedMessages.length < existingMessages.length) {
+                            return {
+                                roomMessages: {
+                                    ...state.roomMessages,
+                                    [roomId]: updatedMessages,
+                                },
+                            };
+                        }
+                        return {}; // No change needed
+                    });
+                },
+                clearRoomMessages: (roomId) => {
+                     set((state) => ({
+                        roomMessages: {
+                            ...state.roomMessages,
+                            [roomId]: [],
+                        },
+                    }));
+                },
+                toggleSidebarVisibility: () => set((state) => ({
+                     isSidebarVisible: !state.isSidebarVisible
+                })),
+                setFontSize: (sizeOrFn) => set((state) => ({
+                    fontSize: typeof sizeOrFn === 'function' ? sizeOrFn(state.fontSize) : sizeOrFn
+                })),
+                reset: () => {
+                    // Before resetting, ensure we have the username saved
+                    const currentUsername = get().username;
+                    if (currentUsername) {
+                        saveUsernameToRecovery(currentUsername);
                     }
-                    return {}; // No change needed
-                });
-            },
-            clearRoomMessages: (roomId) => {
-                 set((state) => ({
-                    roomMessages: {
-                        ...state.roomMessages,
-                        [roomId]: [],
-                    },
-                }));
-            },
-            toggleSidebarVisibility: () => set((state) => ({
-                 isSidebarVisible: !state.isSidebarVisible
-            })),
-            setFontSize: (sizeOrFn) => set((state) => ({
-                fontSize: typeof sizeOrFn === 'function' ? sizeOrFn(state.fontSize) : sizeOrFn
-            })),
-            reset: () => set(getInitialState()),
-        }),
+                    
+                    // Reset the store to initial state (which already tries to recover username)
+                    set(getInitialState());
+                },
+            };
+        },
         {
             name: STORE_NAME,
             version: STORE_VERSION,
@@ -177,6 +243,8 @@ export const useChatsStore = create<ChatsStoreState>()(
                         const oldUsername = localStorage.getItem(oldUsernameKey);
                         if (oldUsername) {
                             migratedState.username = oldUsername;
+                            // Save to recovery mechanism as well
+                            saveUsernameToRecovery(oldUsername);
                             localStorage.removeItem(oldUsernameKey); // Remove here during primary migration
                             console.log(`[ChatsStore] Migrated and removed '${oldUsernameKey}' key during version upgrade.`);
                         }
@@ -232,6 +300,11 @@ export const useChatsStore = create<ChatsStoreState>()(
                      const state = persistedState as ChatsStoreState;
                      const finalState = { ...state };
                      
+                     // If there's a username, save it to the recovery mechanism
+                     if (finalState.username) {
+                         ensureRecoveryKeyIsSet(finalState.username);
+                     }
+                     
                      console.log("[ChatsStore] Final state from persisted:", finalState);
                      console.log("[ChatsStore] Persisted state rooms type:", typeof finalState.rooms, "Is Array:", Array.isArray(finalState.rooms));
                      return finalState;
@@ -250,16 +323,29 @@ export const useChatsStore = create<ChatsStoreState>()(
                   console.log("[ChatsStore] Rehydration complete. Current state username:", state.username);
                   // Check if username is null AFTER rehydration
                   if (state.username === null) {
-                    const oldUsernameKey = "chats:chatRoomUsername"; // Define the old key
-                    const oldUsername = localStorage.getItem(oldUsernameKey);
-                    if (oldUsername) {
-                      console.log(`[ChatsStore] Found old username '${oldUsername}' in localStorage during rehydration check. Applying.`);
-                      state.username = oldUsername; // Modify the state object directly before it's set
-                      localStorage.removeItem(oldUsernameKey); // Clean up the old key
-                      console.log(`[ChatsStore] Removed old key '${oldUsernameKey}' after rehydration fix.`);
+                    // First check the recovery key
+                    const recoveredUsername = getUsernameFromRecovery();
+                    if (recoveredUsername) {
+                      console.log(`[ChatsStore] Found encoded username '${recoveredUsername}' in recovery storage. Applying.`);
+                      state.username = recoveredUsername;
                     } else {
-                        console.log("[ChatsStore] Username is null, but no old username found in localStorage during rehydration check.");
+                      // Fallback to checking old key
+                      const oldUsernameKey = "chats:chatRoomUsername";
+                      const oldUsername = localStorage.getItem(oldUsernameKey);
+                      if (oldUsername) {
+                        console.log(`[ChatsStore] Found old username '${oldUsername}' in localStorage during rehydration check. Applying.`);
+                        state.username = oldUsername;
+                        // Save to recovery mechanism as well
+                        saveUsernameToRecovery(oldUsername);
+                        localStorage.removeItem(oldUsernameKey);
+                        console.log(`[ChatsStore] Removed old key '${oldUsernameKey}' after rehydration fix.`);
+                      } else {
+                        console.log("[ChatsStore] Username is null, but no username found in recovery or old localStorage during rehydration check.");
+                      }
                     }
+                  } else {
+                    // If username is not null, ensure it's saved to recovery
+                    ensureRecoveryKeyIsSet(state.username);
                   }
                 }
               };
