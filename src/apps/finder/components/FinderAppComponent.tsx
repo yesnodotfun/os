@@ -1,5 +1,5 @@
 import { WindowFrame } from "@/components/layout/WindowFrame";
-import { FinderMenuBar, ViewType, SortType } from "./FinderMenuBar";
+import { FinderMenuBar } from "./FinderMenuBar";
 import { AppProps } from "@/apps/base/types";
 import { useState, useRef, useEffect } from "react";
 import { HelpDialog } from "@/components/dialogs/HelpDialog";
@@ -16,6 +16,7 @@ import { InputDialog } from "@/components/dialogs/InputDialog";
 import { useTextEditStore } from "@/stores/useTextEditStore";
 import { useFilesStore } from "@/stores/useFilesStore";
 import { FileItem } from "./FileList";
+import { useFinderStore } from "@/stores/useFinderStore";
 
 // Helper function to determine file type from FileItem
 const getFileType = (file: FileItem): string => {
@@ -25,7 +26,7 @@ const getFileType = (file: FileItem): string => {
   }
 
   // Check for specific known virtual types *before* appId
-  if (file.type === "Music") return "MP3 Audio File";
+  if (file.type === "Music") return "MP3 Audio";
   if (file.type === "Video") return "QuickTime Movie";
   if (file.type === "site-link") return "Internet Shortcut";
 
@@ -73,17 +74,14 @@ export function FinderAppComponent({
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
   const [renameValue, setRenameValue] = useState("");
   const [isDraggingOver, setIsDraggingOver] = useState(false);
-  const [viewType, setViewType] = useState<ViewType>(
-    (localStorage.getItem("finder_view_type") as ViewType) || "list"
-  );
-  const [sortType, setSortType] = useState<SortType>(
-    (localStorage.getItem("finder_sort_type") as SortType) || "name"
-  );
   const pathInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [storageSpace, setStorageSpace] = useState(calculateStorageSpace());
   const textEditStore = useTextEditStore();
   const fileStore = useFilesStore();
+
+  // Finder preferences (view & sort) are persisted in a dedicated Zustand store
+  const { viewType, sortType, setViewType, setSortType } = useFinderStore();
 
   // Get all functionality from useFileSystem hook
   const {
@@ -182,15 +180,6 @@ export function FinderAppComponent({
       localStorage.removeItem("app_finder_initialPath");
     }
   }, [navigateToPath]);
-
-  // Save view and sort preferences when they change
-  useEffect(() => {
-    localStorage.setItem("finder_view_type", viewType);
-  }, [viewType]);
-
-  useEffect(() => {
-    localStorage.setItem("finder_sort_type", sortType);
-  }, [sortType]);
 
   const sortedFiles = [...files].sort((a, b) => {
     switch (sortType) {
