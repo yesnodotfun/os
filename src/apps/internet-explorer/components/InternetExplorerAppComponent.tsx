@@ -40,6 +40,7 @@ import {
   LanguageOption,
   LocationOption,
   Favorite,
+  isDirectPassthrough,
 } from "@/stores/useInternetExplorerStore";
 import FutureSettingsDialog from "@/components/dialogs/FutureSettingsDialog";
 import { useTerminalSounds } from "@/hooks/useTerminalSounds";
@@ -998,9 +999,7 @@ export function InternetExplorerAppComponent({
             }
           } else if (newMode === "now") {
             // Check if domain should bypass proxy
-            const isDirectBypass = useInternetExplorerStore
-              .getState()
-              .isDirectPassthrough(normalizedTargetUrl);
+            const isDirectBypass = isDirectPassthrough(normalizedTargetUrl);
 
             if (isDirectBypass) {
               logDirectPassthrough(normalizedTargetUrl);
@@ -1137,7 +1136,7 @@ export function InternetExplorerAppComponent({
         }
 
         setFilteredSuggestions(topFavorites);
-        setSelectedSuggestionIndex(0);
+        setSelectedSuggestionIndex(topFavorites.length > 0 ? 0 : -1);
         return;
       }
 
@@ -1253,7 +1252,7 @@ export function InternetExplorerAppComponent({
       }
 
       setFilteredSuggestions(finalSuggestions);
-      setSelectedSuggestionIndex(0);
+      setSelectedSuggestionIndex(finalSuggestions.length > 0 ? 0 : -1);
     },
     [favorites, history, isValidUrl]
   );
@@ -1968,7 +1967,6 @@ export function InternetExplorerAppComponent({
                     setLocalUrl(strippedValue);
                     handleFilterSuggestions(strippedValue);
                     setIsUrlDropdownOpen(true);
-                    setSelectedSuggestionIndex(-1); // Reset selection when typing
                   }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
@@ -2011,6 +2009,8 @@ export function InternetExplorerAppComponent({
                       const nextIndex =
                         selectedSuggestionIndex < 0
                           ? 0
+                          : selectedSuggestionIndex === 0
+                          ? 1  // Move to second item if first is selected
                           : Math.min(
                               selectedSuggestionIndex + 1,
                               filteredSuggestions.length - 1

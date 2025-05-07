@@ -11,12 +11,13 @@ export interface Favorite {
   isDirectory?: boolean; // New: Flag to indicate if it's a folder
 }
 
-// Define list of domains that bypass the proxy when in "now" mode
-export const DEFAULT_DIRECT_PASSTHROUGH_DOMAINS = [
+// Define a constant for domains that bypass the proxy when in "now" mode
+export const DIRECT_PASSTHROUGH_DOMAINS = [
   "baby-cursor.ryo.lu",
   "os.ryo.lu",
   "hcsimulator.com",
-  "www.hcsimulator.com",
+  "hcsimulator.com",
+  "os.rocorgi.wang",
 ];
 
 export interface HistoryEntry {
@@ -246,6 +247,14 @@ export const DEFAULT_FAVORITES: Favorite[] = [
         year: "current",
         isDirectory: false,
       },
+      {
+        title: "Infinite Mac",
+        url: "https://infinitemac.org",
+        favicon:
+          "https://www.google.com/s2/favicons?domain=infinitemac.org&sz=32",
+        year: "current",
+        isDirectory: false,
+      },
     ],
   },
   // Sites Folder
@@ -361,7 +370,7 @@ interface InternetExplorerStore {
   token: number;
   prefetchedTitle: string | null; // New: Store prefetched title
   errorDetails: ErrorResponse | null; // New: Store detailed error info
-  directPassthroughDomains: string[]; // New: List of domains that bypass proxy in "now" mode
+
 
   // Favorites and history
   favorites: Favorite[];
@@ -484,7 +493,6 @@ interface InternetExplorerStore {
   // Utility functions
   getAiCacheKey: (url: string, year: string) => string;
   updateBrowserState: () => void;
-  isDirectPassthrough: (url: string) => boolean; // New: Check if URL should bypass proxy
 }
 
 // Define the maximum number of entries for the AI cache
@@ -520,7 +528,6 @@ const getInitialState = () => ({
   token: 0,
   prefetchedTitle: null as string | null,
   errorDetails: null as ErrorResponse | null,
-  directPassthroughDomains: DEFAULT_DIRECT_PASSTHROUGH_DOMAINS,
   favorites: DEFAULT_FAVORITES,
   history: [] as HistoryEntry[],
   historyIndex: -1,
@@ -868,19 +875,6 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
         set({ pendingUrl: null, pendingYear: null }),
 
       updateBrowserState: () => {},
-
-      isDirectPassthrough: (url: string) => {
-        try {
-          const hostname = new URL(
-            url.startsWith("http") ? url : `https://${url}`
-          ).hostname;
-          return get().directPassthroughDomains.some(
-            (domain) => hostname === domain || hostname.endsWith(`.${domain}`)
-          );
-        } catch {
-          return false;
-        }
-      },
     }),
     {
       name: "ryos:internet-explorer",
@@ -894,7 +888,6 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
         timelineSettings: state.timelineSettings,
         language: state.language,
         location: state.location,
-        directPassthroughDomains: state.directPassthroughDomains,
       }),
       migrate: (persistedState: unknown, version: number) => {
         // Use Record<string, unknown> to allow safe property access with type checking
@@ -920,7 +913,6 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
           "timelineSettings",
           "language",
           "location",
-          "directPassthroughDomains",
         ];
         const finalState: Partial<InternetExplorerStore> = {};
 
@@ -948,14 +940,24 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
           typeof finalState.aiCache === "object" && finalState.aiCache !== null
             ? finalState.aiCache
             : {};
-        finalState.directPassthroughDomains = Array.isArray(
-          finalState.directPassthroughDomains
-        )
-          ? finalState.directPassthroughDomains
-          : DEFAULT_DIRECT_PASSTHROUGH_DOMAINS;
+
 
         return finalState as InternetExplorerStore;
       },
     }
   )
 );
+
+// Utility function to check if a URL should bypass the proxy
+export const isDirectPassthrough = (url: string): boolean => {
+  try {
+    const hostname = new URL(
+      url.startsWith("http") ? url : `https://${url}`
+    ).hostname;
+    return DIRECT_PASSTHROUGH_DOMAINS.some(
+      (domain) => hostname === domain || hostname.endsWith(`.${domain}`)
+    );
+  } catch {
+    return false;
+  }
+};
