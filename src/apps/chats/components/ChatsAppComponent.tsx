@@ -134,14 +134,14 @@ export function ChatsAppComponent({
         const { isMention, messageContent } = detectAndProcessMention(trimmedInput);
         
         if (isMention) {
+          // Clear input immediately
+          handleInputChange({ target: { value: '' } } as React.ChangeEvent<HTMLInputElement>);
+          
           // Send the user's message to the chat room first (showing @ryo)
           sendRoomMessage(input);
           
-          // Then send to AI
-          await handleRyoMention(messageContent);
-          
-          // Clear input
-          handleInputChange({ target: { value: '' } } as React.ChangeEvent<HTMLInputElement>);
+          // Then send to AI (doesn't affect input clearing)
+          handleRyoMention(messageContent);
           
           // Trigger scroll
           setScrollToBottomTrigger(prev => prev + 1);
@@ -265,7 +265,7 @@ export function ChatsAppComponent({
               <ChatMessages
                 key={currentRoomId || 'ryo'} // Re-render on room change
                 messages={currentMessagesToDisplay} // Remove 'as any'
-                isLoading={isLoading && !currentRoomId} // Only show AI loading state
+                isLoading={(isLoading && !currentRoomId) || (!!currentRoomId && isRyoLoading)} // Show loading state for both AI chat and @ryo mentions
                 error={!currentRoomId ? error : undefined} // Pass actual error object only for AI chat
                 onRetry={reload}
                 onClear={() => setIsClearDialogOpen(true)} // AI Clear only
