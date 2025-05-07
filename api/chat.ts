@@ -152,7 +152,7 @@ CURRENT SYSTEM STATE:
 
 ${
   systemState.username
-    ? `- User's username: ${systemState.username}`
+    ? `- User's name: ${systemState.username}`
     : ""
 }
 ${
