@@ -14,6 +14,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { AI_MODELS } from "@/types/aiModels";
 
 // Animated ellipsis component (copied from TerminalAppComponent)
 function AnimatedEllipsis() {
@@ -87,7 +88,10 @@ export function ChatInput({
   const audioButtonRef = useRef<HTMLButtonElement>(null);
   const { playNote } = useChatSynth();
   const { play: playNudgeSound } = useSound(Sounds.MSN_NUDGE);
-  const { typingSynthEnabled } = useAppStore();
+  const { typingSynthEnabled, debugMode, aiModel } = useAppStore();
+
+  // Get the model display name for debug information
+  const modelDisplayName = aiModel ? AI_MODELS[aiModel]?.name : null;
 
   // Check if user is typing @ryo
   const isTypingRyoMention = isInChatRoom && (input.startsWith('@ryo ') || input === '@ryo');
@@ -262,199 +266,210 @@ export function ChatInput({
   }, [isForeground, isFocused, isTranscribing]);
 
   return (
-    <div className="w-full">
-      <form
-        onSubmit={(e) => {
-          if (input.trim() !== "") {
-            track(CHAT_ANALYTICS.TEXT_MESSAGE, {
-              message: input,
-            });
-          }
-          onSubmit(e);
-        }}
-        className="flex gap-1"
+    <AnimatePresence initial={false}>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 20 }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
+        className="w-full"
       >
-        <AnimatePresence mode="popLayout" initial={false}>
-          <motion.div
-            layout
-            className="flex-1 relative"
-            transition={{ duration: 0.15 }}
-          >
-            <Input
-              ref={inputRef}
-              value={input}
-              onChange={handleInputChangeWithSound}
-              placeholder={
-                isLoading
-                  ? ""
-                  : isRecording
-                  ? "Recording..."
-                  : isTranscribing
-                  ? "Transcribing..."
-                  : isFocused || isTouchDevice
-                  ? "Type a message..."
-                  : "Type or push 'space' to talk..."
-              }
-              className={`w-full border-1 border-gray-800 text-xs font-geneva-12 h-8 pr-16 ${
-                isFocused ? "input--focused" : ""
-              } ${isTypingRyoMention ? "border-blue-600 bg-blue-50" : ""}`}
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => setIsFocused(false)}
-              onTouchStart={(e) => {
-                e.preventDefault();
-              }}
-            />
-            <AnimatePresence>
-              {isLoading && input.trim() === "" && (
-                <motion.div
-                  key="thinking-overlay"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute top-0 left-0 w-full h-full pointer-events-none flex items-center pl-3"
-                >
-                  <span className="text-gray-500 opacity-70 shimmer-gray text-[13px] font-geneva-12">
-                    Thinking
-                    <AnimatedEllipsis />
-                  </span>
-                </motion.div>
-              )}
-            </AnimatePresence>
-            <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
-              {showNudgeButton && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="relative">
-                      <button
-                        type="button"
-                        onClick={handleNudgeClick}
-                        className="w-[22px] h-[22px] flex items-center justify-center"
-                        disabled={isLoading}
-                      >
-                        <Hand className="h-4 w-4 -rotate-40" />
-                      </button>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Send a nudge</p>
-                  </TooltipContent>
-                </Tooltip>
-                          </TooltipProvider>
-            )}
-            {isInChatRoom && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="relative">
-                      <button
-                        type="button"
-                        onClick={handleMentionClick}
-                        className="w-[22px] h-[22px] flex items-center justify-center"
-                        disabled={isLoading}
-                      >
-                        <AtSign className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Mention Ryo</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="relative">
-                    <AudioInputButton
-                      ref={audioButtonRef}
-                      onTranscriptionComplete={handleTranscriptionComplete}
-                      onTranscriptionStart={handleTranscriptionStart}
-                      onRecordingStateChange={handleRecordingStateChange}
-                      isLoading={isTranscribing}
-                      silenceThreshold={1200}
-                      className="w-[22px] h-[22px] flex items-center justify-center"
-                    />
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Push to talk</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-
-            </div>
-          </motion.div>
-          {isLoading ? (
+        <form
+          onSubmit={(e) => {
+            if (input.trim() !== "") {
+              track(CHAT_ANALYTICS.TEXT_MESSAGE, {
+                message: input,
+              });
+            }
+            onSubmit(e);
+          }}
+          className="flex gap-1"
+        >
+          <AnimatePresence mode="popLayout" initial={false}>
             <motion.div
-              key="stop"
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
-              transition={{ duration: 0.15 }}
               layout
+              className="flex-1 relative"
+              transition={{ duration: 0.15 }}
             >
-              <Button
-                type="button"
-                onClick={() => {
-                  track(CHAT_ANALYTICS.STOP_GENERATION);
-                  onStop();
+              <Input
+                ref={inputRef}
+                value={input}
+                onChange={handleInputChangeWithSound}
+                placeholder={
+                  isLoading
+                    ? ""
+                    : isRecording
+                    ? "Recording..."
+                    : isTranscribing
+                    ? "Transcribing..."
+                    : isFocused || isTouchDevice
+                    ? "Type a message..."
+                    : "Type or push 'space' to talk..."
+                }
+                className={`w-full border-1 border-gray-800 text-xs font-geneva-12 h-8 pr-16 ${
+                  isFocused ? "input--focused" : ""
+                } ${isTypingRyoMention ? "border-blue-600 bg-blue-50" : ""}`}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setIsFocused(false)}
+                onTouchStart={(e) => {
+                  e.preventDefault();
                 }}
-                className="bg-black hover:bg-black/80 text-white text-xs border-2 border-gray-800 w-8 h-8 p-0 flex items-center justify-center"
-              >
-                <Square className="h-4 w-4" fill="currentColor" />
-              </Button>
+              />
+              <AnimatePresence>
+                {isLoading && input.trim() === "" && (
+                  <motion.div
+                    key="thinking-overlay"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute top-0 left-0 w-full h-full pointer-events-none flex items-center pl-3"
+                  >
+                    <span className="text-gray-500 opacity-70 shimmer-gray text-[13px] font-geneva-12">
+                      Thinking
+                      <AnimatedEllipsis />
+                    </span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                {showNudgeButton && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={handleNudgeClick}
+                          className="w-[22px] h-[22px] flex items-center justify-center"
+                          disabled={isLoading}
+                        >
+                          <Hand className="h-4 w-4 -rotate-40" />
+                        </button>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Send a nudge</p>
+                    </TooltipContent>
+                  </Tooltip>
+                            </TooltipProvider>
+                )}
+                {isInChatRoom && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={handleMentionClick}
+                            className="w-[22px] h-[22px] flex items-center justify-center"
+                            disabled={isLoading}
+                          >
+                            <AtSign className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Mention Ryo</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="relative">
+                        <AudioInputButton
+                          ref={audioButtonRef}
+                          onTranscriptionComplete={handleTranscriptionComplete}
+                          onTranscriptionStart={handleTranscriptionStart}
+                          onRecordingStateChange={handleRecordingStateChange}
+                          isLoading={isTranscribing}
+                          silenceThreshold={1200}
+                          className="w-[22px] h-[22px] flex items-center justify-center"
+                        />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Push to talk</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+
+              </div>
             </motion.div>
-          ) : input.trim() !== "" ? (
+            {isLoading ? (
+              <motion.div
+                key="stop"
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.8, opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                layout
+              >
+                <Button
+                  type="button"
+                  onClick={() => {
+                    track(CHAT_ANALYTICS.STOP_GENERATION);
+                    onStop();
+                  }}
+                  className="bg-black hover:bg-black/80 text-white text-xs border-2 border-gray-800 w-8 h-8 p-0 flex items-center justify-center"
+                >
+                  <Square className="h-4 w-4" fill="currentColor" />
+                </Button>
+              </motion.div>
+            ) : input.trim() !== "" ? (
+              <motion.div
+                key="send"
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.8, opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                layout
+              >
+                <Button
+                  type="submit"
+                  className="bg-black hover:bg-black/80 text-white text-xs border-2 border-gray-800 w-8 h-8 p-0 flex items-center justify-center"
+                  disabled={isLoading}
+                >
+                  <ArrowUp className="h-4 w-4" />
+                </Button>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
+        </form>
+        <AnimatePresence>
+          {(isTypingRyoMention || (!isInChatRoom && debugMode && modelDisplayName)) && (
             <motion.div
-              key="send"
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
+              key="model-info"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
               transition={{ duration: 0.15 }}
-              layout
+              className="mt-2 px-1 text-xs text-neutral-700 font-geneva-12"
             >
-              <Button
-                type="submit"
-                className="bg-black hover:bg-black/80 text-white text-xs border-2 border-gray-800 w-8 h-8 p-0 flex items-center justify-center"
-                disabled={isLoading}
-              >
-                <ArrowUp className="h-4 w-4" />
-              </Button>
+              {isTypingRyoMention
+                ? `Ryo will respond to this message${debugMode && modelDisplayName ? ` (${modelDisplayName})` : ''}`
+                : `Using ${modelDisplayName}`
+              }
             </motion.div>
-          ) : null}
+          )}
         </AnimatePresence>
-      </form>
-      <AnimatePresence>
-        {isTypingRyoMention && (
-          <motion.div
-            key="ryo-mention"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            transition={{ duration: 0.15 }}
-            className="mt-2 px-1 text-xs text-neutral-700 font-geneva-12"
-          >
-            Ryo will respond to this message
-          </motion.div>
-        )}
-      </AnimatePresence>
-      <AnimatePresence>
-        {transcriptionError && (
-          <motion.div
-            key="transcription-error"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            transition={{ duration: 0.15 }}
-            className="mt-1 text-red-600 text-xs font-geneva-12"
-          >
-            {transcriptionError}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+        <AnimatePresence>
+          {transcriptionError && (
+            <motion.div
+              key="transcription-error"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              transition={{ duration: 0.15 }}
+              className="mt-1 text-red-600 text-xs font-geneva-12"
+            >
+              {transcriptionError}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+    </AnimatePresence>
   );
 }
