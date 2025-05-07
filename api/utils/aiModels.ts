@@ -26,8 +26,6 @@ export const getModelInstance = (model: SupportedModel): LanguageModelV1 => {
       return anthropic("claude-3-7-sonnet-20250219");
     case "claude-3.5":
       return anthropic("claude-3-5-sonnet-20241022");
-    case "chatgpt-4o-latest":
-      return openai("chatgpt-4o-latest");
     default:
       // Fallback – should never happen due to exhaustive switch
       return openai("gpt-4.1");

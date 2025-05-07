@@ -26,10 +26,6 @@ export const AI_MODELS = {
     name: "gpt-4.1-mini",
     provider: "OpenAI",
   },
-  "chatgpt-4o-latest": {
-    name: "chatgpt-4o-latest",
-    provider: "OpenAI",
-  },
 } as const;
 
 // Derived types
