@@ -83,6 +83,7 @@ export function ChatInput({
   const [isTouchDevice, setIsTouchDevice] = useState(false);
   const [lastTypingTime, setLastTypingTime] = useState(0);
   const [historyIndex, setHistoryIndex] = useState(-1);
+  const inputRef = useRef<HTMLInputElement>(null);
   const audioButtonRef = useRef<HTMLButtonElement>(null);
   const { playNote } = useChatSynth();
   const { play: playNudgeSound } = useSound(Sounds.MSN_NUDGE);
@@ -197,7 +198,14 @@ export function ChatInput({
     let newValue = input;
     
     if (input.startsWith('@ryo ')) {
-      // Already properly mentioned, don't change anything
+      // Already properly mentioned, just focus
+      inputRef.current?.focus();
+      // Position cursor at the end
+      setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.setSelectionRange(inputRef.current.value.length, inputRef.current.value.length);
+        }
+      }, 0);
       return;
     } else if (input.startsWith('@ryo')) {
       // Has @ryo but missing space
@@ -211,6 +219,16 @@ export function ChatInput({
       target: { value: newValue },
     } as React.ChangeEvent<HTMLInputElement>;
     onInputChange(event);
+    
+    // Focus the input field after adding the mention
+    inputRef.current?.focus();
+    
+    // Position cursor at the end of the input
+    setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.setSelectionRange(inputRef.current.value.length, inputRef.current.value.length);
+      }
+    }, 0);
   };
 
   useEffect(() => {
@@ -263,6 +281,7 @@ export function ChatInput({
             transition={{ duration: 0.15 }}
           >
             <Input
+              ref={inputRef}
               value={input}
               onChange={handleInputChangeWithSound}
               placeholder={
