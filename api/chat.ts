@@ -2,24 +2,8 @@ import { streamText, smoothStream } from "ai";
 import { SupportedModel, DEFAULT_MODEL, getModelInstance } from "./utils/aiModels";
 import { RYO_PERSONA_INSTRUCTIONS } from "./utils/aiPrompts";
 import { z } from "zod";
-
-// Explicitly define allowed App IDs for the edge function
-const validAppIds = [
-  "finder",
-  "soundboard",
-  "internet-explorer",
-  "chats",
-  "textedit",
-  "paint",
-  "photo-booth",
-  "minesweeper",
-  "videos",
-  "ipod",
-  "synth",
-  "pc",
-  "terminal",
-  "control-panels",
-] as const;
+import { SUPPORTED_AI_MODELS } from "../src/types/aiModels";
+import { appIds } from "../src/config/appIds";
 
 // Update SystemState type to match new store structure
 interface SystemState {
@@ -275,7 +259,7 @@ export default async function handler(req: Request) {
     }
 
     // Additional validation for model
-    if (model !== null && !["gpt-4o", "gpt-4.1", "gpt-4.1-mini", "claude-3.5", "claude-3.7", "o3-mini", "gemini-2.5-pro-exp-03-25"].includes(model)) {
+    if (model !== null && !SUPPORTED_AI_MODELS.includes(model)) {
       console.error(`400 Error: Unsupported model - ${model}`);
       return new Response(`Unsupported model: ${model}`, { status: 400 });
     }
@@ -290,7 +274,7 @@ export default async function handler(req: Request) {
         launchApp: {
           description: "Launch an application by its id in the ryOS interface. For 'internet-explorer', you can optionally provide a 'url' and 'year' (e.g., 1999, 2023, current).",
           parameters: z.object({
-            id: z.enum(validAppIds).describe("The app id to launch"),
+            id: z.enum(appIds).describe("The app id to launch"),
             url: z.string().optional().describe("Optional: The URL to load in Internet Explorer."),
             year: z.string().optional()
               .describe("Optional: The year for the Wayback Machine or AI generation (e.g., '1000 BC', '1995', 'current', '2030', '3000'). Used only with Internet Explorer.")
@@ -332,7 +316,7 @@ export default async function handler(req: Request) {
         },
         closeApp: {
           description: "Close an application by its id in the ryOS interface",
-          parameters: z.object({ id: z.enum(validAppIds).describe("The app id to close") }),
+          parameters: z.object({ id: z.enum(appIds).describe("The app id to close") }),
         },
       },
       temperature: 0.7,

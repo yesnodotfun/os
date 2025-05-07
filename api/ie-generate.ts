@@ -3,6 +3,7 @@ import { SupportedModel, DEFAULT_MODEL, getModelInstance } from "./utils/aiModel
 import { Redis } from "@upstash/redis";
 import { normalizeUrlForCacheKey } from "./utils/url";
 import { RYO_PERSONA_INSTRUCTIONS } from "./utils/aiPrompts"; // Import the shared prompt
+import { SUPPORTED_AI_MODELS } from "../src/types/aiModels";
 
 // Allowed origins for API requests (reuse list from chat.ts)
 const ALLOWED_ORIGINS = new Set([
@@ -192,15 +193,7 @@ export default async function handler(req: Request) {
 
     if (
       model !== null &&
-      ![
-        "gpt-4o",
-        "gpt-4.1",
-        "gpt-4.1-mini",
-        "claude-3.5",
-        "claude-3.7",
-        "o3-mini",
-        "gemini-2.5-pro-exp-03-25",
-      ].includes(model)
+      !SUPPORTED_AI_MODELS.includes(model)
     ) {
       return new Response(`Unsupported model: ${model}`, { status: 400 });
     }

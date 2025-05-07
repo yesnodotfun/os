@@ -24,9 +24,10 @@ import {
 } from "@/utils/storage";
 import { SYNTH_PRESETS } from "@/hooks/useChatSynth";
 import { useFileSystem } from "@/apps/finder/hooks/useFileSystem";
-import { useAppStore, AIModel } from "@/stores/useAppStore";
+import { useAppStore } from "@/stores/useAppStore";
 import { DisplayMode } from "@/utils/displayMode";
 import { setNextBootMessage, clearNextBootMessage } from "@/utils/bootMessage";
+import { AIModel, AI_MODEL_METADATA } from "@/types/aiModels";
 
 type PhotoCategory =
   | "3d_graphics"
@@ -128,16 +129,8 @@ Object.entries(PHOTO_WALLPAPERS).forEach(([category, photos]) => {
   );
 });
 
-// Supported AI models
-const AI_MODELS: {id: AIModel; name: string; provider: string}[] = [
-  { id: "gemini-2.5-pro-exp-03-25", name: "gemini-2.5-pro", provider: "Google" },
-  { id: "claude-3.7", name: "claude-3.7", provider: "" },
-  { id: "claude-3.5", name: "claude-3.5", provider: "" },
-  { id: "gpt-4o", name: "gpt-4o", provider: "" },
-  { id: "gpt-4.1", name: "gpt-4.1", provider: "" },
-  { id: "gpt-4.1-mini", name: "gpt-4.1-mini", provider: "" },
-  { id: "o3-mini", name: "o3-mini", provider: "" }
-];
+// Use shared AI model metadata
+const AI_MODELS = AI_MODEL_METADATA;
 
 // Utility to convert Blob to base64 string for JSON serialization
 const blobToBase64 = (blob: Blob): Promise<string> =>

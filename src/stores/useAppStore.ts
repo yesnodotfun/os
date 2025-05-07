@@ -1,34 +1,17 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { AppId } from "@/config/appRegistry";
+import { appIds } from "@/config/appIds";
 import { AppManagerState, AppState } from "@/apps/base/types";
 import { checkShaderPerformance } from "@/utils/performanceCheck";
 import { ShaderType } from "@/components/shared/GalaxyBackground";
 import { DisplayMode } from "@/utils/displayMode";
-
-// Define available AI models (matching API options from chat.ts)
-export type AIModel = "gpt-4o" | "gpt-4.1" | "gpt-4.1-mini" | "claude-3.5" | "claude-3.7" | "o3-mini" | "gemini-2.5-pro-exp-03-25" | null;
-
-// Define known app IDs directly here to avoid circular dependency
-const APP_IDS = [
-  "finder",
-  "soundboard",
-  "internet-explorer",
-  "chats",
-  "textedit",
-  "paint",
-  "photo-booth",
-  "minesweeper",
-  "videos",
-  "ipod",
-  "synth",
-  "pc",
-  "terminal",
-  "control-panels",
-] as const;
+import { AIModel } from "@/types/aiModels";
+// Re-export for backward compatibility
+export type { AIModel } from "@/types/aiModels";
 
 const getInitialState = (): AppManagerState => {
-  const apps: { [appId: string]: AppState } = APP_IDS.reduce((acc, id) => {
+  const apps: { [appId: string]: AppState } = appIds.reduce((acc: { [appId: string]: AppState }, id) => {
     acc[id] = { isOpen: false };
     return acc;
   }, {} as { [appId: string]: AppState });
