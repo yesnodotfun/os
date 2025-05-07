@@ -13,6 +13,7 @@ interface SystemState {
       isForeground?: boolean;
     };
   };
+  username?: string | null;
   internetExplorer: {
     url: string;
     year: string;
@@ -150,9 +151,14 @@ CURRENT SYSTEM STATE:
 - Current local time: ${timeString} on ${dateString}
 
 ${
+  systemState.username
+    ? `- User's username: ${systemState.username}`
+    : ""
+}
+${
   systemState.runningApps?.foreground 
     ? `- Foreground App: ${systemState.runningApps.foreground}`
-    : "- No apps in foreground"
+    : ""
 }
 ${
   systemState.runningApps?.background && systemState.runningApps.background.length > 0

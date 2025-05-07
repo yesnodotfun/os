@@ -23,6 +23,7 @@ const getSystemState = () => {
   const ieStore = useInternetExplorerStore.getState();
   const videoStore = useVideoStore.getState();
   const ipodStore = useIpodStore.getState();
+  const chatsStore = useChatsStore.getState();
 
   const currentVideo = videoStore.videos[videoStore.currentIndex];
   const currentTrack = ipodStore.tracks[ipodStore.currentIndex];
@@ -41,6 +42,7 @@ const getSystemState = () => {
 
   return {
     apps: appStore.apps,
+    username: chatsStore.username,
     runningApps: {
       foreground: foregroundApp,
       background: backgroundApps,
