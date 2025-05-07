@@ -16,7 +16,6 @@ export const DIRECT_PASSTHROUGH_DOMAINS = [
   "baby-cursor.ryo.lu",
   "os.ryo.lu",
   "hcsimulator.com",
-  "hcsimulator.com",
   "os.rocorgi.wang",
 ];
 
