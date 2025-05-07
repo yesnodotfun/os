@@ -204,18 +204,21 @@ ${
       }`
     : ''
 }
-${
-  systemState.chatRoomContext
-    ? `
-- Chat Room Context:
-  - You are responding to @ryo mention in chat room ID: ${systemState.chatRoomContext.roomId}
-  - Recent conversation:
-${systemState.chatRoomContext.recentMessages}
-  - You were mentioned with message: "${systemState.chatRoomContext.mentionedMessage}"
-  - Respond as 'ryo' in this IRC-style chat room context very concisely, being mindful of the ongoing conversation`
+</system_state_instructions>`
     : ''
 }
-</system_state_instructions>`
+
+${
+  systemState?.chatRoomContext
+    ? `<chat_room_reply_instructions>
+CHAT ROOM CONTEXT:
+
+- You are responding to @ryo mention in chat room ID: ${systemState.chatRoomContext.roomId}
+- Recent conversation:
+${systemState.chatRoomContext.recentMessages}
+- You were mentioned with message: "${systemState.chatRoomContext.mentionedMessage}"
+- Respond as 'ryo' in this IRC-style chat room context. Use super concise short responses, being mindful of the ongoing conversation
+</chat_room_reply_instructions>`
     : ''
 }`;
 
