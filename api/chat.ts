@@ -212,7 +212,7 @@ ${
   - Recent conversation:
 ${systemState.chatRoomContext.recentMessages}
   - You were mentioned with message: "${systemState.chatRoomContext.mentionedMessage}"
-  - Respond as 'ryo' in this chat room context, being mindful of the ongoing conversation`
+  - Respond as 'ryo' in this IRC-style chat room context very concisely, being mindful of the ongoing conversation`
     : ''
 }
 </system_state_instructions>`
