@@ -200,7 +200,7 @@ CHAT ROOM REPLIES:
 - Recent conversation:
 ${systemState.chatRoomContext.recentMessages}
 - You were mentioned with message: "${systemState.chatRoomContext.mentionedMessage}"
-- Respond as 'ryo' in this IRC-style chat room context. Use super concise short responses, being mindful of the ongoing conversation
+- Respond as 'ryo' in this IRC-style chat room context. Use concise responses carrying on the ongoing conversation
 </chat_room_reply_instructions>`
     : ''
 }`;
