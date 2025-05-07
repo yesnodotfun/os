@@ -49,6 +49,7 @@ interface MenuBarProps {
 
 function Clock() {
   const [time, setTime] = useState(new Date());
+  const [isConstrainedWidth, setIsConstrainedWidth] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -57,9 +58,35 @@ function Clock() {
     return () => clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    const handleResize = () => {
+      // Consider the menubar constrained if width is less than 768px
+      setIsConstrainedWidth(window.innerWidth < 420);
+    };
+
+    // Initial check
+    handleResize();
+
+    // Add resize event listener
+    window.addEventListener("resize", handleResize);
+
+    // Cleanup
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Format the time
+  const timeString = time.toLocaleTimeString([], { 
+    hour: "numeric", 
+    minute: "2-digit",
+    hour12: true
+  });
+
+  // Remove AM/PM when width is constrained
+  const displayTime = isConstrainedWidth ? timeString.replace(/\s?(AM|PM)$/i, '') : timeString;
+
   return (
     <div className="ml-auto mr-2">
-      {time.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+      {displayTime}
     </div>
   );
 }
