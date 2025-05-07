@@ -5,6 +5,7 @@ import {
   useCallback,
   ReactNode,
   useMemo,
+  CSSProperties,
 } from "react";
 import { AppProps } from "../../base/types";
 import { WindowFrame } from "@/components/layout/WindowFrame";
@@ -397,6 +398,43 @@ export function InternetExplorerAppComponent({
   const [localUrl, setLocalUrl] = useState<string>("");
   const [isSelectingText, setIsSelectingText] = useState(false);
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0);
+  const [dropdownStyle, setDropdownStyle] = useState<CSSProperties>({});
+
+  useEffect(() => {
+    const updateDropdownStyle = () => {
+      if (isUrlDropdownOpen && urlInputRef.current) {
+        const isMobileView = window.innerWidth < 640; // Tailwind 'sm' breakpoint (640px)
+
+        if (isMobileView) {
+          const inputRect = urlInputRef.current.getBoundingClientRect();
+          setDropdownStyle({
+            position: 'fixed',
+            top: `${inputRect.bottom}px`, // className's mt-[2px] will provide the visual gap
+            left: '1rem', // Tailwind's space-4
+            right: '1rem', // Tailwind's space-4
+            zIndex: 50, 
+          });
+        } else {
+          // Not mobile, or dropdown closed/ref not available
+          if (Object.keys(dropdownStyle).length > 0) { 
+              setDropdownStyle({});
+          }
+        }
+      } else {
+        // Dropdown not open or ref not available
+        if (Object.keys(dropdownStyle).length > 0) { 
+          setDropdownStyle({});
+        }
+      }
+    };
+
+    updateDropdownStyle();
+    window.addEventListener('resize', updateDropdownStyle);
+
+    return () => {
+      window.removeEventListener('resize', updateDropdownStyle);
+    };
+  }, [isUrlDropdownOpen, dropdownStyle]);
 
   // Utility to normalize URLs for comparison
   const normalizeUrlInline = (url: string): string => {
@@ -2075,6 +2113,7 @@ export function InternetExplorerAppComponent({
                         normalizeUrlInline(localUrl)
                     )) && (
                     <div
+                      style={dropdownStyle}
                       className="absolute top-full left-0 right-0 mt-[2px] bg-white border border-neutral-300 shadow-md rounded-md z-50 max-h-48 overflow-y-auto font-geneva-12"
                       data-dropdown-content
                     >
@@ -2178,7 +2217,7 @@ export function InternetExplorerAppComponent({
                                 : stripProtocol(suggestion.url)}
                             </div>
                           </div>
-                          <div className="font-geneva-12 text-[10px] ml-2 text-gray-500 whitespace-nowrap">
+                          <div className="font-geneva-12 text-[10px] ml-2 text-gray-500 whitespace-nowrap hidden sm:block">
                             {suggestion.type === "favorite" && "Favorite"}
                             {suggestion.type === "history" && "History"}
                             {suggestion.type === "search" && "Search"}
@@ -2412,7 +2451,7 @@ export function InternetExplorerAppComponent({
                 isAiLoading ||
                 isFetchingWebsiteContent) && (
                 <motion.div
-                  className="absolute top-0 left-0 right-0 bg-white/75 backdrop-blur-sm overflow-hidden z-50"
+                  className="absolute top-0 left-0 right-0 bg-white/75 backdrop-blur-sm overflow-hidden z-40"
                   variants={loadingBarVariants}
                   initial="hidden"
                   animate="visible"
