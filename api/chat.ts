@@ -161,7 +161,7 @@ ${
 }
 ${
   systemState.apps['videos']?.isOpen && systemState.video.currentVideo && systemState.video.isPlaying
-    ? `- Now Playing: ${systemState.video.currentVideo.title}${
+    ? `- Videos Now Playing: ${systemState.video.currentVideo.title}${
         systemState.video.currentVideo.artist ? ` by ${systemState.video.currentVideo.artist}` : ''
       }`
     : ""
@@ -177,13 +177,13 @@ ${
 }
 ${
   systemState.apps['internet-explorer']?.isOpen && systemState.internetExplorer.url
-    ? `- Browser URL: ${systemState.internetExplorer.url}\\n- Wayback Year: ${systemState.internetExplorer.year}${
+    ? `- Browser URL: ${systemState.internetExplorer.url}\\n- Time Travel Year: ${systemState.internetExplorer.year}${
         systemState.internetExplorer.currentPageTitle
           ? `\\n- Page Title: ${systemState.internetExplorer.currentPageTitle}`
           : ''
       }${
         systemState.internetExplorer.aiGeneratedHtml
-          ? `\\n- AI HTML Content:\\n${systemState.internetExplorer.aiGeneratedHtml}`
+          ? `\\n- HTML Content:\\n${systemState.internetExplorer.aiGeneratedHtml}`
           : ''
       }`
     : ''
@@ -195,8 +195,7 @@ ${
 ${
   systemState?.chatRoomContext
     ? `<chat_room_reply_instructions>
-CHAT ROOM CONTEXT:
-
+CHAT ROOM REPLIES:
 - You are responding to @ryo mention in chat room ID: ${systemState.chatRoomContext.roomId}
 - Recent conversation:
 ${systemState.chatRoomContext.recentMessages}
