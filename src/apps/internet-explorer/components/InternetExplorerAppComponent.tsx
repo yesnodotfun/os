@@ -2439,8 +2439,7 @@ export function InternetExplorerAppComponent({
           </div>
 
           <AnimatePresence>
-            {debugMode &&
-              (status === "loading" ||
+            {(status === "loading" ||
                 (isAiLoading && generatedHtml !== aiGeneratedHtml) ||
                 isFetchingWebsiteContent) && (
                 <motion.div
