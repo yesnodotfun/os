@@ -340,7 +340,7 @@ export function ChatInput({
                     </div>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Mention AI</p>
+                    <p>Mention Ryo</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -418,7 +418,7 @@ export function ChatInput({
             transition={{ duration: 0.15 }}
             className="mt-2 px-1 text-xs text-neutral-700 font-geneva-12"
           >
-            Ryo (AI) will respond to this message
+            Ryo will respond to this message
           </motion.div>
         )}
       </AnimatePresence>
