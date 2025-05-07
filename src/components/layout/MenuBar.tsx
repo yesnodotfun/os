@@ -49,7 +49,7 @@ interface MenuBarProps {
 
 function Clock() {
   const [time, setTime] = useState(new Date());
-  const [isConstrainedWidth, setIsConstrainedWidth] = useState(false);
+  const [viewportWidth, setViewportWidth] = useState(window.innerWidth);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -60,8 +60,7 @@ function Clock() {
 
   useEffect(() => {
     const handleResize = () => {
-      // Consider the menubar constrained if width is less than 768px
-      setIsConstrainedWidth(window.innerWidth < 420);
+      setViewportWidth(window.innerWidth);
     };
 
     // Initial check
@@ -74,15 +73,36 @@ function Clock() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Format the time
-  const timeString = time.toLocaleTimeString([], { 
-    hour: "numeric", 
-    minute: "2-digit",
-    hour12: true
-  });
-
-  // Remove AM/PM when width is constrained
-  const displayTime = isConstrainedWidth ? timeString.replace(/\s?(AM|PM)$/i, '') : timeString;
+  // Format the display based on viewport width
+  let displayTime;
+  
+  if (viewportWidth < 420) {
+    // For small screens: just time without AM/PM (e.g., "1:34")
+    const timeString = time.toLocaleTimeString([], { 
+      hour: "numeric", 
+      minute: "2-digit",
+      hour12: true
+    });
+    displayTime = timeString.replace(/\s?(AM|PM)$/i, '');
+  } else if (viewportWidth >= 420 && viewportWidth <= 768) {
+    // For medium screens: time with AM/PM (e.g., "1:00 AM")
+    displayTime = time.toLocaleTimeString([], { 
+      hour: "numeric", 
+      minute: "2-digit",
+      hour12: true
+    });
+  } else {
+    // For larger screens (> 768px): full date and time (e.g., "Wed May 7 1:34 AM")
+    const shortWeekday = time.toLocaleDateString([], { weekday: 'short' });
+    const month = time.toLocaleDateString([], { month: 'short' });
+    const day = time.getDate();
+    const timeString = time.toLocaleTimeString([], { 
+      hour: "numeric", 
+      minute: "2-digit",
+      hour12: true
+    });
+    displayTime = `${shortWeekday} ${month} ${day} ${timeString}`;
+  }
 
   return (
     <div className="ml-auto mr-2">
