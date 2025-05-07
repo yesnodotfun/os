@@ -41,4 +41,4 @@ export const AI_MODEL_METADATA: AIModelInfo[] = [
 ];
 
 // Default model
-export const DEFAULT_AI_MODEL: SupportedModel = "gemini-2.5-pro-preview-05-06"; 
+export const DEFAULT_AI_MODEL: SupportedModel = "claude-3.7"; 
