@@ -54,7 +54,7 @@ const CHAT_ROOM_USERS_PREFIX = 'chat:room:users:';
 const USER_TTL_SECONDS = 60 * 30; // 30 minutes
 
 // Add constants for max message and username length
-const MAX_MESSAGE_LENGTH = 280;
+const MAX_MESSAGE_LENGTH = 1000;
 const MAX_USERNAME_LENGTH = 30;
 
 /**

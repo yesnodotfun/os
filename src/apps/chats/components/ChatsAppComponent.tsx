@@ -17,6 +17,7 @@ import { useChatsStore } from "@/stores/useChatsStore";
 import { type Message as UIMessage } from "ai/react";
 import { type ChatMessage as AppChatMessage, type ChatRoom } from "@/types/chat";
 import { Button } from "@/components/ui/button";
+import { useRyoChat } from "../hooks/useRyoChat";
 
 // Define the expected message structure locally, matching ChatMessages internal type
 interface DisplayMessage extends Omit<UIMessage, 'role'> {
@@ -24,6 +25,8 @@ interface DisplayMessage extends Omit<UIMessage, 'role'> {
   role: UIMessage['role'] | 'human';
   createdAt?: Date; // Ensure createdAt is optional Date
 }
+
+
 
 export function ChatsAppComponent({
   isWindowOpen,
@@ -103,22 +106,60 @@ export function ChatsAppComponent({
     ? rooms.find((r: ChatRoom) => r.id === currentRoomId)
     : null;
 
+  // Use the @ryo chat hook
+  const {
+    isRyoLoading,
+    stopRyo,
+    handleRyoMention,
+    detectAndProcessMention,
+  } = useRyoChat({
+    currentRoomId,
+    onScrollToBottom: () => setScrollToBottomTrigger(prev => prev + 1),
+    roomMessages: currentRoomMessages?.map((msg: AppChatMessage) => ({
+      username: msg.username,
+      content: msg.content,
+      userId: msg.id,
+      timestamp: new Date(msg.timestamp).toISOString(),
+    })),
+  });
+
   const handleSubmit = useCallback(
-    (e: React.FormEvent<HTMLFormElement>) => {
+    async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
+      
       if (currentRoomId && username) {
-        sendRoomMessage(input);
-        handleInputChange({ target: { value: '' } } as React.ChangeEvent<HTMLInputElement>);
-        // Trigger scroll after sending room message
-        setScrollToBottomTrigger(prev => prev + 1);
+        const trimmedInput = input.trim();
+        
+        // Detect if this is an @ryo mention
+        const { isMention, messageContent } = detectAndProcessMention(trimmedInput);
+        
+        if (isMention) {
+          // Send the user's message to the chat room first (showing @ryo)
+          sendRoomMessage(input);
+          
+          // Then send to AI
+          await handleRyoMention(messageContent);
+          
+          // Clear input
+          handleInputChange({ target: { value: '' } } as React.ChangeEvent<HTMLInputElement>);
+          
+          // Trigger scroll
+          setScrollToBottomTrigger(prev => prev + 1);
+        } else {
+          // Regular room message
+          sendRoomMessage(input);
+          handleInputChange({ target: { value: '' } } as React.ChangeEvent<HTMLInputElement>);
+          // Trigger scroll after sending room message
+          setScrollToBottomTrigger(prev => prev + 1);
+        }
       } else {
+        // AI chat when not in a room
         handleAiSubmit(e);
-        // Trigger scroll after submitting AI message (assuming handleAiSubmit adds the user message immediately or optimistically)
-        // Note: If handleAiSubmit is purely async and doesn't update `messages` immediately, this might need adjustment.
+        // Trigger scroll after submitting AI message
         setScrollToBottomTrigger(prev => prev + 1);
       }
     },
-    [currentRoomId, username, sendRoomMessage, handleAiSubmit, input, handleInputChange]
+    [currentRoomId, username, sendRoomMessage, handleAiSubmit, input, handleInputChange, handleRyoMention, detectAndProcessMention]
   );
 
   const handleDirectSubmit = useCallback(
@@ -139,6 +180,12 @@ export function ChatsAppComponent({
     // Trigger scroll after nudge
     setScrollToBottomTrigger(prev => prev + 1);
   }, [handleNudge]);
+
+  // Combined stop function for both AI chat and @ryo mentions
+  const handleStop = useCallback(() => {
+    stop(); // Stop regular AI chat
+    stopRyo(); // Stop @ryo chat
+  }, [stop, stopRyo]);
 
   // Font size handlers using store action
   const handleIncreaseFontSize = useCallback(() => {
@@ -247,15 +294,16 @@ export function ChatsAppComponent({
                   return (
                     <ChatInput
                       input={input}
-                      isLoading={isLoading}
+                      isLoading={isLoading || isRyoLoading}
                       isForeground={isForeground}
                       onInputChange={handleInputChange}
                       onSubmit={handleSubmit}
-                      onStop={stop}
+                      onStop={handleStop}
                       onDirectMessageSubmit={handleDirectSubmit}
                       onNudge={handleNudgeClick}
                       previousMessages={prevMessagesContent}
                       showNudgeButton={!currentRoomId} // Only show nudge for AI chat
+                      isInChatRoom={!!currentRoomId} // Indicate if user is in a chat room
                     />
                   );
                 })()

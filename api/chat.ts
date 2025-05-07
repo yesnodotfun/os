@@ -64,6 +64,11 @@ interface SystemState {
     foreground: string;
     background: string[];
   };
+  chatRoomContext?: {
+    roomId: string;
+    recentMessages: string;
+    mentionedMessage: string;
+  };
 }
 
 // Allowed origins for API requests
@@ -197,6 +202,17 @@ ${
           ? `\\n- AI HTML Content:\\n${systemState.internetExplorer.aiGeneratedHtml}`
           : ''
       }`
+    : ''
+}
+${
+  systemState.chatRoomContext
+    ? `
+- Chat Room Context:
+  - You are responding to @ryo mention in chat room ID: ${systemState.chatRoomContext.roomId}
+  - Recent conversation:
+${systemState.chatRoomContext.recentMessages}
+  - You were mentioned with message: "${systemState.chatRoomContext.mentionedMessage}"
+  - Respond as 'ryo' in this chat room context, being mindful of the ongoing conversation`
     : ''
 }
 </system_state_instructions>`
