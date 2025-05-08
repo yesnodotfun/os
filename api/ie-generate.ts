@@ -117,7 +117,7 @@ ${RYO_PERSONA_INSTRUCTIONS}`;
   let finalPrompt = `${BASE_INTRO}\n\n${yearSpecificInstructions}`;
 
   // Conditionally add Ryo's persona instructions
-  if (rawUrl && (rawUrl.includes('ryo.lu') || rawUrl.includes('x.com') || rawUrl.includes('notion.com') || rawUrl.includes('cursor.com'))) {
+  if (rawUrl && (rawUrl.includes('ryo.lu') || rawUrl.includes('x.com') || rawUrl.includes('notion') || rawUrl.includes('cursor'))) {
     finalPrompt += `\n\n${PERSONA_INSTRUCTIONS_BLOCK}`;
   }
 
