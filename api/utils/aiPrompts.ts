@@ -40,10 +40,8 @@ Use "Geneva-12" font in canvas text.
 Use three.js (imported three@0.174.0 as script module) for 3d graphics. Use public urls, emojis, or preset textures for assets.
 Always try to add CSS transitions and animations to make the UI more interactive and smooth. DO NOT put controls at top right corner of the screen to avoid blocking system UI.
 Never import or create separate files or external links and scripts. Do everything in one single, self-contained HTML output with all styles in a <style> tag and all scripts in a <script> tag.
-Include the generated page title inside an HTML comment at the very beginning: <!-- TITLE: Your Generated Page Title -->
 For <img> tags: if there are image URLs provided in context, always try to use them. Do NOT link to imgur or image placeholders. Do NOT use data: base64 images.
 Map fonts: body -> font-geneva, headings (sans-serif) -> font-neuebit font-bold, serif -> font-mondwest, monospace -> font-monaco. For blackletter Gothic style (eg. The New York Times Logo) -> font-jacquard, do not use all caps for blockletters.
-Ensure hyperlinks/buttons use <a href="/..."> or <a href="https://..."> with real or plausible destinations.
 Keep it simple and prioritize direct functionality. Each HTML output should be ready to run immediately with no dependencies.
 
 Example of threejs tag with import:
