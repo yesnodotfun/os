@@ -103,13 +103,10 @@ const generateSystemPrompt = (
 
   // Start with static parts
   const prompt = `
-  ${CHAT_INSTRUCTIONS}
-
+  ${RYO_PERSONA_INSTRUCTIONS}
   ${ANSWER_STYLE_INSTRUCTIONS}
-
-${CODE_GENERATION_INSTRUCTIONS}
-
-${RYO_PERSONA_INSTRUCTIONS}
+  ${CODE_GENERATION_INSTRUCTIONS}
+  ${CHAT_INSTRUCTIONS}
 
 ${
   systemState
@@ -123,43 +120,35 @@ ${
 SYSTEM STATE:
 
 - Current local time: ${timeString} on ${dateString}
-
-
 ${
-  systemState.runningApps?.foreground 
-    ? `- Foreground App: ${systemState.runningApps.foreground}`
+  systemState.runningApps?.foreground
+    ? `\n- Foreground App: ${systemState.runningApps.foreground}`
     : ""
 }
 ${
   systemState.runningApps?.background && systemState.runningApps.background.length > 0
-    ? `- Background Apps: ${systemState.runningApps.background.join(", ")}`
+    ? `\n- Background Apps: ${systemState.runningApps.background.join(", ")}`
     : ""
 }
 ${
   systemState.apps['videos']?.isOpen && systemState.video.currentVideo && systemState.video.isPlaying
-    ? `- Videos Now Playing: ${systemState.video.currentVideo.title}${
-        systemState.video.currentVideo.artist ? ` by ${systemState.video.currentVideo.artist}` : ''
-      }`
+    ? `\n- Videos Now Playing: ${systemState.video.currentVideo.title}${systemState.video.currentVideo.artist ? ` by ${systemState.video.currentVideo.artist}` : ''}`
     : ""
 }
 ${
-  systemState.apps['ipod']?.isOpen && systemState.ipod &&
-  systemState.ipod.currentTrack &&
-  systemState.ipod.isPlaying
-    ? `- iPod Now Playing: ${systemState.ipod.currentTrack.title}${
-        systemState.ipod.currentTrack.artist ? ` by ${systemState.ipod.currentTrack.artist}` : ''
-      }`
+  systemState.apps['ipod']?.isOpen && systemState.ipod?.currentTrack && systemState.ipod.isPlaying
+    ? `\n- iPod Now Playing: ${systemState.ipod.currentTrack.title}${systemState.ipod.currentTrack.artist ? ` by ${systemState.ipod.currentTrack.artist}` : ''}`
     : ''
 }
 ${
   systemState.apps['internet-explorer']?.isOpen && systemState.internetExplorer.url
-    ? `- Browser URL: ${systemState.internetExplorer.url}\\n- Time Travel Year: ${systemState.internetExplorer.year}${
+    ? `\n- Browser URL: ${systemState.internetExplorer.url}\n- Time Travel Year: ${systemState.internetExplorer.year}${
         systemState.internetExplorer.currentPageTitle
-          ? `\\n- Page Title: ${systemState.internetExplorer.currentPageTitle}`
+          ? `\n- Page Title: ${systemState.internetExplorer.currentPageTitle}`
           : ''
       }${
         systemState.internetExplorer.aiGeneratedHtml
-          ? `\\n- HTML Content:\\n${systemState.internetExplorer.aiGeneratedHtml}`
+          ? `\n- HTML Content:\n${systemState.internetExplorer.aiGeneratedHtml}`
           : ''
       }`
     : ''
