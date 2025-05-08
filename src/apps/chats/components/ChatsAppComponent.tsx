@@ -261,16 +261,17 @@ export function ChatsAppComponent({
         isShaking={isShaking}
       >
         <div className="relative h-full bg-[#c0c0c0] w-full">
-          {/* Mobile sidebar overlay with framer-motion animations */}
+          {/* Mobile sidebar overlay with framer-motion 3D animations */}
           <AnimatePresence>
             {sidebarVisibleBool && (
               <motion.div
                 className="md:hidden absolute inset-x-0 top-0 bottom-0 z-20"
+                style={{ perspective: "2000px" }}
               >
                 {/* Scrim - fades in and out */}
                 <motion.div
                   initial={{ opacity: 0 }}
-                  animate={{ opacity: 0.5 }}
+                  animate={{ opacity: 0.3 }}
                   exit={{ opacity: 0 }}
                   transition={{ 
                     duration: 0.2,
@@ -280,16 +281,41 @@ export function ChatsAppComponent({
                   onClick={toggleSidebarVisibility}
                 />
                 
-                {/* Sidebar - slides down and up */}
+                {/* Sidebar - 3D flip animation */}
                 <motion.div
-                  initial={{ y: "-100%", opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  exit={{ y: "-100%", opacity: 0 }}
+                  initial={{ 
+                    rotateX: -60,
+                    translateY: "-30%",
+                    scale: 0.9,
+                    opacity: 0,
+                    transformOrigin: "top center",
+                  }}
+                  animate={{ 
+                    rotateX: 0,
+                    translateY: "0%",
+                    scale: 1,
+                    opacity: 1,
+                    transformOrigin: "top center",
+                  }}
+                  exit={{ 
+                    rotateX: -60,
+                    translateY: "-30%",
+                    scale: 0.9,
+                    opacity: 0,
+                    transformOrigin: "top center",
+                  }}
                   transition={{
-                    duration: 0.25,
-                    ease: [0.4, 0, 0.2, 1]
+                    type: "spring",
+                    damping: 40,
+                    stiffness: 300,
+                    mass: 1,
                   }}
                   className="relative w-full h-fit bg-[#c0c0c0] z-10"
+                  style={{
+                    transformPerspective: "2000px",
+                    backfaceVisibility: "hidden",
+                    willChange: "transform",
+                  }}
                 >
                   <ChatRoomSidebar
                     rooms={rooms}
@@ -322,7 +348,7 @@ export function ChatsAppComponent({
             {/* Chat area - on desktop, needs to take flex-1 space */}
             <div className="flex flex-col flex-1 md:flex-1 h-full">
             {/* Mobile chat title bar */}
-            <div className="md:hidden flex items-center justify-between p-2 pb-0 flex-shrink-0">
+            <div className="md:hidden flex items-center justify-between px-2 pt-1 pb-0 flex-shrink-0">
               <div className="flex items-center">
                 <button 
                   onClick={toggleSidebarVisibility}
@@ -344,7 +370,7 @@ export function ChatsAppComponent({
             {/* Chat content */}
             <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
             {/* Chat Messages Area - takes up remaining space */}
-            <div className="flex-1 min-h-0 overflow-hidden p-2">
+            <div className="flex-1 min-h-0 overflow-hidden px-2 py-1">
               <ChatMessages
                 key={currentRoomId || 'ryo'} // Re-render on room change
                 messages={currentMessagesToDisplay} // Remove 'as any'
@@ -363,7 +389,7 @@ export function ChatsAppComponent({
             </div>
 
             {/* Input Area or Set Username Prompt */}
-            <div className="flex-shrink-0 p-2 pt-0">
+            <div className="flex-shrink-0 p-2 pt-1">
               {currentRoomId && !username ? (
                   <Button onClick={promptSetUsername} className="w-full h-8 font-geneva-12 text-[12px] bg-orange-600 text-white hover:bg-orange-700 transition-all duration-200">
                     Set Username to Chat
