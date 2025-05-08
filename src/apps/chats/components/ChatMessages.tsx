@@ -286,6 +286,9 @@ function ChatMessagesContent({
         else if (message.role === "assistant") bgColorClass = "bg-blue-100 text-black";
         else if (message.role === "human") bgColorClass = getUserColorClass(message.username);
 
+        // Trim leading "!!!!" for urgent messages to match assistant behavior
+        const displayContent = isUrgentMessage(message.content) ? message.content.slice(4).trimStart() : message.content;
+
         return (
           <motion.div
             layout="position"
@@ -568,10 +571,10 @@ function ChatMessagesContent({
               ) : (
                 <>
                   <span
-                    className={`select-text whitespace-pre-wrap ${isEmojiOnly(message.content) ? "text-[24px]" : ""}`}
-                    style={{ userSelect: "text", fontSize: isEmojiOnly(message.content) ? undefined : `${fontSize}px` }} // Apply font size, ignore for emoji-only
+                    className={`select-text whitespace-pre-wrap ${isEmojiOnly(displayContent) ? "text-[24px]" : ""}`}
+                    style={{ userSelect: "text", fontSize: isEmojiOnly(displayContent) ? undefined : `${fontSize}px` }} // Apply font size via style prop
                   >
-                    {segmentText(message.content).map((segment, idx) => (
+                    {segmentText(displayContent).map((segment, idx) => (
                       <span
                         key={`${messageKey}-segment-${idx}`}
                         className={`
@@ -598,9 +601,9 @@ function ChatMessagesContent({
                       </span>
                     ))}
                   </span>
-                  {isHtmlCodeBlock(message.content).isHtml && (
+                  {isHtmlCodeBlock(displayContent).isHtml && (
                     <HtmlPreview
-                      htmlContent={isHtmlCodeBlock(message.content).content}
+                      htmlContent={isHtmlCodeBlock(displayContent).content}
                       onInteractionChange={setIsInteractingWithPreview}
                       playElevatorMusic={playElevatorMusic}
                       stopElevatorMusic={stopElevatorMusic}
