@@ -353,19 +353,26 @@ export function useChatSynth() {
   }, [currentPresetKey]);
 
 
-  // Effect for cleanup on unmount
+  // ---------------------------------------------------------------------------
+  // Persist the current synth instance when the hook UNMOUNTS to allow reuse
+  // across Hot-Module Reloads or component remounts. We intentionally *do not*
+  // disconnect the filter here when presets change, because doing so would
+  // sever the audio signal path and silence the synth after a preset switch.
+  // By providing an empty dependency array, this cleanup only runs on a real
+  // unmount – not whenever `currentPresetKey` updates.
+  // ---------------------------------------------------------------------------
   useEffect(() => {
     return () => {
       if (synthRef.current) {
         console.log("Storing synth for reuse on unmount...");
         globalSynthRef = synthRef.current;
         lastUsedPreset = currentPresetKey;
-        synthRef.current.filter.disconnect();
-        // We generally don't want to close the global Tone.context here
-        // as other components might use it.
+        // Do NOT disconnect the filter here; we want the synth to remain
+        // functional if it gets re-attached later.
       }
     };
-  }, [currentPresetKey]); // Add currentPresetKey as dependency
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- we only want this to run on unmount
+  }, []);
 
   // Function to change the synth preset
   const changePreset = useCallback((presetKey: string) => {
@@ -400,6 +407,22 @@ export function useChatSynth() {
       setSynthPreset(presetKey);
     }
   }, [currentPresetKey, isAudioReady, setSynthPreset]); // Depend on current preset key and audio readiness
+
+  // ---------------------------------------------------------------------------
+  // Sync with global store changes
+  // If the synthPreset value in the global store changes (e.g. via Control
+  // Panels), automatically apply the new preset without requiring a full
+  // application reload. This keeps the Chat synth in-sync across the whole app.
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    if (synthPreset && synthPreset !== currentPresetKey) {
+      changePreset(synthPreset);
+    }
+    // We intentionally leave changePreset out of the dependency list to avoid
+    // re-creating the callback; it is memoised and stable for the lifetime of
+    // the hook, and including it could cause unnecessary effect executions.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [synthPreset, currentPresetKey, changePreset]);
 
   // Function to play a note
   const playNote = useCallback(() => {

@@ -182,8 +182,6 @@ export function ControlPanelsAppComponent({
     setTypingSynthEnabled,
     synthPreset,
     setSynthPreset,
-    displayMode,
-    setDisplayMode,
   } = useAppStore();
 
   const handleUISoundsChange = (enabled: boolean) => {
@@ -195,8 +193,8 @@ export function ControlPanelsAppComponent({
   };
 
   const handleSynthPresetChange = (value: string) => {
+    // Apply the new synth preset immediately – no full reload necessary
     setSynthPreset(value);
-    window.location.reload();
   };
 
   const handleResetAll = () => {
@@ -536,7 +534,7 @@ export function ControlPanelsAppComponent({
                   <div className="flex flex-col gap-1">
                     <Label>Chat Synth</Label>
                     <Label className="text-[11px] text-gray-600 font-geneva-12 pr-1">
-                      ryOS will restart to apply new settings
+                      Changes apply instantly
                     </Label>
                   </div>
                   <Select
