@@ -2,7 +2,7 @@ import { streamText, smoothStream } from "ai";
 import { SupportedModel, DEFAULT_MODEL, getModelInstance } from "./utils/aiModels";
 import { Redis } from "@upstash/redis";
 import { normalizeUrlForCacheKey } from "./utils/url";
-import { RYO_PERSONA_INSTRUCTIONS } from "./utils/aiPrompts"; // Import the shared prompt
+import { RYO_PERSONA_INSTRUCTIONS, DELIVERABLE_REQUIREMENTS } from "./utils/aiPrompts"; // Import the shared prompts
 import { SUPPORTED_AI_MODELS } from "../src/types/aiModels";
 
 // Allowed origins for API requests (reuse list from chat.ts)
@@ -88,16 +88,6 @@ Generate content for the URL path, the year provided (${year ?? 'current'}), ori
 
   const PERSONA_INSTRUCTIONS_BLOCK = `ABOUT THE DESIGNER (RYO LU):
 ${RYO_PERSONA_INSTRUCTIONS}`;
-
-  const DELIVERABLE_REQUIREMENTS = `DELIVERABLE REQUIREMENTS:
-1. Return a single, fully HTML page with only the body content, no <head> or <body> tags, no chat before or after.
-2. Use inline TailwindCSS utility classes; do not include <style> <link> tags.
-3. Use Three.js for 3D with <script> from cdn already loaded.
-4. Include the generated page title inside an HTML comment at the very beginning: <!-- TITLE: Your Generated Page Title -->
-5. Keep the layout responsive. 中文必須使用繁體中文並保持完整標點符號。
-6. For <img> tags: if there are image URLs provided in context, always try to use them. Do NOT link to imgur or image placeholders. Do NOT use data: base64 images.
-7. Map fonts: body -> font-geneva, headings (sans-serif) -> font-neuebit font-bold, serif -> font-mondwest, monospace -> font-monaco. For blackletter Gothic style (eg. The New York Times Logo) -> font-jacquard, do not use all caps for blockletters.
-8. Ensure hyperlinks/buttons use <a href="/..."> or <a href="https://..."> with real or plausible destinations.`;
 
   // --- Determine Year Specific Instructions ---
 
@@ -273,4 +263,4 @@ export default async function handler(req: Request) {
 
     return new Response("Internal Server Error", { status: 500 });
   }
-} 
+}    

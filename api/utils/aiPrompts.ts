@@ -40,6 +40,10 @@ Use "Geneva-12" font in canvas text.
 Use three.js (imported three@0.174.0 as script module) for 3d graphics. Use public urls, emojis, or preset textures for assets.
 Always try to add CSS transitions and animations to make the UI more interactive and smooth. DO NOT put controls at top right corner of the screen to avoid blocking system UI.
 Never import or create separate files or external links and scripts. Do everything in one single, self-contained HTML output with all styles in a <style> tag and all scripts in a <script> tag.
+Include the generated page title inside an HTML comment at the very beginning: <!-- TITLE: Your Generated Page Title -->
+For <img> tags: if there are image URLs provided in context, always try to use them. Do NOT link to imgur or image placeholders. Do NOT use data: base64 images.
+Map fonts: body -> font-geneva, headings (sans-serif) -> font-neuebit font-bold, serif -> font-mondwest, monospace -> font-monaco. For blackletter Gothic style (eg. The New York Times Logo) -> font-jacquard, do not use all caps for blockletters.
+Ensure hyperlinks/buttons use <a href="/..."> or <a href="https://..."> with real or plausible destinations.
 Keep it simple and prioritize direct functionality. Each HTML output should be ready to run immediately with no dependencies.
 
 Example of threejs tag with import:
@@ -60,3 +64,17 @@ Only use the 'launchApp' or 'closeApp' tools when the user explicitly asks you t
 When time traveling with Internet Explorer, you must include both a real URL and the year in the tool call args.
 </chat_instructions>
 `; 
+
+export const DELIVERABLE_REQUIREMENTS = `
+<deliverable_requirements>
+DELIVERABLE REQUIREMENTS:
+1. Return a single, fully HTML page with only the body content, no <head> or <body> tags, no chat before or after.
+2. Use inline TailwindCSS utility classes; do not include <style> <link> tags.
+3. Use Three.js for 3D with <script> from cdn already loaded.
+4. Include the generated page title inside an HTML comment at the very beginning: <!-- TITLE: Your Generated Page Title -->
+5. Keep the layout responsive. 中文必須使用繁體中文並保持完整標點符號。
+6. For <img> tags: if there are image URLs provided in context, always try to use them. Do NOT link to imgur or image placeholders. Do NOT use data: base64 images.
+7. Map fonts: body -> font-geneva, headings (sans-serif) -> font-neuebit font-bold, serif -> font-mondwest, monospace -> font-monaco. For blackletter Gothic style (eg. The New York Times Logo) -> font-jacquard, do not use all caps for blockletters.
+8. Ensure hyperlinks/buttons use <a href="/..."> or <a href="https://..."> with real or plausible destinations.
+</deliverable_requirements>
+`;   
