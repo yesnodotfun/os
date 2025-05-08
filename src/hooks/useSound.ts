@@ -6,19 +6,33 @@ let audioContext: AudioContext | null = null;
 const audioBufferCache = new Map<string, AudioBuffer>();
 const activeSources = new Set<AudioBufferSourceNode>();
 
-// Initialize audio context
+// Return a valid AudioContext instance, recreating it (and clearing caches) if the
+// previous one was closed – a common situation on iOS Safari when the page is
+// backgrounded for a while.
 const getAudioContext = () => {
-  if (!audioContext) {
-    audioContext = new AudioContext();
+  // Re-create if it never existed or if the browser has closed it behind our back
+  if (!audioContext || audioContext.state === "closed") {
+    try {
+      audioContext = new AudioContext();
+      // When a fresh context is created the previously decoded buffers belong
+      // to the old (now closed) context – they will be invalid and may even
+      // throw. Clear the cache so we can lazily re-decode on demand.
+      audioBufferCache.clear();
+      console.debug("Created new AudioContext and cleared buffer cache");
+    } catch (err) {
+      console.error("Failed to create AudioContext:", err);
+    }
   }
-  return audioContext;
+  return audioContext!;
 };
 
 // Resume audio context - important for iOS
 const resumeAudioContext = async () => {
-  if (audioContext && audioContext.state === "suspended") {
+  const ctx = getAudioContext();
+
+  if (ctx.state === "suspended") {
     try {
-      await audioContext.resume();
+      await ctx.resume();
       console.debug("Audio context resumed");
     } catch (error) {
       console.error("Failed to resume audio context:", error);
@@ -91,14 +105,26 @@ export function useSound(soundPath: string, volume: number = 0.3) {
       await resumeAudioContext();
       
       const audioBuffer = await preloadSound(soundPath);
+      // If the gain node belongs to a stale AudioContext (closed), recreate it
+      if (!gainNodeRef.current || gainNodeRef.current.context.state === "closed") {
+        if (gainNodeRef.current) {
+          try {
+            gainNodeRef.current.disconnect();
+          } catch (_) {}
+        }
+        gainNodeRef.current = getAudioContext().createGain();
+        gainNodeRef.current.gain.value = volume;
+        gainNodeRef.current.connect(getAudioContext().destination);
+      }
+
       const source = getAudioContext().createBufferSource();
       source.buffer = audioBuffer;
 
-      // Connect to gain node
-      source.connect(gainNodeRef.current!);
+      // Connect to (possibly re-created) gain node
+      source.connect(gainNodeRef.current);
 
       // Set volume
-      gainNodeRef.current!.gain.value = volume;
+      gainNodeRef.current.gain.value = volume;
 
       // If too many concurrent sources are active, skip to avoid audio congestion
       if (activeSources.size > 32) {

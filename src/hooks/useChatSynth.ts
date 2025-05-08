@@ -204,6 +204,26 @@ export function useChatSynth() {
 
   // Initialize Tone.js context and create the synth instance
   const initializeAudio = useCallback(async () => {
+    // If the underlying AudioContext was closed (iOS tends to do this when the
+    // tab is backgrounded for a while) we need a completely fresh Tone
+    // context. Tone.start() below will create it, but any cached synth nodes
+    // attached to the old context will be invalid – so drop them first.
+    if (Tone.context.state === 'closed') {
+      try {
+        // Reset Tone with a brand-new context; this call is available at runtime but
+        // may not be typed in older versions of @types/tone.
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        Tone.setContext(new Tone.Context());
+        globalSynthRef = null;
+        synthRef.current = null;
+        setIsAudioReady(false);
+        console.debug('AudioContext was closed – recreated new Tone context');
+      } catch (err) {
+        console.error('Failed to reset Tone context:', err);
+      }
+    }
+
     if (globalSynthRef && !synthRef.current) {
       console.log("Reusing existing synth instance...");
       synthRef.current = globalSynthRef;
@@ -213,8 +233,13 @@ export function useChatSynth() {
       return;
     }
     
-    // Prevent concurrent initializations
-    if (isInitializingRef.current || isAudioReady || Tone.context.state === 'running') {
+    // Prevent concurrent initializations. If we *think* we are ready but the
+    // context is not running anymore, force a re-initialization.
+    if (isAudioReady && Tone.context.state !== 'running') {
+        setIsAudioReady(false);
+    }
+
+    if (isInitializingRef.current || (isAudioReady && Tone.context.state === 'running')) {
         if (Tone.context.state === 'running' && !isAudioReady) {
              setIsAudioReady(true); // Already running, just update state
         }
@@ -234,7 +259,6 @@ export function useChatSynth() {
       console.log("Tone.js started successfully. State:", Tone.context.state);
 
       // Ensure context is running before creating synth
-      // @ts-expect-error - Linter doesn't track state change possibility here
       if (Tone.context.state === 'running') {
           if (!synthRef.current) {
                synthRef.current = createSynthInstance(SYNTH_PRESETS[currentPresetKey]);
@@ -243,10 +267,11 @@ export function useChatSynth() {
           console.log("Audio ready, synth created.");
       } else {
           console.warn("Tone.js context did not start or is suspended.");
-          // Optionally, try resuming if suspended
+          // Attempt to resume the context and recreate synth if successful
           if (Tone.context.state === 'suspended') {
               await Tone.context.resume();
-              // @ts-expect-error - Linter doesn't track state change after await resume()
+              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+              // @ts-ignore – Tone.context.state may still be 'running' after resume()
               if (Tone.context.state === 'running') {
                   if (!synthRef.current) {
                       synthRef.current = createSynthInstance(SYNTH_PRESETS[currentPresetKey]);
@@ -298,14 +323,14 @@ export function useChatSynth() {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
-        if (Tone.context.state === "suspended") {
+        if (Tone.context.state !== "running") {
           initializeAudio();
         }
       }
     };
     
     const handleFocus = () => {
-      if (Tone.context.state === "suspended") {
+      if (Tone.context.state !== "running") {
         initializeAudio();
       }
     };

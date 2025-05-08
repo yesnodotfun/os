@@ -748,6 +748,33 @@ export function useTerminalSounds() {
 
   // New shared function to initialize Tone.js once
   const initializeToneOnce = async () => {
+    // If the underlying AudioContext has been closed (can happen on iOS when the
+    // page is backgrounded for a while) we need to reset Tone with a fresh
+    // context and dispose of any stale synth instances that belong to the old
+    // context.
+    if (Tone.context.state === "closed") {
+      try {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore – setContext might be missing from the typings
+        Tone.setContext(new Tone.Context());
+
+        // Dispose of old synths and clear refs so they are recreated lazily
+        Object.values(synthsRef.current).forEach((synth) => {
+          if (synth) synth.dispose();
+        });
+        synthsRef.current = { command: null, error: null, aiResponse: null };
+
+        if (dingSynthRef.current) {
+          dingSynthRef.current.dispose();
+          dingSynthRef.current = null;
+        }
+
+        console.debug("Tone context was closed – created a new context and cleared synth cache");
+      } catch (err) {
+        console.error("Failed to reset Tone context:", err);
+      }
+    }
+
     if (!isInitialized || Tone.context.state !== "running") {
       try {
         await Tone.start();
