@@ -181,6 +181,13 @@ export const DEFAULT_FAVORITES: Favorite[] = [
         isDirectory: false,
       },
       {
+        title: "Tyler",
+        url: "https://tyler.cafe",
+        favicon: "https://www.google.com/s2/favicons?domain=tyler.cafe&sz=32",
+        year: "current",
+        isDirectory: false,
+      },
+      {
         title: "Andrew",
         url: "https://www.andrewl.ee",
         favicon:
@@ -246,14 +253,6 @@ export const DEFAULT_FAVORITES: Favorite[] = [
         year: "current",
         isDirectory: false,
       },
-      {
-        title: "Infinite Mac",
-        url: "https://infinitemac.org",
-        favicon:
-          "https://www.google.com/s2/favicons?domain=infinitemac.org&sz=32",
-        year: "current",
-        isDirectory: false,
-      },
     ],
   },
   // Sites Folder
@@ -311,6 +310,13 @@ export const DEFAULT_FAVORITES: Favorite[] = [
         url: "https://google.com",
         favicon: "https://www.google.com/s2/favicons?domain=google.com&sz=32",
         year: "1999",
+        isDirectory: false,
+      },
+      {
+        title: "Space Jam",
+        url: "https://www.spacejam.com/index.cgi",
+        favicon: "https://www.google.com/s2/favicons?domain=spacejam.com&sz=32",
+        year: "1996",
         isDirectory: false,
       },
     ],
