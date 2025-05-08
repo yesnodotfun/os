@@ -1,30 +1,6 @@
 # ryOS — Web-based Desktop Environment
 
-A modern web-based desktop environment inspired by classic macOS, built with React and modern web technologies. Features multiple built-in applications and a familiar desktop interface. Works on all devices—including mobile, tablet, and desktop.
-
-## Tech Stack
-
-- React 18.3 with TypeScript
-- Vite 6.0 for blazing fast development
-- TailwindCSS 4.0 for styling
-- shadcn/ui components
-- Framer Motion for animations
-- Bun as package manager
-- WaveSurfer.js for audio visualization
-- Tone.js for audio synthesis
-
-## Getting Started
-
-```bash
-# Install dependencies
-bun install
-
-# Start development server
-bun dev
-
-# Build for production
-bun run build
-```
+A modern web-based desktop environment inspired by classic macOS, built with a modern web stack and AI. Features multiple built-in applications and a familiar desktop interface. Works on all devices—including mobile, tablet, and desktop.
 
 ## Features
 
@@ -37,9 +13,9 @@ bun run build
 - Menu bar with application-specific menus
 - Customizable wallpapers (photos, patterns, or videos)
 - System-wide sound effects
-- Local storage persistence
 - Optional CRT, Galaxy & Aurora shader effects
 - System-wide UI, Chats, and Terminal sounds
+- System-wide AI integrations
 - Local storage persistence with one-click Backup / Restore
 
 ### Built-in Applications
@@ -116,41 +92,37 @@ bun run build
   - Create playlists and organize tracks
   - Library persisted locally for offline playback
 
-### Core Features
-
-- Window management with draggable, resizable windows & z-index
-- Shader-powered backgrounds (CRT scanlines, Galaxy, Aurora)
-- System context Ryo AI across Terminal & Chats
-- One-click Backup / Restore (localStorage & IndexedDB)
-- Local persistence for every app (videos, music, docs…)
-- Keyboard shortcuts & mobile-friendly gestures
-- Responsive design for mobile and tablet
-- Full virtual file system shared by Finder, Terminal, TextEdit & others
-- System-wide audio with per-app toggles
-- Import / Export for documents, sounds & wallpapers
-
 ## Project Structure
 
 ```
 project/
-├── src/
-│   ├── apps/           # Individual applications
-│   │   ├── base/       # Base app functionality
-│   │   ├── finder/     # File system app
-│   │   ├── textedit/   # Text editor app
-│   │   ├── videos/     # YouTube playlist app
-│   │   ├── soundboard/ # Audio recording app
-│   │   ├── chats/      # Chat application
-│   │   └── minesweeper/# Game implementation
-│   ├── components/     # Shared React components
-│   │   ├── layout/     # Core layout components
-│   │   ├── ui/         # shadcn/ui components
-│   │   └── dialogs/    # System dialogs
-│   ├── hooks/         # Custom React hooks
-│   └── utils/         # Shared utilities
-├── api/               # Backend API endpoints
 ├── public/           # Static assets
-└── ...config files
+│   ├── assets/       # Videos, sounds, and other media
+│   ├── fonts/        # Font files
+│   ├── icons/        # UI icons organized by category
+│   ├── patterns/     # Pattern files
+│   └── wallpapers/   # Wallpaper images (photos and tiles)
+├── src/
+│   ├── apps/         # Individual application modules
+│   │   └── [app-name]/ # Each app has its own directory
+│   │       ├── components/ # App-specific components
+│   │       ├── hooks/      # Custom hooks specific to the app
+│   │       └── utils/      # Utility functions for the app
+│   ├── components/   # Shared React components
+│   │   ├── dialogs/    # Dialog components
+│   │   ├── layout/     # Layout components
+│   │   ├── shared/     # Shared components across applications
+│   │   └── ui/         # UI components (shadcn components)
+│   ├── config/       # Configuration files
+│   ├── contexts/     # React context providers
+│   ├── hooks/        # Custom React hooks
+│   ├── lib/          # Libraries and utilities
+│   ├── stores/       # State management (e.g., Zustand stores)
+│   ├── styles/       # CSS and styling utilities
+│   ├── types/        # TypeScript type definitions
+│   └── utils/        # Utility functions
+├── api/              # API endpoints
+└── ...config files   # e.g., vite.config.ts, tsconfig.json, package.json
 ```
 
 ## Development
@@ -170,6 +142,10 @@ The project uses:
 - `bun run build` - Build for production
 - `bun run lint` - Run ESLint
 - `bun run preview` - Preview production build
+
+## License
+
+This project is licensed under the AGPL-3.0 License - see the [LICENSE](LICENSE) file for details.
 
 ## Contributing
 
