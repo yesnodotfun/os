@@ -32,7 +32,7 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
   }
 
   return (
-    <div className="w-full bg-neutral-200 border-b flex flex-col max-h-34 overflow-hidden md:w-56 md:border-r md:border-b-0 md:max-h-full font-geneva-12 text-[12px]">
+    <div className="w-full bg-neutral-200 border-b flex flex-col h-full overflow-hidden md:w-56 md:border-r md:border-b-0 md:max-h-full font-geneva-12 text-[12px]">
       <div className="py-3 px-3 flex flex-col flex-1 overflow-hidden">
         <div className="flex justify-between items-center md:mb-2">
           <div className="flex items-baseline gap-1.5">

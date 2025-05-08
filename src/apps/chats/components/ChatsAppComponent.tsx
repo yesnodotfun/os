@@ -18,6 +18,8 @@ import { type Message as UIMessage } from "ai/react";
 import { type ChatMessage as AppChatMessage, type ChatRoom } from "@/types/chat";
 import { Button } from "@/components/ui/button";
 import { useRyoChat } from "../hooks/useRyoChat";
+import { ChevronDown } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 // Define the expected message structure locally, matching ChatMessages internal type
 interface DisplayMessage extends Omit<UIMessage, 'role'> {
@@ -221,6 +223,15 @@ export function ChatsAppComponent({
   // Ensure isSidebarVisible is always boolean for child components
   const sidebarVisibleBool = isSidebarVisible ?? false;
 
+  // Handler for mobile room selection that auto-dismisses the sidebar
+  const handleMobileRoomSelect = useCallback((room: ChatRoom | null) => {
+    handleRoomSelect(room ? room.id : null);
+    // Auto-dismiss sidebar on mobile after selecting a room
+    if (sidebarVisibleBool) {
+      toggleSidebarVisibility();
+    }
+  }, [handleRoomSelect, sidebarVisibleBool, toggleSidebarVisibility]);
+
   return (
     <>
       <ChatsMenuBar
@@ -249,19 +260,84 @@ export function ChatsAppComponent({
         skipInitialSound={skipInitialSound}
         isShaking={isShaking}
       >
-        <div className="flex flex-col md:flex-row h-full bg-[#c0c0c0] w-full">
-          <ChatRoomSidebar
-            rooms={rooms}
-            currentRoom={currentRoom ?? null}
-            onRoomSelect={(room) => handleRoomSelect(room ? room.id : null)}
-            onAddRoom={promptAddRoom}
-            onDeleteRoom={(room) => promptDeleteRoom(room)}
-            isVisible={sidebarVisibleBool} // Pass boolean
-            isAdmin={isAdmin}
-          />
-          <div className="flex flex-col flex-1 p-2 overflow-hidden">
+        <div className="relative h-full bg-[#c0c0c0] w-full">
+          {/* Mobile sidebar overlay with framer-motion animations */}
+          <AnimatePresence>
+            {sidebarVisibleBool && (
+              <motion.div
+                className="md:hidden absolute inset-x-0 top-0 bottom-0 z-20"
+              >
+                {/* Scrim - fades in and out */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 0.5 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ 
+                    duration: 0.2,
+                    ease: [0.4, 0, 0.2, 1]
+                  }}
+                  className="absolute inset-0 bg-black"
+                  onClick={toggleSidebarVisibility}
+                />
+                
+                {/* Sidebar - slides down and up */}
+                <motion.div
+                  initial={{ y: "-100%", opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: "-100%", opacity: 0 }}
+                  transition={{
+                    duration: 0.25,
+                    ease: [0.4, 0, 0.2, 1]
+                  }}
+                  className="relative w-full h-fit bg-[#c0c0c0] z-10"
+                >
+                  <ChatRoomSidebar
+                    rooms={rooms}
+                    currentRoom={currentRoom ?? null}
+                    onRoomSelect={handleMobileRoomSelect}
+                    onAddRoom={promptAddRoom}
+                    onDeleteRoom={(room) => promptDeleteRoom(room)}
+                    isVisible={true} // Always visible when overlay is shown
+                    isAdmin={isAdmin}
+                  />
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Desktop layout */}
+          <div className="flex flex-col md:flex-row h-full">
+            <div className="hidden md:block h-full">
+              <ChatRoomSidebar
+                rooms={rooms}
+                currentRoom={currentRoom ?? null}
+                onRoomSelect={(room) => handleRoomSelect(room ? room.id : null)}
+                onAddRoom={promptAddRoom}
+                onDeleteRoom={(room) => promptDeleteRoom(room)}
+                isVisible={sidebarVisibleBool}
+                isAdmin={isAdmin}
+              />
+            </div>
+
+            {/* Chat area - on desktop, needs to take flex-1 space */}
+            <div className="flex flex-col flex-1 md:flex-1 h-full">
+            {/* Mobile chat title bar */}
+            <div className="md:hidden flex items-center justify-between p-2 pb-0 flex-shrink-0">
+              <button 
+                onClick={toggleSidebarVisibility}
+                className="flex items-center gap-1 hover:bg-neutral-400 px-2 py-1 rounded"
+              >
+                <h2 className="font-geneva-12 text-[12px] font-medium truncate">
+                  {currentRoom ? `#${currentRoom.name}` : "@ryo"}
+                </h2>
+                <ChevronDown className="h-3 w-3 transform transition-transform duration-200" />
+              </button>
+            </div>
+            
+            {/* Chat content */}
+            <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
             {/* Chat Messages Area - takes up remaining space */}
-            <div className="flex-1 overflow-hidden">
+            <div className="flex-1 min-h-0 overflow-hidden p-2">
               <ChatMessages
                 key={currentRoomId || 'ryo'} // Re-render on room change
                 messages={currentMessagesToDisplay} // Remove 'as any'
@@ -280,7 +356,7 @@ export function ChatsAppComponent({
             </div>
 
             {/* Input Area or Set Username Prompt */}
-            <div className="flex-shrink-0 pt-2">
+            <div className="flex-shrink-0 p-2 pt-0">
               {currentRoomId && !username ? (
                   <Button onClick={promptSetUsername} className="w-full h-8 font-geneva-12 text-[12px] bg-orange-600 text-white hover:bg-orange-700 transition-all duration-200">
                     Set Username to Chat
@@ -308,6 +384,8 @@ export function ChatsAppComponent({
                   );
                 })()
               )}
+            </div>
+            </div>
             </div>
           </div>
         </div>
