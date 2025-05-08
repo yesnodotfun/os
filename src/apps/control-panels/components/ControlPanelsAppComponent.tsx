@@ -25,7 +25,6 @@ import {
 import { SYNTH_PRESETS } from "@/hooks/useChatSynth";
 import { useFileSystem } from "@/apps/finder/hooks/useFileSystem";
 import { useAppStore } from "@/stores/useAppStore";
-import { DisplayMode } from "@/utils/displayMode";
 import { setNextBootMessage, clearNextBootMessage } from "@/utils/bootMessage";
 import { AIModel, AI_MODEL_METADATA } from "@/types/aiModels";
 
