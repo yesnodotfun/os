@@ -170,7 +170,7 @@ async function ensureUserExists(username, requestId) {
   let userData = await redis.get(userKey);
   if (userData) {
     logInfo(requestId, `User ${username} exists. Refreshing TTL.`);
-    await redis.expire(userKey, USER_EXPIRATION_TIME); // Refresh TTL
+    await redis.expire(userKey, USER_TTL_SECONDS); // Refresh TTL
     return parseUserData(userData);
   }
 
@@ -184,14 +184,14 @@ async function ensureUserExists(username, requestId) {
 
   if (created) {
     logInfo(requestId, `User ${username} created successfully. Setting TTL.`);
-    await redis.expire(userKey, USER_EXPIRATION_TIME);
+    await redis.expire(userKey, USER_TTL_SECONDS);
     return newUser;
   } else {
     // Race condition: User was created between GET and SETNX. Fetch the existing user.
     logInfo(requestId, `User ${username} created concurrently. Fetching existing data.`);
     userData = await redis.get(userKey);
     if (userData) {
-       await redis.expire(userKey, USER_EXPIRATION_TIME); // Refresh TTL just in case
+       await redis.expire(userKey, USER_TTL_SECONDS); // Refresh TTL just in case
        return parseUserData(userData);
     } else {
        // Should be rare, but handle case where user disappeared again
@@ -265,6 +265,8 @@ export async function POST(request) {
         return await handleJoinRoom(body, requestId);
       case 'leaveRoom':
         return await handleLeaveRoom(body, requestId);
+      case 'switchRoom':
+        return await handleSwitchRoom(body, requestId);
       case 'sendMessage':
         return await handleSendMessage(body, requestId);
       case 'deleteMessage':
@@ -413,7 +415,7 @@ async function handleCreateRoom(data, requestId) {
       // Get all rooms to send the updated list
       const keys = await redis.keys(`${CHAT_ROOM_PREFIX}*`);
       const roomsData = await redis.mget(...keys);
-      const rooms = roomsData.map(room => room).filter(Boolean);
+      const rooms = roomsData.map(r => r).filter(Boolean);
       
       await pusher.trigger('chats', 'rooms-updated', { rooms });
       logInfo(requestId, 'Pusher event triggered: rooms-updated');
@@ -455,7 +457,7 @@ async function handleDeleteRoom(roomId, requestId) {
       // Get all rooms to send the updated list
       const keys = await redis.keys(`${CHAT_ROOM_PREFIX}*`);
       const roomsData = await redis.mget(...keys);
-      const rooms = roomsData.map(room => room).filter(Boolean);
+      const rooms = roomsData.map(r => r).filter(Boolean);
       
       await pusher.trigger('chats', 'rooms-updated', { rooms });
       logInfo(requestId, 'Pusher event triggered: rooms-updated after deletion');
@@ -625,30 +627,7 @@ async function handleJoinRoom(data, requestId) {
     await redis.expire(`${CHAT_USERS_PREFIX}${username}`, USER_EXPIRATION_TIME);
     logInfo(requestId, `User ${username} last active time updated and expiration reset to 1 day`);
 
-    // Trigger Pusher events only if user count changed
-    const previousUserCount = roomData.userCount; // Get count before update
-    if (userCount !== previousUserCount) {
-        try {
-            // Trigger user count update
-            await pusher.trigger('chats', 'user-count-updated', {
-                roomId,
-                userCount
-            });
-            logInfo(requestId, `Pusher event triggered: user-count-updated for room ${roomId}`);
-
-            // Also send a rooms-updated event to refresh room lists in all clients
-            const keys = await redis.keys(`${CHAT_ROOM_PREFIX}*`);
-            const roomsData = await redis.mget(...keys);
-            const rooms = roomsData.map(room => room).filter(Boolean);
-            await pusher.trigger('chats', 'rooms-updated', { rooms });
-            logInfo(requestId, 'Pusher event triggered: rooms-updated after user join');
-        } catch (pusherError) {
-            logError(requestId, 'Error triggering Pusher events for room join:', pusherError);
-            // Continue with response - Pusher error shouldn't block operation
-        }
-    } else {
-         logInfo(requestId, `Skipping Pusher events: user count (${userCount}) did not change.`);
-    }
+    // Removed individual user-count-updated event; rooms-updated will carry the new count
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { 'Content-Type': 'application/json' }
@@ -690,19 +669,7 @@ async function handleLeaveRoom(data, requestId) {
       // Trigger Pusher events only if user count changed
       if (userCount !== previousUserCount) {
           try {
-            // Trigger user count update
-            await pusher.trigger('chats', 'user-count-updated', {
-              roomId,
-              userCount
-            });
-            logInfo(requestId, `Pusher event triggered: user-count-updated for room ${roomId}`);
-
-            // Also send a rooms-updated event
-            const keys = await redis.keys(`${CHAT_ROOM_PREFIX}*`);
-            const roomsData = await redis.mget(...keys);
-            const rooms = roomsData.map(room => room).filter(Boolean);
-            await pusher.trigger('chats', 'rooms-updated', { rooms });
-            logInfo(requestId, 'Pusher event triggered: rooms-updated after user leave');
+            // Removed individual user-count-updated event; rooms-updated will carry the new count
           } catch (pusherError) {
             logError(requestId, 'Error triggering Pusher events for room leave:', pusherError);
             // Continue with response - Pusher error shouldn't block operation
@@ -751,7 +718,7 @@ async function handleClearAllMessages(requestId) {
       // For each room, trigger a room-message event with an empty message list
       const roomKeys = await redis.keys(`${CHAT_ROOM_PREFIX}*`);
       const roomsData = await redis.mget(...roomKeys);
-      const rooms = roomsData.map(room => room).filter(Boolean);
+      const rooms = roomsData.map(r => r).filter(Boolean);
       
       // Trigger a single event for all rooms to refresh
       await pusher.trigger('chats', 'messages-cleared', { 
@@ -819,11 +786,12 @@ async function handleResetUserCounts(requestId) {
     // Notify clients that user counts have been reset
     try {
       // Get the updated rooms
-      const updatedRoomsData = await redis.mget(...roomKeys);
-      const updatedRooms = updatedRoomsData.map(room => room).filter(Boolean);
+      const keys = await redis.keys(`${CHAT_ROOM_PREFIX}*`);
+      const roomsData = await redis.mget(...keys);
+      const rooms = roomsData.map(r => r).filter(Boolean);
       
       // Trigger a rooms-updated event
-      await pusher.trigger('chats', 'rooms-updated', { rooms: updatedRooms });
+      await pusher.trigger('chats', 'rooms-updated', { rooms });
       logInfo(requestId, 'Pusher event triggered: rooms-updated after user count reset');
     } catch (pusherError) {
       logError(requestId, 'Error triggering Pusher event for user count reset:', pusherError);
@@ -1046,5 +1014,88 @@ async function handleDeleteMessage(data, requestId) {
   } catch (error) {
     logError(requestId, `Error deleting message ${messageId} from room ${roomId}:`, error);
     return createErrorResponse('Failed to delete message', 500);
+  }
+}
+
+async function handleSwitchRoom(data, requestId) {
+  const { previousRoomId, nextRoomId, username: originalUsername } = data;
+  const username = originalUsername?.toLowerCase(); // Normalize username
+
+  if (!username) {
+    logInfo(requestId, 'Room switch failed: Username is required');
+    return createErrorResponse('Username is required', 400);
+  }
+
+  // Nothing to do if IDs are the same (including both null)
+  if (previousRoomId === nextRoomId) {
+    logInfo(requestId, `Room switch noop: previous and next are the same (${previousRoomId}).`);
+    return new Response(JSON.stringify({ success: true, noop: true }), {
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
+  try {
+    // Ensure user exists (refreshes TTL)
+    await ensureUserExists(username, requestId);
+
+    const changedRooms = [];
+
+    // --- LEAVE PREVIOUS ---
+    if (previousRoomId) {
+      const roomKey = `${CHAT_ROOM_PREFIX}${previousRoomId}`;
+      const roomDataRaw = await redis.get(roomKey);
+
+      if (roomDataRaw) {
+        await redis.srem(`${CHAT_ROOM_USERS_PREFIX}${previousRoomId}`, username);
+        const userCount = await refreshRoomUserCount(previousRoomId);
+        changedRooms.push({ roomId: previousRoomId, userCount });
+      }
+    }
+
+    // --- JOIN NEXT ---
+    if (nextRoomId) {
+      const roomKey = `${CHAT_ROOM_PREFIX}${nextRoomId}`;
+      const roomDataRaw = await redis.get(roomKey);
+      if (!roomDataRaw) {
+        logInfo(requestId, `Room not found while switching: ${nextRoomId}`);
+        return createErrorResponse('Next room not found', 404);
+      }
+
+      await redis.sadd(`${CHAT_ROOM_USERS_PREFIX}${nextRoomId}`, username);
+      const userCount = await redis.scard(`${CHAT_ROOM_USERS_PREFIX}${nextRoomId}`);
+
+      // Update room object with new count
+      const roomData = typeof roomDataRaw === 'string' ? JSON.parse(roomDataRaw) : roomDataRaw;
+      await redis.set(roomKey, { ...roomData, userCount });
+
+      // Update user's last active timestamp
+      await redis.set(`${CHAT_USERS_PREFIX}${username}`, JSON.stringify({ username, lastActive: getCurrentTimestamp() }));
+      await redis.expire(`${CHAT_USERS_PREFIX}${username}`, USER_EXPIRATION_TIME);
+
+      changedRooms.push({ roomId: nextRoomId, userCount });
+    }
+
+    // Trigger Pusher events in batch
+    try {
+      for (const room of changedRooms) {
+        // Removed individual user-count-updated event; rooms-updated will carry the new count
+      }
+
+      // Fetch all rooms once for a single rooms-updated event
+      const keys = await redis.keys(`${CHAT_ROOM_PREFIX}*`);
+      const roomsData = await redis.mget(...keys);
+      const rooms = roomsData.map(r => r).filter(Boolean);
+      await pusher.trigger('chats', 'rooms-updated', { rooms });
+    } catch (pusherErr) {
+      logError(requestId, 'Error triggering Pusher events in switchRoom:', pusherErr);
+      // Non-fatal
+    }
+
+    return new Response(JSON.stringify({ success: true }), {
+      headers: { 'Content-Type': 'application/json' }
+    });
+  } catch (error) {
+    logError(requestId, 'Error during switchRoom:', error);
+    return createErrorResponse('Failed to switch room', 500);
   }
 }      

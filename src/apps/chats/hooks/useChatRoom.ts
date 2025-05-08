@@ -48,9 +48,11 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
     const previousRoomIdRef = useRef<string | null>(currentRoomId); // Initialize with store value
     const debouncedSetRoomsRef = useRef(debounce(setRooms, 300)); // Debounce setRooms calls from Pusher
     const hasFetchedInitialData = useRef(false); // Flag to prevent duplicate initial fetches
+    // Track when messages were last fetched for each room
+    const messagesFetchedAtRef = useRef<Record<string, number>>({});
 
     // --- API Interaction ---
-    const callRoomAction = useCallback(async (action: 'joinRoom' | 'leaveRoom' | 'createRoom' | 'deleteRoom' | 'sendMessage' | 'getMessages' | 'getRooms' | 'createUser', payload: any) => {
+    const callRoomAction = useCallback(async (action: 'joinRoom' | 'leaveRoom' | 'switchRoom' | 'createRoom' | 'deleteRoom' | 'sendMessage' | 'getMessages' | 'getRooms' | 'createUser', payload: any) => {
         const queryParams = new URLSearchParams({ action });
         // Append payload keys as query params for GET requests
         const isGet = action === 'getRooms' || action === 'getMessages';
@@ -126,6 +128,8 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
                 timestamp: typeof msg.timestamp === "string" || typeof msg.timestamp === "number" ? new Date(msg.timestamp).getTime() : msg.timestamp,
             })).sort((a: ChatMessage, b: ChatMessage) => a.timestamp - b.timestamp);
             setRoomMessagesForCurrentRoom(fetchedMessages);
+            // Record fetch time
+            messagesFetchedAtRef.current[roomId] = Date.now();
         } else {
             console.error(`[Room Hook] Failed to fetch messages for room ${roomId}:`, result.error);
         }
@@ -153,19 +157,30 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
         const previousRoomId = previousRoomIdRef.current;
         console.log(`[Room Select] User selected room: ${newRoomId || '@ryo'} (from ${previousRoomId || '@ryo'})`);
 
-        // Only fetch messages and update state if the room ID actually changes
+        // Only take action if the target room actually changes
         if (newRoomId !== previousRoomId) {
             setCurrentRoomId(newRoomId);
-            // Fetch messages for the newly selected room *if* it's a real room ID
+
+            // If the user selected a real room (not the @ryo lobby)
             if (newRoomId) {
-                fetchMessagesForRoom(newRoomId);
+                // Check if we already have messages for this room cached in the store. If so, skip the fetch.
+                const cached = useChatsStore.getState().roomMessages[newRoomId];
+                const lastFetched = messagesFetchedAtRef.current[newRoomId] || 0;
+                const STALE_AFTER_MS = 60 * 1000; // 1 minute
+                const isStale = Date.now() - lastFetched > STALE_AFTER_MS;
+
+                if (!cached || cached.length === 0 || isStale) {
+                    console.log(`[Room Select] Fetching messages for ${newRoomId}. Reason: ${!cached || cached.length === 0 ? 'no cache' : 'stale cache'}`);
+                    fetchMessagesForRoom(newRoomId);
+                } else {
+                    console.log(`[Room Select] Messages for ${newRoomId} are fresh (cached ${cached.length} msgs). Skipping fetch.`);
+                }
             }
-            // Note: Joining/leaving the room is handled by a separate effect reacting to currentRoomId change
-            // The effect will handle the actual API calls based on this state change + username.
+            // Note: joining/leaving the room is handled by the membership effect reacting to currentRoomId.
         } else {
-             console.log(`[Room Select] Room ID ${newRoomId} is the same as the current one, skipping state update and fetch.`);
+            console.log(`[Room Select] Room ID ${newRoomId} is the same as the current one, skipping state update and fetch.`);
         }
-    }, [setCurrentRoomId, fetchMessagesForRoom]); // Removed username, callRoomAction dependencies
+    }, [setCurrentRoomId, fetchMessagesForRoom]);
 
     const sendRoomMessage = useCallback(async (content: string) => {
         if (!currentRoomId || !username || !content.trim()) return;
@@ -272,15 +287,6 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
                     }
                 });
 
-                channelRef.current.bind('user-count-updated', (data: { roomId: string; userCount: number }) => {
-                    console.log('[Pusher Hook] Received user-count-updated:', data);
-                    const currentRooms = useChatsStore.getState().rooms; // Get current state
-                    const updatedRooms = currentRooms.map((room: ChatRoom) =>
-                        room.id === data.roomId ? { ...room, userCount: data.userCount } : room
-                    );
-                    debouncedSetRoomsRef.current(updatedRooms);
-                });
-
                 channelRef.current.bind('message-deleted', (data: { roomId: string; messageId: string }) => {
                     console.log(`[Pusher Hook] Received message-deleted for room ${data.roomId}, message ${data.messageId}`);
                     removeMessageFromRoom(data.roomId, data.messageId);
@@ -379,16 +385,9 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
 
         // Only proceed if username is set
         if (username) {
-            // Leave previous room if it's different from the new one
-            if (roomToLeave && roomToLeave !== roomToJoin) {
-                console.log(`[Room Membership Effect] Leaving room: ${roomToLeave}`);
-                callRoomAction('leaveRoom', { roomId: roomToLeave, username });
-            }
-
-            // Join new room if it exists and is different from the previous one
-            if (roomToJoin && roomToJoin !== roomToLeave) {
-                console.log(`[Room Membership Effect] Joining room: ${roomToJoin}`);
-                callRoomAction('joinRoom', { roomId: roomToJoin, username });
+            if (roomToJoin !== roomToLeave) {
+                console.log(`[Room Membership Effect] Switching from ${roomToLeave} to ${roomToJoin}`);
+                callRoomAction('switchRoom', { previousRoomId: roomToLeave, nextRoomId: roomToJoin, username });
             }
         } else {
             // If username becomes null (e.g., user logs out?), leave the current room
