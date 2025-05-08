@@ -6,17 +6,17 @@ A modern web-based desktop environment inspired by classic macOS, built with a c
 
 ### Desktop Environment
 
-- Authentic macOS-style window management
-- Multiple resizable and draggable windows
-- Desktop icons and dock
-- Window minimize/maximize controls
+- Authentic macOS-style desktop interactions
+- Multiple apps and window manager
+- Cross-device window resizers and minimize/maximize controls
 - Menu bar with application-specific menus
+- Icons and list views
 - Customizable wallpapers (photos, patterns, or videos)
-- System-wide sound effects
-- Optional CRT, Galaxy & Aurora shader effects
-- System-wide UI, Chats, and Terminal sounds
-- System-wide AI integrations
+- System-wide sampled and synthesizer sound effects
 - Local storage persistence with one-click Backup / Restore
+- System-wide UI, Chats, and Terminal sounds
+- System-wide Ryo AI, with tool calls and context of running applications
+- Optional CRT, Galaxy & Aurora shader effects
 
 ### Built-in Applications
 
