@@ -323,15 +323,22 @@ export function ChatsAppComponent({
             <div className="flex flex-col flex-1 md:flex-1 h-full">
             {/* Mobile chat title bar */}
             <div className="md:hidden flex items-center justify-between p-2 pb-0 flex-shrink-0">
-              <button 
-                onClick={toggleSidebarVisibility}
-                className="flex items-center gap-1 hover:bg-neutral-400 px-2 py-1 rounded"
-              >
-                <h2 className="font-geneva-12 text-[12px] font-medium truncate">
-                  {currentRoom ? `#${currentRoom.name}` : "@ryo"}
-                </h2>
-                <ChevronDown className="h-3 w-3 transform transition-transform duration-200" />
-              </button>
+              <div className="flex items-center">
+                <button 
+                  onClick={toggleSidebarVisibility}
+                  className="flex items-center gap-1 hover:bg-neutral-400 px-2 py-1 rounded"
+                >
+                  <h2 className="font-geneva-12 text-[12px] font-medium truncate">
+                    {currentRoom ? `#${currentRoom.name}` : "@ryo"}
+                  </h2>
+                  <ChevronDown className="h-3 w-3 transform transition-transform duration-200" />
+                </button>
+                {currentRoom && currentRoom.userCount > 0 && (
+                  <span className="font-geneva-12 text-[11px] text-neutral-500">
+                    {currentRoom.userCount} online
+                  </span>
+                )}
+              </div>
             </div>
             
             {/* Chat content */}
