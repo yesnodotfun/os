@@ -495,27 +495,6 @@ export function ControlPanelsAppComponent({
             >
               <div className="space-y-4 h-full overflow-y-auto p-4">
                 <WallpaperPicker />
-                <hr className="border-gray-400"></hr>
-                <div className="flex items-center justify-between">
-                  <Label>Display Mode</Label>
-                  <Select
-                    value={displayMode}
-                    onValueChange={(value) => setDisplayMode(value as DisplayMode)}
-                  >
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Select Display Mode" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="color">Color</SelectItem>
-                      <SelectItem value="monotone">Monotone</SelectItem>
-                      <SelectItem value="crt">CRT</SelectItem>
-                      <SelectItem value="sepia">Sepia</SelectItem>
-                      <SelectItem value="high-contrast">High Contrast</SelectItem>
-                      <SelectItem value="dream">Dream</SelectItem>
-                      <SelectItem value="invert">Invert</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
               </div>
             </TabsContent>
 
