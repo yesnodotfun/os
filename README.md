@@ -1,4 +1,4 @@
-# ryOS — A OS experience, made with Cursor
+# ryOS — A web-based OS experience, made with Cursor
 
 A modern web-based desktop environment inspired by classic macOS, built with a cutting-edge web stack and AI. Features multiple built-in applications and a familiar desktop interface. Works on all devices—including mobile, tablet, and desktop.
 
