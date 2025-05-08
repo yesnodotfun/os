@@ -3,6 +3,15 @@ import * as Tone from "tone";
 import { useAppStore } from "@/stores/useAppStore";
 import { useVibration } from './useVibration';
 
+// Global synth instance and state
+let globalSynthRef: { 
+  synth: Tone.PolySynth;
+  filter: Tone.Filter;
+  tremolo: Tone.Tremolo;
+  reverb: Tone.Reverb;
+} | null = null;
+let lastUsedPreset = "classic";
+
 export type SynthPreset = {
   name: string;
   oscillator: {
@@ -195,6 +204,15 @@ export function useChatSynth() {
 
   // Initialize Tone.js context and create the synth instance
   const initializeAudio = useCallback(async () => {
+    if (globalSynthRef && !synthRef.current) {
+      console.log("Reusing existing synth instance...");
+      synthRef.current = globalSynthRef;
+      synthRef.current.filter.toDestination();
+      
+      setIsAudioReady(true);
+      return;
+    }
+    
     // Prevent concurrent initializations
     if (isInitializingRef.current || isAudioReady || Tone.context.state === 'running') {
         if (Tone.context.state === 'running' && !isAudioReady) {
@@ -275,42 +293,83 @@ export function useChatSynth() {
       window.removeEventListener("keydown", handleInteraction);
     };
   }, [initializeAudio, isAudioReady]); // Depend on initializeAudio and isAudioReady
+  
+  // Effect to handle visibility change and window focus
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        if (Tone.context.state === "suspended") {
+          initializeAudio();
+        }
+      }
+    };
+    
+    const handleFocus = () => {
+      if (Tone.context.state === "suspended") {
+        initializeAudio();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, [initializeAudio]);
+  
+  // Effect to handle preset changes when reusing synth
+  useEffect(() => {
+    if (synthRef.current && lastUsedPreset !== currentPresetKey) {
+      console.log(`Applying preset change from ${lastUsedPreset} to ${currentPresetKey}`);
+      lastUsedPreset = currentPresetKey;
+    }
+  }, [currentPresetKey]);
 
 
   // Effect for cleanup on unmount
   useEffect(() => {
     return () => {
       if (synthRef.current) {
-        console.log("Disposing synth on unmount...");
-        synthRef.current.synth.dispose();
-        synthRef.current.reverb.dispose();
-        synthRef.current.tremolo.dispose();
-        synthRef.current.filter.dispose();
-        synthRef.current = null;
+        console.log("Storing synth for reuse on unmount...");
+        globalSynthRef = synthRef.current;
+        lastUsedPreset = currentPresetKey;
+        synthRef.current.filter.disconnect();
         // We generally don't want to close the global Tone.context here
         // as other components might use it.
       }
     };
-  }, []); // Empty dependency array ensures this runs only on unmount
+  }, [currentPresetKey]); // Add currentPresetKey as dependency
 
   // Function to change the synth preset
   const changePreset = useCallback((presetKey: string) => {
     if (SYNTH_PRESETS[presetKey] && presetKey !== currentPresetKey) {
       console.log("Changing preset to", presetKey);
-      // Dispose old synth resources safely
+      // Disconnect old synth resources safely
       if (synthRef.current) {
-        synthRef.current.synth.dispose();
-        synthRef.current.reverb.dispose();
-        synthRef.current.tremolo.dispose();
-        synthRef.current.filter.dispose();
+        synthRef.current.filter.disconnect();
+        
+        // Create new synth instance
+        if (isAudioReady) { // Only create if audio context is ready
+            synthRef.current.synth.dispose();
+            synthRef.current.reverb.dispose();
+            synthRef.current.tremolo.dispose();
+            synthRef.current.filter.dispose();
+            
+            synthRef.current = createSynthInstance(SYNTH_PRESETS[presetKey]);
+            
+            globalSynthRef = synthRef.current;
+        } else {
+            synthRef.current = null; // Ensure ref is null if audio not ready
+            console.warn("Audio not ready, preset change deferred until initialization.");
+        }
+      } else if (isAudioReady) {
+        synthRef.current = createSynthInstance(SYNTH_PRESETS[presetKey]);
+        globalSynthRef = synthRef.current;
       }
-      // Create new synth instance
-      if (isAudioReady) { // Only create if audio context is ready
-          synthRef.current = createSynthInstance(SYNTH_PRESETS[presetKey]);
-      } else {
-          synthRef.current = null; // Ensure ref is null if audio not ready
-          console.warn("Audio not ready, preset change deferred until initialization.");
-      }
+      
+      lastUsedPreset = presetKey;
       setCurrentPresetKey(presetKey);
       // Persist to global store
       setSynthPreset(presetKey);
@@ -332,7 +391,8 @@ export function useChatSynth() {
     const { synth } = synthRef.current;
 
     // Check active voices against the defined VOICE_COUNT
-    const activeVoices = (synth as any)._voices?.length || 0; // Access internal _voices array if available
+    // @ts-expect-error - Accessing internal _voices property which is not in type definitions
+    const activeVoices = synth._voices?.length || 0; // Access internal _voices array if available
     if (activeVoices >= VOICE_COUNT) {
         console.debug(`Skipping note: Voice limit (${VOICE_COUNT}) reached.`);
         return;
