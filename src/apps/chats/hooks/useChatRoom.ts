@@ -261,6 +261,19 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
 
                 channelRef.current.bind('room-message', (data: { roomId: string; message: ChatMessage }) => {
                     console.log('[Pusher Hook] Received room-message:', data);
+
+                    // Skip if we already have this exact message (by id or identical content+username) stored (prevents duplicate re-renders)
+                    const existingMessages = useChatsStore.getState().roomMessages[data.roomId] || [];
+                    const isDuplicate = existingMessages.some((m) => {
+                        const sameId = m.id === data.message.id;
+                        const sameContentUser = m.content === data.message.content && m.username === data.message.username;
+                        return sameId || sameContentUser;
+                    });
+                    if (isDuplicate) {
+                        console.log('[Pusher Hook] Duplicate message detected (id/content match). Skipping.');
+                        return;
+                    }
+
                     const messageWithTimestamp = {
                         ...data.message,
                         timestamp: typeof data.message.timestamp === 'string' || typeof data.message.timestamp === 'number'
@@ -270,7 +283,9 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
                     addMessageToRoom(data.roomId, messageWithTimestamp);
 
                     // Show toast if message is for another room
-                    if (data.roomId !== currentRoomId && data.message.username !== username) {
+                    const activeRoomId = useChatsStore.getState().currentRoomId;
+                    const currentUsername = useChatsStore.getState().username;
+                    if (data.roomId !== activeRoomId && data.message.username !== currentUsername) {
                         // Get fresh room list for toast
                         const latestRooms = useChatsStore.getState().rooms;
                         const room = latestRooms.find((r: ChatRoom) => r.id === data.roomId);
