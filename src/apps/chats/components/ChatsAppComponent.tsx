@@ -15,20 +15,21 @@ import { ChatInput } from "./ChatInput";
 import { ChatRoomSidebar } from "./ChatRoomSidebar";
 import { useChatsStore } from "@/stores/useChatsStore";
 import { type Message as UIMessage } from "ai/react";
-import { type ChatMessage as AppChatMessage, type ChatRoom } from "@/types/chat";
+import {
+  type ChatMessage as AppChatMessage,
+  type ChatRoom,
+} from "@/types/chat";
 import { Button } from "@/components/ui/button";
 import { useRyoChat } from "../hooks/useRyoChat";
 import { ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 // Define the expected message structure locally, matching ChatMessages internal type
-interface DisplayMessage extends Omit<UIMessage, 'role'> {
+interface DisplayMessage extends Omit<UIMessage, "role"> {
   username?: string;
-  role: UIMessage['role'] | 'human';
+  role: UIMessage["role"] | "human";
   createdAt?: Date; // Ensure createdAt is optional Date
 }
-
-
 
 export function ChatsAppComponent({
   isWindowOpen,
@@ -104,64 +105,90 @@ export function ChatsAppComponent({
   const [scrollToBottomTrigger, setScrollToBottomTrigger] = useState(0);
 
   // Add safety check: ensure rooms is an array before finding
-  const currentRoom = Array.isArray(rooms) && currentRoomId
-    ? rooms.find((r: ChatRoom) => r.id === currentRoomId)
-    : null;
+  const currentRoom =
+    Array.isArray(rooms) && currentRoomId
+      ? rooms.find((r: ChatRoom) => r.id === currentRoomId)
+      : null;
 
   // Use the @ryo chat hook
-  const {
-    isRyoLoading,
-    stopRyo,
-    handleRyoMention,
-    detectAndProcessMention,
-  } = useRyoChat({
-    currentRoomId,
-    onScrollToBottom: () => setScrollToBottomTrigger(prev => prev + 1),
-    roomMessages: currentRoomMessages?.map((msg: AppChatMessage) => ({
-      username: msg.username,
-      content: msg.content,
-      userId: msg.id,
-      timestamp: new Date(msg.timestamp).toISOString(),
-    })),
-  });
+  const { isRyoLoading, stopRyo, handleRyoMention, detectAndProcessMention } =
+    useRyoChat({
+      currentRoomId,
+      onScrollToBottom: () => setScrollToBottomTrigger((prev) => prev + 1),
+      roomMessages: currentRoomMessages?.map((msg: AppChatMessage) => ({
+        username: msg.username,
+        content: msg.content,
+        userId: msg.id,
+        timestamp: new Date(msg.timestamp).toISOString(),
+      })),
+    });
+
+  // Ensure isSidebarVisible is always boolean for child components
+  const sidebarVisibleBool = isSidebarVisible ?? false;
+
+  // Handler for mobile room selection that auto-dismisses the sidebar
+  const handleMobileRoomSelect = useCallback(
+    (room: ChatRoom | null) => {
+      handleRoomSelect(room ? room.id : null);
+      // Auto-dismiss sidebar on mobile after selecting a room
+      if (sidebarVisibleBool) {
+        toggleSidebarVisibility();
+      }
+    },
+    [handleRoomSelect, sidebarVisibleBool, toggleSidebarVisibility]
+  );
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
-      
+
       if (currentRoomId && username) {
         const trimmedInput = input.trim();
-        
+
         // Detect if this is an @ryo mention
-        const { isMention, messageContent } = detectAndProcessMention(trimmedInput);
-        
+        const { isMention, messageContent } =
+          detectAndProcessMention(trimmedInput);
+
         if (isMention) {
           // Clear input immediately
-          handleInputChange({ target: { value: '' } } as React.ChangeEvent<HTMLInputElement>);
-          
+          handleInputChange({
+            target: { value: "" },
+          } as React.ChangeEvent<HTMLInputElement>);
+
           // Send the user's message to the chat room first (showing @ryo)
           sendRoomMessage(input);
-          
+
           // Then send to AI (doesn't affect input clearing)
           handleRyoMention(messageContent);
-          
+
           // Trigger scroll
-          setScrollToBottomTrigger(prev => prev + 1);
+          setScrollToBottomTrigger((prev) => prev + 1);
         } else {
           // Regular room message
           sendRoomMessage(input);
-          handleInputChange({ target: { value: '' } } as React.ChangeEvent<HTMLInputElement>);
+          handleInputChange({
+            target: { value: "" },
+          } as React.ChangeEvent<HTMLInputElement>);
           // Trigger scroll after sending room message
-          setScrollToBottomTrigger(prev => prev + 1);
+          setScrollToBottomTrigger((prev) => prev + 1);
         }
       } else {
         // AI chat when not in a room
         handleAiSubmit(e);
         // Trigger scroll after submitting AI message
-        setScrollToBottomTrigger(prev => prev + 1);
+        setScrollToBottomTrigger((prev) => prev + 1);
       }
     },
-    [currentRoomId, username, sendRoomMessage, handleAiSubmit, input, handleInputChange, handleRyoMention, detectAndProcessMention]
+    [
+      currentRoomId,
+      username,
+      sendRoomMessage,
+      handleAiSubmit,
+      input,
+      handleInputChange,
+      handleRyoMention,
+      detectAndProcessMention,
+    ]
   );
 
   const handleDirectSubmit = useCallback(
@@ -180,7 +207,7 @@ export function ChatsAppComponent({
     setTimeout(() => setIsShaking(false), 400);
     handleNudge();
     // Trigger scroll after nudge
-    setScrollToBottomTrigger(prev => prev + 1);
+    setScrollToBottomTrigger((prev) => prev + 1);
   }, [handleNudge]);
 
   // Combined stop function for both AI chat and @ryo mentions
@@ -191,11 +218,11 @@ export function ChatsAppComponent({
 
   // Font size handlers using store action
   const handleIncreaseFontSize = useCallback(() => {
-    setFontSize(prev => Math.min(prev + 1, 24)); // Increase font size, max 24px
+    setFontSize((prev) => Math.min(prev + 1, 24)); // Increase font size, max 24px
   }, [setFontSize]);
 
   const handleDecreaseFontSize = useCallback(() => {
-    setFontSize(prev => Math.max(prev - 1, 10)); // Decrease font size, min 10px
+    setFontSize((prev) => Math.max(prev - 1, 10)); // Decrease font size, min 10px
   }, [setFontSize]);
 
   const handleResetFontSize = useCallback(() => {
@@ -206,9 +233,10 @@ export function ChatsAppComponent({
 
   // Explicitly type the array using the local DisplayMessage interface
   const currentMessagesToDisplay: DisplayMessage[] = currentRoomId
-    ? currentRoomMessages.map((msg: AppChatMessage) => ({ // Use AppChatMessage here
+    ? currentRoomMessages.map((msg: AppChatMessage) => ({
+        // Use AppChatMessage here
         id: msg.id,
-        role: msg.username === username ? 'user' : 'human',
+        role: msg.username === username ? "user" : "human",
         content: msg.content,
         createdAt: new Date(msg.timestamp), // Ensure this is a Date object
         username: msg.username,
@@ -217,20 +245,8 @@ export function ChatsAppComponent({
         ...msg,
         // Ensure createdAt is a Date object if it exists, otherwise undefined
         createdAt: msg.createdAt ? new Date(msg.createdAt) : undefined,
-        username: msg.role === 'user' ? (username || 'You') : 'Ryo'
+        username: msg.role === "user" ? username || "You" : "Ryo",
       }));
-
-  // Ensure isSidebarVisible is always boolean for child components
-  const sidebarVisibleBool = isSidebarVisible ?? false;
-
-  // Handler for mobile room selection that auto-dismisses the sidebar
-  const handleMobileRoomSelect = useCallback((room: ChatRoom | null) => {
-    handleRoomSelect(room ? room.id : null);
-    // Auto-dismiss sidebar on mobile after selecting a room
-    if (sidebarVisibleBool) {
-      toggleSidebarVisibility();
-    }
-  }, [handleRoomSelect, sidebarVisibleBool, toggleSidebarVisibility]);
 
   return (
     <>
@@ -273,31 +289,31 @@ export function ChatsAppComponent({
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 0.3 }}
                   exit={{ opacity: 0 }}
-                  transition={{ 
+                  transition={{
                     duration: 0.2,
-                    ease: [0.4, 0, 0.2, 1]
+                    ease: [0.4, 0, 0.2, 1],
                   }}
                   className="absolute inset-0 bg-black"
                   onClick={toggleSidebarVisibility}
                 />
-                
+
                 {/* Sidebar - 3D flip animation */}
                 <motion.div
-                  initial={{ 
+                  initial={{
                     rotateX: -60,
                     translateY: "-30%",
                     scale: 0.9,
                     opacity: 0,
                     transformOrigin: "top center",
                   }}
-                  animate={{ 
+                  animate={{
                     rotateX: 0,
                     translateY: "0%",
                     scale: 1,
                     opacity: 1,
                     transformOrigin: "top center",
                   }}
-                  exit={{ 
+                  exit={{
                     rotateX: -60,
                     translateY: "-30%",
                     scale: 0.9,
@@ -347,78 +363,88 @@ export function ChatsAppComponent({
 
             {/* Chat area - on desktop, needs to take flex-1 space */}
             <div className="flex flex-col flex-1 md:flex-1 h-full">
-            {/* Mobile chat title bar */}
-            <div className="md:hidden flex items-center justify-between px-2 pt-1 pb-0 flex-shrink-0">
-              <div className="flex items-center">
-                <button 
-                  onClick={toggleSidebarVisibility}
-                  className="flex items-center gap-1 hover:bg-neutral-400 px-2 py-1 rounded"
-                >
-                  <h2 className="font-geneva-12 text-[12px] font-medium truncate">
-                    {currentRoom ? `#${currentRoom.name}` : "@ryo"}
-                  </h2>
-                  <ChevronDown className="h-3 w-3 transform transition-transform duration-200" />
-                </button>
-                {currentRoom && currentRoom.userCount > 0 && (
-                  <span className="font-geneva-12 text-[11px] text-neutral-500">
-                    {currentRoom.userCount} online
-                  </span>
-                )}
+              {/* Mobile chat title bar */}
+              <div className="md:hidden flex items-center justify-between px-2 pt-1 pb-0 flex-shrink-0">
+                <div className="flex items-center">
+                  <button
+                    onClick={toggleSidebarVisibility}
+                    className="flex items-center gap-1 hover:bg-neutral-400 px-2 py-1 rounded"
+                  >
+                    <h2 className="font-geneva-12 text-[12px] font-medium truncate">
+                      {currentRoom ? `#${currentRoom.name}` : "@ryo"}
+                    </h2>
+                    <ChevronDown className="h-3 w-3 transform transition-transform duration-200" />
+                  </button>
+                  {currentRoom && currentRoom.userCount > 0 && (
+                    <span className="font-geneva-12 text-[11px] text-neutral-500">
+                      {currentRoom.userCount} online
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
-            
-            {/* Chat content */}
-            <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-            {/* Chat Messages Area - takes up remaining space */}
-            <div className="flex-1 min-h-0 overflow-hidden px-2 py-1">
-              <ChatMessages
-                key={currentRoomId || 'ryo'} // Re-render on room change
-                messages={currentMessagesToDisplay} // Remove 'as any'
-                isLoading={(isLoading && !currentRoomId) || (!!currentRoomId && isRyoLoading)} // Show loading state for both AI chat and @ryo mentions
-                error={!currentRoomId ? error : undefined} // Pass actual error object only for AI chat
-                onRetry={reload}
-                onClear={() => setIsClearDialogOpen(true)} // AI Clear only
-                isRoomView={!!currentRoomId}
-                roomId={currentRoomId ?? undefined}
-                isAdmin={isAdmin}
-                username={username || undefined} // Pass username for message deletion check
-                fontSize={fontSize}
-                // Pass the scroll trigger
-                scrollToBottomTrigger={scrollToBottomTrigger}
-              />
-            </div>
 
-            {/* Input Area or Set Username Prompt */}
-            <div className="flex-shrink-0 p-2 pt-1">
-              {currentRoomId && !username ? (
-                  <Button onClick={promptSetUsername} className="w-full h-8 font-geneva-12 text-[12px] bg-orange-600 text-white hover:bg-orange-700 transition-all duration-200">
-                    Set Username to Chat
-                  </Button>
-              ) : (
-                // AI Chat or in a room with username set
-                (() => {
-                  const userMessages = aiMessages.filter((msg: UIMessage) => msg.role === "user");
-                  const prevMessagesContent = Array.from(new Set(userMessages.map((msg) => msg.content))).reverse() as string[];
+              {/* Chat content */}
+              <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+                {/* Chat Messages Area - takes up remaining space */}
+                <div className="flex-1 min-h-0 overflow-hidden px-2 py-1">
+                  <ChatMessages
+                    key={currentRoomId || "ryo"} // Re-render on room change
+                    messages={currentMessagesToDisplay} // Remove 'as any'
+                    isLoading={
+                      (isLoading && !currentRoomId) ||
+                      (!!currentRoomId && isRyoLoading)
+                    } // Show loading state for both AI chat and @ryo mentions
+                    error={!currentRoomId ? error : undefined} // Pass actual error object only for AI chat
+                    onRetry={reload}
+                    onClear={() => setIsClearDialogOpen(true)} // AI Clear only
+                    isRoomView={!!currentRoomId}
+                    roomId={currentRoomId ?? undefined}
+                    isAdmin={isAdmin}
+                    username={username || undefined} // Pass username for message deletion check
+                    fontSize={fontSize}
+                    // Pass the scroll trigger
+                    scrollToBottomTrigger={scrollToBottomTrigger}
+                  />
+                </div>
 
-                  return (
-                    <ChatInput
-                      input={input}
-                      isLoading={isLoading || isRyoLoading}
-                      isForeground={isForeground}
-                      onInputChange={handleInputChange}
-                      onSubmit={handleSubmit}
-                      onStop={handleStop}
-                      onDirectMessageSubmit={handleDirectSubmit}
-                      onNudge={handleNudgeClick}
-                      previousMessages={prevMessagesContent}
-                      showNudgeButton={!currentRoomId} // Only show nudge for AI chat
-                      isInChatRoom={!!currentRoomId} // Indicate if user is in a chat room
-                    />
-                  );
-                })()
-              )}
-            </div>
-            </div>
+                {/* Input Area or Set Username Prompt */}
+                <div className="flex-shrink-0 p-2 pt-1">
+                  {currentRoomId && !username ? (
+                    <Button
+                      onClick={promptSetUsername}
+                      className="w-full h-8 font-geneva-12 text-[12px] bg-orange-600 text-white hover:bg-orange-700 transition-all duration-200"
+                    >
+                      Set Username to Chat
+                    </Button>
+                  ) : (
+                    // AI Chat or in a room with username set
+                    (() => {
+                      const userMessages = aiMessages.filter(
+                        (msg: UIMessage) => msg.role === "user"
+                      );
+                      const prevMessagesContent = Array.from(
+                        new Set(userMessages.map((msg) => msg.content))
+                      ).reverse() as string[];
+
+                      return (
+                        <ChatInput
+                          input={input}
+                          isLoading={isLoading || isRyoLoading}
+                          isForeground={isForeground}
+                          onInputChange={handleInputChange}
+                          onSubmit={handleSubmit}
+                          onStop={handleStop}
+                          onDirectMessageSubmit={handleDirectSubmit}
+                          onNudge={handleNudgeClick}
+                          previousMessages={prevMessagesContent}
+                          showNudgeButton={!currentRoomId} // Only show nudge for AI chat
+                          isInChatRoom={!!currentRoomId} // Indicate if user is in a chat room
+                        />
+                      );
+                    })()
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -452,15 +478,17 @@ export function ChatsAppComponent({
         <InputDialog
           isOpen={isUsernameDialogOpen}
           onOpenChange={(open) => {
-              console.log(`[ChatApp Debug] Username InputDialog onOpenChange called with: ${open}`);
-              setIsUsernameDialogOpen(open);
+            console.log(
+              `[ChatApp Debug] Username InputDialog onOpenChange called with: ${open}`
+            );
+            setIsUsernameDialogOpen(open);
           }}
           onSubmit={submitUsernameDialog}
           title="Set Username"
           description="Set your username for public Chat Rooms"
           value={newUsername}
-          onChange={(value) => { 
-            setNewUsername(value); 
+          onChange={(value) => {
+            setNewUsername(value);
             setUsernameError(null);
           }}
           isLoading={isSettingUsername}
@@ -473,7 +501,9 @@ export function ChatsAppComponent({
           title="Create New Room"
           description="Enter a name for the new chat room"
           value={newRoomName}
-          onChange={(value) => { setNewRoomName(value); }}
+          onChange={(value) => {
+            setNewRoomName(value);
+          }}
           isLoading={isCreatingRoom}
           errorMessage={roomError}
         />
