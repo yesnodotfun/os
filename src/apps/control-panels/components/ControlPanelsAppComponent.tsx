@@ -519,10 +519,7 @@ export function ControlPanelsAppComponent({
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col gap-1">
-                    <Label>Terminal & IE Ambient Sounds</Label>
-                    <Label className="text-[11px] text-gray-600 font-geneva-12">
-                      Music for time travel and AI generation
-                    </Label>
+                    <Label>Terminal & IE Ambient Synth</Label>
                   </div>
                   <Switch
                     checked={terminalSoundsEnabled}
@@ -534,7 +531,7 @@ export function ControlPanelsAppComponent({
                   <div className="flex flex-col gap-1">
                     <Label>Chat Synth</Label>
                     <Label className="text-[11px] text-gray-600 font-geneva-12 pr-1">
-                      Changes apply instantly
+                      Used when chatting with Ryo
                     </Label>
                   </div>
                   <Select
