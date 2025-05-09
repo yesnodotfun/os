@@ -62,7 +62,7 @@ export const AudioInputButton = forwardRef<
           disabled={isLoading}
         >
           {isLoading ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
+            <Loader2 className="h-4 w-4 animate-spin" />
           ) : isRecording ? (
             <AudioBars
               frequencies={frequencies}
@@ -70,7 +70,7 @@ export const AudioInputButton = forwardRef<
               isSilent={isSilent}
             />
           ) : (
-            <Mic className="h-5 w-5" />
+            <Mic className="h-4 w-4" />
           )}
         </button>
       </div>
