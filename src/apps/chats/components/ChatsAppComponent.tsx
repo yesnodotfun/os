@@ -320,7 +320,6 @@ export function ChatsAppComponent({
         appId="chats"
         skipInitialSound={skipInitialSound}
         isShaking={isShaking}
-        transparentBackground={true}
       >
         <div
           ref={containerRef}
