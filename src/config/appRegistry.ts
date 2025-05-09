@@ -60,8 +60,8 @@ export const appRegistry = {
   [ChatsApp.id]: {
     ...ChatsApp,
     windowConfig: {
-      defaultSize: { width: 530, height: 360 },
-      minSize: { width: 280, height: 320 },
+      defaultSize: { width: 560, height: 360 },
+      minSize: { width: 300, height: 320 },
     } as WindowConstraints,
   },
   [TextEditApp.id]: {

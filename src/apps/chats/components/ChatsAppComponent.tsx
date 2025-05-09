@@ -244,7 +244,7 @@ export function ChatsAppComponent({
     if (!containerRef.current) return;
 
     const updateWidth = (width: number) => {
-      setIsFrameNarrow(width < 600);
+      setIsFrameNarrow(width < 550);
     };
 
     // Initial measurement
@@ -323,7 +323,7 @@ export function ChatsAppComponent({
       >
         <div
           ref={containerRef}
-          className="relative h-full w-full backdrop-blur-2xl bg-white/65"
+          className="relative h-full w-full"
         >
           {/* Mobile sidebar overlay with framer-motion 3D animations */}
           <AnimatePresence>
