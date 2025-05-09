@@ -417,12 +417,26 @@ export function ChatsAppComponent({
                     </h2>
                     <ChevronDown className="h-3 w-3 transform transition-transform duration-200" />
                   </button>
+                  {!currentRoom && (
+                    <span className="font-geneva-12 text-[11px] text-neutral-500">
+                      online
+                    </span>
+                  )}
                   {currentRoom && currentRoom.userCount > 0 && (
                     <span className="font-geneva-12 text-[11px] text-neutral-500">
                       {currentRoom.userCount} online
                     </span>
                   )}
                 </div>
+                {/* Clear chat button shown only in @ryo (no current room) */}
+                {!currentRoom && (
+                  <button
+                    onClick={() => setIsClearDialogOpen(true)}
+                    className="flex items-center gap-1 hover:bg-neutral-400 px-2 py-1 rounded"
+                  >
+                    <span className="font-geneva-12 text-[11px]">Clear</span>
+                  </button>
+                )}
               </div>
 
               {/* Chat content */}
