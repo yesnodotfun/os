@@ -1,4 +1,4 @@
-import { useMemo, useEffect } from "react";
+import { useMemo, useEffect, useRef } from "react";
 import { useAppStore, INDEXEDDB_PREFIX } from "@/stores/useAppStore";
 
 /**
@@ -25,18 +25,21 @@ export function useWallpaper() {
     );
   }, [wallpaperSource]);
 
-  // Ensure wallpaperSource is resolved on initial mount for custom wallpapers
-  useEffect(() => {
-    // If the current wallpaper is a custom (IndexedDB) reference and the source URL
-    // has not yet been resolved (or became invalid after a reload), trigger a refresh.
-    const needsRefresh =
-      currentWallpaper.startsWith(INDEXEDDB_PREFIX) &&
-      (wallpaperSource === currentWallpaper || // Not resolved yet
-        wallpaperSource.startsWith("blob:null")); // Invalid persisted object URL
+  // Ensure wallpaperSource is correctly resolved on first mount for custom wallpapers.
+  // We attempt a single refresh per session if the persisted `wallpaperSource` might be stale
+  // (e.g. an old `blob:` URL that no longer exists after a full page reload).
+  const hasAttemptedRefresh = useRef(false);
 
-    if (needsRefresh) {
-      // Re-invoke the same helper that sets up the correct source.
-      // This keeps the logic in a single place and avoids duplication.
+  useEffect(() => {
+    if (hasAttemptedRefresh.current) return;
+
+    const isCustom = currentWallpaper.startsWith(INDEXEDDB_PREFIX);
+    const sourceLooksStale =
+      wallpaperSource === currentWallpaper || // Not resolved yet
+      wallpaperSource.startsWith("blob:"); // Could be an invalid Object URL after reload
+
+    if (isCustom && sourceLooksStale) {
+      hasAttemptedRefresh.current = true; // Avoid infinite loops
       void setWallpaper(currentWallpaper);
     }
   }, [currentWallpaper, wallpaperSource, setWallpaper]);
