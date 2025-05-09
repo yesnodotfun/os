@@ -680,7 +680,7 @@ export function ChatMessages({
       initial="instant"
     >
       {/* StickToBottom.Content wraps the actual scrollable content */}
-      <StickToBottom.Content className="flex flex-col gap-1 p-3 pt-10 pb-13">
+      <StickToBottom.Content className="flex flex-col gap-1 p-3 pt-12 pb-14">
         {/* Render the inner component here */}
         <ChatMessagesContent
           messages={messages}
