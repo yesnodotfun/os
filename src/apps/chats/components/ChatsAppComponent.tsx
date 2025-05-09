@@ -414,12 +414,12 @@ export function ChatsAppComponent({
             {/* Chat area */}
             <div className="relative flex flex-col flex-1 h-full bg-white/85">
               {/* Mobile chat title bar */}
-              <div className="sticky top-0 z-10 flex items-center justify-between px-2 pt-1 pb-0 bg-neutral-200/70 backdrop-blur-2xl border-b border-black/20">
+              <div className="sticky top-0 z-10 flex items-center justify-between px-2 py-1.5 bg-neutral-200/70 backdrop-blur-2xl border-b border-black/20">
                 <div className="flex items-center">
                   <Button
                     variant="ghost"
                     onClick={toggleSidebarVisibility}
-                    className="flex items-center gap-0.5 px-2 py-1"
+                    className="flex items-center gap-0.5 px-2 py-1 h-7"
                   >
                     <h2 className="font-geneva-12 text-[12px] font-medium truncate">
                       {currentRoom ? `#${currentRoom.name}` : "@ryo"}
@@ -438,7 +438,7 @@ export function ChatsAppComponent({
                   <Button
                     variant="ghost"
                     onClick={() => setIsClearDialogOpen(true)}
-                    className="flex items-center gap-1 px-2 py-1"
+                    className="flex items-center gap-1 px-2 py-1 h-7"
                   >
                     <span className="font-geneva-12 text-[11px]">Clear</span>
                   </Button>

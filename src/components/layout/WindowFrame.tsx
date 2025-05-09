@@ -554,7 +554,7 @@ export function WindowFrame({
           {/* Title bar */}
           <div
             className={cn(
-              "flex items-center shrink-0 h-6 min-h-6 mx-0 my-[0.1rem] mb-0 px-[0.1rem] py-[0.2rem] select-none cursor-move border-b-[2px] user-select-none z-50",
+              "flex items-center shrink-0 h-6 min-h-6 mx-0 my-[0.1rem] mb-0 px-[0.1rem] py-[0.2rem] select-none cursor-move border-b-[1.5px] user-select-none z-50",
               transparentBackground && "mt-0 h-6.5",
               isForeground
                 ? transparentBackground
