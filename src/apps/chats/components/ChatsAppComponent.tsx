@@ -407,7 +407,7 @@ export function ChatsAppComponent({
             {/* Chat area */}
             <div className="relative flex flex-col flex-1 h-full bg-white/85">
               {/* Mobile chat title bar */}
-              <div className="sticky top-0 z-10 flex items-center justify-between px-2 pt-1 pb-0 bg-white/50 backdrop-blur-2xl">
+              <div className="sticky top-0 z-10 flex items-center justify-between px-2 pt-1 pb-0 bg-white/70 backdrop-blur-xl">
                 <div className="flex items-center">
                   <Button
                     variant="ghost"
