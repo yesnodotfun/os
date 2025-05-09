@@ -5,7 +5,10 @@ import { getNonFinderApps, AppId } from "@/config/appRegistry";
 import { useLaunchApp } from "@/hooks/useLaunchApp";
 import { useIpodStore } from "@/stores/useIpodStore";
 import { useVideoStore } from "@/stores/useVideoStore";
-import { useInternetExplorerStore, type Favorite } from "@/stores/useInternetExplorerStore";
+import {
+  useInternetExplorerStore,
+  type Favorite,
+} from "@/stores/useInternetExplorerStore";
 import { useFilesStore, FileSystemItem } from "@/stores/useFilesStore";
 
 // Store names for IndexedDB (Content)
@@ -30,10 +33,11 @@ export interface DocumentContent {
 interface ExtendedDisplayFileItem extends Omit<DisplayFileItem, "content"> {
   content?: string | Blob; // Keep content for passing to apps
   contentUrl?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data?: any; // Add optional data field for virtual files
   originalPath?: string; // For trash items
   deletedAt?: number; // For trash items
-  status?: 'active' | 'trashed'; // Include status for potential UI differences
+  status?: "active" | "trashed"; // Include status for potential UI differences
 }
 
 // Generic CRUD operations
@@ -63,7 +67,9 @@ export const dbOperations = {
   },
 
   async get<T>(storeName: string, key: string): Promise<T | undefined> {
-    console.log(`[dbOperations] Getting key "${key}" from store "${storeName}"`);
+    console.log(
+      `[dbOperations] Getting key "${key}" from store "${storeName}"`
+    );
     const db = await ensureIndexedDBInitialized();
     return new Promise((resolve, reject) => {
       try {
@@ -72,12 +78,18 @@ export const dbOperations = {
         const request = store.get(key);
 
         request.onsuccess = () => {
-          console.log(`[dbOperations] Get success for key "${key}". Result:`, request.result);
+          console.log(
+            `[dbOperations] Get success for key "${key}". Result:`,
+            request.result
+          );
           db.close();
           resolve(request.result);
         };
         request.onerror = () => {
-          console.error(`[dbOperations] Get error for key "${key}":`, request.error);
+          console.error(
+            `[dbOperations] Get error for key "${key}":`,
+            request.error
+          );
           db.close();
           reject(request.error);
         };
@@ -344,16 +356,25 @@ const QUICKTIPS_CONTENT = `# Quick Tips
 
 // Get specific type from extension
 function getFileTypeFromExtension(fileName: string): string {
-  const ext = fileName.split('.').pop()?.toLowerCase() || "unknown";
+  const ext = fileName.split(".").pop()?.toLowerCase() || "unknown";
   switch (ext) {
-    case "md": return "markdown";
-    case "txt": return "text";
-    case "png": return ext;
-    case "jpg": case "jpeg": return "jpg"; // Standardize to jpg for jpeg/jpg files
-    case "gif": return ext;
-    case "webp": return ext;
-    case "bmp": return ext;
-    default: return "unknown";
+    case "md":
+      return "markdown";
+    case "txt":
+      return "text";
+    case "png":
+      return ext;
+    case "jpg":
+    case "jpeg":
+      return "jpg"; // Standardize to jpg for jpeg/jpg files
+    case "gif":
+      return ext;
+    case "webp":
+      return ext;
+    case "bmp":
+      return ext;
+    default:
+      return "unknown";
   }
 }
 
@@ -361,25 +382,34 @@ function getFileTypeFromExtension(fileName: string): string {
 function getFileIcon(item: FileSystemItem): string {
   if (item.icon) return item.icon; // Use specific icon if provided
   if (item.isDirectory) {
-      // Special handling for Trash icon based on content
-      if (item.path === '/Trash') {
-          // We need a way to know if trash is empty. We'll use local state for now.
-          // This will be updated when trashItems state changes.
-          return '/icons/trash-empty.png'; // Placeholder, will be updated by effect
-      }
-      return "/icons/directory.png";
+    // Special handling for Trash icon based on content
+    if (item.path === "/Trash") {
+      // We need a way to know if trash is empty. We'll use local state for now.
+      // This will be updated when trashItems state changes.
+      return "/icons/trash-empty.png"; // Placeholder, will be updated by effect
+    }
+    return "/icons/directory.png";
   }
 
   switch (item.type) {
-    case "png": case "jpg": case "jpeg": case "gif": case "webp": case "bmp":
+    case "png":
+    case "jpg":
+    case "jpeg":
+    case "gif":
+    case "webp":
+    case "bmp":
       return "/icons/image.png";
-    case "markdown": case "text":
+    case "markdown":
+    case "text":
       return "/icons/file-text.png";
     case "application": // Should ideally use item.icon from registry
       return item.icon || "/icons/file.png"; // Use item.icon if available
-    case "Music": return "/icons/sound.png";
-    case "Video": return "/icons/video-tape.png";
-    case "site-link": return "/icons/site.png";
+    case "Music":
+      return "/icons/sound.png";
+    case "Video":
+      return "/icons/video-tape.png";
+    case "site-link":
+      return "/icons/site.png";
     default:
       return "/icons/file.png";
   }
@@ -389,11 +419,22 @@ function getFileIcon(item: FileSystemItem): string {
 let isInitialContentCheckDone = false;
 
 // --- useFileSystem Hook --- //
-export function useFileSystem(initialPath: string = "/") {
+export interface UseFileSystemOptions {
+  /**
+   * If true, the hook will skip the expensive loadFiles effect on mount.
+   * Useful for components that only need helpers like `saveFile` without
+   * reading the file system (e.g. Chats transcript saving).
+   */
+  skipLoad?: boolean;
+}
+
+export function useFileSystem(
+  initialPath: string = "/",
+  options: UseFileSystemOptions = {}
+) {
   // Limit verbose logging to development mode and log only once per hook instance
   const hasLoggedRef = useRef(false);
   if (import.meta.env?.MODE === "development" && !hasLoggedRef.current) {
-    // eslint-disable-next-line no-console
     console.log(`[useFileSystem] Hook initialized for path: ${initialPath}`);
     hasLoggedRef.current = true;
   }
@@ -408,28 +449,40 @@ export function useFileSystem(initialPath: string = "/") {
   // Zustand Stores
   const fileStore = useFilesStore();
   const launchApp = useLaunchApp();
-  const { tracks: ipodTracks, setCurrentIndex: setIpodIndex, setIsPlaying: setIpodPlaying } = useIpodStore();
-  const { videos: videoTracks, setCurrentIndex: setVideoIndex, setIsPlaying: setVideoPlaying } = useVideoStore();
+  const {
+    tracks: ipodTracks,
+    setCurrentIndex: setIpodIndex,
+    setIsPlaying: setIpodPlaying,
+  } = useIpodStore();
+  const {
+    videos: videoTracks,
+    setCurrentIndex: setVideoIndex,
+    setIsPlaying: setVideoPlaying,
+  } = useVideoStore();
   const internetExplorerStore = useInternetExplorerStore();
 
   // Define getParentPath inside hook
   const getParentPath = (path: string): string => {
-      if (path === '/') return '/';
-      const parts = path.split('/').filter(Boolean);
-      if (parts.length <= 1) return '/';
-      return '/' + parts.slice(0, -1).join('/');
+    if (path === "/") return "/";
+    const parts = path.split("/").filter(Boolean);
+    if (parts.length <= 1) return "/";
+    return "/" + parts.slice(0, -1).join("/");
   };
 
   // --- Initialization Effect for Content (Runs ONLY ONCE globally) --- //
   useEffect(() => {
     // Check the global flag
     if (isInitialContentCheckDone) {
-      console.log("[useFileSystem] Initial content check already performed, skipping.");
+      console.log(
+        "[useFileSystem] Initial content check already performed, skipping."
+      );
       return;
     }
 
     const initializeContent = async () => {
-      console.log("[useFileSystem] Performing initial content check in IndexedDB...");
+      console.log(
+        "[useFileSystem] Performing initial content check in IndexedDB..."
+      );
       const initialMetadata = useFilesStore.getState().items;
       const defaultContentMap: Record<string, string> = {
         "/Documents/README.md": README_CONTENT,
@@ -437,20 +490,29 @@ export function useFileSystem(initialPath: string = "/") {
       };
 
       for (const path in defaultContentMap) {
-        if (initialMetadata[path]) { // Check if metadata exists
+        if (initialMetadata[path]) {
+          // Check if metadata exists
           const itemName = initialMetadata[path].name;
           const storeName = STORES.DOCUMENTS; // Assuming defaults are documents
           try {
-            const existingContent = await dbOperations.get<DocumentContent>(storeName, itemName);
+            const existingContent = await dbOperations.get<DocumentContent>(
+              storeName,
+              itemName
+            );
             if (!existingContent) {
-              console.log(`[useFileSystem] Adding missing default content for ${itemName} to ${storeName}`);
+              console.log(
+                `[useFileSystem] Adding missing default content for ${itemName} to ${storeName}`
+              );
               await dbOperations.put<DocumentContent>(storeName, {
                 name: itemName,
-                content: defaultContentMap[path]
+                content: defaultContentMap[path],
               });
             }
           } catch (err) {
-            console.error(`[useFileSystem] Error checking/adding content for ${itemName}:`, err);
+            console.error(
+              `[useFileSystem] Error checking/adding content for ${itemName}:`,
+              err
+            );
           }
         }
       }
@@ -465,19 +527,22 @@ export function useFileSystem(initialPath: string = "/") {
   // --- REORDERED useCallback DEFINITIONS --- //
 
   // Define navigateToPath first
-  const navigateToPath = useCallback((path: string) => {
-    const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-    setSelectedFile(undefined);
-    if (normalizedPath !== currentPath) {
-      setHistory((prev) => {
+  const navigateToPath = useCallback(
+    (path: string) => {
+      const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+      setSelectedFile(undefined);
+      if (normalizedPath !== currentPath) {
+        setHistory((prev) => {
           const newHistory = prev.slice(0, historyIndex + 1);
           newHistory.push(normalizedPath);
           return newHistory;
-          });
-      setHistoryIndex((prev) => prev + 1);
-      setCurrentPath(normalizedPath);
+        });
+        setHistoryIndex((prev) => prev + 1);
+        setCurrentPath(normalizedPath);
       }
-  }, [currentPath, historyIndex]);
+    },
+    [currentPath, historyIndex]
+  );
 
   // Define loadFiles next
   const loadFiles = useCallback(async () => {
@@ -498,111 +563,117 @@ export function useFileSystem(initialPath: string = "/") {
           type: "application",
         }));
       } else if (currentPath === "/Music") {
-         // At root music directory, show artist folders
-         const artistSet = new Set<string>();
-         
-         // Collect all unique artists
-         ipodTracks.forEach(track => {
-           if (track.artist) {
-             artistSet.add(track.artist);
-           }
-         });
-         
-         // Create a folder for artists with tracks
-         displayFiles = Array.from(artistSet).map(artist => ({
-           name: artist,
-           isDirectory: true,
-           path: `/Music/${encodeURIComponent(artist)}`,
-           icon: "/icons/directory.png",
-           type: "directory-virtual",
-         }));
-         
-         // Add an "Unknown Artist" folder if there are tracks without artists
-         if (ipodTracks.some(track => !track.artist)) {
-           displayFiles.push({
-             name: "Unknown Artist",
-             isDirectory: true,
-             path: `/Music/Unknown Artist`,
-             icon: "/icons/directory.png",
-             type: "directory-virtual",
-           });
-         }
+        // At root music directory, show artist folders
+        const artistSet = new Set<string>();
+
+        // Collect all unique artists
+        ipodTracks.forEach((track) => {
+          if (track.artist) {
+            artistSet.add(track.artist);
+          }
+        });
+
+        // Create a folder for artists with tracks
+        displayFiles = Array.from(artistSet).map((artist) => ({
+          name: artist,
+          isDirectory: true,
+          path: `/Music/${encodeURIComponent(artist)}`,
+          icon: "/icons/directory.png",
+          type: "directory-virtual",
+        }));
+
+        // Add an "Unknown Artist" folder if there are tracks without artists
+        if (ipodTracks.some((track) => !track.artist)) {
+          displayFiles.push({
+            name: "Unknown Artist",
+            isDirectory: true,
+            path: `/Music/Unknown Artist`,
+            icon: "/icons/directory.png",
+            type: "directory-virtual",
+          });
+        }
       } else if (currentPath.startsWith("/Music/")) {
-         // Inside an artist folder
-         const artistName = decodeURIComponent(currentPath.replace("/Music/", ""));
-         const artistTracks = ipodTracks.filter(track => 
-           artistName === "Unknown Artist" 
-             ? !track.artist 
-             : track.artist === artistName
-         );
-         
-         // Display all tracks for this artist
-         displayFiles = artistTracks.map((track) => {
-           const globalIndex = ipodTracks.findIndex(t => t.id === track.id);
-           return {
-             name: `${track.title}.mp3`,
-             isDirectory: false,
-             path: `/Music/${track.id}`,
-             icon: "/icons/sound.png",
-             appId: "ipod",
-             type: "Music",
-             data: { index: globalIndex },
-           };
-         });
+        // Inside an artist folder
+        const artistName = decodeURIComponent(
+          currentPath.replace("/Music/", "")
+        );
+        const artistTracks = ipodTracks.filter((track) =>
+          artistName === "Unknown Artist"
+            ? !track.artist
+            : track.artist === artistName
+        );
+
+        // Display all tracks for this artist
+        displayFiles = artistTracks.map((track) => {
+          const globalIndex = ipodTracks.findIndex((t) => t.id === track.id);
+          return {
+            name: `${track.title}.mp3`,
+            isDirectory: false,
+            path: `/Music/${track.id}`,
+            icon: "/icons/sound.png",
+            appId: "ipod",
+            type: "Music",
+            data: { index: globalIndex },
+          };
+        });
       } else if (currentPath === "/Videos") {
-         // At root videos directory, show artist folders
-         const artistSet = new Set<string>();
-         
-         // Collect all unique artists
-         videoTracks.forEach(video => {
-           if (video.artist) {
-             artistSet.add(video.artist);
-           }
-         });
-         
-         // Create a folder for artists with videos
-         displayFiles = Array.from(artistSet).map(artist => ({
-           name: artist,
-           isDirectory: true,
-           path: `/Videos/${encodeURIComponent(artist)}`,
-           icon: "/icons/directory.png",
-           type: "directory-virtual",
-         }));
-         
-         // Add an "Unknown Artist" folder if there are videos without artists
-         if (videoTracks.some(video => !video.artist)) {
-           displayFiles.push({
-             name: "Unknown Artist",
-             isDirectory: true,
-             path: `/Videos/Unknown Artist`,
-             icon: "/icons/directory.png",
-             type: "directory-virtual",
-           });
-         }
+        // At root videos directory, show artist folders
+        const artistSet = new Set<string>();
+
+        // Collect all unique artists
+        videoTracks.forEach((video) => {
+          if (video.artist) {
+            artistSet.add(video.artist);
+          }
+        });
+
+        // Create a folder for artists with videos
+        displayFiles = Array.from(artistSet).map((artist) => ({
+          name: artist,
+          isDirectory: true,
+          path: `/Videos/${encodeURIComponent(artist)}`,
+          icon: "/icons/directory.png",
+          type: "directory-virtual",
+        }));
+
+        // Add an "Unknown Artist" folder if there are videos without artists
+        if (videoTracks.some((video) => !video.artist)) {
+          displayFiles.push({
+            name: "Unknown Artist",
+            isDirectory: true,
+            path: `/Videos/Unknown Artist`,
+            icon: "/icons/directory.png",
+            type: "directory-virtual",
+          });
+        }
       } else if (currentPath.startsWith("/Videos/")) {
-         // Inside a video artist folder
-         const artistName = decodeURIComponent(currentPath.replace("/Videos/", ""));
-         const artistVideos = videoTracks.filter(video => 
-           artistName === "Unknown Artist" 
-             ? !video.artist 
-             : video.artist === artistName
-         );
-         
-         // Display all videos for this artist
-         displayFiles = artistVideos.map(video => {
-           const globalIndex = videoTracks.findIndex(v => v.id === video.id);
-           return {
-             name: `${video.title}.mov`,
-             isDirectory: false,
-             path: `/Videos/${video.id}`,
-             icon: "/icons/video-tape.png",
-             appId: "videos",
-             type: "Video",
-             data: { index: globalIndex },
-           };
-         });
+        // Inside a video artist folder
+        const artistName = decodeURIComponent(
+          currentPath.replace("/Videos/", "")
+        );
+        const artistVideos = videoTracks.filter((video) =>
+          artistName === "Unknown Artist"
+            ? !video.artist
+            : video.artist === artistName
+        );
+
+        // Display all videos for this artist
+        displayFiles = artistVideos.map((video) => {
+          const globalIndex = videoTracks.findIndex((v) => v.id === video.id);
+          return {
+            name: `${video.title}.mov`,
+            isDirectory: false,
+            path: `/Videos/${video.id}`,
+            icon: "/icons/video-tape.png",
+            appId: "videos",
+            type: "Video",
+            data: { index: globalIndex },
+          };
+        });
       } else if (currentPath.startsWith("/Sites")) {
-        console.log(`[useFileSystem:loadFiles] Loading /Sites path: ${currentPath}`); // Log entry
+        console.log(
+          `[useFileSystem:loadFiles] Loading /Sites path: ${currentPath}`
+        ); // Log entry
         const pathParts = currentPath.split("/").filter(Boolean);
         console.log(`[useFileSystem:loadFiles] Path parts:`, pathParts); // Log parts
         let currentLevelFavorites = internetExplorerStore.favorites;
@@ -611,38 +682,54 @@ export function useFileSystem(initialPath: string = "/") {
         // Traverse down the favorites structure based on the path
         for (let i = 1; i < pathParts.length; i++) {
           const folderName = decodeURIComponent(pathParts[i]);
-          console.log(`[useFileSystem:loadFiles] Traversing into folder: ${folderName}`); // Log traversal
+          console.log(
+            `[useFileSystem:loadFiles] Traversing into folder: ${folderName}`
+          ); // Log traversal
           const parentFolder = currentLevelFavorites.find(
             (fav) => fav.isDirectory && fav.title === folderName
           );
           if (parentFolder && parentFolder.children) {
             currentLevelFavorites = parentFolder.children;
             currentVirtualPath += `/${folderName}`;
-            console.log(`[useFileSystem:loadFiles] Found sub-folder, new level count: ${currentLevelFavorites.length}`); // Log sub-level
+            console.log(
+              `[useFileSystem:loadFiles] Found sub-folder, new level count: ${currentLevelFavorites.length}`
+            ); // Log sub-level
           } else {
-            console.log(`[useFileSystem:loadFiles] Sub-folder "${folderName}" not found or has no children.`); // Log not found
+            console.log(
+              `[useFileSystem:loadFiles] Sub-folder "${folderName}" not found or has no children.`
+            ); // Log not found
             currentLevelFavorites = [];
             break;
           }
         }
-        console.log(`[useFileSystem:loadFiles] Final level favorites to map (count: ${currentLevelFavorites.length}):`, currentLevelFavorites); // Log before map
+        console.log(
+          `[useFileSystem:loadFiles] Final level favorites to map (count: ${currentLevelFavorites.length}):`,
+          currentLevelFavorites
+        ); // Log before map
 
         // Map the current level favorites to FileItems
         displayFiles = currentLevelFavorites.map((fav: Favorite) => {
-            const isDirectory = fav.isDirectory ?? false;
-            const name = fav.title || (isDirectory ? "Folder" : "Link");
-            const path = `${currentVirtualPath}/${encodeURIComponent(name)}`;
-            return {
-                name: name,
-                isDirectory: isDirectory,
-                path: path,
-                icon: isDirectory ? "/icons/directory.png" : fav.favicon || "/icons/site.png",
-                appId: isDirectory ? undefined : "internet-explorer",
-                type: isDirectory ? "directory-virtual" : "site-link",
-                data: isDirectory ? undefined : { url: fav.url, year: fav.year || "current" },
-            };
+          const isDirectory = fav.isDirectory ?? false;
+          const name = fav.title || (isDirectory ? "Folder" : "Link");
+          const path = `${currentVirtualPath}/${encodeURIComponent(name)}`;
+          return {
+            name: name,
+            isDirectory: isDirectory,
+            path: path,
+            icon: isDirectory
+              ? "/icons/directory.png"
+              : fav.favicon || "/icons/site.png",
+            appId: isDirectory ? undefined : "internet-explorer",
+            type: isDirectory ? "directory-virtual" : "site-link",
+            data: isDirectory
+              ? undefined
+              : { url: fav.url, year: fav.year || "current" },
+          };
         });
-        console.log(`[useFileSystem:loadFiles] Mapped displayFiles for /Sites (count: ${displayFiles.length}):`, displayFiles); // Log final result
+        console.log(
+          `[useFileSystem:loadFiles] Mapped displayFiles for /Sites (count: ${displayFiles.length}):`,
+          displayFiles
+        ); // Log final result
       }
       // 2. Handle Trash Directory (Uses fileStore)
       else if (currentPath === "/Trash") {
@@ -657,46 +744,69 @@ export function useFileSystem(initialPath: string = "/") {
       else {
         const itemsMetadata = fileStore.getItemsInPath(currentPath);
         // Map metadata to display items. Content fetching happens on open.
-        displayFiles = itemsMetadata.map(item => ({
+        displayFiles = itemsMetadata.map((item) => ({
           ...item,
-            icon: getFileIcon(item),
-            appId: item.appId,
+          icon: getFileIcon(item),
+          appId: item.appId,
         }));
 
         // --- START EDIT: Fetch content URLs for /Images path and its subdirectories ---
         if (currentPath === "/Images" || currentPath.startsWith("/Images/")) {
-            displayFiles = await Promise.all(itemsMetadata.map(async (item) => {
-                let contentUrl: string | undefined;
-                if (!item.isDirectory) {
-                    try {
-                        console.log(`[useFileSystem:loadFiles] Fetching content for ${item.name}, type: ${item.type}`);
-                        const contentData = await dbOperations.get<DocumentContent>(STORES.IMAGES, item.name);
-                        
-                        if (contentData?.content instanceof Blob) {
-                            console.log(`[useFileSystem:loadFiles] Found Blob content for ${item.name}, creating URL`);
-                            contentUrl = URL.createObjectURL(contentData.content);
-                            console.log(`[useFileSystem:loadFiles] Created URL: ${contentUrl}`);
-                        } else {
-                            console.log(`[useFileSystem:loadFiles] No Blob content found for ${item.name}`);
-                        }
-                    } catch (err) {
-                        console.error(`Error fetching image content for ${item.name}:`, err);
-                    }
+          displayFiles = await Promise.all(
+            itemsMetadata.map(async (item) => {
+              let contentUrl: string | undefined;
+              if (!item.isDirectory) {
+                try {
+                  console.log(
+                    `[useFileSystem:loadFiles] Fetching content for ${item.name}, type: ${item.type}`
+                  );
+                  const contentData = await dbOperations.get<DocumentContent>(
+                    STORES.IMAGES,
+                    item.name
+                  );
+
+                  if (contentData?.content instanceof Blob) {
+                    console.log(
+                      `[useFileSystem:loadFiles] Found Blob content for ${item.name}, creating URL`
+                    );
+                    contentUrl = URL.createObjectURL(contentData.content);
+                    console.log(
+                      `[useFileSystem:loadFiles] Created URL: ${contentUrl}`
+                    );
+                  } else {
+                    console.log(
+                      `[useFileSystem:loadFiles] No Blob content found for ${item.name}`
+                    );
+                  }
+                } catch (err) {
+                  console.error(
+                    `Error fetching image content for ${item.name}:`,
+                    err
+                  );
                 }
-                
-                // Ensure the item type is properly set for image files
-                const fileExt = item.name.split('.').pop()?.toLowerCase();
-                const isImageFile = ["png", "jpg", "jpeg", "gif", "webp", "bmp"].includes(fileExt || "");
-                const type = isImageFile ? fileExt || item.type : item.type;
-                
-                return {
-                    ...item,
-                    icon: getFileIcon(item),
-                    appId: item.appId,
-                    contentUrl: contentUrl,
-                    type: type, // Ensure type is correctly set
-                };
-            }));
+              }
+
+              // Ensure the item type is properly set for image files
+              const fileExt = item.name.split(".").pop()?.toLowerCase();
+              const isImageFile = [
+                "png",
+                "jpg",
+                "jpeg",
+                "gif",
+                "webp",
+                "bmp",
+              ].includes(fileExt || "");
+              const type = isImageFile ? fileExt || item.type : item.type;
+
+              return {
+                ...item,
+                icon: getFileIcon(item),
+                appId: item.appId,
+                contentUrl: contentUrl,
+                type: type, // Ensure type is correctly set
+              };
+            })
+          );
         }
         // --- END EDIT ---
       }
@@ -709,90 +819,142 @@ export function useFileSystem(initialPath: string = "/") {
       setIsLoading(false);
     }
     // Add fileStore dependency to re-run if items change
-  }, [currentPath, fileStore.items, ipodTracks, videoTracks, internetExplorerStore.favorites]);
+  }, [
+    currentPath,
+    fileStore.items,
+    ipodTracks,
+    videoTracks,
+    internetExplorerStore.favorites,
+  ]);
 
   // Define handleFileOpen
-  const handleFileOpen = useCallback(async (file: ExtendedDisplayFileItem) => {
-    // 1. Handle Directories (Virtual and Real)
-    if (file.isDirectory) {
-      if (file.type === "directory" || file.type === "directory-virtual") {
-        navigateToPath(file.path);
+  const handleFileOpen = useCallback(
+    async (file: ExtendedDisplayFileItem) => {
+      // 1. Handle Directories (Virtual and Real)
+      if (file.isDirectory) {
+        if (file.type === "directory" || file.type === "directory-virtual") {
+          navigateToPath(file.path);
+        }
+        return;
       }
-      return;
-    }
 
-    // 2. Handle Files (Fetch content if needed)
-    let contentToUse: string | Blob | undefined = undefined;
-    let contentUrlToUse: string | undefined = undefined;
-    let contentAsString: string | undefined = undefined;
+      // 2. Handle Files (Fetch content if needed)
+      let contentToUse: string | Blob | undefined = undefined;
+      const contentUrlToUse: string | undefined = undefined;
+      let contentAsString: string | undefined = undefined;
 
-    try {
+      try {
         // Fetch content from IndexedDB (Documents or Images)
-        if (file.path.startsWith("/Documents/") || file.path.startsWith("/Images/")) {
-            const storeName = file.path.startsWith("/Documents/") ? STORES.DOCUMENTS : STORES.IMAGES;
-            const contentData = await dbOperations.get<DocumentContent>(storeName, file.name);
-            if (contentData) {
-                contentToUse = contentData.content;
-            } else {
-                console.warn(`[useFileSystem] Content not found in IndexedDB for ${file.path}`);
-            }
+        if (
+          file.path.startsWith("/Documents/") ||
+          file.path.startsWith("/Images/")
+        ) {
+          const storeName = file.path.startsWith("/Documents/")
+            ? STORES.DOCUMENTS
+            : STORES.IMAGES;
+          const contentData = await dbOperations.get<DocumentContent>(
+            storeName,
+            file.name
+          );
+          if (contentData) {
+            contentToUse = contentData.content;
+          } else {
+            console.warn(
+              `[useFileSystem] Content not found in IndexedDB for ${file.path}`
+            );
+          }
         }
 
         // Process content: Read blob to string for TextEdit, create URL for Paint
         if (contentToUse instanceof Blob) {
-            if (file.path.startsWith("/Documents/")) {
-                contentAsString = await contentToUse.text();
-                console.log(`[useFileSystem] Read Blob as text for ${file.name}, length: ${contentAsString?.length}`);
-            } else if (file.path.startsWith("/Images/")) {
-                // Don't create URL here, pass the Blob itself
-                // contentUrlToUse = URL.createObjectURL(contentToUse);
-                // console.log(`[useFileSystem] Created Blob URL for ${file.name}: ${contentUrlToUse}`);
-            }
-        } else if (typeof contentToUse === 'string') {
-            contentAsString = contentToUse;
-            console.log(`[useFileSystem] Using string content directly for ${file.name}, length: ${contentAsString?.length}`);
+          if (file.path.startsWith("/Documents/")) {
+            contentAsString = await contentToUse.text();
+            console.log(
+              `[useFileSystem] Read Blob as text for ${file.name}, length: ${contentAsString?.length}`
+            );
+          } else if (file.path.startsWith("/Images/")) {
+            // Don't create URL here, pass the Blob itself
+            // contentUrlToUse = URL.createObjectURL(contentToUse);
+            // console.log(`[useFileSystem] Created Blob URL for ${file.name}: ${contentUrlToUse}`);
+          }
+        } else if (typeof contentToUse === "string") {
+          contentAsString = contentToUse;
+          console.log(
+            `[useFileSystem] Using string content directly for ${file.name}, length: ${contentAsString?.length}`
+          );
         }
 
         // 3. Launch Appropriate App
-        console.log(`[useFileSystem] Preparing initialData for ${file.path}:`, { contentAsString, contentUrlToUse });
+        console.log(`[useFileSystem] Preparing initialData for ${file.path}:`, {
+          contentAsString,
+          contentUrlToUse,
+        });
         if (file.path.startsWith("/Applications/") && file.appId) {
-            launchApp(file.appId as AppId);
+          launchApp(file.appId as AppId);
         } else if (file.path.startsWith("/Documents/")) {
-            launchApp("textedit", { initialData: { path: file.path, content: contentAsString ?? '' } });
+          launchApp("textedit", {
+            initialData: { path: file.path, content: contentAsString ?? "" },
+          });
         } else if (file.path.startsWith("/Images/")) {
-            // Pass the Blob object itself to Paint via initialData
-            launchApp("paint", { initialData: { path: file.path, content: contentToUse } }); // Pass contentToUse (Blob)
+          // Pass the Blob object itself to Paint via initialData
+          launchApp("paint", {
+            initialData: { path: file.path, content: contentToUse },
+          }); // Pass contentToUse (Blob)
         } else if (file.appId === "ipod" && file.data?.index !== undefined) {
-            // iPod uses data directly from the index we calculated
-            const trackIndex = file.data.index;
-            setIpodIndex(trackIndex);
-            setIpodPlaying(true);
-            launchApp("ipod");
+          // iPod uses data directly from the index we calculated
+          const trackIndex = file.data.index;
+          setIpodIndex(trackIndex);
+          setIpodPlaying(true);
+          launchApp("ipod");
         } else if (file.appId === "videos" && file.data?.index !== undefined) {
-            // Videos uses data directly, no change needed here for initialData
-            setVideoIndex(file.data.index);
-            setVideoPlaying(true);
-            launchApp("videos");
+          // Videos uses data directly, no change needed here for initialData
+          setVideoIndex(file.data.index);
+          setVideoPlaying(true);
+          launchApp("videos");
         } else if (file.type === "site-link" && file.data?.url) {
-            // Pass url and year via initialData instead of using IE store directly
-            launchApp("internet-explorer", { initialData: { url: file.data.url, year: file.data.year || "current" } });
-            // internetExplorerStore.setPendingNavigation(file.data.url, file.data.year || "current");
+          // Pass url and year via initialData instead of using IE store directly
+          launchApp("internet-explorer", {
+            initialData: {
+              url: file.data.url,
+              year: file.data.year || "current",
+            },
+          });
+          // internetExplorerStore.setPendingNavigation(file.data.url, file.data.year || "current");
         } else {
-             console.warn(`[useFileSystem] No handler defined for opening file type: ${file.type} at path: ${file.path}`);
+          console.warn(
+            `[useFileSystem] No handler defined for opening file type: ${file.type} at path: ${file.path}`
+          );
         }
-    } catch (err) {
+      } catch (err) {
         console.error(`[useFileSystem] Error opening file ${file.path}:`, err);
         setError(`Failed to open ${file.name}`);
-    }
-  }, [launchApp, navigateToPath, setIpodIndex, setIpodPlaying, setVideoIndex, setVideoPlaying, internetExplorerStore]);
+      }
+    },
+    [
+      launchApp,
+      navigateToPath,
+      setIpodIndex,
+      setIpodPlaying,
+      setVideoIndex,
+      setVideoPlaying,
+      internetExplorerStore,
+    ]
+  );
 
   // Load files whenever dependencies change
   useEffect(() => {
-    loadFiles();
-  }, [loadFiles]); // Depend only on the memoized loadFiles
+    if (!options.skipLoad) {
+      loadFiles();
+    }
+  }, [loadFiles, options.skipLoad]); // Depend only on the memoized loadFiles
 
   // --- handleFileSelect, Navigation Functions --- //
-  const handleFileSelect = useCallback((file: ExtendedDisplayFileItem | undefined) => { setSelectedFile(file); }, []);
+  const handleFileSelect = useCallback(
+    (file: ExtendedDisplayFileItem | undefined) => {
+      setSelectedFile(file);
+    },
+    []
+  );
   const navigateUp = useCallback(() => {
     if (currentPath === "/") return;
     const parentPath = getParentPath(currentPath);
@@ -811,129 +973,199 @@ export function useFileSystem(initialPath: string = "/") {
     }
   }, [history, historyIndex]);
   const canNavigateBack = useCallback(() => historyIndex > 0, [historyIndex]);
-  const canNavigateForward = useCallback(() => historyIndex < history.length - 1, [historyIndex, history]);
+  const canNavigateForward = useCallback(
+    () => historyIndex < history.length - 1,
+    [historyIndex, history]
+  );
 
   // --- File Operations (Refactored) --- //
 
-  const saveFile = useCallback(async (fileData: { path: string; name: string; content: string | Blob; type?: string; icon?: string }) => {
-    const { path, name, content } = fileData;
-    console.log(`[useFileSystem:saveFile] Attempting to save: ${path}`);
-    setError(undefined);
+  const saveFile = useCallback(
+    async (fileData: {
+      path: string;
+      name: string;
+      content: string | Blob;
+      type?: string;
+      icon?: string;
+    }) => {
+      const { path, name, content } = fileData;
+      console.log(`[useFileSystem:saveFile] Attempting to save: ${path}`);
+      setError(undefined);
 
-    const isDirectory = false;
-    const fileType = fileData.type || getFileTypeFromExtension(name);
+      const isDirectory = false;
+      const fileType = fileData.type || getFileTypeFromExtension(name);
 
-    // 1. Create the full metadata object first
-    const metadata: FileSystemItem = {
+      // 1. Create the full metadata object first
+      const metadata: FileSystemItem = {
         path: path,
         name: name,
         isDirectory: isDirectory,
         type: fileType,
-        status: 'active', // Explicitly set status
+        status: "active", // Explicitly set status
         // Now call getFileIcon with the complete metadata object
-        icon: fileData.icon || getFileIcon({ path, name, isDirectory, type: fileType, status: 'active' } as FileSystemItem),
-    };
+        icon:
+          fileData.icon ||
+          getFileIcon({
+            path,
+            name,
+            isDirectory,
+            type: fileType,
+            status: "active",
+          } as FileSystemItem),
+      };
 
-    // 2. Add/Update Metadata in FileStore
-    try {
-        console.log(`[useFileSystem:saveFile] Updating metadata store for: ${path}`);
+      // 2. Add/Update Metadata in FileStore
+      try {
+        console.log(
+          `[useFileSystem:saveFile] Updating metadata store for: ${path}`
+        );
         // Pass the complete metadata object to addItem (it expects Omit<FileSystemItem, 'status'> but will ignore extra fields)
         fileStore.addItem(metadata);
-        console.log(`[useFileSystem:saveFile] Metadata store updated for: ${path}`);
-    } catch (metaError) {
-        console.error(`[useFileSystem:saveFile] Error updating metadata store for ${path}:`, metaError);
+        console.log(
+          `[useFileSystem:saveFile] Metadata store updated for: ${path}`
+        );
+      } catch (metaError) {
+        console.error(
+          `[useFileSystem:saveFile] Error updating metadata store for ${path}:`,
+          metaError
+        );
         setError(`Failed to save file metadata for ${name}`);
         return;
-    }
-
-    // 3. Save Content to IndexedDB
-    const storeName = path.startsWith("/Documents/") ? STORES.DOCUMENTS : path.startsWith("/Images/") ? STORES.IMAGES : null;
-    if (storeName) {
-        try {
-            const contentToStore: DocumentContent = { name: name, content: content };
-            console.log(`[useFileSystem:saveFile] Saving content to IndexedDB (${storeName}) for: ${name}`);
-            await dbOperations.put<DocumentContent>(storeName, contentToStore);
-            console.log(`[useFileSystem:saveFile] Content saved to IndexedDB for: ${name}`);
-        } catch (err) {
-            console.error(`[useFileSystem:saveFile] Error saving content to IndexedDB for ${path}:`, err);
-            setError(`Failed to save file content for ${name}`);
-        }
-    } else {
-        console.warn(`[useFileSystem:saveFile] No valid content store for path: ${path}`);
-    }
-  }, [fileStore]);
-
-  const moveFile = useCallback(async (sourceFile: FileSystemItem, targetFolderPath: string) => {
-    if (!sourceFile || sourceFile.isDirectory) {
-      console.error("[useFileSystem:moveFile] Invalid source file or attempting to move a directory");
-      setError("Cannot move this item");
-      return false;
-    }
-
-    const targetFolder = fileStore.getItem(targetFolderPath);
-    if (!targetFolder || !targetFolder.isDirectory) {
-      console.error(`[useFileSystem:moveFile] Target is not a valid directory: ${targetFolderPath}`);
-      setError("Invalid target folder");
-      return false;
-    }
-
-    // Determine new path
-    const newPath = `${targetFolderPath}/${sourceFile.name}`;
-    
-    // Check if destination already exists
-    if (fileStore.getItem(newPath)) {
-      console.error(`[useFileSystem:moveFile] A file with the same name already exists at destination: ${newPath}`);
-      setError("A file with the same name already exists in the destination folder");
-      return false;
-    }
-
-    try {
-      // Determine source and target stores for content
-      const sourcePath = sourceFile.path;
-      const sourceStoreName = sourcePath.startsWith("/Documents/") ? STORES.DOCUMENTS : 
-                            sourcePath.startsWith("/Images/") ? STORES.IMAGES : null;
-      const targetStoreName = targetFolderPath.startsWith("/Documents") ? STORES.DOCUMENTS : 
-                            targetFolderPath.startsWith("/Images") ? STORES.IMAGES : null;
-
-      // If content needs to move between different stores
-      if (sourceStoreName && targetStoreName && sourceStoreName !== targetStoreName) {
-        // Get content from source store
-        const content = await dbOperations.get<DocumentContent>(sourceStoreName, sourceFile.name);
-        if (content) {
-          // Save to target store
-          await dbOperations.put<DocumentContent>(targetStoreName, content);
-          // Delete from source store
-          await dbOperations.delete(sourceStoreName, sourceFile.name);
-        }
       }
-      
-      // Update metadata in file store
-      fileStore.moveItem(sourcePath, newPath);
-      console.log(`[useFileSystem:moveFile] Successfully moved ${sourcePath} to ${newPath}`);
-      return true;
-    } catch (err) {
-      console.error(`[useFileSystem:moveFile] Error moving file: ${err}`);
-      setError("Failed to move file");
-      return false;
-    }
-  }, [fileStore]);
 
-  const renameFile = useCallback(async (oldPath: string, newName: string) => {
+      // 3. Save Content to IndexedDB
+      const storeName = path.startsWith("/Documents/")
+        ? STORES.DOCUMENTS
+        : path.startsWith("/Images/")
+        ? STORES.IMAGES
+        : null;
+      if (storeName) {
+        try {
+          const contentToStore: DocumentContent = {
+            name: name,
+            content: content,
+          };
+          console.log(
+            `[useFileSystem:saveFile] Saving content to IndexedDB (${storeName}) for: ${name}`
+          );
+          await dbOperations.put<DocumentContent>(storeName, contentToStore);
+          console.log(
+            `[useFileSystem:saveFile] Content saved to IndexedDB for: ${name}`
+          );
+        } catch (err) {
+          console.error(
+            `[useFileSystem:saveFile] Error saving content to IndexedDB for ${path}:`,
+            err
+          );
+          setError(`Failed to save file content for ${name}`);
+        }
+      } else {
+        console.warn(
+          `[useFileSystem:saveFile] No valid content store for path: ${path}`
+        );
+      }
+    },
+    [fileStore]
+  );
+
+  const moveFile = useCallback(
+    async (sourceFile: FileSystemItem, targetFolderPath: string) => {
+      if (!sourceFile || sourceFile.isDirectory) {
+        console.error(
+          "[useFileSystem:moveFile] Invalid source file or attempting to move a directory"
+        );
+        setError("Cannot move this item");
+        return false;
+      }
+
+      const targetFolder = fileStore.getItem(targetFolderPath);
+      if (!targetFolder || !targetFolder.isDirectory) {
+        console.error(
+          `[useFileSystem:moveFile] Target is not a valid directory: ${targetFolderPath}`
+        );
+        setError("Invalid target folder");
+        return false;
+      }
+
+      // Determine new path
+      const newPath = `${targetFolderPath}/${sourceFile.name}`;
+
+      // Check if destination already exists
+      if (fileStore.getItem(newPath)) {
+        console.error(
+          `[useFileSystem:moveFile] A file with the same name already exists at destination: ${newPath}`
+        );
+        setError(
+          "A file with the same name already exists in the destination folder"
+        );
+        return false;
+      }
+
+      try {
+        // Determine source and target stores for content
+        const sourcePath = sourceFile.path;
+        const sourceStoreName = sourcePath.startsWith("/Documents/")
+          ? STORES.DOCUMENTS
+          : sourcePath.startsWith("/Images/")
+          ? STORES.IMAGES
+          : null;
+        const targetStoreName = targetFolderPath.startsWith("/Documents")
+          ? STORES.DOCUMENTS
+          : targetFolderPath.startsWith("/Images")
+          ? STORES.IMAGES
+          : null;
+
+        // If content needs to move between different stores
+        if (
+          sourceStoreName &&
+          targetStoreName &&
+          sourceStoreName !== targetStoreName
+        ) {
+          // Get content from source store
+          const content = await dbOperations.get<DocumentContent>(
+            sourceStoreName,
+            sourceFile.name
+          );
+          if (content) {
+            // Save to target store
+            await dbOperations.put<DocumentContent>(targetStoreName, content);
+            // Delete from source store
+            await dbOperations.delete(sourceStoreName, sourceFile.name);
+          }
+        }
+
+        // Update metadata in file store
+        fileStore.moveItem(sourcePath, newPath);
+        console.log(
+          `[useFileSystem:moveFile] Successfully moved ${sourcePath} to ${newPath}`
+        );
+        return true;
+      } catch (err) {
+        console.error(`[useFileSystem:moveFile] Error moving file: ${err}`);
+        setError("Failed to move file");
+        return false;
+      }
+    },
+    [fileStore]
+  );
+
+  const renameFile = useCallback(
+    async (oldPath: string, newName: string) => {
       const itemToRename = fileStore.getItem(oldPath);
       if (!itemToRename) {
-          console.error("Error: Item to rename not found in FileStore");
-          setError("Failed to rename file");
-          return;
+        console.error("Error: Item to rename not found in FileStore");
+        setError("Failed to rename file");
+        return;
       }
 
       const parentPath = getParentPath(oldPath);
-      const newPath = `${parentPath === '/' ? '' : parentPath}/${newName}`;
+      const newPath = `${parentPath === "/" ? "" : parentPath}/${newName}`;
       const oldName = itemToRename.name;
 
       if (fileStore.getItem(newPath)) {
-          console.error("Error: New path already exists in FileStore");
-          setError("Failed to rename file");
-          return;
+        console.error("Error: New path already exists in FileStore");
+        setError("Failed to rename file");
+        return;
       }
 
       // 1. Rename Metadata in FileStore
@@ -941,94 +1173,157 @@ export function useFileSystem(initialPath: string = "/") {
 
       // 2. Rename Content Key in IndexedDB (Only if it's a file with content)
       if (!itemToRename.isDirectory) {
-          const storeName = oldPath.startsWith("/Documents/") ? STORES.DOCUMENTS : oldPath.startsWith("/Images/") ? STORES.IMAGES : null;
-          if (storeName) {
-              try {
-                  const content = await dbOperations.get<DocumentContent>(storeName, oldName);
-                  if (content) {
-                      await dbOperations.delete(storeName, oldName);
-                      await dbOperations.put<DocumentContent>(storeName, { ...content, name: newName });
-                  } else {
-                      console.warn("Warning: Content not found in IndexedDB for renaming");
-                  }
-              } catch (err) {
-                  console.error("Error renaming file:", err);
-                  setError("Failed to rename file");
-              }
+        const storeName = oldPath.startsWith("/Documents/")
+          ? STORES.DOCUMENTS
+          : oldPath.startsWith("/Images/")
+          ? STORES.IMAGES
+          : null;
+        if (storeName) {
+          try {
+            const content = await dbOperations.get<DocumentContent>(
+              storeName,
+              oldName
+            );
+            if (content) {
+              await dbOperations.delete(storeName, oldName);
+              await dbOperations.put<DocumentContent>(storeName, {
+                ...content,
+                name: newName,
+              });
+            } else {
+              console.warn(
+                "Warning: Content not found in IndexedDB for renaming"
+              );
+            }
+          } catch (err) {
+            console.error("Error renaming file:", err);
+            setError("Failed to rename file");
           }
+        }
       }
-  }, [fileStore, getParentPath]);
+    },
+    [fileStore, getParentPath]
+  );
 
   // --- Create Folder --- //
-  const createFolder = useCallback((folderData: { path: string; name: string }) => {
+  const createFolder = useCallback(
+    (folderData: { path: string; name: string }) => {
       const { path, name } = folderData;
       if (fileStore.getItem(path)) {
-          console.error("Folder already exists:", path);
-          setError("Folder already exists.");
-          return;
-    }
-      const newFolderItem: Omit<FileSystemItem, 'status'> = {
-          path: path,
-          name: name,
-          isDirectory: true,
-          type: 'directory',
-          icon: '/icons/directory.png',
+        console.error("Folder already exists:", path);
+        setError("Folder already exists.");
+        return;
+      }
+      const newFolderItem: Omit<FileSystemItem, "status"> = {
+        path: path,
+        name: name,
+        isDirectory: true,
+        type: "directory",
+        icon: "/icons/directory.png",
       };
       fileStore.addItem(newFolderItem);
       setError(undefined); // Clear previous error
-  }, [fileStore]);
+    },
+    [fileStore]
+  );
 
-  const moveToTrash = useCallback(async (fileMetadata: FileSystemItem) => {
-    if (!fileMetadata || fileMetadata.path === "/" || fileMetadata.path === "/Trash" || fileMetadata.status === 'trashed') return;
+  const moveToTrash = useCallback(
+    async (fileMetadata: FileSystemItem) => {
+      if (
+        !fileMetadata ||
+        fileMetadata.path === "/" ||
+        fileMetadata.path === "/Trash" ||
+        fileMetadata.status === "trashed"
+      )
+        return;
 
-    // 1. Mark item as trashed in FileStore
-    fileStore.removeItem(fileMetadata.path);
+      // 1. Mark item as trashed in FileStore
+      fileStore.removeItem(fileMetadata.path);
 
-    // 2. Move Content to TRASH DB store
-    const storeName = fileMetadata.path.startsWith("/Documents/") ? STORES.DOCUMENTS : fileMetadata.path.startsWith("/Images/") ? STORES.IMAGES : null;
-    if (storeName && !fileMetadata.isDirectory) {
+      // 2. Move Content to TRASH DB store
+      const storeName = fileMetadata.path.startsWith("/Documents/")
+        ? STORES.DOCUMENTS
+        : fileMetadata.path.startsWith("/Images/")
+        ? STORES.IMAGES
+        : null;
+      if (storeName && !fileMetadata.isDirectory) {
         try {
-            const content = await dbOperations.get<DocumentContent>(storeName, fileMetadata.name);
-            if (content) {
-                // Store content in TRASH store using name as key
-                await dbOperations.put<DocumentContent>(STORES.TRASH, content);
-                await dbOperations.delete(storeName, fileMetadata.name);
-                console.log(`[useFileSystem] Moved content for ${fileMetadata.name} from ${storeName} to Trash DB.`);
-            } else { console.warn(`[useFileSystem] Content not found for ${fileMetadata.name} in ${storeName} during move to trash.`); }
+          const content = await dbOperations.get<DocumentContent>(
+            storeName,
+            fileMetadata.name
+          );
+          if (content) {
+            // Store content in TRASH store using name as key
+            await dbOperations.put<DocumentContent>(STORES.TRASH, content);
+            await dbOperations.delete(storeName, fileMetadata.name);
+            console.log(
+              `[useFileSystem] Moved content for ${fileMetadata.name} from ${storeName} to Trash DB.`
+            );
+          } else {
+            console.warn(
+              `[useFileSystem] Content not found for ${fileMetadata.name} in ${storeName} during move to trash.`
+            );
+          }
         } catch (err) {
-            console.error("Error moving content to trash:", err);
-            setError("Failed to move content to trash");
+          console.error("Error moving content to trash:", err);
+          setError("Failed to move content to trash");
         }
-    }
-  }, [fileStore]);
+      }
+    },
+    [fileStore]
+  );
 
-  const restoreFromTrash = useCallback(async (itemToRestore: ExtendedDisplayFileItem) => {
+  const restoreFromTrash = useCallback(
+    async (itemToRestore: ExtendedDisplayFileItem) => {
       const fileMetadata = fileStore.getItem(itemToRestore.path);
-      if (!fileMetadata || fileMetadata.status !== 'trashed' || !fileMetadata.originalPath) {
-          console.error("Cannot restore: Item not found in store or not in trash.");
-          setError("Cannot restore item.");
-          return;
+      if (
+        !fileMetadata ||
+        fileMetadata.status !== "trashed" ||
+        !fileMetadata.originalPath
+      ) {
+        console.error(
+          "Cannot restore: Item not found in store or not in trash."
+        );
+        setError("Cannot restore item.");
+        return;
       }
 
       // 1. Restore metadata in FileStore
       fileStore.restoreItem(fileMetadata.path);
 
       // 2. Move Content from TRASH DB store back
-      const targetStoreName = fileMetadata.originalPath.startsWith("/Documents/") ? STORES.DOCUMENTS : fileMetadata.originalPath.startsWith("/Images/") ? STORES.IMAGES : null;
+      const targetStoreName = fileMetadata.originalPath.startsWith(
+        "/Documents/"
+      )
+        ? STORES.DOCUMENTS
+        : fileMetadata.originalPath.startsWith("/Images/")
+        ? STORES.IMAGES
+        : null;
       if (targetStoreName && !fileMetadata.isDirectory) {
-          try {
-              const content = await dbOperations.get<DocumentContent>(STORES.TRASH, fileMetadata.name);
-              if (content) {
-                  await dbOperations.put<DocumentContent>(targetStoreName, content);
-                  await dbOperations.delete(STORES.TRASH, fileMetadata.name); // Delete content from trash store
-                  console.log(`[useFileSystem] Restored content for ${fileMetadata.name} from Trash DB to ${targetStoreName}.`);
-              } else { console.warn(`[useFileSystem] Content not found for ${fileMetadata.name} in Trash DB during restore.`); }
-          } catch (err) {
-              console.error("Error restoring content from trash:", err);
-              setError("Failed to restore content from trash");
+        try {
+          const content = await dbOperations.get<DocumentContent>(
+            STORES.TRASH,
+            fileMetadata.name
+          );
+          if (content) {
+            await dbOperations.put<DocumentContent>(targetStoreName, content);
+            await dbOperations.delete(STORES.TRASH, fileMetadata.name); // Delete content from trash store
+            console.log(
+              `[useFileSystem] Restored content for ${fileMetadata.name} from Trash DB to ${targetStoreName}.`
+            );
+          } else {
+            console.warn(
+              `[useFileSystem] Content not found for ${fileMetadata.name} in Trash DB during restore.`
+            );
           }
+        } catch (err) {
+          console.error("Error restoring content from trash:", err);
+          setError("Failed to restore content from trash");
+        }
       }
-  }, [fileStore]);
+    },
+    [fileStore]
+  );
 
   const emptyTrash = useCallback(async () => {
     // 1. Permanently delete metadata from FileStore and get names of files whose content needs deletion
@@ -1036,18 +1331,18 @@ export function useFileSystem(initialPath: string = "/") {
 
     // 2. Clear corresponding content from TRASH IndexedDB store
     try {
-        // Clear all potential metadata records first (paths were keys before)
-        // This might be redundant if emptyTrash handles it, but safer
-        // await dbOperations.clear(STORES.TRASH);
+      // Clear all potential metadata records first (paths were keys before)
+      // This might be redundant if emptyTrash handles it, but safer
+      // await dbOperations.clear(STORES.TRASH);
 
-        // Now delete content based on names collected from fileStore.emptyTrash()
-        for (const name of contentNamesToDelete) {
-            await dbOperations.delete(STORES.TRASH, name);
-        }
-        console.log("[useFileSystem] Cleared trash content from IndexedDB.");
+      // Now delete content based on names collected from fileStore.emptyTrash()
+      for (const name of contentNamesToDelete) {
+        await dbOperations.delete(STORES.TRASH, name);
+      }
+      console.log("[useFileSystem] Cleared trash content from IndexedDB.");
     } catch (err) {
-        console.error("Error clearing trash content from IndexedDB:", err);
-        setError("Failed to empty trash storage.");
+      console.error("Error clearing trash content from IndexedDB:", err);
+      setError("Failed to empty trash storage.");
     }
   }, [fileStore]);
 
@@ -1063,11 +1358,14 @@ export function useFileSystem(initialPath: string = "/") {
 
       // Re-add default document content to DB using the constants
       const initialDocsContent = [
-          { name: "README.md", content: README_CONTENT },
-          { name: "Quick Tips.md", content: QUICKTIPS_CONTENT }
+        { name: "README.md", content: README_CONTENT },
+        { name: "Quick Tips.md", content: QUICKTIPS_CONTENT },
       ];
       for (const doc of initialDocsContent) {
-          await dbOperations.put<DocumentContent>(STORES.DOCUMENTS, { name: doc.name, content: doc.content });
+        await dbOperations.put<DocumentContent>(STORES.DOCUMENTS, {
+          name: doc.name,
+          content: doc.content,
+        });
       }
 
       fileStore.reset(); // Reset metadata store
@@ -1084,7 +1382,7 @@ export function useFileSystem(initialPath: string = "/") {
   }, [fileStore]);
 
   // Calculate trash count based on store data
-  const trashItemsCount = fileStore.getItemsInPath('/Trash').length;
+  const trashItemsCount = fileStore.getItemsInPath("/Trash").length;
 
   return {
     currentPath,
@@ -1097,10 +1395,12 @@ export function useFileSystem(initialPath: string = "/") {
     navigateUp,
     navigateToPath,
     moveToTrash: (file: ExtendedDisplayFileItem) => {
-        const itemMeta = fileStore.getItem(file.path);
-        if (itemMeta) {
-            moveToTrash(itemMeta);
-        } else { /* ... error ... */ }
+      const itemMeta = fileStore.getItem(file.path);
+      if (itemMeta) {
+        moveToTrash(itemMeta);
+      } else {
+        /* ... error ... */
+      }
     },
     restoreFromTrash,
     emptyTrash,

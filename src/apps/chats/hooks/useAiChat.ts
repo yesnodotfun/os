@@ -91,7 +91,7 @@ export function useAiChat() {
   const launchApp = useLaunchApp();
   const closeApp = useAppStore((state) => state.closeApp);
   const aiModel = useAppStore((state) => state.aiModel);
-  const { saveFile } = useFileSystem();
+  const { saveFile } = useFileSystem("/Documents", { skipLoad: true });
 
   // --- AI Chat Hook (Vercel AI SDK) ---
   const {
@@ -106,7 +106,7 @@ export function useAiChat() {
     setMessages: setSdkMessages,
     append,
   } = useChat({
-    api: '/api/chat',
+    api: "/api/chat",
     initialMessages: aiMessages, // Initialize from store
     experimental_throttle: 50,
     body: {
@@ -212,7 +212,7 @@ export function useAiChat() {
       console.log("Submitting AI chat with system state:", freshSystemState);
       originalHandleSubmit(e, {
         // Pass options correctly - body is a direct property
-        body: { 
+        body: {
           systemState: freshSystemState,
           model: aiModel, // Pass the selected AI model
         },
@@ -230,10 +230,12 @@ export function useAiChat() {
       console.log("Appending direct message to AI chat");
       append(
         { content: message, role: "user" }, // append only needs content/role
-        { body: { 
-          systemState: getSystemState(),
-          model: aiModel, // Pass the selected AI model
-        } } // Pass options correctly - body is direct property
+        {
+          body: {
+            systemState: getSystemState(),
+            model: aiModel, // Pass the selected AI model
+          },
+        } // Pass options correctly - body is direct property
       );
     },
     [append] // Removed setAiMessages, aiMessages from deps
