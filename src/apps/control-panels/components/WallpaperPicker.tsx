@@ -9,9 +9,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useWallpaper } from "@/hooks/useWallpaper";
 import { useSound, Sounds } from "@/hooks/useSound";
-import {
-  DisplayMode,
-} from "@/utils/displayMode";
+import { DisplayMode } from "@/utils/displayMode";
 import { Plus } from "lucide-react";
 import { useAppStore } from "@/stores/useAppStore";
 
@@ -491,9 +489,12 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
             </SelectContent>
           </Select>
         </div>
-        <Select value={displayMode} onValueChange={(value) => setDisplayMode(value as DisplayMode)}>
+        <Select
+          value={displayMode}
+          onValueChange={(value) => setDisplayMode(value as DisplayMode)}
+        >
           <SelectTrigger className="w-[120px]">
-            <SelectValue placeholder="Display Mode"/>
+            <SelectValue placeholder="Display Mode" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="color">Color</SelectItem>

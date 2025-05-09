@@ -18,10 +18,7 @@ import {
 } from "@/components/ui/select";
 import { WallpaperPicker } from "./WallpaperPicker";
 import { AppProps } from "@/apps/base/types";
-import {
-  clearAllAppStates,
-  ensureIndexedDBInitialized,
-} from "@/utils/storage";
+import { clearAllAppStates, ensureIndexedDBInitialized } from "@/utils/storage";
 import { SYNTH_PRESETS } from "@/hooks/useChatSynth";
 import { useFileSystem } from "@/apps/finder/hooks/useFileSystem";
 import { useAppStore } from "@/stores/useAppStore";
@@ -166,12 +163,12 @@ export function ControlPanelsAppComponent({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const fileToRestoreRef = useRef<File | null>(null);
   const { formatFileSystem } = useFileSystem();
-  const { 
-    debugMode, 
-    setDebugMode, 
+  const {
+    debugMode,
+    setDebugMode,
     shaderEffectEnabled,
     setShaderEffectEnabled,
-    aiModel, 
+    aiModel,
     setAiModel,
     terminalSoundsEnabled,
     setTerminalSoundsEnabled,
@@ -248,7 +245,7 @@ export function ControlPanelsAppComponent({
         backup.localStorage[key] = localStorage.getItem(key);
       }
     }
-    
+
     try {
       const db = await ensureIndexedDBInitialized();
       const getStoreData = async (storeName: string): Promise<StoreItem[]> => {
@@ -275,12 +272,19 @@ export function ControlPanelsAppComponent({
 
       const serializeStore = async (items: StoreItem[]) =>
         Promise.all(
-          items.map(async (it) => {
-            if ((it as any).content instanceof Blob) {
-              const base64 = await blobToBase64((it as any).content);
-              return { ...it, content: base64, _isBlob: true } as StoreItem;
+          items.map(async (item) => {
+            const serializedItem: Record<string, unknown> = { ...item };
+
+            // Check all fields for Blob instances
+            for (const key of Object.keys(item)) {
+              if (item[key] instanceof Blob) {
+                const base64 = await blobToBase64(item[key] as Blob);
+                serializedItem[key] = base64;
+                serializedItem[`_isBlob_${key}`] = true;
+              }
             }
-            return it;
+
+            return serializedItem as StoreItem;
           })
         );
 
@@ -326,7 +330,7 @@ export function ControlPanelsAppComponent({
   const handleRestore = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    
+
     fileToRestoreRef.current = file;
     performRestore();
   };
@@ -380,16 +384,34 @@ export function ControlPanelsAppComponent({
                   clearRequest.onsuccess = async () => {
                     try {
                       for (const item of dataToRestore) {
-                        let toPut = item;
-                        if ((item as any)._isBlob && typeof item.content === "string") {
-                          const { _isBlob, ...rest } = item as any;
-                          toPut = { ...rest, content: base64ToBlob(item.content as string) };
+                        const restoredItem: Record<string, unknown> = {
+                          ...item,
+                        };
+
+                        // Check for fields that were Blobs and convert them back
+                        for (const key of Object.keys(item)) {
+                          if (key.startsWith("_isBlob_")) {
+                            const fieldName = key.substring(8); // Remove '_isBlob_' prefix
+                            if (
+                              restoredItem[fieldName] &&
+                              typeof restoredItem[fieldName] === "string"
+                            ) {
+                              restoredItem[fieldName] = base64ToBlob(
+                                restoredItem[fieldName]
+                              );
+                            }
+                            delete restoredItem[key]; // Remove the metadata flag
+                          }
                         }
+
                         await new Promise<void>((resolveItem, rejectItem) => {
-                          const addRequest = store.put(toPut);
+                          const addRequest = store.put(restoredItem);
                           addRequest.onsuccess = () => resolveItem();
                           addRequest.onerror = () => {
-                            console.error(`Error adding item to ${storeName}:`, addRequest.error);
+                            console.error(
+                              `Error adding item to ${storeName}:`,
+                              addRequest.error
+                            );
                             rejectItem(addRequest.error);
                           };
                         });
@@ -402,23 +424,32 @@ export function ControlPanelsAppComponent({
                   clearRequest.onerror = () => reject(clearRequest.error);
                 } catch (error) {
                   console.error(`Error accessing store ${storeName}:`, error);
-                  resolve(); 
+                  resolve();
                 }
               });
             };
 
-            if (backup.indexedDB.documents) await restoreStoreData("documents", backup.indexedDB.documents);
-            if (backup.indexedDB.images) await restoreStoreData("images", backup.indexedDB.images);
-            if (backup.indexedDB.trash) await restoreStoreData("trash", backup.indexedDB.trash);
-            if (backup.indexedDB.custom_wallpapers) await restoreStoreData("custom_wallpapers", backup.indexedDB.custom_wallpapers);
-            
+            if (backup.indexedDB.documents)
+              await restoreStoreData("documents", backup.indexedDB.documents);
+            if (backup.indexedDB.images)
+              await restoreStoreData("images", backup.indexedDB.images);
+            if (backup.indexedDB.trash)
+              await restoreStoreData("trash", backup.indexedDB.trash);
+            if (backup.indexedDB.custom_wallpapers)
+              await restoreStoreData(
+                "custom_wallpapers",
+                backup.indexedDB.custom_wallpapers
+              );
+
             db.close();
           } catch (error) {
             console.error("Error restoring IndexedDB:", error);
-            alert("Failed to restore file system data. Only settings were restored.");
+            alert(
+              "Failed to restore file system data. Only settings were restored."
+            );
           }
         }
-        setNextBootMessage("Restoring System..."); 
+        setNextBootMessage("Restoring System...");
         window.location.reload();
       } catch (err) {
         alert("Failed to restore backup. Invalid backup file.");
@@ -432,7 +463,7 @@ export function ControlPanelsAppComponent({
     } else {
       reader.readAsText(file);
     }
-    fileToRestoreRef.current = null; 
+    fileToRestoreRef.current = null;
   };
 
   const performFormat = async () => {
@@ -440,7 +471,7 @@ export function ControlPanelsAppComponent({
     setNextBootMessage("Formatting File System...");
     window.location.reload();
   };
-  
+
   const handleConfirmFormat = () => {
     setIsConfirmFormatOpen(false);
     setNextBootMessage("Formatting File System...");
@@ -465,22 +496,22 @@ export function ControlPanelsAppComponent({
       >
         <div className="flex flex-col h-full bg-[#E3E3E3] p-4 w-full">
           <Tabs defaultValue="appearance" className="w-full h-full">
-            <TabsList className="flex w-full h-6 space-x-0.5 bg-[#E3E3E3] border-b border-[#808080] shadow-none">
+            <TabsList className="flex w-full h-6 space-x-0.5 bg-[#E3E3E3] shadow-none">
               <TabsTrigger
                 value="appearance"
-                className="relative flex-1 h-6 px-2 -mb-[1px] rounded-t bg-[#D4D4D4] data-[state=active]:bg-[#E3E3E3] border border-[#808080] data-[state=active]:border-b-[#E3E3E3] data-[state=active]:border-b-0 shadow-none! text-[16px]"
+                className="relative flex-1 h-6 px-2 -mb-[1px] rounded-t bg-[#D4D4D4] data-[state=active]:bg-[#E3E3E3] border border-[#808080] data-[state=active]:border-b-[#E3E3E3] shadow-none! text-[16px]"
               >
                 Appearance
               </TabsTrigger>
               <TabsTrigger
                 value="sound"
-                className="relative flex-1 h-6 px-2 -mb-[1px] rounded-t bg-[#D4D4D4] data-[state=active]:bg-[#E3E3E3] border border-[#808080] data-[state=active]:border-b-[#E3E3E3] data-[state=active]:border-b-0 shadow-none! text-[16px]"
+                className="relative flex-1 h-6 px-2 -mb-[1px] rounded-t bg-[#D4D4D4] data-[state=active]:bg-[#E3E3E3] border border-[#808080] data-[state=active]:border-b-[#E3E3E3] shadow-none! text-[16px]"
               >
                 Sound
               </TabsTrigger>
               <TabsTrigger
                 value="system"
-                className="relative flex-1 h-6 px-2 -mb-[1px] rounded-t bg-[#D4D4D4] data-[state=active]:bg-[#E3E3E3] border border-[#808080] data-[state=active]:border-b-[#E3E3E3] data-[state=active]:border-b-0 shadow-none! text-[16px]"
+                className="relative flex-1 h-6 px-2 -mb-[1px] rounded-t bg-[#D4D4D4] data-[state=active]:bg-[#E3E3E3] border border-[#808080] data-[state=active]:border-b-[#E3E3E3] shadow-none! text-[16px]"
               >
                 System
               </TabsTrigger>
@@ -611,9 +642,8 @@ export function ControlPanelsAppComponent({
                     Format File System
                   </Button>
                   <p className="text-[11px] text-gray-600 font-geneva-12">
-                    This will clear all files (except sample docs),
-                    images, and custom wallpapers. ryOS will restart after
-                    format.
+                    This will clear all files (except sample docs), images, and
+                    custom wallpapers. ryOS will restart after format.
                   </p>
                 </div>
 
@@ -648,7 +678,7 @@ export function ControlPanelsAppComponent({
                     />
                   </div>
                 )}
-                
+
                 {debugMode && (
                   <div className="flex items-center justify-between">
                     <div className="flex flex-col gap-1">
@@ -657,9 +687,13 @@ export function ControlPanelsAppComponent({
                         Used in Chats, IE, and more
                       </Label>
                     </div>
-                    <Select 
+                    <Select
                       value={aiModel || "__null__"}
-                      onValueChange={(value) => setAiModel(value === "__null__" ? null : (value as AIModel))}
+                      onValueChange={(value) =>
+                        setAiModel(
+                          value === "__null__" ? null : (value as AIModel)
+                        )
+                      }
                     >
                       <SelectTrigger className="w-[120px]">
                         <SelectValue placeholder="Select">
@@ -690,7 +724,7 @@ export function ControlPanelsAppComponent({
                       variant="retro"
                       onClick={() => {
                         setNextBootMessage("Debug Boot Screen Test...");
-                        window.location.reload(); 
+                        window.location.reload();
                       }}
                       className="w-fit"
                     >
@@ -698,7 +732,6 @@ export function ControlPanelsAppComponent({
                     </Button>
                   </div>
                 )}
-                
               </div>
             </TabsContent>
           </Tabs>

@@ -7,14 +7,18 @@ import { checkShaderPerformance } from "@/utils/performanceCheck";
 import { ShaderType } from "@/components/shared/GalaxyBackground";
 import { DisplayMode } from "@/utils/displayMode";
 import { AIModel } from "@/types/aiModels";
+import { ensureIndexedDBInitialized } from "@/utils/storage";
 // Re-export for backward compatibility
 export type { AIModel } from "@/types/aiModels";
 
 const getInitialState = (): AppManagerState => {
-  const apps: { [appId: string]: AppState } = appIds.reduce((acc: { [appId: string]: AppState }, id) => {
-    acc[id] = { isOpen: false };
-    return acc;
-  }, {} as { [appId: string]: AppState });
+  const apps: { [appId: string]: AppState } = appIds.reduce(
+    (acc: { [appId: string]: AppState }, id) => {
+      acc[id] = { isOpen: false };
+      return acc;
+    },
+    {} as { [appId: string]: AppState }
+  );
 
   return {
     windowOrder: [],
@@ -47,14 +51,18 @@ interface AppStoreState extends AppManagerState {
     size: { width: number; height: number }
   ) => void;
   bringToForeground: (appId: AppId | "") => void;
-  toggleApp: (appId: AppId, initialData?: any) => void;
+  toggleApp: (appId: AppId, initialData?: unknown) => void;
   closeApp: (appId: AppId) => void;
   navigateToNextApp: (currentAppId: AppId) => void;
   navigateToPreviousApp: (currentAppId: AppId) => void;
   clearInitialData: (appId: AppId) => void;
-  launchOrFocusApp: (appId: AppId, initialData?: any) => void;
+  launchOrFocusApp: (appId: AppId, initialData?: unknown) => void;
   currentWallpaper: string;
   setCurrentWallpaper: (wallpaperPath: string) => void;
+  wallpaperSource: string;
+  setWallpaper: (path: string | File) => Promise<void>;
+  loadCustomWallpapers: () => Promise<string[]>;
+  getWallpaperData: (reference: string) => Promise<string | null>;
   isFirstBoot: boolean;
   setHasBooted: () => void;
 }
@@ -69,13 +77,16 @@ export const useAppStore = create<AppStoreState>()(
       debugMode: false,
       setDebugMode: (enabled) => set({ debugMode: enabled }),
       shaderEffectEnabled: initialShaderState,
-      setShaderEffectEnabled: (enabled) => set({ shaderEffectEnabled: enabled }),
+      setShaderEffectEnabled: (enabled) =>
+        set({ shaderEffectEnabled: enabled }),
       selectedShaderType: ShaderType.AURORA,
-      setSelectedShaderType: (shaderType) => set({ selectedShaderType: shaderType }),
+      setSelectedShaderType: (shaderType) =>
+        set({ selectedShaderType: shaderType }),
       aiModel: null, // Default model set to null for client-side
       setAiModel: (model) => set({ aiModel: model }),
       terminalSoundsEnabled: true, // Default to true for terminal/IE sounds
-      setTerminalSoundsEnabled: (enabled) => set({ terminalSoundsEnabled: enabled }),
+      setTerminalSoundsEnabled: (enabled) =>
+        set({ terminalSoundsEnabled: enabled }),
       uiSoundsEnabled: true,
       setUiSoundsEnabled: (enabled) => set({ uiSoundsEnabled: enabled }),
       typingSynthEnabled: false,
@@ -100,7 +111,117 @@ export const useAppStore = create<AppStoreState>()(
           },
         })),
       currentWallpaper: "/wallpapers/videos/blue_flowers_loop.mp4", // Default wallpaper
-      setCurrentWallpaper: (wallpaperPath) => set({ currentWallpaper: wallpaperPath }),
+      wallpaperSource: "/wallpapers/videos/blue_flowers_loop.mp4",
+      setCurrentWallpaper: (wallpaperPath) =>
+        set({
+          currentWallpaper: wallpaperPath,
+          wallpaperSource: wallpaperPath,
+        }),
+
+      // High-level helper to change wallpaper (string path or File)
+      setWallpaper: async (path) => {
+        let wallpaperPath: string;
+
+        // 1. If user passed a File -> save it first
+        if (path instanceof File) {
+          try {
+            wallpaperPath = await saveCustomWallpaper(path);
+          } catch (err) {
+            console.error("setWallpaper: failed to save custom wallpaper", err);
+            return;
+          }
+        } else {
+          wallpaperPath = path;
+        }
+
+        // 2. Update store with new path (optimistically)
+        set({
+          currentWallpaper: wallpaperPath,
+          wallpaperSource: wallpaperPath,
+        });
+
+        // 3. If it is an IndexedDB reference, load actual data
+        if (wallpaperPath.startsWith(INDEXEDDB_PREFIX)) {
+          const data = await get().getWallpaperData(wallpaperPath);
+          if (data) {
+            set({ wallpaperSource: data });
+          }
+        }
+
+        // 4. Inform rest of application (for same-window listeners)
+        window.dispatchEvent(
+          new CustomEvent("wallpaperChange", { detail: wallpaperPath })
+        );
+      },
+
+      // Return references (indexeddb://<id>) of all saved custom wallpapers
+      loadCustomWallpapers: async () => {
+        try {
+          const db = await ensureIndexedDBInitialized();
+          const tx = db.transaction(CUSTOM_WALLPAPERS_STORE, "readonly");
+          const store = tx.objectStore(CUSTOM_WALLPAPERS_STORE);
+          const keysRequest = store.getAllKeys();
+          const refs: string[] = await new Promise((resolve, reject) => {
+            keysRequest.onsuccess = () =>
+              resolve(keysRequest.result as string[]);
+            keysRequest.onerror = () => reject(keysRequest.error);
+          });
+          db.close();
+          return refs.map((k) => `${INDEXEDDB_PREFIX}${k}`);
+        } catch (err) {
+          console.error("Error loading custom wallpapers:", err);
+          return [];
+        }
+      },
+
+      // Fetch the actual data (object URL or data URL) for a wallpaper reference
+      getWallpaperData: async (reference) => {
+        if (!reference.startsWith(INDEXEDDB_PREFIX)) {
+          return reference; // Plain path
+        }
+
+        const id = reference.substring(INDEXEDDB_PREFIX.length);
+
+        // Use cached URL if available
+        if (objectURLs[id]) return objectURLs[id];
+
+        try {
+          const db = await ensureIndexedDBInitialized();
+          const tx = db.transaction(CUSTOM_WALLPAPERS_STORE, "readonly");
+          const store = tx.objectStore(CUSTOM_WALLPAPERS_STORE);
+          const req = store.get(id);
+
+          const result = await new Promise<StoredWallpaper | null>(
+            (resolve, reject) => {
+              req.onsuccess = () => resolve(req.result as StoredWallpaper);
+              req.onerror = () => reject(req.error);
+            }
+          );
+
+          db.close();
+
+          if (!result) return null;
+
+          let objectURL: string | null = null;
+
+          if (result.blob) {
+            objectURL = URL.createObjectURL(result.blob);
+          } else if (result.content) {
+            const blob = dataURLToBlob(result.content);
+            objectURL = blob ? URL.createObjectURL(blob) : result.content;
+          }
+
+          if (objectURL) {
+            objectURLs[id] = objectURL;
+            return objectURL;
+          }
+
+          return null;
+        } catch (err) {
+          console.error("Error getting wallpaper data:", err);
+          return null;
+        }
+      },
 
       bringToForeground: (appId) => {
         set((state) => {
@@ -160,8 +281,11 @@ export const useAppStore = create<AppStoreState>()(
           const newApps: { [appId: string]: AppState } = { ...state.apps };
 
           // If closing the app and there are other open apps, bring the most recent one to foreground
-          const shouldBringPreviousToForeground = isCurrentlyOpen && newWindowOrder.length > 0;
-          const previousAppId = shouldBringPreviousToForeground ? newWindowOrder[newWindowOrder.length - 1] : null;
+          const shouldBringPreviousToForeground =
+            isCurrentlyOpen && newWindowOrder.length > 0;
+          const previousAppId = shouldBringPreviousToForeground
+            ? newWindowOrder[newWindowOrder.length - 1]
+            : null;
 
           Object.keys(newApps).forEach((id) => {
             if (id === appId) {
@@ -174,7 +298,8 @@ export const useAppStore = create<AppStoreState>()(
             } else {
               newApps[id] = {
                 ...newApps[id],
-                isForeground: shouldBringPreviousToForeground && id === previousAppId,
+                isForeground:
+                  shouldBringPreviousToForeground && id === previousAppId,
               };
             }
           });
@@ -210,7 +335,10 @@ export const useAppStore = create<AppStoreState>()(
           const newApps: { [id: string]: AppState } = { ...state.apps };
 
           // Determine the next app to bring to foreground
-          const nextForegroundAppId = newWindowOrder.length > 0 ? newWindowOrder[newWindowOrder.length - 1] : null;
+          const nextForegroundAppId =
+            newWindowOrder.length > 0
+              ? newWindowOrder[newWindowOrder.length - 1]
+              : null;
 
           Object.keys(newApps).forEach((id) => {
             if (id === appId) {
@@ -244,7 +372,9 @@ export const useAppStore = create<AppStoreState>()(
           });
           window.dispatchEvent(appStateChangeEvent);
           console.log(`App ${appId} closed. New window order:`, newWindowOrder);
-          console.log(`App ${nextForegroundAppId || 'none'} brought to foreground.`);
+          console.log(
+            `App ${nextForegroundAppId || "none"} brought to foreground.`
+          );
 
           return newState;
         });
@@ -256,7 +386,10 @@ export const useAppStore = create<AppStoreState>()(
           let newWindowOrder = [...state.windowOrder];
           const newApps: { [id: string]: AppState } = { ...state.apps };
 
-          console.log(`[AppStore:launchOrFocusApp] App: ${appId}, Currently Open: ${isCurrentlyOpen}, InitialData:`, initialData);
+          console.log(
+            `[AppStore:launchOrFocusApp] App: ${appId}, Currently Open: ${isCurrentlyOpen}, InitialData:`,
+            initialData
+          );
 
           if (isCurrentlyOpen) {
             // App is open: Bring to front, update initialData
@@ -304,7 +437,9 @@ export const useAppStore = create<AppStoreState>()(
         if (windowOrder.length <= 1) return;
         const currentIndex = windowOrder.indexOf(currentAppId);
         if (currentIndex === -1) return;
-        const nextAppId = windowOrder[(currentIndex + 1) % windowOrder.length] as AppId;
+        const nextAppId = windowOrder[
+          (currentIndex + 1) % windowOrder.length
+        ] as AppId;
         get().bringToForeground(nextAppId);
       },
 
@@ -353,7 +488,75 @@ export const useAppStore = create<AppStoreState>()(
         currentWallpaper: state.currentWallpaper,
         displayMode: state.displayMode,
         isFirstBoot: state.isFirstBoot,
+        wallpaperSource: state.wallpaperSource,
       }),
     }
   )
-); 
+);
+
+// Wallpaper / background handling --------------------------------------------------
+export const INDEXEDDB_PREFIX = "indexeddb://";
+const CUSTOM_WALLPAPERS_STORE = "custom_wallpapers";
+// Keep cached object URLs so we do not recreate them every time
+const objectURLs: Record<string, string> = {};
+
+// Structure stored in IndexedDB for custom wallpapers
+type StoredWallpaper = {
+  blob?: Blob;
+  content?: string;
+  [key: string]: unknown;
+};
+
+// Helper to convert a data URL to a Blob (for backwards compatibility)
+const dataURLToBlob = (dataURL: string): Blob | null => {
+  try {
+    if (!dataURL.startsWith("data:")) return null;
+    const arr = dataURL.split(",");
+    const mime = arr[0].match(/:(.*?);/)?.[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new Blob([u8arr], { type: mime });
+  } catch (e) {
+    console.error("Error converting data URL to Blob:", e);
+    return null;
+  }
+};
+
+// Save a custom wallpaper (image file) to IndexedDB and return its reference string
+const saveCustomWallpaper = async (file: File): Promise<string> => {
+  if (!file.type.startsWith("image/")) {
+    throw new Error("Only image files are allowed for custom wallpapers");
+  }
+  try {
+    const db = await ensureIndexedDBInitialized();
+    const tx = db.transaction(CUSTOM_WALLPAPERS_STORE, "readwrite");
+    const store = tx.objectStore(CUSTOM_WALLPAPERS_STORE);
+    const wallpaperName = `custom_${Date.now()}_${file.name.replace(
+      /[^a-zA-Z0-9._-]/g,
+      "_"
+    )}`;
+    const wallpaper = {
+      name: wallpaperName,
+      blob: file,
+      content: "", // backwards compatibility
+      type: file.type,
+      dateAdded: new Date().toISOString(),
+    };
+    await new Promise<void>((resolve, reject) => {
+      const req = store.put(wallpaper);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+    db.close();
+    return `${INDEXEDDB_PREFIX}${wallpaperName}`;
+  } catch (err) {
+    console.error("Failed to save custom wallpaper:", err);
+    throw err;
+  }
+};
+
+// -------------------------------------------------------------------------------

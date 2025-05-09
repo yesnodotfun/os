@@ -1,20 +1,20 @@
-import React, { useRef, useEffect } from 'react';
-import * as THREE from 'three';
-import { useAppStore } from '@/stores/useAppStore'; // Import the store
+import React, { useRef, useEffect } from "react";
+import * as THREE from "three";
+import { useAppStore } from "@/stores/useAppStore"; // Import the store
 
 // Define shader types
 export enum ShaderType {
-  GALAXY = 'galaxy',
-  AURORA = 'aurora',
-  NEBULA = 'nebula',
+  GALAXY = "galaxy",
+  AURORA = "aurora",
+  NEBULA = "nebula",
 }
 
 interface GalaxyBackgroundProps {
   shaderType?: ShaderType;
 }
 
-const GalaxyBackground: React.FC<GalaxyBackgroundProps> = ({ 
-  shaderType = ShaderType.GALAXY 
+const GalaxyBackground: React.FC<GalaxyBackgroundProps> = ({
+  shaderType = ShaderType.GALAXY,
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const clockRef = useRef(new THREE.Clock()); // Use Clock for time uniform
@@ -45,10 +45,10 @@ const GalaxyBackground: React.FC<GalaxyBackgroundProps> = ({
     const scene = new THREE.Scene();
     const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1); // Orthographic for fullscreen shader
 
-    const renderer = new THREE.WebGLRenderer({ 
+    const renderer = new THREE.WebGLRenderer({
       antialias: false, // Disabled for performance
-      alpha: true, 
-      powerPreference: "high-performance" 
+      alpha: true,
+      powerPreference: "high-performance",
     });
     renderer.setSize(currentMount.clientWidth, currentMount.clientHeight);
     // Capped pixel ratio for better performance
@@ -67,10 +67,15 @@ const GalaxyBackground: React.FC<GalaxyBackgroundProps> = ({
     // --- Fragment Shader Selection ---
     let fragmentShader: string;
     const customUniforms: { [uniform: string]: { value: unknown } } = {
-      resolution: { value: new THREE.Vector2(currentMount.clientWidth, currentMount.clientHeight) },
+      resolution: {
+        value: new THREE.Vector2(
+          currentMount.clientWidth,
+          currentMount.clientHeight
+        ),
+      },
       time: { value: 0.0 },
     };
-    
+
     // Select shader based on type
     switch (shaderType) {
       case ShaderType.NEBULA:
@@ -155,7 +160,7 @@ const GalaxyBackground: React.FC<GalaxyBackgroundProps> = ({
           }
         `;
         break;
-      
+
       case ShaderType.GALAXY:
       default:
         fragmentShader = `
@@ -217,7 +222,7 @@ const GalaxyBackground: React.FC<GalaxyBackgroundProps> = ({
       shaderMaterial.uniforms.resolution.value.set(width, height);
       // No camera update needed for orthographic fullscreen quad
     };
-    window.addEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
 
     // Animation loop
     let animationFrameId: number;
@@ -234,7 +239,7 @@ const GalaxyBackground: React.FC<GalaxyBackgroundProps> = ({
     // Cleanup
     return () => {
       cancelAnimationFrame(animationFrameId);
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener("resize", handleResize);
       if (currentMount && renderer.domElement) {
         currentMount.removeChild(renderer.domElement);
       }
@@ -248,8 +253,18 @@ const GalaxyBackground: React.FC<GalaxyBackgroundProps> = ({
 
   // Conditionally render the container div
   return shouldRender ? (
-    <div ref={mountRef} style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, zIndex: -1 }} />
+    <div
+      ref={mountRef}
+      style={{
+        width: "100%",
+        height: "100%",
+        position: "absolute",
+        top: 0,
+        left: 0,
+        zIndex: -1,
+      }}
+    />
   ) : null; // Render nothing if condition not met
 };
 
-export default GalaxyBackground; 
+export default GalaxyBackground;
