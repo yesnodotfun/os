@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { AppProps } from "../../base/types";
 import { WindowFrame } from "@/components/layout/WindowFrame";
 import { ChatsMenuBar } from "./ChatsMenuBar";
@@ -229,6 +229,31 @@ export function ChatsAppComponent({
     setFontSize(13); // Reset to default
   }, [setFontSize]);
 
+  // Determine if the current WindowFrame width is narrower than the Tailwind `md` breakpoint (768px)
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [isFrameNarrow, setIsFrameNarrow] = useState(false);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const updateWidth = (width: number) => {
+      setIsFrameNarrow(width < 600);
+    };
+
+    // Initial measurement
+    updateWidth(containerRef.current.getBoundingClientRect().width);
+
+    const observer = new ResizeObserver((entries) => {
+      if (entries[0]) {
+        updateWidth(entries[0].contentRect.width);
+      }
+    });
+
+    observer.observe(containerRef.current);
+
+    return () => observer.disconnect();
+  }, []);
+
   if (!isWindowOpen) return null;
 
   // Explicitly type the array using the local DisplayMessage interface
@@ -276,12 +301,15 @@ export function ChatsAppComponent({
         skipInitialSound={skipInitialSound}
         isShaking={isShaking}
       >
-        <div className="relative h-full bg-[#c0c0c0] w-full">
+        <div
+          ref={containerRef}
+          className="relative h-full bg-[#c0c0c0] w-full"
+        >
           {/* Mobile sidebar overlay with framer-motion 3D animations */}
           <AnimatePresence>
-            {sidebarVisibleBool && (
+            {sidebarVisibleBool && isFrameNarrow && (
               <motion.div
-                className="md:hidden absolute inset-x-0 top-0 bottom-0 z-20"
+                className="absolute inset-x-0 top-0 bottom-0 z-20"
                 style={{ perspective: "2000px" }}
               >
                 {/* Scrim - fades in and out */}
@@ -341,15 +369,16 @@ export function ChatsAppComponent({
                     onDeleteRoom={(room) => promptDeleteRoom(room)}
                     isVisible={true} // Always visible when overlay is shown
                     isAdmin={isAdmin}
+                    isOverlay={true}
                   />
                 </motion.div>
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* Desktop layout */}
-          <div className="flex flex-col md:flex-row h-full">
-            <div className="hidden md:block h-full">
+          {/* Layout based on WindowFrame width */}
+          <div className={`flex h-full ${isFrameNarrow ? "flex-col" : "flex-row"}` }>
+            <div className={`${isFrameNarrow ? "hidden" : "block"} h-full`}>
               <ChatRoomSidebar
                 rooms={rooms}
                 currentRoom={currentRoom ?? null}
@@ -361,10 +390,10 @@ export function ChatsAppComponent({
               />
             </div>
 
-            {/* Chat area - on desktop, needs to take flex-1 space */}
-            <div className="flex flex-col flex-1 md:flex-1 h-full">
+            {/* Chat area */}
+            <div className="flex flex-col flex-1 h-full">
               {/* Mobile chat title bar */}
-              <div className="md:hidden flex items-center justify-between px-2 pt-1 pb-0 flex-shrink-0">
+              <div className="flex items-center justify-between px-2 pt-1 pb-0 flex-shrink-0">
                 <div className="flex items-center">
                   <button
                     onClick={toggleSidebarVisibility}

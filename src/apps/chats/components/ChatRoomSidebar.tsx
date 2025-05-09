@@ -14,6 +14,8 @@ interface ChatRoomSidebarProps {
   onDeleteRoom?: (room: ChatRoom) => void;
   isVisible: boolean;
   isAdmin: boolean;
+  /** When rendered inside mobile/overlay mode, occupies full width and hides right border */
+  isOverlay?: boolean;
 }
 
 export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
@@ -24,6 +26,7 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
   onDeleteRoom,
   isVisible,
   isAdmin,
+  isOverlay = false,
 }) => {
   const { play: playButtonClick } = useSound(Sounds.BUTTON_CLICK);
 
@@ -32,7 +35,12 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
   }
 
   return (
-    <div className="w-full bg-neutral-200 border-b flex flex-col h-full overflow-hidden md:w-56 md:border-r md:border-b-0 md:max-h-full font-geneva-12 text-[12px]">
+    <div
+      className={cn(
+        "bg-neutral-200 flex flex-col h-full overflow-hidden font-geneva-12 text-[12px]",
+        isOverlay ? "w-full border-b" : "w-56 border-r"
+      )}
+    >
       <div className="py-3 px-3 flex flex-col flex-1 overflow-hidden">
         <div className="flex justify-between items-center mb-2">
           <div className="flex items-baseline gap-1.5">
@@ -49,11 +57,11 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
             </Button>
           )}
         </div>
-        <div className="flex-1 overflow-y-auto space-y-1 md:space-y-1 min-h-0">
+        <div className="flex-1 overflow-y-auto space-y-1 min-h-0">
           {/* Ryo (@ryo) Chat Selection */}
           <div
             className={cn(
-              'p-2 md:py-1',
+              'p-2 py-1',
               currentRoom === null ? 'bg-black text-white' : 'hover:bg-black/5'
             )}
             onClick={() => {
@@ -68,7 +76,7 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
             <div
               key={room.id}
               className={cn(
-                'group relative p-2 md:py-1',
+                'group relative p-2 py-1',
                 currentRoom?.id === room.id ? 'bg-black text-white' : 'hover:bg-black/5'
               )}
               onClick={() => {
