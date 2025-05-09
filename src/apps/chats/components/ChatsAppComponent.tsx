@@ -414,7 +414,7 @@ export function ChatsAppComponent({
             {/* Chat area */}
             <div className="relative flex flex-col flex-1 h-full bg-white/85">
               {/* Mobile chat title bar */}
-              <div className="sticky top-0 z-10 flex items-center justify-between px-2 py-1.5 bg-neutral-200/90 backdrop-blur-lg border-b border-black">
+              <div className="sticky top-0 z-10 flex items-center justify-between px-2 py-1 bg-neutral-200/90 backdrop-blur-lg border-b border-black">
                 <div className="flex items-center">
                   <Button
                     variant="ghost"
@@ -468,11 +468,11 @@ export function ChatsAppComponent({
                   />
                 </div>
                 {/* Input Area or Set Username Prompt */}
-                <div className="absolute bottom-0 z-10 w-full p-3 px-3">
+                <div className="absolute bottom-0 z-10 w-full p-2">
                   {currentRoomId && !username ? (
                     <Button
                       onClick={promptSetUsername}
-                      className="w-full h-8 font-geneva-12 text-[12px] bg-orange-600 text-white hover:bg-orange-700 transition-all duration-200"
+                      className="w-full h-9 font-geneva-12 text-[12px] bg-orange-600 text-white hover:bg-orange-700 transition-all duration-200"
                     >
                       Set Username to Chat
                     </Button>
