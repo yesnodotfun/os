@@ -254,6 +254,19 @@ export function ChatsAppComponent({
     return () => observer.disconnect();
   }, []);
 
+  // Automatically show sidebar when switching from narrow to wide
+  const prevFrameNarrowRef = useRef(isFrameNarrow);
+
+  useEffect(() => {
+    if (prevFrameNarrowRef.current && !isFrameNarrow) {
+      // We transitioned from narrow -> wide
+      if (!sidebarVisibleBool) {
+        toggleSidebarVisibility();
+      }
+    }
+    prevFrameNarrowRef.current = isFrameNarrow;
+  }, [isFrameNarrow, sidebarVisibleBool, toggleSidebarVisibility]);
+
   if (!isWindowOpen) return null;
 
   // Explicitly type the array using the local DisplayMessage interface
