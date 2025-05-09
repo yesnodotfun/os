@@ -37,7 +37,7 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
   return (
     <div
       className={cn(
-        "flex flex-col h-full overflow-hidden font-geneva-12 text-[12px] border-black/20",
+        "flex flex-col h-full overflow-hidden font-geneva-12 text-[12px] border-black/25",
         isOverlay ? "w-full border-b" : "w-56 border-r"
       )}
     >
