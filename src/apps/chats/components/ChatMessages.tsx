@@ -384,6 +384,24 @@ function ChatMessagesContent({
                   )}
                 </motion.button>
               )}
+              {isRoomView && message.role === 'human' && (
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{
+                    opacity: hoveredMessageId === messageKey ? 1 : 0,
+                    scale: 1,
+                  }}
+                  className="h-3 w-3 text-gray-400 hover:text-gray-600 transition-colors"
+                  onClick={() => copyMessage(message)}
+                  aria-label="Copy message"
+                >
+                  {copiedMessageId === messageKey ? (
+                    <Check className="h-3 w-3" />
+                  ) : (
+                    <Copy className="h-3 w-3" />
+                  )}
+                </motion.button>
+              )}
               {isAdmin && isRoomView && message.role !== 'user' && (
                 <motion.button
                   initial={{ opacity: 0, scale: 0.8 }}
