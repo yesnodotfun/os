@@ -465,7 +465,7 @@ export function ChatsAppComponent({
                   />
                 </div>
                 {/* Input Area or Set Username Prompt */}
-                <div className="absolute bottom-0 z-10 w-full p-4 px-4">
+                <div className="absolute bottom-0 z-10 w-full p-3 px-4">
                   {currentRoomId && !username ? (
                     <Button
                       onClick={promptSetUsername}
