@@ -407,7 +407,7 @@ export function ChatsAppComponent({
             {/* Chat area */}
             <div className="relative flex flex-col flex-1 h-full bg-white/85">
               {/* Mobile chat title bar */}
-              <div className="sticky top-0 z-10 flex items-center justify-between px-2 pt-1 pb-0 bg-white/30 backdrop-blur">
+              <div className="sticky top-0 z-10 flex items-center justify-between px-2 pt-1 pb-0 bg-white/80 backdrop-blur-lg">
                 <div className="flex items-center">
                   <Button
                     variant="ghost"
@@ -442,32 +442,30 @@ export function ChatsAppComponent({
                 )}
               </div>
 
-              {/* Chat content */}
-              <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-                {/* Chat Messages Area - takes up remaining space */}
-                <div className="flex-1 min-h-0 overflow-hidden px-2 py-1">
+              {/* Scrollable messages under header */}
+              <div className="absolute inset-0 flex flex-col z-0">
+                {/* Chat Messages Area - will scroll under header */}
+                <div className="flex-1 overflow-hidden">
                   <ChatMessages
-                    key={currentRoomId || "ryo"} // Re-render on room change
-                    messages={currentMessagesToDisplay} // Remove 'as any'
+                    key={currentRoomId || "ryo"}
+                    messages={currentMessagesToDisplay}
                     isLoading={
                       (isLoading && !currentRoomId) ||
                       (!!currentRoomId && isRyoLoading)
-                    } // Show loading state for both AI chat and @ryo mentions
-                    error={!currentRoomId ? error : undefined} // Pass actual error object only for AI chat
+                    }
+                    error={!currentRoomId ? error : undefined}
                     onRetry={reload}
-                    onClear={() => setIsClearDialogOpen(true)} // AI Clear only
+                    onClear={() => setIsClearDialogOpen(true)}
                     isRoomView={!!currentRoomId}
                     roomId={currentRoomId ?? undefined}
                     isAdmin={isAdmin}
-                    username={username || undefined} // Pass username for message deletion check
+                    username={username || undefined}
                     fontSize={fontSize}
-                    // Pass the scroll trigger
                     scrollToBottomTrigger={scrollToBottomTrigger}
                   />
                 </div>
-
                 {/* Input Area or Set Username Prompt */}
-                <div className="absolute inset-x-0 bottom-0 z-10 p-4 px-4">
+                <div className="absolute bottom-0 z-10 w-full p-4 px-4">
                   {currentRoomId && !username ? (
                     <Button
                       onClick={promptSetUsername}
@@ -496,8 +494,8 @@ export function ChatsAppComponent({
                           onDirectMessageSubmit={handleDirectSubmit}
                           onNudge={handleNudgeClick}
                           previousMessages={prevMessagesContent}
-                          showNudgeButton={!currentRoomId} // Only show nudge for AI chat
-                          isInChatRoom={!!currentRoomId} // Indicate if user is in a chat room
+                          showNudgeButton={!currentRoomId}
+                          isInChatRoom={!!currentRoomId}
                         />
                       );
                     })()

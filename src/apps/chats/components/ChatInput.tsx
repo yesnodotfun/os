@@ -306,7 +306,7 @@ export function ChatInput({
                     ? "Type a message..."
                     : "Type or push 'space' to talk..."
                 }
-                className={`w-full border-1 border-gray-800 text-xs font-geneva-12 h-8 pr-16 backdrop-blur-lg bg-white/20 ${
+                className={`w-full border-1 border-gray-800 text-xs font-geneva-12 h-10 pr-16 backdrop-blur-lg bg-white/80 ${
                   isFocused ? "input--focused" : ""
                 } ${isTypingRyoMention ? "border-blue-600 bg-blue-50" : ""}`}
                 onFocus={() => setIsFocused(true)}
@@ -332,7 +332,7 @@ export function ChatInput({
                   </motion.div>
                 )}
               </AnimatePresence>
-              <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-2">
                 {showNudgeButton && (
                 <TooltipProvider>
                   <Tooltip>
@@ -344,7 +344,7 @@ export function ChatInput({
                           className="w-[22px] h-[22px] flex items-center justify-center"
                           disabled={isLoading}
                         >
-                          <Hand className="h-4 w-4 -rotate-40" />
+                          <Hand className="h-5 w-5 -rotate-40" />
                         </button>
                       </div>
                     </TooltipTrigger>
@@ -365,7 +365,7 @@ export function ChatInput({
                             className="w-[22px] h-[22px] flex items-center justify-center"
                             disabled={isLoading}
                           >
-                            <AtSign className="h-4 w-4" />
+                            <AtSign className="h-5 w-5" />
                           </button>
                         </div>
                       </TooltipTrigger>
@@ -413,9 +413,9 @@ export function ChatInput({
                     track(CHAT_ANALYTICS.STOP_GENERATION);
                     onStop();
                   }}
-                  className="bg-black hover:bg-black/80 text-white text-xs border-2 border-gray-800 w-8 h-8 p-0 flex items-center justify-center"
+                  className="bg-black hover:bg-black/80 text-white text-xs border-2 border-gray-800 w-10 h-10 p-0 flex items-center justify-center"
                 >
-                  <Square className="h-4 w-4" fill="currentColor" />
+                  <Square className="h-5 w-5" fill="currentColor" />
                 </Button>
               </motion.div>
             ) : input.trim() !== "" ? (
@@ -429,10 +429,10 @@ export function ChatInput({
               >
                 <Button
                   type="submit"
-                  className="bg-black hover:bg-black/80 text-white text-xs border-2 border-gray-800 w-8 h-8 p-0 flex items-center justify-center"
+                  className="bg-black hover:bg-black/80 text-white text-xs border-2 border-gray-800 w-10 h-10 p-0 flex items-center justify-center [&_svg]:size-5"
                   disabled={isLoading}
                 >
-                  <ArrowUp className="h-4 w-4" />
+                  <ArrowUp className="h-6 w-6" />
                 </Button>
               </motion.div>
             ) : null}
