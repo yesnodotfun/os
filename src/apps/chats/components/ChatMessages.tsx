@@ -117,7 +117,7 @@ function ScrollToBottomButton() {
           animate={{ opacity: 1, scale: 1, y: 0}}
           exit={{ opacity: 0, scale: 0.8, y: 10 }}
           transition={{ type: "spring", duration: 0.2 }}
-          className="absolute bottom-14 right-4.5 bg-black/70 hover:bg-black text-white p-1.5 rounded-full shadow-md z-20"
+          className="absolute bottom-14 right-4 bg-black/70 hover:bg-black text-white p-1.5 rounded-full shadow-md z-20"
           onClick={() => scrollToBottom()} // Use the library's function
           aria-label="Scroll to bottom"
         >
@@ -680,7 +680,7 @@ export function ChatMessages({
       initial="instant"
     >
       {/* StickToBottom.Content wraps the actual scrollable content */}
-      <StickToBottom.Content className="flex flex-col gap-1 p-4 pt-12 pb-17">
+      <StickToBottom.Content className="flex flex-col gap-1 p-3 pt-10 pb-13">
         {/* Render the inner component here */}
         <ChatMessagesContent
           messages={messages}
