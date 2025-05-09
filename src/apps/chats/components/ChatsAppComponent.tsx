@@ -324,7 +324,7 @@ export function ChatsAppComponent({
       >
         <div
           ref={containerRef}
-          className="relative h-full w-full backdrop-blur-2xl bg-white/85"
+          className="relative h-full w-full backdrop-blur-2xl bg-white/65"
         >
           {/* Mobile sidebar overlay with framer-motion 3D animations */}
           <AnimatePresence>
@@ -414,7 +414,7 @@ export function ChatsAppComponent({
             {/* Chat area */}
             <div className="relative flex flex-col flex-1 h-full bg-white/85">
               {/* Mobile chat title bar */}
-              <div className="sticky top-0 z-10 flex items-center justify-between px-2 py-1.5 bg-neutral-200/70 backdrop-blur-2xl border-b border-black/25">
+              <div className="sticky top-0 z-10 flex items-center justify-between px-2 py-1.5 bg-neutral-200/70 backdrop-blur-2xl border-b border-black">
                 <div className="flex items-center">
                   <Button
                     variant="ghost"

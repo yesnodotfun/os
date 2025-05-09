@@ -37,7 +37,7 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
   return (
     <div
       className={cn(
-        "flex flex-col h-full overflow-hidden font-geneva-12 text-[12px] border-black/25",
+        "flex flex-col h-full overflow-hidden font-geneva-12 text-[12px] border-black",
         isOverlay ? "w-full border-b" : "w-56 border-r"
       )}
     >
@@ -87,7 +87,8 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
               <div className="flex items-center">
                 <span>#{room.name}</span>
                 <span className={cn(
-                  "text-gray-400 text-[10px] ml-1.5 transition-opacity",
+                  "text-[10px] ml-1.5 transition-opacity",
+                  currentRoom?.id === room.id ? "text-white/40" : "text-black/40",
                   room.userCount > 0 ? "opacity-100" : (currentRoom?.id === room.id ? "opacity-100" : "opacity-0 group-hover:opacity-100")
                 )}>
                   {room.userCount} online
