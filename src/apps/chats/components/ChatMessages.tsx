@@ -114,7 +114,7 @@ function ScrollToBottomButton() {
       {!isAtBottom && (
         <motion.button
           initial={{ opacity: 0, scale: 0.8, y: 10 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
+          animate={{ opacity: 1, scale: 1, y: -36}}
           exit={{ opacity: 0, scale: 0.8, y: 10 }}
           transition={{ type: "spring", duration: 0.2 }}
           className="absolute bottom-3 right-3 bg-black/70 hover:bg-black text-white p-1.5 rounded-full shadow-md z-20"
@@ -656,13 +656,13 @@ export function ChatMessages({
   return (
     // Use StickToBottom component as the main container
     <StickToBottom
-      className="flex-1 relative flex flex-col overflow-hidden bg-white border-2 border-gray-800 rounded mb-2 w-full h-full"
+      className="flex-1 relative flex flex-col overflow-hidden w-full h-full"
       // Optional props for smooth scrolling behavior
       resize="smooth"
       initial="instant"
     >
       {/* StickToBottom.Content wraps the actual scrollable content */}
-      <StickToBottom.Content className="flex flex-col gap-1 p-2">
+      <StickToBottom.Content className="flex flex-col gap-1 p-2 pt-6 pb-14">
         {/* Render the inner component here */}
         <ChatMessagesContent
           messages={messages}
@@ -681,7 +681,7 @@ export function ChatMessages({
       </StickToBottom.Content>
 
       {/* Render the scroll-to-bottom button */}
-      <ScrollToBottomButton />
+      <ScrollToBottomButton  />
     </StickToBottom>
   );
 }

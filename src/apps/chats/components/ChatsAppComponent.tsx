@@ -313,10 +313,11 @@ export function ChatsAppComponent({
         appId="chats"
         skipInitialSound={skipInitialSound}
         isShaking={isShaking}
+        transparentBackground={true}
       >
         <div
           ref={containerRef}
-          className="relative h-full bg-[#c0c0c0] w-full"
+          className="relative h-full w-full backdrop-blur-2xl bg-white/85"
         >
           {/* Mobile sidebar overlay with framer-motion 3D animations */}
           <AnimatePresence>
@@ -367,7 +368,7 @@ export function ChatsAppComponent({
                     stiffness: 300,
                     mass: 1,
                   }}
-                  className="relative w-full h-fit bg-[#c0c0c0] z-10"
+                  className="relative w-full h-fit bg-neutral-200 z-10"
                   style={{
                     transformPerspective: "2000px",
                     backfaceVisibility: "hidden",
@@ -404,19 +405,20 @@ export function ChatsAppComponent({
             </div>
 
             {/* Chat area */}
-            <div className="flex flex-col flex-1 h-full">
+            <div className="relative flex flex-col flex-1 h-full bg-white/85">
               {/* Mobile chat title bar */}
-              <div className="flex items-center justify-between px-2 pt-1 pb-0 flex-shrink-0">
+              <div className="sticky top-0 z-10 flex items-center justify-between px-2 pt-1 pb-0 bg-white/30 backdrop-blur">
                 <div className="flex items-center">
-                  <button
+                  <Button
+                    variant="ghost"
                     onClick={toggleSidebarVisibility}
-                    className="flex items-center gap-1 hover:bg-neutral-400 px-2 py-1 rounded"
+                    className="flex items-center gap-0.5 px-2 py-1"
                   >
                     <h2 className="font-geneva-12 text-[12px] font-medium truncate">
                       {currentRoom ? `#${currentRoom.name}` : "@ryo"}
                     </h2>
-                    <ChevronDown className="h-3 w-3 transform transition-transform duration-200" />
-                  </button>
+                    <ChevronDown className="h-3 w-3 transform transition-transform duration-200 text-neutral-400" />
+                  </Button>
                   {!currentRoom && (
                     <span className="font-geneva-12 text-[11px] text-neutral-500">
                       online
@@ -430,12 +432,13 @@ export function ChatsAppComponent({
                 </div>
                 {/* Clear chat button shown only in @ryo (no current room) */}
                 {!currentRoom && (
-                  <button
+                  <Button
+                    variant="ghost"
                     onClick={() => setIsClearDialogOpen(true)}
-                    className="flex items-center gap-1 hover:bg-neutral-400 px-2 py-1 rounded"
+                    className="flex items-center gap-1 px-2 py-1"
                   >
                     <span className="font-geneva-12 text-[11px]">Clear</span>
-                  </button>
+                  </Button>
                 )}
               </div>
 
@@ -464,7 +467,7 @@ export function ChatsAppComponent({
                 </div>
 
                 {/* Input Area or Set Username Prompt */}
-                <div className="flex-shrink-0 p-2 pt-1">
+                <div className="absolute inset-x-0 bottom-0 z-10 p-4 px-4">
                   {currentRoomId && !username ? (
                     <Button
                       onClick={promptSetUsername}
