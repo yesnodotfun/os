@@ -11,6 +11,7 @@ export type ChatRoom = {
   name: string;
   createdAt: number;
   userCount: number;
+  users?: string[];
 };
 
 export type User = {

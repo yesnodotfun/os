@@ -120,6 +120,21 @@ const refreshRoomUserCount = async (roomId) => {
   return userCount;
 };
 
+// Add helper to fetch rooms with user list
+async function getDetailedRooms() {
+  const keys = await redis.keys(`${CHAT_ROOM_PREFIX}*`);
+  const roomsData = await redis.mget(...keys);
+  const rooms = await Promise.all(
+    roomsData.map(async (raw) => {
+      if (!raw) return null;
+      const roomObj = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      const activeUsers = await getActiveUsersAndPrune(roomObj.id);
+      return { ...roomObj, userCount: activeUsers.length, users: activeUsers };
+    })
+  );
+  return rooms.filter((r) => r !== null);
+}
+
 // Helper functions
 const generateId = () => {
   return Math.random().toString(36).substring(2, 15);
@@ -230,6 +245,17 @@ export async function GET(request) {
         }
         return await handleGetMessages(roomId, requestId);
       }
+      case 'getRoomUsers': {
+        const roomId = url.searchParams.get('roomId');
+        if (!roomId) {
+          logInfo(requestId, 'Missing roomId parameter for getRoomUsers');
+          return createErrorResponse('roomId query parameter is required', 400);
+        }
+        const users = await getActiveUsersAndPrune(roomId);
+        return new Response(JSON.stringify({ users }), {
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
       case 'getUsers':
         return await handleGetUsers(requestId);
       default:
@@ -326,28 +352,7 @@ export async function DELETE(request) {
 async function handleGetRooms(requestId) {
   logInfo(requestId, 'Fetching all rooms');
   try {
-    const keys = await redis.keys(`${CHAT_ROOM_PREFIX}*`);
-    logInfo(requestId, `Found ${keys.length} rooms`);
-    
-    if (keys.length === 0) {
-      return new Response(JSON.stringify({ rooms: [] }), {
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-
-    const roomsData = await redis.mget(...keys);
-
-    // Refresh user counts for each room concurrently
-    const rooms = await Promise.all(
-      roomsData.map(async (room) => {
-        if (!room) return null;
-        const roomObj = typeof room === 'string' ? (() => { try { return JSON.parse(room); } catch { return null; } })() : room;
-        if (!roomObj || !roomObj.id) return null;
-        const userCount = await refreshRoomUserCount(roomObj.id);
-        return { ...roomObj, userCount };
-      })
-    ).then(list => list.filter(Boolean));
-
+    const rooms = await getDetailedRooms();
     return new Response(JSON.stringify({ rooms }), {
       headers: { 'Content-Type': 'application/json' }
     });
@@ -412,11 +417,7 @@ async function handleCreateRoom(data, requestId) {
 
     // Trigger Pusher event for room creation
     try {
-      // Get all rooms to send the updated list
-      const keys = await redis.keys(`${CHAT_ROOM_PREFIX}*`);
-      const roomsData = await redis.mget(...keys);
-      const rooms = roomsData.map(r => r).filter(Boolean);
-      
+      const rooms = await getDetailedRooms();
       await pusher.trigger('chats', 'rooms-updated', { rooms });
       logInfo(requestId, 'Pusher event triggered: rooms-updated');
     } catch (pusherError) {
@@ -454,11 +455,7 @@ async function handleDeleteRoom(roomId, requestId) {
 
     // Trigger Pusher event for room deletion
     try {
-      // Get all rooms to send the updated list
-      const keys = await redis.keys(`${CHAT_ROOM_PREFIX}*`);
-      const roomsData = await redis.mget(...keys);
-      const rooms = roomsData.map(r => r).filter(Boolean);
-      
+      const rooms = await getDetailedRooms();
       await pusher.trigger('chats', 'rooms-updated', { rooms });
       logInfo(requestId, 'Pusher event triggered: rooms-updated after deletion');
     } catch (pusherError) {
@@ -785,12 +782,7 @@ async function handleResetUserCounts(requestId) {
     
     // Notify clients that user counts have been reset
     try {
-      // Get the updated rooms
-      const keys = await redis.keys(`${CHAT_ROOM_PREFIX}*`);
-      const roomsData = await redis.mget(...keys);
-      const rooms = roomsData.map(r => r).filter(Boolean);
-      
-      // Trigger a rooms-updated event
+      const rooms = await getDetailedRooms();
       await pusher.trigger('chats', 'rooms-updated', { rooms });
       logInfo(requestId, 'Pusher event triggered: rooms-updated after user count reset');
     } catch (pusherError) {
@@ -1081,10 +1073,7 @@ async function handleSwitchRoom(data, requestId) {
         // Removed individual user-count-updated event; rooms-updated will carry the new count
       }
 
-      // Fetch all rooms once for a single rooms-updated event
-      const keys = await redis.keys(`${CHAT_ROOM_PREFIX}*`);
-      const roomsData = await redis.mget(...keys);
-      const rooms = roomsData.map(r => r).filter(Boolean);
+      const rooms = await getDetailedRooms();
       await pusher.trigger('chats', 'rooms-updated', { rooms });
     } catch (pusherErr) {
       logError(requestId, 'Error triggering Pusher events in switchRoom:', pusherErr);

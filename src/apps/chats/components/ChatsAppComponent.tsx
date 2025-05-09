@@ -104,11 +104,18 @@ export function ChatsAppComponent({
   // Add state to trigger scroll in ChatMessages
   const [scrollToBottomTrigger, setScrollToBottomTrigger] = useState(0);
 
-  // Add safety check: ensure rooms is an array before finding
+  // Safety check: ensure rooms is an array before finding
   const currentRoom =
     Array.isArray(rooms) && currentRoomId
       ? rooms.find((r: ChatRoom) => r.id === currentRoomId)
       : null;
+
+  // Prepare tooltip text: display up to 3 users then show remaining count
+  const usersList = currentRoom?.users ?? [];
+  const maxDisplayNames = 3;
+  const displayNames = usersList.slice(0, maxDisplayNames);
+  const remainingCount = usersList.length - displayNames.length;
+  const tooltipText = displayNames.join(', ') + (remainingCount > 0 ? `, ${remainingCount}+` : '');
 
   // Use the @ryo chat hook
   const { isRyoLoading, stopRyo, handleRyoMention, detectAndProcessMention } =
@@ -407,7 +414,7 @@ export function ChatsAppComponent({
             {/* Chat area */}
             <div className="relative flex flex-col flex-1 h-full bg-white/85">
               {/* Mobile chat title bar */}
-              <div className="sticky top-0 z-10 flex items-center justify-between px-2 pt-1 pb-0 bg-white/70 backdrop-blur-xl">
+              <div className="sticky top-0 z-10 flex items-center justify-between px-2 pt-1 pb-0 bg-neutral-200/70 backdrop-blur-2xl border-b border-black/20">
                 <div className="flex items-center">
                   <Button
                     variant="ghost"
@@ -419,14 +426,10 @@ export function ChatsAppComponent({
                     </h2>
                     <ChevronDown className="h-3 w-3 transform transition-transform duration-200 text-neutral-400" />
                   </Button>
-                  {!currentRoom && (
+                 
+                  {currentRoom && usersList.length > 0 && (
                     <span className="font-geneva-12 text-[11px] text-neutral-500">
-                      online
-                    </span>
-                  )}
-                  {currentRoom && currentRoom.userCount > 0 && (
-                    <span className="font-geneva-12 text-[11px] text-neutral-500">
-                      {currentRoom.userCount} online
+                      {tooltipText}
                     </span>
                   )}
                 </div>
