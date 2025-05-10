@@ -91,7 +91,12 @@ export default async function handler(req: Request) {
       text: text.trim(),
       voice: voice ?? "onyx",
       outputFormat: "mp3",
-      speed: speed ?? 1.3,
+      instructions: "Voice: Warm, upbeat, and reassuring, with a fast-paced and confident cadence that keeps the conversation fun and engaging.\n\n" +
+        "Tone: Positive and aspirational, always optimistic about the future of humanity and AI.\n\n" +
+        "Dialect: Friendly and professional, casual speech in chill, approachable style.\n\n" +
+        "Pronunciation: Clear and precise, with a natural rhythm that emphasizes key words to instill confidence and keep the user engaged.\n\n" +
+        "Features: Talks like we're friends catching up, uses encouraging words, and helps you turn your cool ideas into real things you can do.",
+      speed: speed ?? 2,
     });
 
     logInfo(requestId, "Speech generated", { bytes: audio.uint8Array.length });

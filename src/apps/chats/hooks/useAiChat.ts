@@ -192,7 +192,7 @@ export function useAiChat() {
         if (processed >= message.content.length) return; // already fully spoken or skipped
 
         const remaining = message.content.slice(processed).trim();
-        if (remaining) {
+        if (remaining && !/^[!！]$/.test(remaining)) {
           speak(remaining);
         }
         // mark as done to prevent any further attempts
@@ -247,12 +247,13 @@ export function useAiChat() {
     let buffer = newText;
     let spokenChars = 0;
     let match: RegExpMatchArray | null;
-    const sentenceRegex = /[.!?]\s/;
+    const sentenceRegex = /[.!?。，！？；：]\s*|\r?\n+/;
 
     while ((match = buffer.match(sentenceRegex))) {
-      const idx = match.index! + 1; // include punctuation
+      const matchText = match[0];
+      const idx = match.index! + matchText.length; // include punctuation and following spaces
       const sentence = buffer.slice(0, idx).trim();
-      if (sentence) {
+      if (sentence && !/^[!！]$/.test(sentence)) {
         speak(sentence);
       }
       spokenChars += idx;

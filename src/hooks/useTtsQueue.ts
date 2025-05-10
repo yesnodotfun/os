@@ -16,15 +16,15 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
   const controllersRef = useRef<Set<AbortController>>(new Set());
 
   const ensureContext = () => {
-    if (!ctxRef.current) {
+    // Recreate if not exists or previously closed (e.g., due to HMR)
+    if (!ctxRef.current || ctxRef.current.state === "closed") {
       const WebKitAudioCtx = (
         window as unknown as {
           webkitAudioContext?: typeof AudioContext;
         }
       ).webkitAudioContext;
 
-      ctxRef.current = new ((window.AudioContext ||
-        WebKitAudioCtx) as typeof AudioContext)();
+      ctxRef.current = new ((window.AudioContext || WebKitAudioCtx) as typeof AudioContext)();
     }
     return ctxRef.current;
   };
@@ -58,6 +58,10 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
 
           const arrayBuf = await res.arrayBuffer();
           const ctx = ensureContext();
+          // Resume if the context was suspended (e.g., after HMR or user gesture requirements)
+          if (ctx.state === "suspended") {
+            await ctx.resume();
+          }
           const audioBuf = await ctx.decodeAudioData(arrayBuf);
 
           const now = ctx.currentTime;
@@ -93,7 +97,7 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
   useEffect(() => {
     return () => {
       stop();
-      ctxRef.current?.close();
+      // preserve AudioContext across hot reloads instead of closing
     };
   }, [stop]);
 
