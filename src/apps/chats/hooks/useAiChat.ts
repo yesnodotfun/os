@@ -10,6 +10,7 @@ import { useLaunchApp, type LaunchAppOptions } from "@/hooks/useLaunchApp";
 import { AppId } from "@/config/appIds";
 import { appRegistry } from "@/config/appRegistry";
 import { useFileSystem } from "@/apps/finder/hooks/useFileSystem";
+import { useTtsQueue } from "@/hooks/useTtsQueue";
 
 // TODO: Move relevant state and logic from ChatsAppComponent here
 // - AI chat state (useChat hook)
@@ -94,6 +95,21 @@ export function useAiChat() {
   const speechEnabled = useAppStore((state) => state.speechEnabled);
   const { saveFile } = useFileSystem("/Documents", { skipLoad: true });
 
+  // Track how many characters of each assistant message have already been sent to TTS
+  const speechProgressRef = useRef<Record<string, number>>({});
+
+  // On first mount, mark any assistant messages already present as fully processed
+  useEffect(() => {
+    aiMessages.forEach((msg) => {
+      if (msg.role === "assistant") {
+        speechProgressRef.current[msg.id] = msg.content.length; // skip speaking
+      }
+    });
+  }, [aiMessages]);
+
+  // Queue-based TTS – speaks chunks as they arrive
+  const { speak, stop: stopTts } = useTtsQueue();
+
   // --- AI Chat Hook (Vercel AI SDK) ---
   const {
     messages: currentSdkMessages,
@@ -103,7 +119,7 @@ export function useAiChat() {
     isLoading,
     reload,
     error,
-    stop,
+    stop: sdkStop,
     setMessages: setSdkMessages,
     append,
   } = useChat({
@@ -170,40 +186,17 @@ export function useAiChat() {
       );
       setAiMessages(finalMessages);
 
-      // message provided by onFinish is the completed assistant reply
-      if (
-        speechEnabled &&
-        message.role === "assistant" &&
-        message.content.trim().length > 0 &&
-        !spokenMessageIdsRef.current.has(message.id)
-      ) {
-        spokenMessageIdsRef.current.add(message.id);
+      // Speak any remaining text that hasn't been read yet (e.g. last sentence without trailing punctuation)
+      if (speechEnabled && message.role === "assistant") {
+        const processed = speechProgressRef.current[message.id] ?? 0;
+        if (processed >= message.content.length) return; // already fully spoken or skipped
 
-        (async () => {
-          try {
-            const res = await fetch("/api/speech", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ text: message.content }),
-            });
-
-            if (!res.ok) {
-              console.error("TTS fetch failed", await res.text());
-              return;
-            }
-
-            const blob = await res.blob();
-            const url = URL.createObjectURL(blob);
-            const audio = new Audio(url);
-            audio.play().catch((err) => {
-              console.warn("Audio play blocked or failed", err);
-            });
-          } catch (err) {
-            console.error("Error fetching/playing TTS", err);
-          }
-        })();
+        const remaining = message.content.slice(processed).trim();
+        if (remaining) {
+          speak(remaining);
+        }
+        // mark as done to prevent any further attempts
+        speechProgressRef.current[message.id] = message.content.length;
       }
     },
     onError: (err) => {
@@ -239,6 +232,36 @@ export function useAiChat() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aiMessages, setSdkMessages]); // Only run when aiMessages changes
+
+  // --- Incremental TTS while assistant reply is streaming ---
+  useEffect(() => {
+    if (!speechEnabled) return;
+
+    const lastMsg = currentSdkMessages.at(-1);
+    if (!lastMsg || lastMsg.role !== "assistant") return;
+
+    const processed = speechProgressRef.current[lastMsg.id] ?? 0;
+    if (processed === -1 || lastMsg.content.length <= processed) return; // nothing new or skipped
+
+    const newText = lastMsg.content.slice(processed);
+    let buffer = newText;
+    let spokenChars = 0;
+    let match: RegExpMatchArray | null;
+    const sentenceRegex = /[.!?]\s/;
+
+    while ((match = buffer.match(sentenceRegex))) {
+      const idx = match.index! + 1; // include punctuation
+      const sentence = buffer.slice(0, idx).trim();
+      if (sentence) {
+        speak(sentence);
+      }
+      spokenChars += idx;
+      buffer = buffer.slice(idx);
+    }
+
+    speechProgressRef.current[lastMsg.id] = processed + spokenChars;
+    // leftover buffer will be spoken in future ticks or onFinish
+  }, [currentSdkMessages, speechEnabled, speak]);
 
   // --- Action Handlers ---
   const handleSubmit = useCallback(
@@ -285,7 +308,7 @@ export function useAiChat() {
   const handleNudge = useCallback(() => {
     handleDirectMessageSubmit("👋 *nudge sent*");
     // Consider adding shake effect trigger here if needed
-  }, [aiMessages, username]);
+  }, [handleDirectMessageSubmit]);
 
   const clearChats = useCallback(() => {
     console.log("Clearing AI chats");
@@ -377,19 +400,11 @@ export function useAiChat() {
     [aiMessages, username, saveFile]
   );
 
-  // --- Text-to-Speech (TTS) ---
-  // Track which assistant messages have already been spoken to avoid duplicates
-  const spokenMessageIdsRef = useRef<Set<string>>(new Set());
-
-  // On initial mount, mark any pre-loaded assistant messages as already spoken
-  useEffect(() => {
-    const initialAssistantIds = currentSdkMessages
-      .filter((msg) => msg.role === "assistant")
-      .map((msg) => msg.id);
-    spokenMessageIdsRef.current = new Set(initialAssistantIds);
-    // We only want this to run once on mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Stop both chat streaming and TTS queue
+  const stop = useCallback(() => {
+    sdkStop();
+    stopTts();
+  }, [sdkStop, stopTts]);
 
   return {
     // AI Chat State & Actions

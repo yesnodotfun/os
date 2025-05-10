@@ -4,6 +4,28 @@ import { openai } from "@ai-sdk/openai";
 // Allowed origins for CORS
 const ALLOWED_ORIGINS = new Set(["https://os.ryo.lu", "http://localhost:3000"]);
 
+// --- Logging Utilities ---------------------------------------------------
+
+const logRequest = (
+  method: string,
+  url: string,
+  action: string | null,
+  id: string
+) => {
+  console.log(`[${id}] ${method} ${url} - Action: ${action || "none"}`);
+};
+
+const logInfo = (id: string, message: string, data?: unknown) => {
+  console.log(`[${id}] INFO: ${message}`, data ?? "");
+};
+
+const logError = (id: string, message: string, error: unknown) => {
+  console.error(`[${id}] ERROR: ${message}`, error);
+};
+
+const generateRequestId = (): string =>
+  Math.random().toString(36).substring(2, 10);
+
 export const runtime = "edge";
 export const maxDuration = 60;
 export const config = {
@@ -17,6 +39,13 @@ interface SpeechRequest {
 }
 
 export default async function handler(req: Request) {
+  // Generate a request ID and log the incoming request
+  const requestId = generateRequestId();
+  const startTime =
+    typeof performance !== "undefined" ? performance.now() : Date.now();
+
+  logRequest(req.method, req.url, "speech", requestId);
+
   const origin = req.headers.get("origin");
 
   // Handle CORS pre-flight request
@@ -38,24 +67,36 @@ export default async function handler(req: Request) {
   }
 
   if (!origin || !ALLOWED_ORIGINS.has(origin)) {
+    logError(requestId, "Unauthorized origin", origin);
     return new Response("Unauthorized", { status: 403 });
   }
 
   try {
     const { text, voice, speed } = (await req.json()) as SpeechRequest;
 
+    logInfo(requestId, "Parsed request body", {
+      textLength: text?.length,
+      voice,
+      speed,
+    });
+
     if (!text || typeof text !== "string" || text.trim().length === 0) {
+      logError(requestId, "'text' is required", null);
       return new Response("'text' is required", { status: 400 });
     }
 
     // Generate speech audio (mp3) using OpenAI TTS model via AI SDK
     const { audio } = await generateSpeech({
-      model: openai.speech("tts-1"),
+      model: openai.speech("gpt-4o-mini-tts"),
       text: text.trim(),
-      voice: voice ?? "alloy",
+      voice: voice ?? "onyx",
       outputFormat: "mp3",
-      speed,
+      instructions:
+        "Speak in a fast-paced, friendly, aspirational tone. Chill but passionate. 講中文要有台灣腔",
+      speed: speed ?? 1.3,
     });
+
+    logInfo(requestId, "Speech generated", { bytes: audio.uint8Array.length });
 
     // Convert the Uint8Array to a ReadableStream for streaming back to the client
     const stream = new ReadableStream({
@@ -65,7 +106,7 @@ export default async function handler(req: Request) {
       },
     });
 
-    return new Response(stream, {
+    const response = new Response(stream, {
       headers: {
         "Content-Type": audio.mimeType ?? "audio/mpeg",
         "Content-Length": audio.uint8Array.length.toString(),
@@ -73,8 +114,15 @@ export default async function handler(req: Request) {
         "Cache-Control": "no-store",
       },
     });
+
+    const duration =
+      (typeof performance !== "undefined" ? performance.now() : Date.now()) -
+      startTime;
+    logInfo(requestId, `Request completed in ${duration.toFixed(2)}ms`);
+
+    return response;
   } catch (error: unknown) {
-    console.error("Speech API error:", error);
+    logError(requestId, "Speech API error", error);
     const message =
       error instanceof Error ? error.message : "Failed to generate speech";
     return new Response(message, { status: 500 });
