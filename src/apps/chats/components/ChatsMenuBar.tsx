@@ -11,6 +11,8 @@ import { cn } from "@/lib/utils";
 import { type ChatRoom } from "../../../../src/types/chat";
 import { toast } from "sonner";
 import { generateAppShareUrl } from "@/utils/sharedUrl";
+import { useAppStore } from "@/stores/useAppStore";
+import { SYNTH_PRESETS } from "@/hooks/useChatSynth";
 
 interface ChatsMenuBarProps {
   onClose: () => void;
@@ -49,6 +51,16 @@ export function ChatsMenuBar({
   onDecreaseFontSize,
   onResetFontSize,
 }: ChatsMenuBarProps) {
+  const {
+    debugMode,
+    speechEnabled,
+    setSpeechEnabled,
+    typingSynthEnabled,
+    setTypingSynthEnabled,
+    synthPreset,
+    setSynthPreset,
+  } = useAppStore();
+
   return (
     <MenuBar>
       {/* File Menu */}
@@ -71,6 +83,7 @@ export function ChatsMenuBar({
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={onClearChats}
+            disabled={currentRoom !== null}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
             Clear Chat
@@ -141,6 +154,54 @@ export function ChatsMenuBar({
             >
               <span className={cn(!(currentRoom?.id === room.id) && "pl-4")}>
                 {currentRoom?.id === room.id ? `✓ #${room.name}` : `#${room.name}`}
+              </span>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* Sounds Menu */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="default"
+            className="h-6 text-md px-2 py-1 border-none hover:bg-gray-200 active:bg-gray-900 active:text-white focus-visible:ring-0"
+          >
+            Sound
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" sideOffset={1} className="px-0">
+          {debugMode && (
+            <DropdownMenuItem
+              onClick={() => setSpeechEnabled(!speechEnabled)}
+              className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+            >
+              <span className={cn(!speechEnabled && "pl-4")}>
+                {speechEnabled ? "✓ Chat Speech" : "Chat Speech"}
+              </span>
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuItem
+            onClick={() => setTypingSynthEnabled(!typingSynthEnabled)}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            <span className={cn(!typingSynthEnabled && "pl-4")}>
+              {typingSynthEnabled ? "✓ Typing Synth" : "Typing Synth"}
+            </span>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
+          {Object.entries(SYNTH_PRESETS).map(([key, preset]) => (
+            <DropdownMenuItem
+              key={key}
+              onClick={() => setSynthPreset(key)}
+              className={cn(
+                "text-md h-6 px-3 active:bg-gray-900 active:text-white",
+                synthPreset === key && "bg-gray-200" 
+              )}
+            >
+              <span className={cn(!(synthPreset === key) && "pl-4")}>
+                {synthPreset === key ? `✓ ${preset.name}` : preset.name}
               </span>
             </DropdownMenuItem>
           ))}
