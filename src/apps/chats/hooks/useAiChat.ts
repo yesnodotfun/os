@@ -190,7 +190,22 @@ export function useAiChat() {
       );
       setAiMessages(finalMessages);
 
-      // No speech handling here – speech is handled incrementally during streaming.
+      // Speak any remaining text that wasn't processed during streaming
+      if (speechEnabled) {
+        const lastMsg = finalMessages.at(-1);
+        if (lastMsg && lastMsg.role === "assistant") {
+          const processed = speechProgressRef.current[lastMsg.id] ?? 0;
+          if (processed !== -1 && lastMsg.content.length > processed) {
+            const remaining = lastMsg.content.slice(processed).trim();
+            const cleaned = cleanTextForSpeech(remaining);
+            if (cleaned) {
+              speak(cleaned);
+            }
+            // Mark the entire message as processed
+            speechProgressRef.current[lastMsg.id] = lastMsg.content.length;
+          }
+        }
+      }
     },
     onError: (err) => {
       console.error("AI Chat Error:", err);
