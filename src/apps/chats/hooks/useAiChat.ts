@@ -247,7 +247,7 @@ export function useAiChat() {
     let buffer = newText;
     let spokenChars = 0;
     let match: RegExpMatchArray | null;
-    const sentenceRegex = /[.!?。，！？；：]\s*|\r?\n+/;
+    const sentenceRegex = /[.!?。，！？；：](?:\s+|$)|\r?\n+/;
 
     while ((match = buffer.match(sentenceRegex))) {
       const matchText = match[0];

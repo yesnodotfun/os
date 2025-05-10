@@ -1,5 +1,5 @@
 import { Message as VercelMessage } from "ai";
-import { Loader2, AlertCircle, MessageSquare, Copy, Check, ChevronDown, Trash } from "lucide-react";
+import { Loader2, AlertCircle, MessageSquare, Copy, Check, ChevronDown, Trash, Volume2, VolumeX, Pause } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { AnimatePresence, motion } from "framer-motion";
@@ -10,6 +10,8 @@ import HtmlPreview, {
   extractHtmlContent,
 } from "@/components/shared/HtmlPreview";
 import { StickToBottom, useStickToBottomContext } from 'use-stick-to-bottom';
+import { useTtsQueue } from "@/hooks/useTtsQueue";
+import { useAppStore } from "@/stores/useAppStore";
 
 // --- Color Hashing for Usernames ---
 const userColors = [
@@ -161,6 +163,9 @@ function ChatMessagesContent({
   const { playNote } = useChatSynth();
   const { playElevatorMusic, stopElevatorMusic, playDingSound } = useTerminalSounds();
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+  const { speak, stop } = useTtsQueue();
+  const speechEnabled = useAppStore(state => state.speechEnabled);
+  const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
   const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
   const [isInteractingWithPreview, setIsInteractingWithPreview] = useState(false);
   
@@ -368,21 +373,54 @@ function ChatMessagesContent({
                 )}
               </span>
               {message.role === "assistant" && (
-                <motion.button
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{
-                    opacity: hoveredMessageId === messageKey ? 1 : 0,
-                    scale: 1,
-                  }}
-                  className="h-3 w-3 text-gray-400 hover:text-gray-600 transition-colors"
-                  onClick={() => copyMessage(message)}
-                >
-                  {copiedMessageId === messageKey ? (
-                    <Check className="h-3 w-3" />
-                  ) : (
-                    <Copy className="h-3 w-3" />
+                <>
+                  <motion.button
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{
+                      opacity: hoveredMessageId === messageKey ? 1 : 0,
+                      scale: 1,
+                    }}
+                    className="h-3 w-3 text-gray-400 hover:text-gray-600 transition-colors"
+                    onClick={() => copyMessage(message)}
+                    aria-label="Copy message"
+                  >
+                    {copiedMessageId === messageKey ? (
+                      <Check className="h-3 w-3" />
+                    ) : (
+                      <Copy className="h-3 w-3" />
+                    )}
+                  </motion.button>
+                  {speechEnabled && (
+                    <motion.button
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{
+                        opacity: hoveredMessageId === messageKey ? 1 : 0,
+                        scale: 1,
+                      }}
+                      className="h-3 w-3 text-gray-400 hover:text-gray-600 transition-colors"
+                      onClick={() => {
+                        if (playingMessageId === messageKey) {
+                          stop();
+                          setPlayingMessageId(null);
+                        } else {
+                          stop();
+                          // Play speech and reset icon when finished
+                          speak(message.content, () => {
+                            setPlayingMessageId(null);
+                          });
+                          setPlayingMessageId(messageKey);
+                        }
+                      }}
+                      aria-label={playingMessageId === messageKey ? "Stop speech" : "Speak message"}
+                    >
+                      {playingMessageId === messageKey ? (
+                        <Pause className="h-3 w-3" />
+                      ) : (
+                        <Volume2 className="h-3 w-3" />
+                      )}
+                    </motion.button>
                   )}
-                </motion.button>
+                </>
               )}
               {isRoomView && message.role === 'human' && (
                 <motion.button

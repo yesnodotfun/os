@@ -37,7 +37,7 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
    * after whatever is already queued.
    */
   const speak = useCallback(
-    (text: string) => {
+    (text: string, onEnd?: () => void) => {
       if (!text || !text.trim()) return;
 
       playChainRef.current = playChainRef.current.then(async () => {
@@ -70,6 +70,9 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
           const src = ctx.createBufferSource();
           src.buffer = audioBuf;
           src.connect(ctx.destination);
+          if (onEnd) {
+            src.onended = onEnd;
+          }
           src.start(start);
 
           nextStartRef.current = start + audioBuf.duration;
