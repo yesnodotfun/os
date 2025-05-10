@@ -110,6 +110,14 @@ export function useAiChat() {
   // Queue-based TTS – speaks chunks as they arrive
   const { speak, stop: stopTts } = useTtsQueue();
 
+  // Strip any number of leading exclamation marks (urgent markers) plus following spaces,
+  // then remove any leading standalone punctuation that may remain.
+  const cleanTextForSpeech = (text: string) =>
+    text
+      .replace(/^!+\s*/, "") // remove !!!!!! prefix
+      .replace(/^[\s.!?。，！？；：]+/, "") // remove leftover punctuation/space at start
+      .trim();
+
   // --- AI Chat Hook (Vercel AI SDK) ---
   const {
     messages: currentSdkMessages,
@@ -186,7 +194,18 @@ export function useAiChat() {
       );
       setAiMessages(finalMessages);
 
-      // No speech handling here – final leftovers are handled in a dedicated effect below.
+      // Extra safety: speak any remaining text that wasn't handled yet (e.g., if effects
+      // timing caused us to miss the last chunk).
+      if (speechEnabled && message.role === "assistant") {
+        const processed = speechProgressRef.current[message.id] ?? 0;
+        if (processed < message.content.length) {
+          const remainingText = cleanTextForSpeech(message.content.slice(processed));
+          if (remainingText && !/^[\s.!?。，！？；：]+$/.test(remainingText)) {
+            speak(remainingText);
+            speechProgressRef.current[message.id] = message.content.length;
+          }
+        }
+      }
     },
     onError: (err) => {
       console.error("AI Chat Error:", err);
@@ -243,7 +262,10 @@ export function useAiChat() {
       const idx = match.index! + matchText.length; // include punctuation and following spaces
       const sentence = buffer.slice(0, idx).trim();
       if (sentence && !/^[\s.!?。，！？；：]+$/.test(sentence)) {
-        speak(sentence);
+        const cleaned = cleanTextForSpeech(sentence);
+        if (cleaned && !/^[\s.!?。，！？；：]+$/.test(cleaned)) {
+          speak(cleaned);
+        }
       }
       spokenChars += idx;
       buffer = buffer.slice(idx);
@@ -264,8 +286,9 @@ export function useAiChat() {
     if (processed >= lastMsg.content.length) return; // nothing new
 
     const remaining = lastMsg.content.slice(processed).trim();
-    if (remaining && !/^[\s.!?。，！？；：]+$/.test(remaining)) {
-      speak(remaining);
+    const cleanedRemaining = cleanTextForSpeech(remaining);
+    if (cleanedRemaining && !/^[\s.!?。，！？；：]+$/.test(cleanedRemaining)) {
+      speak(cleanedRemaining);
     }
     speechProgressRef.current[lastMsg.id] = lastMsg.content.length;
   }, [isLoading, currentSdkMessages, speechEnabled, speak]);

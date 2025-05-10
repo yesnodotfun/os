@@ -404,11 +404,16 @@ function ChatMessagesContent({
                           setPlayingMessageId(null);
                         } else {
                           stop();
-                          // Play speech and reset icon when finished
-                          speak(message.content, () => {
+                          const textForSpeech = displayContent.trim();
+                          if (textForSpeech) {
+                            speak(textForSpeech, () => {
+                              setPlayingMessageId(null);
+                            });
+                            setPlayingMessageId(messageKey);
+                          } else {
+                            // Nothing meaningful to speak – ensure UI resets
                             setPlayingMessageId(null);
-                          });
-                          setPlayingMessageId(messageKey);
+                          }
                         }
                       }}
                       aria-label={playingMessageId === messageKey ? "Stop speech" : "Speak message"}
