@@ -91,7 +91,7 @@ export default async function handler(req: Request) {
       text: text.trim(),
       voice: voice ?? "alloy",
       outputFormat: "mp3",
-      instructions: "Speak in a natural, friendly tone. Low male voice. Fast-paced, passionate, easy-going, with a natural flow, creating a calming aspirational effect.",
+      instructions: "Speak in a natural, friendly tone. Low male voice. Fast-paced, passionate, easy-going, with a natural flow, creating a calming aspirational effect. When speaking in Chinese 講北京腔普通話",
     });
 
     logInfo(requestId, "Speech generated", { bytes: audio.uint8Array.length });
