@@ -89,10 +89,8 @@ export default async function handler(req: Request) {
     const { audio } = await generateSpeech({
       model: openai.speech("gpt-4o-mini-tts"),
       text: text.trim(),
-      voice: voice ?? "alloy",
+      voice: voice ?? "onyx",
       outputFormat: "mp3",
-      instructions:
-        "Speak in a fast-paced, friendly, aspirational tone. Chill but passionate. 講中文要有台灣腔",
       speed: speed ?? 1.3,
     });
 
