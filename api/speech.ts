@@ -95,7 +95,7 @@ export default async function handler(req: Request) {
         "Tone: Relaxed and reassuring, keeping things light even when the customer is frustrated.\n\n" +
         "Speech Mannerisms: Uses casual, friendly phrasing with ryoisms like 'yo', 'it's the same thing', 'oh no', 'not horrible', 'nice', 'the idea is', 'the thing is', 'for real', 'wow', 'cool', 'not bad', 'great', 'love this'.\n\n" +
         "Pronunciation: Soft and drawn-out, with slightly stretched vowels and a naturally wavy rhythm in speech.\n\n" +
-        "Tempo: Slow and easygoing, with a natural flow that never feels rushed, creating a calming effect.",
+        "Tempo: Fast-paced and easygoing, with a natural flow that never feels rushed, creating a calming effect.",
       speed: speed ?? 1.5,
     });
 
