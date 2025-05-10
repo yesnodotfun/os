@@ -182,11 +182,7 @@ export function useAiChat() {
         return `Failed to execute ${toolCall.toolName}`;
       }
     },
-    onFinish: (data: Message | { message: Message }) => {
-      const message: Message =
-        typeof data === "object" && data !== null && "message" in data
-          ? (data as { message: Message }).message
-          : (data as Message);
+    onFinish: (_: Message | { message: Message }) => {
       // Sync latest messages from ref to Zustand store
       const finalMessages = currentSdkMessagesRef.current;
       console.log(
@@ -194,7 +190,7 @@ export function useAiChat() {
       );
       setAiMessages(finalMessages);
 
-      // No speech handling here – final leftovers are handled by the post-stream effect below.
+      // No speech handling here – speech is handled incrementally during streaming.
     },
     onError: (err) => {
       console.error("AI Chat Error:", err);
@@ -263,24 +259,6 @@ export function useAiChat() {
     speechProgressRef.current[lastMsg.id] = processed + spokenChars;
     // leftover buffer will be spoken in future ticks or onFinish
   }, [currentSdkMessages, speechEnabled, speak]);
-
-  // --- Speak any leftover once streaming is confirmed finished ---
-  useEffect(() => {
-    if (!speechEnabled || isLoading) return;
-
-    const lastMsg = currentSdkMessages.at(-1);
-    if (!lastMsg || lastMsg.role !== "assistant") return;
-
-    const processed = speechProgressRef.current[lastMsg.id] ?? 0;
-    if (processed >= lastMsg.content.length) return; // nothing new
-
-    const remaining = lastMsg.content.slice(processed).trim();
-    const cleanedRemaining = cleanTextForSpeech(remaining);
-    if (cleanedRemaining && !/^[\s.!?。，！？；：]+$/.test(cleanedRemaining)) {
-      speak(cleanedRemaining);
-      speechProgressRef.current[lastMsg.id] = lastMsg.content.length;
-    }
-  }, [isLoading, currentSdkMessages, speechEnabled, speak]);
 
   // --- Action Handlers ---
   const handleSubmit = useCallback(
