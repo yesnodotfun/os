@@ -1,5 +1,5 @@
 import { Message as VercelMessage } from "ai";
-import { Loader2, AlertCircle, MessageSquare, Copy, Check, ChevronDown, Trash, Volume2, VolumeX, Pause } from "lucide-react";
+import { Loader2, AlertCircle, MessageSquare, Copy, Check, ChevronDown, Trash, Volume2, Pause } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { AnimatePresence, motion } from "framer-motion";
