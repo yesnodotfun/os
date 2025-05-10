@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback } from "react";
+import { useRef, useEffect, useCallback, useState } from "react";
 
 /**
  * Hook that turns short text chunks into speech and queues them in the same
@@ -14,6 +14,10 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
   const nextStartRef = useRef(0);
   // Keep track of in-flight requests so we can cancel them if needed
   const controllersRef = useRef<Set<AbortController>>(new Set());
+  // Expose whether any TTS audio is currently playing
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  // Track any sources currently playing so we can stop them
+  const playingSourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
 
   const ensureContext = () => {
     // Recreate if not exists or previously closed (e.g., due to HMR)
@@ -70,9 +74,19 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
           const src = ctx.createBufferSource();
           src.buffer = audioBuf;
           src.connect(ctx.destination);
-          if (onEnd) {
-            src.onended = onEnd;
-          }
+
+          // Keep track of active sources so we can stop them later
+          playingSourcesRef.current.add(src);
+          setIsSpeaking(true);
+
+          src.onended = () => {
+            playingSourcesRef.current.delete(src);
+            if (playingSourcesRef.current.size === 0) {
+              setIsSpeaking(false);
+            }
+            if (onEnd) onEnd();
+          };
+
           src.start(start);
 
           nextStartRef.current = start + audioBuf.duration;
@@ -91,6 +105,16 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
     controllersRef.current.forEach((c) => c.abort());
     controllersRef.current.clear();
     playChainRef.current = Promise.resolve();
+    // Stop any sources that are currently playing
+    playingSourcesRef.current.forEach((src) => {
+      try {
+        src.stop();
+      } catch (e) {
+        /* ignore */
+      }
+    });
+    playingSourcesRef.current.clear();
+    setIsSpeaking(false);
     if (ctxRef.current) {
       nextStartRef.current = ctxRef.current.currentTime;
     }
@@ -104,5 +128,5 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
     };
   }, [stop]);
 
-  return { speak, stop };
+  return { speak, stop, isSpeaking };
 }

@@ -60,6 +60,8 @@ interface ChatInputProps {
    */
   showNudgeButton?: boolean;
   isInChatRoom?: boolean;
+  /** Whether TTS speech is currently playing */
+  isSpeechPlaying?: boolean;
 }
 
 export function ChatInput({
@@ -74,6 +76,7 @@ export function ChatInput({
   previousMessages = [],
   showNudgeButton = true,
   isInChatRoom = false,
+  isSpeechPlaying = false,
 }: ChatInputProps) {
   const [isFocused, setIsFocused] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -349,7 +352,7 @@ export function ChatInput({
                       </div>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Send a nudge</p>
+                      <p>Send a Nudge</p>
                     </TooltipContent>
                   </Tooltip>
                             </TooltipProvider>
@@ -391,14 +394,14 @@ export function ChatInput({
                       </div>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Push to talk</p>
+                      <p>Push to Talk</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
 
               </div>
             </motion.div>
-            {isLoading ? (
+            {(isLoading || isSpeechPlaying) ? (
               <motion.div
                 key="stop"
                 initial={{ scale: 0.8, opacity: 0 }}

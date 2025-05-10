@@ -108,7 +108,7 @@ export function useAiChat() {
   }, [aiMessages]);
 
   // Queue-based TTS – speaks chunks as they arrive
-  const { speak, stop: stopTts } = useTtsQueue();
+  const { speak, stop: stopTts, isSpeaking } = useTtsQueue();
 
   // Strip any number of leading exclamation marks (urgent markers) plus following spaces,
   // then remove any leading standalone punctuation that may remain.
@@ -444,5 +444,7 @@ export function useAiChat() {
     saveFileName,
     setSaveFileName,
     handleSaveSubmit,
+
+    isSpeaking,
   };
 }

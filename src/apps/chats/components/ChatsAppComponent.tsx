@@ -47,6 +47,7 @@ export function ChatsAppComponent({
     reload,
     error,
     stop,
+    isSpeaking,
     handleDirectMessageSubmit,
     handleNudge,
     handleSaveTranscript,
@@ -493,6 +494,7 @@ export function ChatsAppComponent({
                           onInputChange={handleInputChange}
                           onSubmit={handleSubmit}
                           onStop={handleStop}
+                          isSpeechPlaying={isSpeaking}
                           onDirectMessageSubmit={handleDirectSubmit}
                           onNudge={handleNudgeClick}
                           previousMessages={prevMessagesContent}
