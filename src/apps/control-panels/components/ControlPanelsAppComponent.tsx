@@ -176,6 +176,8 @@ export function ControlPanelsAppComponent({
     setUiSoundsEnabled,
     typingSynthEnabled,
     setTypingSynthEnabled,
+    speechEnabled,
+    setSpeechEnabled,
     synthPreset,
     setSynthPreset,
   } = useAppStore();
@@ -186,6 +188,10 @@ export function ControlPanelsAppComponent({
 
   const handleTypingSynthChange = (enabled: boolean) => {
     setTypingSynthEnabled(enabled);
+  };
+
+  const handleSpeechChange = (enabled: boolean) => {
+    setSpeechEnabled(enabled);
   };
 
   const handleSynthPresetChange = (value: string) => {
@@ -547,6 +553,7 @@ export function ControlPanelsAppComponent({
                     className="data-[state=checked]:bg-[#000000]"
                   />
                 </div>
+
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col gap-1">
                     <Label>Terminal & IE Ambient Synth</Label>
@@ -561,7 +568,7 @@ export function ControlPanelsAppComponent({
                   <div className="flex flex-col gap-1">
                     <Label>Chat Synth</Label>
                     <Label className="text-[11px] text-gray-600 font-geneva-12 pr-1">
-                      Used when chatting with Ryo
+                      Sounds when streaming
                     </Label>
                   </div>
                   <Select
@@ -674,6 +681,22 @@ export function ControlPanelsAppComponent({
                     <Switch
                       checked={shaderEffectEnabled}
                       onCheckedChange={setShaderEffectEnabled}
+                      className="data-[state=checked]:bg-[#000000]"
+                    />
+                  </div>
+                )}
+
+                {debugMode && (
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-1">
+                      <Label>Chat Speech</Label>
+                      <Label className="text-[11px] text-gray-600 font-geneva-12 pr-1">
+                        Voice replies in Chats
+                      </Label>
+                    </div>
+                    <Switch
+                      checked={speechEnabled}
+                      onCheckedChange={handleSpeechChange}
                       className="data-[state=checked]:bg-[#000000]"
                     />
                   </div>

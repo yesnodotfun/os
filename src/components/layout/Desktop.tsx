@@ -17,7 +17,7 @@ interface DesktopStyles {
 interface DesktopProps {
   apps: BaseApp[];
   appStates: AppManagerState;
-  toggleApp: (appId: AppId, initialData?: any) => void;
+  toggleApp: (appId: AppId, initialData?: unknown) => void;
   onClick?: () => void;
   desktopStyles?: DesktopStyles;
 }
@@ -29,10 +29,7 @@ export function Desktop({
   desktopStyles,
 }: DesktopProps) {
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
-  const {
-    wallpaperSource,
-    isVideoWallpaper,
-  } = useWallpaper();
+  const { wallpaperSource, isVideoWallpaper } = useWallpaper();
   const videoRef = useRef<HTMLVideoElement>(null);
 
   // Add visibility change and focus handlers to resume video playback
@@ -50,7 +47,8 @@ export function Desktop({
         }
 
         // Only attempt to play if the video is ready
-        if (video.readyState >= 3) { // HAVE_FUTURE_DATA or better
+        if (video.readyState >= 3) {
+          // HAVE_FUTURE_DATA or better
           await video.play();
         } else {
           // If video isn't ready, wait for it to be ready
@@ -58,9 +56,9 @@ export function Desktop({
             video.play().catch((err) => {
               console.warn("Could not resume video playback:", err);
             });
-            video.removeEventListener('canplay', handleCanPlay);
+            video.removeEventListener("canplay", handleCanPlay);
           };
-          video.addEventListener('canplay', handleCanPlay);
+          video.addEventListener("canplay", handleCanPlay);
         }
       } catch (err) {
         console.warn("Could not resume video playback:", err);
@@ -99,9 +97,9 @@ export function Desktop({
       }
     };
 
-    video.addEventListener('canplaythrough', handleCanPlayThrough);
+    video.addEventListener("canplaythrough", handleCanPlayThrough);
     return () => {
-      video.removeEventListener('canplaythrough', handleCanPlayThrough);
+      video.removeEventListener("canplaythrough", handleCanPlayThrough);
     };
   }, [isVideoWallpaper]);
 

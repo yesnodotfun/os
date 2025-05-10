@@ -91,6 +91,8 @@ export function useAiChat() {
   const launchApp = useLaunchApp();
   const closeApp = useAppStore((state) => state.closeApp);
   const aiModel = useAppStore((state) => state.aiModel);
+  const speechEnabled = useAppStore((state) => state.speechEnabled);
+  const debugMode = useAppStore((state) => state.debugMode);
   const { saveFile } = useFileSystem("/Documents", { skipLoad: true });
 
   // --- AI Chat Hook (Vercel AI SDK) ---
@@ -157,13 +159,54 @@ export function useAiChat() {
         return `Failed to execute ${toolCall.toolName}`;
       }
     },
-    onFinish: () => {
-      // Use the ref to get the latest SDK messages when stream finishes
+    onFinish: (data: Message | { message: Message }) => {
+      const message: Message =
+        typeof data === "object" && data !== null && "message" in data
+          ? (data as { message: Message }).message
+          : (data as Message);
+      // Sync latest messages from ref to Zustand store
       const finalMessages = currentSdkMessagesRef.current;
       console.log(
         `AI finished, syncing ${finalMessages.length} final messages to store.`
       );
-      setAiMessages(finalMessages); // Update Zustand with the definitive list from useChat
+      setAiMessages(finalMessages);
+
+      // message provided by onFinish is the completed assistant reply
+      if (
+        debugMode &&
+        speechEnabled &&
+        message.role === "assistant" &&
+        message.content.trim().length > 0 &&
+        !spokenMessageIdsRef.current.has(message.id)
+      ) {
+        spokenMessageIdsRef.current.add(message.id);
+
+        (async () => {
+          try {
+            const res = await fetch("/api/speech", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ text: message.content }),
+            });
+
+            if (!res.ok) {
+              console.error("TTS fetch failed", await res.text());
+              return;
+            }
+
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const audio = new Audio(url);
+            audio.play().catch((err) => {
+              console.warn("Audio play blocked or failed", err);
+            });
+          } catch (err) {
+            console.error("Error fetching/playing TTS", err);
+          }
+        })();
+      }
     },
     onError: (err) => {
       console.error("AI Chat Error:", err);
@@ -335,6 +378,20 @@ export function useAiChat() {
     },
     [aiMessages, username, saveFile]
   );
+
+  // --- Text-to-Speech (TTS) ---
+  // Track which assistant messages have already been spoken to avoid duplicates
+  const spokenMessageIdsRef = useRef<Set<string>>(new Set());
+
+  // On initial mount, mark any pre-loaded assistant messages as already spoken
+  useEffect(() => {
+    const initialAssistantIds = currentSdkMessages
+      .filter((msg) => msg.role === "assistant")
+      .map((msg) => msg.id);
+    spokenMessageIdsRef.current = new Set(initialAssistantIds);
+    // We only want this to run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return {
     // AI Chat State & Actions

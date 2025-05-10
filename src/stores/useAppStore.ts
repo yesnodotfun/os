@@ -41,6 +41,8 @@ interface AppStoreState extends AppManagerState {
   setUiSoundsEnabled: (enabled: boolean) => void;
   typingSynthEnabled: boolean;
   setTypingSynthEnabled: (enabled: boolean) => void;
+  speechEnabled: boolean;
+  setSpeechEnabled: (enabled: boolean) => void;
   synthPreset: string;
   setSynthPreset: (preset: string) => void;
   displayMode: DisplayMode;
@@ -91,6 +93,8 @@ export const useAppStore = create<AppStoreState>()(
       setUiSoundsEnabled: (enabled) => set({ uiSoundsEnabled: enabled }),
       typingSynthEnabled: false,
       setTypingSynthEnabled: (enabled) => set({ typingSynthEnabled: enabled }),
+      speechEnabled: false,
+      setSpeechEnabled: (enabled) => set({ speechEnabled: enabled }),
       synthPreset: "classic",
       setSynthPreset: (preset) => set({ synthPreset: preset }),
       displayMode: "color",
@@ -484,6 +488,7 @@ export const useAppStore = create<AppStoreState>()(
         terminalSoundsEnabled: state.terminalSoundsEnabled,
         uiSoundsEnabled: state.uiSoundsEnabled,
         typingSynthEnabled: state.typingSynthEnabled,
+        speechEnabled: state.speechEnabled,
         synthPreset: state.synthPreset,
         currentWallpaper: state.currentWallpaper,
         displayMode: state.displayMode,
