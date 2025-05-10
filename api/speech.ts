@@ -91,7 +91,7 @@ export default async function handler(req: Request) {
       text: text.trim(),
       voice: voice ?? "alloy",
       outputFormat: "mp3",
-      instructions: "Speak in a natural, friendly tone. Fast-paced and easygoing, with a natural flow, calming but inspiring.",
+      instructions: "Speak in a natural, friendly tone. Fast-paced and easygoing, with a natural flow, creating a calming effect.",
     });
 
     logInfo(requestId, "Speech generated", { bytes: audio.uint8Array.length });

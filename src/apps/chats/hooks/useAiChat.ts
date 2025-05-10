@@ -194,18 +194,7 @@ export function useAiChat() {
       );
       setAiMessages(finalMessages);
 
-      // Extra safety: speak any remaining text that wasn't handled yet (e.g., if effects
-      // timing caused us to miss the last chunk).
-      if (speechEnabled && message.role === "assistant") {
-        const processed = speechProgressRef.current[message.id] ?? 0;
-        if (processed < message.content.length) {
-          const remainingText = cleanTextForSpeech(message.content.slice(processed));
-          if (remainingText && !/^[\s.!?。，！？；：]+$/.test(remainingText)) {
-            speak(remainingText);
-            speechProgressRef.current[message.id] = message.content.length;
-          }
-        }
-      }
+      // No speech handling here – final leftovers are handled by the post-stream effect below.
     },
     onError: (err) => {
       console.error("AI Chat Error:", err);
@@ -289,8 +278,8 @@ export function useAiChat() {
     const cleanedRemaining = cleanTextForSpeech(remaining);
     if (cleanedRemaining && !/^[\s.!?。，！？；：]+$/.test(cleanedRemaining)) {
       speak(cleanedRemaining);
+      speechProgressRef.current[lastMsg.id] = lastMsg.content.length;
     }
-    speechProgressRef.current[lastMsg.id] = lastMsg.content.length;
   }, [isLoading, currentSdkMessages, speechEnabled, speak]);
 
   // --- Action Handlers ---
