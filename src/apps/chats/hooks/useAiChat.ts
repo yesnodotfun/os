@@ -186,18 +186,7 @@ export function useAiChat() {
       );
       setAiMessages(finalMessages);
 
-      // Speak any remaining text that hasn't been read yet (e.g. last sentence without trailing punctuation)
-      if (speechEnabled && message.role === "assistant") {
-        const processed = speechProgressRef.current[message.id] ?? 0;
-        if (processed >= message.content.length) return; // already fully spoken or skipped
-
-        const remaining = message.content.slice(processed).trim();
-        if (remaining && !/^[!！]$/.test(remaining)) {
-          speak(remaining);
-        }
-        // mark as done to prevent any further attempts
-        speechProgressRef.current[message.id] = message.content.length;
-      }
+      // No speech handling here – final leftovers are handled in a dedicated effect below.
     },
     onError: (err) => {
       console.error("AI Chat Error:", err);
@@ -253,7 +242,7 @@ export function useAiChat() {
       const matchText = match[0];
       const idx = match.index! + matchText.length; // include punctuation and following spaces
       const sentence = buffer.slice(0, idx).trim();
-      if (sentence && !/^[!！]$/.test(sentence)) {
+      if (sentence && !/^[\s.!?。，！？；：]+$/.test(sentence)) {
         speak(sentence);
       }
       spokenChars += idx;
@@ -263,6 +252,23 @@ export function useAiChat() {
     speechProgressRef.current[lastMsg.id] = processed + spokenChars;
     // leftover buffer will be spoken in future ticks or onFinish
   }, [currentSdkMessages, speechEnabled, speak]);
+
+  // --- Speak any leftover once streaming is confirmed finished ---
+  useEffect(() => {
+    if (!speechEnabled || isLoading) return;
+
+    const lastMsg = currentSdkMessages.at(-1);
+    if (!lastMsg || lastMsg.role !== "assistant") return;
+
+    const processed = speechProgressRef.current[lastMsg.id] ?? 0;
+    if (processed >= lastMsg.content.length) return; // nothing new
+
+    const remaining = lastMsg.content.slice(processed).trim();
+    if (remaining && !/^[\s.!?。，！？；：]+$/.test(remaining)) {
+      speak(remaining);
+    }
+    speechProgressRef.current[lastMsg.id] = lastMsg.content.length;
+  }, [isLoading, currentSdkMessages, speechEnabled, speak]);
 
   // --- Action Handlers ---
   const handleSubmit = useCallback(

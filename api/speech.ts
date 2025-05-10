@@ -96,7 +96,7 @@ export default async function handler(req: Request) {
         "Speech Mannerisms: Uses casual, friendly phrasing with ryoisms like 'yo', 'it's the same thing', 'oh no', 'not horrible', 'nice', 'the idea is', 'the thing is', 'for real', 'wow', 'cool', 'not bad', 'great', 'love this'.\n\n" +
         "Pronunciation: Soft and drawn-out, with slightly stretched vowels and a naturally wavy rhythm in speech.\n\n" +
         "Tempo: Fast-paced and easygoing, with a natural flow that never feels rushed, creating a calming effect.",
-      speed: speed ?? 1.5,
+      speed: speed ?? 2,
     });
 
     logInfo(requestId, "Speech generated", { bytes: audio.uint8Array.length });
