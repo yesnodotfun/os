@@ -92,7 +92,6 @@ export function useAiChat() {
   const closeApp = useAppStore((state) => state.closeApp);
   const aiModel = useAppStore((state) => state.aiModel);
   const speechEnabled = useAppStore((state) => state.speechEnabled);
-  const debugMode = useAppStore((state) => state.debugMode);
   const { saveFile } = useFileSystem("/Documents", { skipLoad: true });
 
   // --- AI Chat Hook (Vercel AI SDK) ---
@@ -173,7 +172,6 @@ export function useAiChat() {
 
       // message provided by onFinish is the completed assistant reply
       if (
-        debugMode &&
         speechEnabled &&
         message.role === "assistant" &&
         message.content.trim().length > 0 &&
