@@ -502,7 +502,7 @@ export function ControlPanelsAppComponent({
       >
         <div className="flex flex-col h-full bg-[#E3E3E3] p-4 w-full">
           <Tabs defaultValue="appearance" className="w-full h-full">
-            <TabsList className="flex w-full h-6 space-x-0.5 bg-[#E3E3E3] shadow-none">
+            <TabsList className="flex w-full h-6 space-x-0.5 bg-[#E3E3E3] shadow-none border-b border-[#808080]">
               <TabsTrigger
                 value="appearance"
                 className="relative flex-1 h-6 px-2 -mb-[1px] rounded-t bg-[#D4D4D4] data-[state=active]:bg-[#E3E3E3] border border-[#808080] data-[state=active]:border-b-[#E3E3E3] shadow-none! text-[16px]"
