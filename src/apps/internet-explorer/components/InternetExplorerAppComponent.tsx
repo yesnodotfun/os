@@ -569,7 +569,11 @@ export function InternetExplorerAppComponent({
         const effectiveUrl = urlToParse.startsWith("/api/iframe-check")
           ? url
           : urlToParse;
-        const hostname = new URL(effectiveUrl).hostname;
+        const hostname = new URL(
+          effectiveUrl.startsWith("http")
+            ? effectiveUrl
+            : `https://${effectiveUrl}`
+        ).hostname;
         newTitle = formatTitle(hostname);
       } catch {
         try {
@@ -1330,11 +1334,20 @@ export function InternetExplorerAppComponent({
   const handleAddFavorite = useCallback(() => {
     const titleSource =
       currentPageTitle ||
-      (finalUrl
-        ? new URL(finalUrl).hostname
-        : url
-        ? new URL(url.startsWith("http") ? url : `https://${url}`).hostname
-        : "Page");
+      (() => {
+        try {
+          // If finalUrl exists and is an absolute http/https URL, use it directly.
+          if (finalUrl && finalUrl.startsWith("http")) {
+            return new URL(finalUrl).hostname;
+          }
+          // If finalUrl is a relative path (e.g. starts with /api/iframe-check), fall back to the main url.
+          const candidate = finalUrl && !finalUrl.startsWith("/") ? finalUrl : url;
+          if (candidate) {
+            return new URL(candidate.startsWith("http") ? candidate : `https://${candidate}`).hostname;
+          }
+        } catch {}
+        return "Page";
+      })();
     setNewFavoriteTitle(titleSource);
     setTitleDialogOpen(true);
   }, [
@@ -1348,12 +1361,18 @@ export function InternetExplorerAppComponent({
   const handleTitleSubmit = useCallback(() => {
     if (!newFavoriteTitle) return;
     const favUrl = url;
-    const favHostname = finalUrl
-      ? new URL(finalUrl).hostname
-      : favUrl
-      ? new URL(favUrl.startsWith("http") ? favUrl : `https://${favUrl}`)
-          .hostname
-      : "unknown.com";
+    const favHostname = (() => {
+      try {
+        if (finalUrl && finalUrl.startsWith("http")) {
+          return new URL(finalUrl).hostname;
+        }
+        const candidate = finalUrl && !finalUrl.startsWith("/") ? finalUrl : favUrl;
+        if (candidate) {
+          return new URL(candidate.startsWith("http") ? candidate : `https://${candidate}`).hostname;
+        }
+      } catch {}
+      return "unknown.com";
+    })();
     const favIcon = `https://www.google.com/s2/favicons?domain=${favHostname}&sz=32`;
     addFavorite({
       title: newFavoriteTitle,

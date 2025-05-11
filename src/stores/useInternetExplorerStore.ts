@@ -506,11 +506,20 @@ const MAX_AI_CACHE_ENTRIES = 20;
 // Helper function to get hostname (copied from component)
 const getHostname = (targetUrl: string): string => {
   try {
-    return new URL(
-      targetUrl.startsWith("http") ? targetUrl : `https://${targetUrl}`
-    ).hostname;
+    // Special handling: our proxy path starts with /api/iframe-check?url=<encoded>
+    if (targetUrl.startsWith("/")) {
+      const query = targetUrl.split("?")[1] || "";
+      const params = new URLSearchParams(query);
+      const inner = params.get("url");
+      if (inner) {
+        return new URL(inner.startsWith("http") ? inner : `https://${inner}`).hostname;
+      }
+      // Fallback to unknown for other internal paths
+      return "unknown";
+    }
+    return new URL(targetUrl.startsWith("http") ? targetUrl : `https://${targetUrl}`).hostname;
   } catch {
-    return targetUrl; // Return the target URL itself if it can't be parsed
+    return "unknown";
   }
 };
 
