@@ -1,6 +1,5 @@
 import { useWindowManager } from "@/hooks/useWindowManager";
 import { ResizeType } from "@/types/types";
-import { APP_STORAGE_KEYS } from "@/utils/storage";
 import { useAppContext } from "@/contexts/AppContext";
 import { useSound, Sounds } from "@/hooks/useSound";
 import { useVibration } from "@/hooks/useVibration";
@@ -8,7 +7,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { getWindowConfig } from "@/config/appRegistry";
 import { useSwipeNavigation } from "@/hooks/useSwipeNavigation";
-import { AppId } from "@/config/appRegistry";
+import { AppId } from "@/config/appIds";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useAppStore } from "@/stores/useAppStore";
 
@@ -17,7 +16,7 @@ interface WindowFrameProps {
   title: string;
   onClose?: () => void;
   isForeground?: boolean;
-  appId: keyof typeof APP_STORAGE_KEYS;
+  appId: AppId;
   isShaking?: boolean;
   transparentBackground?: boolean;
   skipInitialSound?: boolean;

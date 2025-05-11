@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { appMetadata, helpItems } from "../index";
-import { calculateStorageSpace } from "@/utils/storage";
+import { calculateStorageSpace } from "@/stores/useFinderStore";
 import { InputDialog } from "@/components/dialogs/InputDialog";
 import { useTextEditStore } from "@/stores/useTextEditStore";
 import { useFilesStore } from "@/stores/useFilesStore";

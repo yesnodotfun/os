@@ -5,13 +5,13 @@ import {
   ResizeType,
   ResizeStart,
 } from "../types/types";
-import { APP_STORAGE_KEYS } from "../utils/storage";
+import { appIds, AppId } from "@/config/appIds";
 import { useAppStore } from "@/stores/useAppStore";
 import { useSound, Sounds } from "./useSound";
 import { getWindowConfig } from "@/config/appRegistry";
 
 interface UseWindowManagerProps {
-  appId: keyof typeof APP_STORAGE_KEYS;
+  appId: AppId;
 }
 
 export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
@@ -28,10 +28,13 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
     const isMobile = window.innerWidth < 768;
     const mobileY = 28; // Fixed Y position for mobile to account for menu bar
 
+    const appIndex = appIds.indexOf(appId);
+    const offsetIndex = appIndex >= 0 ? appIndex : 0;
+
     return {
       position: {
-        x: isMobile ? 0 : 16 + Object.keys(APP_STORAGE_KEYS).indexOf(appId) * 32,
-        y: isMobile ? mobileY : 40 + Object.keys(APP_STORAGE_KEYS).indexOf(appId) * 20,
+        x: isMobile ? 0 : 16 + offsetIndex * 32,
+        y: isMobile ? mobileY : 40 + offsetIndex * 20,
       },
       size: isMobile
         ? {

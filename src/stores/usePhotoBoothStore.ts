@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { APP_STORAGE_KEYS } from "@/utils/storage";
 
 export interface PhotoReference {
   filename: string;
@@ -38,15 +37,11 @@ export const usePhotoBoothStore = create<PhotoBoothStoreState>()(
       migrate: (persistedState, version) => {
         if (!persistedState || version < STORE_VERSION) {
           try {
-            const saved = localStorage.getItem(
-              APP_STORAGE_KEYS["photo-booth"].PHOTOS
-            );
+            const saved = localStorage.getItem("photo-booth:photos");
             if (saved) {
               const parsed = JSON.parse(saved);
               if (Array.isArray(parsed)) {
-                localStorage.removeItem(
-                  APP_STORAGE_KEYS["photo-booth"].PHOTOS
-                );
+                localStorage.removeItem("photo-booth:photos");
                 return { photos: parsed } as Partial<PhotoBoothStoreState>;
               }
             }

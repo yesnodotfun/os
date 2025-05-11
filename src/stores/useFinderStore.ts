@@ -55,4 +55,37 @@ export const useFinderStore = create<FinderStoreState>()(
       },
     }
   )
-); 
+);
+
+// ---------------------------------------------
+// Utility: calculateStorageSpace (moved from utils/storage)
+// Estimate LocalStorage usage (rough) and quota.
+// Returns { total, used, available, percentUsed }
+export const calculateStorageSpace = () => {
+  let total = 0;
+  let used = 0;
+
+  try {
+    // Typical LocalStorage quota is ~10 MB – keep same heuristic
+    total = 10 * 1024 * 1024;
+
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key) continue;
+      const value = localStorage.getItem(key);
+      if (value) {
+        // Each UTF-16 char = 2 bytes
+        used += value.length * 2;
+      }
+    }
+  } catch (err) {
+    console.error("[FinderStore] Error calculating storage space", err);
+  }
+
+  return {
+    total,
+    used,
+    available: total - used,
+    percentUsed: Math.round((used / total) * 100),
+  };
+}; 

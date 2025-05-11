@@ -84,18 +84,11 @@ export const useTextEditStore = create<TextEditStoreState>()(
       name: "ryos:textedit",
       version: CURRENT_TEXTEDIT_STORE_VERSION,
       migrate: (persistedState, version) => {
-        // If no persisted state (first load) try to migrate from old APP_STORAGE_KEYS
+        // If no persisted state (first load) try to migrate from old localStorage keys
         if (!persistedState || version < CURRENT_TEXTEDIT_STORE_VERSION) {
           try {
-            // Dynamically import to avoid circular deps
-            // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-            const { APP_STORAGE_KEYS } = require("@/utils/storage");
-            const lastFilePath = localStorage.getItem(
-              APP_STORAGE_KEYS.textedit.LAST_FILE_PATH
-            );
-            const rawJson = localStorage.getItem(
-              APP_STORAGE_KEYS.textedit.CONTENT
-            );
+            const lastFilePath = localStorage.getItem("textedit:last-file-path");
+            const rawJson = localStorage.getItem("textedit:content");
             const migratedState: TextEditStoreState = {
               lastFilePath: lastFilePath ?? null,
               contentJson: rawJson ? JSON.parse(rawJson) : null,
@@ -110,8 +103,8 @@ export const useTextEditStore = create<TextEditStoreState>()(
 
             // Clean up old keys once migrated
             if (lastFilePath || rawJson) {
-              localStorage.removeItem(APP_STORAGE_KEYS.textedit.LAST_FILE_PATH);
-              localStorage.removeItem(APP_STORAGE_KEYS.textedit.CONTENT);
+              localStorage.removeItem("textedit:last-file-path");
+              localStorage.removeItem("textedit:content");
             }
 
             return migratedState;

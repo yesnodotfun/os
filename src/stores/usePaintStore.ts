@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { APP_STORAGE_KEYS } from "@/utils/storage";
 
 interface PaintStoreState {
   lastFilePath: string | null;
@@ -25,9 +24,9 @@ export const usePaintStore = create<PaintStoreState>()(
       partialize: (state) => ({ lastFilePath: state.lastFilePath }),
       migrate: (persistedState, version) => {
         if (!persistedState || version < STORE_VERSION) {
-          const legacy = localStorage.getItem(APP_STORAGE_KEYS.paint.LAST_FILE_PATH);
+          const legacy = localStorage.getItem("paint:lastFilePath");
           if (legacy) {
-            localStorage.removeItem(APP_STORAGE_KEYS.paint.LAST_FILE_PATH);
+            localStorage.removeItem("paint:lastFilePath");
             return { lastFilePath: legacy } as Partial<PaintStoreState>;
           }
         }
