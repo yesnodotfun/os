@@ -16,6 +16,12 @@ export interface TextEditStoreState {
   reset: () => void;
   /** Apply an external update to the document (e.g. Chat GPT tool calls). */
   applyExternalUpdate: (json: any) => void;
+  /**
+   * Append (or prepend) a simple paragraph node containing plain text.
+   * This helper is primarily used by AI tool calls so they can modify the
+   * document without needing direct access to the TipTap editor instance.
+   */
+  insertText: (text: string, position?: "start" | "end") => void;
 }
 
 const CURRENT_TEXTEDIT_STORE_VERSION = 1;
@@ -29,6 +35,43 @@ export const useTextEditStore = create<TextEditStoreState>()(
       setLastFilePath: (path) => set({ lastFilePath: path }),
       setContentJson: (json) => set({ contentJson: json }),
       setHasUnsavedChanges: (val) => set({ hasUnsavedChanges: val }),
+      /**
+       * Append (or prepend) a simple paragraph node containing plain text.
+       * This helper is primarily used by AI tool calls so they can modify the
+       * document without needing direct access to the TipTap editor instance.
+       */
+      insertText: (text: string, position: "start" | "end" = "end") =>
+        set((state) => {
+          // Build a ProseMirror paragraph node for the text snippet
+          const paragraphNode = {
+            type: "paragraph",
+            content: [{ type: "text", text }],
+          } as any;
+
+          let newDocJson: any;
+
+          if (state.contentJson && Array.isArray(state.contentJson.content)) {
+            // Shallow-clone the existing document JSON (preserve other metadata)
+            const cloned = JSON.parse(JSON.stringify(state.contentJson));
+            if (position === "start") {
+              cloned.content.unshift(paragraphNode);
+            } else {
+              cloned.content.push(paragraphNode);
+            }
+            newDocJson = cloned;
+          } else {
+            // No existing doc – create a new one
+            newDocJson = {
+              type: "doc",
+              content: [paragraphNode],
+            };
+          }
+
+          return {
+            contentJson: newDocJson,
+            hasUnsavedChanges: true,
+          } as Partial<TextEditStoreState>;
+        }),
       reset: () =>
         set({ lastFilePath: null, contentJson: null, hasUnsavedChanges: false }),
       applyExternalUpdate: (json) =>
@@ -62,6 +105,7 @@ export const useTextEditStore = create<TextEditStoreState>()(
               setHasUnsavedChanges: () => {},
               reset: () => {},
               applyExternalUpdate: () => {},
+              insertText: () => {},
             };
 
             // Clean up old keys once migrated

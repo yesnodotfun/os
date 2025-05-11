@@ -94,6 +94,25 @@ const getSystemState = () => {
   };
 };
 
+// --- Utility: Debounced updater for insertText ---
+// We want to avoid spamming TextEdit with many rapid updates while the assistant is
+// streaming a long insertText payload. Instead, we debounce the store update so the
+// UI only refreshes after a short idle period.
+
+function createDebouncedAction(delay = 150) {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  return (action: () => void) => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => {
+      action();
+      timer = null;
+    }, delay);
+  };
+}
+
+// Singleton debounced executor reused across insertText tool calls
+const debouncedInsertTextUpdate = createDebouncedAction(150);
+
 export function useAiChat() {
   const { aiMessages, setAiMessages, username } = useChatsStore();
   const launchApp = useLaunchApp();
@@ -147,6 +166,10 @@ export function useAiChat() {
     },
     maxSteps: 10,
     async onToolCall({ toolCall }) {
+      // Short delay to allow the UI to render the "call" state with a spinner before executing the tool logic.
+      // Without this, fast-executing tool calls can jump straight to the "result" state, so users never see the loading indicator.
+      await new Promise<void>((resolve) => setTimeout(resolve, 120));
+
       try {
         switch (toolCall.toolName) {
           case "launchApp": {
@@ -249,35 +272,15 @@ export function useAiChat() {
             }
 
             const textEditState = useTextEditStore.getState();
-            const { contentJson, applyExternalUpdate } = textEditState as any;
+            const { insertText } = textEditState as any;
 
-            // Build a ProseMirror paragraph node for the text
-            const paragraphNode = {
-              type: "paragraph",
-              content: [{ type: "text", text }],
-            } as any;
+            // Use a small debounce so rapid successive insertText calls (if any)
+            // don't overwhelm the store/UI. We reuse the same debounced helper by
+            // passing in a thunk that performs the real insert when the debounce
+            // interval elapses.
+            debouncedInsertTextUpdate(() => insertText(text, position || "end"));
 
-            let newDocJson: any;
-            if (contentJson && Array.isArray(contentJson.content)) {
-              // Deep clone the document JSON
-              newDocJson = JSON.parse(JSON.stringify(contentJson));
-              if (position === "start") {
-                newDocJson.content.unshift(paragraphNode);
-              } else {
-                newDocJson.content.push(paragraphNode);
-              }
-            } else {
-              // Create a new document if none exists
-              newDocJson = {
-                type: "doc",
-                content: [paragraphNode],
-              };
-            }
-
-            // Update store – TextEdit will react via subscription
-            applyExternalUpdate(newDocJson);
-
-            return `Inserted text at ${position === "start" ? "start" : "end"} of document.`;
+            return `Inserting text at ${position === "start" ? "start" : "end"} of document…`;
           }
           default:
             console.warn("Unhandled tool call:", toolCall.toolName);

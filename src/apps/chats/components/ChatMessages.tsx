@@ -585,32 +585,59 @@ function ChatMessagesContent({
                         const args = state === 'result' || state === 'call' ? part.toolInvocation.args : undefined;
                         const result = state === 'result' ? part.toolInvocation.result : undefined;
 
-                        let displayMessage = null;
+                        // Friendly display strings for both the "call" (loading) and "result" states
+                        let displayCallMessage: string | null = null;
+                        let displayResultMessage: string | null = null;
+
+                        if (state === "call" || state === "partial-call") {
+                          // Provide custom, human-readable loading messages for well-known tools
+                          switch (toolName) {
+                            case "searchReplace":
+                              displayCallMessage = "Replacing text…";
+                              break;
+                            case "insertText":
+                              displayCallMessage = "Inserting text…";
+                              break;
+                            case "launchApp":
+                              displayCallMessage = `Launching ${args?.id || "app"}…`;
+                              break;
+                            case "closeApp":
+                              displayCallMessage = `Closing ${args?.id || "app"}…`;
+                              break;
+                            default:
+                              displayCallMessage = `Running ${toolName}…`;
+                          }
+                        }
+
                         if (state === 'result') {
                           if (toolName === 'launchApp' && args?.id === 'internet-explorer') {
                             const urlPart = args.url ? ` to ${args.url}` : '';
                             const yearPart = args.year && args.year !== 'current' ? ` in ${args.year}` : '';
-                            displayMessage = `Launched Internet Explorer${urlPart}${yearPart}`;
+                            displayResultMessage = `Launched Internet Explorer${urlPart}${yearPart}`;
                           } else if (toolName === 'launchApp') {
-                            displayMessage = `Launched ${args?.id || 'app'}`;
+                            displayResultMessage = `Launched ${args?.id || 'app'}`;
                           } else if (toolName === 'closeApp') {
-                            displayMessage = `Closed ${args?.id || 'app'}`;
+                            displayResultMessage = `Closed ${args?.id || 'app'}`;
                           }
                         }
-                        
+
                         return (
-                          <div key={partKey} className="my-1 p-1.5 bg-white/50 rounded text italic text-[14px]">
-                            {state === 'call' && (
+                          <div key={partKey} className="my-1 p-1.5 bg-white/50 rounded text italic text-[12px]">
+                            {(state === 'call' || state === 'partial-call') && (
                               <div className="flex items-center gap-1 text-gray-700">
                                 <Loader2 className="h-3 w-3 animate-spin" />
-                                <span>Calling <strong>{toolName}</strong>...</span>
+                                {displayCallMessage ? (
+                                  <span>{displayCallMessage}</span>
+                                ) : (
+                                  <span>Calling <strong>{toolName}</strong>…</span>
+                                )}
                               </div>
                             )}
                             {state === 'result' && (
                               <div className="flex items-start gap-1 text-gray-700">
                                 <Check className="h-3 w-3 text-blue-600" />
-                                {displayMessage ? (
-                                  <span>{displayMessage}</span>
+                                {displayResultMessage ? (
+                                  <span>{displayResultMessage}</span>
                                 ) : (
                                   <div className="flex flex-col">
                                     <span>Ran <strong>{toolName}</strong></span>
