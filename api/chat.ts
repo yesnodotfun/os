@@ -313,6 +313,10 @@ export default async function handler(req: Request) {
             position: z.enum(["start", "end"]).optional().describe("Where to insert the text: 'start' to prepend, 'end' to append. Default is 'end'."),
           }),
         },
+        newFile: {
+          description: "Create a new blank document in TextEdit. Use when the user explicitly requests a new or untitled file.",
+          parameters: z.object({}),
+        },
       },
       temperature: 0.7,
       maxTokens: 6000,

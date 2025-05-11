@@ -282,6 +282,35 @@ export function useAiChat() {
 
             return `Inserting text at ${position === "start" ? "start" : "end"} of document…`;
           }
+          case "newFile": {
+            console.log("[ToolCall] newFile");
+            // Ensure TextEdit is open – launch if not already
+            const appState = useAppStore.getState();
+            if (!appState.apps["textedit"]?.isOpen) {
+              launchApp("textedit");
+            }
+
+            const textEditState = useTextEditStore.getState();
+            const {
+              reset,
+              applyExternalUpdate,
+              setLastFilePath,
+              setHasUnsavedChanges,
+            } = textEditState as any;
+
+            // Clear existing document state
+            reset();
+
+            // Provide an explicit empty document so the editor clears its content
+            const blankDoc = { type: "doc", content: [] };
+            applyExternalUpdate(blankDoc);
+
+            // Ensure the new document is treated as untitled and saved state is clean
+            setLastFilePath(null);
+            setHasUnsavedChanges(false);
+
+            return "Started a new, untitled document in TextEdit.";
+          }
           default:
             console.warn("Unhandled tool call:", toolCall.toolName);
             return "";
