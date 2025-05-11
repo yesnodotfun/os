@@ -50,6 +50,11 @@ interface SystemState {
     loopCurrent: boolean;
     isShuffled: boolean;
   };
+  textEdit?: {
+    lastFilePath: string | null;
+    contentJson: any | null;
+    hasUnsavedChanges: boolean;
+  };
   runningApps?: {
     foreground: string;
     background: string[];
@@ -149,6 +154,17 @@ ${
       }${
         systemState.internetExplorer.aiGeneratedHtml
           ? `\n- HTML Content:\n${systemState.internetExplorer.aiGeneratedHtml}`
+          : ''
+      }`
+    : ''
+}
+${
+  systemState.apps['textedit']?.isOpen && systemState.textEdit
+    ? `\n- TextEdit File: ${systemState.textEdit.lastFilePath ?? 'Untitled'}${
+        systemState.textEdit.hasUnsavedChanges ? ' (unsaved changes)' : ''
+      }${
+        systemState.textEdit.contentJson
+          ? `\n- Document Content JSON:\n${JSON.stringify(systemState.textEdit.contentJson)}`
           : ''
       }`
     : ''

@@ -11,6 +11,7 @@ import { AppId } from "@/config/appIds";
 import { appRegistry } from "@/config/appRegistry";
 import { useFileSystem } from "@/apps/finder/hooks/useFileSystem";
 import { useTtsQueue } from "@/hooks/useTtsQueue";
+import { useTextEditStore } from "@/stores/useTextEditStore";
 
 // TODO: Move relevant state and logic from ChatsAppComponent here
 // - AI chat state (useChat hook)
@@ -24,6 +25,7 @@ const getSystemState = () => {
   const ieStore = useInternetExplorerStore.getState();
   const videoStore = useVideoStore.getState();
   const ipodStore = useIpodStore.getState();
+  const textEditStore = useTextEditStore.getState();
   const chatsStore = useChatsStore.getState();
 
   const currentVideo = videoStore.videos[videoStore.currentIndex];
@@ -83,6 +85,11 @@ const getSystemState = () => {
       loopAll: ipodStore.loopAll,
       loopCurrent: ipodStore.loopCurrent,
       isShuffled: ipodStore.isShuffled,
+    },
+    textEdit: {
+      lastFilePath: textEditStore.lastFilePath,
+      contentJson: textEditStore.contentJson,
+      hasUnsavedChanges: textEditStore.hasUnsavedChanges,
     },
   };
 };
