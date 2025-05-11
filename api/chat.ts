@@ -299,7 +299,7 @@ export default async function handler(req: Request) {
           parameters: z.object({ id: z.enum(appIds).describe("The app id to close") }),
         },
         searchReplace: {
-          description: "Search and replace text in the currently open TextEdit document. Always supply 'search' and 'replace'. Set 'isRegex: true' ONLY if the user explicitly mentions using a regular expression. Do not launch or close TextEdit manually, if not open it will open automatically.",
+          description: "Search and replace text in the currently open TextEdit document. Always supply 'search' and 'replace'. Set 'isRegex: true' ONLY if the user explicitly mentions using a regular expression.",
           parameters: z.object({
             search: z.string().describe("The text or regular expression to search for"),
             replace: z.string().describe("The text that will replace each match of 'search'"),
@@ -307,7 +307,7 @@ export default async function handler(req: Request) {
           }),
         },
         insertText: {
-          description: "Insert plain text into the currently open TextEdit document. Appends to the end by default; use position 'start' to prepend. Use this instead of manually launching or closing TextEdit. Do not launch or close TextEdit manually, if not open it will open automatically.",
+          description: "Insert plain text into the currently open TextEdit document. Appends to the end by default; use position 'start' to prepend. Use this instead of manually launching or closing TextEdit.",
           parameters: z.object({
             text: z.string().describe("The text to insert"),
             position: z.enum(["start", "end"]).optional().describe("Where to insert the text: 'start' to prepend, 'end' to append. Default is 'end'."),
