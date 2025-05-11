@@ -196,7 +196,7 @@ export function useAiChat() {
             }
 
             const textEditState = useTextEditStore.getState();
-            const { contentJson, lastFilePath, setContentJson, setHasUnsavedChanges } = textEditState as any;
+            const { contentJson, applyExternalUpdate } = textEditState as any;
 
             if (!contentJson) {
               return "No document is currently open in TextEdit.";
@@ -229,22 +229,8 @@ export function useAiChat() {
               return "Replacement produced invalid document data.";
             }
 
-            // Update the store
-            setContentJson(updatedJson);
-            setHasUnsavedChanges(true);
-
-            // Notify TextEdit editor to apply new content if it is open
-            try {
-              const updateEvent = new CustomEvent("updateEditorContent", {
-                detail: {
-                  path: lastFilePath ?? "Untitled",
-                  content: JSON.stringify(updatedJson),
-                },
-              });
-              window.dispatchEvent(updateEvent);
-            } catch (e) {
-              console.warn("Could not dispatch updateEditorContent event:", e);
-            }
+            // Update the store – TextEdit will react via subscription
+            applyExternalUpdate(updatedJson);
 
             return `Replaced occurrences of \"${search}\" with \"${replace}\".`;
           }
@@ -263,12 +249,7 @@ export function useAiChat() {
             }
 
             const textEditState = useTextEditStore.getState();
-            const {
-              contentJson,
-              lastFilePath,
-              setContentJson,
-              setHasUnsavedChanges,
-            } = textEditState as any;
+            const { contentJson, applyExternalUpdate } = textEditState as any;
 
             // Build a ProseMirror paragraph node for the text
             const paragraphNode = {
@@ -293,22 +274,8 @@ export function useAiChat() {
               };
             }
 
-            // Update store
-            setContentJson(newDocJson);
-            setHasUnsavedChanges(true);
-
-            // Notify editor to refresh content
-            try {
-              const updateEvent = new CustomEvent("updateEditorContent", {
-                detail: {
-                  path: lastFilePath ?? "Untitled",
-                  content: JSON.stringify(newDocJson),
-                },
-              });
-              window.dispatchEvent(updateEvent);
-            } catch (e) {
-              console.warn("Could not dispatch updateEditorContent event:", e);
-            }
+            // Update store – TextEdit will react via subscription
+            applyExternalUpdate(newDocJson);
 
             return `Inserted text at ${position === "start" ? "start" : "end"} of document.`;
           }

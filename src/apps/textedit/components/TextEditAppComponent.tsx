@@ -75,6 +75,7 @@ export function TextEditAppComponent({
   const {
     lastFilePath: currentFilePath,
     setLastFilePath,
+    contentJson,
     setContentJson,
     hasUnsavedChanges,
     setHasUnsavedChanges,
@@ -343,6 +344,24 @@ export function TextEditAppComponent({
       );
     };
   }, [editor, currentFilePath]);
+
+  // --- Sync editor when contentJson is externally updated (e.g., by AI tools) --- //
+  useEffect(() => {
+    if (!editor || !contentJson) return;
+
+    // Avoid unnecessary updates by comparing with current editor JSON
+    const currentJson = editor.getJSON();
+    if (JSON.stringify(currentJson) === JSON.stringify(contentJson)) return;
+
+    try {
+      editor.commands.setContent(contentJson, false); // update silently
+      setHasUnsavedChanges(false);
+      console.log("[TextEdit] Editor content synced from store change");
+    } catch (err) {
+      console.error("[TextEdit] Failed to sync editor content:", err);
+    }
+  }, [contentJson, editor, setHasUnsavedChanges]);
+  // --- End external sync effect --- //
 
   const handleTranscriptionComplete = (text: string) => {
     setIsTranscribing(false);

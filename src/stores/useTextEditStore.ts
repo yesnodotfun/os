@@ -14,6 +14,8 @@ export interface TextEditStoreState {
   setHasUnsavedChanges: (val: boolean) => void;
   /** Clear the store back to its initial state. */
   reset: () => void;
+  /** Apply an external update to the document (e.g. Chat GPT tool calls). */
+  applyExternalUpdate: (json: any) => void;
 }
 
 const CURRENT_TEXTEDIT_STORE_VERSION = 1;
@@ -29,6 +31,11 @@ export const useTextEditStore = create<TextEditStoreState>()(
       setHasUnsavedChanges: (val) => set({ hasUnsavedChanges: val }),
       reset: () =>
         set({ lastFilePath: null, contentJson: null, hasUnsavedChanges: false }),
+      applyExternalUpdate: (json) =>
+        set({
+          contentJson: json,
+          hasUnsavedChanges: true,
+        }),
     }),
     {
       name: "ryos:textedit",
@@ -54,6 +61,7 @@ export const useTextEditStore = create<TextEditStoreState>()(
               setContentJson: () => {},
               setHasUnsavedChanges: () => {},
               reset: () => {},
+              applyExternalUpdate: () => {},
             };
 
             // Clean up old keys once migrated
