@@ -6,7 +6,7 @@ import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { helpItems, appMetadata } from "..";
-import { Game, loadGames } from "@/utils/storage";
+import { Game, loadGames } from "@/stores/usePcStore";
 import { motion } from "framer-motion";
 import { useJsDos, DosProps, DosEvent } from "../hooks/useJsDos";
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { FileItem as DisplayFileItem } from "../components/FileList";
-import { ensureIndexedDBInitialized } from "@/utils/storage";
+import { ensureIndexedDBInitialized } from "@/utils/indexedDB";
 import { getNonFinderApps, AppId } from "@/config/appRegistry";
 import { useLaunchApp } from "@/hooks/useLaunchApp";
 import { useIpodStore } from "@/stores/useIpodStore";

@@ -10,7 +10,7 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Game, loadGames } from "@/utils/storage";
+import { Game, loadGames } from "@/stores/usePcStore";
 import { toast } from "sonner";
 import { generateAppShareUrl } from "@/utils/sharedUrl";
 

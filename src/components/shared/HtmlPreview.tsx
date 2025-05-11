@@ -6,7 +6,7 @@ import * as shiki from "shiki";
 import {
   loadHtmlPreviewSplit,
   saveHtmlPreviewSplit,
-} from "../../utils/storage";
+} from "@/stores/useAppStore";
 import { useSound, Sounds } from "../../hooks/useSound";
 import { useAppStore } from "@/stores/useAppStore";
 

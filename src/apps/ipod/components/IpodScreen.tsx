@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import ReactPlayer from "react-player";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { Track } from "@/utils/storage";
+import { Track } from "@/stores/useIpodStore";
 
 // Helper component: MenuListItem
 function MenuListItem({

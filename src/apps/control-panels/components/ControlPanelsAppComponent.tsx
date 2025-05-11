@@ -18,7 +18,8 @@ import {
 } from "@/components/ui/select";
 import { WallpaperPicker } from "./WallpaperPicker";
 import { AppProps } from "@/apps/base/types";
-import { clearAllAppStates, ensureIndexedDBInitialized } from "@/utils/storage";
+import { clearAllAppStates } from "@/stores/useAppStore";
+import { ensureIndexedDBInitialized } from "@/utils/indexedDB";
 import { SYNTH_PRESETS } from "@/hooks/useChatSynth";
 import { useFileSystem } from "@/apps/finder/hooks/useFileSystem";
 import { useAppStore } from "@/stores/useAppStore";

@@ -7,7 +7,7 @@ import { checkShaderPerformance } from "@/utils/performanceCheck";
 import { ShaderType } from "@/components/shared/GalaxyBackground";
 import { DisplayMode } from "@/utils/displayMode";
 import { AIModel } from "@/types/aiModels";
-import { ensureIndexedDBInitialized } from "@/utils/storage";
+import { ensureIndexedDBInitialized } from "@/utils/indexedDB";
 // Re-export for backward compatibility
 export type { AIModel } from "@/types/aiModels";
 
@@ -67,6 +67,8 @@ interface AppStoreState extends AppManagerState {
   getWallpaperData: (reference: string) => Promise<string | null>;
   isFirstBoot: boolean;
   setHasBooted: () => void;
+  htmlPreviewSplit: boolean;
+  setHtmlPreviewSplit: (val: boolean) => void;
 }
 
 // Run the check once on script load
@@ -475,6 +477,9 @@ export const useAppStore = create<AppStoreState>()(
           return state; // No change needed
         });
       },
+
+      htmlPreviewSplit: true,
+      setHtmlPreviewSplit: (val) => set({ htmlPreviewSplit: val }),
     }),
     {
       name: "ryos:app-store",
@@ -490,6 +495,7 @@ export const useAppStore = create<AppStoreState>()(
         typingSynthEnabled: state.typingSynthEnabled,
         speechEnabled: state.speechEnabled,
         synthPreset: state.synthPreset,
+        htmlPreviewSplit: state.htmlPreviewSplit,
         currentWallpaper: state.currentWallpaper,
         displayMode: state.displayMode,
         isFirstBoot: state.isFirstBoot,
@@ -563,5 +569,25 @@ const saveCustomWallpaper = async (file: File): Promise<string> => {
     throw err;
   }
 };
+
+// ---------------------------------------------------------------------------------
+// Global utility: clearAllAppStates – used by Control Panels "Reset All" button.
+// For now this just wipes localStorage entirely (equivalent to formatting all
+// app-specific persisted data).  If future granularity is needed we can expand
+// this function, but keeping it here removes the dependency on utils/storage.ts.
+export const clearAllAppStates = (): void => {
+  try {
+    localStorage.clear();
+  } catch (err) {
+    console.error("[clearAllAppStates] Failed to clear localStorage", err);
+  }
+};
+
+// HTML Preview split helpers that rely on the store state
+export const loadHtmlPreviewSplit = () =>
+  useAppStore.getState().htmlPreviewSplit;
+
+export const saveHtmlPreviewSplit = (val: boolean) =>
+  useAppStore.getState().setHtmlPreviewSplit(val);
 
 // -------------------------------------------------------------------------------
