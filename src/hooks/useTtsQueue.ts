@@ -62,8 +62,10 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
 
           const arrayBuf = await res.arrayBuffer();
           const ctx = ensureContext();
-          // Resume if the context was suspended (e.g., after HMR or user gesture requirements)
-          if (ctx.state === "suspended") {
+          // Resume if the context was suspended or Safari put it in the non-standard
+          // "interrupted" state (happens when the user switches apps or similar).
+          const state = ctx.state as AudioContextState | "interrupted";
+          if (state === "suspended" || state === "interrupted") {
             await ctx.resume();
           }
           const audioBuf = await ctx.decodeAudioData(arrayBuf);
@@ -131,12 +133,15 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
   // Effect to handle AudioContext resumption on window focus
   useEffect(() => {
     const handleFocus = async () => {
-      if (ctxRef.current && ctxRef.current.state === "suspended") {
-        try {
-          await ctxRef.current.resume();
-          console.debug("TTS AudioContext resumed on window focus");
-        } catch (error) {
-          console.error("Failed to resume TTS AudioContext on window focus:", error);
+      if (ctxRef.current) {
+        const state = ctxRef.current.state as AudioContextState | "interrupted";
+        if (state === "suspended" || state === "interrupted") {
+          try {
+            await ctxRef.current.resume();
+            console.debug("TTS AudioContext resumed on window focus");
+          } catch (error) {
+            console.error("Failed to resume TTS AudioContext on window focus:", error);
+          }
         }
       }
     };

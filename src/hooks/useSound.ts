@@ -30,7 +30,11 @@ const getAudioContext = () => {
 const resumeAudioContext = async () => {
   const ctx = getAudioContext();
 
-  if (ctx.state === "suspended") {
+  // Safari may move the context into a non-standard "interrupted" state when the
+  // page loses the audio hardware (e.g. the user switches apps or receives a
+  // phone call). In that case we need to call resume() as well.
+  const state = ctx.state as AudioContextState | "interrupted";
+  if (state === "suspended" || state === "interrupted") {
     try {
       await ctx.resume();
       console.debug("Audio context resumed");
