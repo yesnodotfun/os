@@ -128,5 +128,24 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
     };
   }, [stop]);
 
+  // Effect to handle AudioContext resumption on window focus
+  useEffect(() => {
+    const handleFocus = async () => {
+      if (ctxRef.current && ctxRef.current.state === "suspended") {
+        try {
+          await ctxRef.current.resume();
+          console.debug("TTS AudioContext resumed on window focus");
+        } catch (error) {
+          console.error("Failed to resume TTS AudioContext on window focus:", error);
+        }
+      }
+    };
+
+    window.addEventListener("focus", handleFocus);
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, []);
+
   return { speak, stop, isSpeaking };
 }
