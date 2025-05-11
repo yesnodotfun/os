@@ -87,10 +87,11 @@ export default async function handler(req: Request) {
 
     // Generate speech audio (mp3) using OpenAI TTS model via AI SDK
     const { audio } = await generateSpeech({
-      model: openai.speech("gpt-4o-mini-tts"),
+      model: openai.speech("tts-1"),
       text: text.trim(),
       voice: voice ?? "alloy",
       outputFormat: "mp3",
+      speed: speed ?? 1.2,
       instructions: "Speak in a natural, friendly tone. Low male voice. Talk extremely fast-paced, passionate, with emotions, creating an aspirational effect. When speaking in Chinese 講北京腔普通話",
     });
 
