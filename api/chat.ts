@@ -298,6 +298,21 @@ export default async function handler(req: Request) {
           description: "Close an application by its id in the ryOS interface",
           parameters: z.object({ id: z.enum(appIds).describe("The app id to close") }),
         },
+        searchReplace: {
+          description: "Search and replace text in the currently open document in TextEdit. Use this to modify the active document without manual editing.",
+          parameters: z.object({
+            search: z.string().describe("The text or regular expression to search for"),
+            replace: z.string().describe("The text that will replace each match of 'search'"),
+            isRegex: z.boolean().optional().describe("Set to true if the 'search' field should be treated as a JavaScript regular expression (without flags). Defaults to false."),
+          }),
+        },
+        insertText: {
+          description: "Insert plain text into the currently open TextEdit document. By default appends to the end; optionally prepend to the start.",
+          parameters: z.object({
+            text: z.string().describe("The text to insert"),
+            position: z.enum(["start", "end"]).optional().describe("Where to insert the text: 'start' to prepend, 'end' to append. Default is 'end'."),
+          }),
+        },
       },
       temperature: 0.7,
       maxTokens: 6000,

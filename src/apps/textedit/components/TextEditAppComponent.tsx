@@ -182,11 +182,25 @@ export function TextEditAppComponent({
             return; // Don't proceed to load from store/DB if initialData was used
         }
 
-        // If no initialData, load from store/DB as before
-        const { lastFilePath, contentJson } = useTextEditStore.getState();
+        const { lastFilePath, contentJson, hasUnsavedChanges: storeUnsaved } =
+          useTextEditStore.getState();
+
         let loadedContent = false;
 
-        if (lastFilePath?.startsWith("/Documents/")) {
+        // 1) Prefer any unsaved in-memory edits that were never written to disk.
+        if (storeUnsaved && contentJson) {
+          try {
+            editor.commands.setContent(contentJson, false); // avoid onUpdate
+            // Keep the unsaved flag so the UI continues to show the "•" indicator
+            loadedContent = true;
+            console.log("Restored unsaved TextEdit content from store");
+          } catch (err) {
+            console.warn("Failed to restore unsaved TextEdit content:", err);
+          }
+        }
+
+        // 2) If nothing unsaved, attempt to load the persisted document from the DB.
+        if (!loadedContent && lastFilePath?.startsWith("/Documents/")) {
           try {
             const fileName = getFileNameFromPath(lastFilePath);
             const doc = await dbOperations.get<DocumentContent>(STORES.DOCUMENTS, fileName);
@@ -198,38 +212,36 @@ export function TextEditAppComponent({
               if (lastFilePath.endsWith(".md")) {
                 editorContent = markdownToHtml(contentStr);
               } else {
-                // Try parsing as JSON first (legacy format?)
                 try {
                   editorContent = JSON.parse(contentStr);
                 } catch {
-                  // Fallback to plain text wrapped in paragraph
                   editorContent = `<p>${contentStr}</p>`;
                 }
               }
-              
+
               if (editorContent) {
-                editor.commands.setContent(editorContent, false); // Set false to avoid triggering onUpdate
-                setHasUnsavedChanges(false);
+                editor.commands.setContent(editorContent, false);
+                setHasUnsavedChanges(false); // freshly loaded, so no unsaved edits yet
                 loadedContent = true;
                 console.log("Loaded content from file:", lastFilePath);
               }
             } else {
-               console.warn("Document not found or empty:", lastFilePath);
+              console.warn("Document not found or empty:", lastFilePath);
             }
           } catch (err) {
             console.error("Error loading file content from DB:", err);
           }
         }
-        
-        // Fallback to stored JSON if file load failed or no path was set
+
+        // 3) Finally, fall back to any stored JSON even if it wasn't flagged unsaved (legacy behaviour).
         if (!loadedContent && contentJson) {
-           try {
-             editor.commands.setContent(contentJson, false); // Set false to avoid triggering onUpdate
-             setHasUnsavedChanges(false); // Assume stored JSON is saved state unless proven otherwise
-             console.log("Loaded content from store JSON");
-           } catch (err) {
-             console.warn("Failed to restore stored TextEdit content:", err);
-           }
+          try {
+            editor.commands.setContent(contentJson, false);
+            setHasUnsavedChanges(false);
+            console.log("Loaded content from store JSON (fallback)");
+          } catch (err) {
+            console.warn("Failed to restore stored TextEdit content:", err);
+          }
         }
     };
 

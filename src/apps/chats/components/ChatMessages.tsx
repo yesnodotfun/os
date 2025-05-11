@@ -599,7 +599,7 @@ function ChatMessagesContent({
                         }
                         
                         return (
-                          <div key={partKey} className="my-1 p-1.5 bg-white/50 rounded text italic">
+                          <div key={partKey} className="my-1 p-1.5 bg-white/50 rounded text italic text-[14px]">
                             {state === 'call' && (
                               <div className="flex items-center gap-1 text-gray-700">
                                 <Loader2 className="h-3 w-3 animate-spin" />
@@ -612,12 +612,12 @@ function ChatMessagesContent({
                                 {displayMessage ? (
                                   <span>{displayMessage}</span>
                                 ) : (
-                                  <>
-                                    <span>Tool <strong>{toolName}</strong> executed.</span>
+                                  <div className="flex flex-col">
+                                    <span>Ran <strong>{toolName}</strong></span>
                                     {typeof result === 'string' && result.length > 0 && result.length < 100 && (
-                                      <span className="ml-1 text-gray-500 italic">Result: "{result}"</span>
+                                      <span className="text-gray-500">{result}</span>
                                     )}
-                                  </>
+                                  </div>
                                 )}
                               </div>
                             )}

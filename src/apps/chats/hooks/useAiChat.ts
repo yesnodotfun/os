@@ -145,7 +145,7 @@ export function useAiChat() {
       systemState: getSystemState(), // Initial system state
       model: aiModel, // Pass the selected AI model
     },
-    maxSteps: 5,
+    maxSteps: 10,
     async onToolCall({ toolCall }) {
       try {
         switch (toolCall.toolName) {
@@ -179,6 +179,138 @@ export function useAiChat() {
             console.log("[ToolCall] closeApp:", id);
             closeApp(id as AppId);
             return `Closed ${appName}.`;
+          }
+          case "searchReplace": {
+            const { search, replace, isRegex } = toolCall.args as {
+              search: string;
+              replace: string;
+              isRegex?: boolean;
+            };
+
+            console.log("[ToolCall] searchReplace:", { search, replace, isRegex });
+
+            // Ensure TextEdit is open – launch if not already
+            const appState = useAppStore.getState();
+            if (!appState.apps["textedit"]?.isOpen) {
+              launchApp("textedit");
+            }
+
+            const textEditState = useTextEditStore.getState();
+            const { contentJson, lastFilePath, setContentJson, setHasUnsavedChanges } = textEditState as any;
+
+            if (!contentJson) {
+              return "No document is currently open in TextEdit.";
+            }
+
+            const originalStr = JSON.stringify(contentJson);
+            let updatedStr: string;
+
+            try {
+              if (isRegex) {
+                const regex = new RegExp(search, "g");
+                updatedStr = originalStr.replace(regex, replace);
+              } else {
+                updatedStr = originalStr.split(search).join(replace);
+              }
+            } catch (err) {
+              console.error("searchReplace error while processing regex:", err);
+              return `Failed to apply search/replace: ${(err as Error).message}`;
+            }
+
+            if (updatedStr === originalStr) {
+              return "No occurrences found to replace.";
+            }
+
+            let updatedJson: any;
+            try {
+              updatedJson = JSON.parse(updatedStr);
+            } catch (err) {
+              console.error("searchReplace error while parsing updated JSON:", err);
+              return "Replacement produced invalid document data.";
+            }
+
+            // Update the store
+            setContentJson(updatedJson);
+            setHasUnsavedChanges(true);
+
+            // Notify TextEdit editor to apply new content if it is open
+            try {
+              const updateEvent = new CustomEvent("updateEditorContent", {
+                detail: {
+                  path: lastFilePath ?? "Untitled",
+                  content: JSON.stringify(updatedJson),
+                },
+              });
+              window.dispatchEvent(updateEvent);
+            } catch (e) {
+              console.warn("Could not dispatch updateEditorContent event:", e);
+            }
+
+            return `Replaced occurrences of \"${search}\" with \"${replace}\".`;
+          }
+          case "insertText": {
+            const { text, position } = toolCall.args as {
+              text: string;
+              position?: "start" | "end";
+            };
+
+            console.log("[ToolCall] insertText:", { text, position });
+
+            // Ensure TextEdit is open
+            const appState = useAppStore.getState();
+            if (!appState.apps["textedit"]?.isOpen) {
+              launchApp("textedit");
+            }
+
+            const textEditState = useTextEditStore.getState();
+            const {
+              contentJson,
+              lastFilePath,
+              setContentJson,
+              setHasUnsavedChanges,
+            } = textEditState as any;
+
+            // Build a ProseMirror paragraph node for the text
+            const paragraphNode = {
+              type: "paragraph",
+              content: [{ type: "text", text }],
+            } as any;
+
+            let newDocJson: any;
+            if (contentJson && Array.isArray(contentJson.content)) {
+              // Deep clone the document JSON
+              newDocJson = JSON.parse(JSON.stringify(contentJson));
+              if (position === "start") {
+                newDocJson.content.unshift(paragraphNode);
+              } else {
+                newDocJson.content.push(paragraphNode);
+              }
+            } else {
+              // Create a new document if none exists
+              newDocJson = {
+                type: "doc",
+                content: [paragraphNode],
+              };
+            }
+
+            // Update store
+            setContentJson(newDocJson);
+            setHasUnsavedChanges(true);
+
+            // Notify editor to refresh content
+            try {
+              const updateEvent = new CustomEvent("updateEditorContent", {
+                detail: {
+                  path: lastFilePath ?? "Untitled",
+                  content: JSON.stringify(newDocJson),
+                },
+              });
+              window.dispatchEvent(updateEvent);
+            } catch (e) {
+              console.warn("Could not dispatch updateEditorContent event:", e);
+            }
+
+            return `Inserted text at ${position === "start" ? "start" : "end"} of document.`;
           }
           default:
             console.warn("Unhandled tool call:", toolCall.toolName);
