@@ -570,11 +570,7 @@ const saveCustomWallpaper = async (file: File): Promise<string> => {
   }
 };
 
-// ---------------------------------------------------------------------------------
 // Global utility: clearAllAppStates – used by Control Panels "Reset All" button.
-// For now this just wipes localStorage entirely (equivalent to formatting all
-// app-specific persisted data).  If future granularity is needed we can expand
-// this function, but keeping it here removes the dependency on utils/storage.ts.
 export const clearAllAppStates = (): void => {
   try {
     localStorage.clear();

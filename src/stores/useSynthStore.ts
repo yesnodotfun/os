@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
-// Move SynthPreset interface from storage.ts to here
 export interface SynthPreset {
   id: string;
   name: string;

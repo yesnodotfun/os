@@ -1,10 +1,5 @@
 // Utility helpers for IndexedDB operations used across ryOS
 
-// This function ensures an IndexedDB database called "ryOS" exists and has
-// the required object stores.  It mirrors the previous implementation that
-// lived in utils/storage.ts so other modules can import it without depending
-// on the big legacy file.
-
 const DB_NAME = "ryOS";
 const DB_VERSION = 4;
 
