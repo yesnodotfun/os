@@ -20,12 +20,15 @@ export function IpodWheel({
   onMenuButton,
 }: IpodWheelProps) {
   const wheelRef = useRef<HTMLDivElement>(null);
+  // Accumulated mouse wheel delta (for desktop scrolling)
   const [wheelDelta, setWheelDelta] = useState(0);
-  const [touchStartAngle, setTouchStartAngle] = useState<number | null>(null);
-  const [lastTouchEventTime, setLastTouchEventTime] = useState(0);
 
-  // Calculate angle from center of wheel
-  const getAngleFromCenter = (x: number, y: number): number => {
+  // Refs for tracking continuous touch rotation
+  const lastAngleRef = useRef<number | null>(null); // Last touch angle in radians
+  const rotationAccumulatorRef = useRef(0); // Accumulated rotation in radians
+
+  // Calculate angle (in degrees) from the center of the wheel – used for click areas
+  const getAngleFromCenterDeg = (x: number, y: number): number => {
     if (!wheelRef.current) return 0;
 
     const rect = wheelRef.current.getBoundingClientRect();
@@ -35,13 +38,25 @@ export function IpodWheel({
     return (Math.atan2(y - centerY, x - centerX) * 180) / Math.PI;
   };
 
+  // Same as above but returns radians – used for rotation calculation
+  const getAngleFromCenterRad = (x: number, y: number): number => {
+    if (!wheelRef.current) return 0;
+
+    const rect = wheelRef.current.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    return Math.atan2(y - centerY, x - centerX);
+  };
+
   // Determine wheel section from angle
-  const getWheelSection = (angle: number): WheelArea => {
-    if (angle >= -45 && angle < 45) {
+  const getWheelSection = (angleDeg: number): WheelArea => {
+    const angle = angleDeg * Math.PI / 180; // Convert degrees to radians
+    if (angle >= -Math.PI / 4 && angle < Math.PI / 4) {
       return "right";
-    } else if (angle >= 45 && angle < 135) {
+    } else if (angle >= Math.PI / 4 && angle < 3 * Math.PI / 4) {
       return "bottom";
-    } else if (angle >= 135 || angle < -135) {
+    } else if (angle >= 3 * Math.PI / 4 || angle < -3 * Math.PI / 4) {
       return "left";
     } else {
       // Default to top, but this section is primarily for the menu button
@@ -52,44 +67,44 @@ export function IpodWheel({
   // Handle touch start
   const handleTouchStart = (e: React.TouchEvent) => {
     const touch = e.touches[0];
-    const angle = getAngleFromCenter(touch.clientX, touch.clientY);
-    setTouchStartAngle(angle);
+    const angleRad = getAngleFromCenterRad(touch.clientX, touch.clientY);
+    lastAngleRef.current = angleRad;
+    rotationAccumulatorRef.current = 0;
   };
 
   // Handle touch move
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (touchStartAngle === null) return;
-
-    const now = Date.now();
-    // Throttle touch events to prevent over-triggering
-    if (now - lastTouchEventTime < touchEventThrottleMs) return;
+    if (lastAngleRef.current === null) return;
 
     const touch = e.touches[0];
-    const currentAngle = getAngleFromCenter(touch.clientX, touch.clientY);
+    const currentAngleRad = getAngleFromCenterRad(touch.clientX, touch.clientY);
 
-    // Calculate the difference in angle
-    let angleDifference = currentAngle - touchStartAngle;
+    // Calculate shortest angular difference (-π, π]
+    let delta = currentAngleRad - lastAngleRef.current;
+    if (delta > Math.PI) delta -= 2 * Math.PI;
+    if (delta < -Math.PI) delta += 2 * Math.PI;
 
-    // Handle the case where we cross the -180/180 boundary
-    if (angleDifference > 180) angleDifference -= 360;
-    if (angleDifference < -180) angleDifference += 360;
+    rotationAccumulatorRef.current += delta;
+    lastAngleRef.current = currentAngleRad;
 
-    // Update rotation direction when the difference is large enough
-    // Reduced threshold from 15 to 8 for more sensitive rotation
-    if (Math.abs(angleDifference) > 8) {
-      if (angleDifference > 0) {
-        onWheelRotation("clockwise");
-      } else {
-        onWheelRotation("counterclockwise");
-      }
-      setTouchStartAngle(currentAngle);
-      setLastTouchEventTime(now);
+    const threshold = (8 * Math.PI) / 180; // 8 degrees in radians
+
+    // Trigger rotation events when threshold exceeded
+    while (rotationAccumulatorRef.current > threshold) {
+      onWheelRotation("clockwise");
+      rotationAccumulatorRef.current -= threshold;
+    }
+
+    while (rotationAccumulatorRef.current < -threshold) {
+      onWheelRotation("counterclockwise");
+      rotationAccumulatorRef.current += threshold;
     }
   };
 
   // Handle touch end
   const handleTouchEnd = () => {
-    setTouchStartAngle(null);
+    lastAngleRef.current = null;
+    rotationAccumulatorRef.current = 0;
   };
 
   // Handle mouse wheel scroll for rotation
@@ -119,8 +134,8 @@ export function IpodWheel({
     ) {
       return;
     }
-    const angle = getAngleFromCenter(e.clientX, e.clientY);
-    const section = getWheelSection(angle);
+    const angleDeg = getAngleFromCenterDeg(e.clientX, e.clientY);
+    const section = getWheelSection(angleDeg);
     onWheelClick(section);
   };
 
