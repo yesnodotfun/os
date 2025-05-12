@@ -714,7 +714,15 @@ export function TextEditAppComponent({
       const html = editor.getHTML();
       const div = document.createElement("div");
       div.innerHTML = html;
-      const blocks = div.querySelectorAll("p, h1, h2, h3, h4, h5, h6, li");
+
+      // Get all direct child elements from common block elements
+      // Exclude paragraphs that are inside list items to avoid duplicates
+      const selector =
+        "h1, h2, h3, h4, h5, h6, " +
+        "li, " + // Get list items
+        "p:not(li p):not(ol p):not(ul p)"; // Get paragraphs not inside any list
+
+      const blocks = div.querySelectorAll(selector);
       const chunks: string[] = Array.from(blocks)
         .map((el) => el.textContent?.trim() || "")
         .filter(Boolean);
