@@ -28,12 +28,12 @@ const getAudioContext = () => {
 
 // Resume audio context - important for iOS
 const resumeAudioContext = async () => {
-  const ctx = getAudioContext();
+  let ctx = getAudioContext();
 
   // Safari may move the context into a non-standard "interrupted" state when the
   // page loses the audio hardware (e.g. the user switches apps or receives a
   // phone call). In that case we need to call resume() as well.
-  const state = ctx.state as AudioContextState | "interrupted";
+  let state = ctx.state as AudioContextState | "interrupted";
   if (state === "suspended" || state === "interrupted") {
     try {
       await ctx.resume();
@@ -41,6 +41,25 @@ const resumeAudioContext = async () => {
     } catch (error) {
       console.error("Failed to resume audio context:", error);
     }
+  }
+
+  // If for some reason the context is still not running (a situation observed on
+  // some iOS Safari versions after returning from background), fall back to
+  // recreating a brand-new AudioContext so that subsequent playback works.
+  state = ctx.state as AudioContextState | "interrupted";
+  if (state !== "running") {
+    try {
+      console.debug(
+        `AudioContext still in state "${state}" after resume – recreating`
+      );
+      await ctx.close();
+    } catch (_) {
+      /* ignored */
+    }
+
+    // Null-out so getAudioContext() makes a fresh one and clears caches.
+    audioContext = null;
+    ctx = getAudioContext();
   }
 };
 

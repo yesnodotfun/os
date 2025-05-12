@@ -61,12 +61,29 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
           }
 
           const arrayBuf = await res.arrayBuffer();
-          const ctx = ensureContext();
+          let ctx = ensureContext();
           // Resume if the context was suspended or Safari put it in the non-standard
           // "interrupted" state (happens when the user switches apps or similar).
-          const state = ctx.state as AudioContextState | "interrupted";
+          let state = ctx.state as AudioContextState | "interrupted";
           if (state === "suspended" || state === "interrupted") {
             await ctx.resume();
+          }
+
+          // If the context still isn't running (observed on some iOS Safari
+          // versions after returning from background) recreate a fresh one so
+          // playback can proceed.
+          state = ctx.state as AudioContextState | "interrupted";
+          if (state !== "running") {
+            try {
+              console.debug(
+                `TTS AudioContext still in state "${state}" after resume – recreating`
+              );
+              await ctx.close();
+            } catch (_) {
+              /* ignore */
+            }
+            ctxRef.current = null;
+            ctx = ensureContext();
           }
           const audioBuf = await ctx.decodeAudioData(arrayBuf);
 
