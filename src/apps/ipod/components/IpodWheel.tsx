@@ -11,8 +11,6 @@ interface IpodWheelProps {
   onMenuButton: () => void;
 }
 
-const touchEventThrottleMs = 50;
-
 // How many degrees of wheel rotation should equal one scroll step
 const rotationStepDeg = 15; // increase this value to reduce sensitivity
 
