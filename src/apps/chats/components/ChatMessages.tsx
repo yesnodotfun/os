@@ -198,6 +198,17 @@ function ChatMessagesContent({
   const [isInteractingWithPreview, setIsInteractingWithPreview] =
     useState(false);
 
+  // Local highlight state for manual speech triggered from this component
+  const [localHighlightSegment, setLocalHighlightSegment] = useState<{
+    messageId: string;
+    start: number;
+    end: number;
+  } | null>(null);
+  const [localIsSpeaking, setLocalIsSpeaking] = useState(false);
+  const localHighlightQueueRef = useRef<
+    { messageId: string; start: number; end: number }[]
+  >([]);
+
   const previousMessagesRef = useRef<ChatMessage[]>([]);
   const initialMessageIdsRef = useRef<Set<string>>(new Set());
   const hasInitializedRef = useRef(false);
@@ -345,10 +356,13 @@ function ChatMessagesContent({
           ? message.content.slice(4).trimStart()
           : message.content;
 
+        const combinedHighlightSeg = highlightSegment || localHighlightSegment;
+        const combinedIsSpeaking = isSpeaking || localIsSpeaking;
+
         const highlightActive =
-          isSpeaking &&
-          highlightSegment &&
-          highlightSegment.messageId === message.id;
+          combinedIsSpeaking &&
+          combinedHighlightSeg &&
+          combinedHighlightSeg.messageId === message.id;
 
         return (
           <motion.div
@@ -475,6 +489,10 @@ function ChatMessagesContent({
                           setPlayingMessageId(null);
                         } else {
                           stop();
+                          setLocalIsSpeaking(false);
+                          setLocalHighlightSegment(null);
+                          localHighlightQueueRef.current = [];
+
                           const text = displayContent.trim();
                           if (text) {
                             // Split into sentence-like chunks so each fetch starts immediately and
@@ -498,11 +516,34 @@ function ChatMessagesContent({
                               return;
                             }
 
+                            // Build highlight segments data
+                            let charCursor = 0;
+                            const segments = chunks.map((chunk) => {
+                              const seg = {
+                                messageId: message.id || messageKey,
+                                start: charCursor,
+                                end: charCursor + chunk.length,
+                              };
+                              charCursor += chunk.length;
+                              return seg;
+                            });
+
+                            localHighlightQueueRef.current = segments;
+                            setLocalHighlightSegment(segments[0]);
+                            setLocalIsSpeaking(true);
+
                             // Queue all chunks so network requests overlap.
-                            chunks.forEach((chunk, idx) => {
+                            chunks.forEach((chunk) => {
                               speak(chunk, () => {
-                                // When the final chunk ends, clear playingMessageId
-                                if (idx === chunks.length - 1) {
+                                // Shift queue and update highlight
+                                localHighlightQueueRef.current.shift();
+                                if (localHighlightQueueRef.current.length > 0) {
+                                  setLocalHighlightSegment(
+                                    localHighlightQueueRef.current[0]
+                                  );
+                                } else {
+                                  setLocalHighlightSegment(null);
+                                  setLocalIsSpeaking(false);
                                   setPlayingMessageId(null);
                                 }
                               });
@@ -743,8 +784,10 @@ function ChatMessagesContent({
                                       >
                                         {/* Apply highlight */}
                                         {highlightActive &&
-                                        start < (highlightSegment?.end ?? 0) &&
-                                        end > (highlightSegment?.start ?? 0) ? (
+                                        start <
+                                          (combinedHighlightSeg?.end ?? 0) &&
+                                        end >
+                                          (combinedHighlightSeg?.start ?? 0) ? (
                                           <span className="animate-highlight">
                                             {segment.type === "link" &&
                                             segment.url ? (
@@ -930,8 +973,8 @@ function ChatMessagesContent({
                         charPos2 = end2;
                         const isHighlight =
                           highlightActive &&
-                          start2 < (highlightSegment?.end ?? 0) &&
-                          end2 > (highlightSegment?.start ?? 0);
+                          start2 < (combinedHighlightSeg?.end ?? 0) &&
+                          end2 > (combinedHighlightSeg?.start ?? 0);
                         const contentNode =
                           segment.type === "link" && segment.url ? (
                             <a
