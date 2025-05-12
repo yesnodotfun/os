@@ -18,6 +18,10 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
   const [isSpeaking, setIsSpeaking] = useState(false);
   // Track any sources currently playing so we can stop them
   const playingSourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
+  // Promise chain to guarantee ordering regardless of varied fetch latency
+  const playChainRef = useRef<Promise<void>>(Promise.resolve());
+  // Flag to signal stop across async boundaries
+  const isStoppedRef = useRef(false);
 
   const ensureContext = () => {
     // Recreate if not exists or previously closed (e.g., due to HMR)
@@ -34,9 +38,6 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
     return ctxRef.current;
   };
 
-  // Promise chain to guarantee ordering regardless of varied fetch latency
-  const playChainRef = useRef<Promise<void>>(Promise.resolve());
-
   /**
    * Speak a chunk of text by fetching the TTS audio and scheduling it directly
    * after whatever is already queued.
@@ -45,7 +46,16 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
     (text: string, onEnd?: () => void) => {
       if (!text || !text.trim()) return;
 
+      // Signal that we are actively queueing again
+      isStoppedRef.current = false;
+
       playChainRef.current = playChainRef.current.then(async () => {
+        // Check if stop was called while this chunk was waiting in the queue
+        if (isStoppedRef.current) {
+          console.debug("TTS queue stopped, skipping scheduled chunk.");
+          return;
+        }
+
         try {
           const controller = new AbortController();
           controllersRef.current.add(controller);
@@ -80,7 +90,7 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
                 `TTS AudioContext still in state "${state}" after resume – recreating`
               );
               await ctx.close();
-            } catch (_) {
+            } catch {
               /* ignore */
             }
             ctxRef.current = null;
@@ -122,6 +132,9 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
 
   /** Cancel all in-flight requests and reset the queue so the next call starts immediately. */
   const stop = useCallback(() => {
+    console.debug("Stopping TTS queue...");
+    isStoppedRef.current = true; // Signal to pending operations to stop
+
     controllersRef.current.forEach((c) => c.abort());
     controllersRef.current.clear();
     playChainRef.current = Promise.resolve();
@@ -129,7 +142,7 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
     playingSourcesRef.current.forEach((src) => {
       try {
         src.stop();
-      } catch (e) {
+      } catch {
         /* ignore */
       }
     });

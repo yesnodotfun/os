@@ -210,7 +210,11 @@ export function useAiChat() {
               isRegex?: boolean;
             };
 
-            console.log("[ToolCall] searchReplace:", { search, replace, isRegex });
+            console.log("[ToolCall] searchReplace:", {
+              search,
+              replace,
+              isRegex,
+            });
 
             // Ensure TextEdit is open – launch if not already
             const appState = useAppStore.getState();
@@ -237,7 +241,9 @@ export function useAiChat() {
               }
             } catch (err) {
               console.error("searchReplace error while processing regex:", err);
-              return `Failed to apply search/replace: ${(err as Error).message}`;
+              return `Failed to apply search/replace: ${
+                (err as Error).message
+              }`;
             }
 
             if (updatedStr === originalStr) {
@@ -248,7 +254,10 @@ export function useAiChat() {
             try {
               updatedJson = JSON.parse(updatedStr);
             } catch (err) {
-              console.error("searchReplace error while parsing updated JSON:", err);
+              console.error(
+                "searchReplace error while parsing updated JSON:",
+                err
+              );
               return "Replacement produced invalid document data.";
             }
 
@@ -278,9 +287,13 @@ export function useAiChat() {
             // don't overwhelm the store/UI. We reuse the same debounced helper by
             // passing in a thunk that performs the real insert when the debounce
             // interval elapses.
-            debouncedInsertTextUpdate(() => insertText(text, position || "end"));
+            debouncedInsertTextUpdate(() =>
+              insertText(text, position || "end")
+            );
 
-            return `Inserting text at ${position === "start" ? "start" : "end"} of document…`;
+            return `Inserting text at ${
+              position === "start" ? "start" : "end"
+            } of document…`;
           }
           case "newFile": {
             console.log("[ToolCall] newFile");
