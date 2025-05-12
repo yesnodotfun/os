@@ -459,18 +459,46 @@ function ChatMessagesContent({
                       className="h-3 w-3 text-gray-400 hover:text-gray-600 transition-colors"
                       onClick={() => {
                         if (playingMessageId === messageKey) {
+                          // Stop current playback
                           stop();
                           setPlayingMessageId(null);
                         } else {
                           stop();
-                          const textForSpeech = displayContent.trim();
-                          if (textForSpeech) {
-                            speak(textForSpeech, () => {
+                          const text = displayContent.trim();
+                          if (text) {
+                            // Split into sentence-like chunks so each fetch starts immediately and
+                            // the UI can advance per chunk.
+                            const chunks: string[] = [];
+                            let buffer = text;
+                            const sentenceRegex =
+                              /[.!?。，！？；：](?:\s+|$)|\r?\n+/;
+                            let match: RegExpMatchArray | null;
+                            while ((match = buffer.match(sentenceRegex))) {
+                              const idx = match.index! + match[0].length;
+                              const sentence = buffer.slice(0, idx).trim();
+                              if (sentence) chunks.push(sentence);
+                              buffer = buffer.slice(idx);
+                            }
+                            // Push any remaining fragment
+                            if (buffer.trim()) chunks.push(buffer.trim());
+
+                            if (chunks.length === 0) {
                               setPlayingMessageId(null);
+                              return;
+                            }
+
+                            // Queue all chunks so network requests overlap.
+                            chunks.forEach((chunk, idx) => {
+                              speak(chunk, () => {
+                                // When the final chunk ends, clear playingMessageId
+                                if (idx === chunks.length - 1) {
+                                  setPlayingMessageId(null);
+                                }
+                              });
                             });
+
                             setPlayingMessageId(messageKey);
                           } else {
-                            // Nothing meaningful to speak – ensure UI resets
                             setPlayingMessageId(null);
                           }
                         }
