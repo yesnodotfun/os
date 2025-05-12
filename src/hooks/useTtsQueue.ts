@@ -18,8 +18,9 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
   const [isSpeaking, setIsSpeaking] = useState(false);
   // Track any sources currently playing so we can stop them
   const playingSourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
-  // Promise chain to guarantee ordering regardless of varied fetch latency
-  const playChainRef = useRef<Promise<void>>(Promise.resolve());
+  // Promise chain that guarantees *scheduling* order while still allowing
+  // individual fetches to run in parallel.
+  const scheduleChainRef = useRef<Promise<void>>(Promise.resolve());
   // Flag to signal stop across async boundaries
   const isStoppedRef = useRef(false);
 
@@ -49,16 +50,11 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
       // Signal that we are actively queueing again
       isStoppedRef.current = false;
 
-      playChainRef.current = playChainRef.current.then(async () => {
-        // Check if stop was called while this chunk was waiting in the queue
-        if (isStoppedRef.current) {
-          console.debug("TTS queue stopped, skipping scheduled chunk.");
-          return;
-        }
-
+      // Begin fetching immediately so the network request runs in parallel
+      const fetchPromise = (async () => {
+        const controller = new AbortController();
+        controllersRef.current.add(controller);
         try {
-          const controller = new AbortController();
-          controllersRef.current.add(controller);
           const res = await fetch(endpoint, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -68,10 +64,29 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
           controllersRef.current.delete(controller);
           if (!res.ok) {
             console.error("TTS request failed", await res.text());
-            return;
+            return null;
           }
+          return await res.arrayBuffer();
+        } catch (err) {
+          controllersRef.current.delete(controller);
+          if ((err as DOMException)?.name !== "AbortError") {
+            console.error("TTS fetch error", err);
+          }
+          return null;
+        }
+      })();
 
-          const arrayBuf = await res.arrayBuffer();
+      // Chain purely the *scheduling* to maintain correct order.
+      scheduleChainRef.current = scheduleChainRef.current.then(async () => {
+        // Check if stop was called while this chunk was waiting in the queue
+        if (isStoppedRef.current) {
+          console.debug("TTS queue stopped, skipping scheduled chunk.");
+          return;
+        }
+
+        try {
+          const arrayBuf = await fetchPromise;
+          if (!arrayBuf) return;
           let ctx = ensureContext();
           // Resume if the context was suspended or Safari put it in the non-standard
           // "interrupted" state (happens when the user switches apps or similar).
@@ -137,7 +152,7 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
 
     controllersRef.current.forEach((c) => c.abort());
     controllersRef.current.clear();
-    playChainRef.current = Promise.resolve();
+    scheduleChainRef.current = Promise.resolve();
     // Stop any sources that are currently playing
     playingSourcesRef.current.forEach((src) => {
       try {

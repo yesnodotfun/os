@@ -15,6 +15,10 @@ import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { appMetadata, helpItems } from "..";
 import { useTextEditStore } from "@/stores/useTextEditStore";
 import { SlashCommands } from "../extensions/SlashCommands";
+import {
+  SpeechHighlight,
+  speechHighlightKey,
+} from "../extensions/SpeechHighlight";
 import { useFileSystem } from "@/apps/finder/hooks/useFileSystem";
 import {
   dbOperations,
@@ -110,6 +114,7 @@ export function TextEditAppComponent({
         nested: true,
       }),
       SlashCommands,
+      SpeechHighlight,
     ],
     content: "",
     editorProps: {
@@ -694,9 +699,24 @@ export function TextEditAppComponent({
   const handleSpeak = () => {
     if (!editor) return;
 
+    // Helper to highlight an editor range using the decoration plugin
+    const highlightRange = (from: number, to: number) => {
+      const { state, view } = editor;
+      const tr = state.tr.setMeta(speechHighlightKey, { range: { from, to } });
+      view.dispatch(tr);
+    };
+
+    // Helper to clear any existing highlight
+    const clearHighlight = () => {
+      const { state, view } = editor;
+      const tr = state.tr.setMeta(speechHighlightKey, { clear: true });
+      view.dispatch(tr);
+    };
+
     // If currently speaking, clicking stops playback
     if (isSpeaking) {
       stop();
+      clearHighlight();
       return;
     }
 
@@ -710,33 +730,53 @@ export function TextEditAppComponent({
     const { from, to, empty } = editor.state.selection;
 
     if (empty) {
-      // No selection – speak the document chunked by top-level blocks
-      const html = editor.getHTML();
-      const div = document.createElement("div");
-      div.innerHTML = html;
+      // Collect all textblock nodes with their positions so we can highlight
+      const blocks: { text: string; from: number; to: number }[] = [];
+      editor.state.doc.descendants((node, pos) => {
+        if (node.isTextblock && node.textContent.trim()) {
+          const from = pos + 1; // +1 to skip the opening tag
+          const to = pos + node.nodeSize - 1; // -1 to skip the closing tag
+          blocks.push({
+            text: node.textContent.trim(),
+            from,
+            to,
+          });
+        }
+      });
 
-      // Get all direct child elements from common block elements
-      // Exclude paragraphs that are inside list items to avoid duplicates
-      const selector =
-        "h1, h2, h3, h4, h5, h6, " +
-        "li, " + // Get list items
-        "p:not(li p):not(ol p):not(ul p)"; // Get paragraphs not inside any list
-
-      const blocks = div.querySelectorAll(selector);
-      const chunks: string[] = Array.from(blocks)
-        .map((el) => el.textContent?.trim() || "")
-        .filter(Boolean);
-
-      if (chunks.length === 0) return;
+      if (blocks.length === 0) return;
 
       setIsTtsLoading(true);
-      chunks.forEach((chunk) => speak(chunk));
+
+      // Queue every block immediately so network fetches start in parallel
+      blocks.forEach(({ text }, idx) => {
+        speak(text, () => {
+          const nextIdx = idx + 1;
+          if (nextIdx < blocks.length) {
+            const nextBlock = blocks[nextIdx];
+            clearHighlight();
+            highlightRange(nextBlock.from, nextBlock.to);
+          } else {
+            clearHighlight();
+          }
+        });
+      });
+
+      // Highlight the first block right away
+      const { from: firstFrom, to: firstTo } = blocks[0];
+      highlightRange(firstFrom, firstTo);
     } else {
       // Speak the selected text as-is
       const textToSpeak = editor.state.doc.textBetween(from, to, "\n").trim();
       if (textToSpeak) {
         setIsTtsLoading(true);
-        speak(textToSpeak);
+
+        // Highlight the selection
+        highlightRange(from, to);
+
+        speak(textToSpeak, () => {
+          clearHighlight();
+        });
       }
     }
   };
