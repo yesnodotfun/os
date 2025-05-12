@@ -19,6 +19,18 @@ export const IPOD_DEFAULT_VIDEOS = [
     artist: "Jagged Edge",
   },
   {
+    id: "XJWqHmY-g9U",
+    url: "https://www.youtube.com/watch?v=XJWqHmY-g9U",
+    title: "Telephone Number",
+    artist: "Junko Ohashi (大橋純子)",
+  },
+  {
+    id: "f3zVbOMyzgE",
+    url: "https://www.youtube.com/watch?v=f3zVbOMyzgE",
+    title: "UP&DOWN",
+    artist: "LIM JISOO (임지수)",
+  },
+  {
     id: "zt0Me5qyK4g",
     url: "https://www.youtube.com/watch?v=zt0Me5qyK4g",
     title: "춤 (Dance)",
@@ -151,6 +163,12 @@ export const IPOD_DEFAULT_VIDEOS = [
     artist: "deca joins",
   },
   {
+    id: "3SoYkCAzMBk",
+    url: "https://www.youtube.com/watch?v=3SoYkCAzMBk",
+    title: "Can We Talk",
+    artist: "Tevin Campbell",
+  },
+  {
     id: "ZncbtRo7RXs",
     url: "https://www.youtube.com/watch?v=ZncbtRo7RXs",
     title: "Supernatural (Part.1)",
@@ -222,7 +240,7 @@ interface IpodStoreState {
   previousTrack: () => void;
 }
 
-const CURRENT_IPOD_STORE_VERSION = 4; // Define the current version
+const CURRENT_IPOD_STORE_VERSION = 5; // Define the current version
 
 export const useIpodStore = create<IpodStoreState>()(
   persist(
