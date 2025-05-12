@@ -708,14 +708,28 @@ export function TextEditAppComponent({
     }
 
     const { from, to, empty } = editor.state.selection;
-    const textToSpeak = empty
-      ? editor.state.doc.textContent
-      : editor.state.doc.textBetween(from, to, "\n");
 
-    const cleaned = textToSpeak.trim();
-    if (cleaned) {
+    if (empty) {
+      // No selection – speak the document chunked by top-level blocks
+      const html = editor.getHTML();
+      const div = document.createElement("div");
+      div.innerHTML = html;
+      const blocks = div.querySelectorAll("p, h1, h2, h3, h4, h5, h6, li");
+      const chunks: string[] = Array.from(blocks)
+        .map((el) => el.textContent?.trim() || "")
+        .filter(Boolean);
+
+      if (chunks.length === 0) return;
+
       setIsTtsLoading(true);
-      speak(cleaned);
+      chunks.forEach((chunk) => speak(chunk));
+    } else {
+      // Speak the selected text as-is
+      const textToSpeak = editor.state.doc.textBetween(from, to, "\n").trim();
+      if (textToSpeak) {
+        setIsTtsLoading(true);
+        speak(textToSpeak);
+      }
     }
   };
 

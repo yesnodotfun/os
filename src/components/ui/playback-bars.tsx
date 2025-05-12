@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 
 interface PlaybackBarsProps {
   className?: string;
@@ -15,7 +16,29 @@ export function PlaybackBars({
   color = "white",
   barCount = 5,
 }: PlaybackBarsProps) {
-  const MIN_SCALE = 0.4;
+  const MIN_SCALE = 0.2;
+  const [randomScales, setRandomScales] = useState<number[][]>([]);
+  const [randomDurations, setRandomDurations] = useState<number[]>([]);
+
+  // Generate random animation values on mount
+  useEffect(() => {
+    // Create random animation targets for each bar
+    const scales = Array.from({ length: barCount }).map(() => {
+      // Generate 3-5 random points for each bar animation
+      const pointCount = Math.floor(Math.random() * 3) + 3;
+      return Array.from({ length: pointCount }).map(
+        () => MIN_SCALE + Math.random() * (1 - MIN_SCALE)
+      );
+    });
+
+    // Create random durations for each bar
+    const durations = Array.from({ length: barCount }).map(
+      () => 0.7 + Math.random() * 0.6
+    );
+
+    setRandomScales(scales);
+    setRandomDurations(durations);
+  }, [barCount]);
 
   return (
     <div
@@ -28,12 +51,15 @@ export function PlaybackBars({
             color === "white" ? "bg-white" : "bg-black"
           }`}
           initial={{ scaleY: MIN_SCALE }}
-          animate={{ scaleY: [MIN_SCALE, 1, MIN_SCALE] }}
+          animate={{
+            scaleY: randomScales[index] || [MIN_SCALE, 0.7, MIN_SCALE],
+          }}
           transition={{
-            duration: 0.9,
+            duration: randomDurations[index] || 0.9,
             repeat: Infinity,
+            repeatType: "reverse",
             ease: "easeInOut",
-            delay: index * 0.1,
+            delay: Math.random() * 0.5,
           }}
           style={{ height: 12 }}
         />
