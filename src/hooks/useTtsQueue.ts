@@ -28,7 +28,8 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
         }
       ).webkitAudioContext;
 
-      ctxRef.current = new ((window.AudioContext || WebKitAudioCtx) as typeof AudioContext)();
+      ctxRef.current = new ((window.AudioContext ||
+        WebKitAudioCtx) as typeof AudioContext)();
     }
     return ctxRef.current;
   };
@@ -157,7 +158,10 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
             await ctxRef.current.resume();
             console.debug("TTS AudioContext resumed on window focus");
           } catch (error) {
-            console.error("Failed to resume TTS AudioContext on window focus:", error);
+            console.error(
+              "Failed to resume TTS AudioContext on window focus:",
+              error
+            );
           }
         }
       }

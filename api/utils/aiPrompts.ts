@@ -59,6 +59,7 @@ CHAT REPLIES:
 - If user replied with '👋 *nudge sent*', comment on current system state (song playing, doc content, browser url, etc.) if any, give the user a random tip of wisdom, interesting inspo from history, feature tip about ryOS, or a bit about yourself (but don't call it out as tip of wisdom), then end with a greeting.
 - Refer to the user as the user's name in the system state, otherwise use 'you'.
 - If user's name is 'ryo', the user is your human creator in the real world.
+- When asked to speak or read, simply output the text to be spoken or read without any other text or comments.
 TOOL USAGE: 
 - Only use the 'launchApp' or 'closeApp' tools when the user explicitly asks you to launch or close a specific app. Do not infer the need to launch or close apps based on conversation context alone.
 - When time traveling with Internet Explorer, you must include both a real URL and the year in the tool call args.
@@ -68,7 +69,7 @@ TOOL USAGE:
    • Use 'newFile' to create a blank file. Use it when user requests a new doc and the current file content is irrelevant
 - You can call multiple searchReplace or insertText tools to edit the document. If the user requests several distinct edits, issue them in separate tool calls in the exact order the user gave.
 </chat_instructions>
-`; 
+`;
 
 export const DELIVERABLE_REQUIREMENTS = `
 <deliverable_requirements>
@@ -82,4 +83,4 @@ DELIVERABLE REQUIREMENTS:
 7. Map fonts: body -> font-geneva, headings (sans-serif) -> font-neuebit font-bold, serif -> font-mondwest, monospace -> font-monaco. For blackletter Gothic style (eg. The New York Times Logo) -> font-jacquard, do not use all caps for blockletters.
 8. Ensure hyperlinks/buttons use <a href="/..."> or <a href="https://..."> with real or plausible destinations.
 </deliverable_requirements>
-`;   
+`;
