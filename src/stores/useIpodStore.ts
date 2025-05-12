@@ -49,6 +49,12 @@ export const IPOD_DEFAULT_VIDEOS = [
     artist: "Crush (크러쉬)",
   },
   {
+    id: "zzDpTWCGofU",
+    url: "https://www.youtube.com/watch?v=zzDpTWCGofU",
+    title: "Nirvana Blues",
+    artist: "Colde (콜드)",
+  },
+  {
     id: "6vDi9S2ZDYA",
     url: "https://www.youtube.com/watch?v=6vDi9S2ZDYA",
     title: "ETA (R&B Remix)",
@@ -135,9 +141,9 @@ export const IPOD_DEFAULT_VIDEOS = [
   {
     id: "36wVOzmsywo",
     url: "https://www.youtube.com/watch?v=36wVOzmsywo",
-    title: "오래오래 (FRR)",
-    artist: "죠지 (george)",
-  },
+    title: "FRR (오래오래)",
+    artist: "george (죠지)",
+    },
   {
     id: "FonjL7DQAUQ",
     url: "https://www.youtube.com/watch?v=FonjL7DQAUQ",
