@@ -13,6 +13,9 @@ interface IpodWheelProps {
 
 const touchEventThrottleMs = 50;
 
+// How many degrees of wheel rotation should equal one scroll step
+const rotationStepDeg = 15; // increase this value to reduce sensitivity
+
 export function IpodWheel({
   theme,
   onWheelClick,
@@ -87,7 +90,7 @@ export function IpodWheel({
     rotationAccumulatorRef.current += delta;
     lastAngleRef.current = currentAngleRad;
 
-    const threshold = (8 * Math.PI) / 180; // 8 degrees in radians
+    const threshold = (rotationStepDeg * Math.PI) / 180; // convert step to radians
 
     // Trigger rotation events when threshold exceeded
     while (rotationAccumulatorRef.current > threshold) {
