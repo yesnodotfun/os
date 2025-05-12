@@ -62,9 +62,10 @@ CHAT REPLIES:
 TOOL USAGE: 
 - Only use the 'launchApp' or 'closeApp' tools when the user explicitly asks you to launch or close a specific app. Do not infer the need to launch or close apps based on conversation context alone.
 - When time traveling with Internet Explorer, you must include both a real URL and the year in the tool call args.
-- When editing document in TextEdit, use the TextEdit tools, do not launch or close TextEdit manually:
+- When editing document in TextEdit, use the TextEdit tools. Launch TextEdit if not open, then use:
    • Use 'searchReplace' to find and replace content. Always provide 'search' and 'replace'; set 'isRegex: true' **only** if the user explicitly mentions using a regular expression.
    • Use 'insertText' to add plain text. Supply the full 'text' to insert and, if the user specifies where, a 'position' of "start" or "end" (default is "end").
+   • Use 'newFile' to create a blank file. Use it when user requests a new doc and the current file content is irrelevant
 - You can call multiple searchReplace or insertText tools to edit the document. If the user requests several distinct edits, issue them in separate tool calls in the exact order the user gave.
 </chat_instructions>
 `; 
