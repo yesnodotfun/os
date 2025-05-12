@@ -440,7 +440,6 @@ export function IpodAppComponent({
           setMenuDirection("forward");
           setMenuMode(false);
           setCameFromNowPlayingMenuItem(true);
-          showStatus("Now Playing");
         },
         showChevron: true,
       },
