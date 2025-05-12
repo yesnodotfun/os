@@ -13,6 +13,36 @@ export interface Track {
 // Original video collection moved here
 export const IPOD_DEFAULT_VIDEOS = [
   {
+    id: "lXd1GHJPx-A",
+    url: "https://www.youtube.com/watch?v=lXd1GHJPx-A",
+    title: "Promise",
+    artist: "Jagged Edge",
+  },
+  {
+    id: "T6YVgEpRU6Q",
+    url: "https://www.youtube.com/watch?v=T6YVgEpRU6Q",
+    title: "LEFT RIGHT",
+    artist: "XG",
+  },
+  {
+    id: "QiYOkmrI1jg",
+    url: "https://www.youtube.com/watch?v=QiYOkmrI1jg",
+    title: "IYKYK",
+    artist: "XG",
+  },
+  {
+    id: "b9MZLrVU3EQ",
+    url: "https://www.youtube.com/watch?v=b9MZLrVU3EQ",
+    title: "BAD BITCHES (feat. Kehlani)",
+    artist: "Destin Conrad",
+  },
+  {
+    id: "6vDi9S2ZDYA",
+    url: "https://www.youtube.com/watch?v=6vDi9S2ZDYA",
+    title: "ETA (R&B Remix)",
+    artist: "NewJeans (뉴진스)",
+  },
+  {
     id: "yP8nAoFi6JY",
     url: "https://www.youtube.com/watch?v=yP8nAoFi6JY",
     title: "Supernatural (Miami Bass Remix)",
@@ -162,7 +192,7 @@ interface IpodStoreState {
   previousTrack: () => void;
 }
 
-const CURRENT_IPOD_STORE_VERSION = 3; // Define the current version
+const CURRENT_IPOD_STORE_VERSION = 4; // Define the current version
 
 export const useIpodStore = create<IpodStoreState>()(
   persist(

@@ -253,7 +253,7 @@ export function IpodMenuBar({
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
                   <div className="flex justify-between w-full items-center overflow-hidden">
-                    <span className="truncate min-w-0">All Tracks</span>
+                    <span className="truncate min-w-0">All Songs</span>
                   </div>
                 </DropdownMenuSubTrigger>
                 <DropdownMenuSubContent className="px-0 max-w-[180px] sm:max-w-[220px]">

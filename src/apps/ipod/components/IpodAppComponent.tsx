@@ -248,7 +248,7 @@ export function IpodAppComponent({
 
     return [
       {
-        label: "All Tracks",
+        label: "All Songs",
         action: () => {
           registerActivity();
           setMenuDirection("forward");
@@ -261,7 +261,7 @@ export function IpodAppComponent({
               setMenuDirection("forward");
               setMenuMode(false);
               setCameFromNowPlayingMenuItem(false);
-              setLastPlayedMenuPath(["Music", "All Tracks"]);
+              setLastPlayedMenuPath(["Music", "All Songs"]);
               if (useIpodStore.getState().showVideo) {
                 toggleVideo();
               }
@@ -271,7 +271,7 @@ export function IpodAppComponent({
           setMenuHistory((prev) => [
             ...prev,
             {
-              title: "All Tracks",
+              title: "All Songs",
               items: allTracksMenu,
               selectedIndex: 0,
             },
@@ -660,7 +660,7 @@ export function IpodAppComponent({
         
         // Create track menus
         const allTracksMenu = {
-          title: "All Tracks",
+          title: "All Songs",
           items: tracks.map((track, index) => ({
             label: track.title,
             action: () => {
@@ -670,7 +670,7 @@ export function IpodAppComponent({
               setMenuDirection("forward");
               setMenuMode(false);
               setCameFromNowPlayingMenuItem(false);
-              setLastPlayedMenuPath(["Music", "All Tracks"]);
+              setLastPlayedMenuPath(["Music", "All Songs"]);
               if (useIpodStore.getState().showVideo) {
                 toggleVideo();
               }
@@ -681,7 +681,7 @@ export function IpodAppComponent({
         };
         
         // If we have a lastPlayedMenuPath, use it to determine where to go back to
-        if (lastPlayedMenuPath.length > 0 && lastPlayedMenuPath[1] !== "All Tracks") {
+        if (lastPlayedMenuPath.length > 0 && lastPlayedMenuPath[1] !== "All Songs") {
           // We should return to an artist menu
           const artist = lastPlayedMenuPath[1];
           
@@ -725,7 +725,7 @@ export function IpodAppComponent({
             
             setSelectedMenuItem(artistTrackIndex !== -1 ? artistTrackIndex : 0);
           } else {
-            // If artist no longer exists, fall back to All Tracks
+            // If artist no longer exists, fall back to All Songs
             setMenuHistory([
               mainMenu,
               {
@@ -738,7 +738,7 @@ export function IpodAppComponent({
             setSelectedMenuItem(currentTrackIndex);
           }
         } else {
-          // Default behavior: go to All Tracks
+          // Default behavior: go to All Songs
           setMenuHistory([
             mainMenu,
             {
@@ -860,10 +860,10 @@ export function IpodAppComponent({
       const seekAmount = 5;
       if (direction === "clockwise") {
         playerRef.current?.seekTo(currentTime + seekAmount);
-        showStatus(`Seek +${seekAmount}s`);
+        showStatus(`⏩︎`);
       } else {
         playerRef.current?.seekTo(Math.max(0, currentTime - seekAmount));
-        showStatus(`Seek -${seekAmount}s`);
+        showStatus(`⏪︎`);
       }
     }
   }, [
