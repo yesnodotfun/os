@@ -115,6 +115,12 @@ export const IPOD_DEFAULT_VIDEOS = [
     artist: "grentperez & Ruel",
   },
   {
+    id: "36wVOzmsywo",
+    url: "https://www.youtube.com/watch?v=36wVOzmsywo",
+    title: "오래오래 (FRR)",
+    artist: "죠지 (george)",
+  },
+  {
     id: "FonjL7DQAUQ",
     url: "https://www.youtube.com/watch?v=FonjL7DQAUQ",
     title: "海浪 (Waves)",
