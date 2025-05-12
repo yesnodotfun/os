@@ -191,9 +191,10 @@ function ChatMessagesContent({
   const { playElevatorMusic, stopElevatorMusic, playDingSound } =
     useTerminalSounds();
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
-  const { speak, stop } = useTtsQueue();
+  const { speak, stop, isSpeaking: localTtsSpeaking } = useTtsQueue();
   const speechEnabled = useAppStore((state) => state.speechEnabled);
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
+  const [speechLoadingId, setSpeechLoadingId] = useState<string | null>(null);
   const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
   const [isInteractingWithPreview, setIsInteractingWithPreview] =
     useState(false);
@@ -204,7 +205,6 @@ function ChatMessagesContent({
     start: number;
     end: number;
   } | null>(null);
-  const [localIsSpeaking, setLocalIsSpeaking] = useState(false);
   const localHighlightQueueRef = useRef<
     { messageId: string; start: number; end: number }[]
   >([]);
@@ -267,6 +267,13 @@ function ChatMessagesContent({
       scrollToBottom();
     }
   }, [scrollToBottomTrigger, scrollToBottom]);
+
+  // Clear loading indicator when TTS actually starts playing
+  useEffect(() => {
+    if (localTtsSpeaking && speechLoadingId) {
+      setSpeechLoadingId(null);
+    }
+  }, [localTtsSpeaking, speechLoadingId]);
 
   const copyMessage = async (message: ChatMessage) => {
     try {
@@ -357,7 +364,7 @@ function ChatMessagesContent({
           : message.content;
 
         const combinedHighlightSeg = highlightSegment || localHighlightSegment;
-        const combinedIsSpeaking = isSpeaking || localIsSpeaking;
+        const combinedIsSpeaking = isSpeaking || localTtsSpeaking;
 
         const highlightActive =
           combinedIsSpeaking &&
@@ -489,9 +496,10 @@ function ChatMessagesContent({
                           setPlayingMessageId(null);
                         } else {
                           stop();
-                          setLocalIsSpeaking(false);
+                          // ensure any existing queue/segment cleared
                           setLocalHighlightSegment(null);
                           localHighlightQueueRef.current = [];
+                          setSpeechLoadingId(null);
 
                           const text = displayContent.trim();
                           if (text) {
@@ -513,6 +521,7 @@ function ChatMessagesContent({
 
                             if (chunks.length === 0) {
                               setPlayingMessageId(null);
+                              setSpeechLoadingId(null);
                               return;
                             }
 
@@ -530,7 +539,7 @@ function ChatMessagesContent({
 
                             localHighlightQueueRef.current = segments;
                             setLocalHighlightSegment(segments[0]);
-                            setLocalIsSpeaking(true);
+                            setSpeechLoadingId(messageKey);
 
                             // Queue all chunks so network requests overlap.
                             chunks.forEach((chunk) => {
@@ -543,8 +552,8 @@ function ChatMessagesContent({
                                   );
                                 } else {
                                   setLocalHighlightSegment(null);
-                                  setLocalIsSpeaking(false);
                                   setPlayingMessageId(null);
+                                  setSpeechLoadingId(null);
                                 }
                               });
                             });
@@ -552,6 +561,7 @@ function ChatMessagesContent({
                             setPlayingMessageId(messageKey);
                           } else {
                             setPlayingMessageId(null);
+                            setSpeechLoadingId(null);
                           }
                         }
                       }}
@@ -562,7 +572,11 @@ function ChatMessagesContent({
                       }
                     >
                       {playingMessageId === messageKey ? (
-                        <Pause className="h-3 w-3" />
+                        speechLoadingId === messageKey ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Pause className="h-3 w-3" />
+                        )
                       ) : (
                         <Volume2 className="h-3 w-3" />
                       )}
