@@ -124,6 +124,22 @@ export function useAiChat() {
   // Track how many characters of each assistant message have already been sent to TTS
   const speechProgressRef = useRef<Record<string, number>>({});
 
+  // Currently highlighted chunk for UI animation
+  const [highlightSegment, setHighlightSegment] = useState<{
+    messageId: string;
+    start: number;
+    end: number;
+  } | null>(null);
+
+  // Queue of upcoming highlight segments awaiting playback completion
+  const highlightQueueRef = useRef<
+    {
+      messageId: string;
+      start: number;
+      end: number;
+    }[]
+  >([]);
+
   // On first mount, mark any assistant messages already present as fully processed
   useEffect(() => {
     aiMessages.forEach((msg) => {
@@ -415,7 +431,32 @@ export function useAiChat() {
       if (sentence && !/^[\s.!?。，！？；：]+$/.test(sentence)) {
         const cleaned = cleanTextForSpeech(sentence);
         if (cleaned && !/^[\s.!?。，！？；：]+$/.test(cleaned)) {
-          speak(cleaned);
+          const chunkStart =
+            processed + newText.indexOf(sentence) + spokenChars;
+          const chunkEnd = chunkStart + sentence.length;
+
+          // Push highlight info to queue
+          const seg = {
+            messageId: lastMsg.id,
+            start: chunkStart,
+            end: chunkEnd,
+          };
+          highlightQueueRef.current.push(seg);
+
+          // If no highlight active, set as current
+          if (!highlightSegment) {
+            setHighlightSegment(seg);
+          }
+
+          speak(cleaned, () => {
+            // On chunk end, shift queue
+            highlightQueueRef.current.shift();
+            if (highlightQueueRef.current.length > 0) {
+              setHighlightSegment(highlightQueueRef.current[0]);
+            } else {
+              setHighlightSegment(null);
+            }
+          });
         }
       }
       spokenChars += idx;
@@ -597,5 +638,7 @@ export function useAiChat() {
     handleSaveSubmit,
 
     isSpeaking,
+
+    highlightSegment,
   };
 }

@@ -319,6 +319,20 @@
     -webkit-font-smoothing: antialiased;
     font-smooth: always;
   }
+
+  .animate-highlight {
+    animation: highlight-bg-opacity 1.5s ease-in-out infinite;
+  }
+}
+
+@keyframes highlight-bg-opacity {
+  0%,
+  100% {
+    background-color: rgb(254 249 195 / 1); /* bg-yellow-200 */
+  }
+  50% {
+    background-color: rgb(254 249 195 / 0.5); /* bg-yellow-200/50 */
+  }
 }
 
 /* CRT Scanline Effect */

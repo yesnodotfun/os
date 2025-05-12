@@ -126,6 +126,8 @@ interface ChatMessagesProps {
   onMessageDeleted?: (messageId: string) => void; // Callback when a message is deleted locally
   fontSize: number; // Add font size prop
   scrollToBottomTrigger: number; // Add scroll trigger prop
+  highlightSegment?: { messageId: string; start: number; end: number } | null;
+  isSpeaking?: boolean;
 }
 
 // Component to render the scroll-to-bottom button using the library's context
@@ -165,6 +167,8 @@ interface ChatMessagesContentProps {
   onMessageDeleted?: (messageId: string) => void;
   fontSize: number;
   scrollToBottomTrigger: number;
+  highlightSegment?: { messageId: string; start: number; end: number } | null;
+  isSpeaking?: boolean;
 }
 
 function ChatMessagesContent({
@@ -180,6 +184,8 @@ function ChatMessagesContent({
   onMessageDeleted,
   fontSize,
   scrollToBottomTrigger,
+  highlightSegment,
+  isSpeaking,
 }: ChatMessagesContentProps) {
   const { playNote } = useChatSynth();
   const { playElevatorMusic, stopElevatorMusic, playDingSound } =
@@ -338,6 +344,11 @@ function ChatMessagesContent({
         const displayContent = isUrgentMessage(message.content)
           ? message.content.slice(4).trimStart()
           : message.content;
+
+        const highlightActive =
+          isSpeaking &&
+          highlightSegment &&
+          highlightSegment.messageId === message.id;
 
         return (
           <motion.div
@@ -683,61 +694,93 @@ function ChatMessagesContent({
                           <div key={partKey} className="w-full">
                             <div className="whitespace-pre-wrap">
                               {textContent &&
-                                segmentText(textContent.trim()).map(
-                                  (segment, idx) => (
-                                    <motion.span
-                                      key={`${partKey}-segment-${idx}`}
-                                      initial={
-                                        isInitialMessage
-                                          ? { opacity: 1, y: 0 }
-                                          : { opacity: 0, y: 12 }
-                                      }
-                                      animate={{ opacity: 1, y: 0 }}
-                                      className={`select-text ${
-                                        isEmojiOnly(textContent)
-                                          ? "text-[24px]"
-                                          : ""
-                                      } ${
-                                        segment.type === "bold"
-                                          ? "font-bold"
-                                          : segment.type === "italic"
-                                          ? "italic"
-                                          : ""
-                                      }`}
-                                      style={{
-                                        userSelect: "text",
-                                        fontSize: isEmojiOnly(textContent)
-                                          ? undefined
-                                          : `${fontSize}px`,
-                                      }}
-                                      transition={{
-                                        duration: 0.08,
-                                        delay: idx * 0.02,
-                                        ease: "easeOut",
-                                        onComplete: () => {
-                                          if (idx % 2 === 0) {
-                                            playNote();
-                                          }
-                                        },
-                                      }}
-                                    >
-                                      {segment.type === "link" &&
-                                      segment.url ? (
-                                        <a
-                                          href={segment.url}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="text-blue-600 hover:underline"
-                                          onClick={(e) => e.stopPropagation()}
-                                        >
-                                          {segment.content}
-                                        </a>
-                                      ) : (
-                                        segment.content
-                                      )}
-                                    </motion.span>
-                                  )
-                                )}
+                                (() => {
+                                  const tokens = segmentText(
+                                    textContent.trim()
+                                  );
+                                  let charPos = 0;
+                                  return tokens.map((segment, idx) => {
+                                    const start = charPos;
+                                    const end =
+                                      charPos + segment.content.length;
+                                    charPos = end;
+                                    return (
+                                      <motion.span
+                                        key={`${partKey}-segment-${idx}`}
+                                        initial={
+                                          isInitialMessage
+                                            ? { opacity: 1, y: 0 }
+                                            : { opacity: 0, y: 12 }
+                                        }
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className={`select-text ${
+                                          isEmojiOnly(textContent)
+                                            ? "text-[24px]"
+                                            : ""
+                                        } ${
+                                          segment.type === "bold"
+                                            ? "font-bold"
+                                            : segment.type === "italic"
+                                            ? "italic"
+                                            : ""
+                                        }`}
+                                        style={{
+                                          userSelect: "text",
+                                          fontSize: isEmojiOnly(textContent)
+                                            ? undefined
+                                            : `${fontSize}px`,
+                                        }}
+                                        transition={{
+                                          duration: 0.08,
+                                          delay: idx * 0.02,
+                                          ease: "easeOut",
+                                          onComplete: () => {
+                                            if (idx % 2 === 0) {
+                                              playNote();
+                                            }
+                                          },
+                                        }}
+                                      >
+                                        {/* Apply highlight */}
+                                        {highlightActive &&
+                                        start < (highlightSegment?.end ?? 0) &&
+                                        end > (highlightSegment?.start ?? 0) ? (
+                                          <span className="animate-highlight">
+                                            {segment.type === "link" &&
+                                            segment.url ? (
+                                              <a
+                                                href={segment.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-blue-600 hover:underline"
+                                                onClick={(e) =>
+                                                  e.stopPropagation()
+                                                }
+                                              >
+                                                {segment.content}
+                                              </a>
+                                            ) : (
+                                              segment.content
+                                            )}
+                                          </span>
+                                        ) : segment.type === "link" &&
+                                          segment.url ? (
+                                          <a
+                                            href={segment.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-blue-600 hover:underline"
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            {segment.content}
+                                          </a>
+                                        ) : (
+                                          segment.content
+                                        )}
+                                      </motion.span>
+                                    );
+                                  });
+                                })()}
                             </div>
                             {hasHtml && htmlContent && (
                               <HtmlPreview
@@ -878,34 +921,53 @@ function ChatMessagesContent({
                         : `${fontSize}px`,
                     }} // Apply font size via style prop
                   >
-                    {segmentText(displayContent).map((segment, idx) => (
-                      <span
-                        key={`${messageKey}-segment-${idx}`}
-                        className={`
-                          ${
-                            segment.type === "bold"
-                              ? "font-bold"
-                              : segment.type === "italic"
-                              ? "italic"
-                              : ""
-                          }
-                        `}
-                      >
-                        {segment.type === "link" && segment.url ? (
-                          <a
-                            href={segment.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline"
-                            onClick={(e) => e.stopPropagation()} // Prevent hover effects on parent
+                    {(() => {
+                      const tokens = segmentText(displayContent);
+                      let charPos2 = 0;
+                      return tokens.map((segment, idx) => {
+                        const start2 = charPos2;
+                        const end2 = charPos2 + segment.content.length;
+                        charPos2 = end2;
+                        const isHighlight =
+                          highlightActive &&
+                          start2 < (highlightSegment?.end ?? 0) &&
+                          end2 > (highlightSegment?.start ?? 0);
+                        const contentNode =
+                          segment.type === "link" && segment.url ? (
+                            <a
+                              href={segment.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:underline"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {segment.content}
+                            </a>
+                          ) : (
+                            segment.content
+                          );
+                        return (
+                          <span
+                            key={`${messageKey}-segment-${idx}`}
+                            className={`${
+                              segment.type === "bold"
+                                ? "font-bold"
+                                : segment.type === "italic"
+                                ? "italic"
+                                : ""
+                            }`}
                           >
-                            {segment.content}
-                          </a>
-                        ) : (
-                          segment.content
-                        )}
-                      </span>
-                    ))}
+                            {isHighlight ? (
+                              <span className="bg-yellow-200 animate-highlight">
+                                {contentNode}
+                              </span>
+                            ) : (
+                              contentNode
+                            )}
+                          </span>
+                        );
+                      });
+                    })()}
                   </span>
                   {isHtmlCodeBlock(displayContent).isHtml && (
                     <HtmlPreview
@@ -963,6 +1025,8 @@ export function ChatMessages({
   onMessageDeleted,
   fontSize, // Destructure font size prop
   scrollToBottomTrigger, // Destructure scroll trigger prop
+  highlightSegment,
+  isSpeaking,
 }: ChatMessagesProps) {
   return (
     // Use StickToBottom component as the main container
@@ -988,6 +1052,8 @@ export function ChatMessages({
           onMessageDeleted={onMessageDeleted}
           fontSize={fontSize}
           scrollToBottomTrigger={scrollToBottomTrigger}
+          highlightSegment={highlightSegment}
+          isSpeaking={isSpeaking}
         />
       </StickToBottom.Content>
 
