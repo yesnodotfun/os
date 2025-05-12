@@ -19,6 +19,12 @@ export const IPOD_DEFAULT_VIDEOS = [
     artist: "Jagged Edge",
   },
   {
+    id: "zt0Me5qyK4g",
+    url: "https://www.youtube.com/watch?v=zt0Me5qyK4g",
+    title: "춤 (Dance)",
+    artist: "OFFONOFF",
+  },
+  {
     id: "T6YVgEpRU6Q",
     url: "https://www.youtube.com/watch?v=T6YVgEpRU6Q",
     title: "LEFT RIGHT",
@@ -35,6 +41,12 @@ export const IPOD_DEFAULT_VIDEOS = [
     url: "https://www.youtube.com/watch?v=b9MZLrVU3EQ",
     title: "BAD BITCHES (feat. Kehlani)",
     artist: "Destin Conrad",
+  },
+  {
+    id: "_wgeHqXr4Hc",
+    url: "https://www.youtube.com/watch?v=_wgeHqXr4Hc",
+    title: "나를 위해 (For Days to Come)",
+    artist: "Crush (크러쉬)",
   },
   {
     id: "6vDi9S2ZDYA",
@@ -113,6 +125,12 @@ export const IPOD_DEFAULT_VIDEOS = [
     url: "https://www.youtube.com/watch?v=Rk6aQvlmsWo",
     title: "Dandelion",
     artist: "grentperez & Ruel",
+  },
+  {
+    id: "Rf-ctwR7P-M",
+    url: "https://www.youtube.com/watch?v=Rf-ctwR7P-M",
+    title: "마음대로 (Control Me)",
+    artist: "Colde (콜드)",
   },
   {
     id: "36wVOzmsywo",
