@@ -16,7 +16,11 @@ import { appMetadata, helpItems } from "..";
 import { useTextEditStore } from "@/stores/useTextEditStore";
 import { SlashCommands } from "../extensions/SlashCommands";
 import { useFileSystem } from "@/apps/finder/hooks/useFileSystem";
-import { dbOperations, STORES, DocumentContent } from "@/apps/finder/hooks/useFileSystem";
+import {
+  dbOperations,
+  STORES,
+  DocumentContent,
+} from "@/apps/finder/hooks/useFileSystem";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,10 +28,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { AudioInputButton } from "@/components/ui/audio-input-button";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Volume2, Loader2 } from "lucide-react";
+import { PlaybackBars } from "@/components/ui/playback-bars";
 import { useLaunchApp } from "@/hooks/useLaunchApp";
 import { useSound, Sounds } from "@/hooks/useSound";
-import { htmlToMarkdown, markdownToHtml, htmlToPlainText } from "@/utils/markdown";
+import { useTtsQueue } from "@/hooks/useTtsQueue";
+import {
+  htmlToMarkdown,
+  markdownToHtml,
+  htmlToPlainText,
+} from "@/utils/markdown";
 import { saveAsMarkdown } from "@/utils/markdown/saveUtils";
 import { useAppStore } from "@/stores/useAppStore";
 
@@ -123,7 +133,10 @@ export function TextEditAppComponent({
   useEffect(() => {
     // Only run if there are changes and a file path exists
     if (hasUnsavedChanges && currentFilePath) {
-      console.log("[TextEdit] Changes detected, scheduling autosave for:", currentFilePath);
+      console.log(
+        "[TextEdit] Changes detected, scheduling autosave for:",
+        currentFilePath
+      );
       const handler = setTimeout(async () => {
         console.log("[TextEdit] Autosaving:", currentFilePath);
         const fileName = currentFilePath.split("/").pop() || "Untitled";
@@ -136,14 +149,16 @@ export function TextEditAppComponent({
           setHasUnsavedChanges(false); // Mark as saved after successful save
           console.log("[TextEdit] Autosave successful:", currentFilePath);
         } catch (error) {
-            console.error("[TextEdit] Autosave failed:", error);
-            // Optionally notify user or leave hasUnsavedChanges true
+          console.error("[TextEdit] Autosave failed:", error);
+          // Optionally notify user or leave hasUnsavedChanges true
         }
       }, 1500); // Autosave after 1.5 seconds of inactivity
 
       // Cleanup function to clear timeout if changes occur before saving
       return () => {
-        console.log("[TextEdit] Keystroke detected, clearing autosave timeout.");
+        console.log(
+          "[TextEdit] Keystroke detected, clearing autosave timeout."
+        );
         clearTimeout(handler);
       };
     }
@@ -155,99 +170,107 @@ export function TextEditAppComponent({
     if (!editor) return;
 
     const loadContent = async () => {
-        // Prioritize initialData passed from launch event
-        if (initialData?.path && initialData?.content !== undefined) {
-            console.log("[TextEdit] Loading content from initialData:", initialData.path);
-            const { path, content } = initialData;
-            const contentToUse = typeof content === "string" ? content : "";
-            let editorContent: string | object;
+      // Prioritize initialData passed from launch event
+      if (initialData?.path && initialData?.content !== undefined) {
+        console.log(
+          "[TextEdit] Loading content from initialData:",
+          initialData.path
+        );
+        const { path, content } = initialData;
+        const contentToUse = typeof content === "string" ? content : "";
+        let editorContent: string | object;
 
-            if (path.endsWith(".md")) {
-                editorContent = markdownToHtml(contentToUse);
+        if (path.endsWith(".md")) {
+          editorContent = markdownToHtml(contentToUse);
+        } else {
+          try {
+            editorContent = JSON.parse(contentToUse);
+          } catch {
+            editorContent = `<p>${contentToUse}</p>`;
+          }
+        }
+
+        editor.commands.setContent(editorContent, false);
+        setCurrentFilePath(path);
+        setHasUnsavedChanges(false);
+        setLastFilePath(path);
+        setContentJson(editor.getJSON());
+
+        // Clear the initialData from the store now that we've consumed it
+        clearInitialData("textedit");
+        return; // Don't proceed to load from store/DB if initialData was used
+      }
+
+      const {
+        lastFilePath,
+        contentJson,
+        hasUnsavedChanges: storeUnsaved,
+      } = useTextEditStore.getState();
+
+      let loadedContent = false;
+
+      // 1) Prefer any unsaved in-memory edits that were never written to disk.
+      if (storeUnsaved && contentJson) {
+        try {
+          editor.commands.setContent(contentJson, false); // avoid onUpdate
+          // Keep the unsaved flag so the UI continues to show the "•" indicator
+          loadedContent = true;
+          console.log("Restored unsaved TextEdit content from store");
+        } catch (err) {
+          console.warn("Failed to restore unsaved TextEdit content:", err);
+        }
+      }
+
+      // 2) If nothing unsaved, attempt to load the persisted document from the DB.
+      if (!loadedContent && lastFilePath?.startsWith("/Documents/")) {
+        try {
+          const fileName = getFileNameFromPath(lastFilePath);
+          const doc = await dbOperations.get<DocumentContent>(
+            STORES.DOCUMENTS,
+            fileName
+          );
+
+          if (doc?.content) {
+            const contentStr = await getContentAsString(doc.content);
+            let editorContent;
+
+            if (lastFilePath.endsWith(".md")) {
+              editorContent = markdownToHtml(contentStr);
             } else {
-                try {
-                    editorContent = JSON.parse(contentToUse);
-                } catch {
-                    editorContent = `<p>${contentToUse}</p>`;
-                }
+              try {
+                editorContent = JSON.parse(contentStr);
+              } catch {
+                editorContent = `<p>${contentStr}</p>`;
+              }
             }
 
-            editor.commands.setContent(editorContent, false);
-            setCurrentFilePath(path);
-            setHasUnsavedChanges(false);
-            setLastFilePath(path);
-            setContentJson(editor.getJSON());
-
-            // Clear the initialData from the store now that we've consumed it
-            clearInitialData('textedit');
-            return; // Don't proceed to load from store/DB if initialData was used
-        }
-
-        const { lastFilePath, contentJson, hasUnsavedChanges: storeUnsaved } =
-          useTextEditStore.getState();
-
-        let loadedContent = false;
-
-        // 1) Prefer any unsaved in-memory edits that were never written to disk.
-        if (storeUnsaved && contentJson) {
-          try {
-            editor.commands.setContent(contentJson, false); // avoid onUpdate
-            // Keep the unsaved flag so the UI continues to show the "•" indicator
-            loadedContent = true;
-            console.log("Restored unsaved TextEdit content from store");
-          } catch (err) {
-            console.warn("Failed to restore unsaved TextEdit content:", err);
-          }
-        }
-
-        // 2) If nothing unsaved, attempt to load the persisted document from the DB.
-        if (!loadedContent && lastFilePath?.startsWith("/Documents/")) {
-          try {
-            const fileName = getFileNameFromPath(lastFilePath);
-            const doc = await dbOperations.get<DocumentContent>(STORES.DOCUMENTS, fileName);
-
-            if (doc?.content) {
-              const contentStr = await getContentAsString(doc.content);
-              let editorContent;
-
-              if (lastFilePath.endsWith(".md")) {
-                editorContent = markdownToHtml(contentStr);
-              } else {
-                try {
-                  editorContent = JSON.parse(contentStr);
-                } catch {
-                  editorContent = `<p>${contentStr}</p>`;
-                }
-              }
-
-              if (editorContent) {
-                editor.commands.setContent(editorContent, false);
-                setHasUnsavedChanges(false); // freshly loaded, so no unsaved edits yet
-                loadedContent = true;
-                console.log("Loaded content from file:", lastFilePath);
-              }
-            } else {
-              console.warn("Document not found or empty:", lastFilePath);
+            if (editorContent) {
+              editor.commands.setContent(editorContent, false);
+              setHasUnsavedChanges(false); // freshly loaded, so no unsaved edits yet
+              loadedContent = true;
+              console.log("Loaded content from file:", lastFilePath);
             }
-          } catch (err) {
-            console.error("Error loading file content from DB:", err);
+          } else {
+            console.warn("Document not found or empty:", lastFilePath);
           }
+        } catch (err) {
+          console.error("Error loading file content from DB:", err);
         }
+      }
 
-        // 3) Finally, fall back to any stored JSON even if it wasn't flagged unsaved (legacy behaviour).
-        if (!loadedContent && contentJson) {
-          try {
-            editor.commands.setContent(contentJson, false);
-            setHasUnsavedChanges(false);
-            console.log("Loaded content from store JSON (fallback)");
-          } catch (err) {
-            console.warn("Failed to restore stored TextEdit content:", err);
-          }
+      // 3) Finally, fall back to any stored JSON even if it wasn't flagged unsaved (legacy behaviour).
+      if (!loadedContent && contentJson) {
+        try {
+          editor.commands.setContent(contentJson, false);
+          setHasUnsavedChanges(false);
+          console.log("Loaded content from store JSON (fallback)");
+        } catch (err) {
+          console.warn("Failed to restore stored TextEdit content:", err);
         }
+      }
     };
 
     loadContent();
-
   }, [editor, initialData]);
 
   // Add listeners for external document updates (like from Chat app)
@@ -293,7 +316,7 @@ export function TextEditAppComponent({
         const latest = useTextEditStore.getState().contentJson;
         if (latest) {
           editor.commands.setContent(latest);
-            setHasUnsavedChanges(false);
+          setHasUnsavedChanges(false);
         }
       }
     };
@@ -446,17 +469,21 @@ export function TextEditAppComponent({
       setSaveFileName(`${firstLine || "Untitled"}.md`);
     } else {
       // Use shared utility to save as markdown, passing the saveFile hook
-      const { jsonContent } = saveAsMarkdown(editor, {
-        name: currentFilePath.split("/").pop() || "Untitled",
-        path: currentFilePath
-      }, saveFile); // Pass the hook function
+      const { jsonContent } = saveAsMarkdown(
+        editor,
+        {
+          name: currentFilePath.split("/").pop() || "Untitled",
+          path: currentFilePath,
+        },
+        saveFile
+      ); // Pass the hook function
 
       // Store JSON content in case app crashes
       setContentJson(jsonContent);
-      
+
       // Store the file path for next time
       setLastFilePath(currentFilePath);
-      
+
       setHasUnsavedChanges(false);
     }
   };
@@ -469,17 +496,21 @@ export function TextEditAppComponent({
     }`;
 
     // Use shared utility to save as markdown, passing the saveFile hook
-    const { jsonContent } = saveAsMarkdown(editor, {
-      name: fileName,
-      path: filePath
-    }, saveFile); // Pass the hook function
+    const { jsonContent } = saveAsMarkdown(
+      editor,
+      {
+        name: fileName,
+        path: filePath,
+      },
+      saveFile
+    ); // Pass the hook function
 
     // Store JSON content in case app crashes (for editor recovery)
     setContentJson(jsonContent);
-    
+
     // Store the file path for next time
     setLastFilePath(filePath);
-    
+
     setCurrentFilePath(filePath);
     setHasUnsavedChanges(false);
     setIsSaveDialogOpen(false);
@@ -504,7 +535,7 @@ export function TextEditAppComponent({
 
       editor.commands.setContent(editorContent);
       const filePath = `/Documents/${file.name}`;
-      
+
       // Always save in markdown format, converting from HTML if needed
       const markdownContent = file.name.endsWith(".md")
         ? text // Use original markdown if it's already markdown
@@ -519,14 +550,14 @@ export function TextEditAppComponent({
 
       setCurrentFilePath(filePath);
       setHasUnsavedChanges(false);
-      
+
       // Store JSON for internal recovery
       setContentJson(editor.getJSON());
-      
+
       // Store the file path for next time
       setLastFilePath(filePath);
     }
-    
+
     // Reset the input
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -635,13 +666,56 @@ export function TextEditAppComponent({
 
         setCurrentFilePath(filePath);
         setHasUnsavedChanges(false);
-        
+
         // Store JSON for internal recovery
         setContentJson(editor.getJSON());
-        
+
         // Store the file path for next time
         setLastFilePath(filePath);
       }
+    }
+  };
+
+  // --- Text-to-Speech (TTS) --- //
+  const { speak, stop, isSpeaking } = useTtsQueue();
+  const speechEnabled = useAppStore((state) => state.speechEnabled);
+
+  // Local UI state for TTS loading (waiting for audio to begin)
+  const [isTtsLoading, setIsTtsLoading] = useState(false);
+
+  // When speech starts, clear the loading state
+  useEffect(() => {
+    if (isSpeaking) {
+      setIsTtsLoading(false);
+    }
+  }, [isSpeaking]);
+
+  /** Speak either the current selection or the full document */
+  const handleSpeak = () => {
+    if (!editor) return;
+
+    // If currently speaking, clicking stops playback
+    if (isSpeaking) {
+      stop();
+      return;
+    }
+
+    // If we are already waiting for TTS response, cancel it on second click
+    if (isTtsLoading) {
+      stop();
+      setIsTtsLoading(false);
+      return;
+    }
+
+    const { from, to, empty } = editor.state.selection;
+    const textToSpeak = empty
+      ? editor.state.doc.textContent
+      : editor.state.doc.textBetween(from, to, "\n");
+
+    const cleaned = textToSpeak.trim();
+    if (cleaned) {
+      setIsTtsLoading(true);
+      speak(cleaned);
     }
   };
 
@@ -935,7 +1009,7 @@ export function TextEditAppComponent({
                 {/* Divider */}
                 <div className="w-[1px] h-[22px] bg-[#808080] shadow-[1px_0_0_#ffffff]" />
 
-                {/* Voice transcription */}
+                {/* Voice transcription & speech */}
                 <div className="flex">
                   <AudioInputButton
                     onTranscriptionComplete={handleTranscriptionComplete}
@@ -944,6 +1018,24 @@ export function TextEditAppComponent({
                     className="w-[26px] h-[22px] flex items-center justify-center"
                     silenceThreshold={10000}
                   />
+                  {speechEnabled && (
+                    <button
+                      onClick={() => {
+                        playButtonClick();
+                        handleSpeak();
+                      }}
+                      className="w-[26px] h-[22px] flex items-center justify-center"
+                      aria-label={isSpeaking ? "Stop speech" : "Speak"}
+                    >
+                      {isTtsLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : isSpeaking ? (
+                        <PlaybackBars color="black" />
+                      ) : (
+                        <Volume2 className="h-4 w-4" />
+                      )}
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
