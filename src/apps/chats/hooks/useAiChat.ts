@@ -565,6 +565,18 @@ export function useAiChat() {
 
   const clearChats = useCallback(() => {
     console.log("Clearing AI chats");
+
+    // --- Reset speech & highlight state so the next reply starts clean ---
+    // Stop any ongoing TTS playback or pending requests
+    stopTts();
+
+    // Clear progress tracking so new messages are treated as fresh
+    speechProgressRef.current = {};
+
+    // Reset highlight queue & currently highlighted segment
+    highlightQueueRef.current = [];
+    setHighlightSegment(null);
+
     // Define the initial message
     const initialMessage: Message = {
       id: "1", // Ensure consistent ID for the initial message
@@ -575,7 +587,7 @@ export function useAiChat() {
     // Update both the Zustand store and the SDK state directly
     setAiMessages([initialMessage]);
     setSdkMessages([initialMessage]);
-  }, [setAiMessages, setSdkMessages]);
+  }, [setAiMessages, setSdkMessages, stopTts]);
 
   // --- Dialog States & Handlers ---
   const [isClearDialogOpen, setIsClearDialogOpen] = useState(false);
