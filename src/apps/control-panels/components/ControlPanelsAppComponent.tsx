@@ -190,6 +190,9 @@ export function ControlPanelsAppComponent({
     setIpodVolume,
   } = useAppStore();
 
+  // Detect iOS Safari – volume API does not work for YouTube embeds there
+  const isIOS = typeof navigator !== "undefined" && /iP(hone|od|ad)/.test(navigator.userAgent);
+
   const handleUISoundsChange = (enabled: boolean) => {
     setUiSoundsEnabled(enabled);
   };
@@ -635,16 +638,24 @@ export function ControlPanelsAppComponent({
                       className="w-40"
                     />
                   </div>
-                  <div className="flex items-center justify-between">
-                    <Label className="whitespace-nowrap">iPod Volume</Label>
-                    <Slider
-                      min={0}
-                      max={1}
-                      step={0.05}
-                      value={[ipodVolume]}
-                      onValueChange={(v) => setIpodVolume(v[0])}
-                      className="w-40"
-                    />
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between">
+                      <Label className="whitespace-nowrap">iPod Volume</Label>
+                      <Slider
+                        min={0}
+                        max={1}
+                        step={0.05}
+                        value={[isIOS ? 1 : ipodVolume]}
+                        onValueChange={isIOS ? undefined : (v) => setIpodVolume(v[0])}
+                        disabled={isIOS}
+                        className={`w-40 ${isIOS ? 'opacity-40' : ''}`}
+                      />
+                    </div>
+                    {isIOS && (
+                      <p className="text-[11px] text-gray-600 font-geneva-12 mt-1">
+                        iPod volume controls are not available on iOS. Use hardware buttons.
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
