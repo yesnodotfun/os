@@ -421,35 +421,35 @@ export function useAiChat() {
             const ciIncludes = (source: string | undefined, query: string) =>
               source ? source.toLowerCase().includes(query.toLowerCase()) : false;
 
-            let targetIndex = -1;
+            // Build a list of candidate indices that satisfy the provided criteria
+            const candidateIndices: number[] = tracks
+              .map((t, idx) => ({ t, idx }))
+              .filter(({ t }) => {
+                // If id specified, must match exactly
+                if (id && t.id !== id) return false;
 
-            if (id) {
-              targetIndex = tracks.findIndex((t) => t.id === id);
-            }
+                // If title specified, must include (case-insensitive)
+                if (title && !ciIncludes(t.title, title)) return false;
 
-            if (targetIndex === -1 && title && artist) {
-              targetIndex = tracks.findIndex(
-                (t) => ciIncludes(t.title, title) && ciIncludes(t.artist, artist)
-              );
-            }
+                // If artist specified, must include (case-insensitive)
+                if (artist && !ciIncludes(t.artist, artist)) return false;
 
-            if (targetIndex === -1 && title) {
-              targetIndex = tracks.findIndex((t) => ciIncludes(t.title, title));
-            }
+                return true; // passed all provided filters
+              })
+              .map(({ idx }) => idx);
 
-            if (targetIndex === -1 && artist) {
-              targetIndex = tracks.findIndex((t) => ciIncludes(t.artist, artist));
-            }
-
-            if (targetIndex === -1) {
+            if (candidateIndices.length === 0) {
               return "Song not found in iPod library.";
             }
 
+            // If multiple matches, choose one at random
+            const randomIdx = candidateIndices[Math.floor(Math.random() * candidateIndices.length)];
+
             const { setCurrentIndex, setIsPlaying } = useIpodStore.getState();
-            setCurrentIndex(targetIndex);
+            setCurrentIndex(randomIdx);
             setIsPlaying(true);
 
-            const track = tracks[targetIndex];
+            const track = tracks[randomIdx];
             const trackDesc = `${track.title}${track.artist ? ` by ${track.artist}` : ""}`;
             return `Playing ${trackDesc}.`;
           }
