@@ -43,6 +43,8 @@ interface AppStoreState extends AppManagerState {
   setTypingSynthEnabled: (enabled: boolean) => void;
   speechEnabled: boolean;
   setSpeechEnabled: (enabled: boolean) => void;
+  speechVolume: number;
+  setSpeechVolume: (v: number) => void;
   synthPreset: string;
   setSynthPreset: (preset: string) => void;
   displayMode: DisplayMode;
@@ -69,6 +71,10 @@ interface AppStoreState extends AppManagerState {
   setHasBooted: () => void;
   htmlPreviewSplit: boolean;
   setHtmlPreviewSplit: (val: boolean) => void;
+  uiVolume: number;
+  setUiVolume: (vol: number) => void;
+  chatSynthVolume: number;
+  setChatSynthVolume: (vol: number) => void;
 }
 
 // Run the check once on script load
@@ -97,6 +103,8 @@ export const useAppStore = create<AppStoreState>()(
       setTypingSynthEnabled: (enabled) => set({ typingSynthEnabled: enabled }),
       speechEnabled: false,
       setSpeechEnabled: (enabled) => set({ speechEnabled: enabled }),
+      speechVolume: 1,
+      setSpeechVolume: (v) => set({ speechVolume: v }),
       synthPreset: "classic",
       setSynthPreset: (preset) => set({ synthPreset: preset }),
       displayMode: "color",
@@ -480,6 +488,10 @@ export const useAppStore = create<AppStoreState>()(
 
       htmlPreviewSplit: true,
       setHtmlPreviewSplit: (val) => set({ htmlPreviewSplit: val }),
+      uiVolume: 1,
+      setUiVolume: (vol) => set({ uiVolume: vol }),
+      chatSynthVolume: 1,
+      setChatSynthVolume: (vol) => set({ chatSynthVolume: vol }),
     }),
     {
       name: "ryos:app-store",
@@ -500,6 +512,9 @@ export const useAppStore = create<AppStoreState>()(
         displayMode: state.displayMode,
         isFirstBoot: state.isFirstBoot,
         wallpaperSource: state.wallpaperSource,
+        uiVolume: state.uiVolume,
+        chatSynthVolume: state.chatSynthVolume,
+        speechVolume: state.speechVolume,
       }),
     }
   )

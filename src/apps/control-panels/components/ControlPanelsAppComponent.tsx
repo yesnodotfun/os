@@ -25,6 +25,7 @@ import { useFileSystem } from "@/apps/finder/hooks/useFileSystem";
 import { useAppStore } from "@/stores/useAppStore";
 import { setNextBootMessage, clearNextBootMessage } from "@/utils/bootMessage";
 import { AIModel, AI_MODEL_METADATA } from "@/types/aiModels";
+import { Slider } from "@/components/ui/slider";
 
 type PhotoCategory =
   | "3d_graphics"
@@ -175,12 +176,18 @@ export function ControlPanelsAppComponent({
     setTerminalSoundsEnabled,
     uiSoundsEnabled,
     setUiSoundsEnabled,
+    uiVolume,
+    setUiVolume,
     typingSynthEnabled,
     setTypingSynthEnabled,
     speechEnabled,
     setSpeechEnabled,
+    chatSynthVolume,
+    setChatSynthVolume,
     synthPreset,
     setSynthPreset,
+    speechVolume,
+    setSpeechVolume,
   } = useAppStore();
 
   const handleUISoundsChange = (enabled: boolean) => {
@@ -538,14 +545,27 @@ export function ControlPanelsAppComponent({
               className="mt-0 bg-[#E3E3E3] border border-t-0 border-[#808080] h-[calc(100%-2rem)]"
             >
               <div className="space-y-4 h-full overflow-y-auto p-4">
-                <div className="flex items-center justify-between">
-                  <Label>UI Sounds</Label>
-                  <Switch
-                    checked={uiSoundsEnabled}
-                    onCheckedChange={handleUISoundsChange}
-                    className="data-[state=checked]:bg-[#000000]"
-                  />
+                {/* UI Sounds toggle + volume */}
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center justify-between">
+                    <Label>UI Sounds</Label>
+                    <Switch
+                      checked={uiSoundsEnabled}
+                      onCheckedChange={handleUISoundsChange}
+                      className="data-[state=checked]:bg-[#000000]"
+                    />
+                  </div>
+                  <div className="px-2 mt-1">
+                    <Slider
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      value={[uiVolume]}
+                      onValueChange={(v) => setUiVolume(v[0])}
+                    />
+                  </div>
                 </div>
+
                 <div className="flex items-center justify-between">
                   <Label>Typing Synth</Label>
                   <Switch
@@ -565,28 +585,56 @@ export function ControlPanelsAppComponent({
                     className="data-[state=checked]:bg-[#000000]"
                   />
                 </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex flex-col gap-1">
+                {/* Chat Synth preset & volume */}
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center justify-between">
                     <Label>Chat Synth</Label>
-                    <Label className="text-[11px] text-gray-600 font-geneva-12 pr-1">
-                      Sounds when streaming
-                    </Label>
+                    <Select
+                      value={synthPreset}
+                      onValueChange={handleSynthPresetChange}
+                    >
+                      <SelectTrigger className="w-[120px]">
+                        <SelectValue placeholder="Select a preset" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(SYNTH_PRESETS).map(([key, preset]) => (
+                          <SelectItem key={key} value={key}>
+                            {preset.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <Select
-                    value={synthPreset}
-                    onValueChange={handleSynthPresetChange}
-                  >
-                    <SelectTrigger className="w-[120px]">
-                      <SelectValue placeholder="Select a preset" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(SYNTH_PRESETS).map(([key, preset]) => (
-                        <SelectItem key={key} value={key}>
-                          {preset.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="px-2 mt-1">
+                    <Slider
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      value={[chatSynthVolume]}
+                      onValueChange={(v) => setChatSynthVolume(v[0])}
+                    />
+                  </div>
+                </div>
+
+                {/* Chat Speech toggle + volume */}
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center justify-between">
+                    <Label>Chat Speech</Label>
+                    <Switch
+                      checked={speechEnabled}
+                      onCheckedChange={handleSpeechChange}
+                      className="data-[state=checked]:bg-[#000000]"
+                    />
+                  </div>
+                  <div className="px-2 mt-1">
+                    <Slider
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      value={[speechVolume]}
+                      onValueChange={(v) => setSpeechVolume(v[0])}
+                    />
+                  </div>
                 </div>
               </div>
             </TabsContent>
@@ -682,22 +730,6 @@ export function ControlPanelsAppComponent({
                     <Switch
                       checked={shaderEffectEnabled}
                       onCheckedChange={setShaderEffectEnabled}
-                      className="data-[state=checked]:bg-[#000000]"
-                    />
-                  </div>
-                )}
-
-                {debugMode && (
-                  <div className="flex items-center justify-between">
-                    <div className="flex flex-col gap-1">
-                      <Label>Chat Speech</Label>
-                      <Label className="text-[11px] text-gray-600 font-geneva-12 pr-1">
-                        Voice replies in Chats
-                      </Label>
-                    </div>
-                    <Switch
-                      checked={speechEnabled}
-                      onCheckedChange={handleSpeechChange}
                       className="data-[state=checked]:bg-[#000000]"
                     />
                   </div>

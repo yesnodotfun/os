@@ -1,4 +1,6 @@
 import { useRef, useEffect, useCallback, useState } from "react";
+import { getAudioContext, resumeAudioContext } from "@/lib/audioContext";
+import { useAppStore } from "@/stores/useAppStore";
 
 /**
  * Hook that turns short text chunks into speech and queues them in the same
@@ -24,17 +26,21 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
   // Flag to signal stop across async boundaries
   const isStoppedRef = useRef(false);
 
-  const ensureContext = () => {
-    // Recreate if not exists or previously closed (e.g., due to HMR)
-    if (!ctxRef.current || ctxRef.current.state === "closed") {
-      const WebKitAudioCtx = (
-        window as unknown as {
-          webkitAudioContext?: typeof AudioContext;
-        }
-      ).webkitAudioContext;
+  // Gain node for global speech volume
+  const gainNodeRef = useRef<GainNode | null>(null);
+  const speechVolume = useAppStore((s) => s.speechVolume);
 
-      ctxRef.current = new ((window.AudioContext ||
-        WebKitAudioCtx) as typeof AudioContext)();
+  const ensureContext = () => {
+    // Always use the shared global context
+    ctxRef.current = getAudioContext();
+    // (Re)create gain node if needed or context changed
+    if (!gainNodeRef.current || gainNodeRef.current.context !== ctxRef.current) {
+      if (gainNodeRef.current) {
+        try { gainNodeRef.current.disconnect(); } catch {}
+      }
+      gainNodeRef.current = ctxRef.current.createGain();
+      gainNodeRef.current.gain.value = speechVolume;
+      gainNodeRef.current.connect(ctxRef.current.destination);
     }
     return ctxRef.current;
   };
@@ -87,30 +93,10 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
         try {
           const arrayBuf = await fetchPromise;
           if (!arrayBuf) return;
-          let ctx = ensureContext();
-          // Resume if the context was suspended or Safari put it in the non-standard
-          // "interrupted" state (happens when the user switches apps or similar).
-          let state = ctx.state as AudioContextState | "interrupted";
-          if (state === "suspended" || state === "interrupted") {
-            await ctx.resume();
-          }
+          // Ensure the shared context is ready
+          await resumeAudioContext();
+          const ctx = ensureContext();
 
-          // If the context still isn't running (observed on some iOS Safari
-          // versions after returning from background) recreate a fresh one so
-          // playback can proceed.
-          state = ctx.state as AudioContextState | "interrupted";
-          if (state !== "running") {
-            try {
-              console.debug(
-                `TTS AudioContext still in state "${state}" after resume – recreating`
-              );
-              await ctx.close();
-            } catch {
-              /* ignore */
-            }
-            ctxRef.current = null;
-            ctx = ensureContext();
-          }
           const audioBuf = await ctx.decodeAudioData(arrayBuf);
 
           const now = ctx.currentTime;
@@ -118,7 +104,11 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
 
           const src = ctx.createBufferSource();
           src.buffer = audioBuf;
-          src.connect(ctx.destination);
+          if (gainNodeRef.current) {
+            src.connect(gainNodeRef.current);
+          } else {
+            src.connect(ctx.destination);
+          }
 
           // Keep track of active sources so we can stop them later
           playingSourcesRef.current.add(src);
@@ -179,20 +169,7 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
   // Effect to handle AudioContext resumption on window focus
   useEffect(() => {
     const handleFocus = async () => {
-      if (ctxRef.current) {
-        const state = ctxRef.current.state as AudioContextState | "interrupted";
-        if (state === "suspended" || state === "interrupted") {
-          try {
-            await ctxRef.current.resume();
-            console.debug("TTS AudioContext resumed on window focus");
-          } catch (error) {
-            console.error(
-              "Failed to resume TTS AudioContext on window focus:",
-              error
-            );
-          }
-        }
-      }
+      await resumeAudioContext();
     };
 
     window.addEventListener("focus", handleFocus);
@@ -200,6 +177,13 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
       window.removeEventListener("focus", handleFocus);
     };
   }, []);
+
+  // Update gain when speechVolume changes
+  useEffect(() => {
+    if (gainNodeRef.current) {
+      gainNodeRef.current.gain.value = speechVolume;
+    }
+  }, [speechVolume]);
 
   return { speak, stop, isSpeaking };
 }

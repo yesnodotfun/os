@@ -206,10 +206,14 @@ function createSynthInstance(presetKey: string) {
     wet: preset.effects.reverb.wet,
   }).connect(tremolo);
 
+  // Apply global chat synth volume (linear 0-1) as decibel offset
+  const masterVol = useAppStore.getState().chatSynthVolume ?? 1;
+  const volumeDb = presetKey === "off" ? -Infinity : (masterVol === 0 ? -Infinity : DEFAULT_SYNTH_VOLUME + 20 * Math.log10(masterVol));
+
   const synth = new Tone.PolySynth(Tone.Synth, {
     oscillator: preset.oscillator,
     envelope: preset.envelope,
-    volume: presetKey === "off" ? -Infinity : DEFAULT_SYNTH_VOLUME,
+    volume: volumeDb,
   });
   synth.maxPolyphony = VOICE_COUNT;
   synth.connect(reverb);
@@ -520,6 +524,21 @@ export function useChatSynth() {
          //console.debug("Skipping note: Minimum time between notes not met.");
     }
   }, [isAudioReady, vibrate, initializeAudio]); // Add initializeAudio dependency
+
+  // ---------------------------------------------------------------
+  // Reactively update synth volume when the global chatSynthVolume
+  // slider changes, without requiring a re-creation of the synth.
+  // ---------------------------------------------------------------
+  const chatSynthVolume = useAppStore((s) => s.chatSynthVolume);
+
+  useEffect(() => {
+    if (synthRef.current) {
+      const volDb = chatSynthVolume === 0
+        ? -Infinity
+        : DEFAULT_SYNTH_VOLUME + 20 * Math.log10(chatSynthVolume);
+      synthRef.current.synth.volume.value = volDb;
+    }
+  }, [chatSynthVolume]);
 
   return { playNote, currentPreset: currentPresetKey, changePreset, isAudioReady };
 }
