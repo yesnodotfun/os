@@ -695,6 +695,13 @@ export function IpodAppComponent({
     return () => clearTimeout(timer);
   }, [isPlaying, elapsedTime, setIsPlaying, showStatus]);
 
+  // NEW: Ensure we exit video view whenever playback is paused.
+  useEffect(() => {
+    if (!isPlaying && showVideo) {
+      toggleVideo();
+    }
+  }, [isPlaying, showVideo, toggleVideo]);
+
   const handleMenuButton = useCallback(() => {
     playClickSound();
     vibrate();
