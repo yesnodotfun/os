@@ -120,8 +120,8 @@ const formatToolName = (name: string): string =>
 // Helper to map an app id to a user-friendly name (falls back to formatting the id)
 const getAppName = (id?: string): string => {
   if (!id) return "app";
-  // @ts-ignore – runtime lookup is fine here
-  return appRegistry[id]?.name || formatToolName(id);
+  const entry = (appRegistry as Record<string, { name?: string }>)[id];
+  return entry?.name || formatToolName(id);
 };
 
 // Define an extended message type that includes username
@@ -954,7 +954,28 @@ function ChatMessagesContent({
                           }
                         }
 
-                        // Special rendering for generateHtml tool – show HTML preview instead of plain text
+                        // Streaming preview for generateHtml tool during call / partial-call
+                        if (
+                          (state === "call" || state === "partial-call") &&
+                          toolName === "generateHtml"
+                        ) {
+                          const htmlChunk =
+                            typeof args?.html === "string" ? args.html : "";
+                          return (
+                            <HtmlPreview
+                              key={partKey}
+                              htmlContent={htmlChunk}
+                              isStreaming={true}
+                              onInteractionChange={setIsInteractingWithPreview}
+                              playElevatorMusic={playElevatorMusic}
+                              stopElevatorMusic={stopElevatorMusic}
+                              playDingSound={playDingSound}
+                              className="my-1"
+                            />
+                          );
+                        }
+
+                        // Special rendering for generateHtml tool – final result
                         if (
                           state === "result" &&
                           toolName === "generateHtml" &&
