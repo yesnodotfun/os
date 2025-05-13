@@ -592,39 +592,33 @@ export function IpodAppComponent({
     const currentTracks = useIpodStore.getState().tracks;
     const existingTrackIndex = currentTracks.findIndex(track => track.id === videoId);
 
-    // --- Check for mobile Safari BEFORE setting playing state ---
     const ua = navigator.userAgent;
     const isIOS = /iP(hone|od|ad)/.test(ua);
     const isSafari = /Safari/.test(ua) && !/Chrome/.test(ua) && !/CriOS/.test(ua);
     const shouldAutoplay = !(isIOS || isSafari);
-    // --- End check ---
 
     if (existingTrackIndex !== -1) {
+      toast.info("Opening shared track...");
       console.log(`[iPod] Video ID ${videoId} found in tracks. Playing.`);
       setCurrentIndex(existingTrackIndex);
-      // --- Only set playing if allowed ---
       if (shouldAutoplay) {
         setIsPlaying(true);
       }
-      setMenuMode(false); // Ensure we are in "Now Playing" mode
+      setMenuMode(false);
     } else {
+      toast.info("Adding new track from URL...");
       console.log(`[iPod] Video ID ${videoId} not found. Adding and playing.`);
-      // handleAddAndPlayTrackByVideoId calls addTrackStore, which updates the index.
-      // We need to ensure play state is set correctly *after* adding.
       await handleAddAndPlayTrackByVideoId(videoId);
-      // --- Only set playing if allowed (redundant safety check, addTrack might handle index sync issues) ---
       if (shouldAutoplay) {
-         // Ensure the index is correct before playing
-         const newIndex = useIpodStore.getState().currentIndex;
-         const addedTrack = useIpodStore.getState().tracks[newIndex];
-         if (addedTrack?.id === videoId) {
-            setIsPlaying(true);
-         } else {
-            console.warn("[iPod] Index mismatch after adding track, autoplay skipped.");
-         }
-      } 
+        const newIndex = useIpodStore.getState().currentIndex;
+        const addedTrack = useIpodStore.getState().tracks[newIndex];
+        if (addedTrack?.id === videoId) {
+          setIsPlaying(true);
+        } else {
+          console.warn("[iPod] Index mismatch after adding track, autoplay skipped.");
+        }
+      }
     }
-  // Update dependencies
   }, [setCurrentIndex, setIsPlaying, setMenuMode, handleAddAndPlayTrackByVideoId]);
 
   // Effect for initial data on mount
@@ -632,7 +626,6 @@ export function IpodAppComponent({
     if (isWindowOpen && initialData?.videoId && typeof initialData.videoId === 'string') {
       const videoIdToProcess = initialData.videoId;
       console.log(`[iPod] Processing initialData.videoId on mount: ${videoIdToProcess}`);
-      // Use setTimeout to ensure store hydration/component readiness
       setTimeout(() => {
         processVideoId(videoIdToProcess).then(() => {
           clearIpodInitialData('ipod');
@@ -651,15 +644,11 @@ export function IpodAppComponent({
       if (event.detail.appId === 'ipod' && event.detail.initialData?.videoId) {
         const videoId = event.detail.initialData.videoId;
         console.log(`[iPod] Received updateApp event with videoId: ${videoId}`);
-        bringToForeground('ipod'); // Ensure iPod is in front
-        // Show toast when processing update event
-        toast.info("Opening shared iPod track...");
+        bringToForeground('ipod');
         processVideoId(videoId).catch(error => {
            console.error(`[iPod] Error processing videoId ${videoId} from updateApp event:`, error);
-           // Optionally show error toast
            toast.error("Failed to load shared track", { description: `Video ID: ${videoId}` });
         });
-        // No need to clear initialData here as it's not from the store's initialData field for this instance
       }
     };
 

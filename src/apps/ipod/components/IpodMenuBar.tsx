@@ -97,14 +97,14 @@ export function IpodMenuBar({
             onClick={onAddTrack}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            Add Music...
+            Add Song...
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={onShareSong}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
             disabled={tracks.length === 0 || currentIndex === -1}
           >
-            Share Now Playing...
+            Share Song...
           </DropdownMenuItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           <DropdownMenuItem
