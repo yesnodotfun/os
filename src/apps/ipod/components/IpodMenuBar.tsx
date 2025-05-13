@@ -265,7 +265,7 @@ export function IpodMenuBar({
                     <span className="truncate min-w-0">All Songs</span>
                   </div>
                 </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent className="px-0 max-w-[180px] sm:max-w-[220px]">
+                <DropdownMenuSubContent className="px-0 max-w-[180px] sm:max-w-[220px] max-h-[400px] overflow-y-auto">
                   {tracks.map((track, index) => (
                     <DropdownMenuItem
                       key={`all-${track.id}`}
@@ -299,7 +299,7 @@ export function IpodMenuBar({
                       <span className="truncate min-w-0">{artist}</span>
                     </div>
                   </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent className="px-0 max-w-[180px] sm:max-w-[220px]">
+                  <DropdownMenuSubContent className="px-0 max-w-[180px] sm:max-w-[220px] max-h-[200px] overflow-y-auto">
                     {tracksByArtist[artist].map(({ track, index }) => (
                       <DropdownMenuItem
                         key={`${artist}-${track.id}`}
