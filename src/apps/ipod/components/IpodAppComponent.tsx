@@ -14,12 +14,16 @@ import { useVibration } from "@/hooks/useVibration";
 import { IpodScreen } from "./IpodScreen";
 import { IpodWheel } from "./IpodWheel";
 import { useIpodStore, Track } from "@/stores/useIpodStore";
+import { useAppStore } from "@/stores/useAppStore";
+import { ShareItemDialog } from "@/components/dialogs/ShareItemDialog";
+import { toast } from "sonner";
 
 export function IpodAppComponent({
   isWindowOpen,
   onClose,
   isForeground,
   skipInitialSound,
+  initialData,
 }: AppProps) {
   const { play: playClickSound } = useSound(Sounds.BUTTON_CLICK);
   const { play: playScrollSound } = useSound(Sounds.MENU_OPEN);
@@ -64,6 +68,7 @@ export function IpodAppComponent({
   const [isConfirmClearOpen, setIsConfirmClearOpen] = useState(false);
   const [isConfirmResetOpen, setIsConfirmResetOpen] = useState(false);
   const [isAddingTrack, setIsAddingTrack] = useState(false);
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [menuMode, setMenuMode] = useState(false);
   const [selectedMenuItem, setSelectedMenuItem] = useState(0);
   const [menuDirection, setMenuDirection] = useState<"forward" | "backward">(
@@ -87,6 +92,8 @@ export function IpodAppComponent({
   const skipOperationRef = useRef(false);
 
   const prevIsForeground = useRef(isForeground);
+  const bringToForeground = useAppStore((state) => state.bringToForeground);
+  const clearIpodInitialData = useAppStore((state) => state.clearInitialData);
 
   // --- Prevent unwanted autoplay on Mobile Safari ---
   const hasAutoplayCheckedRef = useRef(false);
@@ -568,6 +575,76 @@ export function IpodAppComponent({
     }
   }, [addTrackStore, showStatus]);
 
+  const handleAddAndPlayTrackByVideoId = useCallback(async (videoId: string) => {
+    // Reuse handleAddTrack by constructing the URL
+    const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
+    try {
+      await handleAddTrack(youtubeUrl); // handleAddTrack is already useCallback
+      // handleAddTrack internally calls showStatus, sets current index, and plays
+    } catch (error) {
+      console.error(`[iPod] Error adding track for videoId ${videoId}:`, error);
+      // Optionally show an error status to the user
+      showStatus(`❌ Error adding ${videoId}`);
+    }
+  }, [handleAddTrack, showStatus]);
+
+  const processVideoId = useCallback(async (videoId: string) => {
+    const currentTracks = useIpodStore.getState().tracks;
+    const existingTrackIndex = currentTracks.findIndex(track => track.id === videoId);
+
+    if (existingTrackIndex !== -1) {
+      console.log(`[iPod] Video ID ${videoId} found in tracks. Playing.`);
+      setCurrentIndex(existingTrackIndex);
+      setIsPlaying(true);
+      setMenuMode(false); // Ensure we are in "Now Playing" mode
+    } else {
+      console.log(`[iPod] Video ID ${videoId} not found. Adding and playing.`);
+      await handleAddAndPlayTrackByVideoId(videoId);
+    }
+  }, [setCurrentIndex, setIsPlaying, setMenuMode, handleAddAndPlayTrackByVideoId]);
+
+  // Effect for initial data on mount
+  useEffect(() => {
+    if (isWindowOpen && initialData?.videoId && typeof initialData.videoId === 'string') {
+      const videoIdToProcess = initialData.videoId;
+      console.log(`[iPod] Processing initialData.videoId on mount: ${videoIdToProcess}`);
+      // Use setTimeout to ensure store hydration/component readiness
+      setTimeout(() => {
+        processVideoId(videoIdToProcess).then(() => {
+          clearIpodInitialData('ipod');
+          console.log(`[iPod] Cleared initialData after processing ${videoIdToProcess}`);
+        }).catch(error => {
+          console.error(`[iPod] Error processing initial videoId ${videoIdToProcess}:`, error);
+        });
+      }, 100); // Small delay might help
+    }
+  }, [isWindowOpen, initialData, processVideoId, clearIpodInitialData]);
+
+
+  // Effect for updateApp event (when app is already open)
+  useEffect(() => {
+    const handleUpdateApp = (event: CustomEvent<{ appId: string; initialData?: { videoId?: string } }>) => {
+      if (event.detail.appId === 'ipod' && event.detail.initialData?.videoId) {
+        const videoId = event.detail.initialData.videoId;
+        console.log(`[iPod] Received updateApp event with videoId: ${videoId}`);
+        bringToForeground('ipod'); // Ensure iPod is in front
+        // Show toast when processing update event
+        toast.info("Opening shared iPod track...");
+        processVideoId(videoId).catch(error => {
+           console.error(`[iPod] Error processing videoId ${videoId} from updateApp event:`, error);
+           // Optionally show error toast
+           toast.error("Failed to load shared track", { description: `Video ID: ${videoId}` });
+        });
+        // No need to clear initialData here as it's not from the store's initialData field for this instance
+      }
+    };
+
+    window.addEventListener('updateApp', handleUpdateApp as EventListener);
+    return () => {
+      window.removeEventListener('updateApp', handleUpdateApp as EventListener);
+    };
+  }, [processVideoId, bringToForeground]);
+
   const handleTrackEnd = useCallback(() => {
     if (loopCurrent) {
       playerRef.current?.seekTo(0);
@@ -903,6 +980,16 @@ export function IpodAppComponent({
     };
   }, [isWindowOpen]);
 
+  const handleShareSong = useCallback(() => {
+    if (tracks.length > 0 && currentIndex >= 0) {
+      setIsShareDialogOpen(true);
+    }
+  }, [tracks, currentIndex]);
+
+  const ipodGenerateShareUrl = (videoId: string): string => {
+    return `${window.location.origin}/ipod/${videoId}`;
+  };
+
   if (!isWindowOpen) return null;
 
   return (
@@ -918,6 +1005,7 @@ export function IpodAppComponent({
           setIsConfirmResetOpen(true);
         }}
         onAddTrack={() => setIsAddDialogOpen(true)}
+        onShareSong={handleShareSong}
       />
 
       <WindowFrame
@@ -1022,6 +1110,15 @@ export function IpodAppComponent({
           value={urlInput}
           onChange={setUrlInput}
           isLoading={isAddingTrack}
+        />
+        <ShareItemDialog
+          isOpen={isShareDialogOpen}
+          onClose={() => setIsShareDialogOpen(false)}
+          itemType="Song"
+          itemIdentifier={tracks[currentIndex]?.id || ""}
+          title={tracks[currentIndex]?.title}
+          details={tracks[currentIndex]?.artist}
+          generateShareUrl={ipodGenerateShareUrl}
         />
       </WindowFrame>
     </>
