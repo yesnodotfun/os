@@ -104,6 +104,18 @@ const isEmojiOnly = (text: string): boolean => {
   return emojiRegex.test(text);
 };
 
+// --- New helper: prettify tool names ---
+/**
+ * Convert camelCase / PascalCase tool names to a human-readable string.
+ * Example: "textEditSearchReplace" -> "Text Edit Search Replace".
+ */
+const formatToolName = (name: string): string =>
+  name
+    .replace(/([A-Z])/g, " $1") // insert space before capitals
+    .replace(/^./, (ch) => ch.toUpperCase()) // capitalize first letter
+    .trim();
+// --- End helper: prettify tool names ---
+
 // Define an extended message type that includes username
 // Extend VercelMessage and add username and the 'human' role
 interface ChatMessage extends Omit<VercelMessage, "role"> {
@@ -886,10 +898,10 @@ function ChatMessagesContent({
                         if (state === "call" || state === "partial-call") {
                           // Provide custom, human-readable loading messages for well-known tools
                           switch (toolName) {
-                            case "searchReplace":
+                            case "textEditSearchReplace":
                               displayCallMessage = "Replacing text…";
                               break;
-                            case "insertText":
+                            case "textEditInsertText":
                               displayCallMessage = "Inserting text…";
                               break;
                             case "launchApp":
@@ -902,8 +914,11 @@ function ChatMessagesContent({
                                 args?.id || "app"
                               }…`;
                               break;
+                            case "textEditNewFile":
+                              displayCallMessage = "Creating new document…";
+                              break;
                             default:
-                              displayCallMessage = `Running ${toolName}…`;
+                              displayCallMessage = `Running ${formatToolName(toolName)}…`;
                           }
                         }
 
@@ -912,12 +927,12 @@ function ChatMessagesContent({
                             toolName === "launchApp" &&
                             args?.id === "internet-explorer"
                           ) {
-                            const urlPart = args.url ? ` to ${args.url}` : "";
+                            const urlPart = args.url ? ` ${args.url}` : "";
                             const yearPart =
-                              args.year && args.year !== "current"
+                              args.year && args.year !== ""
                                 ? ` in ${args.year}`
                                 : "";
-                            displayResultMessage = `Launched Internet Explorer${urlPart}${yearPart}`;
+                            displayResultMessage = `Launched ${urlPart}${yearPart}`;
                           } else if (toolName === "launchApp") {
                             displayResultMessage = `Launched ${
                               args?.id || "app"
@@ -941,7 +956,7 @@ function ChatMessagesContent({
                                   <span>{displayCallMessage}</span>
                                 ) : (
                                   <span>
-                                    Calling <strong>{toolName}</strong>…
+                                    Calling <strong>{formatToolName(toolName)}</strong>…
                                   </span>
                                 )}
                               </div>
@@ -953,16 +968,13 @@ function ChatMessagesContent({
                                   <span>{displayResultMessage}</span>
                                 ) : (
                                   <div className="flex flex-col">
-                                    <span>
-                                      Ran <strong>{toolName}</strong>
-                                    </span>
-                                    {typeof result === "string" &&
-                                      result.length > 0 &&
-                                      result.length < 100 && (
-                                        <span className="text-gray-500">
-                                          {result}
-                                        </span>
-                                      )}
+                                    {typeof result === "string" && result.length > 0 ? (
+                                      <span className="text-gray-500">{result}</span>
+                                    ) : (
+                                      <span>
+                                        {formatToolName(toolName)}
+                                      </span>
+                                    )}
                                   </div>
                                 )}
                               </div>

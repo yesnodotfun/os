@@ -255,7 +255,7 @@ export default async function handler(req: Request) {
           description: "Launch an application in the ryOS interface when the user explicitly requests it. If the id is 'internet-explorer', you must provide BOTH a real 'url' and a 'year' for time-travel; otherwise provide neither.",
           parameters: z.object({
             id: z.enum(appIds).describe("The app id to launch"),
-            url: z.string().optional().describe("For internet-explorer only: The URL to load in Internet Explorer."),
+            url: z.string().optional().describe("For internet-explorer only: The URL to load in Internet Explorer. Omit https:// and www. from the URL."),
             year: z.string().optional()
               .describe("For internet-explorer only: The year for the Wayback Machine or AI generation. Allowed values: 'current', '1000 BC', '1 CE', '500', '800', '1000', '1200', '1400', '1600', '1700', '1800', years from 1900-1989, 1990-1995, any year from 1991 to current year-1, '2030', '2040', '2050', '2060', '2070', '2080', '2090', '2100', '2150', '2200', '2250', '2300', '2400', '2500', '2750', '3000'. Used only with Internet Explorer.")
               .refine(year => {
@@ -298,7 +298,7 @@ export default async function handler(req: Request) {
           description: "Close an application in the ryOS interface—but only when the user explicitly asks you to close that specific app.",
           parameters: z.object({ id: z.enum(appIds).describe("The app id to close") }),
         },
-        searchReplace: {
+        textEditSearchReplace: {
           description: "Search and replace text in the currently open TextEdit document. Always supply 'search' and 'replace'. Set 'isRegex: true' ONLY if the user explicitly mentions using a regular expression.",
           parameters: z.object({
             search: z.string().describe("The text or regular expression to search for"),
@@ -306,16 +306,35 @@ export default async function handler(req: Request) {
             isRegex: z.boolean().optional().describe("Set to true if the 'search' field should be treated as a JavaScript regular expression (without flags). Defaults to false."),
           }),
         },
-        insertText: {
+        textEditInsertText: {
           description: "Insert plain text into the currently open TextEdit document. Appends to the end by default; use position 'start' to prepend. Use this instead of manually launching or closing TextEdit.",
           parameters: z.object({
             text: z.string().describe("The text to insert"),
             position: z.enum(["start", "end"]).optional().describe("Where to insert the text: 'start' to prepend, 'end' to append. Default is 'end'."),
           }),
         },
-        newFile: {
+        textEditNewFile: {
           description: "Create a new blank document in TextEdit. Use when the user explicitly requests a new or untitled file.",
           parameters: z.object({}),
+        },
+        // Add iPod control tools
+        ipodPlayPause: {
+          description: "Play, pause, or toggle playback on the iPod app. If the iPod app is not open, it will be launched automatically.",
+          parameters: z.object({
+            action: z.enum(["play", "pause", "toggle"]).optional().describe("Playback action to perform. Defaults to 'toggle' if omitted."),
+          }),
+        },
+        ipodPlaySong: {
+          description: "Play a specific song in the iPod app by matching id, title, or artist. At least one of the parameters must be provided. If the iPod app is not open, it will be launched automatically.",
+          parameters: z
+            .object({
+              id: z.string().optional().describe("The YouTube video id of the song to play"),
+              title: z.string().optional().describe("The title (or part of it) of the song to play"),
+              artist: z.string().optional().describe("The artist name (or part of it) of the song to play"),
+            })
+            .refine((data) => data.id || data.title || data.artist, {
+              message: "Provide at least one of 'id', 'title', or 'artist' to identify the song.",
+            }),
         },
       },
       temperature: 0.7,

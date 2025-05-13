@@ -226,7 +226,7 @@ export function useAiChat() {
             closeApp(id as AppId);
             return `Closed ${appName}.`;
           }
-          case "searchReplace": {
+          case "textEditSearchReplace": {
             const { search, replace, isRegex } = toolCall.args as {
               search: string;
               replace: string;
@@ -315,7 +315,7 @@ export function useAiChat() {
               }`;
             }
           }
-          case "insertText": {
+          case "textEditInsertText": {
             const { text, position } = toolCall.args as {
               text: string;
               position?: "start" | "end";
@@ -344,7 +344,7 @@ export function useAiChat() {
               position === "start" ? "start" : "end"
             } of document…`;
           }
-          case "newFile": {
+          case "textEditNewFile": {
             console.log("[ToolCall] newFile");
             // Ensure TextEdit is open – launch if not already
             const appState = useAppStore.getState();
@@ -372,6 +372,86 @@ export function useAiChat() {
             setHasUnsavedChanges(false);
 
             return "Started a new, untitled document in TextEdit.";
+          }
+          case "ipodPlayPause": {
+            const { action } = toolCall.args as { action?: "play" | "pause" | "toggle" };
+            console.log("[ToolCall] ipodPlayPause:", { action });
+
+            // Ensure iPod app is open
+            const appState = useAppStore.getState();
+            if (!appState.apps["ipod"]?.isOpen) {
+              launchApp("ipod");
+            }
+
+            const ipod = useIpodStore.getState();
+
+            switch (action) {
+              case "play":
+                if (!ipod.isPlaying) ipod.setIsPlaying(true);
+                break;
+              case "pause":
+                if (ipod.isPlaying) ipod.setIsPlaying(false);
+                break;
+              default:
+                ipod.togglePlay();
+                break;
+            }
+
+            const nowPlaying = useIpodStore.getState().isPlaying;
+            return nowPlaying ? "iPod is now playing." : "iPod is paused.";
+          }
+          case "ipodPlaySong": {
+            const { id, title, artist } = toolCall.args as {
+              id?: string;
+              title?: string;
+              artist?: string;
+            };
+            console.log("[ToolCall] ipodPlaySong:", { id, title, artist });
+
+            // Ensure iPod app is open
+            const appState = useAppStore.getState();
+            if (!appState.apps["ipod"]?.isOpen) {
+              launchApp("ipod");
+            }
+
+            const ipodState = useIpodStore.getState();
+            const { tracks } = ipodState;
+
+            // Helper for case-insensitive includes
+            const ciIncludes = (source: string | undefined, query: string) =>
+              source ? source.toLowerCase().includes(query.toLowerCase()) : false;
+
+            let targetIndex = -1;
+
+            if (id) {
+              targetIndex = tracks.findIndex((t) => t.id === id);
+            }
+
+            if (targetIndex === -1 && title && artist) {
+              targetIndex = tracks.findIndex(
+                (t) => ciIncludes(t.title, title) && ciIncludes(t.artist, artist)
+              );
+            }
+
+            if (targetIndex === -1 && title) {
+              targetIndex = tracks.findIndex((t) => ciIncludes(t.title, title));
+            }
+
+            if (targetIndex === -1 && artist) {
+              targetIndex = tracks.findIndex((t) => ciIncludes(t.artist, artist));
+            }
+
+            if (targetIndex === -1) {
+              return "Song not found in iPod library.";
+            }
+
+            const { setCurrentIndex, setIsPlaying } = useIpodStore.getState();
+            setCurrentIndex(targetIndex);
+            setIsPlaying(true);
+
+            const track = tracks[targetIndex];
+            const trackDesc = `${track.title}${track.artist ? ` by ${track.artist}` : ""}`;
+            return `Playing ${trackDesc}.`;
           }
           default:
             console.warn("Unhandled tool call:", toolCall.toolName);
