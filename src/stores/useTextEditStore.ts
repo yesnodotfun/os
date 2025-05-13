@@ -7,22 +7,23 @@ import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
+import { JSONContent, AnyExtension } from "@tiptap/core";
 
 export interface TextEditStoreState {
   /** The absolute path of the currently open file, or null if the document is untitled. */
   lastFilePath: string | null;
   /** Raw ProseMirror JSON content for crash-recovery / hand-off to other apps. */
-  contentJson: any | null;
+  contentJson: JSONContent | null;
   /** Whether the in-memory document has edits that have not been saved to disk yet. */
   hasUnsavedChanges: boolean;
   // actions
   setLastFilePath: (path: string | null) => void;
-  setContentJson: (json: any | null) => void;
+  setContentJson: (json: JSONContent | null) => void;
   setHasUnsavedChanges: (val: boolean) => void;
   /** Clear the store back to its initial state. */
   reset: () => void;
   /** Apply an external update to the document (e.g. Chat GPT tool calls). */
-  applyExternalUpdate: (json: any) => void;
+  applyExternalUpdate: (json: JSONContent) => void;
   /**
    * Append (or prepend) a simple paragraph node containing plain text.
    * This helper is primarily used by AI tool calls so they can modify the
@@ -59,14 +60,14 @@ export const useTextEditStore = create<TextEditStoreState>()(
             TextAlign.configure({ types: ["heading", "paragraph"] }),
             TaskList,
             TaskItem.configure({ nested: true }),
-          ] as any);
+          ] as AnyExtension[]);
 
           // parsedJson is a full doc – we want just its content array
           const nodesToInsert = Array.isArray(parsedJson.content)
             ? parsedJson.content
             : [];
 
-          let newDocJson: any;
+          let newDocJson: JSONContent;
 
           if (state.contentJson && Array.isArray(state.contentJson.content)) {
             // Clone existing document JSON to avoid direct mutation
@@ -112,7 +113,9 @@ export const useTextEditStore = create<TextEditStoreState>()(
             const rawJson = localStorage.getItem("textedit:content");
             const migratedState: TextEditStoreState = {
               lastFilePath: lastFilePath ?? null,
-              contentJson: rawJson ? JSON.parse(rawJson) : null,
+              contentJson: rawJson
+                ? (JSON.parse(rawJson) as JSONContent)
+                : null,
               hasUnsavedChanges: false,
               setLastFilePath: () => {},
               setContentJson: () => {},

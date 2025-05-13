@@ -19,6 +19,7 @@ import TextAlign from "@tiptap/extension-text-align";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import { htmlToMarkdown, markdownToHtml } from "@/utils/markdown";
+import { AnyExtension, JSONContent } from "@tiptap/core";
 
 // TODO: Move relevant state and logic from ChatsAppComponent here
 // - AI chat state (useChat hook)
@@ -254,7 +255,7 @@ export function useAiChat() {
             }
 
             const textEditState = useTextEditStore.getState();
-            const { contentJson, applyExternalUpdate } = textEditState as any;
+            const { contentJson, applyExternalUpdate } = textEditState;
 
             if (!contentJson) {
               return "No file currently open in TextEdit.";
@@ -268,7 +269,7 @@ export function useAiChat() {
                 TextAlign.configure({ types: ["heading", "paragraph"] }),
                 TaskList,
                 TaskItem.configure({ nested: true }),
-              ] as any);
+              ] as AnyExtension[]);
 
               // 2. Convert HTML to Markdown for regex/text replacement
               const markdownStr = htmlToMarkdown(htmlStr);
@@ -282,10 +283,7 @@ export function useAiChat() {
                   const regex = new RegExp(pattern, "gm");
                   return markdownStr.replace(regex, normalizedReplace);
                 } catch (err) {
-                  console.error(
-                    "Error while building/applying regex:",
-                    err
-                  );
+                  console.error("Error while building/applying regex:", err);
                   throw err;
                 }
               })();
@@ -302,7 +300,7 @@ export function useAiChat() {
                 TextAlign.configure({ types: ["heading", "paragraph"] }),
                 TaskList,
                 TaskItem.configure({ nested: true }),
-              ] as any);
+              ] as AnyExtension[]);
 
               // 5. Apply the updated JSON to the store – TextEdit will react via subscription
               applyExternalUpdate(updatedJson);
@@ -330,7 +328,7 @@ export function useAiChat() {
             }
 
             const textEditState = useTextEditStore.getState();
-            const { insertText } = textEditState as any;
+            const { insertText } = textEditState;
 
             // Use a small debounce so rapid successive insertText calls (if any)
             // don't overwhelm the store/UI. We reuse the same debounced helper by
@@ -355,17 +353,17 @@ export function useAiChat() {
             const textEditState = useTextEditStore.getState();
             const {
               reset,
-              applyExternalUpdate,
+              applyExternalUpdate: applyUpdateForNewFile,
               setLastFilePath,
               setHasUnsavedChanges,
-            } = textEditState as any;
+            } = textEditState;
 
             // Clear existing document state
             reset();
 
             // Provide an explicit empty document so the editor clears its content
-            const blankDoc = { type: "doc", content: [] };
-            applyExternalUpdate(blankDoc);
+            const blankDoc: JSONContent = { type: "doc", content: [] };
+            applyUpdateForNewFile(blankDoc);
 
             // Ensure the new document is treated as untitled and saved state is clean
             setLastFilePath(null);
@@ -374,7 +372,9 @@ export function useAiChat() {
             return "Created a new, untitled document in TextEdit.";
           }
           case "ipodPlayPause": {
-            const { action } = toolCall.args as { action?: "play" | "pause" | "toggle" };
+            const { action } = toolCall.args as {
+              action?: "play" | "pause" | "toggle";
+            };
             console.log("[ToolCall] ipodPlayPause:", { action });
 
             // Ensure iPod app is open
@@ -418,39 +418,93 @@ export function useAiChat() {
             const { tracks } = ipodState;
 
             // Helper for case-insensitive includes
-            const ciIncludes = (source: string | undefined, query: string) =>
-              source ? source.toLowerCase().includes(query.toLowerCase()) : false;
+            const ciIncludes = (
+              source: string | undefined,
+              query: string | undefined
+            ): boolean => {
+              if (!source || !query) return false;
+              return source.toLowerCase().includes(query.toLowerCase());
+            };
 
-            // Build a list of candidate indices that satisfy the provided criteria
-            const candidateIndices: number[] = tracks
-              .map((t, idx) => ({ t, idx }))
-              .filter(({ t }) => {
-                // If id specified, must match exactly
-                if (id && t.id !== id) return false;
+            let finalCandidateIndices: number[] = [];
+            const allTracksWithIndices = tracks.map((t, idx) => ({
+              track: t,
+              index: idx,
+            }));
 
-                // If title specified, must include (case-insensitive)
-                if (title && !ciIncludes(t.title, title)) return false;
+            // 1. Filter by ID first if provided
+            const idFilteredTracks = id
+              ? allTracksWithIndices.filter(({ track }) => track.id === id)
+              : allTracksWithIndices;
 
-                // If artist specified, must include (case-insensitive)
-                if (artist && !ciIncludes(t.artist, artist)) return false;
+            // 2. Primary filter: title in track.title, artist in track.artist
+            // Pass if the respective field (title/artist) is not queried
+            const primaryCandidates = idFilteredTracks.filter(({ track }) => {
+              const titleMatches = title
+                ? ciIncludes(track.title, title)
+                : true;
+              const artistMatches = artist
+                ? ciIncludes(track.artist, artist)
+                : true;
+              return titleMatches && artistMatches;
+            });
 
-                return true; // passed all provided filters
-              })
-              .map(({ idx }) => idx);
+            if (primaryCandidates.length > 0) {
+              finalCandidateIndices = primaryCandidates.map(
+                ({ index }) => index
+              );
+            } else if (title || artist) {
+              // 3. Secondary filter (cross-match) if primary failed AND title/artist was queried
+              const secondaryCandidates = idFilteredTracks.filter(
+                ({ track }) => {
+                  const titleInArtistMatches = title
+                    ? ciIncludes(track.artist, title)
+                    : false;
+                  const artistInTitleMatches = artist
+                    ? ciIncludes(track.title, artist)
+                    : false;
 
-            if (candidateIndices.length === 0) {
+                  if (title && artist) {
+                    // Both title and artist were in the original query
+                    return titleInArtistMatches || artistInTitleMatches;
+                  }
+                  if (title) {
+                    // Only title was in original query
+                    return titleInArtistMatches;
+                  }
+                  if (artist) {
+                    // Only artist was in original query
+                    return artistInTitleMatches;
+                  }
+                  return false;
+                }
+              );
+              finalCandidateIndices = secondaryCandidates.map(
+                ({ index }) => index
+              );
+            }
+            // If only ID was queried and it failed, primaryCandidates would be empty,
+            // and the `else if (title || artist)` block wouldn't run.
+            // finalCandidateIndices would remain empty.
+
+            if (finalCandidateIndices.length === 0) {
               return "Song not found in iPod library.";
             }
 
             // If multiple matches, choose one at random
-            const randomIdx = candidateIndices[Math.floor(Math.random() * candidateIndices.length)];
+            const randomIndexFromArray =
+              finalCandidateIndices[
+                Math.floor(Math.random() * finalCandidateIndices.length)
+              ];
 
             const { setCurrentIndex, setIsPlaying } = useIpodStore.getState();
-            setCurrentIndex(randomIdx);
+            setCurrentIndex(randomIndexFromArray);
             setIsPlaying(true);
 
-            const track = tracks[randomIdx];
-            const trackDesc = `${track.title}${track.artist ? ` by ${track.artist}` : ""}`;
+            const track = tracks[randomIndexFromArray];
+            const trackDesc = `${track.title}${
+              track.artist ? ` by ${track.artist}` : ""
+            }`;
             return `Playing ${trackDesc}.`;
           }
           case "ipodNextTrack": {
@@ -470,7 +524,9 @@ export function useAiChat() {
             const updatedIpod = useIpodStore.getState();
             const track = updatedIpod.tracks[updatedIpod.currentIndex];
             if (track) {
-              const desc = `${track.title}${track.artist ? ` by ${track.artist}` : ""}`;
+              const desc = `${track.title}${
+                track.artist ? ` by ${track.artist}` : ""
+              }`;
               return `Skipped to ${desc}.`;
             }
             return "Skipped to next track.";
@@ -492,7 +548,9 @@ export function useAiChat() {
             const updatedIpod = useIpodStore.getState();
             const track = updatedIpod.tracks[updatedIpod.currentIndex];
             if (track) {
-              const desc = `${track.title}${track.artist ? ` by ${track.artist}` : ""}`;
+              const desc = `${track.title}${
+                track.artist ? ` by ${track.artist}` : ""
+              }`;
               return `Went back to previous track: ${desc}.`;
             }
             return "Went back to previous track.";
@@ -506,7 +564,7 @@ export function useAiChat() {
         return `Failed to execute ${toolCall.toolName}`;
       }
     },
-    onFinish: (_: Message | { message: Message }) => {
+    onFinish: (/* _finishedMessage: Message | { message: Message } */) => {
       // Sync latest messages from ref to Zustand store
       const finalMessages = currentSdkMessagesRef.current;
       console.log(
@@ -598,7 +656,10 @@ export function useAiChat() {
             prefixOffset = 4;
             // Skip any whitespace that will be removed by trimStart()
             let i = 4;
-            while (i < lastMsg.content.length && /\s/.test(lastMsg.content[i])) {
+            while (
+              i < lastMsg.content.length &&
+              /\s/.test(lastMsg.content[i])
+            ) {
               prefixOffset++;
               i++;
             }
