@@ -22,6 +22,12 @@ export const DEFAULT_VIDEOS: Video[] = [
     artist: "Jony Ive",
   },
   {
+    id: "wLb9g_8r-mE",
+    url: "https://youtu.be/wLb9g_8r-mE",
+    title: "A Conversation with Jony Ive",
+    artist: "Jony Ive",
+  },
+  {
     id: "3vq9p00T08I",
     url: "https://youtu.be/3vq9p00T08I",
     title: "Macintosh (1984)",
@@ -130,7 +136,7 @@ interface VideoStoreState {
   setIsPlaying: (val: boolean) => void;
 }
 
-const CURRENT_VIDEO_STORE_VERSION = 4; // Define the current version
+const CURRENT_VIDEO_STORE_VERSION = 5; // Define the current version
 
 const getInitialState = () => ({
   videos: DEFAULT_VIDEOS,
