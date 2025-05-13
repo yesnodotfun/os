@@ -25,21 +25,7 @@ import { useFileSystem } from "@/apps/finder/hooks/useFileSystem";
 import { useAppStore } from "@/stores/useAppStore";
 import { setNextBootMessage, clearNextBootMessage } from "@/utils/bootMessage";
 import { AIModel, AI_MODEL_METADATA } from "@/types/aiModels";
-import { Slider } from "@/components/ui/slider";
-import {
-  Volume2,
-  VolumeX,
-  Speaker,
-  Mic,
-  Music,
-  Headphones,
-} from "lucide-react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { VolumeMixer } from "./VolumeMixer";
 
 type PhotoCategory =
   | "3d_graphics"
@@ -622,263 +608,91 @@ export function ControlPanelsAppComponent({
               value="sound"
               className="mt-0 bg-[#E3E3E3] border border-t-0 border-[#808080] h-[calc(100%-2rem)]"
             >
-              <TooltipProvider>
-                <div className="space-y-4 h-full overflow-y-auto p-4">
-                  {/* UI Sounds toggle + volume */}
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center justify-between">
-                      <Label>UI Sounds</Label>
-                      <Switch
-                        checked={uiSoundsEnabled}
-                        onCheckedChange={handleUISoundsChange}
-                        className="data-[state=checked]:bg-[#000000]"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center justify-between">
-                      <Label>Speech</Label>
-                      <Switch
-                        checked={speechEnabled}
-                        onCheckedChange={handleSpeechChange}
-                        className="data-[state=checked]:bg-[#000000]"
-                      />
-                    </div>
-                  </div>
-
+              <div className="space-y-4 h-full overflow-y-auto p-4">
+                {/* UI Sounds toggle + volume */}
+                <div className="flex flex-col gap-1">
                   <div className="flex items-center justify-between">
-                    <div className="flex flex-col gap-1">
-                      <Label>Terminal & IE Ambient Synth</Label>
-                    </div>
+                    <Label>UI Sounds</Label>
                     <Switch
-                      checked={terminalSoundsEnabled}
-                      onCheckedChange={setTerminalSoundsEnabled}
+                      checked={uiSoundsEnabled}
+                      onCheckedChange={handleUISoundsChange}
                       className="data-[state=checked]:bg-[#000000]"
                     />
                   </div>
+                </div>
 
-                  {/* Chat Synth preset */}
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center justify-between">
-                      <Label>Chat Synth</Label>
-                      <Select
-                        value={synthPreset}
-                        onValueChange={handleSynthPresetChange}
-                      >
-                        <SelectTrigger className="w-[120px]">
-                          <SelectValue placeholder="Select a preset" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Object.entries(SYNTH_PRESETS).map(
-                            ([key, preset]) => (
-                              <SelectItem key={key} value={key}>
-                                {preset.name}
-                              </SelectItem>
-                            )
-                          )}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  {/* Volume controls separator */}
-                  <hr className="border-gray-400 my-3" />
-
-                  {/* Vertical Volume Sliders - Mixer UI */}
-                  <div className="flex justify-around items-end pt-2 pb-4">
-                    {/* Master Volume */}
-                    <div className="flex flex-col items-center gap-2">
-                      <Slider
-                        orientation="vertical"
-                        min={0}
-                        max={1}
-                        step={0.05}
-                        value={[masterVolume]}
-                        onValueChange={(v) => {
-                          setMasterVolume(v[0]);
-                          if (v[0] > 0) setPrevMasterVolume(v[0]);
-                        }}
-                        className="h-18 w-5"
-                      />
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={handleMasterMuteToggle}
-                            className="h-8 w-8"
-                          >
-                            {masterVolume > 0 ? (
-                              <Volume2 size={20} />
-                            ) : (
-                              <VolumeX size={20} />
-                            )}
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom">
-                          <p>Master Volume</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-
-                    {/* UI Volume */}
-                    <div className="flex flex-col items-center gap-2">
-                      <Slider
-                        orientation="vertical"
-                        min={0}
-                        max={1}
-                        step={0.05}
-                        value={[uiVolume]}
-                        onValueChange={(v) => {
-                          setUiVolume(v[0]);
-                          if (v[0] > 0) setPrevUiVolume(v[0]);
-                        }}
-                        className="h-18 w-5"
-                      />
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={handleUiMuteToggle}
-                            className="h-8 w-8"
-                          >
-                            {uiVolume > 0 ? (
-                              <Speaker size={20} />
-                            ) : (
-                              <VolumeX size={20} />
-                            )}
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom">
-                          <p>UI Volume</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-
-                    {/* Speech Volume */}
-                    <div className="flex flex-col items-center gap-2">
-                      <Slider
-                        orientation="vertical"
-                        min={0}
-                        max={1}
-                        step={0.05}
-                        value={[speechVolume]}
-                        onValueChange={(v) => {
-                          setSpeechVolume(v[0]);
-                          if (v[0] > 0) setPrevSpeechVolume(v[0]);
-                        }}
-                        className="h-18 w-5"
-                      />
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={handleSpeechMuteToggle}
-                            className="h-8 w-8"
-                          >
-                            {speechVolume > 0 ? (
-                              <Mic size={20} />
-                            ) : (
-                              <VolumeX size={20} />
-                            )}
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom">
-                          <p>Speech Volume</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-
-                    {/* Chat Synth Volume */}
-                    <div className="flex flex-col items-center gap-2">
-                      <Slider
-                        orientation="vertical"
-                        min={0}
-                        max={1}
-                        step={0.05}
-                        value={[chatSynthVolume]}
-                        onValueChange={(v) => {
-                          setChatSynthVolume(v[0]);
-                          if (v[0] > 0) setPrevChatSynthVolume(v[0]);
-                        }}
-                        className="h-18 w-5"
-                      />
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={handleChatSynthMuteToggle}
-                            className="h-8 w-8"
-                          >
-                            {chatSynthVolume > 0 ? (
-                              <Music size={20} />
-                            ) : (
-                              <VolumeX size={20} />
-                            )}
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom">
-                          <p>Chat Synth Volume</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-
-                    {/* iPod Volume */}
-                    <div className="flex flex-col items-center gap-2">
-                      <Slider
-                        orientation="vertical"
-                        min={0}
-                        max={1}
-                        step={0.05}
-                        value={[isIOS ? 1 : ipodVolume]}
-                        onValueChange={
-                          isIOS
-                            ? undefined
-                            : (v) => {
-                                setIpodVolume(v[0]);
-                                if (v[0] > 0) setPrevIpodVolume(v[0]);
-                              }
-                        }
-                        disabled={isIOS}
-                        className={`h-18 w-5 ${isIOS ? "opacity-40" : ""}`}
-                      />
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={handleIpodMuteToggle}
-                            disabled={isIOS}
-                            className={`h-8 w-8 ${isIOS ? "opacity-40" : ""}`}
-                          >
-                            {/* Show active icon if iOS and volume is 1 (default), or if not iOS and volume > 0 */}
-                            {(isIOS &&
-                              ipodVolume === 1 &&
-                              prevIpodVolume === 1) ||
-                            (!isIOS && ipodVolume > 0) ? (
-                              <Headphones size={20} />
-                            ) : (
-                              <VolumeX size={20} />
-                            )}
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom">
-                          <p>iPod Volume</p>
-                        </TooltipContent>
-                      </Tooltip>
-                      {isIOS && (
-                        <p className="text-[10px] text-center text-gray-600 font-geneva-12 mt-1 max-w-[60px]">
-                          iOS: Use HW buttons
-                        </p>
-                      )}
-                    </div>
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center justify-between">
+                    <Label>Speech</Label>
+                    <Switch
+                      checked={speechEnabled}
+                      onCheckedChange={handleSpeechChange}
+                      className="data-[state=checked]:bg-[#000000]"
+                    />
                   </div>
                 </div>
-              </TooltipProvider>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col gap-1">
+                    <Label>Terminal & IE Ambient Synth</Label>
+                  </div>
+                  <Switch
+                    checked={terminalSoundsEnabled}
+                    onCheckedChange={setTerminalSoundsEnabled}
+                    className="data-[state=checked]:bg-[#000000]"
+                  />
+                </div>
+
+                {/* Chat Synth preset */}
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center justify-between">
+                    <Label>Chat Synth</Label>
+                    <Select
+                      value={synthPreset}
+                      onValueChange={handleSynthPresetChange}
+                    >
+                      <SelectTrigger className="w-[120px]">
+                        <SelectValue placeholder="Select a preset" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(SYNTH_PRESETS).map(([key, preset]) => (
+                          <SelectItem key={key} value={key}>
+                            {preset.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Volume controls separator */}
+                <hr className="border-gray-400 my-3" />
+
+                {/* Vertical Volume Sliders - Mixer UI */}
+                <VolumeMixer
+                  masterVolume={masterVolume}
+                  setMasterVolume={setMasterVolume}
+                  setPrevMasterVolume={setPrevMasterVolume}
+                  handleMasterMuteToggle={handleMasterMuteToggle}
+                  uiVolume={uiVolume}
+                  setUiVolume={setUiVolume}
+                  setPrevUiVolume={setPrevUiVolume}
+                  handleUiMuteToggle={handleUiMuteToggle}
+                  speechVolume={speechVolume}
+                  setSpeechVolume={setSpeechVolume}
+                  setPrevSpeechVolume={setPrevSpeechVolume}
+                  handleSpeechMuteToggle={handleSpeechMuteToggle}
+                  chatSynthVolume={chatSynthVolume}
+                  setChatSynthVolume={setChatSynthVolume}
+                  setPrevChatSynthVolume={setPrevChatSynthVolume}
+                  handleChatSynthMuteToggle={handleChatSynthMuteToggle}
+                  ipodVolume={ipodVolume}
+                  setIpodVolume={setIpodVolume}
+                  setPrevIpodVolume={setPrevIpodVolume}
+                  handleIpodMuteToggle={handleIpodMuteToggle}
+                  isIOS={isIOS}
+                />
+              </div>
             </TabsContent>
 
             <TabsContent
@@ -945,7 +759,7 @@ export function ControlPanelsAppComponent({
                   </p>
                 </div>
 
-                <hr className="border-gray-400"></hr>
+                <hr className="border-gray-400 my-4"></hr>
 
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col gap-1">
