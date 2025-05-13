@@ -17,6 +17,7 @@ import {
   MessageCircle,
   Speech as SpeechIcon,
 } from "lucide-react";
+import { useSound, Sounds } from "@/hooks/useSound";
 
 interface VolumeMixerProps {
   masterVolume: number;
@@ -65,6 +66,7 @@ export function VolumeMixer({
   handleIpodMuteToggle,
   isIOS,
 }: VolumeMixerProps) {
+  const { play: playVolumeChangeSound } = useSound(Sounds.VOLUME_CHANGE);
   return (
     <TooltipProvider>
       <div className="flex justify-around items-end py-2">
@@ -79,6 +81,7 @@ export function VolumeMixer({
             onValueChange={(v) => {
               setMasterVolume(v[0]);
               if (v[0] > 0) setPrevMasterVolume(v[0]);
+              playVolumeChangeSound();
             }}
             className="h-18 w-5"
           />
@@ -111,6 +114,7 @@ export function VolumeMixer({
             onValueChange={(v) => {
               setUiVolume(v[0]);
               if (v[0] > 0) setPrevUiVolume(v[0]);
+              playVolumeChangeSound();
             }}
             className="h-18 w-5"
           />
@@ -143,6 +147,7 @@ export function VolumeMixer({
             onValueChange={(v) => {
               setSpeechVolume(v[0]);
               if (v[0] > 0) setPrevSpeechVolume(v[0]);
+              playVolumeChangeSound();
             }}
             className="h-18 w-5"
           />
@@ -175,6 +180,7 @@ export function VolumeMixer({
             onValueChange={(v) => {
               setChatSynthVolume(v[0]);
               if (v[0] > 0) setPrevChatSynthVolume(v[0]);
+              playVolumeChangeSound();
             }}
             className="h-18 w-5"
           />
@@ -212,6 +218,7 @@ export function VolumeMixer({
                 : (v) => {
                     setIpodVolume(v[0]);
                     if (v[0] > 0) setPrevIpodVolume(v[0]);
+                    playVolumeChangeSound();
                   }
             }
             disabled={isIOS}

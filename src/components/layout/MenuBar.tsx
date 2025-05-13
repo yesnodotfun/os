@@ -16,6 +16,7 @@ import { useLaunchApp } from "@/hooks/useLaunchApp";
 import { useAppStore } from "@/stores/useAppStore";
 import { Slider } from "@/components/ui/slider";
 import { Volume1, Volume2, VolumeX } from "lucide-react";
+import { useSound, Sounds } from "@/hooks/useSound";
 
 const finderHelpItems = [
   {
@@ -426,6 +427,7 @@ function DefaultMenuItems() {
 
 function VolumeControl() {
   const { masterVolume, setMasterVolume } = useAppStore();
+  const { play: playVolumeChangeSound } = useSound(Sounds.VOLUME_CHANGE);
 
   const getVolumeIcon = () => {
     if (masterVolume === 0) {
@@ -460,6 +462,7 @@ function VolumeControl() {
           step={0.05}
           value={[masterVolume]}
           onValueChange={(v) => setMasterVolume(v[0])}
+          onValueCommit={playVolumeChangeSound}
         />
       </DropdownMenuContent>
     </DropdownMenu>
