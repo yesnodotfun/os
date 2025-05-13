@@ -22,7 +22,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     id: "Y_AxRCNFT2g",
     url: "https://www.youtube.com/watch?v=Y_AxRCNFT2g",
     title: "Supernova (House Remix)",
-    artist: "aespa",
+    artist: "aespa (에스파)",
   },
   {
     id: "XJWqHmY-g9U",
