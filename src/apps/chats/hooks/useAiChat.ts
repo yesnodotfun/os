@@ -211,7 +211,7 @@ export function useAiChat() {
 
             launchApp(id as AppId, launchOptions);
 
-            let confirmationMessage = `Launched ${appName}`;
+            let confirmationMessage = `Launched ${appName}.`;
             if (id === "internet-explorer") {
               const urlPart = url ? ` to ${url}` : "";
               const yearPart = year && year !== "current" ? ` in ${year}` : "";
@@ -257,7 +257,7 @@ export function useAiChat() {
             const { contentJson, applyExternalUpdate } = textEditState as any;
 
             if (!contentJson) {
-              return "No document is currently open in TextEdit.";
+              return "No file currently open in TextEdit.";
             }
 
             try {
@@ -283,7 +283,7 @@ export function useAiChat() {
                   return markdownStr.replace(regex, normalizedReplace);
                 } catch (err) {
                   console.error(
-                    "searchReplace error while building/applying regex:",
+                    "Error while building/applying regex:",
                     err
                   );
                   throw err;
@@ -291,7 +291,7 @@ export function useAiChat() {
               })();
 
               if (updatedMarkdown === markdownStr) {
-                return "No occurrences found to replace.";
+                return "Nothing found to replace.";
               }
 
               // 4. Convert updated markdown back to HTML and then to JSON
@@ -307,7 +307,7 @@ export function useAiChat() {
               // 5. Apply the updated JSON to the store – TextEdit will react via subscription
               applyExternalUpdate(updatedJson);
 
-              return `Replaced occurrences of "${search}" with "${replace}".`;
+              return `Replaced "${search}" with "${replace}".`;
             } catch (err) {
               console.error("searchReplace error:", err);
               return `Failed to apply search/replace: ${
@@ -340,7 +340,7 @@ export function useAiChat() {
               insertText(text, position || "end")
             );
 
-            return `Inserting text at ${
+            return `Inserted text at ${
               position === "start" ? "start" : "end"
             } of document…`;
           }
@@ -371,7 +371,7 @@ export function useAiChat() {
             setLastFilePath(null);
             setHasUnsavedChanges(false);
 
-            return "Started a new, untitled document in TextEdit.";
+            return "Created a new, untitled document in TextEdit.";
           }
           case "ipodPlayPause": {
             const { action } = toolCall.args as { action?: "play" | "pause" | "toggle" };
@@ -471,7 +471,7 @@ export function useAiChat() {
             const track = updatedIpod.tracks[updatedIpod.currentIndex];
             if (track) {
               const desc = `${track.title}${track.artist ? ` by ${track.artist}` : ""}`;
-              return `Skipped to next track: ${desc}.`;
+              return `Skipped to ${desc}.`;
             }
             return "Skipped to next track.";
           }

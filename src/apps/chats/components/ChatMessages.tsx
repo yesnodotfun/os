@@ -22,6 +22,7 @@ import HtmlPreview, {
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
 import { useTtsQueue } from "@/hooks/useTtsQueue";
 import { useAppStore } from "@/stores/useAppStore";
+import { appRegistry } from "@/config/appRegistry";
 
 // --- Color Hashing for Usernames ---
 const userColors = [
@@ -115,6 +116,13 @@ const formatToolName = (name: string): string =>
     .replace(/^./, (ch) => ch.toUpperCase()) // capitalize first letter
     .trim();
 // --- End helper: prettify tool names ---
+
+// Helper to map an app id to a user-friendly name (falls back to formatting the id)
+const getAppName = (id?: string): string => {
+  if (!id) return "app";
+  // @ts-ignore – runtime lookup is fine here
+  return appRegistry[id]?.name || formatToolName(id);
+};
 
 // Define an extended message type that includes username
 // Extend VercelMessage and add username and the 'human' role
@@ -905,14 +913,10 @@ function ChatMessagesContent({
                               displayCallMessage = "Inserting text…";
                               break;
                             case "launchApp":
-                              displayCallMessage = `Launching ${
-                                args?.id || "app"
-                              }…`;
+                              displayCallMessage = `Launching ${getAppName(args?.id)}…`;
                               break;
                             case "closeApp":
-                              displayCallMessage = `Closing ${
-                                args?.id || "app"
-                              }…`;
+                              displayCallMessage = `Closing ${getAppName(args?.id)}…`;
                               break;
                             case "textEditNewFile":
                               displayCallMessage = "Creating new document…";
@@ -934,13 +938,13 @@ function ChatMessagesContent({
                                 : "";
                             displayResultMessage = `Launched ${urlPart}${yearPart}`;
                           } else if (toolName === "launchApp") {
-                            displayResultMessage = `Launched ${
-                              args?.id || "app"
-                            }`;
+                            displayResultMessage = `Launched ${getAppName(
+                              args?.id
+                            )}`;
                           } else if (toolName === "closeApp") {
-                            displayResultMessage = `Closed ${
-                              args?.id || "app"
-                            }`;
+                            displayResultMessage = `Closed ${getAppName(
+                              args?.id
+                            )}`;
                           }
                         }
 
