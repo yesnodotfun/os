@@ -453,6 +453,50 @@ export function useAiChat() {
             const trackDesc = `${track.title}${track.artist ? ` by ${track.artist}` : ""}`;
             return `Playing ${trackDesc}.`;
           }
+          case "ipodNextTrack": {
+            console.log("[ToolCall] ipodNextTrack");
+            // Ensure iPod app is open
+            const appState = useAppStore.getState();
+            if (!appState.apps["ipod"]?.isOpen) {
+              launchApp("ipod");
+            }
+
+            const ipodState = useIpodStore.getState();
+            const { nextTrack } = ipodState;
+            if (typeof nextTrack === "function") {
+              nextTrack();
+            }
+
+            const updatedIpod = useIpodStore.getState();
+            const track = updatedIpod.tracks[updatedIpod.currentIndex];
+            if (track) {
+              const desc = `${track.title}${track.artist ? ` by ${track.artist}` : ""}`;
+              return `Skipped to next track: ${desc}.`;
+            }
+            return "Skipped to next track.";
+          }
+          case "ipodPreviousTrack": {
+            console.log("[ToolCall] ipodPreviousTrack");
+            // Ensure iPod app is open
+            const appState = useAppStore.getState();
+            if (!appState.apps["ipod"]?.isOpen) {
+              launchApp("ipod");
+            }
+
+            const ipodState = useIpodStore.getState();
+            const { previousTrack } = ipodState;
+            if (typeof previousTrack === "function") {
+              previousTrack();
+            }
+
+            const updatedIpod = useIpodStore.getState();
+            const track = updatedIpod.tracks[updatedIpod.currentIndex];
+            if (track) {
+              const desc = `${track.title}${track.artist ? ` by ${track.artist}` : ""}`;
+              return `Went back to previous track: ${desc}.`;
+            }
+            return "Went back to previous track.";
+          }
           default:
             console.warn("Unhandled tool call:", toolCall.toolName);
             return "";

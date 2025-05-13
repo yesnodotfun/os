@@ -336,6 +336,14 @@ export default async function handler(req: Request) {
               message: "Provide at least one of 'id', 'title', or 'artist' to identify the song.",
             }),
         },
+        ipodNextTrack: {
+          description: "Skip to the next track in the iPod app playlist. If the iPod app is not open, it will be launched automatically.",
+          parameters: z.object({}),
+        },
+        ipodPreviousTrack: {
+          description: "Skip to the previous track in the iPod app playlist. If the iPod app is not open, it will be launched automatically.",
+          parameters: z.object({}),
+        },
       },
       temperature: 0.7,
       maxTokens: 6000,
