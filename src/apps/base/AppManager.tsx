@@ -84,6 +84,23 @@ export function AppManager({ apps }: AppManagerProps) {
           }, 0);
           window.history.replaceState({}, '', '/'); // Clean URL
         }
+      } else if (path.startsWith('/videos/')) {
+        const videoId = path.substring('/videos/'.length);
+        if (videoId) {
+          console.log("[AppManager] Detected Videos videoId:", videoId);
+          toast.info("Opening shared video...");
+          setTimeout(() => {
+            const event = new CustomEvent('launchApp', {
+              detail: {
+                appId: 'videos',
+                initialData: { videoId }
+              }
+            });
+            window.dispatchEvent(event);
+            console.log("[AppManager] Dispatched launchApp event for Videos videoId.");
+          }, 0);
+          window.history.replaceState({}, '', '/'); // Clean URL
+        }
       } else if (path.startsWith('/') && path.length > 1) {
         // Handle direct app launch path (e.g., /soundboard)
         const potentialAppId = path.substring(1) as AppId;
@@ -107,7 +124,8 @@ export function AppManager({ apps }: AppManagerProps) {
           // Maybe redirect to root or show a 404 within the app context
           // For now, just clean the URL if it wasn't a valid app path or IE code
            // Update condition: Only clean if it's not an IE path (we handle cleaning IE path above)
-           if (!path.startsWith('/internet-explorer/') && !path.startsWith('/ipod/')) {
+           // Update condition: Also check for ipod and videos paths
+           if (!path.startsWith('/internet-explorer/') && !path.startsWith('/ipod/') && !path.startsWith('/videos/')) {
                window.history.replaceState({}, '', '/');
            }
         }
@@ -153,6 +171,14 @@ export function AppManager({ apps }: AppManagerProps) {
         // --- ADDED: Handle initialData (videoId) for already open iPod ---
         if (appId === 'ipod' && initialData?.videoId) {
           console.log(`[AppManager] Dispatching updateApp event for already open iPod with initialData:`, initialData);
+          const updateEvent = new CustomEvent('updateApp', { detail: { appId, initialData } });
+          window.dispatchEvent(updateEvent);
+        }
+        // --- END ADDED ---
+
+        // --- ADDED: Handle initialData (videoId) for already open Videos ---
+        if (appId === 'videos' && initialData?.videoId) {
+          console.log(`[AppManager] Dispatching updateApp event for already open Videos with initialData:`, initialData);
           const updateEvent = new CustomEvent('updateApp', { detail: { appId, initialData } });
           window.dispatchEvent(updateEvent);
         }
