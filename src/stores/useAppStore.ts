@@ -107,7 +107,7 @@ export const useAppStore = create<AppStoreState>()(
       setTypingSynthEnabled: (enabled) => set({ typingSynthEnabled: enabled }),
       speechEnabled: false,
       setSpeechEnabled: (enabled) => set({ speechEnabled: enabled }),
-      speechVolume: 1,
+      speechVolume: 2,
       setSpeechVolume: (v) => set({ speechVolume: v }),
       synthPreset: "classic",
       setSynthPreset: (preset) => set({ synthPreset: preset }),
