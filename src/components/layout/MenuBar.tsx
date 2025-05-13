@@ -450,7 +450,7 @@ function VolumeControl() {
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="center"
-        sideOffset={4}
+        sideOffset={1}
         className="p-4 w-auto min-w-3 h-40 flex items-center justify-center"
       >
         <Slider
@@ -477,7 +477,9 @@ export function MenuBar({ children }: MenuBarProps) {
       <AppleMenu apps={apps} />
       {hasActiveApp ? children : <DefaultMenuItems />}
       <div className="ml-auto flex items-center">
-        <VolumeControl />
+        <div className="hidden sm:flex">
+          <VolumeControl />
+        </div>
         <Clock />
       </div>
     </div>
