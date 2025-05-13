@@ -118,7 +118,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     id: "aFrQIJ5cbRc",
     url: "https://www.youtube.com/watch?v=aFrQIJ5cbRc",
     title: "Know About Me",
-    artist: "NMIXX",
+    artist: "NMIXX (엔믹스)",
   },
   {
     id: "hJ9Wp3PO3c8",
