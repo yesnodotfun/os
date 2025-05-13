@@ -1,6 +1,7 @@
 import { useRef, useEffect, useCallback, useState } from "react";
 import { getAudioContext, resumeAudioContext } from "@/lib/audioContext";
 import { useAppStore } from "@/stores/useAppStore";
+import { useIpodStore } from "@/stores/useIpodStore";
 
 /**
  * Hook that turns short text chunks into speech and queues them in the same
@@ -29,6 +30,13 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
   // Gain node for global speech volume
   const gainNodeRef = useRef<GainNode | null>(null);
   const speechVolume = useAppStore((s) => s.speechVolume);
+  const setIpodVolumeGlobal = useAppStore((s) => s.setIpodVolume);
+
+  // Keep track of iPod volume for duck/restore
+  const originalIpodVolumeRef = useRef<number | null>(null);
+
+  // Subscribe to iPod playing state so our effect reacts when playback starts/stops
+  const ipodIsPlaying = useIpodStore((s) => s.isPlaying);
 
   const ensureContext = () => {
     // Always use the shared global context
@@ -184,6 +192,27 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
       gainNodeRef.current.gain.value = speechVolume;
     }
   }, [speechVolume]);
+
+  /**
+   * Duck iPod volume while TTS is speaking.
+   * We only duck when the iPod is actively playing and we have not already
+   * done so for the current speech session. When speech ends, we restore the
+   * previous volume.
+   */
+  useEffect(() => {
+    if (isSpeaking && ipodIsPlaying) {
+      // Activate ducking only once at the start of speech
+      if (originalIpodVolumeRef.current === null) {
+        originalIpodVolumeRef.current = useAppStore.getState().ipodVolume;
+        const ducked = Math.max(0, originalIpodVolumeRef.current * 0.2);
+        setIpodVolumeGlobal(ducked);
+      }
+    } else if (!isSpeaking && originalIpodVolumeRef.current !== null) {
+      // Restore original volume when speech stops
+      setIpodVolumeGlobal(originalIpodVolumeRef.current);
+      originalIpodVolumeRef.current = null;
+    }
+  }, [isSpeaking, ipodIsPlaying, setIpodVolumeGlobal]);
 
   return { speak, stop, isSpeaking };
 }
