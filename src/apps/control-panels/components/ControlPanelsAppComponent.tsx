@@ -188,10 +188,14 @@ export function ControlPanelsAppComponent({
     setSynthPreset,
     ipodVolume,
     setIpodVolume,
+    masterVolume,
+    setMasterVolume,
   } = useAppStore();
 
   // Detect iOS Safari – volume API does not work for YouTube embeds there
-  const isIOS = typeof navigator !== "undefined" && /iP(hone|od|ad)/.test(navigator.userAgent);
+  const isIOS =
+    typeof navigator !== "undefined" &&
+    /iP(hone|od|ad)/.test(navigator.userAgent);
 
   const handleUISoundsChange = (enabled: boolean) => {
     setUiSoundsEnabled(enabled);
@@ -553,7 +557,6 @@ export function ControlPanelsAppComponent({
                       className="data-[state=checked]:bg-[#000000]"
                     />
                   </div>
-                  
                 </div>
 
                 <div className="flex flex-col gap-1">
@@ -606,6 +609,17 @@ export function ControlPanelsAppComponent({
                 {/* Volume sliders */}
                 <div className="py-2 space-y-4">
                   <div className="flex items-center justify-between">
+                    <Label className="whitespace-nowrap">Master Volume</Label>
+                    <Slider
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      value={[masterVolume]}
+                      onValueChange={(v) => setMasterVolume(v[0])}
+                      className="w-40"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
                     <Label className="whitespace-nowrap">UI Volume</Label>
                     <Slider
                       min={0}
@@ -628,7 +642,9 @@ export function ControlPanelsAppComponent({
                     />
                   </div>
                   <div className="flex items-center justify-between">
-                    <Label className="whitespace-nowrap">Chat Synth Volume</Label>
+                    <Label className="whitespace-nowrap">
+                      Chat Synth Volume
+                    </Label>
                     <Slider
                       min={0}
                       max={1}
@@ -646,14 +662,17 @@ export function ControlPanelsAppComponent({
                         max={1}
                         step={0.05}
                         value={[isIOS ? 1 : ipodVolume]}
-                        onValueChange={isIOS ? undefined : (v) => setIpodVolume(v[0])}
+                        onValueChange={
+                          isIOS ? undefined : (v) => setIpodVolume(v[0])
+                        }
                         disabled={isIOS}
-                        className={`w-40 ${isIOS ? 'opacity-40' : ''}`}
+                        className={`w-40 ${isIOS ? "opacity-40" : ""}`}
                       />
                     </div>
                     {isIOS && (
                       <p className="text-[11px] text-gray-600 font-geneva-12 mt-1">
-                        iPod volume controls are not available on iOS. Use hardware buttons.
+                        iPod volume controls are not available on iOS. Use
+                        hardware buttons.
                       </p>
                     )}
                   </div>

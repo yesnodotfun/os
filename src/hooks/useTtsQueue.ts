@@ -30,6 +30,7 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
   // Gain node for global speech volume
   const gainNodeRef = useRef<GainNode | null>(null);
   const speechVolume = useAppStore((s) => s.speechVolume);
+  const masterVolume = useAppStore((s) => s.masterVolume);
   const setIpodVolumeGlobal = useAppStore((s) => s.setIpodVolume);
 
   // Keep track of iPod volume for duck/restore
@@ -51,12 +52,19 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
     // Always use the shared global context
     ctxRef.current = getAudioContext();
     // (Re)create gain node if needed or context changed
-    if (!gainNodeRef.current || gainNodeRef.current.context !== ctxRef.current) {
+    if (
+      !gainNodeRef.current ||
+      gainNodeRef.current.context !== ctxRef.current
+    ) {
       if (gainNodeRef.current) {
-        try { gainNodeRef.current.disconnect(); } catch {}
+        try {
+          gainNodeRef.current.disconnect();
+        } catch {
+          console.error("Error disconnecting gain node");
+        }
       }
       gainNodeRef.current = ctxRef.current.createGain();
-      gainNodeRef.current.gain.value = speechVolume;
+      gainNodeRef.current.gain.value = speechVolume * masterVolume;
       gainNodeRef.current.connect(ctxRef.current.destination);
     }
     return ctxRef.current;
@@ -195,12 +203,12 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
     };
   }, []);
 
-  // Update gain when speechVolume changes
+  // Update gain when speechVolume or masterVolume changes
   useEffect(() => {
     if (gainNodeRef.current) {
-      gainNodeRef.current.gain.value = speechVolume;
+      gainNodeRef.current.gain.value = speechVolume * masterVolume;
     }
-  }, [speechVolume]);
+  }, [speechVolume, masterVolume]);
 
   /**
    * Duck iPod volume while TTS is speaking.

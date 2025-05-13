@@ -77,6 +77,8 @@ interface AppStoreState extends AppManagerState {
   setChatSynthVolume: (vol: number) => void;
   ipodVolume: number;
   setIpodVolume: (vol: number) => void;
+  masterVolume: number;
+  setMasterVolume: (vol: number) => void;
 }
 
 // Run the check once on script load
@@ -115,6 +117,8 @@ export const useAppStore = create<AppStoreState>()(
       setHasBooted: () => {
         set({ isFirstBoot: false });
       },
+      masterVolume: 1,
+      setMasterVolume: (vol) => set({ masterVolume: vol }),
       updateWindowState: (appId, position, size) =>
         set((state) => ({
           apps: {
@@ -520,6 +524,7 @@ export const useAppStore = create<AppStoreState>()(
         chatSynthVolume: state.chatSynthVolume,
         speechVolume: state.speechVolume,
         ipodVolume: state.ipodVolume,
+        masterVolume: state.masterVolume,
       }),
     }
   )

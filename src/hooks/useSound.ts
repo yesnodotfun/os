@@ -46,11 +46,12 @@ export function useSound(soundPath: string, volume: number = 0.3) {
   const gainNodeRef = useRef<GainNode | null>(null);
   // Reactively track global UI volume
   const uiVolume = useAppStore((s) => s.uiVolume);
+  const masterVolume = useAppStore((s) => s.masterVolume); // Get masterVolume
 
   useEffect(() => {
     // Create gain node for volume control
     gainNodeRef.current = getAudioContext().createGain();
-    gainNodeRef.current.gain.value = volume * uiVolume;
+    gainNodeRef.current.gain.value = volume * uiVolume * masterVolume; // Apply masterVolume
 
     // Connect to destination
     gainNodeRef.current.connect(getAudioContext().destination);
@@ -60,7 +61,7 @@ export function useSound(soundPath: string, volume: number = 0.3) {
         gainNodeRef.current.disconnect();
       }
     };
-  }, [volume, uiVolume]);
+  }, [volume, uiVolume, masterVolume]);
 
   const play = useCallback(async () => {
     // Check if UI sounds are enabled via global store
@@ -71,17 +72,22 @@ export function useSound(soundPath: string, volume: number = 0.3) {
     try {
       // Ensure audio context is running before playing
       await resumeAudioContext();
-      
+
       const audioBuffer = await preloadSound(soundPath);
       // If the gain node belongs to a stale AudioContext (closed), recreate it
-      if (!gainNodeRef.current || gainNodeRef.current.context.state === "closed") {
+      if (
+        !gainNodeRef.current ||
+        gainNodeRef.current.context.state === "closed"
+      ) {
         if (gainNodeRef.current) {
           try {
             gainNodeRef.current.disconnect();
-          } catch (_) {}
+          } catch {
+            console.error("Error disconnecting gain node");
+          }
         }
         gainNodeRef.current = getAudioContext().createGain();
-        gainNodeRef.current.gain.value = volume * uiVolume;
+        gainNodeRef.current.gain.value = volume * uiVolume * masterVolume; // Apply masterVolume
         gainNodeRef.current.connect(getAudioContext().destination);
       }
 
@@ -92,7 +98,7 @@ export function useSound(soundPath: string, volume: number = 0.3) {
       source.connect(gainNodeRef.current);
 
       // Set volume (apply global scaling)
-      gainNodeRef.current.gain.value = volume * uiVolume;
+      gainNodeRef.current.gain.value = volume * uiVolume * masterVolume; // Apply masterVolume
 
       // If too many concurrent sources are active, skip to avoid audio congestion
       if (activeSources.size > 32) {
@@ -113,7 +119,7 @@ export function useSound(soundPath: string, volume: number = 0.3) {
     } catch (error) {
       console.error("Error playing sound:", error);
     }
-  }, [volume, soundPath, uiVolume]);
+  }, [volume, soundPath, uiVolume, masterVolume]);
 
   // Additional control methods
   const stop = useCallback(() => {
