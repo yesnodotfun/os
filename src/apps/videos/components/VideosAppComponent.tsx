@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactPlayer from "react-player";
 import { cn } from "@/lib/utils";
@@ -546,21 +546,41 @@ export function VideosAppComponent({
   };
 
   // --- NEW: Function to process video ID (find or add/play) ---
-  const processVideoId = async (videoId: string) => {
+  const processVideoId = useCallback(async (videoId: string) => {
     const currentVideos = useVideoStore.getState().videos;
     const existingVideoIndex = currentVideos.findIndex(video => video.id === videoId);
+
+    // --- Check for mobile Safari BEFORE setting playing state ---
+    const ua = navigator.userAgent;
+    const isIOS = /iP(hone|od|ad)/.test(ua);
+    const isSafari = /Safari/.test(ua) && !/Chrome/.test(ua) && !/CriOS/.test(ua);
+    const shouldAutoplay = !(isIOS || isSafari);
+    // --- End check ---
 
     if (existingVideoIndex !== -1) {
       console.log(`[Videos] Video ID ${videoId} found in playlist. Playing.`);
       setCurrentIndex(existingVideoIndex);
-      setIsPlaying(true);
+      // --- Only set playing if allowed ---
+      if (shouldAutoplay) {
+        setIsPlaying(true);
+      }
       // Optionally show status
       showStatus(`▶ Playing ${currentVideos[existingVideoIndex].title}`);
     } else {
       console.log(`[Videos] Video ID ${videoId} not found. Adding and playing.`);
       await handleAddAndPlayVideoById(videoId);
+       // --- Only set playing if allowed ---
+       if (shouldAutoplay) {
+         const newIndex = useVideoStore.getState().currentIndex;
+         const addedVideo = useVideoStore.getState().videos[newIndex];
+         if (addedVideo?.id === videoId) {
+            setIsPlaying(true);
+         } else {
+            console.warn("[Videos] Index mismatch after adding video, autoplay skipped.");
+         }
+       }
     }
-  };
+  }, [setCurrentIndex, setIsPlaying, handleAddAndPlayVideoById, showStatus]);
 
   // --- NEW: Effect for initial data on mount ---
   useEffect(() => {
@@ -578,7 +598,6 @@ export function VideosAppComponent({
         });
       }, 100); 
     }
-  // Add dependencies
   }, [isWindowOpen, initialData, processVideoId, clearVideosInitialData]);
 
   // --- NEW: Effect for updateApp event (when app is already open) ---
@@ -600,7 +619,6 @@ export function VideosAppComponent({
     return () => {
       window.removeEventListener('updateApp', handleUpdateApp as EventListener);
     };
-  // Add dependencies
   }, [processVideoId, bringToForeground]);
 
   const togglePlay = () => {

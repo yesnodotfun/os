@@ -592,15 +592,39 @@ export function IpodAppComponent({
     const currentTracks = useIpodStore.getState().tracks;
     const existingTrackIndex = currentTracks.findIndex(track => track.id === videoId);
 
+    // --- Check for mobile Safari BEFORE setting playing state ---
+    const ua = navigator.userAgent;
+    const isIOS = /iP(hone|od|ad)/.test(ua);
+    const isSafari = /Safari/.test(ua) && !/Chrome/.test(ua) && !/CriOS/.test(ua);
+    const shouldAutoplay = !(isIOS || isSafari);
+    // --- End check ---
+
     if (existingTrackIndex !== -1) {
       console.log(`[iPod] Video ID ${videoId} found in tracks. Playing.`);
       setCurrentIndex(existingTrackIndex);
-      setIsPlaying(true);
+      // --- Only set playing if allowed ---
+      if (shouldAutoplay) {
+        setIsPlaying(true);
+      }
       setMenuMode(false); // Ensure we are in "Now Playing" mode
     } else {
       console.log(`[iPod] Video ID ${videoId} not found. Adding and playing.`);
+      // handleAddAndPlayTrackByVideoId calls addTrackStore, which updates the index.
+      // We need to ensure play state is set correctly *after* adding.
       await handleAddAndPlayTrackByVideoId(videoId);
+      // --- Only set playing if allowed (redundant safety check, addTrack might handle index sync issues) ---
+      if (shouldAutoplay) {
+         // Ensure the index is correct before playing
+         const newIndex = useIpodStore.getState().currentIndex;
+         const addedTrack = useIpodStore.getState().tracks[newIndex];
+         if (addedTrack?.id === videoId) {
+            setIsPlaying(true);
+         } else {
+            console.warn("[iPod] Index mismatch after adding track, autoplay skipped.");
+         }
+      } 
     }
+  // Update dependencies
   }, [setCurrentIndex, setIsPlaying, setMenuMode, handleAddAndPlayTrackByVideoId]);
 
   // Effect for initial data on mount
