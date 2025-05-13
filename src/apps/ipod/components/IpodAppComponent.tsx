@@ -1118,7 +1118,7 @@ export function IpodAppComponent({
           isOpen={isAddDialogOpen}
           onOpenChange={setIsAddDialogOpen}
           onSubmit={handleAddTrack}
-          title="Add Music"
+          title="Add Song"
           description="Paste a YouTube link to add to your iPod"
           value={urlInput}
           onChange={setUrlInput}
