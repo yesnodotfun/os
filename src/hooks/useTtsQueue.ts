@@ -218,7 +218,7 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
           setIpodIsPlaying(false);
         } else {
           originalIpodVolumeRef.current = useAppStore.getState().ipodVolume;
-          const ducked = Math.max(0, originalIpodVolumeRef.current * 0.2);
+          const ducked = Math.max(0, originalIpodVolumeRef.current * 0.15);
           setIpodVolumeGlobal(ducked);
         }
       }
