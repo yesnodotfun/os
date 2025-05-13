@@ -19,6 +19,12 @@ export const IPOD_DEFAULT_VIDEOS = [
     artist: "Jagged Edge",
   },
   {
+    id: "Y_AxRCNFT2g",
+    url: "https://www.youtube.com/watch?v=Y_AxRCNFT2g",
+    title: "Supernova (House Remix)",
+    artist: "aespa",
+  },
+  {
     id: "XJWqHmY-g9U",
     url: "https://www.youtube.com/watch?v=XJWqHmY-g9U",
     title: "Telephone Number",
