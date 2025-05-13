@@ -464,8 +464,24 @@ export function useAiChat() {
       if (sentence && !/^[\s.!?。，！？；：]+$/.test(sentence)) {
         const cleaned = cleanTextForSpeech(sentence);
         if (cleaned && !/^[\s.!?。，！？；：]+$/.test(cleaned)) {
+          // If this is an urgent message (starts with "!!!!"), the UI trims
+          // the first 4 exclamation marks *and* any following spaces before
+          // rendering. We need to offset our start/end indices so they align
+          // with the visible (trimmed) text.
+          let prefixOffset = 0;
+          if (lastMsg.content.startsWith("!!!!")) {
+            // Base 4 chars for the exclamation marks
+            prefixOffset = 4;
+            // Skip any whitespace that will be removed by trimStart()
+            let i = 4;
+            while (i < lastMsg.content.length && /\s/.test(lastMsg.content[i])) {
+              prefixOffset++;
+              i++;
+            }
+          }
+
           const chunkStart =
-            processed + newText.indexOf(sentence) + spokenChars;
+            processed + newText.indexOf(sentence) + spokenChars - prefixOffset;
           const chunkEnd = chunkStart + sentence.length;
 
           // Push highlight info to queue

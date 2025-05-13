@@ -525,15 +525,25 @@ function ChatMessagesContent({
                               return;
                             }
 
-                            // Build highlight segments data
+                            // Build highlight segments data – use *visible* character
+                            // length (without Markdown markup like ** or []()) so the
+                            // highlight aligns with what is actually rendered.
                             let charCursor = 0;
                             const segments = chunks.map((chunk) => {
+                              // Calculate how many visible characters this chunk
+                              // contributes by summing the lengths of the token
+                              // contents produced by segmentText().
+                              const visibleLen = segmentText(chunk).reduce(
+                                (acc, token) => acc + token.content.length,
+                                0
+                              );
+
                               const seg = {
                                 messageId: message.id || messageKey,
                                 start: charCursor,
-                                end: charCursor + chunk.length,
+                                end: charCursor + visibleLen,
                               };
-                              charCursor += chunk.length;
+                              charCursor += visibleLen;
                               return seg;
                             });
 
