@@ -37,6 +37,15 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
 
   // Subscribe to iPod playing state so our effect reacts when playback starts/stops
   const ipodIsPlaying = useIpodStore((s) => s.isPlaying);
+  const setIpodIsPlaying = useIpodStore((s) => s.setIsPlaying);
+
+  // Detect iOS (Safari) environment where programmatic volume control is restricted
+  const isIOS =
+    typeof navigator !== "undefined" &&
+    /iP(hone|od|ad)/.test(navigator.userAgent);
+
+  // Track whether we paused the iPod ourselves (to avoid resuming if user paused)
+  const didPauseIpodRef = useRef(false);
 
   const ensureContext = () => {
     // Always use the shared global context
@@ -203,16 +212,31 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
     if (isSpeaking && ipodIsPlaying) {
       // Activate ducking only once at the start of speech
       if (originalIpodVolumeRef.current === null) {
-        originalIpodVolumeRef.current = useAppStore.getState().ipodVolume;
-        const ducked = Math.max(0, originalIpodVolumeRef.current * 0.2);
-        setIpodVolumeGlobal(ducked);
+        if (isIOS) {
+          // iOS Safari does not allow programmatic volume changes. Pause playback instead.
+          didPauseIpodRef.current = true;
+          setIpodIsPlaying(false);
+        } else {
+          originalIpodVolumeRef.current = useAppStore.getState().ipodVolume;
+          const ducked = Math.max(0, originalIpodVolumeRef.current * 0.2);
+          setIpodVolumeGlobal(ducked);
+        }
       }
-    } else if (!isSpeaking && originalIpodVolumeRef.current !== null) {
-      // Restore original volume when speech stops
-      setIpodVolumeGlobal(originalIpodVolumeRef.current);
-      originalIpodVolumeRef.current = null;
+    } else if (!isSpeaking) {
+      // Restore after speech
+      if (isIOS) {
+        if (didPauseIpodRef.current) {
+          setIpodIsPlaying(true);
+        }
+        didPauseIpodRef.current = false;
+      }
+
+      if (originalIpodVolumeRef.current !== null) {
+        setIpodVolumeGlobal(originalIpodVolumeRef.current);
+        originalIpodVolumeRef.current = null;
+      }
     }
-  }, [isSpeaking, ipodIsPlaying, setIpodVolumeGlobal]);
+  }, [isSpeaking, ipodIsPlaying, setIpodVolumeGlobal, isIOS]);
 
   return { speak, stop, isSpeaking };
 }
