@@ -246,7 +246,7 @@ interface IpodStoreState {
   previousTrack: () => void;
 }
 
-const CURRENT_IPOD_STORE_VERSION = 5; // Define the current version
+const CURRENT_IPOD_STORE_VERSION = 6; // Define the current version
 
 export const useIpodStore = create<IpodStoreState>()(
   persist(
