@@ -25,6 +25,30 @@ export const IPOD_DEFAULT_VIDEOS = [
     artist: "aespa (에스파)",
   },
   {
+    id: "yP8nAoFi6JY",
+    url: "https://www.youtube.com/watch?v=yP8nAoFi6JY",
+    title: "Supernatural (Miami Bass Remix)",
+    artist: "NewJeans (뉴진스)",
+  },
+  {
+    id: "1FNI1i7H1Kc",
+    url: "https://www.youtube.com/watch?v=1FNI1i7H1Kc",
+    title: "The Chase (R&B Remix)",
+    artist: "Hearts2Hearts (하츠투하츠)",
+  },
+  {
+    id: "LVLOwwGVVZ0",
+    url: "https://www.youtube.com/watch?v=LVLOwwGVVZ0",
+    title: "Right Now (R&B Remix)",
+    artist: "NewJeans (뉴진스)",
+  },
+  {
+    id: "AGaTzDTnYGY",
+    url: "https://www.youtube.com/watch?v=AGaTzDTnYGY",
+    title: "How Sweet (UK Garage Remix)",
+    artist: "NewJeans (뉴진스)",
+  },
+  {
     id: "XJWqHmY-g9U",
     url: "https://www.youtube.com/watch?v=XJWqHmY-g9U",
     title: "Telephone Number",
@@ -76,30 +100,6 @@ export const IPOD_DEFAULT_VIDEOS = [
     id: "6vDi9S2ZDYA",
     url: "https://www.youtube.com/watch?v=6vDi9S2ZDYA",
     title: "ETA (R&B Remix)",
-    artist: "NewJeans (뉴진스)",
-  },
-  {
-    id: "yP8nAoFi6JY",
-    url: "https://www.youtube.com/watch?v=yP8nAoFi6JY",
-    title: "Supernatural (Miami Bass Remix)",
-    artist: "NewJeans (뉴진스)",
-  },
-  {
-    id: "1FNI1i7H1Kc",
-    url: "https://www.youtube.com/watch?v=1FNI1i7H1Kc",
-    title: "The Chase (R&B Remix)",
-    artist: "Hearts2Hearts (하츠투하츠)",
-  },
-  {
-    id: "LVLOwwGVVZ0",
-    url: "https://www.youtube.com/watch?v=LVLOwwGVVZ0",
-    title: "Right Now (R&B Remix)",
-    artist: "NewJeans (뉴진스)",
-  },
-  {
-    id: "AGaTzDTnYGY",
-    url: "https://www.youtube.com/watch?v=AGaTzDTnYGY",
-    title: "How Sweet (UK Garage Remix)",
     artist: "NewJeans (뉴진스)",
   },
   {
