@@ -555,6 +555,15 @@ export function useAiChat() {
             }
             return "Went back to previous track.";
           }
+          case "generateHtml": {
+            const { html } = toolCall.args as { html: string };
+            console.log("[ToolCall] generateHtml:", {
+              htmlLength: html.length,
+            });
+
+            // Return the raw HTML string; ChatMessages will render it via HtmlPreview
+            return html.trim();
+          }
           default:
             console.warn("Unhandled tool call:", toolCall.toolName);
             return "";

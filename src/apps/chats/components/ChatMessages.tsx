@@ -913,16 +913,22 @@ function ChatMessagesContent({
                               displayCallMessage = "Inserting text…";
                               break;
                             case "launchApp":
-                              displayCallMessage = `Launching ${getAppName(args?.id)}…`;
+                              displayCallMessage = `Launching ${getAppName(
+                                args?.id
+                              )}…`;
                               break;
                             case "closeApp":
-                              displayCallMessage = `Closing ${getAppName(args?.id)}…`;
+                              displayCallMessage = `Closing ${getAppName(
+                                args?.id
+                              )}…`;
                               break;
                             case "textEditNewFile":
                               displayCallMessage = "Creating new document…";
                               break;
                             default:
-                              displayCallMessage = `Running ${formatToolName(toolName)}…`;
+                              displayCallMessage = `Running ${formatToolName(
+                                toolName
+                              )}…`;
                           }
                         }
 
@@ -948,6 +954,26 @@ function ChatMessagesContent({
                           }
                         }
 
+                        // Special rendering for generateHtml tool – show HTML preview instead of plain text
+                        if (
+                          state === "result" &&
+                          toolName === "generateHtml" &&
+                          typeof result === "string" &&
+                          result.trim().length > 0
+                        ) {
+                          return (
+                            <HtmlPreview
+                              key={partKey}
+                              htmlContent={result}
+                              onInteractionChange={setIsInteractingWithPreview}
+                              playElevatorMusic={playElevatorMusic}
+                              stopElevatorMusic={stopElevatorMusic}
+                              playDingSound={playDingSound}
+                              className="my-1"
+                            />
+                          );
+                        }
+
                         return (
                           <div
                             key={partKey}
@@ -960,7 +986,8 @@ function ChatMessagesContent({
                                   <span>{displayCallMessage}</span>
                                 ) : (
                                   <span>
-                                    Calling <strong>{formatToolName(toolName)}</strong>…
+                                    Calling{" "}
+                                    <strong>{formatToolName(toolName)}</strong>…
                                   </span>
                                 )}
                               </div>
@@ -972,12 +999,13 @@ function ChatMessagesContent({
                                   <span>{displayResultMessage}</span>
                                 ) : (
                                   <div className="flex flex-col">
-                                    {typeof result === "string" && result.length > 0 ? (
-                                      <span className="text-gray-500">{result}</span>
-                                    ) : (
-                                      <span>
-                                        {formatToolName(toolName)}
+                                    {typeof result === "string" &&
+                                    result.length > 0 ? (
+                                      <span className="text-gray-500">
+                                        {result}
                                       </span>
+                                    ) : (
+                                      <span>{formatToolName(toolName)}</span>
                                     )}
                                   </div>
                                 )}

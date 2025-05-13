@@ -437,6 +437,18 @@ export default async function handler(req: Request) {
             "Skip to the previous track in the iPod app playlist. If the iPod app is not open, it will be launched automatically.",
           parameters: z.object({}),
         },
+        // --- HTML generation & preview ---
+        generateHtml: {
+          description:
+            "Generate an HTML snippet following the CODE_GENERATION_INSTRUCTIONS and render it in the chat. Provide the HTML markup as a single string in the 'html' field. Do NOT wrap it in markdown fences; the client will handle formatting.",
+          parameters: z.object({
+            html: z
+              .string()
+              .describe(
+                "The HTML code to render. It should follow the guidelines in CODE_GENERATION_INSTRUCTIONS—omit <head>/<body> tags and include only the body contents."
+              ),
+          }),
+        },
       },
       temperature: 0.7,
       maxTokens: 6000,
