@@ -683,7 +683,7 @@ export function ControlPanelsAppComponent({
                   </div>
 
                   {/* Volume controls separator */}
-                  <hr className="border-gray-400 my-2" />
+                  <hr className="border-gray-400 my-3" />
 
                   {/* Vertical Volume Sliders - Mixer UI */}
                   <div className="flex justify-around items-end pt-2 pb-4">
