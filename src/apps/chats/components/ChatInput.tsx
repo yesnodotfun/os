@@ -106,6 +106,7 @@ export function ChatInput({
   }, []);
 
   useEffect(() => {
+    if (!isForeground) return; // Only register hotkeys when window is foreground
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "ArrowUp" && previousMessages.length > 0) {
         e.preventDefault();
@@ -132,7 +133,7 @@ export function ChatInput({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [historyIndex, previousMessages, onInputChange]);
+  }, [isForeground, historyIndex, previousMessages, onInputChange]);
 
   // Reset history index when input changes manually
   useEffect(() => {
