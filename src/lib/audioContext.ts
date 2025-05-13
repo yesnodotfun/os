@@ -50,10 +50,12 @@ export const resumeAudioContext = async (): Promise<void> => {
   state = ctx.state as AudioContextState | "interrupted";
   if (state !== "running") {
     try {
-      console.debug(`[audioContext] AudioContext still in state "${state}" after resume – recreating`);
+      console.debug(
+        `[audioContext] AudioContext still in state "${state}" after resume – recreating`
+      );
       await ctx.close();
-    } catch (_) {
-      /* ignored */
+    } catch (err) {
+      console.error("[audioContext] Failed to close AudioContext:", err);
     }
 
     audioContext = null; // Force getAudioContext() to make a new one
@@ -72,4 +74,4 @@ if (typeof document !== "undefined" && typeof window !== "undefined") {
   const handleFocus = () => void resumeAudioContext();
   document.addEventListener("visibilitychange", handleVisibility);
   window.addEventListener("focus", handleFocus);
-} 
+}
