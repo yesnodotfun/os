@@ -12,6 +12,13 @@ import { appRegistry } from "@/config/appRegistry";
 import { useFileSystem } from "@/apps/finder/hooks/useFileSystem";
 import { useTtsQueue } from "@/hooks/useTtsQueue";
 import { useTextEditStore } from "@/stores/useTextEditStore";
+import { generateHTML, generateJSON } from "@tiptap/core";
+import StarterKit from "@tiptap/starter-kit";
+import Underline from "@tiptap/extension-underline";
+import TextAlign from "@tiptap/extension-text-align";
+import TaskList from "@tiptap/extension-task-list";
+import TaskItem from "@tiptap/extension-task-item";
+import { htmlToMarkdown, markdownToHtml } from "@/utils/markdown";
 
 // TODO: Move relevant state and logic from ChatsAppComponent here
 // - AI chat state (useChat hook)
@@ -226,9 +233,17 @@ export function useAiChat() {
               isRegex?: boolean;
             };
 
+            // Normalize line endings to avoid mismatches between CRLF / LF
+            const normalizedSearch = search.replace(/\r\n?/g, "\n");
+            const normalizedReplace = replace.replace(/\r\n?/g, "\n");
+
+            // Helper to escape special regex chars when doing literal replacement
+            const escapeRegExp = (str: string) =>
+              str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
             console.log("[ToolCall] searchReplace:", {
-              search,
-              replace,
+              search: normalizedSearch,
+              replace: normalizedReplace,
               isRegex,
             });
 
@@ -245,42 +260,60 @@ export function useAiChat() {
               return "No document is currently open in TextEdit.";
             }
 
-            const originalStr = JSON.stringify(contentJson);
-            let updatedStr: string;
-
             try {
-              if (isRegex) {
-                const regex = new RegExp(search, "g");
-                updatedStr = originalStr.replace(regex, replace);
-              } else {
-                updatedStr = originalStr.split(search).join(replace);
+              // 1. Convert current JSON document to HTML
+              const htmlStr = generateHTML(contentJson, [
+                StarterKit,
+                Underline,
+                TextAlign.configure({ types: ["heading", "paragraph"] }),
+                TaskList,
+                TaskItem.configure({ nested: true }),
+              ] as any);
+
+              // 2. Convert HTML to Markdown for regex/text replacement
+              const markdownStr = htmlToMarkdown(htmlStr);
+
+              // 3. Perform the replacement on the markdown text
+              const updatedMarkdown = (() => {
+                try {
+                  const pattern = isRegex
+                    ? normalizedSearch
+                    : escapeRegExp(normalizedSearch);
+                  const regex = new RegExp(pattern, "gm");
+                  return markdownStr.replace(regex, normalizedReplace);
+                } catch (err) {
+                  console.error(
+                    "searchReplace error while building/applying regex:",
+                    err
+                  );
+                  throw err;
+                }
+              })();
+
+              if (updatedMarkdown === markdownStr) {
+                return "No occurrences found to replace.";
               }
+
+              // 4. Convert updated markdown back to HTML and then to JSON
+              const updatedHtml = markdownToHtml(updatedMarkdown);
+              const updatedJson = generateJSON(updatedHtml, [
+                StarterKit,
+                Underline,
+                TextAlign.configure({ types: ["heading", "paragraph"] }),
+                TaskList,
+                TaskItem.configure({ nested: true }),
+              ] as any);
+
+              // 5. Apply the updated JSON to the store – TextEdit will react via subscription
+              applyExternalUpdate(updatedJson);
+
+              return `Replaced occurrences of "${search}" with "${replace}".`;
             } catch (err) {
-              console.error("searchReplace error while processing regex:", err);
+              console.error("searchReplace error:", err);
               return `Failed to apply search/replace: ${
-                (err as Error).message
+                err instanceof Error ? err.message : "Unknown error"
               }`;
             }
-
-            if (updatedStr === originalStr) {
-              return "No occurrences found to replace.";
-            }
-
-            let updatedJson: any;
-            try {
-              updatedJson = JSON.parse(updatedStr);
-            } catch (err) {
-              console.error(
-                "searchReplace error while parsing updated JSON:",
-                err
-              );
-              return "Replacement produced invalid document data.";
-            }
-
-            // Update the store – TextEdit will react via subscription
-            applyExternalUpdate(updatedJson);
-
-            return `Replaced occurrences of \"${search}\" with \"${replace}\".`;
           }
           case "insertText": {
             const { text, position } = toolCall.args as {
