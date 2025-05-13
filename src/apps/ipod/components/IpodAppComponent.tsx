@@ -1003,6 +1003,9 @@ export function IpodAppComponent({
     return `${window.location.origin}/ipod/${videoId}`;
   };
 
+  // Volume control
+  const { ipodVolume } = useAppStore();
+
   if (!isWindowOpen) return null;
 
   return (
@@ -1070,6 +1073,7 @@ export function IpodAppComponent({
               statusMessage={statusMessage}
               onToggleVideo={toggleVideo}
               lcdFilterOn={lcdFilterOn}
+              ipodVolume={ipodVolume}
             />
 
             <IpodWheel

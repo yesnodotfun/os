@@ -174,6 +174,7 @@ interface IpodScreenProps {
   statusMessage: string | null;
   onToggleVideo: () => void;
   lcdFilterOn: boolean;
+  ipodVolume: number;
 }
 
 // Main IpodScreen component
@@ -203,6 +204,7 @@ export function IpodScreen({
   statusMessage,
   onToggleVideo,
   lcdFilterOn,
+  ipodVolume,
 }: IpodScreenProps) {
   // Animation variants for menu transitions
   const menuVariants = {
@@ -378,6 +380,7 @@ export function IpodScreen({
               onPause={handlePause}
               onReady={handleReady}
               loop={loopCurrent}
+              volume={ipodVolume}
               playsinline={true}
               config={{
                 youtube: {

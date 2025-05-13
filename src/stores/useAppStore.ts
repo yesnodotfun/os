@@ -75,6 +75,8 @@ interface AppStoreState extends AppManagerState {
   setUiVolume: (vol: number) => void;
   chatSynthVolume: number;
   setChatSynthVolume: (vol: number) => void;
+  ipodVolume: number;
+  setIpodVolume: (vol: number) => void;
 }
 
 // Run the check once on script load
@@ -492,6 +494,8 @@ export const useAppStore = create<AppStoreState>()(
       setUiVolume: (vol) => set({ uiVolume: vol }),
       chatSynthVolume: 1,
       setChatSynthVolume: (vol) => set({ chatSynthVolume: vol }),
+      ipodVolume: 1,
+      setIpodVolume: (vol) => set({ ipodVolume: vol }),
     }),
     {
       name: "ryos:app-store",
@@ -515,6 +519,7 @@ export const useAppStore = create<AppStoreState>()(
         uiVolume: state.uiVolume,
         chatSynthVolume: state.chatSynthVolume,
         speechVolume: state.speechVolume,
+        ipodVolume: state.ipodVolume,
       }),
     }
   )

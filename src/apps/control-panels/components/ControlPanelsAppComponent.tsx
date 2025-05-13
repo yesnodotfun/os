@@ -178,24 +178,20 @@ export function ControlPanelsAppComponent({
     setUiSoundsEnabled,
     uiVolume,
     setUiVolume,
-    typingSynthEnabled,
-    setTypingSynthEnabled,
     speechEnabled,
     setSpeechEnabled,
     chatSynthVolume,
     setChatSynthVolume,
-    synthPreset,
-    setSynthPreset,
     speechVolume,
     setSpeechVolume,
+    synthPreset,
+    setSynthPreset,
+    ipodVolume,
+    setIpodVolume,
   } = useAppStore();
 
   const handleUISoundsChange = (enabled: boolean) => {
     setUiSoundsEnabled(enabled);
-  };
-
-  const handleTypingSynthChange = (enabled: boolean) => {
-    setTypingSynthEnabled(enabled);
   };
 
   const handleSpeechChange = (enabled: boolean) => {
@@ -203,7 +199,6 @@ export function ControlPanelsAppComponent({
   };
 
   const handleSynthPresetChange = (value: string) => {
-    // Apply the new synth preset immediately – no full reload necessary
     setSynthPreset(value);
   };
 
@@ -555,24 +550,18 @@ export function ControlPanelsAppComponent({
                       className="data-[state=checked]:bg-[#000000]"
                     />
                   </div>
-                  <div className="px-2 mt-1">
-                    <Slider
-                      min={0}
-                      max={1}
-                      step={0.05}
-                      value={[uiVolume]}
-                      onValueChange={(v) => setUiVolume(v[0])}
-                    />
-                  </div>
+                  
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <Label>Typing Synth</Label>
-                  <Switch
-                    checked={typingSynthEnabled}
-                    onCheckedChange={handleTypingSynthChange}
-                    className="data-[state=checked]:bg-[#000000]"
-                  />
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center justify-between">
+                    <Label>Speech</Label>
+                    <Switch
+                      checked={speechEnabled}
+                      onCheckedChange={handleSpeechChange}
+                      className="data-[state=checked]:bg-[#000000]"
+                    />
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -585,7 +574,8 @@ export function ControlPanelsAppComponent({
                     className="data-[state=checked]:bg-[#000000]"
                   />
                 </div>
-                {/* Chat Synth preset & volume */}
+
+                {/* Chat Synth preset */}
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center justify-between">
                     <Label>Chat Synth</Label>
@@ -605,34 +595,55 @@ export function ControlPanelsAppComponent({
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="px-2 mt-1">
+                </div>
+
+                {/* Volume controls separator */}
+                <hr className="border-gray-400 my-2" />
+
+                {/* Volume sliders */}
+                <div className="py-2 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label className="whitespace-nowrap">UI Volume</Label>
                     <Slider
                       min={0}
                       max={1}
                       step={0.05}
-                      value={[chatSynthVolume]}
-                      onValueChange={(v) => setChatSynthVolume(v[0])}
+                      value={[uiVolume]}
+                      onValueChange={(v) => setUiVolume(v[0])}
+                      className="w-40"
                     />
                   </div>
-                </div>
-
-                {/* Chat Speech toggle + volume */}
-                <div className="flex flex-col gap-1">
                   <div className="flex items-center justify-between">
-                    <Label>Chat Speech</Label>
-                    <Switch
-                      checked={speechEnabled}
-                      onCheckedChange={handleSpeechChange}
-                      className="data-[state=checked]:bg-[#000000]"
-                    />
-                  </div>
-                  <div className="px-2 mt-1">
+                    <Label className="whitespace-nowrap">Speech Volume</Label>
                     <Slider
                       min={0}
                       max={1}
                       step={0.05}
                       value={[speechVolume]}
                       onValueChange={(v) => setSpeechVolume(v[0])}
+                      className="w-40"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label className="whitespace-nowrap">Chat Synth Volume</Label>
+                    <Slider
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      value={[chatSynthVolume]}
+                      onValueChange={(v) => setChatSynthVolume(v[0])}
+                      className="w-40"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label className="whitespace-nowrap">iPod Volume</Label>
+                    <Slider
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      value={[ipodVolume]}
+                      onValueChange={(v) => setIpodVolume(v[0])}
+                      className="w-40"
                     />
                   </div>
                 </div>
