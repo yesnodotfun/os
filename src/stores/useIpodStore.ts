@@ -13,6 +13,12 @@ export interface Track {
 // Original video collection moved here
 export const IPOD_DEFAULT_VIDEOS = [
   {
+    id: "vgqNtGVYQgc",
+    url: "https://youtu.be/vgqNtGVYQgc",
+    title: "He Can't Love U",
+    artist: "Jagged Edge",
+  },
+  {
     id: "GWL1Tzl0YdY",
     url: "https://www.youtube.com/watch?v=GWL1Tzl0YdY",
     title: "종말의 사과나무 (Apocalypse)",
@@ -442,4 +448,4 @@ export const useIpodStore = create<IpodStoreState>()(
       // }),
     }
   )
-);  
+);    
