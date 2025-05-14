@@ -19,6 +19,24 @@ export const IPOD_DEFAULT_VIDEOS = [
     artist: "Jagged Edge",
   },
   {
+    id: "BYEtLMKmvs8",
+    url: "https://youtu.be/BYEtLMKmvs8",
+    title: "Get Up (Extended ver.)",
+    artist: "DEAN (딘)",
+  },
+  {
+    id: "MQT93bv5aSM",
+    url: "https://youtu.be/MQT93bv5aSM",
+    title: "FRNK Demo Mashup",
+    artist: "NewJeans (뉴진스)",
+  },
+  {
+    id: "5tcBJCouOmE",
+    url: "https://youtu.be/5tcBJCouOmE",
+    title: "Hype Boy",
+    artist: "DEAN (딘)",
+  },
+  {
     id: "GWL1Tzl0YdY",
     url: "https://www.youtube.com/watch?v=GWL1Tzl0YdY",
     title: "종말의 사과나무 (Apocalypse)",
@@ -448,4 +466,4 @@ export const useIpodStore = create<IpodStoreState>()(
       // }),
     }
   )
-);    
+);        
