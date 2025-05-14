@@ -358,6 +358,11 @@ export function IpodScreen({
   });
   const showLyrics = useIpodStore((s) => s.showLyrics);
 
+  // Decide whether lyrics overlay should be visible. It is visible if either the global toggle is on
+  // or the current track has an explicit lyricOffset defined (indicating lyrics are available).
+  const shouldShowLyrics =
+    showLyrics || currentTrack?.lyricOffset !== undefined;
+
   return (
     <div
       className={cn(
@@ -451,7 +456,7 @@ export function IpodScreen({
               currentLine={lyricsControls.currentLine}
               isLoading={lyricsControls.isLoading}
               error={lyricsControls.error}
-              visible={showLyrics}
+              visible={shouldShowLyrics}
               alignment={LyricsAlignment.Alternating}
               chineseVariant={ChineseVariant.Traditional}
               onAdjustOffset={(deltaMs) => {

@@ -5,7 +5,7 @@ import {
   KoreanDisplay,
 } from "@/types/lyrics";
 import { motion, AnimatePresence } from "framer-motion";
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import { Converter } from "opencc-js";
 import { convert as romanize } from "hangul-romanization";
 import {
@@ -40,14 +40,16 @@ const ANIMATION_CONFIG = {
 } as const;
 
 const LoadingState = () => (
-  <div className="absolute inset-x-0 bottom-20 pointer-events-none flex justify-center z-40">
-    <div className="text-white/70 text-[12px]">Loading lyrics…</div>
+  <div className="absolute inset-x-0 bottom-5 pointer-events-none flex justify-center z-40">
+    <div className="text-white/70 text-[12px] font-geneva-12">
+      Loading lyrics…
+    </div>
   </div>
 );
 
 const ErrorState = ({ message }: { message: string }) => (
-  <div className="absolute inset-x-0 bottom-20 pointer-events-none flex justify-center z-40">
-    <div className="text-white/70 text-[12px]">{message}</div>
+  <div className="absolute inset-x-0 bottom-5 pointer-events-none flex justify-center z-40">
+    <div className="text-white/70 text-[12px] font-geneva-12">{message}</div>
   </div>
 );
 
@@ -61,7 +63,8 @@ const getVariants = (
     scale: 0.8,
     filter: "blur(3px)",
     y: 10,
-    textShadow: "0 0 0px rgba(255,255,255,0)",
+    textShadow:
+      "0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 0px rgba(255,255,255,0)",
   },
   animate: {
     opacity: isAlternating
@@ -89,15 +92,16 @@ const getVariants = (
       ? -10
       : 0,
     textShadow: isCurrent
-      ? "0 0 20px rgba(255,255,255,0.6)"
-      : "0 0 0px rgba(255,255,255,0)",
+      ? "0 0 20px rgba(255,255,255,0.7), 0 0 2px black, 0 0 2px black, 0 0 2px black"
+      : "0 0 2px black, 0 0 2px black, 0 0 2px black",
   },
   exit: {
     opacity: 0,
     scale: 0.9,
     filter: "blur(5px)",
     y: -10,
-    textShadow: "0 0 0px rgba(255,255,255,0)",
+    textShadow:
+      "0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 0px rgba(255,255,255,0)",
   },
 });
 
@@ -172,49 +176,52 @@ export function LyricsDisplay({
     return "center";
   };
 
-  const visibleLines = useMemo(() => {
+  // Helper to compute lines for Alternating alignment (current + next)
+  const computeAltVisibleLines = (
+    allLines: LyricLine[],
+    currIdx: number
+  ): LyricLine[] => {
+    if (!allLines.length) return [];
+
+    // Initial state before any line is current
+    if (currIdx < 0) {
+      return allLines.slice(0, 2).filter(Boolean);
+    }
+
+    const clampedIdx = Math.min(currIdx, allLines.length - 1);
+    const nextLine = allLines[clampedIdx + 1];
+
+    if (clampedIdx % 2 === 0) {
+      // Current is on top
+      return [allLines[clampedIdx], nextLine].filter(Boolean);
+    }
+
+    // Current is at bottom
+    return [nextLine, allLines[clampedIdx]].filter(Boolean);
+  };
+
+  // State to hold lines displayed in Alternating mode so we can delay updates
+  const [altLines, setAltLines] = useState<LyricLine[]>(() =>
+    computeAltVisibleLines(lines, currentLine)
+  );
+
+  // Update alternating lines with a short delay when currentLine changes
+  useEffect(() => {
+    if (alignment !== LyricsAlignment.Alternating) return;
+
+    const timer = setTimeout(() => {
+      setAltLines(computeAltVisibleLines(lines, currentLine));
+    }, 250); // 250 ms delay before replacing finished line
+
+    return () => clearTimeout(timer);
+  }, [alignment, lines, currentLine]);
+
+  const nonAltVisibleLines = useMemo(() => {
     if (!lines.length) return [] as LyricLine[];
 
     // Handle initial display before any line is "current" (currentLine < 0)
     if (currentLine < 0) {
-      if (alignment === LyricsAlignment.Alternating) {
-        return lines.slice(0, 2).filter(Boolean) as LyricLine[];
-      }
-      // For FocusThree or Center, show the first line initially
       return lines.slice(0, 1).filter(Boolean) as LyricLine[];
-    }
-
-    // currentLine >= 0 from here
-
-    if (alignment === LyricsAlignment.Alternating) {
-      // If only one line total, show it.
-      if (lines.length === 1) return [lines[0]];
-
-      // We have at least two lines and currentLine >= 0.
-      const clampedCurrentLine = Math.min(currentLine, lines.length - 1); // Ensure currentLine is a valid index
-
-      let topLyric: LyricLine | undefined;
-      let bottomLyric: LyricLine | undefined;
-
-      if (clampedCurrentLine % 2 === 0) {
-        // Current active line's index is even (0, 2, 4...)
-        topLyric = lines[clampedCurrentLine]; // This line goes to the top slot
-        // The bottom slot gets the line that was previously in it, or the next line if at the very start
-        if (clampedCurrentLine === 0) {
-          // If L0 is active (top slot)
-          bottomLyric = lines[1]; // L1 is in the bottom slot (if lines[1] exists)
-        } else {
-          // If L2, L4... is active (top slot)
-          bottomLyric = lines[clampedCurrentLine - 1]; // The previous line (L1, L3...) was in the bottom slot
-        }
-      } else {
-        // Current active line's index is odd (1, 3, 5...)
-        bottomLyric = lines[clampedCurrentLine]; // This line goes to the bottom slot
-        // The top slot gets the line that was previously in it
-        topLyric = lines[clampedCurrentLine - 1]; // The previous line (L0, L2...) was in the top slot
-      }
-
-      return [topLyric, bottomLyric].filter(Boolean) as LyricLine[];
     }
 
     if (alignment === LyricsAlignment.Center) {
@@ -226,10 +233,12 @@ export function LyricsDisplay({
       return currentActualLine ? [currentActualLine] : [];
     }
 
-    // Default to FocusThree (original behavior for non-alternating, non-center)
-    // Shows [prev, current, next] or subsets if at ends.
+    // FocusThree (prev, current, next)
     return lines.slice(Math.max(0, currentLine - 1), currentLine + 2);
   }, [lines, currentLine, alignment]);
+
+  const visibleLines =
+    alignment === LyricsAlignment.Alternating ? altLines : nonAltVisibleLines;
 
   const lastTouchY = useRef<number | null>(null);
 
