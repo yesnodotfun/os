@@ -23,6 +23,7 @@ import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
 import { useTtsQueue } from "@/hooks/useTtsQueue";
 import { useAppStore } from "@/stores/useAppStore";
 import { appRegistry } from "@/config/appRegistry";
+import { ToolInvocationMessage } from "@/components/shared/ToolInvocationMessage";
 
 // --- Color Hashing for Usernames ---
 const userColors = [
@@ -889,150 +890,18 @@ function ChatMessagesContent({
                         );
                       }
                       case "tool-invocation": {
-                        const { toolName, state } = part.toolInvocation;
-                        const args =
-                          state === "result" || state === "call"
-                            ? part.toolInvocation.args
-                            : undefined;
-                        const result =
-                          state === "result"
-                            ? part.toolInvocation.result
-                            : undefined;
-
-                        // Friendly display strings for both the "call" (loading) and "result" states
-                        let displayCallMessage: string | null = null;
-                        let displayResultMessage: string | null = null;
-
-                        if (state === "call" || state === "partial-call") {
-                          // Provide custom, human-readable loading messages for well-known tools
-                          switch (toolName) {
-                            case "textEditSearchReplace":
-                              displayCallMessage = "Replacing text…";
-                              break;
-                            case "textEditInsertText":
-                              displayCallMessage = "Inserting text…";
-                              break;
-                            case "launchApp":
-                              displayCallMessage = `Launching ${getAppName(
-                                args?.id
-                              )}…`;
-                              break;
-                            case "closeApp":
-                              displayCallMessage = `Closing ${getAppName(
-                                args?.id
-                              )}…`;
-                              break;
-                            case "textEditNewFile":
-                              displayCallMessage = "Creating new document…";
-                              break;
-                            default:
-                              displayCallMessage = `Running ${formatToolName(
-                                toolName
-                              )}…`;
-                          }
-                        }
-
-                        if (state === "result") {
-                          if (
-                            toolName === "launchApp" &&
-                            args?.id === "internet-explorer"
-                          ) {
-                            const urlPart = args.url ? ` ${args.url}` : "";
-                            const yearPart =
-                              args.year && args.year !== ""
-                                ? ` in ${args.year}`
-                                : "";
-                            displayResultMessage = `Launched ${urlPart}${yearPart}`;
-                          } else if (toolName === "launchApp") {
-                            displayResultMessage = `Launched ${getAppName(
-                              args?.id
-                            )}`;
-                          } else if (toolName === "closeApp") {
-                            displayResultMessage = `Closed ${getAppName(
-                              args?.id
-                            )}`;
-                          }
-                        }
-
-                        // Streaming preview for generateHtml tool during call / partial-call
-                        if (
-                          (state === "call" || state === "partial-call") &&
-                          toolName === "generateHtml"
-                        ) {
-                          const htmlChunk =
-                            typeof args?.html === "string" ? args.html : "";
-                          return (
-                            <HtmlPreview
-                              key={partKey}
-                              htmlContent={htmlChunk}
-                              isStreaming={true}
-                              onInteractionChange={setIsInteractingWithPreview}
-                              playElevatorMusic={playElevatorMusic}
-                              stopElevatorMusic={stopElevatorMusic}
-                              playDingSound={playDingSound}
-                              className="my-1"
-                            />
-                          );
-                        }
-
-                        // Special rendering for generateHtml tool – final result
-                        if (
-                          state === "result" &&
-                          toolName === "generateHtml" &&
-                          typeof result === "string" &&
-                          result.trim().length > 0
-                        ) {
-                          return (
-                            <HtmlPreview
-                              key={partKey}
-                              htmlContent={result}
-                              onInteractionChange={setIsInteractingWithPreview}
-                              playElevatorMusic={playElevatorMusic}
-                              stopElevatorMusic={stopElevatorMusic}
-                              playDingSound={playDingSound}
-                              className="my-1"
-                            />
-                          );
-                        }
-
                         return (
-                          <div
-                            key={partKey}
-                            className="my-1 p-1.5 bg-white/50 rounded text italic text-[12px]"
-                          >
-                            {(state === "call" || state === "partial-call") && (
-                              <div className="flex items-center gap-1 text-gray-700">
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                                {displayCallMessage ? (
-                                  <span>{displayCallMessage}</span>
-                                ) : (
-                                  <span>
-                                    Calling{" "}
-                                    <strong>{formatToolName(toolName)}</strong>…
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                            {state === "result" && (
-                              <div className="flex items-start gap-1 text-gray-700">
-                                <Check className="h-3 w-3 text-blue-600" />
-                                {displayResultMessage ? (
-                                  <span>{displayResultMessage}</span>
-                                ) : (
-                                  <div className="flex flex-col">
-                                    {typeof result === "string" &&
-                                    result.length > 0 ? (
-                                      <span className="text-gray-500">
-                                        {result}
-                                      </span>
-                                    ) : (
-                                      <span>{formatToolName(toolName)}</span>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
+                          <ToolInvocationMessage
+                            part={part as any}
+                            partKey={partKey}
+                            isLoading={isLoading}
+                            getAppName={getAppName}
+                            formatToolName={formatToolName}
+                            setIsInteractingWithPreview={setIsInteractingWithPreview}
+                            playElevatorMusic={playElevatorMusic}
+                            stopElevatorMusic={stopElevatorMusic}
+                            playDingSound={playDingSound}
+                          />
                         );
                       }
                       default:
