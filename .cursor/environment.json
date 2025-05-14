@@ -1,6 +1,6 @@
 {
-  "snapshot": "snapshot-20250430-418ebd7a-c14e-45ca-b647-05a02f413662",
-  "install": "bun install",
-  "start": "vercel dev",
+  "snapshot": "snapshot-20250514-034144f0-481d-479d-8ce3-fae1ce5ffca2",
+  "install": "curl -fsSL https://bun.sh/install | bash && source ~/.bashrc && bun install",
+  "start": "bun run dev",
   "terminals": []
 }
