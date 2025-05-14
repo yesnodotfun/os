@@ -13,6 +13,12 @@ export interface Track {
 // Original video collection moved here
 export const IPOD_DEFAULT_VIDEOS = [
   {
+    id: "GWL1Tzl0YdY",
+    url: "https://www.youtube.com/watch?v=GWL1Tzl0YdY",
+    title: "종말의 사과나무 (Apocalypse)",
+    artist: "BIBI (비비)",
+  },
+  {
     id: "lXd1GHJPx-A",
     url: "https://www.youtube.com/watch?v=lXd1GHJPx-A",
     title: "Promise",
@@ -436,4 +442,4 @@ export const useIpodStore = create<IpodStoreState>()(
       // }),
     }
   )
-); 
+);  
