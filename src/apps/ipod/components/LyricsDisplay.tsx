@@ -5,7 +5,7 @@ import {
   KoreanDisplay,
 } from "@/types/lyrics";
 import { motion, AnimatePresence } from "framer-motion";
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { Converter } from "opencc-js";
 import { convert as romanize } from "hangul-romanization";
 import {
@@ -23,6 +23,8 @@ interface LyricsDisplayProps {
   alignment?: LyricsAlignment;
   chineseVariant?: ChineseVariant;
   koreanDisplay?: KoreanDisplay;
+  /** Callback to adjust lyric offset in ms (positive = lyrics earlier) */
+  onAdjustOffset?: (deltaMs: number) => void;
 }
 
 const ANIMATION_CONFIG = {
@@ -108,6 +110,7 @@ export function LyricsDisplay({
   alignment = LyricsAlignment.FocusThree,
   chineseVariant = ChineseVariant.Traditional,
   koreanDisplay = KoreanDisplay.Original,
+  onAdjustOffset,
 }: LyricsDisplayProps) {
   const chineseConverter = useMemo(
     () => Converter({ from: "cn", to: "tw" }),
@@ -145,7 +148,6 @@ export function LyricsDisplay({
   const getTextAlign = (
     align: LyricsAlignment,
     lineIndex: number,
-    isCurrentLine: boolean,
     totalVisibleLines: number
   ) => {
     if (align === LyricsAlignment.Center) {
@@ -229,6 +231,35 @@ export function LyricsDisplay({
     return lines.slice(Math.max(0, currentLine - 1), currentLine + 2);
   }, [lines, currentLine, alignment]);
 
+  const lastTouchY = useRef<number | null>(null);
+
+  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    if (!onAdjustOffset) return;
+    e.preventDefault();
+    const delta = e.deltaY;
+    const step = 200; // 200 ms per scroll step
+    const change = delta > 0 ? step : -step;
+    onAdjustOffset(change);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length === 1) {
+      lastTouchY.current = e.touches[0].clientY;
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (lastTouchY.current === null || !onAdjustOffset) return;
+    const currentY = e.touches[0].clientY;
+    const dy = currentY - lastTouchY.current;
+    if (Math.abs(dy) > 10) {
+      const step = 200; // 200 ms per ~30px swipe
+      const change = dy > 0 ? step : -step;
+      onAdjustOffset(change);
+      lastTouchY.current = currentY;
+    }
+  };
+
   if (!visible) return null;
   if (isLoading) return <LoadingState />;
   if (error) return <ErrorState message={error || "Error loading lyrics."} />;
@@ -239,7 +270,11 @@ export function LyricsDisplay({
     <motion.div
       layout
       transition={ANIMATION_CONFIG.spring}
-      className="absolute inset-x-0 mx-auto bottom-5 w-full h-full overflow-hidden flex flex-col items-center justify-end gap-2 pointer-events-none z-40 select-none px-2"
+      className="absolute inset-x-0 mx-auto bottom-5 w-full h-full overflow-hidden flex flex-col items-center justify-end gap-2 z-40 select-none px-2"
+      style={{ pointerEvents: "auto" }}
+      onWheel={handleWheel}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
     >
       <AnimatePresence mode="popLayout">
         {visibleLines.map((line, index) => {
@@ -262,7 +297,6 @@ export function LyricsDisplay({
           const lineTextAlign = getTextAlign(
             alignment,
             index,
-            isCurrent,
             visibleLines.length
           );
 

@@ -180,6 +180,7 @@ interface IpodScreenProps {
   onToggleVideo: () => void;
   lcdFilterOn: boolean;
   ipodVolume: number;
+  showStatusCallback: (message: string) => void;
 }
 
 // Main IpodScreen component
@@ -210,6 +211,7 @@ export function IpodScreen({
   onToggleVideo,
   lcdFilterOn,
   ipodVolume,
+  showStatusCallback,
 }: IpodScreenProps) {
   // Animation variants for menu transitions
   const menuVariants = {
@@ -343,11 +345,16 @@ export function IpodScreen({
     }
   }, [menuMode, menuHistory.length]);
 
-  // Lyrics hook
+  // Lyric offset handling
+  const currentLyricOffsetMs = useIpodStore(
+    (s) => s.tracks[s.currentIndex]?.lyricOffset || 0
+  );
+  const adjustLyricOffset = useIpodStore((s) => s.adjustLyricOffset);
+
   const lyricsControls = useLyrics({
     title: currentTrack?.title ?? "",
     artist: currentTrack?.artist ?? "",
-    currentTime: elapsedTime,
+    currentTime: elapsedTime + currentLyricOffsetMs / 1000,
   });
   const showLyrics = useIpodStore((s) => s.showLyrics);
 
@@ -447,6 +454,14 @@ export function IpodScreen({
               visible={showLyrics}
               alignment={LyricsAlignment.Alternating}
               chineseVariant={ChineseVariant.Traditional}
+              onAdjustOffset={(deltaMs) => {
+                adjustLyricOffset(currentIndex, deltaMs);
+                const newOffset = currentLyricOffsetMs + deltaMs;
+                const sign = newOffset > 0 ? "+" : newOffset < 0 ? "" : "";
+                showStatusCallback(
+                  `Offset ${sign}${(newOffset / 1000).toFixed(2)}s`
+                );
+              }}
             />
           </div>
         </div>

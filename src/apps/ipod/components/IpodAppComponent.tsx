@@ -1146,6 +1146,7 @@ export function IpodAppComponent({
               onToggleVideo={toggleVideo}
               lcdFilterOn={lcdFilterOn}
               ipodVolume={ipodVolume}
+              showStatusCallback={showStatus}
             />
 
             <IpodWheel

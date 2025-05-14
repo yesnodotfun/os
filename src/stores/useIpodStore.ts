@@ -8,6 +8,8 @@ export interface Track {
   title: string;
   artist?: string;
   album?: string;
+  /** Offset in milliseconds to adjust lyrics timing for this track (positive = lyrics earlier) */
+  lyricOffset?: number;
 }
 
 // Original video collection moved here
@@ -17,6 +19,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     url: "https://youtu.be/vgqNtGVYQgc",
     title: "He Can't Love U",
     artist: "Jagged Edge",
+    album: "J.E. Heartbreak",
   },
   {
     id: "GWL1Tzl0YdY",
@@ -29,6 +32,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     url: "https://www.youtube.com/watch?v=lXd1GHJPx-A",
     title: "Promise",
     artist: "Jagged Edge",
+    album: "J.E. Heartbreak",
   },
   {
     id: "Y_AxRCNFT2g",
@@ -65,6 +69,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     url: "https://www.youtube.com/watch?v=XJWqHmY-g9U",
     title: "Telephone Number",
     artist: "Junko Ohashi (大橋純子)",
+    lyricsOffset: 2200,
   },
   {
     id: "f3zVbOMyzgE",
@@ -77,18 +82,21 @@ export const IPOD_DEFAULT_VIDEOS = [
     url: "https://www.youtube.com/watch?v=zt0Me5qyK4g",
     title: "춤 (Dance)",
     artist: "OFFONOFF",
+    lyricOffset: 2200,
   },
   {
     id: "T6YVgEpRU6Q",
     url: "https://www.youtube.com/watch?v=T6YVgEpRU6Q",
     title: "LEFT RIGHT",
     artist: "XG",
+    lyricOffset: -200,
   },
   {
     id: "QiYOkmrI1jg",
     url: "https://www.youtube.com/watch?v=QiYOkmrI1jg",
     title: "IYKYK",
     artist: "XG",
+    lyricOffset: 1200,
   },
   {
     id: "b9MZLrVU3EQ",
@@ -101,6 +109,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     url: "https://www.youtube.com/watch?v=_wgeHqXr4Hc",
     title: "나를 위해 (For Days to Come)",
     artist: "Crush (크러쉬)",
+    lyricOffset: 1400,
   },
   {
     id: "zzDpTWCGofU",
@@ -155,6 +164,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     url: "https://www.youtube.com/watch?v=hJ9Wp3PO3c8",
     title: "Butterfly",
     artist: "Hearts2Hearts (하츠투하츠)",
+    lyricOffset: -5400,
   },
   {
     id: "PICpEtPHyZI",
@@ -197,6 +207,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     url: "https://www.youtube.com/watch?v=FonjL7DQAUQ",
     title: "海浪 (Waves)",
     artist: "deca joins",
+    lyricOffset: -13800,
   },
   {
     id: "3SoYkCAzMBk",
@@ -291,6 +302,8 @@ export interface IpodState extends IpodData {
   previousTrack: () => void;
   setShowVideo: (show: boolean) => void;
   toggleLyrics: () => void;
+  /** Adjust the lyric offset (in ms) for the track at the given index. */
+  adjustLyricOffset: (trackIndex: number, deltaMs: number) => void;
 }
 
 const CURRENT_IPOD_STORE_VERSION = 6; // Define the current version
@@ -350,6 +363,27 @@ export const useIpodStore = create<IpodState>()(
         }),
       setShowVideo: (show) => set({ showVideo: show }),
       toggleLyrics: () => set((state) => ({ showLyrics: !state.showLyrics })),
+      adjustLyricOffset: (trackIndex, deltaMs) =>
+        set((state) => {
+          if (
+            trackIndex < 0 ||
+            trackIndex >= state.tracks.length ||
+            Number.isNaN(deltaMs)
+          ) {
+            return {} as Partial<IpodState>;
+          }
+
+          const tracks = [...state.tracks];
+          const current = tracks[trackIndex];
+          const newOffset = (current.lyricOffset || 0) + deltaMs;
+
+          tracks[trackIndex] = {
+            ...current,
+            lyricOffset: newOffset,
+          };
+
+          return { tracks } as Partial<IpodState>;
+        }),
     }),
     {
       name: "ryos:ipod", // Unique name for localStorage persistence
