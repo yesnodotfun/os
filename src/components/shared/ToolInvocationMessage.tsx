@@ -96,8 +96,8 @@ export function ToolInvocationMessage({
   if (toolName === "generateHtml") {
     if (state === "partial-call") {
       return (
-        <div key={partKey} className="my-1 p-1.5 bg-white/50 rounded text-xs italic text-gray-600 flex items-center gap-1">
-          <Loader2 className="h-3 w-3 animate-spin" />
+        <div key={partKey} className="mb-0.5 p-1.5 bg-white/50 rounded text-xs italic text-gray-600 flex items-center gap-1">
+          <Loader2 className="h-3 w-3 animate-spin text-gray-500" />
           <span className="shimmer">Generating...</span>
         </div>
       );
@@ -118,7 +118,7 @@ export function ToolInvocationMessage({
         );
       }
       return (
-        <div key={partKey} className="my-1 p-1.5 bg-white/50 rounded text-xs italic text-gray-500">
+        <div key={partKey} className="mb-0.5 p-1.5 bg-white/50 rounded text-xs italic text-gray-500">
           Preparing HTML preview...
         </div>
       );
@@ -127,12 +127,12 @@ export function ToolInvocationMessage({
 
   // Default rendering for other tools
   return (
-    <div key={partKey} className="my-1 p-1.5 bg-white/50 rounded text italic text-[12px]">
+    <div key={partKey} className="mb-0.5 p-1.5 bg-white/50 rounded text italic text-[12px]">
       {(state === "call" || state === "partial-call") && (
           <div className="flex items-center gap-1 text-gray-700">
-          <Loader2 className="h-3 w-3 animate-spin" />
+          <Loader2 className="h-3 w-3 animate-spin text-gray-500" />
           {displayCallMessage ? (
-            <span>{displayCallMessage}</span>
+            <span className="shimmer">{displayCallMessage}</span>
           ) : (
             <span>
               Calling <strong>{formatToolName(toolName)}</strong>…

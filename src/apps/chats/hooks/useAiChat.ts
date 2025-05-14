@@ -340,7 +340,7 @@ export function useAiChat() {
 
             return `Inserted text at ${
               position === "start" ? "start" : "end"
-            } of document…`;
+            } of document.`;
           }
           case "textEditNewFile": {
             console.log("[ToolCall] newFile");
