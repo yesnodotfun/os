@@ -114,7 +114,9 @@ export function IpodAppComponent({
 
   const memoizedToggleShuffle = useCallback(() => {
     toggleShuffle();
-    showStatus(useIpodStore.getState().isShuffled ? "Shuffle ON" : "Shuffle OFF");
+    showStatus(
+      useIpodStore.getState().isShuffled ? "Shuffle ON" : "Shuffle OFF"
+    );
     registerActivity();
   }, [toggleShuffle, showStatus, registerActivity]);
 
@@ -124,16 +126,22 @@ export function IpodAppComponent({
     registerActivity();
   }, [toggleBacklight, showStatus, registerActivity]);
 
-  const memoizedChangeTheme = useCallback((newTheme: string) => {
-    setTheme(newTheme);
-    showStatus(newTheme === "classic" ? "Theme: Classic" : "Theme: Black");
-    registerActivity();
-  }, [setTheme, showStatus, registerActivity]);
+  const memoizedChangeTheme = useCallback(
+    (newTheme: "classic" | "black") => {
+      setTheme(newTheme);
+      showStatus(newTheme === "classic" ? "Theme: Classic" : "Theme: Black");
+      registerActivity();
+    },
+    [setTheme, showStatus, registerActivity]
+  );
 
-  const handleMenuItemAction = useCallback((action: () => void) => {
-    registerActivity();
-    action();
-  }, [registerActivity]);
+  const handleMenuItemAction = useCallback(
+    (action: () => void) => {
+      registerActivity();
+      action();
+    },
+    [registerActivity]
+  );
 
   const memoizedToggleRepeat = useCallback(() => {
     registerActivity();
@@ -215,21 +223,20 @@ export function IpodAppComponent({
 
   const musicMenuItems = useMemo(() => {
     // Group tracks by artist
-    const tracksByArtist = tracks.reduce<Record<string, { track: typeof tracks[0]; index: number }[]>>(
-      (acc, track, index) => {
-        const artist = track.artist || 'Unknown Artist';
-        if (!acc[artist]) {
-          acc[artist] = [];
-        }
-        acc[artist].push({ track, index });
-        return acc;
-      },
-      {}
-    );
+    const tracksByArtist = tracks.reduce<
+      Record<string, { track: (typeof tracks)[0]; index: number }[]>
+    >((acc, track, index) => {
+      const artist = track.artist || "Unknown Artist";
+      if (!acc[artist]) {
+        acc[artist] = [];
+      }
+      acc[artist].push({ track, index });
+      return acc;
+    }, {});
 
     // Get sorted list of artists
-    const artists = Object.keys(tracksByArtist).sort((a, b) => 
-      a.localeCompare(b, undefined, { sensitivity: 'base' })
+    const artists = Object.keys(tracksByArtist).sort((a, b) =>
+      a.localeCompare(b, undefined, { sensitivity: "base" })
     );
 
     return [
@@ -266,27 +273,29 @@ export function IpodAppComponent({
         },
         showChevron: true,
       },
-      ...artists.map(artist => ({
+      ...artists.map((artist) => ({
         label: artist,
         action: () => {
           registerActivity();
           setMenuDirection("forward");
-          const artistTracks = tracksByArtist[artist].map(({ track, index }) => ({
-            label: track.title,
-            action: () => {
-              registerActivity();
-              setCurrentIndex(index);
-              setIsPlaying(true);
-              setMenuDirection("forward");
-              setMenuMode(false);
-              setCameFromNowPlayingMenuItem(false);
-              setLastPlayedMenuPath(["Music", artist]);
-              if (useIpodStore.getState().showVideo) {
-                toggleVideo();
-              }
-            },
-            showChevron: false,
-          }));
+          const artistTracks = tracksByArtist[artist].map(
+            ({ track, index }) => ({
+              label: track.title,
+              action: () => {
+                registerActivity();
+                setCurrentIndex(index);
+                setIsPlaying(true);
+                setMenuDirection("forward");
+                setMenuMode(false);
+                setCameFromNowPlayingMenuItem(false);
+                setLastPlayedMenuPath(["Music", artist]);
+                if (useIpodStore.getState().showVideo) {
+                  toggleVideo();
+                }
+              },
+              showChevron: false,
+            })
+          );
           setMenuHistory((prev) => [
             ...prev,
             {
@@ -298,9 +307,16 @@ export function IpodAppComponent({
           setSelectedMenuItem(0);
         },
         showChevron: true,
-      }))
+      })),
     ];
-  }, [tracks, registerActivity, setCurrentIndex, setIsPlaying, toggleVideo, showStatus]);
+  }, [
+    tracks,
+    registerActivity,
+    setCurrentIndex,
+    setIsPlaying,
+    toggleVideo,
+    showStatus,
+  ]);
 
   const settingsMenuItems = useMemo(() => {
     const currentLoopCurrent = loopCurrent;
@@ -484,156 +500,198 @@ export function IpodAppComponent({
     return match && match[7].length === 11 ? match[7] : null;
   };
 
-  const handleAddTrack = useCallback(async (url: string) => {
-    setIsAddingTrack(true);
-    try {
-      const videoId = extractVideoId(url);
-      if (!videoId) {
-        throw new Error("Invalid YouTube URL");
-      }
-
-      const oembedResponse = await fetch(
-        `https://www.youtube.com/oembed?url=http://www.youtube.com/watch?v=${videoId}&format=json`
-      );
-      if (!oembedResponse.ok) {
-        console.warn("Failed to fetch oEmbed info, using default title");
-      }
-      const oembedData = oembedResponse.ok ? await oembedResponse.json() : {};
-      const rawTitle = oembedData.title || `Video ID: ${videoId}`;
-
-      let trackInfo: Partial<Track> = {
-        title: rawTitle,
-        artist: undefined,
-        album: undefined,
-      };
-
+  const handleAddTrack = useCallback(
+    async (url: string) => {
+      setIsAddingTrack(true);
       try {
-        const parseResponse = await fetch("/api/parse-title", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ title: rawTitle }),
-        });
+        const videoId = extractVideoId(url);
+        if (!videoId) {
+          throw new Error("Invalid YouTube URL");
+        }
 
-        if (parseResponse.ok) {
-          const parsedData = await parseResponse.json();
-          trackInfo.title = parsedData.title || rawTitle;
-          trackInfo.artist = parsedData.artist;
-          trackInfo.album = parsedData.album;
-        } else {
+        const oembedResponse = await fetch(
+          `https://www.youtube.com/oembed?url=http://www.youtube.com/watch?v=${videoId}&format=json`
+        );
+        if (!oembedResponse.ok) {
+          console.warn("Failed to fetch oEmbed info, using default title");
+        }
+        const oembedData = oembedResponse.ok ? await oembedResponse.json() : {};
+        const rawTitle = oembedData.title || `Video ID: ${videoId}`;
+
+        const trackInfo: Partial<Track> = {
+          title: rawTitle,
+          artist: undefined,
+          album: undefined,
+        };
+
+        try {
+          const parseResponse = await fetch("/api/parse-title", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ title: rawTitle }),
+          });
+
+          if (parseResponse.ok) {
+            const parsedData = await parseResponse.json();
+            trackInfo.title = parsedData.title || rawTitle;
+            trackInfo.artist = parsedData.artist;
+            trackInfo.album = parsedData.album;
+          } else {
+            console.warn(
+              "Failed to parse title with AI, using raw title:",
+              await parseResponse.text()
+            );
+          }
+        } catch (parseError) {
           console.warn(
-            "Failed to parse title with AI, using raw title:",
-            await parseResponse.text()
+            "Error calling parse-title API, using raw title:",
+            parseError
           );
         }
-      } catch (parseError) {
-        console.warn(
-          "Error calling parse-title API, using raw title:",
-          parseError
+
+        const newTrack: Track = {
+          id: videoId,
+          url,
+          title: trackInfo.title!,
+          artist: trackInfo.artist,
+          album: trackInfo.album,
+        };
+
+        addTrackStore(newTrack);
+        showStatus("♬ Added");
+        setUrlInput("");
+        setIsAddDialogOpen(false);
+      } catch (error) {
+        console.error("Failed to add track:", error);
+        showStatus(
+          `❌ Error adding: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`
         );
+      } finally {
+        setIsAddingTrack(false);
       }
+    },
+    [addTrackStore, showStatus]
+  );
 
-      const newTrack: Track = {
-        id: videoId,
-        url,
-        title: trackInfo.title!,
-        artist: trackInfo.artist,
-        album: trackInfo.album,
-      };
-
-      addTrackStore(newTrack);
-      showStatus("♬ Added");
-      setUrlInput("");
-      setIsAddDialogOpen(false);
-    } catch (error) {
-      console.error("Failed to add track:", error);
-      showStatus(`❌ Error adding: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      setIsAddingTrack(false);
-    }
-  }, [addTrackStore, showStatus]);
-
-  const handleAddAndPlayTrackByVideoId = useCallback(async (videoId: string) => {
-    // Reuse handleAddTrack by constructing the URL
-    const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
-    try {
-      await handleAddTrack(youtubeUrl); // handleAddTrack is already useCallback
-      // handleAddTrack internally calls showStatus, sets current index, and plays
-    } catch (error) {
-      console.error(`[iPod] Error adding track for videoId ${videoId}:`, error);
-      // Optionally show an error status to the user
-      showStatus(`❌ Error adding ${videoId}`);
-    }
-  }, [handleAddTrack, showStatus]);
-
-  const processVideoId = useCallback(async (videoId: string) => {
-    const currentTracks = useIpodStore.getState().tracks;
-    const existingTrackIndex = currentTracks.findIndex(track => track.id === videoId);
-
-    const ua = navigator.userAgent;
-    const isIOS = /iP(hone|od|ad)/.test(ua);
-    const isSafari = /Safari/.test(ua) && !/Chrome/.test(ua) && !/CriOS/.test(ua);
-    const shouldAutoplay = !(isIOS || isSafari);
-
-    if (existingTrackIndex !== -1) {
-      toast.info("Opening shared track...");
-      console.log(`[iPod] Video ID ${videoId} found in tracks. Playing.`);
-      setCurrentIndex(existingTrackIndex);
-      if (shouldAutoplay) {
-        setIsPlaying(true);
+  const handleAddAndPlayTrackByVideoId = useCallback(
+    async (videoId: string) => {
+      // Reuse handleAddTrack by constructing the URL
+      const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
+      try {
+        await handleAddTrack(youtubeUrl); // handleAddTrack is already useCallback
+        // handleAddTrack internally calls showStatus, sets current index, and plays
+      } catch (error) {
+        console.error(
+          `[iPod] Error adding track for videoId ${videoId}:`,
+          error
+        );
+        // Optionally show an error status to the user
+        showStatus(`❌ Error adding ${videoId}`);
       }
-      setMenuMode(false);
-    } else {
-      toast.info("Adding new track from URL...");
-      console.log(`[iPod] Video ID ${videoId} not found. Adding and playing.`);
-      await handleAddAndPlayTrackByVideoId(videoId);
-      if (shouldAutoplay) {
-        const newIndex = useIpodStore.getState().currentIndex;
-        const addedTrack = useIpodStore.getState().tracks[newIndex];
-        if (addedTrack?.id === videoId) {
+    },
+    [handleAddTrack, showStatus]
+  );
+
+  const processVideoId = useCallback(
+    async (videoId: string) => {
+      const currentTracks = useIpodStore.getState().tracks;
+      const existingTrackIndex = currentTracks.findIndex(
+        (track) => track.id === videoId
+      );
+
+      const ua = navigator.userAgent;
+      const isIOS = /iP(hone|od|ad)/.test(ua);
+      const isSafari =
+        /Safari/.test(ua) && !/Chrome/.test(ua) && !/CriOS/.test(ua);
+      const shouldAutoplay = !(isIOS || isSafari);
+
+      if (existingTrackIndex !== -1) {
+        toast.info("Opening shared track...");
+        console.log(`[iPod] Video ID ${videoId} found in tracks. Playing.`);
+        setCurrentIndex(existingTrackIndex);
+        if (shouldAutoplay) {
           setIsPlaying(true);
-        } else {
-          console.warn("[iPod] Index mismatch after adding track, autoplay skipped.");
+        }
+        setMenuMode(false);
+      } else {
+        toast.info("Adding new track from URL...");
+        console.log(
+          `[iPod] Video ID ${videoId} not found. Adding and playing.`
+        );
+        await handleAddAndPlayTrackByVideoId(videoId);
+        if (shouldAutoplay) {
+          const newIndex = useIpodStore.getState().currentIndex;
+          const addedTrack = useIpodStore.getState().tracks[newIndex];
+          if (addedTrack?.id === videoId) {
+            setIsPlaying(true);
+          } else {
+            console.warn(
+              "[iPod] Index mismatch after adding track, autoplay skipped."
+            );
+          }
         }
       }
-    }
-  }, [setCurrentIndex, setIsPlaying, setMenuMode, handleAddAndPlayTrackByVideoId]);
+    },
+    [setCurrentIndex, setIsPlaying, setMenuMode, handleAddAndPlayTrackByVideoId]
+  );
 
   // Effect for initial data on mount
   useEffect(() => {
-    if (isWindowOpen && initialData?.videoId && typeof initialData.videoId === 'string') {
+    if (
+      isWindowOpen &&
+      initialData?.videoId &&
+      typeof initialData.videoId === "string"
+    ) {
       const videoIdToProcess = initialData.videoId;
-      console.log(`[iPod] Processing initialData.videoId on mount: ${videoIdToProcess}`);
+      console.log(
+        `[iPod] Processing initialData.videoId on mount: ${videoIdToProcess}`
+      );
       setTimeout(() => {
-        processVideoId(videoIdToProcess).then(() => {
-          clearIpodInitialData('ipod');
-          console.log(`[iPod] Cleared initialData after processing ${videoIdToProcess}`);
-        }).catch(error => {
-          console.error(`[iPod] Error processing initial videoId ${videoIdToProcess}:`, error);
-        });
+        processVideoId(videoIdToProcess)
+          .then(() => {
+            clearIpodInitialData("ipod");
+            console.log(
+              `[iPod] Cleared initialData after processing ${videoIdToProcess}`
+            );
+          })
+          .catch((error) => {
+            console.error(
+              `[iPod] Error processing initial videoId ${videoIdToProcess}:`,
+              error
+            );
+          });
       }, 100); // Small delay might help
     }
   }, [isWindowOpen, initialData, processVideoId, clearIpodInitialData]);
 
-
   // Effect for updateApp event (when app is already open)
   useEffect(() => {
-    const handleUpdateApp = (event: CustomEvent<{ appId: string; initialData?: { videoId?: string } }>) => {
-      if (event.detail.appId === 'ipod' && event.detail.initialData?.videoId) {
+    const handleUpdateApp = (
+      event: CustomEvent<{ appId: string; initialData?: { videoId?: string } }>
+    ) => {
+      if (event.detail.appId === "ipod" && event.detail.initialData?.videoId) {
         const videoId = event.detail.initialData.videoId;
         console.log(`[iPod] Received updateApp event with videoId: ${videoId}`);
-        bringToForeground('ipod');
-        processVideoId(videoId).catch(error => {
-           console.error(`[iPod] Error processing videoId ${videoId} from updateApp event:`, error);
-           toast.error("Failed to load shared track", { description: `Video ID: ${videoId}` });
+        bringToForeground("ipod");
+        processVideoId(videoId).catch((error) => {
+          console.error(
+            `[iPod] Error processing videoId ${videoId} from updateApp event:`,
+            error
+          );
+          toast.error("Failed to load shared track", {
+            description: `Video ID: ${videoId}`,
+          });
         });
       }
     };
 
-    window.addEventListener('updateApp', handleUpdateApp as EventListener);
+    window.addEventListener("updateApp", handleUpdateApp as EventListener);
     return () => {
-      window.removeEventListener('updateApp', handleUpdateApp as EventListener);
+      window.removeEventListener("updateApp", handleUpdateApp as EventListener);
     };
   }, [processVideoId, bringToForeground]);
 
@@ -695,13 +753,6 @@ export function IpodAppComponent({
     return () => clearTimeout(timer);
   }, [isPlaying, elapsedTime, setIsPlaying, showStatus]);
 
-  // NEW: Ensure we exit video view whenever playback is paused.
-  useEffect(() => {
-    if (!isPlaying && showVideo) {
-      toggleVideo();
-    }
-  }, [isPlaying, showVideo, toggleVideo]);
-
   const handleMenuButton = useCallback(() => {
     playClickSound();
     vibrate();
@@ -726,31 +777,30 @@ export function IpodAppComponent({
       setMenuDirection("backward");
       const currentTrackIndex = useIpodStore.getState().currentIndex;
 
-      const mainMenu = menuHistory.length > 0
-        ? menuHistory[0]
-        : { title: "iPod", items: mainMenuItems, selectedIndex: 0 };
+      const mainMenu =
+        menuHistory.length > 0
+          ? menuHistory[0]
+          : { title: "iPod", items: mainMenuItems, selectedIndex: 0 };
 
       const musicSubmenu = musicMenuItems;
-      
+
       if (cameFromNowPlayingMenuItem) {
         setMenuHistory([mainMenu]);
         setSelectedMenuItem(mainMenu?.selectedIndex || 0);
         setCameFromNowPlayingMenuItem(false);
       } else {
-        
         // Group tracks by artist to find the right artist menu
-        const tracksByArtist = tracks.reduce<Record<string, { track: typeof tracks[0]; index: number }[]>>(
-          (acc, track, index) => {
-            const artist = track.artist || 'Unknown Artist';
-            if (!acc[artist]) {
-              acc[artist] = [];
-            }
-            acc[artist].push({ track, index });
-            return acc;
-          },
-          {}
-        );
-        
+        const tracksByArtist = tracks.reduce<
+          Record<string, { track: (typeof tracks)[0]; index: number }[]>
+        >((acc, track, index) => {
+          const artist = track.artist || "Unknown Artist";
+          if (!acc[artist]) {
+            acc[artist] = [];
+          }
+          acc[artist].push({ track, index });
+          return acc;
+        }, {});
+
         // Create track menus
         const allTracksMenu = {
           title: "All Songs",
@@ -770,21 +820,26 @@ export function IpodAppComponent({
             },
             showChevron: false,
           })),
-          selectedIndex: currentTrackIndex
+          selectedIndex: currentTrackIndex,
         };
-        
+
         // If we have a lastPlayedMenuPath, use it to determine where to go back to
-        if (lastPlayedMenuPath.length > 0 && lastPlayedMenuPath[1] !== "All Songs") {
+        if (
+          lastPlayedMenuPath.length > 0 &&
+          lastPlayedMenuPath[1] !== "All Songs"
+        ) {
           // We should return to an artist menu
           const artist = lastPlayedMenuPath[1];
-          
+
           // Check if artist exists in our library
           if (tracksByArtist[artist]) {
             const artistTracks = tracksByArtist[artist];
-            
+
             // Find the index of the current track in this artist's track list
-            const artistTrackIndex = artistTracks.findIndex(item => item.index === currentTrackIndex);
-            
+            const artistTrackIndex = artistTracks.findIndex(
+              (item) => item.index === currentTrackIndex
+            );
+
             const artistMenu = {
               title: artist,
               items: artistTracks.map(({ track, index }) => ({
@@ -803,19 +858,21 @@ export function IpodAppComponent({
                 },
                 showChevron: false,
               })),
-              selectedIndex: artistTrackIndex !== -1 ? artistTrackIndex : 0
+              selectedIndex: artistTrackIndex !== -1 ? artistTrackIndex : 0,
             };
-            
+
             setMenuHistory([
               mainMenu,
               {
                 title: "Music",
                 items: musicSubmenu,
-                selectedIndex: musicSubmenu.findIndex(item => item.label === artist)
+                selectedIndex: musicSubmenu.findIndex(
+                  (item) => item.label === artist
+                ),
               },
-              artistMenu
+              artistMenu,
             ]);
-            
+
             setSelectedMenuItem(artistTrackIndex !== -1 ? artistTrackIndex : 0);
           } else {
             // If artist no longer exists, fall back to All Songs
@@ -824,9 +881,9 @@ export function IpodAppComponent({
               {
                 title: "Music",
                 items: musicSubmenu,
-                selectedIndex: 0
+                selectedIndex: 0,
               },
-              allTracksMenu
+              allTracksMenu,
             ]);
             setSelectedMenuItem(currentTrackIndex);
           }
@@ -837,9 +894,9 @@ export function IpodAppComponent({
             {
               title: "Music",
               items: musicSubmenu,
-              selectedIndex: 0
+              selectedIndex: 0,
             },
-            allTracksMenu
+            allTracksMenu,
           ]);
           setSelectedMenuItem(currentTrackIndex);
         }
@@ -861,113 +918,124 @@ export function IpodAppComponent({
     lastPlayedMenuPath,
   ]);
 
-  const handleWheelClick = useCallback((area: "top" | "right" | "bottom" | "left" | "center") => {
-    playClickSound();
-    vibrate();
-    registerActivity();
-    switch (area) {
-      case "top":
-        handleMenuButton();
-        break;
-      case "right":
-        skipOperationRef.current = true;
-        nextTrack();
-        showStatus("⏭");
-        break;
-      case "bottom":
-        togglePlay();
-        showStatus(useIpodStore.getState().isPlaying ? "▶" : "⏸");
-        break;
-      case "left":
-        skipOperationRef.current = true;
-        previousTrack();
-        showStatus("⏮");
-        break;
-      case "center":
-        if (menuMode) {
-          const currentMenu = menuHistory[menuHistory.length - 1];
-          if (currentMenu && currentMenu.items[selectedMenuItem]) {
-            currentMenu.items[selectedMenuItem].action();
-          }
-        } else {
-          if (tracks[currentIndex]) {
-            if (!isPlaying) {
-              togglePlay();
-              showStatus("▶");
-            } else {
-              toggleVideo();
+  const handleWheelClick = useCallback(
+    (area: "top" | "right" | "bottom" | "left" | "center") => {
+      playClickSound();
+      vibrate();
+      registerActivity();
+      switch (area) {
+        case "top":
+          handleMenuButton();
+          break;
+        case "right":
+          skipOperationRef.current = true;
+          nextTrack();
+          showStatus("⏭");
+          break;
+        case "bottom":
+          togglePlay();
+          showStatus(useIpodStore.getState().isPlaying ? "▶" : "⏸");
+          break;
+        case "left":
+          skipOperationRef.current = true;
+          previousTrack();
+          showStatus("⏮");
+          break;
+        case "center":
+          if (menuMode) {
+            const currentMenu = menuHistory[menuHistory.length - 1];
+            if (currentMenu && currentMenu.items[selectedMenuItem]) {
+              currentMenu.items[selectedMenuItem].action();
+            }
+          } else {
+            if (tracks[currentIndex]) {
+              if (!isPlaying) {
+                togglePlay();
+                showStatus("▶");
+                setTimeout(() => {
+                  if (!useIpodStore.getState().showVideo) {
+                    toggleVideo();
+                  }
+                }, 200);
+              } else {
+                toggleVideo();
+              }
             }
           }
+          break;
+      }
+    },
+    [
+      playClickSound,
+      vibrate,
+      registerActivity,
+      nextTrack,
+      showStatus,
+      togglePlay,
+      previousTrack,
+      menuMode,
+      menuHistory,
+      selectedMenuItem,
+      tracks,
+      currentIndex,
+      isPlaying,
+      toggleVideo,
+      handleMenuButton,
+    ]
+  );
+
+  const handleWheelRotation = useCallback(
+    (direction: "clockwise" | "counterclockwise") => {
+      playScrollSound();
+      vibrate();
+      registerActivity();
+      if (menuMode) {
+        const currentMenu = menuHistory[menuHistory.length - 1];
+        if (!currentMenu) return;
+        const menuLength = currentMenu.items.length;
+        if (menuLength === 0) return;
+
+        let newIndex = selectedMenuItem;
+        if (direction === "clockwise") {
+          newIndex = Math.min(menuLength - 1, selectedMenuItem + 1);
+        } else {
+          newIndex = Math.max(0, selectedMenuItem - 1);
         }
-        break;
-    }
-  }, [
-    playClickSound,
-    vibrate,
-    registerActivity,
-    nextTrack,
-    showStatus,
-    togglePlay,
-    previousTrack,
-    menuMode,
-    menuHistory,
-    selectedMenuItem,
-    tracks,
-    currentIndex,
-    isPlaying,
-    toggleVideo,
-    handleMenuButton,
-  ]);
 
-  const handleWheelRotation = useCallback((direction: "clockwise" | "counterclockwise") => {
-    playScrollSound();
-    vibrate();
-    registerActivity();
-    if (menuMode) {
-      const currentMenu = menuHistory[menuHistory.length - 1];
-      if (!currentMenu) return;
-      const menuLength = currentMenu.items.length;
-      if (menuLength === 0) return;
-
-      let newIndex = selectedMenuItem;
-      if (direction === "clockwise") {
-        newIndex = Math.min(menuLength - 1, selectedMenuItem + 1);
+        if (newIndex !== selectedMenuItem) {
+          setSelectedMenuItem(newIndex);
+          setMenuHistory((prev) => {
+            const lastIndex = prev.length - 1;
+            const updatedHistory = [...prev];
+            updatedHistory[lastIndex] = {
+              ...prev[lastIndex],
+              selectedIndex: newIndex,
+            };
+            return updatedHistory;
+          });
+        }
       } else {
-        newIndex = Math.max(0, selectedMenuItem - 1);
+        const currentTime = playerRef.current?.getCurrentTime() || 0;
+        const seekAmount = 5;
+        if (direction === "clockwise") {
+          playerRef.current?.seekTo(currentTime + seekAmount);
+          showStatus(`⏩︎`);
+        } else {
+          playerRef.current?.seekTo(Math.max(0, currentTime - seekAmount));
+          showStatus(`⏪︎`);
+        }
       }
-
-      if (newIndex !== selectedMenuItem) {
-        setSelectedMenuItem(newIndex);
-        setMenuHistory((prev) => {
-          const lastIndex = prev.length - 1;
-          const updatedHistory = [...prev];
-          updatedHistory[lastIndex] = {
-            ...prev[lastIndex],
-            selectedIndex: newIndex,
-          };
-          return updatedHistory;
-        });
-      }
-    } else {
-      const currentTime = playerRef.current?.getCurrentTime() || 0;
-      const seekAmount = 5;
-      if (direction === "clockwise") {
-        playerRef.current?.seekTo(currentTime + seekAmount);
-        showStatus(`⏩︎`);
-      } else {
-        playerRef.current?.seekTo(Math.max(0, currentTime - seekAmount));
-        showStatus(`⏪︎`);
-      }
-    }
-  }, [
-    playScrollSound,
-    vibrate,
-    registerActivity,
-    menuMode,
-    menuHistory,
-    selectedMenuItem,
-    showStatus,
-  ]);
+    },
+    [
+      playScrollSound,
+      vibrate,
+      registerActivity,
+      menuMode,
+      menuHistory,
+      selectedMenuItem,
+      showStatus,
+    ]
+  );
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);

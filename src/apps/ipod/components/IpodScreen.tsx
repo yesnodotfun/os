@@ -4,6 +4,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Track } from "@/stores/useIpodStore";
 import { useAppStore } from "@/stores/useAppStore";
+import { LyricsDisplay } from "./LyricsDisplay";
+import { useLyrics } from "@/hooks/useLyrics";
+import { ChineseVariant, LyricsAlignment } from "@/types/lyrics";
+import { useIpodStore } from "@/stores/useIpodStore";
 
 // Helper component: MenuListItem
 function MenuListItem({
@@ -339,6 +343,14 @@ export function IpodScreen({
     }
   }, [menuMode, menuHistory.length]);
 
+  // Lyrics hook
+  const lyricsControls = useLyrics({
+    title: currentTrack?.title ?? "",
+    artist: currentTrack?.artist ?? "",
+    currentTime: elapsedTime,
+  });
+  const showLyrics = useIpodStore((s) => s.showLyrics);
+
   return (
     <div
       className={cn(
@@ -425,6 +437,17 @@ export function IpodScreen({
                 </motion.div>
               )}
             </AnimatePresence>
+
+            {/* Lyrics Overlay */}
+            <LyricsDisplay
+              lines={lyricsControls.lines}
+              currentLine={lyricsControls.currentLine}
+              isLoading={lyricsControls.isLoading}
+              error={lyricsControls.error}
+              visible={showLyrics}
+              alignment={LyricsAlignment.Alternating}
+              chineseVariant={ChineseVariant.Traditional}
+            />
           </div>
         </div>
       )}

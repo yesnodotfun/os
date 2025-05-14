@@ -19,24 +19,6 @@ export const IPOD_DEFAULT_VIDEOS = [
     artist: "Jagged Edge",
   },
   {
-    id: "BYEtLMKmvs8",
-    url: "https://youtu.be/BYEtLMKmvs8",
-    title: "Get Up (Extended ver.)",
-    artist: "DEAN (딘)",
-  },
-  {
-    id: "MQT93bv5aSM",
-    url: "https://youtu.be/MQT93bv5aSM",
-    title: "FRNK Demo Mashup",
-    artist: "NewJeans (뉴진스)",
-  },
-  {
-    id: "5tcBJCouOmE",
-    url: "https://youtu.be/5tcBJCouOmE",
-    title: "Hype Boy",
-    artist: "DEAN (딘)",
-  },
-  {
     id: "GWL1Tzl0YdY",
     url: "https://www.youtube.com/watch?v=GWL1Tzl0YdY",
     title: "종말의 사과나무 (Apocalypse)",
@@ -133,6 +115,24 @@ export const IPOD_DEFAULT_VIDEOS = [
     artist: "NewJeans (뉴진스)",
   },
   {
+    id: "BYEtLMKmvs8",
+    url: "https://youtu.be/BYEtLMKmvs8",
+    title: "Get Up (Extended ver.)",
+    artist: "DEAN (딘)",
+  },
+  {
+    id: "MQT93bv5aSM",
+    url: "https://youtu.be/MQT93bv5aSM",
+    title: "FRNK Demo Mashup",
+    artist: "NewJeans (뉴진스)",
+  },
+  {
+    id: "5tcBJCouOmE",
+    url: "https://youtu.be/5tcBJCouOmE",
+    title: "Hype Boy",
+    artist: "DEAN (딘)",
+  },
+  {
     id: "PO8",
     url: "https://www.youtube.com/watch?v=HB4Rp2KKeu4",
     title: "野子",
@@ -191,7 +191,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     url: "https://www.youtube.com/watch?v=36wVOzmsywo",
     title: "FRR (오래오래)",
     artist: "george (죠지)",
-    },
+  },
   {
     id: "FonjL7DQAUQ",
     url: "https://www.youtube.com/watch?v=FonjL7DQAUQ",
@@ -245,162 +245,111 @@ const DEFAULT_TRACKS: Track[] = IPOD_DEFAULT_VIDEOS.map((video) => ({
   album: "Shared Playlist", // Add a default album or leave undefined
 }));
 
-interface IpodStoreState {
+interface IpodData {
   tracks: Track[];
-  originalOrder: Track[]; // Store the original order for unshuffling
   currentIndex: number;
-  loopAll: boolean;
   loopCurrent: boolean;
+  loopAll: boolean;
   isShuffled: boolean;
   isPlaying: boolean;
   showVideo: boolean;
   backlightOn: boolean;
-  theme: string; // 'classic' or 'black'
+  theme: "classic" | "black";
   lcdFilterOn: boolean;
-  // actions
-  setTracks: (tracks: Track[]) => void;
+  showLyrics: boolean;
+}
+
+const initialIpodData: IpodData = {
+  tracks: DEFAULT_TRACKS,
+  currentIndex: 0,
+  loopCurrent: false,
+  loopAll: true,
+  isShuffled: true,
+  isPlaying: false,
+  showVideo: false,
+  backlightOn: true,
+  theme: "classic",
+  lcdFilterOn: false,
+  showLyrics: false,
+};
+
+export interface IpodState extends IpodData {
   setCurrentIndex: (index: number) => void;
-  toggleLoopAll: () => void;
   toggleLoopCurrent: () => void;
+  toggleLoopAll: () => void;
   toggleShuffle: () => void;
   togglePlay: () => void;
-  setIsPlaying: (val: boolean) => void;
+  setIsPlaying: (playing: boolean) => void;
   toggleVideo: () => void;
   toggleBacklight: () => void;
-  setTheme: (theme: string) => void;
   toggleLcdFilter: () => void;
+  setTheme: (theme: "classic" | "black") => void;
   addTrack: (track: Track) => void;
   clearLibrary: () => void;
   resetLibrary: () => void;
   nextTrack: () => void;
   previousTrack: () => void;
+  setShowVideo: (show: boolean) => void;
+  toggleLyrics: () => void;
 }
 
 const CURRENT_IPOD_STORE_VERSION = 6; // Define the current version
 
-export const useIpodStore = create<IpodStoreState>()(
+export const useIpodStore = create<IpodState>()(
   persist(
-    (set, get) => ({
-      tracks: DEFAULT_TRACKS,
-      originalOrder: DEFAULT_TRACKS, // Initialize original order
-      currentIndex: 0,
-      loopAll: true, // Default loop all to true
-      loopCurrent: false,
-      isShuffled: true, // Default shuffle to true
-      isPlaying: false,
-      showVideo: false,
-      backlightOn: true, // Default backlight to on
-      theme: "classic", // Default theme
-      lcdFilterOn: true, // Default LCD filter to on
+    (set) => ({
+      ...initialIpodData,
       // --- Actions ---
-      setTracks: (tracks) => set({ tracks }), // Basic setter, might need adjustment for originalOrder
       setCurrentIndex: (index) => set({ currentIndex: index }),
-      toggleLoopAll: () =>
-        set((state) => ({ loopAll: !state.loopAll, loopCurrent: false })), // Ensure only one loop mode active
       toggleLoopCurrent: () =>
-        set((state) => ({ loopCurrent: !state.loopCurrent, loopAll: false })), // Ensure only one loop mode active
-      toggleShuffle: () => {
-        const currentIsShuffled = get().isShuffled;
-        const currentOriginalOrder = get().originalOrder;
-        const currentTracks = get().tracks;
-        const currentPlayingTrackId = currentTracks[get().currentIndex]?.id;
-
-        let newTracks: Track[];
-        let newCurrentIndex = 0;
-
-        if (currentIsShuffled) {
-          // If unshuffling, restore original order
-          newTracks = [...currentOriginalOrder];
-        } else {
-          // If shuffling, shuffle the original order
-          newTracks = [...currentOriginalOrder].sort(() => Math.random() - 0.5);
-        }
-
-        // Find the index of the currently playing track in the new list
-        const playingIndex = newTracks.findIndex(
-          (track) => track.id === currentPlayingTrackId
-        );
-        if (playingIndex !== -1) {
-          newCurrentIndex = playingIndex;
-        } else if (newTracks.length > 0) {
-          // Fallback if the playing track is somehow not found (e.g., after clearing)
-          newCurrentIndex = 0;
-        }
-
-        set({
-          isShuffled: !currentIsShuffled,
-          tracks: newTracks,
-          currentIndex: newCurrentIndex,
-        });
-      },
+        set((state) => ({ loopCurrent: !state.loopCurrent })),
+      toggleLoopAll: () => set((state) => ({ loopAll: !state.loopAll })),
+      toggleShuffle: () => set((state) => ({ isShuffled: !state.isShuffled })),
       togglePlay: () => set((state) => ({ isPlaying: !state.isPlaying })),
-      setIsPlaying: (val) => set({ isPlaying: val }),
-      toggleVideo: () => {
-        // Only allow showing video if playing, but always allow hiding
-        if (!get().showVideo && !get().isPlaying) {
-            return; // Don't show video if paused
-        }
-        set((state) => ({ showVideo: !state.showVideo }));
-      },
-      toggleBacklight: () => set((state) => ({ backlightOn: !state.backlightOn })),
+      setIsPlaying: (playing) => set({ isPlaying: playing }),
+      toggleVideo: () => set((state) => ({ showVideo: !state.showVideo })),
+      toggleBacklight: () =>
+        set((state) => ({ backlightOn: !state.backlightOn })),
+      toggleLcdFilter: () =>
+        set((state) => ({ lcdFilterOn: !state.lcdFilterOn })),
       setTheme: (theme) => set({ theme }),
-      toggleLcdFilter: () => set((state) => ({ lcdFilterOn: !state.lcdFilterOn })),
       addTrack: (track) =>
-        set((state) => {
-          const newTracks = [...state.tracks, track];
-          const newOriginalOrder = state.isShuffled
-            ? [...state.originalOrder, track] // Add to original order even if shuffled
-            : newTracks; // If not shuffled, new tracks are the new original order
-          return {
-            tracks: newTracks,
-            originalOrder: newOriginalOrder,
-            currentIndex: newTracks.length - 1, // Play the new track
-            isPlaying: true, // Start playing automatically
-          };
-        }),
+        set((state) => ({ tracks: [...state.tracks, track] })),
       clearLibrary: () =>
-        set({
-          tracks: [],
-          originalOrder: [],
-          currentIndex: 0,
-          isPlaying: false,
-        }),
+        set({ tracks: [], currentIndex: -1, isPlaying: false }),
       resetLibrary: () =>
         set({
           tracks: DEFAULT_TRACKS,
-          originalOrder: DEFAULT_TRACKS,
           currentIndex: 0,
           isPlaying: false,
-          isShuffled: false, // Also reset shuffle state
         }),
-      nextTrack: () => {
+      nextTrack: () =>
         set((state) => {
-          if (state.tracks.length === 0) return {};
-          let nextIndex = state.currentIndex + 1;
-          if (nextIndex >= state.tracks.length) {
-            if (state.loopAll) {
-              nextIndex = 0;
-            } else {
-              return { isPlaying: false }; // Stop playing if not looping and at the end
-            }
+          if (state.tracks.length === 0) return { currentIndex: -1 };
+          let next = state.isShuffled
+            ? Math.floor(Math.random() * state.tracks.length)
+            : (state.currentIndex + 1) % state.tracks.length;
+          if (
+            state.isShuffled &&
+            next === state.currentIndex &&
+            state.tracks.length > 1
+          ) {
+            // Ensure shuffle doesn't pick the same song if possible
+            next = (next + 1) % state.tracks.length;
           }
-          return { currentIndex: nextIndex, isPlaying: true };
-        });
-      },
-      previousTrack: () => {
+          return { currentIndex: next, isPlaying: true };
+        }),
+      previousTrack: () =>
         set((state) => {
-          if (state.tracks.length === 0) return {};
-          let prevIndex = state.currentIndex - 1;
-          if (prevIndex < 0) {
-            if (state.loopAll) {
-              prevIndex = state.tracks.length - 1;
-            } else {
-              prevIndex = 0; // Go to first track but don't loop from start
-            }
-          }
-          return { currentIndex: prevIndex, isPlaying: true };
-        });
-      },
+          if (state.tracks.length === 0) return { currentIndex: -1 };
+          const prev = state.isShuffled
+            ? Math.floor(Math.random() * state.tracks.length)
+            : (state.currentIndex - 1 + state.tracks.length) %
+              state.tracks.length;
+          return { currentIndex: prev, isPlaying: true };
+        }),
+      setShowVideo: (show) => set({ showVideo: show }),
+      toggleLyrics: () => set((state) => ({ showLyrics: !state.showLyrics })),
     }),
     {
       name: "ryos:ipod", // Unique name for localStorage persistence
@@ -408,16 +357,16 @@ export const useIpodStore = create<IpodStoreState>()(
       partialize: (state) => ({
         // Keep tracks and originalOrder here initially for migration
         tracks: state.tracks,
-        originalOrder: state.originalOrder,
         currentIndex: state.currentIndex,
         loopAll: state.loopAll,
         loopCurrent: state.loopCurrent,
         isShuffled: state.isShuffled,
         theme: state.theme,
         lcdFilterOn: state.lcdFilterOn,
+        showLyrics: state.showLyrics, // Persist lyrics visibility
       }),
       migrate: (persistedState, version) => {
-        let state = persistedState as IpodStoreState; // Type assertion
+        let state = persistedState as IpodState; // Type assertion
 
         // If the persisted version is older than the current version, update defaults
         if (version < CURRENT_IPOD_STORE_VERSION) {
@@ -427,11 +376,11 @@ export const useIpodStore = create<IpodStoreState>()(
           state = {
             ...state, // Keep other persisted state
             tracks: DEFAULT_TRACKS, // Update to new defaults
-            originalOrder: DEFAULT_TRACKS, // Update to new defaults
             currentIndex: 0, // Reset index
             // Reset other potentially conflicting state if necessary
             isPlaying: false,
             isShuffled: state.isShuffled, // Keep shuffle preference maybe? Or reset? Let's keep it for now.
+            showLyrics: state.showLyrics ?? false, // Add default for migration
           };
         }
         // Clean up potentially outdated fields if needed in future migrations
@@ -441,17 +390,16 @@ export const useIpodStore = create<IpodStoreState>()(
         // Remove fields not present in the latest partialize if necessary
         const partializedState = {
           tracks: state.tracks,
-          originalOrder: state.originalOrder,
           currentIndex: state.currentIndex,
           loopAll: state.loopAll,
           loopCurrent: state.loopCurrent,
           isShuffled: state.isShuffled,
           theme: state.theme,
           lcdFilterOn: state.lcdFilterOn,
+          showLyrics: state.showLyrics, // Persist lyrics visibility
         };
 
-
-        return partializedState as IpodStoreState; // Return the potentially migrated state
+        return partializedState as IpodState; // Return the potentially migrated state
       },
       // Optional: Re-add partialize here if you want to exclude tracks/originalOrder AFTER migration
       // This prevents large defaults from always being in storage if they are static
@@ -462,8 +410,9 @@ export const useIpodStore = create<IpodStoreState>()(
       //   isShuffled: state.isShuffled,
       //   theme: state.theme,
       //   lcdFilterOn: state.lcdFilterOn,
+      //   showLyrics: state.showLyrics, // Persist lyrics visibility
       //   // Exclude tracks and originalOrder if they match defaults and you want to save space
       // }),
     }
   )
-);        
+);

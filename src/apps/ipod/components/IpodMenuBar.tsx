@@ -44,6 +44,7 @@ export function IpodMenuBar({
   const isVideoOn = useIpodStore((s) => s.showVideo);
   const isLcdFilterOn = useIpodStore((s) => s.lcdFilterOn);
   const currentTheme = useIpodStore((s) => s.theme);
+  const showLyrics = useIpodStore((s) => s.showLyrics);
 
   const setCurrentIndex = useIpodStore((s) => s.setCurrentIndex);
   const setIsPlaying = useIpodStore((s) => s.setIsPlaying);
@@ -57,6 +58,7 @@ export function IpodMenuBar({
   const toggleVideo = useIpodStore((s) => s.toggleVideo);
   const toggleLcdFilter = useIpodStore((s) => s.toggleLcdFilter);
   const setTheme = useIpodStore((s) => s.setTheme);
+  const toggleLyrics = useIpodStore((s) => s.toggleLyrics);
 
   const handlePlayTrack = (index: number) => {
     setCurrentIndex(index);
@@ -64,20 +66,21 @@ export function IpodMenuBar({
   };
 
   // Group tracks by artist
-  const tracksByArtist = tracks.reduce<Record<string, { track: typeof tracks[0]; index: number }[]>>(
-    (acc, track, index) => {
-      const artist = track.artist || 'Unknown Artist';
-      if (!acc[artist]) {
-        acc[artist] = [];
-      }
-      acc[artist].push({ track, index });
-      return acc;
-    },
-    {}
-  );
+  const tracksByArtist = tracks.reduce<
+    Record<string, { track: (typeof tracks)[0]; index: number }[]>
+  >((acc, track, index) => {
+    const artist = track.artist || "Unknown Artist";
+    if (!acc[artist]) {
+      acc[artist] = [];
+    }
+    acc[artist].push({ track, index });
+    return acc;
+  }, {});
 
   // Get sorted list of artists
-  const artists = Object.keys(tracksByArtist).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+  const artists = Object.keys(tracksByArtist).sort((a, b) =>
+    a.localeCompare(b, undefined, { sensitivity: "base" })
+  );
 
   return (
     <MenuBar>
@@ -215,6 +218,20 @@ export function IpodMenuBar({
               {isVideoOn ? "✓ Video" : "Video"}
             </span>
           </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => {
+              toggleLyrics();
+              if (!isVideoOn) {
+                toggleVideo();
+              }
+            }}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+            disabled={!isPlaying}
+          >
+            <span className={cn(!showLyrics && "pl-4")}>
+              {showLyrics ? "✓ Lyrics" : "Lyrics"}
+            </span>
+          </DropdownMenuItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           <DropdownMenuItem
             onClick={() => setTheme("classic")}
@@ -246,18 +263,22 @@ export function IpodMenuBar({
             Library
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" sideOffset={1} className="px-0 max-w-[180px] sm:max-w-[220px]">
+        <DropdownMenuContent
+          align="start"
+          sideOffset={1}
+          className="px-0 max-w-[180px] sm:max-w-[220px]"
+        >
           <DropdownMenuItem
             onClick={onAddTrack}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
             Add to Library...
           </DropdownMenuItem>
-          
+
           {tracks.length > 0 && (
             <>
               <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
-              
+
               {/* All Tracks section */}
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
@@ -290,7 +311,7 @@ export function IpodMenuBar({
                   ))}
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
-              
+
               {/* Individual Artist submenus */}
               {artists.map((artist) => (
                 <DropdownMenuSub key={artist}>
@@ -318,18 +339,20 @@ export function IpodMenuBar({
                           >
                             {index === currentIndex ? "♪ " : ""}
                           </span>
-                          <span className="truncate min-w-0">{track.title}</span>
+                          <span className="truncate min-w-0">
+                            {track.title}
+                          </span>
                         </div>
                       </DropdownMenuItem>
                     ))}
                   </DropdownMenuSubContent>
                 </DropdownMenuSub>
               ))}
-              
+
               <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
             </>
           )}
-          
+
           <DropdownMenuItem
             onClick={onClearLibrary}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
