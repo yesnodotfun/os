@@ -106,7 +106,7 @@ export function LyricsDisplay({
   error,
   visible = true,
   alignment = LyricsAlignment.FocusThree,
-  chineseVariant = ChineseVariant.Original,
+  chineseVariant = ChineseVariant.Traditional,
   koreanDisplay = KoreanDisplay.Original,
 }: LyricsDisplayProps) {
   const chineseConverter = useMemo(
@@ -148,31 +148,84 @@ export function LyricsDisplay({
     isCurrentLine: boolean,
     totalVisibleLines: number
   ) => {
-    if (align === LyricsAlignment.Center) return "center";
-    if (align === LyricsAlignment.Alternating) {
+    if (align === LyricsAlignment.Center) {
       return "center";
     }
-    if (totalVisibleLines === 1) return "center";
-    if (totalVisibleLines === 2) return lineIndex === 0 ? "left" : "right";
-    if (isCurrentLine) return "center";
-    return lineIndex % 2 === 0 ? "left" : "right";
+
+    if (align === LyricsAlignment.Alternating) {
+      if (totalVisibleLines === 1) return "center";
+      return lineIndex === 0 ? "left" : "right";
+    }
+
+    if (totalVisibleLines === 1) {
+      return "center";
+    }
+    if (totalVisibleLines === 2) {
+      return lineIndex === 0 ? "left" : "right";
+    }
+    if (lineIndex === 0) return "left";
+    if (lineIndex === 1) return "center";
+    if (lineIndex === 2) return "right";
+
+    return "center";
   };
 
   const visibleLines = useMemo(() => {
     if (!lines.length) return [] as LyricLine[];
-    if (currentLine < 0 && lines.length > 0)
-      return lines.slice(0, alignment === LyricsAlignment.Alternating ? 2 : 1);
 
-    if (alignment === LyricsAlignment.Alternating) {
-      if (currentLine < 0) return lines.slice(0, 2).filter(Boolean);
-      const current = lines[currentLine];
-      const next = lines[currentLine + 1];
-      const prev = lines[currentLine - 1];
-      if (next) return [current, next].filter(Boolean);
-      if (prev) return [prev, current].filter(Boolean);
-      return [current].filter(Boolean);
+    // Handle initial display before any line is "current" (currentLine < 0)
+    if (currentLine < 0) {
+      if (alignment === LyricsAlignment.Alternating) {
+        return lines.slice(0, 2).filter(Boolean) as LyricLine[];
+      }
+      // For FocusThree or Center, show the first line initially
+      return lines.slice(0, 1).filter(Boolean) as LyricLine[];
     }
 
+    // currentLine >= 0 from here
+
+    if (alignment === LyricsAlignment.Alternating) {
+      // If only one line total, show it.
+      if (lines.length === 1) return [lines[0]];
+
+      // We have at least two lines and currentLine >= 0.
+      const clampedCurrentLine = Math.min(currentLine, lines.length - 1); // Ensure currentLine is a valid index
+
+      let topLyric: LyricLine | undefined;
+      let bottomLyric: LyricLine | undefined;
+
+      if (clampedCurrentLine % 2 === 0) {
+        // Current active line's index is even (0, 2, 4...)
+        topLyric = lines[clampedCurrentLine]; // This line goes to the top slot
+        // The bottom slot gets the line that was previously in it, or the next line if at the very start
+        if (clampedCurrentLine === 0) {
+          // If L0 is active (top slot)
+          bottomLyric = lines[1]; // L1 is in the bottom slot (if lines[1] exists)
+        } else {
+          // If L2, L4... is active (top slot)
+          bottomLyric = lines[clampedCurrentLine - 1]; // The previous line (L1, L3...) was in the bottom slot
+        }
+      } else {
+        // Current active line's index is odd (1, 3, 5...)
+        bottomLyric = lines[clampedCurrentLine]; // This line goes to the bottom slot
+        // The top slot gets the line that was previously in it
+        topLyric = lines[clampedCurrentLine - 1]; // The previous line (L0, L2...) was in the top slot
+      }
+
+      return [topLyric, bottomLyric].filter(Boolean) as LyricLine[];
+    }
+
+    if (alignment === LyricsAlignment.Center) {
+      const clampedCurrentLine = Math.min(
+        Math.max(0, currentLine),
+        lines.length - 1
+      );
+      const currentActualLine = lines[clampedCurrentLine];
+      return currentActualLine ? [currentActualLine] : [];
+    }
+
+    // Default to FocusThree (original behavior for non-alternating, non-center)
+    // Shows [prev, current, next] or subsets if at ends.
     return lines.slice(Math.max(0, currentLine - 1), currentLine + 2);
   }, [lines, currentLine, alignment]);
 
@@ -233,13 +286,13 @@ export function LyricsDisplay({
                 width: "100%",
                 paddingLeft:
                   alignment === LyricsAlignment.Alternating &&
-                  position === 0 &&
+                  index === 0 &&
                   visibleLines.length > 1
                     ? "5%"
                     : undefined,
                 paddingRight:
                   alignment === LyricsAlignment.Alternating &&
-                  position === 1 &&
+                  index === 1 &&
                   visibleLines.length > 1
                     ? "5%"
                     : undefined,
