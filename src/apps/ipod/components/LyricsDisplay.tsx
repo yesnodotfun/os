@@ -40,7 +40,7 @@ const ANIMATION_CONFIG = {
 } as const;
 
 const LoadingState = () => (
-  <div className="absolute inset-x-0 bottom-5 pointer-events-none flex justify-center z-40">
+  <div className="absolute inset-x-0 pb-5 top-0 left-0 right-0 bottom-0 pointer-events-none flex items-end justify-center z-40">
     <div className="text-white/70 text-[12px] font-geneva-12">
       Loading lyrics…
     </div>
@@ -48,7 +48,7 @@ const LoadingState = () => (
 );
 
 const ErrorState = ({ message }: { message: string }) => (
-  <div className="absolute inset-x-0 bottom-5 pointer-events-none flex justify-center z-40">
+  <div className="absolute inset-x-0 pb-5 top-0 left-0 right-0 bottom-0 pointer-events-none flex items-end justify-center z-40">
     <div className="text-white/70 text-[12px] font-geneva-12">{message}</div>
   </div>
 );
@@ -279,7 +279,7 @@ export function LyricsDisplay({
     <motion.div
       layout
       transition={ANIMATION_CONFIG.spring}
-      className="absolute inset-x-0 mx-auto bottom-5 w-full h-full overflow-hidden flex flex-col items-center justify-end gap-2 z-40 select-none px-2"
+      className="absolute inset-x-0 mx-auto pb-5 top-0 left-0 right-0 bottom-0 w-full h-full overflow-hidden flex flex-col items-center justify-end gap-2 z-40 select-none px-2"
       style={{ pointerEvents: "auto" }}
       onWheel={handleWheel}
       onTouchStart={handleTouchStart}
@@ -325,7 +325,6 @@ export function LyricsDisplay({
               className="px-2 md:px-6 text-[12px] font-geneva-12 leading-[1.1] whitespace-pre-wrap break-words max-w-full text-white"
               style={{
                 textAlign: lineTextAlign as CanvasTextAlign,
-                fontWeight: isCurrent ? 700 : 500,
                 width: "100%",
                 paddingLeft:
                   alignment === LyricsAlignment.Alternating &&
