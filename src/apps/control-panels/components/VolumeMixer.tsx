@@ -180,8 +180,8 @@ export function VolumeMixer({
           <Slider
             orientation="vertical"
             min={0}
-            max={1}
-            step={0.05}
+            max={2}
+            step={0.1}
             value={[chatSynthVolume]}
             onValueChange={(v) => {
               setChatSynthVolume(v[0]);

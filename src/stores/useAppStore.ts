@@ -496,7 +496,7 @@ export const useAppStore = create<AppStoreState>()(
       setHtmlPreviewSplit: (val) => set({ htmlPreviewSplit: val }),
       uiVolume: 1,
       setUiVolume: (vol) => set({ uiVolume: vol }),
-      chatSynthVolume: 1,
+      chatSynthVolume: 2,
       setChatSynthVolume: (vol) => set({ chatSynthVolume: vol }),
       ipodVolume: 1,
       setIpodVolume: (vol) => set({ ipodVolume: vol }),
