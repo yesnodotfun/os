@@ -104,7 +104,7 @@ const getVariants = (
       ? 0
       : 0,
     textShadow: isCurrent
-      ? "0 0 20px rgba(255,255,255,0.7), 0 0 2px black, 0 0 2px black, 0 0 2px black"
+      ? "0 0 8px rgba(255,255,255,0.9), 0 0 2px black, 0 0 2px black, 0 0 2px black"
       : "0 0 2px black, 0 0 2px black, 0 0 2px black",
   },
   exit: {

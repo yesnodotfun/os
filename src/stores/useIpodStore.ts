@@ -304,8 +304,8 @@ const initialIpodData: IpodData = {
   showVideo: false,
   backlightOn: true,
   theme: "classic",
-  lcdFilterOn: false,
-  showLyrics: false,
+  lcdFilterOn: true,
+  showLyrics: true,
   lyricsAlignment: LyricsAlignment.Alternating,
   chineseVariant: ChineseVariant.Traditional,
   koreanDisplay: KoreanDisplay.Original,
@@ -349,7 +349,7 @@ export const useIpodStore = create<IpodState>()(
     (set) => ({
       ...initialIpodData,
       // --- Actions ---
-      setCurrentIndex: (index) => set({ currentIndex: index }),
+      setCurrentIndex: (index) => set({ currentIndex: index, lyricsTranslationRequest: null }),
       toggleLoopCurrent: () =>
         set((state) => ({ loopCurrent: !state.loopCurrent })),
       toggleLoopAll: () => set((state) => ({ loopAll: !state.loopAll })),
@@ -365,16 +365,17 @@ export const useIpodStore = create<IpodState>()(
       addTrack: (track) =>
         set((state) => ({ tracks: [...state.tracks, track] })),
       clearLibrary: () =>
-        set({ tracks: [], currentIndex: -1, isPlaying: false }),
+        set({ tracks: [], currentIndex: -1, isPlaying: false, lyricsTranslationRequest: null }),
       resetLibrary: () =>
         set({
           tracks: DEFAULT_TRACKS,
           currentIndex: 0,
           isPlaying: false,
+          lyricsTranslationRequest: null,
         }),
       nextTrack: () =>
         set((state) => {
-          if (state.tracks.length === 0) return { currentIndex: -1 };
+          if (state.tracks.length === 0) return { currentIndex: -1, lyricsTranslationRequest: null };
           let next = state.isShuffled
             ? Math.floor(Math.random() * state.tracks.length)
             : (state.currentIndex + 1) % state.tracks.length;
@@ -386,16 +387,16 @@ export const useIpodStore = create<IpodState>()(
             // Ensure shuffle doesn't pick the same song if possible
             next = (next + 1) % state.tracks.length;
           }
-          return { currentIndex: next, isPlaying: true };
+          return { currentIndex: next, isPlaying: true, lyricsTranslationRequest: null };
         }),
       previousTrack: () =>
         set((state) => {
-          if (state.tracks.length === 0) return { currentIndex: -1 };
+          if (state.tracks.length === 0) return { currentIndex: -1, lyricsTranslationRequest: null };
           const prev = state.isShuffled
             ? Math.floor(Math.random() * state.tracks.length)
             : (state.currentIndex - 1 + state.tracks.length) %
               state.tracks.length;
-          return { currentIndex: prev, isPlaying: true };
+          return { currentIndex: prev, isPlaying: true, lyricsTranslationRequest: null };
         }),
       setShowVideo: (show) => set({ showVideo: show }),
       toggleLyrics: () => set((state) => ({ showLyrics: !state.showLyrics })),

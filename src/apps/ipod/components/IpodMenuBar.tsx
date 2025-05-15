@@ -27,6 +27,7 @@ interface IpodMenuBarProps {
 }
 
 const translationLanguages = [
+  { label: "Original", code: null },
   { label: "English", code: "en" },
   { label: "中文", code: "zh-TW" },
   { label: "日本語", code: "ja" },

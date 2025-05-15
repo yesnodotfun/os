@@ -75,7 +75,14 @@ export function IpodAppComponent({
   const [isConfirmResetOpen, setIsConfirmResetOpen] = useState(false);
   const [isAddingTrack, setIsAddingTrack] = useState(false);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
-  const [menuMode, setMenuMode] = useState(true);
+
+  const initialMenuMode = useMemo(() => {
+    const storeState = useIpodStore.getState();
+    // Default to Now Playing if there are tracks and a valid index
+    return !(storeState.tracks.length > 0 && storeState.currentIndex >= 0 && storeState.currentIndex < storeState.tracks.length);
+  }, []); // Empty dependency array means this runs once on mount
+
+  const [menuMode, setMenuMode] = useState(initialMenuMode);
   const [selectedMenuItem, setSelectedMenuItem] = useState(0);
   const [menuDirection, setMenuDirection] = useState<"forward" | "backward">(
     "forward"
