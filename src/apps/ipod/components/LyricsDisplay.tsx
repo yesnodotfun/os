@@ -276,9 +276,9 @@ export function LyricsDisplay({
 
   if (!visible) return null;
   if (isLoading) return <LoadingState />;
-  if (error) return <ErrorState message={error || "Error loading lyrics."} />;
+  if (error) return <ErrorState />;
   if (!lines.length && !isLoading)
-    return <ErrorState message="No lyrics available." />;
+    return <ErrorState />;
 
   return (
     <motion.div
