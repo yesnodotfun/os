@@ -35,6 +35,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     title: "Promise",
     artist: "Jagged Edge",
     album: "JE Heartbreak (Explicit)",
+    lyricOffset: -6600,
   },
   {
     id: "Y_AxRCNFT2g",
@@ -42,6 +43,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     title: "Supernova (House Remix)",
     artist: "aespa (에스파)",
     album: "Armageddon",
+    lyricOffset: -6000,
   },
   {
     id: "yP8nAoFi6JY",
@@ -56,6 +58,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     title: "The Chase (R&B Remix)",
     artist: "Hearts2Hearts (하츠투하츠)",
     album: "The Chase",
+    lyricOffset: -6200,
   },
   {
     id: "LVLOwwGVVZ0",
@@ -85,6 +88,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     title: "UP&DOWN",
     artist: "LIM JISOO (임지수)",
     album: "UP&DOWN",
+    lyricOffset: 1000,
   },
   {
     id: "zt0Me5qyK4g",
@@ -92,7 +96,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     title: "춤 (Dance)",
     artist: "OFFONOFF",
     album: "boy.",
-    lyricOffset: 800,
+    lyricOffset: 1400,
   },
   {
     id: "T6YVgEpRU6Q",
