@@ -229,8 +229,8 @@ export function IpodMenuBar({
               >
                 <span className={cn(chineseVariant !== ChineseVariant.Traditional && "pl-4")}>
                   {chineseVariant === ChineseVariant.Traditional 
-                    ? "✓ Traditional Chinese" 
-                    : "Traditional Chinese"}
+                    ? "✓ 繁體中文" 
+                    : "繁體中文"}
                 </span>
               </DropdownMenuItem>
 
@@ -242,8 +242,8 @@ export function IpodMenuBar({
               >
                 <span className={cn(koreanDisplay !== KoreanDisplay.Original && "pl-4")}>
                   {koreanDisplay === KoreanDisplay.Original 
-                    ? "✓ Hangul" 
-                    : "Hangul"}
+                    ? "✓ 한글" 
+                    : "한글"}
                 </span>
               </DropdownMenuItem>
 
