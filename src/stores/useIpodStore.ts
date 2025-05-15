@@ -462,7 +462,7 @@ export const useIpodStore = create<IpodState>()(
             // Reset other potentially conflicting state if necessary
             isPlaying: false,
             isShuffled: state.isShuffled, // Keep shuffle preference maybe? Or reset? Let's keep it for now.
-            showLyrics: state.showLyrics ?? false, // Add default for migration
+            showLyrics: state.showLyrics ?? true, // Add default for migration
             lyricsAlignment:
               state.lyricsAlignment ?? LyricsAlignment.FocusThree,
             chineseVariant: state.chineseVariant ?? ChineseVariant.Traditional,
