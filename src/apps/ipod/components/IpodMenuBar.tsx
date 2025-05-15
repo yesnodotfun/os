@@ -202,57 +202,10 @@ export function IpodMenuBar({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" sideOffset={1} className="px-0">
-          <DropdownMenuItem
-            onClick={toggleBacklight}
-            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
-          >
-            <span className={cn(!isBacklightOn && "pl-4")}>
-              {isBacklightOn ? "✓ Backlight" : "Backlight"}
-            </span>
-          </DropdownMenuItem>
-
-          <DropdownMenuItem
-            onClick={toggleLcdFilter}
-            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
-          >
-            <span className={cn(!isLcdFilterOn && "pl-4")}>
-              {isLcdFilterOn ? "✓ LCD Filter" : "LCD Filter"}
-            </span>
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={toggleVideo}
-            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
-            disabled={!isPlaying}
-          >
-            <span className={cn(!isVideoOn && "pl-4")}>
-              {isVideoOn ? "✓ Video" : "Video"}
-            </span>
-          </DropdownMenuItem>
-
-          <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
-          <DropdownMenuItem
-            onClick={() => setTheme("classic")}
-            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
-          >
-            <span className={cn(currentTheme !== "classic" && "pl-4")}>
-              {currentTheme === "classic" ? "✓ Classic" : "Classic"}
-            </span>
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => setTheme("black")}
-            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
-          >
-            <span className={cn(currentTheme !== "black" && "pl-4")}>
-              {currentTheme === "black" ? "✓ Black" : "Black"}
-            </span>
-          </DropdownMenuItem>
-
-          <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
-
-          {/* Lyrics Submenu */}
+         {/* Lyrics Submenu */}
           <DropdownMenuSub>
             <DropdownMenuSubTrigger className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
-              Lyrics Settings
+              Lyrics
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent className="px-0">
               {/* Always on */}
@@ -297,21 +250,6 @@ export function IpodMenuBar({
                   {chineseVariant === ChineseVariant.Traditional
                     ? "✓ Traditional Chinese"
                     : "Traditional Chinese"}
-                </span>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setChineseVariant(ChineseVariant.Simplified)}
-                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
-                disabled={!showLyrics || !isPlaying}
-              >
-                <span
-                  className={cn(
-                    chineseVariant !== ChineseVariant.Simplified && "pl-4"
-                  )}
-                >
-                  {chineseVariant === ChineseVariant.Simplified
-                    ? "✓ Simplified Chinese"
-                    : "Simplified Chinese"}
                 </span>
               </DropdownMenuItem>
 
@@ -397,6 +335,53 @@ export function IpodMenuBar({
               </DropdownMenuItem>
             </DropdownMenuSubContent>
           </DropdownMenuSub>
+
+          <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
+
+          <DropdownMenuItem
+            onClick={toggleBacklight}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            <span className={cn(!isBacklightOn && "pl-4")}>
+              {isBacklightOn ? "✓ Backlight" : "Backlight"}
+            </span>
+          </DropdownMenuItem>
+
+          <DropdownMenuItem
+            onClick={toggleLcdFilter}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            <span className={cn(!isLcdFilterOn && "pl-4")}>
+              {isLcdFilterOn ? "✓ LCD Filter" : "LCD Filter"}
+            </span>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={toggleVideo}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+            disabled={!isPlaying}
+          >
+            <span className={cn(!isVideoOn && "pl-4")}>
+              {isVideoOn ? "✓ Video" : "Video"}
+            </span>
+          </DropdownMenuItem>
+
+          <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
+          <DropdownMenuItem
+            onClick={() => setTheme("classic")}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            <span className={cn(currentTheme !== "classic" && "pl-4")}>
+              {currentTheme === "classic" ? "✓ Classic" : "Classic"}
+            </span>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => setTheme("black")}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            <span className={cn(currentTheme !== "black" && "pl-4")}>
+              {currentTheme === "black" ? "✓ Black" : "Black"}
+            </span>
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
