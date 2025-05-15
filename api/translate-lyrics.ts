@@ -1,6 +1,7 @@
 import { openai } from "@ai-sdk/openai";
 import { generateObject } from "ai";
-import { z } from 'zod';
+import { z } from "zod";
+import { Redis } from "@upstash/redis";
 
 export const config = {
   runtime: "edge",
@@ -23,6 +24,28 @@ const AiTranslatedTextsSchema = z.object({
 
 type TranslateLyricsRequest = z.infer<typeof TranslateLyricsRequestSchema>;
 
+// ------------------------------------------------------------------
+// Redis cache helpers
+// ------------------------------------------------------------------
+const LYRIC_TRANSLATION_CACHE_PREFIX = "lyrics_translation:cache:";
+
+// Simple djb2 string hash -> 32-bit unsigned then hex
+const hashString = (str: string): string => {
+  let hash = 5381;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash * 33) ^ str.charCodeAt(i);
+  }
+  return (hash >>> 0).toString(16);
+};
+
+const buildTranslationCacheKey = (
+  linesStr: string,
+  targetLang: string
+): string => {
+  const fingerprint = hashString(linesStr);
+  return `${LYRIC_TRANSLATION_CACHE_PREFIX}${targetLang}:${fingerprint}`;
+};
+
 function msToLrcTime(msStr: string): string {
   const ms = parseInt(msStr, 10);
   if (isNaN(ms)) return "[00:00.00]";
@@ -32,11 +55,41 @@ function msToLrcTime(msStr: string): string {
   const seconds = totalSeconds % 60;
   const centiseconds = Math.floor((ms % 1000) / 10);
 
-  return `[${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(centiseconds).padStart(2, '0')}]`;
+  return `[${String(minutes).padStart(2, "0")}:${String(seconds).padStart(
+    2,
+    "0"
+  )}.${String(centiseconds).padStart(2, "0")}]`;
 }
 
+// ------------------------------------------------------------------
+// Basic logging helpers (mirrors style from iframe-check)
+// ------------------------------------------------------------------
+const logRequest = (
+  method: string,
+  url: string,
+  action: string | null,
+  id: string
+) => {
+  console.log(`[${id}] ${method} ${url} - Action: ${action || "none"}`);
+};
+
+const logInfo = (id: string, message: string, data?: unknown) => {
+  console.log(`[${id}] INFO: ${message}`, data ?? "");
+};
+
+const logError = (id: string, message: string, error: unknown) => {
+  console.error(`[${id}] ERROR: ${message}`, error);
+};
+
+const generateRequestId = (): string =>
+  Math.random().toString(36).substring(2, 10);
+
 export default async function handler(req: Request) {
+  const requestId = generateRequestId();
+  logRequest(req.method, req.url, null, requestId);
+
   if (req.method !== "POST") {
+    logError(requestId, "Method not allowed", null);
     return new Response("Method not allowed", { status: 405 });
   }
 
@@ -45,18 +98,63 @@ export default async function handler(req: Request) {
     const validation = TranslateLyricsRequestSchema.safeParse(body);
 
     if (!validation.success) {
-      return new Response(JSON.stringify({ error: "Invalid request body", details: validation.error.format() }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
+      logError(requestId, "Invalid request body", validation.error);
+      return new Response(
+        JSON.stringify({
+          error: "Invalid request body",
+          details: validation.error.format(),
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
     }
 
     const { lines, targetLanguage } = validation.data;
 
     if (!lines || lines.length === 0) {
-      return new Response("", { // Return empty string for empty LRC
+      return new Response("", {
+        // Return empty string for empty LRC
         headers: { "Content-Type": "text/plain" },
       });
+    }
+
+    logInfo(requestId, "Received translate-lyrics request", {
+      linesCount: lines.length,
+      targetLanguage,
+    });
+
+    // --------------------------
+    // 1. Attempt cache lookup
+    // --------------------------
+    const redis = new Redis({
+      url: process.env.REDIS_KV_REST_API_URL as string,
+      token: process.env.REDIS_KV_REST_API_TOKEN as string,
+    });
+
+    const linesFingerprintSrc = JSON.stringify(
+      lines.map((l) => ({ w: l.words, t: l.startTimeMs }))
+    );
+    const transCacheKey = buildTranslationCacheKey(
+      linesFingerprintSrc,
+      targetLanguage
+    );
+
+    try {
+      const cached = (await redis.get(transCacheKey)) as string | null;
+      if (cached) {
+        logInfo(requestId, "Translation cache HIT", { transCacheKey });
+        return new Response(cached, {
+          headers: {
+            "Content-Type": "text/plain; charset=utf-8",
+            "X-Lyrics-Translation-Cache": "HIT",
+          },
+        });
+      }
+      logInfo(requestId, "Translation cache MISS", { transCacheKey });
+    } catch (e) {
+      logError(requestId, "Redis cache lookup failed (lyrics translation)", e);
     }
 
     // Simplified system prompt for the AI
@@ -66,33 +164,45 @@ Respond ONLY with a valid JSON object containing a single key "translatedTexts".
 This array should contain only the translated versions of the "words" from the input, in the exact same order as they appeared in the input array.
 If a line is purely instrumental or cannot be translated (e.g., "---"), return its original "words" text.
 Do not include timestamps or any other formatting in your output strings; just the raw translated text for each line.`;
-    
+
     const { object: aiResponse } = await generateObject({
       model: openai("gpt-4.1-mini"),
       schema: AiTranslatedTextsSchema, // Use the new simplified schema for AI output
-      prompt: JSON.stringify(lines.map(line => ({ words: line.words }))), // Send only words to AI for translation context
+      prompt: JSON.stringify(lines.map((line) => ({ words: line.words }))), // Send only words to AI for translation context
       system: systemPrompt,
       temperature: 0.3,
     });
 
     // Combine AI translations with original timestamps and format as LRC
     const lrcOutputLines = lines.map((originalLine, index) => {
-      const translatedText = aiResponse.translatedTexts[index] || originalLine.words; // Fallback to original if AI misses one
+      const translatedText =
+        aiResponse.translatedTexts[index] || originalLine.words; // Fallback to original if AI misses one
       const lrcTimestamp = msToLrcTime(originalLine.startTimeMs);
       return `${lrcTimestamp}${translatedText}`;
     });
 
-    return new Response(lrcOutputLines.join("\n"), {
+    const lrcResult = lrcOutputLines.join("\n");
+
+    // Store in cache (TTL 30 days)
+    try {
+      await redis.set(transCacheKey, lrcResult, {
+        ex: 60 * 60 * 24 * 30,
+      });
+      logInfo(requestId, "Stored translation in cache", { transCacheKey });
+    } catch (e) {
+      logError(requestId, "Redis cache write failed (lyrics translation)", e);
+    }
+
+    return new Response(lrcResult, {
       headers: { "Content-Type": "text/plain; charset=utf-8" },
     });
-
   } catch (error: unknown) {
-    console.error("Error translating lyrics:", error);
+    logError(requestId, "Error translating lyrics", error);
     let errorMessage = "Error translating lyrics";
     if (error instanceof Error) {
       errorMessage = error.message;
       // Add more details if it's an AI SDK error
-      if ('cause' in error && error.cause) {
+      if ("cause" in error && error.cause) {
         errorMessage += ` - Cause: ${JSON.stringify(error.cause)}`;
       }
     }
@@ -102,4 +212,4 @@ Do not include timestamps or any other formatting in your output strings; just t
       headers: { "Content-Type": "text/plain; charset=utf-8" },
     });
   }
-} 
+}

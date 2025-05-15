@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { Redis } from "@upstash/redis";
 
 // Vercel Edge Function configuration
 export const config = {
@@ -81,14 +82,58 @@ function base64ToUtf8(base64: string): string {
  */
 function stripParentheses(str: string): string {
   if (!str) return str;
-  return str.replace(/\s*\([^)]*\)\s*/g, ' ').trim();
+  return str.replace(/\s*\([^)]*\)\s*/g, " ").trim();
 }
+
+// ------------------------------------------------------------------
+// Redis cache helpers
+// ------------------------------------------------------------------
+const LYRICS_CACHE_PREFIX = "lyrics:cache:";
+
+/**
+ * Build a stable cache key for a (title, artist) pair.
+ * We simply lowercase and trim to reduce duplicates, then encode so the
+ * key is URL-safe.
+ */
+const buildLyricsCacheKey = (title: string, artist: string): string => {
+  const normalized = [title.trim().toLowerCase(), artist.trim().toLowerCase()] // keep order title|artist
+    .filter(Boolean)
+    .join("|");
+  return `${LYRICS_CACHE_PREFIX}${encodeURIComponent(normalized)}`;
+};
+
+// ------------------------------------------------------------------
+// Basic logging helpers (mirrors style from iframe-check)
+// ------------------------------------------------------------------
+const logRequest = (
+  method: string,
+  url: string,
+  action: string | null,
+  id: string
+) => {
+  console.log(`[${id}] ${method} ${url} - Action: ${action || "none"}`);
+};
+
+const logInfo = (id: string, message: string, data?: unknown) => {
+  console.log(`[${id}] INFO: ${message}`, data ?? "");
+};
+
+const logError = (id: string, message: string, error: unknown) => {
+  console.error(`[${id}] ERROR: ${message}`, error);
+};
+
+const generateRequestId = (): string =>
+  Math.random().toString(36).substring(2, 10);
 
 /**
  * Main handler
  */
 export default async function handler(req: Request) {
+  const requestId = generateRequestId();
+  logRequest(req.method, req.url, null, requestId);
+
   if (req.method !== "POST") {
+    logError(requestId, "Method not allowed", null);
     return new Response("Method not allowed", { status: 405 });
   }
 
@@ -97,6 +142,7 @@ export default async function handler(req: Request) {
   try {
     body = LyricsRequestSchema.parse(await req.json());
   } catch {
+    logError(requestId, "Invalid request body", null);
     return new Response(JSON.stringify({ error: "Invalid request body" }), {
       status: 400,
       headers: { "Content-Type": "application/json" },
@@ -112,6 +158,37 @@ export default async function handler(req: Request) {
       }),
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
+  }
+
+  logInfo(requestId, "Received lyrics request", { title, artist });
+
+  // --------------------------
+  // 1. Attempt cache lookup
+  // --------------------------
+  const redis = new Redis({
+    url: process.env.REDIS_KV_REST_API_URL as string,
+    token: process.env.REDIS_KV_REST_API_TOKEN as string,
+  });
+
+  const cacheKey = buildLyricsCacheKey(title, artist);
+  try {
+    const cachedRaw = await redis.get(cacheKey);
+    if (cachedRaw) {
+      const cachedStr =
+        typeof cachedRaw === "string" ? cachedRaw : JSON.stringify(cachedRaw);
+      logInfo(requestId, "Lyrics cache HIT", { cacheKey });
+      return new Response(cachedStr, {
+        headers: {
+          "Content-Type": "application/json",
+          "X-Lyrics-Cache": "HIT",
+        },
+      });
+    }
+    logInfo(requestId, "Lyrics cache MISS", { cacheKey });
+  } catch (e) {
+    logError(requestId, "Redis cache lookup failed (lyrics)", e);
+    console.error("Redis cache lookup failed (lyrics)", e);
+    // continue without cache
   }
 
   try {
@@ -145,7 +222,9 @@ export default async function handler(req: Request) {
 
     // 1. Search song
     const keyword = encodeURIComponent(
-      [stripParentheses(title), stripParentheses(artist), album].filter(Boolean).join(" ")
+      [stripParentheses(title), stripParentheses(artist), album]
+        .filter(Boolean)
+        .join(" ")
     );
     const searchUrl = `http://mobilecdn.kugou.com/api/v3/search/song?format=json&keyword=${keyword}&page=1&pagesize=2&showtype=1`;
 
@@ -208,6 +287,20 @@ export default async function handler(req: Request) {
         cover,
       };
 
+      // 6. Store in cache (TTL 30 days)
+      try {
+        await redis.set(cacheKey, JSON.stringify(result), {
+          ex: 60 * 60 * 24 * 30,
+        });
+        logInfo(requestId, "Fetched lyrics successfully", {
+          title: result.title,
+          artist: result.artist,
+        });
+      } catch (err) {
+        logError(requestId, "Redis cache write failed (lyrics)", err);
+        console.error("Redis cache write failed (lyrics)", err);
+      }
+
       return new Response(JSON.stringify(result), {
         headers: { "Content-Type": "application/json" },
       });
@@ -219,6 +312,7 @@ export default async function handler(req: Request) {
       { status: 404, headers: { "Content-Type": "application/json" } }
     );
   } catch (error: unknown) {
+    logError(requestId, "Error fetching lyrics", error);
     console.error("Error fetching lyrics:", error);
     return new Response(JSON.stringify({ error: "Unexpected server error" }), {
       status: 500,
