@@ -27,7 +27,6 @@ interface IpodMenuBarProps {
 }
 
 const translationLanguages = [
-  { label: "Off", code: null },
   { label: "English", code: "en" },
   { label: "中文", code: "zh-TW" },
   { label: "日本語", code: "ja" },
@@ -66,7 +65,6 @@ export function IpodMenuBar({
     useIpodStore((s) => s.chineseVariant) || ChineseVariant.Traditional;
   const koreanDisplay =
     useIpodStore((s) => s.koreanDisplay) || KoreanDisplay.Original;
-  const lyricsTargetLanguage = useIpodStore((s) => s.lyricsTargetLanguage);
 
   const setCurrentIndex = useIpodStore((s) => s.setCurrentIndex);
   const setIsPlaying = useIpodStore((s) => s.setIsPlaying);
@@ -84,7 +82,7 @@ export function IpodMenuBar({
   const setLyricsAlignment = useIpodStore((s) => s.setLyricsAlignment);
   const setChineseVariant = useIpodStore((s) => s.setChineseVariant);
   const setKoreanDisplay = useIpodStore((s) => s.setKoreanDisplay);
-  const setLyricsTargetLanguage = useIpodStore((s) => s.setLyricsTargetLanguage);
+  const setLyricsTranslationRequest = useIpodStore((s) => s.setLyricsTranslationRequest);
 
   const handlePlayTrack = (index: number) => {
     setCurrentIndex(index);
@@ -318,11 +316,17 @@ export function IpodMenuBar({
               {translationLanguages.map((lang) => (
                 <DropdownMenuItem
                   key={lang.code || "off"}
-                  onClick={() => setLyricsTargetLanguage(lang.code)}
+                  onClick={() => {
+                    const currentTrackId = tracks[currentIndex]?.id;
+                    if (currentTrackId && lang.code) {
+                      setLyricsTranslationRequest(lang.code, currentTrackId);
+                    } else if (!lang.code) {
+                      setLyricsTranslationRequest(null, null);
+                    }
+                  }}
                   className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
                 >
-                  <span className={cn(lyricsTargetLanguage !== lang.code && "pl-4")}>
-                    {lyricsTargetLanguage === lang.code ? "✓ " : ""}
+                  <span>
                     {lang.label}
                   </span>
                 </DropdownMenuItem>

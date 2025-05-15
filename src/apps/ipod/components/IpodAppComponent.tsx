@@ -44,7 +44,7 @@ export function IpodAppComponent({
   const chineseVariant = useIpodStore((s) => s.chineseVariant);
   const koreanDisplay = useIpodStore((s) => s.koreanDisplay);
   const lyricOffset = useIpodStore((s) => s.tracks[s.currentIndex]?.lyricOffset);
-  const lyricsTargetLanguage = useIpodStore((s) => s.lyricsTargetLanguage);
+  const lyricsTranslationRequest = useIpodStore((s) => s.lyricsTranslationRequest);
 
   const setCurrentIndex = useIpodStore((s) => s.setCurrentIndex);
   const toggleLoopAll = useIpodStore((s) => s.toggleLoopAll);
@@ -75,7 +75,7 @@ export function IpodAppComponent({
   const [isConfirmResetOpen, setIsConfirmResetOpen] = useState(false);
   const [isAddingTrack, setIsAddingTrack] = useState(false);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
-  const [menuMode, setMenuMode] = useState(false);
+  const [menuMode, setMenuMode] = useState(true);
   const [selectedMenuItem, setSelectedMenuItem] = useState(0);
   const [menuDirection, setMenuDirection] = useState<"forward" | "backward">(
     "forward"
@@ -1092,6 +1092,12 @@ export function IpodAppComponent({
   // Volume control
   const { ipodVolume } = useAppStore();
 
+  // Derived state for translation
+  const currentTrackId = tracks[currentIndex]?.id;
+  const translateToForLyricsHook = lyricsTranslationRequest?.songId === currentTrackId
+    ? lyricsTranslationRequest.language
+    : null;
+
   if (!isWindowOpen) return null;
 
   return (
@@ -1167,7 +1173,7 @@ export function IpodAppComponent({
               koreanDisplay={koreanDisplay}
               lyricOffset={lyricOffset ?? 0}
               adjustLyricOffset={(delta) => useIpodStore.getState().adjustLyricOffset(currentIndex, delta)}
-              lyricsTargetLanguage={lyricsTargetLanguage}
+              translateToForLyrics={translateToForLyricsHook}
             />
 
             <IpodWheel

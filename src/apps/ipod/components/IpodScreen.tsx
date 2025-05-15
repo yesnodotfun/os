@@ -186,7 +186,7 @@ interface IpodScreenProps {
   koreanDisplay: KoreanDisplay;
   lyricOffset: number;
   adjustLyricOffset: (deltaMs: number) => void;
-  lyricsTargetLanguage: string | null;
+  translateToForLyrics: string | null;
 }
 
 // Main IpodScreen component
@@ -224,7 +224,7 @@ export function IpodScreen({
   koreanDisplay,
   lyricOffset,
   adjustLyricOffset,
-  lyricsTargetLanguage,
+  translateToForLyrics,
 }: IpodScreenProps) {
   // Animation variants for menu transitions
   const menuVariants = {
@@ -369,7 +369,7 @@ export function IpodScreen({
     artist: currentTrack?.artist ?? "",
     album: currentTrack?.album ?? "",
     currentTime: elapsedTime + (lyricOffset / 1000), // Use passed lyricOffset
-    translateTo: lyricsTargetLanguage, // Pass translateTo
+    translateTo: translateToForLyrics, // Pass translateTo
   });
   // const showLyrics = useIpodStore((s) => s.showLyrics); // Now passed as prop
   // const lyricsAlignment = useIpodStore((s) => s.lyricsAlignment); // Now passed as prop
