@@ -18,6 +18,7 @@ export enum LyricsAlignment {
 export enum ChineseVariant {
   Original = "original",
   Traditional = "traditional",
+  Simplified = "simplified",
 }
 
 export enum KoreanDisplay {

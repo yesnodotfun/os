@@ -6,7 +6,6 @@ import { Track } from "@/stores/useIpodStore";
 import { useAppStore } from "@/stores/useAppStore";
 import { LyricsDisplay } from "./LyricsDisplay";
 import { useLyrics } from "@/hooks/useLyrics";
-import { ChineseVariant, LyricsAlignment } from "@/types/lyrics";
 import { useIpodStore } from "@/stores/useIpodStore";
 
 // Helper component: MenuListItem
@@ -357,6 +356,9 @@ export function IpodScreen({
     currentTime: elapsedTime + currentLyricOffsetMs / 1000,
   });
   const showLyrics = useIpodStore((s) => s.showLyrics);
+  const lyricsAlignment = useIpodStore((s) => s.lyricsAlignment);
+  const chineseVariant = useIpodStore((s) => s.chineseVariant);
+  const koreanDisplay = useIpodStore((s) => s.koreanDisplay);
 
   // Decide whether lyrics overlay should be visible. It is visible if either the global toggle is on
   // or the current track has an explicit lyricOffset defined (indicating lyrics are available).
@@ -457,8 +459,9 @@ export function IpodScreen({
               isLoading={lyricsControls.isLoading}
               error={lyricsControls.error}
               visible={shouldShowLyrics}
-              alignment={LyricsAlignment.Alternating}
-              chineseVariant={ChineseVariant.Traditional}
+              alignment={lyricsAlignment}
+              chineseVariant={chineseVariant}
+              koreanDisplay={koreanDisplay}
               onAdjustOffset={(deltaMs) => {
                 adjustLyricOffset(currentIndex, deltaMs);
                 const newOffset = currentLyricOffsetMs + deltaMs;

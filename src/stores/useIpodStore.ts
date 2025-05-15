@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { LyricsAlignment, ChineseVariant, KoreanDisplay } from "@/types/lyrics";
 
 // Define the Track type (can be shared or defined here)
 export interface Track {
@@ -19,7 +20,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     url: "https://youtu.be/vgqNtGVYQgc",
     title: "He Can't Love U",
     artist: "Jagged Edge",
-    album: "J.E. Heartbreak",
+    album: "JE Heartbreak (Explicit)",
   },
   {
     id: "GWL1Tzl0YdY",
@@ -33,7 +34,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     url: "https://www.youtube.com/watch?v=lXd1GHJPx-A",
     title: "Promise",
     artist: "Jagged Edge",
-    album: "J.E. Heartbreak",
+    album: "JE Heartbreak (Explicit)",
   },
   {
     id: "Y_AxRCNFT2g",
@@ -304,6 +305,9 @@ interface IpodData {
   theme: "classic" | "black";
   lcdFilterOn: boolean;
   showLyrics: boolean;
+  lyricsAlignment: LyricsAlignment;
+  chineseVariant: ChineseVariant;
+  koreanDisplay: KoreanDisplay;
 }
 
 const initialIpodData: IpodData = {
@@ -318,6 +322,9 @@ const initialIpodData: IpodData = {
   theme: "classic",
   lcdFilterOn: false,
   showLyrics: false,
+  lyricsAlignment: LyricsAlignment.Alternating,
+  chineseVariant: ChineseVariant.Traditional,
+  koreanDisplay: KoreanDisplay.Original,
 };
 
 export interface IpodState extends IpodData {
@@ -340,9 +347,15 @@ export interface IpodState extends IpodData {
   toggleLyrics: () => void;
   /** Adjust the lyric offset (in ms) for the track at the given index. */
   adjustLyricOffset: (trackIndex: number, deltaMs: number) => void;
+  /** Set lyrics alignment mode */
+  setLyricsAlignment: (alignment: LyricsAlignment) => void;
+  /** Set Chinese character variant */
+  setChineseVariant: (variant: ChineseVariant) => void;
+  /** Set Korean text display mode */
+  setKoreanDisplay: (display: KoreanDisplay) => void;
 }
 
-const CURRENT_IPOD_STORE_VERSION = 7; // Define the current version
+const CURRENT_IPOD_STORE_VERSION = 8; // Define the current version
 
 export const useIpodStore = create<IpodState>()(
   persist(
@@ -420,6 +433,9 @@ export const useIpodStore = create<IpodState>()(
 
           return { tracks } as Partial<IpodState>;
         }),
+      setLyricsAlignment: (alignment) => set({ lyricsAlignment: alignment }),
+      setChineseVariant: (variant) => set({ chineseVariant: variant }),
+      setKoreanDisplay: (display) => set({ koreanDisplay: display }),
     }),
     {
       name: "ryos:ipod", // Unique name for localStorage persistence
@@ -434,6 +450,9 @@ export const useIpodStore = create<IpodState>()(
         theme: state.theme,
         lcdFilterOn: state.lcdFilterOn,
         showLyrics: state.showLyrics, // Persist lyrics visibility
+        lyricsAlignment: state.lyricsAlignment,
+        chineseVariant: state.chineseVariant,
+        koreanDisplay: state.koreanDisplay,
       }),
       migrate: (persistedState, version) => {
         let state = persistedState as IpodState; // Type assertion
@@ -451,6 +470,10 @@ export const useIpodStore = create<IpodState>()(
             isPlaying: false,
             isShuffled: state.isShuffled, // Keep shuffle preference maybe? Or reset? Let's keep it for now.
             showLyrics: state.showLyrics ?? false, // Add default for migration
+            lyricsAlignment:
+              state.lyricsAlignment ?? LyricsAlignment.FocusThree,
+            chineseVariant: state.chineseVariant ?? ChineseVariant.Traditional,
+            koreanDisplay: state.koreanDisplay ?? KoreanDisplay.Original,
           };
         }
         // Clean up potentially outdated fields if needed in future migrations
@@ -467,6 +490,9 @@ export const useIpodStore = create<IpodState>()(
           theme: state.theme,
           lcdFilterOn: state.lcdFilterOn,
           showLyrics: state.showLyrics, // Persist lyrics visibility
+          lyricsAlignment: state.lyricsAlignment,
+          chineseVariant: state.chineseVariant,
+          koreanDisplay: state.koreanDisplay,
         };
 
         return partializedState as IpodState; // Return the potentially migrated state

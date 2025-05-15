@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { useIpodStore } from "@/stores/useIpodStore";
 import { toast } from "sonner";
 import { generateAppShareUrl } from "@/utils/sharedUrl";
+import { LyricsAlignment, ChineseVariant, KoreanDisplay } from "@/types/lyrics";
 
 interface IpodMenuBarProps {
   onClose: () => void;
@@ -45,6 +46,12 @@ export function IpodMenuBar({
   const isLcdFilterOn = useIpodStore((s) => s.lcdFilterOn);
   const currentTheme = useIpodStore((s) => s.theme);
   const showLyrics = useIpodStore((s) => s.showLyrics);
+  const lyricsAlignment =
+    useIpodStore((s) => s.lyricsAlignment) || LyricsAlignment.FocusThree;
+  const chineseVariant =
+    useIpodStore((s) => s.chineseVariant) || ChineseVariant.Traditional;
+  const koreanDisplay =
+    useIpodStore((s) => s.koreanDisplay) || KoreanDisplay.Original;
 
   const setCurrentIndex = useIpodStore((s) => s.setCurrentIndex);
   const setIsPlaying = useIpodStore((s) => s.setIsPlaying);
@@ -59,6 +66,9 @@ export function IpodMenuBar({
   const toggleLcdFilter = useIpodStore((s) => s.toggleLcdFilter);
   const setTheme = useIpodStore((s) => s.setTheme);
   const toggleLyrics = useIpodStore((s) => s.toggleLyrics);
+  const setLyricsAlignment = useIpodStore((s) => s.setLyricsAlignment);
+  const setChineseVariant = useIpodStore((s) => s.setChineseVariant);
+  const setKoreanDisplay = useIpodStore((s) => s.setKoreanDisplay);
 
   const handlePlayTrack = (index: number) => {
     setCurrentIndex(index);
@@ -218,20 +228,7 @@ export function IpodMenuBar({
               {isVideoOn ? "✓ Video" : "Video"}
             </span>
           </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => {
-              toggleLyrics();
-              if (!isVideoOn) {
-                toggleVideo();
-              }
-            }}
-            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
-            disabled={!isPlaying}
-          >
-            <span className={cn(!showLyrics && "pl-4")}>
-              {showLyrics ? "✓ Lyrics" : "Lyrics"}
-            </span>
-          </DropdownMenuItem>
+
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           <DropdownMenuItem
             onClick={() => setTheme("classic")}
@@ -249,6 +246,157 @@ export function IpodMenuBar({
               {currentTheme === "black" ? "✓ Black" : "Black"}
             </span>
           </DropdownMenuItem>
+
+          <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
+
+          {/* Lyrics Submenu */}
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
+              Lyrics Settings
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className="px-0">
+              {/* Always on */}
+              <DropdownMenuItem
+                onClick={toggleLyrics}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+                disabled={!isPlaying}
+              >
+                <span className={cn(!showLyrics && "pl-4")}>
+                  {showLyrics ? "✓ Show Lyrics" : "Show Lyrics"}
+                </span>
+              </DropdownMenuItem>
+
+              <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
+
+              {/* Chinese options */}
+              <DropdownMenuItem
+                onClick={() => setChineseVariant(ChineseVariant.Original)}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+                disabled={!showLyrics || !isPlaying}
+              >
+                <span
+                  className={cn(
+                    chineseVariant !== ChineseVariant.Original && "pl-4"
+                  )}
+                >
+                  {chineseVariant === ChineseVariant.Original
+                    ? "✓ Original Chinese"
+                    : "Original Chinese"}
+                </span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setChineseVariant(ChineseVariant.Traditional)}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+                disabled={!showLyrics || !isPlaying}
+              >
+                <span
+                  className={cn(
+                    chineseVariant !== ChineseVariant.Traditional && "pl-4"
+                  )}
+                >
+                  {chineseVariant === ChineseVariant.Traditional
+                    ? "✓ Traditional Chinese"
+                    : "Traditional Chinese"}
+                </span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setChineseVariant(ChineseVariant.Simplified)}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+                disabled={!showLyrics || !isPlaying}
+              >
+                <span
+                  className={cn(
+                    chineseVariant !== ChineseVariant.Simplified && "pl-4"
+                  )}
+                >
+                  {chineseVariant === ChineseVariant.Simplified
+                    ? "✓ Simplified Chinese"
+                    : "Simplified Chinese"}
+                </span>
+              </DropdownMenuItem>
+
+              {/* Korean options */}
+              <DropdownMenuItem
+                onClick={() => setKoreanDisplay(KoreanDisplay.Original)}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+                disabled={!showLyrics || !isPlaying}
+              >
+                <span
+                  className={cn(
+                    koreanDisplay !== KoreanDisplay.Original && "pl-4"
+                  )}
+                >
+                  {koreanDisplay === KoreanDisplay.Original
+                    ? "✓ Original Korean"
+                    : "Original Korean"}
+                </span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setKoreanDisplay(KoreanDisplay.Romanized)}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+                disabled={!showLyrics || !isPlaying}
+              >
+                <span
+                  className={cn(
+                    koreanDisplay !== KoreanDisplay.Romanized && "pl-4"
+                  )}
+                >
+                  {koreanDisplay === KoreanDisplay.Romanized
+                    ? "✓ Romanized Korean"
+                    : "Romanized Korean"}
+                </span>
+              </DropdownMenuItem>
+
+              <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
+
+              {/* Alignment modes */}
+              <DropdownMenuItem
+                onClick={() => setLyricsAlignment(LyricsAlignment.FocusThree)}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+                disabled={!showLyrics || !isPlaying}
+              >
+                <span
+                  className={cn(
+                    lyricsAlignment !== LyricsAlignment.FocusThree && "pl-4"
+                  )}
+                >
+                  {lyricsAlignment === LyricsAlignment.FocusThree
+                    ? "✓ Three Lines"
+                    : "Three Lines"}
+                </span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setLyricsAlignment(LyricsAlignment.Center)}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+                disabled={!showLyrics || !isPlaying}
+              >
+                <span
+                  className={cn(
+                    lyricsAlignment !== LyricsAlignment.Center && "pl-4"
+                  )}
+                >
+                  {lyricsAlignment === LyricsAlignment.Center
+                    ? "✓ Center"
+                    : "Center"}
+                </span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setLyricsAlignment(LyricsAlignment.Alternating)}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+                disabled={!showLyrics || !isPlaying}
+              >
+                <span
+                  className={cn(
+                    lyricsAlignment !== LyricsAlignment.Alternating && "pl-4"
+                  )}
+                >
+                  {lyricsAlignment === LyricsAlignment.Alternating
+                    ? "✓ Alternating"
+                    : "Alternating"}
+                </span>
+              </DropdownMenuItem>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
         </DropdownMenuContent>
       </DropdownMenu>
 

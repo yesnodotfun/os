@@ -41,9 +41,7 @@ const ANIMATION_CONFIG = {
 
 const LoadingState = () => (
   <div className="absolute inset-x-0 pb-5 top-0 left-0 right-0 bottom-0 pointer-events-none flex items-end justify-center z-40">
-    <div className="text-white/70 text-[12px] font-geneva-12">
-      Loading lyrics…
-    </div>
+    <div className="text-white/70 text-[12px] font-geneva-12 shimmer-text"></div>
   </div>
 );
 
@@ -87,9 +85,11 @@ const getVariants = (
     y: isAlternating
       ? 0
       : isCurrent
-      ? -10
-      : position === 1 || position === -1
-      ? -10
+      ? 0
+      : position === -1
+      ? 0
+      : position === 1
+      ? 0
       : 0,
     textShadow: isCurrent
       ? "0 0 20px rgba(255,255,255,0.7), 0 0 2px black, 0 0 2px black, 0 0 2px black"
@@ -154,7 +154,10 @@ export function LyricsDisplay({
     lineIndex: number,
     totalVisibleLines: number
   ) => {
-    if (align === LyricsAlignment.Center) {
+    if (
+      align === LyricsAlignment.Center ||
+      align === LyricsAlignment.FocusThree
+    ) {
       return "center";
     }
 
@@ -277,7 +280,7 @@ export function LyricsDisplay({
 
   return (
     <motion.div
-      layout
+      layout={alignment === LyricsAlignment.Alternating}
       transition={ANIMATION_CONFIG.spring}
       className="absolute inset-x-0 mx-auto pb-5 top-0 left-0 right-0 bottom-0 w-full h-full overflow-hidden flex flex-col items-center justify-end gap-2 z-40 select-none px-2"
       style={{ pointerEvents: "auto" }}

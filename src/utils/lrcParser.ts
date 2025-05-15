@@ -34,6 +34,14 @@ const SKIP_PREFIXES = [
   "Bass",
   "Drum",
   "Vocal",
+  "Electric Piano",
+  "Synth by",
+  "Recorded by",
+  "Mixed by",
+  "Mastered by",
+  "Produced by",
+  "Composed by",
+  "Digital Editing by",
 ] as const;
 
 export const parseLRC = (
