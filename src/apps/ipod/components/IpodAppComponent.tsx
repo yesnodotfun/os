@@ -90,10 +90,16 @@ export function IpodAppComponent({
     useState(false);
   const playerRef = useRef<ReactPlayer>(null);
   const skipOperationRef = useRef(false);
+  const userHasInteractedRef = useRef(false);
 
   const prevIsForeground = useRef(isForeground);
   const bringToForeground = useAppStore((state) => state.bringToForeground);
   const clearIpodInitialData = useAppStore((state) => state.clearInitialData);
+  
+  const ua = navigator.userAgent;
+  const isIOS = /iP(hone|od|ad)/.test(ua);
+  const isSafari = /Safari/.test(ua) && !/Chrome/.test(ua) && !/CriOS/.test(ua);
+  const isIOSSafari = isIOS && isSafari;
 
   const showStatus = useCallback((message: string) => {
     setStatusMessage(message);
@@ -107,6 +113,7 @@ export function IpodAppComponent({
 
   const registerActivity = useCallback(() => {
     setLastActivityTime(Date.now());
+    userHasInteractedRef.current = true;
     if (!useIpodStore.getState().backlightOn) {
       toggleBacklight();
     }
@@ -738,7 +745,8 @@ export function IpodAppComponent({
   // Add a watchdog effect to revert play state if playback never starts
   // (e.g., blocked by Mobile Safari's autoplay restrictions).
   useEffect(() => {
-    if (!isPlaying) return;
+    // Only apply this effect on iOS Safari when no user interaction has occurred yet
+    if (!isPlaying || !isIOSSafari || userHasInteractedRef.current) return;
 
     const startElapsed = elapsedTime;
     const timer = setTimeout(() => {
@@ -748,10 +756,10 @@ export function IpodAppComponent({
         setIsPlaying(false);
         showStatus("❙ ❙");
       }
-    }, 3000); // 1-second grace period
+    }, 3000);
 
     return () => clearTimeout(timer);
-  }, [isPlaying, elapsedTime, setIsPlaying, showStatus]);
+  }, [isPlaying, elapsedTime, setIsPlaying, showStatus, isIOSSafari]);
 
   const handleMenuButton = useCallback(() => {
     playClickSound();
