@@ -93,7 +93,7 @@ export const IPOD_DEFAULT_VIDEOS = [
       "title": "LEFT RIGHT",
       "artist": "XG",
       "album": "NEW DNA",
-      "lyricOffset": -3000
+      "lyricOffset": -4400
   },
   {
       "id": "QiYOkmrI1jg",
