@@ -47,9 +47,9 @@ const LoadingState = () => (
   </div>
 );
 
-const ErrorState = ({ message }: { message: string }) => (
+const ErrorState = () => (
   <div className="absolute inset-x-0 pb-5 top-0 left-0 right-0 bottom-0 pointer-events-none flex items-end justify-center z-40">
-    <div className="text-white/70 text-[12px] font-geneva-12">{message}</div>
+    <div className="text-white/70 text-[12px] font-geneva-12"></div>
   </div>
 );
 
