@@ -271,8 +271,8 @@ export function IpodMenuBar({
                   )}
                 >
                   {lyricsAlignment === LyricsAlignment.FocusThree
-                    ? "✓ Three Lines"
-                    : "Three Lines"}
+                    ? "✓ Multi"
+                    : "Multi"}
                 </span>
               </DropdownMenuItem>
               <DropdownMenuItem
@@ -285,8 +285,8 @@ export function IpodMenuBar({
                   )}
                 >
                   {lyricsAlignment === LyricsAlignment.Center
-                    ? "✓ Center"
-                    : "Center"}
+                    ? "✓ Single"
+                    : "Single"}
                 </span>
               </DropdownMenuItem>
               <DropdownMenuItem
