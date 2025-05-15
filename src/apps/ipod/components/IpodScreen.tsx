@@ -435,6 +435,9 @@ export function IpodScreen({
                 className="absolute inset-0 z-30"
                 onClick={(e) => {
                   e.stopPropagation();
+                  if (!isPlaying) {
+                    handlePlay();
+                  }
                   onToggleVideo();
                 }}
               />
@@ -546,6 +549,9 @@ export function IpodScreen({
               custom={menuDirection}
               onClick={() => {
                 if (!menuMode && currentTrack) {
+                  if (!isPlaying) {
+                    handlePlay();
+                  }
                   onToggleVideo();
                 }
               }}
