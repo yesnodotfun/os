@@ -26,6 +26,20 @@ interface IpodMenuBarProps {
   onShareSong: () => void;
 }
 
+const translationLanguages = [
+  { label: "Off", code: null },
+  { label: "English", code: "en" },
+  { label: "中文", code: "zh-TW" },
+  { label: "日本語", code: "ja" },
+  { label: "한국어", code: "ko" },
+  { label: "Español", code: "es" },
+  { label: "Français", code: "fr" },
+  { label: "Deutsch", code: "de" },
+  { label: "Português", code: "pt" },
+  { label: "Italiano", code: "it" },
+  { label: "Русский", code: "ru" },
+];
+
 export function IpodMenuBar({
   onClose,
   onShowHelp,
@@ -52,6 +66,7 @@ export function IpodMenuBar({
     useIpodStore((s) => s.chineseVariant) || ChineseVariant.Traditional;
   const koreanDisplay =
     useIpodStore((s) => s.koreanDisplay) || KoreanDisplay.Original;
+  const lyricsTargetLanguage = useIpodStore((s) => s.lyricsTargetLanguage);
 
   const setCurrentIndex = useIpodStore((s) => s.setCurrentIndex);
   const setIsPlaying = useIpodStore((s) => s.setIsPlaying);
@@ -69,6 +84,7 @@ export function IpodMenuBar({
   const setLyricsAlignment = useIpodStore((s) => s.setLyricsAlignment);
   const setChineseVariant = useIpodStore((s) => s.setChineseVariant);
   const setKoreanDisplay = useIpodStore((s) => s.setKoreanDisplay);
+  const setLyricsTargetLanguage = useIpodStore((s) => s.setLyricsTargetLanguage);
 
   const handlePlayTrack = (index: number) => {
     setCurrentIndex(index);
@@ -202,17 +218,15 @@ export function IpodMenuBar({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" sideOffset={1} className="px-0">
-         {/* Lyrics Submenu */}
+          {/* Lyrics Submenu */}
           <DropdownMenuSub>
             <DropdownMenuSubTrigger className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
               Lyrics
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent className="px-0">
-              {/* Always on */}
               <DropdownMenuItem
                 onClick={toggleLyrics}
                 className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
-                disabled={!isPlaying}
               >
                 <span className={cn(!showLyrics && "pl-4")}>
                   {showLyrics ? "✓ Show Lyrics" : "Show Lyrics"}
@@ -225,7 +239,6 @@ export function IpodMenuBar({
               <DropdownMenuItem
                 onClick={() => setChineseVariant(chineseVariant === ChineseVariant.Traditional ? ChineseVariant.Original : ChineseVariant.Traditional)}
                 className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
-                disabled={!showLyrics || !isPlaying}
               >
                 <span className={cn(chineseVariant !== ChineseVariant.Traditional && "pl-4")}>
                   {chineseVariant === ChineseVariant.Traditional 
@@ -238,7 +251,6 @@ export function IpodMenuBar({
               <DropdownMenuItem
                 onClick={() => setKoreanDisplay(koreanDisplay === KoreanDisplay.Original ? KoreanDisplay.Romanized : KoreanDisplay.Original)}
                 className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
-                disabled={!showLyrics || !isPlaying}
               >
                 <span className={cn(koreanDisplay !== KoreanDisplay.Original && "pl-4")}>
                   {koreanDisplay === KoreanDisplay.Original 
@@ -253,7 +265,6 @@ export function IpodMenuBar({
               <DropdownMenuItem
                 onClick={() => setLyricsAlignment(LyricsAlignment.FocusThree)}
                 className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
-                disabled={!showLyrics || !isPlaying}
               >
                 <span
                   className={cn(
@@ -268,7 +279,6 @@ export function IpodMenuBar({
               <DropdownMenuItem
                 onClick={() => setLyricsAlignment(LyricsAlignment.Center)}
                 className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
-                disabled={!showLyrics || !isPlaying}
               >
                 <span
                   className={cn(
@@ -283,7 +293,6 @@ export function IpodMenuBar({
               <DropdownMenuItem
                 onClick={() => setLyricsAlignment(LyricsAlignment.Alternating)}
                 className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
-                disabled={!showLyrics || !isPlaying}
               >
                 <span
                   className={cn(
@@ -298,6 +307,29 @@ export function IpodMenuBar({
             </DropdownMenuSubContent>
           </DropdownMenuSub>
 
+          {/* Translate Lyrics Submenu */}
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger 
+              className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+             >
+              Translate
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className="px-0 max-h-[200px] overflow-y-auto">
+              {translationLanguages.map((lang) => (
+                <DropdownMenuItem
+                  key={lang.code || "off"}
+                  onClick={() => setLyricsTargetLanguage(lang.code)}
+                  className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+                >
+                  <span className={cn(lyricsTargetLanguage !== lang.code && "pl-4")}>
+                    {lyricsTargetLanguage === lang.code ? "✓ " : ""}
+                    {lang.label}
+                  </span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+          
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
 
           <DropdownMenuItem

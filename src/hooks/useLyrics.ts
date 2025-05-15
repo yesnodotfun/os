@@ -11,148 +11,227 @@ interface UseLyricsParams {
   album?: string;
   /** Current playback time in seconds */
   currentTime: number;
+  /** Target language for translation (e.g., "en", "es", "ja"). If null or undefined, no translation. */
+  translateTo?: string | null;
 }
 
 interface LyricsState {
   lines: LyricLine[];
   currentLine: number;
-  isLoading: boolean;
+  isLoading: boolean; // True when fetching original LRC
+  isTranslating: boolean; // True when translating lyrics
   error?: string;
 }
 
 /**
- * Fetch timed lyrics (LRC) for a given song and keep track of which line is currently active
- * based on playback time. Returns the parsed lyric lines and the index of the current line.
+ * Fetch timed lyrics (LRC) for a given song, optionally translate them,
+ * and keep track of which line is currently active based on playback time.
+ * Returns the parsed lyric lines and the index of the current line.
  */
 export function useLyrics({
   title = "",
   artist = "",
   album = "",
   currentTime,
+  translateTo,
 }: UseLyricsParams): LyricsState {
-  const [lines, setLines] = useState<LyricLine[]>([]);
+  const [originalLines, setOriginalLines] = useState<LyricLine[]>([]);
+  const [translatedLines, setTranslatedLines] = useState<LyricLine[] | null>(null);
   const [currentLine, setCurrentLine] = useState(-1);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isFetchingOriginal, setIsFetchingOriginal] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
   const [error, setError] = useState<string | undefined>();
 
-  // Keep last successful lyrics in case we fail next time (network issues, etc.)
-  const cachedKeyRef = useRef<string | null>(null);
+  const cachedKeyRef = useRef<string | null>(null); // For original LRC fetch
 
-  // Fetch lyrics when title/artist changes
+  // Effect for fetching original lyrics
   useEffect(() => {
-    // Immediately clear old lyrics and set loading state
-    setLines([]);
+    setOriginalLines([]);
+    setTranslatedLines(null);
     setCurrentLine(-1);
-    setIsLoading(true);
-    setError(undefined); // Also clear previous errors
+    setIsFetchingOriginal(true);
+    setIsTranslating(false); // Reset translation state
+    setError(undefined);
 
     if (!title && !artist && !album) {
-      // setLines([]); // Already done above
-      // setCurrentLine(-1); // Already done above
-      setIsLoading(false); // No fetching, so not loading
+      setIsFetchingOriginal(false);
       return;
     }
 
     const cacheKey = `${title}__${artist}__${album}`;
-
-    // If we have already fetched for this key, skip re-fetching
-    // but ensure loading state is false if we skipped.
     if (cacheKey === cachedKeyRef.current) {
-      setIsLoading(false); // Not fetching if cached
+      // If original lyrics are cached, we might still need to translate if translateTo changed.
+      // The translation effect will handle this.
+      setIsFetchingOriginal(false); // Not fetching if original is cached
       return;
     }
 
     let cancelled = false;
-    // setIsLoading(true); // Moved to the top of the effect
-    // setError(undefined); // Moved to the top of the effect
-
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       controller.abort();
       console.warn("Lyrics fetch timed out");
-    }, 15000); // 15 second timeout
+    }, 15000);
 
     fetch("/api/lyrics", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title, artist, album }),
-      signal: controller.signal, // Add AbortSignal
+      signal: controller.signal,
     })
       .then(async (res) => {
-        clearTimeout(timeoutId); // Clear timeout if fetch completes
+        clearTimeout(timeoutId);
         if (!res.ok) {
-          if (res.status === 404 || controller.signal.aborted) {
-            // Don't throw for 404 or aborted, handle as "no lyrics"
-            return null;
-          }
+          if (res.status === 404 || controller.signal.aborted) return null;
           throw new Error(`Failed to fetch lyrics (status ${res.status})`);
         }
         return res.json();
       })
       .then((json) => {
         if (cancelled) return;
-        if (!json) { // Handle null response from timeout or 404
-          throw new Error("No lyrics found or fetch timed out");
-        }
+        if (!json) throw new Error("No lyrics found or fetch timed out");
+        
         const lrc: string | undefined = json?.lyrics;
-        if (!lrc) {
-          throw new Error("No lyrics found");
-        }
+        if (!lrc) throw new Error("No lyrics found");
+
         const cleanedLrc = lrc.replace(/\u200b/g, "");
-        const parsed = parseLRC(
-          cleanedLrc,
-          json?.title ?? title,
-          json?.artist ?? artist
-        );
-        setLines(parsed);
+        const parsed = parseLRC(cleanedLrc, json?.title ?? title, json?.artist ?? artist);
+        setOriginalLines(parsed);
         cachedKeyRef.current = cacheKey;
+        // Translation will be handled by the next effect
       })
       .catch((err: unknown) => {
         if (cancelled) return;
-        console.error("useLyrics error", err);
-        // Set error BEFORE clearing lines, so UI can show error with context if needed
+        console.error("useLyrics original fetch error", err);
         if (err instanceof DOMException && err.name === "AbortError") {
           setError("Lyrics search timed out.");
         } else {
-          setError(err instanceof Error ? err.message : "Unknown error");
+          setError(err instanceof Error ? err.message : "Unknown error fetching lyrics");
         }
-        setLines([]); // Clear lines on error
-        setCurrentLine(-1); // Reset current line on error
+        setOriginalLines([]);
+        setCurrentLine(-1);
       })
       .finally(() => {
-        if (!cancelled) setIsLoading(false);
-        clearTimeout(timeoutId); // Ensure timeout is cleared
+        if (!cancelled) setIsFetchingOriginal(false);
+        clearTimeout(timeoutId);
       });
 
     return () => {
       cancelled = true;
-      controller.abort(); // Abort fetch on cleanup
-      clearTimeout(timeoutId); // Clear timeout on cleanup
+      controller.abort();
+      clearTimeout(timeoutId);
     };
   }, [title, artist, album]);
 
-  // Update current line on time change
+  // Effect for translating lyrics
   useEffect(() => {
-    if (!lines.length) {
+    if (!translateTo || originalLines.length === 0) {
+      setTranslatedLines(null);
+      setIsTranslating(false);
+      if (translateTo && originalLines.length > 0) { // If trying to translate but no original lines yet due to fetch
+          // This case should be handled by originalLines fetch completing first.
+          // If originalLines is empty and translateTo is set, it means we are waiting for original fetch or original fetch failed.
+      }
+      return;
+    }
+
+    // If original fetch is still in progress, wait for it.
+    if (isFetchingOriginal) {
+        setIsTranslating(false); // Not yet translating
+        return;
+    }
+    
+    let cancelled = false;
+    setIsTranslating(true);
+    setError(undefined); // Clear previous errors
+
+    const controller = new AbortController();
+    const translationTimeoutId = setTimeout(() => {
+        controller.abort();
+        console.warn("Lyrics translation timed out");
+    }, 20000); // 20 second timeout for translation
+
+    fetch("/api/translate-lyrics", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" }, // Request body is still JSON
+      body: JSON.stringify({ lines: originalLines, targetLanguage: translateTo }),
+      signal: controller.signal,
+    })
+      .then(async (res) => {
+        clearTimeout(translationTimeoutId);
+        const responseText = await res.text(); // Read response as text
+        if (!res.ok) {
+          // API returns plain text error like "Error: <message>"
+          // Remove "Error: " prefix if present
+          const errorMessage = responseText.startsWith("Error: ") ? responseText.substring(7) : responseText;
+          throw new Error(errorMessage || `Translation request failed with status ${res.status}`);
+        }
+        return responseText; // Return the LRC string
+      })
+      .then((lrcText) => {
+        if (cancelled) return;
+        if (lrcText) {
+          // Assuming parseLRC can handle an empty string or returns empty array
+          // The title and artist here are placeholders as they might not be strictly relevant
+          // for already translated lyrics, depending on parseLRC's needs.
+          // If originalLines has title/artist, those could be used, or fallback to current song's.
+          const parsedTranslatedLines = parseLRC(lrcText, title, artist);
+          setTranslatedLines(parsedTranslatedLines);
+        } else {
+          // This case might occur if API returns an empty string for a successful but empty translation
+          setTranslatedLines([]); 
+        }
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        console.error("useLyrics translation error", err);
+        if (err instanceof DOMException && err.name === "AbortError") {
+          setError("Lyrics translation timed out.");
+        } else {
+          setError(err instanceof Error ? err.message : "Unknown error during translation");
+        }
+        setTranslatedLines(null);
+      })
+      .finally(() => {
+        if (!cancelled) setIsTranslating(false);
+        clearTimeout(translationTimeoutId);
+      });
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+      clearTimeout(translationTimeoutId);
+    };
+  }, [originalLines, translateTo, isFetchingOriginal, title, artist]);
+
+  const displayLines = translatedLines || originalLines;
+
+  // Update current line based on displayed lines and current time
+  useEffect(() => {
+    if (!displayLines.length) {
       setCurrentLine(-1);
       return;
     }
 
     const timeMs = currentTime * 1000;
-
-    // Find the index of the last line whose startTimeMs <= current time
-    let idx = lines.findIndex((line, i) => {
+    let idx = displayLines.findIndex((line, i) => {
       const nextLineStart =
-        i + 1 < lines.length ? parseInt(lines[i + 1].startTimeMs) : Infinity;
+        i + 1 < displayLines.length ? parseInt(displayLines[i + 1].startTimeMs) : Infinity;
       return timeMs >= parseInt(line.startTimeMs) && timeMs < nextLineStart;
     });
 
-    if (idx === -1 && timeMs >= parseInt(lines[lines.length - 1].startTimeMs)) {
-      idx = lines.length - 1;
+    if (idx === -1 && displayLines.length > 0 && timeMs >= parseInt(displayLines[displayLines.length - 1].startTimeMs)) {
+      idx = displayLines.length - 1;
     }
-
+    
     setCurrentLine(idx);
-  }, [currentTime, lines]);
+  }, [currentTime, displayLines]);
 
-  return { lines, currentLine, isLoading, error };
+  return {
+    lines: displayLines,
+    currentLine,
+    isLoading: isFetchingOriginal,
+    isTranslating,
+    error,
+  };
 }

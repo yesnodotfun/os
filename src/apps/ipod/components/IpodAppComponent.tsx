@@ -39,6 +39,12 @@ export function IpodAppComponent({
   const backlightOn = useIpodStore((s) => s.backlightOn);
   const theme = useIpodStore((s) => s.theme);
   const lcdFilterOn = useIpodStore((s) => s.lcdFilterOn);
+  const showLyrics = useIpodStore((s) => s.showLyrics);
+  const lyricsAlignment = useIpodStore((s) => s.lyricsAlignment);
+  const chineseVariant = useIpodStore((s) => s.chineseVariant);
+  const koreanDisplay = useIpodStore((s) => s.koreanDisplay);
+  const lyricOffset = useIpodStore((s) => s.tracks[s.currentIndex]?.lyricOffset);
+  const lyricsTargetLanguage = useIpodStore((s) => s.lyricsTargetLanguage);
 
   const setCurrentIndex = useIpodStore((s) => s.setCurrentIndex);
   const toggleLoopAll = useIpodStore((s) => s.toggleLoopAll);
@@ -1155,6 +1161,13 @@ export function IpodAppComponent({
               lcdFilterOn={lcdFilterOn}
               ipodVolume={ipodVolume}
               showStatusCallback={showStatus}
+              showLyrics={showLyrics}
+              lyricsAlignment={lyricsAlignment}
+              chineseVariant={chineseVariant}
+              koreanDisplay={koreanDisplay}
+              lyricOffset={lyricOffset ?? 0}
+              adjustLyricOffset={(delta) => useIpodStore.getState().adjustLyricOffset(currentIndex, delta)}
+              lyricsTargetLanguage={lyricsTargetLanguage}
             />
 
             <IpodWheel

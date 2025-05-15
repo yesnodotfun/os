@@ -6,7 +6,7 @@ import { Track } from "@/stores/useIpodStore";
 import { useAppStore } from "@/stores/useAppStore";
 import { LyricsDisplay } from "./LyricsDisplay";
 import { useLyrics } from "@/hooks/useLyrics";
-import { useIpodStore } from "@/stores/useIpodStore";
+import { LyricsAlignment, ChineseVariant, KoreanDisplay } from "@/types/lyrics";
 
 // Helper component: MenuListItem
 function MenuListItem({
@@ -180,6 +180,13 @@ interface IpodScreenProps {
   lcdFilterOn: boolean;
   ipodVolume: number;
   showStatusCallback: (message: string) => void;
+  showLyrics: boolean;
+  lyricsAlignment: LyricsAlignment;
+  chineseVariant: ChineseVariant;
+  koreanDisplay: KoreanDisplay;
+  lyricOffset: number;
+  adjustLyricOffset: (deltaMs: number) => void;
+  lyricsTargetLanguage: string | null;
 }
 
 // Main IpodScreen component
@@ -211,6 +218,13 @@ export function IpodScreen({
   lcdFilterOn,
   ipodVolume,
   showStatusCallback,
+  showLyrics,
+  lyricsAlignment,
+  chineseVariant,
+  koreanDisplay,
+  lyricOffset,
+  adjustLyricOffset,
+  lyricsTargetLanguage,
 }: IpodScreenProps) {
   // Animation variants for menu transitions
   const menuVariants = {
@@ -345,21 +359,22 @@ export function IpodScreen({
   }, [menuMode, menuHistory.length]);
 
   // Lyric offset handling
-  const currentLyricOffsetMs = useIpodStore(
-    (s) => s.tracks[s.currentIndex]?.lyricOffset || 0
-  );
-  const adjustLyricOffset = useIpodStore((s) => s.adjustLyricOffset);
+  // const currentLyricOffsetMs = useIpodStore(
+  //   (s) => s.tracks[s.currentIndex]?.lyricOffset || 0
+  // );
+  // const adjustLyricOffsetStore = useIpodStore((s) => s.adjustLyricOffset);
 
   const lyricsControls = useLyrics({
     title: currentTrack?.title ?? "",
     artist: currentTrack?.artist ?? "",
     album: currentTrack?.album ?? "",
-    currentTime: elapsedTime + currentLyricOffsetMs / 1000,
+    currentTime: elapsedTime + (lyricOffset / 1000), // Use passed lyricOffset
+    translateTo: lyricsTargetLanguage, // Pass translateTo
   });
-  const showLyrics = useIpodStore((s) => s.showLyrics);
-  const lyricsAlignment = useIpodStore((s) => s.lyricsAlignment);
-  const chineseVariant = useIpodStore((s) => s.chineseVariant);
-  const koreanDisplay = useIpodStore((s) => s.koreanDisplay);
+  // const showLyrics = useIpodStore((s) => s.showLyrics); // Now passed as prop
+  // const lyricsAlignment = useIpodStore((s) => s.lyricsAlignment); // Now passed as prop
+  // const chineseVariant = useIpodStore((s) => s.chineseVariant); // Now passed as prop
+  // const koreanDisplay = useIpodStore((s) => s.koreanDisplay); // Now passed as prop
 
   // Decide whether lyrics overlay should be visible. It is visible if either the global toggle is on
   // or the current track has an explicit lyricOffset defined (indicating lyrics are available).
@@ -466,9 +481,10 @@ export function IpodScreen({
               alignment={lyricsAlignment}
               chineseVariant={chineseVariant}
               koreanDisplay={koreanDisplay}
+              isTranslating={lyricsControls.isTranslating} // Pass isTranslating
               onAdjustOffset={(deltaMs) => {
-                adjustLyricOffset(currentIndex, deltaMs);
-                const newOffset = currentLyricOffsetMs + deltaMs;
+                adjustLyricOffset(deltaMs); // Use passed adjustLyricOffset
+                const newOffset = lyricOffset + deltaMs;
                 const sign = newOffset > 0 ? "+" : newOffset < 0 ? "" : "";
                 showStatusCallback(
                   `Offset ${sign}${(newOffset / 1000).toFixed(2)}s`

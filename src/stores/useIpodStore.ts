@@ -291,6 +291,7 @@ interface IpodData {
   lyricsAlignment: LyricsAlignment;
   chineseVariant: ChineseVariant;
   koreanDisplay: KoreanDisplay;
+  lyricsTargetLanguage: string | null;
 }
 
 const initialIpodData: IpodData = {
@@ -308,6 +309,7 @@ const initialIpodData: IpodData = {
   lyricsAlignment: LyricsAlignment.Alternating,
   chineseVariant: ChineseVariant.Traditional,
   koreanDisplay: KoreanDisplay.Original,
+  lyricsTargetLanguage: null, // Initialize as null (no translation)
 };
 
 export interface IpodState extends IpodData {
@@ -336,9 +338,11 @@ export interface IpodState extends IpodData {
   setChineseVariant: (variant: ChineseVariant) => void;
   /** Set Korean text display mode */
   setKoreanDisplay: (display: KoreanDisplay) => void;
+  /** Set the target language for lyrics translation. Pass null to disable translation. */
+  setLyricsTargetLanguage: (language: string | null) => void;
 }
 
-const CURRENT_IPOD_STORE_VERSION = 9; // Define the current version
+const CURRENT_IPOD_STORE_VERSION = 10; // Incremented version for new state
 
 export const useIpodStore = create<IpodState>()(
   persist(
@@ -419,6 +423,7 @@ export const useIpodStore = create<IpodState>()(
       setLyricsAlignment: (alignment) => set({ lyricsAlignment: alignment }),
       setChineseVariant: (variant) => set({ chineseVariant: variant }),
       setKoreanDisplay: (display) => set({ koreanDisplay: display }),
+      setLyricsTargetLanguage: (language) => set({ lyricsTargetLanguage: language }),
     }),
     {
       name: "ryos:ipod", // Unique name for localStorage persistence
@@ -436,6 +441,7 @@ export const useIpodStore = create<IpodState>()(
         lyricsAlignment: state.lyricsAlignment,
         chineseVariant: state.chineseVariant,
         koreanDisplay: state.koreanDisplay,
+        lyricsTargetLanguage: state.lyricsTargetLanguage, // Persist translation language
       }),
       migrate: (persistedState, version) => {
         let state = persistedState as IpodState; // Type assertion
@@ -457,6 +463,7 @@ export const useIpodStore = create<IpodState>()(
               state.lyricsAlignment ?? LyricsAlignment.FocusThree,
             chineseVariant: state.chineseVariant ?? ChineseVariant.Traditional,
             koreanDisplay: state.koreanDisplay ?? KoreanDisplay.Original,
+            lyricsTargetLanguage: state.lyricsTargetLanguage ?? null, // Add default for migration
           };
         }
         // Clean up potentially outdated fields if needed in future migrations
@@ -476,6 +483,7 @@ export const useIpodStore = create<IpodState>()(
           lyricsAlignment: state.lyricsAlignment,
           chineseVariant: state.chineseVariant,
           koreanDisplay: state.koreanDisplay,
+          lyricsTargetLanguage: state.lyricsTargetLanguage,
         };
 
         return partializedState as IpodState; // Return the potentially migrated state
