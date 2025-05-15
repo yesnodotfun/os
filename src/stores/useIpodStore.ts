@@ -37,7 +37,7 @@ export const IPOD_DEFAULT_VIDEOS = [
       "title": "Supernatural (Miami Bass Remix)",
       "artist": "NewJeans (뉴진스)",
       "album": "Supernatural",
-      "lyricOffset": 21400
+      "lyricOffset": 27350
   },
   {
       "id": "1FNI1i7H1Kc",
