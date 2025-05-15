@@ -11,7 +11,6 @@ export const config = {
 const LyricsRequestSchema = z.object({
   title: z.string().optional(),
   artist: z.string().optional(),
-  album: z.string().optional(),
 });
 
 type LyricsRequest = z.infer<typeof LyricsRequestSchema>;
