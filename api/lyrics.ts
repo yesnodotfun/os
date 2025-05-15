@@ -76,6 +76,15 @@ function base64ToUtf8(base64: string): string {
 }
 
 /**
+ * Removes content within parentheses from a string
+ * Example: "The Chase (R&B Remix)" -> "The Chase"
+ */
+function stripParentheses(str: string): string {
+  if (!str) return str;
+  return str.replace(/\s*\([^)]*\)\s*/g, ' ').trim();
+}
+
+/**
  * Main handler
  */
 export default async function handler(req: Request) {
@@ -94,11 +103,12 @@ export default async function handler(req: Request) {
     });
   }
 
-  const { title = "", artist = "", album = "" } = body;
-  if (!title && !artist && !album) {
+  const { title = "", artist = "" } = body;
+  const album = ""; // Album is not part of the request schema
+  if (!title && !artist) {
     return new Response(
       JSON.stringify({
-        error: "At least one of title, artist or album is required",
+        error: "At least one of title or artist is required",
       }),
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
@@ -135,7 +145,7 @@ export default async function handler(req: Request) {
 
     // 1. Search song
     const keyword = encodeURIComponent(
-      [title, artist, album].filter(Boolean).join(" ")
+      [stripParentheses(title), stripParentheses(artist), album].filter(Boolean).join(" ")
     );
     const searchUrl = `http://mobilecdn.kugou.com/api/v3/search/song?format=json&keyword=${keyword}&page=1&pagesize=2&showtype=1`;
 
