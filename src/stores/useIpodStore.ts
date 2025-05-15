@@ -306,7 +306,7 @@ const initialIpodData: IpodData = {
   theme: "classic",
   lcdFilterOn: true,
   showLyrics: true,
-  lyricsAlignment: LyricsAlignment.Alternating,
+  lyricsAlignment: LyricsAlignment.FocusThree,
   chineseVariant: ChineseVariant.Traditional,
   koreanDisplay: KoreanDisplay.Original,
   lyricsTranslationRequest: null, // Initialize as null (no translation)
