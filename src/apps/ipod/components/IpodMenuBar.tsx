@@ -221,67 +221,29 @@ export function IpodMenuBar({
 
               <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
 
-              {/* Chinese options */}
+              {/* Chinese toggle */}
               <DropdownMenuItem
-                onClick={() => setChineseVariant(ChineseVariant.Original)}
+                onClick={() => setChineseVariant(chineseVariant === ChineseVariant.Traditional ? ChineseVariant.Original : ChineseVariant.Traditional)}
                 className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
                 disabled={!showLyrics || !isPlaying}
               >
-                <span
-                  className={cn(
-                    chineseVariant !== ChineseVariant.Original && "pl-4"
-                  )}
-                >
-                  {chineseVariant === ChineseVariant.Original
-                    ? "✓ Original Chinese"
-                    : "Original Chinese"}
-                </span>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setChineseVariant(ChineseVariant.Traditional)}
-                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
-                disabled={!showLyrics || !isPlaying}
-              >
-                <span
-                  className={cn(
-                    chineseVariant !== ChineseVariant.Traditional && "pl-4"
-                  )}
-                >
-                  {chineseVariant === ChineseVariant.Traditional
-                    ? "✓ Traditional Chinese"
+                <span className={cn(chineseVariant !== ChineseVariant.Traditional && "pl-4")}>
+                  {chineseVariant === ChineseVariant.Traditional 
+                    ? "✓ Traditional Chinese" 
                     : "Traditional Chinese"}
                 </span>
               </DropdownMenuItem>
 
-              {/* Korean options */}
+              {/* Korean toggle */}
               <DropdownMenuItem
-                onClick={() => setKoreanDisplay(KoreanDisplay.Original)}
+                onClick={() => setKoreanDisplay(koreanDisplay === KoreanDisplay.Original ? KoreanDisplay.Romanized : KoreanDisplay.Original)}
                 className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
                 disabled={!showLyrics || !isPlaying}
               >
-                <span
-                  className={cn(
-                    koreanDisplay !== KoreanDisplay.Original && "pl-4"
-                  )}
-                >
-                  {koreanDisplay === KoreanDisplay.Original
-                    ? "✓ Original Korean"
-                    : "Original Korean"}
-                </span>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setKoreanDisplay(KoreanDisplay.Romanized)}
-                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
-                disabled={!showLyrics || !isPlaying}
-              >
-                <span
-                  className={cn(
-                    koreanDisplay !== KoreanDisplay.Romanized && "pl-4"
-                  )}
-                >
-                  {koreanDisplay === KoreanDisplay.Romanized
-                    ? "✓ Romanized Korean"
-                    : "Romanized Korean"}
+                <span className={cn(koreanDisplay !== KoreanDisplay.Original && "pl-4")}>
+                  {koreanDisplay === KoreanDisplay.Original 
+                    ? "✓ Hangul" 
+                    : "Hangul"}
                 </span>
               </DropdownMenuItem>
 
