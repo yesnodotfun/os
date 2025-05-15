@@ -251,7 +251,7 @@ export function LyricsDisplay({
     if (!onAdjustOffset) return;
     e.preventDefault();
     const delta = e.deltaY;
-    const step = 200; // 200 ms per scroll step
+    const step = 50; // 50 ms per scroll step (was 200)
     const change = delta > 0 ? step : -step;
     onAdjustOffset(change);
   };
@@ -266,9 +266,9 @@ export function LyricsDisplay({
     if (lastTouchY.current === null || !onAdjustOffset) return;
     const currentY = e.touches[0].clientY;
     const dy = currentY - lastTouchY.current;
-    if (Math.abs(dy) > 10) {
-      const step = 200; // 200 ms per ~30px swipe
-      const change = dy > 0 ? step : -step;
+    if (Math.abs(dy) > 10) { // Threshold to start adjustment
+      const step = 50; // 50 ms per swipe (was 200)
+      const change = dy > 0 ? step : -step; // Inverted: swipe down = lyrics later (positive offset), swipe up = lyrics earlier (negative offset)
       onAdjustOffset(change);
       lastTouchY.current = currentY;
     }

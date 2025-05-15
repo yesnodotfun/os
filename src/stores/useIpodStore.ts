@@ -157,7 +157,7 @@ export const IPOD_DEFAULT_VIDEOS = [
       "title": "Know About Me",
       "artist": "NMIXX (엔믹스)",
       "album": "Fe3O4: FORWARD - EP",
-      "lyricOffset": -400
+      "lyricOffset": -650
   },
   {
       "id": "hJ9Wp3PO3c8",
@@ -200,20 +200,12 @@ export const IPOD_DEFAULT_VIDEOS = [
       "lyricOffset": -8400
   },
   {
-      "id": "Rf-ctwR7P-M",
-      "url": "https://www.youtube.com/watch?v=Rf-ctwR7P-M",
-      "title": "마음대로 (Control Me)",
-      "artist": "Colde (콜드)",
-      "album": "Control Me - Single",
-      "lyricOffset": 1600
-  },
-  {
       "id": "36wVOzmsywo",
       "url": "https://www.youtube.com/watch?v=36wVOzmsywo",
       "title": "오래오래 (FRR)",
       "artist": "george (죠지)",
       "album": "FRR",
-      "lyricOffset": -6400
+      "lyricOffset": -4300
   },
   {
       "id": "FonjL7DQAUQ",
