@@ -40,20 +40,31 @@ export function useLyrics({
 
   // Fetch lyrics when title/artist changes
   useEffect(() => {
+    // Immediately clear old lyrics and set loading state
+    setLines([]);
+    setCurrentLine(-1);
+    setIsLoading(true);
+    setError(undefined); // Also clear previous errors
+
     if (!title && !artist && !album) {
-      setLines([]);
-      setCurrentLine(-1);
+      // setLines([]); // Already done above
+      // setCurrentLine(-1); // Already done above
+      setIsLoading(false); // No fetching, so not loading
       return;
     }
 
     const cacheKey = `${title}__${artist}__${album}`;
 
     // If we have already fetched for this key, skip re-fetching
-    if (cacheKey === cachedKeyRef.current) return;
+    // but ensure loading state is false if we skipped.
+    if (cacheKey === cachedKeyRef.current) {
+      setIsLoading(false); // Not fetching if cached
+      return;
+    }
 
     let cancelled = false;
-    setIsLoading(true);
-    setError(undefined);
+    // setIsLoading(true); // Moved to the top of the effect
+    // setError(undefined); // Moved to the top of the effect
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
@@ -99,12 +110,14 @@ export function useLyrics({
       .catch((err: unknown) => {
         if (cancelled) return;
         console.error("useLyrics error", err);
+        // Set error BEFORE clearing lines, so UI can show error with context if needed
         if (err instanceof DOMException && err.name === "AbortError") {
           setError("Lyrics search timed out.");
         } else {
           setError(err instanceof Error ? err.message : "Unknown error");
         }
         setLines([]); // Clear lines on error
+        setCurrentLine(-1); // Reset current line on error
       })
       .finally(() => {
         if (!cancelled) setIsLoading(false);
