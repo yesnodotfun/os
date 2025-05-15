@@ -41,7 +41,9 @@ const ANIMATION_CONFIG = {
 
 const LoadingState = () => (
   <div className="absolute inset-x-0 pb-5 top-0 left-0 right-0 bottom-0 pointer-events-none flex items-end justify-center z-40">
-    <div className="text-white/70 text-[12px] font-geneva-12 shimmer-text"></div>
+    <div className="text-[12px] font-geneva-12 shimmer opacity-60">
+      Loading lyrics…
+    </div>
   </div>
 );
 
@@ -282,7 +284,7 @@ export function LyricsDisplay({
     <motion.div
       layout={alignment === LyricsAlignment.Alternating}
       transition={ANIMATION_CONFIG.spring}
-      className="absolute inset-x-0 mx-auto pb-5 top-0 left-0 right-0 bottom-0 w-full h-full overflow-hidden flex flex-col items-center justify-end gap-2 z-40 select-none px-2"
+      className="absolute inset-x-0 mx-auto pb-5 top-0 left-0 right-0 bottom-0 w-full h-full overflow-hidden flex flex-col items-center justify-end gap-2 z-40 select-none px-0"
       style={{ pointerEvents: "auto" }}
       onWheel={handleWheel}
       onTouchStart={handleTouchStart}

@@ -353,6 +353,7 @@ export function IpodScreen({
   const lyricsControls = useLyrics({
     title: currentTrack?.title ?? "",
     artist: currentTrack?.artist ?? "",
+    album: currentTrack?.album ?? "",
     currentTime: elapsedTime + currentLyricOffsetMs / 1000,
   });
   const showLyrics = useIpodStore((s) => s.showLyrics);

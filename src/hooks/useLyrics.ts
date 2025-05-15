@@ -7,6 +7,8 @@ interface UseLyricsParams {
   title?: string;
   /** Song artist */
   artist?: string;
+  /** Song album */
+  album?: string;
   /** Current playback time in seconds */
   currentTime: number;
 }
@@ -25,6 +27,7 @@ interface LyricsState {
 export function useLyrics({
   title = "",
   artist = "",
+  album = "",
   currentTime,
 }: UseLyricsParams): LyricsState {
   const [lines, setLines] = useState<LyricLine[]>([]);
@@ -37,13 +40,13 @@ export function useLyrics({
 
   // Fetch lyrics when title/artist changes
   useEffect(() => {
-    if (!title && !artist) {
+    if (!title && !artist && !album) {
       setLines([]);
       setCurrentLine(-1);
       return;
     }
 
-    const cacheKey = `${title}__${artist}`;
+    const cacheKey = `${title}__${artist}__${album}`;
 
     // If we have already fetched for this key, skip re-fetching
     if (cacheKey === cachedKeyRef.current) return;
@@ -55,7 +58,7 @@ export function useLyrics({
     fetch("/api/lyrics", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, artist }),
+      body: JSON.stringify({ title, artist, album }),
     })
       .then(async (res) => {
         if (!res.ok) {
@@ -91,7 +94,7 @@ export function useLyrics({
     return () => {
       cancelled = true;
     };
-  }, [title, artist]);
+  }, [title, artist, album]);
 
   // Update current line on time change
   useEffect(() => {
