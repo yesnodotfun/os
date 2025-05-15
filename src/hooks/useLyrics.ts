@@ -55,19 +55,34 @@ export function useLyrics({
     setIsLoading(true);
     setError(undefined);
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+      console.warn("Lyrics fetch timed out");
+    }, 15000); // 15 second timeout
+
     fetch("/api/lyrics", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title, artist, album }),
+      signal: controller.signal, // Add AbortSignal
     })
       .then(async (res) => {
+        clearTimeout(timeoutId); // Clear timeout if fetch completes
         if (!res.ok) {
+          if (res.status === 404 || controller.signal.aborted) {
+            // Don't throw for 404 or aborted, handle as "no lyrics"
+            return null;
+          }
           throw new Error(`Failed to fetch lyrics (status ${res.status})`);
         }
         return res.json();
       })
       .then((json) => {
         if (cancelled) return;
+        if (!json) { // Handle null response from timeout or 404
+          throw new Error("No lyrics found or fetch timed out");
+        }
         const lrc: string | undefined = json?.lyrics;
         if (!lrc) {
           throw new Error("No lyrics found");
@@ -84,15 +99,22 @@ export function useLyrics({
       .catch((err: unknown) => {
         if (cancelled) return;
         console.error("useLyrics error", err);
-        setError(err instanceof Error ? err.message : "Unknown error");
-        setLines([]);
+        if (err instanceof DOMException && err.name === "AbortError") {
+          setError("Lyrics search timed out.");
+        } else {
+          setError(err instanceof Error ? err.message : "Unknown error");
+        }
+        setLines([]); // Clear lines on error
       })
       .finally(() => {
         if (!cancelled) setIsLoading(false);
+        clearTimeout(timeoutId); // Ensure timeout is cleared
       });
 
     return () => {
       cancelled = true;
+      controller.abort(); // Abort fetch on cleanup
+      clearTimeout(timeoutId); // Clear timeout on cleanup
     };
   }, [title, artist, album]);
 
