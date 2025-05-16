@@ -313,7 +313,7 @@ export function IpodMenuBar({
              >
               Translate
             </DropdownMenuSubTrigger>
-            <DropdownMenuSubContent className="px-0 max-h-[200px] overflow-y-auto">
+            <DropdownMenuSubContent className="px-0 max-h-[400px] overflow-y-auto">
               {translationLanguages.map((lang) => (
                 <DropdownMenuItem
                   key={lang.code || "off"}
