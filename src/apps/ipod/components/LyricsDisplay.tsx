@@ -96,15 +96,7 @@ const getVariants = (
     filter: isAlternating
       ? "blur(0px)"
       : `blur(${isCurrent || position === 1 || position === -1 ? 0 : 3}px)`,
-    y: isAlternating
-      ? 0
-      : isCurrent
-      ? 0
-      : position === -1
-      ? 0
-      : position === 1
-      ? 0
-      : 0,
+    y: 0,
     textShadow: isCurrent
       ? "0 0 8px rgba(255,255,255,0.9), 0 0 2px black, 0 0 2px black, 0 0 2px black"
       : "0 0 2px black, 0 0 2px black, 0 0 2px black",

@@ -394,12 +394,15 @@ export function IpodScreen({
         <div className="absolute inset-0 pointer-events-none z-25 lcd-reflection"></div>
       )}
 
-      {/* Video player */}
+      {/* Video & Lyrics Overlay */}
       {currentTrack && (
         <div
           className={cn(
-            "absolute inset-0 z-20 transition-opacity duration-300 overflow-hidden",
-            showVideo ? "opacity-100" : "opacity-0 pointer-events-none"
+            "absolute inset-0 transition-opacity duration-300 overflow-hidden",
+            menuMode ? "z-0" : "z-20",
+            menuMode || !showVideo
+              ? "opacity-0 pointer-events-none"
+              : "opacity-100"
           )}
         >
           <div
@@ -470,6 +473,7 @@ export function IpodScreen({
             <AnimatePresence>
               {statusMessage && (
                 <motion.div
+                  className="absolute inset-0 z-40"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
@@ -491,9 +495,9 @@ export function IpodScreen({
               alignment={lyricsAlignment}
               chineseVariant={chineseVariant}
               koreanDisplay={koreanDisplay}
-              isTranslating={lyricsControls.isTranslating} // Pass isTranslating
+              isTranslating={lyricsControls.isTranslating}
               onAdjustOffset={(deltaMs) => {
-                adjustLyricOffset(deltaMs); // Use passed adjustLyricOffset
+                adjustLyricOffset(deltaMs);
                 const newOffset = lyricOffset + deltaMs;
                 const sign = newOffset > 0 ? "+" : newOffset < 0 ? "" : "";
                 showStatusCallback(
