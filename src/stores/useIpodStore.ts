@@ -16,252 +16,259 @@ export interface Track {
 // Original video collection moved here
 export const IPOD_DEFAULT_VIDEOS = [
   {
-      "id": "lXd1GHJPx-A",
-      "url": "https://www.youtube.com/watch?v=lXd1GHJPx-A",
-      "title": "Promise",
-      "artist": "Jagged Edge",
-      "album": "JE Heartbreak (Explicit)",
-      "lyricOffset": -6200
+    id: "-nEGVrzPaiU",
+    url: "https://www.youtube.com/watch?v=-nEGVrzPaiU&pp=ygUPdGljayB0YWNrIGlsbGl0",
+    title: "Tick-Tack",
+    artist: "ILLIT (아일릿)",
+    lyricOffset: -15950,
   },
   {
-      "id": "Y_AxRCNFT2g",
-      "url": "https://www.youtube.com/watch?v=Y_AxRCNFT2g",
-      "title": "Supernova (House Remix)",
-      "artist": "aespa (에스파)",
-      "album": "Armageddon",
-      "lyricOffset": -5200
+    id: "lXd1GHJPx-A",
+    url: "https://www.youtube.com/watch?v=lXd1GHJPx-A",
+    title: "Promise",
+    artist: "Jagged Edge",
+    album: "JE Heartbreak (Explicit)",
+    lyricOffset: -6200,
   },
   {
-      "id": "yP8nAoFi6JY",
-      "url": "https://www.youtube.com/watch?v=yP8nAoFi6JY",
-      "title": "Supernatural (Miami Bass Remix)",
-      "artist": "NewJeans (뉴진스)",
-      "album": "Supernatural",
-      "lyricOffset": 27350
+    id: "Y_AxRCNFT2g",
+    url: "https://www.youtube.com/watch?v=Y_AxRCNFT2g",
+    title: "Supernova (House Remix)",
+    artist: "aespa (에스파)",
+    album: "Armageddon",
+    lyricOffset: -5200,
   },
   {
-      "id": "1FNI1i7H1Kc",
-      "url": "https://www.youtube.com/watch?v=1FNI1i7H1Kc",
-      "title": "The Chase (R&B Remix)",
-      "artist": "Hearts2Hearts (하츠투하츠)",
-      "album": "The Chase",
-      "lyricOffset": -6400
+    id: "yP8nAoFi6JY",
+    url: "https://www.youtube.com/watch?v=yP8nAoFi6JY",
+    title: "Supernatural (Miami Bass Remix)",
+    artist: "NewJeans (뉴진스)",
+    album: "Supernatural",
+    lyricOffset: 27350,
   },
   {
-      "id": "LVLOwwGVVZ0",
-      "url": "https://www.youtube.com/watch?v=LVLOwwGVVZ0",
-      "title": "Right Now (R&B Remix)",
-      "artist": "NewJeans (뉴진스)",
-      "album": "Supernatural",
-      "lyricOffset": -2400
+    id: "1FNI1i7H1Kc",
+    url: "https://www.youtube.com/watch?v=1FNI1i7H1Kc",
+    title: "The Chase (R&B Remix)",
+    artist: "Hearts2Hearts (하츠투하츠)",
+    album: "The Chase",
+    lyricOffset: -6400,
   },
   {
-      "id": "AGaTzDTnYGY",
-      "url": "https://www.youtube.com/watch?v=AGaTzDTnYGY",
-      "title": "How Sweet (UK Garage Remix)",
-      "artist": "NewJeans (뉴진스)",
-      "album": "How Sweet",
-      "lyricOffset": 2400
+    id: "LVLOwwGVVZ0",
+    url: "https://www.youtube.com/watch?v=LVLOwwGVVZ0",
+    title: "Right Now (R&B Remix)",
+    artist: "NewJeans (뉴진스)",
+    album: "Supernatural",
+    lyricOffset: -2400,
   },
   {
-      "id": "XJWqHmY-g9U",
-      "url": "https://www.youtube.com/watch?v=XJWqHmY-g9U",
-      "title": "Telephone Number",
-      "artist": "Junko Ohashi (大橋純子)",
-      "album": "MAGICAL",
-      "lyricOffset": 2200
+    id: "AGaTzDTnYGY",
+    url: "https://www.youtube.com/watch?v=AGaTzDTnYGY",
+    title: "How Sweet (UK Garage Remix)",
+    artist: "NewJeans (뉴진스)",
+    album: "How Sweet",
+    lyricOffset: 2400,
   },
   {
-      "id": "f3zVbOMyzgE",
-      "url": "https://www.youtube.com/watch?v=f3zVbOMyzgE",
-      "title": "UP&DOWN",
-      "artist": "임지수 (Lim Jisoo)",
-      "album": "UP&DOWN",
-      "lyricOffset": 2000
+    id: "XJWqHmY-g9U",
+    url: "https://www.youtube.com/watch?v=XJWqHmY-g9U",
+    title: "Telephone Number",
+    artist: "Junko Ohashi (大橋純子)",
+    album: "MAGICAL",
+    lyricOffset: 2200,
   },
   {
-      "id": "zt0Me5qyK4g",
-      "url": "https://www.youtube.com/watch?v=zt0Me5qyK4g",
-      "title": "춤 (Dance)",
-      "artist": "OFFONOFF",
-      "album": "boy.",
-      "lyricOffset": 2200
+    id: "f3zVbOMyzgE",
+    url: "https://www.youtube.com/watch?v=f3zVbOMyzgE",
+    title: "UP&DOWN",
+    artist: "임지수 (Lim Jisoo)",
+    album: "UP&DOWN",
+    lyricOffset: 2000,
   },
   {
-      "id": "T6YVgEpRU6Q",
-      "url": "https://www.youtube.com/watch?v=T6YVgEpRU6Q",
-      "title": "LEFT RIGHT",
-      "artist": "XG",
-      "album": "NEW DNA",
-      "lyricOffset": -4400
+    id: "zt0Me5qyK4g",
+    url: "https://www.youtube.com/watch?v=zt0Me5qyK4g",
+    title: "춤 (Dance)",
+    artist: "OFFONOFF",
+    album: "boy.",
+    lyricOffset: 2200,
   },
   {
-      "id": "QiYOkmrI1jg",
-      "url": "https://www.youtube.com/watch?v=QiYOkmrI1jg",
-      "title": "IYKYK",
-      "artist": "XG",
-      "album": "IYKYK",
-      "lyricOffset": 2000
+    id: "T6YVgEpRU6Q",
+    url: "https://www.youtube.com/watch?v=T6YVgEpRU6Q",
+    title: "LEFT RIGHT",
+    artist: "XG",
+    album: "NEW DNA",
+    lyricOffset: -4400,
   },
   {
-      "id": "_wgeHqXr4Hc",
-      "url": "https://www.youtube.com/watch?v=_wgeHqXr4Hc",
-      "title": "나를 위해 (For Days to Come)",
-      "artist": "Crush (크러쉬)",
-      "album": "wonderego",
-      "lyricOffset": 1000
+    id: "QiYOkmrI1jg",
+    url: "https://www.youtube.com/watch?v=QiYOkmrI1jg",
+    title: "IYKYK",
+    artist: "XG",
+    album: "IYKYK",
+    lyricOffset: 2000,
   },
   {
-      "id": "zzDpTWCGofU",
-      "url": "https://www.youtube.com/watch?v=zzDpTWCGofU",
-      "title": "Nirvana Blues",
-      "artist": "Colde (콜드)",
-      "album": "YIN",
-      "lyricOffset": 1800
+    id: "_wgeHqXr4Hc",
+    url: "https://www.youtube.com/watch?v=_wgeHqXr4Hc",
+    title: "나를 위해 (For Days to Come)",
+    artist: "Crush (크러쉬)",
+    album: "wonderego",
+    lyricOffset: 1000,
   },
   {
-      "id": "6vDi9S2ZDYA",
-      "url": "https://www.youtube.com/watch?v=6vDi9S2ZDYA",
-      "title": "ETA (R&B Remix)",
-      "artist": "NewJeans (뉴진스)",
-      "album": "NewJeans 2nd EP 'Get Up'",
-      "lyricOffset": -5200
+    id: "zzDpTWCGofU",
+    url: "https://www.youtube.com/watch?v=zzDpTWCGofU",
+    title: "Nirvana Blues",
+    artist: "Colde (콜드)",
+    album: "YIN",
+    lyricOffset: 1800,
   },
   {
-      "id": "5tcBJCouOmE",
-      "url": "https://youtu.be/5tcBJCouOmE",
-      "title": "Hype Boy",
-      "artist": "DEAN (딘)",
-      "album": "New Jeans",
-      "lyricOffset": 18800
+    id: "6vDi9S2ZDYA",
+    url: "https://www.youtube.com/watch?v=6vDi9S2ZDYA",
+    title: "ETA (R&B Remix)",
+    artist: "NewJeans (뉴진스)",
+    album: "NewJeans 2nd EP 'Get Up'",
+    lyricOffset: -5200,
   },
   {
-      "id": "PO8",
-      "url": "https://www.youtube.com/watch?v=HB4Rp2KKeu4",
-      "title": "野子",
-      "artist": "PO8",
-      "album": "野子",
-      "lyricOffset": 2600
+    id: "5tcBJCouOmE",
+    url: "https://youtu.be/5tcBJCouOmE",
+    title: "Hype Boy",
+    artist: "DEAN (딘)",
+    album: "New Jeans",
+    lyricOffset: 18800,
   },
   {
-      "id": "z-xfGoabprU",
-      "url": "https://www.youtube.com/watch?v=z-xfGoabprU",
-      "title": "BEBE",
-      "artist": "STAYC (스테이씨)",
-      "album": "BEBE",
-      "lyricOffset": 2200
+    id: "PO8",
+    url: "https://www.youtube.com/watch?v=HB4Rp2KKeu4",
+    title: "野子",
+    artist: "PO8",
+    album: "野子",
+    lyricOffset: 2600,
   },
   {
-      "id": "aFrQIJ5cbRc",
-      "url": "https://www.youtube.com/watch?v=aFrQIJ5cbRc",
-      "title": "Know About Me",
-      "artist": "NMIXX (엔믹스)",
-      "album": "Fe3O4: FORWARD - EP",
-      "lyricOffset": -650
+    id: "z-xfGoabprU",
+    url: "https://www.youtube.com/watch?v=z-xfGoabprU",
+    title: "BEBE",
+    artist: "STAYC (스테이씨)",
+    album: "BEBE",
+    lyricOffset: 2200,
   },
   {
-      "id": "hJ9Wp3PO3c8",
-      "url": "https://www.youtube.com/watch?v=hJ9Wp3PO3c8",
-      "title": "Butterflies",
-      "artist": "Hearts2Hearts (하츠투하츠)",
-      "album": "The Chase - Single",
-      "lyricOffset": -7000
+    id: "aFrQIJ5cbRc",
+    url: "https://www.youtube.com/watch?v=aFrQIJ5cbRc",
+    title: "Know About Me",
+    artist: "NMIXX (엔믹스)",
+    album: "Fe3O4: FORWARD - EP",
+    lyricOffset: -650,
   },
   {
-      "id": "PICpEtPHyZI",
-      "url": "https://www.youtube.com/watch?v=PICpEtPHyZI",
-      "title": "Damn Right",
-      "artist": "JENNIE",
-      "album": "Ruby",
-      "lyricOffset": 1200
+    id: "hJ9Wp3PO3c8",
+    url: "https://www.youtube.com/watch?v=hJ9Wp3PO3c8",
+    title: "Butterflies",
+    artist: "Hearts2Hearts (하츠투하츠)",
+    album: "The Chase - Single",
+    lyricOffset: -7000,
   },
   {
-      "id": "osNYssIep5w",
-      "url": "https://www.youtube.com/watch?v=osNYssIep5w",
-      "title": "Mantra (House Remix)",
-      "artist": "JENNIE",
-      "album": "Ruby",
-      "lyricOffset": 2400
+    id: "PICpEtPHyZI",
+    url: "https://www.youtube.com/watch?v=PICpEtPHyZI",
+    title: "Damn Right",
+    artist: "JENNIE",
+    album: "Ruby",
+    lyricOffset: 1200,
   },
   {
-      "id": "DskqpUrvlmw",
-      "url": "https://www.youtube.com/watch?v=DskqpUrvlmw",
-      "title": "GPT",
-      "artist": "STAYC (스테이씨)",
-      "album": "GPT - Single",
-      "lyricOffset": -1600
+    id: "osNYssIep5w",
+    url: "https://www.youtube.com/watch?v=osNYssIep5w",
+    title: "Mantra (House Remix)",
+    artist: "JENNIE",
+    album: "Ruby",
+    lyricOffset: 2400,
   },
   {
-      "id": "Rk6aQvlmsWo",
-      "url": "https://www.youtube.com/watch?v=Rk6aQvlmsWo",
-      "title": "Dandelion (feat. Ruel)",
-      "artist": "grentperez",
-      "album": "Backflips in a Restaurant",
-      "lyricOffset": -8400
+    id: "DskqpUrvlmw",
+    url: "https://www.youtube.com/watch?v=DskqpUrvlmw",
+    title: "GPT",
+    artist: "STAYC (스테이씨)",
+    album: "GPT - Single",
+    lyricOffset: -1600,
   },
   {
-      "id": "36wVOzmsywo",
-      "url": "https://www.youtube.com/watch?v=36wVOzmsywo",
-      "title": "오래오래 (FRR)",
-      "artist": "george (죠지)",
-      "album": "FRR",
-      "lyricOffset": -4300
+    id: "Rk6aQvlmsWo",
+    url: "https://www.youtube.com/watch?v=Rk6aQvlmsWo",
+    title: "Dandelion (feat. Ruel)",
+    artist: "grentperez",
+    album: "Backflips in a Restaurant",
+    lyricOffset: -8400,
   },
   {
-      "id": "FonjL7DQAUQ",
-      "url": "https://www.youtube.com/watch?v=FonjL7DQAUQ",
-      "title": "海浪 (Waves)",
-      "artist": "deca joins",
-      "album": "Go Slow",
-      "lyricOffset": -7000
+    id: "36wVOzmsywo",
+    url: "https://www.youtube.com/watch?v=36wVOzmsywo",
+    title: "오래오래 (FRR)",
+    artist: "george (죠지)",
+    album: "FRR",
+    lyricOffset: -4300,
   },
   {
-      "id": "3SoYkCAzMBk",
-      "url": "https://www.youtube.com/watch?v=3SoYkCAzMBk",
-      "title": "Can We Talk",
-      "artist": "Tevin Campbell",
-      "album": "I'm Ready",
-      "lyricOffset": -400
+    id: "FonjL7DQAUQ",
+    url: "https://www.youtube.com/watch?v=FonjL7DQAUQ",
+    title: "海浪 (Waves)",
+    artist: "deca joins",
+    album: "Go Slow",
+    lyricOffset: -7000,
   },
   {
-      "id": "ZncbtRo7RXs",
-      "url": "https://www.youtube.com/watch?v=ZncbtRo7RXs",
-      "title": "Supernatural (Part.1)",
-      "artist": "NewJeans (뉴진스)",
-      "album": "Supernatural",
-      "lyricOffset": 1600
+    id: "3SoYkCAzMBk",
+    url: "https://www.youtube.com/watch?v=3SoYkCAzMBk",
+    title: "Can We Talk",
+    artist: "Tevin Campbell",
+    album: "I'm Ready",
+    lyricOffset: -400,
   },
   {
-      "id": "hgNJ_qy6LCw",
-      "url": "https://www.youtube.com/watch?v=hgNJ_qy6LCw",
-      "title": "ASAP",
-      "artist": "NJZ",
-      "album": "NewJeans 2nd EP 'Get Up'",
-      "lyricOffset": 4400
+    id: "ZncbtRo7RXs",
+    url: "https://www.youtube.com/watch?v=ZncbtRo7RXs",
+    title: "Supernatural (Part.1)",
+    artist: "NewJeans (뉴진스)",
+    album: "Supernatural",
+    lyricOffset: 1600,
   },
   {
-      "id": "YYyskjq1vSc",
-      "url": "https://www.youtube.com/watch?v=YYyskjq1vSc",
-      "title": "New Jeans (2025)",
-      "artist": "NJZ",
-      "album": "NewJeans 2nd EP 'Get Up'",
-      "lyricOffset": -29800
+    id: "hgNJ_qy6LCw",
+    url: "https://www.youtube.com/watch?v=hgNJ_qy6LCw",
+    title: "ASAP",
+    artist: "NJZ",
+    album: "NewJeans 2nd EP 'Get Up'",
+    lyricOffset: 4400,
   },
   {
-      "id": "WpqXjRrZqa0",
-      "url": "https://www.youtube.com/watch?v=WpqXjRrZqa0",
-      "title": "Cool with You (2025)",
-      "artist": "NJZ",
-      "album": "NewJeans 2nd EP 'Get Up'",
-      "lyricOffset": 16200
+    id: "YYyskjq1vSc",
+    url: "https://www.youtube.com/watch?v=YYyskjq1vSc",
+    title: "New Jeans (2025)",
+    artist: "NJZ",
+    album: "NewJeans 2nd EP 'Get Up'",
+    lyricOffset: -29800,
   },
   {
-      "id": "In7e1knX7rQ",
-      "url": "https://www.youtube.com/watch?v=In7e1knX7rQ",
-      "title": "ETA (feat. E SENS 이센스)",
-      "artist": "NJZ",
-      "album": "NewJeans 2nd EP 'Get Up'",
-      "lyricOffset": -6000
+    id: "WpqXjRrZqa0",
+    url: "https://www.youtube.com/watch?v=WpqXjRrZqa0",
+    title: "Cool with You (2025)",
+    artist: "NJZ",
+    album: "NewJeans 2nd EP 'Get Up'",
+    lyricOffset: 16200,
+  },
+  {
+    id: "In7e1knX7rQ",
+    url: "https://www.youtube.com/watch?v=In7e1knX7rQ",
+    title: "ETA (feat. E SENS 이센스)",
+    artist: "NJZ",
+    album: "NewJeans 2nd EP 'Get Up'",
+    lyricOffset: -6000,
   },
 ];
 
@@ -291,7 +298,7 @@ interface IpodData {
   lyricsAlignment: LyricsAlignment;
   chineseVariant: ChineseVariant;
   koreanDisplay: KoreanDisplay;
-  lyricsTranslationRequest: { language: string; songId: string; } | null;
+  lyricsTranslationRequest: { language: string; songId: string } | null;
 }
 
 const initialIpodData: IpodData = {
@@ -339,7 +346,10 @@ export interface IpodState extends IpodData {
   /** Set Korean text display mode */
   setKoreanDisplay: (display: KoreanDisplay) => void;
   /** Set the target language for lyrics translation. Pass null to disable translation. */
-  setLyricsTranslationRequest: (language: string | null, songId: string | null) => void;
+  setLyricsTranslationRequest: (
+    language: string | null,
+    songId: string | null
+  ) => void;
   /** Import library from JSON string */
   importLibrary: (json: string) => void;
   /** Export library to JSON string */
@@ -353,7 +363,8 @@ export const useIpodStore = create<IpodState>()(
     (set, get) => ({
       ...initialIpodData,
       // --- Actions ---
-      setCurrentIndex: (index) => set({ currentIndex: index, lyricsTranslationRequest: null }),
+      setCurrentIndex: (index) =>
+        set({ currentIndex: index, lyricsTranslationRequest: null }),
       toggleLoopCurrent: () =>
         set((state) => ({ loopCurrent: !state.loopCurrent })),
       toggleLoopAll: () => set((state) => ({ loopAll: !state.loopAll })),
@@ -367,14 +378,19 @@ export const useIpodStore = create<IpodState>()(
         set((state) => ({ lcdFilterOn: !state.lcdFilterOn })),
       setTheme: (theme) => set({ theme }),
       addTrack: (track) =>
-        set((state) => ({ 
+        set((state) => ({
           tracks: [track, ...state.tracks],
           currentIndex: 0,
           isPlaying: true,
-          lyricsTranslationRequest: null
+          lyricsTranslationRequest: null,
         })),
       clearLibrary: () =>
-        set({ tracks: [], currentIndex: -1, isPlaying: false, lyricsTranslationRequest: null }),
+        set({
+          tracks: [],
+          currentIndex: -1,
+          isPlaying: false,
+          lyricsTranslationRequest: null,
+        }),
       resetLibrary: () =>
         set({
           tracks: DEFAULT_TRACKS,
@@ -384,7 +400,8 @@ export const useIpodStore = create<IpodState>()(
         }),
       nextTrack: () =>
         set((state) => {
-          if (state.tracks.length === 0) return { currentIndex: -1, lyricsTranslationRequest: null };
+          if (state.tracks.length === 0)
+            return { currentIndex: -1, lyricsTranslationRequest: null };
           let next = state.isShuffled
             ? Math.floor(Math.random() * state.tracks.length)
             : (state.currentIndex + 1) % state.tracks.length;
@@ -396,16 +413,25 @@ export const useIpodStore = create<IpodState>()(
             // Ensure shuffle doesn't pick the same song if possible
             next = (next + 1) % state.tracks.length;
           }
-          return { currentIndex: next, isPlaying: true, lyricsTranslationRequest: null };
+          return {
+            currentIndex: next,
+            isPlaying: true,
+            lyricsTranslationRequest: null,
+          };
         }),
       previousTrack: () =>
         set((state) => {
-          if (state.tracks.length === 0) return { currentIndex: -1, lyricsTranslationRequest: null };
+          if (state.tracks.length === 0)
+            return { currentIndex: -1, lyricsTranslationRequest: null };
           const prev = state.isShuffled
             ? Math.floor(Math.random() * state.tracks.length)
             : (state.currentIndex - 1 + state.tracks.length) %
               state.tracks.length;
-          return { currentIndex: prev, isPlaying: true, lyricsTranslationRequest: null };
+          return {
+            currentIndex: prev,
+            isPlaying: true,
+            lyricsTranslationRequest: null,
+          };
         }),
       setShowVideo: (show) => set({ showVideo: show }),
       toggleLyrics: () => set((state) => ({ showLyrics: !state.showLyrics })),
@@ -433,11 +459,12 @@ export const useIpodStore = create<IpodState>()(
       setLyricsAlignment: (alignment) => set({ lyricsAlignment: alignment }),
       setChineseVariant: (variant) => set({ chineseVariant: variant }),
       setKoreanDisplay: (display) => set({ koreanDisplay: display }),
-      setLyricsTranslationRequest: (language, songId) => set(
-        language && songId
-          ? { lyricsTranslationRequest: { language, songId } }
-          : { lyricsTranslationRequest: null }
-      ),
+      setLyricsTranslationRequest: (language, songId) =>
+        set(
+          language && songId
+            ? { lyricsTranslationRequest: { language, songId } }
+            : { lyricsTranslationRequest: null }
+        ),
       importLibrary: (json: string) => {
         try {
           const importedTracks = JSON.parse(json) as Track[];
@@ -450,11 +477,11 @@ export const useIpodStore = create<IpodState>()(
               throw new Error("Invalid track format");
             }
           }
-          set({ 
+          set({
             tracks: importedTracks,
             currentIndex: importedTracks.length > 0 ? 0 : -1,
             isPlaying: false,
-            lyricsTranslationRequest: null
+            lyricsTranslationRequest: null,
           });
         } catch (error) {
           console.error("Failed to import library:", error);
