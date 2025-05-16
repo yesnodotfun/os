@@ -1,4 +1,5 @@
 import { streamText, smoothStream } from "ai";
+import { geolocation } from "@vercel/functions";
 import {
   SupportedModel,
   DEFAULT_MODEL,
@@ -72,6 +73,14 @@ interface SystemState {
     dateString: string;
     timeZone: string;
   };
+  /** Geolocation info inferred from the incoming request (provided by Vercel). */
+  requestGeo?: {
+    city?: string;
+    region?: string;
+    country?: string;
+    latitude?: string;
+    longitude?: string;
+  };
   runningApps?: {
     foreground: string;
     background: string[];
@@ -143,6 +152,17 @@ SYSTEM STATE:
 ${
   systemState.userLocalTime
     ? `\n- User local time: ${systemState.userLocalTime.timeString} on ${systemState.userLocalTime.dateString} (${systemState.userLocalTime.timeZone})`
+    : ""
+}
+${
+  systemState.requestGeo
+    ? `\n- User inferred location: ${[
+        systemState.requestGeo.city,
+        systemState.requestGeo.region,
+        systemState.requestGeo.country,
+      ]
+        .filter(Boolean)
+        .join(", ")}`
     : ""
 }
 ${
@@ -265,7 +285,7 @@ export default async function handler(req: Request) {
 
     const {
       messages,
-      systemState, // Removed textEditContext
+      systemState: incomingSystemState, // Renamed to allow mutation
       model: bodyModel = DEFAULT_MODEL,
     } = await req.json();
 
@@ -291,11 +311,19 @@ export default async function handler(req: Request) {
       return new Response(`Unsupported model: ${model}`, { status: 400 });
     }
 
+    // --- Geolocation (available only on deployed environment) ---
+    const geo = geolocation(req);
+
+    // Attach geolocation info to system state that will be sent to the prompt
+    const systemState: SystemState | undefined = incomingSystemState
+      ? { ...incomingSystemState, requestGeo: geo }
+      : ({ requestGeo: geo } as SystemState);
+
     const selectedModel = getModelInstance(model as SupportedModel);
 
     const result = streamText({
       model: selectedModel,
-      system: generateSystemPrompt(systemState), // Removed textEditContext
+      system: generateSystemPrompt(systemState),
       messages,
       tools: {
         launchApp: {
