@@ -51,9 +51,30 @@ const getSystemState = () => {
     .filter((app) => !app.isForeground)
     .map((app) => app.id);
 
+  // --- Local browser time information (client side) ---
+  const nowClient = new Date();
+  const userTimeZone =
+    Intl.DateTimeFormat().resolvedOptions().timeZone || "Unknown";
+  const userTimeString = nowClient.toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+  const userDateString = nowClient.toLocaleDateString([], {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
   return {
     apps: appStore.apps,
     username: chatsStore.username,
+    userLocalTime: {
+      timeString: userTimeString,
+      dateString: userDateString,
+      timeZone: userTimeZone,
+    },
     runningApps: {
       foreground: foregroundApp,
       background: backgroundApps,

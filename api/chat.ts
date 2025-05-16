@@ -66,6 +66,12 @@ interface SystemState {
     contentJson: unknown | null;
     hasUnsavedChanges: boolean;
   };
+  /** Local time information reported by the user's browser */
+  userLocalTime?: {
+    timeString: string;
+    dateString: string;
+    timeZone: string;
+  };
   runningApps?: {
     foreground: string;
     background: string[];
@@ -112,6 +118,8 @@ const generateSystemPrompt = (systemState?: SystemState) => {
     day: "numeric",
   });
 
+  const ryoTimeZone = "America/Los_Angeles";
+
   // Start with static parts
   const prompt = `
   ${CHAT_INSTRUCTIONS}
@@ -131,7 +139,12 @@ ${
 
 SYSTEM STATE:
 
-- Current local time: ${timeString} on ${dateString}
+- Ryo local time: ${timeString} on ${dateString} (${ryoTimeZone})
+${
+  systemState.userLocalTime
+    ? `\n- User local time: ${systemState.userLocalTime.timeString} on ${systemState.userLocalTime.dateString} (${systemState.userLocalTime.timeZone})`
+    : ""
+}
 ${
   systemState.runningApps?.foreground
     ? `\n- Foreground App: ${systemState.runningApps.foreground}`
