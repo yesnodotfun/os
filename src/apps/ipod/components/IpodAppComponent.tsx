@@ -1080,7 +1080,7 @@ export function IpodAppComponent({
       const availableHeight = containerHeight - 50;
       const widthScale = availableWidth / baseWidth;
       const heightScale = availableHeight / baseHeight;
-      const newScale = Math.min(widthScale, heightScale, 1.5);
+      const newScale = Math.min(widthScale, heightScale, 2);
       setScale(Math.max(1, newScale));
     };
 
