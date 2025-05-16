@@ -188,7 +188,8 @@ export function WindowFrame({
       setIsFullHeight(true);
       const menuBarHeight = 30;
       const safeAreaBottom = getSafeAreaBottomInset();
-      const maxPossibleHeight = window.innerHeight - menuBarHeight - safeAreaBottom;
+      const maxPossibleHeight =
+        window.innerHeight - menuBarHeight - safeAreaBottom;
       const maxHeight = mergedConstraints.maxHeight
         ? typeof mergedConstraints.maxHeight === "string"
           ? parseInt(mergedConstraints.maxHeight)
@@ -427,6 +428,8 @@ export function WindowFrame({
               debugMode && "bg-red-500/50",
               resizeType?.includes("n")
                 ? "top-[-100px] h-[200px]"
+                : isMobile
+                ? "top-0 h-8"
                 : "top-1 h-2"
             )}
             onMouseDown={(e) =>
@@ -445,6 +448,8 @@ export function WindowFrame({
               debugMode && "bg-red-500/50",
               resizeType?.includes("s")
                 ? "bottom-[-100px] h-[200px]"
+                : isMobile
+                ? "bottom-0 h-6"
                 : "bottom-1 h-2"
             )}
             onMouseDown={(e) =>
@@ -497,6 +502,7 @@ export function WindowFrame({
             className={cn(
               "absolute cursor-ne-resize pointer-events-auto transition-all select-none",
               debugMode && "bg-red-500/50",
+              isMobile && "hidden",
               resizeType === "ne"
                 ? "top-[-100px] right-[-100px] w-[200px] h-[200px]"
                 : "top-0 right-0 w-6 h-6"
@@ -513,6 +519,7 @@ export function WindowFrame({
             className={cn(
               "absolute cursor-sw-resize pointer-events-auto transition-all select-none",
               debugMode && "bg-red-500/50",
+              isMobile && "hidden",
               resizeType === "sw"
                 ? "bottom-[-100px] left-[-100px] w-[200px] h-[200px]"
                 : "bottom-0 left-0 w-6 h-6"
@@ -529,6 +536,7 @@ export function WindowFrame({
             className={cn(
               "absolute cursor-se-resize pointer-events-auto transition-all select-none",
               debugMode && "bg-red-500/50",
+              isMobile && "hidden",
               resizeType === "se"
                 ? "bottom-[-100px] right-[-100px] w-[200px] h-[200px]"
                 : "bottom-0 right-0 w-6 h-6"
