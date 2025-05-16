@@ -38,8 +38,12 @@ export const useFinderStore = create<FinderStoreState>()(
       migrate: (persistedState, version) => {
         // Handle migration from old localStorage keys if no persisted state exists
         if (!persistedState || version < STORE_VERSION) {
-          const oldView = localStorage.getItem("finder_view_type") as ViewType | null;
-          const oldSort = localStorage.getItem("finder_sort_type") as SortType | null;
+          const oldView = localStorage.getItem(
+            "finder_view_type"
+          ) as ViewType | null;
+          const oldSort = localStorage.getItem(
+            "finder_sort_type"
+          ) as SortType | null;
           // Clean up old keys after reading
           if (oldView) localStorage.removeItem("finder_view_type");
           if (oldSort) localStorage.removeItem("finder_sort_type");
@@ -88,4 +92,4 @@ export const calculateStorageSpace = () => {
     available: total - used,
     percentUsed: Math.round((used / total) * 100),
   };
-}; 
+};
