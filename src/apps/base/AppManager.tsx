@@ -12,7 +12,6 @@ interface AppManagerProps {
   apps: BaseApp[];
 }
 
-
 const BASE_Z_INDEX = 1;
 const FOREGROUND_Z_INDEX_OFFSET = 1;
 
@@ -21,6 +20,7 @@ export function AppManager({ apps }: AppManagerProps) {
   const appStates = useAppStore((state) => state.apps);
   const bringToForeground = useAppStore((state) => state.bringToForeground);
   const toggleApp = useAppStore((state) => state.toggleApp);
+  const closeApp = useAppStore((state) => state.closeApp);
   const navigateToNextApp = useAppStore((state) => state.navigateToNextApp);
   const navigateToPreviousApp = useAppStore(
     (state) => state.navigateToPreviousApp
@@ -53,81 +53,90 @@ export function AppManager({ apps }: AppManagerProps) {
 
         // Use setTimeout to ensure the event listener is ready
         setTimeout(() => {
-          const event = new CustomEvent('launchApp', {
+          const event = new CustomEvent("launchApp", {
             detail: {
-              appId: 'internet-explorer',
-              initialData: { 
-                shareCode: ieShareCode
-              }
-            }
+              appId: "internet-explorer",
+              initialData: {
+                shareCode: ieShareCode,
+              },
+            },
           });
           window.dispatchEvent(event);
-          console.log("[AppManager] Dispatched launchApp event for IE share code.");
+          console.log(
+            "[AppManager] Dispatched launchApp event for IE share code."
+          );
         }, 0);
 
-        window.history.replaceState({}, '', '/'); // Clean URL
-
-      } else if (path.startsWith('/ipod/')) {
-        const videoId = path.substring('/ipod/'.length);
+        window.history.replaceState({}, "", "/"); // Clean URL
+      } else if (path.startsWith("/ipod/")) {
+        const videoId = path.substring("/ipod/".length);
         if (videoId) {
           console.log("[AppManager] Detected iPod videoId:", videoId);
           toast.info("Opening shared iPod track...");
           setTimeout(() => {
-            const event = new CustomEvent('launchApp', {
+            const event = new CustomEvent("launchApp", {
               detail: {
-                appId: 'ipod',
-                initialData: { videoId }
-              }
+                appId: "ipod",
+                initialData: { videoId },
+              },
             });
             window.dispatchEvent(event);
-            console.log("[AppManager] Dispatched launchApp event for iPod videoId.");
+            console.log(
+              "[AppManager] Dispatched launchApp event for iPod videoId."
+            );
           }, 0);
-          window.history.replaceState({}, '', '/'); // Clean URL
+          window.history.replaceState({}, "", "/"); // Clean URL
         }
-      } else if (path.startsWith('/videos/')) {
-        const videoId = path.substring('/videos/'.length);
+      } else if (path.startsWith("/videos/")) {
+        const videoId = path.substring("/videos/".length);
         if (videoId) {
           console.log("[AppManager] Detected Videos videoId:", videoId);
           toast.info("Opening shared video...");
           setTimeout(() => {
-            const event = new CustomEvent('launchApp', {
+            const event = new CustomEvent("launchApp", {
               detail: {
-                appId: 'videos',
-                initialData: { videoId }
-              }
+                appId: "videos",
+                initialData: { videoId },
+              },
             });
             window.dispatchEvent(event);
-            console.log("[AppManager] Dispatched launchApp event for Videos videoId.");
+            console.log(
+              "[AppManager] Dispatched launchApp event for Videos videoId."
+            );
           }, 0);
-          window.history.replaceState({}, '', '/'); // Clean URL
+          window.history.replaceState({}, "", "/"); // Clean URL
         }
-      } else if (path.startsWith('/') && path.length > 1) {
+      } else if (path.startsWith("/") && path.length > 1) {
         // Handle direct app launch path (e.g., /soundboard)
         const potentialAppId = path.substring(1) as AppId;
 
         // Check if it's a valid app ID from the registry
         if (potentialAppId in appRegistry) {
-           const appName = appRegistry[potentialAppId]?.name || potentialAppId;
-           toast.info(`Launching ${appName}...`);
+          const appName = appRegistry[potentialAppId]?.name || potentialAppId;
+          toast.info(`Launching ${appName}...`);
 
-           // Use a slight delay to ensure the app launch event is caught
-           setTimeout(() => {
-             const event = new CustomEvent('launchApp', {
-               detail: { appId: potentialAppId }
-             });
-             window.dispatchEvent(event);
-             window.history.replaceState({}, '', '/'); // Clean URL
-           }, 100); // Small delay might help robustness
+          // Use a slight delay to ensure the app launch event is caught
+          setTimeout(() => {
+            const event = new CustomEvent("launchApp", {
+              detail: { appId: potentialAppId },
+            });
+            window.dispatchEvent(event);
+            window.history.replaceState({}, "", "/"); // Clean URL
+          }, 100); // Small delay might help robustness
         } else {
           // Optional: Handle invalid app paths if necessary, or just ignore
           // console.log(`Path ${path} does not correspond to a known app.`);
           // Maybe redirect to root or show a 404 within the app context
           // For now, just clean the URL if it wasn't a valid app path or IE code
-           // Update condition: Only clean if it's not an IE path (we handle cleaning IE path above)
-           // Update condition: Also check for ipod and videos paths
-           if (!path.startsWith('/internet-explorer/') && !path.startsWith('/ipod/') && !path.startsWith('/videos/')) {
-               window.history.replaceState({}, '', '/');
-           }
+          // Update condition: Only clean if it's not an IE path (we handle cleaning IE path above)
+          // Update condition: Also check for ipod and videos paths
+          if (
+            !path.startsWith("/internet-explorer/") &&
+            !path.startsWith("/ipod/") &&
+            !path.startsWith("/videos/")
+          ) {
+            window.history.replaceState({}, "", "/");
+          }
         }
       }
     };
@@ -139,13 +148,19 @@ export function AppManager({ apps }: AppManagerProps) {
   // Listen for app launch events (e.g., from Finder, URL handling)
   useEffect(() => {
     const handleAppLaunch = (
-      event: CustomEvent<{ appId: AppId; initialPath?: string; initialData?: any; }>
+      event: CustomEvent<{
+        appId: AppId;
+        initialPath?: string;
+        initialData?: any;
+      }>
     ) => {
       const { appId, initialPath, initialData } = event.detail; // Destructure initialData
       const isAppOpen = appStates[appId]?.isOpen;
 
-      console.log(`[AppManager] Launch event received for ${appId}`, event.detail);
-
+      console.log(
+        `[AppManager] Launch event received for ${appId}`,
+        event.detail
+      );
 
       if (!isAppOpen) {
         console.log(`[AppManager] Toggling app ${appId} to open.`);
@@ -158,28 +173,43 @@ export function AppManager({ apps }: AppManagerProps) {
       } else {
         console.log(`[AppManager] Bringing app ${appId} to foreground.`);
         bringToForeground(appId);
-        
-        // --- FIX: Handle generic initialData (like url/year) for already open IE --- 
-        if (appId === 'internet-explorer' && initialData) { 
-           // Dispatch updateApp event with the received initialData
-           console.log(`[AppManager] Dispatching updateApp event for already open IE with initialData:`, initialData);
-           const updateEvent = new CustomEvent('updateApp', { detail: { appId, initialData } });
-           window.dispatchEvent(updateEvent);
+
+        // --- FIX: Handle generic initialData (like url/year) for already open IE ---
+        if (appId === "internet-explorer" && initialData) {
+          // Dispatch updateApp event with the received initialData
+          console.log(
+            `[AppManager] Dispatching updateApp event for already open IE with initialData:`,
+            initialData
+          );
+          const updateEvent = new CustomEvent("updateApp", {
+            detail: { appId, initialData },
+          });
+          window.dispatchEvent(updateEvent);
         }
         // --- END FIX ---
-        
+
         // --- ADDED: Handle initialData (videoId) for already open iPod ---
-        if (appId === 'ipod' && initialData?.videoId) {
-          console.log(`[AppManager] Dispatching updateApp event for already open iPod with initialData:`, initialData);
-          const updateEvent = new CustomEvent('updateApp', { detail: { appId, initialData } });
+        if (appId === "ipod" && initialData?.videoId) {
+          console.log(
+            `[AppManager] Dispatching updateApp event for already open iPod with initialData:`,
+            initialData
+          );
+          const updateEvent = new CustomEvent("updateApp", {
+            detail: { appId, initialData },
+          });
           window.dispatchEvent(updateEvent);
         }
         // --- END ADDED ---
 
         // --- ADDED: Handle initialData (videoId) for already open Videos ---
-        if (appId === 'videos' && initialData?.videoId) {
-          console.log(`[AppManager] Dispatching updateApp event for already open Videos with initialData:`, initialData);
-          const updateEvent = new CustomEvent('updateApp', { detail: { appId, initialData } });
+        if (appId === "videos" && initialData?.videoId) {
+          console.log(
+            `[AppManager] Dispatching updateApp event for already open Videos with initialData:`,
+            initialData
+          );
+          const updateEvent = new CustomEvent("updateApp", {
+            detail: { appId, initialData },
+          });
           window.dispatchEvent(updateEvent);
         }
         // --- END ADDED ---
@@ -198,9 +228,8 @@ export function AppManager({ apps }: AppManagerProps) {
     return () => {
       window.removeEventListener("launchApp", handleAppLaunch as EventListener);
     };
-  // Update dependencies to include appStates for checking if app is open
+    // Update dependencies to include appStates for checking if app is open
   }, [appStates, bringToForeground, toggleApp]);
-
 
   return (
     <AppContext.Provider
@@ -234,7 +263,7 @@ export function AppManager({ apps }: AppManagerProps) {
             <AppComponent
               isWindowOpen={isOpen}
               isForeground={isForeground}
-              onClose={() => toggleApp(appId)}
+              onClose={() => closeApp(appId)}
               className="pointer-events-auto"
               helpItems={app.helpItems}
               skipInitialSound={isInitialMount}
