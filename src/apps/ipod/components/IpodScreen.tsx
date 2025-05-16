@@ -487,6 +487,7 @@ export function IpodScreen({
               isLoading={lyricsControls.isLoading}
               error={lyricsControls.error}
               visible={shouldShowLyrics}
+              videoVisible={showVideo}
               alignment={lyricsAlignment}
               chineseVariant={chineseVariant}
               koreanDisplay={koreanDisplay}
