@@ -1102,7 +1102,7 @@ export function IpodAppComponent({
   // Derived state for translation
   const currentTrackId = tracks[currentIndex]?.id;
   const translateToForLyricsHook = lyricsTranslationRequest?.songId === currentTrackId
-    ? lyricsTranslationRequest.language
+    ? lyricsTranslationRequest?.language
     : null;
 
   if (!isWindowOpen) return null;

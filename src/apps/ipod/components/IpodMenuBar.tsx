@@ -84,6 +84,8 @@ export function IpodMenuBar({
   const setChineseVariant = useIpodStore((s) => s.setChineseVariant);
   const setKoreanDisplay = useIpodStore((s) => s.setKoreanDisplay);
   const setLyricsTranslationRequest = useIpodStore((s) => s.setLyricsTranslationRequest);
+  const importLibrary = useIpodStore((s) => s.importLibrary);
+  const exportLibrary = useIpodStore((s) => s.exportLibrary);
 
   const handlePlayTrack = (index: number) => {
     setCurrentIndex(index);
@@ -106,6 +108,49 @@ export function IpodMenuBar({
   const artists = Object.keys(tracksByArtist).sort((a, b) =>
     a.localeCompare(b, undefined, { sensitivity: "base" })
   );
+
+  const handleExportLibrary = () => {
+    try {
+      const json = exportLibrary();
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "ipod-library.json";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success("Library exported successfully");
+    } catch (error) {
+      console.error("Failed to export library:", error);
+      toast.error("Failed to export library");
+    }
+  };
+
+  const handleImportLibrary = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const json = event.target?.result as string;
+          importLibrary(json);
+          toast.success("Library imported successfully");
+        } catch (error) {
+          console.error("Failed to import library:", error);
+          toast.error("Failed to import library: Invalid format");
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  };
 
   return (
     <MenuBar>
@@ -133,6 +178,20 @@ export function IpodMenuBar({
             disabled={tracks.length === 0 || currentIndex === -1}
           >
             Share Song...
+          </DropdownMenuItem>
+          <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
+          <DropdownMenuItem
+            onClick={handleExportLibrary}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+            disabled={tracks.length === 0}
+          >
+            Export Library...
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={handleImportLibrary}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            Import Library...
           </DropdownMenuItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           <DropdownMenuItem

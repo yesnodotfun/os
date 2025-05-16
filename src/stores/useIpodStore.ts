@@ -340,13 +340,17 @@ export interface IpodState extends IpodData {
   setKoreanDisplay: (display: KoreanDisplay) => void;
   /** Set the target language for lyrics translation. Pass null to disable translation. */
   setLyricsTranslationRequest: (language: string | null, songId: string | null) => void;
+  /** Import library from JSON string */
+  importLibrary: (json: string) => void;
+  /** Export library to JSON string */
+  exportLibrary: () => string;
 }
 
 const CURRENT_IPOD_STORE_VERSION = 10; // Incremented version for new state
 
 export const useIpodStore = create<IpodState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       ...initialIpodData,
       // --- Actions ---
       setCurrentIndex: (index) => set({ currentIndex: index, lyricsTranslationRequest: null }),
@@ -363,7 +367,12 @@ export const useIpodStore = create<IpodState>()(
         set((state) => ({ lcdFilterOn: !state.lcdFilterOn })),
       setTheme: (theme) => set({ theme }),
       addTrack: (track) =>
-        set((state) => ({ tracks: [...state.tracks, track] })),
+        set((state) => ({ 
+          tracks: [track, ...state.tracks],
+          currentIndex: 0,
+          isPlaying: true,
+          lyricsTranslationRequest: null
+        })),
       clearLibrary: () =>
         set({ tracks: [], currentIndex: -1, isPlaying: false, lyricsTranslationRequest: null }),
       resetLibrary: () =>
@@ -429,6 +438,33 @@ export const useIpodStore = create<IpodState>()(
           ? { lyricsTranslationRequest: { language, songId } }
           : { lyricsTranslationRequest: null }
       ),
+      importLibrary: (json: string) => {
+        try {
+          const importedTracks = JSON.parse(json) as Track[];
+          if (!Array.isArray(importedTracks)) {
+            throw new Error("Invalid library format");
+          }
+          // Validate each track has required fields
+          for (const track of importedTracks) {
+            if (!track.id || !track.url || !track.title) {
+              throw new Error("Invalid track format");
+            }
+          }
+          set({ 
+            tracks: importedTracks,
+            currentIndex: importedTracks.length > 0 ? 0 : -1,
+            isPlaying: false,
+            lyricsTranslationRequest: null
+          });
+        } catch (error) {
+          console.error("Failed to import library:", error);
+          throw error;
+        }
+      },
+      exportLibrary: () => {
+        const { tracks } = get();
+        return JSON.stringify(tracks, null, 2);
+      },
     }),
     {
       name: "ryos:ipod", // Unique name for localStorage persistence
@@ -491,18 +527,6 @@ export const useIpodStore = create<IpodState>()(
 
         return partializedState as IpodState; // Return the potentially migrated state
       },
-      // Optional: Re-add partialize here if you want to exclude tracks/originalOrder AFTER migration
-      // This prevents large defaults from always being in storage if they are static
-      // partialize: (state) => ({
-      //   currentIndex: state.currentIndex,
-      //   loopAll: state.loopAll,
-      //   loopCurrent: state.loopCurrent,
-      //   isShuffled: state.isShuffled,
-      //   theme: state.theme,
-      //   lcdFilterOn: state.lcdFilterOn,
-      //   showLyrics: state.showLyrics, // Persist lyrics visibility
-      //   // Exclude tracks and originalOrder if they match defaults and you want to save space
-      // }),
     }
   )
 );
