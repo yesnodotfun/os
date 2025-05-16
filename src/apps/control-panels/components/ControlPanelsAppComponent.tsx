@@ -157,7 +157,8 @@ export function ControlPanelsAppComponent({
   onClose,
   isForeground,
   skipInitialSound,
-}: AppProps) {
+  initialData,
+}: AppProps & { initialData?: { defaultTab?: string } }) {
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
   const [isConfirmResetOpen, setIsConfirmResetOpen] = useState(false);
@@ -573,7 +574,10 @@ export function ControlPanelsAppComponent({
         skipInitialSound={skipInitialSound}
       >
         <div className="flex flex-col h-full bg-[#E3E3E3] p-4 w-full">
-          <Tabs defaultValue="appearance" className="w-full h-full">
+          <Tabs
+            defaultValue={initialData?.defaultTab || "appearance"}
+            className="w-full h-full"
+          >
             <TabsList className="flex w-full h-6 space-x-0.5 bg-[#E3E3E3] shadow-none border-b border-[#808080]">
               <TabsTrigger
                 value="appearance"

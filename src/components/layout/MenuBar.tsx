@@ -15,7 +15,7 @@ import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { useLaunchApp } from "@/hooks/useLaunchApp";
 import { useAppStore } from "@/stores/useAppStore";
 import { Slider } from "@/components/ui/slider";
-import { Volume1, Volume2, VolumeX } from "lucide-react";
+import { Volume1, Volume2, VolumeX, Settings } from "lucide-react";
 import { useSound, Sounds } from "@/hooks/useSound";
 
 const finderHelpItems = [
@@ -428,6 +428,8 @@ function DefaultMenuItems() {
 function VolumeControl() {
   const { masterVolume, setMasterVolume } = useAppStore();
   const { play: playVolumeChangeSound } = useSound(Sounds.VOLUME_CHANGE);
+  const launchApp = useLaunchApp();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const getVolumeIcon = () => {
     if (masterVolume === 0) {
@@ -440,7 +442,7 @@ function VolumeControl() {
   };
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
@@ -453,7 +455,7 @@ function VolumeControl() {
       <DropdownMenuContent
         align="center"
         sideOffset={1}
-        className="p-4 w-auto min-w-3 h-40 flex items-center justify-center"
+        className="p-2 pt-4 w-auto min-w-4 h-40 flex flex-col items-center justify-center"
       >
         <Slider
           orientation="vertical"
@@ -464,6 +466,19 @@ function VolumeControl() {
           onValueChange={(v) => setMasterVolume(v[0])}
           onValueCommit={playVolumeChangeSound}
         />
+        <Button
+          variant="ghost"
+          size="icon"
+          className="mt-2 h-6 w-6 text-md border-none hover:bg-gray-200 active:bg-gray-900 active:text-white focus-visible:ring-0"
+          onClick={() => {
+            launchApp("control-panels", {
+              initialData: { defaultTab: "sound" },
+            });
+            setIsDropdownOpen(false);
+          }}
+        >
+          <Settings className="h-4 w-4" />
+        </Button>
       </DropdownMenuContent>
     </DropdownMenu>
   );
