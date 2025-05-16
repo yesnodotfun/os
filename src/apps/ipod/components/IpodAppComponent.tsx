@@ -1114,6 +1114,39 @@ export function IpodAppComponent({
       ? lyricsTranslationRequest?.language
       : null;
 
+  const handleCenterButtonClick = useCallback(() => {
+    if (menuMode) {
+      const currentMenu = menuHistory[menuHistory.length - 1];
+      if (currentMenu && currentMenu.items[selectedMenuItem]) {
+        currentMenu.items[selectedMenuItem].action();
+      }
+    } else {
+      if (tracks[currentIndex]) {
+        if (!isPlaying) {
+          togglePlay();
+          showStatus("▶");
+          setTimeout(() => {
+            if (!useIpodStore.getState().showVideo) {
+              toggleVideo();
+            }
+          }, 200);
+        } else {
+          toggleVideo();
+        }
+      }
+    }
+  }, [
+    menuMode,
+    menuHistory,
+    selectedMenuItem,
+    tracks,
+    currentIndex,
+    isPlaying,
+    togglePlay,
+    showStatus,
+    toggleVideo,
+  ]);
+
   if (!isWindowOpen) return null;
 
   return (
@@ -1192,6 +1225,8 @@ export function IpodAppComponent({
                 useIpodStore.getState().adjustLyricOffset(currentIndex, delta)
               }
               translateToForLyrics={translateToForLyricsHook}
+              onCenterButtonClick={handleCenterButtonClick}
+              registerActivity={registerActivity}
             />
 
             <IpodWheel

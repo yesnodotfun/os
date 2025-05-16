@@ -187,6 +187,8 @@ interface IpodScreenProps {
   lyricOffset: number;
   adjustLyricOffset: (deltaMs: number) => void;
   translateToForLyrics: string | null;
+  onCenterButtonClick: () => void;
+  registerActivity: () => void;
 }
 
 // Main IpodScreen component
@@ -225,6 +227,8 @@ export function IpodScreen({
   lyricOffset,
   adjustLyricOffset,
   translateToForLyrics,
+  onCenterButtonClick,
+  registerActivity,
 }: IpodScreenProps) {
   // Animation variants for menu transitions
   const menuVariants = {
@@ -555,11 +559,28 @@ export function IpodScreen({
               transition={{ duration: 0.2, ease: "easeInOut" }}
               custom={menuDirection}
               onClick={() => {
-                if (!menuMode && currentTrack) {
-                  if (!isPlaying) {
-                    handlePlay();
+                registerActivity();
+                if (menuMode) {
+                  const currentMenu = menuHistory[menuHistory.length - 1];
+                  if (currentMenu && currentMenu.items[selectedMenuItem]) {
+                    onMenuItemAction(
+                      currentMenu.items[selectedMenuItem].action
+                    );
                   }
-                  onToggleVideo();
+                } else {
+                  if (currentTrack) {
+                    if (!isPlaying) {
+                      handlePlay();
+                      showStatusCallback("▶");
+                      setTimeout(() => {
+                        if (!showVideo) {
+                          onToggleVideo();
+                        }
+                      }, 200);
+                    } else {
+                      onToggleVideo();
+                    }
+                  }
                 }
               }}
             >
