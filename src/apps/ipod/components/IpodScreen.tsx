@@ -410,6 +410,7 @@ export function IpodScreen({
               registerActivity();
               if (!isPlaying) {
                 handlePlay();
+                onToggleVideo();
               } else {
                 onToggleVideo();
               }
@@ -459,6 +460,7 @@ export function IpodScreen({
                   registerActivity();
                   if (!isPlaying) {
                     handlePlay();
+                    onToggleVideo();
                   } else {
                     onToggleVideo();
                   }
