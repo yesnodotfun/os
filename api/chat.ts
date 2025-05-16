@@ -114,11 +114,11 @@ const generateSystemPrompt = (systemState?: SystemState) => {
 
   // Start with static parts
   const prompt = `
+  ${CHAT_INSTRUCTIONS}
+  ${TOOL_USAGE_INSTRUCTIONS}
   ${RYO_PERSONA_INSTRUCTIONS}
   ${ANSWER_STYLE_INSTRUCTIONS}
   ${CODE_GENERATION_INSTRUCTIONS}
-  ${CHAT_INSTRUCTIONS}
-  ${TOOL_USAGE_INSTRUCTIONS}
 
 ${
   systemState

@@ -192,13 +192,12 @@ export function useLyrics({
         if (lrcText) {
           const parsedTranslatedLines = parseLRC(lrcText, title, artist);
           setTranslatedLines(parsedTranslatedLines);
-          // Update iPod store with translated lyrics
-          useIpodStore.setState({
-            currentLyrics: { lines: parsedTranslatedLines },
-          });
+          // Do NOT overwrite currentLyrics in the store so that it continues
+          // to hold the original (untranslated) lyrics. This ensures that
+          // other features such as AI chat receive the unmodified lyrics.
         } else {
+          // If translation returns empty we still keep original in the store.
           setTranslatedLines([]);
-          useIpodStore.setState({ currentLyrics: { lines: [] } });
         }
       })
       .catch((err: unknown) => {
