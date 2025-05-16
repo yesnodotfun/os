@@ -90,16 +90,25 @@ function stripParentheses(str: string): string {
 // ------------------------------------------------------------------
 const LYRICS_CACHE_PREFIX = "lyrics:cache:";
 
+// Simple djb2 string hash -> 32-bit unsigned then hex
+const hashString = (str: string): string => {
+  let hash = 5381;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash * 33) ^ str.charCodeAt(i);
+  }
+  return (hash >>> 0).toString(16);
+};
+
 /**
  * Build a stable cache key for a (title, artist) pair.
- * We simply lowercase and trim to reduce duplicates, then encode so the
- * key is URL-safe.
+ * We use a hash of the normalized input to create a clean, fixed-length key.
  */
 const buildLyricsCacheKey = (title: string, artist: string): string => {
-  const normalized = [title.trim().toLowerCase(), artist.trim().toLowerCase()] // keep order title|artist
+  const normalized = [title.trim().toLowerCase(), artist.trim().toLowerCase()]
     .filter(Boolean)
     .join("|");
-  return `${LYRICS_CACHE_PREFIX}${encodeURIComponent(normalized)}`;
+  const fingerprint = hashString(normalized);
+  return `${LYRICS_CACHE_PREFIX}${fingerprint}`;
 };
 
 // ------------------------------------------------------------------
@@ -289,9 +298,7 @@ export default async function handler(req: Request) {
 
       // 6. Store in cache (TTL 30 days)
       try {
-        await redis.set(cacheKey, JSON.stringify(result), {
-          ex: 60 * 60 * 24 * 30,
-        });
+        await redis.set(cacheKey, JSON.stringify(result));
         logInfo(requestId, "Fetched lyrics successfully", {
           title: result.title,
           artist: result.artist,

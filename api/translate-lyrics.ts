@@ -185,9 +185,7 @@ Do not include timestamps or any other formatting in your output strings; just t
 
     // Store in cache (TTL 30 days)
     try {
-      await redis.set(transCacheKey, lrcResult, {
-        ex: 60 * 60 * 24 * 30,
-      });
+      await redis.set(transCacheKey, lrcResult);
       logInfo(requestId, "Stored translation in cache", { transCacheKey });
     } catch (e) {
       logError(requestId, "Redis cache write failed (lyrics translation)", e);
