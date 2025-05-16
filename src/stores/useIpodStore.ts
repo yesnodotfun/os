@@ -17,6 +17,34 @@ export interface Track {
 // Original video collection moved here
 export const IPOD_DEFAULT_VIDEOS = [
   {
+    id: "jKnLSg83Nqc",
+    url: "https://youtu.be/jKnLSg83Nqc?si=0mX3pYk0q98Ndoui",
+    title: "ㅠ.ㅠ (You)",
+    artist: "Crush",
+    lyricOffset: 200
+  },
+  {
+    id: "hCg9tezGBWE",
+    url: "https://youtu.be/hCg9tezGBWE?si=4KFJNVTDm6OA2kK8",
+    title: "Magnetic",
+    artist: "ILLIT",
+    lyricOffset: -1200
+  },
+  {
+    id: "Q3K0TOvTOno",
+    url: "https://youtu.be/Q3K0TOvTOno?si=_VbKas8ZYd9jpXiA",
+    title: "How Sweet",
+    artist: "NewJeans",
+    lyricOffset: -10050
+  },
+  {
+    id: "ft70sAYrFyY",
+    url: "https://youtu.be/ft70sAYrFyY?si=SJXlm-KRfgrMIODE",
+    title: "Bubble Gum",
+    artist: "NewJeans",
+    lyricOffset: -9150
+  },
+  {
     id: "-nEGVrzPaiU",
     url: "https://www.youtube.com/watch?v=-nEGVrzPaiU&pp=ygUPdGljayB0YWNrIGlsbGl0",
     title: "Tick-Tack",
