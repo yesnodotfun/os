@@ -1192,6 +1192,7 @@ export function IpodAppComponent({
                 useIpodStore.getState().adjustLyricOffset(currentIndex, delta)
               }
               translateToForLyrics={translateToForLyricsHook}
+              registerActivity={registerActivity}
             />
 
             <IpodWheel

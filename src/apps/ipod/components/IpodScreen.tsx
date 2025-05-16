@@ -187,6 +187,7 @@ interface IpodScreenProps {
   lyricOffset: number;
   adjustLyricOffset: (deltaMs: number) => void;
   translateToForLyrics: string | null;
+  registerActivity: () => void;
 }
 
 // Main IpodScreen component
@@ -225,6 +226,7 @@ export function IpodScreen({
   lyricOffset,
   adjustLyricOffset,
   translateToForLyrics,
+  registerActivity,
 }: IpodScreenProps) {
   // Animation variants for menu transitions
   const menuVariants = {
@@ -400,7 +402,19 @@ export function IpodScreen({
             showVideo ? "opacity-100" : "opacity-0 pointer-events-none"
           )}
         >
-          <div className="w-full h-[calc(100%+120px)] mt-[-60px]">
+          <div
+            className="w-full h-[calc(100%+120px)] mt-[-60px]"
+            onClick={(e) => {
+              // Ensure taps on the lyrics overlay also toggle play / video as expected
+              e.stopPropagation();
+              registerActivity();
+              if (!isPlaying) {
+                handlePlay();
+              } else {
+                onToggleVideo();
+              }
+            }}
+          >
             <ReactPlayer
               ref={playerRef}
               url={currentTrack.url}
@@ -441,10 +455,13 @@ export function IpodScreen({
                 className="absolute inset-0 z-30"
                 onClick={(e) => {
                   e.stopPropagation();
+                  // If playback is paused, resume playback; otherwise, hide the video overlay
+                  registerActivity();
                   if (!isPlaying) {
                     handlePlay();
+                  } else {
+                    onToggleVideo();
                   }
-                  onToggleVideo();
                 }}
               />
             )}
@@ -556,10 +573,18 @@ export function IpodScreen({
               custom={menuDirection}
               onClick={() => {
                 if (!menuMode && currentTrack) {
+                  registerActivity();
                   if (!isPlaying) {
+                    // Resume playback first
                     handlePlay();
+                    // If the video is currently hidden, show it
+                    if (!showVideo) {
+                      onToggleVideo();
+                    }
+                  } else {
+                    // Already playing — simply toggle video visibility
+                    onToggleVideo();
                   }
-                  onToggleVideo();
                 }
               }}
             >
