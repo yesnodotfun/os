@@ -21,7 +21,8 @@ export const IPOD_DEFAULT_VIDEOS = [
     url: "https://www.youtube.com/watch?v=-nEGVrzPaiU&pp=ygUPdGljayB0YWNrIGlsbGl0",
     title: "Tick-Tack",
     artist: "ILLIT (아일릿)",
-    lyricOffset: -15950,
+    album: "",
+    lyricOffset: -17150,
   },
   {
     id: "lXd1GHJPx-A",
@@ -45,7 +46,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     title: "Supernatural (Miami Bass Remix)",
     artist: "NewJeans (뉴진스)",
     album: "Supernatural",
-    lyricOffset: 27350,
+    lyricOffset: 22400,
   },
   {
     id: "1FNI1i7H1Kc",
@@ -53,7 +54,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     title: "The Chase (R&B Remix)",
     artist: "Hearts2Hearts (하츠투하츠)",
     album: "The Chase",
-    lyricOffset: -6400,
+    lyricOffset: -6600,
   },
   {
     id: "LVLOwwGVVZ0",
@@ -85,7 +86,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     title: "UP&DOWN",
     artist: "임지수 (Lim Jisoo)",
     album: "UP&DOWN",
-    lyricOffset: 2000,
+    lyricOffset: 1600,
   },
   {
     id: "zt0Me5qyK4g",
@@ -101,7 +102,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     title: "LEFT RIGHT",
     artist: "XG",
     album: "NEW DNA",
-    lyricOffset: -4400,
+    lyricOffset: -5050,
   },
   {
     id: "QiYOkmrI1jg",
@@ -109,7 +110,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     title: "IYKYK",
     artist: "XG",
     album: "IYKYK",
-    lyricOffset: 2000,
+    lyricOffset: 1250,
   },
   {
     id: "_wgeHqXr4Hc",
@@ -133,7 +134,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     title: "ETA (R&B Remix)",
     artist: "NewJeans (뉴진스)",
     album: "NewJeans 2nd EP 'Get Up'",
-    lyricOffset: -5200,
+    lyricOffset: -4400,
   },
   {
     id: "5tcBJCouOmE",
@@ -141,7 +142,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     title: "Hype Boy",
     artist: "DEAN (딘)",
     album: "New Jeans",
-    lyricOffset: 18800,
+    lyricOffset: 19250,
   },
   {
     id: "PO8",
@@ -157,7 +158,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     title: "BEBE",
     artist: "STAYC (스테이씨)",
     album: "BEBE",
-    lyricOffset: 2200,
+    lyricOffset: 1650,
   },
   {
     id: "aFrQIJ5cbRc",
@@ -165,7 +166,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     title: "Know About Me",
     artist: "NMIXX (엔믹스)",
     album: "Fe3O4: FORWARD - EP",
-    lyricOffset: -650,
+    lyricOffset: -1500,
   },
   {
     id: "hJ9Wp3PO3c8",
@@ -269,7 +270,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     title: "ETA (feat. E SENS 이센스)",
     artist: "NJZ",
     album: "NewJeans 2nd EP 'Get Up'",
-    lyricOffset: -6000,
+    lyricOffset: -7850,
   },
 ];
 
@@ -359,7 +360,7 @@ export interface IpodState extends IpodData {
   exportLibrary: () => string;
 }
 
-const CURRENT_IPOD_STORE_VERSION = 10; // Incremented version for new state
+const CURRENT_IPOD_STORE_VERSION = 11; // Incremented version for new state
 
 export const useIpodStore = create<IpodState>()(
   persist(
