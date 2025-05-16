@@ -63,8 +63,10 @@ export function WindowFrame({
   const { play: playWindowClose } = useSound(Sounds.WINDOW_CLOSE);
   const { play: playWindowExpand } = useSound(Sounds.WINDOW_EXPAND);
   const { play: playWindowCollapse } = useSound(Sounds.WINDOW_COLLAPSE);
+  const { play: playWindowMoveStop } = useSound(Sounds.WINDOW_MOVE_STOP);
   const vibrateMaximize = useVibration(50, 100);
   const vibrateClose = useVibration(50, 50);
+  const vibrateSwap = useVibration(30, 50);
   const [isFullHeight, setIsFullHeight] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
   const isMobile = useIsMobile();
@@ -86,8 +88,16 @@ export function WindowFrame({
   } = useSwipeNavigation({
     currentAppId: appId as AppId,
     isActive: isMobile && isForeground,
-    onSwipeLeft: (currentAppId) => navigateToNextApp(currentAppId),
-    onSwipeRight: (currentAppId) => navigateToPreviousApp(currentAppId),
+    onSwipeLeft: (currentAppId) => {
+      playWindowMoveStop();
+      vibrateSwap();
+      navigateToNextApp(currentAppId);
+    },
+    onSwipeRight: (currentAppId) => {
+      playWindowMoveStop();
+      vibrateSwap();
+      navigateToPreviousApp(currentAppId);
+    },
     threshold: 100,
   });
 
