@@ -277,7 +277,8 @@ export function LyricsDisplay({
     if (lastTouchY.current === null || !onAdjustOffset) return;
     const currentY = e.touches[0].clientY;
     const dy = currentY - lastTouchY.current;
-    if (Math.abs(dy) > 10) { // Threshold to start adjustment
+    if (Math.abs(dy) > 10) {
+      // Threshold to start adjustment
       const step = 50; // 50 ms per swipe (was 200)
       const change = dy > 0 ? step : -step; // Inverted: swipe down = lyrics later (positive offset), swipe up = lyrics earlier (negative offset)
       onAdjustOffset(change);
@@ -289,8 +290,7 @@ export function LyricsDisplay({
   if (isLoading) return <LoadingState />;
   if (isTranslating) return <TranslatingState />;
   if (error) return <ErrorState />;
-  if (!lines.length && !isLoading && !isTranslating)
-    return <ErrorState />;
+  if (!lines.length && !isLoading && !isTranslating) return <ErrorState />;
 
   return (
     <motion.div

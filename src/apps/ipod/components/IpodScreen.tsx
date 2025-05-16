@@ -362,7 +362,7 @@ export function IpodScreen({
     title: currentTrack?.title ?? "",
     artist: currentTrack?.artist ?? "",
     album: currentTrack?.album ?? "",
-    currentTime: elapsedTime + (lyricOffset / 1000), // Use passed lyricOffset
+    currentTime: elapsedTime + lyricOffset / 1000, // Use passed lyricOffset
     translateTo: translateToForLyrics, // Pass translateTo
   });
 
@@ -431,6 +431,10 @@ export function IpodScreen({
                 },
               }}
             />
+            {/* Dark overlay when lyrics are shown */}
+            {showVideo && shouldShowLyrics && (
+              <div className="absolute inset-0 bg-black/30 z-25" />
+            )}
             {/* Transparent overlay to capture clicks */}
             {showVideo && (
               <div

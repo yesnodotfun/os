@@ -43,8 +43,12 @@ export function IpodAppComponent({
   const lyricsAlignment = useIpodStore((s) => s.lyricsAlignment);
   const chineseVariant = useIpodStore((s) => s.chineseVariant);
   const koreanDisplay = useIpodStore((s) => s.koreanDisplay);
-  const lyricOffset = useIpodStore((s) => s.tracks[s.currentIndex]?.lyricOffset);
-  const lyricsTranslationRequest = useIpodStore((s) => s.lyricsTranslationRequest);
+  const lyricOffset = useIpodStore(
+    (s) => s.tracks[s.currentIndex]?.lyricOffset
+  );
+  const lyricsTranslationRequest = useIpodStore(
+    (s) => s.lyricsTranslationRequest
+  );
 
   const setCurrentIndex = useIpodStore((s) => s.setCurrentIndex);
   const toggleLoopAll = useIpodStore((s) => s.toggleLoopAll);
@@ -79,7 +83,11 @@ export function IpodAppComponent({
   const initialMenuMode = useMemo(() => {
     const storeState = useIpodStore.getState();
     // Default to Now Playing if there are tracks and a valid index
-    return !(storeState.tracks.length > 0 && storeState.currentIndex >= 0 && storeState.currentIndex < storeState.tracks.length);
+    return !(
+      storeState.tracks.length > 0 &&
+      storeState.currentIndex >= 0 &&
+      storeState.currentIndex < storeState.tracks.length
+    );
   }, []); // Empty dependency array means this runs once on mount
 
   const [menuMode, setMenuMode] = useState(initialMenuMode);
@@ -108,7 +116,7 @@ export function IpodAppComponent({
   const prevIsForeground = useRef(isForeground);
   const bringToForeground = useAppStore((state) => state.bringToForeground);
   const clearIpodInitialData = useAppStore((state) => state.clearInitialData);
-  
+
   const ua = navigator.userAgent;
   const isIOS = /iP(hone|od|ad)/.test(ua);
   const isSafari = /Safari/.test(ua) && !/Chrome/.test(ua) && !/CriOS/.test(ua);
@@ -1101,9 +1109,10 @@ export function IpodAppComponent({
 
   // Derived state for translation
   const currentTrackId = tracks[currentIndex]?.id;
-  const translateToForLyricsHook = lyricsTranslationRequest?.songId === currentTrackId
-    ? lyricsTranslationRequest?.language
-    : null;
+  const translateToForLyricsHook =
+    lyricsTranslationRequest?.songId === currentTrackId
+      ? lyricsTranslationRequest?.language
+      : null;
 
   if (!isWindowOpen) return null;
 
@@ -1179,7 +1188,9 @@ export function IpodAppComponent({
               chineseVariant={chineseVariant}
               koreanDisplay={koreanDisplay}
               lyricOffset={lyricOffset ?? 0}
-              adjustLyricOffset={(delta) => useIpodStore.getState().adjustLyricOffset(currentIndex, delta)}
+              adjustLyricOffset={(delta) =>
+                useIpodStore.getState().adjustLyricOffset(currentIndex, delta)
+              }
               translateToForLyrics={translateToForLyricsHook}
             />
 
