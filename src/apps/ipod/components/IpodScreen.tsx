@@ -409,9 +409,10 @@ export function IpodScreen({
               e.stopPropagation();
               registerActivity();
               if (!isPlaying) {
+                // Video is already visible; just resume playback
                 handlePlay();
-                onToggleVideo();
               } else {
+                // Playing → hide video
                 onToggleVideo();
               }
             }}
@@ -456,11 +457,9 @@ export function IpodScreen({
                 className="absolute inset-0 z-30"
                 onClick={(e) => {
                   e.stopPropagation();
-                  // If playback is paused, resume playback; otherwise, hide the video overlay
-                  registerActivity();
+                  // Only resume playback; keep video visible
                   if (!isPlaying) {
                     handlePlay();
-                    onToggleVideo();
                   } else {
                     onToggleVideo();
                   }
