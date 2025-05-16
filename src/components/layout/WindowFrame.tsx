@@ -69,6 +69,7 @@ export function WindowFrame({
   const vibrateSwap = useVibration(30, 50);
   const [isFullHeight, setIsFullHeight] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
+  const isClosingRef = useRef(false);
   const isMobile = useIsMobile();
   const lastTapTimeRef = useRef<number>(0);
   const doubleTapTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -119,12 +120,14 @@ export function WindowFrame({
       ) {
         setIsVisible(false);
         onClose?.();
+        isClosingRef.current = false;
       }
     },
     [isOpen, onClose]
   );
 
   const handleClose = () => {
+    isClosingRef.current = true;
     vibrateClose();
     playWindowClose();
     setIsOpen(false);
@@ -171,6 +174,7 @@ export function WindowFrame({
 
   // This function only maximizes height (for bottom resize handle)
   const handleHeightOnlyMaximize = (e: React.MouseEvent | React.TouchEvent) => {
+    if (isClosingRef.current) return;
     vibrateMaximize();
     e.stopPropagation();
 
@@ -224,6 +228,7 @@ export function WindowFrame({
   // This function maximizes both width and height (for titlebar)
   const handleFullMaximize = useCallback(
     (e: React.MouseEvent | React.TouchEvent) => {
+      if (isClosingRef.current) return;
       vibrateMaximize();
       e.stopPropagation();
 
@@ -332,6 +337,7 @@ export function WindowFrame({
   // Handle double tap for titlebar
   const handleTitleBarTap = useCallback(
     (e: React.TouchEvent) => {
+      if (isClosingRef.current) return;
       // Don't stop propagation by default, only if we detect a double tap
       e.preventDefault();
 
