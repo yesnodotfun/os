@@ -83,7 +83,9 @@ export function IpodMenuBar({
   const setLyricsAlignment = useIpodStore((s) => s.setLyricsAlignment);
   const setChineseVariant = useIpodStore((s) => s.setChineseVariant);
   const setKoreanDisplay = useIpodStore((s) => s.setKoreanDisplay);
-  const setLyricsTranslationRequest = useIpodStore((s) => s.setLyricsTranslationRequest);
+  const setLyricsTranslationRequest = useIpodStore(
+    (s) => s.setLyricsTranslationRequest
+  );
   const importLibrary = useIpodStore((s) => s.importLibrary);
   const exportLibrary = useIpodStore((s) => s.exportLibrary);
 
@@ -295,25 +297,43 @@ export function IpodMenuBar({
 
               {/* Chinese toggle */}
               <DropdownMenuItem
-                onClick={() => setChineseVariant(chineseVariant === ChineseVariant.Traditional ? ChineseVariant.Original : ChineseVariant.Traditional)}
+                onClick={() =>
+                  setChineseVariant(
+                    chineseVariant === ChineseVariant.Traditional
+                      ? ChineseVariant.Original
+                      : ChineseVariant.Traditional
+                  )
+                }
                 className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
               >
-                <span className={cn(chineseVariant !== ChineseVariant.Traditional && "pl-4")}>
-                  {chineseVariant === ChineseVariant.Traditional 
-                    ? "✓ 繁體" 
+                <span
+                  className={cn(
+                    chineseVariant !== ChineseVariant.Traditional && "pl-4"
+                  )}
+                >
+                  {chineseVariant === ChineseVariant.Traditional
+                    ? "✓ 繁體"
                     : "繁體"}
                 </span>
               </DropdownMenuItem>
 
               {/* Korean toggle */}
               <DropdownMenuItem
-                onClick={() => setKoreanDisplay(koreanDisplay === KoreanDisplay.Original ? KoreanDisplay.Romanized : KoreanDisplay.Original)}
+                onClick={() =>
+                  setKoreanDisplay(
+                    koreanDisplay === KoreanDisplay.Original
+                      ? KoreanDisplay.Romanized
+                      : KoreanDisplay.Original
+                  )
+                }
                 className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
               >
-                <span className={cn(koreanDisplay !== KoreanDisplay.Original && "pl-4")}>
-                  {koreanDisplay === KoreanDisplay.Original 
-                    ? "✓ 한글" 
-                    : "한글"}
+                <span
+                  className={cn(
+                    koreanDisplay !== KoreanDisplay.Original && "pl-4"
+                  )}
+                >
+                  {koreanDisplay === KoreanDisplay.Original ? "✓ 한글" : "한글"}
                 </span>
               </DropdownMenuItem>
 
@@ -367,9 +387,7 @@ export function IpodMenuBar({
 
           {/* Translate Lyrics Submenu */}
           <DropdownMenuSub>
-            <DropdownMenuSubTrigger 
-              className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
-             >
+            <DropdownMenuSubTrigger className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
               Translate
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent className="px-0 max-h-[400px] overflow-y-auto">
@@ -386,14 +404,12 @@ export function IpodMenuBar({
                   }}
                   className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
                 >
-                  <span>
-                    {lang.label}
-                  </span>
+                  <span>{lang.label}</span>
                 </DropdownMenuItem>
               ))}
             </DropdownMenuSubContent>
           </DropdownMenuSub>
-          
+
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
 
           <DropdownMenuItem
@@ -504,41 +520,43 @@ export function IpodMenuBar({
               </DropdownMenuSub>
 
               {/* Individual Artist submenus */}
-              {artists.map((artist) => (
-                <DropdownMenuSub key={artist}>
-                  <DropdownMenuSubTrigger className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
-                    <div className="flex justify-between w-full items-center overflow-hidden">
-                      <span className="truncate min-w-0">{artist}</span>
-                    </div>
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent className="px-0 max-w-[180px] sm:max-w-[220px] max-h-[200px] overflow-y-auto">
-                    {tracksByArtist[artist].map(({ track, index }) => (
-                      <DropdownMenuItem
-                        key={`${artist}-${track.id}`}
-                        onClick={() => handlePlayTrack(index)}
-                        className={cn(
-                          "text-md h-6 px-3 active:bg-gray-900 active:text-white max-w-[160px] sm:max-w-[200px] truncate",
-                          index === currentIndex && "bg-gray-200"
-                        )}
-                      >
-                        <div className="flex items-center w-full">
-                          <span
-                            className={cn(
-                              "flex-none whitespace-nowrap",
-                              index === currentIndex ? "mr-1" : "pl-5"
-                            )}
-                          >
-                            {index === currentIndex ? "♪ " : ""}
-                          </span>
-                          <span className="truncate min-w-0">
-                            {track.title}
-                          </span>
-                        </div>
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-              ))}
+              <div className="max-h-[300px] overflow-y-auto">
+                {artists.map((artist) => (
+                  <DropdownMenuSub key={artist}>
+                    <DropdownMenuSubTrigger className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
+                      <div className="flex justify-between w-full items-center overflow-hidden">
+                        <span className="truncate min-w-0">{artist}</span>
+                      </div>
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent className="px-0 max-w-[180px] sm:max-w-[220px] max-h-[200px] overflow-y-auto">
+                      {tracksByArtist[artist].map(({ track, index }) => (
+                        <DropdownMenuItem
+                          key={`${artist}-${track.id}`}
+                          onClick={() => handlePlayTrack(index)}
+                          className={cn(
+                            "text-md h-6 px-3 active:bg-gray-900 active:text-white max-w-[160px] sm:max-w-[200px] truncate",
+                            index === currentIndex && "bg-gray-200"
+                          )}
+                        >
+                          <div className="flex items-center w-full">
+                            <span
+                              className={cn(
+                                "flex-none whitespace-nowrap",
+                                index === currentIndex ? "mr-1" : "pl-5"
+                              )}
+                            >
+                              {index === currentIndex ? "♪ " : ""}
+                            </span>
+                            <span className="truncate min-w-0">
+                              {track.title}
+                            </span>
+                          </div>
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
+                ))}
+              </div>
 
               <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
             </>

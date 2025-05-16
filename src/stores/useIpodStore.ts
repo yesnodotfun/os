@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { LyricsAlignment, ChineseVariant, KoreanDisplay } from "@/types/lyrics";
+import { LyricLine } from "@/types/lyrics";
 
 // Define the Track type (can be shared or defined here)
 export interface Track {
@@ -299,6 +300,7 @@ interface IpodData {
   chineseVariant: ChineseVariant;
   koreanDisplay: KoreanDisplay;
   lyricsTranslationRequest: { language: string; songId: string } | null;
+  currentLyrics: { lines: LyricLine[] } | null;
 }
 
 const initialIpodData: IpodData = {
@@ -316,7 +318,8 @@ const initialIpodData: IpodData = {
   lyricsAlignment: LyricsAlignment.FocusThree,
   chineseVariant: ChineseVariant.Traditional,
   koreanDisplay: KoreanDisplay.Original,
-  lyricsTranslationRequest: null, // Initialize as null (no translation)
+  lyricsTranslationRequest: null,
+  currentLyrics: null,
 };
 
 export interface IpodState extends IpodData {

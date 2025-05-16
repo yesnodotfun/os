@@ -54,6 +54,12 @@ interface SystemState {
     loopAll: boolean;
     loopCurrent: boolean;
     isShuffled: boolean;
+    currentLyrics?: {
+      lines: Array<{
+        startTimeMs: string;
+        words: string;
+      }>;
+    } | null;
   };
   textEdit?: {
     lastFilePath: string | null;
@@ -155,6 +161,12 @@ ${
     ? `\n- iPod Now Playing: ${systemState.ipod.currentTrack.title}${
         systemState.ipod.currentTrack.artist
           ? ` by ${systemState.ipod.currentTrack.artist}`
+          : ""
+      }${
+        systemState.ipod.currentLyrics?.lines
+          ? `\n- Current Lyrics:\n${systemState.ipod.currentLyrics.lines
+              .map((line) => line.words)
+              .join("\n")}`
           : ""
       }`
     : ""

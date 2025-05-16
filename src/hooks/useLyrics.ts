@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { LyricLine } from "@/types/lyrics";
 import { parseLRC } from "@/utils/lrcParser";
+import { useIpodStore } from "@/stores/useIpodStore";
 
 interface UseLyricsParams {
   /** Song title */
@@ -36,7 +37,9 @@ export function useLyrics({
   translateTo,
 }: UseLyricsParams): LyricsState {
   const [originalLines, setOriginalLines] = useState<LyricLine[]>([]);
-  const [translatedLines, setTranslatedLines] = useState<LyricLine[] | null>(null);
+  const [translatedLines, setTranslatedLines] = useState<LyricLine[] | null>(
+    null
+  );
   const [currentLine, setCurrentLine] = useState(-1);
   const [isFetchingOriginal, setIsFetchingOriginal] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
@@ -90,15 +93,21 @@ export function useLyrics({
       .then((json) => {
         if (cancelled) return;
         if (!json) throw new Error("No lyrics found or fetch timed out");
-        
+
         const lrc: string | undefined = json?.lyrics;
         if (!lrc) throw new Error("No lyrics found");
 
         const cleanedLrc = lrc.replace(/\u200b/g, "");
-        const parsed = parseLRC(cleanedLrc, json?.title ?? title, json?.artist ?? artist);
+        const parsed = parseLRC(
+          cleanedLrc,
+          json?.title ?? title,
+          json?.artist ?? artist
+        );
         setOriginalLines(parsed);
         cachedKeyRef.current = cacheKey;
-        // Translation will be handled by the next effect
+
+        // Update iPod store with current lyrics
+        useIpodStore.setState({ currentLyrics: { lines: parsed } });
       })
       .catch((err: unknown) => {
         if (cancelled) return;
@@ -106,10 +115,14 @@ export function useLyrics({
         if (err instanceof DOMException && err.name === "AbortError") {
           setError("Lyrics search timed out.");
         } else {
-          setError(err instanceof Error ? err.message : "Unknown error fetching lyrics");
+          setError(
+            err instanceof Error ? err.message : "Unknown error fetching lyrics"
+          );
         }
         setOriginalLines([]);
         setCurrentLine(-1);
+        // Clear lyrics in iPod store on error
+        useIpodStore.setState({ currentLyrics: null });
       })
       .finally(() => {
         if (!cancelled) setIsFetchingOriginal(false);
@@ -128,58 +141,64 @@ export function useLyrics({
     if (!translateTo || originalLines.length === 0) {
       setTranslatedLines(null);
       setIsTranslating(false);
-      if (translateTo && originalLines.length > 0) { // If trying to translate but no original lines yet due to fetch
-          // This case should be handled by originalLines fetch completing first.
-          // If originalLines is empty and translateTo is set, it means we are waiting for original fetch or original fetch failed.
+      if (translateTo && originalLines.length > 0) {
+        // This case should be handled by originalLines fetch completing first.
+        // If originalLines is empty and translateTo is set, it means we are waiting for original fetch or original fetch failed.
       }
       return;
     }
 
     // If original fetch is still in progress, wait for it.
     if (isFetchingOriginal) {
-        setIsTranslating(false); // Not yet translating
-        return;
+      setIsTranslating(false); // Not yet translating
+      return;
     }
-    
+
     let cancelled = false;
     setIsTranslating(true);
     setError(undefined); // Clear previous errors
 
     const controller = new AbortController();
     const translationTimeoutId = setTimeout(() => {
-        controller.abort();
-        console.warn("Lyrics translation timed out");
+      controller.abort();
+      console.warn("Lyrics translation timed out");
     }, 20000); // 20 second timeout for translation
 
     fetch("/api/translate-lyrics", {
       method: "POST",
-      headers: { "Content-Type": "application/json" }, // Request body is still JSON
-      body: JSON.stringify({ lines: originalLines, targetLanguage: translateTo }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        lines: originalLines,
+        targetLanguage: translateTo,
+      }),
       signal: controller.signal,
     })
       .then(async (res) => {
         clearTimeout(translationTimeoutId);
-        const responseText = await res.text(); // Read response as text
+        const responseText = await res.text();
         if (!res.ok) {
-          // API returns plain text error like "Error: <message>"
-          // Remove "Error: " prefix if present
-          const errorMessage = responseText.startsWith("Error: ") ? responseText.substring(7) : responseText;
-          throw new Error(errorMessage || `Translation request failed with status ${res.status}`);
+          const errorMessage = responseText.startsWith("Error: ")
+            ? responseText.substring(7)
+            : responseText;
+          throw new Error(
+            errorMessage ||
+              `Translation request failed with status ${res.status}`
+          );
         }
-        return responseText; // Return the LRC string
+        return responseText;
       })
       .then((lrcText) => {
         if (cancelled) return;
         if (lrcText) {
-          // Assuming parseLRC can handle an empty string or returns empty array
-          // The title and artist here are placeholders as they might not be strictly relevant
-          // for already translated lyrics, depending on parseLRC's needs.
-          // If originalLines has title/artist, those could be used, or fallback to current song's.
           const parsedTranslatedLines = parseLRC(lrcText, title, artist);
           setTranslatedLines(parsedTranslatedLines);
+          // Update iPod store with translated lyrics
+          useIpodStore.setState({
+            currentLyrics: { lines: parsedTranslatedLines },
+          });
         } else {
-          // This case might occur if API returns an empty string for a successful but empty translation
-          setTranslatedLines([]); 
+          setTranslatedLines([]);
+          useIpodStore.setState({ currentLyrics: { lines: [] } });
         }
       })
       .catch((err: unknown) => {
@@ -188,9 +207,14 @@ export function useLyrics({
         if (err instanceof DOMException && err.name === "AbortError") {
           setError("Lyrics translation timed out.");
         } else {
-          setError(err instanceof Error ? err.message : "Unknown error during translation");
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Unknown error during translation"
+          );
         }
         setTranslatedLines(null);
+        // Keep original lyrics in iPod store on translation error
       })
       .finally(() => {
         if (!cancelled) setIsTranslating(false);
@@ -216,14 +240,20 @@ export function useLyrics({
     const timeMs = currentTime * 1000;
     let idx = displayLines.findIndex((line, i) => {
       const nextLineStart =
-        i + 1 < displayLines.length ? parseInt(displayLines[i + 1].startTimeMs) : Infinity;
+        i + 1 < displayLines.length
+          ? parseInt(displayLines[i + 1].startTimeMs)
+          : Infinity;
       return timeMs >= parseInt(line.startTimeMs) && timeMs < nextLineStart;
     });
 
-    if (idx === -1 && displayLines.length > 0 && timeMs >= parseInt(displayLines[displayLines.length - 1].startTimeMs)) {
+    if (
+      idx === -1 &&
+      displayLines.length > 0 &&
+      timeMs >= parseInt(displayLines[displayLines.length - 1].startTimeMs)
+    ) {
       idx = displayLines.length - 1;
     }
-    
+
     setCurrentLine(idx);
   }, [currentTime, displayLines]);
 

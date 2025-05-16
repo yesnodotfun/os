@@ -93,6 +93,7 @@ const getSystemState = () => {
       loopAll: ipodStore.loopAll,
       loopCurrent: ipodStore.loopCurrent,
       isShuffled: ipodStore.isShuffled,
+      currentLyrics: ipodStore.currentLyrics,
     },
     textEdit: {
       lastFilePath: textEditStore.lastFilePath,
