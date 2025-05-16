@@ -37,7 +37,7 @@ export default async function handler(req: Request) {
     const { object: parsedData } = await generateObject({
       model: openai("gpt-4.1-mini"),
       schema: ParsedTitleSchema, // Provide the Zod schema
-      system: `You are an expert music metadata parser. Given a raw YouTube video title, extract the song title and artist. If possible, also extract the album name. Respond ONLY with a valid JSON object matching the provided schema. If you cannot determine a field, omit it or set it to null. Example input: "NewJeans (뉴진스) 'How Sweet' Official MV". Example output: {"title": "How Sweet", "artist": "NewJeans"}. Example input: "Lofi Hip Hop Radio - Beats to Relax/Study to". Example output: {"title": "Lofi Hip Hop Radio - Beats to Relax/Study to", "artist": null}.`,
+      system: `You are an expert music metadata parser. Given a raw YouTube video title, extract the song title and artist. If possible, also extract the album name. Respond ONLY with a valid JSON object matching the provided schema. If you cannot determine a field, omit it or set it to null. Prefer English name and omit (parentheses) from artist name if names in other languages are provided. Example input: "NewJeans (뉴진스) 'How Sweet' Official MV". Example output: {"title": "How Sweet", "artist": "NewJeans"}. Example input: "Lofi Hip Hop Radio - Beats to Relax/Study to". Example output: {"title": "Lofi Hip Hop Radio - Beats to Relax/Study to", "artist": null}.`,
       prompt: rawTitle,
       temperature: 0.2,
     });
