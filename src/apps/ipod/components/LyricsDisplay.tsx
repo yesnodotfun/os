@@ -20,6 +20,8 @@ interface LyricsDisplayProps {
   error?: string;
   /** Whether the overlay should be visible */
   visible?: boolean;
+  /** Whether the video is visible */
+  videoVisible?: boolean;
   alignment?: LyricsAlignment;
   chineseVariant?: ChineseVariant;
   koreanDisplay?: KoreanDisplay;
@@ -123,6 +125,7 @@ export function LyricsDisplay({
   isLoading,
   error,
   visible = true,
+  videoVisible = true,
   alignment = LyricsAlignment.FocusThree,
   chineseVariant = ChineseVariant.Traditional,
   koreanDisplay = KoreanDisplay.Original,
@@ -259,7 +262,7 @@ export function LyricsDisplay({
   const lastTouchY = useRef<number | null>(null);
 
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
-    if (!onAdjustOffset) return;
+    if (!onAdjustOffset || !videoVisible) return;
     e.preventDefault();
     const delta = e.deltaY;
     const step = 50; // 50 ms per scroll step (was 200)
@@ -274,7 +277,7 @@ export function LyricsDisplay({
   };
 
   const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (lastTouchY.current === null || !onAdjustOffset) return;
+    if (lastTouchY.current === null || !onAdjustOffset || !videoVisible) return;
     const currentY = e.touches[0].clientY;
     const dy = currentY - lastTouchY.current;
     if (Math.abs(dy) > 10) {
