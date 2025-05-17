@@ -188,6 +188,7 @@ interface IpodScreenProps {
   adjustLyricOffset: (deltaMs: number) => void;
   translateToForLyrics: string | null;
   registerActivity: () => void;
+  isFullScreen: boolean;
 }
 
 // Main IpodScreen component
@@ -227,6 +228,7 @@ export function IpodScreen({
   adjustLyricOffset,
   translateToForLyrics,
   registerActivity,
+  isFullScreen,
 }: IpodScreenProps) {
   // Animation variants for menu transitions
   const menuVariants = {
@@ -436,12 +438,12 @@ export function IpodScreen({
               controls={showVideo}
               width="100%"
               height="100%"
-              onEnded={handleTrackEnd}
-              onProgress={handleProgress}
-              onDuration={handleDuration}
-              onPlay={handlePlay}
-              onPause={handlePause}
-              onReady={handleReady}
+              onEnded={!isFullScreen ? handleTrackEnd : undefined}
+              onProgress={!isFullScreen ? handleProgress : undefined}
+              onDuration={!isFullScreen ? handleDuration : undefined}
+              onPlay={!isFullScreen ? handlePlay : undefined}
+              onPause={!isFullScreen ? handlePause : undefined}
+              onReady={!isFullScreen ? handleReady : undefined}
               loop={loopCurrent}
               volume={finalIpodVolume}
               playsinline={true}

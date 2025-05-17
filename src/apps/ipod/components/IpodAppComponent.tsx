@@ -1193,81 +1193,30 @@ export function IpodAppComponent({
         : null,
   });
 
-  // Add this right before the return statement
-  const renderFullScreenContent = () => {
-    if (!isFullScreen || !tracks[currentIndex]) return null;
+  // Add a ref to track the previous fullscreen state
+  const prevFullScreenRef = useRef(isFullScreen);
 
-    const masterVolume = useAppStore.getState().masterVolume;
-    const finalIpodVolume = ipodVolume * masterVolume;
+  // Effect to sync playback time when entering/exiting fullscreen mode
+  useEffect(() => {
+    // Only execute when fullscreen state changes
+    if (isFullScreen !== prevFullScreenRef.current) {
+      if (isFullScreen && playerRef.current) {
+        // ENTERING fullscreen
+        // Get current time from the player
+        const currentTime = elapsedTime;
 
-    return (
-      <FullScreenPortal onClose={toggleFullScreen}>
-        <div className="flex flex-col w-full h-full">
-          {/* The player and lyrics content */}
-          <div className="relative w-full h-full overflow-hidden">
-            {/* The player and lyrics content */}
-            <div className="w-full h-[calc(100%+120px)] mt-[-60px] relative">
-              {tracks[currentIndex] && (
-                <>
-                  <ReactPlayer
-                    ref={playerRef}
-                    url={tracks[currentIndex].url}
-                    playing={isPlaying && !isFullScreen}
-                    controls
-                    width="100%"
-                    height="100%"
-                    volume={finalIpodVolume}
-                    loop={loopCurrent}
-                    onEnded={handleTrackEnd}
-                    onProgress={handleProgress}
-                    onDuration={handleDuration}
-                    onPlay={handlePlay}
-                    onPause={handlePause}
-                    onReady={handleReady}
-                    config={{
-                      youtube: {
-                        playerVars: {
-                          modestbranding: 1,
-                          fs: 1,
-                        },
-                      },
-                    }}
-                  />
+        // Apply time to player in fullscreen mode (small delay to ensure component is mounted)
+        setTimeout(() => {
+          if (playerRef.current) {
+            playerRef.current.seekTo(currentTime);
+          }
+        }, 100);
+      }
 
-                  {/* Lyrics Overlay */}
-                  {showLyrics && (
-                    <div className="absolute inset-0 pointer-events-none">
-                      {/* Use the hook result from the top level */}
-                      <LyricsDisplay
-                        lines={fullScreenLyricsControls.lines}
-                        currentLine={fullScreenLyricsControls.currentLine}
-                        isLoading={fullScreenLyricsControls.isLoading}
-                        error={fullScreenLyricsControls.error}
-                        visible={true}
-                        videoVisible={true}
-                        alignment={lyricsAlignment}
-                        chineseVariant={chineseVariant}
-                        koreanDisplay={koreanDisplay}
-                        onAdjustOffset={(delta) =>
-                          useIpodStore
-                            .getState()
-                            .adjustLyricOffset(currentIndex, delta)
-                        }
-                        isTranslating={fullScreenLyricsControls.isTranslating}
-                        textSizeClass="text-[min(8vw,8vh)]"
-                        interactive={false}
-                        bottomPaddingClass="pb-32"
-                      />
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </FullScreenPortal>
-    );
-  };
+      // Update the ref
+      prevFullScreenRef.current = isFullScreen;
+    }
+  }, [isFullScreen, playerRef, elapsedTime]);
 
   if (!isWindowOpen) return null;
 
@@ -1348,6 +1297,7 @@ export function IpodAppComponent({
               }
               translateToForLyrics={translateToForLyricsHook}
               registerActivity={registerActivity}
+              isFullScreen={isFullScreen}
             />
 
             <IpodWheel
@@ -1360,7 +1310,98 @@ export function IpodAppComponent({
         </div>
 
         {/* Render the full screen portal when isFullScreen is true */}
-        {renderFullScreenContent()}
+        {isFullScreen && (
+          <FullScreenPortal
+            onClose={() => {
+              // When closing fullscreen, first capture the current playback time
+              const currentTime = playerRef.current?.getCurrentTime() || 0;
+              const wasPlaying = isPlaying;
+
+              // Toggle fullscreen state
+              toggleFullScreen();
+
+              // After exiting fullscreen, ensure we sync playback position
+              // Small timeout to allow component to re-render
+              setTimeout(() => {
+                if (playerRef.current) {
+                  playerRef.current.seekTo(currentTime);
+                  // Only update play state if needed
+                  if (wasPlaying && !isPlaying) {
+                    setIsPlaying(true);
+                  }
+                }
+              }, 100);
+            }}
+          >
+            <div className="flex flex-col w-full h-full">
+              {/* The player and lyrics content */}
+              <div className="relative w-full h-full overflow-hidden">
+                {/* The player and lyrics content */}
+                <div className="w-full h-[calc(100%+120px)] mt-[-60px] relative">
+                  {tracks[currentIndex] && (
+                    <>
+                      <ReactPlayer
+                        ref={playerRef}
+                        url={tracks[currentIndex].url}
+                        playing={isPlaying && isFullScreen} // Only play when in fullscreen mode
+                        controls
+                        width="100%"
+                        height="100%"
+                        volume={
+                          ipodVolume * useAppStore.getState().masterVolume
+                        }
+                        loop={loopCurrent}
+                        onEnded={handleTrackEnd}
+                        onProgress={handleProgress}
+                        onDuration={handleDuration}
+                        onPlay={handlePlay}
+                        onPause={handlePause}
+                        onReady={handleReady}
+                        config={{
+                          youtube: {
+                            playerVars: {
+                              modestbranding: 1,
+                              fs: 1,
+                            },
+                          },
+                        }}
+                      />
+
+                      {/* Lyrics Overlay */}
+                      {showLyrics && (
+                        <div className="absolute inset-0 pointer-events-none">
+                          {/* Use the hook result from the top level */}
+                          <LyricsDisplay
+                            lines={fullScreenLyricsControls.lines}
+                            currentLine={fullScreenLyricsControls.currentLine}
+                            isLoading={fullScreenLyricsControls.isLoading}
+                            error={fullScreenLyricsControls.error}
+                            visible={true}
+                            videoVisible={true}
+                            alignment={lyricsAlignment}
+                            chineseVariant={chineseVariant}
+                            koreanDisplay={koreanDisplay}
+                            onAdjustOffset={(delta) =>
+                              useIpodStore
+                                .getState()
+                                .adjustLyricOffset(currentIndex, delta)
+                            }
+                            isTranslating={
+                              fullScreenLyricsControls.isTranslating
+                            }
+                            textSizeClass="text-[min(8vw,8vh)]"
+                            interactive={false}
+                            bottomPaddingClass="pb-32"
+                          />
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </FullScreenPortal>
+        )}
 
         <HelpDialog
           isOpen={isHelpDialogOpen}
