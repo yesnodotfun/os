@@ -32,9 +32,11 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
   const speechVolume = useAppStore((s) => s.speechVolume);
   const masterVolume = useAppStore((s) => s.masterVolume);
   const setIpodVolumeGlobal = useAppStore((s) => s.setIpodVolume);
+  const setChatSynthVolumeGlobal = useAppStore((s) => s.setChatSynthVolume);
 
-  // Keep track of iPod volume for duck/restore
+  // Keep track of iPod and chat synth volumes for duck/restore
   const originalIpodVolumeRef = useRef<number | null>(null);
+  const originalChatSynthVolumeRef = useRef<number | null>(null);
 
   // Subscribe to iPod playing state so our effect reacts when playback starts/stops
   const ipodIsPlaying = useIpodStore((s) => s.isPlaying);
@@ -211,26 +213,37 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
   }, [speechVolume, masterVolume]);
 
   /**
-   * Duck iPod volume while TTS is speaking.
-   * We only duck when the iPod is actively playing and we have not already
+   * Duck iPod and chat synth volumes while TTS is speaking.
+   * We only duck when audio is actively playing and we have not already
    * done so for the current speech session. When speech ends, we restore the
-   * previous volume.
+   * previous volumes.
    */
   useEffect(() => {
-    if (isSpeaking && ipodIsPlaying) {
+    if (isSpeaking) {
       // Activate ducking only once at the start of speech
       if (originalIpodVolumeRef.current === null) {
         if (isIOS) {
           // iOS Safari does not allow programmatic volume changes. Pause playback instead.
           didPauseIpodRef.current = true;
           setIpodIsPlaying(false);
-        } else {
+        } else if (ipodIsPlaying) {
           originalIpodVolumeRef.current = useAppStore.getState().ipodVolume;
-          const ducked = Math.max(0, originalIpodVolumeRef.current * 0.15);
-          setIpodVolumeGlobal(ducked);
+          const duckedIpod = Math.max(0, originalIpodVolumeRef.current * 0.35);
+          setIpodVolumeGlobal(duckedIpod);
         }
       }
-    } else if (!isSpeaking) {
+
+      // Duck chat synth volume
+      if (originalChatSynthVolumeRef.current === null) {
+        originalChatSynthVolumeRef.current =
+          useAppStore.getState().chatSynthVolume;
+        const duckedChatSynth = Math.max(
+          0,
+          originalChatSynthVolumeRef.current * 0.45
+        );
+        setChatSynthVolumeGlobal(duckedChatSynth);
+      }
+    } else {
       // Restore after speech
       if (isIOS) {
         if (didPauseIpodRef.current) {
@@ -239,12 +252,25 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
         didPauseIpodRef.current = false;
       }
 
+      // Restore iPod volume if it was ducked
       if (originalIpodVolumeRef.current !== null) {
         setIpodVolumeGlobal(originalIpodVolumeRef.current);
         originalIpodVolumeRef.current = null;
       }
+
+      // Restore chat synth volume if it was ducked
+      if (originalChatSynthVolumeRef.current !== null) {
+        setChatSynthVolumeGlobal(originalChatSynthVolumeRef.current);
+        originalChatSynthVolumeRef.current = null;
+      }
     }
-  }, [isSpeaking, ipodIsPlaying, setIpodVolumeGlobal, isIOS]);
+  }, [
+    isSpeaking,
+    ipodIsPlaying,
+    setIpodVolumeGlobal,
+    setChatSynthVolumeGlobal,
+    isIOS,
+  ]);
 
   return { speak, stop, isSpeaking };
 }
