@@ -1344,37 +1344,45 @@ export function IpodAppComponent({
                 <div className="w-full h-[calc(100%+120px)] mt-[-60px] relative">
                   {tracks[currentIndex] && (
                     <>
-                      <ReactPlayer
-                        ref={fullScreenPlayerRef}
-                        url={tracks[currentIndex].url}
-                        playing={isPlaying && isFullScreen} // Only play when in fullscreen mode
-                        controls
-                        width="100%"
-                        height="100%"
-                        volume={
-                          ipodVolume * useAppStore.getState().masterVolume
-                        }
-                        loop={loopCurrent}
-                        onEnded={handleTrackEnd}
-                        onProgress={handleProgress}
-                        onDuration={handleDuration}
-                        onPlay={handlePlay}
-                        onPause={handlePause}
-                        onReady={handleReady}
-                        config={{
-                          youtube: {
-                            playerVars: {
-                              modestbranding: 1, // Minimal YouTube branding
-                              rel: 0, // Do not show related videos at the end
-                              showinfo: 0, // Hide video title
-                              iv_load_policy: 3, // Hide annotations
-                              cc_load_policy: 0, // Disable captions by default
-                              fs: 1, // Allow fullscreen toggle inside YouTube player
-                              playsinline: 1, // iOS inline playback
+                      <div
+                        className={`w-full h-full ${
+                          isPlaying
+                            ? "pointer-events-none"
+                            : "pointer-events-auto"
+                        }`}
+                      >
+                        <ReactPlayer
+                          ref={fullScreenPlayerRef}
+                          url={tracks[currentIndex].url}
+                          playing={isPlaying && isFullScreen} // Only play when in fullscreen mode
+                          controls
+                          width="100%"
+                          height="100%"
+                          volume={
+                            ipodVolume * useAppStore.getState().masterVolume
+                          }
+                          loop={loopCurrent}
+                          onEnded={handleTrackEnd}
+                          onProgress={handleProgress}
+                          onDuration={handleDuration}
+                          onPlay={handlePlay}
+                          onPause={handlePause}
+                          onReady={handleReady}
+                          config={{
+                            youtube: {
+                              playerVars: {
+                                modestbranding: 1, // Minimal YouTube branding
+                                rel: 0, // Do not show related videos at the end
+                                showinfo: 0, // Hide video title
+                                iv_load_policy: 3, // Hide annotations
+                                cc_load_policy: 0, // Disable captions by default
+                                fs: 1, // Allow fullscreen toggle inside YouTube player
+                                playsinline: 1, // iOS inline playback
+                              },
                             },
-                          },
-                        }}
-                      />
+                          }}
+                        />
+                      </div>
 
                       {/* Lyrics Overlay */}
                       {showLyrics && (
