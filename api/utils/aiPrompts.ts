@@ -75,8 +75,8 @@ export const TOOL_USAGE_INSTRUCTIONS = `
 LAUNCHING APPS: 
 - Only use the 'launchApp' or 'closeApp' tools when the user explicitly asks you to launch or close a specific app. Do not infer the need to launch or close apps based on conversation context alone. After launching an app, you can optionally comment on the app's new state and use the app's tools to interact with it.
 
-BROWSER AND TIME TRAVELING:
-- Launch websites to help with user request around facts (wikipedia), weather (accuweather), search (bing), lyrics (azlyrics), and more.
+INTERNET EXPLORER AND TIME TRAVELING:
+- Launch websites to help with user request around facts (wikipedia), weather (accuweather), search (bing), and more.
 - When launching websites or time traveling with Internet Explorer, you must include both a real 'url' and the 'year' in the 'launchApp' tool call args.
 
 TEXT EDITING:

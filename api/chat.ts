@@ -291,14 +291,21 @@ export default async function handler(req: Request) {
     // Use query parameter if available, otherwise use body parameter
     const model = queryModel || bodyModel;
 
-    console.log(
+    // Helper: prefix log lines with username (for easier tracing)
+    const usernameForLogs = incomingSystemState?.username ?? "unknown";
+    const log = (...args: any[]) =>
+      console.log(`[User: ${usernameForLogs}]`, ...args);
+    const logError = (...args: any[]) =>
+      console.error(`[User: ${usernameForLogs}]`, ...args);
+
+    log(
       `Using model: ${model || DEFAULT_MODEL} (${
         queryModel ? "from query" : model ? "from body" : "using default"
       })`
     );
 
     if (!messages || !Array.isArray(messages)) {
-      console.error(
+      logError(
         `400 Error: Invalid messages format - ${JSON.stringify({ messages })}`
       );
       return new Response("Invalid messages format", { status: 400 });
@@ -306,7 +313,7 @@ export default async function handler(req: Request) {
 
     // Additional validation for model
     if (model !== null && !SUPPORTED_AI_MODELS.includes(model)) {
-      console.error(`400 Error: Unsupported model - ${model}`);
+      logError(`400 Error: Unsupported model - ${model}`);
       return new Response(`Unsupported model: ${model}`, { status: 400 });
     }
 

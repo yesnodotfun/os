@@ -1040,23 +1040,33 @@ async function handleSendMessage(data, requestId) {
       0
     ); // Most recent
     if (lastMessagesRaw.length > 0) {
-      try {
-        const lastMsgObj = JSON.parse(lastMessagesRaw[0]);
-        if (
-          lastMsgObj.username === username &&
-          lastMsgObj.content === content
-        ) {
-          logInfo(requestId, `Duplicate message prevented from ${username}`);
-          // Return 400 for duplicate
-          return createErrorResponse("Duplicate message detected", 400);
+      let lastMsgObj = null;
+      const raw = lastMessagesRaw[0];
+
+      if (typeof raw === "object" && raw !== null) {
+        // Value is already a parsed object (legacy data that was stored without JSON.stringify)
+        lastMsgObj = raw;
+      } else if (typeof raw === "string") {
+        try {
+          lastMsgObj = JSON.parse(raw);
+        } catch (e) {
+          // Log but do not block sending – just skip duplicate check if unparsable
+          logError(
+            requestId,
+            `Error parsing last message for duplicate check`,
+            e
+          );
         }
-      } catch (e) {
-        // ignore parse errors
-        logError(
-          requestId,
-          `Error parsing last message for duplicate check`,
-          e
-        );
+      }
+
+      if (
+        lastMsgObj &&
+        lastMsgObj.username === username &&
+        lastMsgObj.content === content
+      ) {
+        logInfo(requestId, `Duplicate message prevented from ${username}`);
+        // Return 400 for duplicate
+        return createErrorResponse("Duplicate message detected", 400);
       }
     }
 

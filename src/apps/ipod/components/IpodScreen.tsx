@@ -412,8 +412,17 @@ export function IpodScreen({
               e.stopPropagation();
               registerActivity();
               if (!isPlaying) {
-                // Video is already visible; just resume playback
-                handlePlay();
+                // When not playing, show video and resume playback
+                if (!showVideo) {
+                  onToggleVideo();
+                  // Give React a moment to render the player before playing
+                  setTimeout(() => {
+                    handlePlay();
+                  }, 100);
+                } else {
+                  // Video already visible; just resume playback
+                  handlePlay();
+                }
               } else {
                 // Playing → hide video
                 onToggleVideo();
@@ -594,8 +603,6 @@ export function IpodScreen({
                       // Resume playback immediately when video already visible
                       handlePlay();
                     }
-                    // Resume playback
-                    handlePlay();
                   } else {
                     // Already playing — simply toggle video visibility
                     onToggleVideo();
