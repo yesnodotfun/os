@@ -45,7 +45,7 @@ function FullScreenPortal({ children, onClose }: FullScreenPortalProps) {
       <div className="absolute top-6 right-6 z-[10001] pointer-events-auto">
         <button
           onClick={onClose}
-          className="rounded-full bg-neutral-800/40 p-2 text-white hover:bg-neutral-800/60 focus:outline-none"
+          className="rounded-full backdrop-blur-sm bg-neutral-800/20 p-2 transition-all duration-200 text-white/40 hover:text-white hover:bg-neutral-900 focus:outline-none"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
