@@ -1346,7 +1346,7 @@ export function IpodAppComponent({
                     <>
                       <div
                         className={`w-full h-full ${
-                          isPlaying
+                          isPlaying && !isIOSSafari
                             ? "pointer-events-none"
                             : "pointer-events-auto"
                         }`}
