@@ -581,12 +581,13 @@ export function IpodScreen({
                 if (!menuMode && currentTrack) {
                   registerActivity();
                   if (!isPlaying) {
-                    // Resume playback first
-                    handlePlay();
-                    // If the video is currently hidden, show it
+                    // If the video is currently hidden, show it first so the
+                    // user gesture also applies to the player element.
                     if (!showVideo) {
                       onToggleVideo();
                     }
+                    // Resume playback
+                    handlePlay();
                   } else {
                     // Already playing — simply toggle video visibility
                     onToggleVideo();
