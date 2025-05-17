@@ -60,6 +60,7 @@ export function IpodMenuBar({
   const isLcdFilterOn = useIpodStore((s) => s.lcdFilterOn);
   const currentTheme = useIpodStore((s) => s.theme);
   const showLyrics = useIpodStore((s) => s.showLyrics);
+  const isFullScreen = useIpodStore((s) => s.isFullScreen);
   const lyricsAlignment =
     useIpodStore((s) => s.lyricsAlignment) || LyricsAlignment.FocusThree;
   const chineseVariant =
@@ -78,6 +79,7 @@ export function IpodMenuBar({
   const toggleBacklight = useIpodStore((s) => s.toggleBacklight);
   const toggleVideo = useIpodStore((s) => s.toggleVideo);
   const toggleLcdFilter = useIpodStore((s) => s.toggleLcdFilter);
+  const toggleFullScreen = useIpodStore((s) => s.toggleFullScreen);
   const setTheme = useIpodStore((s) => s.setTheme);
   const toggleLyrics = useIpodStore((s) => s.toggleLyrics);
   const setLyricsAlignment = useIpodStore((s) => s.setLyricsAlignment);
@@ -454,6 +456,17 @@ export function IpodMenuBar({
           >
             <span className={cn(currentTheme !== "black" && "pl-4")}>
               {currentTheme === "black" ? "✓ Black" : "Black"}
+            </span>
+          </DropdownMenuItem>
+
+          <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
+
+          <DropdownMenuItem
+            onClick={toggleFullScreen}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            <span className={cn(!isFullScreen && "pl-4")}>
+              {isFullScreen ? "✓ Full Screen" : "Full Screen"}
             </span>
           </DropdownMenuItem>
         </DropdownMenuContent>

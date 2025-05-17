@@ -29,6 +29,12 @@ interface LyricsDisplayProps {
   onAdjustOffset?: (deltaMs: number) => void;
   /** Whether lyrics are currently being translated */
   isTranslating?: boolean;
+  /** Optional tailwind class for text size */
+  textSizeClass?: string;
+  /** Whether the overlay should capture pointer events */
+  interactive?: boolean;
+  /** Optional tailwind class to control bottom padding (e.g. "pb-24"). Defaults to "pb-5" */
+  bottomPaddingClass?: string;
 }
 
 const ANIMATION_CONFIG = {
@@ -123,6 +129,9 @@ export function LyricsDisplay({
   koreanDisplay = KoreanDisplay.Original,
   onAdjustOffset,
   isTranslating = false,
+  textSizeClass = "text-[12px]",
+  interactive = true,
+  bottomPaddingClass = "pb-5",
 }: LyricsDisplayProps) {
   const chineseConverter = useMemo(
     () => Converter({ from: "cn", to: "tw" }),
@@ -254,8 +263,7 @@ export function LyricsDisplay({
   const lastTouchY = useRef<number | null>(null);
 
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
-    if (!onAdjustOffset || !videoVisible) return;
-    e.preventDefault();
+    if (!interactive || !onAdjustOffset || !videoVisible) return;
     const delta = e.deltaY;
     const step = 50; // 50 ms per scroll step (was 200)
     const change = delta > 0 ? step : -step;
@@ -263,12 +271,14 @@ export function LyricsDisplay({
   };
 
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (!interactive) return;
     if (e.touches.length === 1) {
       lastTouchY.current = e.touches[0].clientY;
     }
   };
 
   const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (!interactive) return;
     if (lastTouchY.current === null || !onAdjustOffset || !videoVisible) return;
     const currentY = e.touches[0].clientY;
     const dy = currentY - lastTouchY.current;
@@ -291,8 +301,8 @@ export function LyricsDisplay({
     <motion.div
       layout={alignment === LyricsAlignment.Alternating}
       transition={ANIMATION_CONFIG.spring}
-      className="absolute inset-x-0 mx-auto pb-5 top-0 left-0 right-0 bottom-0 w-full h-full overflow-hidden flex flex-col items-center justify-end gap-2 z-40 select-none px-0"
-      style={{ pointerEvents: "auto" }}
+      className={`absolute inset-x-0 mx-auto top-0 left-0 right-0 bottom-0 w-full h-full overflow-hidden flex flex-col items-center justify-end gap-2 z-40 select-none px-0 ${bottomPaddingClass}`}
+      style={{ pointerEvents: interactive ? "auto" : "none" }}
       onWheel={handleWheel}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
@@ -334,7 +344,7 @@ export function LyricsDisplay({
                 opacity: ANIMATION_CONFIG.fade,
                 filter: ANIMATION_CONFIG.fade,
               }}
-              className="px-2 md:px-6 text-[12px] font-geneva-12 leading-[1.1] whitespace-pre-wrap break-words max-w-full text-white"
+              className={`px-2 md:px-6 ${textSizeClass} font-geneva-12 leading-[1.1] whitespace-pre-wrap break-words max-w-full text-white`}
               style={{
                 textAlign: lineTextAlign as CanvasTextAlign,
                 width: "100%",

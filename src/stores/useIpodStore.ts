@@ -21,28 +21,28 @@ export const IPOD_DEFAULT_VIDEOS = [
     url: "https://youtu.be/jKnLSg83Nqc?si=0mX3pYk0q98Ndoui",
     title: "ㅠ.ㅠ (You)",
     artist: "Crush",
-    lyricOffset: 200
+    lyricOffset: 200,
   },
   {
     id: "hCg9tezGBWE",
     url: "https://youtu.be/hCg9tezGBWE?si=4KFJNVTDm6OA2kK8",
     title: "Magnetic",
     artist: "ILLIT",
-    lyricOffset: -1200
+    lyricOffset: -1200,
   },
   {
     id: "Q3K0TOvTOno",
     url: "https://youtu.be/Q3K0TOvTOno?si=_VbKas8ZYd9jpXiA",
     title: "How Sweet",
     artist: "NewJeans",
-    lyricOffset: -10050
+    lyricOffset: -10050,
   },
   {
     id: "ft70sAYrFyY",
     url: "https://youtu.be/ft70sAYrFyY?si=SJXlm-KRfgrMIODE",
     title: "Bubble Gum",
     artist: "NewJeans",
-    lyricOffset: -9150
+    lyricOffset: -9150,
   },
   {
     id: "-nEGVrzPaiU",
@@ -330,6 +330,7 @@ interface IpodData {
   koreanDisplay: KoreanDisplay;
   lyricsTranslationRequest: { language: string; songId: string } | null;
   currentLyrics: { lines: LyricLine[] } | null;
+  isFullScreen: boolean;
 }
 
 const initialIpodData: IpodData = {
@@ -349,6 +350,7 @@ const initialIpodData: IpodData = {
   koreanDisplay: KoreanDisplay.Original,
   lyricsTranslationRequest: null,
   currentLyrics: null,
+  isFullScreen: false,
 };
 
 export interface IpodState extends IpodData {
@@ -361,6 +363,7 @@ export interface IpodState extends IpodData {
   toggleVideo: () => void;
   toggleBacklight: () => void;
   toggleLcdFilter: () => void;
+  toggleFullScreen: () => void;
   setTheme: (theme: "classic" | "black") => void;
   addTrack: (track: Track) => void;
   clearLibrary: () => void;
@@ -408,6 +411,8 @@ export const useIpodStore = create<IpodState>()(
         set((state) => ({ backlightOn: !state.backlightOn })),
       toggleLcdFilter: () =>
         set((state) => ({ lcdFilterOn: !state.lcdFilterOn })),
+      toggleFullScreen: () =>
+        set((state) => ({ isFullScreen: !state.isFullScreen })),
       setTheme: (theme) => set({ theme }),
       addTrack: (track) =>
         set((state) => ({
@@ -541,6 +546,7 @@ export const useIpodStore = create<IpodState>()(
         lyricsAlignment: state.lyricsAlignment,
         chineseVariant: state.chineseVariant,
         koreanDisplay: state.koreanDisplay,
+        isFullScreen: state.isFullScreen,
       }),
       migrate: (persistedState, version) => {
         let state = persistedState as IpodState; // Type assertion
@@ -582,6 +588,7 @@ export const useIpodStore = create<IpodState>()(
           lyricsAlignment: state.lyricsAlignment,
           chineseVariant: state.chineseVariant,
           koreanDisplay: state.koreanDisplay,
+          isFullScreen: state.isFullScreen,
         };
 
         return partializedState as IpodState; // Return the potentially migrated state
