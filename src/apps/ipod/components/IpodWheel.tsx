@@ -149,7 +149,7 @@ export function IpodWheel({
   return (
     <div
       className={cn(
-        "mt-6 relative w-[180px] h-[180px] rounded-full flex items-center justify-center",
+        "mt-6 relative w-[180px] h-[180px] rounded-full flex items-center justify-center select-none",
         theme === "classic" ? "bg-gray-300/60" : "bg-neutral-800/50"
       )}
     >
@@ -165,7 +165,7 @@ export function IpodWheel({
       {/* Wheel sections */}
       <div
         ref={wheelRef}
-        className="absolute w-full h-full rounded-full touch-none"
+        className="absolute w-full h-full rounded-full touch-none select-none"
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -174,7 +174,7 @@ export function IpodWheel({
       >
         {/* Wheel labels - no click handlers */}
         <div
-          className="absolute top-2 left-1/2 transform -translate-x-1/2 font-chicago text-xs text-white menu-button cursor-default"
+          className="absolute top-2 left-1/2 transform -translate-x-1/2 font-chicago text-xs text-white menu-button cursor-default select-none"
           onClick={(e) => {
             e.stopPropagation(); // Prevent triggering wheel mousedown
             onMenuButton();
@@ -182,13 +182,13 @@ export function IpodWheel({
         >
           MENU
         </div>
-        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 font-chicago text-[9px] text-white cursor-default">
+        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 font-chicago text-[9px] text-white cursor-default select-none">
           ▶︎▶︎
         </div>
-        <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 font-chicago text-[9px] text-white cursor-default">
+        <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 font-chicago text-[9px] text-white cursor-default select-none">
           ▶︎❙❙
         </div>
-        <div className="absolute left-3 top-1/2 transform -translate-y-1/2 font-chicago text-[9px] text-white cursor-default">
+        <div className="absolute left-3 top-1/2 transform -translate-y-1/2 font-chicago text-[9px] text-white cursor-default select-none">
           ◀︎◀︎
         </div>
       </div>
