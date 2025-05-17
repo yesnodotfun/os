@@ -45,7 +45,7 @@ function FullScreenPortal({ children, onClose }: FullScreenPortalProps) {
       <div className="absolute top-6 right-6 z-[10001] pointer-events-auto">
         <button
           onClick={onClose}
-          className="rounded-full bg-black/40 p-2 text-white hover:bg-neutral-500/60 focus:outline-none"
+          className="rounded-full bg-neutral-800/40 p-2 text-white hover:bg-neutral-800/60 focus:outline-none"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -162,7 +162,10 @@ export function IpodAppComponent({
   >([]);
   const [cameFromNowPlayingMenuItem, setCameFromNowPlayingMenuItem] =
     useState(false);
+  // Ref for the in-window (small) player inside IpodScreen
   const playerRef = useRef<ReactPlayer>(null);
+  // Separate ref for the full-screen player rendered in the portal
+  const fullScreenPlayerRef = useRef<ReactPlayer>(null);
   const skipOperationRef = useRef(false);
   const userHasInteractedRef = useRef(false);
 
@@ -792,12 +795,16 @@ export function IpodAppComponent({
 
   const handleTrackEnd = useCallback(() => {
     if (loopCurrent) {
-      playerRef.current?.seekTo(0);
+      // Choose the active player based on fullscreen state
+      const activePlayer = isFullScreen
+        ? fullScreenPlayerRef.current
+        : playerRef.current;
+      activePlayer?.seekTo(0);
       setIsPlaying(true);
     } else {
       nextTrack();
     }
-  }, [loopCurrent, nextTrack, setIsPlaying]);
+  }, [loopCurrent, nextTrack, setIsPlaying, isFullScreen]);
 
   const handleProgress = useCallback((state: { playedSeconds: number }) => {
     setElapsedTime(Math.floor(state.playedSeconds));
@@ -1111,13 +1118,16 @@ export function IpodAppComponent({
           });
         }
       } else {
-        const currentTime = playerRef.current?.getCurrentTime() || 0;
+        const activePlayer = isFullScreen
+          ? fullScreenPlayerRef.current
+          : playerRef.current;
+        const currentTime = activePlayer?.getCurrentTime() || 0;
         const seekAmount = 5;
         if (direction === "clockwise") {
-          playerRef.current?.seekTo(currentTime + seekAmount);
+          activePlayer?.seekTo(currentTime + seekAmount);
           showStatus(`⏩︎`);
         } else {
-          playerRef.current?.seekTo(Math.max(0, currentTime - seekAmount));
+          activePlayer?.seekTo(Math.max(0, currentTime - seekAmount));
           showStatus(`⏪︎`);
         }
       }
@@ -1130,6 +1140,7 @@ export function IpodAppComponent({
       menuHistory,
       selectedMenuItem,
       showStatus,
+      isFullScreen,
     ]
   );
 
@@ -1196,27 +1207,19 @@ export function IpodAppComponent({
   // Add a ref to track the previous fullscreen state
   const prevFullScreenRef = useRef(isFullScreen);
 
-  // Effect to sync playback time when entering/exiting fullscreen mode
+  // Effect to synchronise playback time when ENTERING fullscreen
   useEffect(() => {
-    // Only execute when fullscreen state changes
     if (isFullScreen !== prevFullScreenRef.current) {
-      if (isFullScreen && playerRef.current) {
-        // ENTERING fullscreen
-        // Get current time from the player
-        const currentTime = elapsedTime;
-
-        // Apply time to player in fullscreen mode (small delay to ensure component is mounted)
+      if (isFullScreen) {
+        const currentTime = playerRef.current?.getCurrentTime() || elapsedTime;
+        // Small delay to ensure the fullscreen player is mounted
         setTimeout(() => {
-          if (playerRef.current) {
-            playerRef.current.seekTo(currentTime);
-          }
+          fullScreenPlayerRef.current?.seekTo(currentTime);
         }, 100);
       }
-
-      // Update the ref
       prevFullScreenRef.current = isFullScreen;
     }
-  }, [isFullScreen, playerRef, elapsedTime]);
+  }, [isFullScreen, elapsedTime]);
 
   if (!isWindowOpen) return null;
 
@@ -1314,7 +1317,8 @@ export function IpodAppComponent({
           <FullScreenPortal
             onClose={() => {
               // When closing fullscreen, first capture the current playback time
-              const currentTime = playerRef.current?.getCurrentTime() || 0;
+              const currentTime =
+                fullScreenPlayerRef.current?.getCurrentTime() || 0;
               const wasPlaying = isPlaying;
 
               // Toggle fullscreen state
@@ -1341,7 +1345,7 @@ export function IpodAppComponent({
                   {tracks[currentIndex] && (
                     <>
                       <ReactPlayer
-                        ref={playerRef}
+                        ref={fullScreenPlayerRef}
                         url={tracks[currentIndex].url}
                         playing={isPlaying && isFullScreen} // Only play when in fullscreen mode
                         controls
@@ -1360,8 +1364,13 @@ export function IpodAppComponent({
                         config={{
                           youtube: {
                             playerVars: {
-                              modestbranding: 1,
-                              fs: 1,
+                              modestbranding: 1, // Minimal YouTube branding
+                              rel: 0, // Do not show related videos at the end
+                              showinfo: 0, // Hide video title
+                              iv_load_policy: 3, // Hide annotations
+                              cc_load_policy: 0, // Disable captions by default
+                              fs: 1, // Allow fullscreen toggle inside YouTube player
+                              playsinline: 1, // iOS inline playback
                             },
                           },
                         }}
