@@ -851,7 +851,7 @@ export function IpodAppComponent({
         setIsPlaying(false);
         showStatus("❙ ❙");
       }
-    }, 3000);
+    }, 1200);
 
     return () => clearTimeout(timer);
   }, [isPlaying, elapsedTime, setIsPlaying, showStatus, isIOSSafari]);
@@ -1219,7 +1219,7 @@ export function IpodAppComponent({
       }
       prevFullScreenRef.current = isFullScreen;
     }
-  }, [isFullScreen, elapsedTime]);
+  }, [isFullScreen]);
 
   if (!isWindowOpen) return null;
 
