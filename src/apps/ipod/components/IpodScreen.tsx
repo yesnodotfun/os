@@ -581,11 +581,18 @@ export function IpodScreen({
                 if (!menuMode && currentTrack) {
                   registerActivity();
                   if (!isPlaying) {
-                    // Resume playback first
-                    handlePlay();
-                    // If the video is currently hidden, show it
+                    // If the video is currently hidden, show it first so the
+                    // user gesture also applies to the player element.
                     if (!showVideo) {
                       onToggleVideo();
+                      // Give React a moment to render the player before
+                      // resuming playback so the gesture is linked.
+                      setTimeout(() => {
+                        handlePlay();
+                      }, 100);
+                    } else {
+                      // Resume playback immediately when video already visible
+                      handlePlay();
                     }
                   } else {
                     // Already playing — simply toggle video visibility
