@@ -435,16 +435,30 @@ export function ChatsAppComponent({
                     </span>
                   )}
                 </div>
-                {/* Clear chat button shown only in @ryo (no current room) */}
-                {!currentRoom && (
-                  <Button
-                    variant="ghost"
-                    onClick={() => setIsClearDialogOpen(true)}
-                    className="flex items-center gap-1 px-2 py-1 h-7"
-                  >
-                    <span className="font-geneva-12 text-[11px]">Clear</span>
-                  </Button>
-                )}
+                <div className="flex items-center gap-0">
+                  {/* Set Username button shown only in @ryo view when no username is set */}
+                  {!currentRoom && !username && (
+                    <Button
+                      variant="ghost"
+                      onClick={promptSetUsername}
+                      className="flex items-center gap-1 px-2 py-1 h-7"
+                    >
+                      <span className="font-geneva-12 text-[11px]">
+                        Set Username
+                      </span>
+                    </Button>
+                  )}
+                  {/* Clear chat button shown only in @ryo (no current room) */}
+                  {!currentRoom && (
+                    <Button
+                      variant="ghost"
+                      onClick={() => setIsClearDialogOpen(true)}
+                      className="flex items-center gap-1 px-2 py-1 h-7"
+                    >
+                      <span className="font-geneva-12 text-[11px]">Clear</span>
+                    </Button>
+                  )}
+                </div>
               </div>
 
               {/* Scrollable messages under header */}
