@@ -158,7 +158,6 @@ ${
   systemState.requestGeo
     ? `\n- User inferred location: ${[
         systemState.requestGeo.city,
-        systemState.requestGeo.region,
         systemState.requestGeo.country,
       ]
         .filter(Boolean)
