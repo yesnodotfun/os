@@ -585,6 +585,14 @@ export function IpodScreen({
                     // user gesture also applies to the player element.
                     if (!showVideo) {
                       onToggleVideo();
+                      // Give React a moment to render the player before
+                      // resuming playback so the gesture is linked.
+                      setTimeout(() => {
+                        handlePlay();
+                      }, 100);
+                    } else {
+                      // Resume playback immediately when video already visible
+                      handlePlay();
                     }
                     // Resume playback
                     handlePlay();
