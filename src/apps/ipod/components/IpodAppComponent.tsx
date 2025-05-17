@@ -150,9 +150,19 @@ export function IpodAppComponent({
 
   const memoizedToggleBacklight = useCallback(() => {
     toggleBacklight();
-    showStatus(useIpodStore.getState().backlightOn ? "Light ON" : "Light OFF");
-    registerActivity();
-  }, [toggleBacklight, showStatus, registerActivity]);
+    const isOn = useIpodStore.getState().backlightOn;
+    showStatus(isOn ? "Light ON" : "Light OFF");
+
+    // Only call registerActivity when turning the backlight on to avoid
+    // immediately re-enabling it after the user turns it off via the menu.
+    if (isOn) {
+      registerActivity();
+    } else {
+      // Mimic the parts of registerActivity that update activity tracking
+      setLastActivityTime(Date.now());
+      userHasInteractedRef.current = true;
+    }
+  }, [toggleBacklight, showStatus, registerActivity, setLastActivityTime]);
 
   const memoizedChangeTheme = useCallback(
     (newTheme: "classic" | "black") => {
