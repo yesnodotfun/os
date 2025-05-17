@@ -156,7 +156,7 @@ ${
 }
 ${
   systemState.requestGeo
-    ? `\n- User inferred location: ${[
+    ? `\n- User location (inferred from IP, may be inaccurate): ${[
         systemState.requestGeo.city,
         systemState.requestGeo.country,
       ]
