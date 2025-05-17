@@ -175,10 +175,14 @@ export function IpodAppComponent({
 
   const handleMenuItemAction = useCallback(
     (action: () => void) => {
-      registerActivity();
-      action();
+      if (action === memoizedToggleBacklight) {
+        action();
+      } else {
+        registerActivity();
+        action();
+      }
     },
-    [registerActivity]
+    [registerActivity, memoizedToggleBacklight]
   );
 
   const memoizedToggleRepeat = useCallback(() => {
