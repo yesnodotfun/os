@@ -162,6 +162,8 @@ export function FileIcon({
             alt={name}
             className={`object-cover ${sizes.image} rounded`}
             onError={handleImageError}
+            onContextMenu={(e) => e.preventDefault()}
+            draggable={false}
           />
         </div>
       );
@@ -173,6 +175,8 @@ export function FileIcon({
         alt={isDirectory ? "Directory" : "File"}
         className={`object-contain ${sizes.image} ${isDirectory && isDropTarget ? "invert" : ""}`}
         style={{ imageRendering: "pixelated" }}
+        onContextMenu={(e) => e.preventDefault()}
+        draggable={false}
       />
     );
   };
