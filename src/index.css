@@ -138,6 +138,10 @@
     user-select: none;
     -webkit-user-select: none;
   }
+
+  .no-touch-callout {
+    -webkit-touch-callout: none;
+  }
   body {
     @apply bg-background text-foreground;
     font-family: "ChicagoKare", "ArkPixel", "SerenityOS-Emoji", system-ui,

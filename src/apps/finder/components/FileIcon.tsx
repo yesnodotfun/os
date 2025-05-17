@@ -160,7 +160,7 @@ export function FileIcon({
           <img
             src={imgSrc}
             alt={name}
-            className={`object-cover ${sizes.image} rounded`}
+            className={`no-touch-callout object-cover ${sizes.image} rounded`}
             onError={handleImageError}
             onContextMenu={(e) => e.preventDefault()}
             draggable={false}
@@ -173,7 +173,7 @@ export function FileIcon({
       <img
         src={getIconPath()}
         alt={isDirectory ? "Directory" : "File"}
-        className={`object-contain ${sizes.image} ${isDirectory && isDropTarget ? "invert" : ""}`}
+        className={`no-touch-callout object-contain ${sizes.image} ${isDirectory && isDropTarget ? "invert" : ""}`}
         style={{ imageRendering: "pixelated" }}
         onContextMenu={(e) => e.preventDefault()}
         draggable={false}
