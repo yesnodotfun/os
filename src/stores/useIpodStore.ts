@@ -397,7 +397,7 @@ export interface IpodState extends IpodData {
   exportLibrary: () => string;
 }
 
-const CURRENT_IPOD_STORE_VERSION = 11; // Incremented version for new state
+const CURRENT_IPOD_STORE_VERSION = 12; // Incremented version for new state
 
 export const useIpodStore = create<IpodState>()(
   persist(
