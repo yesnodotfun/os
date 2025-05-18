@@ -1344,6 +1344,7 @@ export function IpodAppComponent({
               translateToForLyrics={translateToForLyricsHook}
               registerActivity={registerActivity}
               isFullScreen={isFullScreen}
+              lyricsControls={fullScreenLyricsControls}
             />
 
             <IpodWheel

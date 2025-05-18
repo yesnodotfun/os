@@ -189,6 +189,7 @@ interface IpodScreenProps {
   translateToForLyrics: string | null;
   registerActivity: () => void;
   isFullScreen: boolean;
+  lyricsControls: ReturnType<typeof useLyrics>;
 }
 
 // Main IpodScreen component
@@ -229,6 +230,7 @@ export function IpodScreen({
   translateToForLyrics,
   registerActivity,
   isFullScreen,
+  lyricsControls,
 }: IpodScreenProps) {
   // Animation variants for menu transitions
   const menuVariants = {
@@ -361,14 +363,6 @@ export function IpodScreen({
       resetItemRefs(currentMenu.items.length);
     }
   }, [menuMode, menuHistory.length]);
-
-  const lyricsControls = useLyrics({
-    title: currentTrack?.title ?? "",
-    artist: currentTrack?.artist ?? "",
-    album: currentTrack?.album ?? "",
-    currentTime: elapsedTime + lyricOffset / 1000, // Use passed lyricOffset
-    translateTo: translateToForLyrics, // Pass translateTo
-  });
 
   const shouldShowLyrics = showLyrics;
 
