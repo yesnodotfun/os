@@ -1166,15 +1166,7 @@ export function IpodAppComponent({
         case "right":
           skipOperationRef.current = true;
           nextTrack();
-          // Show track info with symbol after small delay to allow state update
-          setTimeout(() => {
-            const newIndex = useIpodStore.getState().currentIndex;
-            const newTrack = tracks[newIndex];
-            if (newTrack) {
-              const artistText = newTrack.artist ? ` - ${newTrack.artist}` : "";
-              showStatus(`⏭ ${newTrack.title}${artistText}`);
-            }
-          }, 800);
+          showStatus("⏭");
           break;
         case "bottom":
           togglePlay();
@@ -1183,15 +1175,7 @@ export function IpodAppComponent({
         case "left":
           skipOperationRef.current = true;
           previousTrack();
-          // Show track info with symbol after small delay to allow state update
-          setTimeout(() => {
-            const newIndex = useIpodStore.getState().currentIndex;
-            const newTrack = tracks[newIndex];
-            if (newTrack) {
-              const artistText = newTrack.artist ? ` - ${newTrack.artist}` : "";
-              showStatus(`⏮ ${newTrack.title}${artistText}`);
-            }
-          }, 800);
+          showStatus("⏮");
           break;
         case "center":
           if (menuMode) {
