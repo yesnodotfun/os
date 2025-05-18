@@ -53,6 +53,9 @@ const SKIP_PREFIXES = [
   "Percussion by",
   "String by",
   "Harp by",
+  "Piano by",
+  "Piano Arranged by",
+  "Piano Arranged by",
 ] as const;
 
 export const parseLRC = (
