@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { LyricLine } from "@/types/lyrics";
 import { parseLRC } from "@/utils/lrcParser";
 import { useIpodStore } from "@/stores/useIpodStore";
@@ -22,6 +22,7 @@ interface LyricsState {
   isLoading: boolean; // True when fetching original LRC
   isTranslating: boolean; // True when translating lyrics
   error?: string;
+  updateCurrentTimeManually: (newTimeInSeconds: number) => void; // Added function to manually update time
 }
 
 /**
@@ -45,7 +46,9 @@ export function useLyrics({
   const [isTranslating, setIsTranslating] = useState(false);
   const [error, setError] = useState<string | undefined>();
 
-  const cachedKeyRef = useRef<string | null>(null); // For original LRC fetch
+  const cachedKeyRef = useRef<string | null>(null);
+  // Add a ref to store the last computed time for manual updates
+  const lastTimeRef = useRef<number>(currentTime);
 
   // Effect for fetching original lyrics
   useEffect(() => {
@@ -162,7 +165,7 @@ export function useLyrics({
     const translationTimeoutId = setTimeout(() => {
       controller.abort();
       console.warn("Lyrics translation timed out");
-    }, 40000); // 40 second timeout for translation
+    }, 40000);
 
     fetch("/api/translate-lyrics", {
       method: "POST",
@@ -229,32 +232,47 @@ export function useLyrics({
 
   const displayLines = translatedLines || originalLines;
 
+  // Function to calculate the current line based on a given time
+  const calculateCurrentLine = useCallback(
+    (timeInSeconds: number) => {
+      if (!displayLines.length) return -1;
+
+      const timeMs = timeInSeconds * 1000;
+      let idx = displayLines.findIndex((line, i) => {
+        const nextLineStart =
+          i + 1 < displayLines.length
+            ? parseInt(displayLines[i + 1].startTimeMs)
+            : Infinity;
+        return timeMs >= parseInt(line.startTimeMs) && timeMs < nextLineStart;
+      });
+
+      if (
+        idx === -1 &&
+        displayLines.length > 0 &&
+        timeMs >= parseInt(displayLines[displayLines.length - 1].startTimeMs)
+      ) {
+        idx = displayLines.length - 1;
+      }
+
+      return idx;
+    },
+    [displayLines]
+  );
+
   // Update current line based on displayed lines and current time
   useEffect(() => {
-    if (!displayLines.length) {
-      setCurrentLine(-1);
-      return;
-    }
+    lastTimeRef.current = currentTime;
+    setCurrentLine(calculateCurrentLine(currentTime));
+  }, [currentTime, calculateCurrentLine]);
 
-    const timeMs = currentTime * 1000;
-    let idx = displayLines.findIndex((line, i) => {
-      const nextLineStart =
-        i + 1 < displayLines.length
-          ? parseInt(displayLines[i + 1].startTimeMs)
-          : Infinity;
-      return timeMs >= parseInt(line.startTimeMs) && timeMs < nextLineStart;
-    });
-
-    if (
-      idx === -1 &&
-      displayLines.length > 0 &&
-      timeMs >= parseInt(displayLines[displayLines.length - 1].startTimeMs)
-    ) {
-      idx = displayLines.length - 1;
-    }
-
-    setCurrentLine(idx);
-  }, [currentTime, displayLines]);
+  // Function to manually update the current time
+  const updateCurrentTimeManually = useCallback(
+    (newTimeInSeconds: number) => {
+      lastTimeRef.current = newTimeInSeconds;
+      setCurrentLine(calculateCurrentLine(newTimeInSeconds));
+    },
+    [calculateCurrentLine]
+  );
 
   return {
     lines: displayLines,
@@ -262,5 +280,6 @@ export function useLyrics({
     isLoading: isFetchingOriginal,
     isTranslating,
     error,
+    updateCurrentTimeManually,
   };
 }

@@ -507,6 +507,9 @@ export function IpodScreen({
                 showStatusCallback(
                   `Offset ${sign}${(newOffset / 1000).toFixed(2)}s`
                 );
+                // Force immediate update of lyrics display with new offset
+                const updatedTime = elapsedTime + newOffset / 1000;
+                lyricsControls.updateCurrentTimeManually(updatedTime);
               }}
             />
           </div>

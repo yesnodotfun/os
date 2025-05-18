@@ -325,6 +325,13 @@ export function LyricsDisplay({
             alignment === LyricsAlignment.Alternating,
             isCurrent
           );
+          // Ensure transitions are extra smooth during offset adjustments
+          const dynamicTransition = {
+            ...ANIMATION_CONFIG.spring,
+            opacity: ANIMATION_CONFIG.fade,
+            filter: ANIMATION_CONFIG.fade,
+            duration: 0.15, // Faster transitions for smoother adjustment feedback
+          };
           const lineTextAlign = getTextAlign(
             alignment,
             index,
@@ -339,11 +346,7 @@ export function LyricsDisplay({
               animate="animate"
               exit="exit"
               variants={variants}
-              transition={{
-                ...ANIMATION_CONFIG.spring,
-                opacity: ANIMATION_CONFIG.fade,
-                filter: ANIMATION_CONFIG.fade,
-              }}
+              transition={dynamicTransition}
               className={`px-2 md:px-6 ${textSizeClass} font-geneva-12 leading-[1.1] whitespace-pre-wrap break-words max-w-full text-white`}
               style={{
                 textAlign: lineTextAlign as CanvasTextAlign,

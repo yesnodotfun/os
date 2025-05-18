@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import ReactPlayer from "react-player";
 import { cn } from "@/lib/utils";
 import { AppProps } from "../../base/types";
@@ -32,6 +33,7 @@ interface FullScreenPortalProps {
   showStatus: (message: string) => void;
   registerActivity: () => void;
   isPlaying: boolean;
+  statusMessage: string | null;
 }
 
 function FullScreenPortal({
@@ -44,6 +46,7 @@ function FullScreenPortal({
   showStatus,
   registerActivity,
   isPlaying,
+  statusMessage,
 }: FullScreenPortalProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -124,6 +127,37 @@ function FullScreenPortal({
           </svg>
         </button>
       </div>
+
+      {/* Status Display */}
+      <AnimatePresence>
+        {statusMessage && (
+          <motion.div
+            className="absolute inset-0 z-40"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div className="absolute top-24 left-24 pointer-events-none">
+              <div className="relative">
+                <div className="font-chicago text-white text-[min(5vw,5vh)] relative z-10">
+                  {statusMessage}
+                </div>
+                <div
+                  className="font-chicago text-black text-[min(5vw,5vh)] absolute inset-0"
+                  style={{
+                    WebkitTextStroke: "5px black",
+                    textShadow: "none",
+                  }}
+                >
+                  {statusMessage}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {children}
     </div>,
     document.body
@@ -156,7 +190,7 @@ export function IpodAppComponent({
   const chineseVariant = useIpodStore((s) => s.chineseVariant);
   const koreanDisplay = useIpodStore((s) => s.koreanDisplay);
   const lyricOffset = useIpodStore(
-    (s) => s.tracks[s.currentIndex]?.lyricOffset
+    (s) => s.tracks[s.currentIndex]?.lyricOffset ?? 0
   );
   const lyricsTranslationRequest = useIpodStore(
     (s) => s.lyricsTranslationRequest
@@ -1448,6 +1482,7 @@ export function IpodAppComponent({
             showStatus={showStatus}
             registerActivity={registerActivity}
             isPlaying={isPlaying}
+            statusMessage={statusMessage}
           >
             <div className="flex flex-col w-full h-full">
               {/* The player and lyrics content */}
@@ -1515,16 +1550,36 @@ export function IpodAppComponent({
                             alignment={lyricsAlignment}
                             chineseVariant={chineseVariant}
                             koreanDisplay={koreanDisplay}
-                            onAdjustOffset={(delta) =>
+                            onAdjustOffset={(delta) => {
+                              // Update store with the adjusted offset
                               useIpodStore
                                 .getState()
-                                .adjustLyricOffset(currentIndex, delta)
-                            }
+                                .adjustLyricOffset(currentIndex, delta);
+
+                              // Display status message
+                              const newOffset =
+                                (tracks[currentIndex]?.lyricOffset ?? 0) +
+                                delta;
+                              const sign =
+                                newOffset > 0 ? "+" : newOffset < 0 ? "" : "";
+                              showStatus(
+                                `Offset ${sign}${(newOffset / 1000).toFixed(
+                                  2
+                                )}s`
+                              );
+
+                              // Force immediate update of lyrics display with new offset
+                              const updatedTime =
+                                elapsedTime + newOffset / 1000;
+                              fullScreenLyricsControls.updateCurrentTimeManually(
+                                updatedTime
+                              );
+                            }}
                             isTranslating={
                               fullScreenLyricsControls.isTranslating
                             }
                             textSizeClass="text-[min(8vw,8vh)]"
-                            interactive={false}
+                            interactive={true}
                             bottomPaddingClass="pb-42"
                           />
                         </div>
