@@ -43,6 +43,22 @@ function FullScreenPortal({
   registerActivity,
   isPlaying,
 }: FullScreenPortalProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Effect to request fullscreen when component mounts
+  useEffect(() => {
+    // Need a small delay to ensure the portal is mounted
+    const timeoutId = setTimeout(() => {
+      if (containerRef.current) {
+        containerRef.current.requestFullscreen().catch((err) => {
+          console.error("Error attempting to enable fullscreen:", err);
+        });
+      }
+    }, 100);
+
+    return () => clearTimeout(timeoutId);
+  }, []);
+
   // Close full screen with Escape key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -52,7 +68,7 @@ function FullScreenPortal({
       } else if (e.key === " ") {
         e.preventDefault(); // Prevent scrolling if space is pressed
         togglePlay();
-        showStatus(isPlaying ? "❙ ❙" : "▶");
+        showStatus(isPlaying ? "❙ ❙" : "▶");
       } else if (e.key === "ArrowLeft") {
         previousTrack();
         showStatus("⏮");
@@ -75,7 +91,7 @@ function FullScreenPortal({
   ]);
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] bg-black">
+    <div ref={containerRef} className="fixed inset-0 z-[9999] bg-black">
       <div className="absolute top-6 right-6 z-[10001] pointer-events-auto">
         <button
           onClick={onClose}
@@ -151,6 +167,22 @@ export function IpodAppComponent({
   const resetLibrary = useIpodStore((s) => s.resetLibrary);
   const nextTrack = useIpodStore((s) => s.nextTrack);
   const previousTrack = useIpodStore((s) => s.previousTrack);
+
+  // Add fullscreen change event handler
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      // If browser fullscreen is exited (e.g. by pressing Escape)
+      // and our app thinks we're still in fullscreen mode, update the app state
+      if (!document.fullscreenElement && isFullScreen) {
+        toggleFullScreen();
+      }
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    };
+  }, [isFullScreen, toggleFullScreen]);
 
   const [lastActivityTime, setLastActivityTime] = useState(Date.now());
   const backlightTimerRef = useRef<NodeJS.Timeout | null>(null);
