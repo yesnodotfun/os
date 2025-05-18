@@ -1092,27 +1092,37 @@ export function IpodAppComponent({
       playScrollSound();
       vibrate();
       registerActivity();
+
       if (menuMode) {
         const currentMenu = menuHistory[menuHistory.length - 1];
         if (!currentMenu) return;
         const menuLength = currentMenu.items.length;
         if (menuLength === 0) return;
 
-        let newIndex = selectedMenuItem;
-        if (direction === "clockwise") {
-          newIndex = Math.min(menuLength - 1, selectedMenuItem + 1);
-        } else {
-          newIndex = Math.max(0, selectedMenuItem - 1);
-        }
+        let committedIndex: number | null = null; // track the index we commit to state
 
-        if (newIndex !== selectedMenuItem) {
-          setSelectedMenuItem(newIndex);
+        // Update the selected menu item using a functional state update to avoid stale closures
+        setSelectedMenuItem((prevIndex) => {
+          let newIndex = prevIndex;
+          if (direction === "clockwise") {
+            newIndex = Math.min(menuLength - 1, prevIndex + 1);
+          } else {
+            newIndex = Math.max(0, prevIndex - 1);
+          }
+
+          // Record the new index so we can update menu history afterwards
+          committedIndex = newIndex;
+          return newIndex;
+        });
+
+        // If the committed index changed, reflect it in the menu history
+        if (committedIndex !== null) {
           setMenuHistory((prev) => {
             const lastIndex = prev.length - 1;
             const updatedHistory = [...prev];
             updatedHistory[lastIndex] = {
               ...prev[lastIndex],
-              selectedIndex: newIndex,
+              selectedIndex: committedIndex!,
             };
             return updatedHistory;
           });
@@ -1138,7 +1148,6 @@ export function IpodAppComponent({
       registerActivity,
       menuMode,
       menuHistory,
-      selectedMenuItem,
       showStatus,
       isFullScreen,
     ]

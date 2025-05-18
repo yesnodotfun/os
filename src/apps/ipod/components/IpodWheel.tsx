@@ -28,6 +28,12 @@ export function IpodWheel({
   const lastAngleRef = useRef<number | null>(null); // Last touch angle in radians
   const rotationAccumulatorRef = useRef(0); // Accumulated rotation in radians
 
+  // Track whether the user is currently dragging (mouse down + move)
+  const isDraggingRef = useRef(false);
+
+  // Track if the current interaction started on the "MENU" label so we can suppress duplicate click handling
+  const fromMenuLabelRef = useRef(false);
+
   // Calculate angle (in degrees) from the center of the wheel – used for click areas
   const getAngleFromCenterDeg = (x: number, y: number): number => {
     if (!wheelRef.current) return 0;
@@ -132,18 +138,87 @@ export function IpodWheel({
     }
   };
 
-  // Handle mouse down for clicks (excluding menu button)
+  // Handle mouse interactions – supports both click and drag rotation
   const handleMouseDown = (e: React.MouseEvent) => {
-    // Don't handle wheel clicks if we're clicking on the menu button
-    if (
-      e.target &&
-      (e.target as HTMLElement).classList.contains("menu-button")
-    ) {
-      return;
-    }
-    const angleDeg = getAngleFromCenterDeg(e.clientX, e.clientY);
-    const section = getWheelSection(angleDeg);
-    onWheelClick(section);
+    fromMenuLabelRef.current =
+      e.target && (e.target as HTMLElement).classList.contains("menu-button");
+
+    // Prevent default text selection behaviour while dragging
+    e.preventDefault();
+
+    // Initialise rotation tracking
+    const startAngleRad = getAngleFromCenterRad(e.clientX, e.clientY);
+    lastAngleRef.current = startAngleRad;
+    rotationAccumulatorRef.current = 0;
+    isDraggingRef.current = false;
+
+    const threshold = (rotationStepDeg * Math.PI) / 180; // rad
+
+    // Mouse move handler (attached to window so it continues even if we leave the wheel)
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      if (lastAngleRef.current === null) return;
+
+      const currentAngleRad = getAngleFromCenterRad(
+        moveEvent.clientX,
+        moveEvent.clientY
+      );
+
+      // Shortest angular difference
+      let delta = currentAngleRad - lastAngleRef.current;
+      if (delta > Math.PI) delta -= 2 * Math.PI;
+      if (delta < -Math.PI) delta += 2 * Math.PI;
+
+      rotationAccumulatorRef.current += delta;
+      lastAngleRef.current = currentAngleRad;
+
+      // Once movement exceeds threshold, treat interaction as a drag (not a simple click)
+      if (
+        !isDraggingRef.current &&
+        Math.abs(rotationAccumulatorRef.current) > threshold
+      ) {
+        isDraggingRef.current = true;
+      }
+
+      // Emit rotation events whenever accumulated rotation crosses threshold
+      while (rotationAccumulatorRef.current > threshold) {
+        onWheelRotation("clockwise");
+        rotationAccumulatorRef.current -= threshold;
+      }
+
+      while (rotationAccumulatorRef.current < -threshold) {
+        onWheelRotation("counterclockwise");
+        rotationAccumulatorRef.current += threshold;
+      }
+    };
+
+    // Mouse up handler – determine if it was a click or a drag
+    const handleMouseUp = (upEvent: MouseEvent) => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+
+      // If the user didn't drag beyond the threshold, treat as a click on a wheel section
+      if (!isDraggingRef.current) {
+        // Only trigger wheel click if the interaction did NOT originate from the MENU label
+        if (!fromMenuLabelRef.current) {
+          const angleDeg = getAngleFromCenterDeg(
+            upEvent.clientX,
+            upEvent.clientY
+          );
+          const section = getWheelSection(angleDeg);
+          onWheelClick(section);
+        }
+      }
+
+      // Reset refs
+      lastAngleRef.current = null;
+      rotationAccumulatorRef.current = 0;
+      isDraggingRef.current = false;
+      fromMenuLabelRef.current = false;
+    };
+
+    // Attach listeners to the window so the interaction continues smoothly outside the wheel bounds
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
   };
 
   return (
