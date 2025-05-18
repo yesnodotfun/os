@@ -227,7 +227,6 @@ export function IpodScreen({
   koreanDisplay,
   lyricOffset,
   adjustLyricOffset,
-  translateToForLyrics,
   registerActivity,
   isFullScreen,
   lyricsControls,
