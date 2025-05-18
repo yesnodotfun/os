@@ -28,6 +28,7 @@ interface FullScreenPortalProps {
   togglePlay: () => void;
   nextTrack: () => void;
   previousTrack: () => void;
+  seekTime: (delta: number) => void;
   showStatus: (message: string) => void;
   registerActivity: () => void;
   isPlaying: boolean;
@@ -39,6 +40,7 @@ function FullScreenPortal({
   togglePlay,
   nextTrack,
   previousTrack,
+  seekTime,
   showStatus,
   registerActivity,
   isPlaying,
@@ -70,9 +72,17 @@ function FullScreenPortal({
         togglePlay();
         showStatus(isPlaying ? "❙ ❙" : "▶");
       } else if (e.key === "ArrowLeft") {
+        // Seek backward instead of previous track
+        seekTime(-5);
+      } else if (e.key === "ArrowRight") {
+        // Seek forward instead of next track
+        seekTime(5);
+      } else if (e.key === "ArrowUp") {
+        // Use up arrow for previous track
         previousTrack();
         showStatus("⏮");
-      } else if (e.key === "ArrowRight") {
+      } else if (e.key === "ArrowDown") {
+        // Use down arrow for next track
         nextTrack();
         showStatus("⏭");
       }
@@ -85,6 +95,7 @@ function FullScreenPortal({
     togglePlay,
     nextTrack,
     previousTrack,
+    seekTime,
     showStatus,
     registerActivity,
     isPlaying,
@@ -1296,6 +1307,18 @@ export function IpodAppComponent({
     }
   }, [isFullScreen]);
 
+  // Add a seekTime function for fullscreen seeking
+  const seekTime = useCallback(
+    (delta: number) => {
+      if (fullScreenPlayerRef.current) {
+        const currentTime = fullScreenPlayerRef.current.getCurrentTime() || 0;
+        fullScreenPlayerRef.current.seekTo(Math.max(0, currentTime + delta));
+        showStatus(delta > 0 ? "⏩︎" : "⏪︎");
+      }
+    },
+    [showStatus]
+  );
+
   if (!isWindowOpen) return null;
 
   return (
@@ -1421,6 +1444,7 @@ export function IpodAppComponent({
               skipOperationRef.current = true;
               previousTrack();
             }}
+            seekTime={seekTime}
             showStatus={showStatus}
             registerActivity={registerActivity}
             isPlaying={isPlaying}
