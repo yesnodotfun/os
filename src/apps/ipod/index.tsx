@@ -5,34 +5,32 @@ export const helpItems = [
   {
     icon: "🎵",
     title: "Add Songs",
-    description: "Paste any YouTube URL to add to your iPod",
+    description: "Paste YouTube URLs to add music to your iPod.",
   },
   {
     icon: "🔄",
-    title: "Navigation",
-    description:
-      "Use the click wheel to navigate menus and browse your library",
+    title: "Wheel Navigation",
+    description: "Use the click wheel to browse menus and your music library.",
   },
   {
     icon: "⏯️",
     title: "Playback Controls",
-    description:
-      "Play/pause, skip tracks, and toggle video display during playback",
+    description: "Play, pause, skip tracks, and control your current song.",
   },
   {
-    icon: "🔀",
-    title: "Playback Settings",
-    description: "Shuffle your library and loop tracks or entire playlist",
+    icon: "🎤",
+    title: "Synced Lyrics",
+    description: "View time-synced lyrics and get instant translations.",
   },
   {
-    icon: "💡",
-    title: "Display Options",
-    description: "Toggle backlight, switch between Classic and Black themes",
+    icon: "⚙️",
+    title: "Playback Modes",
+    description: "Enable shuffle, repeat songs or playlists, and more.",
   },
   {
-    icon: "📋",
-    title: "Library Management",
-    description: "Create playlists and organize your music collection",
+    icon: "📺",
+    title: "Display & Fullscreen",
+    description: "Adjust backlight, themes, and switch to fullscreen video.",
   },
 ];
 
