@@ -1439,9 +1439,14 @@ export function IpodAppComponent({
                         />
                       </div>
 
+                      {/* Dark overlay when lyrics are shown */}
+                      {showLyrics && tracks[currentIndex] && (
+                        <div className="absolute inset-0 bg-black/50 z-10 pointer-events-none" />
+                      )}
+
                       {/* Lyrics Overlay */}
                       {showLyrics && (
-                        <div className="absolute inset-0 pointer-events-none">
+                        <div className="absolute inset-0 pointer-events-none z-20">
                           {/* Use the hook result from the top level */}
                           <LyricsDisplay
                             lines={fullScreenLyricsControls.lines}
