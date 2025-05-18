@@ -25,20 +25,54 @@ import { useLyrics } from "@/hooks/useLyrics";
 interface FullScreenPortalProps {
   children: React.ReactNode;
   onClose: () => void;
+  togglePlay: () => void;
+  nextTrack: () => void;
+  previousTrack: () => void;
+  showStatus: (message: string) => void;
+  registerActivity: () => void;
+  isPlaying: boolean;
 }
 
-function FullScreenPortal({ children, onClose }: FullScreenPortalProps) {
+function FullScreenPortal({
+  children,
+  onClose,
+  togglePlay,
+  nextTrack,
+  previousTrack,
+  showStatus,
+  registerActivity,
+  isPlaying,
+}: FullScreenPortalProps) {
   // Close full screen with Escape key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      registerActivity();
       if (e.key === "Escape") {
         onClose();
+      } else if (e.key === " ") {
+        e.preventDefault(); // Prevent scrolling if space is pressed
+        togglePlay();
+        showStatus(isPlaying ? "❙ ❙" : "▶");
+      } else if (e.key === "ArrowLeft") {
+        previousTrack();
+        showStatus("⏮");
+      } else if (e.key === "ArrowRight") {
+        nextTrack();
+        showStatus("⏭");
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
+  }, [
+    onClose,
+    togglePlay,
+    nextTrack,
+    previousTrack,
+    showStatus,
+    registerActivity,
+    isPlaying,
+  ]);
 
   return createPortal(
     <div className="fixed inset-0 z-[9999] bg-black">
@@ -1339,12 +1373,24 @@ export function IpodAppComponent({
                 if (playerRef.current) {
                   playerRef.current.seekTo(currentTime);
                   // Only update play state if needed
-                  if (wasPlaying && !isPlaying) {
+                  if (wasPlaying && !useIpodStore.getState().isPlaying) {
                     setIsPlaying(true);
                   }
                 }
               }, 100);
             }}
+            togglePlay={togglePlay}
+            nextTrack={() => {
+              skipOperationRef.current = true;
+              nextTrack();
+            }}
+            previousTrack={() => {
+              skipOperationRef.current = true;
+              previousTrack();
+            }}
+            showStatus={showStatus}
+            registerActivity={registerActivity}
+            isPlaying={isPlaying}
           >
             <div className="flex flex-col w-full h-full">
               {/* The player and lyrics content */}
