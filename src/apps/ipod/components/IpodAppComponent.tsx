@@ -83,11 +83,33 @@ function FullScreenPortal({
       } else if (e.key === "ArrowUp") {
         // Use up arrow for previous track
         previousTrack();
-        showStatus("⏮");
+        // Then show track info with symbol after a small delay to allow state update
+        setTimeout(() => {
+          const currentTrackIndex = useIpodStore.getState().currentIndex;
+          const currentTrack =
+            useIpodStore.getState().tracks[currentTrackIndex];
+          if (currentTrack) {
+            const artistInfo = currentTrack.artist
+              ? ` - ${currentTrack.artist}`
+              : "";
+            showStatus(`⏮ ${currentTrack.title}${artistInfo}`);
+          }
+        }, 800);
       } else if (e.key === "ArrowDown") {
         // Use down arrow for next track
         nextTrack();
-        showStatus("⏭");
+        // Then show track info with symbol after a small delay to allow state update
+        setTimeout(() => {
+          const currentTrackIndex = useIpodStore.getState().currentIndex;
+          const currentTrack =
+            useIpodStore.getState().tracks[currentTrackIndex];
+          if (currentTrack) {
+            const artistInfo = currentTrack.artist
+              ? ` - ${currentTrack.artist}`
+              : "";
+            showStatus(`⏭ ${currentTrack.title}${artistInfo}`);
+          }
+        }, 800);
       }
     };
 
@@ -1144,7 +1166,15 @@ export function IpodAppComponent({
         case "right":
           skipOperationRef.current = true;
           nextTrack();
-          showStatus("⏭");
+          // Show track info with symbol after small delay to allow state update
+          setTimeout(() => {
+            const newIndex = useIpodStore.getState().currentIndex;
+            const newTrack = tracks[newIndex];
+            if (newTrack) {
+              const artistText = newTrack.artist ? ` - ${newTrack.artist}` : "";
+              showStatus(`⏭ ${newTrack.title}${artistText}`);
+            }
+          }, 800);
           break;
         case "bottom":
           togglePlay();
@@ -1153,7 +1183,15 @@ export function IpodAppComponent({
         case "left":
           skipOperationRef.current = true;
           previousTrack();
-          showStatus("⏮");
+          // Show track info with symbol after small delay to allow state update
+          setTimeout(() => {
+            const newIndex = useIpodStore.getState().currentIndex;
+            const newTrack = tracks[newIndex];
+            if (newTrack) {
+              const artistText = newTrack.artist ? ` - ${newTrack.artist}` : "";
+              showStatus(`⏮ ${newTrack.title}${artistText}`);
+            }
+          }, 800);
           break;
         case "center":
           if (menuMode) {
@@ -1473,10 +1511,32 @@ export function IpodAppComponent({
             nextTrack={() => {
               skipOperationRef.current = true;
               nextTrack();
+
+              // Show track info with symbol after small delay to allow state update
+              setTimeout(() => {
+                const newTrack = tracks[useIpodStore.getState().currentIndex];
+                if (newTrack) {
+                  const artistInfo = newTrack.artist
+                    ? ` - ${newTrack.artist}`
+                    : "";
+                  showStatus(`⏭ ${newTrack.title}${artistInfo}`);
+                }
+              }, 100);
             }}
             previousTrack={() => {
               skipOperationRef.current = true;
               previousTrack();
+
+              // Show track info with symbol after small delay to allow state update
+              setTimeout(() => {
+                const newTrack = tracks[useIpodStore.getState().currentIndex];
+                if (newTrack) {
+                  const artistInfo = newTrack.artist
+                    ? ` - ${newTrack.artist}`
+                    : "";
+                  showStatus(`⏮ ${newTrack.title}${artistInfo}`);
+                }
+              }, 100);
             }}
             seekTime={seekTime}
             showStatus={showStatus}
