@@ -31,6 +31,12 @@ export const IPOD_DEFAULT_VIDEOS = [
     lyricOffset: -1200,
   },
   {
+    id: "Dlz_XHeUUis",
+    url: "https://youtu.be/Dlz_XHeUUis?si=R7MDtk9W8suZcQDW",
+    title: "White Ferrari",
+    artist: "Frank Ocean",
+  },
+  {
     id: "Q3K0TOvTOno",
     url: "https://youtu.be/Q3K0TOvTOno?si=_VbKas8ZYd9jpXiA",
     title: "How Sweet",
