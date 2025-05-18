@@ -408,7 +408,7 @@ export function IpodScreen({
           )}
         >
           <div
-            className="w-full h-[calc(100%+120px)] mt-[-60px]"
+            className="w-full h-[calc(100%+140px)] mt-[-70px]"
             onClick={(e) => {
               // Ensure taps on the lyrics overlay also toggle play / video as expected
               e.stopPropagation();

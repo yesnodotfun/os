@@ -1350,7 +1350,7 @@ export function IpodAppComponent({
               {/* The player and lyrics content */}
               <div className="relative w-full h-full overflow-hidden">
                 {/* The player and lyrics content */}
-                <div className="w-full h-[calc(100%+120px)] mt-[-60px] relative">
+                <div className="w-full h-[calc(100%+140px)] mt-[-70px] relative">
                   {tracks[currentIndex] && (
                     <>
                       <div
