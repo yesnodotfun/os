@@ -60,7 +60,7 @@
       ]
     },
     {
-      "source": "/:path(apple-touch-icon.png|favicon.ico|vite.svg)",
+      "source": "/:path(apple-touch-icon.png|favicon.ico)",
       "headers": [
         {
           "key": "Cache-Control",

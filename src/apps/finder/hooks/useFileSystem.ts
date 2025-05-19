@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { FileItem as DisplayFileItem } from "../components/FileList";
 import { ensureIndexedDBInitialized } from "@/utils/indexedDB";
 import { getNonFinderApps, AppId } from "@/config/appRegistry";
@@ -416,8 +416,9 @@ function getFileIcon(item: FileSystemItem): string {
   }
 }
 
-// --- Global flag for initialization --- //
+// --- Global flags for cross-instance coordination --- //
 let isInitialContentCheckDone = false;
+const loggedInitializationPaths = new Set<string>();
 
 // --- useFileSystem Hook --- //
 export interface UseFileSystemOptions {
@@ -433,11 +434,15 @@ export function useFileSystem(
   initialPath: string = "/",
   options: UseFileSystemOptions = {}
 ) {
-  // Limit verbose logging to development mode and log only once per hook instance
-  const hasLoggedRef = useRef(false);
-  if (import.meta.env?.MODE === "development" && !hasLoggedRef.current) {
+  // --------------------------------------------
+  // Development-time logging (deduplicated)
+  // --------------------------------------------
+  if (
+    import.meta.env?.MODE === "development" &&
+    !loggedInitializationPaths.has(initialPath)
+  ) {
     console.log(`[useFileSystem] Hook initialized for path: ${initialPath}`);
-    hasLoggedRef.current = true;
+    loggedInitializationPaths.add(initialPath);
   }
   const [currentPath, setCurrentPath] = useState(initialPath);
   const [files, setFiles] = useState<ExtendedDisplayFileItem[]>([]);
@@ -472,13 +477,17 @@ export function useFileSystem(
 
   // --- Initialization Effect for Content (Runs ONLY ONCE globally) --- //
   useEffect(() => {
-    // Check the global flag
+    // If the check has already been completed, skip immediately.
     if (isInitialContentCheckDone) {
       console.log(
         "[useFileSystem] Initial content check already performed, skipping."
       );
       return;
     }
+
+    // Mark as done *before* starting the async routine to prevent
+    // parallel hook instances from initiating the same work.
+    isInitialContentCheckDone = true;
 
     const initializeContent = async () => {
       console.log(
@@ -498,22 +507,22 @@ export function useFileSystem(
           const itemName = initialMetadata[path].name;
           const storeName = STORES.DOCUMENTS; // Assuming defaults are documents
           try {
-            const existingContent = await dbOperations.get<DocumentContent>(
+            const existingDoc = await dbOperations.get<DocumentContent>(
               storeName,
               itemName
             );
-            if (!existingContent) {
+            if (!existingDoc) {
               console.log(
-                `[useFileSystem] Adding missing default content for ${itemName} to ${storeName}`
+                `[useFileSystem] Adding missing default document ${itemName} to documents store`
               );
-              await dbOperations.put<DocumentContent>(storeName, {
+              await dbOperations.put<DocumentContent>(STORES.DOCUMENTS, {
                 name: itemName,
                 content: defaultContentMap[path],
               });
             }
           } catch (err) {
             console.error(
-              `[useFileSystem] Error checking/adding content for ${itemName}:`,
+              `[useFileSystem] Error adding default document ${itemName}:`,
               err
             );
           }
@@ -556,11 +565,11 @@ export function useFileSystem(
       }
 
       console.log("[useFileSystem] Initial content check complete.");
-      // Set the global flag to true after the first successful run
-      isInitialContentCheckDone = true;
     };
+
+    // Fire and forget – other hook instances have already been blocked.
     initializeContent();
-  }, []); // Empty dependency array still ensures it tries to run once per mount
+  }, []); // Empty dependency array ensures attempt once per mount
   // --- End Initialization Effect --- //
 
   // --- REORDERED useCallback DEFINITIONS --- //
