@@ -15,6 +15,7 @@ import { useVibration } from "@/hooks/useVibration";
 import { IpodScreen } from "./IpodScreen";
 import { IpodWheel } from "./IpodWheel";
 import { useIpodStore, Track } from "@/stores/useIpodStore";
+import { useShallow } from "zustand/react/shallow";
 import { useAppStore } from "@/stores/useAppStore";
 import { ShareItemDialog } from "@/components/dialogs/ShareItemDialog";
 import { toast } from "sonner";
@@ -323,14 +324,27 @@ export function IpodAppComponent({
   const { play: playScrollSound } = useSound(Sounds.MENU_OPEN);
   const vibrate = useVibration(100, 50);
 
-  const tracks = useIpodStore((s) => s.tracks);
-  const currentIndex = useIpodStore((s) => s.currentIndex);
-  const loopCurrent = useIpodStore((s) => s.loopCurrent);
-  const loopAll = useIpodStore((s) => s.loopAll);
-  const isShuffled = useIpodStore((s) => s.isShuffled);
-  const isPlaying = useIpodStore((s) => s.isPlaying);
-  const showVideo = useIpodStore((s) => s.showVideo);
-  const backlightOn = useIpodStore((s) => s.backlightOn);
+  const {
+    tracks,
+    currentIndex,
+    loopCurrent,
+    loopAll,
+    isShuffled,
+    isPlaying,
+    showVideo,
+    backlightOn,
+  } = useIpodStore(
+    useShallow((s) => ({
+      tracks: s.tracks,
+      currentIndex: s.currentIndex,
+      loopCurrent: s.loopCurrent,
+      loopAll: s.loopAll,
+      isShuffled: s.isShuffled,
+      isPlaying: s.isPlaying,
+      showVideo: s.showVideo,
+      backlightOn: s.backlightOn,
+    }))
+  );
   const theme = useIpodStore((s) => s.theme);
   const lcdFilterOn = useIpodStore((s) => s.lcdFilterOn);
   const showLyrics = useIpodStore((s) => s.showLyrics);
@@ -585,14 +599,21 @@ export function IpodAppComponent({
     // Group tracks by artist
     const tracksByArtist = tracks.reduce<
       Record<string, { track: (typeof tracks)[0]; index: number }[]>
-    >((acc, track, index) => {
-      const artist = track.artist || "Unknown Artist";
-      if (!acc[artist]) {
-        acc[artist] = [];
-      }
-      acc[artist].push({ track, index });
-      return acc;
-    }, {});
+    >(
+      (
+        acc: Record<string, { track: (typeof tracks)[0]; index: number }[]>,
+        track: (typeof tracks)[0],
+        index: number
+      ) => {
+        const artist = track.artist || "Unknown Artist";
+        if (!acc[artist]) {
+          acc[artist] = [];
+        }
+        acc[artist].push({ track, index });
+        return acc;
+      },
+      {}
+    );
 
     // Get sorted list of artists
     const artists = Object.keys(tracksByArtist).sort((a, b) =>
@@ -605,7 +626,7 @@ export function IpodAppComponent({
         action: () => {
           registerActivity();
           setMenuDirection("forward");
-          const allTracksMenu = tracks.map((track, index) => ({
+          const allTracksMenu = tracks.map((track: (typeof tracks)[0], index: number) => ({
             label: track.title,
             action: () => {
               registerActivity();
@@ -639,7 +660,7 @@ export function IpodAppComponent({
           registerActivity();
           setMenuDirection("forward");
           const artistTracks = tracksByArtist[artist].map(
-            ({ track, index }) => ({
+            ({ track, index }: { track: (typeof tracks)[0]; index: number }) => ({
               label: track.title,
               action: () => {
                 registerActivity();
@@ -1157,20 +1178,27 @@ export function IpodAppComponent({
         // Group tracks by artist to find the right artist menu
         const tracksByArtist = tracks.reduce<
           Record<string, { track: (typeof tracks)[0]; index: number }[]>
-        >((acc, track, index) => {
-          const artist = track.artist || "Unknown Artist";
-          if (!acc[artist]) {
-            acc[artist] = [];
-          }
-          acc[artist].push({ track, index });
-          return acc;
-        }, {});
+        >(
+          (
+            acc: Record<string, { track: (typeof tracks)[0]; index: number }[]>,
+            track: (typeof tracks)[0],
+            index: number
+          ) => {
+            const artist = track.artist || "Unknown Artist";
+            if (!acc[artist]) {
+              acc[artist] = [];
+            }
+            acc[artist].push({ track, index });
+            return acc;
+          },
+          {}
+        );
 
         // Create track menus
-        const allTracksMenu = {
-          title: "All Songs",
-          items: tracks.map((track, index) => ({
-            label: track.title,
+          const allTracksMenu = {
+            title: "All Songs",
+            items: tracks.map((track: (typeof tracks)[0], index: number) => ({
+              label: track.title,
             action: () => {
               registerActivity();
               setCurrentIndex(index);
@@ -1201,14 +1229,16 @@ export function IpodAppComponent({
             const artistTracks = tracksByArtist[artist];
 
             // Find the index of the current track in this artist's track list
-            const artistTrackIndex = artistTracks.findIndex(
-              (item) => item.index === currentTrackIndex
-            );
+              const artistTrackIndex = artistTracks.findIndex(
+                (item: { track: (typeof tracks)[0]; index: number }) =>
+                  item.index === currentTrackIndex
+              );
 
-            const artistMenu = {
-              title: artist,
-              items: artistTracks.map(({ track, index }) => ({
-                label: track.title,
+              const artistMenu = {
+                title: artist,
+                items: artistTracks.map(
+                  ({ track, index }: { track: (typeof tracks)[0]; index: number }) => ({
+                    label: track.title,
                 action: () => {
                   registerActivity();
                   setCurrentIndex(index);
@@ -1470,8 +1500,9 @@ export function IpodAppComponent({
   // Derived state for translation
   const currentTrackId = tracks[currentIndex]?.id;
   const translateToForLyricsHook =
-    lyricsTranslationRequest?.songId === currentTrackId
-      ? lyricsTranslationRequest?.language
+    lyricsTranslationRequest &&
+    lyricsTranslationRequest.songId === currentTrackId
+      ? lyricsTranslationRequest.language
       : null;
 
   // Always call useLyrics at the top level, outside of any conditional logic
