@@ -50,6 +50,38 @@ function FullScreenPortal({
 }: FullScreenPortalProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Use refs to store the latest values, avoiding stale closures
+  const handlersRef = useRef({
+    onClose,
+    togglePlay,
+    nextTrack,
+    previousTrack,
+    seekTime,
+    showStatus,
+    registerActivity,
+  });
+
+  // Update refs whenever props change
+  useEffect(() => {
+    handlersRef.current = {
+      onClose,
+      togglePlay,
+      nextTrack,
+      previousTrack,
+      seekTime,
+      showStatus,
+      registerActivity,
+    };
+  }, [
+    onClose,
+    togglePlay,
+    nextTrack,
+    previousTrack,
+    seekTime,
+    showStatus,
+    registerActivity,
+  ]);
+
   // Touch handling for swipe gestures (left/right: navigate tracks, down: close fullscreen)
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(
     null
@@ -58,6 +90,7 @@ function FullScreenPortal({
   const MAX_SWIPE_TIME = 500; // Maximum time for a swipe (ms)
   const MAX_VERTICAL_DRIFT = 100; // Maximum cross-directional drift to still count as intended swipe
 
+  // Stable event handlers using refs (no dependencies to avoid re-rendering)
   const handleTouchStart = useCallback((e: TouchEvent) => {
     const touch = e.touches[0];
     touchStartRef.current = {
@@ -67,69 +100,72 @@ function FullScreenPortal({
     };
   }, []);
 
-  const handleTouchEnd = useCallback(
-    (e: TouchEvent) => {
-      if (!touchStartRef.current) return;
+  const handleTouchEnd = useCallback((e: TouchEvent) => {
+    if (!touchStartRef.current) return;
 
-      const touch = e.changedTouches[0];
-      const deltaX = touch.clientX - touchStartRef.current.x;
-      const deltaY = touch.clientY - touchStartRef.current.y;
-      const deltaTime = Date.now() - touchStartRef.current.time;
+    const touch = e.changedTouches[0];
+    const deltaX = touch.clientX - touchStartRef.current.x;
+    const deltaY = touch.clientY - touchStartRef.current.y;
+    const deltaTime = Date.now() - touchStartRef.current.time;
 
-      // Check if this qualifies as a horizontal swipe
-      const isHorizontalSwipe =
-        Math.abs(deltaX) > SWIPE_THRESHOLD &&
-        Math.abs(deltaY) < MAX_VERTICAL_DRIFT &&
-        deltaTime < MAX_SWIPE_TIME;
+    // Check if this qualifies as a horizontal swipe
+    const isHorizontalSwipe =
+      Math.abs(deltaX) > SWIPE_THRESHOLD &&
+      Math.abs(deltaY) < MAX_VERTICAL_DRIFT &&
+      deltaTime < MAX_SWIPE_TIME;
 
-      // Check if this qualifies as a downward swipe to close fullscreen
-      const isDownwardSwipe =
-        deltaY > SWIPE_THRESHOLD &&
-        Math.abs(deltaX) < MAX_VERTICAL_DRIFT &&
-        deltaTime < MAX_SWIPE_TIME;
+    // Check if this qualifies as a downward swipe to close fullscreen
+    const isDownwardSwipe =
+      deltaY > SWIPE_THRESHOLD &&
+      Math.abs(deltaX) < MAX_VERTICAL_DRIFT &&
+      deltaTime < MAX_SWIPE_TIME;
 
-      if (isHorizontalSwipe) {
-        registerActivity();
-        if (deltaX > 0) {
-          // Swipe right - previous track
-          previousTrack();
-          // Show track info with symbol after small delay to allow state update
-          setTimeout(() => {
-            const currentTrackIndex = useIpodStore.getState().currentIndex;
-            const currentTrack =
-              useIpodStore.getState().tracks[currentTrackIndex];
-            if (currentTrack) {
-              const artistInfo = currentTrack.artist
-                ? ` - ${currentTrack.artist}`
-                : "";
-              showStatus(`⏮ ${currentTrack.title}${artistInfo}`);
-            }
-          }, 100);
-        } else {
-          // Swipe left - next track
-          nextTrack();
-          // Show track info with symbol after small delay to allow state update
-          setTimeout(() => {
-            const currentTrackIndex = useIpodStore.getState().currentIndex;
-            const currentTrack =
-              useIpodStore.getState().tracks[currentTrackIndex];
-            if (currentTrack) {
-              const artistInfo = currentTrack.artist
-                ? ` - ${currentTrack.artist}`
-                : "";
-              showStatus(`⏭ ${currentTrack.title}${artistInfo}`);
-            }
-          }, 100);
-        }
-      } else if (isDownwardSwipe) {
-        // Swipe down - close fullscreen
-        onClose();
+    if (isHorizontalSwipe) {
+      // Prevent default to avoid any conflicts
+      e.preventDefault();
+
+      const handlers = handlersRef.current;
+      handlers.registerActivity();
+
+      if (deltaX > 0) {
+        // Swipe right - previous track
+        handlers.previousTrack();
+        // Show track info with symbol after small delay to allow state update
+        setTimeout(() => {
+          const currentTrackIndex = useIpodStore.getState().currentIndex;
+          const currentTrack =
+            useIpodStore.getState().tracks[currentTrackIndex];
+          if (currentTrack) {
+            const artistInfo = currentTrack.artist
+              ? ` - ${currentTrack.artist}`
+              : "";
+            handlers.showStatus(`⏮ ${currentTrack.title}${artistInfo}`);
+          }
+        }, 100);
+      } else {
+        // Swipe left - next track
+        handlers.nextTrack();
+        // Show track info with symbol after small delay to allow state update
+        setTimeout(() => {
+          const currentTrackIndex = useIpodStore.getState().currentIndex;
+          const currentTrack =
+            useIpodStore.getState().tracks[currentTrackIndex];
+          if (currentTrack) {
+            const artistInfo = currentTrack.artist
+              ? ` - ${currentTrack.artist}`
+              : "";
+            handlers.showStatus(`⏭ ${currentTrack.title}${artistInfo}`);
+          }
+        }, 100);
       }
+    } else if (isDownwardSwipe) {
+      // Swipe down - close fullscreen
+      e.preventDefault();
+      handlersRef.current.onClose();
+    }
 
-      touchStartRef.current = null;
-    },
-    [registerActivity, previousTrack, nextTrack, showStatus, onClose]
-  );
+    touchStartRef.current = null;
+  }, []);
 
   // Effect to request fullscreen when component mounts
   useEffect(() => {
@@ -146,40 +182,42 @@ function FullScreenPortal({
   }, []);
 
   // Effect to set up touch event listeners for swipe gestures
+  // Now with stable handlers that don't change
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    container.addEventListener("touchstart", handleTouchStart, {
-      passive: true,
-    });
-    container.addEventListener("touchend", handleTouchEnd, { passive: true });
+    // Use non-passive listeners so we can call preventDefault
+    container.addEventListener("touchstart", handleTouchStart);
+    container.addEventListener("touchend", handleTouchEnd);
 
     return () => {
       container.removeEventListener("touchstart", handleTouchStart);
       container.removeEventListener("touchend", handleTouchEnd);
     };
-  }, [handleTouchStart, handleTouchEnd]);
+  }, []); // Empty dependency array - handlers are stable
 
   // Close full screen with Escape key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      registerActivity();
+      const handlers = handlersRef.current;
+      handlers.registerActivity();
+
       if (e.key === "Escape") {
-        onClose();
+        handlers.onClose();
       } else if (e.key === " ") {
         e.preventDefault(); // Prevent scrolling if space is pressed
-        togglePlay();
-        showStatus(isPlaying ? "❙ ❙" : "▶");
+        handlers.togglePlay();
+        handlers.showStatus(isPlaying ? "❙ ❙" : "▶");
       } else if (e.key === "ArrowLeft") {
         // Seek backward instead of previous track
-        seekTime(-5);
+        handlers.seekTime(-5);
       } else if (e.key === "ArrowRight") {
         // Seek forward instead of next track
-        seekTime(5);
+        handlers.seekTime(5);
       } else if (e.key === "ArrowUp") {
         // Use up arrow for previous track
-        previousTrack();
+        handlers.previousTrack();
         // Then show track info with symbol after a small delay to allow state update
         setTimeout(() => {
           const currentTrackIndex = useIpodStore.getState().currentIndex;
@@ -189,12 +227,12 @@ function FullScreenPortal({
             const artistInfo = currentTrack.artist
               ? ` - ${currentTrack.artist}`
               : "";
-            showStatus(`⏮ ${currentTrack.title}${artistInfo}`);
+            handlers.showStatus(`⏮ ${currentTrack.title}${artistInfo}`);
           }
         }, 800);
       } else if (e.key === "ArrowDown") {
         // Use down arrow for next track
-        nextTrack();
+        handlers.nextTrack();
         // Then show track info with symbol after a small delay to allow state update
         setTimeout(() => {
           const currentTrackIndex = useIpodStore.getState().currentIndex;
@@ -204,7 +242,7 @@ function FullScreenPortal({
             const artistInfo = currentTrack.artist
               ? ` - ${currentTrack.artist}`
               : "";
-            showStatus(`⏭ ${currentTrack.title}${artistInfo}`);
+            handlers.showStatus(`⏭ ${currentTrack.title}${artistInfo}`);
           }
         }, 800);
       }
@@ -212,16 +250,7 @@ function FullScreenPortal({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [
-    onClose,
-    togglePlay,
-    nextTrack,
-    previousTrack,
-    seekTime,
-    showStatus,
-    registerActivity,
-    isPlaying,
-  ]);
+  }, [isPlaying]); // Only isPlaying as dependency
 
   return createPortal(
     <div ref={containerRef} className="fixed inset-0 z-[9999] bg-black">
@@ -1631,7 +1660,7 @@ export function IpodAppComponent({
               {/* The player and lyrics content */}
               <div className="relative w-full h-full overflow-hidden">
                 {/* The player and lyrics content */}
-                <div className="w-full h-[calc(100%+180px)] mt-[-90px] relative">
+                <div className="w-full h-[calc(100%+230px)] mt-[-120px] relative">
                   {tracks[currentIndex] && (
                     <>
                       <div
@@ -1681,7 +1710,7 @@ export function IpodAppComponent({
 
                       {/* Lyrics Overlay */}
                       {showLyrics && (
-                        <div className="absolute inset-0 pointer-events-none z-20">
+                        <div className="absolute bottom-0 inset-0 pointer-events-none z-20">
                           {/* Use the hook result from the top level */}
                           <LyricsDisplay
                             lines={fullScreenLyricsControls.lines}
