@@ -350,7 +350,8 @@ const QUICKTIPS_CONTENT = `# Quick Tips
 - Save game states
 - Full DOS environment
 - Keyboard and mouse support`;
-// --- End Default Content --- //
+
+const DEFAULT_IMAGES = ["steve-jobs.png", "susan-kare.png"];
 
 // --- Helper Functions --- //
 
@@ -489,6 +490,8 @@ export function useFileSystem(
         "/Documents/Quick Tips.md": QUICKTIPS_CONTENT,
       };
 
+      const defaultImagesList = DEFAULT_IMAGES;
+
       for (const path in defaultContentMap) {
         if (initialMetadata[path]) {
           // Check if metadata exists
@@ -516,6 +519,42 @@ export function useFileSystem(
           }
         }
       }
+
+      // Add default images to IndexedDB if missing
+      for (const imageName of defaultImagesList) {
+        const imagePath = `/Images/${imageName}`;
+        if (initialMetadata[imagePath]) {
+          try {
+            const existingImg = await dbOperations.get<DocumentContent>(
+              STORES.IMAGES,
+              imageName
+            );
+            if (!existingImg) {
+              console.log(
+                `[useFileSystem] Adding missing default image ${imageName} to images store`
+              );
+              const response = await fetch(`/assets/images/${imageName}`);
+              if (response.ok) {
+                const blob = await response.blob();
+                await dbOperations.put<DocumentContent>(STORES.IMAGES, {
+                  name: imageName,
+                  content: blob,
+                });
+              } else {
+                console.warn(
+                  `[useFileSystem] Failed to fetch default image asset ${imageName}. Status: ${response.status}`
+                );
+              }
+            }
+          } catch (err) {
+            console.error(
+              `[useFileSystem] Error adding default image ${imageName}:`,
+              err
+            );
+          }
+        }
+      }
+
       console.log("[useFileSystem] Initial content check complete.");
       // Set the global flag to true after the first successful run
       isInitialContentCheckDone = true;
@@ -1366,6 +1405,29 @@ export function useFileSystem(
           name: doc.name,
           content: doc.content,
         });
+      }
+
+      // Re-add default images content
+      for (const imgName of DEFAULT_IMAGES) {
+        try {
+          const response = await fetch(`/assets/images/${imgName}`);
+          if (response.ok) {
+            const blob = await response.blob();
+            await dbOperations.put<DocumentContent>(STORES.IMAGES, {
+              name: imgName,
+              content: blob,
+            });
+          } else {
+            console.warn(
+              `[useFileSystem:formatFileSystem] Failed to fetch default image ${imgName}. Status: ${response.status}`
+            );
+          }
+        } catch (err) {
+          console.error(
+            `[useFileSystem:formatFileSystem] Error fetching default image ${imgName}:`,
+            err
+          );
+        }
       }
 
       fileStore.reset(); // Reset metadata store
