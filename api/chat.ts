@@ -111,7 +111,15 @@ export const config = {
   runtime: "edge",
 };
 
-const generateSystemPrompt = (systemState?: SystemState) => {
+const STATIC_SYSTEM_PROMPT = [
+  CHAT_INSTRUCTIONS,
+  TOOL_USAGE_INSTRUCTIONS,
+  RYO_PERSONA_INSTRUCTIONS,
+  ANSWER_STYLE_INSTRUCTIONS,
+  CODE_GENERATION_INSTRUCTIONS,
+].join("\n");
+
+const generateDynamicSystemPrompt = (systemState?: SystemState) => {
   const now = new Date();
   const timeString = now.toLocaleTimeString("en-US", {
     timeZone: "America/Los_Angeles",
@@ -129,129 +137,89 @@ const generateSystemPrompt = (systemState?: SystemState) => {
 
   const ryoTimeZone = "America/Los_Angeles";
 
-  // Start with static parts
-  const prompt = `
-  ${CHAT_INSTRUCTIONS}
-  ${TOOL_USAGE_INSTRUCTIONS}
-  ${RYO_PERSONA_INSTRUCTIONS}
-  ${ANSWER_STYLE_INSTRUCTIONS}
-  ${CODE_GENERATION_INSTRUCTIONS}
+  if (!systemState) return "";
 
-${
-  systemState
-    ? `<system_state>
-    ${
-      systemState.username
-        ? `CURRENT USER: ${systemState.username}`
-        : "CURRENT USER: you"
-    }
+  let prompt = `<system_state>
+    ${systemState.username ? `CURRENT USER: ${systemState.username}` : "CURRENT USER: you"}
 
 SYSTEM STATE:
 
-- Ryo local time: ${timeString} on ${dateString} (${ryoTimeZone})
-${
-  systemState.userLocalTime
-    ? `\n- User local time: ${systemState.userLocalTime.timeString} on ${systemState.userLocalTime.dateString} (${systemState.userLocalTime.timeZone})`
-    : ""
-}
-${
-  systemState.requestGeo
-    ? `\n- User location (inferred from IP, may be inaccurate): ${[
-        systemState.requestGeo.city,
-        systemState.requestGeo.country,
-      ]
-        .filter(Boolean)
-        .join(", ")}`
-    : ""
-}
-${
-  systemState.runningApps?.foreground
-    ? `\n- Foreground App: ${systemState.runningApps.foreground}`
-    : ""
-}
-${
-  systemState.runningApps?.background &&
-  systemState.runningApps.background.length > 0
-    ? `\n- Background Apps: ${systemState.runningApps.background.join(", ")}`
-    : ""
-}
-${
-  systemState.apps["videos"]?.isOpen &&
-  systemState.video.currentVideo &&
-  systemState.video.isPlaying
-    ? `\n- Videos Now Playing: ${systemState.video.currentVideo.title}${
-        systemState.video.currentVideo.artist
-          ? ` by ${systemState.video.currentVideo.artist}`
-          : ""
-      }`
-    : ""
-}
-${
-  systemState.apps["ipod"]?.isOpen &&
-  systemState.ipod?.currentTrack &&
-  systemState.ipod.isPlaying
-    ? `\n- iPod Now Playing: ${systemState.ipod.currentTrack.title}${
-        systemState.ipod.currentTrack.artist
-          ? ` by ${systemState.ipod.currentTrack.artist}`
-          : ""
-      }${
-        systemState.ipod.currentLyrics?.lines
-          ? `\n- Current Lyrics:\n${systemState.ipod.currentLyrics.lines
-              .map((line) => line.words)
-              .join("\n")}`
-          : ""
-      }`
-    : ""
-}
-${
-  systemState.apps["internet-explorer"]?.isOpen &&
-  systemState.internetExplorer.url
-    ? `\n- Browser URL: ${
-        systemState.internetExplorer.url
-      }\n- Time Travel Year: ${systemState.internetExplorer.year}${
-        systemState.internetExplorer.currentPageTitle
-          ? `\n- Page Title: ${systemState.internetExplorer.currentPageTitle}`
-          : ""
-      }${
-        systemState.internetExplorer.aiGeneratedHtml
-          ? `\n- HTML Content:\n${systemState.internetExplorer.aiGeneratedHtml}`
-          : ""
-      }`
-    : ""
-}
-${
-  systemState.apps["textedit"]?.isOpen && systemState.textEdit
-    ? `\n- TextEdit File: ${systemState.textEdit.lastFilePath ?? "Untitled"}${
-        systemState.textEdit.hasUnsavedChanges ? " (unsaved changes)" : ""
-      }${
-        systemState.textEdit.contentJson
-          ? `\n- Document Content JSON:\n${JSON.stringify(
-              systemState.textEdit.contentJson
-            )}`
-          : ""
-      }`
-    : ""
-}
-</system_state>`
-    : ""
-}
+- Ryo local time: ${timeString} on ${dateString} (${ryoTimeZone})`;
 
-${
-  systemState?.chatRoomContext
-    ? `<chat_room_reply_instructions>
+  if (systemState.userLocalTime) {
+    prompt += `\n- User local time: ${systemState.userLocalTime.timeString} on ${systemState.userLocalTime.dateString} (${systemState.userLocalTime.timeZone})`;
+  }
+  if (systemState.requestGeo) {
+    prompt += `\n- User location (inferred from IP, may be inaccurate): ${[
+      systemState.requestGeo.city,
+      systemState.requestGeo.country,
+    ]
+      .filter(Boolean)
+      .join(", ")}`;
+  }
+  if (systemState.runningApps?.foreground) {
+    prompt += `\n- Foreground App: ${systemState.runningApps.foreground}`;
+  }
+  if (systemState.runningApps?.background && systemState.runningApps.background.length > 0) {
+    prompt += `\n- Background Apps: ${systemState.runningApps.background.join(", ")}`;
+  }
+  if (
+    systemState.apps["videos"]?.isOpen &&
+    systemState.video.currentVideo &&
+    systemState.video.isPlaying
+  ) {
+    prompt += `\n- Videos Now Playing: ${systemState.video.currentVideo.title}${
+      systemState.video.currentVideo.artist ? ` by ${systemState.video.currentVideo.artist}` : ""
+    }`;
+  }
+  if (
+    systemState.apps["ipod"]?.isOpen &&
+    systemState.ipod?.currentTrack &&
+    systemState.ipod.isPlaying
+  ) {
+    prompt += `\n- iPod Now Playing: ${systemState.ipod.currentTrack.title}${
+      systemState.ipod.currentTrack.artist ? ` by ${systemState.ipod.currentTrack.artist}` : ""
+    }`;
+    if (systemState.ipod.currentLyrics?.lines) {
+      prompt += `\n- Current Lyrics:\n${systemState.ipod.currentLyrics.lines
+        .map((line) => line.words)
+        .join("\n")}`;
+    }
+  }
+  if (systemState.apps["internet-explorer"]?.isOpen && systemState.internetExplorer.url) {
+    prompt += `\n- Browser URL: ${systemState.internetExplorer.url}\n- Time Travel Year: ${systemState.internetExplorer.year}`;
+    if (systemState.internetExplorer.currentPageTitle) {
+      prompt += `\n- Page Title: ${systemState.internetExplorer.currentPageTitle}`;
+    }
+    if (systemState.internetExplorer.aiGeneratedHtml) {
+      prompt += `\n- HTML Content:\n${systemState.internetExplorer.aiGeneratedHtml}`;
+    }
+  }
+  if (systemState.apps["textedit"]?.isOpen && systemState.textEdit) {
+    prompt += `\n- TextEdit File: ${systemState.textEdit.lastFilePath ?? "Untitled"}${
+      systemState.textEdit.hasUnsavedChanges ? " (unsaved changes)" : ""
+    }`;
+    if (systemState.textEdit.contentJson) {
+      prompt += `\n- Document Content JSON:\n${JSON.stringify(systemState.textEdit.contentJson)}`;
+    }
+  }
+
+  prompt += `\n</system_state>`;
+
+  if (systemState.chatRoomContext) {
+    prompt += `\n<chat_room_reply_instructions>
 CHAT ROOM REPLIES:
 - You are responding to @ryo mention in chat room ID: ${systemState.chatRoomContext.roomId}
 - Recent conversation:
 ${systemState.chatRoomContext.recentMessages}
 - You were mentioned with message: "${systemState.chatRoomContext.mentionedMessage}"
 - Respond as 'ryo' in this IRC-style chat room context. Use extremely concise responses replying to the recent conversation in the chat room.
-</chat_room_reply_instructions>`
-    : ""
-}`;
+</chat_room_reply_instructions>`;
+  }
 
-  // Removed TextEdit content and instructions sections
   return prompt;
 };
+
 
 export default async function handler(req: Request) {
   // Check origin before processing request
@@ -327,10 +295,16 @@ export default async function handler(req: Request) {
 
     const selectedModel = getModelInstance(model as SupportedModel);
 
+    const systemMessages = [
+      { role: "system", content: STATIC_SYSTEM_PROMPT },
+      { role: "system", content: generateDynamicSystemPrompt(systemState) },
+    ];
+
+    const enrichedMessages = [...systemMessages, ...messages];
+
     const result = streamText({
       model: selectedModel,
-      system: generateSystemPrompt(systemState),
-      messages,
+      messages: enrichedMessages,
       tools: {
         launchApp: {
           description:
