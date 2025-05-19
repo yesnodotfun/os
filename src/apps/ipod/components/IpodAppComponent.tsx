@@ -1349,19 +1349,38 @@ export function IpodAppComponent({
   // Add a ref to track the previous fullscreen state
   const prevFullScreenRef = useRef(isFullScreen);
 
-  // Effect to synchronise playback time when ENTERING fullscreen
+  // Effect to synchronise playback time when entering and exiting fullscreen
   useEffect(() => {
     if (isFullScreen !== prevFullScreenRef.current) {
       if (isFullScreen) {
+        // Entering fullscreen - sync from small player to fullscreen player
         const currentTime = playerRef.current?.getCurrentTime() || elapsedTime;
         // Small delay to ensure the fullscreen player is mounted
         setTimeout(() => {
           fullScreenPlayerRef.current?.seekTo(currentTime);
         }, 100);
+      } else {
+        // Exiting fullscreen - sync from fullscreen player back to small player
+        const currentTime =
+          fullScreenPlayerRef.current?.getCurrentTime() || elapsedTime;
+        const wasPlaying = isPlaying;
+
+        // Longer delay to ensure the regular player is properly mounted after fullscreen exit
+        setTimeout(() => {
+          if (playerRef.current) {
+            playerRef.current.seekTo(currentTime);
+            // Only update play state if needed, after seeking is complete
+            setTimeout(() => {
+              if (wasPlaying && !useIpodStore.getState().isPlaying) {
+                setIsPlaying(true);
+              }
+            }, 50);
+          }
+        }, 200);
       }
       prevFullScreenRef.current = isFullScreen;
     }
-  }, [isFullScreen]);
+  }, [isFullScreen, elapsedTime, isPlaying, setIsPlaying]);
 
   // Add a seekTime function for fullscreen seeking
   const seekTime = useCallback(
@@ -1471,25 +1490,8 @@ export function IpodAppComponent({
         {isFullScreen && (
           <FullScreenPortal
             onClose={() => {
-              // When closing fullscreen, first capture the current playback time
-              const currentTime =
-                fullScreenPlayerRef.current?.getCurrentTime() || 0;
-              const wasPlaying = isPlaying;
-
-              // Toggle fullscreen state
+              // Just toggle fullscreen state - synchronization is handled in useEffect
               toggleFullScreen();
-
-              // After exiting fullscreen, ensure we sync playback position
-              // Small timeout to allow component to re-render
-              setTimeout(() => {
-                if (playerRef.current) {
-                  playerRef.current.seekTo(currentTime);
-                  // Only update play state if needed
-                  if (wasPlaying && !useIpodStore.getState().isPlaying) {
-                    setIsPlaying(true);
-                  }
-                }
-              }, 100);
             }}
             togglePlay={togglePlay}
             nextTrack={() => {
