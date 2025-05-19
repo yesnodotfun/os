@@ -1395,12 +1395,23 @@ export function IpodAppComponent({
           : playerRef.current;
         const currentTime = activePlayer?.getCurrentTime() || 0;
         const seekAmount = 5;
+        let newTime = currentTime;
         if (direction === "clockwise") {
-          activePlayer?.seekTo(currentTime + seekAmount);
-          showStatus(`⏩︎`);
+          newTime = currentTime + seekAmount;
+          activePlayer?.seekTo(newTime);
+          showStatus(
+            `⏩︎ ${Math.floor(newTime / 60)}:${String(
+              Math.floor(newTime % 60)
+            ).padStart(2, "0")}`
+          );
         } else {
-          activePlayer?.seekTo(Math.max(0, currentTime - seekAmount));
-          showStatus(`⏪︎`);
+          newTime = Math.max(0, currentTime - seekAmount);
+          activePlayer?.seekTo(newTime);
+          showStatus(
+            `⏪︎ ${Math.floor(newTime / 60)}:${String(
+              Math.floor(newTime % 60)
+            ).padStart(2, "0")}`
+          );
         }
       }
     },
@@ -1516,8 +1527,13 @@ export function IpodAppComponent({
     (delta: number) => {
       if (fullScreenPlayerRef.current) {
         const currentTime = fullScreenPlayerRef.current.getCurrentTime() || 0;
-        fullScreenPlayerRef.current.seekTo(Math.max(0, currentTime + delta));
-        showStatus(delta > 0 ? "⏩︎" : "⏪︎");
+        const newTime = Math.max(0, currentTime + delta);
+        fullScreenPlayerRef.current.seekTo(newTime);
+        showStatus(
+          `${delta > 0 ? "⏩︎" : "⏪︎"} ${Math.floor(newTime / 60)}:${String(
+            Math.floor(newTime % 60)
+          ).padStart(2, "0")}`
+        );
       }
     },
     [showStatus]
