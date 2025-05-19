@@ -527,6 +527,72 @@ export function ControlPanelsAppComponent({
               "Failed to restore file system data. Only settings were restored."
             );
           }
+
+          /* Ensure default file and image metadata exist after restore */
+          try {
+            const persistedKey = "ryos:files"; // name used in useFilesStore persist
+            const raw = localStorage.getItem(persistedKey);
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              if (parsed && parsed.state && parsed.state.items) {
+                const items = parsed.state.items as Record<string, unknown>;
+
+                const ensureItem = (
+                  path: string,
+                  name: string,
+                  type: string,
+                  icon: string
+                ) => {
+                  if (!items[path]) {
+                    items[path] = {
+                      path,
+                      name,
+                      isDirectory: false,
+                      type,
+                      icon,
+                      status: "active",
+                    };
+                  }
+                };
+
+                // Default documents
+                ensureItem(
+                  "/Documents/README.md",
+                  "README.md",
+                  "markdown",
+                  "/icons/file-text.png"
+                );
+                ensureItem(
+                  "/Documents/Quick Tips.md",
+                  "Quick Tips.md",
+                  "markdown",
+                  "/icons/file-text.png"
+                );
+
+                // Default images
+                ensureItem(
+                  "/Images/steve-jobs.png",
+                  "steve-jobs.png",
+                  "png",
+                  "/icons/image.png"
+                );
+                ensureItem(
+                  "/Images/susan-kare.png",
+                  "susan-kare.png",
+                  "png",
+                  "/icons/image.png"
+                );
+
+                // Save back if modified
+                localStorage.setItem(persistedKey, JSON.stringify(parsed));
+              }
+            }
+          } catch (err) {
+            console.error(
+              "[ControlPanels] Failed to ensure default metadata after restore:",
+              err
+            );
+          }
         }
         setNextBootMessage("Restoring System...");
         window.location.reload();

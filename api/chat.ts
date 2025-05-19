@@ -140,7 +140,11 @@ const generateDynamicSystemPrompt = (systemState?: SystemState) => {
   if (!systemState) return "";
 
   let prompt = `<system_state>
-    ${systemState.username ? `CURRENT USER: ${systemState.username}` : "CURRENT USER: you"}
+    ${
+      systemState.username
+        ? `CURRENT USER: ${systemState.username}`
+        : "CURRENT USER: you"
+    }
 
 SYSTEM STATE:
 
@@ -160,8 +164,13 @@ SYSTEM STATE:
   if (systemState.runningApps?.foreground) {
     prompt += `\n- Foreground App: ${systemState.runningApps.foreground}`;
   }
-  if (systemState.runningApps?.background && systemState.runningApps.background.length > 0) {
-    prompt += `\n- Background Apps: ${systemState.runningApps.background.join(", ")}`;
+  if (
+    systemState.runningApps?.background &&
+    systemState.runningApps.background.length > 0
+  ) {
+    prompt += `\n- Background Apps: ${systemState.runningApps.background.join(
+      ", "
+    )}`;
   }
   if (
     systemState.apps["videos"]?.isOpen &&
@@ -169,7 +178,9 @@ SYSTEM STATE:
     systemState.video.isPlaying
   ) {
     prompt += `\n- Videos Now Playing: ${systemState.video.currentVideo.title}${
-      systemState.video.currentVideo.artist ? ` by ${systemState.video.currentVideo.artist}` : ""
+      systemState.video.currentVideo.artist
+        ? ` by ${systemState.video.currentVideo.artist}`
+        : ""
     }`;
   }
   if (
@@ -178,7 +189,9 @@ SYSTEM STATE:
     systemState.ipod.isPlaying
   ) {
     prompt += `\n- iPod Now Playing: ${systemState.ipod.currentTrack.title}${
-      systemState.ipod.currentTrack.artist ? ` by ${systemState.ipod.currentTrack.artist}` : ""
+      systemState.ipod.currentTrack.artist
+        ? ` by ${systemState.ipod.currentTrack.artist}`
+        : ""
     }`;
     if (systemState.ipod.currentLyrics?.lines) {
       prompt += `\n- Current Lyrics:\n${systemState.ipod.currentLyrics.lines
@@ -186,7 +199,10 @@ SYSTEM STATE:
         .join("\n")}`;
     }
   }
-  if (systemState.apps["internet-explorer"]?.isOpen && systemState.internetExplorer.url) {
+  if (
+    systemState.apps["internet-explorer"]?.isOpen &&
+    systemState.internetExplorer.url
+  ) {
     prompt += `\n- Browser URL: ${systemState.internetExplorer.url}\n- Time Travel Year: ${systemState.internetExplorer.year}`;
     if (systemState.internetExplorer.currentPageTitle) {
       prompt += `\n- Page Title: ${systemState.internetExplorer.currentPageTitle}`;
@@ -196,11 +212,13 @@ SYSTEM STATE:
     }
   }
   if (systemState.apps["textedit"]?.isOpen && systemState.textEdit) {
-    prompt += `\n- TextEdit File: ${systemState.textEdit.lastFilePath ?? "Untitled"}${
-      systemState.textEdit.hasUnsavedChanges ? " (unsaved changes)" : ""
-    }`;
+    prompt += `\n- TextEdit File: ${
+      systemState.textEdit.lastFilePath ?? "Untitled"
+    }${systemState.textEdit.hasUnsavedChanges ? " (unsaved changes)" : ""}`;
     if (systemState.textEdit.contentJson) {
-      prompt += `\n- Document Content JSON:\n${JSON.stringify(systemState.textEdit.contentJson)}`;
+      prompt += `\n- Document Content JSON:\n${JSON.stringify(
+        systemState.textEdit.contentJson
+      )}`;
     }
   }
 
@@ -219,7 +237,6 @@ ${systemState.chatRoomContext.recentMessages}
 
   return prompt;
 };
-
 
 export default async function handler(req: Request) {
   // Check origin before processing request
@@ -261,9 +278,9 @@ export default async function handler(req: Request) {
 
     // Helper: prefix log lines with username (for easier tracing)
     const usernameForLogs = incomingSystemState?.username ?? "unknown";
-    const log = (...args: any[]) =>
+    const log = (...args: unknown[]) =>
       console.log(`[User: ${usernameForLogs}]`, ...args);
-    const logError = (...args: any[]) =>
+    const logError = (...args: unknown[]) =>
       console.error(`[User: ${usernameForLogs}]`, ...args);
 
     log(
