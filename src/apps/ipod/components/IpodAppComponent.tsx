@@ -566,6 +566,9 @@ export function IpodAppComponent({
 
   useEffect(() => {
     setElapsedTime(0);
+    // Clear any previously fetched lyrics immediately when the track changes
+    // so the AI chat doesn't use lyrics from the previous song as context
+    useIpodStore.setState({ currentLyrics: null });
   }, [currentIndex]);
 
   useEffect(() => {
