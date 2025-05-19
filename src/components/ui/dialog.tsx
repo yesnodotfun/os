@@ -1,8 +1,32 @@
 import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { cn } from "@/lib/utils";
+import { useSound, Sounds } from "@/hooks/useSound";
+import { useVibration } from "@/hooks/useVibration";
 
-const Dialog = DialogPrimitive.Root;
+const Dialog = ({ children, ...props }: DialogPrimitive.DialogProps) => {
+  const { play: playWindowOpen } = useSound(Sounds.WINDOW_OPEN);
+  const { play: playWindowClose } = useSound(Sounds.WINDOW_CLOSE);
+  const vibrateClose = useVibration(50, 50);
+
+  return (
+    <DialogPrimitive.Root
+      onOpenChange={(open) => {
+        if (open) {
+          playWindowOpen();
+        } else {
+          vibrateClose();
+          playWindowClose();
+        }
+        props.onOpenChange?.(open);
+      }}
+      {...props}
+    >
+      {children}
+    </DialogPrimitive.Root>
+  );
+};
+Dialog.displayName = DialogPrimitive.Root.displayName;
 const DialogTrigger = DialogPrimitive.Trigger;
 const DialogPortal = DialogPrimitive.Portal;
 const DialogClose = DialogPrimitive.Close;
