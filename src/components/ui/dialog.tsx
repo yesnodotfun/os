@@ -22,8 +22,6 @@ const Dialog = ({ children, ...props }: DialogPrimitive.DialogProps) => {
       }}
       {...props}
     >
-      {children}
-    </DialogPrimitive.Root>
   );
 };
 Dialog.displayName = DialogPrimitive.Root.displayName;
