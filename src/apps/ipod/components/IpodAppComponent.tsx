@@ -50,13 +50,13 @@ function FullScreenPortal({
 }: FullScreenPortalProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Touch handling for swipe gestures
+  // Touch handling for swipe gestures (left/right: navigate tracks, down: close fullscreen)
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(
     null
   );
   const SWIPE_THRESHOLD = 80; // Minimum swipe distance
   const MAX_SWIPE_TIME = 500; // Maximum time for a swipe (ms)
-  const MAX_VERTICAL_DRIFT = 100; // Maximum vertical movement to still count as horizontal swipe
+  const MAX_VERTICAL_DRIFT = 100; // Maximum cross-directional drift to still count as intended swipe
 
   const handleTouchStart = useCallback((e: TouchEvent) => {
     const touch = e.touches[0];
@@ -80,6 +80,12 @@ function FullScreenPortal({
       const isHorizontalSwipe =
         Math.abs(deltaX) > SWIPE_THRESHOLD &&
         Math.abs(deltaY) < MAX_VERTICAL_DRIFT &&
+        deltaTime < MAX_SWIPE_TIME;
+
+      // Check if this qualifies as a downward swipe to close fullscreen
+      const isDownwardSwipe =
+        deltaY > SWIPE_THRESHOLD &&
+        Math.abs(deltaX) < MAX_VERTICAL_DRIFT &&
         deltaTime < MAX_SWIPE_TIME;
 
       if (isHorizontalSwipe) {
@@ -115,11 +121,14 @@ function FullScreenPortal({
             }
           }, 100);
         }
+      } else if (isDownwardSwipe) {
+        // Swipe down - close fullscreen
+        onClose();
       }
 
       touchStartRef.current = null;
     },
-    [registerActivity, previousTrack, nextTrack, showStatus]
+    [registerActivity, previousTrack, nextTrack, showStatus, onClose]
   );
 
   // Effect to request fullscreen when component mounts
