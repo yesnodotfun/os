@@ -50,6 +50,78 @@ function FullScreenPortal({
 }: FullScreenPortalProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Touch handling for swipe gestures
+  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(
+    null
+  );
+  const SWIPE_THRESHOLD = 80; // Minimum swipe distance
+  const MAX_SWIPE_TIME = 500; // Maximum time for a swipe (ms)
+  const MAX_VERTICAL_DRIFT = 100; // Maximum vertical movement to still count as horizontal swipe
+
+  const handleTouchStart = useCallback((e: TouchEvent) => {
+    const touch = e.touches[0];
+    touchStartRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+      time: Date.now(),
+    };
+  }, []);
+
+  const handleTouchEnd = useCallback(
+    (e: TouchEvent) => {
+      if (!touchStartRef.current) return;
+
+      const touch = e.changedTouches[0];
+      const deltaX = touch.clientX - touchStartRef.current.x;
+      const deltaY = touch.clientY - touchStartRef.current.y;
+      const deltaTime = Date.now() - touchStartRef.current.time;
+
+      // Check if this qualifies as a horizontal swipe
+      const isHorizontalSwipe =
+        Math.abs(deltaX) > SWIPE_THRESHOLD &&
+        Math.abs(deltaY) < MAX_VERTICAL_DRIFT &&
+        deltaTime < MAX_SWIPE_TIME;
+
+      if (isHorizontalSwipe) {
+        registerActivity();
+        if (deltaX > 0) {
+          // Swipe right - previous track
+          previousTrack();
+          // Show track info with symbol after small delay to allow state update
+          setTimeout(() => {
+            const currentTrackIndex = useIpodStore.getState().currentIndex;
+            const currentTrack =
+              useIpodStore.getState().tracks[currentTrackIndex];
+            if (currentTrack) {
+              const artistInfo = currentTrack.artist
+                ? ` - ${currentTrack.artist}`
+                : "";
+              showStatus(`⏮ ${currentTrack.title}${artistInfo}`);
+            }
+          }, 100);
+        } else {
+          // Swipe left - next track
+          nextTrack();
+          // Show track info with symbol after small delay to allow state update
+          setTimeout(() => {
+            const currentTrackIndex = useIpodStore.getState().currentIndex;
+            const currentTrack =
+              useIpodStore.getState().tracks[currentTrackIndex];
+            if (currentTrack) {
+              const artistInfo = currentTrack.artist
+                ? ` - ${currentTrack.artist}`
+                : "";
+              showStatus(`⏭ ${currentTrack.title}${artistInfo}`);
+            }
+          }, 100);
+        }
+      }
+
+      touchStartRef.current = null;
+    },
+    [registerActivity, previousTrack, nextTrack, showStatus]
+  );
+
   // Effect to request fullscreen when component mounts
   useEffect(() => {
     // Need a small delay to ensure the portal is mounted
@@ -63,6 +135,22 @@ function FullScreenPortal({
 
     return () => clearTimeout(timeoutId);
   }, []);
+
+  // Effect to set up touch event listeners for swipe gestures
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    container.addEventListener("touchstart", handleTouchStart, {
+      passive: true,
+    });
+    container.addEventListener("touchend", handleTouchEnd, { passive: true });
+
+    return () => {
+      container.removeEventListener("touchstart", handleTouchStart);
+      container.removeEventListener("touchend", handleTouchEnd);
+    };
+  }, [handleTouchStart, handleTouchEnd]);
 
   // Close full screen with Escape key
   useEffect(() => {
@@ -160,7 +248,7 @@ function FullScreenPortal({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
           >
-            <div className="absolute top-24 left-24 pointer-events-none">
+            <div className="absolute md:top-24 md:left-24 top-8 left-8 pointer-events-none">
               <div className="relative">
                 <div className="font-chicago text-white text-[min(5vw,5vh)] relative z-10">
                   {statusMessage}
