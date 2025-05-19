@@ -21,27 +21,28 @@ export const IPOD_DEFAULT_VIDEOS = [
     url: "https://youtu.be/jKnLSg83Nqc?si=0mX3pYk0q98Ndoui",
     title: "ㅠ.ㅠ (You)",
     artist: "Crush",
-    lyricOffset: 200,
+    lyricOffset: 1000,
   },
   {
     id: "hCg9tezGBWE",
     url: "https://youtu.be/hCg9tezGBWE?si=4KFJNVTDm6OA2kK8",
     title: "Magnetic",
     artist: "ILLIT",
-    lyricOffset: -1200,
+    lyricOffset: -1000,
   },
   {
     id: "Dlz_XHeUUis",
     url: "https://youtu.be/Dlz_XHeUUis?si=R7MDtk9W8suZcQDW",
     title: "White Ferrari",
     artist: "Frank Ocean",
+    lyricOffset: 1450,
   },
   {
     id: "Q3K0TOvTOno",
     url: "https://youtu.be/Q3K0TOvTOno?si=_VbKas8ZYd9jpXiA",
     title: "How Sweet",
     artist: "NewJeans",
-    lyricOffset: -10050,
+    lyricOffset: -10500,
   },
   {
     id: "ft70sAYrFyY",
@@ -55,8 +56,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     url: "https://www.youtube.com/watch?v=-nEGVrzPaiU&pp=ygUPdGljayB0YWNrIGlsbGl0",
     title: "Tick-Tack",
     artist: "ILLIT",
-    album: "",
-    lyricOffset: -17150,
+    lyricOffset: -16350,
   },
   {
     id: "lXd1GHJPx-A",
@@ -96,7 +96,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     title: "Right Now (R&B Remix)",
     artist: "NewJeans",
     album: "Supernatural",
-    lyricOffset: -2400,
+    lyricOffset: -2850,
   },
   {
     id: "AGaTzDTnYGY",
@@ -104,7 +104,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     title: "How Sweet (UK Garage Remix)",
     artist: "NewJeans",
     album: "How Sweet",
-    lyricOffset: 2400,
+    lyricOffset: 2500,
   },
   {
     id: "XJWqHmY-g9U",
@@ -120,7 +120,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     title: "UP&DOWN",
     artist: "임지수",
     album: "UP&DOWN",
-    lyricOffset: 1600,
+    lyricOffset: 1650,
   },
   {
     id: "zt0Me5qyK4g",
@@ -152,7 +152,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     title: "나를 위해 (For Days to Come)",
     artist: "Crush",
     album: "wonderego",
-    lyricOffset: 1000,
+    lyricOffset: 1200,
   },
   {
     id: "zzDpTWCGofU",
@@ -168,7 +168,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     title: "ETA (R&B Remix)",
     artist: "NewJeans",
     album: "NewJeans 2nd EP 'Get Up'",
-    lyricOffset: -4400,
+    lyricOffset: -4000,
   },
   {
     id: "5tcBJCouOmE",
@@ -176,7 +176,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     title: "Hype Boy",
     artist: "DEAN",
     album: "New Jeans",
-    lyricOffset: 19250,
+    lyricOffset: 19400,
   },
   {
     id: "PO8",
@@ -208,7 +208,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     title: "Butterflies",
     artist: "Hearts2Hearts",
     album: "The Chase - Single",
-    lyricOffset: -7000,
+    lyricOffset: -6900,
   },
   {
     id: "PICpEtPHyZI",
@@ -216,7 +216,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     title: "Damn Right",
     artist: "JENNIE",
     album: "Ruby",
-    lyricOffset: 1200,
+    lyricOffset: 1600,
   },
   {
     id: "osNYssIep5w",
@@ -232,7 +232,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     title: "GPT",
     artist: "STAYC",
     album: "GPT - Single",
-    lyricOffset: -1600,
+    lyricOffset: -1450,
   },
   {
     id: "Rk6aQvlmsWo",
@@ -248,7 +248,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     title: "오래오래 (FRR)",
     artist: "george",
     album: "FRR",
-    lyricOffset: -4300,
+    lyricOffset: -3600,
   },
   {
     id: "FonjL7DQAUQ",
@@ -264,7 +264,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     title: "Can We Talk",
     artist: "Tevin Campbell",
     album: "I'm Ready",
-    lyricOffset: -400,
+    lyricOffset: -300,
   },
   {
     id: "ZncbtRo7RXs",
@@ -397,7 +397,7 @@ export interface IpodState extends IpodData {
   exportLibrary: () => string;
 }
 
-const CURRENT_IPOD_STORE_VERSION = 12; // Incremented version for new state
+const CURRENT_IPOD_STORE_VERSION = 13; // Incremented version for new state
 
 export const useIpodStore = create<IpodState>()(
   persist(
