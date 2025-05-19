@@ -4,13 +4,14 @@ import { cn } from "@/lib/utils";
 import { useSound, Sounds } from "@/hooks/useSound";
 import { useVibration } from "@/hooks/useVibration";
 
-const Dialog = ({ children, ...props }: DialogPrimitive.DialogProps) => {
+const Dialog = ({ children, onOpenChange, ...props }: DialogPrimitive.DialogProps) => {
   const { play: playWindowOpen } = useSound(Sounds.WINDOW_OPEN);
   const { play: playWindowClose } = useSound(Sounds.WINDOW_CLOSE);
   const vibrateClose = useVibration(50, 50);
 
   return (
     <DialogPrimitive.Root
+      {...props}
       onOpenChange={(open) => {
         if (open) {
           playWindowOpen();
@@ -18,9 +19,8 @@ const Dialog = ({ children, ...props }: DialogPrimitive.DialogProps) => {
           vibrateClose();
           playWindowClose();
         }
-        props.onOpenChange?.(open);
+        onOpenChange?.(open);
       }}
-      {...props}
     >
       {children}
     </DialogPrimitive.Root>
