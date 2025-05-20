@@ -17,7 +17,7 @@ import { useLaunchApp } from "@/hooks/useLaunchApp";
 import { useAiChat } from "@/apps/chats/hooks/useAiChat";
 import { useAppContext } from "@/contexts/AppContext";
 import { useAppStore } from "@/stores/useAppStore";
-import { AppId, appRegistry } from "@/config/appRegistry";
+import { appRegistry } from "@/config/appRegistry";
 import { useTerminalSounds } from "@/hooks/useTerminalSounds";
 import { track } from "@vercel/analytics";
 import HtmlPreview, {
@@ -30,16 +30,14 @@ import { useTextEditStore } from "@/stores/useTextEditStore";
 import { useIpodStore } from "@/stores/useIpodStore";
 import {
   generateHTML,
-  generateJSON,
   type AnyExtension,
-  type JSONContent,
 } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
-import { htmlToMarkdown, markdownToHtml } from "@/utils/markdown";
+import { htmlToMarkdown } from "@/utils/markdown";
 import { useInternetExplorerStore } from "@/stores/useInternetExplorerStore";
 import { useVideoStore } from "@/stores/useVideoStore";
 
@@ -3315,14 +3313,5 @@ assistant
 }
 
 // --- Debounce helper copied from useAiChat for insertText tool ---
-function createDebouncedAction(delay = 150) {
-  let timer: ReturnType<typeof setTimeout> | null = null;
-  return (action: () => void) => {
-    if (timer) clearTimeout(timer);
-    timer = setTimeout(() => {
-      action();
-      timer = null;
-    }, delay);
-  };
-}
-const debouncedInsertTextUpdate = createDebouncedAction(150);
+// Currently unused. Remove if not needed in the future.
+
