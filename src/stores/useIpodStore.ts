@@ -211,12 +211,12 @@ export const IPOD_DEFAULT_VIDEOS = [
     lyricOffset: -6900,
   },
   {
-    id: "PICpEtPHyZI",
-    url: "https://www.youtube.com/watch?v=PICpEtPHyZI",
+    id: "dKMHchXVS6k",
+    url: "https://youtu.be/dKMHchXVS6k?si=D9A7ui__4D5k_kAc",
     title: "Damn Right",
     artist: "JENNIE",
     album: "Ruby",
-    lyricOffset: 1600,
+    lyricOffset: 1000,
   },
   {
     id: "osNYssIep5w",
