@@ -28,10 +28,7 @@ import { useSound, Sounds } from "@/hooks/useSound";
 import { useChatsStore } from "@/stores/useChatsStore";
 import { useTextEditStore } from "@/stores/useTextEditStore";
 import { useIpodStore } from "@/stores/useIpodStore";
-import {
-  generateHTML,
-  type AnyExtension,
-} from "@tiptap/core";
+import { generateHTML, type AnyExtension } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
@@ -359,8 +356,8 @@ interface ToolInvocation {
   step?: number;
   toolCallId: string;
   toolName: string;
-  args?: Record<string, any>;
-  result?: any;
+  args?: Record<string, unknown>;
+  result?: unknown;
 }
 
 const formatToolInvocation = (invocation: ToolInvocation): string | null => {
@@ -375,10 +372,10 @@ const formatToolInvocation = (invocation: ToolInvocation): string | null => {
         msg = "Inserting text…";
         break;
       case "launchApp":
-        msg = `Launching ${getAppName(args?.id)}…`;
+        msg = `Launching ${getAppName(args?.id as string)}…`;
         break;
       case "closeApp":
-        msg = `Closing ${getAppName(args?.id)}…`;
+        msg = `Closing ${getAppName(args?.id as string)}…`;
         break;
       case "textEditNewFile":
         msg = "Creating new document…";
@@ -396,9 +393,9 @@ const formatToolInvocation = (invocation: ToolInvocation): string | null => {
       const yearPart = args.year && args.year !== "" ? ` in ${args.year}` : "";
       msg = `Launched${urlPart}${yearPart}`;
     } else if (toolName === "launchApp") {
-      msg = `Launched ${getAppName(args?.id)}`;
+      msg = `Launched ${getAppName(args?.id as string)}`;
     } else if (toolName === "closeApp") {
-      msg = `Closed ${getAppName(args?.id)}`;
+      msg = `Closed ${getAppName(args?.id as string)}`;
     } else if (
       toolName === "generateHtml" &&
       typeof result === "string" &&
@@ -588,8 +585,6 @@ export function TerminalAppComponent({
   } = useAiChat();
 
   const setAiChatMessages = useChatsStore((state) => state.setAiMessages);
-
-
 
   const inputRef = useRef<HTMLInputElement>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
@@ -2362,21 +2357,25 @@ assistant
     if (lastMessage.role !== "assistant") return;
 
     const messageKey = `${lastMessage.id}-${JSON.stringify(
-      (lastMessage as any).parts ?? lastMessage.content
+      (lastMessage as { parts?: unknown[] }).parts ?? lastMessage.content
     )}`;
     if (messageKey === lastProcessedMessageIdRef.current) return;
 
-    const parts = (lastMessage as any).parts as any[] | undefined;
+    const parts = (lastMessage as { parts?: unknown[] }).parts as
+      | unknown[]
+      | undefined;
     const lines: string[] = [];
 
     if (parts && parts.length > 0) {
       parts.forEach((part) => {
-        if (part.type === "text") {
-          const processed = processMessageContent(part.text);
+        if ((part as { type: string }).type === "text") {
+          const processed = processMessageContent(
+            (part as { text: string }).text
+          );
           if (processed) lines.push(processed);
-        } else if (part.type === "tool-invocation") {
+        } else if ((part as { type: string }).type === "tool-invocation") {
           const txt = formatToolInvocation(
-            part.toolInvocation as ToolInvocation
+            (part as { toolInvocation: ToolInvocation }).toolInvocation
           );
           if (txt) lines.push(txt);
         }
@@ -3314,4 +3313,3 @@ assistant
 
 // --- Debounce helper copied from useAiChat for insertText tool ---
 // Currently unused. Remove if not needed in the future.
-
