@@ -72,7 +72,7 @@ const generateElevenLabsSpeech = async (
     | "pcm_44100"
     | "ulaw_8000" = "mp3_44100_128",
   voice_settings: SpeechRequest["voice_settings"] = {
-    stability: 0.6,
+    stability: 0.5,
     similarity_boost: 0.8,
     use_speaker_boost: true,
     speed: 1.0,
@@ -176,7 +176,7 @@ export default async function handler(req: Request) {
       audioData = await generateElevenLabsSpeech(
         text.trim(),
         voice_id || "kAyjEabBEu68HYYYRAHR", // Ryo voice default
-        model_id || "eleven_flash_v2_5", // 2.5 flash default
+        model_id || "eleven_turbo_v2_5", // 2.5 turbo default
         output_format,
         voice_settings
       );
