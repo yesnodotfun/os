@@ -568,6 +568,33 @@ export function useAiChat() {
             }`;
             return `Playing ${trackDesc}.`;
           }
+          case "ipodAddAndPlaySong": {
+            const { id, url, title, artist, album } = toolCall.args as {
+              id: string;
+              url: string;
+              title: string;
+              artist?: string;
+              album?: string;
+            };
+            console.log("[ToolCall] ipodAddAndPlaySong:", {
+              id,
+              url,
+              title,
+              artist,
+              album,
+            });
+
+            // Ensure iPod app is open
+            const appState = useAppStore.getState();
+            if (!appState.apps["ipod"]?.isOpen) {
+              launchApp("ipod");
+            }
+
+            const { addTrack } = useIpodStore.getState();
+            addTrack({ id, url, title, artist, album }); // addTrack will also play it
+
+            return `Added '${title}' to iPod and started playing.`;
+          }
           case "ipodNextTrack": {
             console.log("[ToolCall] ipodNextTrack");
             // Ensure iPod app is open
