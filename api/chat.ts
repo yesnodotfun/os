@@ -514,11 +514,13 @@ export default async function handler(req: Request) {
         },
         ipodAddAndPlaySong: {
           description:
-            "Adds a song to the iPod library by its YouTube video ID and plays it. The system will automatically fetch title, artist, and album information. The iPod app will be launched if it's not already open.",
+            "Adds a song to the iPod library from a YouTube video ID or URL and plays it. Supports YouTube URLs (youtube.com/watch?v=, youtu.be/), video IDs, and share URLs (os.ryo.lu/ipod/:id). The system will automatically fetch title, artist, and album information. The iPod app will be launched if it's not already open.",
           parameters: z.object({
             id: z
               .string()
-              .describe("The YouTube video ID of the song to add and play."),
+              .describe(
+                "The YouTube video ID or any supported URL format (YouTube URL, os.ryo.lu/ipod/:id, etc.) of the song to add and play."
+              ),
           }),
         },
         ipodNextTrack: {

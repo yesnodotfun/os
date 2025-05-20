@@ -14,7 +14,7 @@ import { useSound, Sounds } from "@/hooks/useSound";
 import { useVibration } from "@/hooks/useVibration";
 import { IpodScreen } from "./IpodScreen";
 import { IpodWheel } from "./IpodWheel";
-import { useIpodStore, Track } from "@/stores/useIpodStore";
+import { useIpodStore } from "@/stores/useIpodStore";
 import { useShallow } from "zustand/react/shallow";
 import { useAppStore } from "@/stores/useAppStore";
 import { ShareItemDialog } from "@/components/dialogs/ShareItemDialog";
@@ -369,7 +369,6 @@ export function IpodAppComponent({
   const toggleVideo = useIpodStore((s) => s.toggleVideo);
   const toggleBacklight = useIpodStore((s) => s.toggleBacklight);
   const setTheme = useIpodStore((s) => s.setTheme);
-  const addTrackStore = useIpodStore((s) => s.addTrack);
   const clearLibrary = useIpodStore((s) => s.clearLibrary);
   const resetLibrary = useIpodStore((s) => s.resetLibrary);
   const nextTrack = useIpodStore((s) => s.nextTrack);
@@ -976,83 +975,20 @@ export function IpodAppComponent({
     toggleVideo,
   ]);
 
-  const extractVideoId = (url: string): string | null => {
-    const regExp =
-      /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
-    const match = url.match(regExp);
-    return match && match[7].length === 11 ? match[7] : null;
-  };
-
   const handleAddTrack = useCallback(
     async (url: string) => {
       setIsAddingTrack(true);
       try {
-        const videoId = extractVideoId(url);
-        if (!videoId) {
-          throw new Error("Invalid YouTube URL");
+        const addedTrack = await useIpodStore
+          .getState()
+          .addTrackFromVideoId(url);
+        if (addedTrack) {
+          showStatus("♬ Added");
+          setUrlInput("");
+          setIsAddDialogOpen(false);
+        } else {
+          throw new Error("Failed to add track");
         }
-
-        const oembedResponse = await fetch(
-          `https://www.youtube.com/oembed?url=http://www.youtube.com/watch?v=${videoId}&format=json`
-        );
-        if (!oembedResponse.ok) {
-          throw new Error(
-            `Failed to fetch video info (${oembedResponse.status}). Please check the YouTube URL.`
-          );
-        }
-        const oembedData = await oembedResponse.json();
-        const rawTitle = oembedData.title || `Video ID: ${videoId}`;
-        const authorName = oembedData.author_name;
-
-        const trackInfo: Partial<Track> = {
-          title: rawTitle,
-          artist: undefined,
-          album: undefined,
-        };
-
-        try {
-          const parseResponse = await fetch("/api/parse-title", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              title: rawTitle,
-              author_name: authorName,
-            }),
-          });
-
-          if (parseResponse.ok) {
-            const parsedData = await parseResponse.json();
-            trackInfo.title = parsedData.title || rawTitle;
-            trackInfo.artist = parsedData.artist;
-            trackInfo.album = parsedData.album;
-          } else {
-            console.warn(
-              "Failed to parse title with AI, using raw title:",
-              await parseResponse.text()
-            );
-          }
-        } catch (parseError) {
-          console.warn(
-            "Error calling parse-title API, using raw title:",
-            parseError
-          );
-        }
-
-        const newTrack: Track = {
-          id: videoId,
-          url,
-          title: trackInfo.title!,
-          artist: trackInfo.artist,
-          album: trackInfo.album,
-          lyricOffset: 1000, // Default 1 second offset for new tracks
-        };
-
-        addTrackStore(newTrack);
-        showStatus("♬ Added");
-        setUrlInput("");
-        setIsAddDialogOpen(false);
       } catch (error) {
         console.error("Failed to add track:", error);
         showStatus(
@@ -1064,7 +1000,7 @@ export function IpodAppComponent({
         setIsAddingTrack(false);
       }
     },
-    [addTrackStore, showStatus]
+    [showStatus]
   );
 
   const handleAddAndPlayTrackByVideoId = useCallback(

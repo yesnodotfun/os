@@ -436,8 +436,8 @@ export interface IpodState extends IpodData {
   importLibrary: (json: string) => void;
   /** Export library to JSON string */
   exportLibrary: () => string;
-  /** Adds a track from a YouTube video ID, fetching metadata automatically */
-  addTrackFromVideoId: (videoId: string) => Promise<Track | null>;
+  /** Adds a track from a YouTube video ID or URL, fetching metadata automatically */
+  addTrackFromVideoId: (urlOrId: string) => Promise<Track | null>;
 }
 
 const CURRENT_IPOD_STORE_VERSION = 14; // Incremented version for new state
@@ -578,7 +578,58 @@ export const useIpodStore = create<IpodState>()(
         const { tracks } = get();
         return JSON.stringify(tracks, null, 2);
       },
-      addTrackFromVideoId: async (videoId: string): Promise<Track | null> => {
+      addTrackFromVideoId: async (urlOrId: string): Promise<Track | null> => {
+        // Extract video ID from various URL formats
+        const extractVideoId = (input: string): string | null => {
+          // If it's already a video ID (11 characters, alphanumeric + hyphens/underscores)
+          if (/^[a-zA-Z0-9_-]{11}$/.test(input)) {
+            return input;
+          }
+
+          try {
+            const url = new URL(input);
+
+            // Handle os.ryo.lu/ipod/:id format
+            if (
+              url.hostname === "os.ryo.lu" &&
+              url.pathname.startsWith("/ipod/")
+            ) {
+              return url.pathname.split("/")[2] || null;
+            }
+
+            // Handle YouTube URLs
+            if (
+              url.hostname.includes("youtube.com") ||
+              url.hostname.includes("youtu.be")
+            ) {
+              // Standard YouTube URL: youtube.com/watch?v=VIDEO_ID
+              const vParam = url.searchParams.get("v");
+              if (vParam) return vParam;
+
+              // Short YouTube URL: youtu.be/VIDEO_ID
+              if (url.hostname === "youtu.be") {
+                return url.pathname.slice(1) || null;
+              }
+
+              // Embedded or other YouTube formats
+              const pathMatch = url.pathname.match(
+                /\/(?:embed\/|v\/)?([a-zA-Z0-9_-]{11})/
+              );
+              if (pathMatch) return pathMatch[1];
+            }
+
+            return null;
+          } catch {
+            // Not a valid URL, might be just a video ID
+            return /^[a-zA-Z0-9_-]{11}$/.test(input) ? input : null;
+          }
+        };
+
+        const videoId = extractVideoId(urlOrId);
+        if (!videoId) {
+          throw new Error("Invalid YouTube URL or video ID");
+        }
+
         const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
         let rawTitle = `Video ID: ${videoId}`; // Default title
         let authorName: string | undefined = undefined; // Store author_name
@@ -600,8 +651,8 @@ export const useIpodStore = create<IpodState>()(
             );
           }
         } catch (error) {
-          console.error(`Error fetching oEmbed data for ${videoId}:`, error);
-          // Optionally, could return null here
+          console.error(`Error fetching oEmbed data for ${urlOrId}:`, error);
+          throw error; // Re-throw to be handled by caller
         }
 
         const trackInfo = {
