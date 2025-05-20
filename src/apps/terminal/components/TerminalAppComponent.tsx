@@ -3208,33 +3208,37 @@ assistant
                             {/* Show only non-HTML text content with markdown parsing */}
                             {cleanedTextContent &&
                               (() => {
-                                const spinnerRegex = /\s*:::/;
-                                const isSpinner =
-                                  spinnerRegex.test(cleanedTextContent);
-                                const display = isSpinner
-                                  ? cleanedTextContent.replace(
-                                      /:::/,
-                                      spinnerChars[spinnerIndex]
-                                    )
-                                  : cleanedTextContent;
-                                return (
-                                  <span
-                                    className={`select-text cursor-text ${
-                                      urgent
-                                        ? "text-red-300"
-                                        : isSpinner
-                                        ? "gradient-spin italic"
-                                        : cleanedTextContent
-                                            .trim()
-                                            .startsWith("→")
-                                        ? "text-gray-400"
-                                        : "text-purple-300"
-                                    }`}
-                                  >
-                                    {urgent && <UrgentMessageAnimation />}
-                                    {parseSimpleMarkdown(display)}
-                                  </span>
-                                );
+                                const parts = cleanedTextContent.split("\n");
+                                return parts.map((line, idx) => {
+                                  const trimmed = line.trimStart();
+                                  const isSpin = trimmed.startsWith(":::");
+                                  const isRes = trimmed.startsWith("→");
+                                  const displayLine = isSpin
+                                    ? line.replace(
+                                        ":::",
+                                        spinnerChars[spinnerIndex]
+                                      )
+                                    : line;
+                                  const cls = urgent
+                                    ? "text-red-300"
+                                    : isSpin
+                                    ? "gradient-spin italic"
+                                    : isRes
+                                    ? "text-gray-400"
+                                    : "text-purple-300";
+                                  return (
+                                    <span
+                                      key={idx}
+                                      className={`select-text cursor-text ${cls}`}
+                                    >
+                                      {idx > 0 && <br />}
+                                      {idx === 0 && urgent && (
+                                        <UrgentMessageAnimation />
+                                      )}
+                                      {parseSimpleMarkdown(displayLine)}
+                                    </span>
+                                  );
+                                });
                               })()}
 
                             {/* Show HTML preview if there's HTML content */}

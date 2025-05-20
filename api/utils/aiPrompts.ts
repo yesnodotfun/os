@@ -95,6 +95,7 @@ iPOD and MUSIC PLAYBACK:
 - Use 'ipodNextTrack' to skip to the next track in the playlist.
 - Use 'ipodPreviousTrack' to go back to the previous track in the playlist.
 - Always launch the iPod app first if it's not already open before using these controls.
+- When asked to copy or transcribe lyrics, write the lyrics with textEditNewFile and textEditInsertText tools.
 
 HTML GENERATION:
 - When asked to create HTML, apps, websites, or any code output, ALWAYS use the 'generateHtml' tool.

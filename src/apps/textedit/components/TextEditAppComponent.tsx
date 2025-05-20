@@ -461,14 +461,19 @@ export function TextEditAppComponent({
     if (!currentFilePath) {
       // Get the first line of content and use it as suggested filename
       const content = editor.getHTML();
-      const firstLine = content
+      const firstLineText = content
         .split("\n")[0] // Get first line
         .replace(/<[^>]+>/g, "") // Remove HTML tags
-        .split("-")[0] // Split by - and take first part
-        .trim() // Remove whitespace
-        .replace(/[^a-zA-Z0-9\s-]/g, "") // Remove special characters
-        .replace(/\s+/g, "-") // Replace spaces with hyphens
-        .substring(0, 50); // Limit length
+        .trim(); // Remove leading/trailing whitespace
+
+      // Take the first 7 words, sanitise, join with hyphens, and cap length
+      const firstLine = firstLineText
+        .split(/\s+/) // Split into words
+        .filter(Boolean)
+        .slice(0, 7) // Keep at most 7 words
+        .join("-") // Join with hyphens
+        .replace(/[^a-zA-Z0-9-]/g, "") // Remove non-alphanumeric (except hyphen)
+        .substring(0, 50); // Cap to 50 characters
 
       setIsSaveDialogOpen(true);
       setSaveFileName(`${firstLine || "Untitled"}.md`);
