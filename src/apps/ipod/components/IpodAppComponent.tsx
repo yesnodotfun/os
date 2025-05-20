@@ -996,10 +996,13 @@ export function IpodAppComponent({
           `https://www.youtube.com/oembed?url=http://www.youtube.com/watch?v=${videoId}&format=json`
         );
         if (!oembedResponse.ok) {
-          console.warn("Failed to fetch oEmbed info, using default title");
+          throw new Error(
+            `Failed to fetch video info (${oembedResponse.status}). Please check the YouTube URL.`
+          );
         }
-        const oembedData = oembedResponse.ok ? await oembedResponse.json() : {};
+        const oembedData = await oembedResponse.json();
         const rawTitle = oembedData.title || `Video ID: ${videoId}`;
+        const authorName = oembedData.author_name;
 
         const trackInfo: Partial<Track> = {
           title: rawTitle,
@@ -1013,7 +1016,10 @@ export function IpodAppComponent({
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ title: rawTitle }),
+            body: JSON.stringify({
+              title: rawTitle,
+              author_name: authorName,
+            }),
           });
 
           if (parseResponse.ok) {
@@ -1040,6 +1046,7 @@ export function IpodAppComponent({
           title: trackInfo.title!,
           artist: trackInfo.artist,
           album: trackInfo.album,
+          lyricOffset: 1000, // Default 1 second offset for new tracks
         };
 
         addTrackStore(newTrack);

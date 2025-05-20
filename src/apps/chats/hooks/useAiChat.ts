@@ -578,14 +578,28 @@ export function useAiChat() {
               launchApp("ipod");
             }
 
-            const addedTrack = await useIpodStore
-              .getState()
-              .addTrackFromVideoId(id);
+            try {
+              const addedTrack = await useIpodStore
+                .getState()
+                .addTrackFromVideoId(id);
 
-            if (addedTrack) {
-              return `Added '${addedTrack.title}' to iPod and started playing.`;
-            } else {
-              return `Failed to add song with ID ${id} to iPod.`;
+              if (addedTrack) {
+                return `Added '${addedTrack.title}' to iPod and started playing.`;
+              } else {
+                return `Failed to add song with ID ${id} to iPod.`;
+              }
+            } catch (error) {
+              // Handle oEmbed failures and other errors
+              const errorMessage =
+                error instanceof Error ? error.message : "Unknown error";
+              console.error(`[iPod] Error adding song ${id}:`, error);
+
+              // Provide a specific response for oEmbed failures
+              if (errorMessage.includes("Failed to fetch video info")) {
+                return `Cannot add song ${id}: The video is unavailable or the YouTube URL is invalid. ${errorMessage}`;
+              }
+
+              return `Failed to add song ${id}: ${errorMessage}`;
             }
           }
           case "ipodNextTrack": {

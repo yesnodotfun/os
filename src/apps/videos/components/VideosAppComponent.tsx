@@ -348,7 +348,8 @@ export function VideosAppComponent({
 
     const ua = navigator.userAgent;
     const isIOS = /iP(hone|od|ad)/.test(ua);
-    const isSafari = /Safari/.test(ua) && !/Chrome/.test(ua) && !/CriOS/.test(ua);
+    const isSafari =
+      /Safari/.test(ua) && !/Chrome/.test(ua) && !/CriOS/.test(ua);
 
     if (isPlaying && (isIOS || isSafari)) {
       setIsPlaying(false);
@@ -465,12 +466,15 @@ export function VideosAppComponent({
         `https://www.youtube.com/oembed?url=http://www.youtube.com/watch?v=${videoId}&format=json`
       );
       if (!oembedResponse.ok) {
-        console.warn("Failed to fetch oEmbed info, using default title");
+        throw new Error(
+          `Failed to fetch video info (${oembedResponse.status}). Please check the YouTube URL.`
+        );
       }
-      const oembedData = oembedResponse.ok ? await oembedResponse.json() : {};
+      const oembedData = await oembedResponse.json();
       const rawTitle = oembedData.title || `Video ID: ${videoId}`;
+      const authorName = oembedData.author_name;
 
-      let videoInfo: Partial<Video> = {
+      const videoInfo: Partial<Video> = {
         title: rawTitle,
         artist: undefined,
       };
@@ -482,7 +486,10 @@ export function VideosAppComponent({
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ title: rawTitle }),
+          body: JSON.stringify({
+            title: rawTitle,
+            author_name: authorName,
+          }),
         });
 
         if (parseResponse.ok) {
@@ -527,7 +534,11 @@ export function VideosAppComponent({
       setIsAddDialogOpen(false);
     } catch (error) {
       console.error("Failed to add video:", error);
-      showStatus(`❌ Error adding: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      showStatus(
+        `❌ Error adding: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     } finally {
       setIsAddingVideo(false);
     }
@@ -540,84 +551,124 @@ export function VideosAppComponent({
       await addVideo(youtubeUrl); // addVideo sets current index and plays
       showStatus(`▶ Playing shared video`);
     } catch (error) {
-      console.error(`[Videos] Error adding video for videoId ${videoId}:`, error);
+      console.error(
+        `[Videos] Error adding video for videoId ${videoId}:`,
+        error
+      );
       showStatus(`❌ Error adding ${videoId}`);
     }
   };
 
   // --- NEW: Function to process video ID (find or add/play) ---
-  const processVideoId = useCallback(async (videoId: string) => {
-    const currentVideos = useVideoStore.getState().videos;
-    const existingVideoIndex = currentVideos.findIndex(video => video.id === videoId);
+  const processVideoId = useCallback(
+    async (videoId: string) => {
+      const currentVideos = useVideoStore.getState().videos;
+      const existingVideoIndex = currentVideos.findIndex(
+        (video) => video.id === videoId
+      );
 
-    // --- Check for mobile Safari BEFORE setting playing state ---
-    const ua = navigator.userAgent;
-    const isIOS = /iP(hone|od|ad)/.test(ua);
-    const isSafari = /Safari/.test(ua) && !/Chrome/.test(ua) && !/CriOS/.test(ua);
-    const shouldAutoplay = !(isIOS || isSafari);
-    // --- End check ---
+      // --- Check for mobile Safari BEFORE setting playing state ---
+      const ua = navigator.userAgent;
+      const isIOS = /iP(hone|od|ad)/.test(ua);
+      const isSafari =
+        /Safari/.test(ua) && !/Chrome/.test(ua) && !/CriOS/.test(ua);
+      const shouldAutoplay = !(isIOS || isSafari);
+      // --- End check ---
 
-    if (existingVideoIndex !== -1) {
-      console.log(`[Videos] Video ID ${videoId} found in playlist. Playing.`);
-      setCurrentIndex(existingVideoIndex);
-      // --- Only set playing if allowed ---
-      if (shouldAutoplay) {
-        setIsPlaying(true);
-      }
-      // Optionally show status
-      showStatus(`▶ Playing ${currentVideos[existingVideoIndex].title}`);
-    } else {
-      console.log(`[Videos] Video ID ${videoId} not found. Adding and playing.`);
-      await handleAddAndPlayVideoById(videoId);
-       // --- Only set playing if allowed ---
-       if (shouldAutoplay) {
-         const newIndex = useVideoStore.getState().currentIndex;
-         const addedVideo = useVideoStore.getState().videos[newIndex];
-         if (addedVideo?.id === videoId) {
+      if (existingVideoIndex !== -1) {
+        console.log(`[Videos] Video ID ${videoId} found in playlist. Playing.`);
+        setCurrentIndex(existingVideoIndex);
+        // --- Only set playing if allowed ---
+        if (shouldAutoplay) {
+          setIsPlaying(true);
+        }
+        // Optionally show status
+        showStatus(`▶ Playing ${currentVideos[existingVideoIndex].title}`);
+      } else {
+        console.log(
+          `[Videos] Video ID ${videoId} not found. Adding and playing.`
+        );
+        await handleAddAndPlayVideoById(videoId);
+        // --- Only set playing if allowed ---
+        if (shouldAutoplay) {
+          const newIndex = useVideoStore.getState().currentIndex;
+          const addedVideo = useVideoStore.getState().videos[newIndex];
+          if (addedVideo?.id === videoId) {
             setIsPlaying(true);
-         } else {
-            console.warn("[Videos] Index mismatch after adding video, autoplay skipped.");
-         }
-       }
-    }
-  }, [setCurrentIndex, setIsPlaying, handleAddAndPlayVideoById, showStatus]);
+          } else {
+            console.warn(
+              "[Videos] Index mismatch after adding video, autoplay skipped."
+            );
+          }
+        }
+      }
+    },
+    [setCurrentIndex, setIsPlaying, handleAddAndPlayVideoById, showStatus]
+  );
 
   // --- NEW: Effect for initial data on mount ---
   useEffect(() => {
-    if (isWindowOpen && initialData?.videoId && typeof initialData.videoId === 'string') {
+    if (
+      isWindowOpen &&
+      initialData?.videoId &&
+      typeof initialData.videoId === "string"
+    ) {
       const videoIdToProcess = initialData.videoId;
-      console.log(`[Videos] Processing initialData.videoId on mount: ${videoIdToProcess}`);
+      console.log(
+        `[Videos] Processing initialData.videoId on mount: ${videoIdToProcess}`
+      );
       toast.info("Opening shared video...");
       setTimeout(() => {
-        processVideoId(videoIdToProcess).then(() => {
-          clearVideosInitialData('videos');
-          console.log(`[Videos] Cleared initialData after processing ${videoIdToProcess}`);
-        }).catch(error => {
-          console.error(`[Videos] Error processing initial videoId ${videoIdToProcess}:`, error);
-          toast.error("Failed to load shared video", { description: `Video ID: ${videoIdToProcess}` });
-        });
-      }, 100); 
+        processVideoId(videoIdToProcess)
+          .then(() => {
+            clearVideosInitialData("videos");
+            console.log(
+              `[Videos] Cleared initialData after processing ${videoIdToProcess}`
+            );
+          })
+          .catch((error) => {
+            console.error(
+              `[Videos] Error processing initial videoId ${videoIdToProcess}:`,
+              error
+            );
+            toast.error("Failed to load shared video", {
+              description: `Video ID: ${videoIdToProcess}`,
+            });
+          });
+      }, 100);
     }
   }, [isWindowOpen, initialData, processVideoId, clearVideosInitialData]);
 
   // --- NEW: Effect for updateApp event (when app is already open) ---
   useEffect(() => {
-    const handleUpdateApp = (event: CustomEvent<{ appId: string; initialData?: { videoId?: string } }>) => {
-      if (event.detail.appId === 'videos' && event.detail.initialData?.videoId) {
+    const handleUpdateApp = (
+      event: CustomEvent<{ appId: string; initialData?: { videoId?: string } }>
+    ) => {
+      if (
+        event.detail.appId === "videos" &&
+        event.detail.initialData?.videoId
+      ) {
         const videoId = event.detail.initialData.videoId;
-        console.log(`[Videos] Received updateApp event with videoId: ${videoId}`);
-        bringToForeground('videos');
+        console.log(
+          `[Videos] Received updateApp event with videoId: ${videoId}`
+        );
+        bringToForeground("videos");
         toast.info("Opening shared video...");
-        processVideoId(videoId).catch(error => {
-           console.error(`[Videos] Error processing videoId ${videoId} from updateApp event:`, error);
-           toast.error("Failed to load shared video", { description: `Video ID: ${videoId}` });
+        processVideoId(videoId).catch((error) => {
+          console.error(
+            `[Videos] Error processing videoId ${videoId} from updateApp event:`,
+            error
+          );
+          toast.error("Failed to load shared video", {
+            description: `Video ID: ${videoId}`,
+          });
         });
       }
     };
 
-    window.addEventListener('updateApp', handleUpdateApp as EventListener);
+    window.addEventListener("updateApp", handleUpdateApp as EventListener);
     return () => {
-      window.removeEventListener('updateApp', handleUpdateApp as EventListener);
+      window.removeEventListener("updateApp", handleUpdateApp as EventListener);
     };
   }, [processVideoId, bringToForeground]);
 
@@ -905,9 +956,11 @@ export function VideosAppComponent({
                 {videos.length > 0 && (
                   <div className="relative overflow-hidden">
                     <AnimatedTitle
-                      title={videos[currentIndex].artist 
-                        ? `${videos[currentIndex].title} - ${videos[currentIndex].artist}`
-                        : videos[currentIndex].title}
+                      title={
+                        videos[currentIndex].artist
+                          ? `${videos[currentIndex].title} - ${videos[currentIndex].artist}`
+                          : videos[currentIndex].title
+                      }
                       direction={animationDirection}
                       isPlaying={isPlaying}
                     />

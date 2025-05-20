@@ -581,6 +581,7 @@ export const useIpodStore = create<IpodState>()(
       addTrackFromVideoId: async (videoId: string): Promise<Track | null> => {
         const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
         let rawTitle = `Video ID: ${videoId}`; // Default title
+        let authorName: string | undefined = undefined; // Store author_name
 
         try {
           // Fetch oEmbed data
@@ -592,11 +593,11 @@ export const useIpodStore = create<IpodState>()(
           if (oembedResponse.ok) {
             const oembedData = await oembedResponse.json();
             rawTitle = oembedData.title || rawTitle;
+            authorName = oembedData.author_name; // Extract author_name
           } else {
-            console.warn(
-              `Failed to fetch oEmbed data for ${videoId}, status: ${oembedResponse.status}. Using default title.`
+            throw new Error(
+              `Failed to fetch video info (${oembedResponse.status}). Please check the YouTube URL.`
             );
-            // Optionally, could return null here if oEmbed is critical
           }
         } catch (error) {
           console.error(`Error fetching oEmbed data for ${videoId}:`, error);
@@ -614,7 +615,10 @@ export const useIpodStore = create<IpodState>()(
           const parseResponse = await fetch("/api/parse-title", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ title: rawTitle }),
+            body: JSON.stringify({
+              title: rawTitle,
+              author_name: authorName,
+            }),
           });
 
           if (parseResponse.ok) {
@@ -637,6 +641,7 @@ export const useIpodStore = create<IpodState>()(
           title: trackInfo.title,
           artist: trackInfo.artist,
           album: trackInfo.album,
+          lyricOffset: 1000, // Default 1 second offset for new tracks
         };
 
         try {
