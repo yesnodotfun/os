@@ -200,12 +200,13 @@ SYSTEM STATE:
         : ""
     }`;
   }
-  if (
-    systemState.apps["ipod"]?.isOpen &&
-    systemState.ipod?.currentTrack &&
-    systemState.ipod.isPlaying
-  ) {
-    prompt += `\n- iPod Now Playing: ${systemState.ipod.currentTrack.title}${
+  if (systemState.apps["ipod"]?.isOpen && systemState.ipod?.currentTrack) {
+    const playingStatus = systemState.ipod.isPlaying
+      ? "Now Playing"
+      : "Current Track";
+    prompt += `\n- iPod ${playingStatus}: ${
+      systemState.ipod.currentTrack.title
+    }${
       systemState.ipod.currentTrack.artist
         ? ` by ${systemState.ipod.currentTrack.artist}`
         : ""
