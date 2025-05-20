@@ -395,6 +395,8 @@ export interface IpodState extends IpodData {
   importLibrary: (json: string) => void;
   /** Export library to JSON string */
   exportLibrary: () => string;
+  /** Adds a track from a YouTube video ID, fetching metadata automatically */
+  addTrackFromVideoId: (videoId: string) => Promise<Track | null>;
 }
 
 const CURRENT_IPOD_STORE_VERSION = 13; // Incremented version for new state
@@ -534,6 +536,75 @@ export const useIpodStore = create<IpodState>()(
       exportLibrary: () => {
         const { tracks } = get();
         return JSON.stringify(tracks, null, 2);
+      },
+      addTrackFromVideoId: async (videoId: string): Promise<Track | null> => {
+        const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
+        let rawTitle = `Video ID: ${videoId}`; // Default title
+
+        try {
+          // Fetch oEmbed data
+          const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(
+            youtubeUrl
+          )}&format=json`;
+          const oembedResponse = await fetch(oembedUrl);
+
+          if (oembedResponse.ok) {
+            const oembedData = await oembedResponse.json();
+            rawTitle = oembedData.title || rawTitle;
+          } else {
+            console.warn(
+              `Failed to fetch oEmbed data for ${videoId}, status: ${oembedResponse.status}. Using default title.`
+            );
+            // Optionally, could return null here if oEmbed is critical
+          }
+        } catch (error) {
+          console.error(`Error fetching oEmbed data for ${videoId}:`, error);
+          // Optionally, could return null here
+        }
+
+        let trackInfo = {
+          title: rawTitle,
+          artist: undefined as string | undefined,
+          album: undefined as string | undefined,
+        };
+
+        try {
+          // Call /api/parse-title
+          const parseResponse = await fetch("/api/parse-title", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title: rawTitle }),
+          });
+
+          if (parseResponse.ok) {
+            const parsedData = await parseResponse.json();
+            trackInfo.title = parsedData.title || rawTitle;
+            trackInfo.artist = parsedData.artist;
+            trackInfo.album = parsedData.album;
+          } else {
+            console.warn(
+              `Failed to parse title with AI (status: ${parseResponse.status}), using raw title from oEmbed/default.`
+            );
+          }
+        } catch (error) {
+          console.error("Error calling /api/parse-title:", error);
+        }
+
+        const newTrack: Track = {
+          id: videoId,
+          url: youtubeUrl,
+          title: trackInfo.title,
+          artist: trackInfo.artist,
+          album: trackInfo.album,
+        };
+
+        try {
+          get().addTrack(newTrack); // Add track to the store
+          return newTrack;
+        } catch (error) {
+          console.error("Error adding track to store:", error);
+          return null;
+        }
       },
     }),
     {

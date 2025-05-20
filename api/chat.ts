@@ -514,27 +514,12 @@ export default async function handler(req: Request) {
         },
         ipodAddAndPlaySong: {
           description:
-            "Adds a song to the iPod library and plays it. The iPod app will be launched if it's not already open. Requires a YouTube video ID and URL.",
-          parameters: z
-            .object({
-              id: z
-                .string()
-                .describe("The YouTube video ID of the song to add and play."),
-              url: z.string().describe("The YouTube video URL of the song."),
-              title: z.string().describe("The title of the song."),
-              artist: z
-                .string()
-                .optional()
-                .describe("The artist of the song."),
-              album: z
-                .string()
-                .optional()
-                .describe("The album of the song."),
-            })
-            .refine((data) => data.id && data.url && data.title, {
-              message:
-                "Parameters 'id', 'url', and 'title' are mandatory and must be provided.",
-            }),
+            "Adds a song to the iPod library by its YouTube video ID and plays it. The system will automatically fetch title, artist, and album information. The iPod app will be launched if it's not already open.",
+          parameters: z.object({
+            id: z
+              .string()
+              .describe("The YouTube video ID of the song to add and play."),
+          }),
         },
         ipodNextTrack: {
           description:
