@@ -185,6 +185,10 @@ export function ControlPanelsAppComponent({
     setChatSynthVolume,
     speechVolume,
     setSpeechVolume,
+    ttsModel,
+    setTtsModel,
+    ttsVoice,
+    setTtsVoice,
     synthPreset,
     setSynthPreset,
     ipodVolume,
@@ -891,6 +895,85 @@ export function ControlPanelsAppComponent({
                         ))}
                       </SelectContent>
                     </Select>
+                  </div>
+                )}
+
+                {debugMode && (
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-1">
+                      <Label>TTS Model</Label>
+                      <Label className="text-[11px] text-gray-600 font-geneva-12">
+                        Text-to-speech provider
+                      </Label>
+                    </div>
+                    <Select
+                      value={ttsModel}
+                      onValueChange={(value) =>
+                        setTtsModel(value as "openai" | "elevenlabs")
+                      }
+                    >
+                      <SelectTrigger className="w-[120px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="openai">OpenAI</SelectItem>
+                        <SelectItem value="elevenlabs">ElevenLabs</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {debugMode && (
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-1">
+                      <Label>TTS Voice</Label>
+                      <Label className="text-[11px] text-gray-600 font-geneva-12">
+                        {ttsModel === "elevenlabs"
+                          ? "ElevenLabs Voice ID"
+                          : "OpenAI Voice"}
+                      </Label>
+                    </div>
+                    {ttsModel === "elevenlabs" ? (
+                      <Select value={ttsVoice} onValueChange={setTtsVoice}>
+                        <SelectTrigger className="w-[120px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="kAyjEabBEu68HYYYRAHR">
+                            Ryo
+                          </SelectItem>
+                          <SelectItem value="pNInz6obpgDQGcFmaJgB">
+                            Adam
+                          </SelectItem>
+                          <SelectItem value="21m00Tcm4TlvDq8ikWAM">
+                            Rachel
+                          </SelectItem>
+                          <SelectItem value="AZnzlk1XvdvUeBnXmlld">
+                            Domi
+                          </SelectItem>
+                          <SelectItem value="JBFqnCBsd6RMkjVDRZzb">
+                            George
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Select
+                        value={ttsVoice || "alloy"}
+                        onValueChange={setTtsVoice}
+                      >
+                        <SelectTrigger className="w-[120px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="alloy">Alloy</SelectItem>
+                          <SelectItem value="echo">Echo</SelectItem>
+                          <SelectItem value="fable">Fable</SelectItem>
+                          <SelectItem value="onyx">Onyx</SelectItem>
+                          <SelectItem value="nova">Nova</SelectItem>
+                          <SelectItem value="shimmer">Shimmer</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
                 )}
 

@@ -45,6 +45,10 @@ interface AppStoreState extends AppManagerState {
   setSpeechEnabled: (enabled: boolean) => void;
   speechVolume: number;
   setSpeechVolume: (v: number) => void;
+  ttsModel: "openai" | "elevenlabs";
+  setTtsModel: (model: "openai" | "elevenlabs") => void;
+  ttsVoice: string;
+  setTtsVoice: (voice: string) => void;
   synthPreset: string;
   setSynthPreset: (preset: string) => void;
   displayMode: DisplayMode;
@@ -109,6 +113,10 @@ export const useAppStore = create<AppStoreState>()(
       setSpeechEnabled: (enabled) => set({ speechEnabled: enabled }),
       speechVolume: 2,
       setSpeechVolume: (v) => set({ speechVolume: v }),
+      ttsModel: "elevenlabs",
+      setTtsModel: (model) => set({ ttsModel: model }),
+      ttsVoice: "kAyjEabBEu68HYYYRAHR", // Ryo voice as default
+      setTtsVoice: (voice) => set({ ttsVoice: voice }),
       synthPreset: "classic",
       setSynthPreset: (preset) => set({ synthPreset: preset }),
       displayMode: "color",
@@ -523,6 +531,8 @@ export const useAppStore = create<AppStoreState>()(
         uiVolume: state.uiVolume,
         chatSynthVolume: state.chatSynthVolume,
         speechVolume: state.speechVolume,
+        ttsModel: state.ttsModel,
+        ttsVoice: state.ttsVoice,
         ipodVolume: state.ipodVolume,
         masterVolume: state.masterVolume,
       }),

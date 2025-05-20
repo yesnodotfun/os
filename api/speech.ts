@@ -32,11 +32,80 @@ export const config = {
   runtime: "edge",
 };
 
+const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
+
 interface SpeechRequest {
   text: string;
   voice?: string;
   speed?: number;
+  // New ElevenLabs-specific options
+  model?: "openai" | "elevenlabs";
+  voice_id?: string;
+  model_id?: string;
+  output_format?:
+    | "mp3_44100_128"
+    | "mp3_22050_32"
+    | "pcm_16000"
+    | "pcm_22050"
+    | "pcm_24000"
+    | "pcm_44100"
+    | "ulaw_8000";
+  voice_settings?: {
+    stability?: number;
+    similarity_boost?: number;
+    use_speaker_boost?: boolean;
+    speed?: number;
+  };
 }
+
+// ElevenLabs API function
+const generateElevenLabsSpeech = async (
+  text: string,
+  voice_id: string = "kAyjEabBEu68HYYYRAHR", // Ryo voice as default
+  model_id: string = "eleven_flash_v2_5", // 2.5 flash as default
+  output_format:
+    | "mp3_44100_128"
+    | "mp3_22050_32"
+    | "pcm_16000"
+    | "pcm_22050"
+    | "pcm_24000"
+    | "pcm_44100"
+    | "ulaw_8000" = "mp3_44100_128",
+  voice_settings: SpeechRequest["voice_settings"] = {
+    stability: 0.3,
+    similarity_boost: 0.8,
+    use_speaker_boost: true,
+    speed: 1.0,
+  }
+): Promise<ArrayBuffer> => {
+  if (!ELEVENLABS_API_KEY) {
+    throw new Error("ElevenLabs API key not configured");
+  }
+
+  const url = `https://api.elevenlabs.io/v1/text-to-speech/${voice_id}/stream`;
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      Accept: "audio/mpeg",
+      "Content-Type": "application/json",
+      "xi-api-key": ELEVENLABS_API_KEY,
+    },
+    body: JSON.stringify({
+      text,
+      model_id,
+      output_format,
+      voice_settings,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`ElevenLabs API error (${response.status}): ${errorText}`);
+  }
+
+  return await response.arrayBuffer();
+};
 
 export default async function handler(req: Request) {
   // Generate a request ID and log the incoming request
@@ -72,12 +141,26 @@ export default async function handler(req: Request) {
   }
 
   try {
-    const { text, voice, speed } = (await req.json()) as SpeechRequest;
+    const {
+      text,
+      voice,
+      speed,
+      model = "elevenlabs", // Default to ElevenLabs
+      voice_id,
+      model_id,
+      output_format,
+      voice_settings,
+    } = (await req.json()) as SpeechRequest;
 
     logInfo(requestId, "Parsed request body", {
       textLength: text?.length,
+      model,
       voice,
+      voice_id,
+      model_id,
       speed,
+      output_format,
+      voice_settings,
     });
 
     if (!text || typeof text !== "string" || text.trim().length === 0) {
@@ -85,29 +168,53 @@ export default async function handler(req: Request) {
       return new Response("'text' is required", { status: 400 });
     }
 
-    // Generate speech audio (mp3) using OpenAI TTS model via AI SDK
-    const { audio } = await generateSpeech({
-      model: openai.speech("tts-1"),
-      text: text.trim(),
-      voice: voice ?? "alloy",
-      outputFormat: "mp3",
-      speed: speed ?? 1.1,
-    });
+    let audioData: ArrayBuffer;
+    let mimeType = "audio/mpeg";
 
-    logInfo(requestId, "Speech generated", { bytes: audio.uint8Array.length });
+    if (model === "elevenlabs") {
+      // Use ElevenLabs
+      audioData = await generateElevenLabsSpeech(
+        text.trim(),
+        voice_id || "kAyjEabBEu68HYYYRAHR", // Ryo voice default
+        model_id || "eleven_flash_v2_5", // 2.5 flash default
+        output_format,
+        voice_settings
+      );
+      logInfo(requestId, "ElevenLabs speech generated", {
+        bytes: audioData.byteLength,
+      });
+    } else {
+      // Use OpenAI (default behavior)
+      const { audio } = await generateSpeech({
+        model: openai.speech("tts-1"),
+        text: text.trim(),
+        voice: voice ?? "alloy",
+        outputFormat: "mp3",
+        speed: speed ?? 1.1,
+      });
 
-    // Convert the Uint8Array to a ReadableStream for streaming back to the client
+      audioData = audio.uint8Array.buffer;
+      mimeType = audio.mimeType ?? "audio/mpeg";
+      logInfo(requestId, "OpenAI speech generated", {
+        bytes: audioData.byteLength,
+      });
+    }
+
+    // Convert ArrayBuffer to Uint8Array for streaming
+    const uint8Array = new Uint8Array(audioData);
+
+    // Create a ReadableStream for streaming back to the client
     const stream = new ReadableStream({
       start(controller) {
-        controller.enqueue(audio.uint8Array);
+        controller.enqueue(uint8Array);
         controller.close();
       },
     });
 
     const response = new Response(stream, {
       headers: {
-        "Content-Type": audio.mimeType ?? "audio/mpeg",
-        "Content-Length": audio.uint8Array.length.toString(),
+        "Content-Type": mimeType,
+        "Content-Length": audioData.byteLength.toString(),
         "Access-Control-Allow-Origin": origin,
         "Cache-Control": "no-store",
       },
