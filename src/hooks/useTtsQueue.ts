@@ -27,6 +27,17 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
   // Flag to signal stop across async boundaries
   const isStoppedRef = useRef(false);
 
+  // Parallel request limiting
+  const MAX_PARALLEL_REQUESTS = 3;
+  const activeRequestsCountRef = useRef(0);
+  const pendingRequestsRef = useRef<
+    Array<{
+      text: string;
+      resolve: (result: ArrayBuffer | null) => void;
+      reject: (error: Error) => void;
+    }>
+  >([]);
+
   // Gain node for global speech volume
   const gainNodeRef = useRef<GainNode | null>(null);
   const speechVolume = useAppStore((s) => s.speechVolume);
@@ -73,6 +84,64 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
   };
 
   /**
+   * Process pending requests up to the maximum parallel limit
+   */
+  const processPendingRequests = useCallback(() => {
+    while (
+      pendingRequestsRef.current.length > 0 &&
+      activeRequestsCountRef.current < MAX_PARALLEL_REQUESTS
+    ) {
+      const request = pendingRequestsRef.current.shift()!;
+      activeRequestsCountRef.current++;
+
+      const executeRequest = async () => {
+        const controller = new AbortController();
+        controllersRef.current.add(controller);
+        try {
+          const res = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: request.text }),
+            signal: controller.signal,
+          });
+          controllersRef.current.delete(controller);
+          if (!res.ok) {
+            console.error("TTS request failed", await res.text());
+            request.resolve(null);
+            return;
+          }
+          const result = await res.arrayBuffer();
+          request.resolve(result);
+        } catch (err) {
+          controllersRef.current.delete(controller);
+          if ((err as DOMException)?.name !== "AbortError") {
+            console.error("TTS fetch error", err);
+          }
+          request.resolve(null);
+        } finally {
+          activeRequestsCountRef.current--;
+          processPendingRequests(); // Process next request
+        }
+      };
+
+      executeRequest();
+    }
+  }, [endpoint]);
+
+  /**
+   * Queue a fetch request with parallel limit enforcement
+   */
+  const queuedFetch = useCallback(
+    (text: string): Promise<ArrayBuffer | null> => {
+      return new Promise((resolve, reject) => {
+        pendingRequestsRef.current.push({ text, resolve, reject });
+        processPendingRequests();
+      });
+    },
+    [processPendingRequests]
+  );
+
+  /**
    * Speak a chunk of text by fetching the TTS audio and scheduling it directly
    * after whatever is already queued.
    */
@@ -83,31 +152,8 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
       // Signal that we are actively queueing again
       isStoppedRef.current = false;
 
-      // Begin fetching immediately so the network request runs in parallel
-      const fetchPromise = (async () => {
-        const controller = new AbortController();
-        controllersRef.current.add(controller);
-        try {
-          const res = await fetch(endpoint, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text }),
-            signal: controller.signal,
-          });
-          controllersRef.current.delete(controller);
-          if (!res.ok) {
-            console.error("TTS request failed", await res.text());
-            return null;
-          }
-          return await res.arrayBuffer();
-        } catch (err) {
-          controllersRef.current.delete(controller);
-          if ((err as DOMException)?.name !== "AbortError") {
-            console.error("TTS fetch error", err);
-          }
-          return null;
-        }
-      })();
+      // Use queued fetch to limit parallel requests
+      const fetchPromise = queuedFetch(text.trim());
 
       // Chain purely the *scheduling* to maintain correct order.
       scheduleChainRef.current = scheduleChainRef.current.then(async () => {
@@ -159,7 +205,7 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
         }
       });
     },
-    [endpoint]
+    [queuedFetch]
   );
 
   /** Cancel all in-flight requests and reset the queue so the next call starts immediately. */
@@ -170,6 +216,11 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
     controllersRef.current.forEach((c) => c.abort());
     controllersRef.current.clear();
     scheduleChainRef.current = Promise.resolve();
+
+    // Clear pending requests and reset counters
+    pendingRequestsRef.current = [];
+    activeRequestsCountRef.current = 0;
+
     // Stop any sources that are currently playing
     playingSourcesRef.current.forEach((src) => {
       try {
