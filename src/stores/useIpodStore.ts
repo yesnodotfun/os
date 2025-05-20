@@ -17,10 +17,46 @@ export interface Track {
 // Original video collection moved here
 export const IPOD_DEFAULT_VIDEOS = [
   {
+    id: "SNq4zqTN_DQ",
+    url: "https://www.youtube.com/watch?v=SNq4zqTN_DQ",
+    title: "Last Summer Whisper",
+    artist: "Anri",
+    lyricOffset: 1000,
+  },
+  {
+    id: "4j7Umwfx60Q",
+    url: "https://www.youtube.com/watch?v=4j7Umwfx60Q",
+    title: "4 Walls",
+    artist: "f(x)",
+    lyricOffset: 1000,
+  },
+  {
+    id: "jWQx2f-CErU",
+    url: "https://www.youtube.com/watch?v=jWQx2f-CErU",
+    title: "Whiplash",
+    artist: "aespa",
+    lyricOffset: 1100,
+  },
+  {
+    id: "Yc4gp6oeN7k",
+    url: "https://www.youtube.com/watch?v=Yc4gp6oeN7k",
+    title: "Skrr",
+    artist: "GISELLE",
+    lyricOffset: 1000,
+  },
+  {
+    id: "txroGbuRt_w",
+    url: "https://www.youtube.com/watch?v=txroGbuRt_w",
+    title: "Thirsty (Bad Boy Remix)",
+    artist: "aespa",
+    lyricOffset: 800,
+  },
+  {
     id: "jKnLSg83Nqc",
     url: "https://youtu.be/jKnLSg83Nqc?si=0mX3pYk0q98Ndoui",
     title: "ㅠ.ㅠ (You)",
     artist: "Crush",
+    album: "",
     lyricOffset: 1000,
   },
   {
@@ -28,6 +64,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     url: "https://youtu.be/hCg9tezGBWE?si=4KFJNVTDm6OA2kK8",
     title: "Magnetic",
     artist: "ILLIT",
+    album: "",
     lyricOffset: -1000,
   },
   {
@@ -35,6 +72,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     url: "https://youtu.be/Dlz_XHeUUis?si=R7MDtk9W8suZcQDW",
     title: "White Ferrari",
     artist: "Frank Ocean",
+    album: "",
     lyricOffset: 1450,
   },
   {
@@ -42,6 +80,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     url: "https://youtu.be/Q3K0TOvTOno?si=_VbKas8ZYd9jpXiA",
     title: "How Sweet",
     artist: "NewJeans",
+    album: "",
     lyricOffset: -10500,
   },
   {
@@ -49,6 +88,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     url: "https://youtu.be/ft70sAYrFyY?si=SJXlm-KRfgrMIODE",
     title: "Bubble Gum",
     artist: "NewJeans",
+    album: "",
     lyricOffset: -9150,
   },
   {
@@ -56,6 +96,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     url: "https://www.youtube.com/watch?v=-nEGVrzPaiU&pp=ygUPdGljayB0YWNrIGlsbGl0",
     title: "Tick-Tack",
     artist: "ILLIT",
+    album: "",
     lyricOffset: -16350,
   },
   {
