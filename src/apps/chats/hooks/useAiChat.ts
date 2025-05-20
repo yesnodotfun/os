@@ -184,11 +184,17 @@ export function useAiChat() {
 
   // Strip any number of leading exclamation marks (urgent markers) plus following spaces,
   // then remove any leading standalone punctuation that may remain.
-  const cleanTextForSpeech = (text: string) =>
-    text
+  const cleanTextForSpeech = (text: string) => {
+    // First, remove HTML code blocks (```html...``` or similar)
+    const withoutCodeBlocks = text
+      .replace(/```[\s\S]*?```/g, "") // Remove all code blocks
+      .replace(/<[^>]*>/g, "") // Remove any HTML tags
       .replace(/^!+\s*/, "") // remove !!!!!! prefix
       .replace(/^[\s.!?。，！？；：]+/, "") // remove leftover punctuation/space at start
       .trim();
+
+    return withoutCodeBlocks;
+  };
 
   // --- AI Chat Hook (Vercel AI SDK) ---
   const {
@@ -611,7 +617,7 @@ export function useAiChat() {
           if (processed !== -1 && lastMsg.content.length > processed) {
             const remaining = lastMsg.content.slice(processed).trim();
             const cleaned = cleanTextForSpeech(remaining);
-            if (cleaned) {
+            if (cleaned && cleaned.length > 0) {
               speak(cleaned);
             }
             // Mark the entire message as processed
@@ -676,7 +682,12 @@ export function useAiChat() {
       const sentence = buffer.slice(0, idx).trim();
       if (sentence && !/^[\s.!?。，！？；：]+$/.test(sentence)) {
         const cleaned = cleanTextForSpeech(sentence);
-        if (cleaned && !/^[\s.!?。，！？；：]+$/.test(cleaned)) {
+        // Skip if the cleaned text is empty or only contains code/HTML artifacts
+        if (
+          cleaned &&
+          !/^[\s.!?。，！？；：]+$/.test(cleaned) &&
+          cleaned.length > 0
+        ) {
           // If this is an urgent message (starts with "!!!!"), the UI trims
           // the first 4 exclamation marks *and* any following spaces before
           // rendering. We need to offset our start/end indices so they align
