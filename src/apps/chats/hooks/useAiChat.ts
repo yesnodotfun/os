@@ -67,6 +67,23 @@ const getSystemState = () => {
     day: "numeric",
   });
 
+  // Convert TextEdit JSON to compact markdown for prompt inclusion
+  let contentMarkdown: string | null = null;
+  if (textEditStore.contentJson) {
+    try {
+      const htmlStr = generateHTML(textEditStore.contentJson, [
+        StarterKit,
+        Underline,
+        TextAlign.configure({ types: ["heading", "paragraph"] }),
+        TaskList,
+        TaskItem.configure({ nested: true }),
+      ] as AnyExtension[]);
+      contentMarkdown = htmlToMarkdown(htmlStr);
+    } catch (err) {
+      console.error("Failed to convert TextEdit content to markdown:", err);
+    }
+  }
+
   return {
     apps: appStore.apps,
     username: chatsStore.username,
@@ -123,7 +140,7 @@ const getSystemState = () => {
     },
     textEdit: {
       lastFilePath: textEditStore.lastFilePath,
-      contentJson: textEditStore.contentJson,
+      contentMarkdown,
       hasUnsavedChanges: textEditStore.hasUnsavedChanges,
     },
   };
@@ -221,7 +238,7 @@ export function useAiChat() {
       systemState: getSystemState(), // Initial system state
       model: aiModel, // Pass the selected AI model
     },
-    maxSteps: 10,
+    maxSteps: 25,
     async onToolCall({ toolCall }) {
       // Short delay to allow the UI to render the "call" state with a spinner before executing the tool logic.
       // Without this, fast-executing tool calls can jump straight to the "result" state, so users never see the loading indicator.

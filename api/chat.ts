@@ -70,7 +70,10 @@ interface SystemState {
   };
   textEdit?: {
     lastFilePath: string | null;
-    contentJson: unknown | null;
+    /** Compact markdown representation of the current document */
+    contentMarkdown?: string | null;
+    /** Kept for backward-compat; not included in prompts anymore */
+    contentJson?: unknown | null;
     hasUnsavedChanges: boolean;
   };
   /** Local time information reported by the user's browser */
@@ -232,10 +235,8 @@ SYSTEM STATE:
     prompt += `\n- TextEdit File: ${
       systemState.textEdit.lastFilePath ?? "Untitled"
     }${systemState.textEdit.hasUnsavedChanges ? " (unsaved changes)" : ""}`;
-    if (systemState.textEdit.contentJson) {
-      prompt += `\n- Document Content JSON:\n${JSON.stringify(
-        systemState.textEdit.contentJson
-      )}`;
+    if (systemState.textEdit.contentMarkdown) {
+      prompt += `\n- Document Content Markdown:\n${systemState.textEdit.contentMarkdown}`;
     }
   }
 

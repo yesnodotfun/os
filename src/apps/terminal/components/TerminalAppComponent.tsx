@@ -130,6 +130,23 @@ const getSystemState = () => {
   const currentVideo = videoStore.videos[videoStore.currentIndex];
   const currentTrack = ipodStore.tracks[ipodStore.currentIndex];
 
+  // Convert TextEdit JSON to compact markdown for prompt inclusion
+  let contentMarkdown: string | null = null;
+  if (textEditStore.contentJson) {
+    try {
+      const htmlStr = generateHTML(textEditStore.contentJson, [
+        StarterKit,
+        Underline,
+        TextAlign.configure({ types: ["heading", "paragraph"] }),
+        TaskList,
+        TaskItem.configure({ nested: true }),
+      ] as AnyExtension[]);
+      contentMarkdown = htmlToMarkdown(htmlStr);
+    } catch (err) {
+      console.error("Failed to convert TextEdit content to markdown:", err);
+    }
+  }
+
   return {
     apps: appStore.apps,
     username,
@@ -187,7 +204,7 @@ const getSystemState = () => {
     },
     textEdit: {
       lastFilePath: textEditStore.lastFilePath,
-      contentJson: textEditStore.contentJson,
+      contentMarkdown,
       hasUnsavedChanges: textEditStore.hasUnsavedChanges,
     },
   };
@@ -573,7 +590,7 @@ export function TerminalAppComponent({
       },
     ],
     experimental_throttle: 50,
-    maxSteps: 10,
+    maxSteps: 25,
     // Handle AI tool calls (mirror logic from useAiChat)
     async onToolCall({ toolCall }) {
       try {
