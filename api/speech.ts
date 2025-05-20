@@ -62,7 +62,7 @@ interface SpeechRequest {
 const generateElevenLabsSpeech = async (
   text: string,
   voice_id: string = "kAyjEabBEu68HYYYRAHR", // Ryo voice as default
-  model_id: string = "eleven_flash_v2_5", // 2.5 flash as default
+  model_id: string = "eleven_turbo_v2_5", // 2.5 turbo as default
   output_format:
     | "mp3_44100_128"
     | "mp3_22050_32"
