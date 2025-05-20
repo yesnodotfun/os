@@ -637,22 +637,24 @@ export function IpodAppComponent({
         action: () => {
           registerActivity();
           setMenuDirection("forward");
-          const allTracksMenu = tracks.map((track: (typeof tracks)[0], index: number) => ({
-            label: track.title,
-            action: () => {
-              registerActivity();
-              setCurrentIndex(index);
-              setIsPlaying(true);
-              setMenuDirection("forward");
-              setMenuMode(false);
-              setCameFromNowPlayingMenuItem(false);
-              setLastPlayedMenuPath(["Music", "All Songs"]);
-              if (useIpodStore.getState().showVideo) {
-                toggleVideo();
-              }
-            },
-            showChevron: false,
-          }));
+          const allTracksMenu = tracks.map(
+            (track: (typeof tracks)[0], index: number) => ({
+              label: track.title,
+              action: () => {
+                registerActivity();
+                setCurrentIndex(index);
+                setIsPlaying(true);
+                setMenuDirection("forward");
+                setMenuMode(false);
+                setCameFromNowPlayingMenuItem(false);
+                setLastPlayedMenuPath(["Music", "All Songs"]);
+                if (useIpodStore.getState().showVideo) {
+                  toggleVideo();
+                }
+              },
+              showChevron: false,
+            })
+          );
           setMenuHistory((prev) => [
             ...prev,
             {
@@ -671,7 +673,13 @@ export function IpodAppComponent({
           registerActivity();
           setMenuDirection("forward");
           const artistTracks = tracksByArtist[artist].map(
-            ({ track, index }: { track: (typeof tracks)[0]; index: number }) => ({
+            ({
+              track,
+              index,
+            }: {
+              track: (typeof tracks)[0];
+              index: number;
+            }) => ({
               label: track.title,
               action: () => {
                 registerActivity();
@@ -875,6 +883,74 @@ export function IpodAppComponent({
         latestItems = musicMenuItems;
       } else if (currentMenu.title === "Settings") {
         latestItems = settingsMenuItems;
+      } else if (currentMenu.title === "All Songs") {
+        // Regenerate All Songs menu when tracks change
+        latestItems = tracks.map(
+          (track: (typeof tracks)[0], index: number) => ({
+            label: track.title,
+            action: () => {
+              registerActivity();
+              setCurrentIndex(index);
+              setIsPlaying(true);
+              setMenuDirection("forward");
+              setMenuMode(false);
+              setCameFromNowPlayingMenuItem(false);
+              setLastPlayedMenuPath(["Music", "All Songs"]);
+              if (useIpodStore.getState().showVideo) {
+                toggleVideo();
+              }
+            },
+            showChevron: false,
+          })
+        );
+      } else {
+        // Check if this is an artist submenu
+        const tracksByArtist = tracks.reduce<
+          Record<string, { track: (typeof tracks)[0]; index: number }[]>
+        >(
+          (
+            acc: Record<string, { track: (typeof tracks)[0]; index: number }[]>,
+            track: (typeof tracks)[0],
+            index: number
+          ) => {
+            const artist = track.artist || "Unknown Artist";
+            if (!acc[artist]) {
+              acc[artist] = [];
+            }
+            acc[artist].push({ track, index });
+            return acc;
+          },
+          {}
+        );
+
+        if (tracksByArtist[currentMenu.title]) {
+          // This is an artist submenu, regenerate it
+          const artistTracks = tracksByArtist[currentMenu.title];
+          latestItems = artistTracks.map(
+            ({
+              track,
+              index,
+            }: {
+              track: (typeof tracks)[0];
+              index: number;
+            }) => ({
+              label: track.title,
+              action: () => {
+                registerActivity();
+                setCurrentIndex(index);
+                setIsPlaying(true);
+                setMenuDirection("forward");
+                setMenuMode(false);
+                setCameFromNowPlayingMenuItem(false);
+                setLastPlayedMenuPath(["Music", currentMenu.title]);
+                if (useIpodStore.getState().showVideo) {
+                  toggleVideo();
+                }
+              },
+              showChevron: false,
+            })
+          );
+        }
       }
 
       if (latestItems && currentMenu.items !== latestItems) {
@@ -888,7 +964,17 @@ export function IpodAppComponent({
 
       return prevHistory;
     });
-  }, [mainMenuItems, musicMenuItems, settingsMenuItems, menuHistory.length]);
+  }, [
+    mainMenuItems,
+    musicMenuItems,
+    settingsMenuItems,
+    menuHistory.length,
+    tracks,
+    registerActivity,
+    setCurrentIndex,
+    setIsPlaying,
+    toggleVideo,
+  ]);
 
   const extractVideoId = (url: string): string | null => {
     const regExp =
@@ -1211,10 +1297,10 @@ export function IpodAppComponent({
         );
 
         // Create track menus
-          const allTracksMenu = {
-            title: "All Songs",
-            items: tracks.map((track: (typeof tracks)[0], index: number) => ({
-              label: track.title,
+        const allTracksMenu = {
+          title: "All Songs",
+          items: tracks.map((track: (typeof tracks)[0], index: number) => ({
+            label: track.title,
             action: () => {
               registerActivity();
               setCurrentIndex(index);
@@ -1245,30 +1331,37 @@ export function IpodAppComponent({
             const artistTracks = tracksByArtist[artist];
 
             // Find the index of the current track in this artist's track list
-              const artistTrackIndex = artistTracks.findIndex(
-                (item: { track: (typeof tracks)[0]; index: number }) =>
-                  item.index === currentTrackIndex
-              );
+            const artistTrackIndex = artistTracks.findIndex(
+              (item: { track: (typeof tracks)[0]; index: number }) =>
+                item.index === currentTrackIndex
+            );
 
-              const artistMenu = {
-                title: artist,
-                items: artistTracks.map(
-                  ({ track, index }: { track: (typeof tracks)[0]; index: number }) => ({
-                    label: track.title,
-                action: () => {
-                  registerActivity();
-                  setCurrentIndex(index);
-                  setIsPlaying(true);
-                  setMenuDirection("forward");
-                  setMenuMode(false);
-                  setCameFromNowPlayingMenuItem(false);
-                  setLastPlayedMenuPath(["Music", artist]);
-                  if (useIpodStore.getState().showVideo) {
-                    toggleVideo();
-                  }
-                },
-                showChevron: false,
-              })),
+            const artistMenu = {
+              title: artist,
+              items: artistTracks.map(
+                ({
+                  track,
+                  index,
+                }: {
+                  track: (typeof tracks)[0];
+                  index: number;
+                }) => ({
+                  label: track.title,
+                  action: () => {
+                    registerActivity();
+                    setCurrentIndex(index);
+                    setIsPlaying(true);
+                    setMenuDirection("forward");
+                    setMenuMode(false);
+                    setCameFromNowPlayingMenuItem(false);
+                    setLastPlayedMenuPath(["Music", artist]);
+                    if (useIpodStore.getState().showVideo) {
+                      toggleVideo();
+                    }
+                  },
+                  showChevron: false,
+                })
+              ),
               selectedIndex: artistTrackIndex !== -1 ? artistTrackIndex : 0,
             };
 
