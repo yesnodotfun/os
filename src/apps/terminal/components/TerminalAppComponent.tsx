@@ -6,7 +6,12 @@ import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { TerminalMenuBar } from "./TerminalMenuBar";
 import { appMetadata, helpItems } from "../index";
-import { useFileSystem, dbOperations, STORES, DocumentContent } from "@/apps/finder/hooks/useFileSystem";
+import {
+  useFileSystem,
+  dbOperations,
+  STORES,
+  DocumentContent,
+} from "@/apps/finder/hooks/useFileSystem";
 import { useTerminalStore } from "@/stores/useTerminalStore";
 import { useLaunchApp } from "@/hooks/useLaunchApp";
 import { useChat } from "ai/react";
@@ -21,6 +26,20 @@ import HtmlPreview, {
 } from "@/components/shared/HtmlPreview";
 import { useSound, Sounds } from "@/hooks/useSound";
 import { useChatsStore } from "@/stores/useChatsStore";
+import { useTextEditStore } from "@/stores/useTextEditStore";
+import { useIpodStore } from "@/stores/useIpodStore";
+import {
+  generateHTML,
+  generateJSON,
+  type AnyExtension,
+  type JSONContent,
+} from "@tiptap/core";
+import StarterKit from "@tiptap/starter-kit";
+import Underline from "@tiptap/extension-underline";
+import TextAlign from "@tiptap/extension-text-align";
+import TaskList from "@tiptap/extension-task-list";
+import TaskItem from "@tiptap/extension-task-item";
+import { htmlToMarkdown, markdownToHtml } from "@/utils/markdown";
 
 // Analytics event namespace for terminal AI events
 export const TERMINAL_ANALYTICS = {
@@ -116,60 +135,6 @@ const getSystemState = () => {
       windowOrder: appStore.windowOrder,
     },
   };
-};
-
-// Helper function to parse app control markup
-const parseAppControlMarkup = (
-  message: string
-): {
-  type: "launch" | "close";
-  id: string;
-}[] => {
-  const operations: { type: "launch" | "close"; id: string }[] = [];
-
-  try {
-    // Find all app control tags
-    const launchRegex = /<app:launch\s+id\s*=\s*"([^"]+)"\s*\/>/g;
-    const closeRegex = /<app:close\s+id\s*=\s*"([^"]+)"\s*\/>/g;
-
-    // Find all launch operations
-    let match;
-    while ((match = launchRegex.exec(message)) !== null) {
-      operations.push({
-        type: "launch" as const,
-        id: match[1],
-      });
-    }
-
-    // Find all close operations
-    while ((match = closeRegex.exec(message)) !== null) {
-      operations.push({
-        type: "close" as const,
-        id: match[1],
-      });
-    }
-  } catch (error) {
-    console.error("Error parsing app control markup:", error);
-  }
-
-  return operations;
-};
-
-// Helper function to clean app control markup from message
-const cleanAppControlMarkup = (message: string): string => {
-  // Replace launch tags with human readable text
-  message = message.replace(
-    /<app:launch\s+id\s*=\s*"([^"]+)"\s*\/>/g,
-    (_match, id) => `*opened ${id}*`
-  );
-
-  // Replace close tags with human readable text
-  message = message.replace(
-    /<app:close\s+id\s*=\s*"([^"]+)"\s*\/>/g,
-    (_match, id) => `*closed ${id}*`
-  );
-
-  return message.trim();
 };
 
 // Helper function to check if a message is urgent (starts with "!!!!")
@@ -345,8 +310,13 @@ const formatToolInvocation = (invocation: ToolInvocation): string | null => {
     } else if (toolName === "closeApp") {
       return `Closed ${getAppName(args?.id)}`;
     }
-    if (toolName === "generateHtml" && typeof result === "string" && result.trim().length > 0) {
-      return result.trim();
+    if (
+      toolName === "generateHtml" &&
+      typeof result === "string" &&
+      result.trim().length > 0
+    ) {
+      // Wrap in markdown code fence so extractHtmlContent can detect regardless of position
+      return `\n\n\u0060\u0060\u0060html\n${result.trim()}\n\u0060\u0060\u0060`;
     }
     if (typeof result === "string") return result;
     return formatToolName(toolName);
@@ -538,6 +508,171 @@ export function TerminalAppComponent({
       },
     ],
     experimental_throttle: 50,
+    // Handle AI tool calls (mirror logic from useAiChat)
+    async onToolCall({ toolCall }) {
+      try {
+        switch (toolCall.toolName) {
+          case "launchApp": {
+            const { id, url, year } = toolCall.args as {
+              id: string;
+              url?: string;
+              year?: string;
+            };
+            const launchOptions: Record<string, any> = {};
+            if (id === "internet-explorer" && (url || year)) {
+              launchOptions.initialData = { url, year: year || "current" };
+            }
+            launchApp(id as AppId, launchOptions);
+            const appName = getAppName(id);
+            let confirmation = `Launched ${appName}.`;
+            if (id === "internet-explorer") {
+              const urlPart = url ? ` to ${url}` : "";
+              const yearPart = year && year !== "current" ? ` in ${year}` : "";
+              confirmation += `${urlPart}${yearPart}`;
+            }
+            return confirmation;
+          }
+          case "closeApp": {
+            const { id } = toolCall.args as { id: string };
+            const closeAppFn = useAppStore.getState().closeApp;
+            closeAppFn(id as AppId);
+            return `Closed ${getAppName(id)}.`;
+          }
+          case "textEditSearchReplace": {
+            const { search, replace, isRegex } = toolCall.args as {
+              search: string;
+              replace: string;
+              isRegex?: boolean;
+            };
+            const escapeRegExp = (str: string) =>
+              str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+            const textEditState = useTextEditStore.getState();
+            const { contentJson, applyExternalUpdate } = textEditState;
+            if (!contentJson) return "No file currently open in TextEdit.";
+            const htmlStr = generateHTML(contentJson, [
+              StarterKit,
+              Underline,
+              TextAlign.configure({ types: ["heading", "paragraph"] }),
+              TaskList,
+              TaskItem.configure({ nested: true }),
+            ] as AnyExtension[]);
+            const markdownStr = htmlToMarkdown(htmlStr);
+            const pattern = isRegex ? search : escapeRegExp(search);
+            const regex = new RegExp(pattern, "gm");
+            const updatedMarkdown = markdownStr.replace(regex, replace);
+            if (updatedMarkdown === markdownStr)
+              return "Nothing found to replace.";
+            const updatedHtml = markdownToHtml(updatedMarkdown);
+            const updatedJson = generateJSON(updatedHtml, [
+              StarterKit,
+              Underline,
+              TextAlign.configure({ types: ["heading", "paragraph"] }),
+              TaskList,
+              TaskItem.configure({ nested: true }),
+            ] as AnyExtension[]);
+            applyExternalUpdate(updatedJson);
+            return `Replaced "${search}" with "${replace}".`;
+          }
+          case "textEditInsertText": {
+            const { text, position } = toolCall.args as {
+              text: string;
+              position?: "start" | "end";
+            };
+            const textEditState = useTextEditStore.getState();
+            const { insertText } = textEditState;
+            debouncedInsertTextUpdate(() =>
+              insertText(text, position || "end")
+            );
+            return `Inserted text at ${
+              position === "start" ? "start" : "end"
+            } of document.`;
+          }
+          case "textEditNewFile": {
+            const textEditState = useTextEditStore.getState();
+            const {
+              reset,
+              applyExternalUpdate,
+              setLastFilePath,
+              setHasUnsavedChanges,
+            } = textEditState;
+            reset();
+            applyExternalUpdate({ type: "doc", content: [] } as JSONContent);
+            setLastFilePath(null);
+            setHasUnsavedChanges(false);
+            launchApp("textedit");
+            return "Created a new, untitled document in TextEdit.";
+          }
+          case "ipodPlayPause": {
+            const { action } = toolCall.args as {
+              action?: "play" | "pause" | "toggle";
+            };
+            if (!useAppStore.getState().apps["ipod"]?.isOpen) launchApp("ipod");
+            const ipod = useIpodStore.getState();
+            switch (action) {
+              case "play":
+                if (!ipod.isPlaying) ipod.setIsPlaying(true);
+                break;
+              case "pause":
+                if (ipod.isPlaying) ipod.setIsPlaying(false);
+                break;
+              default:
+                ipod.togglePlay();
+            }
+            return ipod.isPlaying ? "iPod is now playing." : "iPod is paused.";
+          }
+          case "ipodNextTrack": {
+            if (!useAppStore.getState().apps["ipod"]?.isOpen) launchApp("ipod");
+            useIpodStore.getState().nextTrack();
+            return "Skipped to next track.";
+          }
+          case "ipodPreviousTrack": {
+            if (!useAppStore.getState().apps["ipod"]?.isOpen) launchApp("ipod");
+            useIpodStore.getState().previousTrack();
+            return "Went back to previous track.";
+          }
+          case "ipodPlaySong": {
+            const { id, title, artist } = toolCall.args as {
+              id?: string;
+              title?: string;
+              artist?: string;
+            };
+            if (!useAppStore.getState().apps["ipod"]?.isOpen) launchApp("ipod");
+            const ipodState = useIpodStore.getState();
+            const { tracks } = ipodState;
+            let candidates = tracks.map((t, idx) => ({ track: t, idx }));
+            if (id)
+              candidates = candidates.filter(({ track }) => track.id === id);
+            if (title)
+              candidates = candidates.filter(({ track }) =>
+                track.title.toLowerCase().includes(title.toLowerCase())
+              );
+            if (artist)
+              candidates = candidates.filter(({ track }) =>
+                track.artist?.toLowerCase().includes(artist.toLowerCase())
+              );
+            if (candidates.length === 0)
+              return "Song not found in iPod library.";
+            const choice =
+              candidates[Math.floor(Math.random() * candidates.length)];
+            ipodState.setCurrentIndex(choice.idx);
+            ipodState.setIsPlaying(true);
+            return `Playing ${choice.track.title}${
+              choice.track.artist ? ` by ${choice.track.artist}` : ""
+            }.`;
+          }
+          case "generateHtml": {
+            const { html } = toolCall.args as { html: string };
+            return html.trim();
+          }
+          default:
+            console.warn("Unhandled tool call", toolCall.toolName);
+            return "";
+        }
+      } catch (err) {
+        console.error("Tool call error", err);
+        return `Failed to execute ${toolCall.toolName}`;
+      }
+    },
   });
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -546,17 +681,12 @@ export function TerminalAppComponent({
   // Get file operations from the hook
   // Get terminal state from the store
   const { currentPath: storedPath } = useTerminalStore();
-  
-  const { 
-    currentPath, 
-    files, 
-    navigateToPath, 
-    saveFile, 
-    moveToTrash
-  } = useFileSystem(storedPath);
+
+  const { currentPath, files, navigateToPath, saveFile, moveToTrash } =
+    useFileSystem(storedPath);
 
   const launchApp = useLaunchApp();
-  const { toggleApp, bringToForeground } = useAppContext();
+  const { bringToForeground } = useAppContext();
 
   const {
     playCommandSound,
@@ -568,7 +698,7 @@ export function TerminalAppComponent({
     stopElevatorMusic,
     playDingSound,
   } = useTerminalSounds();
-  
+
   const { username } = useChatsStore();
 
   // Load command history from store
@@ -1738,7 +1868,7 @@ assistant
 
         // Use a loading message while we fetch content
         const tempOutput = `Loading ${fileName}...`;
-        
+
         // Create a class to handle file content reading - using same pattern as vim
         class FileReader {
           async readContent() {
@@ -1752,32 +1882,39 @@ assistant
               this.handleError(error);
             }
           }
-          
+
           isRealFile() {
             // Ensure file exists and check path properties
-            return file && (file.path.startsWith("/Documents/") || file.path.startsWith("/Images/"));
+            return (
+              file &&
+              (file.path.startsWith("/Documents/") ||
+                file.path.startsWith("/Images/"))
+            );
           }
-          
+
           async loadRealFileContent() {
             // Ensure file exists first
             if (!file) return;
-            
+
             // Determine store based on file path
-            const storeName = file.path.startsWith("/Documents/") 
-              ? STORES.DOCUMENTS 
+            const storeName = file.path.startsWith("/Documents/")
+              ? STORES.DOCUMENTS
               : STORES.IMAGES;
-              
-            const contentData = await dbOperations.get<DocumentContent>(storeName, file.name);
-            
+
+            const contentData = await dbOperations.get<DocumentContent>(
+              storeName,
+              file.name
+            );
+
             if (contentData && contentData.content) {
               // Convert content to text based on type
               let fileContent = "";
               if (contentData.content instanceof Blob) {
                 fileContent = await contentData.content.text();
-              } else if (typeof contentData.content === 'string') {
+              } else if (typeof contentData.content === "string") {
                 fileContent = contentData.content;
               }
-              
+
               // Update terminal with content
               this.updateOutput(fileContent || `${fileName} is empty`);
             } else {
@@ -1785,11 +1922,13 @@ assistant
               this.updateOutput(`${fileName} is empty or could not be read`);
             }
           }
-          
+
           handleVirtualFile() {
-            this.updateOutput(`${fileName} content not available (virtual file)`);
+            this.updateOutput(
+              `${fileName} content not available (virtual file)`
+            );
           }
-          
+
           updateOutput(content: string) {
             // Update the terminal history with the content
             setCommandHistory((prev) => {
@@ -1806,14 +1945,16 @@ assistant
               return prev;
             });
           }
-          
+
           handleError(error: unknown) {
             const err = error as Error;
             console.error("Error reading file content:", err);
-            this.updateOutput(`Error reading file: ${err.message || 'Unknown error'}`);
+            this.updateOutput(
+              `Error reading file: ${err.message || "Unknown error"}`
+            );
           }
         }
-        
+
         // Start the reading process asynchronously
         setTimeout(() => {
           const reader = new FileReader();
@@ -1857,7 +1998,7 @@ assistant
           path: `${currentPath}/${newFileName}`,
           content: "",
           type: "text",
-          icon: "/icons/file-text.png"
+          icon: "/icons/file-text.png",
         });
 
         return {
@@ -1928,24 +2069,27 @@ assistant
               // Get the content if it's a real file
               if (fileToEditObj && fileToEditObj.path.startsWith("/Images/")) {
                 // For image files, we need to get the content from IndexedDB
-                const contentData = await dbOperations.get<DocumentContent>(STORES.IMAGES, fileToEditObj.name);
+                const contentData = await dbOperations.get<DocumentContent>(
+                  STORES.IMAGES,
+                  fileToEditObj.name
+                );
                 let fileContent = "";
-                
+
                 if (contentData && contentData.content) {
                   if (contentData.content instanceof Blob) {
                     fileContent = await contentData.content.text();
-                  } else if (typeof contentData.content === 'string') {
+                  } else if (typeof contentData.content === "string") {
                     fileContent = contentData.content;
                   }
                 }
-                
+
                 // Save to Documents
                 await saveFile({
                   name: fileName,
                   path: documentsPath,
                   content: fileContent || "",
                   type: "text",
-                  icon: "/icons/file-text.png"
+                  icon: "/icons/file-text.png",
                 });
               } else {
                 // For virtual files, create an empty document
@@ -1954,12 +2098,14 @@ assistant
                   path: documentsPath,
                   content: "",
                   type: "text",
-                  icon: "/icons/file-text.png"
+                  icon: "/icons/file-text.png",
                 });
               }
-              
+
               // Launch TextEdit with the copied file
-              launchApp("textedit", { initialData: { path: documentsPath, content: "" } });
+              launchApp("textedit", {
+                initialData: { path: documentsPath, content: "" },
+              });
             } catch (error) {
               console.error("Error preparing file for editing:", error);
             }
@@ -1967,7 +2113,9 @@ assistant
         } else {
           // If already in Documents, just launch TextEdit directly with the file path
           // Let TextEdit use its own content loading mechanism
-          launchApp("textedit", { initialData: { path: fileToEditObj.path, content: "" } });
+          launchApp("textedit", {
+            initialData: { path: fileToEditObj.path, content: "" },
+          });
         }
 
         return {
@@ -2110,32 +2258,39 @@ assistant
               this.handleError(error);
             }
           }
-          
+
           isRealFile() {
             // Ensure file exists and check path properties
-            return file && (file.path.startsWith("/Documents/") || file.path.startsWith("/Images/"));
+            return (
+              file &&
+              (file.path.startsWith("/Documents/") ||
+                file.path.startsWith("/Images/"))
+            );
           }
-          
+
           async loadRealFileContent() {
             // Ensure file exists first (this should always be true, but TypeScript doesn't know that)
             if (!file) return;
-            
+
             // Determine if this is a document or image
-            const storeName = file.path.startsWith("/Documents/") 
-              ? STORES.DOCUMENTS 
+            const storeName = file.path.startsWith("/Documents/")
+              ? STORES.DOCUMENTS
               : STORES.IMAGES;
-              
-            const contentData = await dbOperations.get<DocumentContent>(storeName, file.name);
-            
+
+            const contentData = await dbOperations.get<DocumentContent>(
+              storeName,
+              file.name
+            );
+
             if (contentData && contentData.content) {
               // Convert content to text
               let textContent = "";
               if (contentData.content instanceof Blob) {
                 textContent = await contentData.content.text();
-              } else if (typeof contentData.content === 'string') {
+              } else if (typeof contentData.content === "string") {
                 textContent = contentData.content;
               }
-              
+
               // Enter vim mode with the fetched content
               this.openInVim(textContent);
             } else {
@@ -2143,11 +2298,11 @@ assistant
               this.openInVim("");
             }
           }
-          
+
           handleVirtualFile() {
             // For virtual files, just create an empty file in vim
             this.openInVim("");
-            
+
             // Show a warning
             setCommandHistory((prev) => [
               ...prev,
@@ -2158,34 +2313,34 @@ assistant
               },
             ]);
           }
-          
+
           openInVim(content: string) {
             setIsInVimMode(true);
             setVimFile({
               name: fileName,
-              content: content || "", 
+              content: content || "",
             });
             setVimPosition(0);
             setVimCursorLine(0);
             setVimCursorColumn(0);
             setVimMode("normal");
           }
-          
+
           handleError(error: unknown) {
             const err = error as Error;
             console.error("Error reading file for vim:", err);
-            
+
             setCommandHistory((prev) => [
               ...prev,
               {
                 command: `vim ${fileName}`,
-                output: `Error reading file: ${err.message || 'Unknown error'}`,
+                output: `Error reading file: ${err.message || "Unknown error"}`,
                 path: currentPath,
               },
             ]);
           }
         }
-        
+
         // Start the content capture process asynchronously
         setTimeout(() => {
           const contentCapture = new FileContentCapture();
@@ -2265,51 +2420,10 @@ assistant
     }
   };
 
-  // Function to handle app controls - memoized to prevent recreation on every render
-  const handleAppControls = useCallback(
-    (messageContent: string) => {
-      if (!/<app:(launch|close)/i.test(messageContent)) {
-        return messageContent;
-      }
-
-      const operations = parseAppControlMarkup(messageContent);
-      if (operations.length === 0) {
-        return messageContent;
-      }
-
-      // Execute app control operations - but only once per app
-      operations.forEach((op) => {
-        if (op.type === "launch") {
-          // Only launch each app once
-          if (!launchedAppsRef.current.has(op.id)) {
-            launchApp(op.id as AppId);
-            launchedAppsRef.current.add(op.id);
-          }
-        } else if (op.type === "close") {
-          toggleApp(op.id as AppId);
-          // Remove from launched apps so it can be launched again later
-          launchedAppsRef.current.delete(op.id);
-        }
-      });
-
-      // Clean the message content of markup
-      return cleanAppControlMarkup(messageContent);
-    },
-    [launchApp, toggleApp]
-  );
-
-  // Process message content: handle app controls and urgent prefixes
+  // New simple pass-through processor (still keeps urgent prefix for styling elsewhere)
   const processMessageContent = useCallback(
-    (messageContent: string) => {
-      // First handle app controls
-      const processedContent = handleAppControls(messageContent);
-
-      // The urgent prefix processing is separate from app controls
-      // We don't clean it here as we want to preserve it for styling in the UI
-
-      return processedContent;
-    },
-    [handleAppControls]
+    (messageContent: string) => messageContent,
+    []
   );
 
   // Reset launched apps when leaving AI mode
@@ -2331,7 +2445,9 @@ assistant
     const lastMessage = aiMessages[aiMessages.length - 1];
     if (lastMessage.role !== "assistant") return;
 
-    const messageKey = `${lastMessage.id}-${JSON.stringify((lastMessage as any).parts ?? lastMessage.content)}`;
+    const messageKey = `${lastMessage.id}-${JSON.stringify(
+      (lastMessage as any).parts ?? lastMessage.content
+    )}`;
     if (messageKey === lastProcessedMessageIdRef.current) return;
 
     const parts = (lastMessage as any).parts as any[] | undefined;
@@ -2343,7 +2459,9 @@ assistant
           const processed = processMessageContent(part.text);
           if (processed) lines.push(processed);
         } else if (part.type === "tool-invocation") {
-          const txt = formatToolInvocation(part.toolInvocation as ToolInvocation);
+          const txt = formatToolInvocation(
+            part.toolInvocation as ToolInvocation
+          );
           if (txt) lines.push(txt);
         }
       });
@@ -2355,9 +2473,12 @@ assistant
     if (isClearingTerminal) return;
 
     setCommandHistory((prev) => {
-      const filteredHistory = prev.filter((item) => item.path !== "ai-thinking");
+      const filteredHistory = prev.filter(
+        (item) => item.path !== "ai-thinking"
+      );
       const existingIndex = filteredHistory.findIndex(
-        (item) => item.path === "ai-assistant" && item.messageId === lastMessage.id
+        (item) =>
+          item.path === "ai-assistant" && item.messageId === lastMessage.id
       );
 
       if (existingIndex !== -1) {
@@ -2378,12 +2499,23 @@ assistant
 
       return [
         ...filteredHistory,
-        { command: "", output: cleanedContent, path: "ai-assistant", messageId: lastMessage.id },
+        {
+          command: "",
+          output: cleanedContent,
+          path: "ai-assistant",
+          messageId: lastMessage.id,
+        },
       ];
     });
 
     lastProcessedMessageIdRef.current = messageKey;
-  }, [aiMessages, isInAiMode, isClearingTerminal, processMessageContent, playAiResponseSoundMemoized]);
+  }, [
+    aiMessages,
+    isInAiMode,
+    isClearingTerminal,
+    processMessageContent,
+    playAiResponseSoundMemoized,
+  ]);
 
   // Function to handle AI mode commands
   const handleAiCommand = (command: string) => {
@@ -2398,9 +2530,9 @@ assistant
     setHistoryIndex(-1);
 
     // Store in Zustand (including AI commands)
-    useTerminalStore.getState().addCommand(
-      command.startsWith("ryo ") ? command : `ryo ${command}`
-    );
+    useTerminalStore
+      .getState()
+      .addCommand(command.startsWith("ryo ") ? command : `ryo ${command}`);
 
     // Reset animated lines to ensure only new content gets animated
     setAnimatedLines(new Set());
@@ -2566,18 +2698,18 @@ assistant
     // Clear the input field
     setCurrentCommand("");
   };
-  
+
   // Helper function to save vim file content
   const saveVimFile = async (vimFile: { name: string; content: string }) => {
     try {
       // Find the file in the current files list to get its path
       const fileObj = files.find((f) => f.name === vimFile.name);
-      
+
       if (!fileObj) {
         console.error(`Could not find file ${vimFile.name} for saving`);
         return;
       }
-      
+
       // Use the saveFile API directly from useFileSystem
       await saveFile({
         path: fileObj.path,
@@ -2585,18 +2717,18 @@ assistant
         content: vimFile.content,
         type: "text",
       });
-      
+
       console.log(`Saved vim file ${vimFile.name} to ${fileObj.path}`);
     } catch (error) {
       const err = error as Error;
-      console.error(`Error saving vim file: ${err.message || 'Unknown error'}`);
-      
+      console.error(`Error saving vim file: ${err.message || "Unknown error"}`);
+
       // Show error in terminal
       setCommandHistory((prev) => [
         ...prev,
         {
           command: "",
-          output: `Error saving file: ${err.message || 'Unknown error'}`,
+          output: `Error saving file: ${err.message || "Unknown error"}`,
           path: currentPath,
         },
       ]);
@@ -3239,3 +3371,16 @@ assistant
     </>
   );
 }
+
+// --- Debounce helper copied from useAiChat for insertText tool ---
+function createDebouncedAction(delay = 150) {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  return (action: () => void) => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => {
+      action();
+      timer = null;
+    }, delay);
+  };
+}
+const debouncedInsertTextUpdate = createDebouncedAction(150);
