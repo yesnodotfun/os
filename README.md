@@ -150,3 +150,7 @@ This project is licensed under the AGPL-3.0 License - see the [LICENSE](LICENSE)
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+
+## Wiki
+
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/ryokun6/ryos)
