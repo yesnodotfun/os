@@ -14,7 +14,7 @@ import {
 } from "@/apps/finder/hooks/useFileSystem";
 import { useTerminalStore } from "@/stores/useTerminalStore";
 import { useLaunchApp } from "@/hooks/useLaunchApp";
-import { useChat } from "ai/react";
+import { useAiChat } from "@/apps/chats/hooks/useAiChat";
 import { useAppContext } from "@/contexts/AppContext";
 import { useAppStore } from "@/stores/useAppStore";
 import { AppId, appRegistry } from "@/config/appRegistry";
@@ -581,193 +581,17 @@ export function TerminalAppComponent({
   const lastProcessedMessageIdRef = useRef<string | null>(null);
   // Keep track of apps already launched in the current session
   const launchedAppsRef = useRef<Set<string>>(new Set());
-
-  // Add useChat hook
+  // Shared AI chat hook
   const {
     messages: aiMessages,
     append: appendAiMessage,
     isLoading: isAiLoading,
     stop: stopAiResponse,
-    setMessages: setAiChatMessages,
-  } = useChat({
-    api: "/api/chat",
-    body: { systemState: getSystemState() },
-    initialMessages: [
-      {
-        id: "system",
-        role: "system",
-        content:
-          "You are a helpful AI assistant and genius web front-end programmer running in a terminal on ryOS.",
-      },
-    ],
-    experimental_throttle: 50,
-    maxSteps: 25,
-    // Handle AI tool calls (mirror logic from useAiChat)
-    async onToolCall({ toolCall }) {
-      try {
-        switch (toolCall.toolName) {
-          case "launchApp": {
-            const { id, url, year } = toolCall.args as {
-              id: string;
-              url?: string;
-              year?: string;
-            };
-            const launchOptions: Record<string, any> = {};
-            if (id === "internet-explorer" && (url || year)) {
-              launchOptions.initialData = { url, year: year || "current" };
-            }
-            launchApp(id as AppId, launchOptions);
-            const appName = getAppName(id);
-            let confirmation = `Launched ${appName}.`;
-            if (id === "internet-explorer") {
-              const urlPart = url ? ` to ${url}` : "";
-              const yearPart = year && year !== "current" ? ` in ${year}` : "";
-              confirmation += `${urlPart}${yearPart}`;
-            }
-            return confirmation;
-          }
-          case "closeApp": {
-            const { id } = toolCall.args as { id: string };
-            const closeAppFn = useAppStore.getState().closeApp;
-            closeAppFn(id as AppId);
-            return `Closed ${getAppName(id)}.`;
-          }
-          case "textEditSearchReplace": {
-            const { search, replace, isRegex } = toolCall.args as {
-              search: string;
-              replace: string;
-              isRegex?: boolean;
-            };
-            const escapeRegExp = (str: string) =>
-              str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-            const textEditState = useTextEditStore.getState();
-            const { contentJson, applyExternalUpdate } = textEditState;
-            if (!contentJson) return "No file currently open in TextEdit.";
-            const htmlStr = generateHTML(contentJson, [
-              StarterKit,
-              Underline,
-              TextAlign.configure({ types: ["heading", "paragraph"] }),
-              TaskList,
-              TaskItem.configure({ nested: true }),
-            ] as AnyExtension[]);
-            const markdownStr = htmlToMarkdown(htmlStr);
-            const pattern = isRegex ? search : escapeRegExp(search);
-            const regex = new RegExp(pattern, "gm");
-            const updatedMarkdown = markdownStr.replace(regex, replace);
-            if (updatedMarkdown === markdownStr)
-              return "Nothing found to replace.";
-            const updatedHtml = markdownToHtml(updatedMarkdown);
-            const updatedJson = generateJSON(updatedHtml, [
-              StarterKit,
-              Underline,
-              TextAlign.configure({ types: ["heading", "paragraph"] }),
-              TaskList,
-              TaskItem.configure({ nested: true }),
-            ] as AnyExtension[]);
-            applyExternalUpdate(updatedJson);
-            return `Replaced "${search}" with "${replace}".`;
-          }
-          case "textEditInsertText": {
-            const { text, position } = toolCall.args as {
-              text: string;
-              position?: "start" | "end";
-            };
-            const textEditState = useTextEditStore.getState();
-            const { insertText } = textEditState;
-            debouncedInsertTextUpdate(() =>
-              insertText(text, position || "end")
-            );
-            return `Inserted text at ${
-              position === "start" ? "start" : "end"
-            } of document.`;
-          }
-          case "textEditNewFile": {
-            const textEditState = useTextEditStore.getState();
-            const {
-              reset,
-              applyExternalUpdate,
-              setLastFilePath,
-              setHasUnsavedChanges,
-            } = textEditState;
-            reset();
-            applyExternalUpdate({ type: "doc", content: [] } as JSONContent);
-            setLastFilePath(null);
-            setHasUnsavedChanges(false);
-            launchApp("textedit");
-            return "Created a new, untitled document in TextEdit.";
-          }
-          case "ipodPlayPause": {
-            const { action } = toolCall.args as {
-              action?: "play" | "pause" | "toggle";
-            };
-            if (!useAppStore.getState().apps["ipod"]?.isOpen) launchApp("ipod");
-            const ipod = useIpodStore.getState();
-            switch (action) {
-              case "play":
-                if (!ipod.isPlaying) ipod.setIsPlaying(true);
-                break;
-              case "pause":
-                if (ipod.isPlaying) ipod.setIsPlaying(false);
-                break;
-              default:
-                ipod.togglePlay();
-            }
-            return ipod.isPlaying ? "iPod is now playing." : "iPod is paused.";
-          }
-          case "ipodNextTrack": {
-            if (!useAppStore.getState().apps["ipod"]?.isOpen) launchApp("ipod");
-            useIpodStore.getState().nextTrack();
-            return "Skipped to next track.";
-          }
-          case "ipodPreviousTrack": {
-            if (!useAppStore.getState().apps["ipod"]?.isOpen) launchApp("ipod");
-            useIpodStore.getState().previousTrack();
-            return "Went back to previous track.";
-          }
-          case "ipodPlaySong": {
-            const { id, title, artist } = toolCall.args as {
-              id?: string;
-              title?: string;
-              artist?: string;
-            };
-            if (!useAppStore.getState().apps["ipod"]?.isOpen) launchApp("ipod");
-            const ipodState = useIpodStore.getState();
-            const { tracks } = ipodState;
-            let candidates = tracks.map((t, idx) => ({ track: t, idx }));
-            if (id)
-              candidates = candidates.filter(({ track }) => track.id === id);
-            if (title)
-              candidates = candidates.filter(({ track }) =>
-                track.title.toLowerCase().includes(title.toLowerCase())
-              );
-            if (artist)
-              candidates = candidates.filter(({ track }) =>
-                track.artist?.toLowerCase().includes(artist.toLowerCase())
-              );
-            if (candidates.length === 0)
-              return "Song not found in iPod library.";
-            const choice =
-              candidates[Math.floor(Math.random() * candidates.length)];
-            ipodState.setCurrentIndex(choice.idx);
-            ipodState.setIsPlaying(true);
-            return `Playing ${choice.track.title}${
-              choice.track.artist ? ` by ${choice.track.artist}` : ""
-            }.`;
-          }
-          case "generateHtml": {
-            const { html } = toolCall.args as { html: string };
-            return html.trim();
-          }
-          default:
-            console.warn("Unhandled tool call", toolCall.toolName);
-            return "";
-        }
-      } catch (err) {
-        console.error("Tool call error", err);
-        return `Failed to execute ${toolCall.toolName}`;
-      }
-    },
-  });
+  } = useAiChat();
+
+  const setAiChatMessages = useChatsStore((state) => state.setAiMessages);
+
+
 
   const inputRef = useRef<HTMLInputElement>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
@@ -2727,7 +2551,7 @@ assistant
       },
     ]);
 
-    // Send the message using useChat hook
+    // Send the message using useAiChat hook
     appendAiMessage(
       { role: "user", content: command },
       { body: { systemState: getSystemState() } }
