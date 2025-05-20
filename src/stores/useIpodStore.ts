@@ -380,7 +380,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     url: "https://www.youtube.com/watch?v=2GRP1rkE4O0",
     title: "BLUE",
     artist: "BIGBANG",
-    lyricOffset: -4350,
+    lyricOffset: -4800,
   },
   {
     id: "uelHwf8o7_U",
