@@ -32,6 +32,13 @@ export const IPOD_DEFAULT_VIDEOS = [
     lyricOffset: 800,
   },
   {
+    id: "ablEaBQd3lU",
+    url: "https://www.youtube.com/watch?v=ablEaBQd3lU",
+    title: "Honestly",
+    artist: "RIIZE",
+    lyricOffset: 1200,
+  },
+  {
     id: "jKnLSg83Nqc",
     url: "https://youtu.be/jKnLSg83Nqc?si=0mX3pYk0q98Ndoui",
     title: "ㅠ.ㅠ (You)",
@@ -332,13 +339,6 @@ export const IPOD_DEFAULT_VIDEOS = [
     url: "https://www.youtube.com/watch?v=4j7Umwfx60Q",
     title: "4 Walls",
     artist: "f(x)",
-    lyricOffset: 1000,
-  },
-  {
-    id: "ablEaBQd3lU",
-    url: "https://www.youtube.com/watch?v=ablEaBQd3lU",
-    title: "Honestly",
-    artist: "RIIZE",
     lyricOffset: 1000,
   },
   {
