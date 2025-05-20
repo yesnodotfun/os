@@ -334,42 +334,51 @@ interface ToolInvocation {
 const formatToolInvocation = (invocation: ToolInvocation): string | null => {
   const { toolName, state, args, result } = invocation;
   if (state === "call" || state === "partial-call") {
+    let msg = "";
     switch (toolName) {
       case "textEditSearchReplace":
-        return "Replacing text…";
+        msg = "Replacing text…";
+        break;
       case "textEditInsertText":
-        return "Inserting text…";
+        msg = "Inserting text…";
+        break;
       case "launchApp":
-        return `Launching ${getAppName(args?.id)}…`;
+        msg = `Launching ${getAppName(args?.id)}…`;
+        break;
       case "closeApp":
-        return `Closing ${getAppName(args?.id)}…`;
+        msg = `Closing ${getAppName(args?.id)}…`;
+        break;
       case "textEditNewFile":
-        return "Creating new document…";
+        msg = "Creating new document…";
+        break;
       default:
-        return `Running ${formatToolName(toolName)}…`;
+        msg = `Running ${formatToolName(toolName)}…`;
     }
+    return `::: ${msg}`;
   }
 
   if (state === "result") {
+    let msg: string | null = null;
     if (toolName === "launchApp" && args?.id === "internet-explorer") {
       const urlPart = args.url ? ` ${args.url}` : "";
       const yearPart = args.year && args.year !== "" ? ` in ${args.year}` : "";
-      return `Launched${urlPart}${yearPart}`;
+      msg = `Launched${urlPart}${yearPart}`;
     } else if (toolName === "launchApp") {
-      return `Launched ${getAppName(args?.id)}`;
+      msg = `Launched ${getAppName(args?.id)}`;
     } else if (toolName === "closeApp") {
-      return `Closed ${getAppName(args?.id)}`;
-    }
-    if (
+      msg = `Closed ${getAppName(args?.id)}`;
+    } else if (
       toolName === "generateHtml" &&
       typeof result === "string" &&
       result.trim().length > 0
     ) {
-      // Wrap in markdown code fence so extractHtmlContent can detect regardless of position
-      return `\n\n\u0060\u0060\u0060html\n${result.trim()}\n\u0060\u0060\u0060`;
+      msg = `\n\n\u0060\u0060\u0060html\n${result.trim()}\n\u0060\u0060\u0060`;
+    } else if (typeof result === "string") {
+      msg = result;
+    } else {
+      msg = formatToolName(toolName);
     }
-    if (typeof result === "string") return result;
-    return formatToolName(toolName);
+    return `→ ${msg}`;
   }
 
   return null;
@@ -3197,16 +3206,36 @@ assistant
                         return (
                           <>
                             {/* Show only non-HTML text content with markdown parsing */}
-                            {cleanedTextContent && (
-                              <span
-                                className={`select-text cursor-text ${
-                                  urgent ? "text-red-300" : "text-purple-300"
-                                }`}
-                              >
-                                {urgent && <UrgentMessageAnimation />}
-                                {parseSimpleMarkdown(cleanedTextContent)}
-                              </span>
-                            )}
+                            {cleanedTextContent &&
+                              (() => {
+                                const spinnerRegex = /\s*:::/;
+                                const isSpinner =
+                                  spinnerRegex.test(cleanedTextContent);
+                                const display = isSpinner
+                                  ? cleanedTextContent.replace(
+                                      /:::/,
+                                      spinnerChars[spinnerIndex]
+                                    )
+                                  : cleanedTextContent;
+                                return (
+                                  <span
+                                    className={`select-text cursor-text ${
+                                      urgent
+                                        ? "text-red-300"
+                                        : isSpinner
+                                        ? "gradient-spin italic"
+                                        : cleanedTextContent
+                                            .trim()
+                                            .startsWith("→")
+                                        ? "text-gray-400"
+                                        : "text-purple-300"
+                                    }`}
+                                  >
+                                    {urgent && <UrgentMessageAnimation />}
+                                    {parseSimpleMarkdown(display)}
+                                  </span>
+                                );
+                              })()}
 
                             {/* Show HTML preview if there's HTML content */}
                             {hasHtml && htmlContent && (
