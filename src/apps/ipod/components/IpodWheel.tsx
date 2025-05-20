@@ -239,7 +239,7 @@ export function IpodWheel({
           "absolute w-16 h-16 rounded-full z-10 flex items-center justify-center",
           theme === "classic"
             ? "bg-white/30"
-            : "bg-black/60"
+            : "bg-black/50"
         )}
       />
 
