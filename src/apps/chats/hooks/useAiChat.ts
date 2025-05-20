@@ -569,20 +569,8 @@ export function useAiChat() {
             return `Playing ${trackDesc}.`;
           }
           case "ipodAddAndPlaySong": {
-            const { id, url, title, artist, album } = toolCall.args as {
-              id: string;
-              url: string;
-              title: string;
-              artist?: string;
-              album?: string;
-            };
-            console.log("[ToolCall] ipodAddAndPlaySong:", {
-              id,
-              url,
-              title,
-              artist,
-              album,
-            });
+            const { id } = toolCall.args as { id: string };
+            console.log("[ToolCall] ipodAddAndPlaySong:", { id });
 
             // Ensure iPod app is open
             const appState = useAppStore.getState();
@@ -590,10 +578,15 @@ export function useAiChat() {
               launchApp("ipod");
             }
 
-            const { addTrack } = useIpodStore.getState();
-            addTrack({ id, url, title, artist, album }); // addTrack will also play it
+            const addedTrack = await useIpodStore
+              .getState()
+              .addTrackFromVideoId(id);
 
-            return `Added '${title}' to iPod and started playing.`;
+            if (addedTrack) {
+              return `Added '${addedTrack.title}' to iPod and started playing.`;
+            } else {
+              return `Failed to add song with ID ${id} to iPod.`;
+            }
           }
           case "ipodNextTrack": {
             console.log("[ToolCall] ipodNextTrack");
