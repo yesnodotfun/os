@@ -147,6 +147,16 @@ const getSystemState = () => {
     }
   }
 
+  // Convert IE HTML content to markdown for compact prompts
+  let ieHtmlMarkdown: string | null = null;
+  if (ieStore.aiGeneratedHtml) {
+    try {
+      ieHtmlMarkdown = htmlToMarkdown(ieStore.aiGeneratedHtml);
+    } catch (err) {
+      console.error("Failed to convert IE HTML to markdown:", err);
+    }
+  }
+
   return {
     apps: appStore.apps,
     username,
@@ -166,6 +176,7 @@ const getSystemState = () => {
       status: ieStore.status,
       currentPageTitle: ieStore.currentPageTitle,
       aiGeneratedHtml: ieStore.aiGeneratedHtml,
+      aiGeneratedMarkdown: ieHtmlMarkdown,
     },
     video: {
       currentVideo: currentVideo

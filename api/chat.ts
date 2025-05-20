@@ -31,6 +31,8 @@ interface SystemState {
     status: string;
     currentPageTitle: string | null;
     aiGeneratedHtml: string | null;
+    /** Optional markdown form of the AI generated HTML to keep context compact */
+    aiGeneratedMarkdown?: string | null;
   };
   video: {
     currentVideo: {
@@ -127,6 +129,12 @@ const STATIC_SYSTEM_PROMPT = [
   ANSWER_STYLE_INSTRUCTIONS,
   CODE_GENERATION_INSTRUCTIONS,
 ].join("\n");
+
+const CACHE_CONTROL_OPTIONS = {
+  providerOptions: {
+    anthropic: { cacheControl: { type: "ephemeral" } },
+  },
+} as const;
 
 const generateDynamicSystemPrompt = (systemState?: SystemState) => {
   const now = new Date();
@@ -227,8 +235,9 @@ SYSTEM STATE:
     if (systemState.internetExplorer.currentPageTitle) {
       prompt += `\n- Page Title: ${systemState.internetExplorer.currentPageTitle}`;
     }
-    if (systemState.internetExplorer.aiGeneratedHtml) {
-      prompt += `\n- HTML Content:\n${systemState.internetExplorer.aiGeneratedHtml}`;
+    const htmlMd = systemState.internetExplorer.aiGeneratedMarkdown;
+    if (htmlMd) {
+      prompt += `\n- Page Markdown:\n${htmlMd}`;
     }
   }
   if (systemState.apps["textedit"]?.isOpen && systemState.textEdit) {
@@ -331,11 +340,28 @@ export default async function handler(req: Request) {
     const selectedModel = getModelInstance(model as SupportedModel);
 
     const systemMessages = [
-      { role: "system", content: STATIC_SYSTEM_PROMPT },
-      { role: "system", content: generateDynamicSystemPrompt(systemState) },
+      {
+        role: "system",
+        content: STATIC_SYSTEM_PROMPT,
+        ...CACHE_CONTROL_OPTIONS,
+      },
+      {
+        role: "system",
+        content: generateDynamicSystemPrompt(systemState),
+      },
     ];
 
     const enrichedMessages = [...systemMessages, ...messages];
+
+    // --- DEBUG: Log full prompt being sent to the AI model (role + content) ---
+    try {
+      const promptForLog = enrichedMessages
+        .map((m) => `${m.role.toUpperCase()}: ${m.content}`)
+        .join("\n\n---\n\n");
+      log("Full prompt sent to model:\n" + promptForLog);
+    } catch (err) {
+      logError("Failed to log prompt:", err);
+    }
 
     const result = streamText({
       model: selectedModel,
