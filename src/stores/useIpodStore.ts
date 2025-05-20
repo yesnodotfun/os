@@ -21,7 +21,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     url: "https://www.youtube.com/watch?v=SNq4zqTN_DQ",
     title: "Last Summer Whisper",
     artist: "Anri",
-    lyricOffset: 1000,
+    lyricOffset: 1200,
   },
   {
     id: "4j7Umwfx60Q",
@@ -440,7 +440,7 @@ export interface IpodState extends IpodData {
   addTrackFromVideoId: (videoId: string) => Promise<Track | null>;
 }
 
-const CURRENT_IPOD_STORE_VERSION = 13; // Incremented version for new state
+const CURRENT_IPOD_STORE_VERSION = 14; // Incremented version for new state
 
 export const useIpodStore = create<IpodState>()(
   persist(
@@ -603,7 +603,7 @@ export const useIpodStore = create<IpodState>()(
           // Optionally, could return null here
         }
 
-        let trackInfo = {
+        const trackInfo = {
           title: rawTitle,
           artist: undefined as string | undefined,
           album: undefined as string | undefined,
