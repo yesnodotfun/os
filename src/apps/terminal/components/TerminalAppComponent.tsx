@@ -40,6 +40,8 @@ import TextAlign from "@tiptap/extension-text-align";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import { htmlToMarkdown, markdownToHtml } from "@/utils/markdown";
+import { useInternetExplorerStore } from "@/stores/useInternetExplorerStore";
+import { useVideoStore } from "@/stores/useVideoStore";
 
 // Analytics event namespace for terminal AI events
 export const TERMINAL_ANALYTICS = {
@@ -96,6 +98,10 @@ const getAppName = (id?: string): string => {
 const getSystemState = () => {
   const appStore = useAppStore.getState();
   const { username } = useChatsStore.getState();
+  const ieStore = useInternetExplorerStore.getState();
+  const videoStore = useVideoStore.getState();
+  const ipodStore = useIpodStore.getState();
+  const textEditStore = useTextEditStore.getState();
 
   const runningApps = Object.entries(appStore.apps)
     .filter(([, state]) => state.isOpen)
@@ -121,6 +127,9 @@ const getSystemState = () => {
     day: "numeric",
   });
 
+  const currentVideo = videoStore.videos[videoStore.currentIndex];
+  const currentTrack = ipodStore.tracks[ipodStore.currentIndex];
+
   return {
     apps: appStore.apps,
     username,
@@ -133,6 +142,47 @@ const getSystemState = () => {
       foreground: foregroundApp,
       background: backgroundApps,
       windowOrder: appStore.windowOrder,
+    },
+    internetExplorer: {
+      url: ieStore.url,
+      year: ieStore.year,
+      status: ieStore.status,
+      currentPageTitle: ieStore.currentPageTitle,
+      aiGeneratedHtml: ieStore.aiGeneratedHtml,
+    },
+    video: {
+      currentVideo: currentVideo
+        ? {
+            id: currentVideo.id,
+            url: currentVideo.url,
+            title: currentVideo.title,
+            artist: currentVideo.artist,
+          }
+        : null,
+      isPlaying: videoStore.isPlaying,
+      loopAll: videoStore.loopAll,
+      loopCurrent: videoStore.loopCurrent,
+      isShuffled: videoStore.isShuffled,
+    },
+    ipod: {
+      currentTrack: currentTrack
+        ? {
+            id: currentTrack.id,
+            url: currentTrack.url,
+            title: currentTrack.title,
+            artist: currentTrack.artist,
+          }
+        : null,
+      isPlaying: ipodStore.isPlaying,
+      loopAll: ipodStore.loopAll,
+      loopCurrent: ipodStore.loopCurrent,
+      isShuffled: ipodStore.isShuffled,
+      currentLyrics: ipodStore.currentLyrics,
+    },
+    textEdit: {
+      lastFilePath: textEditStore.lastFilePath,
+      contentJson: textEditStore.contentJson,
+      hasUnsavedChanges: textEditStore.hasUnsavedChanges,
     },
   };
 };
