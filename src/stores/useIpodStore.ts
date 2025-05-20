@@ -31,6 +31,33 @@ export const IPOD_DEFAULT_VIDEOS = [
     lyricOffset: 1000,
   },
   {
+    id: "ablEaBQd3lU",
+    url: "https://www.youtube.com/watch?v=ablEaBQd3lU",
+    title: "Honestly",
+    artist: "RIIZE",
+    lyricOffset: 1000,
+  },
+  {
+    id: "V9Wsm0hlLUI",
+    url: "https://www.youtube.com/watch?v=V9Wsm0hlLUI",
+    title: "Sour Grapes",
+    artist: "LE SSERAFIM",
+    lyricOffset: 1250,
+  },
+  {
+    id: "gJLIiF15wjQ",
+    url: "https://www.youtube.com/watch?v=gJLIiF15wjQ",
+    title: "Wannabe",
+    artist: "Spice Girls",
+    lyricOffset: -43700,
+  },
+  {
+    id: "3JWTaaS7LdU",
+    url: "https://www.youtube.com/watch?v=3JWTaaS7LdU",
+    title: "I Will Always Love You",
+    artist: "Whitney Houston",
+  },
+  {
     id: "jWQx2f-CErU",
     url: "https://www.youtube.com/watch?v=jWQx2f-CErU",
     title: "Whiplash",
@@ -440,7 +467,7 @@ export interface IpodState extends IpodData {
   addTrackFromVideoId: (urlOrId: string) => Promise<Track | null>;
 }
 
-const CURRENT_IPOD_STORE_VERSION = 14; // Incremented version for new state
+const CURRENT_IPOD_STORE_VERSION = 15; // Incremented version for new state
 
 export const useIpodStore = create<IpodState>()(
   persist(
