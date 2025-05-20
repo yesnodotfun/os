@@ -508,6 +508,7 @@ export function TerminalAppComponent({
       },
     ],
     experimental_throttle: 50,
+    maxSteps: 10,
     // Handle AI tool calls (mirror logic from useAiChat)
     async onToolCall({ toolCall }) {
       try {
