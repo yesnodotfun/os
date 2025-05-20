@@ -353,16 +353,6 @@ export default async function handler(req: Request) {
 
     const enrichedMessages = [...systemMessages, ...messages];
 
-    // --- DEBUG: Log full prompt being sent to the AI model (role + content) ---
-    try {
-      const promptForLog = enrichedMessages
-        .map((m) => `${m.role.toUpperCase()}: ${m.content}`)
-        .join("\n\n---\n\n");
-      log("Full prompt sent to model:\n" + promptForLog);
-    } catch (err) {
-      logError("Failed to log prompt:", err);
-    }
-
     const result = streamText({
       model: selectedModel,
       messages: enrichedMessages,
