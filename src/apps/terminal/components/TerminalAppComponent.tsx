@@ -11,6 +11,7 @@ import { useTerminalStore } from "@/stores/useTerminalStore";
 import { useLaunchApp } from "@/hooks/useLaunchApp";
 import { useChat } from "ai/react";
 import { useAppContext } from "@/contexts/AppContext";
+import { useAppStore } from "@/stores/useAppStore";
 import { AppId } from "@/config/appRegistry";
 import { useTerminalSounds } from "@/hooks/useTerminalSounds";
 import { track } from "@vercel/analytics";
@@ -58,6 +59,51 @@ const AVAILABLE_COMMANDS = [
   "date",
   "vim",
 ];
+
+// Minimal system state for AI chat requests
+const getSystemState = () => {
+  const appStore = useAppStore.getState();
+  const { username } = useChatsStore.getState();
+
+  const runningApps = Object.entries(appStore.apps)
+    .filter(([, state]) => state.isOpen)
+    .map(([id, state]) => ({ id, isForeground: state.isForeground || false }));
+
+  const foregroundApp = runningApps.find((a) => a.isForeground)?.id || null;
+  const backgroundApps = runningApps
+    .filter((a) => !a.isForeground)
+    .map((a) => a.id);
+
+  const now = new Date();
+  const userTimeZone =
+    Intl.DateTimeFormat().resolvedOptions().timeZone || "Unknown";
+  const userTimeString = now.toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+  const userDateString = now.toLocaleDateString([], {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  return {
+    apps: appStore.apps,
+    username,
+    userLocalTime: {
+      timeString: userTimeString,
+      dateString: userDateString,
+      timeZone: userTimeZone,
+    },
+    runningApps: {
+      foreground: foregroundApp,
+      background: backgroundApps,
+      windowOrder: appStore.windowOrder,
+    },
+  };
+};
 
 // Helper function to parse app control markup
 const parseAppControlMarkup = (
@@ -420,6 +466,8 @@ export function TerminalAppComponent({
     stop: stopAiResponse,
     setMessages: setAiChatMessages,
   } = useChat({
+    api: "/api/chat",
+    body: { systemState: getSystemState() },
     initialMessages: [
       {
         id: "system",
@@ -2131,10 +2179,10 @@ assistant
           ]);
 
           // Send the initial prompt
-          appendAiMessage({
-            role: "user",
-            content: initialPrompt,
-          });
+          appendAiMessage(
+            { role: "user", content: initialPrompt },
+            { body: { systemState: getSystemState() } }
+          );
 
           return {
             output: `ask ryo anything. type 'exit' to return to terminal.\n→ from your command: ${initialPrompt}`,
@@ -2412,10 +2460,10 @@ assistant
     ]);
 
     // Send the message using useChat hook
-    appendAiMessage({
-      role: "user",
-      content: command,
-    });
+    appendAiMessage(
+      { role: "user", content: command },
+      { body: { systemState: getSystemState() } }
+    );
 
     // Clear current command
     setCurrentCommand("");
