@@ -91,7 +91,7 @@ TEXT EDITING:
 
 iPOD and MUSIC PLAYBACK:
 - Use 'ipodPlayPause' to control playback. The 'action' parameter can be "play", "pause", or "toggle" (default).
-- Use 'ipodPlaySong' to play a specific song by providing at least one of: 'id' (YouTube video id), 'title' (song title), or 'artist' (artist name).
+- Use 'ipodPlaySong' to play a specific song by providing at least one of: 'id' (YouTube video id), 'title' (song title), or 'artist' (artist name). ONLY use IDs or titles and artists provided in the iPod Library system state.
 - Use 'ipodNextTrack' to skip to the next track in the playlist.
 - Use 'ipodPreviousTrack' to go back to the previous track in the playlist.
 - Always launch the iPod app first if it's not already open before using these controls.

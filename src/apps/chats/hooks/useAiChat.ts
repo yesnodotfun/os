@@ -115,6 +115,11 @@ const getSystemState = () => {
       loopCurrent: ipodStore.loopCurrent,
       isShuffled: ipodStore.isShuffled,
       currentLyrics: ipodStore.currentLyrics,
+      library: ipodStore.tracks.map((t) => ({
+        id: t.id,
+        title: t.title,
+        artist: t.artist,
+      })),
     },
     textEdit: {
       lastFilePath: textEditStore.lastFilePath,

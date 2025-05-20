@@ -178,6 +178,12 @@ const getSystemState = () => {
       loopCurrent: ipodStore.loopCurrent,
       isShuffled: ipodStore.isShuffled,
       currentLyrics: ipodStore.currentLyrics,
+      // Provide a concise list of all songs in the iPod library so the AI can search them
+      library: ipodStore.tracks.map((t) => ({
+        id: t.id,
+        title: t.title,
+        artist: t.artist,
+      })),
     },
     textEdit: {
       lastFilePath: textEditStore.lastFilePath,
