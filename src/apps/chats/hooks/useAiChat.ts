@@ -675,61 +675,30 @@ export function useAiChat() {
       );
       setAiMessages(finalMessages);
 
-      // --- Final speech flush ---
+      // --- Ensure any unsent remainder is spoken ---
       if (!speechEnabled) return;
-
       const lastMsg = finalMessages.at(-1);
       if (!lastMsg || lastMsg.role !== "assistant") return;
 
-      const progress = speechProgressRef.current[lastMsg.id];
-      if (progress === -1) return; // already fully spoken
+      const progress = speechProgressRef.current[lastMsg.id] ?? 0;
+      if (progress === -1 || progress >= lastMsg.content.length) return;
 
-      // Split on any line break(s) so single newlines also become separate
-      // segments for speech.
-      const paragraphs = lastMsg.content.split(/\r?\n+/);
-      const processedCount = typeof progress === "number" ? progress : 0;
-
-      if (processedCount >= paragraphs.length) {
-        speechProgressRef.current[lastMsg.id] = -1;
-        return;
-      }
-
-      // Compute the character offset where the remaining text begins
-      let searchPos = 0;
-      for (let i = 0; i < processedCount; i++) {
-        const idx = lastMsg.content.indexOf(paragraphs[i], searchPos);
-        if (idx === -1) {
-          searchPos = lastMsg.content.length; // fallback
-          break;
-        }
-        searchPos = idx + paragraphs[i].length;
-        // Skip the delimiter (one or more line breaks)
-        const delimMatch = lastMsg.content
-          .slice(searchPos)
-          .match(/^\r?\n+/);
-        if (delimMatch) {
-          searchPos += delimMatch[0].length;
-        }
-      }
-
-      const remainingOriginal = lastMsg.content.slice(searchPos);
-      const cleanedRemaining = cleanTextForSpeech(remainingOriginal);
-
-      if (!cleanedRemaining) {
+      const remainingRaw = lastMsg.content.slice(progress);
+      const cleaned = cleanTextForSpeech(remainingRaw);
+      if (!cleaned) {
         speechProgressRef.current[lastMsg.id] = -1;
         return;
       }
 
       const seg = {
         messageId: lastMsg.id,
-        start: searchPos,
+        start: progress,
         end: lastMsg.content.length,
       };
       highlightQueueRef.current.push(seg);
       if (!highlightSegment) setHighlightSegment(seg);
 
-      // Queue the remaining text so it plays in order after any prior chunks
-      speak(cleanedRemaining, () => {
+      speak(cleaned, () => {
         highlightQueueRef.current.shift();
         setHighlightSegment(highlightQueueRef.current[0] || null);
         speechProgressRef.current[lastMsg.id] = -1;
@@ -776,69 +745,65 @@ export function useAiChat() {
     const lastMsg = currentSdkMessages.at(-1);
     if (!lastMsg || lastMsg.role !== "assistant") return;
 
-    if (speechProgressRef.current[lastMsg.id] === -1) return; // already done
-
-    const processedCount =
+    // -1 means fully processed
+    let progress =
       typeof speechProgressRef.current[lastMsg.id] === "number"
         ? (speechProgressRef.current[lastMsg.id] as number)
         : 0;
+    if (progress === -1) return;
 
-    // Split on any line break(s) so single newlines also become separate
-    // segments for speech.
-    const paragraphs = lastMsg.content.split(/\r?\n+/);
+    const { content } = lastMsg;
+    if (progress >= content.length) return;
 
-    const totalParagraphs = paragraphs.length;
-    if (processedCount >= totalParagraphs) return; // nothing left
+    let scanPos = progress;
+    const processChunk = (endPos: number, isFinal: boolean) => {
+      const rawChunk = content.slice(scanPos, endPos);
+      const cleaned = cleanTextForSpeech(rawChunk);
+      if (cleaned) {
+        const seg = { messageId: lastMsg.id, start: scanPos, end: endPos };
+        highlightQueueRef.current.push(seg);
+        if (!highlightSegment) setHighlightSegment(seg);
 
-    // While streaming, ignore the last (possibly still-growing) paragraph
-    const lastReadyIndex = isLoading ? totalParagraphs - 1 : totalParagraphs;
-    if (lastReadyIndex <= processedCount) return;
-
-    // Find char start positions on the fly using indexOf search from previous cursor.
-    let searchPos = 0;
-
-    for (let idx = processedCount; idx < lastReadyIndex; idx++) {
-      const paragraph = paragraphs[idx];
-
-      let charStart = lastMsg.content.indexOf(paragraph, searchPos);
-      if (charStart === -1) {
-        // As a fallback use the current searchPos which should be close enough for highlighting.
-        charStart = searchPos;
+        speak(cleaned, () => {
+          highlightQueueRef.current.shift();
+          setHighlightSegment(highlightQueueRef.current[0] || null);
+        });
       }
-      const charEnd = charStart + paragraph.length;
-      searchPos = charEnd;
+      scanPos = endPos;
+      if (!isLoading && isFinal) {
+        speechProgressRef.current[lastMsg.id] = -1;
+      } else {
+        speechProgressRef.current[lastMsg.id] = scanPos;
+      }
+    };
 
-      // Skip over the line break(s) following this segment
-      const delimMatch = lastMsg.content.slice(searchPos).match(/^\r?\n+/);
-      if (delimMatch) {
-        searchPos += delimMatch[0].length;
+    // Iterate over any *completed* lines since the last progress marker.
+    while (scanPos < content.length) {
+      const nextNlIdx = content.indexOf("\n", scanPos);
+      if (nextNlIdx === -1) {
+        // No further newlines – process rest only if streaming finished.
+        if (!isLoading) {
+          processChunk(content.length, true);
+        }
+        break;
       }
 
-      const cleaned = cleanTextForSpeech(paragraph.trim());
-      if (!cleaned) {
-        continue;
-      }
+      // We have a newline that marks the end of a full chunk.
+      processChunk(nextNlIdx, false);
 
-      const seg = {
-        messageId: lastMsg.id,
-        start: Math.max(0, charStart),
-        end: Math.max(0, charEnd),
-      };
+      // Skip the newline (and potential carriage-return) characters.
+      scanPos = nextNlIdx + 1;
+      if (content[scanPos] === "\r") scanPos += 1;
 
-      highlightQueueRef.current.push(seg);
-      if (!highlightSegment) setHighlightSegment(seg);
-
-      speak(cleaned, () => {
-        highlightQueueRef.current.shift();
-        setHighlightSegment(highlightQueueRef.current[0] || null);
-      });
+      // Record updated progress so subsequent effect runs start after the newline
+      speechProgressRef.current[lastMsg.id] = scanPos;
     }
 
-    // Update progress: store paragraph count processed so far
-    // Do not mark the message as fully done here; onFinish will handle the
-    // final segment so we just track how many paragraphs we've processed.
-    speechProgressRef.current[lastMsg.id] = lastReadyIndex;
-  }, [currentSdkMessages, speechEnabled, speak, highlightSegment, isLoading]);
+    // Fallback: if streaming has ended and there's leftover text (no trailing newline)
+    if (!isLoading && scanPos < content.length) {
+      processChunk(content.length, true);
+    }
+  }, [currentSdkMessages, isLoading, speechEnabled, speak, highlightSegment]);
 
   // --- Action Handlers ---
   const handleSubmit = useCallback(

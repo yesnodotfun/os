@@ -241,7 +241,7 @@ export function IpodWheel({
             ? "bg-white/30"
             : theme === "u2"
             ? "bg-black/70"
-            : "bg-black/40"
+            : "bg-black/30"
         )}
       />
 
