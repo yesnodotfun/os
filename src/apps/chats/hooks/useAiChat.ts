@@ -684,7 +684,9 @@ export function useAiChat() {
       const progress = speechProgressRef.current[lastMsg.id];
       if (progress === -1) return; // already fully spoken
 
-      const paragraphs = lastMsg.content.split(/(?:\r?\n){2,}/);
+      // Split on any line break(s) so single newlines also become separate
+      // segments for speech.
+      const paragraphs = lastMsg.content.split(/\r?\n+/);
       const processedCount = typeof progress === "number" ? progress : 0;
 
       if (processedCount >= paragraphs.length) {
@@ -701,10 +703,10 @@ export function useAiChat() {
           break;
         }
         searchPos = idx + paragraphs[i].length;
-        // Skip the delimiter (one or more blank lines)
+        // Skip the delimiter (one or more line breaks)
         const delimMatch = lastMsg.content
           .slice(searchPos)
-          .match(/^(?:\r?\n){2,}/);
+          .match(/^\r?\n+/);
         if (delimMatch) {
           searchPos += delimMatch[0].length;
         }
@@ -781,7 +783,9 @@ export function useAiChat() {
         ? (speechProgressRef.current[lastMsg.id] as number)
         : 0;
 
-    const paragraphs = lastMsg.content.split(/(?:\r?\n){2,}/);
+    // Split on any line break(s) so single newlines also become separate
+    // segments for speech.
+    const paragraphs = lastMsg.content.split(/\r?\n+/);
 
     const totalParagraphs = paragraphs.length;
     if (processedCount >= totalParagraphs) return; // nothing left
@@ -795,12 +799,6 @@ export function useAiChat() {
 
     for (let idx = processedCount; idx < lastReadyIndex; idx++) {
       const paragraph = paragraphs[idx];
-      const cleaned = cleanTextForSpeech(paragraph.trim());
-      if (!cleaned) {
-        // Still need to advance searchPos to avoid infinite loop
-        searchPos += paragraph.length + 2; // rough skip
-        continue;
-      }
 
       let charStart = lastMsg.content.indexOf(paragraph, searchPos);
       if (charStart === -1) {
@@ -809,6 +807,17 @@ export function useAiChat() {
       }
       const charEnd = charStart + paragraph.length;
       searchPos = charEnd;
+
+      // Skip over the line break(s) following this segment
+      const delimMatch = lastMsg.content.slice(searchPos).match(/^\r?\n+/);
+      if (delimMatch) {
+        searchPos += delimMatch[0].length;
+      }
+
+      const cleaned = cleanTextForSpeech(paragraph.trim());
+      if (!cleaned) {
+        continue;
+      }
 
       const seg = {
         messageId: lastMsg.id,
