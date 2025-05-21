@@ -335,6 +335,13 @@ export const IPOD_DEFAULT_VIDEOS = [
     lyricOffset: -7850,
   },
   {
+    id: "pQg7doFpC5k",
+    url: "https://www.youtube.com/watch?v=pQg7doFpC5k",
+    title: "Sweet Life",
+    artist: "Joo Young",
+    lyricOffset: 2000,
+  },
+  {
     id: "4j7Umwfx60Q",
     url: "https://www.youtube.com/watch?v=4j7Umwfx60Q",
     title: "4 Walls",
@@ -367,6 +374,13 @@ export const IPOD_DEFAULT_VIDEOS = [
     url: "https://www.youtube.com/watch?v=3JWTaaS7LdU",
     title: "I Will Always Love You",
     artist: "Whitney Houston",
+  },
+  {
+    id: "bX33UI9ZPLk",
+    url: "https://www.youtube.com/watch?v=bX33UI9ZPLk",
+    title: "黑色毛衣",
+    artist: "周杰倫",
+    lyricOffset: 4500,
   },
   {
     id: "IwOfCgkyEj0",
@@ -482,7 +496,7 @@ export interface IpodState extends IpodData {
   addTrackFromVideoId: (urlOrId: string) => Promise<Track | null>;
 }
 
-const CURRENT_IPOD_STORE_VERSION = 15; // Incremented version for new state
+const CURRENT_IPOD_STORE_VERSION = 16; // Incremented version for new state
 
 export const useIpodStore = create<IpodState>()(
   persist(
