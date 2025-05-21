@@ -888,6 +888,7 @@ function ChatMessagesContent({
                       case "tool-invocation": {
                         return (
                           <ToolInvocationMessage
+                            key={partKey}
                             part={part as any}
                             partKey={partKey}
                             isLoading={isLoading}
