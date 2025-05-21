@@ -692,22 +692,46 @@ export function useAiChat() {
         return;
       }
 
-      const remaining = paragraphs
-        .slice(processedCount)
-        .map((p) => cleanTextForSpeech(p.trim()))
-        .filter(Boolean)
-        .join("\n\n");
+      // Compute the character offset where the remaining text begins
+      let searchPos = 0;
+      for (let i = 0; i < processedCount; i++) {
+        const idx = lastMsg.content.indexOf(paragraphs[i], searchPos);
+        if (idx === -1) {
+          searchPos = lastMsg.content.length; // fallback
+          break;
+        }
+        searchPos = idx + paragraphs[i].length;
+        // Skip the delimiter (one or more blank lines)
+        const delimMatch = lastMsg.content
+          .slice(searchPos)
+          .match(/^(?:\r?\n){2,}/);
+        if (delimMatch) {
+          searchPos += delimMatch[0].length;
+        }
+      }
 
-      if (!remaining) {
+      const remainingOriginal = lastMsg.content.slice(searchPos);
+      const cleanedRemaining = cleanTextForSpeech(remainingOriginal);
+
+      if (!cleanedRemaining) {
         speechProgressRef.current[lastMsg.id] = -1;
         return;
       }
 
-      // Short delay so the UI can settle
+      const seg = {
+        messageId: lastMsg.id,
+        start: searchPos,
+        end: lastMsg.content.length,
+      };
+      highlightQueueRef.current.push(seg);
+      if (!highlightSegment) setHighlightSegment(seg);
+
+      // Speak with a slight delay so UI settles first
       setTimeout(() => {
-        speak(remaining, () => {
+        speak(cleanedRemaining, () => {
+          highlightQueueRef.current.shift();
+          setHighlightSegment(highlightQueueRef.current[0] || null);
           speechProgressRef.current[lastMsg.id] = -1;
-          setHighlightSegment(null);
         });
       }, 300);
     },
