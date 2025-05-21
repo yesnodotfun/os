@@ -206,6 +206,9 @@ export function useAiChat() {
   // Track how many characters of each assistant message have already been sent to TTS
   const speechProgressRef = useRef<Record<string, number>>({});
 
+  // Track which messages are currently being processed by onFinish to avoid duplicates
+  const onFinishProcessingRef = useRef<Set<string>>(new Set());
+
   // Currently highlighted chunk for UI animation
   const [highlightSegment, setHighlightSegment] = useState<{
     messageId: string;
@@ -704,12 +707,17 @@ export function useAiChat() {
 
       // Use helper function to get actual visible text
       const content = getAssistantVisibleText(lastMsg);
-      if (progress >= content.length) return;
+      if (progress >= content.length) {
+        // Clean up the processing flag even if there's nothing to speak
+        onFinishProcessingRef.current.delete(lastMsg.id);
+        return;
+      }
 
       const remainingRaw = content.slice(progress);
       const cleaned = cleanTextForSpeech(remainingRaw);
       if (!cleaned) {
         speechProgressRef.current[lastMsg.id] = content.length;
+        onFinishProcessingRef.current.delete(lastMsg.id);
         return;
       }
 
@@ -732,6 +740,8 @@ export function useAiChat() {
         highlightQueueRef.current.shift();
         setHighlightSegment(highlightQueueRef.current[0] || null);
         speechProgressRef.current[lastMsg.id] = content.length;
+        // Clean up the processing flag when done
+        onFinishProcessingRef.current.delete(lastMsg.id);
       });
     },
     onError: (err) => {
@@ -775,6 +785,9 @@ export function useAiChat() {
     const lastMsg = currentSdkMessages.at(-1);
     if (!lastMsg || lastMsg.role !== "assistant") return;
 
+    // Skip if onFinish is currently processing this message
+    if (onFinishProcessingRef.current.has(lastMsg.id)) return;
+
     // Get current progress for this message
     let progress =
       typeof speechProgressRef.current[lastMsg.id] === "number"
@@ -813,20 +826,27 @@ export function useAiChat() {
       scanPos = endPos;
       if (!isLoading && isFinal) {
         // Instead of -1, store the actual content length when complete
-        speechProgressRef.current[lastMsg.id] = content.length;
+        // But only if onFinish isn't about to handle this message
+        if (!onFinishProcessingRef.current.has(lastMsg.id)) {
+          speechProgressRef.current[lastMsg.id] = content.length;
+        }
       } else {
         speechProgressRef.current[lastMsg.id] = scanPos;
       }
     };
 
+    // When streaming ends, let onFinish handle the final content to avoid duplication
+    if (!isLoading) {
+      // Mark that onFinish should handle any remaining content
+      onFinishProcessingRef.current.add(lastMsg.id);
+      return;
+    }
+
     // Iterate over any *completed* lines since the last progress marker.
     while (scanPos < content.length) {
       const nextNlIdx = content.indexOf("\n", scanPos);
       if (nextNlIdx === -1) {
-        // No further newlines – process rest only if streaming finished.
-        if (!isLoading) {
-          processChunk(content.length, true);
-        }
+        // No further newlines - stop here and let onFinish handle the rest
         break;
       }
 
@@ -839,11 +859,6 @@ export function useAiChat() {
 
       // Record updated progress so subsequent effect runs start after the newline
       speechProgressRef.current[lastMsg.id] = scanPos;
-    }
-
-    // Fallback: if streaming has ended and there's leftover text (no trailing newline)
-    if (!isLoading && scanPos < content.length) {
-      processChunk(content.length, true);
     }
   }, [currentSdkMessages, isLoading, speechEnabled, speak, highlightSegment]);
 
@@ -903,6 +918,9 @@ export function useAiChat() {
 
     // Clear progress tracking so new messages are treated as fresh
     speechProgressRef.current = {};
+
+    // Clear onFinish processing flags
+    onFinishProcessingRef.current.clear();
 
     // Reset highlight queue & currently highlighted segment
     highlightQueueRef.current = [];
