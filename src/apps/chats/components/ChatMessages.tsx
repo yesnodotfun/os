@@ -524,21 +524,17 @@ function ChatMessagesContent({
 
                           const text = displayContent.trim();
                           if (text) {
-                            // Split into sentence-like chunks so each fetch starts immediately and
+                            // Split into line-based chunks so each fetch starts immediately and
                             // the UI can advance per chunk.
                             const chunks: string[] = [];
-                            let buffer = text;
-                            const sentenceRegex =
-                              /[.!?。，！？；：](?:\s+|$)|\r?\n+/;
-                            let match: RegExpMatchArray | null;
-                            while ((match = buffer.match(sentenceRegex))) {
-                              const idx = match.index! + match[0].length;
-                              const sentence = buffer.slice(0, idx).trim();
-                              if (sentence) chunks.push(sentence);
-                              buffer = buffer.slice(idx);
+                            const lines = text.split(/\r?\n/);
+
+                            for (const line of lines) {
+                              const trimmedLine = line.trim();
+                              if (trimmedLine && trimmedLine.length > 0) {
+                                chunks.push(trimmedLine);
+                              }
                             }
-                            // Push any remaining fragment
-                            if (buffer.trim()) chunks.push(buffer.trim());
 
                             if (chunks.length === 0) {
                               setPlayingMessageId(null);
@@ -897,7 +893,9 @@ function ChatMessagesContent({
                             isLoading={isLoading}
                             getAppName={getAppName}
                             formatToolName={formatToolName}
-                            setIsInteractingWithPreview={setIsInteractingWithPreview}
+                            setIsInteractingWithPreview={
+                              setIsInteractingWithPreview
+                            }
                             playElevatorMusic={playElevatorMusic}
                             stopElevatorMusic={stopElevatorMusic}
                             playDingSound={playDingSound}

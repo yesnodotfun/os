@@ -738,77 +738,90 @@ export function useAiChat() {
     if (processed === -1 || lastMsg.content.length <= processed) return; // nothing new or skipped
 
     const newText = lastMsg.content.slice(processed);
-    let buffer = newText;
-    let spokenChars = 0;
-    let match: RegExpMatchArray | null;
-    const sentenceRegex = /[.!?。，！？；：](?:\s+|$)|\r?\n+/;
 
-    while ((match = buffer.match(sentenceRegex))) {
-      const matchText = match[0];
-      const idx = match.index! + matchText.length; // include punctuation and following spaces
-      const sentence = buffer.slice(0, idx).trim();
-      if (sentence && !/^[\s.!?。，！？；：]+$/.test(sentence)) {
-        const cleaned = cleanTextForSpeech(sentence);
-        // Skip if the cleaned text is empty or only contains code/HTML artifacts
-        if (
-          cleaned &&
-          !/^[\s.!?。，！？；：]+$/.test(cleaned) &&
-          cleaned.length > 0
-        ) {
-          // If this is an urgent message (starts with "!!!!"), the UI trims
-          // the first 4 exclamation marks *and* any following spaces before
-          // rendering. We need to offset our start/end indices so they align
-          // with the visible (trimmed) text.
-          let prefixOffset = 0;
-          if (lastMsg.content.startsWith("!!!!")) {
-            // Base 4 chars for the exclamation marks
-            prefixOffset = 4;
-            // Skip any whitespace that will be removed by trimStart()
-            let i = 4;
-            while (
-              i < lastMsg.content.length &&
-              /\s/.test(lastMsg.content[i])
-            ) {
-              prefixOffset++;
-              i++;
+    // Find complete lines (those that end with line breaks)
+    const lines = newText.split(/(\r?\n)/);
+    let processedChars = 0;
+    let hasCompleteLines = false;
+
+    // Process pairs of (content, linebreak) or just content if it's the last item
+    for (let i = 0; i < lines.length; i += 2) {
+      const lineContent = lines[i] || "";
+      const lineBreak = lines[i + 1] || "";
+
+      // If we have a line break, this is a complete line to process
+      if (lineBreak) {
+        hasCompleteLines = true;
+        const trimmedLine = lineContent.trim();
+
+        if (trimmedLine && trimmedLine.length > 0) {
+          const cleaned = cleanTextForSpeech(trimmedLine);
+          // Skip if the cleaned text is empty or only contains code/HTML artifacts
+          if (
+            cleaned &&
+            !/^[\s.!?。，！？；：]+$/.test(cleaned) &&
+            cleaned.length > 0
+          ) {
+            // If this is an urgent message (starts with "!!!!"), the UI trims
+            // the first 4 exclamation marks *and* any following spaces before
+            // rendering. We need to offset our start/end indices so they align
+            // with the visible (trimmed) text.
+            let prefixOffset = 0;
+            if (lastMsg.content.startsWith("!!!!")) {
+              // Base 4 chars for the exclamation marks
+              prefixOffset = 4;
+              // Skip any whitespace that will be removed by trimStart()
+              let i = 4;
+              while (
+                i < lastMsg.content.length &&
+                /\s/.test(lastMsg.content[i])
+              ) {
+                prefixOffset++;
+                i++;
+              }
             }
-          }
 
-          const chunkStart =
-            processed + newText.indexOf(sentence) + spokenChars - prefixOffset;
-          const chunkEnd = chunkStart + sentence.length;
+            const chunkStart = processed + processedChars - prefixOffset;
+            const chunkEnd = chunkStart + lineContent.length;
 
-          // Push highlight info to queue
-          const seg = {
-            messageId: lastMsg.id,
-            start: chunkStart,
-            end: chunkEnd,
-          };
-          highlightQueueRef.current.push(seg);
+            // Push highlight info to queue
+            const seg = {
+              messageId: lastMsg.id,
+              start: chunkStart,
+              end: chunkEnd,
+            };
+            highlightQueueRef.current.push(seg);
 
-          // If no highlight active, set as current
-          if (!highlightSegment) {
-            setHighlightSegment(seg);
-          }
-
-          speak(cleaned, () => {
-            // On chunk end, shift queue
-            highlightQueueRef.current.shift();
-            if (highlightQueueRef.current.length > 0) {
-              setHighlightSegment(highlightQueueRef.current[0]);
-            } else {
-              setHighlightSegment(null);
+            // If no highlight active, set as current
+            if (!highlightSegment) {
+              setHighlightSegment(seg);
             }
-          });
+
+            speak(cleaned, () => {
+              // On chunk end, shift queue
+              highlightQueueRef.current.shift();
+              if (highlightQueueRef.current.length > 0) {
+                setHighlightSegment(highlightQueueRef.current[0]);
+              } else {
+                setHighlightSegment(null);
+              }
+            });
+          }
         }
+
+        // Count both the line content and the line break
+        processedChars += lineContent.length + lineBreak.length;
+      } else {
+        // This is an incomplete line (no line break), don't process it yet
+        break;
       }
-      spokenChars += idx;
-      buffer = buffer.slice(idx);
     }
 
-    speechProgressRef.current[lastMsg.id] = processed + spokenChars;
-    // leftover buffer will be spoken in future ticks or onFinish
-  }, [currentSdkMessages, speechEnabled, speak]);
+    // Only update progress for complete lines we've processed
+    if (hasCompleteLines) {
+      speechProgressRef.current[lastMsg.id] = processed + processedChars;
+    }
+  }, [currentSdkMessages, speechEnabled, speak, highlightSegment]);
 
   // --- Action Handlers ---
   const handleSubmit = useCallback(
