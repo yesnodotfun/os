@@ -371,31 +371,8 @@ export function IpodAppComponent({
   const setTheme = useIpodStore((s) => s.setTheme);
   const clearLibrary = useIpodStore((s) => s.clearLibrary);
   const resetLibrary = useIpodStore((s) => s.resetLibrary);
-  const initializeLibrary = useIpodStore((s) => s.initializeLibrary);
   const nextTrack = useIpodStore((s) => s.nextTrack);
   const previousTrack = useIpodStore((s) => s.previousTrack);
-
-  useEffect(() => {
-    if (tracks.length === 0) {
-      initializeLibrary();
-    }
-  }, [tracks.length, initializeLibrary]);
-
-  // Add fullscreen change event handler
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      // If browser fullscreen is exited (e.g. by pressing Escape)
-      // and our app thinks we're still in fullscreen mode, update the app state
-      if (!document.fullscreenElement && isFullScreen) {
-        toggleFullScreen();
-      }
-    };
-
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () => {
-      document.removeEventListener("fullscreenchange", handleFullscreenChange);
-    };
-  }, [isFullScreen, toggleFullScreen]);
 
   const [lastActivityTime, setLastActivityTime] = useState(Date.now());
   const backlightTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -1628,6 +1605,22 @@ export function IpodAppComponent({
     },
     [showStatus]
   );
+
+  // Add fullscreen change event handler
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      // If browser fullscreen is exited (e.g. by pressing Escape)
+      // and our app thinks we're still in fullscreen mode, update the app state
+      if (!document.fullscreenElement && isFullScreen) {
+        toggleFullScreen();
+      }
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    };
+  }, [isFullScreen, toggleFullScreen]);
 
   if (!isWindowOpen) return null;
 

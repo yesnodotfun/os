@@ -14,6 +14,8 @@ export interface Track {
   lyricOffset?: number;
 }
 
+type LibraryState = "uninitialized" | "loaded" | "cleared";
+
 interface IpodData {
   tracks: Track[];
   currentIndex: number;
@@ -32,6 +34,7 @@ interface IpodData {
   lyricsTranslationRequest: { language: string; songId: string } | null;
   currentLyrics: { lines: LyricLine[] } | null;
   isFullScreen: boolean;
+  libraryState: LibraryState;
 }
 
 async function loadDefaultTracks(): Promise<Track[]> {
@@ -74,6 +77,7 @@ const initialIpodData: IpodData = {
   lyricsTranslationRequest: null,
   currentLyrics: null,
   isFullScreen: false,
+  libraryState: "uninitialized",
 };
 
 export interface IpodState extends IpodData {
@@ -147,6 +151,7 @@ export const useIpodStore = create<IpodState>()(
           currentIndex: 0,
           isPlaying: true,
           lyricsTranslationRequest: null,
+          libraryState: "loaded",
         })),
       clearLibrary: () =>
         set({
@@ -154,6 +159,7 @@ export const useIpodStore = create<IpodState>()(
           currentIndex: -1,
           isPlaying: false,
           lyricsTranslationRequest: null,
+          libraryState: "cleared",
         }),
       resetLibrary: async () => {
         const tracks = await loadDefaultTracks();
@@ -162,6 +168,7 @@ export const useIpodStore = create<IpodState>()(
           currentIndex: tracks.length > 0 ? 0 : -1,
           isPlaying: false,
           lyricsTranslationRequest: null,
+          libraryState: "loaded",
         });
       },
       nextTrack: () =>
@@ -248,6 +255,7 @@ export const useIpodStore = create<IpodState>()(
             currentIndex: importedTracks.length > 0 ? 0 : -1,
             isPlaying: false,
             lyricsTranslationRequest: null,
+            libraryState: "loaded",
           });
         } catch (error) {
           console.error("Failed to import library:", error);
@@ -259,10 +267,15 @@ export const useIpodStore = create<IpodState>()(
         return JSON.stringify(tracks, null, 2);
       },
       initializeLibrary: async () => {
-        const current = get().tracks;
-        if (current.length === 0) {
+        const current = get();
+        // Only initialize if the library is in uninitialized state
+        if (current.libraryState === "uninitialized") {
           const tracks = await loadDefaultTracks();
-          set({ tracks, currentIndex: tracks.length > 0 ? 0 : -1 });
+          set({
+            tracks,
+            currentIndex: tracks.length > 0 ? 0 : -1,
+            libraryState: "loaded",
+          });
         }
       },
       addTrackFromVideoId: async (urlOrId: string): Promise<Track | null> => {
@@ -408,20 +421,21 @@ export const useIpodStore = create<IpodState>()(
         chineseVariant: state.chineseVariant,
         koreanDisplay: state.koreanDisplay,
         isFullScreen: state.isFullScreen,
+        libraryState: state.libraryState,
       }),
       migrate: (persistedState, version) => {
         let state = persistedState as IpodState; // Type assertion
 
         // If the persisted version is older than the current version, update defaults
-          if (version < CURRENT_IPOD_STORE_VERSION) {
-            console.log(
-              `Migrating iPod store from version ${version} to ${CURRENT_IPOD_STORE_VERSION}`
-            );
-            state = {
-              ...state,
-              tracks: [],
-              currentIndex: 0,
-              isPlaying: false,
+        if (version < CURRENT_IPOD_STORE_VERSION) {
+          console.log(
+            `Migrating iPod store from version ${version} to ${CURRENT_IPOD_STORE_VERSION}`
+          );
+          state = {
+            ...state,
+            tracks: [],
+            currentIndex: 0,
+            isPlaying: false,
             isShuffled: state.isShuffled, // Keep shuffle preference maybe? Or reset? Let's keep it for now.
             showLyrics: state.showLyrics ?? true, // Add default for migration
             lyricsAlignment:
@@ -429,6 +443,7 @@ export const useIpodStore = create<IpodState>()(
             chineseVariant: state.chineseVariant ?? ChineseVariant.Traditional,
             koreanDisplay: state.koreanDisplay ?? KoreanDisplay.Original,
             lyricsTranslationRequest: null, // Ensure this is not carried from old persisted state
+            libraryState: "uninitialized" as LibraryState, // Reset to uninitialized on migration
           };
         }
         // Clean up potentially outdated fields if needed in future migrations
@@ -449,6 +464,7 @@ export const useIpodStore = create<IpodState>()(
           chineseVariant: state.chineseVariant,
           koreanDisplay: state.koreanDisplay,
           isFullScreen: state.isFullScreen,
+          libraryState: state.libraryState,
         };
 
         return partializedState as IpodState; // Return the potentially migrated state
@@ -457,9 +473,11 @@ export const useIpodStore = create<IpodState>()(
         return (state, error) => {
           if (error) {
             console.error("Error rehydrating iPod store:", error);
-          } else if (state && (!state.tracks || state.tracks.length === 0)) {
-            Promise.resolve(state.initializeLibrary())
-              .catch((err) => console.error("Initialization failed on rehydrate", err));
+          } else if (state && state.libraryState === "uninitialized") {
+            // Only auto-initialize if library state is uninitialized
+            Promise.resolve(state.initializeLibrary()).catch((err) =>
+              console.error("Initialization failed on rehydrate", err)
+            );
           }
         };
       },
