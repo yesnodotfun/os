@@ -362,6 +362,20 @@ export const IPOD_DEFAULT_VIDEOS = [
     lyricOffset: 2000,
   },
   {
+    id: "D3IDK_R1LTg",
+    url: "https://www.youtube.com/watch?v=D3IDK_R1LTg",
+    title: "Every Heart-ミンナノキモチ-",
+    artist: "BoA",
+    lyricOffset: -3200,
+  },
+  {
+    id: "bjTEMBB-mjY",
+    url: "https://www.youtube.com/watch?v=bjTEMBB-mjY",
+    title: "WE BELONG TOGETHER",
+    artist: "BIGBANG",
+    lyricOffset: -3900,
+  },
+  {
     id: "4j7Umwfx60Q",
     url: "https://www.youtube.com/watch?v=4j7Umwfx60Q",
     title: "4 Walls",
