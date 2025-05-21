@@ -43,7 +43,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     url: "https://youtu.be/jKnLSg83Nqc?si=0mX3pYk0q98Ndoui",
     title: "ㅠ.ㅠ (You)",
     artist: "Crush",
-    album: "",
+    album: "wonderego",
     lyricOffset: 1000,
   },
   {
@@ -51,7 +51,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     url: "https://youtu.be/hCg9tezGBWE?si=4KFJNVTDm6OA2kK8",
     title: "Magnetic",
     artist: "ILLIT",
-    album: "",
+    album: "SUPER REAL ME",
     lyricOffset: -1000,
   },
   {
@@ -59,7 +59,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     url: "https://youtu.be/Dlz_XHeUUis?si=R7MDtk9W8suZcQDW",
     title: "White Ferrari",
     artist: "Frank Ocean",
-    album: "",
+    album: "Blonde",
     lyricOffset: 1450,
   },
   {
@@ -67,7 +67,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     url: "https://youtu.be/Q3K0TOvTOno?si=_VbKas8ZYd9jpXiA",
     title: "How Sweet",
     artist: "NewJeans",
-    album: "",
+    album: "How Sweet",
     lyricOffset: -10500,
   },
   {
@@ -75,7 +75,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     url: "https://youtu.be/ft70sAYrFyY?si=SJXlm-KRfgrMIODE",
     title: "Bubble Gum",
     artist: "NewJeans",
-    album: "",
+    album: "How Sweet",
     lyricOffset: -9150,
   },
   {
@@ -83,7 +83,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     url: "https://www.youtube.com/watch?v=-nEGVrzPaiU&pp=ygUPdGljayB0YWNrIGlsbGl0",
     title: "Tick-Tack",
     artist: "ILLIT",
-    album: "",
+    album: "I'll Like You",
     lyricOffset: -16350,
   },
   {
@@ -138,7 +138,7 @@ export const IPOD_DEFAULT_VIDEOS = [
     id: "XJWqHmY-g9U",
     url: "https://www.youtube.com/watch?v=XJWqHmY-g9U",
     title: "Telephone Number",
-    artist: "Junko Ohashi",
+    artist: "大橋純子",
     album: "MAGICAL",
     lyricOffset: 2200,
   },
@@ -381,27 +381,6 @@ export const IPOD_DEFAULT_VIDEOS = [
     title: "黑色毛衣",
     artist: "周杰倫",
     lyricOffset: 4500,
-  },
-  {
-    id: "IwOfCgkyEj0",
-    url: "https://www.youtube.com/watch?v=IwOfCgkyEj0",
-    title: "Like a Rolling Stone",
-    artist: "Bob Dylan",
-    lyricOffset: 1150,
-  },
-  {
-    id: "2GRP1rkE4O0",
-    url: "https://www.youtube.com/watch?v=2GRP1rkE4O0",
-    title: "BLUE",
-    artist: "BIGBANG",
-    lyricOffset: -4800,
-  },
-  {
-    id: "uelHwf8o7_U",
-    url: "https://www.youtube.com/watch?v=uelHwf8o7_U",
-    title: "Love The Way You Lie",
-    artist: "Eminem ft. Rihanna",
-    lyricOffset: 1000,
   },
 ];
 
