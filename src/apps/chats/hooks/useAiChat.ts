@@ -207,7 +207,7 @@ export function useAiChat() {
   useEffect(() => {
     aiMessages.forEach((msg) => {
       if (msg.role === "assistant") {
-        speechProgressRef.current[msg.id] = msg.content.length; // skip speaking
+        speechProgressRef.current[msg.id] = -1; // mark as fully processed
       }
     });
   }, [aiMessages]);
@@ -668,16 +668,48 @@ export function useAiChat() {
         return `Failed to execute ${toolCall.toolName}`;
       }
     },
-    onFinish: (/* _finishedMessage: Message | { message: Message } */) => {
-      // Sync latest messages from ref to Zustand store
+    onFinish: () => {
       const finalMessages = currentSdkMessagesRef.current;
       console.log(
         `AI finished, syncing ${finalMessages.length} final messages to store.`
       );
       setAiMessages(finalMessages);
 
-      // The useEffect above now handles final content when isLoading becomes false
-      // No need for duplicate logic here
+      // --- Final speech flush ---
+      if (!speechEnabled) return;
+
+      const lastMsg = finalMessages.at(-1);
+      if (!lastMsg || lastMsg.role !== "assistant") return;
+
+      const progress = speechProgressRef.current[lastMsg.id];
+      if (progress === -1) return; // already fully spoken
+
+      const paragraphs = lastMsg.content.split(/(?:\r?\n){2,}/);
+      const processedCount = typeof progress === "number" ? progress : 0;
+
+      if (processedCount >= paragraphs.length) {
+        speechProgressRef.current[lastMsg.id] = -1;
+        return;
+      }
+
+      const remaining = paragraphs
+        .slice(processedCount)
+        .map((p) => cleanTextForSpeech(p.trim()))
+        .filter(Boolean)
+        .join("\n\n");
+
+      if (!remaining) {
+        speechProgressRef.current[lastMsg.id] = -1;
+        return;
+      }
+
+      // Short delay so the UI can settle
+      setTimeout(() => {
+        speak(remaining, () => {
+          speechProgressRef.current[lastMsg.id] = -1;
+          setHighlightSegment(null);
+        });
+      }, 300);
     },
     onError: (err) => {
       console.error("AI Chat Error:", err);
@@ -720,76 +752,64 @@ export function useAiChat() {
     const lastMsg = currentSdkMessages.at(-1);
     if (!lastMsg || lastMsg.role !== "assistant") return;
 
-    // Where did we leave off for this message?
-    const processed = speechProgressRef.current[lastMsg.id] ?? 0;
-    if (processed === -1 || lastMsg.content.length <= processed) return;
+    if (speechProgressRef.current[lastMsg.id] === -1) return; // already done
 
-    // Slice the *unspoken* part
-    const remaining = lastMsg.content.slice(processed);
-    if (!remaining) return;
+    const processedCount =
+      typeof speechProgressRef.current[lastMsg.id] === "number"
+        ? (speechProgressRef.current[lastMsg.id] as number)
+        : 0;
 
-    // Paragraph = separated by at least *two* line breaks (blank line)
-    const paragraphs = remaining.split(/(?:\r?\n){2,}/);
+    const paragraphs = lastMsg.content.split(/(?:\r?\n){2,}/);
 
-    // While streaming we ignore the *possibly-incomplete* final paragraph.
-    // When generation finishes (isLoading === false) we speak everything.
-    const finalParagraphMightBeIncomplete = isLoading;
-    const cutoff = finalParagraphMightBeIncomplete
-      ? paragraphs.length - 1
-      : paragraphs.length;
-    if (cutoff <= 0) return; // Nothing ready to speak yet
+    const totalParagraphs = paragraphs.length;
+    if (processedCount >= totalParagraphs) return; // nothing left
 
-    // Prefix offset for messages that start with urgent marker (!!!!)
-    let prefixOffset = 0;
-    if (lastMsg.content.startsWith("!!!!")) {
-      prefixOffset = 4;
-      let j = 4;
-      while (j < lastMsg.content.length && /\s/.test(lastMsg.content[j])) {
-        prefixOffset++;
-        j++;
+    // While streaming, ignore the last (possibly still-growing) paragraph
+    const lastReadyIndex = isLoading ? totalParagraphs - 1 : totalParagraphs;
+    if (lastReadyIndex <= processedCount) return;
+
+    // Find char start positions on the fly using indexOf search from previous cursor.
+    let searchPos = 0;
+
+    for (let idx = processedCount; idx < lastReadyIndex; idx++) {
+      const paragraph = paragraphs[idx];
+      const cleaned = cleanTextForSpeech(paragraph.trim());
+      if (!cleaned) {
+        // Still need to advance searchPos to avoid infinite loop
+        searchPos += paragraph.length + 2; // rough skip
+        continue;
       }
+
+      let charStart = lastMsg.content.indexOf(paragraph, searchPos);
+      if (charStart === -1) {
+        // As a fallback use the current searchPos which should be close enough for highlighting.
+        charStart = searchPos;
+      }
+      const charEnd = charStart + paragraph.length;
+      searchPos = charEnd;
+
+      const seg = {
+        messageId: lastMsg.id,
+        start: Math.max(0, charStart),
+        end: Math.max(0, charEnd),
+      };
+
+      highlightQueueRef.current.push(seg);
+      if (!highlightSegment) setHighlightSegment(seg);
+
+      speak(cleaned, () => {
+        highlightQueueRef.current.shift();
+        setHighlightSegment(highlightQueueRef.current[0] || null);
+      });
     }
 
-    // Cursor tracks absolute position within lastMsg.content
-    let cursor = processed;
-
-    paragraphs.forEach((paragraph, idx) => {
-      // Skip the potentially incomplete last paragraph during streaming
-      if (finalParagraphMightBeIncomplete && idx === paragraphs.length - 1) {
-        return;
-      }
-
-      // We include the paragraph *exactly as is* (no trimming for length accounting)
-      const visible = paragraph.trim();
-      const cleaned = cleanTextForSpeech(visible);
-      if (cleaned) {
-        const start = cursor - prefixOffset;
-        const end = start + paragraph.length; // use raw paragraph length so highlight matches source indices
-
-        const seg = {
-          messageId: lastMsg.id,
-          start: Math.max(0, start),
-          end: Math.max(0, end),
-        };
-
-        highlightQueueRef.current.push(seg);
-        if (!highlightSegment) setHighlightSegment(seg);
-
-        speak(cleaned, () => {
-          highlightQueueRef.current.shift();
-          setHighlightSegment(highlightQueueRef.current[0] || null);
-        });
-      }
-
-      // Advance cursor by the paragraph length and account for the line-break
-      // delimiter that split() removed. We assume two characters ("\n\n")
-      // when there *is* another paragraph following this one.
-      const hasFollowingParagraph = idx < paragraphs.length - 1;
-      cursor += paragraph.length + (hasFollowingParagraph ? 2 : 0);
-    });
-
-    // Update progress pointer – but never move past content we intentionally skipped.
-    speechProgressRef.current[lastMsg.id] = cursor;
+    // Update progress: store paragraph count processed so far
+    if (lastReadyIndex === totalParagraphs && !isLoading) {
+      // Fully done for this message
+      speechProgressRef.current[lastMsg.id] = -1;
+    } else {
+      speechProgressRef.current[lastMsg.id] = lastReadyIndex;
+    }
   }, [currentSdkMessages, speechEnabled, speak, highlightSegment, isLoading]);
 
   // --- Action Handlers ---
@@ -853,13 +873,15 @@ export function useAiChat() {
     highlightQueueRef.current = [];
     setHighlightSegment(null);
 
-    // Define the initial message
+    // Define the initial message and mark it as fully processed so it is never spoken
     const initialMessage: Message = {
       id: "1", // Ensure consistent ID for the initial message
       role: "assistant",
       content: "👋 hey! i'm ryo. ask me anything!",
       createdAt: new Date(),
     };
+    speechProgressRef.current[initialMessage.id] = -1;
+
     // Update both the Zustand store and the SDK state directly
     setAiMessages([initialMessage]);
     setSdkMessages([initialMessage]);
