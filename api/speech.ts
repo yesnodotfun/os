@@ -73,9 +73,9 @@ const generateElevenLabsSpeech = async (
     | "ulaw_8000" = "mp3_44100_128",
   voice_settings: SpeechRequest["voice_settings"] = {
     stability: 0.5,
-    similarity_boost: 0.8,
+    similarity_boost: 0.7,
     use_speaker_boost: true,
-    speed: 1.0,
+    speed: 1.2,
   }
 ): Promise<ArrayBuffer> => {
   if (!ELEVENLABS_API_KEY) {
