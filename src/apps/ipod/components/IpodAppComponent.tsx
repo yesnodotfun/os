@@ -371,8 +371,15 @@ export function IpodAppComponent({
   const setTheme = useIpodStore((s) => s.setTheme);
   const clearLibrary = useIpodStore((s) => s.clearLibrary);
   const resetLibrary = useIpodStore((s) => s.resetLibrary);
+  const initializeLibrary = useIpodStore((s) => s.initializeLibrary);
   const nextTrack = useIpodStore((s) => s.nextTrack);
   const previousTrack = useIpodStore((s) => s.previousTrack);
+
+  useEffect(() => {
+    if (tracks.length === 0) {
+      initializeLibrary();
+    }
+  }, [tracks.length, initializeLibrary]);
 
   // Add fullscreen change event handler
   useEffect(() => {
@@ -1892,7 +1899,7 @@ export function IpodAppComponent({
           isOpen={isConfirmResetOpen}
           onOpenChange={setIsConfirmResetOpen}
           onConfirm={() => {
-            resetLibrary();
+            void resetLibrary();
             setIsConfirmResetOpen(false);
             showStatus("Library Reset");
           }}
