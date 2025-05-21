@@ -75,7 +75,7 @@ const generateElevenLabsSpeech = async (
     stability: 0.5,
     similarity_boost: 0.7,
     use_speaker_boost: true,
-    speed: 1.2,
+    speed: 1.1,
   }
 ): Promise<ArrayBuffer> => {
   if (!ELEVENLABS_API_KEY) {
