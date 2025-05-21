@@ -176,6 +176,25 @@ function createDebouncedAction(delay = 150) {
 // Singleton debounced executor reused across insertText tool calls
 const debouncedInsertTextUpdate = createDebouncedAction(150);
 
+// Helper function to extract visible text from message parts
+const getAssistantVisibleText = (message: Message): string => {
+  // If message has parts, extract text from text parts only
+  if (message.parts && message.parts.length > 0) {
+    return message.parts
+      .filter((part: any) => part.type === "text")
+      .map((part: any) => {
+        const text = part.text || "";
+        // Handle urgent messages by removing leading !!!!
+        return text.startsWith("!!!!") ? text.slice(4).trimStart() : text;
+      })
+      .join("");
+  }
+
+  // Fallback to content if no parts
+  const text = message.content || "";
+  return text.startsWith("!!!!") ? text.slice(4).trimStart() : text;
+};
+
 export function useAiChat() {
   const { aiMessages, setAiMessages, username } = useChatsStore();
   const launchApp = useLaunchApp();
@@ -207,7 +226,8 @@ export function useAiChat() {
   useEffect(() => {
     aiMessages.forEach((msg) => {
       if (msg.role === "assistant") {
-        speechProgressRef.current[msg.id] = -1; // mark as fully processed
+        const content = getAssistantVisibleText(msg);
+        speechProgressRef.current[msg.id] = content.length; // mark as fully processed
       }
     });
   }, [aiMessages]);
@@ -681,19 +701,22 @@ export function useAiChat() {
       if (!lastMsg || lastMsg.role !== "assistant") return;
 
       const progress = speechProgressRef.current[lastMsg.id] ?? 0;
-      if (progress === -1 || progress >= lastMsg.content.length) return;
 
-      const remainingRaw = lastMsg.content.slice(progress);
+      // Use helper function to get actual visible text
+      const content = getAssistantVisibleText(lastMsg);
+      if (progress >= content.length) return;
+
+      const remainingRaw = content.slice(progress);
       const cleaned = cleanTextForSpeech(remainingRaw);
       if (!cleaned) {
-        speechProgressRef.current[lastMsg.id] = -1;
+        speechProgressRef.current[lastMsg.id] = content.length;
         return;
       }
 
       const seg = {
         messageId: lastMsg.id,
         start: progress,
-        end: lastMsg.content.length,
+        end: content.length,
       };
       highlightQueueRef.current.push(seg);
       if (!highlightSegment) {
@@ -708,7 +731,7 @@ export function useAiChat() {
       speak(cleaned, () => {
         highlightQueueRef.current.shift();
         setHighlightSegment(highlightQueueRef.current[0] || null);
-        speechProgressRef.current[lastMsg.id] = -1;
+        speechProgressRef.current[lastMsg.id] = content.length;
       });
     },
     onError: (err) => {
@@ -752,14 +775,18 @@ export function useAiChat() {
     const lastMsg = currentSdkMessages.at(-1);
     if (!lastMsg || lastMsg.role !== "assistant") return;
 
-    // -1 means fully processed
+    // Get current progress for this message
     let progress =
       typeof speechProgressRef.current[lastMsg.id] === "number"
         ? (speechProgressRef.current[lastMsg.id] as number)
         : 0;
-    if (progress === -1) return;
 
-    const { content } = lastMsg;
+    // Use helper function to get actual visible text
+    const content = getAssistantVisibleText(lastMsg);
+
+    // IMPORTANT: Handle multi-step tool calls
+    // If progress equals content length, this message was previously complete
+    // but if content.length has grown, we have new content to speak
     if (progress >= content.length) return;
 
     let scanPos = progress;
@@ -785,7 +812,8 @@ export function useAiChat() {
       }
       scanPos = endPos;
       if (!isLoading && isFinal) {
-        speechProgressRef.current[lastMsg.id] = -1;
+        // Instead of -1, store the actual content length when complete
+        speechProgressRef.current[lastMsg.id] = content.length;
       } else {
         speechProgressRef.current[lastMsg.id] = scanPos;
       }
@@ -887,7 +915,8 @@ export function useAiChat() {
       content: "👋 hey! i'm ryo. ask me anything!",
       createdAt: new Date(),
     };
-    speechProgressRef.current[initialMessage.id] = -1;
+    speechProgressRef.current[initialMessage.id] =
+      initialMessage.content.length;
 
     // Update both the Zustand store and the SDK state directly
     setAiMessages([initialMessage]);
