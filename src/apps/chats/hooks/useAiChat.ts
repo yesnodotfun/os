@@ -828,12 +828,9 @@ export function useAiChat() {
     }
 
     // Update progress: store paragraph count processed so far
-    if (lastReadyIndex === totalParagraphs && !isLoading) {
-      // Fully done for this message
-      speechProgressRef.current[lastMsg.id] = -1;
-    } else {
-      speechProgressRef.current[lastMsg.id] = lastReadyIndex;
-    }
+    // Do not mark the message as fully done here; onFinish will handle the
+    // final segment so we just track how many paragraphs we've processed.
+    speechProgressRef.current[lastMsg.id] = lastReadyIndex;
   }, [currentSdkMessages, speechEnabled, speak, highlightSegment, isLoading]);
 
   // --- Action Handlers ---
