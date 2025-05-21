@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactPlayer from "react-player";
 import { cn } from "@/lib/utils";
-import { AppProps } from "../../base/types";
+import { AppProps, VideosInitialData } from "../../base/types";
 import { WindowFrame } from "@/components/layout/WindowFrame";
 import { VideosMenuBar } from "./VideosMenuBar";
 import { HelpDialog } from "@/components/dialogs/HelpDialog";
@@ -304,7 +304,7 @@ export function VideosAppComponent({
   isForeground,
   skipInitialSound,
   initialData,
-}: AppProps) {
+}: AppProps<VideosInitialData>) {
   const { play: playVideoTape } = useSound(Sounds.VIDEO_TAPE);
   const { play: playButtonClick } = useSound(Sounds.BUTTON_CLICK);
   const videos = useVideoStore((s) => s.videos);

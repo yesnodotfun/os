@@ -139,7 +139,7 @@ export const useWindowManager = ({
           height: newHeight,
         });
       } else {
-        updateWindowState(appId as any, windowPosition, {
+        updateWindowState(appId, windowPosition, {
           width: windowSize.width,
           height: newHeight,
         });
@@ -327,7 +327,7 @@ export const useWindowManager = ({
         if (instanceId) {
           updateInstanceWindowState(instanceId, windowPosition, windowSize);
         } else {
-          updateWindowState(appId as any, windowPosition, windowSize);
+          updateWindowState(appId, windowPosition, windowSize);
         }
         // Stop move sound loop and play stop sound
         if (moveAudioRef.current) {
@@ -341,7 +341,7 @@ export const useWindowManager = ({
         if (instanceId) {
           updateInstanceWindowState(instanceId, windowPosition, windowSize);
         } else {
-          updateWindowState(appId as any, windowPosition, windowSize);
+          updateWindowState(appId, windowPosition, windowSize);
         }
         // Stop resize sound loop and play stop sound
         if (resizeAudioRef.current) {

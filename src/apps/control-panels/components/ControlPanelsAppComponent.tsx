@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { WallpaperPicker } from "./WallpaperPicker";
-import { AppProps } from "@/apps/base/types";
+import { AppProps, ControlPanelsInitialData } from "@/apps/base/types";
 import { clearAllAppStates } from "@/stores/useAppStore";
 import { ensureIndexedDBInitialized } from "@/utils/indexedDB";
 import { SYNTH_PRESETS } from "@/hooks/useChatSynth";
@@ -158,7 +158,7 @@ export function ControlPanelsAppComponent({
   isForeground,
   skipInitialSound,
   initialData,
-}: AppProps & { initialData?: { defaultTab?: string } }) {
+}: AppProps<ControlPanelsInitialData>) {
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
   const [isConfirmResetOpen, setIsConfirmResetOpen] = useState(false);

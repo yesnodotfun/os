@@ -5,7 +5,7 @@ import { PaintMenuBar } from "./PaintMenuBar";
 import { PaintPatternPalette } from "./PaintPatternPalette";
 import { PaintStrokeSettings } from "./PaintStrokeSettings";
 import { WindowFrame } from "@/components/layout/WindowFrame";
-import { AppProps } from "../../base/types";
+import { AppProps, PaintInitialData } from "../../base/types";
 import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
@@ -22,7 +22,7 @@ import { Filter } from "./PaintFiltersMenu";
 import { useAppStore } from "@/stores/useAppStore";
 import { toast } from "sonner";
 
-export const PaintAppComponent: React.FC<AppProps> = ({
+export const PaintAppComponent: React.FC<AppProps<PaintInitialData>> = ({
   isWindowOpen,
   onClose,
   isForeground = false,
@@ -366,7 +366,9 @@ export const PaintAppComponent: React.FC<AppProps> = ({
       if (!fileName) return;
 
       try {
-        const record = await dbOperations.get<any>(STORES.IMAGES, fileName);
+        const record: { content?: Blob } | undefined = await dbOperations.get<{
+          content?: Blob;
+        }>(STORES.IMAGES, fileName);
         if (record && record.content instanceof Blob) {
           const blobUrl = URL.createObjectURL(record.content);
           console.log("[Paint] Loading persisted file", currentFilePath);

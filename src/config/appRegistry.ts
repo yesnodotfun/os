@@ -13,6 +13,14 @@ import { SynthApp } from "@/apps/synth";
 import { IpodApp } from "@/apps/ipod";
 import { TerminalApp } from "@/apps/terminal";
 import { appIds } from "./appIds";
+import type {
+  BaseApp,
+  ControlPanelsInitialData,
+  InternetExplorerInitialData,
+  IpodInitialData,
+  PaintInitialData,
+  VideosInitialData,
+} from "@/apps/base/types";
 
 export type AppId = (typeof appIds)[number];
 
@@ -51,7 +59,7 @@ export const appRegistry = {
     } as WindowConstraints,
   },
   [InternetExplorerApp.id]: {
-    ...InternetExplorerApp,
+    ...(InternetExplorerApp as BaseApp<InternetExplorerInitialData>),
     windowConfig: {
       defaultSize: { width: 730, height: 600 },
       minSize: { width: 400, height: 300 },
@@ -72,7 +80,7 @@ export const appRegistry = {
     } as WindowConstraints,
   },
   [PaintApp.id]: {
-    ...PaintApp,
+    ...(PaintApp as BaseApp<PaintInitialData>),
     windowConfig: {
       defaultSize: { width: 713, height: 480 },
       minSize: { width: 400, height: 400 },
@@ -96,14 +104,14 @@ export const appRegistry = {
     } as WindowConstraints,
   },
   [VideosApp.id]: {
-    ...VideosApp,
+    ...(VideosApp as BaseApp<VideosInitialData>),
     windowConfig: {
       defaultSize: { width: 400, height: 420 },
       minSize: { width: 400, height: 340 },
     } as WindowConstraints,
   },
   [IpodApp.id]: {
-    ...IpodApp,
+    ...(IpodApp as BaseApp<IpodInitialData>),
     windowConfig: {
       defaultSize: { width: 300, height: 480 },
       minSize: { width: 300, height: 480 },
@@ -132,7 +140,7 @@ export const appRegistry = {
     } as WindowConstraints,
   },
   [ControlPanelsApp.id]: {
-    ...ControlPanelsApp,
+    ...(ControlPanelsApp as BaseApp<ControlPanelsInitialData>),
     windowConfig: {
       defaultSize: { width: 365, height: 415 },
       minSize: { width: 320, height: 415 },

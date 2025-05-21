@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactPlayer from "react-player";
 import { cn } from "@/lib/utils";
-import { AppProps } from "../../base/types";
+import { AppProps, IpodInitialData } from "../../base/types";
 import { WindowFrame } from "@/components/layout/WindowFrame";
 import { IpodMenuBar } from "./IpodMenuBar";
 import { HelpDialog } from "@/components/dialogs/HelpDialog";
@@ -319,7 +319,7 @@ export function IpodAppComponent({
   isForeground,
   skipInitialSound,
   initialData,
-}: AppProps) {
+}: AppProps<IpodInitialData>) {
   const { play: playClickSound } = useSound(Sounds.BUTTON_CLICK);
   const { play: playScrollSound } = useSound(Sounds.MENU_OPEN);
   const vibrate = useVibration(100, 50);

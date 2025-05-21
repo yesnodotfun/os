@@ -1,12 +1,12 @@
 import React from "react";
 
-export interface AppProps {
+export interface AppProps<TInitialData = unknown> {
   onClose: () => void;
   isWindowOpen: boolean;
   isForeground?: boolean;
   className?: string;
   skipInitialSound?: boolean;
-  initialData?: unknown;
+  initialData?: TInitialData;
   helpItems?: Array<{
     icon: string;
     title: string;
@@ -19,7 +19,7 @@ export interface AppProps {
   onNavigatePrevious?: () => void;
 }
 
-export interface BaseApp {
+export interface BaseApp<TInitialData = unknown> {
   id:
     | "soundboard"
     | "internet-explorer"
@@ -38,7 +38,7 @@ export interface BaseApp {
   name: string;
   icon: string | { type: "image"; src: string };
   description: string;
-  component: React.ComponentType<AppProps>;
+  component: React.ComponentType<AppProps<TInitialData>>;
   windowConstraints?: {
     minWidth?: number | string;
     minHeight?: number | string;
@@ -62,12 +62,12 @@ export interface BaseApp {
   };
 }
 
-export interface AppState {
+export interface AppState<TInitialData = unknown> {
   isOpen: boolean;
   position?: { x: number; y: number };
   size?: { width: number; height: number };
   isForeground?: boolean;
-  initialData?: unknown;
+  initialData?: TInitialData;
 }
 
 export interface AppManagerState {
@@ -94,7 +94,7 @@ export interface IpodInitialData {
 
 export interface PaintInitialData {
   path?: string;
-  content?: string;
+  content?: Blob;
 }
 
 export interface VideosInitialData {

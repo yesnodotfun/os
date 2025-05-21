@@ -7,7 +7,7 @@ import {
   useMemo,
   CSSProperties,
 } from "react";
-import { AppProps } from "../../base/types";
+import { AppProps, InternetExplorerInitialData } from "../../base/types";
 import { WindowFrame } from "@/components/layout/WindowFrame";
 import { Input } from "@/components/ui/input";
 import { InternetExplorerMenuBar } from "./InternetExplorerMenuBar";
@@ -312,7 +312,7 @@ export function InternetExplorerAppComponent({
   skipInitialSound,
   helpItems,
   initialData,
-}: AppProps) {
+}: AppProps<InternetExplorerInitialData>) {
   const debugMode = useAppStore((state) => state.debugMode);
   const terminalSoundsEnabled = useAppStore(
     (state) => state.terminalSoundsEnabled
@@ -408,31 +408,31 @@ export function InternetExplorerAppComponent({
         if (isMobileView) {
           const inputRect = urlInputRef.current.getBoundingClientRect();
           setDropdownStyle({
-            position: 'fixed',
+            position: "fixed",
             top: `${inputRect.bottom}px`, // className's mt-[2px] will provide the visual gap
-            left: '1rem', // Tailwind's space-4
-            right: '1rem', // Tailwind's space-4
-            zIndex: 50, 
+            left: "1rem", // Tailwind's space-4
+            right: "1rem", // Tailwind's space-4
+            zIndex: 50,
           });
         } else {
           // Not mobile, or dropdown closed/ref not available
-          if (Object.keys(dropdownStyle).length > 0) { 
-              setDropdownStyle({});
+          if (Object.keys(dropdownStyle).length > 0) {
+            setDropdownStyle({});
           }
         }
       } else {
         // Dropdown not open or ref not available
-        if (Object.keys(dropdownStyle).length > 0) { 
+        if (Object.keys(dropdownStyle).length > 0) {
           setDropdownStyle({});
         }
       }
     };
 
     updateDropdownStyle();
-    window.addEventListener('resize', updateDropdownStyle);
+    window.addEventListener("resize", updateDropdownStyle);
 
     return () => {
-      window.removeEventListener('resize', updateDropdownStyle);
+      window.removeEventListener("resize", updateDropdownStyle);
     };
   }, [isUrlDropdownOpen, dropdownStyle]);
 
@@ -1341,11 +1341,19 @@ export function InternetExplorerAppComponent({
             return new URL(finalUrl).hostname;
           }
           // If finalUrl is a relative path (e.g. starts with /api/iframe-check), fall back to the main url.
-          const candidate = finalUrl && !finalUrl.startsWith("/") ? finalUrl : url;
+          const candidate =
+            finalUrl && !finalUrl.startsWith("/") ? finalUrl : url;
           if (candidate) {
-            return new URL(candidate.startsWith("http") ? candidate : `https://${candidate}`).hostname;
+            return new URL(
+              candidate.startsWith("http") ? candidate : `https://${candidate}`
+            ).hostname;
           }
-        } catch {}
+        } catch (error) {
+          console.error(
+            "[IE] Error extracting hostname for favorite title:",
+            error
+          );
+        }
         return "Page";
       })();
     setNewFavoriteTitle(titleSource);
@@ -1366,11 +1374,19 @@ export function InternetExplorerAppComponent({
         if (finalUrl && finalUrl.startsWith("http")) {
           return new URL(finalUrl).hostname;
         }
-        const candidate = finalUrl && !finalUrl.startsWith("/") ? finalUrl : favUrl;
+        const candidate =
+          finalUrl && !finalUrl.startsWith("/") ? finalUrl : favUrl;
         if (candidate) {
-          return new URL(candidate.startsWith("http") ? candidate : `https://${candidate}`).hostname;
+          return new URL(
+            candidate.startsWith("http") ? candidate : `https://${candidate}`
+          ).hostname;
         }
-      } catch {}
+      } catch (error) {
+        console.error(
+          "[IE] Error extracting hostname for favorite icon:",
+          error
+        );
+      }
       return "unknown.com";
     })();
     const favIcon = `https://www.google.com/s2/favicons?domain=${favHostname}&sz=32`;
@@ -1644,7 +1660,7 @@ export function InternetExplorerAppComponent({
     return () => {
       window.removeEventListener("message", handleMessage);
     };
-  }, [year, handleNavigate, handleGoBack]);
+  }, [year, handleNavigate, handleGoBack, generatedHtml]); // Added generatedHtml to dependencies
 
   useEffect(() => {
     if (!isWindowOpen) {
@@ -1775,13 +1791,13 @@ export function InternetExplorerAppComponent({
   // Effect to handle initialData when provided
   useEffect(() => {
     if (initialData?.url) {
-      const { url, year } = initialData;
-      console.log(`[IE] Received initialData: url=${url}, year=${year}`);
-      handleNavigate(url, year || "current");
+      const { url: newUrl, year: newYear } = initialData; // Renamed to avoid conflict with store `url` and `year`
+      console.log(`[IE] Received initialData: url=${newUrl}, year=${newYear}`);
+      handleNavigate(newUrl, newYear || "current");
       // Clear initialData after processing
       clearInitialData("internet-explorer");
     }
-  }, [initialData]);
+  }, [initialData, handleNavigate, clearInitialData]);
 
   if (!isWindowOpen) return null;
 
@@ -1931,54 +1947,21 @@ export function InternetExplorerAppComponent({
     }
   };
 
-  const ieGenerateShareUrl = (identifier: string, secondary?: string): string => {
+  const ieGenerateShareUrl = (
+    identifier: string,
+    secondary?: string
+  ): string => {
     // Simple encoding function (client-side)
     const encodeData = (urlToEncode: string, yearToEncode: string): string => {
       const combined = `${urlToEncode}|${yearToEncode}`;
       return btoa(combined)
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=+$/, '');
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=+$/, "");
     };
-    const code = encodeData(identifier, secondary || 'current');
+    const code = encodeData(identifier, secondary || "current");
     return `${window.location.origin}/internet-explorer/${code}`;
   };
-
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (
-        event.data &&
-        event.data.type === "iframeNavigation" &&
-        typeof event.data.url === "string"
-      ) {
-        console.log(
-          `[IE] Received navigation request from iframe: ${event.data.url}`
-        );
-        handleNavigate(event.data.url, year);
-      } else if (event.data && event.data.type === "goBack") {
-        console.log(`[IE] Received back button request from iframe`);
-        handleGoBack();
-      } else if (
-        event.data &&
-        event.data.type === "aiHtmlNavigation" &&
-        typeof event.data.url === "string"
-      ) {
-        console.log(
-          `[IE] Received navigation request from AI HTML preview: ${event.data.url}`
-        );
-        // Fetch the most up-to-date HTML from the store in case the closure is stale
-        const latestAiHtml =
-          useInternetExplorerStore.getState().aiGeneratedHtml;
-        const contextHtml = generatedHtml || latestAiHtml;
-
-        handleNavigate(event.data.url, year, false, contextHtml);
-      }
-    };
-    window.addEventListener("message", handleMessage);
-    return () => {
-      window.removeEventListener("message", handleMessage);
-    };
-  }, [year, handleNavigate, handleGoBack]);
 
   return (
     <TooltipProvider delayDuration={100}>
@@ -2116,7 +2099,7 @@ export function InternetExplorerAppComponent({
                         selectedSuggestionIndex < 0
                           ? 0
                           : selectedSuggestionIndex === 0
-                          ? 1  // Move to second item if first is selected
+                          ? 1 // Move to second item if first is selected
                           : Math.min(
                               selectedSuggestionIndex + 1,
                               filteredSuggestions.length - 1
@@ -2547,20 +2530,18 @@ export function InternetExplorerAppComponent({
 
           <AnimatePresence>
             {(status === "loading" ||
-                (isAiLoading && generatedHtml !== aiGeneratedHtml) ||
-                isFetchingWebsiteContent) && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 20 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute bottom-0 left-0 right-0 bg-gray-100 border-t border-black font-geneva-12 text-[10px] px-2 py-1 flex items-center z-50"
-                >
-                  <div className="flex-1 truncate">
-                    {getDebugStatusMessage()}
-                  </div>
-                </motion.div>
-              )}
+              (isAiLoading && generatedHtml !== aiGeneratedHtml) ||
+              isFetchingWebsiteContent) && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                transition={{ duration: 0.15 }}
+                className="absolute bottom-0 left-0 right-0 bg-gray-100 border-t border-black font-geneva-12 text-[10px] px-2 py-1 flex items-center z-50"
+              >
+                <div className="flex-1 truncate">{getDebugStatusMessage()}</div>
+              </motion.div>
+            )}
           </AnimatePresence>
         </div>
 
