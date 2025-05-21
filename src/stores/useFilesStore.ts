@@ -494,7 +494,6 @@ export const useFilesStore = create<FilesStoreState>()(
             libraryState?: LibraryState;
           };
           const newState: Record<string, FileSystemItem> = {};
-          const hasExistingFiles = Object.keys(oldState.items || {}).length > 0;
 
           for (const path in oldState.items) {
             newState[path] = {
@@ -513,11 +512,17 @@ export const useFilesStore = create<FilesStoreState>()(
               status: "active",
             };
           }
+
+          // IMPORTANT: For migrations from older versions without libraryState,
+          // we should assume the library is already loaded if there are ANY items
+          // (including just the Trash directory). This prevents accidental re-initialization
+          // that would override user data with defaults.
+          const hasAnyItems = Object.keys(newState).length > 0;
+
           return {
             items: newState,
-            libraryState: hasExistingFiles
-              ? ("loaded" as LibraryState)
-              : ("uninitialized" as LibraryState), // Only set to uninitialized if truly empty
+            libraryState: (oldState.libraryState ||
+              (hasAnyItems ? "loaded" : "uninitialized")) as LibraryState,
           };
         }
         return persistedState as FilesStoreState;

@@ -540,12 +540,43 @@ export function ControlPanelsAppComponent({
 
             // Handle case where files store doesn't exist yet (very old backups)
             if (!raw) {
+              // Check if we have any content in IndexedDB to determine initial state
+              const docsTransaction = db.transaction("documents", "readonly");
+              const docsStore = docsTransaction.objectStore("documents");
+              const docsCountRequest = docsStore.count();
+
+              const imagesTransaction = db.transaction("images", "readonly");
+              const imagesStore = imagesTransaction.objectStore("images");
+              const imagesCountRequest = imagesStore.count();
+
+              const [docsCount, imagesCount] = await Promise.all([
+                new Promise<number>((resolve) => {
+                  docsCountRequest.onsuccess = () =>
+                    resolve(docsCountRequest.result);
+                  docsCountRequest.onerror = () => resolve(0);
+                }),
+                new Promise<number>((resolve) => {
+                  imagesCountRequest.onsuccess = () =>
+                    resolve(imagesCountRequest.result);
+                  imagesCountRequest.onerror = () => resolve(0);
+                }),
+              ]);
+
+              const hasContent = docsCount > 0 || imagesCount > 0;
+
               const defaultStore = {
-                state: { items: {}, libraryState: "loaded" },
+                state: {
+                  items: {},
+                  // If we have content in IndexedDB, mark as loaded to prevent re-initialization
+                  libraryState: hasContent ? "loaded" : "uninitialized",
+                },
                 version: 4,
               };
               localStorage.setItem(persistedKey, JSON.stringify(defaultStore));
               raw = localStorage.getItem(persistedKey);
+              console.log(
+                `[Restore] Created files store with libraryState: ${defaultStore.state.libraryState}, docs: ${docsCount}, images: ${imagesCount}`
+              );
             }
 
             if (raw) {
@@ -706,9 +737,25 @@ export function ControlPanelsAppComponent({
                   };
                 });
 
-                // CRITICAL: Set library state to "loaded" to prevent auto-initialization
-                // This must be done REGARDLESS of whether we have files to prevent race condition
-                parsed.state.libraryState = "loaded";
+                // CRITICAL: Set library state based on whether we have any files
+                // For old backups without libraryState, if we have files (from IndexedDB or metadata),
+                // we should mark as "loaded" to prevent re-initialization
+                const hasFiles = Object.keys(items).some(
+                  (path) => !items[path].isDirectory
+                );
+                const currentLibraryState = parsed.state.libraryState;
+
+                // Only change libraryState if it's not already set or if it's "uninitialized" but we have files
+                if (
+                  !currentLibraryState ||
+                  (currentLibraryState === "uninitialized" && hasFiles)
+                ) {
+                  parsed.state.libraryState = "loaded";
+                  hasChanges = true;
+                  console.log(
+                    `[Restore] Setting libraryState to "loaded" (was: ${currentLibraryState}, hasFiles: ${hasFiles})`
+                  );
+                }
 
                 // Ensure the store version is current to prevent migration issues
                 if (!parsed.version || parsed.version < 4) {
@@ -716,20 +763,23 @@ export function ControlPanelsAppComponent({
                   hasChanges = true;
                 }
 
-                // Always save to ensure libraryState is set correctly
-                localStorage.setItem(persistedKey, JSON.stringify(parsed));
+                // Save if we made any changes
+                if (hasChanges || !currentLibraryState) {
+                  parsed.state.items = items;
+                  localStorage.setItem(persistedKey, JSON.stringify(parsed));
+                  console.log(
+                    `[Restore] Updated files store with ${
+                      Object.keys(items).length
+                    } items, libraryState: ${parsed.state.libraryState}`
+                  );
+                }
 
                 const fileCount = Object.keys(items).filter(
                   (path) => !items[path].isDirectory
                 ).length;
                 console.log(
-                  `[ControlPanels] Synchronized files store: ${fileCount} files, libraryState: loaded`
+                  `[ControlPanels] Synchronized files store: ${fileCount} files, libraryState: ${parsed.state.libraryState}`
                 );
-                if (hasChanges) {
-                  console.log(
-                    "[ControlPanels] Created missing metadata entries during restore"
-                  );
-                }
               }
             }
 
@@ -747,12 +797,32 @@ export function ControlPanelsAppComponent({
               if (raw) {
                 const parsed = JSON.parse(raw);
                 if (parsed && parsed.state) {
-                  parsed.state.libraryState = "loaded";
+                  // Check if we likely have restored data
+                  const hasItems =
+                    parsed.state.items &&
+                    Object.keys(parsed.state.items).length > 0;
+                  parsed.state.libraryState = hasItems
+                    ? "loaded"
+                    : "uninitialized";
+                  parsed.version = 4;
                   localStorage.setItem(persistedKey, JSON.stringify(parsed));
                   console.log(
-                    "[ControlPanels] Emergency: Set libraryState to loaded to prevent auto-init"
+                    `[ControlPanels] Emergency: Set libraryState to ${parsed.state.libraryState} to handle restore properly`
                   );
                 }
+              } else {
+                // No files store exists, create one with "loaded" state to be safe
+                const defaultStore = {
+                  state: { items: {}, libraryState: "loaded" },
+                  version: 4,
+                };
+                localStorage.setItem(
+                  persistedKey,
+                  JSON.stringify(defaultStore)
+                );
+                console.log(
+                  "[ControlPanels] Emergency: Created files store with libraryState: loaded"
+                );
               }
             } catch (fallbackErr) {
               console.error(
