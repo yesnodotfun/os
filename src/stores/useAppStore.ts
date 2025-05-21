@@ -111,7 +111,7 @@ export const useAppStore = create<AppStoreState>()(
       setTypingSynthEnabled: (enabled) => set({ typingSynthEnabled: enabled }),
       speechEnabled: false,
       setSpeechEnabled: (enabled) => set({ speechEnabled: enabled }),
-      speechVolume: 2,
+      speechVolume: 1.5,
       setSpeechVolume: (v) => set({ speechVolume: v }),
       ttsModel: "elevenlabs",
       setTtsModel: (model) => set({ ttsModel: model }),
