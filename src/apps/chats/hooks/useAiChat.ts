@@ -720,75 +720,76 @@ export function useAiChat() {
     const lastMsg = currentSdkMessages.at(-1);
     if (!lastMsg || lastMsg.role !== "assistant") return;
 
+    // Where did we leave off for this message?
     const processed = speechProgressRef.current[lastMsg.id] ?? 0;
     if (processed === -1 || lastMsg.content.length <= processed) return;
 
-    const newContent = lastMsg.content.slice(processed);
+    // Slice the *unspoken* part
+    const remaining = lastMsg.content.slice(processed);
+    if (!remaining) return;
 
-    // Simple paragraph-based chunking - much more reliable
-    const paragraphs = newContent.split(/\n\s*\n/);
-    let processedChars = 0;
+    // Paragraph = separated by at least *two* line breaks (blank line)
+    const paragraphs = remaining.split(/(?:\r?\n){2,}/);
 
-    // During streaming: only process complete paragraphs (all but the last one)
-    // When loading complete: process everything including the last paragraph
-    const paragraphsToProcess = isLoading
-      ? paragraphs.slice(0, -1)
-      : paragraphs;
+    // While streaming we ignore the *possibly-incomplete* final paragraph.
+    // When generation finishes (isLoading === false) we speak everything.
+    const finalParagraphMightBeIncomplete = isLoading;
+    const cutoff = finalParagraphMightBeIncomplete
+      ? paragraphs.length - 1
+      : paragraphs.length;
+    if (cutoff <= 0) return; // Nothing ready to speak yet
 
-    paragraphsToProcess.forEach((paragraph, index) => {
-      const trimmed = paragraph.trim();
-      if (!trimmed) {
-        processedChars +=
-          paragraph.length + (index < paragraphs.length - 1 ? 2 : 0); // +2 for \n\n
+    // Prefix offset for messages that start with urgent marker (!!!!)
+    let prefixOffset = 0;
+    if (lastMsg.content.startsWith("!!!!")) {
+      prefixOffset = 4;
+      let j = 4;
+      while (j < lastMsg.content.length && /\s/.test(lastMsg.content[j])) {
+        prefixOffset++;
+        j++;
+      }
+    }
+
+    // Cursor tracks absolute position within lastMsg.content
+    let cursor = processed;
+
+    paragraphs.forEach((paragraph, idx) => {
+      // Skip the potentially incomplete last paragraph during streaming
+      if (finalParagraphMightBeIncomplete && idx === paragraphs.length - 1) {
         return;
       }
 
-      const cleaned = cleanTextForSpeech(trimmed);
-      if (cleaned && cleaned.length > 0) {
-        // Calculate highlight position
-        let prefixOffset = 0;
-        if (lastMsg.content.startsWith("!!!!")) {
-          prefixOffset = 4;
-          let j = 4;
-          while (j < lastMsg.content.length && /\s/.test(lastMsg.content[j])) {
-            prefixOffset++;
-            j++;
-          }
-        }
-
-        const chunkStart = processed + processedChars - prefixOffset;
-        const chunkEnd = chunkStart + paragraph.length;
+      // We include the paragraph *exactly as is* (no trimming for length accounting)
+      const visible = paragraph.trim();
+      const cleaned = cleanTextForSpeech(visible);
+      if (cleaned) {
+        const start = cursor - prefixOffset;
+        const end = start + paragraph.length; // use raw paragraph length so highlight matches source indices
 
         const seg = {
           messageId: lastMsg.id,
-          start: Math.max(0, chunkStart),
-          end: Math.max(0, chunkEnd),
+          start: Math.max(0, start),
+          end: Math.max(0, end),
         };
 
         highlightQueueRef.current.push(seg);
-
-        if (!highlightSegment) {
-          setHighlightSegment(seg);
-        }
+        if (!highlightSegment) setHighlightSegment(seg);
 
         speak(cleaned, () => {
           highlightQueueRef.current.shift();
-          if (highlightQueueRef.current.length > 0) {
-            setHighlightSegment(highlightQueueRef.current[0]);
-          } else {
-            setHighlightSegment(null);
-          }
+          setHighlightSegment(highlightQueueRef.current[0] || null);
         });
       }
 
-      // Count paragraph + separator
-      processedChars +=
-        paragraph.length + (index < paragraphs.length - 1 ? 2 : 0);
+      // Advance cursor by the paragraph length and account for the line-break
+      // delimiter that split() removed. We assume two characters ("\n\n")
+      // when there *is* another paragraph following this one.
+      const hasFollowingParagraph = idx < paragraphs.length - 1;
+      cursor += paragraph.length + (hasFollowingParagraph ? 2 : 0);
     });
 
-    if (processedChars > 0) {
-      speechProgressRef.current[lastMsg.id] = processed + processedChars;
-    }
+    // Update progress pointer – but never move past content we intentionally skipped.
+    speechProgressRef.current[lastMsg.id] = cursor;
   }, [currentSdkMessages, speechEnabled, speak, highlightSegment, isLoading]);
 
   // --- Action Handlers ---
