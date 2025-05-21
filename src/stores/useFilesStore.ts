@@ -1,24 +1,6 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
-// --- Define Initial Documents Data Locally --- //
-const INITIAL_DOCUMENTS_DATA: { name: string; content?: string }[] = [
-  {
-    name: "README.md",
-    // Content is not stored in this store, but we keep the structure
-  },
-  {
-    name: "Quick Tips.md",
-  },
-];
-
-// --- Define Initial Images Data Locally --- //
-const INITIAL_IMAGES_DATA: { name: string }[] = [
-  { name: "steve-jobs.png" },
-  { name: "susan-kare.png" },
-];
-// --- End Initial Images Data --- //
-
 // Define the structure for a file system item (metadata)
 export interface FileSystemItem {
   path: string; // Full path, unique identifier (e.g., "/Documents/My Folder/My File.txt")
@@ -34,9 +16,24 @@ export interface FileSystemItem {
   // Content is NOT stored here, only metadata
 }
 
+// Define a type for JSON file entries
+interface FileSystemItemData extends Omit<FileSystemItem, "status"> {
+  content?: string; // For documents
+  assetPath?: string; // For images
+}
+
+// Define the JSON structure
+interface FileSystemData {
+  directories: FileSystemItemData[];
+  files: FileSystemItemData[];
+}
+
+type LibraryState = "uninitialized" | "loaded" | "cleared";
+
 // Define the state structure
 interface FilesStoreState {
   items: Record<string, FileSystemItem>; // path -> item map
+  libraryState: LibraryState;
   // Actions
   addItem: (item: Omit<FileSystemItem, "status">) => void; // Status defaults to active
   removeItem: (path: string, permanent?: boolean) => void; // Add flag for permanent deletion
@@ -48,29 +45,20 @@ interface FilesStoreState {
   getItem: (path: string) => FileSystemItem | undefined;
   getTrashItems: () => FileSystemItem[]; // Helper to get all trashed items
   reset: () => void;
+  clearLibrary: () => void;
+  resetLibrary: () => Promise<void>;
+  initializeLibrary: () => Promise<void>;
 }
 
-// Helper function to get file type from name (simplified)
-function getFileTypeFromName(name: string): string {
-  const ext = name.split(".").pop()?.toLowerCase() || "";
-  switch (ext) {
-    case "md":
-      return "markdown";
-    case "txt":
-      return "text";
-    case "png":
-      return "png";
-    case "jpg":
-    case "jpeg":
-      return "jpeg";
-    case "gif":
-      return "gif";
-    case "webp":
-      return "webp";
-    case "bmp":
-      return "bmp";
-    default:
-      return "unknown";
+// Function to load default files from JSON
+async function loadDefaultFiles(): Promise<FileSystemData> {
+  try {
+    const res = await fetch("/data/filesystem.json");
+    const data = await res.json();
+    return data as FileSystemData;
+  } catch (err) {
+    console.error("Failed to load filesystem.json", err);
+    return { directories: [], files: [] };
   }
 }
 
@@ -82,114 +70,22 @@ const getParentPath = (path: string): string => {
   return "/" + parts.slice(0, -1).join("/");
 };
 
-// Function to generate the initial state
-const getInitialFileSystemState = (): Record<string, FileSystemItem> => {
-  const initialState: Record<string, FileSystemItem> = {
-    "/": {
-      path: "/",
-      name: "/",
-      isDirectory: true,
-      type: "directory",
-      status: "active",
-    },
-    "/Applications": {
-      path: "/Applications",
-      name: "Applications",
-      isDirectory: true,
-      type: "directory-virtual",
-      icon: "/icons/applications.png",
-      status: "active",
-    },
-    "/Documents": {
-      path: "/Documents",
-      name: "Documents",
-      isDirectory: true,
-      type: "directory",
-      icon: "/icons/documents.png",
-      status: "active",
-    },
-    "/Images": {
-      path: "/Images",
-      name: "Images",
-      isDirectory: true,
-      type: "directory",
-      icon: "/icons/images.png",
-      status: "active",
-    },
-    "/Music": {
-      path: "/Music",
-      name: "Music",
-      isDirectory: true,
-      type: "directory-virtual",
-      icon: "/icons/sounds.png",
-      status: "active",
-    },
-    "/Videos": {
-      path: "/Videos",
-      name: "Videos",
-      isDirectory: true,
-      type: "directory-virtual",
-      icon: "/icons/movies.png",
-      status: "active",
-    },
-    "/Sites": {
-      path: "/Sites",
-      name: "Sites",
-      isDirectory: true,
-      type: "directory-virtual",
-      icon: "/icons/sites.png",
-      status: "active",
-    },
-    "/Trash": {
-      path: "/Trash",
-      name: "Trash",
-      isDirectory: true,
-      type: "directory",
-      icon: "/icons/trash-empty.png",
-      status: "active",
-    },
-  };
+// Function to generate an empty initial state (just for typing)
+const getEmptyFileSystemState = (): Record<string, FileSystemItem> => ({});
 
-  // Add initial documents structure using local data
-  INITIAL_DOCUMENTS_DATA.forEach((doc: { name: string; content?: string }) => {
-    const path = `/Documents/${doc.name}`;
-    initialState[path] = {
-      path: path,
-      name: doc.name,
-      isDirectory: false,
-      type: getFileTypeFromName(doc.name),
-      icon: "/icons/file-text.png",
-      status: "active",
-    };
-  });
-
-  // Add initial images structure using local data
-  INITIAL_IMAGES_DATA.forEach((img: { name: string }) => {
-    const path = `/Images/${img.name}`;
-    initialState[path] = {
-      path: path,
-      name: img.name,
-      isDirectory: false,
-      type: getFileTypeFromName(img.name),
-      icon: "/icons/image.png",
-      status: "active",
-    };
-  });
-
-  // Add initial applications structure (adjust if needed based on appRegistry)
-  // Example: Add TextEdit app metadata
-  // initialState['/Applications/TextEdit'] = { path: '/Applications/TextEdit', name: 'TextEdit', isDirectory: false, type: 'application', appId: 'textedit', icon: '/icons/apps/textedit.png' };
-
-  return initialState;
-};
-
-const STORE_VERSION = 2;
+const STORE_VERSION = 4; // Increment to fix migration issue
 const STORE_NAME = "ryos:files";
+
+const initialFilesData: FilesStoreState = {
+  items: getEmptyFileSystemState(),
+  libraryState: "uninitialized",
+  // ... actions will be defined below
+} as FilesStoreState;
 
 export const useFilesStore = create<FilesStoreState>()(
   persist(
     (set, get) => ({
-      items: getInitialFileSystemState(),
+      ...initialFilesData,
 
       addItem: (itemData) => {
         // Add item with default 'active' status
@@ -228,7 +124,7 @@ export const useFilesStore = create<FilesStoreState>()(
           console.log(
             `[FilesStore:addItem] Successfully added: ${newItem.path}`
           ); // Log success
-          return { items: updatedItems };
+          return { items: updatedItems, libraryState: "loaded" };
         });
       },
 
@@ -522,26 +418,88 @@ export const useFilesStore = create<FilesStoreState>()(
         );
       },
 
-      reset: () => set({ items: getInitialFileSystemState() }),
-    }),
-    {
-      name: STORE_NAME,
-      version: STORE_VERSION,
-      storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({
-        items: state.items, // Persist the entire file structure
-      }),
-      // Basic migration for adding status field
-      migrate: (persistedState, version) => {
-        if (version < 2) {
+      clearLibrary: () =>
+        set({
+          items: getEmptyFileSystemState(),
+          libraryState: "cleared",
+        }),
+
+      resetLibrary: async () => {
+        const data = await loadDefaultFiles();
+        const newItems: Record<string, FileSystemItem> = {};
+
+        // Add directories
+        data.directories.forEach((dir) => {
+          newItems[dir.path] = {
+            ...dir,
+            status: "active",
+          };
+        });
+
+        // Add files
+        data.files.forEach((file) => {
+          newItems[file.path] = {
+            ...file,
+            status: "active",
+          };
+        });
+
+        set({
+          items: newItems,
+          libraryState: "loaded",
+        });
+      },
+
+      initializeLibrary: async () => {
+        const current = get();
+        // Only initialize if the library is in uninitialized state
+        if (current.libraryState === "uninitialized") {
+          const data = await loadDefaultFiles();
+          const newItems: Record<string, FileSystemItem> = {};
+
+          // Add directories
+          data.directories.forEach((dir) => {
+            newItems[dir.path] = {
+              ...dir,
+              status: "active",
+            };
+          });
+
+          // Add files
+          data.files.forEach((file) => {
+            newItems[file.path] = {
+              ...file,
+              status: "active",
+            };
+          });
+
+          set({
+            items: newItems,
+            libraryState: "loaded",
+          });
+        }
+      },
+
+      reset: () =>
+        set({
+          items: getEmptyFileSystemState(),
+          libraryState: "uninitialized",
+        }),
+
+      // Migration for new initialization system
+      migrate: (persistedState: unknown, version: number) => {
+        if (version < 4) {
           const oldState = persistedState as {
             items: Record<string, FileSystemItem>;
+            libraryState?: LibraryState;
           };
           const newState: Record<string, FileSystemItem> = {};
+          const hasExistingFiles = Object.keys(oldState.items || {}).length > 0;
+
           for (const path in oldState.items) {
             newState[path] = {
               ...oldState.items[path],
-              status: "active", // Add default status
+              status: oldState.items[path].status || "active", // Add default status
             };
           }
           // Ensure /Trash exists with active status
@@ -555,9 +513,35 @@ export const useFilesStore = create<FilesStoreState>()(
               status: "active",
             };
           }
-          return { items: newState };
+          return {
+            items: newState,
+            libraryState: hasExistingFiles
+              ? ("loaded" as LibraryState)
+              : ("uninitialized" as LibraryState), // Only set to uninitialized if truly empty
+          };
         }
         return persistedState as FilesStoreState;
+      },
+    }),
+    {
+      name: STORE_NAME,
+      version: STORE_VERSION,
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        items: state.items, // Persist the entire file structure
+        libraryState: state.libraryState,
+      }),
+      onRehydrateStorage: () => {
+        return (state, error) => {
+          if (error) {
+            console.error("Error rehydrating files store:", error);
+          } else if (state && state.libraryState === "uninitialized") {
+            // Only auto-initialize if library state is uninitialized
+            Promise.resolve(state.initializeLibrary()).catch((err) =>
+              console.error("Files initialization failed on rehydrate", err)
+            );
+          }
+        };
       },
     }
   )

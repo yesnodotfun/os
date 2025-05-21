@@ -532,16 +532,30 @@ export function ControlPanelsAppComponent({
             );
           }
 
-          /* Ensure default file and image metadata exist after restore */
+          /* Synchronize files store metadata with IndexedDB content after restore */
           try {
-            const persistedKey = "ryos:files"; // name used in useFilesStore persist
-            const raw = localStorage.getItem(persistedKey);
+            const db = await ensureIndexedDBInitialized();
+            const persistedKey = "ryos:files";
+            let raw = localStorage.getItem(persistedKey);
+
+            // Handle case where files store doesn't exist yet (very old backups)
+            if (!raw) {
+              const defaultStore = {
+                state: { items: {}, libraryState: "loaded" },
+                version: 4,
+              };
+              localStorage.setItem(persistedKey, JSON.stringify(defaultStore));
+              raw = localStorage.getItem(persistedKey);
+            }
+
             if (raw) {
               const parsed = JSON.parse(raw);
-              if (parsed && parsed.state && parsed.state.items) {
-                const items = parsed.state.items as Record<string, unknown>;
+              if (parsed && parsed.state) {
+                const items = parsed.state.items || {};
+                let hasChanges = false;
 
-                const ensureItem = (
+                // Helper function to ensure metadata exists for a file
+                const ensureFileMetadata = (
                   path: string,
                   name: string,
                   type: string,
@@ -556,46 +570,196 @@ export function ControlPanelsAppComponent({
                       icon,
                       status: "active",
                     };
+                    hasChanges = true;
+                    console.log(
+                      `[Restore] Created missing metadata for: ${path}`
+                    );
                   }
                 };
 
-                // Default documents
-                ensureItem(
-                  "/Documents/README.md",
-                  "README.md",
-                  "markdown",
-                  "/icons/file-text.png"
-                );
-                ensureItem(
-                  "/Documents/Quick Tips.md",
-                  "Quick Tips.md",
-                  "markdown",
-                  "/icons/file-text.png"
-                );
+                // Ensure default directories exist first
+                const defaultDirs = [
+                  { path: "/", name: "/", type: "directory", icon: undefined },
+                  {
+                    path: "/Documents",
+                    name: "Documents",
+                    type: "directory",
+                    icon: "/icons/documents.png",
+                  },
+                  {
+                    path: "/Images",
+                    name: "Images",
+                    type: "directory",
+                    icon: "/icons/images.png",
+                  },
+                  {
+                    path: "/Applications",
+                    name: "Applications",
+                    type: "directory-virtual",
+                    icon: "/icons/applications.png",
+                  },
+                  {
+                    path: "/Music",
+                    name: "Music",
+                    type: "directory-virtual",
+                    icon: "/icons/sounds.png",
+                  },
+                  {
+                    path: "/Videos",
+                    name: "Videos",
+                    type: "directory-virtual",
+                    icon: "/icons/movies.png",
+                  },
+                  {
+                    path: "/Sites",
+                    name: "Sites",
+                    type: "directory-virtual",
+                    icon: "/icons/sites.png",
+                  },
+                  {
+                    path: "/Trash",
+                    name: "Trash",
+                    type: "directory",
+                    icon: "/icons/trash-empty.png",
+                  },
+                ];
 
-                // Default images
-                ensureItem(
-                  "/Images/steve-jobs.png",
-                  "steve-jobs.png",
-                  "png",
-                  "/icons/image.png"
-                );
-                ensureItem(
-                  "/Images/susan-kare.png",
-                  "susan-kare.png",
-                  "png",
-                  "/icons/image.png"
-                );
+                for (const dir of defaultDirs) {
+                  if (!items[dir.path]) {
+                    items[dir.path] = {
+                      path: dir.path,
+                      name: dir.name,
+                      isDirectory: true,
+                      type: dir.type,
+                      icon: dir.icon,
+                      status: "active",
+                    };
+                    hasChanges = true;
+                    console.log(
+                      `[Restore] Created missing directory: ${dir.path}`
+                    );
+                  }
+                }
 
-                // Save back if modified
+                // Scan documents store and ensure metadata exists
+                const docsTransaction = db.transaction("documents", "readonly");
+                const docsStore = docsTransaction.objectStore("documents");
+                const docsRequest = docsStore.getAll();
+
+                await new Promise<void>((resolve) => {
+                  docsRequest.onsuccess = () => {
+                    const docs = docsRequest.result;
+                    console.log(
+                      `[Restore] Found ${docs.length} documents in IndexedDB`
+                    );
+                    for (const doc of docs) {
+                      if (doc.name) {
+                        const path = `/Documents/${doc.name}`;
+                        const type = doc.name.endsWith(".md")
+                          ? "markdown"
+                          : "text";
+                        ensureFileMetadata(
+                          path,
+                          doc.name,
+                          type,
+                          "/icons/file-text.png"
+                        );
+                      }
+                    }
+                    resolve();
+                  };
+                  docsRequest.onerror = () => {
+                    console.warn("[Restore] Failed to scan documents store");
+                    resolve();
+                  };
+                });
+
+                // Scan images store and ensure metadata exists
+                const imagesTransaction = db.transaction("images", "readonly");
+                const imagesStore = imagesTransaction.objectStore("images");
+                const imagesRequest = imagesStore.getAll();
+
+                await new Promise<void>((resolve) => {
+                  imagesRequest.onsuccess = () => {
+                    const images = imagesRequest.result;
+                    console.log(
+                      `[Restore] Found ${images.length} images in IndexedDB`
+                    );
+                    for (const img of images) {
+                      if (img.name) {
+                        const path = `/Images/${img.name}`;
+                        const ext =
+                          img.name.split(".").pop()?.toLowerCase() || "png";
+                        ensureFileMetadata(
+                          path,
+                          img.name,
+                          ext,
+                          "/icons/image.png"
+                        );
+                      }
+                    }
+                    resolve();
+                  };
+                  imagesRequest.onerror = () => {
+                    console.warn("[Restore] Failed to scan images store");
+                    resolve();
+                  };
+                });
+
+                // CRITICAL: Set library state to "loaded" to prevent auto-initialization
+                // This must be done REGARDLESS of whether we have files to prevent race condition
+                parsed.state.libraryState = "loaded";
+
+                // Ensure the store version is current to prevent migration issues
+                if (!parsed.version || parsed.version < 4) {
+                  parsed.version = 4;
+                  hasChanges = true;
+                }
+
+                // Always save to ensure libraryState is set correctly
                 localStorage.setItem(persistedKey, JSON.stringify(parsed));
+
+                const fileCount = Object.keys(items).filter(
+                  (path) => !items[path].isDirectory
+                ).length;
+                console.log(
+                  `[ControlPanels] Synchronized files store: ${fileCount} files, libraryState: loaded`
+                );
+                if (hasChanges) {
+                  console.log(
+                    "[ControlPanels] Created missing metadata entries during restore"
+                  );
+                }
               }
             }
+
+            db.close();
           } catch (err) {
             console.error(
-              "[ControlPanels] Failed to ensure default metadata after restore:",
+              "[ControlPanels] Failed to synchronize files store with IndexedDB after restore:",
               err
             );
+
+            // Emergency fallback: ensure library state is set to prevent auto-init even on error
+            try {
+              const persistedKey = "ryos:files";
+              const raw = localStorage.getItem(persistedKey);
+              if (raw) {
+                const parsed = JSON.parse(raw);
+                if (parsed && parsed.state) {
+                  parsed.state.libraryState = "loaded";
+                  localStorage.setItem(persistedKey, JSON.stringify(parsed));
+                  console.log(
+                    "[ControlPanels] Emergency: Set libraryState to loaded to prevent auto-init"
+                  );
+                }
+              }
+            } catch (fallbackErr) {
+              console.error(
+                "[ControlPanels] Emergency fallback failed:",
+                fallbackErr
+              );
+            }
           }
         }
         setNextBootMessage("Restoring System...");

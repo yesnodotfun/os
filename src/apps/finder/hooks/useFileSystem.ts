@@ -174,185 +174,6 @@ export const dbOperations = {
   },
 };
 
-// --- Define Default Content Locally --- //
-const README_CONTENT = `# ryOS 8.2
-
-A web-based operating system experience inspired by classic Mac OS System 7. Built using modern web technologies including React, Vite, TailwindCSS, and shadcn/ui components.
-
-## Features
-- Classic System 7 UI with authentic typography
-- Window management (drag, resize, maximize)
-- File system with Documents, Applications, and Trash
-- Multiple built-in applications
-- Local storage persistence
-- Modern audio features with WaveSurfer.js and Tone.js
-- Responsive design for all screen sizes
-- System-wide sound effects and themes
-- Backup and restore functionality
-- Virtual PC with classic games
-
-## Built-in Applications
-- **Finder**: Browse and manage your files
-- **TextEdit**: Create and edit documents with markdown
-- **MacPaint**: Classic bitmap graphics editor with image support
-- **Soundboard**: Create and play custom soundboards
-- **Synth**: Virtual synthesizer with retro aesthetics
-- **Photo Booth**: Camera app with effects and filters
-- **Control Panels**: Customize ryOS system settings
-- **Minesweeper**: Classic puzzle game
-- **Internet Explorer**: Browse historical web content
-- **Chats**: Chat with Ryo AI assistant
-- **Videos**: VCR-style video playlist player
-- **Virtual PC**: Play classic DOS games
-
-## Getting Started
-- Double-click on any app icon to launch it
-- Use the **Apple menu (🍎)** in the top-left to access system functions
-- Files are automatically saved to your browser's storage
-- Drag windows to move them, click and drag window edges to resize
-- Use Control Panels to customize your experience
-- Launch Virtual PC from Applications folder to play classic games
-
-## Technical Details
-- Built with React 18 and TypeScript
-- Vite for fast development and bundling
-- TailwindCSS for styling
-- shadcn/ui components
-- Bun as package manager
-- WaveSurfer.js for audio visualization
-- Tone.js for audio synthesis
-- Virtual PC Emulator powered by DOSBox
-
-Visit https://github.com/ryokun6/ryos for more information.`;
-
-const QUICKTIPS_CONTENT = `# Quick Tips
-
-## Using Apps
-- Launch apps from the Finder, Desktop, or Apple menu
-- Multiple apps can run simultaneously
-- Windows can be moved, resized, and minimized
-- Use Control Panels to customize your experience
-
-## Finder
-- Browse files in Documents, Applications, and Trash
-- Navigate with back/forward buttons or path bar
-- Sort files by name, kind, size, or date
-- Multiple view options (icons, list)
-- Move files to Trash and empty when needed
-- Monitor available storage space
-
-## TextEdit
-- Create and edit rich text documents
-- Format text with bold, italic, and underline
-- Align text and create ordered/unordered lists
-- Use slash commands (/) for quick formatting
-- Support for markdown syntax
-- Task list support with checkboxes
-- Auto-saves your work
-- Export documents when needed
-
-## MacPaint
-- Classic bitmap graphics editor
-- Multiple drawing tools and patterns
-- Shape tools with fill options
-- Selection and move capabilities
-- Image file import/export
-- Undo/redo support
-
-## Soundboard
-- Create multiple custom soundboards
-- Record sounds directly from your microphone
-- Enhanced synth effects and processing
-- Customize with emojis and titles
-- Play sounds with clicks or number keys (1-9)
-- View sound waveforms with WaveSurfer.js
-- Import/export soundboards for sharing
-- Auto-saves your recordings
-- Choose input device
-- Toggle waveform/emoji display
-
-## Synth
-- Play using on-screen keyboard or computer keys
-- Choose between multiple waveforms:
-  - Sine wave (smooth, pure tones)
-  - Square wave (rich, buzzy sounds)
-  - Sawtooth (bright, sharp tones)
-  - Triangle (soft, hollow sounds)
-- Add effects:
-  - Reverb for space and depth
-  - Delay for echo effects
-  - Distortion for gritty tones
-- Save and load custom presets
-- MIDI keyboard support
-- Classic synthesizer interface
-- Real-time parameter control
-
-## Photo Booth
-- Take photos with your webcam
-- Apply real-time effects:
-  - Green Tint
-  - High Contrast
-  - Warm Vintage
-  - Soft Sepia
-  - Soft Focus
-  - Black & White
-  - Inverted
-  - Green Boost
-- Adjust brightness and contrast
-- Multi-photo sequence mode
-- Built-in photo gallery
-- Export photos to Files
-- Multiple camera support
-- Flash effect on capture
-
-## Control Panels
-- Customize system appearance
-  - Choose from tiled patterns or photos
-  - Multiple categories of wallpapers
-  - Real-time preview
-- Adjust sound settings
-  - Enable/disable UI sounds
-  - Configure typing synthesis
-  - Choose synth presets
-- Manage system
-  - Backup all settings
-  - Restore from backup
-  - Reset to defaults
-  - Format file system
-
-## Internet Explorer
-- Browse historical web content
-- Time travel with Wayback Machine
-- Classic System 7 style interface
-- Add websites to favorites
-- View content from different years
-
-## Chats with Ryo
-- Natural conversation with Ryo AI
-- Control system through chat
-- Launch and manage apps
-- Edit documents directly
-- Get help with features
-- Ask about design and concepts
-
-## Videos
-- VCR-style video playlist player
-- Add and manage YouTube videos
-- Shuffle and repeat modes
-- LCD display with scrolling titles
-- Classic CD player controls
-- Playlist management
-- Local storage for favorites
-
-## Virtual PC
-- Play classic DOS games
-- Doom, SimCity, and more
-- Save game states
-- Full DOS environment
-- Keyboard and mouse support`;
-
-const DEFAULT_IMAGES = ["steve-jobs.png", "susan-kare.png"];
-
 // --- Helper Functions --- //
 
 // Get specific type from extension
@@ -491,80 +312,77 @@ export function useFileSystem(
 
     const initializeContent = async () => {
       console.log(
-        "[useFileSystem] Performing initial content check in IndexedDB..."
+        "[useFileSystem] Performing initial content check with JSON data..."
       );
-      const initialMetadata = useFilesStore.getState().items;
-      const defaultContentMap: Record<string, string> = {
-        "/Documents/README.md": README_CONTENT,
-        "/Documents/Quick Tips.md": QUICKTIPS_CONTENT,
-      };
 
-      const defaultImagesList = DEFAULT_IMAGES;
+      try {
+        // Load the filesystem data from JSON
+        const res = await fetch("/data/filesystem.json");
+        const data = await res.json();
 
-      for (const path in defaultContentMap) {
-        if (initialMetadata[path]) {
-          // Check if metadata exists
-          const itemName = initialMetadata[path].name;
-          const storeName = STORES.DOCUMENTS; // Assuming defaults are documents
-          try {
-            const existingDoc = await dbOperations.get<DocumentContent>(
-              storeName,
-              itemName
-            );
-            if (!existingDoc) {
-              console.log(
-                `[useFileSystem] Adding missing default document ${itemName} to documents store`
+        // Process files that have content
+        for (const file of data.files || []) {
+          if (file.content) {
+            // This is a document with text content
+            const storeName = STORES.DOCUMENTS;
+            try {
+              const existingDoc = await dbOperations.get<DocumentContent>(
+                storeName,
+                file.name
               );
-              await dbOperations.put<DocumentContent>(STORES.DOCUMENTS, {
-                name: itemName,
-                content: defaultContentMap[path],
-              });
-            }
-          } catch (err) {
-            console.error(
-              `[useFileSystem] Error adding default document ${itemName}:`,
-              err
-            );
-          }
-        }
-      }
-
-      // Add default images to IndexedDB if missing
-      for (const imageName of defaultImagesList) {
-        const imagePath = `/Images/${imageName}`;
-        if (initialMetadata[imagePath]) {
-          try {
-            const existingImg = await dbOperations.get<DocumentContent>(
-              STORES.IMAGES,
-              imageName
-            );
-            if (!existingImg) {
-              console.log(
-                `[useFileSystem] Adding missing default image ${imageName} to images store`
-              );
-              const response = await fetch(`/assets/images/${imageName}`);
-              if (response.ok) {
-                const blob = await response.blob();
-                await dbOperations.put<DocumentContent>(STORES.IMAGES, {
-                  name: imageName,
-                  content: blob,
-                });
-              } else {
-                console.warn(
-                  `[useFileSystem] Failed to fetch default image asset ${imageName}. Status: ${response.status}`
+              if (!existingDoc) {
+                console.log(
+                  `[useFileSystem] Adding default document ${file.name} to documents store`
                 );
+                await dbOperations.put<DocumentContent>(storeName, {
+                  name: file.name,
+                  content: file.content,
+                });
               }
+            } catch (err) {
+              console.error(
+                `[useFileSystem] Error adding default document ${file.name}:`,
+                err
+              );
             }
-          } catch (err) {
-            console.error(
-              `[useFileSystem] Error adding default image ${imageName}:`,
-              err
-            );
+          } else if (file.assetPath) {
+            // This is an image with an asset path
+            const storeName = STORES.IMAGES;
+            try {
+              const existingImg = await dbOperations.get<DocumentContent>(
+                storeName,
+                file.name
+              );
+              if (!existingImg) {
+                console.log(
+                  `[useFileSystem] Adding default image ${file.name} to images store`
+                );
+                const response = await fetch(file.assetPath);
+                if (response.ok) {
+                  const blob = await response.blob();
+                  await dbOperations.put<DocumentContent>(storeName, {
+                    name: file.name,
+                    content: blob,
+                  });
+                } else {
+                  console.warn(
+                    `[useFileSystem] Failed to fetch default image asset ${file.name}. Status: ${response.status}`
+                  );
+                }
+              }
+            } catch (err) {
+              console.error(
+                `[useFileSystem] Error adding default image ${file.name}:`,
+                err
+              );
+            }
           }
         }
-      }
 
-      console.log("[useFileSystem] Initial content check complete.");
+        console.log("[useFileSystem] Initial content check complete.");
+      } catch (err) {
+        console.error("[useFileSystem] Error loading filesystem.json:", err);
+      }
     };
 
     // Fire and forget – other hook instances have already been blocked.
@@ -1404,43 +1222,43 @@ export function useFileSystem(
       ]);
       await dbOperations.clear(STORES.DOCUMENTS);
 
-      // Re-add default document content to DB using the constants
-      const initialDocsContent = [
-        { name: "README.md", content: README_CONTENT },
-        { name: "Quick Tips.md", content: QUICKTIPS_CONTENT },
-      ];
-      for (const doc of initialDocsContent) {
-        await dbOperations.put<DocumentContent>(STORES.DOCUMENTS, {
-          name: doc.name,
-          content: doc.content,
-        });
-      }
+      // Re-add default content from JSON file
+      try {
+        const res = await fetch("/data/filesystem.json");
+        const data = await res.json();
 
-      // Re-add default images content
-      for (const imgName of DEFAULT_IMAGES) {
-        try {
-          const response = await fetch(`/assets/images/${imgName}`);
-          if (response.ok) {
-            const blob = await response.blob();
-            await dbOperations.put<DocumentContent>(STORES.IMAGES, {
-              name: imgName,
-              content: blob,
+        // Process files that have content
+        for (const file of data.files || []) {
+          if (file.content) {
+            // This is a document with text content
+            await dbOperations.put<DocumentContent>(STORES.DOCUMENTS, {
+              name: file.name,
+              content: file.content,
             });
-          } else {
-            console.warn(
-              `[useFileSystem:formatFileSystem] Failed to fetch default image ${imgName}. Status: ${response.status}`
-            );
+          } else if (file.assetPath) {
+            // This is an image with an asset path
+            const response = await fetch(file.assetPath);
+            if (response.ok) {
+              const blob = await response.blob();
+              await dbOperations.put<DocumentContent>(STORES.IMAGES, {
+                name: file.name,
+                content: blob,
+              });
+            } else {
+              console.warn(
+                `[useFileSystem:formatFileSystem] Failed to fetch image ${file.name}. Status: ${response.status}`
+              );
+            }
           }
-        } catch (err) {
-          console.error(
-            `[useFileSystem:formatFileSystem] Error fetching default image ${imgName}:`,
-            err
-          );
         }
+      } catch (err) {
+        console.error(
+          "[useFileSystem:formatFileSystem] Error loading filesystem.json:",
+          err
+        );
       }
 
-      fileStore.reset(); // Reset metadata store
-      // No need to setTrashItems([]) as it's removed
+      fileStore.reset(); // Reset metadata store (this will trigger re-initialization)
       setCurrentPath("/");
       setHistory(["/"]);
       setHistoryIndex(0);
