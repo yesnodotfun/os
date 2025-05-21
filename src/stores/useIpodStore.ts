@@ -17,6 +17,27 @@ export interface Track {
 // Original video collection moved here
 export const IPOD_DEFAULT_VIDEOS = [
   {
+    id: "nBoV9ZJeSp8",
+    url: "https://www.youtube.com/watch?v=nBoV9ZJeSp8",
+    title: "SLOW FADE",
+    artist: "Christian Kuria",
+    lyricOffset: 1000,
+  },
+  {
+    id: "tbDGl7jEazA",
+    url: "https://www.youtube.com/watch?v=tbDGl7jEazA",
+    title: "Cherish (My Love)",
+    artist: "ILLIT",
+    lyricOffset: -10250,
+  },
+  {
+    id: "XnbsIl2BnWw",
+    url: "https://www.youtube.com/watch?v=XnbsIl2BnWw",
+    title: "Chanel",
+    artist: "Frank Ocean",
+    lyricOffset: 1950,
+  },
+  {
     id: "SNq4zqTN_DQ",
     url: "https://www.youtube.com/watch?v=SNq4zqTN_DQ",
     title: "Last Summer Whisper",
@@ -475,7 +496,7 @@ export interface IpodState extends IpodData {
   addTrackFromVideoId: (urlOrId: string) => Promise<Track | null>;
 }
 
-const CURRENT_IPOD_STORE_VERSION = 16; // Incremented version for new state
+const CURRENT_IPOD_STORE_VERSION = 17; // Incremented version for new state
 
 export const useIpodStore = create<IpodState>()(
   persist(
