@@ -24,13 +24,6 @@ export const IPOD_DEFAULT_VIDEOS = [
     lyricOffset: 1000,
   },
   {
-    id: "tbDGl7jEazA",
-    url: "https://www.youtube.com/watch?v=tbDGl7jEazA",
-    title: "Cherish (My Love)",
-    artist: "ILLIT",
-    lyricOffset: -10250,
-  },
-  {
     id: "XnbsIl2BnWw",
     url: "https://www.youtube.com/watch?v=XnbsIl2BnWw",
     title: "Chanel",
@@ -44,7 +37,6 @@ export const IPOD_DEFAULT_VIDEOS = [
     artist: "Anri",
     lyricOffset: 1200,
   },
-
   {
     id: "txroGbuRt_w",
     url: "https://www.youtube.com/watch?v=txroGbuRt_w",
@@ -101,7 +93,7 @@ export const IPOD_DEFAULT_VIDEOS = [
   },
   {
     id: "-nEGVrzPaiU",
-    url: "https://www.youtube.com/watch?v=-nEGVrzPaiU&pp=ygUPdGljayB0YWNrIGlsbGl0",
+    url: "https://www.youtube.com/watch?v=-nEGVrzPaiU",
     title: "Tick-Tack",
     artist: "ILLIT",
     album: "I'll Like You",
@@ -354,6 +346,13 @@ export const IPOD_DEFAULT_VIDEOS = [
     artist: "NJZ",
     album: "NewJeans 2nd EP 'Get Up'",
     lyricOffset: -7850,
+  },
+  {
+    id: "tbDGl7jEazA",
+    url: "https://www.youtube.com/watch?v=tbDGl7jEazA",
+    title: "Cherish (My Love)",
+    artist: "ILLIT",
+    lyricOffset: -10250,
   },
   {
     id: "pQg7doFpC5k",
