@@ -696,7 +696,14 @@ export function useAiChat() {
         end: lastMsg.content.length,
       };
       highlightQueueRef.current.push(seg);
-      if (!highlightSegment) setHighlightSegment(seg);
+      if (!highlightSegment) {
+        // Delay highlighting slightly so text sync aligns closer to actual speech start
+        setTimeout(() => {
+          if (highlightQueueRef.current[0] === seg) {
+            setHighlightSegment(seg);
+          }
+        }, 80);
+      }
 
       speak(cleaned, () => {
         highlightQueueRef.current.shift();
@@ -762,7 +769,14 @@ export function useAiChat() {
       if (cleaned) {
         const seg = { messageId: lastMsg.id, start: scanPos, end: endPos };
         highlightQueueRef.current.push(seg);
-        if (!highlightSegment) setHighlightSegment(seg);
+        if (!highlightSegment) {
+          // Delay highlighting slightly so text sync aligns closer to actual speech start
+          setTimeout(() => {
+            if (highlightQueueRef.current[0] === seg) {
+              setHighlightSegment(seg);
+            }
+          }, 80);
+        }
 
         speak(cleaned, () => {
           highlightQueueRef.current.shift();
