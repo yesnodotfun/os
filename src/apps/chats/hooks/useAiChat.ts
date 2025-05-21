@@ -676,22 +676,8 @@ export function useAiChat() {
       );
       setAiMessages(finalMessages);
 
-      // Speak any remaining text that wasn't processed during streaming
-      if (speechEnabled) {
-        const lastMsg = finalMessages.at(-1);
-        if (lastMsg && lastMsg.role === "assistant") {
-          const processed = speechProgressRef.current[lastMsg.id] ?? 0;
-          if (processed !== -1 && lastMsg.content.length > processed) {
-            const remaining = lastMsg.content.slice(processed).trim();
-            const cleaned = cleanTextForSpeech(remaining);
-            if (cleaned && cleaned.length > 0) {
-              speak(cleaned);
-            }
-            // Mark the entire message as processed
-            speechProgressRef.current[lastMsg.id] = lastMsg.content.length;
-          }
-        }
-      }
+      // The useEffect above now handles final content when isLoading becomes false
+      // No need for duplicate logic here
     },
     onError: (err) => {
       console.error("AI Chat Error:", err);
@@ -735,95 +721,72 @@ export function useAiChat() {
     if (!lastMsg || lastMsg.role !== "assistant") return;
 
     const processed = speechProgressRef.current[lastMsg.id] ?? 0;
-    if (processed === -1 || lastMsg.content.length <= processed) return; // nothing new or skipped
+    if (processed === -1 || lastMsg.content.length <= processed) return;
 
-    const newText = lastMsg.content.slice(processed);
+    const newContent = lastMsg.content.slice(processed);
 
-    // Find complete lines (those that end with line breaks)
-    const lines = newText.split(/(\r?\n)/);
+    // Simple paragraph-based chunking - much more reliable
+    const paragraphs = newContent.split(/\n\s*\n/);
     let processedChars = 0;
-    let hasCompleteLines = false;
 
-    // Process pairs of (content, linebreak) or just content if it's the last item
-    for (let i = 0; i < lines.length; i += 2) {
-      const lineContent = lines[i] || "";
-      const lineBreak = lines[i + 1] || "";
+    // During streaming: only process complete paragraphs (all but the last one)
+    // When loading complete: process everything including the last paragraph
+    const paragraphsToProcess = isLoading
+      ? paragraphs.slice(0, -1)
+      : paragraphs;
 
-      // If we have a line break, this is a complete line to process
-      // OR if loading is finished and this is the last chunk, process it anyway
-      if (
-        lineBreak ||
-        (!isLoading && i === lines.length - 1 && lineContent.trim())
-      ) {
-        hasCompleteLines = true;
-        const trimmedLine = lineContent.trim();
+    paragraphsToProcess.forEach((paragraph, index) => {
+      const trimmed = paragraph.trim();
+      if (!trimmed) {
+        processedChars +=
+          paragraph.length + (index < paragraphs.length - 1 ? 2 : 0); // +2 for \n\n
+        return;
+      }
 
-        if (trimmedLine && trimmedLine.length > 0) {
-          const cleaned = cleanTextForSpeech(trimmedLine);
-          // Skip if the cleaned text is empty or only contains code/HTML artifacts
-          if (
-            cleaned &&
-            !/^[\s.!?。，！？；：]+$/.test(cleaned) &&
-            cleaned.length > 0
-          ) {
-            // If this is an urgent message (starts with "!!!!"), the UI trims
-            // the first 4 exclamation marks *and* any following spaces before
-            // rendering. We need to offset our start/end indices so they align
-            // with the visible (trimmed) text.
-            let prefixOffset = 0;
-            if (lastMsg.content.startsWith("!!!!")) {
-              // Base 4 chars for the exclamation marks
-              prefixOffset = 4;
-              // Skip any whitespace that will be removed by trimStart()
-              let i = 4;
-              while (
-                i < lastMsg.content.length &&
-                /\s/.test(lastMsg.content[i])
-              ) {
-                prefixOffset++;
-                i++;
-              }
-            }
-
-            const chunkStart = processed + processedChars - prefixOffset;
-            const chunkEnd = chunkStart + lineContent.length;
-
-            // Push highlight info to queue
-            const seg = {
-              messageId: lastMsg.id,
-              start: chunkStart,
-              end: chunkEnd,
-            };
-            highlightQueueRef.current.push(seg);
-
-            // If no highlight active, set as current
-            if (!highlightSegment) {
-              setHighlightSegment(seg);
-            }
-
-            speak(cleaned, () => {
-              // On chunk end, shift queue
-              highlightQueueRef.current.shift();
-              if (highlightQueueRef.current.length > 0) {
-                setHighlightSegment(highlightQueueRef.current[0]);
-              } else {
-                setHighlightSegment(null);
-              }
-            });
+      const cleaned = cleanTextForSpeech(trimmed);
+      if (cleaned && cleaned.length > 0) {
+        // Calculate highlight position
+        let prefixOffset = 0;
+        if (lastMsg.content.startsWith("!!!!")) {
+          prefixOffset = 4;
+          let j = 4;
+          while (j < lastMsg.content.length && /\s/.test(lastMsg.content[j])) {
+            prefixOffset++;
+            j++;
           }
         }
 
-        // Count both the line content and the line break (if it exists)
-        processedChars +=
-          lineContent.length + (lineBreak ? lineBreak.length : 0);
-      } else {
-        // This is an incomplete line (no line break), don't process it yet
-        break;
-      }
-    }
+        const chunkStart = processed + processedChars - prefixOffset;
+        const chunkEnd = chunkStart + paragraph.length;
 
-    // Only update progress for complete lines we've processed
-    if (hasCompleteLines) {
+        const seg = {
+          messageId: lastMsg.id,
+          start: Math.max(0, chunkStart),
+          end: Math.max(0, chunkEnd),
+        };
+
+        highlightQueueRef.current.push(seg);
+
+        if (!highlightSegment) {
+          setHighlightSegment(seg);
+        }
+
+        speak(cleaned, () => {
+          highlightQueueRef.current.shift();
+          if (highlightQueueRef.current.length > 0) {
+            setHighlightSegment(highlightQueueRef.current[0]);
+          } else {
+            setHighlightSegment(null);
+          }
+        });
+      }
+
+      // Count paragraph + separator
+      processedChars +=
+        paragraph.length + (index < paragraphs.length - 1 ? 2 : 0);
+    });
+
+    if (processedChars > 0) {
       speechProgressRef.current[lastMsg.id] = processed + processedChars;
     }
   }, [currentSdkMessages, speechEnabled, speak, highlightSegment, isLoading]);
