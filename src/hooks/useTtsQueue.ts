@@ -124,9 +124,8 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
           if (ttsModel === "elevenlabs") {
             requestBody.voice_id = ttsVoice || "kAyjEabBEu68HYYYRAHR"; // Ryo voice default
             requestBody.voice_settings = {
-              stability: 0.5,
-              similarity_boost: 0.7,
-              use_speaker_boost: true,
+              stability: 0.4,
+              similarity_boost: 0.8,
               speed: 1.1,
             };
           } else {
