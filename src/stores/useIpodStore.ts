@@ -39,7 +39,7 @@ interface IpodData {
 
 async function loadDefaultTracks(): Promise<Track[]> {
   try {
-    const res = await fetch("/ipod-videos.json");
+    const res = await fetch("/data/ipod-videos.json");
     const data = await res.json();
     const videos: unknown[] = data.videos || data;
     return videos.map((v) => {

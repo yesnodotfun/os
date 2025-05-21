@@ -241,7 +241,7 @@ export function SoundboardAppComponent({
 
   const reloadFromJson = async () => {
     try {
-      const res = await fetch("/soundboards.json");
+      const res = await fetch("/data/soundboards.json");
       const data = await res.json();
       const importedBoardsRaw = data.boards || [data];
       const newBoards: Soundboard[] = importedBoardsRaw.map(
@@ -270,7 +270,7 @@ export function SoundboardAppComponent({
 
   const reloadFromAllSounds = async () => {
     try {
-      const res = await fetch("/all-sounds.json");
+      const res = await fetch("/data/all-sounds.json");
       const data = await res.json();
       const importedBoardsRaw = data.boards || [data];
       const newBoards: Soundboard[] = importedBoardsRaw.map(
