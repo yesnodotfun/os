@@ -127,7 +127,7 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
               stability: 0.3,
               similarity_boost: 0.7,
               use_speaker_boost: true,
-              speed: 1.1,
+              speed: 1.2,
             };
           } else {
             // OpenAI settings
