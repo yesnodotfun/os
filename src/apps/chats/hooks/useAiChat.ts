@@ -726,14 +726,12 @@ export function useAiChat() {
       highlightQueueRef.current.push(seg);
       if (!highlightSegment) setHighlightSegment(seg);
 
-      // Speak with a slight delay so UI settles first
-      setTimeout(() => {
-        speak(cleanedRemaining, () => {
-          highlightQueueRef.current.shift();
-          setHighlightSegment(highlightQueueRef.current[0] || null);
-          speechProgressRef.current[lastMsg.id] = -1;
-        });
-      }, 300);
+      // Queue the remaining text so it plays in order after any prior chunks
+      speak(cleanedRemaining, () => {
+        highlightQueueRef.current.shift();
+        setHighlightSegment(highlightQueueRef.current[0] || null);
+        speechProgressRef.current[lastMsg.id] = -1;
+      });
     },
     onError: (err) => {
       console.error("AI Chat Error:", err);
