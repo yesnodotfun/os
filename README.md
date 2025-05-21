@@ -7,7 +7,7 @@ A modern web-based desktop environment inspired by classic macOS, built with a c
 ### Desktop Environment
 
 - Authentic macOS-style desktop interactions
-- Multi-apps window manager
+- Multi-instance window manager with support for multiple windows per app
 - Cross-device window resizers
 - Menubar with app-specific menus
 - Icon and list views
@@ -22,6 +22,10 @@ A modern web-based desktop environment inspired by classic macOS, built with a c
 
 - **Finder**: File manager with Quick Access & Storage Info
 - **TextEdit**: Rich text editing with markdown support and task lists
+  - Multi-window support - open multiple documents simultaneously
+  - Each window maintains independent document state
+  - Automatic instance management and document tracking
+  - Smart file opening with existing window detection
 - **MacPaint**: Classic bitmap graphics editor
   - Drawing tools (pencil, brush, eraser)
   - Shape tools (rectangle, oval, line)
@@ -63,12 +67,17 @@ A modern web-based desktop environment inspired by classic macOS, built with a c
   - Wayback Machine integration for time travel
   - Classic UI with modern browsing capabilities
   - Historical web content viewing
-- **Chats**: AI-powered chat & rooms
+- **Chats**: AI-powered chat with speech & tool calling
   - Natural conversation with Ryo AI
-  - Join public chat rooms
-  - Push-to-talk voice messages
-  - Control apps or edit documents via chat commands
+  - Join public chat rooms with @ryo mentions
+  - Push-to-talk voice messages with real-time transcription
+  - Text-to-speech for AI responses with word highlighting
+  - Control apps and edit documents via chat commands
+  - Nudge system (👋) with context-aware responses
+  - ryOS FM DJ mode - when music plays, Ryo becomes a radio DJ
+  - Tool calling capabilities for system integration
   - Save transcript to Markdown
+  - Speech synthesis with volume controls
 - **Control Panels**: System preferences & power tools
   - Appearance & shader selection (CRT, Galaxy, Aurora)
   - UI / typing / Terminal sound toggles
@@ -90,6 +99,12 @@ A modern web-based desktop environment inspired by classic macOS, built with a c
   - Classic click-wheel navigation and back-light toggle
   - Shuffle and loop playback modes
   - Create playlists and organize tracks
+  - Time-synced lyrics with multi-language translation
+  - Interactive lyric offset adjustment via gestures
+  - Multiple lyric alignment modes (Focus Three, Alternating, Center)
+  - Chinese character variants (Traditional/Simplified) and Korean romanization
+  - Fullscreen lyrics mode with video support
+  - Real-time lyric highlighting during playback
   - Library persisted locally for offline playback
 
 ## Project Structure
