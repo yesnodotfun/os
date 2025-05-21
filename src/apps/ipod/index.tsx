@@ -1,4 +1,4 @@
-import { BaseApp } from "../base/types";
+import { BaseApp, IpodInitialData } from "../base/types";
 import { IpodAppComponent } from "./components/IpodAppComponent";
 
 export const helpItems = [
@@ -45,7 +45,7 @@ export const appMetadata = {
   icon: "/icons/ipod.png",
 };
 
-export const IpodApp: BaseApp = {
+export const IpodApp: BaseApp<IpodInitialData> = {
   id: "ipod",
   name: "iPod",
   icon: { type: "image", src: appMetadata.icon },

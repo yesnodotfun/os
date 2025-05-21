@@ -1,12 +1,12 @@
 import { createContext, useContext } from "react";
-import { BaseApp, AppState } from "@/apps/base/types";
+import { AnyApp, AppState, AnyInitialData } from "@/apps/base/types";
 import { AppId } from "@/config/appRegistry";
 
 interface AppContextType {
   appStates: { [appId: string]: AppState };
-  toggleApp: (appId: AppId, initialData?: any) => void;
+  toggleApp: (appId: AppId, initialData?: AnyInitialData) => void;
   bringToForeground: (appId: AppId) => void;
-  apps: BaseApp[];
+  apps: AnyApp[];
   navigateToNextApp: (currentAppId: AppId) => void;
   navigateToPreviousApp: (currentAppId: AppId) => void;
 }

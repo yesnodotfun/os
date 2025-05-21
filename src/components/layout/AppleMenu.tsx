@@ -8,12 +8,12 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { AboutFinderDialog } from "@/components/dialogs/AboutFinderDialog";
-import { BaseApp } from "@/apps/base/types";
+import { AnyApp } from "@/apps/base/types";
 import { AppId } from "@/config/appRegistry";
 import { useLaunchApp } from "@/hooks/useLaunchApp";
 
 interface AppleMenuProps {
-  apps: BaseApp[];
+  apps: AnyApp[];
 }
 
 export function AppleMenu({ apps }: AppleMenuProps) {

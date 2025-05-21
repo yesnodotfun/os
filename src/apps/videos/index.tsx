@@ -1,4 +1,4 @@
-import { BaseApp } from "../base/types";
+import { BaseApp, VideosInitialData } from "../base/types";
 import { VideosAppComponent } from "./components/VideosAppComponent";
 
 export const helpItems = [
@@ -45,7 +45,7 @@ export const appMetadata = {
   icon: "/icons/videos.png",
 };
 
-export const VideosApp: BaseApp = {
+export const VideosApp: BaseApp<VideosInitialData> = {
   id: "videos",
   name: "Videos",
   icon: { type: "image", src: "/icons/videos.png" },

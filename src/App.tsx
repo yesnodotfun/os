@@ -6,15 +6,18 @@ import { Toaster } from "./components/ui/sonner";
 import { useAppStore } from "./stores/useAppStore";
 import { BootScreen } from "./components/dialogs/BootScreen";
 import { getNextBootMessage, clearNextBootMessage } from "./utils/bootMessage";
+import { AnyApp } from "./apps/base/types";
 
 // Convert registry to array
-const apps = Object.values(appRegistry);
+const apps: AnyApp[] = Object.values(appRegistry);
 
 function App() {
   const displayMode = useAppStore((state) => state.displayMode);
   const isFirstBoot = useAppStore((state) => state.isFirstBoot);
   const setHasBooted = useAppStore((state) => state.setHasBooted);
-  const [bootScreenMessage, setBootScreenMessage] = useState<string | null>(null);
+  const [bootScreenMessage, setBootScreenMessage] = useState<string | null>(
+    null
+  );
   const [showBootScreen, setShowBootScreen] = useState(false);
 
   useEffect(() => {
@@ -52,7 +55,10 @@ function App() {
   return (
     <>
       <AppManager apps={apps} />
-      <Toaster position="bottom-left" offset={`calc(env(safe-area-inset-bottom, 0px) + 32px)`} />
+      <Toaster
+        position="bottom-left"
+        offset={`calc(env(safe-area-inset-bottom, 0px) + 32px)`}
+      />
     </>
   );
 }

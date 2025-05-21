@@ -100,3 +100,21 @@ export interface PaintInitialData {
 export interface VideosInitialData {
   videoId?: string;
 }
+
+// Union type for all possible app configurations
+export type AnyApp =
+  | BaseApp<ControlPanelsInitialData>
+  | BaseApp<InternetExplorerInitialData>
+  | BaseApp<IpodInitialData>
+  | BaseApp<PaintInitialData>
+  | BaseApp<VideosInitialData>
+  | BaseApp<unknown>; // For apps without specific initialData
+
+// Type for the initialData that could be any of the specific types
+export type AnyInitialData =
+  | ControlPanelsInitialData
+  | InternetExplorerInitialData
+  | IpodInitialData
+  | PaintInitialData
+  | VideosInitialData
+  | unknown;

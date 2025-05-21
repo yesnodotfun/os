@@ -1,5 +1,5 @@
 import { PaintAppComponent } from "./components/PaintAppComponent";
-import type { BaseApp } from "../base/types";
+import type { BaseApp, PaintInitialData } from "../base/types";
 
 export const helpItems = [
   {
@@ -50,7 +50,7 @@ export const appMetadata = {
   icon: "/icons/paint.png",
 };
 
-export const PaintApp: BaseApp = {
+export const PaintApp: BaseApp<PaintInitialData> = {
   id: "paint",
   name: "MacPaint",
   icon: { type: "image", src: "/icons/paint.png" },

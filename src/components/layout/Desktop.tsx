@@ -1,4 +1,4 @@
-import { BaseApp } from "@/apps/base/types";
+import { AnyApp } from "@/apps/base/types";
 import { AppManagerState } from "@/apps/base/types";
 import { AppId } from "@/config/appRegistry";
 import { useState, useEffect, useRef } from "react";
@@ -15,7 +15,7 @@ interface DesktopStyles {
 }
 
 interface DesktopProps {
-  apps: BaseApp[];
+  apps: AnyApp[];
   appStates: AppManagerState;
   toggleApp: (appId: AppId, initialData?: unknown) => void;
   onClick?: () => void;

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BaseApp } from "./types";
+import { AnyApp } from "./types";
 import { AppContext } from "@/contexts/AppContext";
 import { MenuBar } from "@/components/layout/MenuBar";
 import { Desktop } from "@/components/layout/Desktop";
@@ -9,7 +9,7 @@ import { extractCodeFromPath } from "@/utils/sharedUrl";
 import { toast } from "sonner";
 
 interface AppManagerProps {
-  apps: BaseApp[];
+  apps: AnyApp[];
 }
 
 const BASE_Z_INDEX = 1;
@@ -318,7 +318,7 @@ export function AppManager({ apps }: AppManagerProps) {
                   className="pointer-events-auto"
                   helpItems={apps.find((app) => app.id === appId)?.helpItems}
                   skipInitialSound={isInitialMount}
-                  initialData={instance.initialData}
+                  initialData={instance.initialData as unknown as undefined}
                   instanceId={instance.instanceId}
                   title={instance.title}
                   onNavigateNext={() =>
@@ -355,7 +355,7 @@ export function AppManager({ apps }: AppManagerProps) {
                   className="pointer-events-auto"
                   helpItems={app.helpItems}
                   skipInitialSound={isInitialMount}
-                  initialData={initialData} // Pass initialData to the component
+                  initialData={initialData as unknown as undefined}
                 />
               </div>
             ) : null;
