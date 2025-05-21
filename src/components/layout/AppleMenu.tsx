@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { useAppContext } from "@/contexts/AppContext";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,21 +10,19 @@ import {
 import { AboutFinderDialog } from "@/components/dialogs/AboutFinderDialog";
 import { BaseApp } from "@/apps/base/types";
 import { AppId } from "@/config/appRegistry";
+import { useLaunchApp } from "@/hooks/useLaunchApp";
+
 interface AppleMenuProps {
   apps: BaseApp[];
 }
 
 export function AppleMenu({ apps }: AppleMenuProps) {
   const [aboutFinderOpen, setAboutFinderOpen] = useState(false);
-  const { appStates, toggleApp, bringToForeground } = useAppContext();
+  const launchApp = useLaunchApp();
 
   const handleAppClick = (appId: string) => {
-    const isOpen = appStates[appId]?.isOpen;
-    if (!isOpen) {
-      toggleApp(appId as AppId);
-    } else {
-      bringToForeground(appId as AppId);
-    }
+    // Simply launch the app - the instance system will handle focus if already open
+    launchApp(appId as AppId);
   };
 
   return (

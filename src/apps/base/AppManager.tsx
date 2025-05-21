@@ -16,6 +16,7 @@ const BASE_Z_INDEX = 1;
 const FOREGROUND_Z_INDEX_OFFSET = 1;
 
 export function AppManager({ apps }: AppManagerProps) {
+  // Legacy state for compatibility
   const windowOrder = useAppStore((state) => state.windowOrder);
   const appStates = useAppStore((state) => state.apps);
   const bringToForeground = useAppStore((state) => state.bringToForeground);
@@ -25,10 +26,33 @@ export function AppManager({ apps }: AppManagerProps) {
   const navigateToPreviousApp = useAppStore(
     (state) => state.navigateToPreviousApp
   );
+
+  // New instance-based state
+  const instances = useAppStore((state) => state.instances);
+  const instanceWindowOrder = useAppStore((state) => state.instanceWindowOrder);
+  const launchApp = useAppStore((state) => state.launchApp);
+  const closeAppInstance = useAppStore((state) => state.closeAppInstance);
+  const bringInstanceToForeground = useAppStore(
+    (state) => state.bringInstanceToForeground
+  );
+  const navigateToNextInstance = useAppStore(
+    (state) => state.navigateToNextInstance
+  );
+  const navigateToPreviousInstance = useAppStore(
+    (state) => state.navigateToPreviousInstance
+  );
+
   const [isInitialMount, setIsInitialMount] = useState(true);
+  const useInstanceSystem = true; // Enable instance system
 
   const getZIndexForApp = (appId: AppId) => {
     const index = windowOrder.indexOf(appId);
+    if (index === -1) return BASE_Z_INDEX;
+    return BASE_Z_INDEX + (index + 1) * FOREGROUND_Z_INDEX_OFFSET;
+  };
+
+  const getZIndexForInstance = (instanceId: string) => {
+    const index = instanceWindowOrder.indexOf(instanceId);
     if (index === -1) return BASE_Z_INDEX;
     return BASE_Z_INDEX + (index + 1) * FOREGROUND_Z_INDEX_OFFSET;
   };
@@ -151,7 +175,7 @@ export function AppManager({ apps }: AppManagerProps) {
       event: CustomEvent<{
         appId: AppId;
         initialPath?: string;
-        initialData?: any;
+        initialData?: unknown;
       }>
     ) => {
       const { appId, initialPath, initialData } = event.detail; // Destructure initialData
@@ -162,65 +186,89 @@ export function AppManager({ apps }: AppManagerProps) {
         event.detail
       );
 
-      if (!isAppOpen) {
-        console.log(`[AppManager] Toggling app ${appId} to open.`);
-        // Pass initialData when toggling the app open
-        toggleApp(appId, initialData); // Pass initialData to toggleApp
-        // Keep localStorage for path for now, as it might be used differently
+      if (useInstanceSystem) {
+        // Use new instance system
+        const instanceId = launchApp(appId, initialData);
+        console.log(
+          `[AppManager] Launched instance ${instanceId} for app ${appId}`
+        );
+
+        // Store initialPath if provided
         if (initialPath) {
           localStorage.setItem(`app_${appId}_initialPath`, initialPath);
         }
       } else {
-        console.log(`[AppManager] Bringing app ${appId} to foreground.`);
-        bringToForeground(appId);
+        // Use legacy system
+        if (!isAppOpen) {
+          console.log(`[AppManager] Toggling app ${appId} to open.`);
+          // Pass initialData when toggling the app open
+          toggleApp(appId, initialData); // Pass initialData to toggleApp
+          // Keep localStorage for path for now, as it might be used differently
+          if (initialPath) {
+            localStorage.setItem(`app_${appId}_initialPath`, initialPath);
+          }
+        } else {
+          console.log(`[AppManager] Bringing app ${appId} to foreground.`);
+          bringToForeground(appId);
 
-        // --- FIX: Handle generic initialData (like url/year) for already open IE ---
-        if (appId === "internet-explorer" && initialData) {
-          // Dispatch updateApp event with the received initialData
-          console.log(
-            `[AppManager] Dispatching updateApp event for already open IE with initialData:`,
-            initialData
-          );
-          const updateEvent = new CustomEvent("updateApp", {
-            detail: { appId, initialData },
-          });
-          window.dispatchEvent(updateEvent);
+          // --- FIX: Handle generic initialData (like url/year) for already open IE ---
+          if (appId === "internet-explorer" && initialData) {
+            // Dispatch updateApp event with the received initialData
+            console.log(
+              `[AppManager] Dispatching updateApp event for already open IE with initialData:`,
+              initialData
+            );
+            const updateEvent = new CustomEvent("updateApp", {
+              detail: { appId, initialData },
+            });
+            window.dispatchEvent(updateEvent);
+          }
+          // --- END FIX ---
+
+          // --- ADDED: Handle initialData (videoId) for already open iPod ---
+          if (
+            appId === "ipod" &&
+            initialData &&
+            typeof initialData === "object" &&
+            "videoId" in initialData
+          ) {
+            console.log(
+              `[AppManager] Dispatching updateApp event for already open iPod with initialData:`,
+              initialData
+            );
+            const updateEvent = new CustomEvent("updateApp", {
+              detail: { appId, initialData },
+            });
+            window.dispatchEvent(updateEvent);
+          }
+          // --- END ADDED ---
+
+          // --- ADDED: Handle initialData (videoId) for already open Videos ---
+          if (
+            appId === "videos" &&
+            initialData &&
+            typeof initialData === "object" &&
+            "videoId" in initialData
+          ) {
+            console.log(
+              `[AppManager] Dispatching updateApp event for already open Videos with initialData:`,
+              initialData
+            );
+            const updateEvent = new CustomEvent("updateApp", {
+              detail: { appId, initialData },
+            });
+            window.dispatchEvent(updateEvent);
+          }
+          // --- END ADDED ---
+
+          // Existing shareCode specific logic (can be potentially removed if the above handles it, but keep for now for safety)
+          // if (appId === 'internet-explorer' && initialData?.shareCode) {
+          //    // Option 1: Dispatch another event specifically for the open app
+          //    const updateEvent = new CustomEvent('updateApp', { detail: { appId, initialData } });
+          //    window.dispatchEvent(updateEvent);
+          //    // Option 2: Update zustand store directly if needed (less preferred for cross-component)
+          // }
         }
-        // --- END FIX ---
-
-        // --- ADDED: Handle initialData (videoId) for already open iPod ---
-        if (appId === "ipod" && initialData?.videoId) {
-          console.log(
-            `[AppManager] Dispatching updateApp event for already open iPod with initialData:`,
-            initialData
-          );
-          const updateEvent = new CustomEvent("updateApp", {
-            detail: { appId, initialData },
-          });
-          window.dispatchEvent(updateEvent);
-        }
-        // --- END ADDED ---
-
-        // --- ADDED: Handle initialData (videoId) for already open Videos ---
-        if (appId === "videos" && initialData?.videoId) {
-          console.log(
-            `[AppManager] Dispatching updateApp event for already open Videos with initialData:`,
-            initialData
-          );
-          const updateEvent = new CustomEvent("updateApp", {
-            detail: { appId, initialData },
-          });
-          window.dispatchEvent(updateEvent);
-        }
-        // --- END ADDED ---
-
-        // Existing shareCode specific logic (can be potentially removed if the above handles it, but keep for now for safety)
-        // if (appId === 'internet-explorer' && initialData?.shareCode) {
-        //    // Option 1: Dispatch another event specifically for the open app
-        //    const updateEvent = new CustomEvent('updateApp', { detail: { appId, initialData } });
-        //    window.dispatchEvent(updateEvent);
-        //    // Option 2: Update zustand store directly if needed (less preferred for cross-component)
-        // }
       }
     };
 
@@ -229,7 +277,7 @@ export function AppManager({ apps }: AppManagerProps) {
       window.removeEventListener("launchApp", handleAppLaunch as EventListener);
     };
     // Update dependencies to include appStates for checking if app is open
-  }, [appStates, bringToForeground, toggleApp]);
+  }, [appStates, bringToForeground, toggleApp, useInstanceSystem, launchApp]);
 
   return (
     <AppContext.Provider
@@ -244,38 +292,81 @@ export function AppManager({ apps }: AppManagerProps) {
     >
       <MenuBar />
       {/* App Instances */}
-      {apps.map((app) => {
-        const appId = app.id as AppId;
-        const isOpen = appStates[appId]?.isOpen ?? false;
-        const isForeground = appStates[appId]?.isForeground ?? false;
-        const zIndex = getZIndexForApp(appId);
-        const AppComponent = getAppComponent(appId);
-        // Retrieve initialData associated with this app instance from the store
-        const initialData = appStates[appId]?.initialData;
+      {useInstanceSystem
+        ? // Instance-based rendering
+          Object.values(instances).map((instance) => {
+            if (!instance.isOpen) return null;
 
-        return isOpen ? (
-          <div
-            key={appId}
-            style={{ zIndex }}
-            className="absolute inset-x-0 md:inset-x-auto w-full md:w-auto"
-            onClick={() => !isForeground && bringToForeground(appId)}
-          >
-            <AppComponent
-              isWindowOpen={isOpen}
-              isForeground={isForeground}
-              onClose={() => closeApp(appId)}
-              className="pointer-events-auto"
-              helpItems={app.helpItems}
-              skipInitialSound={isInitialMount}
-              initialData={initialData} // Pass initialData to the component
-            />
-          </div>
-        ) : null;
-      })}
+            const appId = instance.appId as AppId;
+            const zIndex = getZIndexForInstance(instance.instanceId);
+            const AppComponent = getAppComponent(appId);
+
+            return (
+              <div
+                key={instance.instanceId}
+                style={{ zIndex }}
+                className="absolute inset-x-0 md:inset-x-auto w-full md:w-auto"
+                onClick={() =>
+                  !instance.isForeground &&
+                  bringInstanceToForeground(instance.instanceId)
+                }
+              >
+                <AppComponent
+                  isWindowOpen={instance.isOpen}
+                  isForeground={instance.isForeground}
+                  onClose={() => closeAppInstance(instance.instanceId)}
+                  className="pointer-events-auto"
+                  helpItems={apps.find((app) => app.id === appId)?.helpItems}
+                  skipInitialSound={isInitialMount}
+                  initialData={instance.initialData}
+                  instanceId={instance.instanceId}
+                  title={instance.title}
+                  onNavigateNext={() =>
+                    navigateToNextInstance(instance.instanceId)
+                  }
+                  onNavigatePrevious={() =>
+                    navigateToPreviousInstance(instance.instanceId)
+                  }
+                />
+              </div>
+            );
+          })
+        : // Legacy app-based rendering
+          apps.map((app) => {
+            const appId = app.id as AppId;
+            const isOpen = appStates[appId]?.isOpen ?? false;
+            const isForeground = appStates[appId]?.isForeground ?? false;
+            const zIndex = getZIndexForApp(appId);
+            const AppComponent = getAppComponent(appId);
+            // Retrieve initialData associated with this app instance from the store
+            const initialData = appStates[appId]?.initialData;
+
+            return isOpen ? (
+              <div
+                key={appId}
+                style={{ zIndex }}
+                className="absolute inset-x-0 md:inset-x-auto w-full md:w-auto"
+                onClick={() => !isForeground && bringToForeground(appId)}
+              >
+                <AppComponent
+                  isWindowOpen={isOpen}
+                  isForeground={isForeground}
+                  onClose={() => closeApp(appId)}
+                  className="pointer-events-auto"
+                  helpItems={app.helpItems}
+                  skipInitialSound={isInitialMount}
+                  initialData={initialData} // Pass initialData to the component
+                />
+              </div>
+            ) : null;
+          })}
 
       <Desktop
         apps={apps}
-        toggleApp={toggleApp}
+        toggleApp={(appId, initialData) => {
+          // Use the instance-based launch system for Desktop
+          launchApp(appId, initialData);
+        }}
         appStates={{ windowOrder, apps: appStates }}
       />
     </AppContext.Provider>

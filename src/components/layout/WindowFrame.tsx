@@ -26,6 +26,10 @@ interface WindowFrameProps {
     maxWidth?: number | string;
     maxHeight?: number | string;
   };
+  // Instance support
+  instanceId?: string;
+  onNavigateNext?: () => void;
+  onNavigatePrevious?: () => void;
 }
 
 export function WindowFrame({
@@ -38,6 +42,9 @@ export function WindowFrame({
   transparentBackground = false,
   skipInitialSound = false,
   windowConstraints = {},
+  instanceId,
+  onNavigateNext,
+  onNavigatePrevious,
 }: WindowFrameProps) {
   const config = getWindowConfig(appId);
   const defaultConstraints = {
@@ -59,6 +66,9 @@ export function WindowFrame({
   const [isInitialMount, setIsInitialMount] = useState(true);
   const { bringToForeground, navigateToNextApp, navigateToPreviousApp } =
     useAppContext();
+  const bringInstanceToForeground = useAppStore(
+    (state) => state.bringInstanceToForeground
+  );
   const { play: playWindowOpen } = useSound(Sounds.WINDOW_OPEN);
   const { play: playWindowClose } = useSound(Sounds.WINDOW_CLOSE);
   const { play: playWindowExpand } = useSound(Sounds.WINDOW_EXPAND);
@@ -78,6 +88,9 @@ export function WindowFrame({
   // Keep track of window size before maximizing to restore it later
   const previousSizeRef = useRef({ width: 0, height: 0 });
   const { debugMode, updateWindowState } = useAppStore();
+  const updateInstanceWindowState = useAppStore(
+    (state) => state.updateInstanceWindowState
+  );
 
   // Setup swipe navigation for mobile
   const {
@@ -92,12 +105,20 @@ export function WindowFrame({
     onSwipeLeft: (currentAppId) => {
       playWindowMoveStop();
       vibrateSwap();
-      navigateToNextApp(currentAppId);
+      if (instanceId && onNavigateNext) {
+        onNavigateNext();
+      } else {
+        navigateToNextApp(currentAppId);
+      }
     },
     onSwipeRight: (currentAppId) => {
       playWindowMoveStop();
       vibrateSwap();
-      navigateToPreviousApp(currentAppId);
+      if (instanceId && onNavigatePrevious) {
+        onNavigatePrevious();
+      } else {
+        navigateToPreviousApp(currentAppId);
+      }
     },
     threshold: 100,
   });
@@ -143,7 +164,7 @@ export function WindowFrame({
     setWindowSize,
     setWindowPosition,
     getSafeAreaBottomInset,
-  } = useWindowManager({ appId });
+  } = useWindowManager({ appId, instanceId });
 
   // No longer track maximized state based on window dimensions
   useEffect(() => {
@@ -158,7 +179,11 @@ export function WindowFrame({
   ) => {
     handleMouseDown(e);
     if (!isForeground) {
-      bringToForeground(appId);
+      if (instanceId) {
+        bringInstanceToForeground(instanceId);
+      } else {
+        bringToForeground(appId);
+      }
     }
   };
 
@@ -168,7 +193,11 @@ export function WindowFrame({
   ) => {
     handleResizeStart(e, type);
     if (!isForeground) {
-      bringToForeground(appId);
+      if (instanceId) {
+        bringInstanceToForeground(instanceId);
+      } else {
+        bringToForeground(appId);
+      }
     }
   };
 
@@ -193,7 +222,11 @@ export function WindowFrame({
       };
       setWindowSize(newSize);
       // Save the window state to global store
-      updateWindowState(appId as any, windowPosition, newSize);
+      if (instanceId) {
+        updateInstanceWindowState(instanceId, windowPosition, newSize);
+      } else {
+        updateWindowState(appId as any, windowPosition, newSize);
+      }
     } else {
       // Play expand sound when maximizing height
       playWindowExpand();
@@ -221,7 +254,11 @@ export function WindowFrame({
       setWindowSize(newSize);
       setWindowPosition(newPosition);
       // Save the window state to global store
-      updateWindowState(appId as any, newPosition, newSize);
+      if (instanceId) {
+        updateInstanceWindowState(instanceId, newPosition, newSize);
+      } else {
+        updateWindowState(appId as any, newPosition, newSize);
+      }
     }
   };
 
@@ -266,11 +303,19 @@ export function WindowFrame({
         }
 
         // Save the new window state to global store
-        updateWindowState(
-          appId as any,
-          window.innerWidth >= 768 ? newPosition : windowPosition,
-          defaultSize
-        );
+        if (instanceId) {
+          updateInstanceWindowState(
+            instanceId,
+            window.innerWidth >= 768 ? newPosition : windowPosition,
+            defaultSize
+          );
+        } else {
+          updateWindowState(
+            appId as any,
+            window.innerWidth >= 768 ? newPosition : windowPosition,
+            defaultSize
+          );
+        }
       } else {
         // Play expand sound when maximizing
         playWindowExpand();
@@ -321,7 +366,11 @@ export function WindowFrame({
         setWindowPosition(newPosition);
 
         // Save the new window state to global store
-        updateWindowState(appId as any, newPosition, newSize);
+        if (instanceId) {
+          updateInstanceWindowState(instanceId, newPosition, newSize);
+        } else {
+          updateWindowState(appId as any, newPosition, newSize);
+        }
       }
     },
     [
@@ -331,6 +380,7 @@ export function WindowFrame({
       windowSize,
       appId,
       getSafeAreaBottomInset,
+      updateInstanceWindowState,
     ]
   );
 
@@ -417,6 +467,15 @@ export function WindowFrame({
         // Disable all pointer events when window is closing
         !isOpen && "pointer-events-none"
       )}
+      onClick={() => {
+        if (!isForeground) {
+          if (instanceId) {
+            bringInstanceToForeground(instanceId);
+          } else {
+            bringToForeground(appId);
+          }
+        }
+      }}
       onTransitionEnd={handleTransitionEnd}
       style={{
         left: windowPosition.x,

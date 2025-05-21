@@ -12,11 +12,18 @@ import { getWindowConfig } from "@/config/appRegistry";
 
 interface UseWindowManagerProps {
   appId: AppId;
+  instanceId?: string;
 }
 
-export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
+export const useWindowManager = ({
+  appId,
+  instanceId,
+}: UseWindowManagerProps) => {
   // Fetch the persisted window state from the global app store
   const appStateFromStore = useAppStore((state) => state.apps[appId]);
+  const instanceStateFromStore = useAppStore((state) =>
+    instanceId ? state.instances[instanceId] : null
+  );
 
   const config = getWindowConfig(appId);
 
@@ -45,9 +52,12 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
     };
   };
 
+  // Use instance state if available, otherwise fall back to app state
+  const stateSource = instanceStateFromStore || appStateFromStore;
+
   const initialState = {
-    position: appStateFromStore?.position ?? computeDefaultWindowState().position,
-    size: appStateFromStore?.size ?? computeDefaultWindowState().size,
+    position: stateSource?.position ?? computeDefaultWindowState().position,
+    size: stateSource?.size ?? computeDefaultWindowState().size,
   };
 
   const adjustedPosition = { ...initialState.position };
@@ -98,6 +108,9 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
   const resizeAudioRef = useRef<NodeJS.Timeout | null>(null);
 
   const updateWindowState = useAppStore((state) => state.updateWindowState);
+  const updateInstanceWindowState = useAppStore(
+    (state) => state.updateInstanceWindowState
+  );
 
   const maximizeWindowHeight = useCallback(
     (maxHeightConstraint?: number | string) => {
@@ -120,9 +133,27 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
         ...prev,
         y: menuBarHeight,
       }));
-      updateWindowState(appId as any, windowPosition, windowSize);
+      if (instanceId) {
+        updateInstanceWindowState(instanceId, windowPosition, {
+          width: windowSize.width,
+          height: newHeight,
+        });
+      } else {
+        updateWindowState(appId as any, windowPosition, {
+          width: windowSize.width,
+          height: newHeight,
+        });
+      }
     },
-    [getSafeAreaBottomInset, updateWindowState, appId, windowPosition, windowSize]
+    [
+      getSafeAreaBottomInset,
+      updateWindowState,
+      updateInstanceWindowState,
+      appId,
+      instanceId,
+      windowPosition,
+      windowSize,
+    ]
   );
 
   const handleMouseDown = useCallback(
@@ -293,7 +324,11 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
     const handleEnd = () => {
       if (isDragging) {
         setIsDragging(false);
-        updateWindowState(appId as any, windowPosition, windowSize);
+        if (instanceId) {
+          updateInstanceWindowState(instanceId, windowPosition, windowSize);
+        } else {
+          updateWindowState(appId as any, windowPosition, windowSize);
+        }
         // Stop move sound loop and play stop sound
         if (moveAudioRef.current) {
           clearInterval(moveAudioRef.current);
@@ -303,7 +338,11 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
       }
       if (resizeType) {
         setResizeType("");
-        updateWindowState(appId as any, windowPosition, windowSize);
+        if (instanceId) {
+          updateInstanceWindowState(instanceId, windowPosition, windowSize);
+        } else {
+          updateWindowState(appId as any, windowPosition, windowSize);
+        }
         // Stop resize sound loop and play stop sound
         if (resizeAudioRef.current) {
           clearInterval(resizeAudioRef.current);
@@ -347,6 +386,8 @@ export const useWindowManager = ({ appId }: UseWindowManagerProps) => {
     config,
     getSafeAreaBottomInset,
     updateWindowState,
+    updateInstanceWindowState,
+    instanceId,
   ]);
 
   return {

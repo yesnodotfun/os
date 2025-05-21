@@ -485,10 +485,14 @@ function VolumeControl() {
 }
 
 export function MenuBar({ children }: MenuBarProps) {
-  const { apps, appStates } = useAppContext();
-  const hasActiveApp = Object.values(appStates).some(
-    (state) => state?.isForeground && state?.isOpen
+  const { apps } = useAppContext();
+  // Use instance state to determine if there's an active app
+  const getForegroundInstance = useAppStore(
+    (state) => state.getForegroundInstance
   );
+
+  const foregroundInstance = getForegroundInstance();
+  const hasActiveApp = !!foregroundInstance;
 
   return (
     <div className="fixed top-0 left-0 right-0 flex bg-system7-menubar-bg border-b-[2px] border-black px-2 h-7 items-center">

@@ -10,6 +10,8 @@ import {
   type Favorite,
 } from "@/stores/useInternetExplorerStore";
 import { useFilesStore, FileSystemItem } from "@/stores/useFilesStore";
+import { useTextEditStore } from "@/stores/useTextEditStore";
+import { useAppStore } from "@/stores/useAppStore";
 
 // Store names for IndexedDB (Content)
 const STORES = {
@@ -758,9 +760,25 @@ export function useFileSystem(
         if (file.path.startsWith("/Applications/") && file.appId) {
           launchApp(file.appId as AppId);
         } else if (file.path.startsWith("/Documents/")) {
-          launchApp("textedit", {
-            initialData: { path: file.path, content: contentAsString ?? "" },
-          });
+          // Check if this file is already open in a TextEdit instance
+          const textEditStore = useTextEditStore.getState();
+          const existingInstanceId = textEditStore.getInstanceIdByPath(
+            file.path
+          );
+
+          if (existingInstanceId) {
+            // File is already open - bring that window to foreground
+            console.log(
+              `[useFileSystem] File already open in TextEdit instance ${existingInstanceId}, bringing to foreground`
+            );
+            const appStore = useAppStore.getState();
+            appStore.bringInstanceToForeground(existingInstanceId);
+          } else {
+            // File not open - launch new TextEdit instance
+            launchApp("textedit", {
+              initialData: { path: file.path, content: contentAsString ?? "" },
+            });
+          }
         } else if (file.path.startsWith("/Images/")) {
           // Pass the Blob object itself to Paint via initialData
           launchApp("paint", {

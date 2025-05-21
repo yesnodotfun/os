@@ -69,18 +69,28 @@ const getSystemState = () => {
 
   // Convert TextEdit JSON to compact markdown for prompt inclusion
   let contentMarkdown: string | null = null;
-  if (textEditStore.contentJson) {
-    try {
-      const htmlStr = generateHTML(textEditStore.contentJson, [
-        StarterKit,
-        Underline,
-        TextAlign.configure({ types: ["heading", "paragraph"] }),
-        TaskList,
-        TaskItem.configure({ nested: true }),
-      ] as AnyExtension[]);
-      contentMarkdown = htmlToMarkdown(htmlStr);
-    } catch (err) {
-      console.error("Failed to convert TextEdit content to markdown:", err);
+  let textEditFilePath: string | null = null;
+  let textEditHasUnsavedChanges = false;
+
+  // Get the foreground TextEdit instance
+  const foregroundTextEdit = textEditStore.getForegroundInstance();
+  if (foregroundTextEdit) {
+    textEditFilePath = foregroundTextEdit.filePath;
+    textEditHasUnsavedChanges = foregroundTextEdit.hasUnsavedChanges;
+
+    if (foregroundTextEdit.contentJson) {
+      try {
+        const htmlStr = generateHTML(foregroundTextEdit.contentJson, [
+          StarterKit,
+          Underline,
+          TextAlign.configure({ types: ["heading", "paragraph"] }),
+          TaskList,
+          TaskItem.configure({ nested: true }),
+        ] as AnyExtension[]);
+        contentMarkdown = htmlToMarkdown(htmlStr);
+      } catch (err) {
+        console.error("Failed to convert TextEdit content to markdown:", err);
+      }
     }
   }
 
@@ -150,9 +160,9 @@ const getSystemState = () => {
       })),
     },
     textEdit: {
-      lastFilePath: textEditStore.lastFilePath,
+      lastFilePath: textEditFilePath,
       contentMarkdown,
-      hasUnsavedChanges: textEditStore.hasUnsavedChanges,
+      hasUnsavedChanges: textEditHasUnsavedChanges,
     },
   };
 };
@@ -178,11 +188,17 @@ const debouncedInsertTextUpdate = createDebouncedAction(150);
 
 // Helper function to extract visible text from message parts
 const getAssistantVisibleText = (message: Message): string => {
+  // Define type for message parts
+  type MessagePart = {
+    type: string;
+    text?: string;
+  };
+
   // If message has parts, extract text from text parts only
   if (message.parts && message.parts.length > 0) {
     return message.parts
-      .filter((part: any) => part.type === "text")
-      .map((part: any) => {
+      .filter((part: MessagePart) => part.type === "text")
+      .map((part: MessagePart) => {
         const text = part.text || "";
         // Handle urgent messages by removing leading !!!!
         return text.startsWith("!!!!") ? text.slice(4).trimStart() : text;
@@ -332,22 +348,24 @@ export function useAiChat() {
               isRegex,
             });
 
-            // Ensure TextEdit is open – launch if not already
-            const appState = useAppStore.getState();
-            if (!appState.apps["textedit"]?.isOpen) {
+            const textEditState = useTextEditStore.getState();
+            const foregroundTextEdit = textEditState.getForegroundInstance();
+
+            if (!foregroundTextEdit) {
+              // No TextEdit window is in foreground, launch a new one
               launchApp("textedit");
+              return "No TextEdit window is currently active.";
             }
 
-            const textEditState = useTextEditStore.getState();
-            const { contentJson, applyExternalUpdate } = textEditState;
+            const { applyExternalUpdate } = textEditState;
 
-            if (!contentJson) {
+            if (!foregroundTextEdit.contentJson) {
               return "No file currently open in TextEdit.";
             }
 
             try {
               // 1. Convert current JSON document to HTML
-              const htmlStr = generateHTML(contentJson, [
+              const htmlStr = generateHTML(foregroundTextEdit.contentJson, [
                 StarterKit,
                 Underline,
                 TextAlign.configure({ types: ["heading", "paragraph"] }),
@@ -405,13 +423,18 @@ export function useAiChat() {
 
             console.log("[ToolCall] insertText:", { text, position });
 
-            // Ensure TextEdit is open
-            const appState = useAppStore.getState();
-            if (!appState.apps["textedit"]?.isOpen) {
+            // Check if there's a foreground TextEdit instance
+            const textEditState = useTextEditStore.getState();
+            const foregroundTextEdit = textEditState.getForegroundInstance();
+
+            if (!foregroundTextEdit) {
+              // No TextEdit window is in foreground, launch a new one
               launchApp("textedit");
+              // Wait a bit for the app to initialize
+              await new Promise((resolve) => setTimeout(resolve, 100));
             }
 
-            const textEditState = useTextEditStore.getState();
+            // Now insert the text into the foreground instance
             const { insertText } = textEditState;
 
             // Use a small debounce so rapid successive insertText calls (if any)
@@ -428,13 +451,17 @@ export function useAiChat() {
           }
           case "textEditNewFile": {
             console.log("[ToolCall] newFile");
-            // Ensure TextEdit is open – launch if not already
-            const appState = useAppStore.getState();
-            if (!appState.apps["textedit"]?.isOpen) {
-              launchApp("textedit");
-            }
 
             const textEditState = useTextEditStore.getState();
+            const foregroundTextEdit = textEditState.getForegroundInstance();
+
+            if (!foregroundTextEdit) {
+              // No TextEdit window is in foreground, launch a new one
+              launchApp("textedit");
+              // Wait a bit for the app to initialize
+              await new Promise((resolve) => setTimeout(resolve, 100));
+            }
+
             const {
               reset,
               applyExternalUpdate: applyUpdateForNewFile,
@@ -789,7 +816,7 @@ export function useAiChat() {
     if (onFinishProcessingRef.current.has(lastMsg.id)) return;
 
     // Get current progress for this message
-    let progress =
+    const progress =
       typeof speechProgressRef.current[lastMsg.id] === "number"
         ? (speechProgressRef.current[lastMsg.id] as number)
         : 0;

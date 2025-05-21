@@ -44,6 +44,13 @@ import {
 } from "@/utils/markdown";
 import { saveAsMarkdown } from "@/utils/markdown/saveUtils";
 import { useAppStore } from "@/stores/useAppStore";
+import { JSONContent } from "@tiptap/core";
+
+// Define the type for TextEdit initial data
+interface TextEditInitialData {
+  path?: string;
+  content?: string;
+}
 
 // Function to remove file extension
 const removeFileExtension = (filename: string): string => {
@@ -72,6 +79,8 @@ export function TextEditAppComponent({
   isForeground,
   skipInitialSound,
   initialData,
+  instanceId,
+  title: customTitle,
 }: AppProps) {
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
@@ -84,19 +93,90 @@ export function TextEditAppComponent({
   const { play: playButtonClick } = useSound(Sounds.BUTTON_CLICK);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const clearInitialData = useAppStore((state) => state.clearInitialData);
+  const launchAppInstance = useAppStore((state) => state.launchApp);
 
-  // Zustand TextEdit store
-  const {
-    lastFilePath: currentFilePath,
-    setLastFilePath,
-    contentJson,
-    setContentJson,
-    hasUnsavedChanges,
-    setHasUnsavedChanges,
-  } = useTextEditStore();
+  // Use store actions directly to avoid reference changes
+  const createTextEditInstance = useTextEditStore(
+    (state) => state.createInstance
+  );
+  const removeTextEditInstance = useTextEditStore(
+    (state) => state.removeInstance
+  );
+  const updateTextEditInstance = useTextEditStore(
+    (state) => state.updateInstance
+  );
+  const textEditInstances = useTextEditStore((state) => state.instances);
 
-  // Alias for existing code references
-  const setCurrentFilePath = setLastFilePath;
+  // Legacy store methods for single-window mode
+  const legacySetFilePath = useTextEditStore((state) => state.setLastFilePath);
+  const legacySetContentJson = useTextEditStore(
+    (state) => state.setContentJson
+  );
+  const legacySetHasUnsavedChanges = useTextEditStore(
+    (state) => state.setHasUnsavedChanges
+  );
+  const legacyFilePath = useTextEditStore((state) => state.lastFilePath);
+  const legacyContentJson = useTextEditStore((state) => state.contentJson);
+  const legacyHasUnsavedChanges = useTextEditStore(
+    (state) => state.hasUnsavedChanges
+  );
+
+  // Create instance when component mounts (only if using instanceId)
+  useEffect(() => {
+    if (instanceId) {
+      createTextEditInstance(instanceId);
+    }
+  }, [instanceId, createTextEditInstance]);
+
+  // Clean up instance when component unmounts (only if using instanceId)
+  useEffect(() => {
+    if (!instanceId) return;
+
+    return () => {
+      removeTextEditInstance(instanceId);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [instanceId]); // removeTextEditInstance is stable, so we can safely exclude it
+
+  // Get current instance data (only if using instanceId)
+  const currentInstance = instanceId ? textEditInstances[instanceId] : null;
+
+  // Use instance data if available, otherwise use legacy store
+  const currentFilePath = instanceId
+    ? currentInstance?.filePath || null
+    : legacyFilePath;
+
+  const contentJson = instanceId
+    ? currentInstance?.contentJson || null
+    : legacyContentJson;
+
+  const hasUnsavedChanges = instanceId
+    ? currentInstance?.hasUnsavedChanges || false
+    : legacyHasUnsavedChanges;
+
+  const setCurrentFilePath = (path: string | null) => {
+    if (instanceId && currentInstance) {
+      updateTextEditInstance(instanceId, { filePath: path });
+    } else if (!instanceId) {
+      legacySetFilePath(path);
+    }
+  };
+
+  const setContentJson = (json: JSONContent | null) => {
+    if (instanceId && currentInstance) {
+      updateTextEditInstance(instanceId, { contentJson: json });
+    } else if (!instanceId) {
+      legacySetContentJson(json);
+    }
+  };
+
+  const setHasUnsavedChanges = (val: boolean) => {
+    if (instanceId && currentInstance) {
+      updateTextEditInstance(instanceId, { hasUnsavedChanges: val });
+    } else if (!instanceId) {
+      legacySetHasUnsavedChanges(val);
+    }
+  };
 
   // Local UI-only state for Save dialog filename
   const [saveFileName, setSaveFileName] = useState("");
@@ -167,7 +247,7 @@ export function TextEditAppComponent({
         clearTimeout(handler);
       };
     }
-  }, [hasUnsavedChanges, currentFilePath, saveFile]); // Dependencies: trigger on change flag or path change
+  }, [hasUnsavedChanges, currentFilePath, saveFile, setHasUnsavedChanges]); // Dependencies: trigger on change flag or path change
   // --- End Autosave Effect --- //
 
   // Initial load - Restore last session or use initialData
@@ -176,12 +256,14 @@ export function TextEditAppComponent({
 
     const loadContent = async () => {
       // Prioritize initialData passed from launch event
-      if (initialData?.path && initialData?.content !== undefined) {
+      const typedInitialData = initialData as TextEditInitialData;
+      if (typedInitialData?.path && typedInitialData?.content !== undefined) {
         console.log(
           "[TextEdit] Loading content from initialData:",
-          initialData.path
+          typedInitialData.path
         );
-        const { path, content } = initialData;
+        const { path, content } = typedInitialData;
+
         const contentToUse = typeof content === "string" ? content : "";
         let editorContent: string | object;
 
@@ -198,26 +280,28 @@ export function TextEditAppComponent({
         editor.commands.setContent(editorContent, false);
         setCurrentFilePath(path);
         setHasUnsavedChanges(false);
-        setLastFilePath(path);
         setContentJson(editor.getJSON());
 
         // Clear the initialData from the store now that we've consumed it
-        clearInitialData("textedit");
+        if (!instanceId) {
+          clearInitialData("textedit");
+        }
         return; // Don't proceed to load from store/DB if initialData was used
       }
 
-      const {
-        lastFilePath,
-        contentJson,
-        hasUnsavedChanges: storeUnsaved,
-      } = useTextEditStore.getState();
+      // For instance mode, we don't restore from legacy store
+      if (instanceId) {
+        // Instance starts fresh unless we have initialData
+        return;
+      }
 
+      // For legacy mode, try to restore from persisted state
       let loadedContent = false;
 
       // 1) Prefer any unsaved in-memory edits that were never written to disk.
-      if (storeUnsaved && contentJson) {
+      if (legacyHasUnsavedChanges && legacyContentJson) {
         try {
-          editor.commands.setContent(contentJson, false); // avoid onUpdate
+          editor.commands.setContent(legacyContentJson, false); // avoid onUpdate
           // Keep the unsaved flag so the UI continues to show the "•" indicator
           loadedContent = true;
           console.log("Restored unsaved TextEdit content from store");
@@ -227,9 +311,9 @@ export function TextEditAppComponent({
       }
 
       // 2) If nothing unsaved, attempt to load the persisted document from the DB.
-      if (!loadedContent && lastFilePath?.startsWith("/Documents/")) {
+      if (!loadedContent && legacyFilePath?.startsWith("/Documents/")) {
         try {
-          const fileName = getFileNameFromPath(lastFilePath);
+          const fileName = getFileNameFromPath(legacyFilePath);
           const doc = await dbOperations.get<DocumentContent>(
             STORES.DOCUMENTS,
             fileName
@@ -239,7 +323,7 @@ export function TextEditAppComponent({
             const contentStr = await getContentAsString(doc.content);
             let editorContent;
 
-            if (lastFilePath.endsWith(".md")) {
+            if (legacyFilePath.endsWith(".md")) {
               editorContent = markdownToHtml(contentStr);
             } else {
               try {
@@ -253,10 +337,10 @@ export function TextEditAppComponent({
               editor.commands.setContent(editorContent, false);
               setHasUnsavedChanges(false); // freshly loaded, so no unsaved edits yet
               loadedContent = true;
-              console.log("Loaded content from file:", lastFilePath);
+              console.log("Loaded content from file:", legacyFilePath);
             }
           } else {
-            console.warn("Document not found or empty:", lastFilePath);
+            console.warn("Document not found or empty:", legacyFilePath);
           }
         } catch (err) {
           console.error("Error loading file content from DB:", err);
@@ -264,9 +348,9 @@ export function TextEditAppComponent({
       }
 
       // 3) Finally, fall back to any stored JSON even if it wasn't flagged unsaved (legacy behaviour).
-      if (!loadedContent && contentJson) {
+      if (!loadedContent && legacyContentJson) {
         try {
-          editor.commands.setContent(contentJson, false);
+          editor.commands.setContent(legacyContentJson, false);
           setHasUnsavedChanges(false);
           console.log("Loaded content from store JSON (fallback)");
         } catch (err) {
@@ -276,7 +360,14 @@ export function TextEditAppComponent({
     };
 
     loadContent();
-  }, [editor, initialData]);
+  }, [
+    editor,
+    initialData,
+    instanceId,
+    legacyFilePath,
+    legacyContentJson,
+    legacyHasUnsavedChanges,
+  ]); // Don't include setters to avoid loops
 
   // Add listeners for external document updates (like from Chat app)
   useEffect(() => {
@@ -317,10 +408,14 @@ export function TextEditAppComponent({
     // Handle content changed notifications
     const handleContentChanged = (e: CustomEvent) => {
       if (editor && e.detail?.path === currentFilePath) {
-        // Reload content from localStorage
-        const latest = useTextEditStore.getState().contentJson;
-        if (latest) {
-          editor.commands.setContent(latest);
+        // For instance mode, check the instance's content
+        // For legacy mode, check the legacy content
+        const latestContent = instanceId
+          ? currentInstance?.contentJson
+          : legacyContentJson;
+
+        if (latestContent) {
+          editor.commands.setContent(latestContent);
           setHasUnsavedChanges(false);
         }
       }
@@ -371,7 +466,14 @@ export function TextEditAppComponent({
         handleDocumentUpdated as EventListener
       );
     };
-  }, [editor, currentFilePath]);
+  }, [
+    editor,
+    currentFilePath,
+    setHasUnsavedChanges,
+    instanceId,
+    currentInstance,
+    legacyContentJson,
+  ]);
 
   // --- Sync editor when contentJson is externally updated (e.g., by AI tools) --- //
   useEffect(() => {
@@ -426,7 +528,7 @@ export function TextEditAppComponent({
     if (editor) {
       editor.commands.clearContent();
       setContentJson(null);
-      setLastFilePath(null);
+      setCurrentFilePath(null);
       setHasUnsavedChanges(false);
 
       // Check if there's a pending file to open after creating new file
@@ -442,7 +544,7 @@ export function TextEditAppComponent({
             setCurrentFilePath(path);
             setHasUnsavedChanges(false);
             // Store the file path for next time
-            setLastFilePath(path);
+            setCurrentFilePath(path);
             // Store content in case app crashes
             setContentJson(editor.getJSON());
           }
@@ -492,7 +594,7 @@ export function TextEditAppComponent({
       setContentJson(jsonContent);
 
       // Store the file path for next time
-      setLastFilePath(currentFilePath);
+      setCurrentFilePath(currentFilePath);
 
       setHasUnsavedChanges(false);
     }
@@ -519,9 +621,8 @@ export function TextEditAppComponent({
     setContentJson(jsonContent);
 
     // Store the file path for next time
-    setLastFilePath(filePath);
-
     setCurrentFilePath(filePath);
+
     setHasUnsavedChanges(false);
     setIsSaveDialogOpen(false);
   };
@@ -531,6 +632,8 @@ export function TextEditAppComponent({
   ) => {
     const file = event.target.files?.[0];
     if (file && editor) {
+      const filePath = `/Documents/${file.name}`;
+
       const text = await file.text();
 
       // Convert content based on file type
@@ -544,7 +647,6 @@ export function TextEditAppComponent({
       }
 
       editor.commands.setContent(editorContent);
-      const filePath = `/Documents/${file.name}`;
 
       // Always save in markdown format, converting from HTML if needed
       const markdownContent = file.name.endsWith(".md")
@@ -565,7 +667,7 @@ export function TextEditAppComponent({
       setContentJson(editor.getJSON());
 
       // Store the file path for next time
-      setLastFilePath(filePath);
+      setCurrentFilePath(filePath);
     }
 
     // Reset the input
@@ -621,6 +723,12 @@ export function TextEditAppComponent({
     launchApp("finder", { initialPath: "/Documents" });
   };
 
+  const handleNewWindow = () => {
+    // Launch a new instance of TextEdit
+    const newInstanceId = launchAppInstance("textedit", null, "Untitled", true);
+    console.log(`Launched new TextEdit instance: ${newInstanceId}`);
+  };
+
   // Function to handle dropped files
   const handleFileDrop = async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -633,6 +741,8 @@ export function TextEditAppComponent({
       if (!file.type.startsWith("text/") && !file.name.endsWith(".md")) {
         return;
       }
+
+      const filePath = `/Documents/${file.name}`;
 
       const text = await file.text();
 
@@ -653,14 +763,13 @@ export function TextEditAppComponent({
         localStorage.setItem(
           "pending_file_open",
           JSON.stringify({
-            path: `/Documents/${file.name}`,
+            path: filePath,
             content: content,
           })
         );
       } else {
         editor.commands.clearContent();
         editor.commands.setContent(content);
-        const filePath = `/Documents/${file.name}`;
 
         // Save in markdown format
         const markdownContent = file.name.endsWith(".md")
@@ -681,7 +790,7 @@ export function TextEditAppComponent({
         setContentJson(editor.getJSON());
 
         // Store the file path for next time
-        setLastFilePath(filePath);
+        setCurrentFilePath(filePath);
       }
     }
   };
@@ -802,6 +911,7 @@ export function TextEditAppComponent({
         onShowHelp={() => setIsHelpDialogOpen(true)}
         onShowAbout={() => setIsAboutDialogOpen(true)}
         onNewFile={handleNewFile}
+        onNewWindow={handleNewWindow}
         onImportFile={handleImportFile}
         onExportFile={handleExportFile}
         onSave={handleSave}
@@ -811,14 +921,16 @@ export function TextEditAppComponent({
       />
       <WindowFrame
         title={
-          currentFilePath
+          customTitle ||
+          (currentFilePath
             ? `${removeFileExtension(currentFilePath.split("/").pop() || "")}`
-            : `Untitled${hasUnsavedChanges ? " •" : ""}`
+            : `Untitled${hasUnsavedChanges ? " •" : ""}`)
         }
         onClose={onClose}
         isForeground={isForeground}
         appId="textedit"
         skipInitialSound={skipInitialSound}
+        instanceId={instanceId}
       >
         <div className="flex flex-col h-full w-full">
           <div

@@ -8,140 +8,268 @@ import TextAlign from "@tiptap/extension-text-align";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import { JSONContent, AnyExtension } from "@tiptap/core";
+import { useAppStore } from "@/stores/useAppStore";
+
+export interface TextEditInstance {
+  instanceId: string;
+  filePath: string | null;
+  contentJson: JSONContent | null;
+  hasUnsavedChanges: boolean;
+}
 
 export interface TextEditStoreState {
-  /** The absolute path of the currently open file, or null if the document is untitled. */
+  // Instance management
+  instances: Record<string, TextEditInstance>;
+
+  // Legacy single-window support (deprecated, kept for migration)
   lastFilePath: string | null;
-  /** Raw ProseMirror JSON content for crash-recovery / hand-off to other apps. */
   contentJson: JSONContent | null;
-  /** Whether the in-memory document has edits that have not been saved to disk yet. */
   hasUnsavedChanges: boolean;
-  // actions
+
+  // Instance actions
+  createInstance: (instanceId: string) => void;
+  removeInstance: (instanceId: string) => void;
+  updateInstance: (
+    instanceId: string,
+    updates: Partial<Omit<TextEditInstance, "instanceId">>
+  ) => void;
+  getInstanceByPath: (path: string) => TextEditInstance | null;
+  getInstanceIdByPath: (path: string) => string | null;
+  getForegroundInstance: () => TextEditInstance | null;
+
+  // Legacy actions (now operate on foreground instance)
   setLastFilePath: (path: string | null) => void;
   setContentJson: (json: JSONContent | null) => void;
   setHasUnsavedChanges: (val: boolean) => void;
-  /** Clear the store back to its initial state. */
   reset: () => void;
-  /** Apply an external update to the document (e.g. Chat GPT tool calls). */
   applyExternalUpdate: (json: JSONContent) => void;
-  /**
-   * Append (or prepend) a simple paragraph node containing plain text.
-   * This helper is primarily used by AI tool calls so they can modify the
-   * document without needing direct access to the TipTap editor instance.
-   */
   insertText: (text: string, position?: "start" | "end") => void;
 }
 
-const CURRENT_TEXTEDIT_STORE_VERSION = 1;
+const CURRENT_TEXTEDIT_STORE_VERSION = 2;
 
 export const useTextEditStore = create<TextEditStoreState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
+      // Instance state
+      instances: {},
+
+      // Legacy state (deprecated)
       lastFilePath: null,
       contentJson: null,
       hasUnsavedChanges: false,
-      setLastFilePath: (path) => set({ lastFilePath: path }),
-      setContentJson: (json) => set({ contentJson: json }),
-      setHasUnsavedChanges: (val) => set({ hasUnsavedChanges: val }),
-      /**
-       * Append (or prepend) a simple paragraph node containing plain text.
-       * This helper is primarily used by AI tool calls so they can modify the
-       * document without needing direct access to the TipTap editor instance.
-       */
-      insertText: (text: string, position: "start" | "end" = "end") =>
+
+      // Instance management
+      createInstance: (instanceId) =>
         set((state) => {
-          // Step 1: Convert incoming markdown snippet to HTML
-          const htmlFragment = markdownToHtml(text);
-
-          // Step 2: Generate TipTap-compatible JSON from the HTML fragment
-          const parsedJson = generateJSON(htmlFragment, [
-            StarterKit,
-            Underline,
-            TextAlign.configure({ types: ["heading", "paragraph"] }),
-            TaskList,
-            TaskItem.configure({ nested: true }),
-          ] as AnyExtension[]);
-
-          // parsedJson is a full doc – we want just its content array
-          const nodesToInsert = Array.isArray(parsedJson.content)
-            ? parsedJson.content
-            : [];
-
-          let newDocJson: JSONContent;
-
-          if (state.contentJson && Array.isArray(state.contentJson.content)) {
-            // Clone existing document JSON to avoid direct mutation
-            const cloned = JSON.parse(JSON.stringify(state.contentJson));
-            if (position === "start") {
-              cloned.content = [...nodesToInsert, ...cloned.content];
-            } else {
-              cloned.content = [...cloned.content, ...nodesToInsert];
-            }
-            newDocJson = cloned;
-          } else {
-            // No existing document – use the parsed JSON directly
-            newDocJson = parsedJson;
+          // Don't create if instance already exists
+          if (state.instances[instanceId]) {
+            return state;
           }
 
           return {
-            contentJson: newDocJson,
-            hasUnsavedChanges: true,
-          } as Partial<TextEditStoreState>;
+            instances: {
+              ...state.instances,
+              [instanceId]: {
+                instanceId,
+                filePath: null,
+                contentJson: null,
+                hasUnsavedChanges: false,
+              },
+            },
+          };
         }),
-      reset: () =>
-        set({
-          lastFilePath: null,
-          contentJson: null,
-          hasUnsavedChanges: false,
+
+      removeInstance: (instanceId) =>
+        set((state) => {
+          const newInstances = { ...state.instances };
+          delete newInstances[instanceId];
+          return { instances: newInstances };
         }),
-      applyExternalUpdate: (json) =>
-        set({
-          contentJson: json,
+
+      updateInstance: (instanceId, updates) =>
+        set((state) => {
+          if (!state.instances[instanceId]) return state;
+          return {
+            instances: {
+              ...state.instances,
+              [instanceId]: {
+                ...state.instances[instanceId],
+                ...updates,
+              },
+            },
+          };
+        }),
+
+      getInstanceByPath: (path) => {
+        const instances = Object.values(get().instances);
+        return instances.find((inst) => inst.filePath === path) || null;
+      },
+
+      getInstanceIdByPath: (path) => {
+        const instances = get().instances;
+        for (const [id, instance] of Object.entries(instances)) {
+          if (instance.filePath === path) {
+            return id;
+          }
+        }
+        return null;
+      },
+
+      getForegroundInstance: () => {
+        // Get the foreground app instance from app store
+        const appStore = useAppStore.getState();
+        const foregroundInstance = appStore.getForegroundInstance();
+
+        if (!foregroundInstance || foregroundInstance.appId !== "textedit") {
+          return null;
+        }
+
+        return get().instances[foregroundInstance.instanceId] || null;
+      },
+
+      // Legacy actions - now operate on foreground instance
+      setLastFilePath: (path) => {
+        const instance = get().getForegroundInstance();
+        if (instance) {
+          get().updateInstance(instance.instanceId, { filePath: path });
+        }
+      },
+
+      setContentJson: (json) => {
+        const instance = get().getForegroundInstance();
+        if (instance) {
+          get().updateInstance(instance.instanceId, { contentJson: json });
+        }
+      },
+
+      setHasUnsavedChanges: (val) => {
+        const instance = get().getForegroundInstance();
+        if (instance) {
+          get().updateInstance(instance.instanceId, { hasUnsavedChanges: val });
+        }
+      },
+
+      insertText: (text: string, position: "start" | "end" = "end") => {
+        const instance = get().getForegroundInstance();
+        if (!instance) return;
+
+        // Step 1: Convert incoming markdown snippet to HTML
+        const htmlFragment = markdownToHtml(text);
+
+        // Step 2: Generate TipTap-compatible JSON from the HTML fragment
+        const parsedJson = generateJSON(htmlFragment, [
+          StarterKit,
+          Underline,
+          TextAlign.configure({ types: ["heading", "paragraph"] }),
+          TaskList,
+          TaskItem.configure({ nested: true }),
+        ] as AnyExtension[]);
+
+        // parsedJson is a full doc – we want just its content array
+        const nodesToInsert = Array.isArray(parsedJson.content)
+          ? parsedJson.content
+          : [];
+
+        let newDocJson: JSONContent;
+
+        if (
+          instance.contentJson &&
+          Array.isArray(instance.contentJson.content)
+        ) {
+          // Clone existing document JSON to avoid direct mutation
+          const cloned = JSON.parse(JSON.stringify(instance.contentJson));
+          if (position === "start") {
+            cloned.content = [...nodesToInsert, ...cloned.content];
+          } else {
+            cloned.content = [...cloned.content, ...nodesToInsert];
+          }
+          newDocJson = cloned;
+        } else {
+          // No existing document – use the parsed JSON directly
+          newDocJson = parsedJson;
+        }
+
+        get().updateInstance(instance.instanceId, {
+          contentJson: newDocJson,
           hasUnsavedChanges: true,
-        }),
+        });
+      },
+
+      reset: () => {
+        const instance = get().getForegroundInstance();
+        if (instance) {
+          get().updateInstance(instance.instanceId, {
+            filePath: null,
+            contentJson: null,
+            hasUnsavedChanges: false,
+          });
+        }
+      },
+
+      applyExternalUpdate: (json) => {
+        const instance = get().getForegroundInstance();
+        if (instance) {
+          get().updateInstance(instance.instanceId, {
+            contentJson: json,
+            hasUnsavedChanges: true,
+          });
+        }
+      },
+
+      migrate: (persistedState: unknown, version: number) => {
+        // Migrate from v1 to v2 (single window to multi-instance)
+        if (version < 2) {
+          const oldState = persistedState as {
+            lastFilePath?: string | null;
+            contentJson?: JSONContent | null;
+            hasUnsavedChanges?: boolean;
+          };
+
+          // Create new state with instances
+          const migratedState: Partial<TextEditStoreState> = {
+            instances: {},
+            // Keep legacy fields for backward compatibility
+            lastFilePath: oldState.lastFilePath || null,
+            contentJson: oldState.contentJson || null,
+            hasUnsavedChanges: oldState.hasUnsavedChanges || false,
+          };
+
+          return migratedState;
+        }
+
+        return persistedState;
+      },
     }),
     {
       name: "ryos:textedit",
       version: CURRENT_TEXTEDIT_STORE_VERSION,
-      migrate: (persistedState, version) => {
-        // If no persisted state (first load) try to migrate from old localStorage keys
-        if (!persistedState || version < CURRENT_TEXTEDIT_STORE_VERSION) {
-          try {
-            const lastFilePath = localStorage.getItem(
-              "textedit:last-file-path"
-            );
-            const rawJson = localStorage.getItem("textedit:content");
-            const migratedState: TextEditStoreState = {
-              lastFilePath: lastFilePath ?? null,
-              contentJson: rawJson
-                ? (JSON.parse(rawJson) as JSONContent)
-                : null,
-              hasUnsavedChanges: false,
-              setLastFilePath: () => {},
-              setContentJson: () => {},
-              setHasUnsavedChanges: () => {},
-              reset: () => {},
-              applyExternalUpdate: () => {},
-              insertText: () => {},
-            };
+      migrate: (persistedState: unknown, version: number) => {
+        // Migrate from v1 to v2 (single window to multi-instance)
+        if (version < 2) {
+          const oldState = persistedState as {
+            lastFilePath?: string | null;
+            contentJson?: JSONContent | null;
+            hasUnsavedChanges?: boolean;
+          };
 
-            // Clean up old keys once migrated
-            if (lastFilePath || rawJson) {
-              localStorage.removeItem("textedit:last-file-path");
-              localStorage.removeItem("textedit:content");
-            }
+          // Create new state with instances
+          const migratedState: Partial<TextEditStoreState> = {
+            instances: {},
+            // Keep legacy fields for backward compatibility
+            lastFilePath: oldState.lastFilePath || null,
+            contentJson: oldState.contentJson || null,
+            hasUnsavedChanges: oldState.hasUnsavedChanges || false,
+          };
 
-            return migratedState;
-          } catch (e) {
-            console.warn("TextEditStore migration failed", e);
-          }
+          return migratedState;
         }
-        return persistedState as TextEditStoreState;
+
+        return persistedState;
       },
       partialize: (state) => ({
-        lastFilePath: state.lastFilePath,
-        contentJson: state.contentJson,
-        hasUnsavedChanges: state.hasUnsavedChanges,
+        instances: state.instances,
+        // Don't persist legacy fields anymore
       }),
     }
   )

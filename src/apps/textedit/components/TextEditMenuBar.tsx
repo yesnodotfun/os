@@ -23,6 +23,7 @@ interface TextEditMenuBarProps {
   onShowAbout: () => void;
   isWindowOpen: boolean;
   onNewFile: () => void;
+  onNewWindow?: () => void;
   onImportFile: () => void;
   onExportFile: (format: "html" | "md" | "txt") => void;
   onSave: () => void;
@@ -37,6 +38,7 @@ export function TextEditMenuBar({
   onShowHelp,
   onShowAbout,
   onNewFile,
+  onNewWindow,
   onImportFile,
   onExportFile,
   onSave,
@@ -71,6 +73,14 @@ export function TextEditMenuBar({
           >
             New File
           </DropdownMenuItem>
+          {onNewWindow && (
+            <DropdownMenuItem
+              onClick={onNewWindow}
+              className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+            >
+              New Window
+            </DropdownMenuItem>
+          )}
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           <DropdownMenuItem
             onClick={onImportFile}

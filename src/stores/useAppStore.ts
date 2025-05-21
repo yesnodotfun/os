@@ -11,6 +11,19 @@ import { ensureIndexedDBInitialized } from "@/utils/indexedDB";
 // Re-export for backward compatibility
 export type { AIModel } from "@/types/aiModels";
 
+// Add new types for instance management
+export interface AppInstance extends AppState {
+  instanceId: string;
+  appId: AppId;
+  title?: string; // For window title customization
+}
+
+export interface AppInstanceManagerState {
+  instances: Record<string, AppInstance>; // instanceId -> instance
+  windowOrder: string[]; // Now contains instanceIds instead of appIds
+  nextInstanceId: number;
+}
+
 const getInitialState = (): AppManagerState => {
   const apps: { [appId: string]: AppState } = appIds.reduce(
     (acc: { [appId: string]: AppState }, id) => {
@@ -27,6 +40,35 @@ const getInitialState = (): AppManagerState => {
 };
 
 interface AppStoreState extends AppManagerState {
+  // Add instance management
+  instances: Record<string, AppInstance>;
+  instanceWindowOrder: string[];
+  nextInstanceId: number;
+
+  // Instance management methods
+  createAppInstance: (
+    appId: AppId,
+    initialData?: unknown,
+    title?: string
+  ) => string;
+  closeAppInstance: (instanceId: string) => void;
+  bringInstanceToForeground: (instanceId: string) => void;
+  updateInstanceWindowState: (
+    instanceId: string,
+    position: { x: number; y: number },
+    size: { width: number; height: number }
+  ) => void;
+  getInstancesByAppId: (appId: AppId) => AppInstance[];
+  getForegroundInstance: () => AppInstance | null;
+  navigateToNextInstance: (currentInstanceId: string) => void;
+  navigateToPreviousInstance: (currentInstanceId: string) => void;
+  launchApp: (
+    appId: AppId,
+    initialData?: unknown,
+    title?: string,
+    multiWindow?: boolean
+  ) => string;
+
   debugMode: boolean;
   setDebugMode: (enabled: boolean) => void;
   shaderEffectEnabled: boolean;
@@ -508,6 +550,262 @@ export const useAppStore = create<AppStoreState>()(
       setChatSynthVolume: (vol) => set({ chatSynthVolume: vol }),
       ipodVolume: 1,
       setIpodVolume: (vol) => set({ ipodVolume: vol }),
+
+      // Add instance management
+      instances: {},
+      instanceWindowOrder: [],
+      nextInstanceId: 0,
+
+      // Instance management methods
+      createAppInstance: (appId, initialData, title) => {
+        const instanceId = (++get().nextInstanceId).toString();
+
+        // Calculate position with offset for multiple windows
+        const existingInstances = Object.values(get().instances).filter(
+          (instance) => instance.appId === appId && instance.isOpen
+        );
+        const offsetMultiplier = existingInstances.length;
+        const baseOffset = 16;
+        const offsetStep = 32;
+
+        const isMobile = window.innerWidth < 768;
+        const position = {
+          x: isMobile ? 0 : baseOffset + offsetMultiplier * offsetStep,
+          y: isMobile ? 28 : 40 + offsetMultiplier * 20,
+        };
+
+        set((state) => ({
+          instances: {
+            ...state.instances,
+            [instanceId]: {
+              instanceId,
+              appId,
+              isOpen: true,
+              isForeground: true,
+              initialData,
+              title,
+              position,
+              // Size will be handled by WindowFrame/useWindowManager
+            },
+          },
+          instanceWindowOrder: [...state.instanceWindowOrder, instanceId],
+        }));
+
+        // Bring all other instances to background
+        set((state) => {
+          const updatedInstances = { ...state.instances };
+          Object.keys(updatedInstances).forEach((id) => {
+            if (id !== instanceId) {
+              updatedInstances[id] = {
+                ...updatedInstances[id],
+                isForeground: false,
+              };
+            }
+          });
+          return { instances: updatedInstances };
+        });
+
+        return instanceId;
+      },
+      closeAppInstance: (instanceId) => {
+        set((state) => {
+          if (!state.instances[instanceId]?.isOpen) {
+            console.log(
+              `Instance ${instanceId} is already closed. No action taken.`
+            );
+            return state; // Instance is already closed, do nothing
+          }
+
+          console.log(`Closing instance: ${instanceId}`);
+
+          const newInstanceWindowOrder = state.instanceWindowOrder.filter(
+            (id) => id !== instanceId
+          );
+          const newInstances: Record<string, AppInstance> = {
+            ...state.instances,
+          };
+
+          // Determine the next instance to bring to foreground
+          const nextForegroundInstanceId =
+            newInstanceWindowOrder.length > 0
+              ? newInstanceWindowOrder[newInstanceWindowOrder.length - 1]
+              : null;
+
+          Object.keys(newInstances).forEach((id) => {
+            if (id === instanceId) {
+              newInstances[id] = {
+                ...newInstances[id],
+                isOpen: false,
+                isForeground: false,
+                initialData: undefined, // Clear initial data on close
+              };
+            } else {
+              newInstances[id] = {
+                ...newInstances[id],
+                // Bring the next instance in order to foreground if this wasn't the last instance closed
+                isForeground: id === nextForegroundInstanceId,
+              };
+            }
+          });
+
+          const newState = {
+            instances: newInstances,
+            instanceWindowOrder: newInstanceWindowOrder,
+          };
+
+          // Emit DOM event for closing
+          const instanceStateChangeEvent = new CustomEvent(
+            "instanceStateChange",
+            {
+              detail: {
+                instanceId,
+                isOpen: false,
+                isForeground: false,
+              },
+            }
+          );
+          window.dispatchEvent(instanceStateChangeEvent);
+          console.log(
+            `Instance ${instanceId} closed. New instance order:`,
+            newInstanceWindowOrder
+          );
+          console.log(
+            `Instance ${
+              nextForegroundInstanceId || "none"
+            } brought to foreground.`
+          );
+
+          return newState;
+        });
+      },
+      bringInstanceToForeground: (instanceId) => {
+        set((state) => {
+          const newState = {
+            instances: { ...state.instances },
+            instanceWindowOrder: [...state.instanceWindowOrder],
+          };
+
+          // If empty string provided, just clear foreground flags
+          if (!instanceId) {
+            Object.keys(newState.instances).forEach((id) => {
+              newState.instances[id] = {
+                ...newState.instances[id],
+                isForeground: false,
+              };
+            });
+          } else {
+            // Re‑order instanceWindowOrder so that instanceId is last (top‑most)
+            newState.instanceWindowOrder = [
+              ...newState.instanceWindowOrder.filter(
+                (id: string) => id !== instanceId
+              ),
+              instanceId,
+            ];
+
+            // Set foreground flags
+            Object.keys(newState.instances).forEach((id) => {
+              newState.instances[id] = {
+                ...newState.instances[id],
+                isForeground: id === instanceId,
+              };
+            });
+          }
+
+          // Emit DOM event (keep behaviour parity)
+          const instanceStateChangeEvent = new CustomEvent(
+            "instanceStateChange",
+            {
+              detail: {
+                instanceId,
+                isOpen: newState.instances[instanceId]?.isOpen || false,
+                isForeground: true,
+              },
+            }
+          );
+          window.dispatchEvent(instanceStateChangeEvent);
+
+          return newState;
+        });
+      },
+      updateInstanceWindowState: (instanceId, position, size) =>
+        set((state) => ({
+          instances: {
+            ...state.instances,
+            [instanceId]: {
+              ...state.instances[instanceId],
+              position,
+              size,
+            },
+          },
+        })),
+      getInstancesByAppId: (appId) => {
+        return Object.values(get().instances).filter(
+          (instance) => instance.appId === appId
+        );
+      },
+      getForegroundInstance: () => {
+        const { instanceWindowOrder, instances } = get();
+        if (instanceWindowOrder.length > 0) {
+          const lastInstanceId =
+            instanceWindowOrder[instanceWindowOrder.length - 1];
+          return instances[lastInstanceId] || null;
+        }
+        return null;
+      },
+      navigateToNextInstance: (currentInstanceId) => {
+        const { instanceWindowOrder } = get();
+        if (instanceWindowOrder.length <= 1) return;
+        const currentIndex = instanceWindowOrder.indexOf(currentInstanceId);
+        if (currentIndex === -1) return;
+        const nextInstanceId =
+          instanceWindowOrder[(currentIndex + 1) % instanceWindowOrder.length];
+        get().bringInstanceToForeground(nextInstanceId);
+      },
+      navigateToPreviousInstance: (currentInstanceId) => {
+        const { instanceWindowOrder } = get();
+        if (instanceWindowOrder.length <= 1) return;
+        const currentIndex = instanceWindowOrder.indexOf(currentInstanceId);
+        if (currentIndex === -1) return;
+        const prevIndex =
+          (currentIndex - 1 + instanceWindowOrder.length) %
+          instanceWindowOrder.length;
+        const prevInstanceId = instanceWindowOrder[prevIndex];
+        get().bringInstanceToForeground(prevInstanceId);
+      },
+      launchApp: (appId, initialData, title, multiWindow = false) => {
+        const state = get();
+
+        // Check if multi-window is supported for this app
+        const supportsMultiWindow = multiWindow || appId === "textedit"; // Start with TextEdit
+
+        if (!supportsMultiWindow) {
+          // Use existing single-window behavior
+          const existingInstance = Object.values(state.instances).find(
+            (instance) => instance.appId === appId && instance.isOpen
+          );
+
+          if (existingInstance) {
+            // Focus existing instance
+            state.bringInstanceToForeground(existingInstance.instanceId);
+            // Update initialData if provided
+            if (initialData) {
+              set((s) => ({
+                instances: {
+                  ...s.instances,
+                  [existingInstance.instanceId]: {
+                    ...s.instances[existingInstance.instanceId],
+                    initialData,
+                  },
+                },
+              }));
+            }
+            return existingInstance.instanceId;
+          }
+        }
+
+        // Create new instance
+        return state.createAppInstance(appId, initialData, title);
+      },
     }),
     {
       name: "ryos:app-store",
@@ -535,7 +833,58 @@ export const useAppStore = create<AppStoreState>()(
         ttsVoice: state.ttsVoice,
         ipodVolume: state.ipodVolume,
         masterVolume: state.masterVolume,
+        instances: state.instances,
+        instanceWindowOrder: state.instanceWindowOrder,
+        nextInstanceId: state.nextInstanceId,
       }),
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          // Migrate old app states to instances
+          const hasOldOpenApps = Object.values(state.apps || {}).some(
+            (app) => app.isOpen
+          );
+          const hasInstances = Object.keys(state.instances || {}).length > 0;
+
+          if (hasOldOpenApps && !hasInstances) {
+            console.log("[AppStore] Migrating old app states to instances");
+            let instanceIdCounter = state.nextInstanceId || 0;
+            const newInstances: Record<string, AppInstance> = {};
+            const newInstanceWindowOrder: string[] = [];
+
+            // Convert each open app to an instance
+            state.windowOrder.forEach((appId) => {
+              const appState = state.apps[appId];
+              if (appState?.isOpen) {
+                const instanceId = (++instanceIdCounter).toString();
+                newInstances[instanceId] = {
+                  instanceId,
+                  appId: appId as AppId,
+                  isOpen: true,
+                  isForeground: appState.isForeground,
+                  position: appState.position,
+                  size: appState.size,
+                  initialData: appState.initialData,
+                };
+                newInstanceWindowOrder.push(instanceId);
+              }
+            });
+
+            // Update state with migrated instances
+            state.instances = newInstances;
+            state.instanceWindowOrder = newInstanceWindowOrder;
+            state.nextInstanceId = instanceIdCounter;
+
+            // Clear old app states to prevent confusion
+            Object.keys(state.apps).forEach((appId) => {
+              state.apps[appId] = {
+                isOpen: false,
+                isForeground: false,
+              };
+            });
+            state.windowOrder = [];
+          }
+        }
+      },
     }
   )
 );

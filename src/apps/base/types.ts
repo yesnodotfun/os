@@ -6,12 +6,17 @@ export interface AppProps {
   isForeground?: boolean;
   className?: string;
   skipInitialSound?: boolean;
-  initialData?: any;
+  initialData?: unknown;
   helpItems?: Array<{
     icon: string;
     title: string;
     description: string;
   }>;
+  // Instance-specific props (optional for backward compatibility)
+  instanceId?: string;
+  title?: string;
+  onNavigateNext?: () => void;
+  onNavigatePrevious?: () => void;
 }
 
 export interface BaseApp {
@@ -62,7 +67,7 @@ export interface AppState {
   position?: { x: number; y: number };
   size?: { width: number; height: number };
   isForeground?: boolean;
-  initialData?: any;
+  initialData?: unknown;
 }
 
 export interface AppManagerState {
@@ -70,4 +75,28 @@ export interface AppManagerState {
   apps: {
     [appId: string]: AppState;
   };
+}
+
+// App-specific initial data types
+export interface ControlPanelsInitialData {
+  defaultTab?: string;
+}
+
+export interface InternetExplorerInitialData {
+  shareCode?: string;
+  url?: string;
+  year?: string;
+}
+
+export interface IpodInitialData {
+  videoId?: string;
+}
+
+export interface PaintInitialData {
+  path?: string;
+  content?: string;
+}
+
+export interface VideosInitialData {
+  videoId?: string;
 }
