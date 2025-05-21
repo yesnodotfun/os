@@ -750,7 +750,11 @@ export function useAiChat() {
       const lineBreak = lines[i + 1] || "";
 
       // If we have a line break, this is a complete line to process
-      if (lineBreak) {
+      // OR if loading is finished and this is the last chunk, process it anyway
+      if (
+        lineBreak ||
+        (!isLoading && i === lines.length - 1 && lineContent.trim())
+      ) {
         hasCompleteLines = true;
         const trimmedLine = lineContent.trim();
 
@@ -809,8 +813,9 @@ export function useAiChat() {
           }
         }
 
-        // Count both the line content and the line break
-        processedChars += lineContent.length + lineBreak.length;
+        // Count both the line content and the line break (if it exists)
+        processedChars +=
+          lineContent.length + (lineBreak ? lineBreak.length : 0);
       } else {
         // This is an incomplete line (no line break), don't process it yet
         break;
@@ -821,7 +826,7 @@ export function useAiChat() {
     if (hasCompleteLines) {
       speechProgressRef.current[lastMsg.id] = processed + processedChars;
     }
-  }, [currentSdkMessages, speechEnabled, speak, highlightSegment]);
+  }, [currentSdkMessages, speechEnabled, speak, highlightSegment, isLoading]);
 
   // --- Action Handlers ---
   const handleSubmit = useCallback(
