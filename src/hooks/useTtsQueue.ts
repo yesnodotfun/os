@@ -45,6 +45,10 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
   const setIpodVolumeGlobal = useAppStore((s) => s.setIpodVolume);
   const setChatSynthVolumeGlobal = useAppStore((s) => s.setChatSynthVolume);
 
+  // Get TTS settings from app store
+  const ttsModel = useAppStore((s) => s.ttsModel);
+  const ttsVoice = useAppStore((s) => s.ttsVoice);
+
   // Keep track of iPod and chat synth volumes for duck/restore
   const originalIpodVolumeRef = useRef<number | null>(null);
   const originalChatSynthVolumeRef = useRef<number | null>(null);
@@ -98,10 +102,43 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
         const controller = new AbortController();
         controllersRef.current.add(controller);
         try {
+          // Prepare request body with TTS settings
+          const requestBody: {
+            text: string;
+            model: "openai" | "elevenlabs";
+            voice?: string;
+            voice_id?: string;
+            speed?: number;
+            voice_settings?: {
+              stability?: number;
+              similarity_boost?: number;
+              use_speaker_boost?: boolean;
+              speed?: number;
+            };
+          } = {
+            text: request.text,
+            model: ttsModel,
+          };
+
+          // Add model-specific settings
+          if (ttsModel === "elevenlabs") {
+            requestBody.voice_id = ttsVoice || "kAyjEabBEu68HYYYRAHR"; // Ryo voice default
+            requestBody.voice_settings = {
+              stability: 0.5,
+              similarity_boost: 0.7,
+              use_speaker_boost: true,
+              speed: 1.1,
+            };
+          } else {
+            // OpenAI settings
+            requestBody.voice = ttsVoice || "alloy";
+            requestBody.speed = 1.1;
+          }
+
           const res = await fetch(endpoint, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text: request.text }),
+            body: JSON.stringify(requestBody),
             signal: controller.signal,
           });
           controllersRef.current.delete(controller);
@@ -126,7 +163,7 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
 
       executeRequest();
     }
-  }, [endpoint]);
+  }, [endpoint, ttsModel, ttsVoice]);
 
   /**
    * Queue a fetch request with parallel limit enforcement
