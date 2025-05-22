@@ -324,6 +324,15 @@ export function useAiChat() {
               url?: string;
               year?: string;
             };
+
+            // Validate required parameter
+            if (!id) {
+              console.error(
+                "[ToolCall] launchApp: Missing required 'id' parameter"
+              );
+              return "Failed to launch app: No app ID provided.";
+            }
+
             const appName = appRegistry[id as AppId]?.name || id;
             console.log("[ToolCall] launchApp:", { id, url, year });
 
@@ -344,6 +353,15 @@ export function useAiChat() {
           }
           case "closeApp": {
             const { id } = toolCall.args as { id: string };
+
+            // Validate required parameter
+            if (!id) {
+              console.error(
+                "[ToolCall] closeApp: Missing required 'id' parameter"
+              );
+              return "Failed to close app: No app ID provided.";
+            }
+
             const appName = appRegistry[id as AppId]?.name || id;
             console.log("[ToolCall] closeApp:", id);
 
@@ -376,6 +394,26 @@ export function useAiChat() {
               instanceId?: string;
             };
 
+            // Validate required parameters
+            if (typeof search !== "string") {
+              console.error(
+                "[ToolCall] textEditSearchReplace: Missing required 'search' parameter"
+              );
+              return "Failed to search/replace: No search text provided.";
+            }
+            if (typeof replace !== "string") {
+              console.error(
+                "[ToolCall] textEditSearchReplace: Missing required 'replace' parameter"
+              );
+              return "Failed to search/replace: No replacement text provided.";
+            }
+            if (!instanceId) {
+              console.error(
+                "[ToolCall] textEditSearchReplace: Missing required 'instanceId' parameter"
+              );
+              return "Failed to search/replace: No instanceId provided. Check system state for available TextEdit instances.";
+            }
+
             // Normalize line endings to avoid mismatches between CRLF / LF
             const normalizedSearch = search.replace(/\r\n?/g, "\n");
             const normalizedReplace = replace.replace(/\r\n?/g, "\n");
@@ -392,48 +430,13 @@ export function useAiChat() {
             });
 
             const textEditState = useTextEditStore.getState();
-            let targetInstance;
 
-            if (instanceId) {
-              // Use specific instance
-              targetInstance = textEditState.instances[instanceId];
-              if (!targetInstance) {
-                return `TextEdit instance ${instanceId} not found. Available instances: ${
-                  Object.keys(textEditState.instances).join(", ") || "none"
-                }.`;
-              }
-            } else {
-              // Use foreground instance
-              targetInstance = textEditState.getForegroundInstance();
-              if (!targetInstance) {
-                // No TextEdit window is in foreground, launch a new one
-                console.log(
-                  "[ToolCall] No foreground TextEdit instance, launching new one..."
-                );
-                const appStore = useAppStore.getState();
-                const newInstanceId = appStore.launchApp(
-                  "textedit",
-                  undefined,
-                  undefined,
-                  true
-                );
-
-                // Wait a bit for the app to initialize
-                await new Promise((resolve) => setTimeout(resolve, 200));
-
-                // Get the newly created instance directly
-                const updatedTextEditState = useTextEditStore.getState();
-                targetInstance = updatedTextEditState.instances[newInstanceId];
-
-                if (!targetInstance) {
-                  return `Failed to create new TextEdit window. Instance ${newInstanceId} not found in store.`;
-                }
-
-                console.log(
-                  "[ToolCall] Created new TextEdit instance:",
-                  newInstanceId
-                );
-              }
+            // Use specific instance
+            const targetInstance = textEditState.instances[instanceId];
+            if (!targetInstance) {
+              return `TextEdit instance ${instanceId} not found. Available instances: ${
+                Object.keys(textEditState.instances).join(", ") || "none"
+              }.`;
             }
 
             const { updateInstance } = textEditState;
@@ -514,6 +517,20 @@ export function useAiChat() {
               instanceId?: string;
             };
 
+            // Validate required parameters
+            if (!text) {
+              console.error(
+                "[ToolCall] textEditInsertText: Missing required 'text' parameter"
+              );
+              return "Failed to insert text: No text content provided.";
+            }
+            if (!instanceId) {
+              console.error(
+                "[ToolCall] textEditInsertText: Missing required 'instanceId' parameter"
+              );
+              return "Failed to insert text: No instanceId provided. Check system state for available TextEdit instances.";
+            }
+
             console.log("[ToolCall] insertText:", {
               text,
               position,
@@ -521,112 +538,84 @@ export function useAiChat() {
             });
 
             const textEditState = useTextEditStore.getState();
-            let targetInstance;
 
-            if (instanceId) {
-              // Use specific instance
-              targetInstance = textEditState.instances[instanceId];
-              if (!targetInstance) {
-                return `TextEdit instance ${instanceId} not found. Available instances: ${
-                  Object.keys(textEditState.instances).join(", ") || "none"
-                }.`;
-              }
-            } else {
-              // Use foreground instance
-              targetInstance = textEditState.getForegroundInstance();
-              if (!targetInstance) {
-                // No TextEdit window is in foreground, launch a new one
-                console.log(
-                  "[ToolCall] No foreground TextEdit instance, launching new one..."
+            // Use specific instance
+            const targetInstance = textEditState.instances[instanceId];
+            if (!targetInstance) {
+              return `TextEdit instance ${instanceId} not found. Available instances: ${
+                Object.keys(textEditState.instances).join(", ") || "none"
+              }.`;
+            }
+
+            try {
+              // Insert text into the specific instance
+              const { updateInstance } = textEditState;
+              const targetInstanceId = targetInstance.instanceId; // Capture the instanceId
+
+              // Step 1: Convert incoming markdown snippet to HTML
+              const htmlFragment = markdownToHtml(text);
+
+              // Step 2: Generate TipTap-compatible JSON from the HTML fragment
+              const parsedJson = generateJSON(htmlFragment, [
+                StarterKit,
+                Underline,
+                TextAlign.configure({ types: ["heading", "paragraph"] }),
+                TaskList,
+                TaskItem.configure({ nested: true }),
+              ] as AnyExtension[]);
+
+              // parsedJson is a full doc – we want just its content array
+              const nodesToInsert = Array.isArray(parsedJson.content)
+                ? parsedJson.content
+                : [];
+
+              let newDocJson: JSONContent;
+
+              if (
+                targetInstance.contentJson &&
+                Array.isArray(targetInstance.contentJson.content)
+              ) {
+                // Clone existing document JSON to avoid direct mutation
+                const cloned = JSON.parse(
+                  JSON.stringify(targetInstance.contentJson)
                 );
-                const appStore = useAppStore.getState();
-                const newInstanceId = appStore.launchApp(
-                  "textedit",
-                  undefined,
-                  undefined,
-                  true
-                );
-
-                // Wait a bit for the app to initialize
-                await new Promise((resolve) => setTimeout(resolve, 200));
-
-                // Get the newly created instance directly
-                const updatedTextEditState = useTextEditStore.getState();
-                targetInstance = updatedTextEditState.instances[newInstanceId];
-
-                if (!targetInstance) {
-                  return `Failed to create new TextEdit window. Instance ${newInstanceId} not found in store.`;
+                if (position === "start") {
+                  cloned.content = [...nodesToInsert, ...cloned.content];
+                } else {
+                  cloned.content = [...cloned.content, ...nodesToInsert];
                 }
-
-                console.log(
-                  "[ToolCall] Created new TextEdit instance:",
-                  newInstanceId
-                );
-              }
-            }
-
-            // Insert text into the specific instance
-            const { updateInstance } = textEditState;
-            const targetInstanceId = targetInstance.instanceId; // Capture the instanceId
-
-            // Step 1: Convert incoming markdown snippet to HTML
-            const htmlFragment = markdownToHtml(text);
-
-            // Step 2: Generate TipTap-compatible JSON from the HTML fragment
-            const parsedJson = generateJSON(htmlFragment, [
-              StarterKit,
-              Underline,
-              TextAlign.configure({ types: ["heading", "paragraph"] }),
-              TaskList,
-              TaskItem.configure({ nested: true }),
-            ] as AnyExtension[]);
-
-            // parsedJson is a full doc – we want just its content array
-            const nodesToInsert = Array.isArray(parsedJson.content)
-              ? parsedJson.content
-              : [];
-
-            let newDocJson: JSONContent;
-
-            if (
-              targetInstance.contentJson &&
-              Array.isArray(targetInstance.contentJson.content)
-            ) {
-              // Clone existing document JSON to avoid direct mutation
-              const cloned = JSON.parse(
-                JSON.stringify(targetInstance.contentJson)
-              );
-              if (position === "start") {
-                cloned.content = [...nodesToInsert, ...cloned.content];
+                newDocJson = cloned;
               } else {
-                cloned.content = [...cloned.content, ...nodesToInsert];
+                // No existing document – use the parsed JSON directly
+                newDocJson = parsedJson;
               }
-              newDocJson = cloned;
-            } else {
-              // No existing document – use the parsed JSON directly
-              newDocJson = parsedJson;
+
+              // Use a small debounce so rapid successive insertText calls (if any)
+              // don't overwhelm the store/UI
+              debouncedInsertTextUpdate(() =>
+                updateInstance(targetInstanceId, {
+                  contentJson: newDocJson,
+                  hasUnsavedChanges: true,
+                })
+              );
+
+              // Bring the target instance to foreground so user can see the changes
+              const appStore = useAppStore.getState();
+              appStore.bringInstanceToForeground(targetInstanceId);
+
+              // Get the display title from the app store instance
+              const appInstance = appStore.instances[targetInstanceId];
+              const displayName = appInstance?.title || "Untitled";
+
+              return `Inserted text at ${
+                position === "start" ? "start" : "end"
+              } of ${displayName}.`;
+            } catch (err) {
+              console.error("textEditInsertText error:", err);
+              return `Failed to insert text: ${
+                err instanceof Error ? err.message : "Unknown error"
+              }`;
             }
-
-            // Use a small debounce so rapid successive insertText calls (if any)
-            // don't overwhelm the store/UI
-            debouncedInsertTextUpdate(() =>
-              updateInstance(targetInstanceId, {
-                contentJson: newDocJson,
-                hasUnsavedChanges: true,
-              })
-            );
-
-            // Bring the target instance to foreground so user can see the changes
-            const appStore = useAppStore.getState();
-            appStore.bringInstanceToForeground(targetInstanceId);
-
-            // Get the display title from the app store instance
-            const appInstance = appStore.instances[targetInstanceId];
-            const displayName = appInstance?.title || "Untitled";
-
-            return `Inserted text at ${
-              position === "start" ? "start" : "end"
-            } of ${displayName}.`;
           }
           case "textEditNewFile": {
             const { title } = toolCall.args as {
@@ -802,6 +791,15 @@ export function useAiChat() {
           }
           case "ipodAddAndPlaySong": {
             const { id } = toolCall.args as { id: string };
+
+            // Validate required parameter
+            if (!id) {
+              console.error(
+                "[ToolCall] ipodAddAndPlaySong: Missing required 'id' parameter"
+              );
+              return "Failed to add song: No video ID provided.";
+            }
+
             console.log("[ToolCall] ipodAddAndPlaySong:", { id });
 
             // Ensure iPod app is open - check instances
@@ -899,6 +897,15 @@ export function useAiChat() {
           }
           case "generateHtml": {
             const { html } = toolCall.args as { html: string };
+
+            // Validate required parameter
+            if (!html) {
+              console.error(
+                "[ToolCall] generateHtml: Missing required 'html' parameter"
+              );
+              return "Failed to generate HTML: No HTML content provided.";
+            }
+
             console.log("[ToolCall] generateHtml:", {
               htmlLength: html.length,
             });

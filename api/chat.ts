@@ -436,10 +436,11 @@ INTERNET EXPLORER AND TIME TRAVELING:
   ) {
     toolInstructions += `
 TEXT EDITING:
-- When editing document in TextEdit, use the TextEdit tools:
+- When editing documents in TextEdit, ALWAYS provide ALL required parameters:
    • Use 'textEditNewFile' to create a blank file. Use it when user requests a new doc and the current file content is irrelevant. TextEdit will launch automatically if not open.
-   • Use 'textEditSearchReplace' to find and replace content. Always provide 'search' and 'replace'; set 'isRegex: true' **only** if the user explicitly mentions using a regular expression.
-   • Use 'textEditInsertText' to add plain text. Supply the full 'text' to insert and, if the user specifies where, a 'position' of "start" or "end" (default is "end").
+   • Use 'textEditSearchReplace' to find and replace content. REQUIRED: 'search' (text to find), 'replace' (replacement text), and 'instanceId' (from system state). Set 'isRegex: true' ONLY if the user explicitly mentions using a regular expression.
+   • Use 'textEditInsertText' to add plain text. REQUIRED: 'text' (content to insert) and 'instanceId' (from system state). Optional: 'position' ("start" or "end", default is "end").
+- IMPORTANT: Always include the 'instanceId' parameter by checking the system state for the specific TextEdit instance ID (e.g., '15', '78', etc.).
 - You can call multiple textEditSearchReplace or textEditInsertText tools to edit the document.
 `;
     loadedSections.push("TOOL_TEXTEDIT");
@@ -686,14 +687,18 @@ export default async function handler(req: Request) {
         },
         textEditSearchReplace: {
           description:
-            "Search and replace text in a specific TextEdit document or the foreground one if no instanceId is specified. Always supply 'search' and 'replace'. Set 'isRegex: true' ONLY if the user explicitly mentions using a regular expression. Use the instanceId from the system state (e.g., '15') to target a specific window.",
+            "Search and replace text in a specific TextEdit document. You MUST always provide 'search', 'replace', and 'instanceId'. Set 'isRegex: true' ONLY if the user explicitly mentions using a regular expression. Use the instanceId from the system state (e.g., '15') to target a specific window.",
           parameters: z.object({
             search: z
               .string()
-              .describe("The text or regular expression to search for"),
+              .describe(
+                "REQUIRED: The text or regular expression to search for"
+              ),
             replace: z
               .string()
-              .describe("The text that will replace each match of 'search'"),
+              .describe(
+                "REQUIRED: The text that will replace each match of 'search'"
+              ),
             isRegex: z
               .boolean()
               .optional()
@@ -703,15 +708,15 @@ export default async function handler(req: Request) {
             instanceId: z
               .string()
               .describe(
-                "The specific TextEdit instance ID to modify (e.g., '15'). If not provided, operates on the foreground TextEdit instance. Get this from the system state TextEdit Windows list."
+                "REQUIRED: The specific TextEdit instance ID to modify (e.g., '15'). Get this from the system state TextEdit Windows list."
               ),
           }),
         },
         textEditInsertText: {
           description:
-            "Insert plain text into a specific TextEdit document or the foreground one if no instanceId is specified. Appends to the end by default; use position 'start' to prepend. Use the instanceId from the system state (e.g., '15') to target a specific window.",
+            "Insert plain text into a specific TextEdit document. You MUST always provide 'text' and 'instanceId'. Appends to the end by default; use position 'start' to prepend. Use the instanceId from the system state (e.g., '15') to target a specific window.",
           parameters: z.object({
-            text: z.string().describe("The text to insert"),
+            text: z.string().describe("REQUIRED: The text to insert"),
             position: z
               .enum(["start", "end"])
               .optional()
@@ -721,7 +726,7 @@ export default async function handler(req: Request) {
             instanceId: z
               .string()
               .describe(
-                "The specific TextEdit instance ID to modify (e.g., '15'). If not provided, operates on the foreground TextEdit instance. Get this from the system state TextEdit Windows list."
+                "REQUIRED: The specific TextEdit instance ID to modify (e.g., '15'). Get this from the system state TextEdit Windows list."
               ),
           }),
         },
