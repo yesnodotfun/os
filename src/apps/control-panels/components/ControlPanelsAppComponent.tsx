@@ -139,7 +139,10 @@ const blobToBase64 = (blob: Blob): Promise<string> =>
       const dataUrl = reader.result as string; // data:<mime>;base64,xxxx
       resolve(dataUrl);
     };
-    reader.onerror = reject;
+    reader.onerror = (error) => {
+      console.error("Error converting blob to base64:", error);
+      reject(error);
+    };
     reader.readAsDataURL(blob);
   });
 
@@ -421,31 +424,70 @@ export function ControlPanelsAppComponent({
       );
     }
 
+    // Convert to JSON string
     const jsonString = JSON.stringify(backup);
-    const compressedData = await new Blob([jsonString])
-      .arrayBuffer()
-      .then((buffer) => {
-        const stream = new Blob([buffer]).stream();
-        const compressedStream = stream.pipeThrough(
-          new CompressionStream("gzip")
-        );
-        return new Response(compressedStream).blob();
+
+    // Create download with gzip compression
+    try {
+      // Check if CompressionStream is available
+      if (typeof CompressionStream === "undefined") {
+        throw new Error("CompressionStream API not available in this browser");
+      }
+
+      // Convert string to Uint8Array for compression
+      const encoder = new TextEncoder();
+      const inputData = encoder.encode(jsonString);
+
+      // Create a ReadableStream from the data
+      const readableStream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(inputData);
+          controller.close();
+        },
       });
 
-    const url = URL.createObjectURL(compressedData);
-    const a = document.createElement("a");
-    a.href = url;
-    const timestamp = new Date()
-      .toISOString()
-      .replace(/[:.]/g, "-")
-      .split("T")
-      .join("-")
-      .slice(0, -5);
-    a.download = `ryOS-backup-${timestamp}.gz`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+      // Compress the stream
+      const compressionStream = new CompressionStream("gzip");
+      const compressedStream = readableStream.pipeThrough(compressionStream);
+
+      // Convert the compressed stream to a blob
+      const chunks: Uint8Array[] = [];
+      const reader = compressedStream.getReader();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+      }
+
+      // Combine chunks into a single blob
+      const compressedBlob = new Blob(chunks, { type: "application/gzip" });
+
+      // Create download link
+      const url = URL.createObjectURL(compressedBlob);
+      const a = document.createElement("a");
+      a.href = url;
+      const timestamp = new Date()
+        .toISOString()
+        .replace(/[:.]/g, "-")
+        .split("T")
+        .join("-")
+        .slice(0, -5);
+      a.download = `ryOS-backup-${timestamp}.gz`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (compressionError) {
+      console.error("Compression failed:", compressionError);
+      alert(
+        `Failed to create compressed backup: ${
+          compressionError instanceof Error
+            ? compressionError.message
+            : "Unknown error"
+        }`
+      );
+    }
   };
 
   const handleRestore = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -466,21 +508,60 @@ export function ControlPanelsAppComponent({
         let data: string;
 
         if (file.name.endsWith(".gz")) {
-          const arrayBuffer = e.target?.result as ArrayBuffer;
-          const decompressedStream = new Response(
-            arrayBuffer
-          ).body?.pipeThrough(new DecompressionStream("gzip"));
+          try {
+            const arrayBuffer = e.target?.result as ArrayBuffer;
 
-          if (!decompressedStream) {
-            throw new Error("Failed to decompress backup file");
+            // Create a Response object with the compressed data
+            const compressedResponse = new Response(arrayBuffer);
+            const compressedStream = compressedResponse.body;
+
+            if (!compressedStream) {
+              throw new Error("Failed to create stream from compressed data");
+            }
+
+            // Decompress the stream
+            const decompressionStream = new DecompressionStream("gzip");
+            const decompressedStream =
+              compressedStream.pipeThrough(decompressionStream);
+
+            // Read the decompressed data
+            const decompressedResponse = new Response(decompressedStream);
+            data = await decompressedResponse.text();
+          } catch (decompressionError) {
+            console.error("Decompression failed:", decompressionError);
+            throw new Error(
+              `Failed to decompress backup file: ${
+                decompressionError instanceof Error
+                  ? decompressionError.message
+                  : "Unknown error"
+              }`
+            );
           }
-          const decompressedResponse = new Response(decompressedStream);
-          data = await decompressedResponse.text();
         } else {
           data = e.target?.result as string;
         }
 
-        const backup = JSON.parse(data);
+        // Try to parse the JSON
+        let backup;
+        try {
+          backup = JSON.parse(data);
+        } catch (parseError) {
+          console.error("JSON parse error:", parseError);
+          console.error("Data preview:", data.substring(0, 200));
+          throw new Error("Invalid backup file format - not valid JSON");
+        }
+
+        // Validate backup structure
+        if (!backup || typeof backup !== "object") {
+          throw new Error("Invalid backup structure - expected an object");
+        }
+
+        console.log("Backup loaded successfully:", {
+          hasLocalStorage: !!backup.localStorage,
+          hasIndexedDB: !!backup.indexedDB,
+          version: backup.version,
+          timestamp: backup.timestamp,
+        });
 
         // Detect if this is an old backup format
         let isOldBackupFormat = false;
@@ -515,23 +596,38 @@ export function ControlPanelsAppComponent({
         }
 
         if (backup.localStorage) {
+          console.log("Restoring localStorage items...");
+          let restoredCount = 0;
           Object.entries(backup.localStorage).forEach(([key, value]) => {
             if (value !== null) {
-              localStorage.setItem(key, value as string);
+              try {
+                localStorage.setItem(key, value as string);
+                restoredCount++;
+              } catch (err) {
+                console.error(
+                  `Failed to restore localStorage item ${key}:`,
+                  err
+                );
+              }
             }
           });
+          console.log(`Restored ${restoredCount} localStorage items`);
         }
 
         // Track which files need UUID migration
         const fileUUIDMap = new Map<string, string>();
 
         if (backup.indexedDB) {
+          console.log("Restoring IndexedDB data...");
           try {
             const db = await ensureIndexedDBInitialized();
             const restoreStoreData = async (
               storeName: string,
               dataToRestore: any[] // Can be either StoreItem[] or StoreItemWithKey[]
             ): Promise<void> => {
+              console.log(
+                `Restoring ${dataToRestore.length} items to ${storeName}...`
+              );
               return new Promise((resolve, reject) => {
                 try {
                   const transaction = db.transaction(storeName, "readwrite");
@@ -1045,8 +1141,19 @@ export function ControlPanelsAppComponent({
         setNextBootMessage("Restoring System...");
         window.location.reload();
       } catch (err) {
-        alert("Failed to restore backup. Invalid backup file.");
         console.error("Backup restore failed:", err);
+
+        // Show more specific error message
+        let errorMessage = "Failed to restore backup: ";
+        if (err instanceof Error) {
+          errorMessage += err.message;
+        } else if (typeof err === "string") {
+          errorMessage += err;
+        } else {
+          errorMessage += "Unknown error occurred";
+        }
+
+        alert(errorMessage);
         clearNextBootMessage();
       }
     };
