@@ -346,6 +346,8 @@ export function VideosAppComponent({
 
   // --- Prevent unwanted autoplay on Mobile Safari ---
   const hasAutoplayCheckedRef = useRef(false);
+  // Track the last processed initialData to avoid duplicates
+  const lastProcessedInitialDataRef = useRef<unknown>(null);
   useEffect(() => {
     if (hasAutoplayCheckedRef.current) return;
 
@@ -616,6 +618,8 @@ export function VideosAppComponent({
       initialData?.videoId &&
       typeof initialData.videoId === "string"
     ) {
+      // Skip if this initialData has already been processed
+      if (lastProcessedInitialDataRef.current === initialData) return;
       const videoIdToProcess = initialData.videoId;
       console.log(
         `[Videos] Processing initialData.videoId on mount: ${videoIdToProcess}`
@@ -642,6 +646,8 @@ export function VideosAppComponent({
             });
           });
       }, 100);
+      // Mark this initialData as processed
+      lastProcessedInitialDataRef.current = initialData;
     }
   }, [
     isWindowOpen,
@@ -660,6 +666,9 @@ export function VideosAppComponent({
         event.detail.appId === "videos" &&
         event.detail.initialData?.videoId
       ) {
+        // Skip if this initialData has already been processed
+        if (lastProcessedInitialDataRef.current === event.detail.initialData)
+          return;
         const videoId = event.detail.initialData.videoId;
         console.log(
           `[Videos] Received updateApp event with videoId: ${videoId}`
@@ -675,6 +684,8 @@ export function VideosAppComponent({
             description: `Video ID: ${videoId}`,
           });
         });
+        // Mark this initialData as processed
+        lastProcessedInitialDataRef.current = event.detail.initialData;
       }
     };
 

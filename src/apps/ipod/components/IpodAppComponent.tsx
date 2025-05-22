@@ -434,6 +434,8 @@ export function IpodAppComponent({
   const clearIpodInitialData = useAppStore(
     (state) => state.clearInstanceInitialData
   );
+  // Track the last processed initialData to avoid duplicates
+  const lastProcessedInitialDataRef = useRef<unknown>(null);
 
   const ua = navigator.userAgent;
   const isIOS = /iP(hone|od|ad)/.test(ua);
@@ -1062,6 +1064,9 @@ export function IpodAppComponent({
       initialData?.videoId &&
       typeof initialData.videoId === "string"
     ) {
+      // Skip if this initialData has already been processed
+      if (lastProcessedInitialDataRef.current === initialData) return;
+
       const videoIdToProcess = initialData.videoId;
       console.log(
         `[iPod] Processing initialData.videoId on mount: ${videoIdToProcess}`
@@ -1084,6 +1089,8 @@ export function IpodAppComponent({
             );
           });
       }, 100); // Small delay might help
+      // Mark this initialData as processed
+      lastProcessedInitialDataRef.current = initialData;
     }
   }, [
     isWindowOpen,
@@ -1099,6 +1106,10 @@ export function IpodAppComponent({
       event: CustomEvent<{ appId: string; initialData?: { videoId?: string } }>
     ) => {
       if (event.detail.appId === "ipod" && event.detail.initialData?.videoId) {
+        // Skip if this initialData has already been processed
+        if (lastProcessedInitialDataRef.current === event.detail.initialData)
+          return;
+
         const videoId = event.detail.initialData.videoId;
         console.log(`[iPod] Received updateApp event with videoId: ${videoId}`);
         bringToForeground("ipod");
@@ -1111,6 +1122,8 @@ export function IpodAppComponent({
             description: `Video ID: ${videoId}`,
           });
         });
+        // Mark this initialData as processed
+        lastProcessedInitialDataRef.current = event.detail.initialData;
       }
     };
 
