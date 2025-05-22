@@ -258,8 +258,20 @@ export const useTextEditStore = create<TextEditStoreState>()(
         return persistedState;
       },
       partialize: (state) => ({
-        instances: state.instances,
-        // Don't persist legacy fields anymore
+        instances: Object.fromEntries(
+          Object.entries(state.instances).map(([id, inst]) => {
+            const shouldKeepContent = !inst.filePath || inst.hasUnsavedChanges;
+            return [
+              id,
+              {
+                ...inst,
+                // Only persist editor state for new/unsaved documents
+                contentJson: shouldKeepContent ? inst.contentJson : null,
+              },
+            ];
+          })
+        ),
+        // Don't persist legacy fields
       }),
     }
   )
