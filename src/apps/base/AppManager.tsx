@@ -257,7 +257,8 @@ export function AppManager({ apps }: AppManagerProps) {
               className="pointer-events-auto"
               helpItems={apps.find((app) => app.id === appId)?.helpItems}
               skipInitialSound={isInitialMount}
-              initialData={instance.initialData as unknown as undefined}
+              // @ts-expect-error - Dynamic component system with different initialData types per app
+              initialData={instance.initialData}
               instanceId={instance.instanceId}
               title={instance.title}
               onNavigateNext={() => navigateToNextInstance(instance.instanceId)}

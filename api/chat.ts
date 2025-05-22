@@ -204,18 +204,19 @@ SYSTEM STATE:
       .join(", ");
     prompt += `\n- Background Apps: ${backgroundApps}`;
   }
-  if (
-    systemState.apps["videos"]?.isOpen &&
-    systemState.video.currentVideo &&
-    systemState.video.isPlaying
-  ) {
+  if (systemState.video.currentVideo && systemState.video.isPlaying) {
     prompt += `\n- Videos Now Playing: ${systemState.video.currentVideo.title}${
       systemState.video.currentVideo.artist
         ? ` by ${systemState.video.currentVideo.artist}`
         : ""
     }`;
   }
-  if (systemState.apps["ipod"]?.isOpen && systemState.ipod?.currentTrack) {
+  // Check if iPod app is open
+  const hasOpenIpod =
+    systemState.runningApps?.foreground?.appId === "ipod" ||
+    systemState.runningApps?.background?.some((app) => app.appId === "ipod");
+
+  if (hasOpenIpod && systemState.ipod?.currentTrack) {
     const playingStatus = systemState.ipod.isPlaying
       ? "Now Playing"
       : "Current Track";
@@ -232,8 +233,13 @@ SYSTEM STATE:
         .join("\n")}`;
     }
   }
-  // Include iPod library even if iPod is not open or playing
-  if (systemState.ipod?.library && systemState.ipod.library.length > 0) {
+  // Include iPod library only if iPod app is open
+
+  if (
+    hasOpenIpod &&
+    systemState.ipod?.library &&
+    systemState.ipod.library.length > 0
+  ) {
     const songList = systemState.ipod.library
       .slice(0, 60) // limit to first 60 songs to avoid overly long prompts
       .map((t) => `${t.title}${t.artist ? ` - ${t.artist}` : ""}`)
@@ -243,10 +249,7 @@ SYSTEM STATE:
       60
     )} shown): ${songList}`;
   }
-  if (
-    systemState.apps["internet-explorer"]?.isOpen &&
-    systemState.internetExplorer.url
-  ) {
+  if (systemState.internetExplorer.url) {
     prompt += `\n- Browser URL: ${systemState.internetExplorer.url}\n- Time Travel Year: ${systemState.internetExplorer.year}`;
     if (systemState.internetExplorer.currentPageTitle) {
       prompt += `\n- Page Title: ${systemState.internetExplorer.currentPageTitle}`;

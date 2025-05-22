@@ -37,7 +37,12 @@ const getSystemState = () => {
   const chatsStore = useChatsStore.getState();
 
   const currentVideo = videoStore.videos[videoStore.currentIndex];
-  const currentTrack = ipodStore.tracks[ipodStore.currentIndex];
+  const currentTrack =
+    ipodStore.tracks &&
+    ipodStore.currentIndex >= 0 &&
+    ipodStore.currentIndex < ipodStore.tracks.length
+      ? ipodStore.tracks[ipodStore.currentIndex]
+      : null;
 
   // Use new instance-based model instead of legacy apps
   const runningInstances = Object.entries(appStore.instances)

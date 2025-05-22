@@ -312,6 +312,7 @@ export function InternetExplorerAppComponent({
   skipInitialSound,
   helpItems,
   initialData,
+  instanceId,
 }: AppProps<InternetExplorerInitialData>) {
   const debugMode = useAppStore((state) => state.debugMode);
   const terminalSoundsEnabled = useAppStore(
@@ -540,6 +541,9 @@ export function InternetExplorerAppComponent({
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
 
   const clearInitialData = useAppStore((state) => state.clearInitialData);
+  const clearInstanceInitialData = useAppStore(
+    (state) => state.clearInstanceInitialData
+  );
 
   useEffect(() => {
     let newTitle = "Internet Explorer";
@@ -1452,6 +1456,8 @@ export function InternetExplorerAppComponent({
 
   // Use a ref to prevent duplicate initial navigations
   const initialNavigationRef = useRef(false);
+  // Track the last processed initialData to avoid duplicates
+  const lastProcessedInitialDataRef = useRef<unknown>(null);
   // Sync localUrl with store's url when the component loads or url changes from outside
   useEffect(() => {
     setLocalUrl(stripProtocol(url));
@@ -1490,8 +1496,15 @@ export function InternetExplorerAppComponent({
               decodedData.year || "current",
               false
             );
+            // Clear initialData after navigation is initiated
+            if (instanceId) {
+              clearInstanceInitialData(instanceId);
+            } else {
+              clearInitialData("internet-explorer");
+            }
           }, 0);
-          // AppManager should have already cleaned the URL
+          // Mark this initialData as processed
+          lastProcessedInitialDataRef.current = initialData;
           return; // Skip other initial navigation
         } else {
           console.warn(
@@ -1528,8 +1541,16 @@ export function InternetExplorerAppComponent({
         setTimeout(() => {
           // --- FIX: Pass initialUrl and initialYear directly ---
           handleNavigate(initialUrl, initialYear, false);
+          // Clear initialData after navigation is initiated
+          if (instanceId) {
+            clearInstanceInitialData(instanceId);
+          } else {
+            clearInitialData("internet-explorer");
+          }
           // --- END FIX ---
         }, 0);
+        // Mark this initialData as processed
+        lastProcessedInitialDataRef.current = initialData;
         return; // Skip default navigation
       }
       // --- END NEW ---
@@ -1540,7 +1561,107 @@ export function InternetExplorerAppComponent({
         handleNavigate(url, year, false);
       }, 0);
     }
-  }, [initialData, isWindowOpen, handleNavigate, url, year]); // Dependencies remain
+  }, [
+    initialData,
+    isWindowOpen,
+    handleNavigate,
+    url,
+    year,
+    clearInitialData,
+    clearInstanceInitialData,
+    instanceId,
+  ]);
+
+  // --- Watch for initialData changes when app is already open ---
+  useEffect(() => {
+    // Only react to initialData changes if the window is already open and we have initialData
+    if (!isWindowOpen || !initialData) return;
+
+    // Skip if this initialData has already been processed
+    if (lastProcessedInitialDataRef.current === initialData) return;
+
+    // Only process if this is NOT the initial mount (initial navigation has already happened)
+    if (initialNavigationRef.current === true) {
+      console.log(
+        "[IE] Detected initialData change for open window:",
+        initialData
+      );
+
+      const typedInitialData = initialData as InternetExplorerInitialData;
+
+      if (typedInitialData.shareCode) {
+        const code = typedInitialData.shareCode;
+        const decodedData = decodeData(code);
+
+        if (decodedData) {
+          console.log(
+            `[IE] Navigating to shared link: ${decodedData.url} (${decodedData.year})`
+          );
+          toast.info(`Opening shared page`, {
+            description: `${decodedData.url}${
+              decodedData.year && decodedData.year !== "current"
+                ? ` from ${decodedData.year}`
+                : ""
+            }`,
+            duration: 4000,
+          });
+          setTimeout(() => {
+            handleNavigate(
+              decodedData.url,
+              decodedData.year || "current",
+              false
+            );
+            // Clear initialData after navigation
+            if (instanceId) {
+              clearInstanceInitialData(instanceId);
+            } else {
+              clearInitialData("internet-explorer");
+            }
+          }, 50);
+          // Mark this initialData as processed
+          lastProcessedInitialDataRef.current = initialData;
+        }
+      } else if (
+        typedInitialData.url &&
+        typeof typedInitialData.url === "string"
+      ) {
+        const navUrl = typedInitialData.url;
+        const navYear =
+          typeof typedInitialData.year === "string"
+            ? typedInitialData.year
+            : "current";
+
+        console.log(
+          `[IE] Navigating to direct url/year: ${navUrl} (${navYear})`
+        );
+        toast.info(`Opening requested page`, {
+          description: `${navUrl}${
+            navYear !== "current" ? ` from ${navYear}` : ""
+          }`,
+          duration: 4000,
+        });
+
+        setTimeout(() => {
+          handleNavigate(navUrl, navYear, false);
+          // Clear initialData after navigation
+          if (instanceId) {
+            clearInstanceInitialData(instanceId);
+          } else {
+            clearInitialData("internet-explorer");
+          }
+        }, 50);
+        // Mark this initialData as processed
+        lastProcessedInitialDataRef.current = initialData;
+      }
+    }
+  }, [
+    isWindowOpen,
+    initialData,
+    handleNavigate,
+    clearInitialData,
+    clearInstanceInitialData,
+    instanceId,
+  ]);
 
   // --- Add listener for updateApp event (handles share links when app is already open) ---
   useEffect(() => {
@@ -1787,17 +1908,6 @@ export function InternetExplorerAppComponent({
   const handleSharePage = useCallback(() => {
     setIsShareDialogOpen(true);
   }, []);
-
-  // Effect to handle initialData when provided
-  useEffect(() => {
-    if (initialData?.url) {
-      const { url: newUrl, year: newYear } = initialData; // Renamed to avoid conflict with store `url` and `year`
-      console.log(`[IE] Received initialData: url=${newUrl}, year=${newYear}`);
-      handleNavigate(newUrl, newYear || "current");
-      // Clear initialData after processing
-      clearInitialData("internet-explorer");
-    }
-  }, [initialData, handleNavigate, clearInitialData]);
 
   if (!isWindowOpen) return null;
 
