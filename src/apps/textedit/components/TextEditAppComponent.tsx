@@ -42,7 +42,6 @@ import {
   markdownToHtml,
   htmlToPlainText,
 } from "@/utils/markdown";
-import { saveAsMarkdown } from "@/utils/markdown/saveUtils";
 import { useAppStore } from "@/stores/useAppStore";
 import { JSONContent } from "@tiptap/core";
 
@@ -267,6 +266,12 @@ export function TextEditAppComponent({
       editorContentRef.current = htmlToMarkdown(editor.getHTML()); // Store latest markdown
       if (!hasUnsavedChanges) {
         setHasUnsavedChanges(true);
+        console.log(
+          "[TextEdit] Content changed, marked as unsaved. Instance ID:",
+          instanceId,
+          "Has path:",
+          !!currentFilePath
+        );
       }
     },
   });
@@ -277,7 +282,9 @@ export function TextEditAppComponent({
     if (hasUnsavedChanges && currentFilePath) {
       console.log(
         "[TextEdit] Changes detected, scheduling autosave for:",
-        currentFilePath
+        currentFilePath,
+        "Instance ID:",
+        instanceId
       );
       const handler = setTimeout(async () => {
         console.log("[TextEdit] Autosaving:", currentFilePath);
@@ -303,8 +310,19 @@ export function TextEditAppComponent({
         );
         clearTimeout(handler);
       };
+    } else if (hasUnsavedChanges && !currentFilePath) {
+      console.log(
+        "[TextEdit] Has unsaved changes but no file path - autosave skipped. Instance ID:",
+        instanceId
+      );
     }
-  }, [hasUnsavedChanges, currentFilePath, saveFile, setHasUnsavedChanges]); // Dependencies: trigger on change flag or path change
+  }, [
+    hasUnsavedChanges,
+    currentFilePath,
+    saveFile,
+    setHasUnsavedChanges,
+    instanceId,
+  ]); // Dependencies: trigger on change flag or path change
   // --- End Autosave Effect --- //
 
   // Initial load - Restore last session or use initialData
@@ -613,7 +631,7 @@ export function TextEditAppComponent({
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!editor) return;
 
     if (!currentFilePath) {
@@ -623,51 +641,62 @@ export function TextEditAppComponent({
       setIsSaveDialogOpen(true);
       setSaveFileName(`${suggestedName}.md`);
     } else {
-      // Use shared utility to save as markdown, passing the saveFile hook
-      const { jsonContent } = saveAsMarkdown(
-        editor,
-        {
-          name: currentFilePath.split("/").pop() || "Untitled",
+      try {
+        // Get the markdown content and JSON
+        const htmlContent = editor.getHTML();
+        const markdownContent = htmlToMarkdown(htmlContent);
+        const jsonContent = editor.getJSON();
+
+        // Save the file to IndexedDB
+        await saveFile({
+          name: currentFilePath.split("/").pop() || "Untitled.md",
           path: currentFilePath,
-        },
-        saveFile
-      ); // Pass the hook function
+          content: markdownContent,
+        });
 
-      // Store JSON content in case app crashes
-      setContentJson(jsonContent);
+        // Only update state after successful save
+        setContentJson(jsonContent);
+        setHasUnsavedChanges(false);
 
-      // Store the file path for next time
-      setCurrentFilePath(currentFilePath);
-
-      setHasUnsavedChanges(false);
+        console.log("[TextEdit] File saved successfully:", currentFilePath);
+      } catch (error) {
+        console.error("[TextEdit] Failed to save file:", error);
+        // Could show a toast notification here
+      }
     }
   };
 
-  const handleSaveSubmit = (fileName: string) => {
+  const handleSaveSubmit = async (fileName: string) => {
     if (!editor) return;
 
     const filePath = `/Documents/${fileName}${
       fileName.endsWith(".md") ? "" : ".md"
     }`;
 
-    // Use shared utility to save as markdown, passing the saveFile hook
-    const { jsonContent } = saveAsMarkdown(
-      editor,
-      {
-        name: fileName,
+    try {
+      // Get the markdown content and JSON
+      const htmlContent = editor.getHTML();
+      const markdownContent = htmlToMarkdown(htmlContent);
+      const jsonContent = editor.getJSON();
+
+      // Save the file to IndexedDB
+      await saveFile({
+        name: fileName.endsWith(".md") ? fileName : `${fileName}.md`,
         path: filePath,
-      },
-      saveFile
-    ); // Pass the hook function
+        content: markdownContent,
+      });
 
-    // Store JSON content in case app crashes (for editor recovery)
-    setContentJson(jsonContent);
+      // Only update state after successful save
+      setContentJson(jsonContent);
+      setCurrentFilePath(filePath);
+      setHasUnsavedChanges(false);
+      setIsSaveDialogOpen(false);
 
-    // Store the file path for next time
-    setCurrentFilePath(filePath);
-
-    setHasUnsavedChanges(false);
-    setIsSaveDialogOpen(false);
+      console.log("[TextEdit] File saved successfully:", filePath);
+    } catch (error) {
+      console.error("[TextEdit] Failed to save file:", error);
+      // Could show a toast notification here
+    }
   };
 
   const handleFileSelect = async (
@@ -697,20 +726,25 @@ export function TextEditAppComponent({
         : htmlToMarkdown(editor.getHTML()); // Convert to markdown otherwise
 
       // Use saveFile API directly for file imports
-      saveFile({
-        name: file.name,
-        path: filePath,
-        content: markdownContent,
-      });
+      try {
+        await saveFile({
+          name: file.name,
+          path: filePath,
+          content: markdownContent,
+        });
 
-      setCurrentFilePath(filePath);
-      setHasUnsavedChanges(false);
+        // Only update state after successful save
+        setCurrentFilePath(filePath);
+        setHasUnsavedChanges(false);
 
-      // Store JSON for internal recovery
-      setContentJson(editor.getJSON());
+        // Store JSON for internal recovery
+        setContentJson(editor.getJSON());
 
-      // Store the file path for next time
-      setCurrentFilePath(filePath);
+        console.log("[TextEdit] File imported successfully:", filePath);
+      } catch (error) {
+        console.error("[TextEdit] Failed to import file:", error);
+        // Revert the editor content on failure?
+      }
     }
 
     // Reset the input
@@ -815,35 +849,47 @@ export function TextEditAppComponent({
     );
   };
 
-  const handleCloseSave = (fileName: string) => {
+  const handleCloseSave = async (fileName: string) => {
     if (!editor) return;
 
     const filePath = `/Documents/${fileName}${
       fileName.endsWith(".md") ? "" : ".md"
     }`;
 
-    // Use shared utility to save as markdown
-    const { jsonContent } = saveAsMarkdown(
-      editor,
-      {
-        name: fileName,
+    try {
+      // Get the markdown content and JSON
+      const htmlContent = editor.getHTML();
+      const markdownContent = htmlToMarkdown(htmlContent);
+      const jsonContent = editor.getJSON();
+
+      // Save the file to IndexedDB
+      await saveFile({
+        name: fileName.endsWith(".md") ? fileName : `${fileName}.md`,
         path: filePath,
-      },
-      saveFile
-    );
+        content: markdownContent,
+      });
 
-    // Store JSON content and update state
-    setContentJson(jsonContent);
-    setCurrentFilePath(filePath);
-    setHasUnsavedChanges(false);
-    setIsCloseSaveDialogOpen(false);
+      // Only update state after successful save
+      setContentJson(jsonContent);
+      setCurrentFilePath(filePath);
+      setHasUnsavedChanges(false);
+      setIsCloseSaveDialogOpen(false);
 
-    // Close after saving
-    window.dispatchEvent(
-      new CustomEvent(`closeWindow-${instanceId || "textedit"}`, {
-        detail: { onComplete: onClose },
-      })
-    );
+      console.log(
+        "[TextEdit] File saved successfully before closing:",
+        filePath
+      );
+
+      // Close after saving
+      window.dispatchEvent(
+        new CustomEvent(`closeWindow-${instanceId || "textedit"}`, {
+          detail: { onComplete: onClose },
+        })
+      );
+    } catch (error) {
+      console.error("[TextEdit] Failed to save file before closing:", error);
+      // Don't close if save failed - user might want to try again
+    }
   };
 
   // Function to handle dropped files
@@ -894,20 +940,29 @@ export function TextEditAppComponent({
           : htmlToMarkdown(editor.getHTML()); // Convert to markdown otherwise
 
         // Save the file using the unified approach
-        saveFile({
-          name: file.name,
-          path: filePath,
-          content: markdownContent,
-        });
+        try {
+          await saveFile({
+            name: file.name,
+            path: filePath,
+            content: markdownContent,
+          });
 
-        setCurrentFilePath(filePath);
-        setHasUnsavedChanges(false);
+          // Only update state after successful save
+          setCurrentFilePath(filePath);
+          setHasUnsavedChanges(false);
 
-        // Store JSON for internal recovery
-        setContentJson(editor.getJSON());
+          // Store JSON for internal recovery
+          setContentJson(editor.getJSON());
 
-        // Store the file path for next time
-        setCurrentFilePath(filePath);
+          console.log(
+            "[TextEdit] File dropped and saved successfully:",
+            filePath
+          );
+        } catch (error) {
+          console.error("[TextEdit] Failed to save dropped file:", error);
+          // Revert the editor content on failure?
+          editor.commands.clearContent();
+        }
       }
     }
   };
