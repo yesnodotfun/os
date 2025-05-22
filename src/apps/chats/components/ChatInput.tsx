@@ -5,7 +5,7 @@ import { ArrowUp, Square, Hand, AtSign } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AudioInputButton } from "@/components/ui/audio-input-button";
 import { useChatSynth } from "@/hooks/useChatSynth";
-import { useAppStore } from "@/stores/useAppStore";
+import { useAppStoreShallow } from "@/stores/helpers";
 import { useSound, Sounds } from "@/hooks/useSound";
 import { track } from "@vercel/analytics";
 import {
@@ -91,7 +91,11 @@ export function ChatInput({
   const audioButtonRef = useRef<HTMLButtonElement>(null);
   const { playNote } = useChatSynth();
   const { play: playNudgeSound } = useSound(Sounds.MSN_NUDGE);
-  const { typingSynthEnabled, debugMode, aiModel } = useAppStore();
+  const { typingSynthEnabled, debugMode, aiModel } = useAppStoreShallow((s) => ({
+    typingSynthEnabled: s.typingSynthEnabled,
+    debugMode: s.debugMode,
+    aiModel: s.aiModel,
+  }));
 
   // Get the model display name for debug information
   const modelDisplayName = aiModel ? AI_MODELS[aiModel]?.name : null;
