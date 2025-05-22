@@ -639,6 +639,7 @@ export const useAppStore = create<AppStoreState>()(
 
           console.log(`Closing instance: ${instanceId}`);
 
+          const closingInstance = state.instances[instanceId];
           const newInstanceWindowOrder = state.instanceWindowOrder.filter(
             (id) => id !== instanceId
           );
@@ -646,11 +647,41 @@ export const useAppStore = create<AppStoreState>()(
             ...state.instances,
           };
 
-          // Determine the next instance to bring to foreground
-          const nextForegroundInstanceId =
-            newInstanceWindowOrder.length > 0
-              ? newInstanceWindowOrder[newInstanceWindowOrder.length - 1]
-              : null;
+          // Find the next instance to bring to foreground
+          let nextForegroundInstanceId: string | null = null;
+
+          // First, try to find another open instance of the same app
+          const sameAppInstances = Object.values(state.instances)
+            .filter(
+              (instance) =>
+                instance.appId === closingInstance.appId &&
+                instance.instanceId !== instanceId &&
+                instance.isOpen
+            )
+            .map((instance) => instance.instanceId);
+
+          if (sameAppInstances.length > 0) {
+            // Find the most recently used instance of the same app
+            // (the one that appears last in the window order among same-app instances)
+            for (let i = newInstanceWindowOrder.length - 1; i >= 0; i--) {
+              const candidateId = newInstanceWindowOrder[i];
+              if (sameAppInstances.includes(candidateId)) {
+                nextForegroundInstanceId = candidateId;
+                break;
+              }
+            }
+
+            // If no same-app instance found in window order, use the first available
+            if (!nextForegroundInstanceId) {
+              nextForegroundInstanceId = sameAppInstances[0];
+            }
+          } else {
+            // No other instances of the same app, fall back to the last instance in window order
+            nextForegroundInstanceId =
+              newInstanceWindowOrder.length > 0
+                ? newInstanceWindowOrder[newInstanceWindowOrder.length - 1]
+                : null;
+          }
 
           Object.keys(newInstances).forEach((id) => {
             if (id === instanceId) {
@@ -663,7 +694,7 @@ export const useAppStore = create<AppStoreState>()(
             } else {
               newInstances[id] = {
                 ...newInstances[id],
-                // Bring the next instance in order to foreground if this wasn't the last instance closed
+                // Bring the selected next instance to foreground
                 isForeground: id === nextForegroundInstanceId,
               };
             }
