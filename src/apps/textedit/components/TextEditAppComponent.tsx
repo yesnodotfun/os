@@ -486,22 +486,6 @@ export function TextEditAppComponent({
       }
     };
 
-    // Handle content changed notifications
-    const handleContentChanged = (e: CustomEvent) => {
-      if (editor && e.detail?.path === currentFilePath) {
-        // For instance mode, check the instance's content
-        // For legacy mode, check the legacy content
-        const latestContent = instanceId
-          ? currentInstance?.contentJson
-          : legacyContentJson;
-
-        if (latestContent) {
-          editor.commands.setContent(latestContent);
-          setHasUnsavedChanges(false);
-        }
-      }
-    };
-
     // Handle document updated notifications
     const handleDocumentUpdated = (e: CustomEvent) => {
       if (editor && e.detail?.path === currentFilePath && e.detail?.content) {
@@ -525,10 +509,6 @@ export function TextEditAppComponent({
       handleUpdateEditorContent as EventListener
     );
     window.addEventListener(
-      "contentChanged",
-      handleContentChanged as EventListener
-    );
-    window.addEventListener(
       "documentUpdated",
       handleDocumentUpdated as EventListener
     );
@@ -537,10 +517,6 @@ export function TextEditAppComponent({
       window.removeEventListener(
         "updateEditorContent",
         handleUpdateEditorContent as EventListener
-      );
-      window.removeEventListener(
-        "contentChanged",
-        handleContentChanged as EventListener
       );
       window.removeEventListener(
         "documentUpdated",

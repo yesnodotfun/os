@@ -6,14 +6,18 @@ import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { FileList } from "./FileList";
-import { useFileSystem, dbOperations, STORES } from "../hooks/useFileSystem";
+import {
+  useFileSystem,
+  dbOperations,
+  STORES,
+  DocumentContent,
+} from "../hooks/useFileSystem";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { appMetadata, helpItems } from "../index";
 import { calculateStorageSpace } from "@/stores/useFinderStore";
 import { InputDialog } from "@/components/dialogs/InputDialog";
-import { useTextEditStore } from "@/stores/useTextEditStore";
 import { useFilesStore } from "@/stores/useFilesStore";
 import { FileItem } from "./FileList";
 import { useFinderStore } from "@/stores/useFinderStore";
@@ -85,7 +89,6 @@ export function FinderAppComponent({
   const pathInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [storageSpace, setStorageSpace] = useState(calculateStorageSpace());
-  const textEditStore = useTextEditStore();
   const fileStore = useFilesStore();
 
   // Use instance-based store management
@@ -215,60 +218,15 @@ export function FinderAppComponent({
     moveFile,
   } = useFileSystem(initialFileSystemPath, { instanceId });
 
-  // Wrap the original handleFileOpen to integrate with TextEditStore
-  const handleFileOpen = async (file: any) => {
+  // Wrap the original handleFileOpen - now only calls the original without TextEditStore updates
+  const handleFileOpen = async (file: FileItem) => {
     // Call original file open handler from useFileSystem
-    // for text documents
     originalHandleFileOpen(file);
-
-    // If this is a document, also update TextEditStore
-    if (file.path?.startsWith("/Documents/") && !file.isDirectory) {
-      try {
-        // Get the file metadata to find UUID
-        const fileMetadata = fileStore.getItem(file.path);
-
-        if (fileMetadata && fileMetadata.uuid) {
-          // Get the document using UUID
-          const doc = await dbOperations.get<any>(
-            STORES.DOCUMENTS,
-            fileMetadata.uuid
-          );
-          if (doc) {
-            // Update TextEditStore with the file path
-            textEditStore.setLastFilePath(file.path);
-            textEditStore.setHasUnsavedChanges(false);
-
-            // Try to parse the content as JSON if possible
-            if (typeof doc.content === "string") {
-              try {
-                const jsonContent = JSON.parse(doc.content);
-                textEditStore.setContentJson(jsonContent);
-              } catch (e) {
-                // Not JSON content, will be handled by TextEdit when it loads
-              }
-            }
-          }
-        }
-      } catch (err) {
-        console.error("Error updating TextEditStore:", err);
-      }
-    }
+    // TextEditStore updates removed - TextEdit instances now manage their own state
   };
 
-  // Wrap the original saveFile to integrate with TextEditStore
-  const saveFile = async (file: any) => {
-    // Call the original saveFile function
-    await originalSaveFile(file);
-
-    // If this is a document and it matches the currently open document in TextEdit,
-    // update the TextEditStore to mark changes as saved
-    if (
-      file.path?.startsWith("/Documents/") &&
-      textEditStore.lastFilePath === file.path
-    ) {
-      textEditStore.setHasUnsavedChanges(false);
-    }
-  };
+  // Use the original saveFile directly without TextEditStore updates
+  const saveFile = originalSaveFile;
 
   // Update storage space periodically
   useEffect(() => {
@@ -327,7 +285,7 @@ export function FinderAppComponent({
       .map((segment) => {
         try {
           return segment ? decodeURIComponent(segment) : segment;
-        } catch (e) {
+        } catch {
           return segment; // If decoding fails, return as-is
         }
       })
@@ -521,12 +479,6 @@ export function FinderAppComponent({
     const oldPathForRename = `${basePath}/${selectedFile.name}`;
     await originalRenameFile(oldPathForRename, trimmedNewName);
 
-    // Update TextEditStore if needed
-    if (textEditStore.lastFilePath === oldPathForRename) {
-      const newPathForRename = `${basePath}/${trimmedNewName}`;
-      textEditStore.setLastFilePath(newPathForRename);
-    }
-
     // Dispatch rename event
     const event = new CustomEvent("fileRenamed", {
       detail: {
@@ -582,7 +534,7 @@ export function FinderAppComponent({
         ? STORES.IMAGES
         : null;
       if (storeName) {
-        const contentData = await dbOperations.get<any>(
+        const contentData = await dbOperations.get<DocumentContent>(
           storeName,
           fileMetadata.uuid
         );
@@ -756,7 +708,7 @@ export function FinderAppComponent({
                   currentPath.split("/").filter(Boolean).pop() || "";
                 try {
                   return decodeURIComponent(lastSegment) || "Finder";
-                } catch (e) {
+                } catch {
                   return lastSegment || "Finder";
                 }
               })()
