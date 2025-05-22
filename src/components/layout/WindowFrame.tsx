@@ -30,6 +30,8 @@ interface WindowFrameProps {
   instanceId?: string;
   onNavigateNext?: () => void;
   onNavigatePrevious?: () => void;
+  // Close interception support
+  interceptClose?: boolean;
 }
 
 export function WindowFrame({
@@ -45,6 +47,7 @@ export function WindowFrame({
   instanceId,
   onNavigateNext,
   onNavigatePrevious,
+  interceptClose = false,
 }: WindowFrameProps) {
   const config = getWindowConfig(appId);
   const defaultConstraints = {
@@ -145,19 +148,68 @@ export function WindowFrame({
         e.propertyName === "opacity"
       ) {
         setIsVisible(false);
-        onClose?.();
+        // For normal closes (non-intercepted), call onClose here
+        if (!interceptClose) {
+          onClose?.();
+        }
         isClosingRef.current = false;
       }
     },
-    [isOpen, onClose]
+    [isOpen, interceptClose, onClose]
   );
 
   const handleClose = () => {
+    if (interceptClose) {
+      // Call the parent's onClose handler for interception (like confirmation dialogs)
+      onClose?.();
+    } else {
+      // Normal close behavior with animation and sounds
+      isClosingRef.current = true;
+      vibrateClose();
+      playWindowClose();
+      setIsOpen(false);
+    }
+  };
+
+  // Function to actually perform the close operation
+  // This should be called by the parent component after confirmation
+  const performClose = useCallback(() => {
     isClosingRef.current = true;
     vibrateClose();
     playWindowClose();
     setIsOpen(false);
-  };
+  }, [vibrateClose, playWindowClose, setIsOpen]);
+
+  // Expose performClose to parent component through a custom event (only for intercepted closes)
+  useEffect(() => {
+    if (!interceptClose) return;
+
+    const handlePerformClose = (event: CustomEvent) => {
+      const onComplete = event.detail?.onComplete;
+      performClose();
+
+      // Call the completion callback after the close animation finishes
+      if (onComplete) {
+        // Wait for the transition to complete (200ms as per the transition duration)
+        setTimeout(() => {
+          onComplete();
+        }, 200);
+      }
+    };
+
+    // Listen for close confirmation from parent
+    window.addEventListener(
+      `closeWindow-${instanceId || appId}`,
+      handlePerformClose as EventListener
+    );
+
+    return () => {
+      window.removeEventListener(
+        `closeWindow-${instanceId || appId}`,
+        handlePerformClose as EventListener
+      );
+    };
+  }, [instanceId, appId, performClose, interceptClose]);
 
   const {
     windowPosition,

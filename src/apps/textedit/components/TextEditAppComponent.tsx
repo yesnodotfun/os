@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
@@ -87,6 +87,8 @@ export function TextEditAppComponent({
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const [isConfirmNewDialogOpen, setIsConfirmNewDialogOpen] = useState(false);
+  const [isConfirmCloseDialogOpen, setIsConfirmCloseDialogOpen] =
+    useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { saveFile } = useFileSystem("/Documents");
   const launchApp = useLaunchApp();
@@ -135,8 +137,7 @@ export function TextEditAppComponent({
     return () => {
       removeTextEditInstance(instanceId);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [instanceId]); // removeTextEditInstance is stable, so we can safely exclude it
+  }, [instanceId]);
 
   // Get current instance data (only if using instanceId)
   const currentInstance = instanceId ? textEditInstances[instanceId] : null;
@@ -154,35 +155,44 @@ export function TextEditAppComponent({
     ? currentInstance?.hasUnsavedChanges || false
     : legacyHasUnsavedChanges;
 
-  const setCurrentFilePath = (path: string | null) => {
-    if (instanceId) {
-      // Always use instance-specific method for instances
-      updateTextEditInstance(instanceId, { filePath: path });
-    } else {
-      // Only use legacy method for non-instance mode
-      legacySetFilePath(path);
-    }
-  };
+  const setCurrentFilePath = useCallback(
+    (path: string | null) => {
+      if (instanceId) {
+        // Always use instance-specific method for instances
+        updateTextEditInstance(instanceId, { filePath: path });
+      } else {
+        // Only use legacy method for non-instance mode
+        legacySetFilePath(path);
+      }
+    },
+    [instanceId, updateTextEditInstance, legacySetFilePath]
+  );
 
-  const setContentJson = (json: JSONContent | null) => {
-    if (instanceId) {
-      // Always use instance-specific method for instances
-      updateTextEditInstance(instanceId, { contentJson: json });
-    } else {
-      // Only use legacy method for non-instance mode
-      legacySetContentJson(json);
-    }
-  };
+  const setContentJson = useCallback(
+    (json: JSONContent | null) => {
+      if (instanceId) {
+        // Always use instance-specific method for instances
+        updateTextEditInstance(instanceId, { contentJson: json });
+      } else {
+        // Only use legacy method for non-instance mode
+        legacySetContentJson(json);
+      }
+    },
+    [instanceId, updateTextEditInstance, legacySetContentJson]
+  );
 
-  const setHasUnsavedChanges = (val: boolean) => {
-    if (instanceId) {
-      // Always use instance-specific method for instances
-      updateTextEditInstance(instanceId, { hasUnsavedChanges: val });
-    } else {
-      // Only use legacy method for non-instance mode
-      legacySetHasUnsavedChanges(val);
-    }
-  };
+  const setHasUnsavedChanges = useCallback(
+    (val: boolean) => {
+      if (instanceId) {
+        // Always use instance-specific method for instances
+        updateTextEditInstance(instanceId, { hasUnsavedChanges: val });
+      } else {
+        // Only use legacy method for non-instance mode
+        legacySetHasUnsavedChanges(val);
+      }
+    },
+    [instanceId, updateTextEditInstance, legacySetHasUnsavedChanges]
+  );
 
   // Local UI-only state for Save dialog filename
   const [saveFileName, setSaveFileName] = useState("");
@@ -734,6 +744,38 @@ export function TextEditAppComponent({
     console.log(`Launched new TextEdit instance: ${newInstanceId}`);
   };
 
+  // Handler for intercepting close events
+  const handleClose = () => {
+    // Check if there are unsaved changes or if it's an untitled file
+    const isUntitled = !currentFilePath;
+    const hasContent =
+      editor &&
+      (!editor.isEmpty ||
+        editor.getText().trim().length > 0 ||
+        editor.getHTML() !== "<p></p>");
+
+    if (hasUnsavedChanges || (isUntitled && hasContent)) {
+      setIsConfirmCloseDialogOpen(true);
+    } else {
+      // Dispatch close event to WindowFrame with callback
+      window.dispatchEvent(
+        new CustomEvent(`closeWindow-${instanceId || "textedit"}`, {
+          detail: { onComplete: onClose },
+        })
+      );
+    }
+  };
+
+  const handleConfirmClose = () => {
+    setIsConfirmCloseDialogOpen(false);
+    // Dispatch close event to WindowFrame with callback
+    window.dispatchEvent(
+      new CustomEvent(`closeWindow-${instanceId || "textedit"}`, {
+        detail: { onComplete: onClose },
+      })
+    );
+  };
+
   // Function to handle dropped files
   const handleFileDrop = async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -911,7 +953,7 @@ export function TextEditAppComponent({
       />
       <TextEditMenuBar
         editor={editor}
-        onClose={onClose}
+        onClose={handleClose}
         isWindowOpen={isWindowOpen}
         onShowHelp={() => setIsHelpDialogOpen(true)}
         onShowAbout={() => setIsAboutDialogOpen(true)}
@@ -931,11 +973,12 @@ export function TextEditAppComponent({
             ? `${removeFileExtension(currentFilePath.split("/").pop() || "")}`
             : `Untitled${hasUnsavedChanges ? " •" : ""}`)
         }
-        onClose={onClose}
+        onClose={handleClose}
         isForeground={isForeground}
         appId="textedit"
         skipInitialSound={skipInitialSound}
         instanceId={instanceId}
+        interceptClose={true}
       >
         <div className="flex flex-col h-full w-full">
           <div
@@ -1246,6 +1289,17 @@ export function TextEditAppComponent({
             }}
             title="Discard Changes"
             description="Do you want to discard your changes and create a new file?"
+          />
+          <ConfirmDialog
+            isOpen={isConfirmCloseDialogOpen}
+            onOpenChange={setIsConfirmCloseDialogOpen}
+            onConfirm={handleConfirmClose}
+            title="Close Document"
+            description={
+              hasUnsavedChanges
+                ? "Do you want to close this document without saving your changes?"
+                : "Do you want to close this untitled document?"
+            }
           />
           <HelpDialog
             isOpen={isHelpDialogOpen}
