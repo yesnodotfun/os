@@ -1067,6 +1067,17 @@ export function TextEditAppComponent({
     }
   };
 
+  // Determine if the window title should display the unsaved indicator. This
+  // should show when there are unsaved changes or when an untitled document
+  // contains any content but hasn't been saved to a file yet.
+  const showUnsavedIndicator =
+    hasUnsavedChanges ||
+    (!currentFilePath &&
+      editor &&
+      (!editor.isEmpty ||
+        editor.getText().trim().length > 0 ||
+        editor.getHTML() !== "<p></p>"));
+
   return (
     <>
       <input
@@ -1095,7 +1106,7 @@ export function TextEditAppComponent({
           customTitle ||
           (currentFilePath
             ? `${removeFileExtension(currentFilePath.split("/").pop() || "")}`
-            : `Untitled${hasUnsavedChanges ? " •" : ""}`)
+            : `Untitled${showUnsavedIndicator ? " •" : ""}`)
         }
         onClose={handleClose}
         isForeground={isForeground}
