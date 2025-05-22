@@ -20,10 +20,12 @@ export const getModelInstance = (model: SupportedModel): LanguageModelV1 => {
       return openai("gpt-4.1");
     case "gpt-4.1-mini":
       return openai("gpt-4.1-mini");
-    case "gemini-2.5-pro-preview-05-06":
-      return google("gemini-2.5-pro-preview-05-06");
-    case "claude-3.7":
-      return anthropic("claude-3-7-sonnet-20250219");
+      case "gemini-2.5-pro-preview-05-06":
+        return google("gemini-2.5-pro-preview-05-06");
+      case "claude-4":
+        return anthropic("claude-4-sonnet-20250514");
+      case "claude-3.7":
+        return anthropic("claude-3-7-sonnet-20250219");
     case "claude-3.5":
       return anthropic("claude-3-5-sonnet-20241022");
     default:
