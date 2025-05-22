@@ -43,7 +43,7 @@ import {
   htmlToPlainText,
 } from "@/utils/markdown";
 import { useAppStore } from "@/stores/useAppStore";
-import { JSONContent } from "@tiptap/core";
+import { JSONContent, Editor } from "@tiptap/core";
 
 // Define the type for TextEdit initial data
 interface TextEditInitialData {
@@ -70,7 +70,7 @@ const getContentAsString = async (
 // Helper function to generate suggested filename
 const generateSuggestedFilename = (
   customTitle: string | undefined,
-  editor: any
+  editor: Editor | null
 ): string => {
   // First priority: use custom title if provided
   if (customTitle && customTitle.trim() && customTitle !== "Untitled") {
