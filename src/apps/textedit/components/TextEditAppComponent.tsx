@@ -73,6 +73,47 @@ const getFileNameFromPath = (path: string): string => {
   return path.split("/").pop() || "";
 };
 
+// Helper function to generate suggested filename
+const generateSuggestedFilename = (
+  customTitle: string | undefined,
+  editor: any
+): string => {
+  // First priority: use custom title if provided
+  if (customTitle && customTitle.trim() && customTitle !== "Untitled") {
+    return (
+      customTitle
+        .split(/\s+/) // Split into words
+        .filter(Boolean)
+        .slice(0, 7) // Keep at most 7 words
+        .join("-") // Join with hyphens
+        .replace(/[^a-zA-Z0-9-]/g, "") // Remove non-alphanumeric (except hyphen)
+        .substring(0, 50) || "Untitled"
+    ); // Cap to 50 characters, fallback to Untitled
+  }
+
+  // Second priority: extract from first line of content
+  if (editor) {
+    const content = editor.getHTML();
+    const firstLineText = content
+      .split("\n")[0] // Get first line
+      .replace(/<[^>]+>/g, "") // Remove HTML tags
+      .trim(); // Remove leading/trailing whitespace
+
+    // Take the first 7 words, sanitise, join with hyphens, and cap length
+    const firstLine = firstLineText
+      .split(/\s+/) // Split into words
+      .filter(Boolean)
+      .slice(0, 7) // Keep at most 7 words
+      .join("-") // Join with hyphens
+      .replace(/[^a-zA-Z0-9-]/g, "") // Remove non-alphanumeric (except hyphen)
+      .substring(0, 50); // Cap to 50 characters
+
+    return firstLine || "Untitled";
+  }
+
+  return "Untitled";
+};
+
 export function TextEditAppComponent({
   isWindowOpen,
   onClose,
@@ -576,24 +617,11 @@ export function TextEditAppComponent({
     if (!editor) return;
 
     if (!currentFilePath) {
-      // Get the first line of content and use it as suggested filename
-      const content = editor.getHTML();
-      const firstLineText = content
-        .split("\n")[0] // Get first line
-        .replace(/<[^>]+>/g, "") // Remove HTML tags
-        .trim(); // Remove leading/trailing whitespace
-
-      // Take the first 7 words, sanitise, join with hyphens, and cap length
-      const firstLine = firstLineText
-        .split(/\s+/) // Split into words
-        .filter(Boolean)
-        .slice(0, 7) // Keep at most 7 words
-        .join("-") // Join with hyphens
-        .replace(/[^a-zA-Z0-9-]/g, "") // Remove non-alphanumeric (except hyphen)
-        .substring(0, 50); // Cap to 50 characters
+      // Generate suggested filename using title or first line of content
+      const suggestedName = generateSuggestedFilename(customTitle, editor);
 
       setIsSaveDialogOpen(true);
-      setSaveFileName(`${firstLine || "Untitled"}.md`);
+      setSaveFileName(`${suggestedName}.md`);
     } else {
       // Use shared utility to save as markdown, passing the saveFile hook
       const { jsonContent } = saveAsMarkdown(
@@ -757,22 +785,8 @@ export function TextEditAppComponent({
     if (hasUnsavedChanges || (isUntitled && hasContent)) {
       // Suggest filename for untitled documents
       if (isUntitled && editor) {
-        const content = editor.getHTML();
-        const firstLineText = content
-          .split("\n")[0] // Get first line
-          .replace(/<[^>]+>/g, "") // Remove HTML tags
-          .trim(); // Remove leading/trailing whitespace
-
-        // Take the first 7 words, sanitise, join with hyphens, and cap length
-        const firstLine = firstLineText
-          .split(/\s+/) // Split into words
-          .filter(Boolean)
-          .slice(0, 7) // Keep at most 7 words
-          .join("-") // Join with hyphens
-          .replace(/[^a-zA-Z0-9-]/g, "") // Remove non-alphanumeric (except hyphen)
-          .substring(0, 50); // Cap to 50 characters
-
-        setCloseSaveFileName(`${firstLine || "Untitled"}.md`);
+        const suggestedName = generateSuggestedFilename(customTitle, editor);
+        setCloseSaveFileName(`${suggestedName}.md`);
       } else {
         // For existing files, suggest the current filename
         setCloseSaveFileName(

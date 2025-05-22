@@ -89,9 +89,15 @@ const getSystemState = () => {
         console.error("Failed to convert TextEdit content to markdown:", err);
       }
     }
+
+    // Get title from app store instance
+    const appInstance = appStore.instances[instance.instanceId];
+    const title = appInstance?.title || "Untitled";
+
     return {
       instanceId: instance.instanceId,
       filePath: instance.filePath,
+      title,
       contentMarkdown,
       hasUnsavedChanges: instance.hasUnsavedChanges,
     };
@@ -473,11 +479,11 @@ export function useAiChat() {
               const appStore = useAppStore.getState();
               appStore.bringInstanceToForeground(targetInstance.instanceId);
 
-              const fileName = targetInstance.filePath
-                ? targetInstance.filePath.split("/").pop() ||
-                  targetInstance.filePath
-                : "Untitled";
-              return `Replaced "${search}" with "${replace}" in ${fileName}.`;
+              // Get the display title from the app store instance
+              const appInstance = appStore.instances[targetInstance.instanceId];
+              const displayName = appInstance?.title || "Untitled";
+
+              return `Replaced "${search}" with "${replace}" in ${displayName}.`;
             } catch (err) {
               console.error("searchReplace error:", err);
               return `Failed to apply search/replace: ${
@@ -598,13 +604,13 @@ export function useAiChat() {
             const appStore = useAppStore.getState();
             appStore.bringInstanceToForeground(targetInstanceId);
 
-            const fileName = targetInstance.filePath
-              ? targetInstance.filePath.split("/").pop() ||
-                targetInstance.filePath
-              : "Untitled";
+            // Get the display title from the app store instance
+            const appInstance = appStore.instances[targetInstanceId];
+            const displayName = appInstance?.title || "Untitled";
+
             return `Inserted text at ${
               position === "start" ? "start" : "end"
-            } of ${fileName}.`;
+            } of ${displayName}.`;
           }
           case "textEditNewFile": {
             const { title } = toolCall.args as {

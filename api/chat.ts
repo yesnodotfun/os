@@ -74,6 +74,7 @@ interface SystemState {
     instances: Array<{
       instanceId: string;
       filePath: string | null;
+      title: string;
       contentMarkdown?: string | null;
       hasUnsavedChanges: boolean;
     }>;
@@ -262,13 +263,10 @@ SYSTEM STATE:
   ) {
     prompt += `\n- TextEdit Windows (${systemState.textEdit.instances.length} open):`;
     systemState.textEdit.instances.forEach((instance, index) => {
-      const fileName = instance.filePath
-        ? instance.filePath.split("/").pop() || instance.filePath
-        : "Untitled";
       const unsavedMark = instance.hasUnsavedChanges ? "*" : "";
-      prompt += `\n  ${index + 1}. ${fileName}${unsavedMark} (instanceId: ${
-        instance.instanceId
-      })`;
+      prompt += `\n  ${index + 1}. ${
+        instance.title
+      }${unsavedMark} (instanceId: ${instance.instanceId})`;
 
       if (instance.contentMarkdown) {
         // Limit content preview to avoid overly long prompts
@@ -488,7 +486,6 @@ export default async function handler(req: Request) {
               ),
             instanceId: z
               .string()
-              .optional()
               .describe(
                 "The specific TextEdit instance ID to modify (e.g., '15'). If not provided, operates on the foreground TextEdit instance. Get this from the system state TextEdit Windows list."
               ),
@@ -507,7 +504,6 @@ export default async function handler(req: Request) {
               ),
             instanceId: z
               .string()
-              .optional()
               .describe(
                 "The specific TextEdit instance ID to modify (e.g., '15'). If not provided, operates on the foreground TextEdit instance. Get this from the system state TextEdit Windows list."
               ),
