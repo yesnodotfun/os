@@ -9,12 +9,28 @@ const Dialog = ({ children, onOpenChange, ...props }: DialogPrimitive.DialogProp
   const { play: playWindowClose } = useSound(Sounds.WINDOW_CLOSE);
   const vibrateClose = useVibration(50, 50);
 
+  // Flag to prevent double-playing the open sound when `onOpenChange`
+  // also triggers after programmatically opening the dialog
+  const skipOpenEffectRef = React.useRef(false);
+
+  // Play open sound if the dialog is mounted with `open` already true or if
+  // `open` is changed programmatically without triggering `onOpenChange`.
+  React.useEffect(() => {
+    if (props.open && !skipOpenEffectRef.current) {
+      playWindowOpen();
+    }
+    // Reset the flag so subsequent `open` changes trigger the effect again
+    skipOpenEffectRef.current = false;
+  }, [props.open, playWindowOpen]);
+
   return (
     <DialogPrimitive.Root
       {...props}
       onOpenChange={(open) => {
         if (open) {
           playWindowOpen();
+          // Prevent the effect from replaying the sound for this change
+          skipOpenEffectRef.current = true;
         } else {
           vibrateClose();
           playWindowClose();
