@@ -22,7 +22,7 @@ import { clearAllAppStates } from "@/stores/useAppStore";
 import { ensureIndexedDBInitialized } from "@/utils/indexedDB";
 import { SYNTH_PRESETS } from "@/hooks/useChatSynth";
 import { useFileSystem } from "@/apps/finder/hooks/useFileSystem";
-import { useAppStore } from "@/stores/useAppStore";
+import { useAppStoreShallow } from "@/stores/helpers";
 import { setNextBootMessage, clearNextBootMessage } from "@/utils/bootMessage";
 import { AIModel, AI_MODEL_METADATA } from "@/types/aiModels";
 import { VolumeMixer } from "./VolumeMixer";
@@ -200,7 +200,37 @@ export function ControlPanelsAppComponent({
     masterVolume,
     setMasterVolume,
     setCurrentWallpaper,
-  } = useAppStore();
+  } = useAppStoreShallow((s) => ({
+    debugMode: s.debugMode,
+    setDebugMode: s.setDebugMode,
+    shaderEffectEnabled: s.shaderEffectEnabled,
+    setShaderEffectEnabled: s.setShaderEffectEnabled,
+    aiModel: s.aiModel,
+    setAiModel: s.setAiModel,
+    terminalSoundsEnabled: s.terminalSoundsEnabled,
+    setTerminalSoundsEnabled: s.setTerminalSoundsEnabled,
+    uiSoundsEnabled: s.uiSoundsEnabled,
+    setUiSoundsEnabled: s.setUiSoundsEnabled,
+    uiVolume: s.uiVolume,
+    setUiVolume: s.setUiVolume,
+    speechEnabled: s.speechEnabled,
+    setSpeechEnabled: s.setSpeechEnabled,
+    chatSynthVolume: s.chatSynthVolume,
+    setChatSynthVolume: s.setChatSynthVolume,
+    speechVolume: s.speechVolume,
+    setSpeechVolume: s.setSpeechVolume,
+    ttsModel: s.ttsModel,
+    setTtsModel: s.setTtsModel,
+    ttsVoice: s.ttsVoice,
+    setTtsVoice: s.setTtsVoice,
+    synthPreset: s.synthPreset,
+    setSynthPreset: s.setSynthPreset,
+    ipodVolume: s.ipodVolume,
+    setIpodVolume: s.setIpodVolume,
+    masterVolume: s.masterVolume,
+    setMasterVolume: s.setMasterVolume,
+    setCurrentWallpaper: s.setCurrentWallpaper,
+  }));
 
   // States for previous volume levels for mute/unmute functionality
   const [prevMasterVolume, setPrevMasterVolume] = useState(
