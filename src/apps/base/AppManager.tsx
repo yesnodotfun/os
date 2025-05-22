@@ -239,10 +239,16 @@ export function AppManager({ apps }: AppManagerProps) {
             key={instance.instanceId}
             style={{ zIndex }}
             className="absolute inset-x-0 md:inset-x-auto w-full md:w-auto"
-            onClick={() =>
-              !instance.isForeground &&
-              bringInstanceToForeground(instance.instanceId)
-            }
+            onMouseDown={() => {
+              if (!instance.isForeground) {
+                bringInstanceToForeground(instance.instanceId);
+              }
+            }}
+            onTouchStart={() => {
+              if (!instance.isForeground) {
+                bringInstanceToForeground(instance.instanceId);
+              }
+            }}
           >
             <AppComponent
               isWindowOpen={instance.isOpen}
