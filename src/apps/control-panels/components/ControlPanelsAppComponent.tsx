@@ -195,6 +195,7 @@ export function ControlPanelsAppComponent({
     setIpodVolume,
     masterVolume,
     setMasterVolume,
+    setCurrentWallpaper,
   } = useAppStore();
 
   // States for previous volume levels for mute/unmute functionality
@@ -287,7 +288,12 @@ export function ControlPanelsAppComponent({
   };
 
   const performReset = () => {
+    // Preserve file metadata store while clearing everything else
+    const fileMetadataStore = localStorage.getItem("ryos:files");
     clearAllAppStates();
+    if (fileMetadataStore) {
+      localStorage.setItem("ryos:files", fileMetadataStore);
+    }
     window.location.reload();
   };
 
@@ -850,6 +856,8 @@ export function ControlPanelsAppComponent({
   };
 
   const performFormat = async () => {
+    // Reset wallpaper to default before formatting
+    setCurrentWallpaper("/wallpapers/videos/blue_flowers_loop.mp4");
     await formatFileSystem();
     setNextBootMessage("Formatting File System...");
     window.location.reload();
