@@ -12,6 +12,7 @@ import {
 import { useFilesStore, FileSystemItem } from "@/stores/useFilesStore";
 import { useTextEditStore } from "@/stores/useTextEditStore";
 import { useAppStore } from "@/stores/useAppStore";
+import { migrateIndexedDBToUUIDs } from "@/utils/indexedDBMigration";
 
 // Store names for IndexedDB (Content)
 const STORES = {
@@ -241,6 +242,7 @@ function getFileIcon(item: FileSystemItem): string {
 
 // --- Global flags for cross-instance coordination --- //
 let isInitialContentCheckDone = false;
+let isUUIDMigrationDone = false;
 const loggedInitializationPaths = new Set<string>();
 
 // --- useFileSystem Hook --- //
@@ -318,28 +320,44 @@ export function useFileSystem(
       );
 
       try {
+        // Get the file store state
+        const fileStore = useFilesStore.getState();
+
         // Load the filesystem data from JSON
         const res = await fetch("/data/filesystem.json");
         const data = await res.json();
 
         // Process files that have content
         for (const file of data.files || []) {
+          // Get the metadata from the store to get UUID
+          const fileMetadata = fileStore.getItem(file.path);
+          if (!fileMetadata?.uuid) {
+            console.warn(
+              `[useFileSystem] No UUID found for ${file.path}, skipping content initialization`
+            );
+            continue;
+          }
+
           if (file.content) {
             // This is a document with text content
             const storeName = STORES.DOCUMENTS;
             try {
               const existingDoc = await dbOperations.get<DocumentContent>(
                 storeName,
-                file.name
+                fileMetadata.uuid
               );
               if (!existingDoc) {
                 console.log(
-                  `[useFileSystem] Adding default document ${file.name} to documents store`
+                  `[useFileSystem] Adding default document ${file.name} to documents store with UUID ${fileMetadata.uuid}`
                 );
-                await dbOperations.put<DocumentContent>(storeName, {
-                  name: file.name,
-                  content: file.content,
-                });
+                await dbOperations.put<DocumentContent>(
+                  storeName,
+                  {
+                    name: file.name,
+                    content: file.content,
+                  },
+                  fileMetadata.uuid
+                );
               }
             } catch (err) {
               console.error(
@@ -353,19 +371,23 @@ export function useFileSystem(
             try {
               const existingImg = await dbOperations.get<DocumentContent>(
                 storeName,
-                file.name
+                fileMetadata.uuid
               );
               if (!existingImg) {
                 console.log(
-                  `[useFileSystem] Adding default image ${file.name} to images store`
+                  `[useFileSystem] Adding default image ${file.name} to images store with UUID ${fileMetadata.uuid}`
                 );
                 const response = await fetch(file.assetPath);
                 if (response.ok) {
                   const blob = await response.blob();
-                  await dbOperations.put<DocumentContent>(storeName, {
-                    name: file.name,
-                    content: blob,
-                  });
+                  await dbOperations.put<DocumentContent>(
+                    storeName,
+                    {
+                      name: file.name,
+                      content: blob,
+                    },
+                    fileMetadata.uuid
+                  );
                 } else {
                   console.warn(
                     `[useFileSystem] Failed to fetch default image asset ${file.name}. Status: ${response.status}`
@@ -391,6 +413,52 @@ export function useFileSystem(
     initializeContent();
   }, []); // Empty dependency array ensures attempt once per mount
   // --- End Initialization Effect --- //
+
+  // --- UUID Migration Effect (Runs ONLY ONCE globally) --- //
+  useEffect(() => {
+    if (isUUIDMigrationDone) {
+      return;
+    }
+
+    // Check if the file store has been loaded/migrated
+    const checkAndRunMigration = async () => {
+      const fileStoreState = useFilesStore.getState();
+
+      // Wait for the store to be loaded
+      if (fileStoreState.libraryState === "uninitialized") {
+        console.log(
+          "[useFileSystem] Waiting for file store to initialize before UUID migration..."
+        );
+        return;
+      }
+
+      // Mark as done to prevent multiple runs
+      isUUIDMigrationDone = true;
+
+      console.log(
+        "[useFileSystem] File store is ready, running UUID migration..."
+      );
+
+      // Run migration asynchronously
+      try {
+        await migrateIndexedDBToUUIDs();
+      } catch (err) {
+        console.error("[useFileSystem] UUID migration failed:", err);
+      }
+    };
+
+    // Check immediately
+    checkAndRunMigration();
+
+    // Also subscribe to store changes in case it's not ready yet
+    const unsubscribe = useFilesStore.subscribe((state) => {
+      if (!isUUIDMigrationDone && state.libraryState !== "uninitialized") {
+        checkAndRunMigration();
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   // --- REORDERED useCallback DEFINITIONS --- //
 
@@ -623,14 +691,14 @@ export function useFileSystem(
           displayFiles = await Promise.all(
             itemsMetadata.map(async (item) => {
               let contentUrl: string | undefined;
-              if (!item.isDirectory) {
+              if (!item.isDirectory && item.uuid) {
                 try {
                   console.log(
-                    `[useFileSystem:loadFiles] Fetching content for ${item.name}, type: ${item.type}`
+                    `[useFileSystem:loadFiles] Fetching content for ${item.name}, UUID: ${item.uuid}, type: ${item.type}`
                   );
                   const contentData = await dbOperations.get<DocumentContent>(
                     STORES.IMAGES,
-                    item.name
+                    item.uuid // Use UUID instead of name
                   );
 
                   if (contentData?.content instanceof Blob) {
@@ -643,12 +711,12 @@ export function useFileSystem(
                     );
                   } else {
                     console.log(
-                      `[useFileSystem:loadFiles] No Blob content found for ${item.name}`
+                      `[useFileSystem:loadFiles] No Blob content found for ${item.name} with UUID ${item.uuid}`
                     );
                   }
                 } catch (err) {
                   console.error(
-                    `Error fetching image content for ${item.name}:`,
+                    `Error fetching image content for ${item.name} (UUID: ${item.uuid}):`,
                     err
                   );
                 }
@@ -717,18 +785,26 @@ export function useFileSystem(
           file.path.startsWith("/Documents/") ||
           file.path.startsWith("/Images/")
         ) {
-          const storeName = file.path.startsWith("/Documents/")
-            ? STORES.DOCUMENTS
-            : STORES.IMAGES;
-          const contentData = await dbOperations.get<DocumentContent>(
-            storeName,
-            file.name
-          );
-          if (contentData) {
-            contentToUse = contentData.content;
+          // Get the file metadata to get the UUID
+          const fileMetadata = fileStore.getItem(file.path);
+          if (fileMetadata?.uuid) {
+            const storeName = file.path.startsWith("/Documents/")
+              ? STORES.DOCUMENTS
+              : STORES.IMAGES;
+            const contentData = await dbOperations.get<DocumentContent>(
+              storeName,
+              fileMetadata.uuid // Use UUID instead of name
+            );
+            if (contentData) {
+              contentToUse = contentData.content;
+            } else {
+              console.warn(
+                `[useFileSystem] Content not found in IndexedDB for ${file.path} (UUID: ${fileMetadata.uuid})`
+              );
+            }
           } else {
             console.warn(
-              `[useFileSystem] Content not found in IndexedDB for ${file.path}`
+              `[useFileSystem] No UUID found for file ${file.path}, cannot fetch content`
             );
           }
         }
@@ -879,6 +955,10 @@ export function useFileSystem(
       const isDirectory = false;
       const fileType = fileData.type || getFileTypeFromExtension(name);
 
+      // Check if file already exists to preserve UUID
+      const existingItem = fileStore.getItem(path);
+      const uuid = existingItem?.uuid;
+
       // 1. Create the full metadata object first
       const metadata: FileSystemItem = {
         path: path,
@@ -886,6 +966,7 @@ export function useFileSystem(
         isDirectory: isDirectory,
         type: fileType,
         status: "active", // Explicitly set status
+        uuid: uuid, // Preserve existing UUID if updating
         // Now call getFileIcon with the complete metadata object
         icon:
           fileData.icon ||
@@ -898,16 +979,59 @@ export function useFileSystem(
           } as FileSystemItem),
       };
 
-      // 2. Add/Update Metadata in FileStore
+      // 2. Add/Update Metadata in FileStore (will generate UUID if new)
       try {
         console.log(
           `[useFileSystem:saveFile] Updating metadata store for: ${path}`
         );
-        // Pass the complete metadata object to addItem (it expects Omit<FileSystemItem, 'status'> but will ignore extra fields)
+        // Pass the complete metadata object to addItem
         fileStore.addItem(metadata);
+
+        // Get the item again to get the UUID (in case it was newly generated)
+        const savedItem = fileStore.getItem(path);
+        if (!savedItem?.uuid) {
+          throw new Error("Failed to get UUID for saved item");
+        }
+
         console.log(
-          `[useFileSystem:saveFile] Metadata store updated for: ${path}`
+          `[useFileSystem:saveFile] Metadata store updated for: ${path} with UUID: ${savedItem.uuid}`
         );
+
+        // 3. Save Content to IndexedDB using UUID
+        const storeName = path.startsWith("/Documents/")
+          ? STORES.DOCUMENTS
+          : path.startsWith("/Images/")
+          ? STORES.IMAGES
+          : null;
+        if (storeName) {
+          try {
+            const contentToStore: DocumentContent = {
+              name: name,
+              content: content,
+            };
+            console.log(
+              `[useFileSystem:saveFile] Saving content to IndexedDB (${storeName}) with UUID: ${savedItem.uuid}`
+            );
+            await dbOperations.put<DocumentContent>(
+              storeName,
+              contentToStore,
+              savedItem.uuid
+            );
+            console.log(
+              `[useFileSystem:saveFile] Content saved to IndexedDB with UUID: ${savedItem.uuid}`
+            );
+          } catch (err) {
+            console.error(
+              `[useFileSystem:saveFile] Error saving content to IndexedDB for ${path}:`,
+              err
+            );
+            setError(`Failed to save file content for ${name}`);
+          }
+        } else {
+          console.warn(
+            `[useFileSystem:saveFile] No valid content store for path: ${path}`
+          );
+        }
       } catch (metaError) {
         console.error(
           `[useFileSystem:saveFile] Error updating metadata store for ${path}:`,
@@ -915,38 +1039,6 @@ export function useFileSystem(
         );
         setError(`Failed to save file metadata for ${name}`);
         return;
-      }
-
-      // 3. Save Content to IndexedDB
-      const storeName = path.startsWith("/Documents/")
-        ? STORES.DOCUMENTS
-        : path.startsWith("/Images/")
-        ? STORES.IMAGES
-        : null;
-      if (storeName) {
-        try {
-          const contentToStore: DocumentContent = {
-            name: name,
-            content: content,
-          };
-          console.log(
-            `[useFileSystem:saveFile] Saving content to IndexedDB (${storeName}) for: ${name}`
-          );
-          await dbOperations.put<DocumentContent>(storeName, contentToStore);
-          console.log(
-            `[useFileSystem:saveFile] Content saved to IndexedDB for: ${name}`
-          );
-        } catch (err) {
-          console.error(
-            `[useFileSystem:saveFile] Error saving content to IndexedDB for ${path}:`,
-            err
-          );
-          setError(`Failed to save file content for ${name}`);
-        }
-      } else {
-        console.warn(
-          `[useFileSystem:saveFile] No valid content store for path: ${path}`
-        );
       }
     },
     [fileStore]
@@ -1003,18 +1095,23 @@ export function useFileSystem(
         if (
           sourceStoreName &&
           targetStoreName &&
-          sourceStoreName !== targetStoreName
+          sourceStoreName !== targetStoreName &&
+          sourceFile.uuid
         ) {
           // Get content from source store
           const content = await dbOperations.get<DocumentContent>(
             sourceStoreName,
-            sourceFile.name
+            sourceFile.uuid // Use UUID
           );
           if (content) {
             // Save to target store
-            await dbOperations.put<DocumentContent>(targetStoreName, content);
+            await dbOperations.put<DocumentContent>(
+              targetStoreName,
+              content,
+              sourceFile.uuid
+            );
             // Delete from source store
-            await dbOperations.delete(sourceStoreName, sourceFile.name);
+            await dbOperations.delete(sourceStoreName, sourceFile.uuid);
           }
         }
 
@@ -1044,7 +1141,6 @@ export function useFileSystem(
 
       const parentPath = getParentPath(oldPath);
       const newPath = `${parentPath === "/" ? "" : parentPath}/${newName}`;
-      const oldName = itemToRename.name;
 
       if (fileStore.getItem(newPath)) {
         console.error("Error: New path already exists in FileStore");
@@ -1052,11 +1148,11 @@ export function useFileSystem(
         return;
       }
 
-      // 1. Rename Metadata in FileStore
+      // 1. Rename Metadata in FileStore (preserves UUID)
       fileStore.renameItem(oldPath, newPath, newName);
 
-      // 2. Rename Content Key in IndexedDB (Only if it's a file with content)
-      if (!itemToRename.isDirectory) {
+      // 2. Update content metadata (name field) in IndexedDB if it's a file with content
+      if (!itemToRename.isDirectory && itemToRename.uuid) {
         const storeName = oldPath.startsWith("/Documents/")
           ? STORES.DOCUMENTS
           : oldPath.startsWith("/Images/")
@@ -1066,14 +1162,18 @@ export function useFileSystem(
           try {
             const content = await dbOperations.get<DocumentContent>(
               storeName,
-              oldName
+              itemToRename.uuid // Use UUID
             );
             if (content) {
-              await dbOperations.delete(storeName, oldName);
-              await dbOperations.put<DocumentContent>(storeName, {
-                ...content,
-                name: newName,
-              });
+              // Update the name field in the content
+              await dbOperations.put<DocumentContent>(
+                storeName,
+                {
+                  ...content,
+                  name: newName,
+                },
+                itemToRename.uuid
+              ); // Keep same UUID
             } else {
               console.warn(
                 "Warning: Content not found in IndexedDB for renaming"
@@ -1130,22 +1230,26 @@ export function useFileSystem(
         : fileMetadata.path.startsWith("/Images/")
         ? STORES.IMAGES
         : null;
-      if (storeName && !fileMetadata.isDirectory) {
+      if (storeName && !fileMetadata.isDirectory && fileMetadata.uuid) {
         try {
           const content = await dbOperations.get<DocumentContent>(
             storeName,
-            fileMetadata.name
+            fileMetadata.uuid // Use UUID
           );
           if (content) {
-            // Store content in TRASH store using name as key
-            await dbOperations.put<DocumentContent>(STORES.TRASH, content);
-            await dbOperations.delete(storeName, fileMetadata.name);
+            // Store content in TRASH store using UUID as key
+            await dbOperations.put<DocumentContent>(
+              STORES.TRASH,
+              content,
+              fileMetadata.uuid
+            );
+            await dbOperations.delete(storeName, fileMetadata.uuid);
             console.log(
-              `[useFileSystem] Moved content for ${fileMetadata.name} from ${storeName} to Trash DB.`
+              `[useFileSystem] Moved content for ${fileMetadata.name} from ${storeName} to Trash DB with UUID ${fileMetadata.uuid}.`
             );
           } else {
             console.warn(
-              `[useFileSystem] Content not found for ${fileMetadata.name} in ${storeName} during move to trash.`
+              `[useFileSystem] Content not found for ${fileMetadata.name} (UUID: ${fileMetadata.uuid}) in ${storeName} during move to trash.`
             );
           }
         } catch (err) {
@@ -1183,21 +1287,25 @@ export function useFileSystem(
         : fileMetadata.originalPath.startsWith("/Images/")
         ? STORES.IMAGES
         : null;
-      if (targetStoreName && !fileMetadata.isDirectory) {
+      if (targetStoreName && !fileMetadata.isDirectory && fileMetadata.uuid) {
         try {
           const content = await dbOperations.get<DocumentContent>(
             STORES.TRASH,
-            fileMetadata.name
+            fileMetadata.uuid // Use UUID
           );
           if (content) {
-            await dbOperations.put<DocumentContent>(targetStoreName, content);
-            await dbOperations.delete(STORES.TRASH, fileMetadata.name); // Delete content from trash store
+            await dbOperations.put<DocumentContent>(
+              targetStoreName,
+              content,
+              fileMetadata.uuid
+            );
+            await dbOperations.delete(STORES.TRASH, fileMetadata.uuid); // Delete content from trash store
             console.log(
-              `[useFileSystem] Restored content for ${fileMetadata.name} from Trash DB to ${targetStoreName}.`
+              `[useFileSystem] Restored content for ${fileMetadata.name} from Trash DB to ${targetStoreName} with UUID ${fileMetadata.uuid}.`
             );
           } else {
             console.warn(
-              `[useFileSystem] Content not found for ${fileMetadata.name} in Trash DB during restore.`
+              `[useFileSystem] Content not found for ${fileMetadata.name} (UUID: ${fileMetadata.uuid}) in Trash DB during restore.`
             );
           }
         } catch (err) {
@@ -1210,18 +1318,14 @@ export function useFileSystem(
   );
 
   const emptyTrash = useCallback(async () => {
-    // 1. Permanently delete metadata from FileStore and get names of files whose content needs deletion
-    const contentNamesToDelete = fileStore.emptyTrash();
+    // 1. Permanently delete metadata from FileStore and get UUIDs of files whose content needs deletion
+    const contentUUIDsToDelete = fileStore.emptyTrash();
 
     // 2. Clear corresponding content from TRASH IndexedDB store
     try {
-      // Clear all potential metadata records first (paths were keys before)
-      // This might be redundant if emptyTrash handles it, but safer
-      // await dbOperations.clear(STORES.TRASH);
-
-      // Now delete content based on names collected from fileStore.emptyTrash()
-      for (const name of contentNamesToDelete) {
-        await dbOperations.delete(STORES.TRASH, name);
+      // Delete content based on UUIDs collected from fileStore.emptyTrash()
+      for (const uuid of contentUUIDsToDelete) {
+        await dbOperations.delete(STORES.TRASH, uuid);
       }
       console.log("[useFileSystem] Cleared trash content from IndexedDB.");
     } catch (err) {
@@ -1240,43 +1344,15 @@ export function useFileSystem(
       ]);
       await dbOperations.clear(STORES.DOCUMENTS);
 
-      // Re-add default content from JSON file
-      try {
-        const res = await fetch("/data/filesystem.json");
-        const data = await res.json();
+      // Clear the migration flag so UUID migration will run again after reset
+      localStorage.removeItem("ryos:indexeddb-uuid-migration-v1");
 
-        // Process files that have content
-        for (const file of data.files || []) {
-          if (file.content) {
-            // This is a document with text content
-            await dbOperations.put<DocumentContent>(STORES.DOCUMENTS, {
-              name: file.name,
-              content: file.content,
-            });
-          } else if (file.assetPath) {
-            // This is an image with an asset path
-            const response = await fetch(file.assetPath);
-            if (response.ok) {
-              const blob = await response.blob();
-              await dbOperations.put<DocumentContent>(STORES.IMAGES, {
-                name: file.name,
-                content: blob,
-              });
-            } else {
-              console.warn(
-                `[useFileSystem:formatFileSystem] Failed to fetch image ${file.name}. Status: ${response.status}`
-              );
-            }
-          }
-        }
-      } catch (err) {
-        console.error(
-          "[useFileSystem:formatFileSystem] Error loading filesystem.json:",
-          err
-        );
-      }
+      // Reset metadata store (this will trigger re-initialization with new UUIDs)
+      fileStore.reset();
 
-      fileStore.reset(); // Reset metadata store (this will trigger re-initialization)
+      // Re-initialization will happen automatically via the store's onRehydrateStorage
+      // The default files will be loaded with new UUIDs by initializeLibrary
+
       setCurrentPath("/");
       setHistory(["/"]);
       setHistoryIndex(0);

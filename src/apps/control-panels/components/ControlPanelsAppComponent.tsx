@@ -26,6 +26,7 @@ import { useAppStore } from "@/stores/useAppStore";
 import { setNextBootMessage, clearNextBootMessage } from "@/utils/bootMessage";
 import { AIModel, AI_MODEL_METADATA } from "@/types/aiModels";
 import { VolumeMixer } from "./VolumeMixer";
+import { v4 as uuidv4 } from "uuid";
 
 type PhotoCategory =
   | "3d_graphics"
@@ -307,15 +308,22 @@ export function ControlPanelsAppComponent({
       [key: string]: unknown;
     }
 
+    // Add interface for key-value pairs
+    interface StoreItemWithKey {
+      key: string;
+      value: StoreItem;
+    }
+
     const backup: {
       localStorage: Record<string, string | null>;
       indexedDB: {
-        documents: StoreItem[];
-        images: StoreItem[];
-        trash: StoreItem[];
-        custom_wallpapers: StoreItem[];
+        documents: StoreItemWithKey[];
+        images: StoreItemWithKey[];
+        trash: StoreItemWithKey[];
+        custom_wallpapers: StoreItemWithKey[];
       };
       timestamp: string;
+      version: number; // Add version to identify backup format
     } = {
       localStorage: {},
       indexedDB: {
@@ -325,6 +333,7 @@ export function ControlPanelsAppComponent({
         custom_wallpapers: [],
       },
       timestamp: new Date().toISOString(),
+      version: 2, // Version 2 includes keys
     };
 
     // Backup all localStorage data
@@ -337,13 +346,33 @@ export function ControlPanelsAppComponent({
 
     try {
       const db = await ensureIndexedDBInitialized();
-      const getStoreData = async (storeName: string): Promise<StoreItem[]> => {
+      const getStoreData = async (
+        storeName: string
+      ): Promise<StoreItemWithKey[]> => {
         return new Promise((resolve, reject) => {
           try {
             const transaction = db.transaction(storeName, "readonly");
             const store = transaction.objectStore(storeName);
-            const request = store.getAll();
-            request.onsuccess = () => resolve(request.result);
+            const items: StoreItemWithKey[] = [];
+
+            // Use openCursor to get both keys and values
+            const request = store.openCursor();
+
+            request.onsuccess = (event) => {
+              const cursor = (event.target as IDBRequest<IDBCursorWithValue>)
+                .result;
+              if (cursor) {
+                items.push({
+                  key: cursor.key as string,
+                  value: cursor.value,
+                });
+                cursor.continue();
+              } else {
+                // No more entries
+                resolve(items);
+              }
+            };
+
             request.onerror = () => reject(request.error);
           } catch (error) {
             console.error(`Error accessing store ${storeName}:`, error);
@@ -359,21 +388,24 @@ export function ControlPanelsAppComponent({
         getStoreData("custom_wallpapers"),
       ]);
 
-      const serializeStore = async (items: StoreItem[]) =>
+      const serializeStore = async (items: StoreItemWithKey[]) =>
         Promise.all(
           items.map(async (item) => {
-            const serializedItem: Record<string, unknown> = { ...item };
+            const serializedValue: Record<string, unknown> = { ...item.value };
 
             // Check all fields for Blob instances
-            for (const key of Object.keys(item)) {
-              if (item[key] instanceof Blob) {
-                const base64 = await blobToBase64(item[key] as Blob);
-                serializedItem[key] = base64;
-                serializedItem[`_isBlob_${key}`] = true;
+            for (const key of Object.keys(item.value)) {
+              if (item.value[key] instanceof Blob) {
+                const base64 = await blobToBase64(item.value[key] as Blob);
+                serializedValue[key] = base64;
+                serializedValue[`_isBlob_${key}`] = true;
               }
             }
 
-            return serializedItem as StoreItem;
+            return {
+              key: item.key,
+              value: serializedValue as StoreItem,
+            };
           })
         );
 
@@ -450,6 +482,38 @@ export function ControlPanelsAppComponent({
 
         const backup = JSON.parse(data);
 
+        // Detect if this is an old backup format
+        let isOldBackupFormat = false;
+
+        // First check if backup has version field (new backups have version 2+)
+        if (!backup.version || backup.version < 2) {
+          isOldBackupFormat = true;
+          console.log(
+            "[Restore] Detected old backup format (no version or version < 2)"
+          );
+        } else if (backup.localStorage && backup.localStorage["ryos:files"]) {
+          // For newer backups, also check if files lack UUIDs
+          try {
+            const filesData = JSON.parse(backup.localStorage["ryos:files"]);
+            if (filesData.state && filesData.state.items) {
+              // Check if any files lack UUIDs
+              const fileItems = Object.values(filesData.state.items).filter(
+                (item: any) => !item.isDirectory
+              );
+              isOldBackupFormat =
+                fileItems.length > 0 &&
+                fileItems.every((item: any) => !item.uuid);
+              if (isOldBackupFormat) {
+                console.log(
+                  "[Restore] Detected old backup format (files lack UUIDs)"
+                );
+              }
+            }
+          } catch (err) {
+            console.error("[Restore] Error checking backup format:", err);
+          }
+        }
+
         if (backup.localStorage) {
           Object.entries(backup.localStorage).forEach(([key, value]) => {
             if (value !== null) {
@@ -458,12 +522,15 @@ export function ControlPanelsAppComponent({
           });
         }
 
+        // Track which files need UUID migration
+        const fileUUIDMap = new Map<string, string>();
+
         if (backup.indexedDB) {
           try {
             const db = await ensureIndexedDBInitialized();
             const restoreStoreData = async (
               storeName: string,
-              dataToRestore: Record<string, unknown>[]
+              dataToRestore: any[] // Can be either StoreItem[] or StoreItemWithKey[]
             ): Promise<void> => {
               return new Promise((resolve, reject) => {
                 try {
@@ -472,13 +539,32 @@ export function ControlPanelsAppComponent({
                   const clearRequest = store.clear();
                   clearRequest.onsuccess = async () => {
                     try {
-                      for (const item of dataToRestore) {
-                        const restoredItem: Record<string, unknown> = {
-                          ...item,
-                        };
+                      for (const itemOrPair of dataToRestore) {
+                        let restoredItem: Record<string, unknown>;
+                        let itemKey: string | undefined;
+
+                        // Check if this is new format (with key) or old format (without key)
+                        if (
+                          itemOrPair.key !== undefined &&
+                          itemOrPair.value !== undefined
+                        ) {
+                          // New format: { key: string, value: StoreItem }
+                          itemKey = itemOrPair.key;
+                          restoredItem = { ...itemOrPair.value };
+                        } else {
+                          // Old format: StoreItem
+                          restoredItem = { ...itemOrPair };
+                          // For old backups, use the name field as the key
+                          if (
+                            restoredItem.name &&
+                            typeof restoredItem.name === "string"
+                          ) {
+                            itemKey = restoredItem.name;
+                          }
+                        }
 
                         // Check for fields that were Blobs and convert them back
-                        for (const key of Object.keys(item)) {
+                        for (const key of Object.keys(restoredItem)) {
                           if (key.startsWith("_isBlob_")) {
                             const fieldName = key.substring(8); // Remove '_isBlob_' prefix
                             if (
@@ -486,19 +572,28 @@ export function ControlPanelsAppComponent({
                               typeof restoredItem[fieldName] === "string"
                             ) {
                               restoredItem[fieldName] = base64ToBlob(
-                                restoredItem[fieldName]
+                                restoredItem[fieldName] as string
                               );
                             }
                             delete restoredItem[key]; // Remove the metadata flag
                           }
                         }
 
+                        if (!itemKey) {
+                          console.warn(
+                            `[Restore] Skipping item without a valid key in ${storeName}:`,
+                            restoredItem
+                          );
+                          continue;
+                        }
+
                         await new Promise<void>((resolveItem, rejectItem) => {
-                          const addRequest = store.put(restoredItem);
+                          // Pass the key as the second parameter for stores without keyPath
+                          const addRequest = store.put(restoredItem, itemKey);
                           addRequest.onsuccess = () => resolveItem();
                           addRequest.onerror = () => {
                             console.error(
-                              `Error adding item to ${storeName}:`,
+                              `Error adding item to ${storeName} with key ${itemKey}:`,
                               addRequest.error
                             );
                             rejectItem(addRequest.error);
@@ -576,7 +671,7 @@ export function ControlPanelsAppComponent({
                   // If we have content in IndexedDB, mark as loaded to prevent re-initialization
                   libraryState: hasContent ? "loaded" : "uninitialized",
                 },
-                version: 4,
+                version: 5, // Use current version
               };
               localStorage.setItem(persistedKey, JSON.stringify(defaultStore));
               raw = localStorage.getItem(persistedKey);
@@ -599,6 +694,7 @@ export function ControlPanelsAppComponent({
                   icon: string
                 ) => {
                   if (!items[path]) {
+                    const uuid = uuidv4();
                     items[path] = {
                       path,
                       name,
@@ -606,11 +702,25 @@ export function ControlPanelsAppComponent({
                       type,
                       icon,
                       status: "active",
+                      uuid, // Always generate UUID for restored files
                     };
                     hasChanges = true;
+                    fileUUIDMap.set(name, uuid); // Track for migration
                     console.log(
-                      `[Restore] Created missing metadata for: ${path}`
+                      `[Restore] Created metadata with UUID for: ${path} (${uuid})`
                     );
+                  } else if (!items[path].uuid) {
+                    // File exists but lacks UUID (old backup)
+                    const uuid = uuidv4();
+                    items[path].uuid = uuid;
+                    hasChanges = true;
+                    fileUUIDMap.set(name, uuid); // Track for migration
+                    console.log(
+                      `[Restore] Added UUID to existing file: ${path} (${uuid})`
+                    );
+                  } else {
+                    // File already has UUID
+                    fileUUIDMap.set(name, items[path].uuid);
                   }
                 };
 
@@ -764,8 +874,8 @@ export function ControlPanelsAppComponent({
                 }
 
                 // Ensure the store version is current to prevent migration issues
-                if (!parsed.version || parsed.version < 4) {
-                  parsed.version = 4;
+                if (!parsed.version || parsed.version < 5) {
+                  parsed.version = 5;
                   hasChanges = true;
                 }
 
@@ -789,6 +899,100 @@ export function ControlPanelsAppComponent({
               }
             }
 
+            // If this was an old backup, migrate IndexedDB content from filename keys to UUID keys
+            if (isOldBackupFormat && fileUUIDMap.size > 0) {
+              console.log(
+                `[Restore] Migrating ${fileUUIDMap.size} files from filename to UUID keys...`
+              );
+
+              // Migrate documents
+              const docsTransaction = db.transaction("documents", "readwrite");
+              const docsStore = docsTransaction.objectStore("documents");
+
+              for (const [filename, uuid] of fileUUIDMap) {
+                try {
+                  const getRequest = docsStore.get(filename);
+                  await new Promise<void>((resolve) => {
+                    getRequest.onsuccess = async () => {
+                      const content = getRequest.result;
+                      if (content) {
+                        // Save with UUID key
+                        await new Promise<void>((res, rej) => {
+                          const putRequest = docsStore.put(content, uuid);
+                          putRequest.onsuccess = () => res();
+                          putRequest.onerror = () => rej(putRequest.error);
+                        });
+                        // Delete old filename key
+                        await new Promise<void>((res, rej) => {
+                          const deleteRequest = docsStore.delete(filename);
+                          deleteRequest.onsuccess = () => res();
+                          deleteRequest.onerror = () =>
+                            rej(deleteRequest.error);
+                        });
+                        console.log(
+                          `[Restore] Migrated document ${filename} to UUID ${uuid}`
+                        );
+                      }
+                      resolve();
+                    };
+                    getRequest.onerror = () => resolve();
+                  });
+                } catch (err) {
+                  console.error(
+                    `[Restore] Failed to migrate document ${filename}:`,
+                    err
+                  );
+                }
+              }
+
+              // Migrate images
+              const imagesTransaction = db.transaction("images", "readwrite");
+              const imagesStore = imagesTransaction.objectStore("images");
+
+              for (const [filename, uuid] of fileUUIDMap) {
+                try {
+                  const getRequest = imagesStore.get(filename);
+                  await new Promise<void>((resolve) => {
+                    getRequest.onsuccess = async () => {
+                      const content = getRequest.result;
+                      if (content) {
+                        // Save with UUID key
+                        await new Promise<void>((res, rej) => {
+                          const putRequest = imagesStore.put(content, uuid);
+                          putRequest.onsuccess = () => res();
+                          putRequest.onerror = () => rej(putRequest.error);
+                        });
+                        // Delete old filename key
+                        await new Promise<void>((res, rej) => {
+                          const deleteRequest = imagesStore.delete(filename);
+                          deleteRequest.onsuccess = () => res();
+                          deleteRequest.onerror = () =>
+                            rej(deleteRequest.error);
+                        });
+                        console.log(
+                          `[Restore] Migrated image ${filename} to UUID ${uuid}`
+                        );
+                      }
+                      resolve();
+                    };
+                    getRequest.onerror = () => resolve();
+                  });
+                } catch (err) {
+                  console.error(
+                    `[Restore] Failed to migrate image ${filename}:`,
+                    err
+                  );
+                }
+              }
+
+              // Clear any migration flag to ensure migration doesn't run again
+              localStorage.setItem(
+                "ryos:indexeddb-uuid-migration-v1",
+                "completed"
+              );
+              console.log("[Restore] UUID migration completed during restore");
+            }
+
             db.close();
           } catch (err) {
             console.error(
@@ -810,7 +1014,7 @@ export function ControlPanelsAppComponent({
                   parsed.state.libraryState = hasItems
                     ? "loaded"
                     : "uninitialized";
-                  parsed.version = 4;
+                  parsed.version = 5;
                   localStorage.setItem(persistedKey, JSON.stringify(parsed));
                   console.log(
                     `[ControlPanels] Emergency: Set libraryState to ${parsed.state.libraryState} to handle restore properly`
@@ -820,7 +1024,7 @@ export function ControlPanelsAppComponent({
                 // No files store exists, create one with "loaded" state to be safe
                 const defaultStore = {
                   state: { items: {}, libraryState: "loaded" },
-                  version: 4,
+                  version: 5,
                 };
                 localStorage.setItem(
                   persistedKey,

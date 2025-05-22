@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
+import { v4 as uuidv4 } from "uuid";
 
 // Define the structure for a file system item (metadata)
 export interface FileSystemItem {
@@ -9,6 +10,7 @@ export interface FileSystemItem {
   icon?: string; // Optional: Specific icon override
   type?: string; // File type (e.g., 'text', 'png', 'folder') - derived if not folder
   appId?: string; // For launching applications or associated apps
+  uuid?: string; // Unique identifier for content storage (only for files, not directories)
   // Trash properties
   status: "active" | "trashed";
   originalPath?: string; // Path before being moved to trash
@@ -38,7 +40,7 @@ interface FilesStoreState {
   addItem: (item: Omit<FileSystemItem, "status">) => void; // Status defaults to active
   removeItem: (path: string, permanent?: boolean) => void; // Add flag for permanent deletion
   restoreItem: (path: string) => void;
-  emptyTrash: () => string[]; // Returns paths of items whose content should be deleted
+  emptyTrash: () => string[]; // Returns UUIDs of items whose content should be deleted
   renameItem: (oldPath: string, newPath: string, newName: string) => void;
   moveItem: (sourcePath: string, destinationPath: string) => boolean; // Add moveItem method
   getItemsInPath: (path: string) => FileSystemItem[];
@@ -73,7 +75,7 @@ const getParentPath = (path: string): string => {
 // Function to generate an empty initial state (just for typing)
 const getEmptyFileSystemState = (): Record<string, FileSystemItem> => ({});
 
-const STORE_VERSION = 4; // Increment to fix migration issue
+const STORE_VERSION = 5; // Increment to support UUID migration
 const STORE_NAME = "ryos:files";
 
 const initialFilesData: FilesStoreState = {
@@ -88,8 +90,13 @@ export const useFilesStore = create<FilesStoreState>()(
       ...initialFilesData,
 
       addItem: (itemData) => {
-        // Add item with default 'active' status
-        const newItem: FileSystemItem = { ...itemData, status: "active" };
+        // Add item with default 'active' status and UUID for files
+        const newItem: FileSystemItem = {
+          ...itemData,
+          status: "active",
+          // Generate UUID for files (not directories)
+          uuid: !itemData.isDirectory ? uuidv4() : undefined,
+        };
         console.log(`[FilesStore:addItem] Attempting to add:`, newItem); // Log item being added
         set((state) => {
           const parentPath = getParentPath(newItem.path);
@@ -251,14 +258,14 @@ export const useFilesStore = create<FilesStoreState>()(
 
       emptyTrash: () => {
         const trashedItems = get().getTrashItems();
-        const contentPathsToDelete: string[] = [];
+        const contentUUIDsToDelete: string[] = [];
         trashedItems.forEach((item) => {
           get().removeItem(item.path, true); // Call internal remove with permanent flag
-          if (!item.isDirectory) {
-            contentPathsToDelete.push(item.name); // Collect names for content deletion
+          if (!item.isDirectory && item.uuid) {
+            contentUUIDsToDelete.push(item.uuid); // Collect UUIDs for content deletion
           }
         });
-        return contentPathsToDelete; // Return names of files whose content should be deleted
+        return contentUUIDsToDelete; // Return UUIDs of files whose content should be deleted
       },
 
       renameItem: (oldPath, newPath, newName) => {
@@ -485,10 +492,17 @@ export const useFilesStore = create<FilesStoreState>()(
           items: getEmptyFileSystemState(),
           libraryState: "uninitialized",
         }),
-
-      // Migration for new initialization system
-      migrate: (persistedState: unknown, version: number) => {
-        if (version < 4) {
+    }),
+    {
+      name: STORE_NAME,
+      version: STORE_VERSION,
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        items: state.items, // Persist the entire file structure
+        libraryState: state.libraryState,
+      }),
+      migrate: (persistedState: any, version: number) => {
+        if (version < 5) {
           const oldState = persistedState as {
             items: Record<string, FileSystemItem>;
             libraryState?: LibraryState;
@@ -496,9 +510,13 @@ export const useFilesStore = create<FilesStoreState>()(
           const newState: Record<string, FileSystemItem> = {};
 
           for (const path in oldState.items) {
+            const oldItem = oldState.items[path];
             newState[path] = {
-              ...oldState.items[path],
-              status: oldState.items[path].status || "active", // Add default status
+              ...oldItem,
+              status: oldItem.status || "active", // Add default status
+              // Add UUID for files that don't have one
+              uuid:
+                !oldItem.isDirectory && !oldItem.uuid ? uuidv4() : oldItem.uuid,
             };
           }
           // Ensure /Trash exists with active status
@@ -525,17 +543,8 @@ export const useFilesStore = create<FilesStoreState>()(
               (hasAnyItems ? "loaded" : "uninitialized")) as LibraryState,
           };
         }
-        return persistedState as FilesStoreState;
+        return persistedState;
       },
-    }),
-    {
-      name: STORE_NAME,
-      version: STORE_VERSION,
-      storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({
-        items: state.items, // Persist the entire file structure
-        libraryState: state.libraryState,
-      }),
       onRehydrateStorage: () => {
         return (state, error) => {
           if (error) {
