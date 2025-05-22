@@ -187,6 +187,11 @@ export function AppManager({ apps }: AppManagerProps) {
       );
 
       if (useInstanceSystem) {
+        // Check if there's an existing instance before launching
+        const existingInstance = Object.values(instances).find(
+          (instance) => instance.appId === appId && instance.isOpen
+        );
+
         // Use new instance system
         const instanceId = launchApp(appId, initialData);
         console.log(
@@ -196,6 +201,18 @@ export function AppManager({ apps }: AppManagerProps) {
         // Store initialPath if provided
         if (initialPath) {
           localStorage.setItem(`app_${appId}_initialPath`, initialPath);
+        }
+
+        // If there was an existing instance and we have initialData, dispatch updateApp event
+        if (existingInstance && initialData) {
+          console.log(
+            `[AppManager] Dispatching updateApp event for existing ${appId} instance with initialData:`,
+            initialData
+          );
+          const updateEvent = new CustomEvent("updateApp", {
+            detail: { appId, initialData },
+          });
+          window.dispatchEvent(updateEvent);
         }
       } else {
         // Use legacy system
@@ -277,7 +294,14 @@ export function AppManager({ apps }: AppManagerProps) {
       window.removeEventListener("launchApp", handleAppLaunch as EventListener);
     };
     // Update dependencies to include appStates for checking if app is open
-  }, [appStates, bringToForeground, toggleApp, useInstanceSystem, launchApp]);
+  }, [
+    appStates,
+    bringToForeground,
+    toggleApp,
+    useInstanceSystem,
+    launchApp,
+    instances,
+  ]);
 
   return (
     <AppContext.Provider
