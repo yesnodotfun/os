@@ -20,6 +20,15 @@ interface InputDialogProps {
   onChange: (value: string) => void;
   isLoading?: boolean;
   errorMessage?: string | null;
+  // Additional actions support
+  additionalActions?: Array<{
+    label: string;
+    onClick: () => void;
+    variant?: "retro" | "destructive";
+    position?: "left" | "right";
+  }>;
+  submitLabel?: string;
+  showCancel?: boolean;
 }
 
 export function InputDialog({
@@ -32,6 +41,9 @@ export function InputDialog({
   onChange,
   isLoading = false,
   errorMessage = null,
+  additionalActions = [],
+  submitLabel = "Save",
+  showCancel = true,
 }: InputDialogProps) {
   const handleSubmit = () => {
     if (!isLoading) {
@@ -47,10 +59,17 @@ export function InputDialog({
       >
         <DialogHeader>
           <DialogTitle className="font-normal text-[16px]">{title}</DialogTitle>
-          <DialogDescription className="sr-only">{description}</DialogDescription>
+          <DialogDescription className="sr-only">
+            {description}
+          </DialogDescription>
         </DialogHeader>
         <div className="p-4 px-6">
-          <p className="text-gray-500 mb-2 text-[12px] font-geneva-12" id="dialog-description">{description}</p>
+          <p
+            className="text-gray-500 mb-2 text-[12px] font-geneva-12"
+            id="dialog-description"
+          >
+            {description}
+          </p>
           <Input
             autoFocus
             value={value}
@@ -67,14 +86,51 @@ export function InputDialog({
           {errorMessage && (
             <p className="text-red-600 text-sm mt-1">{errorMessage}</p>
           )}
-          <DialogFooter className="mt-4">
-            <Button
-              variant="retro"
-              onClick={handleSubmit}
-              disabled={isLoading}
-            >
-              {isLoading ? "Adding..." : "Save"}
-            </Button>
+          <DialogFooter className="mt-4 flex justify-between">
+            <div className="flex gap-2">
+              {additionalActions
+                .filter((action) => action.position === "left")
+                .map((action, index) => (
+                  <Button
+                    key={`left-${index}`}
+                    variant={action.variant || "retro"}
+                    onClick={action.onClick}
+                    disabled={isLoading}
+                  >
+                    {action.label}
+                  </Button>
+                ))}
+            </div>
+            <div className="flex gap-2">
+              {additionalActions
+                .filter((action) => action.position !== "left")
+                .map((action, index) => (
+                  <Button
+                    key={`right-${index}`}
+                    variant={action.variant || "retro"}
+                    onClick={action.onClick}
+                    disabled={isLoading}
+                  >
+                    {action.label}
+                  </Button>
+                ))}
+              {showCancel && (
+                <Button
+                  variant="retro"
+                  onClick={() => onOpenChange(false)}
+                  disabled={isLoading}
+                >
+                  Cancel
+                </Button>
+              )}
+              <Button
+                variant="retro"
+                onClick={handleSubmit}
+                disabled={isLoading}
+              >
+                {isLoading ? "Adding..." : submitLabel}
+              </Button>
+            </div>
           </DialogFooter>
         </div>
       </DialogContent>

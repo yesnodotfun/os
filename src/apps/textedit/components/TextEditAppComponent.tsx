@@ -87,8 +87,7 @@ export function TextEditAppComponent({
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const [isConfirmNewDialogOpen, setIsConfirmNewDialogOpen] = useState(false);
-  const [isConfirmCloseDialogOpen, setIsConfirmCloseDialogOpen] =
-    useState(false);
+  const [isCloseSaveDialogOpen, setIsCloseSaveDialogOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { saveFile } = useFileSystem("/Documents");
   const launchApp = useLaunchApp();
@@ -196,6 +195,7 @@ export function TextEditAppComponent({
 
   // Local UI-only state for Save dialog filename
   const [saveFileName, setSaveFileName] = useState("");
+  const [closeSaveFileName, setCloseSaveFileName] = useState("");
   const editorContentRef = useRef<string>(""); // Ref to store latest markdown content for debounced save
 
   const editor = useEditor({
@@ -755,7 +755,32 @@ export function TextEditAppComponent({
         editor.getHTML() !== "<p></p>");
 
     if (hasUnsavedChanges || (isUntitled && hasContent)) {
-      setIsConfirmCloseDialogOpen(true);
+      // Suggest filename for untitled documents
+      if (isUntitled && editor) {
+        const content = editor.getHTML();
+        const firstLineText = content
+          .split("\n")[0] // Get first line
+          .replace(/<[^>]+>/g, "") // Remove HTML tags
+          .trim(); // Remove leading/trailing whitespace
+
+        // Take the first 7 words, sanitise, join with hyphens, and cap length
+        const firstLine = firstLineText
+          .split(/\s+/) // Split into words
+          .filter(Boolean)
+          .slice(0, 7) // Keep at most 7 words
+          .join("-") // Join with hyphens
+          .replace(/[^a-zA-Z0-9-]/g, "") // Remove non-alphanumeric (except hyphen)
+          .substring(0, 50); // Cap to 50 characters
+
+        setCloseSaveFileName(`${firstLine || "Untitled"}.md`);
+      } else {
+        // For existing files, suggest the current filename
+        setCloseSaveFileName(
+          currentFilePath?.split("/").pop() || "Untitled.md"
+        );
+      }
+
+      setIsCloseSaveDialogOpen(true);
     } else {
       // Dispatch close event to WindowFrame with callback
       window.dispatchEvent(
@@ -766,9 +791,40 @@ export function TextEditAppComponent({
     }
   };
 
-  const handleConfirmClose = () => {
-    setIsConfirmCloseDialogOpen(false);
-    // Dispatch close event to WindowFrame with callback
+  const handleCloseDelete = () => {
+    setIsCloseSaveDialogOpen(false);
+    // Close without saving
+    window.dispatchEvent(
+      new CustomEvent(`closeWindow-${instanceId || "textedit"}`, {
+        detail: { onComplete: onClose },
+      })
+    );
+  };
+
+  const handleCloseSave = (fileName: string) => {
+    if (!editor) return;
+
+    const filePath = `/Documents/${fileName}${
+      fileName.endsWith(".md") ? "" : ".md"
+    }`;
+
+    // Use shared utility to save as markdown
+    const { jsonContent } = saveAsMarkdown(
+      editor,
+      {
+        name: fileName,
+        path: filePath,
+      },
+      saveFile
+    );
+
+    // Store JSON content and update state
+    setContentJson(jsonContent);
+    setCurrentFilePath(filePath);
+    setHasUnsavedChanges(false);
+    setIsCloseSaveDialogOpen(false);
+
+    // Close after saving
     window.dispatchEvent(
       new CustomEvent(`closeWindow-${instanceId || "textedit"}`, {
         detail: { onComplete: onClose },
@@ -1290,16 +1346,25 @@ export function TextEditAppComponent({
             title="Discard Changes"
             description="Do you want to discard your changes and create a new file?"
           />
-          <ConfirmDialog
-            isOpen={isConfirmCloseDialogOpen}
-            onOpenChange={setIsConfirmCloseDialogOpen}
-            onConfirm={handleConfirmClose}
-            title="Close Document"
+          <InputDialog
+            isOpen={isCloseSaveDialogOpen}
+            onOpenChange={setIsCloseSaveDialogOpen}
+            onSubmit={handleCloseSave}
+            title="Keep New Document"
             description={
-              hasUnsavedChanges
-                ? "Do you want to close this document without saving your changes?"
-                : "Do you want to close this untitled document?"
+              "Enter a filename to save, or delete it before closing."
             }
+            value={closeSaveFileName}
+            onChange={setCloseSaveFileName}
+            submitLabel="Save"
+            additionalActions={[
+              {
+                label: "Delete",
+                onClick: handleCloseDelete,
+                variant: "retro" as const,
+                position: "left" as const,
+              },
+            ]}
           />
           <HelpDialog
             isOpen={isHelpDialogOpen}
