@@ -3,7 +3,7 @@ import { appRegistry } from "./config/appRegistry";
 import { useEffect, useState } from "react";
 import { applyDisplayMode } from "./utils/displayMode";
 import { Toaster } from "./components/ui/sonner";
-import { useAppStore } from "./stores/useAppStore";
+import { useAppStoreShallow } from "@/stores/helpers";
 import { BootScreen } from "./components/dialogs/BootScreen";
 import { getNextBootMessage, clearNextBootMessage } from "./utils/bootMessage";
 import { AnyApp } from "./apps/base/types";
@@ -12,9 +12,13 @@ import { AnyApp } from "./apps/base/types";
 const apps: AnyApp[] = Object.values(appRegistry);
 
 function App() {
-  const displayMode = useAppStore((state) => state.displayMode);
-  const isFirstBoot = useAppStore((state) => state.isFirstBoot);
-  const setHasBooted = useAppStore((state) => state.setHasBooted);
+  const { displayMode, isFirstBoot, setHasBooted } = useAppStoreShallow(
+    (state) => ({
+      displayMode: state.displayMode,
+      isFirstBoot: state.isFirstBoot,
+      setHasBooted: state.setHasBooted,
+    })
+  );
   const [bootScreenMessage, setBootScreenMessage] = useState<string | null>(
     null
   );
