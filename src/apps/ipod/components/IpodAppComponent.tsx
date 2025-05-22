@@ -319,6 +319,7 @@ export function IpodAppComponent({
   isForeground,
   skipInitialSound,
   initialData,
+  instanceId,
 }: AppProps<IpodInitialData>) {
   const { play: playClickSound } = useSound(Sounds.BUTTON_CLICK);
   const { play: playScrollSound } = useSound(Sounds.MENU_OPEN);
@@ -427,7 +428,9 @@ export function IpodAppComponent({
 
   const prevIsForeground = useRef(isForeground);
   const bringToForeground = useAppStore((state) => state.bringToForeground);
-  const clearIpodInitialData = useAppStore((state) => state.clearInitialData);
+  const clearIpodInitialData = useAppStore(
+    (state) => state.clearInstanceInitialData
+  );
 
   const ua = navigator.userAgent;
   const isIOS = /iP(hone|od|ad)/.test(ua);
@@ -1063,7 +1066,10 @@ export function IpodAppComponent({
       setTimeout(() => {
         processVideoId(videoIdToProcess)
           .then(() => {
-            clearIpodInitialData("ipod");
+            // Use instanceId if available (new system), otherwise skip (legacy)
+            if (instanceId) {
+              clearIpodInitialData(instanceId);
+            }
             console.log(
               `[iPod] Cleared initialData after processing ${videoIdToProcess}`
             );
@@ -1076,7 +1082,13 @@ export function IpodAppComponent({
           });
       }, 100); // Small delay might help
     }
-  }, [isWindowOpen, initialData, processVideoId, clearIpodInitialData]);
+  }, [
+    isWindowOpen,
+    initialData,
+    processVideoId,
+    clearIpodInitialData,
+    instanceId,
+  ]);
 
   // Effect for updateApp event (when app is already open)
   useEffect(() => {

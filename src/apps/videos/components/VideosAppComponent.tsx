@@ -304,6 +304,7 @@ export function VideosAppComponent({
   isForeground,
   skipInitialSound,
   initialData,
+  instanceId,
 }: AppProps<VideosInitialData>) {
   const { play: playVideoTape } = useSound(Sounds.VIDEO_TAPE);
   const { play: playButtonClick } = useSound(Sounds.BUTTON_CLICK);
@@ -339,7 +340,9 @@ export function VideosAppComponent({
 
   // --- App Store hooks ---
   const bringToForeground = useAppStore((state) => state.bringToForeground);
-  const clearVideosInitialData = useAppStore((state) => state.clearInitialData);
+  const clearInstanceInitialData = useAppStore(
+    (state) => state.clearInstanceInitialData
+  );
 
   // --- Prevent unwanted autoplay on Mobile Safari ---
   const hasAutoplayCheckedRef = useRef(false);
@@ -621,7 +624,10 @@ export function VideosAppComponent({
       setTimeout(() => {
         processVideoId(videoIdToProcess)
           .then(() => {
-            clearVideosInitialData("videos");
+            // Use instanceId if available (new system), otherwise fallback to appId (legacy)
+            if (instanceId) {
+              clearInstanceInitialData(instanceId);
+            }
             console.log(
               `[Videos] Cleared initialData after processing ${videoIdToProcess}`
             );
@@ -637,7 +643,13 @@ export function VideosAppComponent({
           });
       }, 100);
     }
-  }, [isWindowOpen, initialData, processVideoId, clearVideosInitialData]);
+  }, [
+    isWindowOpen,
+    initialData,
+    processVideoId,
+    clearInstanceInitialData,
+    instanceId,
+  ]);
 
   // --- NEW: Effect for updateApp event (when app is already open) ---
   useEffect(() => {

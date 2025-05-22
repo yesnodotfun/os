@@ -106,6 +106,7 @@ interface AppStoreState extends AppManagerState {
   navigateToNextApp: (currentAppId: AppId) => void;
   navigateToPreviousApp: (currentAppId: AppId) => void;
   clearInitialData: (appId: AppId) => void;
+  clearInstanceInitialData: (instanceId: string) => void;
   launchOrFocusApp: (appId: AppId, initialData?: unknown) => void;
   currentWallpaper: string;
   setCurrentWallpaper: (wallpaperPath: string) => void;
@@ -533,6 +534,26 @@ export const useAppStore = create<AppStoreState>()(
                 ...state.apps,
                 [appId]: {
                   ...state.apps[appId],
+                  initialData: undefined,
+                },
+              },
+            };
+          }
+          return state; // No change needed
+        });
+      },
+
+      clearInstanceInitialData: (instanceId: string) => {
+        set((state) => {
+          if (state.instances[instanceId]?.initialData) {
+            console.log(
+              `[AppStore] Clearing initialData for instance ${instanceId}`
+            );
+            return {
+              instances: {
+                ...state.instances,
+                [instanceId]: {
+                  ...state.instances[instanceId],
                   initialData: undefined,
                 },
               },
