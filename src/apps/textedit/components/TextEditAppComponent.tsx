@@ -388,34 +388,45 @@ export function TextEditAppComponent({
       // 2) If nothing unsaved, attempt to load the persisted document from the DB.
       if (!loadedContent && legacyFilePath?.startsWith("/Documents/")) {
         try {
-          const fileName = getFileNameFromPath(legacyFilePath);
-          const doc = await dbOperations.get<DocumentContent>(
-            STORES.DOCUMENTS,
-            fileName
-          );
+          // Import the file store to get UUID
+          const { useFilesStore } = await import("@/stores/useFilesStore");
+          const fileStore = useFilesStore.getState();
+          const fileMetadata = fileStore.getItem(legacyFilePath);
 
-          if (doc?.content) {
-            const contentStr = await getContentAsString(doc.content);
-            let editorContent;
+          if (fileMetadata && fileMetadata.uuid) {
+            const doc = await dbOperations.get<DocumentContent>(
+              STORES.DOCUMENTS,
+              fileMetadata.uuid
+            );
 
-            if (legacyFilePath.endsWith(".md")) {
-              editorContent = markdownToHtml(contentStr);
-            } else {
-              try {
-                editorContent = JSON.parse(contentStr);
-              } catch {
-                editorContent = `<p>${contentStr}</p>`;
+            if (doc?.content) {
+              const contentStr = await getContentAsString(doc.content);
+              let editorContent;
+
+              if (legacyFilePath.endsWith(".md")) {
+                editorContent = markdownToHtml(contentStr);
+              } else {
+                try {
+                  editorContent = JSON.parse(contentStr);
+                } catch {
+                  editorContent = `<p>${contentStr}</p>`;
+                }
               }
-            }
 
-            if (editorContent) {
-              editor.commands.setContent(editorContent, false);
-              setHasUnsavedChanges(false); // freshly loaded, so no unsaved edits yet
-              loadedContent = true;
-              console.log("Loaded content from file:", legacyFilePath);
+              if (editorContent) {
+                editor.commands.setContent(editorContent, false);
+                setHasUnsavedChanges(false); // freshly loaded, so no unsaved edits yet
+                loadedContent = true;
+                console.log("Loaded content from file:", legacyFilePath);
+              }
+            } else {
+              console.warn("Document not found or empty:", legacyFilePath);
             }
           } else {
-            console.warn("Document not found or empty:", legacyFilePath);
+            console.warn(
+              "File metadata or UUID not found for:",
+              legacyFilePath
+            );
           }
         } catch (err) {
           console.error("Error loading file content from DB:", err);

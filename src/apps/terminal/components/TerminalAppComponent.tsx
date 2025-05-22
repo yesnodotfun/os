@@ -37,6 +37,7 @@ import TaskItem from "@tiptap/extension-task-item";
 import { htmlToMarkdown } from "@/utils/markdown";
 import { useInternetExplorerStore } from "@/stores/useInternetExplorerStore";
 import { useVideoStore } from "@/stores/useVideoStore";
+import { useFilesStore } from "@/stores/useFilesStore";
 
 // Analytics event namespace for terminal AI events
 export const TERMINAL_ANALYTICS = {
@@ -1833,6 +1834,15 @@ assistant
             // Ensure file exists first
             if (!file) return;
 
+            // Get file metadata from the store to find UUID
+            const fileStore = useFilesStore.getState();
+            const fileMetadata = fileStore.getItem(file.path);
+
+            if (!fileMetadata || !fileMetadata.uuid) {
+              this.updateOutput(`${fileName}: file metadata not found`);
+              return;
+            }
+
             // Determine store based on file path
             const storeName = file.path.startsWith("/Documents/")
               ? STORES.DOCUMENTS
@@ -1840,7 +1850,7 @@ assistant
 
             const contentData = await dbOperations.get<DocumentContent>(
               storeName,
-              file.name
+              fileMetadata.uuid
             );
 
             if (contentData && contentData.content) {
@@ -2006,28 +2016,43 @@ assistant
               // Get the content if it's a real file
               if (fileToEditObj && fileToEditObj.path.startsWith("/Images/")) {
                 // For image files, we need to get the content from IndexedDB
-                const contentData = await dbOperations.get<DocumentContent>(
-                  STORES.IMAGES,
-                  fileToEditObj.name
-                );
-                let fileContent = "";
+                // Get file metadata from the store to find UUID
+                const fileStore = useFilesStore.getState();
+                const fileMetadata = fileStore.getItem(fileToEditObj.path);
 
-                if (contentData && contentData.content) {
-                  if (contentData.content instanceof Blob) {
-                    fileContent = await contentData.content.text();
-                  } else if (typeof contentData.content === "string") {
-                    fileContent = contentData.content;
+                if (fileMetadata && fileMetadata.uuid) {
+                  const contentData = await dbOperations.get<DocumentContent>(
+                    STORES.IMAGES,
+                    fileMetadata.uuid
+                  );
+                  let fileContent = "";
+
+                  if (contentData && contentData.content) {
+                    if (contentData.content instanceof Blob) {
+                      fileContent = await contentData.content.text();
+                    } else if (typeof contentData.content === "string") {
+                      fileContent = contentData.content;
+                    }
                   }
-                }
 
-                // Save to Documents
-                await saveFile({
-                  name: fileName,
-                  path: documentsPath,
-                  content: fileContent || "",
-                  type: "text",
-                  icon: "/icons/file-text.png",
-                });
+                  // Save to Documents
+                  await saveFile({
+                    name: fileName,
+                    path: documentsPath,
+                    content: fileContent || "",
+                    type: "text",
+                    icon: "/icons/file-text.png",
+                  });
+                } else {
+                  // No UUID found, create empty document
+                  await saveFile({
+                    name: fileName,
+                    path: documentsPath,
+                    content: "",
+                    type: "text",
+                    icon: "/icons/file-text.png",
+                  });
+                }
               } else {
                 // For virtual files, create an empty document
                 await saveFile({
@@ -2209,6 +2234,24 @@ assistant
             // Ensure file exists first (this should always be true, but TypeScript doesn't know that)
             if (!file) return;
 
+            // Get file metadata from the store to find UUID
+            const fileStore = useFilesStore.getState();
+            const fileMetadata = fileStore.getItem(file.path);
+
+            if (!fileMetadata || !fileMetadata.uuid) {
+              // Show a warning and open empty file
+              this.openInVim("");
+              setCommandHistory((prev) => [
+                ...prev,
+                {
+                  command: `vim ${fileName}`,
+                  output: `Warning: ${fileName} file metadata not found`,
+                  path: currentPath,
+                },
+              ]);
+              return;
+            }
+
             // Determine if this is a document or image
             const storeName = file.path.startsWith("/Documents/")
               ? STORES.DOCUMENTS
@@ -2216,7 +2259,7 @@ assistant
 
             const contentData = await dbOperations.get<DocumentContent>(
               storeName,
-              file.name
+              fileMetadata.uuid
             );
 
             if (contentData && contentData.content) {

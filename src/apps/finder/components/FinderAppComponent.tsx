@@ -110,38 +110,35 @@ export function FinderAppComponent({
 
   // Wrap the original handleFileOpen to integrate with TextEditStore
   const handleFileOpen = async (file: any) => {
-    // --- DEBUG LOGGING START ---
-    console.log("[Finder] handleFileOpen called with:", {
-      name: file.name,
-      path: file.path,
-      isDirectory: file.isDirectory,
-      type: file.type,
-      appId: file.appId,
-      data: file.data,
-    });
-    // --- DEBUG LOGGING END ---
-
-    // Let the original handler do its work, but also update TextEditStore
+    // Call original file open handler from useFileSystem
     // for text documents
     originalHandleFileOpen(file);
 
     // If this is a document, also update TextEditStore
     if (file.path?.startsWith("/Documents/") && !file.isDirectory) {
       try {
-        // Get the document to ensure we have the latest content
-        const doc = await dbOperations.get<any>(STORES.DOCUMENTS, file.name);
-        if (doc) {
-          // Update TextEditStore with the file path
-          textEditStore.setLastFilePath(file.path);
-          textEditStore.setHasUnsavedChanges(false);
-          
-          // Try to parse the content as JSON if possible
-          if (typeof doc.content === 'string') {
-            try {
-              const jsonContent = JSON.parse(doc.content);
-              textEditStore.setContentJson(jsonContent);
-            } catch (e) {
-              // Not JSON content, will be handled by TextEdit when it loads
+        // Get the file metadata to find UUID
+        const fileMetadata = fileStore.getItem(file.path);
+
+        if (fileMetadata && fileMetadata.uuid) {
+          // Get the document using UUID
+          const doc = await dbOperations.get<any>(
+            STORES.DOCUMENTS,
+            fileMetadata.uuid
+          );
+          if (doc) {
+            // Update TextEditStore with the file path
+            textEditStore.setLastFilePath(file.path);
+            textEditStore.setHasUnsavedChanges(false);
+
+            // Try to parse the content as JSON if possible
+            if (typeof doc.content === "string") {
+              try {
+                const jsonContent = JSON.parse(doc.content);
+                textEditStore.setContentJson(jsonContent);
+              } catch (e) {
+                // Not JSON content, will be handled by TextEdit when it loads
+              }
             }
           }
         }
@@ -158,7 +155,10 @@ export function FinderAppComponent({
 
     // If this is a document and it matches the currently open document in TextEdit,
     // update the TextEditStore to mark changes as saved
-    if (file.path?.startsWith("/Documents/") && textEditStore.lastFilePath === file.path) {
+    if (
+      file.path?.startsWith("/Documents/") &&
+      textEditStore.lastFilePath === file.path
+    ) {
       textEditStore.setHasUnsavedChanges(false);
     }
   };
@@ -210,15 +210,15 @@ export function FinderAppComponent({
   const getDisplayPath = (path: string): string => {
     // Split path by segments and decode each segment
     return path
-      .split('/')
-      .map(segment => {
+      .split("/")
+      .map((segment) => {
         try {
           return segment ? decodeURIComponent(segment) : segment;
         } catch (e) {
           return segment; // If decoding fails, return as-is
         }
       })
-      .join('/');
+      .join("/");
   };
 
   const handleEmptyTrash = () => {
@@ -284,22 +284,22 @@ export function FinderAppComponent({
       console.warn("File movement is not allowed in this directory");
       return;
     }
-    
+
     if (!sourceFile || !targetFolder || !targetFolder.isDirectory) {
       console.warn("Invalid source or target for file move");
       return;
     }
-    
+
     // Get the file from the filesystem using the path
     const sourceItem = fileStore.getItem(sourceFile.path);
     if (!sourceItem) {
       console.error(`Source file not found at path: ${sourceFile.path}`);
       return;
     }
-    
+
     // Construct the destination path
     const destinationPath = `${targetFolder.path}/${sourceFile.name}`;
-    
+
     // Execute the move
     console.log(`Moving file from ${sourceFile.path} to ${destinationPath}`);
     moveFile(sourceItem, targetFolder.path);
@@ -311,42 +311,46 @@ export function FinderAppComponent({
       console.warn("File movement is not allowed in this directory");
       return;
     }
-    
+
     if (!sourceFile) {
       console.warn("Invalid source file for move");
       return;
     }
-    
+
     // Get source file from store
     const sourceItem = fileStore.getItem(sourceFile.path);
     if (!sourceItem) {
       console.error(`Source file not found at path: ${sourceFile.path}`);
       return;
     }
-    
+
     // Don't move a file to the directory it's already in
     if (getParentPath(sourceFile.path) === currentPath) {
       console.warn(`File ${sourceFile.name} is already in ${currentPath}`);
       return;
     }
-    
-    console.log(`Moving file from ${sourceFile.path} to ${currentPath}/${sourceFile.name}`);
+
+    console.log(
+      `Moving file from ${sourceFile.path} to ${currentPath}/${sourceFile.name}`
+    );
     moveFile(sourceItem, currentPath);
   };
 
   // Helper to get parent path
   const getParentPath = (path: string): string => {
-    if (path === '/') return '/';
-    const parts = path.split('/').filter(Boolean);
-    if (parts.length <= 1) return '/';
-    return '/' + parts.slice(0, -1).join('/');
+    if (path === "/") return "/";
+    const parts = path.split("/").filter(Boolean);
+    if (parts.length <= 1) return "/";
+    return "/" + parts.slice(0, -1).join("/");
   };
 
   const handleImportFile = () => {
     fileInputRef.current?.click();
   };
 
-  const handleFileInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileInputChange = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = e.target.files?.[0];
     if (file) {
       // Only accept text and markdown files
@@ -357,7 +361,7 @@ export function FinderAppComponent({
       try {
         const text = await file.text();
         // Ensure path is correct for current directory
-        const basePath = currentPath === '/' ? '' : currentPath;
+        const basePath = currentPath === "/" ? "" : currentPath;
         const filePath = `${basePath}/${file.name}`;
 
         await saveFile({
@@ -397,7 +401,7 @@ export function FinderAppComponent({
       return;
     }
 
-    const basePath = currentPath === '/' ? '' : currentPath;
+    const basePath = currentPath === "/" ? "" : currentPath;
     const oldPathForRename = `${basePath}/${selectedFile.name}`;
     await originalRenameFile(oldPathForRename, trimmedNewName);
 
@@ -424,57 +428,79 @@ export function FinderAppComponent({
   const handleDuplicate = async () => {
     if (!selectedFile || selectedFile.isDirectory) return; // Can only duplicate files
     try {
-        // Create a copy name
-        const ext = selectedFile.name.includes(".") ? `.${selectedFile.name.split(".").pop()}` : "";
-        const baseName = selectedFile.name.replace(ext, "");
-        let copyIndex = 1;
-        let copyName = `${baseName} copy${ext}`;
-        // Fix path construction here
-        const basePath = currentPath === '/' ? '' : currentPath;
-        let copyPath = `${basePath}/${copyName}`;
+      // Create a copy name
+      const ext = selectedFile.name.includes(".")
+        ? `.${selectedFile.name.split(".").pop()}`
+        : "";
+      const baseName = selectedFile.name.replace(ext, "");
+      let copyIndex = 1;
+      let copyName = `${baseName} copy${ext}`;
+      // Fix path construction here
+      const basePath = currentPath === "/" ? "" : currentPath;
+      let copyPath = `${basePath}/${copyName}`;
 
-        // Ensure unique name
-        while (fileStore.getItem(copyPath)) {
-            copyIndex++;
-            copyName = `${baseName} copy ${copyIndex}${ext}`;
-            copyPath = `${basePath}/${copyName}`;
+      // Ensure unique name
+      while (fileStore.getItem(copyPath)) {
+        copyIndex++;
+        copyName = `${baseName} copy ${copyIndex}${ext}`;
+        copyPath = `${basePath}/${copyName}`;
+      }
+
+      // Get the file metadata to find UUID
+      const fileMetadata = fileStore.getItem(selectedFile.path);
+
+      if (!fileMetadata || !fileMetadata.uuid) {
+        console.error(
+          "Could not find file metadata or UUID for:",
+          selectedFile.path
+        );
+        return;
+      }
+
+      // Fetch content for the selected file using UUID
+      let contentToCopy: string | Blob | undefined;
+      // Determine store based on selectedFile.path, not currentPath
+      const storeName = selectedFile.path.startsWith("/Documents/")
+        ? STORES.DOCUMENTS
+        : selectedFile.path.startsWith("/Images/")
+        ? STORES.IMAGES
+        : null;
+      if (storeName) {
+        const contentData = await dbOperations.get<any>(
+          storeName,
+          fileMetadata.uuid
+        );
+        if (contentData) {
+          contentToCopy = contentData.content;
         }
+      }
 
-        // Fetch content for the selected file
-        let contentToCopy: string | Blob | undefined;
-        // Determine store based on selectedFile.path, not currentPath
-        const storeName = selectedFile.path.startsWith("/Documents/") ? STORES.DOCUMENTS : selectedFile.path.startsWith("/Images/") ? STORES.IMAGES : null;
-        if (storeName) {
-            const contentData = await dbOperations.get<any>(storeName, selectedFile.name); // Use any type for simplicity here
-            if (contentData) {
-                contentToCopy = contentData.content;
-            }
-        }
+      if (contentToCopy === undefined) {
+        console.error(
+          "Could not retrieve content for duplication:",
+          selectedFile.path
+        );
+        return; // Or show an error
+      }
 
-        if (contentToCopy === undefined) {
-            console.error("Could not retrieve content for duplication:", selectedFile.path);
-            return; // Or show an error
-        }
+      // Use saveFile to create the duplicate
+      await saveFile({
+        name: copyName,
+        path: copyPath,
+        content: contentToCopy,
+        type: selectedFile.type,
+      });
 
-        // Use saveFile to create the duplicate
-        await saveFile({
-            name: copyName,
-            path: copyPath,
-            content: contentToCopy,
-            type: selectedFile.type,
-        });
-
-        // Select the new file (optional)
-        // Need to get the updated files list from the hook/store to find the new item
-        // This might require a slight delay or relying on the store update triggering a re-render
-        // For now, let's skip auto-selection after duplication to avoid complexity.
-        // const newItem = files.find(f => f.path === copyPath);
-        // if (newItem) {
-        //     originalSetSelectedFile(newItem);
-        // }
-
+      // Select the new file (optional)
+      // Need to get the updated files list from the hook/store to find the new item
+      // This might require a slight delay or relying on the store update triggering a re-render
+      // For now, let's skip auto-selection after duplication to avoid complexity.
+      // const newItem = files.find(f => f.path === copyPath);
+      // if (newItem) {
+      //     originalSetSelectedFile(newItem);
+      // }
     } catch (err) {
-        console.error("Error duplicating file:", err);
+      console.error("Error duplicating file:", err);
     }
   };
 
@@ -489,68 +515,76 @@ export function FinderAppComponent({
   const [newFolderName, setNewFolderName] = useState("untitled folder");
 
   const handleNewFolder = () => {
-      // Find a unique default name
-      let folderIndex = 0;
-      let defaultName = "untitled folder";
-      const basePath = currentPath === '/' ? '' : currentPath;
-      let folderPath = `${basePath}/${defaultName}`;
-      while (fileStore.getItem(folderPath)) {
-          folderIndex++;
-          defaultName = `untitled folder ${folderIndex}`;
-          folderPath = `${basePath}/${defaultName}`;
-      }
-      setNewFolderName(defaultName);
-      setIsNewFolderDialogOpen(true);
+    // Find a unique default name
+    let folderIndex = 0;
+    let defaultName = "untitled folder";
+    const basePath = currentPath === "/" ? "" : currentPath;
+    let folderPath = `${basePath}/${defaultName}`;
+    while (fileStore.getItem(folderPath)) {
+      folderIndex++;
+      defaultName = `untitled folder ${folderIndex}`;
+      folderPath = `${basePath}/${defaultName}`;
+    }
+    setNewFolderName(defaultName);
+    setIsNewFolderDialogOpen(true);
   };
 
   const handleNewFolderSubmit = (name: string) => {
-      if (!name || !name.trim()) return;
-      const trimmedName = name.trim();
-      const basePath = currentPath === '/' ? '' : currentPath;
-      const newPath = `${basePath}/${trimmedName}`;
+    if (!name || !name.trim()) return;
+    const trimmedName = name.trim();
+    const basePath = currentPath === "/" ? "" : currentPath;
+    const newPath = `${basePath}/${trimmedName}`;
 
-      // Use the createFolder function from the hook
-      createFolder({ path: newPath, name: trimmedName });
+    // Use the createFolder function from the hook
+    createFolder({ path: newPath, name: trimmedName });
 
-      // No need to manually add to fileStore here
-      // const newFolderItem: FileSystemItem = { ... };
-      // fileStore.addItem(newFolderItem);
+    // No need to manually add to fileStore here
+    // const newFolderItem: FileSystemItem = { ... };
+    // fileStore.addItem(newFolderItem);
 
-      setIsNewFolderDialogOpen(false);
+    setIsNewFolderDialogOpen(false);
   };
 
   // Determine if folder creation (and thus file movement) is allowed in the current path
-  const canCreateFolder = currentPath === '/Documents' || currentPath === '/Images' || currentPath.startsWith('/Documents/') || currentPath.startsWith('/Images/');
+  const canCreateFolder =
+    currentPath === "/Documents" ||
+    currentPath === "/Images" ||
+    currentPath.startsWith("/Documents/") ||
+    currentPath.startsWith("/Images/");
 
   // Get all root folders for the Go menu using fileStore
   // This will always show root folders regardless of current path
-  const rootFolders = fileStore.getItemsInPath('/').filter(item => 
-    item.isDirectory && 
-    item.path !== '/Trash' // We'll add Trash separately in the menu
-  ).map(item => ({
-    name: item.name,
-    isDirectory: true,
-    path: item.path,
-    icon: item.icon || '/icons/folder.png'
-  }));
+  const rootFolders = fileStore
+    .getItemsInPath("/")
+    .filter(
+      (item) => item.isDirectory && item.path !== "/Trash" // We'll add Trash separately in the menu
+    )
+    .map((item) => ({
+      name: item.name,
+      isDirectory: true,
+      path: item.path,
+      icon: item.icon || "/icons/folder.png",
+    }));
 
   // Add a new handler for rename requests
   const handleRenameRequest = (file: FileItem) => {
     // Only allow rename in paths where file creation is allowed
     if (!canCreateFolder) return;
-    
+
     // Prevent renaming virtual files and special folders
-    if (file.type?.includes('virtual') || 
-        file.path === '/Documents' || 
-        file.path === '/Images' || 
-        file.path === '/Applications' ||
-        file.path === '/Trash' ||
-        file.path === '/Music' ||
-        file.path === '/Videos' ||
-        file.path === '/Sites') {
+    if (
+      file.type?.includes("virtual") ||
+      file.path === "/Documents" ||
+      file.path === "/Images" ||
+      file.path === "/Applications" ||
+      file.path === "/Trash" ||
+      file.path === "/Music" ||
+      file.path === "/Videos" ||
+      file.path === "/Sites"
+    ) {
       return;
     }
-    
+
     // Set rename value and open the dialog
     setRenameValue(file.name);
     setIsRenameDialogOpen(true);
@@ -600,7 +634,8 @@ export function FinderAppComponent({
             ? "Macintosh HD"
             : (() => {
                 // Get the last path segment and decode it
-                const lastSegment = currentPath.split("/").filter(Boolean).pop() || "";
+                const lastSegment =
+                  currentPath.split("/").filter(Boolean).pop() || "";
                 try {
                   return decodeURIComponent(lastSegment) || "Finder";
                 } catch (e) {
@@ -620,7 +655,10 @@ export function FinderAppComponent({
           }`}
           onDragOver={(e) => {
             // Only handle external file drags, not internal file moves
-            if (e.dataTransfer.types.includes("Files") && e.dataTransfer.files.length > 0) {
+            if (
+              e.dataTransfer.types.includes("Files") &&
+              e.dataTransfer.files.length > 0
+            ) {
               e.preventDefault();
               e.stopPropagation();
               if (!isDraggingOver && currentPath === "/Documents") {
@@ -686,23 +724,29 @@ export function FinderAppComponent({
                     e.preventDefault();
                     e.stopPropagation();
                     e.currentTarget.classList.remove("bg-black", "text-white");
-                    
+
                     // Parse the dragged file data
                     try {
-                      const jsonData = e.dataTransfer.getData("application/json");
+                      const jsonData =
+                        e.dataTransfer.getData("application/json");
                       if (jsonData) {
                         const { path, name } = JSON.parse(jsonData);
                         const sourceItem = fileStore.getItem(path);
-                        
+
                         if (sourceItem && currentPath !== "/") {
                           // Get parent path
                           const parentPath = getParentPath(currentPath);
-                          console.log(`Moving file from ${path} to ${parentPath}/${name}`);
+                          console.log(
+                            `Moving file from ${path} to ${parentPath}/${name}`
+                          );
                           moveFile(sourceItem, parentPath);
                         }
                       }
                     } catch (err) {
-                      console.error("Error handling drop on parent folder button:", err);
+                      console.error(
+                        "Error handling drop on parent folder button:",
+                        err
+                      );
                     }
                   }}
                 >
@@ -784,7 +828,7 @@ export function FinderAppComponent({
         onOpenChange={setIsRenameDialogOpen}
         onSubmit={handleRenameSubmit}
         title="Rename Item"
-        description={`Enter a new name for "${selectedFile?.name || 'item'}"`}
+        description={`Enter a new name for "${selectedFile?.name || "item"}"`}
         value={renameValue}
         onChange={setRenameValue}
       />
