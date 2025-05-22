@@ -768,6 +768,7 @@ export function useFileSystem(
         displayFiles = itemsMetadata.map((item) => ({
           ...item,
           icon: getFileIcon(item), // Get icon based on metadata
+          modifiedAt: item.modifiedAt ? new Date(item.modifiedAt) : undefined,
         }));
       }
       // 3. Handle Real Directories (Uses useFilesStore)
@@ -778,6 +779,7 @@ export function useFileSystem(
           ...item,
           icon: getFileIcon(item),
           appId: item.appId,
+          modifiedAt: item.modifiedAt ? new Date(item.modifiedAt) : undefined,
         }));
 
         // --- START EDIT: Fetch content URLs for /Images path and its subdirectories ---
@@ -834,11 +836,51 @@ export function useFileSystem(
                 appId: item.appId,
                 contentUrl: contentUrl,
                 type: type, // Ensure type is correctly set
+                modifiedAt: item.modifiedAt
+                  ? new Date(item.modifiedAt)
+                  : undefined,
               };
             })
           );
         }
         // --- END EDIT ---
+      }
+
+      // a. Music Library (Virtual)
+      if (currentPath === "/Music Library") {
+        displayFiles = ipodTracks.map((track) => ({
+          name: `${track.title}.mp3`,
+          isDirectory: false,
+          path: `/Music Library/${track.title}.mp3`,
+          type: "Music",
+          data: track,
+          icon: "/icons/file-music.png",
+          modifiedAt: undefined, // Virtual files don't have timestamps
+        }));
+      }
+      // b. Video Library (Virtual)
+      else if (currentPath === "/Video Library") {
+        displayFiles = videoTracks.map((video) => ({
+          name: `${video.title}.mov`,
+          isDirectory: false,
+          path: `/Video Library/${video.title}.mov`,
+          type: "Video",
+          data: video,
+          icon: "/icons/file-video.png",
+          modifiedAt: undefined, // Virtual files don't have timestamps
+        }));
+      }
+      // c. Favorites (Virtual)
+      else if (currentPath === "/Favorites") {
+        displayFiles = internetExplorerStore.favorites.map((favorite) => ({
+          name: `${favorite.title}.webloc`,
+          isDirectory: false,
+          path: `/Favorites/${favorite.title}.webloc`,
+          type: "site-link",
+          data: favorite,
+          icon: "/icons/file-internet.png",
+          modifiedAt: undefined, // Virtual files don't have timestamps
+        }));
       }
 
       setFiles(displayFiles);
@@ -1055,6 +1097,19 @@ export function useFileSystem(
       const uuid = existingItem?.uuid;
 
       // 1. Create the full metadata object first
+      const now = Date.now();
+
+      // Calculate file size
+      let fileSize: number;
+      if (content instanceof Blob) {
+        fileSize = content.size;
+      } else if (typeof content === "string") {
+        // Convert string to blob to get accurate byte size
+        fileSize = new Blob([content]).size;
+      } else {
+        fileSize = 0;
+      }
+
       const metadata: FileSystemItem = {
         path: path,
         name: name,
@@ -1062,6 +1117,11 @@ export function useFileSystem(
         type: fileType,
         status: "active", // Explicitly set status
         uuid: uuid, // Preserve existing UUID if updating
+        // Set timestamps
+        createdAt: existingItem?.createdAt || now,
+        modifiedAt: now,
+        // Include file size
+        size: fileSize,
         // Now call getFileIcon with the complete metadata object
         icon:
           fileData.icon ||
@@ -1441,6 +1501,8 @@ export function useFileSystem(
 
       // Clear the migration flag so UUID migration will run again after reset
       localStorage.removeItem("ryos:indexeddb-uuid-migration-v1");
+      // Clear the size/timestamp sync flag so it will run again after reset
+      localStorage.removeItem("ryos:file-size-timestamp-sync-v1");
 
       // Reset metadata store (this will trigger re-initialization with new UUIDs)
       fileStore.reset();
@@ -1461,6 +1523,121 @@ export function useFileSystem(
 
   // Calculate trash count based on store data
   const trashItemsCount = fileStore.getItemsInPath("/Trash").length;
+
+  // --- One-time sync for file sizes and timestamps --- //
+  useEffect(() => {
+    const syncFileSizesAndTimestamps = async () => {
+      // Check if we've already done this sync
+      const syncKey = "ryos:file-size-timestamp-sync-v1";
+      if (localStorage.getItem(syncKey)) {
+        return;
+      }
+
+      console.log(
+        "[useFileSystem] Starting one-time file size and timestamp sync..."
+      );
+
+      try {
+        const fileStoreState = useFilesStore.getState();
+        const allItems = Object.values(fileStoreState.items);
+
+        // Process all files (not directories)
+        for (const item of allItems) {
+          if (!item.isDirectory && item.uuid && item.status === "active") {
+            let updateNeeded = false;
+            const updates: Partial<FileSystemItem> = {};
+
+            // Calculate size if missing
+            if (item.size === undefined || item.size === null) {
+              const storeName = item.path.startsWith("/Documents/")
+                ? STORES.DOCUMENTS
+                : item.path.startsWith("/Images/")
+                ? STORES.IMAGES
+                : null;
+
+              if (storeName) {
+                try {
+                  const content = await dbOperations.get<DocumentContent>(
+                    storeName,
+                    item.uuid
+                  );
+
+                  if (content?.content) {
+                    let size: number;
+                    if (content.content instanceof Blob) {
+                      size = content.content.size;
+                    } else if (typeof content.content === "string") {
+                      // Convert string to blob to get accurate byte size
+                      size = new Blob([content.content]).size;
+                    } else {
+                      size = 0;
+                    }
+
+                    updates.size = size;
+                    updateNeeded = true;
+                    console.log(
+                      `[useFileSystem] Updated size for ${item.path}: ${size} bytes`
+                    );
+                  }
+                } catch (err) {
+                  console.warn(
+                    `[useFileSystem] Could not get content for ${item.path}:`,
+                    err
+                  );
+                }
+              }
+            }
+
+            // Set reasonable timestamps if missing
+            if (!item.createdAt || !item.modifiedAt) {
+              const now = Date.now();
+              // For default files, use a date in the past
+              const isDefaultFile = [
+                "/Documents/README.md",
+                "/Documents/Quick Tips.md",
+                "/Images/steve-jobs.png",
+                "/Images/susan-kare.png",
+              ].includes(item.path);
+
+              const baseTime = isDefaultFile
+                ? now - 30 * 24 * 60 * 60 * 1000 // 30 days ago for default files
+                : now;
+
+              if (!item.createdAt) {
+                updates.createdAt = baseTime;
+                updateNeeded = true;
+              }
+              if (!item.modifiedAt) {
+                updates.modifiedAt = baseTime;
+                updateNeeded = true;
+              }
+            }
+
+            // Apply updates if needed
+            if (updateNeeded) {
+              fileStoreState.addItem({
+                ...item,
+                ...updates,
+              });
+            }
+          }
+        }
+
+        // Mark sync as complete
+        localStorage.setItem(syncKey, "done");
+        console.log("[useFileSystem] File size and timestamp sync complete");
+      } catch (err) {
+        console.error(
+          "[useFileSystem] Error during file size/timestamp sync:",
+          err
+        );
+      }
+    };
+
+    // Run sync after a short delay to avoid blocking initial render
+    const timer = setTimeout(syncFileSizesAndTimestamps, 500);
+    return () => clearTimeout(timer);
+  }, []); // Run once on mount
 
   return {
     currentPath,

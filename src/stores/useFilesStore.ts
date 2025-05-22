@@ -11,6 +11,11 @@ export interface FileSystemItem {
   type?: string; // File type (e.g., 'text', 'png', 'folder') - derived if not folder
   appId?: string; // For launching applications or associated apps
   uuid?: string; // Unique identifier for content storage (only for files, not directories)
+  // File properties
+  size?: number; // File size in bytes (only for files, not directories)
+  // Timestamp properties
+  createdAt?: number; // Timestamp when file was created
+  modifiedAt?: number; // Timestamp when file was last modified
   // Trash properties
   status: "active" | "trashed";
   originalPath?: string; // Path before being moved to trash
@@ -75,7 +80,7 @@ const getParentPath = (path: string): string => {
 // Function to generate an empty initial state (just for typing)
 const getEmptyFileSystemState = (): Record<string, FileSystemItem> => ({});
 
-const STORE_VERSION = 5; // Increment to support UUID migration
+const STORE_VERSION = 8; // Increment to trigger fresh sync for sizes and timestamps
 const STORE_NAME = "ryos:files";
 
 const initialFilesData: FilesStoreState = {
@@ -91,11 +96,15 @@ export const useFilesStore = create<FilesStoreState>()(
 
       addItem: (itemData) => {
         // Add item with default 'active' status and UUID for files
+        const now = Date.now();
         const newItem: FileSystemItem = {
           ...itemData,
           status: "active",
           // Generate UUID for files (not directories)
           uuid: !itemData.isDirectory ? uuidv4() : undefined,
+          // Set timestamps
+          createdAt: itemData.createdAt || now,
+          modifiedAt: itemData.modifiedAt || now,
         };
         console.log(`[FilesStore:addItem] Attempting to add:`, newItem); // Log item being added
         set((state) => {
@@ -111,14 +120,32 @@ export const useFilesStore = create<FilesStoreState>()(
             );
             return state;
           }
-          if (state.items[newItem.path]) {
-            console.warn(
-              `[FilesStore] Cannot add item. Path "${newItem.path}" already exists.`
+
+          // Check if item already exists
+          const existingItem = state.items[newItem.path];
+          if (existingItem) {
+            // Update existing item, preserving UUID and createdAt
+            console.log(
+              `[FilesStore] Updating existing item at path "${newItem.path}"`
             );
-            return state;
+            const updatedItem: FileSystemItem = {
+              ...existingItem,
+              ...newItem,
+              uuid: existingItem.uuid || newItem.uuid, // Preserve existing UUID
+              createdAt: existingItem.createdAt || newItem.createdAt, // Preserve original creation time
+              modifiedAt: newItem.modifiedAt || now, // Always update modification time
+            };
+
+            return {
+              items: { ...state.items, [newItem.path]: updatedItem },
+              libraryState: "loaded",
+            };
           }
-          // Update trash icon if adding to trash (shouldn't happen via addItem, but safety check)
+
+          // Add new item
           const updatedItems = { ...state.items, [newItem.path]: newItem };
+
+          // Update trash icon if adding to trash (shouldn't happen via addItem, but safety check)
           if (
             parentPath === "/Trash" &&
             state.items["/Trash"]?.icon !== "/icons/trash-full.png"
@@ -434,12 +461,15 @@ export const useFilesStore = create<FilesStoreState>()(
       resetLibrary: async () => {
         const data = await loadDefaultFiles();
         const newItems: Record<string, FileSystemItem> = {};
+        const now = Date.now();
 
         // Add directories
         data.directories.forEach((dir) => {
           newItems[dir.path] = {
             ...dir,
             status: "active",
+            createdAt: now,
+            modifiedAt: now,
           };
         });
 
@@ -450,6 +480,8 @@ export const useFilesStore = create<FilesStoreState>()(
             status: "active",
             // Generate UUID for files (not directories)
             uuid: uuidv4(),
+            createdAt: now,
+            modifiedAt: now,
           };
         });
 
@@ -465,12 +497,15 @@ export const useFilesStore = create<FilesStoreState>()(
         if (current.libraryState === "uninitialized") {
           const data = await loadDefaultFiles();
           const newItems: Record<string, FileSystemItem> = {};
+          const now = Date.now();
 
           // Add directories
           data.directories.forEach((dir) => {
             newItems[dir.path] = {
               ...dir,
               status: "active",
+              createdAt: now,
+              modifiedAt: now,
             };
           });
 
@@ -481,6 +516,8 @@ export const useFilesStore = create<FilesStoreState>()(
               status: "active",
               // Generate UUID for files (not directories)
               uuid: uuidv4(),
+              createdAt: now,
+              modifiedAt: now,
             };
           });
 
@@ -547,6 +584,60 @@ export const useFilesStore = create<FilesStoreState>()(
               (hasAnyItems ? "loaded" : "uninitialized")) as LibraryState,
           };
         }
+
+        if (version < 6) {
+          const oldState = persistedState as {
+            items: Record<string, FileSystemItem>;
+            libraryState?: LibraryState;
+          };
+          const newState: Record<string, FileSystemItem> = {};
+          const now = Date.now();
+
+          for (const path in oldState.items) {
+            const oldItem = oldState.items[path];
+            newState[path] = {
+              ...oldItem,
+              // Add timestamps to existing items
+              createdAt: oldItem.createdAt || oldItem.deletedAt || now,
+              modifiedAt: oldItem.modifiedAt || oldItem.deletedAt || now,
+            };
+          }
+
+          return {
+            items: newState,
+            libraryState: oldState.libraryState || "loaded",
+          };
+        }
+
+        if (version < 7) {
+          const oldState = persistedState as {
+            items: Record<string, FileSystemItem>;
+            libraryState?: LibraryState;
+          };
+          const newState: Record<string, FileSystemItem> = {};
+
+          for (const path in oldState.items) {
+            const oldItem = oldState.items[path];
+            newState[path] = {
+              ...oldItem,
+              // Size will be updated on next save for existing files
+              size: oldItem.size || undefined,
+            };
+          }
+
+          return {
+            items: newState,
+            libraryState: oldState.libraryState || "loaded",
+          };
+        }
+
+        if (version < 8) {
+          // Version 8 doesn't change the data structure,
+          // but we bump it to trigger the one-time sync in useFileSystem
+          // which will calculate actual file sizes and set proper timestamps
+          return persistedState;
+        }
+
         return persistedState;
       },
       onRehydrateStorage: () => {

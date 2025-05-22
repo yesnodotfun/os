@@ -299,8 +299,21 @@ export function FinderAppComponent({
         if (!a.isDirectory && b.isDirectory) return 1;
         return 0;
       case "date":
-        // We'll need to add date metadata to FileItem to properly implement this
-        return 0;
+        // Sort by modified date, directories first
+        if (a.isDirectory && !b.isDirectory) return -1;
+        if (!a.isDirectory && b.isDirectory) return 1;
+
+        // If both have dates, sort by date (newest first)
+        if (a.modifiedAt && b.modifiedAt) {
+          return (
+            new Date(b.modifiedAt).getTime() - new Date(a.modifiedAt).getTime()
+          );
+        }
+        // If only one has a date, put it first
+        if (a.modifiedAt && !b.modifiedAt) return -1;
+        if (!a.modifiedAt && b.modifiedAt) return 1;
+        // If neither has a date, sort by name
+        return a.name.localeCompare(b.name);
       default:
         return 0;
     }
