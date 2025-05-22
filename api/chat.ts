@@ -71,12 +71,12 @@ interface SystemState {
     }>;
   };
   textEdit?: {
-    lastFilePath: string | null;
-    /** Compact markdown representation of the current document */
-    contentMarkdown?: string | null;
-    /** Kept for backward-compat; not included in prompts anymore */
-    contentJson?: unknown | null;
-    hasUnsavedChanges: boolean;
+    instances: Array<{
+      instanceId: string;
+      filePath: string | null;
+      contentMarkdown?: string | null;
+      hasUnsavedChanges: boolean;
+    }>;
   };
   /** Local time information reported by the user's browser */
   userLocalTime?: {
@@ -93,8 +93,17 @@ interface SystemState {
     longitude?: string;
   };
   runningApps?: {
-    foreground: string;
-    background: string[];
+    foreground: {
+      instanceId: string;
+      appId: string;
+      title?: string;
+    } | null;
+    background: Array<{
+      instanceId: string;
+      appId: string;
+      title?: string;
+    }>;
+    instanceWindowOrder: string[];
   };
   chatRoomContext?: {
     roomId: string;
@@ -179,15 +188,20 @@ SYSTEM STATE:
       .join(", ")}`;
   }
   if (systemState.runningApps?.foreground) {
-    prompt += `\n- Foreground App: ${systemState.runningApps.foreground}`;
+    prompt += `\n- Foreground App: ${systemState.runningApps.foreground.appId}${
+      systemState.runningApps.foreground.title
+        ? ` (${systemState.runningApps.foreground.title})`
+        : ""
+    }`;
   }
   if (
     systemState.runningApps?.background &&
     systemState.runningApps.background.length > 0
   ) {
-    prompt += `\n- Background Apps: ${systemState.runningApps.background.join(
-      ", "
-    )}`;
+    const backgroundApps = systemState.runningApps.background
+      .map((inst) => inst.appId + (inst.title ? ` (${inst.title})` : ""))
+      .join(", ");
+    prompt += `\n- Background Apps: ${backgroundApps}`;
   }
   if (
     systemState.apps["videos"]?.isOpen &&
@@ -241,13 +255,30 @@ SYSTEM STATE:
       prompt += `\n- Page Markdown:\n${htmlMd}`;
     }
   }
-  if (systemState.apps["textedit"]?.isOpen && systemState.textEdit) {
-    prompt += `\n- TextEdit File: ${
-      systemState.textEdit.lastFilePath ?? "Untitled"
-    }${systemState.textEdit.hasUnsavedChanges ? " (unsaved changes)" : ""}`;
-    if (systemState.textEdit.contentMarkdown) {
-      prompt += `\n- Document Content Markdown:\n${systemState.textEdit.contentMarkdown}`;
-    }
+  // Handle multiple TextEdit instances
+  if (
+    systemState.textEdit?.instances &&
+    systemState.textEdit.instances.length > 0
+  ) {
+    prompt += `\n- TextEdit Windows (${systemState.textEdit.instances.length} open):`;
+    systemState.textEdit.instances.forEach((instance, index) => {
+      const fileName = instance.filePath
+        ? instance.filePath.split("/").pop() || instance.filePath
+        : "Untitled";
+      const unsavedMark = instance.hasUnsavedChanges ? "*" : "";
+      prompt += `\n  ${index + 1}. ${fileName}${unsavedMark} (instanceId: ${
+        instance.instanceId
+      })`;
+
+      if (instance.contentMarkdown) {
+        // Limit content preview to avoid overly long prompts
+        const preview =
+          instance.contentMarkdown.length > 500
+            ? instance.contentMarkdown.substring(0, 500) + "..."
+            : instance.contentMarkdown;
+        prompt += `\n     Content:\n${preview}`;
+      }
+    });
   }
 
   prompt += `\n</system_state>`;
@@ -441,7 +472,7 @@ export default async function handler(req: Request) {
         },
         textEditSearchReplace: {
           description:
-            "Search and replace text in the currently open TextEdit document. Always supply 'search' and 'replace'. Set 'isRegex: true' ONLY if the user explicitly mentions using a regular expression.",
+            "Search and replace text in a specific TextEdit document or the foreground one if no instanceId is specified. Always supply 'search' and 'replace'. Set 'isRegex: true' ONLY if the user explicitly mentions using a regular expression. Use the instanceId from the system state (e.g., '15') to target a specific window.",
           parameters: z.object({
             search: z
               .string()
@@ -455,11 +486,17 @@ export default async function handler(req: Request) {
               .describe(
                 "Set to true if the 'search' field should be treated as a JavaScript regular expression (without flags). Defaults to false."
               ),
+            instanceId: z
+              .string()
+              .optional()
+              .describe(
+                "The specific TextEdit instance ID to modify (e.g., '15'). If not provided, operates on the foreground TextEdit instance. Get this from the system state TextEdit Windows list."
+              ),
           }),
         },
         textEditInsertText: {
           description:
-            "Insert plain text into the currently open TextEdit document. Appends to the end by default; use position 'start' to prepend. Use this instead of manually launching or closing TextEdit.",
+            "Insert plain text into a specific TextEdit document or the foreground one if no instanceId is specified. Appends to the end by default; use position 'start' to prepend. Use the instanceId from the system state (e.g., '15') to target a specific window.",
           parameters: z.object({
             text: z.string().describe("The text to insert"),
             position: z
@@ -468,12 +505,25 @@ export default async function handler(req: Request) {
               .describe(
                 "Where to insert the text: 'start' to prepend, 'end' to append. Default is 'end'."
               ),
+            instanceId: z
+              .string()
+              .optional()
+              .describe(
+                "The specific TextEdit instance ID to modify (e.g., '15'). If not provided, operates on the foreground TextEdit instance. Get this from the system state TextEdit Windows list."
+              ),
           }),
         },
         textEditNewFile: {
           description:
-            "Create a new blank document in TextEdit. Use when the user explicitly requests a new or untitled file.",
-          parameters: z.object({}),
+            "Create a new blank document in a new TextEdit instance. Use when the user explicitly requests a new or untitled file.",
+          parameters: z.object({
+            title: z
+              .string()
+              .optional()
+              .describe(
+                "Optional title for the new TextEdit window. If not provided, defaults to 'Untitled'."
+              ),
+          }),
         },
         // Add iPod control tools
         ipodPlayPause: {

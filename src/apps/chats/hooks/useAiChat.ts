@@ -39,17 +39,21 @@ const getSystemState = () => {
   const currentVideo = videoStore.videos[videoStore.currentIndex];
   const currentTrack = ipodStore.tracks[ipodStore.currentIndex];
 
-  const runningApps = Object.entries(appStore.apps)
-    .filter(([, appState]) => appState.isOpen)
-    .map(([appId, appState]) => ({
-      id: appId,
-      isForeground: appState.isForeground || false,
+  // Use new instance-based model instead of legacy apps
+  const runningInstances = Object.entries(appStore.instances)
+    .filter(([, instance]) => instance.isOpen)
+    .map(([instanceId, instance]) => ({
+      instanceId,
+      appId: instance.appId,
+      isForeground: instance.isForeground || false,
+      title: instance.title,
     }));
 
-  const foregroundApp = runningApps.find((app) => app.isForeground)?.id || null;
-  const backgroundApps = runningApps
-    .filter((app) => !app.isForeground)
-    .map((app) => app.id);
+  const foregroundInstance =
+    runningInstances.find((inst) => inst.isForeground) || null;
+  const backgroundInstances = runningInstances.filter(
+    (inst) => !inst.isForeground
+  );
 
   // --- Local browser time information (client side) ---
   const nowClient = new Date();
@@ -67,20 +71,13 @@ const getSystemState = () => {
     day: "numeric",
   });
 
-  // Convert TextEdit JSON to compact markdown for prompt inclusion
-  let contentMarkdown: string | null = null;
-  let textEditFilePath: string | null = null;
-  let textEditHasUnsavedChanges = false;
-
-  // Get the foreground TextEdit instance
-  const foregroundTextEdit = textEditStore.getForegroundInstance();
-  if (foregroundTextEdit) {
-    textEditFilePath = foregroundTextEdit.filePath;
-    textEditHasUnsavedChanges = foregroundTextEdit.hasUnsavedChanges;
-
-    if (foregroundTextEdit.contentJson) {
+  // Convert TextEdit instances to compact markdown for prompt inclusion
+  const textEditInstances = Object.values(textEditStore.instances);
+  const textEditInstancesData = textEditInstances.map((instance) => {
+    let contentMarkdown: string | null = null;
+    if (instance.contentJson) {
       try {
-        const htmlStr = generateHTML(foregroundTextEdit.contentJson, [
+        const htmlStr = generateHTML(instance.contentJson, [
           StarterKit,
           Underline,
           TextAlign.configure({ types: ["heading", "paragraph"] }),
@@ -92,7 +89,13 @@ const getSystemState = () => {
         console.error("Failed to convert TextEdit content to markdown:", err);
       }
     }
-  }
+    return {
+      instanceId: instance.instanceId,
+      filePath: instance.filePath,
+      contentMarkdown,
+      hasUnsavedChanges: instance.hasUnsavedChanges,
+    };
+  });
 
   // Convert IE HTML content to markdown for compact prompts
   let ieHtmlMarkdown: string | null = null;
@@ -105,6 +108,7 @@ const getSystemState = () => {
   }
 
   return {
+    // Keep legacy apps for backward compatibility, but mark that instances are preferred
     apps: appStore.apps,
     username: chatsStore.username,
     userLocalTime: {
@@ -113,9 +117,9 @@ const getSystemState = () => {
       timeZone: userTimeZone,
     },
     runningApps: {
-      foreground: foregroundApp,
-      background: backgroundApps,
-      windowOrder: appStore.windowOrder,
+      foreground: foregroundInstance,
+      background: backgroundInstances,
+      instanceWindowOrder: appStore.instanceWindowOrder,
     },
     internetExplorer: {
       url: ieStore.url,
@@ -160,9 +164,7 @@ const getSystemState = () => {
       })),
     },
     textEdit: {
-      lastFilePath: textEditFilePath,
-      contentMarkdown,
-      hasUnsavedChanges: textEditHasUnsavedChanges,
+      instances: textEditInstancesData,
     },
   };
 };
@@ -324,14 +326,34 @@ export function useAiChat() {
             const { id } = toolCall.args as { id: string };
             const appName = appRegistry[id as AppId]?.name || id;
             console.log("[ToolCall] closeApp:", id);
+
+            // Close all instances of the specified app
+            const appStore = useAppStore.getState();
+            const appInstances = appStore.getInstancesByAppId(id as AppId);
+            const openInstances = appInstances.filter((inst) => inst.isOpen);
+
+            if (openInstances.length === 0) {
+              return `${appName} is not currently running.`;
+            }
+
+            // Close all open instances of this app
+            openInstances.forEach((instance) => {
+              appStore.closeAppInstance(instance.instanceId);
+            });
+
+            // Also close the legacy app state for backward compatibility
             closeApp(id as AppId);
-            return `Closed ${appName}.`;
+
+            return `Closed ${appName} (${openInstances.length} window${
+              openInstances.length === 1 ? "" : "s"
+            }).`;
           }
           case "textEditSearchReplace": {
-            const { search, replace, isRegex } = toolCall.args as {
+            const { search, replace, isRegex, instanceId } = toolCall.args as {
               search: string;
               replace: string;
               isRegex?: boolean;
+              instanceId?: string;
             };
 
             // Normalize line endings to avoid mismatches between CRLF / LF
@@ -346,26 +368,63 @@ export function useAiChat() {
               search: normalizedSearch,
               replace: normalizedReplace,
               isRegex,
+              instanceId,
             });
 
             const textEditState = useTextEditStore.getState();
-            const foregroundTextEdit = textEditState.getForegroundInstance();
+            let targetInstance;
 
-            if (!foregroundTextEdit) {
-              // No TextEdit window is in foreground, launch a new one
-              launchApp("textedit");
-              return "No TextEdit window is currently active.";
+            if (instanceId) {
+              // Use specific instance
+              targetInstance = textEditState.instances[instanceId];
+              if (!targetInstance) {
+                return `TextEdit instance ${instanceId} not found. Available instances: ${
+                  Object.keys(textEditState.instances).join(", ") || "none"
+                }.`;
+              }
+            } else {
+              // Use foreground instance
+              targetInstance = textEditState.getForegroundInstance();
+              if (!targetInstance) {
+                // No TextEdit window is in foreground, launch a new one
+                console.log(
+                  "[ToolCall] No foreground TextEdit instance, launching new one..."
+                );
+                const appStore = useAppStore.getState();
+                const newInstanceId = appStore.launchApp(
+                  "textedit",
+                  undefined,
+                  undefined,
+                  true
+                );
+
+                // Wait a bit for the app to initialize
+                await new Promise((resolve) => setTimeout(resolve, 200));
+
+                // Get the newly created instance directly
+                const updatedTextEditState = useTextEditStore.getState();
+                targetInstance = updatedTextEditState.instances[newInstanceId];
+
+                if (!targetInstance) {
+                  return `Failed to create new TextEdit window. Instance ${newInstanceId} not found in store.`;
+                }
+
+                console.log(
+                  "[ToolCall] Created new TextEdit instance:",
+                  newInstanceId
+                );
+              }
             }
 
-            const { applyExternalUpdate } = textEditState;
+            const { updateInstance } = textEditState;
 
-            if (!foregroundTextEdit.contentJson) {
-              return "No file currently open in TextEdit.";
+            if (!targetInstance.contentJson) {
+              return "No file currently open in the specified TextEdit instance.";
             }
 
             try {
               // 1. Convert current JSON document to HTML
-              const htmlStr = generateHTML(foregroundTextEdit.contentJson, [
+              const htmlStr = generateHTML(targetInstance.contentJson, [
                 StarterKit,
                 Underline,
                 TextAlign.configure({ types: ["heading", "paragraph"] }),
@@ -404,10 +463,21 @@ export function useAiChat() {
                 TaskItem.configure({ nested: true }),
               ] as AnyExtension[]);
 
-              // 5. Apply the updated JSON to the store – TextEdit will react via subscription
-              applyExternalUpdate(updatedJson);
+              // 5. Apply the updated JSON to the specific instance
+              updateInstance(targetInstance.instanceId, {
+                contentJson: updatedJson,
+                hasUnsavedChanges: true,
+              });
 
-              return `Replaced "${search}" with "${replace}".`;
+              // Bring the target instance to foreground so user can see the changes
+              const appStore = useAppStore.getState();
+              appStore.bringInstanceToForeground(targetInstance.instanceId);
+
+              const fileName = targetInstance.filePath
+                ? targetInstance.filePath.split("/").pop() ||
+                  targetInstance.filePath
+                : "Untitled";
+              return `Replaced "${search}" with "${replace}" in ${fileName}.`;
             } catch (err) {
               console.error("searchReplace error:", err);
               return `Failed to apply search/replace: ${
@@ -416,71 +486,151 @@ export function useAiChat() {
             }
           }
           case "textEditInsertText": {
-            const { text, position } = toolCall.args as {
+            const { text, position, instanceId } = toolCall.args as {
               text: string;
               position?: "start" | "end";
+              instanceId?: string;
             };
 
-            console.log("[ToolCall] insertText:", { text, position });
+            console.log("[ToolCall] insertText:", {
+              text,
+              position,
+              instanceId,
+            });
 
-            // Check if there's a foreground TextEdit instance
             const textEditState = useTextEditStore.getState();
-            const foregroundTextEdit = textEditState.getForegroundInstance();
+            let targetInstance;
 
-            if (!foregroundTextEdit) {
-              // No TextEdit window is in foreground, launch a new one
-              launchApp("textedit");
-              // Wait a bit for the app to initialize
-              await new Promise((resolve) => setTimeout(resolve, 100));
+            if (instanceId) {
+              // Use specific instance
+              targetInstance = textEditState.instances[instanceId];
+              if (!targetInstance) {
+                return `TextEdit instance ${instanceId} not found. Available instances: ${
+                  Object.keys(textEditState.instances).join(", ") || "none"
+                }.`;
+              }
+            } else {
+              // Use foreground instance
+              targetInstance = textEditState.getForegroundInstance();
+              if (!targetInstance) {
+                // No TextEdit window is in foreground, launch a new one
+                console.log(
+                  "[ToolCall] No foreground TextEdit instance, launching new one..."
+                );
+                const appStore = useAppStore.getState();
+                const newInstanceId = appStore.launchApp(
+                  "textedit",
+                  undefined,
+                  undefined,
+                  true
+                );
+
+                // Wait a bit for the app to initialize
+                await new Promise((resolve) => setTimeout(resolve, 200));
+
+                // Get the newly created instance directly
+                const updatedTextEditState = useTextEditStore.getState();
+                targetInstance = updatedTextEditState.instances[newInstanceId];
+
+                if (!targetInstance) {
+                  return `Failed to create new TextEdit window. Instance ${newInstanceId} not found in store.`;
+                }
+
+                console.log(
+                  "[ToolCall] Created new TextEdit instance:",
+                  newInstanceId
+                );
+              }
             }
 
-            // Now insert the text into the foreground instance
-            const { insertText } = textEditState;
+            // Insert text into the specific instance
+            const { updateInstance } = textEditState;
+            const targetInstanceId = targetInstance.instanceId; // Capture the instanceId
+
+            // Step 1: Convert incoming markdown snippet to HTML
+            const htmlFragment = markdownToHtml(text);
+
+            // Step 2: Generate TipTap-compatible JSON from the HTML fragment
+            const parsedJson = generateJSON(htmlFragment, [
+              StarterKit,
+              Underline,
+              TextAlign.configure({ types: ["heading", "paragraph"] }),
+              TaskList,
+              TaskItem.configure({ nested: true }),
+            ] as AnyExtension[]);
+
+            // parsedJson is a full doc – we want just its content array
+            const nodesToInsert = Array.isArray(parsedJson.content)
+              ? parsedJson.content
+              : [];
+
+            let newDocJson: JSONContent;
+
+            if (
+              targetInstance.contentJson &&
+              Array.isArray(targetInstance.contentJson.content)
+            ) {
+              // Clone existing document JSON to avoid direct mutation
+              const cloned = JSON.parse(
+                JSON.stringify(targetInstance.contentJson)
+              );
+              if (position === "start") {
+                cloned.content = [...nodesToInsert, ...cloned.content];
+              } else {
+                cloned.content = [...cloned.content, ...nodesToInsert];
+              }
+              newDocJson = cloned;
+            } else {
+              // No existing document – use the parsed JSON directly
+              newDocJson = parsedJson;
+            }
 
             // Use a small debounce so rapid successive insertText calls (if any)
-            // don't overwhelm the store/UI. We reuse the same debounced helper by
-            // passing in a thunk that performs the real insert when the debounce
-            // interval elapses.
+            // don't overwhelm the store/UI
             debouncedInsertTextUpdate(() =>
-              insertText(text, position || "end")
+              updateInstance(targetInstanceId, {
+                contentJson: newDocJson,
+                hasUnsavedChanges: true,
+              })
             );
 
+            // Bring the target instance to foreground so user can see the changes
+            const appStore = useAppStore.getState();
+            appStore.bringInstanceToForeground(targetInstanceId);
+
+            const fileName = targetInstance.filePath
+              ? targetInstance.filePath.split("/").pop() ||
+                targetInstance.filePath
+              : "Untitled";
             return `Inserted text at ${
               position === "start" ? "start" : "end"
-            } of document.`;
+            } of ${fileName}.`;
           }
           case "textEditNewFile": {
-            console.log("[ToolCall] newFile");
+            const { title } = toolCall.args as {
+              title?: string;
+            };
 
-            const textEditState = useTextEditStore.getState();
-            const foregroundTextEdit = textEditState.getForegroundInstance();
+            console.log("[ToolCall] newFile:", { title });
 
-            if (!foregroundTextEdit) {
-              // No TextEdit window is in foreground, launch a new one
-              launchApp("textedit");
-              // Wait a bit for the app to initialize
-              await new Promise((resolve) => setTimeout(resolve, 100));
-            }
+            // Create a new TextEdit instance with multi-window support
+            const appStore = useAppStore.getState();
+            const instanceId = appStore.launchApp(
+              "textedit",
+              undefined,
+              title,
+              true
+            );
 
-            const {
-              reset,
-              applyExternalUpdate: applyUpdateForNewFile,
-              setLastFilePath,
-              setHasUnsavedChanges,
-            } = textEditState;
+            // Wait a bit for the app to initialize
+            await new Promise((resolve) => setTimeout(resolve, 200));
 
-            // Clear existing document state
-            reset();
+            // Bring the new instance to foreground so user can see it
+            appStore.bringInstanceToForeground(instanceId);
 
-            // Provide an explicit empty document so the editor clears its content
-            const blankDoc: JSONContent = { type: "doc", content: [] };
-            applyUpdateForNewFile(blankDoc);
-
-            // Ensure the new document is treated as untitled and saved state is clean
-            setLastFilePath(null);
-            setHasUnsavedChanges(false);
-
-            return "Created a new, untitled document in TextEdit.";
+            return `Created a new, untitled document in TextEdit${
+              title ? ` (${title})` : ""
+            }.`;
           }
           case "ipodPlayPause": {
             const { action } = toolCall.args as {
@@ -488,9 +638,14 @@ export function useAiChat() {
             };
             console.log("[ToolCall] ipodPlayPause:", { action });
 
-            // Ensure iPod app is open
+            // Ensure iPod app is open - check instances
             const appState = useAppStore.getState();
-            if (!appState.apps["ipod"]?.isOpen) {
+            const ipodInstances = appState.getInstancesByAppId("ipod");
+            const hasOpenIpodInstance = ipodInstances.some(
+              (inst) => inst.isOpen
+            );
+
+            if (!hasOpenIpodInstance) {
               launchApp("ipod");
             }
 
@@ -519,9 +674,14 @@ export function useAiChat() {
             };
             console.log("[ToolCall] ipodPlaySong:", { id, title, artist });
 
-            // Ensure iPod app is open
+            // Ensure iPod app is open - check instances
             const appState = useAppStore.getState();
-            if (!appState.apps["ipod"]?.isOpen) {
+            const ipodInstances = appState.getInstancesByAppId("ipod");
+            const hasOpenIpodInstance = ipodInstances.some(
+              (inst) => inst.isOpen
+            );
+
+            if (!hasOpenIpodInstance) {
               launchApp("ipod");
             }
 
@@ -622,9 +782,14 @@ export function useAiChat() {
             const { id } = toolCall.args as { id: string };
             console.log("[ToolCall] ipodAddAndPlaySong:", { id });
 
-            // Ensure iPod app is open
+            // Ensure iPod app is open - check instances
             const appState = useAppStore.getState();
-            if (!appState.apps["ipod"]?.isOpen) {
+            const ipodInstances = appState.getInstancesByAppId("ipod");
+            const hasOpenIpodInstance = ipodInstances.some(
+              (inst) => inst.isOpen
+            );
+
+            if (!hasOpenIpodInstance) {
               launchApp("ipod");
             }
 
@@ -654,9 +819,14 @@ export function useAiChat() {
           }
           case "ipodNextTrack": {
             console.log("[ToolCall] ipodNextTrack");
-            // Ensure iPod app is open
+            // Ensure iPod app is open - check instances
             const appState = useAppStore.getState();
-            if (!appState.apps["ipod"]?.isOpen) {
+            const ipodInstances = appState.getInstancesByAppId("ipod");
+            const hasOpenIpodInstance = ipodInstances.some(
+              (inst) => inst.isOpen
+            );
+
+            if (!hasOpenIpodInstance) {
               launchApp("ipod");
             }
 
@@ -678,9 +848,14 @@ export function useAiChat() {
           }
           case "ipodPreviousTrack": {
             console.log("[ToolCall] ipodPreviousTrack");
-            // Ensure iPod app is open
+            // Ensure iPod app is open - check instances
             const appState = useAppStore.getState();
-            if (!appState.apps["ipod"]?.isOpen) {
+            const ipodInstances = appState.getInstancesByAppId("ipod");
+            const hasOpenIpodInstance = ipodInstances.some(
+              (inst) => inst.isOpen
+            );
+
+            if (!hasOpenIpodInstance) {
               launchApp("ipod");
             }
 
