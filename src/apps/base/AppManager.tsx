@@ -4,7 +4,7 @@ import { AppContext } from "@/contexts/AppContext";
 import { MenuBar } from "@/components/layout/MenuBar";
 import { Desktop } from "@/components/layout/Desktop";
 import { AppId, getAppComponent, appRegistry } from "@/config/appRegistry";
-import { useAppStore } from "@/stores/useAppStore";
+import { useAppStoreShallow } from "@/stores/helpers";
 import { extractCodeFromPath } from "@/utils/sharedUrl";
 import { toast } from "sonner";
 
@@ -17,19 +17,23 @@ const FOREGROUND_Z_INDEX_OFFSET = 1;
 
 export function AppManager({ apps }: AppManagerProps) {
   // Instance-based state
-  const instances = useAppStore((state) => state.instances);
-  const instanceWindowOrder = useAppStore((state) => state.instanceWindowOrder);
-  const launchApp = useAppStore((state) => state.launchApp);
-  const closeAppInstance = useAppStore((state) => state.closeAppInstance);
-  const bringInstanceToForeground = useAppStore(
-    (state) => state.bringInstanceToForeground
-  );
-  const navigateToNextInstance = useAppStore(
-    (state) => state.navigateToNextInstance
-  );
-  const navigateToPreviousInstance = useAppStore(
-    (state) => state.navigateToPreviousInstance
-  );
+  const {
+    instances,
+    instanceWindowOrder,
+    launchApp,
+    closeAppInstance,
+    bringInstanceToForeground,
+    navigateToNextInstance,
+    navigateToPreviousInstance,
+  } = useAppStoreShallow((state) => ({
+    instances: state.instances,
+    instanceWindowOrder: state.instanceWindowOrder,
+    launchApp: state.launchApp,
+    closeAppInstance: state.closeAppInstance,
+    bringInstanceToForeground: state.bringInstanceToForeground,
+    navigateToNextInstance: state.navigateToNextInstance,
+    navigateToPreviousInstance: state.navigateToPreviousInstance,
+  }));
 
   const [isInitialMount, setIsInitialMount] = useState(true);
 
