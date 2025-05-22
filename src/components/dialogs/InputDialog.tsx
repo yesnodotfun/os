@@ -86,8 +86,8 @@ export function InputDialog({
           {errorMessage && (
             <p className="text-red-600 text-sm mt-1">{errorMessage}</p>
           )}
-          <DialogFooter className="mt-4 flex justify-between">
-            <div className="flex gap-2">
+          <DialogFooter className="mt-4 gap-2 sm:justify-between">
+            <div className="flex gap-2 w-full sm:w-auto">
               {additionalActions
                 .filter((action) => action.position === "left")
                 .map((action, index) => (
@@ -96,12 +96,13 @@ export function InputDialog({
                     variant={action.variant || "retro"}
                     onClick={action.onClick}
                     disabled={isLoading}
+                    className="w-full sm:w-auto"
                   >
                     {action.label}
                   </Button>
                 ))}
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col-reverse gap-2 w-full sm:w-auto sm:flex-row">
               {additionalActions
                 .filter((action) => action.position !== "left")
                 .map((action, index) => (
@@ -110,6 +111,7 @@ export function InputDialog({
                     variant={action.variant || "retro"}
                     onClick={action.onClick}
                     disabled={isLoading}
+                    className="w-full sm:w-auto"
                   >
                     {action.label}
                   </Button>
@@ -119,6 +121,7 @@ export function InputDialog({
                   variant="retro"
                   onClick={() => onOpenChange(false)}
                   disabled={isLoading}
+                  className="w-full sm:w-auto"
                 >
                   Cancel
                 </Button>
@@ -127,6 +130,7 @@ export function InputDialog({
                 variant="retro"
                 onClick={handleSubmit}
                 disabled={isLoading}
+                className="w-full sm:w-auto"
               >
                 {isLoading ? "Adding..." : submitLabel}
               </Button>
