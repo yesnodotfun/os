@@ -159,12 +159,8 @@ async function backupDataBeforeMigration() {
       "Wallpapers:",
       backup.custom_wallpapers.length
     );
-
-    return backup;
   } catch (err) {
     console.error("[Migration] Error backing up data:", err);
-    // Return empty backup on error
-    return backup;
   }
 }
 
@@ -383,7 +379,7 @@ export async function migrateIndexedDBToUUIDs() {
     );
 
     // First backup all data
-    const backup = await backupDataBeforeMigration();
+    await backupDataBeforeMigration();
 
     // Check if backup was successful
     const backupStr = localStorage.getItem(BACKUP_KEY);

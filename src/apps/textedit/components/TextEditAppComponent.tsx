@@ -67,11 +67,6 @@ const getContentAsString = async (
   return content;
 };
 
-// Helper function to extract filename from path
-const getFileNameFromPath = (path: string): string => {
-  return path.split("/").pop() || "";
-};
-
 // Helper function to generate suggested filename
 const generateSuggestedFilename = (
   customTitle: string | undefined,
