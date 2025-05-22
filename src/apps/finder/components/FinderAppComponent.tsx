@@ -54,13 +54,13 @@ const getFileType = (file: FileItem): string => {
     case "webp":
       return "WebP Image";
     case "bmp":
-      return "Bitmap Image";
+      return "BMP Image";
     case "md":
-      return "Markdown Document";
+      return "Document";
     case "txt":
-      return "Text Document";
+      return "Document";
     case "mp3":
-      return "MP3 Audio File";
+      return "MP3 Audio";
     case "mov":
       return "QuickTime Movie";
     default:
