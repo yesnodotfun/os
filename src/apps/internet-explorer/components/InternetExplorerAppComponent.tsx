@@ -1677,6 +1677,10 @@ export function InternetExplorerAppComponent({
     ) => {
       if (event.detail.appId === "internet-explorer") {
         const initialData = event.detail.initialData;
+
+        // Skip if this initialData has already been processed
+        if (lastProcessedInitialDataRef.current === initialData) return;
+
         if (initialData?.shareCode) {
           const code = initialData.shareCode;
           console.log("[IE] Received updateApp event with shareCode:", code);
@@ -1704,6 +1708,8 @@ export function InternetExplorerAppComponent({
                 false
               );
             }, 50); // Small delay
+            // Mark this initialData as processed
+            lastProcessedInitialDataRef.current = initialData;
           } else {
             console.warn(
               "[IE] Failed to decode share link code from updateApp event."
@@ -1734,6 +1740,8 @@ export function InternetExplorerAppComponent({
           setTimeout(() => {
             handleNavigate(directUrl, directYear, false);
           }, 50); // Small delay
+          // Mark this initialData as processed
+          lastProcessedInitialDataRef.current = initialData;
           // --- END NEW ---
         }
       }
