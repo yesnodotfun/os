@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AnyApp } from "./types";
+import { AnyApp, AppState } from "./types";
 import { AppContext } from "@/contexts/AppContext";
 import { MenuBar } from "@/components/layout/MenuBar";
 import { Desktop } from "@/components/layout/Desktop";
@@ -16,18 +16,7 @@ const BASE_Z_INDEX = 1;
 const FOREGROUND_Z_INDEX_OFFSET = 1;
 
 export function AppManager({ apps }: AppManagerProps) {
-  // Legacy state for compatibility
-  const windowOrder = useAppStore((state) => state.windowOrder);
-  const appStates = useAppStore((state) => state.apps);
-  const bringToForeground = useAppStore((state) => state.bringToForeground);
-  const toggleApp = useAppStore((state) => state.toggleApp);
-  const closeApp = useAppStore((state) => state.closeApp);
-  const navigateToNextApp = useAppStore((state) => state.navigateToNextApp);
-  const navigateToPreviousApp = useAppStore(
-    (state) => state.navigateToPreviousApp
-  );
-
-  // New instance-based state
+  // Instance-based state
   const instances = useAppStore((state) => state.instances);
   const instanceWindowOrder = useAppStore((state) => state.instanceWindowOrder);
   const launchApp = useAppStore((state) => state.launchApp);
@@ -43,13 +32,18 @@ export function AppManager({ apps }: AppManagerProps) {
   );
 
   const [isInitialMount, setIsInitialMount] = useState(true);
-  const useInstanceSystem = true; // Enable instance system
 
-  const getZIndexForApp = (appId: AppId) => {
-    const index = windowOrder.indexOf(appId);
-    if (index === -1) return BASE_Z_INDEX;
-    return BASE_Z_INDEX + (index + 1) * FOREGROUND_Z_INDEX_OFFSET;
-  };
+  // Create legacy-compatible appStates from instances for AppContext
+  const legacyAppStates = Object.values(instances).reduce((acc, instance) => {
+    acc[instance.appId] = {
+      isOpen: instance.isOpen,
+      isForeground: instance.isForeground,
+      position: instance.position,
+      size: instance.size,
+      initialData: instance.initialData,
+    };
+    return acc;
+  }, {} as { [appId: string]: AppState });
 
   const getZIndexForInstance = (instanceId: string) => {
     const index = instanceWindowOrder.indexOf(instanceId);
@@ -178,114 +172,39 @@ export function AppManager({ apps }: AppManagerProps) {
         initialData?: unknown;
       }>
     ) => {
-      const { appId, initialPath, initialData } = event.detail; // Destructure initialData
-      const isAppOpen = appStates[appId]?.isOpen;
+      const { appId, initialPath, initialData } = event.detail;
 
       console.log(
         `[AppManager] Launch event received for ${appId}`,
         event.detail
       );
 
-      if (useInstanceSystem) {
-        // Check if there's an existing instance before launching
-        const existingInstance = Object.values(instances).find(
-          (instance) => instance.appId === appId && instance.isOpen
-        );
+      // Check if there's an existing instance before launching
+      const existingInstance = Object.values(instances).find(
+        (instance) => instance.appId === appId && instance.isOpen
+      );
 
-        // Use new instance system
-        const instanceId = launchApp(appId, initialData);
+      // Use instance system
+      const instanceId = launchApp(appId, initialData);
+      console.log(
+        `[AppManager] Launched instance ${instanceId} for app ${appId}`
+      );
+
+      // Store initialPath if provided
+      if (initialPath) {
+        localStorage.setItem(`app_${appId}_initialPath`, initialPath);
+      }
+
+      // If there was an existing instance and we have initialData, dispatch updateApp event
+      if (existingInstance && initialData) {
         console.log(
-          `[AppManager] Launched instance ${instanceId} for app ${appId}`
+          `[AppManager] Dispatching updateApp event for existing ${appId} instance with initialData:`,
+          initialData
         );
-
-        // Store initialPath if provided
-        if (initialPath) {
-          localStorage.setItem(`app_${appId}_initialPath`, initialPath);
-        }
-
-        // If there was an existing instance and we have initialData, dispatch updateApp event
-        if (existingInstance && initialData) {
-          console.log(
-            `[AppManager] Dispatching updateApp event for existing ${appId} instance with initialData:`,
-            initialData
-          );
-          const updateEvent = new CustomEvent("updateApp", {
-            detail: { appId, initialData },
-          });
-          window.dispatchEvent(updateEvent);
-        }
-      } else {
-        // Use legacy system
-        if (!isAppOpen) {
-          console.log(`[AppManager] Toggling app ${appId} to open.`);
-          // Pass initialData when toggling the app open
-          toggleApp(appId, initialData); // Pass initialData to toggleApp
-          // Keep localStorage for path for now, as it might be used differently
-          if (initialPath) {
-            localStorage.setItem(`app_${appId}_initialPath`, initialPath);
-          }
-        } else {
-          console.log(`[AppManager] Bringing app ${appId} to foreground.`);
-          bringToForeground(appId);
-
-          // --- FIX: Handle generic initialData (like url/year) for already open IE ---
-          if (appId === "internet-explorer" && initialData) {
-            // Dispatch updateApp event with the received initialData
-            console.log(
-              `[AppManager] Dispatching updateApp event for already open IE with initialData:`,
-              initialData
-            );
-            const updateEvent = new CustomEvent("updateApp", {
-              detail: { appId, initialData },
-            });
-            window.dispatchEvent(updateEvent);
-          }
-          // --- END FIX ---
-
-          // --- ADDED: Handle initialData (videoId) for already open iPod ---
-          if (
-            appId === "ipod" &&
-            initialData &&
-            typeof initialData === "object" &&
-            "videoId" in initialData
-          ) {
-            console.log(
-              `[AppManager] Dispatching updateApp event for already open iPod with initialData:`,
-              initialData
-            );
-            const updateEvent = new CustomEvent("updateApp", {
-              detail: { appId, initialData },
-            });
-            window.dispatchEvent(updateEvent);
-          }
-          // --- END ADDED ---
-
-          // --- ADDED: Handle initialData (videoId) for already open Videos ---
-          if (
-            appId === "videos" &&
-            initialData &&
-            typeof initialData === "object" &&
-            "videoId" in initialData
-          ) {
-            console.log(
-              `[AppManager] Dispatching updateApp event for already open Videos with initialData:`,
-              initialData
-            );
-            const updateEvent = new CustomEvent("updateApp", {
-              detail: { appId, initialData },
-            });
-            window.dispatchEvent(updateEvent);
-          }
-          // --- END ADDED ---
-
-          // Existing shareCode specific logic (can be potentially removed if the above handles it, but keep for now for safety)
-          // if (appId === 'internet-explorer' && initialData?.shareCode) {
-          //    // Option 1: Dispatch another event specifically for the open app
-          //    const updateEvent = new CustomEvent('updateApp', { detail: { appId, initialData } });
-          //    window.dispatchEvent(updateEvent);
-          //    // Option 2: Update zustand store directly if needed (less preferred for cross-component)
-          // }
-        }
+        const updateEvent = new CustomEvent("updateApp", {
+          detail: { appId, initialData },
+        });
+        window.dispatchEvent(updateEvent);
       }
     };
 
@@ -293,105 +212,63 @@ export function AppManager({ apps }: AppManagerProps) {
     return () => {
       window.removeEventListener("launchApp", handleAppLaunch as EventListener);
     };
-    // Update dependencies to include appStates for checking if app is open
-  }, [
-    appStates,
-    bringToForeground,
-    toggleApp,
-    useInstanceSystem,
-    launchApp,
-    instances,
-  ]);
+  }, [instances, launchApp]);
 
   return (
     <AppContext.Provider
       value={{
-        appStates: appStates,
-        toggleApp,
-        bringToForeground,
+        appStates: legacyAppStates,
+        toggleApp: launchApp,
+        bringToForeground: bringInstanceToForeground,
         apps,
-        navigateToNextApp,
-        navigateToPreviousApp,
+        navigateToNextApp: navigateToNextInstance,
+        navigateToPreviousApp: navigateToPreviousInstance,
       }}
     >
       <MenuBar />
       {/* App Instances */}
-      {useInstanceSystem
-        ? // Instance-based rendering
-          Object.values(instances).map((instance) => {
-            if (!instance.isOpen) return null;
+      {Object.values(instances).map((instance) => {
+        if (!instance.isOpen) return null;
 
-            const appId = instance.appId as AppId;
-            const zIndex = getZIndexForInstance(instance.instanceId);
-            const AppComponent = getAppComponent(appId);
+        const appId = instance.appId as AppId;
+        const zIndex = getZIndexForInstance(instance.instanceId);
+        const AppComponent = getAppComponent(appId);
 
-            return (
-              <div
-                key={instance.instanceId}
-                style={{ zIndex }}
-                className="absolute inset-x-0 md:inset-x-auto w-full md:w-auto"
-                onClick={() =>
-                  !instance.isForeground &&
-                  bringInstanceToForeground(instance.instanceId)
-                }
-              >
-                <AppComponent
-                  isWindowOpen={instance.isOpen}
-                  isForeground={instance.isForeground}
-                  onClose={() => closeAppInstance(instance.instanceId)}
-                  className="pointer-events-auto"
-                  helpItems={apps.find((app) => app.id === appId)?.helpItems}
-                  skipInitialSound={isInitialMount}
-                  initialData={instance.initialData as unknown as undefined}
-                  instanceId={instance.instanceId}
-                  title={instance.title}
-                  onNavigateNext={() =>
-                    navigateToNextInstance(instance.instanceId)
-                  }
-                  onNavigatePrevious={() =>
-                    navigateToPreviousInstance(instance.instanceId)
-                  }
-                />
-              </div>
-            );
-          })
-        : // Legacy app-based rendering
-          apps.map((app) => {
-            const appId = app.id as AppId;
-            const isOpen = appStates[appId]?.isOpen ?? false;
-            const isForeground = appStates[appId]?.isForeground ?? false;
-            const zIndex = getZIndexForApp(appId);
-            const AppComponent = getAppComponent(appId);
-            // Retrieve initialData associated with this app instance from the store
-            const initialData = appStates[appId]?.initialData;
-
-            return isOpen ? (
-              <div
-                key={appId}
-                style={{ zIndex }}
-                className="absolute inset-x-0 md:inset-x-auto w-full md:w-auto"
-                onClick={() => !isForeground && bringToForeground(appId)}
-              >
-                <AppComponent
-                  isWindowOpen={isOpen}
-                  isForeground={isForeground}
-                  onClose={() => closeApp(appId)}
-                  className="pointer-events-auto"
-                  helpItems={app.helpItems}
-                  skipInitialSound={isInitialMount}
-                  initialData={initialData as unknown as undefined}
-                />
-              </div>
-            ) : null;
-          })}
+        return (
+          <div
+            key={instance.instanceId}
+            style={{ zIndex }}
+            className="absolute inset-x-0 md:inset-x-auto w-full md:w-auto"
+            onClick={() =>
+              !instance.isForeground &&
+              bringInstanceToForeground(instance.instanceId)
+            }
+          >
+            <AppComponent
+              isWindowOpen={instance.isOpen}
+              isForeground={instance.isForeground}
+              onClose={() => closeAppInstance(instance.instanceId)}
+              className="pointer-events-auto"
+              helpItems={apps.find((app) => app.id === appId)?.helpItems}
+              skipInitialSound={isInitialMount}
+              initialData={instance.initialData as unknown as undefined}
+              instanceId={instance.instanceId}
+              title={instance.title}
+              onNavigateNext={() => navigateToNextInstance(instance.instanceId)}
+              onNavigatePrevious={() =>
+                navigateToPreviousInstance(instance.instanceId)
+              }
+            />
+          </div>
+        );
+      })}
 
       <Desktop
         apps={apps}
         toggleApp={(appId, initialData) => {
-          // Use the instance-based launch system for Desktop
           launchApp(appId, initialData);
         }}
-        appStates={{ windowOrder, apps: appStates }}
+        appStates={{ windowOrder: instanceWindowOrder, apps: legacyAppStates }}
       />
     </AppContext.Provider>
   );
