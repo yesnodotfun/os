@@ -424,13 +424,15 @@ export function useAiChat() {
 
             const { updateInstance } = textEditState;
 
-            if (!targetInstance.contentJson) {
-              return "No file currently open in the specified TextEdit instance.";
-            }
-
             try {
+              // Handle empty documents by creating a default structure
+              const currentContentJson = targetInstance.contentJson || {
+                type: "doc",
+                content: [{ type: "paragraph", content: [] }],
+              };
+
               // 1. Convert current JSON document to HTML
-              const htmlStr = generateHTML(targetInstance.contentJson, [
+              const htmlStr = generateHTML(currentContentJson, [
                 StarterKit,
                 Underline,
                 TextAlign.configure({ types: ["heading", "paragraph"] }),
