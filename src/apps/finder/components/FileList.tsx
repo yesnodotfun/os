@@ -228,7 +228,7 @@ export function FileList({
         onDragLeave={handleContainerDragLeave}
         onDrop={handleContainerDrop}
       >
-        <Table className="min-w-[600px]">
+        <Table className="min-w-[480px]">
           <TableHeader>
             <TableRow className="text-[10px] border-none font-normal">
               <TableHead className="font-normal bg-gray-100/50 h-[28px]">
