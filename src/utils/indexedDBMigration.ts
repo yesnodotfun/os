@@ -315,6 +315,17 @@ async function verifyMigrationNeeded(): Promise<boolean> {
     const fileStore = useFilesStore.getState();
     const allItems = Object.values(fileStore.items);
 
+    // First check: Do we have files without UUIDs?
+    const filesWithoutUUIDs = allItems.filter(
+      (item) => !item.isDirectory && !item.uuid
+    );
+    if (filesWithoutUUIDs.length > 0) {
+      console.log(
+        `[Migration] Found ${filesWithoutUUIDs.length} files without UUIDs, migration needed`
+      );
+      return true;
+    }
+
     // Check if we have any files with UUIDs
     const filesWithUUIDs = allItems.filter(
       (item) => !item.isDirectory && item.uuid
@@ -327,6 +338,9 @@ async function verifyMigrationNeeded(): Promise<boolean> {
     }
 
     // Check if any content still exists with filename keys (old system)
+    let oldContentFound = false;
+    let newContentFound = false;
+
     for (const item of filesWithUUIDs) {
       if (item.path.startsWith("/Documents/")) {
         const oldContent = await dbOperations.get<DocumentContent>(
@@ -337,7 +351,18 @@ async function verifyMigrationNeeded(): Promise<boolean> {
           console.log(
             `[Migration] Found old content for ${item.name}, migration needed`
           );
-          return true;
+          oldContentFound = true;
+        }
+
+        // Also check if new content exists
+        if (item.uuid) {
+          const newContent = await dbOperations.get<DocumentContent>(
+            STORES.DOCUMENTS,
+            item.uuid
+          );
+          if (newContent) {
+            newContentFound = true;
+          }
         }
       } else if (item.path.startsWith("/Images/")) {
         const oldContent = await dbOperations.get<DocumentContent>(
@@ -348,13 +373,34 @@ async function verifyMigrationNeeded(): Promise<boolean> {
           console.log(
             `[Migration] Found old content for ${item.name}, migration needed`
           );
-          return true;
+          oldContentFound = true;
+        }
+
+        // Also check if new content exists
+        if (item.uuid) {
+          const newContent = await dbOperations.get<DocumentContent>(
+            STORES.IMAGES,
+            item.uuid
+          );
+          if (newContent) {
+            newContentFound = true;
+          }
         }
       }
     }
 
-    console.log("[Migration] No old content found, migration not needed");
-    return false;
+    // If we have old content but no new content, definitely need migration
+    if (oldContentFound && !newContentFound) {
+      console.log(
+        "[Migration] Old content exists but no UUID-based content, migration needed"
+      );
+      return true;
+    }
+
+    console.log(
+      `[Migration] Old content: ${oldContentFound}, New content: ${newContentFound}`
+    );
+    return oldContentFound; // Need migration if any old content exists
   } catch (err) {
     console.error("[Migration] Error verifying migration need:", err);
     return true; // Assume migration needed on error
@@ -362,6 +408,19 @@ async function verifyMigrationNeeded(): Promise<boolean> {
 }
 
 export async function migrateIndexedDBToUUIDs() {
+  console.log("[Migration] Starting UUID migration check...");
+
+  // Log environment info for debugging
+  const isMobileSafari =
+    /iPad|iPhone|iPod/.test(navigator.userAgent) &&
+    /WebKit/.test(navigator.userAgent) &&
+    !/Chrome/.test(navigator.userAgent);
+  console.log(
+    `[Migration] Environment: ${
+      isMobileSafari ? "Mobile Safari" : "Other browser"
+    }`
+  );
+
   // Check if we need to backup data before schema migration
   const currentDBVersion = await new Promise<number>((resolve) => {
     const request = indexedDB.open("ryOS");

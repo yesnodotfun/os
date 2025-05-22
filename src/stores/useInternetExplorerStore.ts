@@ -334,12 +334,7 @@ function classifyYear(year: string): NavigationMode {
   return yearNum > currentYear ? "future" : "past";
 }
 
-// Cache related types and functions
-interface AiCacheEntry {
-  html: string;
-  updatedAt: number;
-  title?: string;
-}
+// Cache related types and functions (removed for localStorage space)
 
 // Define type for iframe check response (copied from component)
 /*
@@ -396,8 +391,7 @@ interface InternetExplorerStore {
   isResetFavoritesDialogOpen: boolean; // New
   isFutureSettingsDialogOpen: boolean; // New
 
-  // AI caching
-  aiCache: Record<string, AiCacheEntry>;
+  // AI caching (removed)
 
   // Timeline settings
   timelineSettings: { [year: string]: string };
@@ -460,14 +454,7 @@ interface InternetExplorerStore {
   setResetFavoritesDialogOpen: (isOpen: boolean) => void; // New
   setFutureSettingsDialogOpen: (isOpen: boolean) => void; // New
 
-  // Cache actions
-  cacheAiPage: (
-    url: string,
-    year: string,
-    html: string,
-    title?: string
-  ) => void;
-  getCachedAiPage: (url: string, year: string) => AiCacheEntry | null;
+  // Cache actions (removed)
 
   // Timeline actions
   setTimelineSettings: (settings: { [year: string]: string }) => void;
@@ -495,12 +482,8 @@ interface InternetExplorerStore {
   clearPendingNavigation: () => void;
 
   // Utility functions
-  getAiCacheKey: (url: string, year: string) => string;
   updateBrowserState: () => void;
 }
-
-// Define the maximum number of entries for the AI cache
-const MAX_AI_CACHE_ENTRIES = 20;
 
 // Helper function to get hostname (copied from component)
 const getHostname = (targetUrl: string): string => {
@@ -558,7 +541,6 @@ const getInitialState = () => ({
   isClearHistoryDialogOpen: false,
   isResetFavoritesDialogOpen: false,
   isFutureSettingsDialogOpen: false,
-  aiCache: {} as Record<string, AiCacheEntry>,
   timelineSettings: {} as { [year: string]: string },
   currentPageTitle: null as string | null,
   isTimeMachineViewOpen: false,
@@ -766,60 +748,6 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
       setFutureSettingsDialogOpen: (isOpen) =>
         set({ isFutureSettingsDialogOpen: isOpen }),
 
-      getAiCacheKey: (url, year) => {
-        const normalizedUrl = url.startsWith("http") ? url : `https://${url}`;
-        try {
-          const parsed = new URL(normalizedUrl);
-          parsed.pathname = parsed.pathname.replace(/\/$/, "");
-          parsed.hostname = parsed.hostname.toLowerCase();
-          const portString =
-            parsed.port && parsed.port !== "80" && parsed.port !== "443"
-              ? `:${parsed.port}`
-              : "";
-          return `${parsed.protocol}//${parsed.hostname}${portString}${parsed.pathname}${parsed.hash}|${year}`;
-        } catch {
-          return `${normalizedUrl}|${year}`;
-        }
-      },
-
-      cacheAiPage: (url, year, html, title) =>
-        set((state) => {
-          const key = get().getAiCacheKey(url, year);
-          const newCacheEntry = { html, title, updatedAt: Date.now() };
-          const currentCache = { ...state.aiCache };
-
-          if (Object.keys(currentCache).length >= MAX_AI_CACHE_ENTRIES) {
-            console.log(
-              `[IE Store] AI Cache limit (${MAX_AI_CACHE_ENTRIES}) reached. Evicting oldest entry.`
-            );
-            let oldestKey: string | null = null;
-            let oldestTimestamp = Infinity;
-
-            for (const [cacheKey, entry] of Object.entries(currentCache)) {
-              if (entry.updatedAt < oldestTimestamp) {
-                oldestTimestamp = entry.updatedAt;
-                oldestKey = cacheKey;
-              }
-            }
-
-            if (oldestKey) {
-              console.log(`[IE Store] Evicting cache key: ${oldestKey}`);
-              delete currentCache[oldestKey];
-            }
-          }
-
-          currentCache[key] = newCacheEntry;
-
-          return {
-            aiCache: currentCache,
-          };
-        }),
-
-      getCachedAiPage: (url, year) => {
-        const key = get().getAiCacheKey(url, year);
-        return get().aiCache[key] || null;
-      },
-
       setTimelineSettings: (settings) => set({ timelineSettings: settings }),
 
       setCurrentPageTitle: (title) => set({ currentPageTitle: title }),
@@ -900,7 +828,6 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
         year: state.year,
         favorites: state.favorites,
         history: state.history.slice(0, 50),
-        aiCache: state.aiCache,
         timelineSettings: state.timelineSettings,
         language: state.language,
         location: state.location,
@@ -925,7 +852,6 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
           "year",
           "favorites",
           "history",
-          "aiCache",
           "timelineSettings",
           "language",
           "location",
@@ -952,10 +878,6 @@ export const useInternetExplorerStore = create<InternetExplorerStore>()(
         finalState.favorites = Array.isArray(finalState.favorites)
           ? finalState.favorites
           : DEFAULT_FAVORITES;
-        finalState.aiCache =
-          typeof finalState.aiCache === "object" && finalState.aiCache !== null
-            ? finalState.aiCache
-            : {};
 
         return finalState as InternetExplorerStore;
       },

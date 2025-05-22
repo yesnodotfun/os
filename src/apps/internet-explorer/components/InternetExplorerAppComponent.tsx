@@ -370,8 +370,6 @@ export function InternetExplorerAppComponent({
     clearErrorDetails,
     setResetFavoritesDialogOpen,
     setFutureSettingsDialogOpen,
-    getCachedAiPage,
-    cacheAiPage,
     setLanguage,
     setLocation,
     cachedYears,
@@ -862,27 +860,7 @@ export function InternetExplorerAppComponent({
           newMode === "future" ||
           (newMode === "past" && parseInt(targetYearParam) <= 1995)
         ) {
-          const cachedEntry = getCachedAiPage(
-            normalizedTargetUrl,
-            targetYearParam
-          );
-          if (cachedEntry && !forceRegenerate) {
-            console.log(
-              `[IE] Using LOCAL cached AI page for ${normalizedTargetUrl} in ${targetYearParam}`
-            );
-            const favicon = `https://www.google.com/s2/favicons?domain=${
-              new URL(normalizedTargetUrl).hostname
-            }&sz=32`;
-            loadSuccess({
-              aiGeneratedHtml: cachedEntry.html,
-              title: cachedEntry.title || normalizedTargetUrl,
-              targetUrl: normalizedTargetUrl,
-              targetYear: targetYearParam,
-              favicon: favicon,
-              addToHistory: true,
-            });
-            return;
-          }
+          // Local caching removed to save localStorage space
 
           let remoteCacheHit = false;
           if (!forceRegenerate) {
@@ -917,30 +895,9 @@ export function InternetExplorerAppComponent({
                   ""
                 );
 
-                try {
-                  cacheAiPage(
-                    normalizedTargetUrl,
-                    targetYearParam,
-                    cleanHtml,
-                    parsedTitle || normalizedTargetUrl
-                  );
-                  // Refresh cached years to update the count
-                  fetchCachedYears(normalizedTargetUrl);
-                } catch (cacheError) {
-                  if (
-                    cacheError instanceof DOMException &&
-                    cacheError.name === "QuotaExceededError"
-                  ) {
-                    console.warn(
-                      `[IE] LocalStorage quota exceeded. Failed to save remote cache locally for ${normalizedTargetUrl} (${targetYearParam}).`
-                    );
-                  } else {
-                    console.error(
-                      "[IE] Error saving remote cache to local store:",
-                      cacheError
-                    );
-                  }
-                }
+                // Local caching removed to save localStorage space
+                // Refresh cached years to update the count
+                fetchCachedYears(normalizedTargetUrl);
 
                 const favicon = `https://www.google.com/s2/favicons?domain=${
                   new URL(normalizedTargetUrl).hostname
@@ -971,7 +928,7 @@ export function InternetExplorerAppComponent({
           }
 
           console.log(
-            `[IE] No cache hit (Local: ${!!cachedEntry}, Remote: ${remoteCacheHit}, Force: ${forceRegenerate}). Proceeding to generate...`
+            `[IE] No cache hit (Remote: ${remoteCacheHit}, Force: ${forceRegenerate}). Proceeding to generate...`
           );
           if (playElevatorMusic && terminalSoundsEnabled) {
             playElevatorMusic(newMode);
@@ -1124,7 +1081,6 @@ export function InternetExplorerAppComponent({
       generateFuturisticWebsite,
       stopGeneration,
       loadSuccess,
-      getCachedAiPage,
       clearErrorDetails,
       handleNavigationError,
       setPrefetchedTitle,

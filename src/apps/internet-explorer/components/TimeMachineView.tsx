@@ -70,11 +70,6 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
 
   const timelineRef = useRef<HTMLDivElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
-  // Get cache functions from store
-  const getCachedAiPage = useInternetExplorerStore(
-    (state) => state.getCachedAiPage
-  );
-  const cacheAiPage = useInternetExplorerStore((state) => state.cacheAiPage);
   // Get main app state for comparison
   const storeUrl = useInternetExplorerStore((state) => state.url);
   const storeYear = useInternetExplorerStore((state) => state.year);
@@ -383,30 +378,12 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
 
     const determineSource = async () => {
       try {
-        // 1. Check local cache first (always yields HTML)
-        const cachedEntry = getCachedAiPage(currentUrl, previewYear);
-        if (cachedEntry) {
-          console.log(
-            `[TimeMachine] Local Cache HIT for ${currentUrl} (${previewYear})`
-          );
-          if (
-            abortController.signal.aborted ||
-            previewRequestIdRef.current !== myRequestId
-          )
-            return;
-          setPreviewContent(cachedEntry.html);
-          setPreviewSourceType("html");
-          setPreviewStatus("success");
-          // No iframe involved here, so loaded state is irrelevant or true
-          setIsIframeLoaded(true);
-          return; // Done if cache hit
-        }
-
+        // Local caching removed to save localStorage space
         console.log(
-          `[TimeMachine] Local Cache MISS for ${currentUrl} (${previewYear}). Determining API source...`
+          `[TimeMachine] Determining API source for ${currentUrl} (${previewYear})...`
         );
 
-        // 2. Determine API source based on year
+        // Determine API source based on year
         if (previewYear === "current") {
           // 2a. 'current' uses direct proxy URL
           console.log(`[TimeMachine] Source: current -> URL`);
@@ -474,8 +451,6 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
               );
               const html = await aiResponse.text();
               const cleanHtml = html.replace(/^<!--\s*TITLE:.*?-->\s*\n?/, "");
-              const titleMatch = html.match(/^<!--\s*TITLE:\s*(.*?)\s*-->/);
-              const parsedTitle = titleMatch ? titleMatch[1].trim() : undefined;
 
               if (
                 abortController.signal.aborted ||
@@ -487,8 +462,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
               setPreviewStatus("success");
               // No iframe involved
               setIsIframeLoaded(true);
-              // Cache the AI result locally
-              cacheAiPage(currentUrl, previewYear, cleanHtml, parsedTitle);
+              // Local caching removed to save localStorage space
             } else if (aiResponse.status === 404) {
               console.log(
                 `[TimeMachine] AI Fetch MISS (404) for ${currentUrl} (${previewYear}).`
@@ -539,7 +513,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
     return () => {
       abortController.abort();
     };
-  }, [previewYear, isOpen, currentUrl, getCachedAiPage, cacheAiPage]); // Dependencies
+  }, [previewYear, isOpen, currentUrl]); // Dependencies
 
   const getHostname = (targetUrl: string): string => {
     try {
@@ -659,16 +633,19 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
   }, [activeYear]);
   // --- End Share handler ---
 
-  const timeMachineGenerateShareUrl = (identifier: string, secondary?: string): string => {
+  const timeMachineGenerateShareUrl = (
+    identifier: string,
+    secondary?: string
+  ): string => {
     // Simple encoding function (client-side)
     const encodeData = (urlToEncode: string, yearToEncode: string): string => {
       const combined = `${urlToEncode}|${yearToEncode}`;
       return btoa(combined)
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=+$/, '');
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=+$/, "");
     };
-    const code = encodeData(identifier, secondary || 'current');
+    const code = encodeData(identifier, secondary || "current");
     return `${window.location.origin}/internet-explorer/${code}`;
   };
 
@@ -1164,7 +1141,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
           </motion.div>
         )}
       </AnimatePresence>
-  
+
       <ShareItemDialog
         isOpen={isShareDialogOpen}
         onClose={() => setIsShareDialogOpen(false)}
