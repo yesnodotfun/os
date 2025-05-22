@@ -155,25 +155,31 @@ export function TextEditAppComponent({
     : legacyHasUnsavedChanges;
 
   const setCurrentFilePath = (path: string | null) => {
-    if (instanceId && currentInstance) {
+    if (instanceId) {
+      // Always use instance-specific method for instances
       updateTextEditInstance(instanceId, { filePath: path });
-    } else if (!instanceId) {
+    } else {
+      // Only use legacy method for non-instance mode
       legacySetFilePath(path);
     }
   };
 
   const setContentJson = (json: JSONContent | null) => {
-    if (instanceId && currentInstance) {
+    if (instanceId) {
+      // Always use instance-specific method for instances
       updateTextEditInstance(instanceId, { contentJson: json });
-    } else if (!instanceId) {
+    } else {
+      // Only use legacy method for non-instance mode
       legacySetContentJson(json);
     }
   };
 
   const setHasUnsavedChanges = (val: boolean) => {
-    if (instanceId && currentInstance) {
+    if (instanceId) {
+      // Always use instance-specific method for instances
       updateTextEditInstance(instanceId, { hasUnsavedChanges: val });
-    } else if (!instanceId) {
+    } else {
+      // Only use legacy method for non-instance mode
       legacySetHasUnsavedChanges(val);
     }
   };
@@ -517,14 +523,13 @@ export function TextEditAppComponent({
   };
 
   const handleNewFile = () => {
-    if (editor && hasUnsavedChanges) {
-      setIsConfirmNewDialogOpen(true);
-    } else {
-      createNewFile();
-    }
+    // Instead of clearing current instance, create a new one
+    const newInstanceId = launchAppInstance("textedit", null, "Untitled", true);
+    console.log(`Created new TextEdit file in instance: ${newInstanceId}`);
   };
 
   const createNewFile = () => {
+    // This is used for drag and drop - clears current instance content
     if (editor) {
       editor.commands.clearContent();
       setContentJson(null);

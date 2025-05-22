@@ -128,31 +128,25 @@ export const useTextEditStore = create<TextEditStoreState>()(
         return get().instances[foregroundInstance.instanceId] || null;
       },
 
-      // Legacy actions - now operate on foreground instance
+      // Legacy actions - kept for backward compatibility but should not be used with instances
       setLastFilePath: (path) => {
-        const instance = get().getForegroundInstance();
-        if (instance) {
-          get().updateInstance(instance.instanceId, { filePath: path });
-        }
+        // Only operate on legacy store, not on instances
+        set((state) => ({ ...state, lastFilePath: path }));
       },
 
       setContentJson: (json) => {
-        const instance = get().getForegroundInstance();
-        if (instance) {
-          get().updateInstance(instance.instanceId, { contentJson: json });
-        }
+        // Only operate on legacy store, not on instances
+        set((state) => ({ ...state, contentJson: json }));
       },
 
       setHasUnsavedChanges: (val) => {
-        const instance = get().getForegroundInstance();
-        if (instance) {
-          get().updateInstance(instance.instanceId, { hasUnsavedChanges: val });
-        }
+        // Only operate on legacy store, not on instances
+        set((state) => ({ ...state, hasUnsavedChanges: val }));
       },
 
       insertText: (text: string, position: "start" | "end" = "end") => {
-        const instance = get().getForegroundInstance();
-        if (!instance) return;
+        // This method should only be used in legacy mode, not with instances
+        const legacyContentJson = get().contentJson;
 
         // Step 1: Convert incoming markdown snippet to HTML
         const htmlFragment = markdownToHtml(text);
@@ -173,12 +167,9 @@ export const useTextEditStore = create<TextEditStoreState>()(
 
         let newDocJson: JSONContent;
 
-        if (
-          instance.contentJson &&
-          Array.isArray(instance.contentJson.content)
-        ) {
+        if (legacyContentJson && Array.isArray(legacyContentJson.content)) {
           // Clone existing document JSON to avoid direct mutation
-          const cloned = JSON.parse(JSON.stringify(instance.contentJson));
+          const cloned = JSON.parse(JSON.stringify(legacyContentJson));
           if (position === "start") {
             cloned.content = [...nodesToInsert, ...cloned.content];
           } else {
@@ -190,31 +181,30 @@ export const useTextEditStore = create<TextEditStoreState>()(
           newDocJson = parsedJson;
         }
 
-        get().updateInstance(instance.instanceId, {
+        set((state) => ({
+          ...state,
           contentJson: newDocJson,
           hasUnsavedChanges: true,
-        });
+        }));
       },
 
       reset: () => {
-        const instance = get().getForegroundInstance();
-        if (instance) {
-          get().updateInstance(instance.instanceId, {
-            filePath: null,
-            contentJson: null,
-            hasUnsavedChanges: false,
-          });
-        }
+        // This method should only be used in legacy mode, not with instances
+        set((state) => ({
+          ...state,
+          lastFilePath: null,
+          contentJson: null,
+          hasUnsavedChanges: false,
+        }));
       },
 
       applyExternalUpdate: (json) => {
-        const instance = get().getForegroundInstance();
-        if (instance) {
-          get().updateInstance(instance.instanceId, {
-            contentJson: json,
-            hasUnsavedChanges: true,
-          });
-        }
+        // This method should only be used in legacy mode, not with instances
+        set((state) => ({
+          ...state,
+          contentJson: json,
+          hasUnsavedChanges: true,
+        }));
       },
 
       migrate: (persistedState: unknown, version: number) => {
