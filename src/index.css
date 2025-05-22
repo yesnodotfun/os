@@ -144,6 +144,8 @@
   }
   body {
     @apply bg-background text-foreground;
+    user-select: none;
+    -webkit-user-select: none;
     font-family: "ChicagoKare", "ArkPixel", "SerenityOS-Emoji", system-ui,
       -apple-system, sans-serif;
     -webkit-font-smoothing: none;
