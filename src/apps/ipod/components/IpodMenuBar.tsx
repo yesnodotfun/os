@@ -11,7 +11,7 @@ import {
   DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { useIpodStore } from "@/stores/useIpodStore";
+import { useIpodStoreShallow } from "@/stores/helpers";
 import { toast } from "sonner";
 import { generateAppShareUrl } from "@/utils/sharedUrl";
 import { LyricsAlignment, ChineseVariant, KoreanDisplay } from "@/types/lyrics";
@@ -49,47 +49,82 @@ export function IpodMenuBar({
   onAddTrack,
   onShareSong,
 }: IpodMenuBarProps) {
-  const tracks = useIpodStore((s) => s.tracks);
-  const currentIndex = useIpodStore((s) => s.currentIndex);
-  const isLoopAll = useIpodStore((s) => s.loopAll);
-  const isLoopCurrent = useIpodStore((s) => s.loopCurrent);
-  const isPlaying = useIpodStore((s) => s.isPlaying);
-  const isShuffled = useIpodStore((s) => s.isShuffled);
-  const isBacklightOn = useIpodStore((s) => s.backlightOn);
-  const isVideoOn = useIpodStore((s) => s.showVideo);
-  const isLcdFilterOn = useIpodStore((s) => s.lcdFilterOn);
-  const currentTheme = useIpodStore((s) => s.theme);
-  const showLyrics = useIpodStore((s) => s.showLyrics);
-  const isFullScreen = useIpodStore((s) => s.isFullScreen);
-  const lyricsAlignment =
-    useIpodStore((s) => s.lyricsAlignment) || LyricsAlignment.FocusThree;
-  const chineseVariant =
-    useIpodStore((s) => s.chineseVariant) || ChineseVariant.Traditional;
-  const koreanDisplay =
-    useIpodStore((s) => s.koreanDisplay) || KoreanDisplay.Original;
-
-  const setCurrentIndex = useIpodStore((s) => s.setCurrentIndex);
-  const setIsPlaying = useIpodStore((s) => s.setIsPlaying);
-  const toggleLoopAll = useIpodStore((s) => s.toggleLoopAll);
-  const toggleLoopCurrent = useIpodStore((s) => s.toggleLoopCurrent);
-  const toggleShuffle = useIpodStore((s) => s.toggleShuffle);
-  const togglePlay = useIpodStore((s) => s.togglePlay);
-  const nextTrack = useIpodStore((s) => s.nextTrack);
-  const previousTrack = useIpodStore((s) => s.previousTrack);
-  const toggleBacklight = useIpodStore((s) => s.toggleBacklight);
-  const toggleVideo = useIpodStore((s) => s.toggleVideo);
-  const toggleLcdFilter = useIpodStore((s) => s.toggleLcdFilter);
-  const toggleFullScreen = useIpodStore((s) => s.toggleFullScreen);
-  const setTheme = useIpodStore((s) => s.setTheme);
-  const toggleLyrics = useIpodStore((s) => s.toggleLyrics);
-  const setLyricsAlignment = useIpodStore((s) => s.setLyricsAlignment);
-  const setChineseVariant = useIpodStore((s) => s.setChineseVariant);
-  const setKoreanDisplay = useIpodStore((s) => s.setKoreanDisplay);
-  const setLyricsTranslationRequest = useIpodStore(
-    (s) => s.setLyricsTranslationRequest
-  );
-  const importLibrary = useIpodStore((s) => s.importLibrary);
-  const exportLibrary = useIpodStore((s) => s.exportLibrary);
+  const {
+    tracks,
+    currentIndex,
+    isLoopAll,
+    isLoopCurrent,
+    isPlaying,
+    isShuffled,
+    isBacklightOn,
+    isVideoOn,
+    isLcdFilterOn,
+    currentTheme,
+    showLyrics,
+    isFullScreen,
+    lyricsAlignment,
+    chineseVariant,
+    koreanDisplay,
+    // Actions
+    setCurrentIndex,
+    setIsPlaying,
+    toggleLoopAll,
+    toggleLoopCurrent,
+    toggleShuffle,
+    togglePlay,
+    nextTrack,
+    previousTrack,
+    toggleBacklight,
+    toggleVideo,
+    toggleLcdFilter,
+    toggleFullScreen,
+    setTheme,
+    toggleLyrics,
+    setLyricsAlignment,
+    setChineseVariant,
+    setKoreanDisplay,
+    setLyricsTranslationRequest,
+    importLibrary,
+    exportLibrary,
+  } = useIpodStoreShallow((s) => ({
+    // State
+    tracks: s.tracks,
+    currentIndex: s.currentIndex,
+    isLoopAll: s.loopAll,
+    isLoopCurrent: s.loopCurrent,
+    isPlaying: s.isPlaying,
+    isShuffled: s.isShuffled,
+    isBacklightOn: s.backlightOn,
+    isVideoOn: s.showVideo,
+    isLcdFilterOn: s.lcdFilterOn,
+    currentTheme: s.theme,
+    showLyrics: s.showLyrics,
+    isFullScreen: s.isFullScreen,
+    lyricsAlignment: s.lyricsAlignment ?? LyricsAlignment.FocusThree,
+    chineseVariant: s.chineseVariant ?? ChineseVariant.Traditional,
+    koreanDisplay: s.koreanDisplay ?? KoreanDisplay.Original,
+    // Actions
+    setCurrentIndex: s.setCurrentIndex,
+    setIsPlaying: s.setIsPlaying,
+    toggleLoopAll: s.toggleLoopAll,
+    toggleLoopCurrent: s.toggleLoopCurrent,
+    toggleShuffle: s.toggleShuffle,
+    togglePlay: s.togglePlay,
+    nextTrack: s.nextTrack,
+    previousTrack: s.previousTrack,
+    toggleBacklight: s.toggleBacklight,
+    toggleVideo: s.toggleVideo,
+    toggleLcdFilter: s.toggleLcdFilter,
+    toggleFullScreen: s.toggleFullScreen,
+    setTheme: s.setTheme,
+    toggleLyrics: s.toggleLyrics,
+    setLyricsAlignment: s.setLyricsAlignment,
+    setChineseVariant: s.setChineseVariant,
+    setKoreanDisplay: s.setKoreanDisplay,
+    setLyricsTranslationRequest: s.setLyricsTranslationRequest,
+    importLibrary: s.importLibrary,
+    exportLibrary: s.exportLibrary,
+  }));
 
   const handlePlayTrack = (index: number) => {
     setCurrentIndex(index);
