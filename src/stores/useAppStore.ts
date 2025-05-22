@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { AppId } from "@/config/appRegistry";
+import { AppId, getWindowConfig } from "@/config/appRegistry";
 import { appIds } from "@/config/appIds";
 import { AppManagerState, AppState } from "@/apps/base/types";
 import { checkShaderPerformance } from "@/utils/performanceCheck";
@@ -595,6 +595,15 @@ export const useAppStore = create<AppStoreState>()(
           y: isMobile ? 28 : 40 + offsetMultiplier * 20,
         };
 
+        // Get default size from window config
+        const config = getWindowConfig(appId);
+        const size = isMobile
+          ? {
+              width: window.innerWidth,
+              height: config.defaultSize.height,
+            }
+          : config.defaultSize;
+
         set((state) => ({
           instances: {
             ...state.instances,
@@ -606,7 +615,7 @@ export const useAppStore = create<AppStoreState>()(
               initialData,
               title,
               position,
-              // Size will be handled by WindowFrame/useWindowManager
+              size,
             },
           },
           instanceWindowOrder: [...state.instanceWindowOrder, instanceId],
@@ -823,7 +832,8 @@ export const useAppStore = create<AppStoreState>()(
         const state = get();
 
         // Check if multi-window is supported for this app
-        const supportsMultiWindow = multiWindow || appId === "textedit"; // Start with TextEdit
+        const supportsMultiWindow =
+          multiWindow || appId === "textedit" || appId === "finder"; // TextEdit and Finder support multi-window
 
         if (!supportsMultiWindow) {
           // Use existing single-window behavior
@@ -896,6 +906,52 @@ export const useAppStore = create<AppStoreState>()(
             state.instanceWindowOrder = state.instanceWindowOrder.filter(
               (instanceId) => state.instances[instanceId]
             );
+          }
+
+          // Ensure nextInstanceId is set correctly to avoid ID collisions
+          if (state.instances && Object.keys(state.instances).length > 0) {
+            const maxId = Math.max(
+              ...Object.keys(state.instances).map((id) => parseInt(id, 10))
+            );
+            if (!isNaN(maxId) && maxId >= state.nextInstanceId) {
+              state.nextInstanceId = maxId + 1;
+              console.log(
+                `[AppStore] Adjusted nextInstanceId to ${state.nextInstanceId} to avoid collisions`
+              );
+            }
+          }
+
+          // Ensure all rehydrated instances have their persisted positions and sizes
+          if (state.instances) {
+            Object.keys(state.instances).forEach((instanceId) => {
+              const instance = state.instances[instanceId];
+              // Ensure instances have position and size
+              if (!instance.position || !instance.size) {
+                console.log(
+                  `[AppStore] Instance ${instanceId} missing position/size, applying defaults`
+                );
+                const config = getWindowConfig(instance.appId);
+                const isMobile = window.innerWidth < 768;
+
+                // Apply default position if missing
+                if (!instance.position) {
+                  instance.position = {
+                    x: isMobile ? 0 : 16,
+                    y: isMobile ? 28 : 40,
+                  };
+                }
+
+                // Apply default size if missing
+                if (!instance.size) {
+                  instance.size = isMobile
+                    ? {
+                        width: window.innerWidth,
+                        height: config.defaultSize.height,
+                      }
+                    : config.defaultSize;
+                }
+              }
+            });
           }
 
           // Migrate old app states to instances

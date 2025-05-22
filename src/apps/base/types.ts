@@ -101,6 +101,10 @@ export interface VideosInitialData {
   videoId?: string;
 }
 
+export interface FinderInitialData {
+  path?: string;
+}
+
 // Union type for all possible app configurations
 export type AnyApp =
   | BaseApp<ControlPanelsInitialData>
@@ -117,4 +121,5 @@ export type AnyInitialData =
   | IpodInitialData
   | PaintInitialData
   | VideosInitialData
+  | FinderInitialData
   | unknown;

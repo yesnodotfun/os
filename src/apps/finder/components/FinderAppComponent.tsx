@@ -1,7 +1,7 @@
 import { WindowFrame } from "@/components/layout/WindowFrame";
-import { FinderMenuBar } from "./FinderMenuBar";
+import { FinderMenuBar, ViewType, SortType } from "./FinderMenuBar";
 import { AppProps } from "@/apps/base/types";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
@@ -17,6 +17,12 @@ import { useTextEditStore } from "@/stores/useTextEditStore";
 import { useFilesStore } from "@/stores/useFilesStore";
 import { FileItem } from "./FileList";
 import { useFinderStore } from "@/stores/useFinderStore";
+import { useAppStore } from "@/stores/useAppStore";
+
+// Type for Finder initial data
+interface FinderInitialData {
+  path?: string;
+}
 
 // Helper function to determine file type from FileItem
 const getFileType = (file: FileItem): string => {
@@ -67,6 +73,8 @@ export function FinderAppComponent({
   isWindowOpen,
   isForeground = true,
   skipInitialSound,
+  instanceId,
+  initialData,
 }: AppProps) {
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
@@ -80,10 +88,109 @@ export function FinderAppComponent({
   const textEditStore = useTextEditStore();
   const fileStore = useFilesStore();
 
-  // Finder preferences (view & sort) are persisted in a dedicated Zustand store
-  const { viewType, sortType, setViewType, setSortType } = useFinderStore();
+  // Use instance-based store management
+  const createFinderInstance = useFinderStore((state) => state.createInstance);
+  const removeFinderInstance = useFinderStore((state) => state.removeInstance);
+  const updateFinderInstance = useFinderStore((state) => state.updateInstance);
+  const finderInstances = useFinderStore((state) => state.instances);
+
+  // Legacy store methods for single-window mode
+  const legacyViewType = useFinderStore((state) => state.viewType);
+  const legacySortType = useFinderStore((state) => state.sortType);
+  const legacySetViewType = useFinderStore((state) => state.setViewType);
+  const legacySetSortType = useFinderStore((state) => state.setSortType);
+
+  // Create instance when component mounts (only if using instanceId)
+  useEffect(() => {
+    if (instanceId) {
+      // Check if instance already exists (from persisted state)
+      const existingInstance = finderInstances[instanceId];
+      if (existingInstance) {
+        // Instance already exists from persisted state, don't recreate
+        return;
+      }
+
+      // Get initial path from initialData or localStorage
+      const typedInitialData = initialData as FinderInitialData | undefined;
+      const initialPath =
+        typedInitialData?.path ||
+        localStorage.getItem("app_finder_initialPath") ||
+        "/";
+      createFinderInstance(instanceId, initialPath);
+
+      // Clear the localStorage if we used it
+      if (localStorage.getItem("app_finder_initialPath")) {
+        localStorage.removeItem("app_finder_initialPath");
+      }
+    }
+  }, [instanceId, createFinderInstance, initialData, finderInstances]);
+
+  // Sync Finder instance cleanup with App store instance lifecycle
+  useEffect(() => {
+    if (!instanceId) return;
+
+    // Listen for instance close events from the App store
+    const handleInstanceClose = (event: CustomEvent) => {
+      if (event.detail.instanceId === instanceId && !event.detail.isOpen) {
+        // Only remove Finder instance when App store actually closes it
+        removeFinderInstance(instanceId);
+      }
+    };
+
+    window.addEventListener(
+      "instanceStateChange",
+      handleInstanceClose as EventListener
+    );
+    return () => {
+      window.removeEventListener(
+        "instanceStateChange",
+        handleInstanceClose as EventListener
+      );
+    };
+  }, [instanceId, removeFinderInstance]);
+
+  // Get current instance data (only if using instanceId)
+  const currentInstance = instanceId ? finderInstances[instanceId] : null;
+
+  // Use instance data if available, otherwise use legacy store
+  const viewType = instanceId
+    ? currentInstance?.viewType || "list"
+    : legacyViewType;
+
+  const sortType = instanceId
+    ? currentInstance?.sortType || "name"
+    : legacySortType;
+
+  const setViewType = useCallback(
+    (type: ViewType) => {
+      if (instanceId) {
+        updateFinderInstance(instanceId, { viewType: type });
+      } else {
+        legacySetViewType(type);
+      }
+    },
+    [instanceId, updateFinderInstance, legacySetViewType]
+  );
+
+  const setSortType = useCallback(
+    (type: SortType) => {
+      if (instanceId) {
+        updateFinderInstance(instanceId, { sortType: type });
+      } else {
+        legacySetSortType(type);
+      }
+    },
+    [instanceId, updateFinderInstance, legacySetSortType]
+  );
 
   // Get all functionality from useFileSystem hook
+  // Use the persisted path from the instance, or initialData path, or root
+  // Important: Check if instance exists from persisted state first
+  const initialFileSystemPath =
+    instanceId && finderInstances[instanceId]
+      ? finderInstances[instanceId].currentPath
+      : (initialData as FinderInitialData | undefined)?.path || "/";
+
   const {
     currentPath,
     files,
@@ -106,7 +213,7 @@ export function FinderAppComponent({
     renameFile: originalRenameFile,
     createFolder,
     moveFile,
-  } = useFileSystem();
+  } = useFileSystem(initialFileSystemPath, { instanceId });
 
   // Wrap the original handleFileOpen to integrate with TextEditStore
   const handleFileOpen = async (file: any) => {
@@ -172,14 +279,7 @@ export function FinderAppComponent({
     return () => clearInterval(interval);
   }, []);
 
-  // Handle initial path from launch event
-  useEffect(() => {
-    const initialPath = localStorage.getItem("app_finder_initialPath");
-    if (initialPath) {
-      navigateToPath(initialPath);
-      localStorage.removeItem("app_finder_initialPath");
-    }
-  }, [navigateToPath]);
+  // Handle initial path from launch event - removed to prevent conflicts with instance-based navigation
 
   const sortedFiles = [...files].sort((a, b) => {
     switch (sortType) {
@@ -228,6 +328,16 @@ export function FinderAppComponent({
   const confirmEmptyTrash = () => {
     emptyTrash();
     setIsEmptyTrashDialogOpen(false);
+  };
+
+  const handleNewWindow = () => {
+    // Launch a new Finder instance with multi-window support
+    // Start at the current path if in instance mode, otherwise root
+    const initialPath =
+      instanceId && currentInstance ? currentInstance.currentPath : currentPath;
+    // Use the launchApp method which handles multi-window properly
+    const appStore = useAppStore.getState();
+    appStore.launchApp("finder", { path: initialPath }, undefined, true);
   };
 
   // External file drop handler (from outside the app)
@@ -297,11 +407,7 @@ export function FinderAppComponent({
       return;
     }
 
-    // Construct the destination path
-    const destinationPath = `${targetFolder.path}/${sourceFile.name}`;
-
     // Execute the move
-    console.log(`Moving file from ${sourceFile.path} to ${destinationPath}`);
     moveFile(sourceItem, targetFolder.path);
   };
 
@@ -330,9 +436,6 @@ export function FinderAppComponent({
       return;
     }
 
-    console.log(
-      `Moving file from ${sourceFile.path} to ${currentPath}/${sourceFile.name}`
-    );
     moveFile(sourceItem, currentPath);
   };
 
@@ -619,6 +722,7 @@ export function FinderAppComponent({
         onNewFolder={handleNewFolder}
         canCreateFolder={canCreateFolder}
         rootFolders={rootFolders}
+        onNewWindow={handleNewWindow}
       />
       <input
         type="file"
@@ -629,6 +733,7 @@ export function FinderAppComponent({
       />
       <WindowFrame
         appId="finder"
+        instanceId={instanceId}
         title={
           currentPath === "/"
             ? "Macintosh HD"

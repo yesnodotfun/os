@@ -15,20 +15,25 @@ export const useLaunchApp = () => {
   const launchApp = (appId: AppId, options?: LaunchAppOptions) => {
     console.log(`[useLaunchApp] Launch event received for ${appId}`, options);
 
-    // Special handling for Finder initial path
-    if (appId === "finder" && options?.initialPath) {
-      localStorage.setItem("app_finder_initialPath", options.initialPath);
+    // Convert initialPath to proper initialData for Finder
+    let initialData = options?.initialData;
+    if (appId === "finder" && options?.initialPath && !initialData) {
+      initialData = { path: options.initialPath };
     }
+
+    // Always use multi-window for apps that support it
+    const multiWindow =
+      options?.multiWindow || appId === "finder" || appId === "textedit";
 
     // Use the new instance-based launch system
     const instanceId = launchAppInstance(
       appId,
-      options?.initialData,
+      initialData,
       undefined,
-      options?.multiWindow
+      multiWindow
     );
     console.log(
-      `[useLaunchApp] Created instance ${instanceId} for app ${appId}`
+      `[useLaunchApp] Created instance ${instanceId} for app ${appId} with multiWindow: ${multiWindow}`
     );
 
     return instanceId;

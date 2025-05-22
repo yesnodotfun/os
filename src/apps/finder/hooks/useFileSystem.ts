@@ -13,6 +13,7 @@ import { useFilesStore, FileSystemItem } from "@/stores/useFilesStore";
 import { useTextEditStore } from "@/stores/useTextEditStore";
 import { useAppStore } from "@/stores/useAppStore";
 import { migrateIndexedDBToUUIDs } from "@/utils/indexedDBMigration";
+import { useFinderStore } from "@/stores/useFinderStore";
 
 // Store names for IndexedDB (Content)
 const STORES = {
@@ -253,12 +254,18 @@ export interface UseFileSystemOptions {
    * reading the file system (e.g. Chats transcript saving).
    */
   skipLoad?: boolean;
+  /**
+   * Instance ID for multi-window support
+   */
+  instanceId?: string;
 }
 
 export function useFileSystem(
   initialPath: string = "/",
   options: UseFileSystemOptions = {}
 ) {
+  const { instanceId } = options;
+
   // --------------------------------------------
   // Development-time logging (deduplicated)
   // --------------------------------------------
@@ -269,13 +276,92 @@ export function useFileSystem(
     console.log(`[useFileSystem] Hook initialized for path: ${initialPath}`);
     loggedInitializationPaths.add(initialPath);
   }
-  const [currentPath, setCurrentPath] = useState(initialPath);
+
+  // Get Finder store methods
+  const finderStore = useFinderStore();
+  const updateFinderInstance = finderStore.updateInstance;
+  const finderInstance = instanceId
+    ? finderStore.getInstance(instanceId)
+    : null;
+
+  // Use instance-based state if available, otherwise use local state
+  // When using instances, initialize local state from instance data if available
+  const [localCurrentPath, setLocalCurrentPath] = useState(
+    finderInstance?.currentPath || initialPath
+  );
+  const [localHistory, setLocalHistory] = useState<string[]>(
+    finderInstance?.navigationHistory || [initialPath]
+  );
+  const [localHistoryIndex, setLocalHistoryIndex] = useState(
+    finderInstance?.navigationIndex || 0
+  );
+  const [_localSelectedFile, setLocalSelectedFile] = useState<string | null>(
+    finderInstance?.selectedFile || null
+  );
+
+  // Determine which state to use
+  const currentPath = finderInstance?.currentPath || localCurrentPath;
+  const history = finderInstance?.navigationHistory || localHistory;
+  const historyIndex = finderInstance?.navigationIndex || localHistoryIndex;
+
+  // State setters that work with both instance and local mode
+  const setCurrentPath = useCallback(
+    (path: string) => {
+      if (instanceId && finderInstance) {
+        updateFinderInstance(instanceId, { currentPath: path });
+      } else {
+        setLocalCurrentPath(path);
+      }
+    },
+    [instanceId, finderInstance, updateFinderInstance]
+  );
+
+  const setHistory = useCallback(
+    (updater: string[] | ((prev: string[]) => string[])) => {
+      if (instanceId && finderInstance) {
+        const newHistory =
+          typeof updater === "function"
+            ? updater(finderInstance.navigationHistory)
+            : updater;
+        updateFinderInstance(instanceId, { navigationHistory: newHistory });
+      } else {
+        setLocalHistory(updater);
+      }
+    },
+    [instanceId, finderInstance, updateFinderInstance]
+  );
+
+  const setHistoryIndex = useCallback(
+    (updater: number | ((prev: number) => number)) => {
+      if (instanceId && finderInstance) {
+        const newIndex =
+          typeof updater === "function"
+            ? updater(finderInstance.navigationIndex)
+            : updater;
+        updateFinderInstance(instanceId, { navigationIndex: newIndex });
+      } else {
+        setLocalHistoryIndex(updater);
+      }
+    },
+    [instanceId, finderInstance, updateFinderInstance]
+  );
+
+  const setSelectedFilePath = useCallback(
+    (path: string | null) => {
+      if (instanceId && finderInstance) {
+        updateFinderInstance(instanceId, { selectedFile: path });
+      } else {
+        setLocalSelectedFile(path);
+      }
+    },
+    [instanceId, finderInstance, updateFinderInstance]
+  );
+
+  // Local UI state (not persisted to store)
   const [files, setFiles] = useState<ExtendedDisplayFileItem[]>([]);
   const [selectedFile, setSelectedFile] = useState<ExtendedDisplayFileItem>();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>();
-  const [history, setHistory] = useState<string[]>([initialPath]);
-  const [historyIndex, setHistoryIndex] = useState(0);
 
   // Zustand Stores
   const fileStore = useFilesStore();
@@ -467,6 +553,7 @@ export function useFileSystem(
     (path: string) => {
       const normalizedPath = path.startsWith("/") ? path : `/${path}`;
       setSelectedFile(undefined);
+      setSelectedFilePath(null);
       if (normalizedPath !== currentPath) {
         setHistory((prev) => {
           const newHistory = prev.slice(0, historyIndex + 1);
@@ -477,7 +564,14 @@ export function useFileSystem(
         setCurrentPath(normalizedPath);
       }
     },
-    [currentPath, historyIndex]
+    [
+      currentPath,
+      historyIndex,
+      setSelectedFilePath,
+      setHistory,
+      setHistoryIndex,
+      setCurrentPath,
+    ]
   );
 
   // Define loadFiles next
@@ -912,8 +1006,9 @@ export function useFileSystem(
   const handleFileSelect = useCallback(
     (file: ExtendedDisplayFileItem | undefined) => {
       setSelectedFile(file);
+      setSelectedFilePath(file?.path || null);
     },
-    []
+    [setSelectedFilePath]
   );
   const navigateUp = useCallback(() => {
     if (currentPath === "/") return;

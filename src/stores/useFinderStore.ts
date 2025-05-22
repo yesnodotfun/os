@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
+import { useAppStore } from "@/stores/useAppStore";
 
 // Re-use types from Finder for consistency
 import type {
@@ -7,55 +8,184 @@ import type {
   SortType,
 } from "@/apps/finder/components/FinderMenuBar";
 
-interface FinderStoreState {
+export interface FinderInstance {
+  instanceId: string;
+  currentPath: string;
+  navigationHistory: string[];
+  navigationIndex: number;
   viewType: ViewType;
   sortType: SortType;
+  selectedFile: string | null; // Path of selected file
+}
+
+interface FinderStoreState {
+  // Instance management
+  instances: Record<string, FinderInstance>;
+
+  // Legacy single-window support (deprecated, kept for migration)
+  viewType: ViewType;
+  sortType: SortType;
+
+  // Instance actions
+  createInstance: (instanceId: string, initialPath?: string) => void;
+  removeInstance: (instanceId: string) => void;
+  updateInstance: (
+    instanceId: string,
+    updates: Partial<Omit<FinderInstance, "instanceId">>
+  ) => void;
+  getInstance: (instanceId: string) => FinderInstance | null;
+  getForegroundInstance: () => FinderInstance | null;
+
+  // Legacy actions (now operate on foreground instance)
   setViewType: (type: ViewType) => void;
   setSortType: (type: SortType) => void;
   reset: () => void;
 }
 
-const STORE_VERSION = 1;
+const STORE_VERSION = 2;
 const STORE_NAME = "ryos:finder";
 
 export const useFinderStore = create<FinderStoreState>()(
   persist(
-    (set) => ({
-      viewType: "list", // default
-      sortType: "name", // default
-      setViewType: (type) => set({ viewType: type }),
-      setSortType: (type) => set({ sortType: type }),
-      reset: () => set({ viewType: "list", sortType: "name" }),
+    (set, get) => ({
+      // Instance state
+      instances: {},
+
+      // Legacy state (deprecated)
+      viewType: "list",
+      sortType: "name",
+
+      // Instance management
+      createInstance: (instanceId, initialPath = "/") =>
+        set((state) => {
+          // Don't create if instance already exists
+          if (state.instances[instanceId]) {
+            return state;
+          }
+
+          return {
+            instances: {
+              ...state.instances,
+              [instanceId]: {
+                instanceId,
+                currentPath: initialPath,
+                navigationHistory: [initialPath],
+                navigationIndex: 0,
+                viewType: "list",
+                sortType: "name",
+                selectedFile: null,
+              },
+            },
+          };
+        }),
+
+      removeInstance: (instanceId) =>
+        set((state) => {
+          const newInstances = { ...state.instances };
+          delete newInstances[instanceId];
+          return { instances: newInstances };
+        }),
+
+      updateInstance: (instanceId, updates) =>
+        set((state) => {
+          if (!state.instances[instanceId]) return state;
+          return {
+            instances: {
+              ...state.instances,
+              [instanceId]: {
+                ...state.instances[instanceId],
+                ...updates,
+              },
+            },
+          };
+        }),
+
+      getInstance: (instanceId) => {
+        return get().instances[instanceId] || null;
+      },
+
+      getForegroundInstance: () => {
+        // Get the foreground app instance from app store
+        const appStore = useAppStore.getState();
+        const foregroundInstance = appStore.getForegroundInstance();
+
+        if (!foregroundInstance || foregroundInstance.appId !== "finder") {
+          return null;
+        }
+
+        return get().instances[foregroundInstance.instanceId] || null;
+      },
+
+      // Legacy actions - kept for backward compatibility
+      setViewType: (type) => {
+        // Only operate on legacy store, not on instances
+        set((state) => ({ ...state, viewType: type }));
+      },
+
+      setSortType: (type) => {
+        // Only operate on legacy store, not on instances
+        set((state) => ({ ...state, sortType: type }));
+      },
+
+      reset: () => {
+        // This method should only be used in legacy mode, not with instances
+        set((state) => ({
+          ...state,
+          viewType: "list",
+          sortType: "name",
+        }));
+      },
     }),
     {
       name: STORE_NAME,
       version: STORE_VERSION,
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
-        viewType: state.viewType,
-        sortType: state.sortType,
+        instances: state.instances,
+        // Don't persist legacy fields anymore
       }),
-      migrate: (persistedState, version) => {
-        // Handle migration from old localStorage keys if no persisted state exists
-        if (!persistedState || version < STORE_VERSION) {
-          const oldView = localStorage.getItem(
-            "finder_view_type"
-          ) as ViewType | null;
-          const oldSort = localStorage.getItem(
-            "finder_sort_type"
-          ) as SortType | null;
-          // Clean up old keys after reading
-          if (oldView) localStorage.removeItem("finder_view_type");
-          if (oldSort) localStorage.removeItem("finder_sort_type");
+      migrate: (persistedState: unknown, version: number) => {
+        // Migrate from v1 to v2 (single window to multi-instance)
+        if (version < 2) {
+          const oldState = persistedState as {
+            viewType?: ViewType;
+            sortType?: SortType;
+          };
 
-          if (oldView || oldSort) {
-            return {
-              viewType: oldView || "list",
-              sortType: oldSort || "name",
-            } as Partial<FinderStoreState>;
+          // Create new state with instances
+          const migratedState: Partial<FinderStoreState> = {
+            instances: {},
+            // Keep legacy fields for backward compatibility
+            viewType: oldState.viewType || "list",
+            sortType: oldState.sortType || "name",
+          };
+
+          return migratedState;
+        }
+
+        return persistedState;
+      },
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          // Ensure all instances have required fields
+          if (state.instances) {
+            Object.keys(state.instances).forEach((instanceId) => {
+              const instance = state.instances[instanceId];
+              if (instance) {
+                // Ensure instance has all required fields with defaults
+                state.instances[instanceId] = {
+                  instanceId,
+                  currentPath: instance.currentPath || "/",
+                  navigationHistory: instance.navigationHistory || ["/"],
+                  navigationIndex: instance.navigationIndex || 0,
+                  viewType: instance.viewType || "list",
+                  sortType: instance.sortType || "name",
+                  selectedFile: instance.selectedFile || null,
+                };
+              }
+            });
           }
         }
-        return persistedState as Partial<FinderStoreState>;
       },
     }
   )

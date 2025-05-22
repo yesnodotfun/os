@@ -40,6 +40,7 @@ export interface FinderMenuBarProps {
   onNewFolder?: () => void;
   canCreateFolder?: boolean;
   rootFolders?: FileItem[];
+  onNewWindow?: () => void;
 }
 
 export function FinderMenuBar({
@@ -67,6 +68,7 @@ export function FinderMenuBar({
   onNewFolder,
   canCreateFolder = false,
   rootFolders,
+  onNewWindow,
 }: FinderMenuBarProps) {
   const canMoveToTrash =
     selectedFile &&
@@ -95,7 +97,10 @@ export function FinderMenuBar({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" sideOffset={1} className="px-0">
-          <DropdownMenuItem className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
+          <DropdownMenuItem
+            onClick={onNewWindow}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
             New Finder Window
           </DropdownMenuItem>
           <DropdownMenuItem
@@ -287,7 +292,7 @@ export function FinderMenuBar({
             Forward
           </DropdownMenuItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
-          
+
           {/* Root directory folders */}
           {rootFolders?.map((folder) => (
             <DropdownMenuItem
@@ -303,7 +308,7 @@ export function FinderMenuBar({
               {folder.name}
             </DropdownMenuItem>
           ))}
-          
+
           {/* Always show Trash at the end */}
           <DropdownMenuItem
             onClick={() => onNavigateToPath?.("/Trash")}

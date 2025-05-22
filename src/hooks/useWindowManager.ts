@@ -24,7 +24,6 @@ export const useWindowManager = ({
   const instanceStateFromStore = useAppStore((state) =>
     instanceId ? state.instances[instanceId] : null
   );
-
   const config = getWindowConfig(appId);
 
   // Helper to compute default window state (mirrors previous logic)
