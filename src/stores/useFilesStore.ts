@@ -448,6 +448,8 @@ export const useFilesStore = create<FilesStoreState>()(
           newItems[file.path] = {
             ...file,
             status: "active",
+            // Generate UUID for files (not directories)
+            uuid: uuidv4(),
           };
         });
 
@@ -477,6 +479,8 @@ export const useFilesStore = create<FilesStoreState>()(
             newItems[file.path] = {
               ...file,
               status: "active",
+              // Generate UUID for files (not directories)
+              uuid: uuidv4(),
             };
           });
 
