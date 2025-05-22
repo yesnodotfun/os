@@ -16,6 +16,7 @@ import { IpodScreen } from "./IpodScreen";
 import { IpodWheel } from "./IpodWheel";
 import { useIpodStore } from "@/stores/useIpodStore";
 import { useShallow } from "zustand/react/shallow";
+import { useIpodStoreShallow, useAppStoreShallow } from "@/stores/helpers";
 import { useAppStore } from "@/stores/useAppStore";
 import { ShareItemDialog } from "@/components/dialogs/ShareItemDialog";
 import { toast } from "sonner";
@@ -349,34 +350,65 @@ export function IpodAppComponent({
       backlightOn: s.backlightOn,
     }))
   );
-  const theme = useIpodStore((s) => s.theme);
-  const lcdFilterOn = useIpodStore((s) => s.lcdFilterOn);
-  const showLyrics = useIpodStore((s) => s.showLyrics);
-  const lyricsAlignment = useIpodStore((s) => s.lyricsAlignment);
-  const chineseVariant = useIpodStore((s) => s.chineseVariant);
-  const koreanDisplay = useIpodStore((s) => s.koreanDisplay);
+  const {
+    theme,
+    lcdFilterOn,
+    showLyrics,
+    lyricsAlignment,
+    chineseVariant,
+    koreanDisplay,
+    lyricsTranslationRequest,
+    isFullScreen,
+    toggleFullScreen,
+    setCurrentIndex,
+    toggleLoopAll,
+    toggleLoopCurrent,
+    toggleShuffle,
+    togglePlay,
+    setIsPlaying,
+    toggleVideo,
+    toggleBacklight,
+    setTheme,
+    clearLibrary,
+    resetLibrary,
+    nextTrack,
+    previousTrack,
+  } = useIpodStoreShallow((s) => ({
+    theme: s.theme,
+    lcdFilterOn: s.lcdFilterOn,
+    showLyrics: s.showLyrics,
+    lyricsAlignment: s.lyricsAlignment,
+    chineseVariant: s.chineseVariant,
+    koreanDisplay: s.koreanDisplay,
+    lyricsTranslationRequest: s.lyricsTranslationRequest,
+    isFullScreen: s.isFullScreen,
+    toggleFullScreen: s.toggleFullScreen,
+    setCurrentIndex: s.setCurrentIndex,
+    toggleLoopAll: s.toggleLoopAll,
+    toggleLoopCurrent: s.toggleLoopCurrent,
+    toggleShuffle: s.toggleShuffle,
+    togglePlay: s.togglePlay,
+    setIsPlaying: s.setIsPlaying,
+    toggleVideo: s.toggleVideo,
+    toggleBacklight: s.toggleBacklight,
+    setTheme: s.setTheme,
+    clearLibrary: s.clearLibrary,
+    resetLibrary: s.resetLibrary,
+    nextTrack: s.nextTrack,
+    previousTrack: s.previousTrack,
+  }));
+
   const lyricOffset = useIpodStore(
     (s) => s.tracks[s.currentIndex]?.lyricOffset ?? 0
   );
-  const lyricsTranslationRequest = useIpodStore(
-    (s) => s.lyricsTranslationRequest
-  );
-  const isFullScreen = useIpodStore((s) => s.isFullScreen);
-  const toggleFullScreen = useIpodStore((s) => s.toggleFullScreen);
 
-  const setCurrentIndex = useIpodStore((s) => s.setCurrentIndex);
-  const toggleLoopAll = useIpodStore((s) => s.toggleLoopAll);
-  const toggleLoopCurrent = useIpodStore((s) => s.toggleLoopCurrent);
-  const toggleShuffle = useIpodStore((s) => s.toggleShuffle);
-  const togglePlay = useIpodStore((s) => s.togglePlay);
-  const setIsPlaying = useIpodStore((s) => s.setIsPlaying);
-  const toggleVideo = useIpodStore((s) => s.toggleVideo);
-  const toggleBacklight = useIpodStore((s) => s.toggleBacklight);
-  const setTheme = useIpodStore((s) => s.setTheme);
-  const clearLibrary = useIpodStore((s) => s.clearLibrary);
-  const resetLibrary = useIpodStore((s) => s.resetLibrary);
-  const nextTrack = useIpodStore((s) => s.nextTrack);
-  const previousTrack = useIpodStore((s) => s.previousTrack);
+  const prevIsForeground = useRef(isForeground);
+  const { bringToForeground, clearIpodInitialData } = useAppStoreShallow((state) => ({
+    bringToForeground: state.bringToForeground,
+    clearIpodInitialData: state.clearInstanceInitialData,
+  }));
+  // Track the last processed initialData to avoid duplicates
+  const lastProcessedInitialDataRef = useRef<unknown>(null);
 
   const [lastActivityTime, setLastActivityTime] = useState(Date.now());
   const backlightTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -428,14 +460,6 @@ export function IpodAppComponent({
   const fullScreenPlayerRef = useRef<ReactPlayer>(null);
   const skipOperationRef = useRef(false);
   const userHasInteractedRef = useRef(false);
-
-  const prevIsForeground = useRef(isForeground);
-  const bringToForeground = useAppStore((state) => state.bringToForeground);
-  const clearIpodInitialData = useAppStore(
-    (state) => state.clearInstanceInitialData
-  );
-  // Track the last processed initialData to avoid duplicates
-  const lastProcessedInitialDataRef = useRef<unknown>(null);
 
   const ua = navigator.userAgent;
   const isIOS = /iP(hone|od|ad)/.test(ua);
@@ -1559,7 +1583,9 @@ export function IpodAppComponent({
   };
 
   // Volume control
-  const { ipodVolume } = useAppStore();
+  const { ipodVolume } = useAppStoreShallow((state) => ({
+    ipodVolume: state.ipodVolume,
+  }));
 
   // Derived state for translation
   const currentTrackId = tracks[currentIndex]?.id;
