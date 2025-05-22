@@ -275,7 +275,13 @@ ${songList}`;
   }
 
   // Browser Section
-  if (systemState.internetExplorer.url) {
+  const hasOpenInternetExplorer =
+    systemState.runningApps?.foreground?.appId === "internet-explorer" ||
+    systemState.runningApps?.background?.some(
+      (app) => app.appId === "internet-explorer"
+    );
+
+  if (hasOpenInternetExplorer && systemState.internetExplorer.url) {
     prompt += `\n\n## INTERNET EXPLORER
 URL: ${systemState.internetExplorer.url}
 Time Travel Year: ${systemState.internetExplorer.year}`;
