@@ -15,24 +15,34 @@ const getSystemState = () => {
   const currentVideo = videoStore.videos[videoStore.currentIndex];
   const currentTrack = ipodStore.tracks[ipodStore.currentIndex];
 
-  const runningApps = Object.entries(appStore.apps)
-    .filter(([, appState]) => appState.isOpen)
-    .map(([appId, appState]) => ({
-      id: appId,
-      isForeground: appState.isForeground || false,
-    }));
+  // Use new instance-based model
+  const openInstances = Object.values(appStore.instances).filter(
+    (inst) => inst.isOpen
+  );
 
-  const foregroundApp = runningApps.find((app) => app.isForeground)?.id || null;
-  const backgroundApps = runningApps
-    .filter((app) => !app.isForeground)
-    .map((app) => app.id);
+  const foregroundInstanceId =
+    appStore.instanceWindowOrder.length > 0
+      ? appStore.instanceWindowOrder[appStore.instanceWindowOrder.length - 1]
+      : null;
+
+  const foregroundInstance = foregroundInstanceId
+    ? appStore.instances[foregroundInstanceId]
+    : null;
+
+  const foregroundApp = foregroundInstance?.appId || null;
+
+  const backgroundApps = openInstances
+    .filter((inst) => inst.instanceId !== foregroundInstanceId)
+    .map((inst) => inst.appId);
 
   return {
+    // Keep legacy apps for backward compatibility; include instances
     apps: appStore.apps,
+    instances: appStore.instances,
     runningApps: {
       foreground: foregroundApp,
       background: backgroundApps,
-      windowOrder: appStore.windowOrder,
+      instanceWindowOrder: appStore.instanceWindowOrder,
     },
     internetExplorer: {
       url: ieStore.url,
