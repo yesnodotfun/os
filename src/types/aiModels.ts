@@ -14,6 +14,10 @@ export const AI_MODELS = {
     name: "claude-3.5",
     provider: "Anthropic",
   },
+  "claude-4": {
+    name: "claude-4",
+    provider: "Anthropic",
+  },
   "gpt-4o": {
     name: "gpt-4o",
     provider: "OpenAI",
@@ -50,4 +54,4 @@ export const AI_MODEL_METADATA: AIModelInfo[] = Object.entries(AI_MODELS).map(
 );
 
 // Default model
-export const DEFAULT_AI_MODEL: SupportedModel = "claude-3.7"; 
+export const DEFAULT_AI_MODEL: SupportedModel = "claude-4";
