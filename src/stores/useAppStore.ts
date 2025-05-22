@@ -683,21 +683,16 @@ export const useAppStore = create<AppStoreState>()(
                 : null;
           }
 
+          // Actually remove the closed instance from the store
+          delete newInstances[instanceId];
+
+          // Update foreground status for remaining instances
           Object.keys(newInstances).forEach((id) => {
-            if (id === instanceId) {
-              newInstances[id] = {
-                ...newInstances[id],
-                isOpen: false,
-                isForeground: false,
-                initialData: undefined, // Clear initial data on close
-              };
-            } else {
-              newInstances[id] = {
-                ...newInstances[id],
-                // Bring the selected next instance to foreground
-                isForeground: id === nextForegroundInstanceId,
-              };
-            }
+            newInstances[id] = {
+              ...newInstances[id],
+              // Bring the selected next instance to foreground
+              isForeground: id === nextForegroundInstanceId,
+            };
           });
 
           const newState = {
@@ -718,7 +713,7 @@ export const useAppStore = create<AppStoreState>()(
           );
           window.dispatchEvent(instanceStateChangeEvent);
           console.log(
-            `Instance ${instanceId} closed. New instance order:`,
+            `Instance ${instanceId} closed and removed. New instance order:`,
             newInstanceWindowOrder
           );
           console.log(
@@ -885,12 +880,24 @@ export const useAppStore = create<AppStoreState>()(
         ttsVoice: state.ttsVoice,
         ipodVolume: state.ipodVolume,
         masterVolume: state.masterVolume,
-        instances: state.instances,
+        // Only persist open instances to avoid storing closed instances
+        instances: Object.fromEntries(
+          Object.entries(state.instances).filter(
+            ([_, instance]) => instance.isOpen
+          )
+        ),
         instanceWindowOrder: state.instanceWindowOrder,
         nextInstanceId: state.nextInstanceId,
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {
+          // Clean up instanceWindowOrder to remove any non-existent instance IDs
+          if (state.instanceWindowOrder && state.instances) {
+            state.instanceWindowOrder = state.instanceWindowOrder.filter(
+              (instanceId) => state.instances[instanceId]
+            );
+          }
+
           // Migrate old app states to instances
           const hasOldOpenApps = Object.values(state.apps || {}).some(
             (app) => app.isOpen
