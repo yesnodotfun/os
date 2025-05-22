@@ -167,34 +167,42 @@ const generateDynamicSystemPrompt = (systemState?: SystemState) => {
   if (!systemState) return "";
 
   let prompt = `<system_state>
-    ${
-      systemState.username
-        ? `CURRENT USER: ${systemState.username}`
-        : "CURRENT USER: you"
-    }
+## USER CONTEXT
+Current User: ${systemState.username || "you"}
 
-SYSTEM STATE:
-
-- Ryo local time: ${timeString} on ${dateString} (${ryoTimeZone})`;
+## TIME & LOCATION
+Ryo Time: ${timeString} on ${dateString} (${ryoTimeZone})`;
 
   if (systemState.userLocalTime) {
-    prompt += `\n- User local time: ${systemState.userLocalTime.timeString} on ${systemState.userLocalTime.dateString} (${systemState.userLocalTime.timeZone})`;
+    prompt += `
+User Time: ${systemState.userLocalTime.timeString} on ${systemState.userLocalTime.dateString} (${systemState.userLocalTime.timeZone})`;
   }
+
   if (systemState.requestGeo) {
-    prompt += `\n- User location (inferred from IP, may be inaccurate): ${[
+    const location = [
       systemState.requestGeo.city,
       systemState.requestGeo.country,
     ]
       .filter(Boolean)
-      .join(", ")}`;
+      .join(", ");
+    prompt += `
+User Location: ${location} (inferred from IP, may be inaccurate)`;
   }
+
+  // Applications Section
+  prompt += `\n\n## RUNNING APPLICATIONS`;
+
   if (systemState.runningApps?.foreground) {
-    prompt += `\n- Foreground App: ${systemState.runningApps.foreground.appId}${
-      systemState.runningApps.foreground.title
-        ? ` (${systemState.runningApps.foreground.title})`
-        : ""
-    }`;
+    const foregroundTitle = systemState.runningApps.foreground.title
+      ? ` (${systemState.runningApps.foreground.title})`
+      : "";
+    prompt += `
+Foreground: ${systemState.runningApps.foreground.appId}${foregroundTitle}`;
+  } else {
+    prompt += `
+Foreground: None`;
   }
+
   if (
     systemState.runningApps?.background &&
     systemState.runningApps.background.length > 0
@@ -202,39 +210,53 @@ SYSTEM STATE:
     const backgroundApps = systemState.runningApps.background
       .map((inst) => inst.appId + (inst.title ? ` (${inst.title})` : ""))
       .join(", ");
-    prompt += `\n- Background Apps: ${backgroundApps}`;
+    prompt += `
+Background: ${backgroundApps}`;
+  } else {
+    prompt += `
+Background: None`;
   }
+
+  // Media Section
+  let hasMedia = false;
+
   if (systemState.video.currentVideo && systemState.video.isPlaying) {
-    prompt += `\n- Videos Now Playing: ${systemState.video.currentVideo.title}${
-      systemState.video.currentVideo.artist
-        ? ` by ${systemState.video.currentVideo.artist}`
-        : ""
-    }`;
+    if (!hasMedia) {
+      prompt += `\n\n## MEDIA PLAYBACK`;
+      hasMedia = true;
+    }
+    const videoArtist = systemState.video.currentVideo.artist
+      ? ` by ${systemState.video.currentVideo.artist}`
+      : "";
+    prompt += `
+Video: ${systemState.video.currentVideo.title}${videoArtist} (Playing)`;
   }
+
   // Check if iPod app is open
   const hasOpenIpod =
     systemState.runningApps?.foreground?.appId === "ipod" ||
     systemState.runningApps?.background?.some((app) => app.appId === "ipod");
 
   if (hasOpenIpod && systemState.ipod?.currentTrack) {
-    const playingStatus = systemState.ipod.isPlaying
-      ? "Now Playing"
-      : "Current Track";
-    prompt += `\n- iPod ${playingStatus}: ${
-      systemState.ipod.currentTrack.title
-    }${
-      systemState.ipod.currentTrack.artist
-        ? ` by ${systemState.ipod.currentTrack.artist}`
-        : ""
-    }`;
+    if (!hasMedia) {
+      prompt += `\n\n## MEDIA PLAYBACK`;
+      hasMedia = true;
+    }
+    const playingStatus = systemState.ipod.isPlaying ? "Playing" : "Paused";
+    const trackArtist = systemState.ipod.currentTrack.artist
+      ? ` by ${systemState.ipod.currentTrack.artist}`
+      : "";
+    prompt += `
+iPod: ${systemState.ipod.currentTrack.title}${trackArtist} (${playingStatus})`;
+
     if (systemState.ipod.currentLyrics?.lines) {
-      prompt += `\n- Current Lyrics:\n${systemState.ipod.currentLyrics.lines
-        .map((line) => line.words)
-        .join("\n")}`;
+      prompt += `
+Current Lyrics:
+${systemState.ipod.currentLyrics.lines.map((line) => line.words).join("\n")}`;
     }
   }
-  // Include iPod library only if iPod app is open
 
+  // iPod Library (only if app is open)
   if (
     hasOpenIpod &&
     systemState.ipod?.library &&
@@ -244,32 +266,43 @@ SYSTEM STATE:
       .slice(0, 60) // limit to first 60 songs to avoid overly long prompts
       .map((t) => `${t.title}${t.artist ? ` - ${t.artist}` : ""}`)
       .join("; ");
-    prompt += `\n- iPod Library Titles and Artists (${Math.min(
-      systemState.ipod.library.length,
-      60
-    )} shown): ${songList}`;
+    prompt += `\n\n## IPOD LIBRARY
+Available Songs (${Math.min(systemState.ipod.library.length, 60)} of ${
+      systemState.ipod.library.length
+    } shown):
+${songList}`;
   }
+
+  // Browser Section
   if (systemState.internetExplorer.url) {
-    prompt += `\n- Browser URL: ${systemState.internetExplorer.url}\n- Time Travel Year: ${systemState.internetExplorer.year}`;
+    prompt += `\n\n## INTERNET EXPLORER
+URL: ${systemState.internetExplorer.url}
+Time Travel Year: ${systemState.internetExplorer.year}`;
+
     if (systemState.internetExplorer.currentPageTitle) {
-      prompt += `\n- Page Title: ${systemState.internetExplorer.currentPageTitle}`;
+      prompt += `
+Page Title: ${systemState.internetExplorer.currentPageTitle}`;
     }
+
     const htmlMd = systemState.internetExplorer.aiGeneratedMarkdown;
     if (htmlMd) {
-      prompt += `\n- Page Markdown:\n${htmlMd}`;
+      prompt += `
+Page Content (Markdown):
+${htmlMd}`;
     }
   }
-  // Handle multiple TextEdit instances
+
+  // TextEdit Section
   if (
     systemState.textEdit?.instances &&
     systemState.textEdit.instances.length > 0
   ) {
-    prompt += `\n- TextEdit Windows (${systemState.textEdit.instances.length} open):`;
+    prompt += `\n\n## TEXTEDIT DOCUMENTS (${systemState.textEdit.instances.length} open)`;
+
     systemState.textEdit.instances.forEach((instance, index) => {
-      const unsavedMark = instance.hasUnsavedChanges ? "*" : "";
-      prompt += `\n  ${index + 1}. ${
-        instance.title
-      }${unsavedMark} (instanceId: ${instance.instanceId})`;
+      const unsavedMark = instance.hasUnsavedChanges ? " *" : "";
+      prompt += `
+${index + 1}. ${instance.title}${unsavedMark} (ID: ${instance.instanceId})`;
 
       if (instance.contentMarkdown) {
         // Limit content preview to avoid overly long prompts
@@ -277,7 +310,9 @@ SYSTEM STATE:
           instance.contentMarkdown.length > 500
             ? instance.contentMarkdown.substring(0, 500) + "..."
             : instance.contentMarkdown;
-        prompt += `\n     Content:\n${preview}`;
+        prompt += `
+   Content:
+   ${preview}`;
       }
     });
   }
@@ -285,13 +320,16 @@ SYSTEM STATE:
   prompt += `\n</system_state>`;
 
   if (systemState.chatRoomContext) {
-    prompt += `\n<chat_room_reply_instructions>
-CHAT ROOM REPLIES:
-- You are responding to @ryo mention in chat room ID: ${systemState.chatRoomContext.roomId}
-- Recent conversation:
+    prompt += `\n\n<chat_room_reply_instructions>
+## CHAT ROOM CONTEXT
+Room ID: ${systemState.chatRoomContext.roomId}
+Your Role: Respond as 'ryo' in this IRC-style chat room
+Response Style: Use extremely concise responses
+
+Recent Conversation:
 ${systemState.chatRoomContext.recentMessages}
-- You were mentioned with message: "${systemState.chatRoomContext.mentionedMessage}"
-- Respond as 'ryo' in this IRC-style chat room context. Use extremely concise responses replying to the recent conversation in the chat room.
+
+Mentioned Message: "${systemState.chatRoomContext.mentionedMessage}"
 </chat_room_reply_instructions>`;
   }
 
