@@ -98,61 +98,77 @@ const getSystemState = () => {
   const ipodStore = useIpodStore.getState();
   const textEditStore = useTextEditStore.getState();
 
-  // Use new instance-based model
-  const openInstances = Object.values(appStore.instances).filter(
-    (inst) => inst.isOpen
-  );
-
-  // Determine foreground instance (the one marked foreground or last in order)
-  const foregroundInstanceId =
-    appStore.instanceWindowOrder.length > 0
-      ? appStore.instanceWindowOrder[appStore.instanceWindowOrder.length - 1]
+  const currentVideo = videoStore.videos[videoStore.currentIndex];
+  const currentTrack =
+    ipodStore.tracks &&
+    ipodStore.currentIndex >= 0 &&
+    ipodStore.currentIndex < ipodStore.tracks.length
+      ? ipodStore.tracks[ipodStore.currentIndex]
       : null;
 
-  const foregroundInstance = foregroundInstanceId
-    ? appStore.instances[foregroundInstanceId]
-    : null;
+  // Use new instance-based model instead of legacy apps
+  const runningInstances = Object.entries(appStore.instances)
+    .filter(([, instance]) => instance.isOpen)
+    .map(([instanceId, instance]) => ({
+      instanceId,
+      appId: instance.appId,
+      isForeground: instance.isForeground || false,
+      title: instance.title,
+    }));
 
-  const foregroundApp = foregroundInstance?.appId || null;
+  const foregroundInstance =
+    runningInstances.find((inst) => inst.isForeground) || null;
+  const backgroundInstances = runningInstances.filter(
+    (inst) => !inst.isForeground
+  );
 
-  const backgroundApps = openInstances
-    .filter((inst) => inst.instanceId !== foregroundInstanceId)
-    .map((inst) => inst.appId);
-
-  const now = new Date();
+  // --- Local browser time information (client side) ---
+  const nowClient = new Date();
   const userTimeZone =
     Intl.DateTimeFormat().resolvedOptions().timeZone || "Unknown";
-  const userTimeString = now.toLocaleTimeString([], {
+  const userTimeString = nowClient.toLocaleTimeString([], {
     hour: "numeric",
     minute: "2-digit",
     hour12: true,
   });
-  const userDateString = now.toLocaleDateString([], {
+  const userDateString = nowClient.toLocaleDateString([], {
     weekday: "long",
     year: "numeric",
     month: "long",
     day: "numeric",
   });
 
-  const currentVideo = videoStore.videos[videoStore.currentIndex];
-  const currentTrack = ipodStore.tracks[ipodStore.currentIndex];
-
-  // Convert TextEdit JSON to compact markdown for prompt inclusion
-  let contentMarkdown: string | null = null;
-  if (textEditStore.contentJson) {
-    try {
-      const htmlStr = generateHTML(textEditStore.contentJson, [
-        StarterKit,
-        Underline,
-        TextAlign.configure({ types: ["heading", "paragraph"] }),
-        TaskList,
-        TaskItem.configure({ nested: true }),
-      ] as AnyExtension[]);
-      contentMarkdown = htmlToMarkdown(htmlStr);
-    } catch (err) {
-      console.error("Failed to convert TextEdit content to markdown:", err);
+  // Convert TextEdit instances to compact markdown for prompt inclusion
+  const textEditInstances = Object.values(textEditStore.instances);
+  const textEditInstancesData = textEditInstances.map((instance) => {
+    let contentMarkdown: string | null = null;
+    if (instance.contentJson) {
+      try {
+        const htmlStr = generateHTML(instance.contentJson, [
+          StarterKit,
+          Underline,
+          TextAlign.configure({ types: ["heading", "paragraph"] }),
+          TaskList,
+          TaskItem.configure({ nested: true }),
+        ] as AnyExtension[]);
+        contentMarkdown = htmlToMarkdown(htmlStr);
+      } catch (err) {
+        console.error("Failed to convert TextEdit content to markdown:", err);
+      }
     }
-  }
+
+    // Get title from app store instance
+    const appInstance = appStore.instances[instance.instanceId];
+    const title = appInstance?.title || "Untitled";
+
+    return {
+      instanceId: instance.instanceId,
+      filePath: instance.filePath,
+      title,
+      contentMarkdown,
+      hasUnsavedChanges: instance.hasUnsavedChanges,
+    };
+  });
 
   // Convert IE HTML content to markdown for compact prompts
   let ieHtmlMarkdown: string | null = null;
@@ -165,9 +181,8 @@ const getSystemState = () => {
   }
 
   return {
-    // Keep legacy apps for backward compatibility; primary info in instances
+    // Keep legacy apps for backward compatibility, but mark that instances are preferred
     apps: appStore.apps,
-    instances: appStore.instances,
     username,
     userLocalTime: {
       timeString: userTimeString,
@@ -175,8 +190,8 @@ const getSystemState = () => {
       timeZone: userTimeZone,
     },
     runningApps: {
-      foreground: foregroundApp,
-      background: backgroundApps,
+      foreground: foregroundInstance,
+      background: backgroundInstances,
       instanceWindowOrder: appStore.instanceWindowOrder,
     },
     internetExplorer: {
@@ -215,7 +230,6 @@ const getSystemState = () => {
       loopCurrent: ipodStore.loopCurrent,
       isShuffled: ipodStore.isShuffled,
       currentLyrics: ipodStore.currentLyrics,
-      // Provide a concise list of all songs in the iPod library so the AI can search them
       library: ipodStore.tracks.map((t) => ({
         id: t.id,
         title: t.title,
@@ -223,9 +237,7 @@ const getSystemState = () => {
       })),
     },
     textEdit: {
-      lastFilePath: textEditStore.lastFilePath,
-      contentMarkdown,
-      hasUnsavedChanges: textEditStore.hasUnsavedChanges,
+      instances: textEditInstancesData,
     },
   };
 };
