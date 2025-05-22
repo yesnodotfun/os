@@ -254,7 +254,10 @@ function FullScreenPortal({
   }, [isPlaying]); // Only isPlaying as dependency
 
   return createPortal(
-    <div ref={containerRef} className="fixed inset-0 z-[9999] bg-black">
+    <div
+      ref={containerRef}
+      className="fixed inset-0 z-[9999] bg-black select-none"
+    >
       <div className="absolute top-6 right-6 z-[10001] pointer-events-auto">
         <button
           onClick={onClose}
