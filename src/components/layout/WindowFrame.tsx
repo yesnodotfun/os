@@ -64,8 +64,7 @@ export function WindowFrame({
   const [isOpen, setIsOpen] = useState(true);
   const [isVisible, setIsVisible] = useState(true);
   const [isInitialMount, setIsInitialMount] = useState(true);
-  const { bringToForeground, navigateToNextApp, navigateToPreviousApp } =
-    useAppContext();
+  const { bringToForeground } = useAppContext();
   const bringInstanceToForeground = useAppStore(
     (state) => state.bringInstanceToForeground
   );
@@ -102,22 +101,28 @@ export function WindowFrame({
   } = useSwipeNavigation({
     currentAppId: appId as AppId,
     isActive: isMobile && isForeground,
-    onSwipeLeft: (currentAppId) => {
+    onSwipeLeft: () => {
       playWindowMoveStop();
       vibrateSwap();
       if (instanceId && onNavigateNext) {
         onNavigateNext();
       } else {
-        navigateToNextApp(currentAppId);
+        // Fallback for legacy non-instance apps - shouldn't happen in instance-only system
+        console.warn(
+          `[WindowFrame] No instance navigation available for ${appId}`
+        );
       }
     },
-    onSwipeRight: (currentAppId) => {
+    onSwipeRight: () => {
       playWindowMoveStop();
       vibrateSwap();
       if (instanceId && onNavigatePrevious) {
         onNavigatePrevious();
       } else {
-        navigateToPreviousApp(currentAppId);
+        // Fallback for legacy non-instance apps - shouldn't happen in instance-only system
+        console.warn(
+          `[WindowFrame] No instance navigation available for ${appId}`
+        );
       }
     },
     threshold: 100,
@@ -225,7 +230,7 @@ export function WindowFrame({
       if (instanceId) {
         updateInstanceWindowState(instanceId, windowPosition, newSize);
       } else {
-        updateWindowState(appId as any, windowPosition, newSize);
+        updateWindowState(appId, windowPosition, newSize);
       }
     } else {
       // Play expand sound when maximizing height
@@ -257,7 +262,7 @@ export function WindowFrame({
       if (instanceId) {
         updateInstanceWindowState(instanceId, newPosition, newSize);
       } else {
-        updateWindowState(appId as any, newPosition, newSize);
+        updateWindowState(appId, newPosition, newSize);
       }
     }
   };
@@ -311,7 +316,7 @@ export function WindowFrame({
           );
         } else {
           updateWindowState(
-            appId as any,
+            appId,
             window.innerWidth >= 768 ? newPosition : windowPosition,
             defaultSize
           );
@@ -369,7 +374,7 @@ export function WindowFrame({
         if (instanceId) {
           updateInstanceWindowState(instanceId, newPosition, newSize);
         } else {
-          updateWindowState(appId as any, newPosition, newSize);
+          updateWindowState(appId, newPosition, newSize);
         }
       }
     },

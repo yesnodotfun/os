@@ -3,8 +3,8 @@ import { AppId } from "@/config/appRegistry";
 
 interface SwipeNavigationOptions {
   threshold?: number; // Minimum swipe distance to trigger navigation
-  onSwipeLeft?: (currentAppId: AppId) => void;
-  onSwipeRight?: (currentAppId: AppId) => void;
+  onSwipeLeft?: () => void;
+  onSwipeRight?: () => void;
   currentAppId: AppId;
   isActive: boolean;
 }
@@ -66,10 +66,10 @@ export function useSwipeNavigation({
     if (absDiff > threshold) {
       if (diff > 0) {
         // Swiped left
-        onSwipeLeft?.(currentAppId);
+        onSwipeLeft?.();
       } else {
         // Swiped right
-        onSwipeRight?.(currentAppId);
+        onSwipeRight?.();
       }
     }
 
