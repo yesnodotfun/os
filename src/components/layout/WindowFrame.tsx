@@ -9,7 +9,7 @@ import { getWindowConfig } from "@/config/appRegistry";
 import { useSwipeNavigation } from "@/hooks/useSwipeNavigation";
 import { AppId } from "@/config/appIds";
 import { useIsMobile } from "@/hooks/useIsMobile";
-import { useAppStore } from "@/stores/useAppStore";
+import { useAppStoreShallow } from "@/stores/helpers";
 
 interface WindowFrameProps {
   children: React.ReactNode;
@@ -68,9 +68,17 @@ export function WindowFrame({
   const [isVisible, setIsVisible] = useState(true);
   const [isInitialMount, setIsInitialMount] = useState(true);
   const { bringToForeground } = useAppContext();
-  const bringInstanceToForeground = useAppStore(
-    (state) => state.bringInstanceToForeground
-  );
+  const {
+    bringInstanceToForeground,
+    debugMode,
+    updateWindowState,
+    updateInstanceWindowState,
+  } = useAppStoreShallow((state) => ({
+    bringInstanceToForeground: state.bringInstanceToForeground,
+    debugMode: state.debugMode,
+    updateWindowState: state.updateWindowState,
+    updateInstanceWindowState: state.updateInstanceWindowState,
+  }));
   const { play: playWindowOpen } = useSound(Sounds.WINDOW_OPEN);
   const { play: playWindowClose } = useSound(Sounds.WINDOW_CLOSE);
   const { play: playWindowExpand } = useSound(Sounds.WINDOW_EXPAND);
@@ -89,10 +97,6 @@ export function WindowFrame({
   const lastToggleTimeRef = useRef<number>(0);
   // Keep track of window size before maximizing to restore it later
   const previousSizeRef = useRef({ width: 0, height: 0 });
-  const { debugMode, updateWindowState } = useAppStore();
-  const updateInstanceWindowState = useAppStore(
-    (state) => state.updateInstanceWindowState
-  );
 
   // Setup swipe navigation for mobile
   const {
