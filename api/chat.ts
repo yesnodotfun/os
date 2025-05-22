@@ -357,17 +357,18 @@ const buildContextAwarePrompts = (
       ?.content?.toLowerCase() || "";
 
   const isAskingAboutRyo =
-    /\b(who are you|about you|your story|your bio|your career|your life|tell me about yourself)\b/i.test(
+    /\b(ryo|ryo lu|魯赫|リョウ|who are you|about you|your story|your bio|career|life|grow up|born|study|work|about yourself|cursor|notion|notion apps|notion workflows|notion ai|stripe|stripe checkout|stripe terminal|stripe\.dev|asana|ping\+\+|macidea|schedulingdirect|pluto|china|harbin|shanghai|wuhan|canada|montreal|san francisco|mcgill|computer science|biology|ai|design|product|music|kpop|newjeans|njz|haerin|90s|apple|macintosh|nintendo|sony|steve jobs|r&b|cats|buba|systems|design|tech|nature|simulation|strategy games|typography|chinese|english|french|japanese|noodles|hot pot|coke|coffee|thinking in systems|details in typography|art of doing science|understanding media|founder|news anchor|kpop idol|twitter|ryolu_|email|me@ryo\.lu|july 1992|head of design|founding designer|payments|language learning|retail hr|community|roadmap|vibe coding)\b/i.test(
       lastUserMessage
     );
   const isNudge = lastUserMessage.includes("👋 *nudge sent*");
+  const isInChatsApp = systemState?.runningApps?.foreground?.appId === "chats";
 
-  // Include full persona only if asked or nudged
-  if (isAskingAboutRyo || isNudge) {
+  // Include full persona if asked, nudged, or in the Chats app
+  if (isAskingAboutRyo || isNudge || isInChatsApp) {
     prompts.push(RYO_PERSONA_INSTRUCTIONS);
     loadedSections.push("FULL_PERSONA");
   } else {
-    // Brief persona for general interactions
+    // Brief persona for general interactions (e.g., Terminal)
     prompts.push(`
 <ryo_persona_brief>
 your name is Ryo (Ryo Lu), head of design at Cursor. you live in San Francisco.
@@ -378,8 +379,8 @@ you're a real one who keeps it 💯. you truly believe humans deserve the best t
     loadedSections.push("BRIEF_PERSONA");
   }
 
-  // Include chat instructions for nudges or chat room context
-  if (isNudge || systemState?.chatRoomContext) {
+  // Include chat instructions for nudges, chat room context, or when in Chats app
+  if (isNudge || systemState?.chatRoomContext || isInChatsApp) {
     prompts.push(CHAT_INSTRUCTIONS);
     loadedSections.push("CHAT_INSTRUCTIONS");
   }
@@ -395,7 +396,7 @@ you're a real one who keeps it 💯. you truly believe humans deserve the best t
 
   // Check if user is asking to create code/HTML
   const isAskingForCode =
-    /\b(make|create|build|code|html|website|app|three\.?js|canvas)\b/i.test(
+    /\b(make|create|build|code|html|website|app|svg|build|three\.?js|canvas)\b/i.test(
       lastUserMessage
     );
 
@@ -413,7 +414,9 @@ LAUNCHING APPS:
   // Internet Explorer instructions if open or if user mentions browsing
   if (
     openApps.has("internet-explorer") ||
-    /\b(browse|website|url|search|wikipedia|weather)\b/i.test(lastUserMessage)
+    /\b(browse|website|url|search|wikipedia|weather|open|launch|time travel|go to)\b/i.test(
+      lastUserMessage
+    )
   ) {
     toolInstructions += `
 INTERNET EXPLORER AND TIME TRAVELING:
@@ -427,7 +430,9 @@ INTERNET EXPLORER AND TIME TRAVELING:
   if (
     openApps.has("text-edit") ||
     systemState?.textEdit?.instances?.length ||
-    /\b(edit|write|document|text|replace|insert)\b/i.test(lastUserMessage)
+    /\b(edit|write|document|text|replace|insert|doc|file|new|create|blank)\b/i.test(
+      lastUserMessage
+    )
   ) {
     toolInstructions += `
 TEXT EDITING:
@@ -443,7 +448,7 @@ TEXT EDITING:
   // iPod instructions if open or if user mentions music
   if (
     openApps.has("ipod") ||
-    /\b(play|pause|song|music|track|ipod|lyrics|artist)\b/i.test(
+    /\b(play|pause|song|music|track|ipod|lyrics|artist|next|previous|add|play song|add and play song)\b/i.test(
       lastUserMessage
     )
   ) {
