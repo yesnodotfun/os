@@ -9,24 +9,26 @@ export const useSoundboard = () => {
   const boards = useSoundboardStore((state) => state.boards);
   const activeBoardId = useSoundboardStore((state) => state.activeBoardId);
   const playbackStates = useSoundboardStore((state) => state.playbackStates);
-  const initializeBoards = useSoundboardStore((state) => state.initializeBoards);
+  const initializeBoards = useSoundboardStore(
+    (state) => state.initializeBoards
+  );
   const addNewBoardAction = useSoundboardStore((state) => state.addNewBoard);
-  const updateBoardNameAction = useSoundboardStore((state) => state.updateBoardName);
+  const updateBoardNameAction = useSoundboardStore(
+    (state) => state.updateBoardName
+  );
   const deleteBoardAction = useSoundboardStore((state) => state.deleteBoard);
-  const setActiveBoardIdAction = useSoundboardStore((state) => state.setActiveBoardId);
+  const setActiveBoardIdAction = useSoundboardStore(
+    (state) => state.setActiveBoardId
+  );
   const updateSlotAction = useSoundboardStore((state) => state.updateSlot);
   const deleteSlotAction = useSoundboardStore((state) => state.deleteSlot);
-  const setSlotPlaybackStateAction = useSoundboardStore((state) => state.setSlotPlaybackState);
+  const setSlotPlaybackStateAction = useSoundboardStore(
+    (state) => state.setSlotPlaybackState
+  );
 
   const audioRefs = useRef<(HTMLAudioElement | null)[]>(Array(9).fill(null));
 
-  useEffect(() => {
-    // Initialize boards if the store is empty after rehydration
-    // The store's onRehydrateStorage also attempts this, but this is a fallback.
-    if (boards.length === 0) {
-      initializeBoards();
-    }
-  }, [boards.length, initializeBoards]);
+  // Removed automatic initialization - now handled by the app component
 
   const activeBoard = boards.find((b) => b.id === activeBoardId);
 
@@ -69,9 +71,12 @@ export const useSoundboard = () => {
     [activeBoardId, deleteSlotAction]
   );
 
-  const updateSlotState = useCallback((index: number, isPlaying: boolean, isRecording?: boolean) => {
-    setSlotPlaybackStateAction(index, isPlaying, isRecording);
-  }, [setSlotPlaybackStateAction]);
+  const updateSlotState = useCallback(
+    (index: number, isPlaying: boolean, isRecording?: boolean) => {
+      setSlotPlaybackStateAction(index, isPlaying, isRecording);
+    },
+    [setSlotPlaybackStateAction]
+  );
 
   const playSound = useCallback(
     (index: number) => {
@@ -91,7 +96,7 @@ export const useSoundboard = () => {
       audioRefs.current[index] = audio;
       updateSlotState(index, true, false); // isPlaying: true, isRecording: false
 
-      audio.play().catch(error => {
+      audio.play().catch((error) => {
         console.error("Error playing sound:", error);
         updateSlotState(index, false, false);
       });

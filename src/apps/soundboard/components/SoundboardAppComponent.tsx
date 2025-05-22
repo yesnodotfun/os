@@ -47,6 +47,18 @@ export function SoundboardAppComponent({
     stopSound,
   } = useSoundboard();
 
+  // Initialize soundboard data on first mount
+  const initializeBoards = useSoundboardStore(
+    (state) => state.initializeBoards
+  );
+  const hasInitialized = useSoundboardStore((state) => state.hasInitialized);
+
+  useEffect(() => {
+    if (!hasInitialized) {
+      initializeBoards();
+    }
+  }, [hasInitialized, initializeBoards]);
+
   const storeSetSlotPlaybackState = useSoundboardStore(
     (state) => state.setSlotPlaybackState
   );
@@ -324,7 +336,7 @@ export function SoundboardAppComponent({
     };
   }, [activeBoard, playbackStates, playSound, stopSound, isForeground]);
 
-  if (!activeBoard || !activeBoardId) {
+  if (!hasInitialized || !activeBoard || !activeBoardId) {
     return (
       <WindowFrame
         title="Soundboard"
@@ -334,7 +346,9 @@ export function SoundboardAppComponent({
         skipInitialSound={skipInitialSound}
       >
         <div className="flex-1 flex items-center justify-center">
-          Loading soundboard...
+          {!hasInitialized
+            ? "Initializing soundboard..."
+            : "Loading soundboard..."}
         </div>
       </WindowFrame>
     );

@@ -18,6 +18,7 @@ export interface SoundboardStoreState {
   activeBoardId: string | null;
   playbackStates: PlaybackState[];
   selectedDeviceId: string | null;
+  hasInitialized: boolean;
 
   // Actions
   initializeBoards: () => Promise<void>;
@@ -54,54 +55,72 @@ export const useSoundboardStore = create<SoundboardStoreState>()(
         isPlaying: false,
       }) as PlaybackState[],
       selectedDeviceId: null,
+      hasInitialized: false,
 
       initializeBoards: async () => {
+        if (get().hasInitialized) {
+          return;
+        }
+
         const currentBoards = get().boards;
 
-        if (currentBoards.length === 0) {
-          try {
-            const response = await fetch("/data/soundboards.json");
-            if (!response.ok)
-              throw new Error(
-                "Failed to fetch soundboards.json status: " + response.status
-              );
-            const data = await response.json();
-            const importedBoardsRaw =
-              data.boards || (Array.isArray(data) ? data : [data]);
-
-            const importedBoards = importedBoardsRaw.map((boardData: any) => ({
-              id:
-                boardData.id ||
-                Date.now().toString() + Math.random().toString(36).slice(2),
-              name: boardData.name || "Imported Soundboard",
-              slots: (boardData.slots || Array(9).fill(null)).map(
-                (slotData: any) => ({
-                  audioData: slotData?.audioData || null,
-                  emoji: slotData?.emoji || undefined,
-                  title: slotData?.title || undefined,
-                })
-              ),
-            })) as Soundboard[];
-
-            if (importedBoards.length > 0) {
-              set({
-                boards: importedBoards,
-                activeBoardId: importedBoards[0].id,
-              });
-            } else {
-              const defaultBoard = createDefaultBoard();
-              set({ boards: [defaultBoard], activeBoardId: defaultBoard.id });
-            }
-          } catch (error) {
-            console.error(
-              "Error loading initial soundboards, creating default:",
-              error
-            );
-            const defaultBoard = createDefaultBoard();
-            set({ boards: [defaultBoard], activeBoardId: defaultBoard.id });
+        if (currentBoards.length > 0) {
+          set({ hasInitialized: true });
+          if (!get().activeBoardId) {
+            set({ activeBoardId: currentBoards[0].id });
           }
-        } else if (!get().activeBoardId && currentBoards.length > 0) {
-          set({ activeBoardId: currentBoards[0].id });
+          return;
+        }
+
+        try {
+          const response = await fetch("/data/soundboards.json");
+          if (!response.ok)
+            throw new Error(
+              "Failed to fetch soundboards.json status: " + response.status
+            );
+          const data = await response.json();
+          const importedBoardsRaw =
+            data.boards || (Array.isArray(data) ? data : [data]);
+
+          const importedBoards = importedBoardsRaw.map((boardData: any) => ({
+            id:
+              boardData.id ||
+              Date.now().toString() + Math.random().toString(36).slice(2),
+            name: boardData.name || "Imported Soundboard",
+            slots: (boardData.slots || Array(9).fill(null)).map(
+              (slotData: any) => ({
+                audioData: slotData?.audioData || null,
+                emoji: slotData?.emoji || undefined,
+                title: slotData?.title || undefined,
+              })
+            ),
+          })) as Soundboard[];
+
+          if (importedBoards.length > 0) {
+            set({
+              boards: importedBoards,
+              activeBoardId: importedBoards[0].id,
+              hasInitialized: true,
+            });
+          } else {
+            const defaultBoard = createDefaultBoard();
+            set({
+              boards: [defaultBoard],
+              activeBoardId: defaultBoard.id,
+              hasInitialized: true,
+            });
+          }
+        } catch (error) {
+          console.error(
+            "Error loading initial soundboards, creating default:",
+            error
+          );
+          const defaultBoard = createDefaultBoard();
+          set({
+            boards: [defaultBoard],
+            activeBoardId: defaultBoard.id,
+            hasInitialized: true,
+          });
         }
       },
 
@@ -192,6 +211,7 @@ export const useSoundboardStore = create<SoundboardStoreState>()(
             isPlaying: false,
           }),
           selectedDeviceId: null,
+          hasInitialized: true, // Mark as initialized after reset
         });
       },
 
@@ -204,41 +224,41 @@ export const useSoundboardStore = create<SoundboardStoreState>()(
         boards: state.boards,
         activeBoardId: state.activeBoardId,
         selectedDeviceId: state.selectedDeviceId,
+        hasInitialized: state.hasInitialized,
       }),
       onRehydrateStorage: () => {
         return (state, error) => {
           if (error) {
             console.error("Error rehydrating soundboard store:", error);
           } else if (state) {
-            if (!state.boards || state.boards.length === 0) {
-              Promise.resolve(state.initializeBoards()).catch((err) =>
-                console.error("Initialization failed on rehydrate", err)
-              );
-            } else {
+            // Don't auto-initialize - wait for the app to open
+            // Just fix any data inconsistencies
+            if (state.boards && state.boards.length > 0) {
               if (
                 state.activeBoardId &&
                 !state.boards.find((b) => b.id === state.activeBoardId)
               ) {
-                state.activeBoardId =
-                  state.boards.length > 0 ? state.boards[0].id : null;
-              } else if (!state.activeBoardId && state.boards.length > 0) {
+                state.activeBoardId = state.boards[0].id;
+              } else if (!state.activeBoardId) {
                 state.activeBoardId = state.boards[0].id;
               }
-              if (
-                !state.playbackStates ||
-                state.playbackStates.length !== 9 ||
-                !state.playbackStates.every(
-                  (ps) =>
-                    typeof ps === "object" &&
-                    "isPlaying" in ps &&
-                    "isRecording" in ps
-                )
-              ) {
-                state.playbackStates = Array(9).fill({
-                  isRecording: false,
-                  isPlaying: false,
-                });
-              }
+            }
+
+            // Ensure playbackStates are properly initialized
+            if (
+              !state.playbackStates ||
+              state.playbackStates.length !== 9 ||
+              !state.playbackStates.every(
+                (ps) =>
+                  typeof ps === "object" &&
+                  "isPlaying" in ps &&
+                  "isRecording" in ps
+              )
+            ) {
+              state.playbackStates = Array(9).fill({
+                isRecording: false,
+                isPlaying: false,
+              });
             }
           }
         };
