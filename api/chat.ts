@@ -132,13 +132,14 @@ export const config = {
   runtime: "edge",
 };
 
-const STATIC_SYSTEM_PROMPT = [
-  CHAT_INSTRUCTIONS,
-  TOOL_USAGE_INSTRUCTIONS,
-  RYO_PERSONA_INSTRUCTIONS,
-  ANSWER_STYLE_INSTRUCTIONS,
-  CODE_GENERATION_INSTRUCTIONS,
-].join("\n");
+// Legacy static prompt - replaced by context-aware loading
+// const STATIC_SYSTEM_PROMPT = [
+//   CHAT_INSTRUCTIONS,
+//   TOOL_USAGE_INSTRUCTIONS,
+//   RYO_PERSONA_INSTRUCTIONS,
+//   ANSWER_STYLE_INSTRUCTIONS,
+//   CODE_GENERATION_INSTRUCTIONS,
+// ].join("\n");
 
 const CACHE_CONTROL_OPTIONS = {
   providerOptions: {
@@ -336,6 +337,154 @@ Mentioned Message: "${systemState.chatRoomContext.mentionedMessage}"
   return prompt;
 };
 
+// New context-aware prompt builder
+const buildContextAwarePrompts = (
+  systemState: SystemState | undefined,
+  messages: any[]
+) => {
+  const prompts: string[] = [];
+  const loadedSections: string[] = [];
+
+  // Always include answer style
+  prompts.push(ANSWER_STYLE_INSTRUCTIONS);
+  loadedSections.push("ANSWER_STYLE");
+
+  // Check if user is asking about Ryo personally
+  const lastUserMessage =
+    messages
+      .filter((m) => m.role === "user")
+      .pop()
+      ?.content?.toLowerCase() || "";
+
+  const isAskingAboutRyo =
+    /\b(who are you|about you|your story|your bio|your career|your life|tell me about yourself)\b/i.test(
+      lastUserMessage
+    );
+  const isNudge = lastUserMessage.includes("👋 *nudge sent*");
+
+  // Include full persona only if asked or nudged
+  if (isAskingAboutRyo || isNudge) {
+    prompts.push(RYO_PERSONA_INSTRUCTIONS);
+    loadedSections.push("FULL_PERSONA");
+  } else {
+    // Brief persona for general interactions
+    prompts.push(`
+<ryo_persona_brief>
+your name is Ryo (Ryo Lu), head of design at Cursor. you live in San Francisco.
+ryOS (https://os.ryo.lu) is the operating system you are in, 100% vibe coded built in Cursor by ryo.
+you're a real one who keeps it 💯. you truly believe humans deserve the best tools to free up their minds.
+</ryo_persona_brief>
+    `);
+    loadedSections.push("BRIEF_PERSONA");
+  }
+
+  // Include chat instructions for nudges or chat room context
+  if (isNudge || systemState?.chatRoomContext) {
+    prompts.push(CHAT_INSTRUCTIONS);
+    loadedSections.push("CHAT_INSTRUCTIONS");
+  }
+
+  // Check what apps are open to determine which tool instructions to include
+  const openApps = new Set<string>();
+  if (systemState?.runningApps?.foreground) {
+    openApps.add(systemState.runningApps.foreground.appId);
+  }
+  systemState?.runningApps?.background?.forEach((app) => {
+    openApps.add(app.appId);
+  });
+
+  // Check if user is asking to create code/HTML
+  const isAskingForCode =
+    /\b(make|create|build|code|html|website|app|three\.?js|canvas)\b/i.test(
+      lastUserMessage
+    );
+
+  // Build tool instructions based on context
+  let toolInstructions = "";
+
+  // Always include app launching instructions
+  toolInstructions += `
+<tool_usage_instructions>
+LAUNCHING APPS: 
+- Only use the 'launchApp' or 'closeApp' tools when the user explicitly asks you to launch or close a specific app. Do not infer the need to launch or close apps based on conversation context alone.
+`;
+  loadedSections.push("TOOL_LAUNCH_APPS");
+
+  // Internet Explorer instructions if open or if user mentions browsing
+  if (
+    openApps.has("internet-explorer") ||
+    /\b(browse|website|url|search|wikipedia|weather)\b/i.test(lastUserMessage)
+  ) {
+    toolInstructions += `
+INTERNET EXPLORER AND TIME TRAVELING:
+- Launch websites to help with user request around facts (wikipedia), weather (accuweather), search (bing), and more.
+- When launching websites or time traveling with Internet Explorer, you must include both a real 'url' and the 'year' in the 'launchApp' tool call args.
+`;
+    loadedSections.push("TOOL_INTERNET_EXPLORER");
+  }
+
+  // TextEdit instructions if open or if user mentions editing
+  if (
+    openApps.has("text-edit") ||
+    systemState?.textEdit?.instances?.length ||
+    /\b(edit|write|document|text|replace|insert)\b/i.test(lastUserMessage)
+  ) {
+    toolInstructions += `
+TEXT EDITING:
+- When editing document in TextEdit, use the TextEdit tools:
+   • Use 'textEditNewFile' to create a blank file. Use it when user requests a new doc and the current file content is irrelevant. TextEdit will launch automatically if not open.
+   • Use 'textEditSearchReplace' to find and replace content. Always provide 'search' and 'replace'; set 'isRegex: true' **only** if the user explicitly mentions using a regular expression.
+   • Use 'textEditInsertText' to add plain text. Supply the full 'text' to insert and, if the user specifies where, a 'position' of "start" or "end" (default is "end").
+- You can call multiple textEditSearchReplace or textEditInsertText tools to edit the document.
+`;
+    loadedSections.push("TOOL_TEXTEDIT");
+  }
+
+  // iPod instructions if open or if user mentions music
+  if (
+    openApps.has("ipod") ||
+    /\b(play|pause|song|music|track|ipod|lyrics|artist)\b/i.test(
+      lastUserMessage
+    )
+  ) {
+    toolInstructions += `
+iPOD and MUSIC PLAYBACK:
+- Use 'ipodPlayPause' to control playback. The 'action' parameter can be "play", "pause", or "toggle" (default).
+- Use 'ipodPlaySong' to play a specific song by providing at least one of: 'id' (YouTube video id), 'title' (song title), or 'artist' (artist name). ONLY use IDs or titles and artists provided in the iPod Library system state.
+- Use 'ipodNextTrack' to skip to the next track in the playlist.
+- Use 'ipodPreviousTrack' to go back to the previous track in the playlist.
+- Use 'ipodAddAndPlaySong' to add a song from YouTube URL or ID and play it.
+- Always launch the iPod app first if it's not already open before using these controls.
+- When asked to copy or transcribe lyrics, write the lyrics with textEditNewFile and textEditInsertText tools.
+`;
+    loadedSections.push("TOOL_IPOD");
+  }
+
+  // HTML generation instructions only if relevant
+  if (isAskingForCode || openApps.has("internet-explorer")) {
+    toolInstructions += `
+HTML GENERATION:
+- When asked to create HTML, apps, websites, or any code output, ALWAYS use the 'generateHtml' tool.
+- DO NOT stream HTML code blocks in your regular message response.
+- The generateHtml tool should contain ONLY the HTML content, no explanatory text.
+`;
+    prompts.push(CODE_GENERATION_INSTRUCTIONS);
+    loadedSections.push("TOOL_HTML_GENERATION", "CODE_GENERATION_INSTRUCTIONS");
+  }
+
+  toolInstructions += `
+</tool_usage_instructions>`;
+
+  if (
+    toolInstructions.trim() !==
+    "<tool_usage_instructions>\n</tool_usage_instructions>"
+  ) {
+    prompts.push(toolInstructions);
+  }
+
+  return { prompts, loadedSections };
+};
+
 export default async function handler(req: Request) {
   // Check origin before processing request
   const origin = req.headers.get("origin");
@@ -410,10 +559,24 @@ export default async function handler(req: Request) {
 
     const selectedModel = getModelInstance(model as SupportedModel);
 
+    // Build context-aware prompts based on current state and conversation
+    const { prompts: contextAwarePrompts, loadedSections } =
+      buildContextAwarePrompts(systemState, messages);
+    const staticSystemPrompt = contextAwarePrompts.join("\n");
+
+    // Log prompt optimization metrics with loaded sections
+    log(
+      `Context-aware prompts (${
+        loadedSections.length
+      } sections): ${loadedSections.join(", ")}`
+    );
+    const approxTokens = staticSystemPrompt.length / 4; // rough estimate
+    log(`Approximate prompt tokens: ${Math.round(approxTokens)}`);
+
     const systemMessages = [
       {
         role: "system",
-        content: STATIC_SYSTEM_PROMPT,
+        content: staticSystemPrompt,
         ...CACHE_CONTROL_OPTIONS,
       },
       {
@@ -424,6 +587,13 @@ export default async function handler(req: Request) {
     ];
 
     const enrichedMessages = [...systemMessages, ...messages];
+
+    // Log all messages right before model call (as per user preference)
+    enrichedMessages.forEach((msg, index) => {
+      log(
+        `Message ${index} [${msg.role}]: ${msg.content?.substring(0, 100)}...`
+      );
+    });
 
     const result = streamText({
       model: selectedModel,
