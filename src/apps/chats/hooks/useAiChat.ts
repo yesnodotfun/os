@@ -95,9 +95,18 @@ const getSystemState = () => {
       }
     }
 
-    // Get title from app store instance
-    const appInstance = appStore.instances[instance.instanceId];
-    const title = appInstance?.title || "Untitled";
+    // Get title from file path if available, otherwise from app store instance
+    let title = "Untitled";
+    if (instance.filePath) {
+      // Extract filename from path (e.g., "/Documents/example.md" -> "example.md")
+      const filename = instance.filePath.split("/").pop() || "Untitled";
+      // Remove .md extension for cleaner display
+      title = filename.replace(/\.md$/, "");
+    } else {
+      // Fall back to app store instance title
+      const appInstance = appStore.instances[instance.instanceId];
+      title = appInstance?.title || "Untitled";
+    }
 
     return {
       instanceId: instance.instanceId,

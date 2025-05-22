@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useRef, useCallback } from "react";
 import { useSoundboardStore } from "@/stores/useSoundboardStore";
 import { createAudioFromBase64 } from "@/utils/audio";
 // WaveSurfer import will be removed as it's moving to SoundGrid
@@ -9,9 +9,6 @@ export const useSoundboard = () => {
   const boards = useSoundboardStore((state) => state.boards);
   const activeBoardId = useSoundboardStore((state) => state.activeBoardId);
   const playbackStates = useSoundboardStore((state) => state.playbackStates);
-  const initializeBoards = useSoundboardStore(
-    (state) => state.initializeBoards
-  );
   const addNewBoardAction = useSoundboardStore((state) => state.addNewBoard);
   const updateBoardNameAction = useSoundboardStore(
     (state) => state.updateBoardName

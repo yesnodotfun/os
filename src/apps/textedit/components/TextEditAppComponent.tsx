@@ -806,12 +806,6 @@ export function TextEditAppComponent({
     launchApp("finder", { initialPath: "/Documents" });
   };
 
-  const handleNewWindow = () => {
-    // Launch a new instance of TextEdit
-    const newInstanceId = launchAppInstance("textedit", null, "Untitled", true);
-    console.log(`Launched new TextEdit instance: ${newInstanceId}`);
-  };
-
   // Handler for intercepting close events
   const handleClose = () => {
     // Check if there are unsaved changes or if it's an untitled file
@@ -1089,7 +1083,6 @@ export function TextEditAppComponent({
         onShowHelp={() => setIsHelpDialogOpen(true)}
         onShowAbout={() => setIsAboutDialogOpen(true)}
         onNewFile={handleNewFile}
-        onNewWindow={handleNewWindow}
         onImportFile={handleImportFile}
         onExportFile={handleExportFile}
         onSave={handleSave}
