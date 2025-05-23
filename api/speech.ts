@@ -144,7 +144,7 @@ export default async function handler(req: Request) {
       text,
       voice,
       speed,
-      model = "elevenlabs", // Default to ElevenLabs
+      model = "openai", // Default to OpenAI
       voice_id,
       model_id,
       output_format,

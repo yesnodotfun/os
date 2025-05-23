@@ -1493,19 +1493,13 @@ export function ControlPanelsAppComponent({
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="kAyjEabBEu68HYYYRAHR">
+                            Ryo v3
+                          </SelectItem>
+                          <SelectItem value="YC3iw27qriLq7UUaqAyi">
+                            Ryo v2
+                          </SelectItem>
+                          <SelectItem value="G0mlS0y8ByHjGAOxBgvV">
                             Ryo
-                          </SelectItem>
-                          <SelectItem value="pNInz6obpgDQGcFmaJgB">
-                            Adam
-                          </SelectItem>
-                          <SelectItem value="21m00Tcm4TlvDq8ikWAM">
-                            Rachel
-                          </SelectItem>
-                          <SelectItem value="AZnzlk1XvdvUeBnXmlld">
-                            Domi
-                          </SelectItem>
-                          <SelectItem value="JBFqnCBsd6RMkjVDRZzb">
-                            George
                           </SelectItem>
                         </SelectContent>
                       </Select>

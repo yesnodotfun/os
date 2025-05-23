@@ -156,9 +156,9 @@ export const useAppStore = create<AppStoreState>()(
       setSpeechEnabled: (enabled) => set({ speechEnabled: enabled }),
       speechVolume: 1.5,
       setSpeechVolume: (v) => set({ speechVolume: v }),
-      ttsModel: "elevenlabs",
+      ttsModel: "openai",
       setTtsModel: (model) => set({ ttsModel: model }),
-      ttsVoice: "kAyjEabBEu68HYYYRAHR", // Ryo voice as default
+      ttsVoice: "alloy", // OpenAI alloy as default
       setTtsVoice: (voice) => set({ ttsVoice: voice }),
       synthPreset: "classic",
       setSynthPreset: (preset) => set({ synthPreset: preset }),
