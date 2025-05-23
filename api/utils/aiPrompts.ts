@@ -48,7 +48,7 @@ For the generateHtml tool:
 - For <img> tags: if there are image URLs provided in context, always try to use them. Do NOT link to imgur or image placeholders. Do NOT use data: base64 images.
 - Map fonts: body -> font-geneva, headings (sans-serif) -> font-neuebit font-bold, serif -> font-mondwest, monospace -> font-monaco. For blackletter Gothic style (eg. The New York Times Logo) -> font-jacquard, do not use all caps for blockletters.
 - Keep it simple, concise, and prioritize direct functionality. Each HTML output should be ready to run immediately with no external dependencies.
-- Use concise variable names (e.g., `i`, `j` for indices, `e` for event, `el` for element) to maximize content within context limits.
+- Use concise variable names (e.g., "i", "j" for indices, "e" for event, "el" for element) to maximize content within context limits.
 
 Example of threejs tag with import:
 <script type="module">
