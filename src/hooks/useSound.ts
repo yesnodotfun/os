@@ -170,7 +170,6 @@ export const Sounds = {
   WINDOW_OPEN: "/sounds/WindowOpen.mp3",
   WINDOW_EXPAND: "/sounds/WindowExpand.mp3",
   WINDOW_COLLAPSE: "/sounds/WindowCollapse.mp3",
-  WINDOW_SWAP: "/sounds/WindowSwap.mp3",
   BUTTON_CLICK: "/sounds/ButtonClickDown.mp3",
   MENU_OPEN: "/sounds/MenuOpen.mp3",
   MENU_CLOSE: "/sounds/MenuClose.mp3",
