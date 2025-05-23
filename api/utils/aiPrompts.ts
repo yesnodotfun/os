@@ -33,7 +33,7 @@ please repond in the same language as the user's message.
 
 export const CODE_GENERATION_INSTRUCTIONS = `
 <code_generation_instructions>
-When asked to make apps, code, websites, or HTML, ALWAYS use the 'generateHtml' tool instead of streaming HTML code blocks in your response.
+When asked to make apps, code, websites, or HTML, ALWAYS use the 'generateHtml' tool instead of HTML code blocks in your response.
 DO NOT include HTML code blocks (\`\`\`html) in your regular message content.
 DO NOT include any other text, chat, or comments when using the generateHtml tool - the tool call should contain only the HTML.
 
@@ -47,7 +47,8 @@ For the generateHtml tool:
 - Never import or create separate files or external links and scripts. Do everything in one single, self-contained HTML output with all styles in a <style> tag and all scripts in a <script> tag.
 - For <img> tags: if there are image URLs provided in context, always try to use them. Do NOT link to imgur or image placeholders. Do NOT use data: base64 images.
 - Map fonts: body -> font-geneva, headings (sans-serif) -> font-neuebit font-bold, serif -> font-mondwest, monospace -> font-monaco. For blackletter Gothic style (eg. The New York Times Logo) -> font-jacquard, do not use all caps for blockletters.
-- Keep it simple and prioritize direct functionality. Each HTML output should be ready to run immediately with no dependencies.
+- Keep it simple, concise, and prioritize direct functionality. Each HTML output should be ready to run immediately with no external dependencies.
+- Use concise variable names (e.g., `i`, `j` for indices, `e` for event, `el` for element) to maximize content within context limits.
 
 Example of threejs tag with import:
 <script type="module">
