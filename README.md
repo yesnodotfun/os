@@ -63,10 +63,10 @@ A modern web-based desktop environment inspired by classic macOS, built with a c
   - Multi-photo sequence mode
   - Export photos to Files
   - Real-time filter preview
-- **Internet Explorer**: Classic web browser experience
-  - Wayback Machine integration for time travel
-  - Classic UI with modern browsing capabilities
-  - Historical web content viewing
+- **Internet Explorer**: Classic browser with a temporal twist
+  - Time Machine view to explore snapshots across different years
+  - AI reimagines pre-1996 sites and generates futuristic designs
+  - Save favorites by year and share time-travel links
 - **Chats**: AI-powered chat with speech & tool calling
   - Natural conversation with Ryo AI
   - Join public chat rooms with @ryo mentions
