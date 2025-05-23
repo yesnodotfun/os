@@ -13,7 +13,7 @@ import {
 import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { useLaunchApp } from "@/hooks/useLaunchApp";
-import { useAppStore } from "@/stores/useAppStore";
+import { useAppStoreShallow } from "@/stores/helpers";
 import { Slider } from "@/components/ui/slider";
 import { Volume1, Volume2, VolumeX, Settings } from "lucide-react";
 import { useSound, Sounds } from "@/hooks/useSound";
@@ -426,7 +426,10 @@ function DefaultMenuItems() {
 }
 
 function VolumeControl() {
-  const { masterVolume, setMasterVolume } = useAppStore();
+  const { masterVolume, setMasterVolume } = useAppStoreShallow((s) => ({
+    masterVolume: s.masterVolume,
+    setMasterVolume: s.setMasterVolume,
+  }));
   const { play: playVolumeChangeSound } = useSound(Sounds.VOLUME_CHANGE);
   const launchApp = useLaunchApp();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -486,10 +489,9 @@ function VolumeControl() {
 
 export function MenuBar({ children }: MenuBarProps) {
   const { apps } = useAppContext();
-  // Use instance state to determine if there's an active app
-  const getForegroundInstance = useAppStore(
-    (state) => state.getForegroundInstance
-  );
+  const { getForegroundInstance } = useAppStoreShallow((s) => ({
+    getForegroundInstance: s.getForegroundInstance,
+  }));
 
   const foregroundInstance = getForegroundInstance();
   const hasActiveApp = !!foregroundInstance;

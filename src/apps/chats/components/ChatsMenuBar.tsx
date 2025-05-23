@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { type ChatRoom } from "../../../../src/types/chat";
 import { toast } from "sonner";
 import { generateAppShareUrl } from "@/utils/sharedUrl";
-import { useAppStore } from "@/stores/useAppStore";
+import { useAppStoreShallow } from "@/stores/helpers";
 import { SYNTH_PRESETS } from "@/hooks/useChatSynth";
 
 interface ChatsMenuBarProps {
@@ -58,7 +58,14 @@ export function ChatsMenuBar({
     setTypingSynthEnabled,
     synthPreset,
     setSynthPreset,
-  } = useAppStore();
+  } = useAppStoreShallow((s) => ({
+    speechEnabled: s.speechEnabled,
+    setSpeechEnabled: s.setSpeechEnabled,
+    typingSynthEnabled: s.typingSynthEnabled,
+    setTypingSynthEnabled: s.setTypingSynthEnabled,
+    synthPreset: s.synthPreset,
+    setSynthPreset: s.setSynthPreset,
+  }));
 
   return (
     <MenuBar>
