@@ -1475,7 +1475,7 @@ export function ControlPanelsAppComponent({
                         </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="__null__">Select</SelectItem>
+                        <SelectItem value="__null__">Default</SelectItem>
                         <SelectItem value="openai">OpenAI</SelectItem>
                         <SelectItem value="elevenlabs">ElevenLabs</SelectItem>
                       </SelectContent>
