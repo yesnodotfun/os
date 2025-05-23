@@ -242,8 +242,13 @@ function getFileIcon(item: FileSystemItem): string {
 }
 
 // --- Global flags for cross-instance coordination --- //
-let isInitialContentCheckDone = false;
-let isUUIDMigrationDone = false;
+// Use localStorage to persist initialization state across page refreshes
+const UUID_MIGRATION_KEY = "ryos:indexeddb-uuid-migration-v1";
+
+// Check localStorage for completion status
+const isUUIDMigrationDone = () =>
+  localStorage.getItem(UUID_MIGRATION_KEY) === "completed";
+
 const loggedInitializationPaths = new Set<string>();
 
 // --- useFileSystem Hook --- //
@@ -295,7 +300,7 @@ export function useFileSystem(
   const [localHistoryIndex, setLocalHistoryIndex] = useState(
     finderInstance?.navigationIndex || 0
   );
-  const [_localSelectedFile, setLocalSelectedFile] = useState<string | null>(
+  const [, setLocalSelectedFile] = useState<string | null>(
     finderInstance?.selectedFile || null
   );
 
@@ -386,165 +391,80 @@ export function useFileSystem(
     return "/" + parts.slice(0, -1).join("/");
   };
 
-  // --- Initialization Effect for Content (Runs ONLY ONCE globally) --- //
-  useEffect(() => {
-    // If the check has already been completed, skip immediately.
-    if (isInitialContentCheckDone) {
-      console.log(
-        "[useFileSystem] Initial content check already performed, skipping."
-      );
-      return;
-    }
-
-    // Mark as done *before* starting the async routine to prevent
-    // parallel hook instances from initiating the same work.
-    isInitialContentCheckDone = true;
-
-    const initializeContent = async () => {
-      console.log(
-        "[useFileSystem] Performing initial content check with JSON data..."
-      );
-
+  // --- Lazy Default Content Loader --- //
+  const ensureDefaultContent = useCallback(
+    async (filePath: string, uuid: string): Promise<boolean> => {
       try {
-        // Get the file store state
-        const fileStore = useFilesStore.getState();
-
         // Load the filesystem data from JSON
         const res = await fetch("/data/filesystem.json");
         const data = await res.json();
 
-        // Process files that have content
-        for (const file of data.files || []) {
-          // Get the metadata from the store to get UUID
-          const fileMetadata = fileStore.getItem(file.path);
-          if (!fileMetadata?.uuid) {
-            console.warn(
-              `[useFileSystem] No UUID found for ${file.path}, skipping content initialization`
-            );
-            continue;
-          }
+        // Find the file in the JSON data
+        const fileData = data.files?.find(
+          (f: { path: string }) => f.path === filePath
+        );
+        if (!fileData) {
+          return false; // No default content for this file
+        }
 
-          if (file.content) {
-            // This is a document with text content
-            const storeName = STORES.DOCUMENTS;
-            try {
-              const existingDoc = await dbOperations.get<DocumentContent>(
+        if (fileData.content) {
+          // This is a document with text content
+          const storeName = STORES.DOCUMENTS;
+          const existingDoc = await dbOperations.get<DocumentContent>(
+            storeName,
+            uuid
+          );
+          if (!existingDoc) {
+            console.log(
+              `[useFileSystem] Loading default content for document ${fileData.name}`
+            );
+            await dbOperations.put<DocumentContent>(
+              storeName,
+              {
+                name: fileData.name,
+                content: fileData.content,
+              },
+              uuid
+            );
+            return true;
+          }
+        } else if (fileData.assetPath) {
+          // This is an image with an asset path
+          const storeName = STORES.IMAGES;
+          const existingImg = await dbOperations.get<DocumentContent>(
+            storeName,
+            uuid
+          );
+          if (!existingImg) {
+            console.log(
+              `[useFileSystem] Loading default content for image ${fileData.name}`
+            );
+            const response = await fetch(fileData.assetPath);
+            if (response.ok) {
+              const blob = await response.blob();
+              await dbOperations.put<DocumentContent>(
                 storeName,
-                fileMetadata.uuid
+                {
+                  name: fileData.name,
+                  content: blob,
+                },
+                uuid
               );
-              if (!existingDoc) {
-                console.log(
-                  `[useFileSystem] Adding default document ${file.name} to documents store with UUID ${fileMetadata.uuid}`
-                );
-                await dbOperations.put<DocumentContent>(
-                  storeName,
-                  {
-                    name: file.name,
-                    content: file.content,
-                  },
-                  fileMetadata.uuid
-                );
-              }
-            } catch (err) {
-              console.error(
-                `[useFileSystem] Error adding default document ${file.name}:`,
-                err
-              );
-            }
-          } else if (file.assetPath) {
-            // This is an image with an asset path
-            const storeName = STORES.IMAGES;
-            try {
-              const existingImg = await dbOperations.get<DocumentContent>(
-                storeName,
-                fileMetadata.uuid
-              );
-              if (!existingImg) {
-                console.log(
-                  `[useFileSystem] Adding default image ${file.name} to images store with UUID ${fileMetadata.uuid}`
-                );
-                const response = await fetch(file.assetPath);
-                if (response.ok) {
-                  const blob = await response.blob();
-                  await dbOperations.put<DocumentContent>(
-                    storeName,
-                    {
-                      name: file.name,
-                      content: blob,
-                    },
-                    fileMetadata.uuid
-                  );
-                } else {
-                  console.warn(
-                    `[useFileSystem] Failed to fetch default image asset ${file.name}. Status: ${response.status}`
-                  );
-                }
-              }
-            } catch (err) {
-              console.error(
-                `[useFileSystem] Error adding default image ${file.name}:`,
-                err
-              );
+              return true;
             }
           }
         }
-
-        console.log("[useFileSystem] Initial content check complete.");
+        return false;
       } catch (err) {
-        console.error("[useFileSystem] Error loading filesystem.json:", err);
-      }
-    };
-
-    // Fire and forget – other hook instances have already been blocked.
-    initializeContent();
-  }, []); // Empty dependency array ensures attempt once per mount
-  // --- End Initialization Effect --- //
-
-  // --- UUID Migration Effect (Runs ONLY ONCE globally) --- //
-  useEffect(() => {
-    if (isUUIDMigrationDone) {
-      return;
-    }
-
-    // Check if the file store has been loaded/migrated
-    const checkAndRunMigration = async () => {
-      const fileStoreState = useFilesStore.getState();
-
-      // Wait for the store to be loaded
-      if (fileStoreState.libraryState === "uninitialized") {
-        console.log(
-          "[useFileSystem] Waiting for file store to initialize before UUID migration..."
+        console.error(
+          `[useFileSystem] Error loading default content for ${filePath}:`,
+          err
         );
-        return;
+        return false;
       }
-
-      // Mark as done to prevent multiple runs
-      isUUIDMigrationDone = true;
-
-      console.log(
-        "[useFileSystem] File store is ready, running UUID migration..."
-      );
-
-      // Run migration asynchronously
-      try {
-        await migrateIndexedDBToUUIDs();
-      } catch (err) {
-        console.error("[useFileSystem] UUID migration failed:", err);
-      }
-    };
-
-    // Check immediately
-    checkAndRunMigration();
-
-    // Also subscribe to store changes in case it's not ready yet
-    const unsubscribe = useFilesStore.subscribe((state) => {
-      if (!isUUIDMigrationDone && state.libraryState !== "uninitialized") {
-        checkAndRunMigration();
-      }
-    });
-
-    return () => unsubscribe();
-  }, []);
+    },
+    []
+  );
 
   // --- REORDERED useCallback DEFINITIONS --- //
 
@@ -937,6 +857,24 @@ export function useFileSystem(
               console.warn(
                 `[useFileSystem] Content not found in IndexedDB for ${file.path} (UUID: ${fileMetadata.uuid})`
               );
+              // Try to load default content lazily
+              const hasDefaultContent = await ensureDefaultContent(
+                file.path,
+                fileMetadata.uuid
+              );
+              if (hasDefaultContent) {
+                // Try fetching again after loading default content
+                const retryData = await dbOperations.get<DocumentContent>(
+                  storeName,
+                  fileMetadata.uuid
+                );
+                if (retryData) {
+                  contentToUse = retryData.content;
+                  console.log(
+                    `[useFileSystem] Successfully loaded default content for ${file.path}`
+                  );
+                }
+              }
             }
           } else {
             console.warn(
@@ -1034,6 +972,8 @@ export function useFileSystem(
       setVideoIndex,
       setVideoPlaying,
       internetExplorerStore,
+      ensureDefaultContent,
+      fileStore,
     ]
   );
 
@@ -1500,7 +1440,7 @@ export function useFileSystem(
       await dbOperations.clear(STORES.DOCUMENTS);
 
       // Clear the migration flag so UUID migration will run again after reset
-      localStorage.removeItem("ryos:indexeddb-uuid-migration-v1");
+      localStorage.removeItem(UUID_MIGRATION_KEY);
       // Clear the size/timestamp sync flag so it will run again after reset
       localStorage.removeItem("ryos:file-size-timestamp-sync-v1");
 
@@ -1638,6 +1578,52 @@ export function useFileSystem(
     const timer = setTimeout(syncFileSizesAndTimestamps, 500);
     return () => clearTimeout(timer);
   }, []); // Run once on mount
+
+  // --- UUID Migration Effect (Runs ONLY ONCE globally) --- //
+  useEffect(() => {
+    if (isUUIDMigrationDone()) {
+      return;
+    }
+
+    // Check if the file store has been loaded/migrated
+    const checkAndRunMigration = async () => {
+      const fileStoreState = useFilesStore.getState();
+
+      // Wait for the store to be loaded
+      if (fileStoreState.libraryState === "uninitialized") {
+        console.log(
+          "[useFileSystem] Waiting for file store to initialize before UUID migration..."
+        );
+        return;
+      }
+
+      // Mark as done to prevent multiple runs
+      localStorage.setItem(UUID_MIGRATION_KEY, "completed");
+
+      console.log(
+        "[useFileSystem] File store is ready, running UUID migration..."
+      );
+
+      // Run migration asynchronously
+      try {
+        await migrateIndexedDBToUUIDs();
+      } catch (err) {
+        console.error("[useFileSystem] UUID migration failed:", err);
+      }
+    };
+
+    // Check immediately
+    checkAndRunMigration();
+
+    // Also subscribe to store changes in case it's not ready yet
+    const unsubscribe = useFilesStore.subscribe((state) => {
+      if (!isUUIDMigrationDone() && state.libraryState !== "uninitialized") {
+        checkAndRunMigration();
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   return {
     currentPath,
