@@ -4,6 +4,26 @@ import { openai } from "@ai-sdk/openai";
 // Allowed origins for CORS
 const ALLOWED_ORIGINS = new Set(["https://os.ryo.lu", "http://localhost:3000"]);
 
+// --- Default Configuration -----------------------------------------------
+
+// Default model selection ("openai" or "elevenlabs")
+const DEFAULT_MODEL = "elevenlabs";
+
+// OpenAI defaults
+const DEFAULT_OPENAI_VOICE = "alloy";
+const DEFAULT_OPENAI_SPEED = 1.1;
+
+// ElevenLabs defaults
+const DEFAULT_ELEVENLABS_VOICE_ID = "YC3iw27qriLq7UUaqAyi"; // Ryo v2
+const DEFAULT_ELEVENLABS_MODEL_ID = "eleven_turbo_v2_5"; // 2.5 turbo
+const DEFAULT_ELEVENLABS_OUTPUT_FORMAT = "mp3_44100_128";
+const DEFAULT_ELEVENLABS_VOICE_SETTINGS = {
+  stability: 0.4,
+  similarity_boost: 0.8,
+  use_speaker_boost: true,
+  speed: 1.1,
+};
+
 // --- Logging Utilities ---------------------------------------------------
 
 const logRequest = (
@@ -36,11 +56,11 @@ const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
 
 interface SpeechRequest {
   text: string;
-  voice?: string;
+  voice?: string | null;
   speed?: number;
   // New ElevenLabs-specific options
-  model?: "openai" | "elevenlabs";
-  voice_id?: string;
+  model?: "openai" | "elevenlabs" | null;
+  voice_id?: string | null;
   model_id?: string;
   output_format?:
     | "mp3_44100_128"
@@ -61,8 +81,8 @@ interface SpeechRequest {
 // ElevenLabs API function
 const generateElevenLabsSpeech = async (
   text: string,
-  voice_id: string = "YC3iw27qriLq7UUaqAyi", // Ryo voice as default
-  model_id: string = "eleven_turbo_v2_5", // 2.5 turbo as default
+  voice_id: string = DEFAULT_ELEVENLABS_VOICE_ID,
+  model_id: string = DEFAULT_ELEVENLABS_MODEL_ID,
   output_format:
     | "mp3_44100_128"
     | "mp3_22050_32"
@@ -70,12 +90,8 @@ const generateElevenLabsSpeech = async (
     | "pcm_22050"
     | "pcm_24000"
     | "pcm_44100"
-    | "ulaw_8000" = "mp3_44100_128",
-  voice_settings: SpeechRequest["voice_settings"] = {
-    stability: 0.4,
-    similarity_boost: 0.8,
-    speed: 1.1,
-  }
+    | "ulaw_8000" = DEFAULT_ELEVENLABS_OUTPUT_FORMAT as "mp3_44100_128",
+  voice_settings: SpeechRequest["voice_settings"] = DEFAULT_ELEVENLABS_VOICE_SETTINGS
 ): Promise<ArrayBuffer> => {
   if (!ELEVENLABS_API_KEY) {
     throw new Error("ElevenLabs API key not configured");
@@ -144,7 +160,7 @@ export default async function handler(req: Request) {
       text,
       voice,
       speed,
-      model = "openai", // Default to OpenAI
+      model, // Can be null, undefined, "openai", or "elevenlabs"
       voice_id,
       model_id,
       output_format,
@@ -170,32 +186,39 @@ export default async function handler(req: Request) {
     let audioData: ArrayBuffer;
     let mimeType = "audio/mpeg";
 
-    if (model === "elevenlabs") {
-      // Use ElevenLabs
+    // Use default model if null/undefined
+    const selectedModel = model || DEFAULT_MODEL;
+
+    if (selectedModel === "elevenlabs") {
+      // Use ElevenLabs - apply defaults for voice_id if not provided
+      const elevenlabsVoiceId = voice_id || DEFAULT_ELEVENLABS_VOICE_ID;
       audioData = await generateElevenLabsSpeech(
         text.trim(),
-        voice_id || "YC3iw27qriLq7UUaqAyi", // Ryo voice default
-        model_id || "eleven_turbo_v2_5", // 2.5 turbo default
+        elevenlabsVoiceId,
+        model_id || DEFAULT_ELEVENLABS_MODEL_ID,
         output_format,
         voice_settings
       );
       logInfo(requestId, "ElevenLabs speech generated", {
         bytes: audioData.byteLength,
+        voice_id: elevenlabsVoiceId,
       });
     } else {
-      // Use OpenAI (default behavior)
+      // Use OpenAI (default behavior) - apply defaults for voice if not provided
+      const openaiVoice = voice || DEFAULT_OPENAI_VOICE;
       const { audio } = await generateSpeech({
         model: openai.speech("tts-1"),
         text: text.trim(),
-        voice: voice ?? "alloy",
+        voice: openaiVoice,
         outputFormat: "mp3",
-        speed: speed ?? 1.1,
+        speed: speed ?? DEFAULT_OPENAI_SPEED,
       });
 
       audioData = audio.uint8Array.buffer;
       mimeType = audio.mimeType ?? "audio/mpeg";
       logInfo(requestId, "OpenAI speech generated", {
         bytes: audioData.byteLength,
+        voice: openaiVoice,
       });
     }
 

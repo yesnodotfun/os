@@ -45,6 +45,9 @@ interface AppStoreState extends AppManagerState {
   instanceWindowOrder: string[];
   nextInstanceId: number;
 
+  // Add version tracking
+  version: number;
+
   // Instance management methods
   createAppInstance: (
     appId: AppId,
@@ -87,10 +90,10 @@ interface AppStoreState extends AppManagerState {
   setSpeechEnabled: (enabled: boolean) => void;
   speechVolume: number;
   setSpeechVolume: (v: number) => void;
-  ttsModel: "openai" | "elevenlabs";
-  setTtsModel: (model: "openai" | "elevenlabs") => void;
-  ttsVoice: string;
-  setTtsVoice: (voice: string) => void;
+  ttsModel: "openai" | "elevenlabs" | null;
+  setTtsModel: (model: "openai" | "elevenlabs" | null) => void;
+  ttsVoice: string | null;
+  setTtsVoice: (voice: string | null) => void;
   synthPreset: string;
   setSynthPreset: (preset: string) => void;
   displayMode: DisplayMode;
@@ -128,6 +131,9 @@ interface AppStoreState extends AppManagerState {
   setMasterVolume: (vol: number) => void;
 }
 
+// Define current store version
+const CURRENT_APP_STORE_VERSION = 2; // Increment to trigger TTS migration
+
 // Run the check once on script load
 const initialShaderState = checkShaderPerformance();
 
@@ -135,6 +141,9 @@ export const useAppStore = create<AppStoreState>()(
   persist(
     (set, get) => ({
       ...getInitialState(),
+      // Add version tracking
+      version: CURRENT_APP_STORE_VERSION,
+
       debugMode: false,
       setDebugMode: (enabled) => set({ debugMode: enabled }),
       shaderEffectEnabled: initialShaderState,
@@ -156,9 +165,9 @@ export const useAppStore = create<AppStoreState>()(
       setSpeechEnabled: (enabled) => set({ speechEnabled: enabled }),
       speechVolume: 1.5,
       setSpeechVolume: (v) => set({ speechVolume: v }),
-      ttsModel: "openai",
+      ttsModel: null, // Default to null (select option)
       setTtsModel: (model) => set({ ttsModel: model }),
-      ttsVoice: "alloy", // OpenAI alloy as default
+      ttsVoice: null, // Default to null (select option)
       setTtsVoice: (voice) => set({ ttsVoice: voice }),
       synthPreset: "classic",
       setSynthPreset: (preset) => set({ synthPreset: preset }),
@@ -866,9 +875,11 @@ export const useAppStore = create<AppStoreState>()(
     }),
     {
       name: "ryos:app-store",
+      version: CURRENT_APP_STORE_VERSION,
       partialize: (state) => ({
         windowOrder: state.windowOrder,
         apps: state.apps,
+        version: state.version,
         debugMode: state.debugMode,
         shaderEffectEnabled: state.shaderEffectEnabled,
         selectedShaderType: state.selectedShaderType,
@@ -899,6 +910,37 @@ export const useAppStore = create<AppStoreState>()(
         instanceWindowOrder: state.instanceWindowOrder,
         nextInstanceId: state.nextInstanceId,
       }),
+      migrate: (persistedState: any, version: number) => {
+        console.log(
+          "[AppStore] Migrating from version",
+          version,
+          "to",
+          CURRENT_APP_STORE_VERSION
+        );
+
+        let migratedState = persistedState as AppStoreState;
+
+        // Migrate from version 1 to 2: Reset TTS settings to null
+        if (version < 2) {
+          console.log(
+            "[AppStore] Migrating TTS settings to new defaults (null). Previous values:",
+            {
+              ttsModel: migratedState.ttsModel,
+              ttsVoice: migratedState.ttsVoice,
+            }
+          );
+          migratedState = {
+            ...migratedState,
+            ttsModel: null,
+            ttsVoice: null,
+          };
+        }
+
+        // Update version to current
+        migratedState.version = CURRENT_APP_STORE_VERSION;
+
+        return migratedState;
+      },
       onRehydrateStorage: () => (state) => {
         if (state) {
           // Clean up instanceWindowOrder to remove any non-existent instance IDs

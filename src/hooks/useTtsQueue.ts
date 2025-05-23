@@ -105,9 +105,9 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
           // Prepare request body with TTS settings
           const requestBody: {
             text: string;
-            model: "openai" | "elevenlabs";
-            voice?: string;
-            voice_id?: string;
+            model?: "openai" | "elevenlabs" | null;
+            voice?: string | null;
+            voice_id?: string | null;
             speed?: number;
             voice_settings?: {
               stability?: number;
@@ -117,23 +117,17 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
             };
           } = {
             text: request.text,
-            model: ttsModel,
+            model: ttsModel, // Send null if null, let server decide
           };
 
           // Add model-specific settings
           if (ttsModel === "elevenlabs") {
-            requestBody.voice_id = ttsVoice || "kAyjEabBEu68HYYYRAHR"; // Ryo voice default
-            requestBody.voice_settings = {
-              stability: 0.3,
-              similarity_boost: 0.7,
-              use_speaker_boost: true,
-              speed: 1.1,
-            };
-          } else {
+            requestBody.voice_id = ttsVoice; // Send null if null
+          } else if (ttsModel === "openai") {
             // OpenAI settings
-            requestBody.voice = ttsVoice || "alloy";
-            requestBody.speed = 1.1;
+            requestBody.voice = ttsVoice; // Send null if null
           }
+          // If ttsModel is null, don't add voice settings - let server decide
 
           const res = await fetch(endpoint, {
             method: "POST",

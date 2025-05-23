@@ -1460,15 +1460,22 @@ export function ControlPanelsAppComponent({
                       </Label>
                     </div>
                     <Select
-                      value={ttsModel}
+                      value={ttsModel || "__null__"}
                       onValueChange={(value) =>
-                        setTtsModel(value as "openai" | "elevenlabs")
+                        setTtsModel(
+                          value === "__null__"
+                            ? null
+                            : (value as "openai" | "elevenlabs")
+                        )
                       }
                     >
                       <SelectTrigger className="w-[120px]">
-                        <SelectValue />
+                        <SelectValue placeholder="Select">
+                          {ttsModel || "Select"}
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="__null__">Select</SelectItem>
                         <SelectItem value="openai">OpenAI</SelectItem>
                         <SelectItem value="elevenlabs">ElevenLabs</SelectItem>
                       </SelectContent>
@@ -1476,7 +1483,7 @@ export function ControlPanelsAppComponent({
                   </div>
                 )}
 
-                {debugMode && (
+                {debugMode && ttsModel && (
                   <div className="flex items-center justify-between">
                     <div className="flex flex-col gap-1">
                       <Label>TTS Voice</Label>
@@ -1487,15 +1494,29 @@ export function ControlPanelsAppComponent({
                       </Label>
                     </div>
                     {ttsModel === "elevenlabs" ? (
-                      <Select value={ttsVoice} onValueChange={setTtsVoice}>
+                      <Select
+                        value={ttsVoice || "__null__"}
+                        onValueChange={(value) =>
+                          setTtsVoice(value === "__null__" ? null : value)
+                        }
+                      >
                         <SelectTrigger className="w-[120px]">
-                          <SelectValue />
+                          <SelectValue placeholder="Select">
+                            {ttsVoice === "YC3iw27qriLq7UUaqAyi"
+                              ? "Ryo v3"
+                              : ttsVoice === "kAyjEabBEu68HYYYRAHR"
+                              ? "Ryo v2"
+                              : ttsVoice === "G0mlS0y8ByHjGAOxBgvV"
+                              ? "Ryo"
+                              : "Select"}
+                          </SelectValue>
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="kAyjEabBEu68HYYYRAHR">
+                          <SelectItem value="__null__">Select</SelectItem>
+                          <SelectItem value="YC3iw27qriLq7UUaqAyi">
                             Ryo v3
                           </SelectItem>
-                          <SelectItem value="YC3iw27qriLq7UUaqAyi">
+                          <SelectItem value="kAyjEabBEu68HYYYRAHR">
                             Ryo v2
                           </SelectItem>
                           <SelectItem value="G0mlS0y8ByHjGAOxBgvV">
@@ -1505,13 +1526,18 @@ export function ControlPanelsAppComponent({
                       </Select>
                     ) : (
                       <Select
-                        value={ttsVoice || "alloy"}
-                        onValueChange={setTtsVoice}
+                        value={ttsVoice || "__null__"}
+                        onValueChange={(value) =>
+                          setTtsVoice(value === "__null__" ? null : value)
+                        }
                       >
                         <SelectTrigger className="w-[120px]">
-                          <SelectValue />
+                          <SelectValue placeholder="Select">
+                            {ttsVoice || "Select"}
+                          </SelectValue>
                         </SelectTrigger>
                         <SelectContent>
+                          <SelectItem value="__null__">Select</SelectItem>
                           <SelectItem value="alloy">Alloy</SelectItem>
                           <SelectItem value="echo">Echo</SelectItem>
                           <SelectItem value="fable">Fable</SelectItem>
