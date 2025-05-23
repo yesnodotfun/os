@@ -17,7 +17,7 @@ async function backupDataBeforeMigration() {
     documents: Array<{ key: string; value: DocumentContent }>;
     images: Array<{ key: string; value: DocumentContent }>;
     trash: Array<{ key: string; value: DocumentContent }>;
-    custom_wallpapers: Array<{ key: string; value: any }>;
+    custom_wallpapers: Array<{ key: string; value: { url: string } }>;
   } = {
     documents: [],
     images: [],
@@ -39,10 +39,10 @@ async function backupDataBeforeMigration() {
     });
 
     // Helper to backup a store
-    const backupStore = async (
+    const backupStore = async <T = DocumentContent | { url: string }>(
       storeName: string
-    ): Promise<Array<{ key: string; value: any }>> => {
-      const items: Array<{ key: string; value: any }> = [];
+    ): Promise<Array<{ key: string; value: T }>> => {
+      const items: Array<{ key: string; value: T }> = [];
 
       if (!db.objectStoreNames.contains(storeName)) {
         console.log(`[Migration] Store ${storeName} does not exist, skipping`);
@@ -310,103 +310,6 @@ async function restoreBackupAfterMigration() {
   }
 }
 
-async function verifyMigrationNeeded(): Promise<boolean> {
-  try {
-    const fileStore = useFilesStore.getState();
-    const allItems = Object.values(fileStore.items);
-
-    // First check: Do we have files without UUIDs?
-    const filesWithoutUUIDs = allItems.filter(
-      (item) => !item.isDirectory && !item.uuid
-    );
-    if (filesWithoutUUIDs.length > 0) {
-      console.log(
-        `[Migration] Found ${filesWithoutUUIDs.length} files without UUIDs, migration needed`
-      );
-      return true;
-    }
-
-    // Check if we have any files with UUIDs
-    const filesWithUUIDs = allItems.filter(
-      (item) => !item.isDirectory && item.uuid
-    );
-    if (filesWithUUIDs.length === 0) {
-      console.log(
-        "[Migration] No files with UUIDs found, migration not needed yet"
-      );
-      return false;
-    }
-
-    // Check if any content still exists with filename keys (old system)
-    let oldContentFound = false;
-    let newContentFound = false;
-
-    for (const item of filesWithUUIDs) {
-      if (item.path.startsWith("/Documents/")) {
-        const oldContent = await dbOperations.get<DocumentContent>(
-          STORES.DOCUMENTS,
-          item.name
-        );
-        if (oldContent) {
-          console.log(
-            `[Migration] Found old content for ${item.name}, migration needed`
-          );
-          oldContentFound = true;
-        }
-
-        // Also check if new content exists
-        if (item.uuid) {
-          const newContent = await dbOperations.get<DocumentContent>(
-            STORES.DOCUMENTS,
-            item.uuid
-          );
-          if (newContent) {
-            newContentFound = true;
-          }
-        }
-      } else if (item.path.startsWith("/Images/")) {
-        const oldContent = await dbOperations.get<DocumentContent>(
-          STORES.IMAGES,
-          item.name
-        );
-        if (oldContent) {
-          console.log(
-            `[Migration] Found old content for ${item.name}, migration needed`
-          );
-          oldContentFound = true;
-        }
-
-        // Also check if new content exists
-        if (item.uuid) {
-          const newContent = await dbOperations.get<DocumentContent>(
-            STORES.IMAGES,
-            item.uuid
-          );
-          if (newContent) {
-            newContentFound = true;
-          }
-        }
-      }
-    }
-
-    // If we have old content but no new content, definitely need migration
-    if (oldContentFound && !newContentFound) {
-      console.log(
-        "[Migration] Old content exists but no UUID-based content, migration needed"
-      );
-      return true;
-    }
-
-    console.log(
-      `[Migration] Old content: ${oldContentFound}, New content: ${newContentFound}`
-    );
-    return oldContentFound; // Need migration if any old content exists
-  } catch (err) {
-    console.error("[Migration] Error verifying migration need:", err);
-    return true; // Assume migration needed on error
-  }
-}
-
 export async function migrateIndexedDBToUUIDs() {
   console.log("[Migration] Starting UUID migration check...");
 
@@ -462,21 +365,8 @@ export async function migrateIndexedDBToUUIDs() {
 
   // Check if migration has already been done
   if (localStorage.getItem(MIGRATION_KEY) === "completed") {
-    console.log(
-      "[Migration] Migration flag found, verifying if actually completed..."
-    );
-
-    // Verify if migration is actually needed
-    const migrationNeeded = await verifyMigrationNeeded();
-    if (!migrationNeeded) {
-      console.log("[Migration] Migration verified as completed, skipping.");
-      return;
-    }
-
-    console.log(
-      "[Migration] Migration flag was set but migration incomplete, clearing flag and re-running..."
-    );
-    localStorage.removeItem(MIGRATION_KEY);
+    console.log("[Migration] Migration already completed, skipping.");
+    return;
   }
 
   console.log("[Migration] Starting IndexedDB UUID migration...");
