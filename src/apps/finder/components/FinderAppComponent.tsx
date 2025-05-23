@@ -303,9 +303,8 @@ export function FinderAppComponent({
 
   const handleNewWindow = () => {
     // Launch a new Finder instance with multi-window support
-    // Start at the current path if in instance mode, otherwise root
-    const initialPath =
-      instanceId && currentInstance ? currentInstance.currentPath : currentPath;
+    // Always start at the root path
+    const initialPath = "/";
     // Use the launchApp method which handles multi-window properly
     const appStore = useAppStore.getState();
     appStore.launchApp("finder", { path: initialPath }, undefined, true);
