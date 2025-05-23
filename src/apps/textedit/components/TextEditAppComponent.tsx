@@ -1081,7 +1081,9 @@ export function TextEditAppComponent({
         title={
           customTitle ||
           (currentFilePath
-            ? `${removeFileExtension(currentFilePath.split("/").pop() || "")}`
+            ? `${removeFileExtension(currentFilePath.split("/").pop() || "")}${
+                hasUnsavedChanges ? " •" : ""
+              }`
             : `Untitled${showUnsavedIndicator ? " •" : ""}`)
         }
         onClose={handleClose}
