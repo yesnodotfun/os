@@ -1,6 +1,20 @@
 {
   "videos": [
     {
+      "id": "TkmfOyuGSdQ",
+      "url": "https://www.youtube.com/watch?v=TkmfOyuGSdQ",
+      "title": "OH NO, OH YES!",
+      "artist": "中森明菜",
+      "lyricOffset": 1000
+    },
+    {
+      "id": "JMpypbtrcCg",
+      "url": "https://www.youtube.com/watch?v=JMpypbtrcCg",
+      "title": "Bad Religion",
+      "artist": "Frank Ocean",
+      "lyricOffset": 1800
+    },
+    {
       "id": "nBoV9ZJeSp8",
       "url": "https://www.youtube.com/watch?v=nBoV9ZJeSp8",
       "title": "SLOW FADE",
