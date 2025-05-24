@@ -60,6 +60,8 @@ export function ChatsAppComponent({
     setSaveFileName,
     handleSaveSubmit,
     highlightSegment,
+    rateLimitError,
+    needsUsername,
   } = useAiChat();
 
   const {
@@ -487,12 +489,16 @@ export function ChatsAppComponent({
                 </div>
                 {/* Input Area or Set Username Prompt */}
                 <div className="absolute bottom-0 z-10 w-full p-2">
-                  {currentRoomId && !username ? (
+                  {/* Show "Set Username" button in two cases:
+                      1. In a chat room without username
+                      2. In @ryo chat when rate limit is hit for anonymous users */}
+                  {(currentRoomId && !username) ||
+                  (!currentRoomId && needsUsername && !username) ? (
                     <Button
                       onClick={promptSetUsername}
                       className="w-full h-9 font-geneva-12 text-[12px] bg-orange-600 text-white hover:bg-orange-700 transition-all duration-200"
                     >
-                      Set Username to Chat
+                      {"Set Username to Chat"}
                     </Button>
                   ) : (
                     // AI Chat or in a room with username set
@@ -518,6 +524,8 @@ export function ChatsAppComponent({
                           previousMessages={prevMessagesContent}
                           showNudgeButton={!currentRoomId}
                           isInChatRoom={!!currentRoomId}
+                          rateLimitError={rateLimitError}
+                          needsUsername={needsUsername && !username}
                         />
                       );
                     })()

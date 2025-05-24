@@ -10,11 +10,15 @@ import {
   ANSWER_STYLE_INSTRUCTIONS,
   CODE_GENERATION_INSTRUCTIONS,
   CHAT_INSTRUCTIONS,
-  TOOL_USAGE_INSTRUCTIONS,
 } from "./utils/aiPrompts";
 import { z } from "zod";
 import { SUPPORTED_AI_MODELS } from "../src/types/aiModels";
 import { appIds } from "../src/config/appIds";
+import {
+  checkAndIncrementAIMessageCount,
+  ANONYMOUS_AI_LIMIT,
+  DAILY_USER_AI_LIMIT,
+} from "./utils/rate-limit";
 
 // Update SystemState type to match new store structure
 interface SystemState {
@@ -346,7 +350,7 @@ Mentioned Message: "${systemState.chatRoomContext.mentionedMessage}"
 // New context-aware prompt builder
 const buildContextAwarePrompts = (
   systemState: SystemState | undefined,
-  messages: any[]
+  messages: Array<{ role: string; content?: string }>
 ) => {
   const prompts: string[] = [];
   const loadedSections: string[] = [];
@@ -358,7 +362,7 @@ const buildContextAwarePrompts = (
   // Check if user is asking about Ryo personally
   const lastUserMessage =
     messages
-      .filter((m) => m.role === "user")
+      .filter((m: { role: string }) => m.role === "user")
       .pop()
       ?.content?.toLowerCase() || "";
 
@@ -541,6 +545,70 @@ export default async function handler(req: Request) {
       console.log(`[User: ${usernameForLogs}]`, ...args);
     const logError = (...args: unknown[]) =>
       console.error(`[User: ${usernameForLogs}]`, ...args);
+
+    // Get IP address for rate limiting anonymous users
+    // For Vercel deployments, use x-vercel-forwarded-for (won't be overwritten by proxies)
+    // For localhost, use a fixed identifier
+    const isLocalhost = origin === "http://localhost:3000";
+    let ip: string;
+
+    if (isLocalhost) {
+      // For localhost development, use a fixed identifier
+      ip = "localhost-dev";
+    } else {
+      // For Vercel deployments, prefer x-vercel-forwarded-for which is more reliable
+      ip =
+        req.headers.get("x-vercel-forwarded-for") ||
+        req.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
+        req.headers.get("x-real-ip") ||
+        "unknown-ip";
+    }
+
+    log(`Request origin: ${origin}, IP: ${ip}`);
+
+    // Check rate limits
+    const username = incomingSystemState?.username;
+    const isAuthenticated = !!username;
+    const identifier = isAuthenticated ? username.toLowerCase() : `anon:${ip}`;
+
+    // Only check rate limits for user messages (not system messages)
+    const userMessages = messages.filter(
+      (m: { role: string }) => m.role === "user"
+    );
+    if (userMessages.length > 0) {
+      const rateLimitResult = await checkAndIncrementAIMessageCount(
+        identifier,
+        isAuthenticated
+      );
+
+      if (!rateLimitResult.allowed) {
+        log(
+          `Rate limit exceeded: ${identifier} (${rateLimitResult.count}/${rateLimitResult.limit})`
+        );
+
+        const errorResponse = {
+          error: "rate_limit_exceeded",
+          isAuthenticated,
+          count: rateLimitResult.count,
+          limit: rateLimitResult.limit,
+          message: isAuthenticated
+            ? `You've reached your daily limit of ${DAILY_USER_AI_LIMIT} AI messages. Come back tomorrow.`
+            : `You've reached the limit of ${ANONYMOUS_AI_LIMIT} messages. Set a username to continue.`,
+        };
+
+        return new Response(JSON.stringify(errorResponse), {
+          status: 429,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": validOrigin,
+          },
+        });
+      }
+
+      log(
+        `Rate limit check passed: ${identifier} (${rateLimitResult.count}/${rateLimitResult.limit})`
+      );
+    }
 
     log(
       `Using model: ${model || DEFAULT_MODEL} (${

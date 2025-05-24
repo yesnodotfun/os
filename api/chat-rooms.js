@@ -51,14 +51,14 @@ const CHAT_USERS_PREFIX = "chat:users:";
 const CHAT_ROOM_USERS_PREFIX = "chat:room:users:";
 
 // USER TTL (in seconds) – after this period of inactivity the user record expires automatically
-const USER_TTL_SECONDS = 604800; // 1 week
+const USER_TTL_SECONDS = 2592000; // 30 days
+
+// User expiration time in seconds (30 days)
+const USER_EXPIRATION_TIME = 2592000; // 30 days
 
 // Add constants for max message and username length
 const MAX_MESSAGE_LENGTH = 1000;
 const MAX_USERNAME_LENGTH = 30;
-
-// User expiration time in seconds (1 day)
-const USER_EXPIRATION_TIME = 604800; // 1 week
 
 /**
  * Helper to set (or update) a user record **with** an expiry so stale
@@ -640,7 +640,7 @@ async function handleCreateUser(data, requestId) {
 
     // Set expiration time for the new user
     await redis.expire(userKey, USER_EXPIRATION_TIME);
-    logInfo(requestId, `User created with 1-week expiration: ${username}`);
+    logInfo(requestId, `User created with 30-day expiration: ${username}`);
 
     return new Response(JSON.stringify({ user }), {
       status: 201,
@@ -702,7 +702,7 @@ async function handleJoinRoom(data, requestId) {
     await redis.expire(`${CHAT_USERS_PREFIX}${username}`, USER_EXPIRATION_TIME);
     logInfo(
       requestId,
-      `User ${username} last active time updated and expiration reset to 1 week`
+      `User ${username} last active time updated and expiration reset to 30 days`
     );
 
     // Removed individual user-count-updated event; rooms-updated will carry the new count

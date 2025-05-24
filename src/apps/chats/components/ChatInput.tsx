@@ -62,6 +62,13 @@ interface ChatInputProps {
   isInChatRoom?: boolean;
   /** Whether TTS speech is currently playing */
   isSpeechPlaying?: boolean;
+  rateLimitError?: {
+    isAuthenticated: boolean;
+    count: number;
+    limit: number;
+    message: string;
+  } | null;
+  needsUsername?: boolean;
 }
 
 export function ChatInput({
@@ -77,6 +84,8 @@ export function ChatInput({
   showNudgeButton = true,
   isInChatRoom = false,
   isSpeechPlaying = false,
+  rateLimitError,
+  needsUsername = false,
 }: ChatInputProps) {
   const [isFocused, setIsFocused] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -91,11 +100,13 @@ export function ChatInput({
   const audioButtonRef = useRef<HTMLButtonElement>(null);
   const { playNote } = useChatSynth();
   const { play: playNudgeSound } = useSound(Sounds.MSN_NUDGE);
-  const { typingSynthEnabled, debugMode, aiModel } = useAppStoreShallow((s) => ({
-    typingSynthEnabled: s.typingSynthEnabled,
-    debugMode: s.debugMode,
-    aiModel: s.aiModel,
-  }));
+  const { typingSynthEnabled, debugMode, aiModel } = useAppStoreShallow(
+    (s) => ({
+      typingSynthEnabled: s.typingSynthEnabled,
+      debugMode: s.debugMode,
+      aiModel: s.aiModel,
+    })
+  );
 
   // Get the model display name for debug information
   const modelDisplayName = aiModel ? AI_MODELS[aiModel]?.name : null;
@@ -317,18 +328,25 @@ export function ChatInput({
                     ? "Recording..."
                     : isTranscribing
                     ? "Transcribing..."
+                    : needsUsername && !isInChatRoom
+                    ? "Set username to continue..."
                     : isFocused || isTouchDevice
                     ? "Type a message..."
                     : "Type or push 'space' to talk..."
                 }
                 className={`w-full border-1 border-gray-800 text-xs font-geneva-12 h-9 pr-16 backdrop-blur-lg bg-white/80 ${
                   isFocused ? "input--focused" : ""
-                } ${isTypingRyoMention ? "border-blue-600 bg-blue-50" : ""}`}
+                } ${isTypingRyoMention ? "border-blue-600 bg-blue-50" : ""} ${
+                  needsUsername && !isInChatRoom
+                    ? "border-orange-600 bg-orange-50"
+                    : ""
+                }`}
                 onFocus={() => setIsFocused(true)}
                 onBlur={() => setIsFocused(false)}
                 onTouchStart={(e) => {
                   e.preventDefault();
                 }}
+                disabled={needsUsername && !isInChatRoom}
               />
               <AnimatePresence>
                 {isLoading && input.trim() === "" && (
@@ -486,6 +504,20 @@ export function ChatInput({
               className="mt-1 text-red-600 text-xs font-geneva-12"
             >
               {transcriptionError}
+            </motion.div>
+          )}
+        </AnimatePresence>
+        <AnimatePresence>
+          {rateLimitError && !isInChatRoom && (
+            <motion.div
+              key="rate-limit-error"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              transition={{ duration: 0.15 }}
+              className="mt-1 text-orange-600 text-xs font-geneva-12"
+            >
+              {rateLimitError.message}
             </motion.div>
           )}
         </AnimatePresence>

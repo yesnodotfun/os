@@ -290,6 +290,15 @@ export function useAiChat() {
     return withoutCodeBlocks;
   };
 
+  // Rate limit state
+  const [rateLimitError, setRateLimitError] = useState<{
+    isAuthenticated: boolean;
+    count: number;
+    limit: number;
+    message: string;
+  } | null>(null);
+  const [needsUsername, setNeedsUsername] = useState(false);
+
   // --- AI Chat Hook (Vercel AI SDK) ---
   const {
     messages: currentSdkMessages,
@@ -977,7 +986,53 @@ export function useAiChat() {
     },
     onError: (err) => {
       console.error("AI Chat Error:", err);
-      toast("AI Error", {
+
+      // Check if this is a rate limit error (status 429)
+      // The AI SDK wraps errors in a specific format
+      if (err.message) {
+        // Try to extract the JSON error body from the error message
+        // The AI SDK typically includes the response body in the error message
+        const jsonMatch = err.message.match(/\{.*\}/);
+
+        if (jsonMatch) {
+          try {
+            const errorData = JSON.parse(jsonMatch[0]);
+
+            if (errorData.error === "rate_limit_exceeded") {
+              setRateLimitError(errorData);
+
+              // If anonymous user hit limit, set flag to require username
+              if (!errorData.isAuthenticated) {
+                setNeedsUsername(true);
+              }
+
+              // Don't show the raw error, just indicate that rate limit was hit
+              // The UI will handle showing the proper message
+              return; // Exit early to prevent showing generic error toast
+            }
+          } catch (parseError) {
+            console.error("Failed to parse error response:", parseError);
+          }
+        }
+
+        // Check if error message contains 429 status
+        if (
+          err.message.includes("429") ||
+          err.message.includes("rate_limit_exceeded")
+        ) {
+          // Generic rate limit message if we couldn't parse the details
+          setNeedsUsername(true);
+          toast.error("Rate Limit Exceeded", {
+            description:
+              "You've reached the message limit. Please set a username to continue.",
+            duration: 5000,
+          });
+          return;
+        }
+      }
+
+      // For non-rate-limit errors, show the generic error toast
+      toast.error("AI Error", {
         description: err.message || "Failed to get response.",
       });
     },
@@ -1093,12 +1148,32 @@ export function useAiChat() {
     }
   }, [currentSdkMessages, isLoading, speechEnabled, speak, highlightSegment]);
 
+  // Clear rate limit error when username is set
+  useEffect(() => {
+    if (username && needsUsername) {
+      setNeedsUsername(false);
+      setRateLimitError(null);
+    }
+  }, [username, needsUsername]);
+
   // --- Action Handlers ---
   const handleSubmit = useCallback(
     (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
       const messageContent = input; // Capture input before clearing
       if (!messageContent.trim()) return; // Don't submit empty messages
+
+      // Check if user needs to set username before submitting
+      if (needsUsername && !username) {
+        toast.error("Username Required", {
+          description: "Please set a username to continue chatting.",
+          duration: 3000,
+        });
+        return;
+      }
+
+      // Clear any previous rate limit errors on new submission attempt
+      setRateLimitError(null);
 
       // Proceed with the actual submission using useChat
       // useChat's handleSubmit will add the user message to its internal state
@@ -1112,12 +1187,24 @@ export function useAiChat() {
         },
       });
     },
-    [originalHandleSubmit, input] // Removed setAiMessages, aiMessages from deps
+    [originalHandleSubmit, input, needsUsername, username, aiModel] // Updated deps
   );
 
   const handleDirectMessageSubmit = useCallback(
     (message: string) => {
       if (!message.trim()) return; // Don't submit empty messages
+
+      // Check if user needs to set username before submitting
+      if (needsUsername && !username) {
+        toast.error("Username Required", {
+          description: "Please set a username to continue chatting.",
+          duration: 3000,
+        });
+        return;
+      }
+
+      // Clear any previous rate limit errors on new submission attempt
+      setRateLimitError(null);
 
       // Proceed with the actual submission using useChat
       // useChat's append will add the user message to its internal state
@@ -1132,7 +1219,7 @@ export function useAiChat() {
         } // Pass options correctly - body is direct property
       );
     },
-    [append] // Removed setAiMessages, aiMessages from deps
+    [append, needsUsername, username, aiModel] // Updated deps
   );
 
   const handleNudge = useCallback(() => {
@@ -1269,6 +1356,10 @@ export function useAiChat() {
     handleNudge,
     clearChats, // Expose the action
     handleSaveTranscript, // Expose the action
+
+    // Rate limit state
+    rateLimitError,
+    needsUsername,
 
     // Dialogs
     isClearDialogOpen,

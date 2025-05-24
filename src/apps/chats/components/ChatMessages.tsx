@@ -106,6 +106,49 @@ const isEmojiOnly = (text: string): boolean => {
   return emojiRegex.test(text);
 };
 
+// Helper function to extract user-friendly error message
+const getErrorMessage = (error: Error): string => {
+  if (!error.message) return "An error occurred";
+
+  // Try to extract JSON from the error message
+  const jsonMatch = error.message.match(/\{.*\}/);
+
+  if (jsonMatch) {
+    try {
+      const errorData = JSON.parse(jsonMatch[0]);
+
+      // Handle specific error types
+      if (errorData.error === "rate_limit_exceeded") {
+        if (errorData.isAuthenticated) {
+          return `Daily AI message limit reached (${errorData.count}/${errorData.limit} messages). Try again tomorrow.`;
+        } else {
+          return `Set a username to continue chatting with Ryo.`;
+        }
+      }
+
+      // Return the error field if it exists and is a string
+      if (typeof errorData.error === "string") {
+        return errorData.error;
+      }
+
+      // Return the message field if it exists
+      if (typeof errorData.message === "string") {
+        return errorData.message;
+      }
+    } catch {
+      // If JSON parsing fails, continue to fallback
+    }
+  }
+
+  // If the message starts with "Error: ", remove it for cleaner display
+  if (error.message.startsWith("Error: ")) {
+    return error.message.slice(7);
+  }
+
+  // Return the original message as fallback
+  return error.message;
+};
+
 // --- New helper: prettify tool names ---
 /**
  * Convert camelCase / PascalCase tool names to a human-readable string.
@@ -991,20 +1034,22 @@ function ChatMessagesContent({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="flex items-center gap-2 text-red-600 font-['Geneva-9'] text-[16px] antialiased h-[12px] pl-1"
+          className="flex items-start gap-2 text-red-600 font-['Geneva-9'] text-[16px] antialiased pl-1 py-1"
         >
-          <AlertCircle className="h-3 w-3" />
-          <span>{error.message}</span>
-          {onRetry && (
-            <Button
-              size="sm"
-              variant="link"
-              onClick={onRetry}
-              className="m-0 p-0 text-[16px] h-0 text-amber-600"
-            >
-              Try again
-            </Button>
-          )}
+          <AlertCircle className="h-3 w-3 mt-0.5 flex-shrink-0" />
+          <div className="flex-1 flex flex-row items-start justify-between gap-1">
+            <span className="leading-none">{getErrorMessage(error)}</span>
+            {onRetry && (
+              <Button
+                size="sm"
+                variant="link"
+                onClick={onRetry}
+                className="m-0 p-0 h-auto text-red-600 text-[16px] h-[16px] hover:text-red-700"
+              >
+                Retry
+              </Button>
+            )}
+          </div>
         </motion.div>
       )}
     </AnimatePresence>
