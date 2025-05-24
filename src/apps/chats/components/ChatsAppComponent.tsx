@@ -572,7 +572,7 @@ export function ChatsAppComponent({
           }}
           onSubmit={submitUsernameDialog}
           title="Set Username"
-          description="Set your username for public Chat Rooms"
+          description="Set your username, visible to Ryo and in public chat rooms"
           value={newUsername}
           onChange={(value) => {
             setNewUsername(value);
