@@ -515,7 +515,7 @@ export function ChatInput({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 10 }}
               transition={{ duration: 0.15 }}
-              className="mt-1 text-orange-600 text-xs font-geneva-12"
+              className="mt-1 text-neutral-600 text-xs font-geneva-12"
             >
               {rateLimitError.message}
             </motion.div>

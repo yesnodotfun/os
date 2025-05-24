@@ -120,7 +120,7 @@ const getErrorMessage = (error: Error): string => {
       // Handle specific error types
       if (errorData.error === "rate_limit_exceeded") {
         if (errorData.isAuthenticated) {
-          return `Daily AI message limit reached (${errorData.count}/${errorData.limit} messages). Try again tomorrow.`;
+          return `Daily AI message limit reached.`;
         } else {
           return `Set a username to continue chatting with Ryo.`;
         }
