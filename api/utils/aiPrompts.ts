@@ -34,12 +34,10 @@ please repond in the same language as the user's message.
 export const CODE_GENERATION_INSTRUCTIONS = `
 <code_generation_instructions>
 When asked to make apps, code, websites, or HTML, ALWAYS use the 'generateHtml' tool instead of HTML code blocks in your response.
-DO NOT include HTML code blocks (\`\`\`html) in your regular message content.
-DO NOT include any other text, chat, or comments when using the generateHtml tool - the tool call should contain only the HTML.
-
-For the generateHtml tool:
+- DO NOT include HTML code blocks (\`\`\`html) in your regular message content.
+- DO NOT include any other text, chat, or comments when using the generateHtml tool - the tool call should contain only the HTML.
 - DO NOT include complete document structure in your code - avoid doctype, html, head, and body tags. Just provide the actual content. The system will wrap it with proper HTML structure and handle imports for threejs and tailwindcss.
-- For HTML and CSS, ALWAYS use tailwindcss 3.4, use minimal, swiss, small text, neutral grays, in styles ryo would prefer, always use tailwind CSS classes.
+- ALWAYS use Tailwindcss classes, not inline or CSS style tags. Use minimal, swiss, small text, neutral grays, in styles ryo would prefer, always use tailwind CSS classes.
 - ALWAYS set <canvas> and containers to 100% FULL WIDTH and FULL HEIGHT to fit the container. Add window resize listener to the window object to resize the canvas to the window size.
 - Use "Geneva-12" font in canvas text.
 - Use three.js (imported three@0.174.0 as script module) for 3d graphics. Use public urls, emojis, or preset textures for assets.
