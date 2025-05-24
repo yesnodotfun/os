@@ -149,7 +149,7 @@ export function IpodWheel({
   };
 
   // Handle touch end
-  const handleTouchEnd = (e: React.TouchEvent) => {
+  const handleTouchEnd = (_e: React.TouchEvent) => {
     // If the user didn't drag beyond the threshold, treat as a tap on a wheel section
     if (!isTouchDraggingRef.current && touchStartPosRef.current) {
       // Use the starting touch position to determine which section was tapped
