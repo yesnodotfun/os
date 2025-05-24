@@ -257,7 +257,7 @@ export function IpodWheel({
       >
         {/* Wheel labels - no click handlers */}
         <div
-          className="absolute top-2 text-center left-1/2 transform -translate-x-1/2 font-chicago text-xs text-white menu-button cursor-default select-none"
+          className="absolute top-1 text-center left-1/2 transform -translate-x-1/2 font-chicago text-xs text-white menu-button cursor-default select-none"
           onClick={(e) => {
             e.stopPropagation(); // Prevent triggering wheel mousedown
             onMenuButton();
