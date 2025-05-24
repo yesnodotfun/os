@@ -14,14 +14,14 @@ const DEFAULT_OPENAI_VOICE = "alloy";
 const DEFAULT_OPENAI_SPEED = 1.1;
 
 // ElevenLabs defaults
-const DEFAULT_ELEVENLABS_VOICE_ID = "YC3iw27qriLq7UUaqAyi"; // Ryo v3
+const DEFAULT_ELEVENLABS_VOICE_ID = "kAyjEabBEu68HYYYRAHR"; // Ryo v3
 const DEFAULT_ELEVENLABS_MODEL_ID = "eleven_turbo_v2_5"; // 2.5 turbo
 const DEFAULT_ELEVENLABS_OUTPUT_FORMAT = "mp3_44100_128";
 const DEFAULT_ELEVENLABS_VOICE_SETTINGS = {
-  stability: 0.4,
-  similarity_boost: 0.8,
+  stability: 0.5,
+  similarity_boost: 0.7,
   use_speaker_boost: true,
-  speed: 1.1,
+  speed: 1,
 };
 
 // --- Logging Utilities ---------------------------------------------------
