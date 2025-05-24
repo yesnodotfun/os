@@ -265,7 +265,7 @@ export function IpodWheel({
         >
           MENU
         </div>
-        <div className="absolute right-1.5 text-right top-1/2 transform -translate-y-1/2 font-chicago text-[16px] text-white cursor-default select-none">
+        <div className="absolute right-2 text-right top-1/2 transform -translate-y-1/2 font-chicago text-[16px] text-white cursor-default select-none">
           ⏭
         </div>
         <div className="absolute bottom-0 text-center left-1/2 transform -translate-x-1/2 font-chicago text-[16px] text-white cursor-default select-none">
