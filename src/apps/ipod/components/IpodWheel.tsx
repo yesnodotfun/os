@@ -31,6 +31,11 @@ export function IpodWheel({
   // Track whether the user is currently dragging (mouse down + move)
   const isDraggingRef = useRef(false);
 
+  // Refs for tracking touch state
+  const isTouchDraggingRef = useRef(false); // Whether significant touch rotation occurred
+  const touchStartPosRef = useRef<{ x: number; y: number } | null>(null); // Starting touch position
+  const recentTouchRef = useRef(false); // Track if we just handled a touch event to prevent double firing
+
   // Track if the current interaction started on the "MENU" label so we can suppress duplicate click handling
   const fromMenuLabelRef = useRef(false);
 
@@ -71,15 +76,36 @@ export function IpodWheel({
     }
   };
 
+  // Check if touch point is in center button area
+  const isTouchInCenter = (x: number, y: number): boolean => {
+    if (!wheelRef.current) return false;
+
+    const rect = wheelRef.current.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+    // Center button is w-16 h-16 (64px), so radius is 32px
+    return distance <= 32;
+  };
+
   // Handle touch start
   const handleTouchStart = (e: React.TouchEvent) => {
     // Prevent the browser from interpreting this touch as a scroll/zoom gesture
     e.preventDefault();
 
     const touch = e.touches[0];
+
+    // Skip processing if touch is in center button area
+    if (isTouchInCenter(touch.clientX, touch.clientY)) {
+      return;
+    }
+
     const angleRad = getAngleFromCenterRad(touch.clientX, touch.clientY);
     lastAngleRef.current = angleRad;
     rotationAccumulatorRef.current = 0;
+    isTouchDraggingRef.current = false;
+    touchStartPosRef.current = { x: touch.clientX, y: touch.clientY };
   };
 
   // Handle touch move
@@ -102,6 +128,14 @@ export function IpodWheel({
 
     const threshold = (rotationStepDeg * Math.PI) / 180; // convert step to radians
 
+    // Once movement exceeds threshold, treat interaction as a drag (not a simple tap)
+    if (
+      !isTouchDraggingRef.current &&
+      Math.abs(rotationAccumulatorRef.current) > threshold
+    ) {
+      isTouchDraggingRef.current = true;
+    }
+
     // Trigger rotation events when threshold exceeded
     while (rotationAccumulatorRef.current > threshold) {
       onWheelRotation("clockwise");
@@ -115,9 +149,29 @@ export function IpodWheel({
   };
 
   // Handle touch end
-  const handleTouchEnd = () => {
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    // If the user didn't drag beyond the threshold, treat as a tap on a wheel section
+    if (!isTouchDraggingRef.current && touchStartPosRef.current) {
+      // Use the starting touch position to determine which section was tapped
+      const angleDeg = getAngleFromCenterDeg(
+        touchStartPosRef.current.x,
+        touchStartPosRef.current.y
+      );
+      const section = getWheelSection(angleDeg);
+      onWheelClick(section);
+
+      // Mark that we just handled a touch event to prevent mouse event double firing
+      recentTouchRef.current = true;
+      setTimeout(() => {
+        recentTouchRef.current = false;
+      }, 500);
+    }
+
+    // Reset all touch tracking refs
     lastAngleRef.current = null;
     rotationAccumulatorRef.current = 0;
+    isTouchDraggingRef.current = false;
+    touchStartPosRef.current = null;
   };
 
   // Handle mouse wheel scroll for rotation
@@ -140,6 +194,11 @@ export function IpodWheel({
 
   // Handle mouse interactions – supports both click and drag rotation
   const handleMouseDown = (e: React.MouseEvent) => {
+    // Prevent double firing after touch events
+    if (recentTouchRef.current) {
+      return;
+    }
+
     fromMenuLabelRef.current =
       e.target && (e.target as HTMLElement).classList.contains("menu-button");
 
@@ -234,7 +293,10 @@ export function IpodWheel({
     >
       {/* Center button */}
       <button
-        onClick={() => onWheelClick("center")}
+        onClick={() => {
+          if (recentTouchRef.current) return;
+          onWheelClick("center");
+        }}
         className={cn(
           "absolute w-16 h-16 rounded-full z-10 flex items-center justify-center",
           theme === "classic"
@@ -259,6 +321,7 @@ export function IpodWheel({
         <div
           className="absolute top-1.5 text-center left-1/2 transform -translate-x-1/2 font-chicago text-xs text-white menu-button cursor-default select-none"
           onClick={(e) => {
+            if (recentTouchRef.current) return;
             e.stopPropagation(); // Prevent triggering wheel mousedown
             onMenuButton();
           }}
