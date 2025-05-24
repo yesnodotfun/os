@@ -518,7 +518,7 @@ export function IpodScreen({
 
       {/* Title bar - not animated, immediately swaps */}
       <div className="border-b border-[#0a3667] py-0 px-2 font-chicago text-[16px] flex justify-between items-center sticky top-0 z-10 text-[#0a3667] [text-shadow:1px_1px_0_rgba(0,0,0,0.15)]">
-        <div className="w-6 text-xs mt-0.5 font-chicago">{isPlaying ? "▶" : "⏸️"}</div>
+        <div className="w-6 text-xs mt-0.5 font-chicago">{isPlaying ? "▶" : "⏸︎"}</div>
         <div className="truncate max-w-[80%] text-center">
           {currentMenuTitle}
         </div>
