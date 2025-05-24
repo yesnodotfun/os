@@ -29,7 +29,10 @@ async function checkAndIncrementAIMessageCount(identifier, isAuthenticated) {
 
   const limit = isAuthenticated ? DAILY_USER_AI_LIMIT : ANONYMOUS_AI_LIMIT;
 
-  if (count >= limit) {
+  // Allow ryo to bypass rate limits
+  const isRyo = identifier === "ryo";
+
+  if (count >= limit && !isRyo) {
     return { allowed: false, count, limit };
   }
 
