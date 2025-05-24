@@ -257,7 +257,7 @@ export function IpodWheel({
       >
         {/* Wheel labels - no click handlers */}
         <div
-          className="absolute top-2 left-1/2 transform -translate-x-1/2 font-chicago text-xs text-white menu-button cursor-default select-none"
+          className="absolute top-2 text-center left-1/2 transform -translate-x-1/2 font-chicago text-xs text-white menu-button cursor-default select-none"
           onClick={(e) => {
             e.stopPropagation(); // Prevent triggering wheel mousedown
             onMenuButton();
@@ -265,13 +265,13 @@ export function IpodWheel({
         >
           MENU
         </div>
-        <div className="absolute right-2 top-1/2 transform -translate-y-1/2 font-chicago text-[16px] text-white cursor-default select-none">
+        <div className="absolute right-2 text-right top-1/2 transform -translate-y-1/2 font-chicago text-[16px] text-white cursor-default select-none">
           ⏭
         </div>
-        <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 font-chicago text-[16px] text-white cursor-default select-none">
+        <div className="absolute bottom-1 text-center left-1/2 transform -translate-x-1/2 font-chicago text-[16px] text-white cursor-default select-none">
           ⏯
         </div>
-        <div className="absolute left-2 top-1/2 transform -translate-y-1/2 font-chicago text-[16px] text-white cursor-default select-none">
+        <div className="absolute left-2 text-left top-1/2 transform -translate-y-1/2 font-chicago text-[16px] text-white cursor-default select-none">
           ⏮
         </div>
       </div>
