@@ -932,7 +932,7 @@ function ChatMessagesContent({
                         return (
                           <ToolInvocationMessage
                             key={partKey}
-                            part={part}
+                            part={part as any}
                             partKey={partKey}
                             isLoading={isLoading}
                             getAppName={getAppName}
