@@ -592,8 +592,8 @@ export default async function handler(req: Request) {
           count: rateLimitResult.count,
           limit: rateLimitResult.limit,
           message: isAuthenticated
-            ? `You've reached your daily limit of ${DAILY_USER_AI_LIMIT} AI messages. Come back tomorrow.`
-            : `You've reached the limit of ${ANONYMOUS_AI_LIMIT} messages. Set a username to continue.`,
+            ? `You've hit your daily limit of ${DAILY_USER_AI_LIMIT} messages. Come back tomorrow.`
+            : `You've hit the limit of ${ANONYMOUS_AI_LIMIT} messages. Set a username to continue.`,
         };
 
         return new Response(JSON.stringify(errorResponse), {

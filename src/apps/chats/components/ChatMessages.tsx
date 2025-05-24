@@ -932,7 +932,7 @@ function ChatMessagesContent({
                         return (
                           <ToolInvocationMessage
                             key={partKey}
-                            part={part as any}
+                            part={part}
                             partKey={partKey}
                             isLoading={isLoading}
                             getAppName={getAppName}
@@ -1027,31 +1027,43 @@ function ChatMessagesContent({
           </motion.div>
         );
       })}
-      {error && (
-        <motion.div
-          layout="position"
-          key="error-indicator"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="flex items-start gap-2 text-red-600 font-['Geneva-9'] text-[16px] antialiased pl-1 py-1"
-        >
-          <AlertCircle className="h-3 w-3 mt-0.5 flex-shrink-0" />
-          <div className="flex-1 flex flex-row items-start justify-between gap-1">
-            <span className="leading-none">{getErrorMessage(error)}</span>
-            {onRetry && (
-              <Button
-                size="sm"
-                variant="link"
-                onClick={onRetry}
-                className="m-0 p-0 h-auto text-red-600 text-[16px] h-[16px] hover:text-red-700"
-              >
-                Retry
-              </Button>
-            )}
-          </div>
-        </motion.div>
-      )}
+      {error &&
+        (() => {
+          // Check if it's a rate limit or username error that's handled elsewhere
+          const errorMessage = getErrorMessage(error);
+          const isRateLimitError =
+            errorMessage === "Daily AI message limit reached." ||
+            errorMessage === "Set a username to continue chatting with Ryo.";
+
+          // Don't show these errors in chat since they're handled by other UI
+          if (isRateLimitError) return null;
+
+          return (
+            <motion.div
+              layout="position"
+              key="error-indicator"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex items-start gap-2 text-red-600 font-['Geneva-9'] text-[16px] antialiased pl-1 py-1"
+            >
+              <AlertCircle className="h-3 w-3 mt-0.5 flex-shrink-0" />
+              <div className="flex-1 flex flex-row items-start justify-between gap-1">
+                <span className="leading-none">{errorMessage}</span>
+                {onRetry && (
+                  <Button
+                    size="sm"
+                    variant="link"
+                    onClick={onRetry}
+                    className="m-0 p-0 h-auto text-red-600 text-[16px] h-[16px] hover:text-red-700"
+                  >
+                    Retry
+                  </Button>
+                )}
+              </div>
+            </motion.div>
+          );
+        })()}
     </AnimatePresence>
   );
 }
