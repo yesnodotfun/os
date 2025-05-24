@@ -403,10 +403,12 @@ export function IpodAppComponent({
   );
 
   const prevIsForeground = useRef(isForeground);
-  const { bringToForeground, clearIpodInitialData } = useAppStoreShallow((state) => ({
-    bringToForeground: state.bringToForeground,
-    clearIpodInitialData: state.clearInstanceInitialData,
-  }));
+  const { bringToForeground, clearIpodInitialData } = useAppStoreShallow(
+    (state) => ({
+      bringToForeground: state.bringToForeground,
+      clearIpodInitialData: state.clearInstanceInitialData,
+    })
+  );
   // Track the last processed initialData to avoid duplicates
   const lastProcessedInitialDataRef = useRef<unknown>(null);
 
@@ -1192,7 +1194,7 @@ export function IpodAppComponent({
     // This unconditional update prevents the app state from getting
     // stuck in "play" when Mobile Safari blocks autoplay.
     setIsPlaying(false);
-    showStatus("❙ ❙");
+    showStatus("⏸︎");
   }, [setIsPlaying, showStatus]);
 
   const handleReady = useCallback(() => {
@@ -1213,7 +1215,7 @@ export function IpodAppComponent({
       // assume playback was blocked and revert the state.
       if (useIpodStore.getState().isPlaying && elapsedTime === startElapsed) {
         setIsPlaying(false);
-        showStatus("❙ ❙");
+        showStatus("⏸");
       }
     }, 1200);
 
