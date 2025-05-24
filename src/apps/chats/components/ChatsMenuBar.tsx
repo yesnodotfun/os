@@ -31,6 +31,7 @@ interface ChatsMenuBarProps {
   onIncreaseFontSize: () => void;
   onDecreaseFontSize: () => void;
   onResetFontSize: () => void;
+  username?: string | null;
 }
 
 export function ChatsMenuBar({
@@ -50,6 +51,7 @@ export function ChatsMenuBar({
   onIncreaseFontSize,
   onDecreaseFontSize,
   onResetFontSize,
+  username,
 }: ChatsMenuBarProps) {
   const {
     speechEnabled,
@@ -58,6 +60,7 @@ export function ChatsMenuBar({
     setTypingSynthEnabled,
     synthPreset,
     setSynthPreset,
+    debugMode,
   } = useAppStoreShallow((s) => ({
     speechEnabled: s.speechEnabled,
     setSpeechEnabled: s.setSpeechEnabled,
@@ -65,6 +68,7 @@ export function ChatsMenuBar({
     setTypingSynthEnabled: s.setTypingSynthEnabled,
     synthPreset: s.synthPreset,
     setSynthPreset: s.setSynthPreset,
+    debugMode: s.debugMode,
   }));
 
   return (
@@ -120,7 +124,8 @@ export function ChatsMenuBar({
           sideOffset={1}
           className="px-0 max-h-[300px] overflow-y-auto"
         >
-          {isAdmin && (
+          {/* New Room - only show when debugMode AND isAdmin */}
+          {debugMode && isAdmin && (
             <DropdownMenuItem
               onClick={onAddRoom}
               className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
@@ -128,16 +133,22 @@ export function ChatsMenuBar({
               New Room...
             </DropdownMenuItem>
           )}
-          <DropdownMenuItem
-            onClick={onSetUsername}
-            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
-          >
-            Set Username...
-          </DropdownMenuItem>
 
-          {rooms.length > 0 && (
-            <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
+          {/* Set Username - show when debugMode OR username not set */}
+          {(debugMode || !username) && (
+            <DropdownMenuItem
+              onClick={onSetUsername}
+              className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+            >
+              Set Username...
+            </DropdownMenuItem>
           )}
+
+          {/* Show separator if we have any items above AND rooms exist */}
+          {((debugMode && isAdmin) || debugMode || !username) &&
+            rooms.length > 0 && (
+              <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
+            )}
 
           {/* Ryo Chat Option */}
           <DropdownMenuItem

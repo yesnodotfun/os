@@ -318,6 +318,7 @@ export function ChatsAppComponent({
         onIncreaseFontSize={handleIncreaseFontSize}
         onDecreaseFontSize={handleDecreaseFontSize}
         onResetFontSize={handleResetFontSize}
+        username={username}
       />
       <WindowFrame
         title={currentRoom ? `#${currentRoom.name}` : "@ryo"}
