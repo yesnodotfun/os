@@ -15,6 +15,9 @@ export function PcAppComponent({
   onClose,
   isForeground,
   skipInitialSound,
+  instanceId,
+  onNavigateNext,
+  onNavigatePrevious,
 }: AppProps) {
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
@@ -253,6 +256,9 @@ export function PcAppComponent({
         isForeground={isForeground}
         appId="pc"
         skipInitialSound={skipInitialSound}
+        instanceId={instanceId}
+        onNavigateNext={onNavigateNext}
+        onNavigatePrevious={onNavigatePrevious}
       >
         <div className="flex flex-col h-full w-full bg-[#1a1a1a]">
           <div className="flex-1 relative h-full">

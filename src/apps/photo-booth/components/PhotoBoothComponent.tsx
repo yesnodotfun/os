@@ -98,6 +98,9 @@ export function PhotoBoothComponent({
   onClose,
   isForeground,
   skipInitialSound,
+  instanceId,
+  onNavigateNext,
+  onNavigatePrevious,
 }: AppProps) {
   const [showHelp, setShowHelp] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
@@ -779,6 +782,9 @@ export function PhotoBoothComponent({
         isForeground={isForeground}
         appId="photo-booth"
         skipInitialSound={skipInitialSound}
+        instanceId={instanceId}
+        onNavigateNext={onNavigateNext}
+        onNavigatePrevious={onNavigatePrevious}
       >
         <div className="flex flex-col w-full h-full bg-neutral-500 max-h-full overflow-hidden">
           {/* Camera view area - takes available space but doesn't overflow */}
