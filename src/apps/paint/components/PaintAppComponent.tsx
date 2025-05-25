@@ -28,6 +28,9 @@ export const PaintAppComponent: React.FC<AppProps<PaintInitialData>> = ({
   isForeground = false,
   skipInitialSound,
   initialData,
+  instanceId,
+  onNavigateNext,
+  onNavigatePrevious,
 }) => {
   const [selectedTool, setSelectedTool] = useState<string>("pencil");
   const [selectedPattern, setSelectedPattern] = useState<string>("pattern-1");
@@ -435,6 +438,9 @@ export const PaintAppComponent: React.FC<AppProps<PaintInitialData>> = ({
         isForeground={isForeground}
         appId="paint"
         skipInitialSound={skipInitialSound}
+        instanceId={instanceId}
+        onNavigateNext={onNavigateNext}
+        onNavigatePrevious={onNavigatePrevious}
       >
         <div
           className="flex flex-col h-full w-full min-h-0 p-2"

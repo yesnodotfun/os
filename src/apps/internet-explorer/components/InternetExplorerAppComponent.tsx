@@ -313,6 +313,8 @@ export function InternetExplorerAppComponent({
   helpItems,
   initialData,
   instanceId,
+  onNavigateNext,
+  onNavigatePrevious,
 }: AppProps<InternetExplorerInitialData>) {
   const debugMode = useAppStore((state) => state.debugMode);
   const terminalSoundsEnabled = useAppStore(
@@ -2080,6 +2082,9 @@ export function InternetExplorerAppComponent({
         isForeground={isForeground}
         appId="internet-explorer"
         skipInitialSound={skipInitialSound}
+        instanceId={instanceId}
+        onNavigateNext={onNavigateNext}
+        onNavigatePrevious={onNavigatePrevious}
       >
         <div className="flex flex-col h-full w-full relative">
           <div className="flex flex-col gap-1 p-1 bg-gray-100 border-b border-black">

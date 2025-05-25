@@ -164,6 +164,9 @@ export function SynthAppComponent({
   onClose,
   isForeground,
   skipInitialSound,
+  instanceId,
+  onNavigateNext,
+  onNavigatePrevious,
 }: AppProps) {
   // References and synth state
   const synthRef = useRef<Tone.PolySynth | null>(null);
@@ -814,6 +817,9 @@ export function SynthAppComponent({
         onClose={onClose}
         isForeground={isForeground}
         skipInitialSound={skipInitialSound}
+        instanceId={instanceId}
+        onNavigateNext={onNavigateNext}
+        onNavigatePrevious={onNavigatePrevious}
       >
         <div
           ref={appContainerRef}

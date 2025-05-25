@@ -36,6 +36,9 @@ export function ChatsAppComponent({
   onClose,
   isForeground,
   skipInitialSound,
+  instanceId,
+  onNavigateNext,
+  onNavigatePrevious,
 }: AppProps) {
   const { aiMessages } = useChatsStore();
   const {
@@ -326,6 +329,9 @@ export function ChatsAppComponent({
         isForeground={isForeground}
         appId="chats"
         skipInitialSound={skipInitialSound}
+        instanceId={instanceId}
+        onNavigateNext={onNavigateNext}
+        onNavigatePrevious={onNavigatePrevious}
         isShaking={isShaking}
       >
         <div ref={containerRef} className="relative h-full w-full">

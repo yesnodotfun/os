@@ -324,6 +324,8 @@ export function IpodAppComponent({
   skipInitialSound,
   initialData,
   instanceId,
+  onNavigateNext,
+  onNavigatePrevious,
 }: AppProps<IpodInitialData>) {
   const { play: playClickSound } = useSound(Sounds.BUTTON_CLICK);
   const { play: playScrollSound } = useSound(Sounds.MENU_OPEN);
@@ -1703,6 +1705,9 @@ export function IpodAppComponent({
         appId="ipod"
         transparentBackground
         skipInitialSound={skipInitialSound}
+        instanceId={instanceId}
+        onNavigateNext={onNavigateNext}
+        onNavigatePrevious={onNavigatePrevious}
       >
         <div
           ref={containerRef}

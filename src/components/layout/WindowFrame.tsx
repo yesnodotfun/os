@@ -111,26 +111,12 @@ export function WindowFrame({
     onSwipeLeft: () => {
       playWindowMoveStop();
       vibrateSwap();
-      if (instanceId && onNavigateNext) {
-        onNavigateNext();
-      } else {
-        // Fallback for legacy non-instance apps - shouldn't happen in instance-only system
-        console.warn(
-          `[WindowFrame] No instance navigation available for ${appId}`
-        );
-      }
+      onNavigateNext?.();
     },
     onSwipeRight: () => {
       playWindowMoveStop();
       vibrateSwap();
-      if (instanceId && onNavigatePrevious) {
-        onNavigatePrevious();
-      } else {
-        // Fallback for legacy non-instance apps - shouldn't happen in instance-only system
-        console.warn(
-          `[WindowFrame] No instance navigation available for ${appId}`
-        );
-      }
+      onNavigatePrevious?.();
     },
     threshold: 100,
   });

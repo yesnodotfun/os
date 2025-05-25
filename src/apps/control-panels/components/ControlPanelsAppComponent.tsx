@@ -162,6 +162,9 @@ export function ControlPanelsAppComponent({
   isForeground,
   skipInitialSound,
   initialData,
+  instanceId,
+  onNavigateNext,
+  onNavigatePrevious,
 }: AppProps<ControlPanelsInitialData>) {
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
@@ -1225,6 +1228,9 @@ export function ControlPanelsAppComponent({
         isForeground={isForeground}
         appId="control-panels"
         skipInitialSound={skipInitialSound}
+        instanceId={instanceId}
+        onNavigateNext={onNavigateNext}
+        onNavigatePrevious={onNavigatePrevious}
       >
         <div className="flex flex-col h-full bg-[#E3E3E3] p-4 w-full">
           <Tabs

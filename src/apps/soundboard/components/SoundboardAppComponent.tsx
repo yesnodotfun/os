@@ -32,6 +32,9 @@ export function SoundboardAppComponent({
   isForeground,
   helpItems = [],
   skipInitialSound,
+  instanceId,
+  onNavigateNext,
+  onNavigatePrevious,
 }: AppProps) {
   const {
     boards,
@@ -344,6 +347,9 @@ export function SoundboardAppComponent({
         isForeground={isForeground}
         appId="soundboard"
         skipInitialSound={skipInitialSound}
+        instanceId={instanceId}
+        onNavigateNext={onNavigateNext}
+        onNavigatePrevious={onNavigatePrevious}
       >
         <div className="flex-1 flex items-center justify-center">
           {!hasInitialized
@@ -384,6 +390,9 @@ export function SoundboardAppComponent({
         isForeground={isForeground}
         appId="soundboard"
         skipInitialSound={skipInitialSound}
+        instanceId={instanceId}
+        onNavigateNext={onNavigateNext}
+        onNavigatePrevious={onNavigatePrevious}
         windowConstraints={{
           minHeight: window.innerWidth >= 768 ? 475 : 625,
         }}

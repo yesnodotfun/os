@@ -305,6 +305,8 @@ export function VideosAppComponent({
   skipInitialSound,
   initialData,
   instanceId,
+  onNavigateNext,
+  onNavigatePrevious,
 }: AppProps<VideosInitialData>) {
   const { play: playVideoTape } = useSound(Sounds.VIDEO_TAPE);
   const { play: playButtonClick } = useSound(Sounds.BUTTON_CLICK);
@@ -852,6 +854,9 @@ export function VideosAppComponent({
         isForeground={isForeground}
         appId="videos"
         skipInitialSound={skipInitialSound}
+        instanceId={instanceId}
+        onNavigateNext={onNavigateNext}
+        onNavigatePrevious={onNavigatePrevious}
       >
         <div className="flex flex-col w-full h-full bg-[#1a1a1a] text-white">
           <div className="flex-1 relative">
