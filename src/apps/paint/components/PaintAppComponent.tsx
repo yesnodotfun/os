@@ -48,6 +48,17 @@ export const PaintAppComponent: React.FC<AppProps<PaintInitialData>> = ({
   const [canvasWidth, setCanvasWidth] = useState(589);
   const [canvasHeight, setCanvasHeight] = useState(418);
   const [error, setError] = useState<string | null>(null);
+
+  const handleToolSelect = (tool: string) => {
+    if (tool === "spray" && strokeWidth < 10) {
+      setStrokeWidth(10);
+    } else if (tool === "brush" && strokeWidth < 4) {
+      setStrokeWidth(4);
+    } else if (tool === "pencil" && strokeWidth > 1) {
+      setStrokeWidth(1);
+    }
+    setSelectedTool(tool);
+  };
   const canvasRef = useRef<{
     undo: () => void;
     redo: () => void;
@@ -455,7 +466,7 @@ export const PaintAppComponent: React.FC<AppProps<PaintInitialData>> = ({
               <div className="bg-white border border-black w-full shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)]">
                 <PaintToolbar
                   selectedTool={selectedTool}
-                  onToolSelect={setSelectedTool}
+                  onToolSelect={handleToolSelect}
                 />
               </div>
               <div className="bg-white border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)]">
