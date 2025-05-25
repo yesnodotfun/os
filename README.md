@@ -27,9 +27,11 @@ A modern web-based desktop environment inspired by classic macOS, built with a c
   - Automatic instance management and document tracking
   - Smart file opening with existing window detection
 - **MacPaint**: Classic bitmap graphics editor
-  - Drawing tools (pencil, brush, eraser)
+  - Drawing tools (pencil, brush, spray, eraser)
   - Shape tools (rectangle, oval, line)
   - Fill patterns and colors
+  - Spray tool simulates a dithered airbrush and defaults to a larger size
+  - Brush tool starts with a thicker stroke while the pencil starts thin
   - Selection and move tools
   - Undo/redo support
   - Image file import/export support
