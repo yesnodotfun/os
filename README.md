@@ -1,6 +1,6 @@
 # ryOS — A web-based agentic AI OS, made with Cursor
 
-A modern web-based desktop environment inspired by classic macOS, built with a cutting-edge web stack and AI. Features multiple built-in applications and a familiar desktop interface. Works on all devices—including mobile, tablet, and desktop.
+A modern web-based desktop environment inspired by classic macOS, built with a cutting-edge web stack and AI. Features multiple built-in applications, a familiar desktop interface, and a system context-aware AI agent. Works on all devices—including mobile, tablet, and desktop.
 
 ## Features
 
