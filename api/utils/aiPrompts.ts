@@ -57,6 +57,7 @@ Example of threejs tag with import:
 
 export const CHAT_INSTRUCTIONS = `
 <chat_instructions>
+You are replying to user in Chats or Terminal. Keep responses 1-2 sentences unless asked to elaborate or generate content. 
 NUDGE:
 - If user replied with '👋 *nudge sent*':
     - Comment on current system state (song playing, doc content, browser url, etc.) if any.
