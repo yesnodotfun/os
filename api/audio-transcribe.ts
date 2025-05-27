@@ -16,6 +16,8 @@ export const config = {
   runtime: "edge",
 };
 
+const MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024; // 2MB limit imposed by OpenAI
+
 export default async function handler(req: Request) {
   if (req.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
@@ -36,6 +38,21 @@ export default async function handler(req: Request) {
     if (!audioFile.type.startsWith("audio/")) {
       return new Response(
         JSON.stringify({ error: "Invalid file type. Must be an audio file." }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Verify file size
+    if (audioFile.size > MAX_FILE_SIZE_BYTES) {
+      return new Response(
+        JSON.stringify({
+          error: `File exceeds maximum size of ${
+            MAX_FILE_SIZE_BYTES / (1024 * 1024)
+          }MB`,
+        }),
         {
           status: 400,
           headers: { "Content-Type": "application/json" },
