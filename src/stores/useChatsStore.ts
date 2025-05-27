@@ -100,6 +100,7 @@ export interface ChatsStoreState {
   clearRoomMessages: (roomId: string) => void; // Clears messages for a specific room
   toggleSidebarVisibility: () => void;
   setFontSize: (size: number | ((prevSize: number) => number)) => void; // Add font size action
+  ensureAuthToken: () => Promise<{ ok: boolean; error?: string }>; // Add auth token generation
   reset: () => void; // Reset store to initial state
 }
 
@@ -125,6 +126,7 @@ const getInitialState = (): Omit<
   | "clearRoomMessages"
   | "toggleSidebarVisibility"
   | "setFontSize"
+  | "ensureAuthToken"
 > => {
   // Try to recover username and auth token if available
   const recoveredUsername = getUsernameFromRecovery();
@@ -269,6 +271,77 @@ export const useChatsStore = create<ChatsStoreState>()(
                 ? sizeOrFn(state.fontSize)
                 : sizeOrFn,
           })),
+        ensureAuthToken: async () => {
+          const currentUsername = get().username;
+          const currentToken = get().authToken;
+
+          // If no username, nothing to do
+          if (!currentUsername) {
+            console.log(
+              "[ChatsStore] No username set, skipping token generation"
+            );
+            return { ok: true };
+          }
+
+          // If token already exists, nothing to do
+          if (currentToken) {
+            console.log(
+              "[ChatsStore] Auth token already exists for user:",
+              currentUsername
+            );
+            return { ok: true };
+          }
+
+          // Username exists but no token, generate one
+          console.log(
+            "[ChatsStore] Generating auth token for existing user:",
+            currentUsername
+          );
+
+          try {
+            const response = await fetch(
+              "/api/chat-rooms?action=generateToken",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ username: currentUsername }),
+              }
+            );
+
+            const data = await response.json();
+
+            if (response.ok && data.token) {
+              console.log("[ChatsStore] Auth token generated successfully");
+              set({ authToken: data.token });
+              saveAuthTokenToRecovery(data.token);
+              return { ok: true };
+            } else if (response.status === 409) {
+              // Token already exists on server, this shouldn't happen but handle it
+              console.warn(
+                "[ChatsStore] Token already exists on server for user:",
+                currentUsername
+              );
+              return { ok: false, error: "Token already exists on server" };
+            } else {
+              console.error(
+                "[ChatsStore] Failed to generate auth token:",
+                data.error
+              );
+              return {
+                ok: false,
+                error: data.error || "Failed to generate auth token",
+              };
+            }
+          } catch (error) {
+            console.error("[ChatsStore] Error generating auth token:", error);
+            return {
+              ok: false,
+              error: "Network error while generating auth token",
+            };
+          }
+        },
         reset: () => {
           // Before resetting, ensure we have the username and auth token saved
           const currentUsername = get().username;

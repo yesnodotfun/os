@@ -43,6 +43,7 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
     clearRoomMessages,
     isSidebarVisible,
     toggleSidebarVisibility,
+    ensureAuthToken,
   } = useChatsStore();
 
   // Derive isAdmin directly from the username
@@ -123,6 +124,15 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
         }
         const data = await response.json();
         console.log(`[API Success] Action: ${action}`, data);
+
+        // If server generated a new auth token for an existing user, save it
+        if (data.newAuthToken) {
+          console.log(
+            `[API] Received new auth token for user ${username}, saving...`
+          );
+          setAuthToken(data.newAuthToken);
+        }
+
         return { ok: true, data };
       } catch (error) {
         console.error(`[API Network Error] Action: ${action}`, error);
@@ -623,6 +633,28 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
       previousRoomIdRef.current = currentRoomId;
     }
   }, [username, currentRoomId, callRoomAction]); // Depend on username and current room ID
+
+  // Effect 5: Ensure auth token exists for existing users
+  useEffect(() => {
+    if (username && !authToken) {
+      console.log(
+        "[Auth Token Effect] Username exists but no token, generating..."
+      );
+      ensureAuthToken().then((result) => {
+        if (!result.ok) {
+          console.error(
+            "[Auth Token Effect] Failed to generate token:",
+            result.error
+          );
+          // Optionally show a toast notification
+          toast("Authentication Issue", {
+            description:
+              "Failed to generate authentication token. Some features may not work properly.",
+          });
+        }
+      });
+    }
+  }, [username, authToken, ensureAuthToken]);
 
   // --- Dialog States & Handlers ---
   const [isUsernameDialogOpen, setIsUsernameDialogOpen] = useState(false);

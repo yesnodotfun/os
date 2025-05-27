@@ -391,7 +391,13 @@ export async function POST(request) {
     const body = await request.json();
 
     // Actions that don't require authentication
-    const publicActions = ["createUser", "joinRoom", "leaveRoom", "switchRoom"];
+    const publicActions = [
+      "createUser",
+      "joinRoom",
+      "leaveRoom",
+      "switchRoom",
+      "generateToken",
+    ];
 
     // Actions that specifically require authentication
     const protectedActions = [
@@ -445,6 +451,8 @@ export async function POST(request) {
         return await handleDeleteMessage(body, requestId);
       case "createUser":
         return await handleCreateUser(body, requestId);
+      case "generateToken":
+        return await handleGenerateToken(body, requestId);
       case "clearAllMessages":
         return await handleClearAllMessages(requestId);
       case "resetUserCounts":
@@ -1467,5 +1475,57 @@ async function handleSwitchRoom(data, requestId) {
   } catch (error) {
     logError(requestId, "Error during switchRoom:", error);
     return createErrorResponse("Failed to switch room", 500);
+  }
+}
+
+async function handleGenerateToken(data, requestId) {
+  const { username: originalUsername } = data;
+
+  if (!originalUsername) {
+    logInfo(requestId, "Token generation failed: Username is required");
+    return createErrorResponse("Username is required", 400);
+  }
+
+  // Normalize username to lowercase
+  const username = originalUsername.toLowerCase();
+
+  logInfo(requestId, `Generating token for user: ${username}`);
+  try {
+    // Check if user exists
+    const userKey = `${CHAT_USERS_PREFIX}${username}`;
+    const userData = await redis.get(userKey);
+
+    if (!userData) {
+      logInfo(requestId, `User not found: ${username}`);
+      return createErrorResponse("User not found", 404);
+    }
+
+    // Check if token already exists
+    const tokenKey = `${AUTH_TOKEN_PREFIX}${username}`;
+    const existingToken = await redis.get(tokenKey);
+
+    if (existingToken) {
+      logInfo(requestId, `Token already exists for user: ${username}`);
+      return createErrorResponse("Token already exists for this user", 409);
+    }
+
+    // Generate new token
+    const authToken = generateAuthToken();
+
+    // Store token with same expiration as user
+    await redis.set(tokenKey, authToken, { ex: USER_EXPIRATION_TIME });
+
+    // Refresh user expiration
+    await redis.expire(userKey, USER_EXPIRATION_TIME);
+
+    logInfo(requestId, `Token generated successfully for user ${username}`);
+
+    return new Response(JSON.stringify({ token: authToken }), {
+      status: 201,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    logError(requestId, `Error generating token for user ${username}:`, error);
+    return createErrorResponse("Failed to generate token", 500);
   }
 }
