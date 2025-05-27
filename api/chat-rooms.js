@@ -1,6 +1,7 @@
 import { Redis } from "@upstash/redis";
 import { Filter } from "bad-words";
 import Pusher from "pusher";
+import crypto from "crypto";
 
 // Initialize profanity filter with custom placeholder
 const filter = new Filter({ placeHolder: "█" });
@@ -59,6 +60,71 @@ const USER_EXPIRATION_TIME = 2592000; // 30 days
 // Add constants for max message and username length
 const MAX_MESSAGE_LENGTH = 1000;
 const MAX_USERNAME_LENGTH = 30;
+
+// Token constants
+const AUTH_TOKEN_PREFIX = "chat:token:";
+const TOKEN_LENGTH = 32; // 32 bytes = 256 bits
+
+/**
+ * Generate a secure authentication token
+ */
+const generateAuthToken = () => {
+  return crypto.randomBytes(TOKEN_LENGTH).toString("hex");
+};
+
+/**
+ * Validate authentication for a request
+ * @param {string} username - The username to validate
+ * @param {string} token - The authentication token
+ * @param {string} requestId - Request ID for logging
+ * @returns {Promise<boolean>} - True if authenticated, false otherwise
+ */
+const validateAuth = async (username, token, requestId) => {
+  if (!username || !token) {
+    logInfo(requestId, "Auth validation failed: Missing username or token");
+    return false;
+  }
+
+  const tokenKey = `${AUTH_TOKEN_PREFIX}${username.toLowerCase()}`;
+  const storedToken = await redis.get(tokenKey);
+
+  if (!storedToken) {
+    logInfo(
+      requestId,
+      `Auth validation failed: No token found for user ${username}`
+    );
+    return false;
+  }
+
+  if (storedToken !== token) {
+    logInfo(
+      requestId,
+      `Auth validation failed: Invalid token for user ${username}`
+    );
+    return false;
+  }
+
+  // Refresh token expiration on successful validation
+  await redis.expire(tokenKey, USER_TTL_SECONDS);
+  return true;
+};
+
+/**
+ * Extract authentication from request headers
+ * @param {Request} request - The incoming request
+ * @returns {{ username: string | null, token: string | null }}
+ */
+const extractAuth = (request) => {
+  const authHeader = request.headers.get("authorization");
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return { username: null, token: null };
+  }
+
+  const token = authHeader.substring(7); // Remove "Bearer " prefix
+  const username = request.headers.get("x-username");
+
+  return { username, token };
+};
 
 /**
  * Helper to set (or update) a user record **with** an expiry so stale
@@ -252,6 +318,20 @@ export async function GET(request) {
   logRequest("GET", request.url, action, requestId);
 
   try {
+    // Actions that don't require authentication
+    const publicActions = ["getRooms", "getMessages"];
+
+    // Check authentication for protected actions
+    if (!publicActions.includes(action)) {
+      const { username, token } = extractAuth(request);
+
+      // Validate authentication
+      const isValid = await validateAuth(username, token, requestId);
+      if (!isValid) {
+        return createErrorResponse("Unauthorized", 401);
+      }
+    }
+
     switch (action) {
       case "getRooms":
         return await handleGetRooms(requestId);
@@ -310,6 +390,46 @@ export async function POST(request) {
     // Parse JSON body
     const body = await request.json();
 
+    // Actions that don't require authentication
+    const publicActions = ["createUser", "joinRoom", "leaveRoom", "switchRoom"];
+
+    // Actions that specifically require authentication
+    const protectedActions = [
+      "createRoom",
+      "deleteRoom",
+      "sendMessage",
+      "deleteMessage",
+      "clearAllMessages",
+      "resetUserCounts",
+    ];
+
+    // Check authentication for protected actions
+    if (protectedActions.includes(action)) {
+      const { username, token } = extractAuth(request);
+
+      // For actions that include username in body, validate it matches the auth header
+      if (
+        body.username &&
+        body.username.toLowerCase() !== username?.toLowerCase()
+      ) {
+        logInfo(
+          requestId,
+          `Auth mismatch: body username (${body.username}) != auth username (${username})`
+        );
+        return createErrorResponse("Username mismatch", 401);
+      }
+
+      // Validate authentication
+      const isValid = await validateAuth(
+        username || body.username,
+        token,
+        requestId
+      );
+      if (!isValid) {
+        return createErrorResponse("Unauthorized", 401);
+      }
+    }
+
     switch (action) {
       case "createRoom":
         return await handleCreateRoom(body, requestId);
@@ -352,6 +472,15 @@ export async function DELETE(request) {
   logRequest("DELETE", request.url, action, requestId);
 
   try {
+    // All DELETE actions require authentication
+    const { username, token } = extractAuth(request);
+
+    // Validate authentication
+    const isValid = await validateAuth(username, token, requestId);
+    if (!isValid) {
+      return createErrorResponse("Unauthorized", 401);
+    }
+
     switch (action) {
       case "deleteRoom": {
         const roomId = url.searchParams.get("roomId");
@@ -638,11 +767,21 @@ async function handleCreateUser(data, requestId) {
       return createErrorResponse("Username already taken", 409);
     }
 
+    // Generate authentication token
+    const authToken = generateAuthToken();
+    const tokenKey = `${AUTH_TOKEN_PREFIX}${username}`;
+
+    // Store token with same expiration as user
+    await redis.set(tokenKey, authToken, { ex: USER_EXPIRATION_TIME });
+
     // Set expiration time for the new user
     await redis.expire(userKey, USER_EXPIRATION_TIME);
-    logInfo(requestId, `User created with 30-day expiration: ${username}`);
+    logInfo(
+      requestId,
+      `User created with 30-day expiration and auth token: ${username}`
+    );
 
-    return new Response(JSON.stringify({ user }), {
+    return new Response(JSON.stringify({ user, token: authToken }), {
       status: 201,
       headers: { "Content-Type": "application/json" },
     });

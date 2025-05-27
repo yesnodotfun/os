@@ -568,7 +568,8 @@ export default async function handler(req: Request) {
 
     // Check rate limits
     const username = incomingSystemState?.username;
-    const isAuthenticated = !!username;
+    const authToken = incomingSystemState?.authToken;
+    const isAuthenticated = !!username && !!authToken;
     const identifier = isAuthenticated ? username.toLowerCase() : `anon:${ip}`;
 
     // Only check rate limits for user messages (not system messages)
@@ -578,7 +579,8 @@ export default async function handler(req: Request) {
     if (userMessages.length > 0) {
       const rateLimitResult = await checkAndIncrementAIMessageCount(
         identifier,
-        isAuthenticated
+        isAuthenticated,
+        authToken
       );
 
       if (!rateLimitResult.allowed) {

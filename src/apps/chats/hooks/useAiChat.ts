@@ -131,6 +131,7 @@ const getSystemState = () => {
     // Keep legacy apps for backward compatibility, but mark that instances are preferred
     apps: appStore.apps,
     username: chatsStore.username,
+    authToken: chatsStore.authToken, // Include auth token for API validation
     userLocalTime: {
       timeString: userTimeString,
       dateString: userDateString,

@@ -22,7 +22,11 @@ const getAIRateLimitKey = (identifier) => {
 };
 
 // Helper function to check and increment AI message count
-async function checkAndIncrementAIMessageCount(identifier, isAuthenticated) {
+async function checkAndIncrementAIMessageCount(
+  identifier,
+  isAuthenticated,
+  authToken = null
+) {
   const key = getAIRateLimitKey(identifier);
   const currentCount = await redis.get(key);
   const count = currentCount ? parseInt(currentCount) : 0;
@@ -31,6 +35,18 @@ async function checkAndIncrementAIMessageCount(identifier, isAuthenticated) {
 
   // Allow ryo to bypass rate limits
   const isRyo = identifier === "ryo";
+
+  // If authenticated, validate the token
+  if (isAuthenticated && authToken) {
+    const AUTH_TOKEN_PREFIX = "chat:token:";
+    const tokenKey = `${AUTH_TOKEN_PREFIX}${identifier}`;
+    const storedToken = await redis.get(tokenKey);
+
+    if (!storedToken || storedToken !== authToken) {
+      // Invalid token, treat as unauthenticated
+      return { allowed: false, count: 0, limit: ANONYMOUS_AI_LIMIT };
+    }
+  }
 
   if (count >= limit && !isRyo) {
     return { allowed: false, count, limit };
