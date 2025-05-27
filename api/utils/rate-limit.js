@@ -8,7 +8,7 @@ const redis = new Redis({
 
 // Constants for rate limiting
 const AI_RATE_LIMIT_PREFIX = "ai:ratelimit:";
-const ANONYMOUS_AI_LIMIT = 3;
+const ANONYMOUS_AI_LIMIT = 5;
 const DAILY_USER_AI_LIMIT = 25;
 
 // Helper function to get rate limit key for a user
