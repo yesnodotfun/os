@@ -24,6 +24,7 @@ import { useTtsQueue } from "@/hooks/useTtsQueue";
 import { useAppStore } from "@/stores/useAppStore";
 import { appRegistry } from "@/config/appRegistry";
 import { ToolInvocationMessage } from "@/components/shared/ToolInvocationMessage";
+import { useChatsStore } from "@/stores/useChatsStore";
 
 // --- Color Hashing for Usernames ---
 const userColors = [
@@ -373,14 +374,32 @@ function ChatMessagesContent({
 
   const deleteMessage = async (message: ChatMessage) => {
     if (!roomId || !message.id) return;
+
+    // Use DELETE method with proper authentication headers (matching deleteRoom pattern)
+    const url = `/api/chat-rooms?action=deleteMessage&roomId=${roomId}&messageId=${message.id}`;
+
+    // Build headers with authentication
+    const headers: HeadersInit = {
+      "Content-Type": "application/json",
+    };
+
+    // Add authentication headers - get from store
+    const authToken = useChatsStore.getState().authToken;
+    if (username && authToken) {
+      headers["Authorization"] = `Bearer ${authToken}`;
+      headers["X-Username"] = username;
+    }
+
     try {
-      const res = await fetch(`/api/chat-rooms?action=deleteMessage`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ roomId, messageId: message.id, username }),
+      const res = await fetch(url, {
+        method: "DELETE",
+        headers,
       });
       if (!res.ok) {
-        console.error("Failed to delete message", await res.text());
+        const errorData = await res
+          .json()
+          .catch(() => ({ error: `HTTP error! status: ${res.status}` }));
+        console.error("Failed to delete message", errorData);
       } else {
         onMessageDeleted?.(message.id);
       }

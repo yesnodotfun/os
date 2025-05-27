@@ -390,6 +390,10 @@ export async function POST(request) {
     // Parse JSON body
     const body = await request.json();
 
+    // Declare username and token at function level
+    let username = null;
+    let token = null;
+
     // Actions that don't require authentication
     const publicActions = [
       "createUser",
@@ -402,16 +406,16 @@ export async function POST(request) {
     // Actions that specifically require authentication
     const protectedActions = [
       "createRoom",
-      "deleteRoom",
       "sendMessage",
-      "deleteMessage",
       "clearAllMessages",
       "resetUserCounts",
     ];
 
     // Check authentication for protected actions
     if (protectedActions.includes(action)) {
-      const { username, token } = extractAuth(request);
+      const authResult = extractAuth(request);
+      username = authResult.username;
+      token = authResult.token;
 
       // For actions that include username in body, validate it matches the auth header
       if (
@@ -438,7 +442,8 @@ export async function POST(request) {
 
     switch (action) {
       case "createRoom":
-        return await handleCreateRoom(body, requestId);
+        // Pass authenticated username for admin validation
+        return await handleCreateRoom(body, username, requestId);
       case "joinRoom":
         return await handleJoinRoom(body, requestId);
       case "leaveRoom":
@@ -447,16 +452,16 @@ export async function POST(request) {
         return await handleSwitchRoom(body, requestId);
       case "sendMessage":
         return await handleSendMessage(body, requestId);
-      case "deleteMessage":
-        return await handleDeleteMessage(body, requestId);
       case "createUser":
         return await handleCreateUser(body, requestId);
       case "generateToken":
         return await handleGenerateToken(body, requestId);
       case "clearAllMessages":
-        return await handleClearAllMessages(requestId);
+        // Pass authenticated username for admin validation
+        return await handleClearAllMessages(username, requestId);
       case "resetUserCounts":
-        return await handleResetUserCounts(requestId);
+        // Pass authenticated username for admin validation
+        return await handleResetUserCounts(username, requestId);
       default:
         logInfo(requestId, `Invalid action: ${action}`);
         return createErrorResponse("Invalid action", 400);
@@ -496,7 +501,26 @@ export async function DELETE(request) {
           logInfo(requestId, "Missing roomId parameter");
           return createErrorResponse("roomId query parameter is required", 400);
         }
-        return await handleDeleteRoom(roomId, requestId);
+        // Pass authenticated username to handleDeleteRoom for admin validation
+        return await handleDeleteRoom(roomId, username, requestId);
+      }
+      case "deleteMessage": {
+        const roomId = url.searchParams.get("roomId");
+        const messageId = url.searchParams.get("messageId");
+        if (!roomId || !messageId) {
+          logInfo(requestId, "Missing roomId or messageId parameter");
+          return createErrorResponse(
+            "roomId and messageId query parameters are required",
+            400
+          );
+        }
+        // Pass authenticated username to handleDeleteMessage for admin validation
+        return await handleDeleteMessage(
+          roomId,
+          messageId,
+          username,
+          requestId
+        );
       }
       default:
         logInfo(requestId, `Invalid action: ${action}`);
@@ -558,12 +582,18 @@ async function handleGetRoom(roomId, requestId) {
   }
 }
 
-async function handleCreateRoom(data, requestId) {
+async function handleCreateRoom(data, username, requestId) {
   const { name: originalName } = data;
 
   if (!originalName) {
     logInfo(requestId, "Room creation failed: Name is required");
     return createErrorResponse("Room name is required", 400);
+  }
+
+  // Check if the user is the admin ("ryo")
+  if (username?.toLowerCase() !== "ryo") {
+    logInfo(requestId, `Unauthorized: User ${username} is not the admin`);
+    return createErrorResponse("Forbidden - Admin access required", 403);
   }
 
   // Check for profanity in room name
@@ -580,7 +610,7 @@ async function handleCreateRoom(data, requestId) {
 
   const name = originalName.toLowerCase().replace(/ /g, "-");
 
-  logInfo(requestId, `Creating room: ${name}`);
+  logInfo(requestId, `Creating room: ${name} by admin ${username}`);
   try {
     const roomId = generateId();
     const room = {
@@ -617,7 +647,7 @@ async function handleCreateRoom(data, requestId) {
   }
 }
 
-async function handleDeleteRoom(roomId, requestId) {
+async function handleDeleteRoom(roomId, username, requestId) {
   logInfo(requestId, `Deleting room: ${roomId}`);
   try {
     const roomExists = await redis.exists(`${CHAT_ROOM_PREFIX}${roomId}`);
@@ -625,6 +655,12 @@ async function handleDeleteRoom(roomId, requestId) {
     if (!roomExists) {
       logInfo(requestId, `Room not found for deletion: ${roomId}`);
       return createErrorResponse("Room not found", 404);
+    }
+
+    // Check if the user is the admin ("ryo")
+    if (username.toLowerCase() !== "ryo") {
+      logInfo(requestId, `Unauthorized: User ${username} is not the admin`);
+      return createErrorResponse("Unauthorized", 401);
     }
 
     // Delete room and associated messages/users
@@ -940,8 +976,15 @@ async function handleLeaveRoom(data, requestId) {
 }
 
 // Function to clear all messages from all rooms
-async function handleClearAllMessages(requestId) {
+async function handleClearAllMessages(username, requestId) {
   logInfo(requestId, "Clearing all chat messages from all rooms");
+
+  // Check if the user is the admin ("ryo")
+  if (username?.toLowerCase() !== "ryo") {
+    logInfo(requestId, `Unauthorized: User ${username} is not the admin`);
+    return createErrorResponse("Forbidden - Admin access required", 403);
+  }
+
   try {
     // Get all message keys
     const messageKeys = await redis.keys(`${CHAT_MESSAGES_PREFIX}*`);
@@ -1009,8 +1052,15 @@ async function handleClearAllMessages(requestId) {
 }
 
 // Function to reset all user counts in rooms and clear room user lists
-async function handleResetUserCounts(requestId) {
+async function handleResetUserCounts(username, requestId) {
   logInfo(requestId, "Resetting all user counts and clearing room memberships");
+
+  // Check if the user is the admin ("ryo")
+  if (username?.toLowerCase() !== "ryo") {
+    logInfo(requestId, `Unauthorized: User ${username} is not the admin`);
+    return createErrorResponse("Forbidden - Admin access required", 403);
+  }
+
   try {
     // Get all room keys
     const roomKeys = await redis.keys(`${CHAT_ROOM_PREFIX}*`);
@@ -1287,26 +1337,21 @@ async function handleSendMessage(data, requestId) {
   }
 }
 
-async function handleDeleteMessage(data, requestId) {
-  const { roomId, messageId, username: originalUsername } = data;
-  const username = originalUsername?.toLowerCase(); // Normalize
-
-  if (!roomId || !messageId || !username) {
+async function handleDeleteMessage(roomId, messageId, username, requestId) {
+  if (!roomId || !messageId) {
     logInfo(requestId, "Message deletion failed: Missing required fields", {
       roomId,
       messageId,
-      username,
     });
-    return createErrorResponse(
-      "Room ID, message ID and username are required",
-      400
-    );
+    return createErrorResponse("Room ID and message ID are required", 400);
   }
 
-  // Only admin user (ryo) can delete via this endpoint
-  if (username !== "ryo") {
-    // Check against normalized lowercase
-    logInfo(requestId, `Unauthorized delete attempt by ${username}`);
+  // Only admin user (ryo) can delete via this endpoint - use authenticated username
+  if (username?.toLowerCase() !== "ryo") {
+    logInfo(
+      requestId,
+      `Unauthorized delete attempt by authenticated user: ${username}`
+    );
     return createErrorResponse("Forbidden", 403);
   }
 

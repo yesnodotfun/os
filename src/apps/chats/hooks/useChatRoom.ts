@@ -344,6 +344,11 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
       if (!trimmedRoomName)
         return { ok: false, error: "Room name cannot be empty." };
       if (!username) return { ok: false, error: "Set a username first." };
+      if (!isAdmin)
+        return {
+          ok: false,
+          error: "Permission denied. Admin access required.",
+        };
 
       const result = await callRoomAction("createRoom", {
         name: trimmedRoomName,
@@ -359,31 +364,60 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
         return { ok: false, error: result.error || "Failed to create room." };
       }
     },
-    [callRoomAction, username, handleRoomSelect]
-  ); // Removed rooms, setRooms dependency
+    [callRoomAction, username, isAdmin, handleRoomSelect]
+  ); // Added isAdmin dependency
 
   const handleDeleteRoom = useCallback(
     async (roomId: string) => {
       if (!roomId || !isAdmin)
         return { ok: false, error: "Permission denied or invalid room." };
 
-      const result = await callRoomAction("deleteRoom", { roomId }); // API needs adjustment for DELETE method or query param
-      // Assuming callRoomAction is adapted or API uses POST for delete
-      // Alternative: const result = await fetch(`/api/chat-rooms?action=deleteRoom&roomId=${roomId}`, { method: 'DELETE' });
+      // Use DELETE method directly since API now uses DELETE endpoint for room deletion
+      const url = `/api/chat-rooms?action=deleteRoom&roomId=${roomId}`;
 
-      if (result.ok) {
+      // Build headers with authentication
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+      };
+
+      // Add authentication headers since deleteRoom is a protected action
+      if (username && authToken) {
+        headers["Authorization"] = `Bearer ${authToken}`;
+        headers["X-Username"] = username;
+      }
+
+      console.log(`[API Call] Action: deleteRoom, Method: DELETE, URL: ${url}`);
+
+      try {
+        const response = await fetch(url, { method: "DELETE", headers });
+        if (!response.ok) {
+          const errorData = await response
+            .json()
+            .catch(() => ({ error: `HTTP error! status: ${response.status}` }));
+          console.error(
+            `[API Error] Action: deleteRoom, Status: ${response.status}`,
+            errorData
+          );
+          return {
+            ok: false,
+            error: errorData.error || "Failed to delete room",
+          };
+        }
+        const data = await response.json();
+        console.log(`[API Success] Action: deleteRoom`, data);
+
         // Don't manually setRooms here, let Pusher update handle it
-        // setRooms(rooms.filter((room: ChatRoom) => room.id !== roomId));
         if (currentRoomId === roomId) {
           handleRoomSelect(null); // Switch back to @ryo
         }
         return { ok: true };
-      } else {
-        return { ok: false, error: result.error || "Failed to delete room." };
+      } catch (error) {
+        console.error(`[API Network Error] Action: deleteRoom`, error);
+        return { ok: false, error: "Network error. Please try again." };
       }
     },
-    [callRoomAction, isAdmin, currentRoomId, handleRoomSelect]
-  ); // Removed rooms, setRooms dependency
+    [isAdmin, currentRoomId, handleRoomSelect, username, authToken]
+  );
 
   // --- Pusher Integration ---
 
@@ -701,10 +735,16 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
       });
       return;
     }
+    if (!isAdmin) {
+      toast("Permission Denied", {
+        description: "Only administrators can create rooms.",
+      });
+      return;
+    }
     setNewRoomName("");
     setRoomError(null);
     setIsNewRoomDialogOpen(true);
-  }, [username, promptSetUsername]);
+  }, [username, isAdmin, promptSetUsername]);
 
   const submitNewRoomDialog = useCallback(async () => {
     setIsCreatingRoom(true);
