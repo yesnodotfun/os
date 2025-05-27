@@ -736,6 +736,7 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
   return {
     // State
     username,
+    authToken,
     rooms,
     currentRoomId,
     currentRoomMessages: roomMessages[currentRoomId || "@ryo"] || [], // Return messages for current room

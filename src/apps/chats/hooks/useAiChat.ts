@@ -234,7 +234,7 @@ const getAssistantVisibleText = (message: Message): string => {
   return text.startsWith("!!!!") ? text.slice(4).trimStart() : text;
 };
 
-export function useAiChat() {
+export function useAiChat(onPromptSetUsername?: () => void) {
   const { aiMessages, setAiMessages, username } = useChatsStore();
   const launchApp = useLaunchApp();
   const closeApp = useAppStore((state) => state.closeApp);
@@ -1011,6 +1011,33 @@ export function useAiChat() {
               // The UI will handle showing the proper message
               return; // Exit early to prevent showing generic error toast
             }
+
+            // Handle authentication failed error
+            if (errorData.error === "authentication_failed") {
+              console.error("Authentication failed - clearing invalid token");
+
+              // Clear the invalid auth token
+              const setAuthToken = useChatsStore.getState().setAuthToken;
+              setAuthToken(null);
+
+              // Show user-friendly error message with action button
+              toast.error("Authentication Error", {
+                description:
+                  "Your session has expired. Please set your username again to continue.",
+                duration: 5000,
+                action: onPromptSetUsername
+                  ? {
+                      label: "Set Username",
+                      onClick: onPromptSetUsername,
+                    }
+                  : undefined,
+              });
+
+              // Prompt for username
+              setNeedsUsername(true);
+
+              return; // Exit early to prevent showing generic error toast
+            }
           } catch (parseError) {
             console.error("Failed to parse error response:", parseError);
           }
@@ -1027,7 +1054,39 @@ export function useAiChat() {
             description:
               "You've reached the message limit. Please set a username to continue.",
             duration: 5000,
+            action: onPromptSetUsername
+              ? {
+                  label: "Set Username",
+                  onClick: onPromptSetUsername,
+                }
+              : undefined,
           });
+          return;
+        }
+
+        // Check if error message contains 401 status (authentication error)
+        if (
+          err.message.includes("401") ||
+          err.message.includes("authentication_failed")
+        ) {
+          console.error("Authentication error detected in error message");
+
+          // Clear invalid auth token
+          const setAuthToken = useChatsStore.getState().setAuthToken;
+          setAuthToken(null);
+
+          toast.error("Session Expired", {
+            description: "Please set your username again to continue chatting.",
+            duration: 5000,
+            action: onPromptSetUsername
+              ? {
+                  label: "Set Username",
+                  onClick: onPromptSetUsername,
+                }
+              : undefined,
+          });
+
+          setNeedsUsername(true);
           return;
         }
       }

@@ -32,6 +32,7 @@ interface ChatsMenuBarProps {
   onDecreaseFontSize: () => void;
   onResetFontSize: () => void;
   username?: string | null;
+  authToken?: string | null;
 }
 
 export function ChatsMenuBar({
@@ -52,6 +53,7 @@ export function ChatsMenuBar({
   onDecreaseFontSize,
   onResetFontSize,
   username,
+  authToken,
 }: ChatsMenuBarProps) {
   const {
     speechEnabled,
@@ -134,8 +136,8 @@ export function ChatsMenuBar({
             </DropdownMenuItem>
           )}
 
-          {/* Set Username - show when debugMode OR username not set */}
-          {(debugMode || !username) && (
+          {/* Set Username - show when debugMode OR username not set OR authToken is null */}
+          {(debugMode || !username || !authToken) && (
             <DropdownMenuItem
               onClick={onSetUsername}
               className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
@@ -145,7 +147,7 @@ export function ChatsMenuBar({
           )}
 
           {/* Show separator if we have any items above AND rooms exist */}
-          {((debugMode && isAdmin) || debugMode || !username) &&
+          {((debugMode && isAdmin) || debugMode || !username || !authToken) &&
             rooms.length > 0 && (
               <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
             )}

@@ -126,6 +126,11 @@ const getErrorMessage = (error: Error): string => {
         }
       }
 
+      // Handle authentication error
+      if (errorData.error === "authentication_failed") {
+        return `Session expired. Please set your username again.`;
+      }
+
       // Return the error field if it exists and is a string
       if (typeof errorData.error === "string") {
         return errorData.error;

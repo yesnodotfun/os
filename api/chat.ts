@@ -19,6 +19,7 @@ import {
   ANONYMOUS_AI_LIMIT,
   DAILY_USER_AI_LIMIT,
 } from "./utils/rate-limit";
+import { Redis } from "@upstash/redis";
 
 // Update SystemState type to match new store structure
 interface SystemState {
@@ -501,6 +502,35 @@ HTML GENERATION:
   return { prompts, loadedSections };
 };
 
+// Add Redis client for auth validation
+const redis = new Redis({
+  url: process.env.REDIS_KV_REST_API_URL,
+  token: process.env.REDIS_KV_REST_API_TOKEN,
+});
+
+// Add auth validation function
+const AUTH_TOKEN_PREFIX = "chat:token:";
+
+async function validateAuthToken(
+  username: string | undefined | null,
+  authToken: string | undefined | null
+): Promise<boolean> {
+  if (!username || !authToken) {
+    return false;
+  }
+
+  const tokenKey = `${AUTH_TOKEN_PREFIX}${username.toLowerCase()}`;
+  const storedToken = await redis.get(tokenKey);
+
+  if (!storedToken || storedToken !== authToken) {
+    return false;
+  }
+
+  // Refresh token expiration on successful validation (30 days)
+  await redis.expire(tokenKey, 30 * 24 * 60 * 60);
+  return true;
+}
+
 export default async function handler(req: Request) {
   // Check origin before processing request
   const origin = req.headers.get("origin");
@@ -569,8 +599,31 @@ export default async function handler(req: Request) {
     // Check rate limits
     const username = incomingSystemState?.username;
     const authToken = incomingSystemState?.authToken;
-    const isAuthenticated = !!username && !!authToken;
-    const identifier = isAuthenticated ? username.toLowerCase() : `anon:${ip}`;
+
+    // Validate authentication first
+    const isValidAuth = await validateAuthToken(username, authToken);
+
+    // If username is provided but auth is invalid, reject the request
+    if (username && !isValidAuth) {
+      log(`Authentication failed for claimed user: ${username}`);
+      return new Response(
+        JSON.stringify({
+          error: "authentication_failed",
+          message: "Invalid or missing authentication token",
+        }),
+        {
+          status: 401,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": validOrigin,
+          },
+        }
+      );
+    }
+
+    // Use validated auth status for rate limiting
+    const isAuthenticated = isValidAuth;
+    const identifier = isAuthenticated ? username!.toLowerCase() : `anon:${ip}`;
 
     // Only check rate limits for user messages (not system messages)
     const userMessages = messages.filter(

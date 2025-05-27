@@ -41,6 +41,14 @@ export function ChatsAppComponent({
   onNavigatePrevious,
 }: AppProps) {
   const { aiMessages } = useChatsStore();
+
+  // Get promptSetUsername from useChatRoom first
+  const chatRoomResult = useChatRoom(
+    isWindowOpen ?? false,
+    isForeground ?? false
+  );
+  const { promptSetUsername } = chatRoomResult;
+
   const {
     messages,
     input,
@@ -65,10 +73,12 @@ export function ChatsAppComponent({
     highlightSegment,
     rateLimitError,
     needsUsername,
-  } = useAiChat();
+  } = useAiChat(promptSetUsername); // Pass promptSetUsername to useAiChat
 
+  // Destructure the rest of the properties from chatRoomResult
   const {
     username,
+    authToken,
     rooms,
     currentRoomId,
     currentRoomMessages,
@@ -77,7 +87,6 @@ export function ChatsAppComponent({
     handleRoomSelect,
     sendRoomMessage,
     toggleSidebarVisibility,
-    promptSetUsername,
     promptAddRoom,
     promptDeleteRoom,
     isUsernameDialogOpen,
@@ -99,7 +108,7 @@ export function ChatsAppComponent({
     setIsDeleteRoomDialogOpen,
     roomToDelete,
     confirmDeleteRoom,
-  } = useChatRoom(isWindowOpen ?? false, isForeground ?? false);
+  } = chatRoomResult;
 
   // Get font size state from store - select separately for optimization
   const fontSize = useChatsStore((state) => state.fontSize);
@@ -322,6 +331,7 @@ export function ChatsAppComponent({
         onDecreaseFontSize={handleDecreaseFontSize}
         onResetFontSize={handleResetFontSize}
         username={username}
+        authToken={authToken} // Pass authToken to ChatsMenuBar
       />
       <WindowFrame
         title={currentRoom ? `#${currentRoom.name}` : "@ryo"}
