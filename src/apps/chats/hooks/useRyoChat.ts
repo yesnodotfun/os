@@ -118,9 +118,18 @@ export function useRyoChat({
       if (currentRoomId && message.role === "assistant") {
         // Send as a regular message to the room
         // We'll need to call the API directly since we want it to appear from 'ryo'
+        const { authToken, username } = useChatsStore.getState();
+        const headers: HeadersInit = {
+          "Content-Type": "application/json",
+        };
+        if (authToken && username) {
+          headers["Authorization"] = `Bearer ${authToken}`;
+          headers["X-Username"] = username;
+        }
+
         await fetch(`/api/chat-rooms?action=sendMessage`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers,
           body: JSON.stringify({
             roomId: currentRoomId,
             username: "ryo",
