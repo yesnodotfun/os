@@ -556,3 +556,13 @@
 .lcd-screen .react-player {
   filter: brightness(1.05) contrast(1.02) saturate(1.1);
 }
+
+/* Hide default scrollbars for custom implementation */
+.ipod-menu-container {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.ipod-menu-container::-webkit-scrollbar {
+  display: none; /* WebKit browsers */
+}

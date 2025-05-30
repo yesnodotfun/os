@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useLayoutEffect } from "react";
 import ReactPlayer from "react-player";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -7,6 +7,93 @@ import { useAppStore } from "@/stores/useAppStore";
 import { LyricsDisplay } from "./LyricsDisplay";
 import { useLyrics } from "@/hooks/useLyrics";
 import { LyricsAlignment, ChineseVariant, KoreanDisplay } from "@/types/lyrics";
+
+// Simplified Scrollbar component
+function Scrollbar({
+  containerRef,
+  backlightOn,
+  menuMode,
+}: {
+  containerRef: React.RefObject<HTMLDivElement>;
+  backlightOn: boolean;
+  menuMode: boolean;
+}) {
+  const thumbRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    const thumb = thumbRef.current;
+    const track = trackRef.current;
+    if (!container || !thumb || !track || !menuMode) return;
+
+    const updateScrollbar = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const needsScrollbar = scrollHeight > clientHeight;
+
+      if (needsScrollbar) {
+        track.style.opacity = "1";
+        thumb.style.display = "block";
+        const thumbHeight = Math.max(
+          (clientHeight / scrollHeight) * clientHeight,
+          20
+        );
+        const maxScrollTop = scrollHeight - clientHeight;
+        const thumbMaxTop = clientHeight - thumbHeight;
+        const thumbTop =
+          maxScrollTop > 0 ? (scrollTop / maxScrollTop) * thumbMaxTop : 0;
+
+        thumb.style.height = `${thumbHeight - 4}px`;
+        thumb.style.top = `${thumbTop + 2}px`;
+      } else {
+        track.style.opacity = "0";
+        thumb.style.display = "none";
+      }
+    };
+
+    // Initial update
+    updateScrollbar();
+
+    // Update on scroll
+    container.addEventListener("scroll", updateScrollbar, { passive: true });
+
+    // Update when content changes
+    const observer = new ResizeObserver(updateScrollbar);
+    observer.observe(container);
+
+    return () => {
+      container.removeEventListener("scroll", updateScrollbar);
+      observer.disconnect();
+    };
+  }, [containerRef, menuMode, backlightOn]);
+
+  if (!menuMode) return null;
+
+  return (
+    <div className="absolute right-0 top-[-1px] bottom-[-2px] w-2 z-20">
+      {/* Track - visibility controlled by opacity */}
+      <div
+        ref={trackRef}
+        className={cn(
+          "w-full h-full border border-[#0a3667] transition-opacity duration-200",
+          backlightOn ? "bg-[#c5e0f5]" : "bg-[#8a9da9]"
+        )}
+        style={{ opacity: 0 }}
+      />
+      {/* Thumb - visibility controlled by JS */}
+      <div
+        ref={thumbRef}
+        className="absolute right-0 bg-[#0a3667]"
+        style={{
+          marginLeft: "2px",
+          marginRight: "2px",
+          width: "calc(100% - 4px)",
+          display: "none", // Initially hidden
+        }}
+      />
+    </div>
+  );
+}
 
 // Helper component: MenuListItem
 function MenuListItem({
@@ -28,7 +115,8 @@ function MenuListItem({
     <div
       onClick={onClick}
       className={cn(
-        "px-2 cursor-pointer font-chicago text-[16px] flex justify-between items-center",
+        "pl-2 cursor-pointer font-chicago text-[16px] flex justify-between items-center",
+        showChevron || value ? "pr-4" : "pr-2", // Always use extra padding for items with chevron or value
         isSelected
           ? backlightOn
             ? "bg-[#0a3667] text-[#c5e0f5] [text-shadow:1px_1px_0_rgba(0,0,0,0.15)]"
@@ -186,7 +274,6 @@ interface IpodScreenProps {
   koreanDisplay: KoreanDisplay;
   lyricOffset: number;
   adjustLyricOffset: (deltaMs: number) => void;
-  translateToForLyrics: string | null;
   registerActivity: () => void;
   isFullScreen: boolean;
   lyricsControls: ReturnType<typeof useLyrics>;
@@ -550,34 +637,41 @@ export function IpodScreen({
                 forceScrollToSelected();
               }}
             >
-              <div
-                ref={menuScrollRef}
-                className="flex-1 overflow-auto ipod-menu-container"
-              >
-                {menuHistory.length > 0 &&
-                  menuHistory[menuHistory.length - 1].items.map(
-                    (item, index) => (
-                      <div
-                        key={index}
-                        ref={(el) => (menuItemsRef.current[index] = el)}
-                        className={`ipod-menu-item ${
-                          index === selectedMenuItem ? "selected" : ""
-                        }`}
-                      >
-                        <MenuListItem
-                          text={item.label}
-                          isSelected={index === selectedMenuItem}
-                          backlightOn={backlightOn}
-                          onClick={() => {
-                            onSelectMenuItem(index);
-                            onMenuItemAction(item.action);
-                          }}
-                          showChevron={item.showChevron !== false}
-                          value={item.value}
-                        />
-                      </div>
-                    )
-                  )}
+              <div className="flex-1 relative">
+                <div
+                  ref={menuScrollRef}
+                  className="absolute inset-0 overflow-auto ipod-menu-container"
+                >
+                  {menuHistory.length > 0 &&
+                    menuHistory[menuHistory.length - 1].items.map(
+                      (item, index) => (
+                        <div
+                          key={index}
+                          ref={(el) => (menuItemsRef.current[index] = el)}
+                          className={`ipod-menu-item ${
+                            index === selectedMenuItem ? "selected" : ""
+                          }`}
+                        >
+                          <MenuListItem
+                            text={item.label}
+                            isSelected={index === selectedMenuItem}
+                            backlightOn={backlightOn}
+                            onClick={() => {
+                              onSelectMenuItem(index);
+                              onMenuItemAction(item.action);
+                            }}
+                            showChevron={item.showChevron !== false}
+                            value={item.value}
+                          />
+                        </div>
+                      )
+                    )}
+                </div>
+                <Scrollbar
+                  containerRef={menuScrollRef}
+                  backlightOn={backlightOn}
+                  menuMode={menuMode}
+                />
               </div>
             </motion.div>
           ) : (

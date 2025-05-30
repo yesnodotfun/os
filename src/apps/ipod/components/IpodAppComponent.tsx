@@ -1760,7 +1760,6 @@ export function IpodAppComponent({
               adjustLyricOffset={(delta) =>
                 useIpodStore.getState().adjustLyricOffset(currentIndex, delta)
               }
-              translateToForLyrics={translateToForLyricsHook}
               registerActivity={registerActivity}
               isFullScreen={isFullScreen}
               lyricsControls={fullScreenLyricsControls}
