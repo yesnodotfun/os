@@ -1,17 +1,11 @@
 {
   "videos": [
     {
-      "id": "BME88lS6aVY",
-      "url": "https://www.youtube.com/watch?v=BME88lS6aVY",
-      "title": "Self Control",
-      "artist": "Frank Ocean",
-      "lyricOffset": 1200
-    },
-    {
       "id": "Q_K2UcyXmWk",
       "url": "https://www.youtube.com/watch?v=Q_K2UcyXmWk",
       "title": "LOVIN' YOU",
       "artist": "吉田美奈子",
+      "album": "MONSTERS IN TOWN",
       "lyricOffset": -12750
     },
     {
@@ -19,6 +13,7 @@
       "url": "https://www.youtube.com/watch?v=JFoevPP8hxY",
       "title": "I'll Be Good",
       "artist": "JayDon",
+      "album": "I'll Be Good - Single",
       "lyricOffset": -5700
     },
     {
@@ -33,6 +28,7 @@
       "url": "https://www.youtube.com/watch?v=TkmfOyuGSdQ",
       "title": "OH NO, OH YES!",
       "artist": "中森明菜",
+      "album": "Crimson",
       "lyricOffset": 1000
     },
     {
@@ -40,6 +36,7 @@
       "url": "https://www.youtube.com/watch?v=JMpypbtrcCg",
       "title": "Bad Religion",
       "artist": "Frank Ocean",
+      "album": "channel ORANGE",
       "lyricOffset": 1800
     },
     {
@@ -47,6 +44,7 @@
       "url": "https://www.youtube.com/watch?v=nBoV9ZJeSp8",
       "title": "SLOW FADE",
       "artist": "Christian Kuria",
+      "album": "SLOW FADE - Single",
       "lyricOffset": 1000
     },
     {
@@ -54,6 +52,7 @@
       "url": "https://www.youtube.com/watch?v=XnbsIl2BnWw",
       "title": "Chanel",
       "artist": "Frank Ocean",
+      "album": "Chanel - Single",
       "lyricOffset": 1950
     },
     {
@@ -61,6 +60,7 @@
       "url": "https://www.youtube.com/watch?v=SNq4zqTN_DQ",
       "title": "Last Summer Whisper",
       "artist": "Anri",
+      "album": "Heaven Beach",
       "lyricOffset": 1200
     },
     {
@@ -68,6 +68,7 @@
       "url": "https://www.youtube.com/watch?v=txroGbuRt_w",
       "title": "Thirsty (Bad Boy Remix)",
       "artist": "aespa",
+      "album": "MY WORLD - The 3rd Mini Album - EP",
       "lyricOffset": 800
     },
     {
@@ -75,6 +76,7 @@
       "url": "https://www.youtube.com/watch?v=ablEaBQd3lU",
       "title": "Honestly",
       "artist": "RIIZE",
+      "album": "RIIZING - EP",
       "lyricOffset": 1200
     },
     {
@@ -385,13 +387,31 @@
       "url": "https://www.youtube.com/watch?v=pQg7doFpC5k",
       "title": "Sweet Life",
       "artist": "Joo Young",
+      "album": "Sweet Life - Single",
       "lyricOffset": 2000
+    },
+    {
+      "id": "QlkBGDUsANo",
+      "url": "https://www.youtube.com/watch?v=QlkBGDUsANo",
+      "title": "Come",
+      "artist": "Namie Amuro",
+      "album": "犬夜叉 BEST ALBUM 主題歌集",
+      "lyricOffset": 1000
+    },
+    {
+      "id": "BME88lS6aVY",
+      "url": "https://www.youtube.com/watch?v=BME88lS6aVY",
+      "title": "Self Control",
+      "artist": "Frank Ocean",
+      "album": "Blonde",
+      "lyricOffset": 1200
     },
     {
       "id": "D3IDK_R1LTg",
       "url": "https://www.youtube.com/watch?v=D3IDK_R1LTg",
       "title": "Every Heart-ミンナノキモチ-",
       "artist": "BoA",
+      "album": "犬夜叉 BEST ALBUM 主題歌集",
       "lyricOffset": -3200
     },
     {
@@ -399,6 +419,7 @@
       "url": "https://www.youtube.com/watch?v=bjTEMBB-mjY",
       "title": "WE BELONG TOGETHER",
       "artist": "BIGBANG",
+      "album": "BIGBANG - Single",
       "lyricOffset": -3900
     },
     {
@@ -406,6 +427,7 @@
       "url": "https://www.youtube.com/watch?v=4j7Umwfx60Q",
       "title": "4 Walls",
       "artist": "f(x)",
+      "album": "4 Walls",
       "lyricOffset": 1000
     },
     {
@@ -413,6 +435,7 @@
       "url": "https://www.youtube.com/watch?v=V9Wsm0hlLUI",
       "title": "Sour Grapes",
       "artist": "LE SSERAFIM",
+      "album": "FEARLESS - EP",
       "lyricOffset": 1250
     },
     {
@@ -420,6 +443,7 @@
       "url": "https://www.youtube.com/watch?v=jWQx2f-CErU",
       "title": "Whiplash",
       "artist": "aespa",
+      "album": "Whiplash - The 5th Mini Album",
       "lyricOffset": 1100
     },
     {
@@ -427,19 +451,23 @@
       "url": "https://www.youtube.com/watch?v=Yc4gp6oeN7k",
       "title": "Skrr",
       "artist": "GISELLE",
+      "album": "Skrr - Single",
       "lyricOffset": 1000
     },
     {
       "id": "3JWTaaS7LdU",
       "url": "https://www.youtube.com/watch?v=3JWTaaS7LdU",
       "title": "I Will Always Love You",
-      "artist": "Whitney Houston"
+      "artist": "Whitney Houston",
+      "album": "The Bodyguard (Original Soundtrack Album)",
+      "lyricOffset": 0
     },
     {
       "id": "bX33UI9ZPLk",
       "url": "https://www.youtube.com/watch?v=bX33UI9ZPLk",
       "title": "黑色毛衣",
       "artist": "周杰倫",
+      "album": "十一月的蕭邦",
       "lyricOffset": 4500
     }
   ]
