@@ -39,6 +39,9 @@ export function IpodWheel({
   // Track if the current interaction started on the "MENU" label so we can suppress duplicate click handling
   const fromMenuLabelRef = useRef(false);
 
+  // Track if we're currently in a touch drag to prevent button clicks
+  const isInTouchDragRef = useRef(false);
+
   // Calculate angle (in degrees) from the center of the wheel – used for click areas
   const getAngleFromCenterDeg = (x: number, y: number): number => {
     if (!wheelRef.current) return 0;
@@ -134,6 +137,7 @@ export function IpodWheel({
       Math.abs(rotationAccumulatorRef.current) > threshold
     ) {
       isTouchDraggingRef.current = true;
+      isInTouchDragRef.current = true;
     }
 
     // Trigger rotation events when threshold exceeded
@@ -172,6 +176,13 @@ export function IpodWheel({
     rotationAccumulatorRef.current = 0;
     isTouchDraggingRef.current = false;
     touchStartPosRef.current = null;
+
+    // Clear the touch drag flag with a small delay to prevent clicks
+    if (isInTouchDragRef.current) {
+      setTimeout(() => {
+        isInTouchDragRef.current = false;
+      }, 100);
+    }
   };
 
   // Handle mouse wheel scroll for rotation
@@ -294,7 +305,7 @@ export function IpodWheel({
       {/* Center button */}
       <button
         onClick={() => {
-          if (recentTouchRef.current) return;
+          if (recentTouchRef.current || isInTouchDragRef.current) return;
           onWheelClick("center");
         }}
         className={cn(
@@ -321,7 +332,7 @@ export function IpodWheel({
         <div
           className="absolute top-1.5 text-center left-1/2 transform -translate-x-1/2 font-chicago text-xs text-white menu-button cursor-default select-none"
           onClick={(e) => {
-            if (recentTouchRef.current) return;
+            if (recentTouchRef.current || isInTouchDragRef.current) return;
             e.stopPropagation(); // Prevent triggering wheel mousedown
             onMenuButton();
           }}
