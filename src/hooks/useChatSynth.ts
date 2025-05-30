@@ -438,60 +438,74 @@ export function useChatSynth() {
   // Function to change the synth preset
   const changePreset = useCallback(
     (newPresetKey: string) => {
-      if (SYNTH_PRESETS[newPresetKey] && newPresetKey !== currentPresetKey) {
-        console.log("Changing preset to", newPresetKey);
+      if (!SYNTH_PRESETS[newPresetKey]) {
+        console.error(`Invalid preset key: ${newPresetKey}`);
+        return;
+      }
 
-        if (synthRef.current) {
-          // If changing from "off", ensure synth is properly reconnected if it was disposed or volume was -Infinity
-          if (currentPresetKey === "off" && newPresetKey !== "off") {
-            synthRef.current.synth.dispose(); // Dispose the muted synth
-            synthRef.current.reverb.dispose();
-            synthRef.current.tremolo.dispose();
-            synthRef.current.filter.dispose();
-            synthRef.current = createSynthInstance(newPresetKey); // Create a new one with audible volume
-          } else {
-            // Dispose old synth resources safely before creating new ones
-            synthRef.current.filter.disconnect(); // Disconnect first to avoid issues
-            synthRef.current.synth.dispose();
-            synthRef.current.reverb.dispose();
-            synthRef.current.tremolo.dispose();
-            synthRef.current.filter.dispose(); // Dispose filter last after it's disconnected
-
-            // Create new synth instance only if the new preset is not "off"
-            if (newPresetKey !== "off") {
-              synthRef.current = createSynthInstance(newPresetKey);
-            } else {
-              // For "off", create a muted synth or ensure it's fully silent
-              synthRef.current = createSynthInstance("off"); // This will set volume to -Infinity
-            }
-          }
-        } else if (newPresetKey !== "off" && isAudioReady) {
-          // If no synth exists and new preset is not "off", create one
-          synthRef.current = createSynthInstance(newPresetKey);
-        } else if (newPresetKey === "off") {
-          // If new preset is "off" and no synth, ensure we reflect that (e.g., by setting synthRef.current if needed for global state)
-          if (isAudioReady) {
-            // Only create if audio context is ready
-            synthRef.current = createSynthInstance("off");
-          } else {
-            synthRef.current = null;
+      if (newPresetKey === currentPresetKey) {
+        // If preset is already "off" but synth volume isn't -Infinity (e.g. after HMR), force it.
+        if (
+          newPresetKey === "off" &&
+          synthRef.current &&
+          synthRef.current.synth.volume.value !== -Infinity
+        ) {
+          try {
+            synthRef.current.synth.volume.value = -Infinity;
+            console.log("Forcing 'Off' preset volume to -Infinity");
+          } catch (error) {
+            console.error("Error setting volume to -Infinity:", error);
           }
         }
-
-        globalSynthRef = synthRef.current; // Update global ref
-        lastUsedPreset = newPresetKey;
-        setCurrentPresetKey(newPresetKey);
-        setSynthPreset(newPresetKey); // Persist to global store
-      } else if (
-        newPresetKey === currentPresetKey &&
-        newPresetKey === "off" &&
-        synthRef.current &&
-        synthRef.current.synth.volume.value !== -Infinity
-      ) {
-        // If preset is already "off" but synth volume isn't -Infinity (e.g. after HMR), force it.
-        synthRef.current.synth.volume.value = -Infinity;
-        console.log("Forcing 'Off' preset volume to -Infinity");
+        return;
       }
+
+      console.log("Changing preset to", newPresetKey);
+
+      // Safely dispose of existing synth
+      if (synthRef.current) {
+        try {
+          // Stop all active notes first
+          synthRef.current.synth.releaseAll();
+
+          // Disconnect and dispose in reverse order of creation
+          if (synthRef.current.filter) {
+            synthRef.current.filter.disconnect();
+            synthRef.current.filter.dispose();
+          }
+          if (synthRef.current.tremolo) {
+            synthRef.current.tremolo.dispose();
+          }
+          if (synthRef.current.reverb) {
+            synthRef.current.reverb.dispose();
+          }
+          if (synthRef.current.synth) {
+            synthRef.current.synth.dispose();
+          }
+        } catch (error) {
+          console.error("Error disposing synth components:", error);
+        }
+
+        synthRef.current = null;
+      }
+
+      // Create new synth instance if audio is ready
+      if (isAudioReady) {
+        try {
+          synthRef.current = createSynthInstance(newPresetKey);
+        } catch (error) {
+          console.error("Error creating new synth instance:", error);
+          synthRef.current = null;
+        }
+      } else if (newPresetKey === "off") {
+        synthRef.current = null;
+      }
+
+      // Update global references and state
+      globalSynthRef = synthRef.current;
+      lastUsedPreset = newPresetKey;
+      setCurrentPresetKey(newPresetKey);
+      setSynthPreset(newPresetKey); // Persist to global store
     },
     [currentPresetKey, isAudioReady, setSynthPreset]
   );
