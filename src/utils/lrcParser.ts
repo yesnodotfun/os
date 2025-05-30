@@ -21,6 +21,7 @@ const SKIP_PREFIXES = [
   "键盘",
   "企划",
   "词",
+  "詞：",
   "曲",
   "OP",
   "SP",
