@@ -5,10 +5,6 @@ import { toast } from "sonner";
 const CHECK_INTERVAL = 5 * 60 * 1000; // Check every 5 minutes
 
 export function useLibraryUpdateChecker(isActive: boolean) {
-  const checkForLibraryUpdate = useIpodStore(
-    (state) => state.checkForLibraryUpdate
-  );
-  const mergeLibraryUpdate = useIpodStore((state) => state.mergeLibraryUpdate);
   const syncLibrary = useIpodStore((state) => state.syncLibrary);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastCheckedRef = useRef<number>(0);
@@ -76,59 +72,43 @@ export function useLibraryUpdateChecker(isActive: boolean) {
           currentLastKnownVersion: useIpodStore.getState().lastKnownVersion,
         });
 
-        if (newTracksCount > 0) {
-          // Show notification for new tracks
-          toast.info("Library Update Available", {
-            description: `${newTracksCount} new song${
-              newTracksCount === 1 ? "" : "s"
-            }${
-              tracksUpdated > 0
-                ? ` and ${tracksUpdated} track update${
-                    tracksUpdated === 1 ? "" : "s"
-                  }`
-                : ""
-            } available`,
-            action: {
-              label: "Update Library",
-              onClick: async () => {
-                try {
-                  // Use syncLibrary for the actual update
-                  const result = await syncLibrary();
-                  const message =
-                    wasEmpty && result.newTracksAdded > 0
-                      ? `Added ${result.newTracksAdded} song${
-                          result.newTracksAdded === 1 ? "" : "s"
-                        } to the top. First song ready to play!`
-                      : `Added ${result.newTracksAdded} new song${
-                          result.newTracksAdded === 1 ? "" : "s"
-                        } to the top${
-                          result.tracksUpdated > 0
-                            ? ` and updated ${result.tracksUpdated} track${
-                                result.tracksUpdated === 1 ? "" : "s"
-                              }`
-                            : ""
-                        }`;
-
-                  toast.success("Library Updated", {
-                    description: message,
-                  });
-                } catch (error) {
-                  console.error("Error updating library:", error);
-                  toast.error("Update Failed", {
-                    description: "Failed to update library",
-                  });
-                }
-              },
-            },
-            duration: 8000,
-          });
-        } else if (tracksUpdated > 0) {
-          // Silent update for metadata changes only
+        if (newTracksCount > 0 || tracksUpdated > 0) {
+          // Auto-update: directly sync without asking user
           try {
-            await syncLibrary();
-            console.log(`[iPod] Auto-updated ${tracksUpdated} track metadata`);
+            const result = await syncLibrary();
+            const message =
+              wasEmpty && result.newTracksAdded > 0
+                ? `Added ${result.newTracksAdded} song${
+                    result.newTracksAdded === 1 ? "" : "s"
+                  } to the top. First song ready to play!`
+                : result.newTracksAdded > 0
+                ? `Auto-updated library: added ${
+                    result.newTracksAdded
+                  } new song${
+                    result.newTracksAdded === 1 ? "" : "s"
+                  } to the top${
+                    result.tracksUpdated > 0
+                      ? ` and updated ${result.tracksUpdated} track${
+                          result.tracksUpdated === 1 ? "" : "s"
+                        }`
+                      : ""
+                  }`
+                : `Auto-updated ${result.tracksUpdated} track metadata`;
+
+            toast.success("Library Auto-Updated", {
+              description: message,
+              duration: 4000,
+            });
+
+            console.log(
+              `[iPod] Auto-updated: ${result.newTracksAdded} new tracks, ${result.tracksUpdated} updated tracks`
+            );
           } catch (error) {
-            console.error("Error auto-updating track metadata:", error);
+            console.error("Error auto-updating library:", error);
+            toast.error("Auto-Update Failed", {
+              description: "Failed to auto-update library",
+              duration: 4000,
+            });
           }
         }
       } catch (error) {
@@ -158,41 +138,34 @@ export function useLibraryUpdateChecker(isActive: boolean) {
         intervalRef.current = null;
       }
     };
-  }, [isActive, checkForLibraryUpdate, mergeLibraryUpdate, syncLibrary]);
+  }, [isActive, syncLibrary]);
 
   // Manual check function that can be called externally
   const manualCheck = async () => {
     try {
-      const result = await checkForLibraryUpdate();
-      if (result.hasUpdate && result.newTracks.length > 0) {
-        const currentTracks = useIpodStore.getState().tracks;
-        const existingIds = new Set(currentTracks.map((track) => track.id));
-        const newTracksCount = result.newTracks.filter(
-          (track) => !existingIds.has(track.id)
-        ).length;
+      const wasEmptyBefore = useIpodStore.getState().tracks.length === 0;
+      const result = await syncLibrary();
 
-        if (newTracksCount > 0) {
-          // Use syncLibrary instead of mergeLibraryUpdate for consistency
-          const syncResult = await syncLibrary();
-          toast.success("Library Updated", {
-            description: `Added ${syncResult.newTracksAdded} new song${
-              syncResult.newTracksAdded === 1 ? "" : "s"
-            } to the top${
-              syncResult.tracksUpdated > 0
-                ? ` and updated ${syncResult.tracksUpdated} track${
-                    syncResult.tracksUpdated === 1 ? "" : "s"
-                  }`
-                : ""
-            }`,
-          });
-          return true;
-        } else {
-          mergeLibraryUpdate(result.newTracks, result.newVersion);
-          toast.info("No Updates", {
-            description: "Your library is already up to date",
-          });
-          return false;
-        }
+      if (result.newTracksAdded > 0 || result.tracksUpdated > 0) {
+        const message =
+          wasEmptyBefore && result.newTracksAdded > 0
+            ? `Added ${result.newTracksAdded} song${
+                result.newTracksAdded === 1 ? "" : "s"
+              } to the top. First song ready to play!`
+            : `Added ${result.newTracksAdded} new song${
+                result.newTracksAdded === 1 ? "" : "s"
+              } to the top${
+                result.tracksUpdated > 0
+                  ? ` and updated ${result.tracksUpdated} track${
+                      result.tracksUpdated === 1 ? "" : "s"
+                    }`
+                  : ""
+              }`;
+
+        toast.success("Library Updated", {
+          description: message,
+        });
+        return true;
       } else {
         toast.info("No Updates", {
           description: "Your library is already up to date",

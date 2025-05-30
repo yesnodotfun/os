@@ -269,11 +269,11 @@ ${systemState.ipod.currentLyrics.lines.map((line) => line.words).join("\n")}`;
     systemState.ipod.library.length > 0
   ) {
     const songList = systemState.ipod.library
-      .slice(0, 60) // limit to first 60 songs to avoid overly long prompts
+      .slice(0, 100) // limit to first 100 songs to avoid overly long prompts
       .map((t) => `${t.title}${t.artist ? ` - ${t.artist}` : ""}`)
       .join("; ");
     prompt += `\n\n## IPOD LIBRARY
-Available Songs (${Math.min(systemState.ipod.library.length, 60)} of ${
+Available Songs (${Math.min(systemState.ipod.library.length, 100)} of ${
       systemState.ipod.library.length
     } shown):
 ${songList}`;

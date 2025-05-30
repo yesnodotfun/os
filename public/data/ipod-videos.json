@@ -1,13 +1,5 @@
 {
-  "version": 8,
   "videos": [
-    {
-      "id": "jG6RnLVX07I",
-      "url": "https://www.youtube.com/watch?v=jG6RnLVX07I",
-      "title": "Hold On",
-      "artist": "The Internet",
-      "lyricOffset": 1000
-    },
     {
       "id": "JFoevPP8hxY",
       "url": "https://www.youtube.com/watch?v=JFoevPP8hxY",
@@ -446,12 +438,11 @@
       "lyricOffset": 1000
     },
     {
-      "id": "V9Wsm0hlLUI",
-      "url": "https://www.youtube.com/watch?v=V9Wsm0hlLUI",
-      "title": "Sour Grapes",
-      "artist": "LE SSERAFIM",
-      "album": "FEARLESS - EP",
-      "lyricOffset": 1250
+      "id": "jG6RnLVX07I",
+      "url": "https://www.youtube.com/watch?v=jG6RnLVX07I",
+      "title": "Hold On",
+      "artist": "The Internet",
+      "lyricOffset": 1000
     },
     {
       "id": "jWQx2f-CErU",

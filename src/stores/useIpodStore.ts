@@ -127,14 +127,7 @@ export interface IpodState extends IpodData {
   addTrackFromVideoId: (urlOrId: string) => Promise<Track | null>;
   /** Load the default library if no tracks exist */
   initializeLibrary: () => Promise<void>;
-  /** Check for library updates and return whether an update is available */
-  checkForLibraryUpdate: () => Promise<{
-    hasUpdate: boolean;
-    newVersion: number;
-    newTracks: Track[];
-  }>;
-  /** Merge new tracks from library update with existing tracks */
-  mergeLibraryUpdate: (newTracks: Track[], newVersion: number) => void;
+
   /** Sync library with server - checks for updates and ensures all default tracks are present */
   syncLibrary: () => Promise<{
     newTracksAdded: number;
@@ -426,46 +419,7 @@ export const useIpodStore = create<IpodState>()(
           return null;
         }
       },
-      checkForLibraryUpdate: async () => {
-        try {
-          const { tracks: newTracks, version: newVersion } =
-            await loadDefaultTracks();
-          const current = get();
-          const hasUpdate = newVersion > current.lastKnownVersion;
-          return { hasUpdate, newVersion, newTracks };
-        } catch (error) {
-          console.error("Error checking for library update:", error);
-          return { hasUpdate: false, newVersion: 0, newTracks: [] };
-        }
-      },
-      mergeLibraryUpdate: (newTracks: Track[], newVersion: number) => {
-        const current = get();
-        const existingIds = new Set(current.tracks.map((track) => track.id));
-        const wasEmpty = current.tracks.length === 0;
 
-        // Only add tracks that don't already exist
-        const tracksToAdd = newTracks.filter(
-          (track) => !existingIds.has(track.id)
-        );
-
-        if (tracksToAdd.length > 0) {
-          // Add new tracks to the top of the list
-          const updatedTracks = [...tracksToAdd, ...current.tracks];
-          set({
-            tracks: updatedTracks,
-            lastKnownVersion: newVersion,
-            // If library was empty and we added tracks, set first song as current
-            currentIndex:
-              wasEmpty && updatedTracks.length > 0 ? 0 : current.currentIndex,
-            // Reset playing state if we're setting a new current track
-            isPlaying:
-              wasEmpty && updatedTracks.length > 0 ? false : current.isPlaying,
-          });
-        } else {
-          // Even if no new tracks, update the version
-          set({ lastKnownVersion: newVersion });
-        }
-      },
       syncLibrary: async () => {
         try {
           const { tracks: serverTracks, version: serverVersion } =
