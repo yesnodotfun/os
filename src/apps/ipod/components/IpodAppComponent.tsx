@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { createPortal } from "react-dom";
 import { LyricsDisplay } from "./LyricsDisplay";
 import { useLyrics } from "@/hooks/useLyrics";
+import { useLibraryUpdateChecker } from "../hooks/useLibraryUpdateChecker";
 
 // Add this component definition before the IpodAppComponent
 interface FullScreenPortalProps {
@@ -372,7 +373,6 @@ export function IpodAppComponent({
     toggleBacklight,
     setTheme,
     clearLibrary,
-    resetLibrary,
     nextTrack,
     previousTrack,
   } = useIpodStoreShallow((s) => ({
@@ -395,7 +395,6 @@ export function IpodAppComponent({
     toggleBacklight: s.toggleBacklight,
     setTheme: s.setTheme,
     clearLibrary: s.clearLibrary,
-    resetLibrary: s.resetLibrary,
     nextTrack: s.nextTrack,
     previousTrack: s.previousTrack,
   }));
@@ -425,7 +424,7 @@ export function IpodAppComponent({
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
   const [isConfirmClearOpen, setIsConfirmClearOpen] = useState(false);
-  const [isConfirmResetOpen, setIsConfirmResetOpen] = useState(false);
+
   const [isAddingTrack, setIsAddingTrack] = useState(false);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
 
@@ -464,6 +463,11 @@ export function IpodAppComponent({
   const fullScreenPlayerRef = useRef<ReactPlayer>(null);
   const skipOperationRef = useRef(false);
   const userHasInteractedRef = useRef(false);
+
+  // Auto-update checker for library changes
+  const { manualSync } = useLibraryUpdateChecker(
+    isWindowOpen && (isForeground ?? false)
+  );
 
   const ua = navigator.userAgent;
   const isIOS = /iP(hone|od|ad)/.test(ua);
@@ -1683,9 +1687,7 @@ export function IpodAppComponent({
         onClearLibrary={() => {
           setIsConfirmClearOpen(true);
         }}
-        onResetLibrary={() => {
-          setIsConfirmResetOpen(true);
-        }}
+        onSyncLibrary={manualSync}
         onAddTrack={() => setIsAddDialogOpen(true)}
         onShareSong={handleShareSong}
       />
@@ -1940,17 +1942,7 @@ export function IpodAppComponent({
           title="Clear Library"
           description="Are you sure you want to clear your entire music library? This action cannot be undone."
         />
-        <ConfirmDialog
-          isOpen={isConfirmResetOpen}
-          onOpenChange={setIsConfirmResetOpen}
-          onConfirm={() => {
-            void resetLibrary();
-            setIsConfirmResetOpen(false);
-            showStatus("Library Reset");
-          }}
-          title="Reset Library"
-          description="Are you sure you want to reset your music library to the default tracks? This will replace your current library."
-        />
+
         <InputDialog
           isOpen={isAddDialogOpen}
           onOpenChange={setIsAddDialogOpen}

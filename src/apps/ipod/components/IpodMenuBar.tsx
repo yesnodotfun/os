@@ -21,7 +21,7 @@ interface IpodMenuBarProps {
   onShowHelp: () => void;
   onShowAbout: () => void;
   onClearLibrary: () => void;
-  onResetLibrary: () => void;
+  onSyncLibrary: () => void;
   onAddTrack: () => void;
   onShareSong: () => void;
 }
@@ -45,7 +45,7 @@ export function IpodMenuBar({
   onShowHelp,
   onShowAbout,
   onClearLibrary,
-  onResetLibrary,
+  onSyncLibrary,
   onAddTrack,
   onShareSong,
 }: IpodMenuBarProps) {
@@ -625,10 +625,10 @@ export function IpodMenuBar({
             Clear Library...
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={onResetLibrary}
+            onClick={onSyncLibrary}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            Reset Library...
+            Sync Library...
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

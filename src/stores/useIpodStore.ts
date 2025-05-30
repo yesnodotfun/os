@@ -35,14 +35,19 @@ interface IpodData {
   currentLyrics: { lines: LyricLine[] } | null;
   isFullScreen: boolean;
   libraryState: LibraryState;
+  lastKnownVersion: number;
 }
 
-async function loadDefaultTracks(): Promise<Track[]> {
+async function loadDefaultTracks(): Promise<{
+  tracks: Track[];
+  version: number;
+}> {
   try {
     const res = await fetch("/data/ipod-videos.json");
     const data = await res.json();
     const videos: unknown[] = data.videos || data;
-    return videos.map((v) => {
+    const version = data.version || 1;
+    const tracks = videos.map((v) => {
       const video = v as Record<string, unknown>;
       return {
         id: video.id as string,
@@ -53,9 +58,10 @@ async function loadDefaultTracks(): Promise<Track[]> {
         lyricOffset: video.lyricOffset as number | undefined,
       };
     });
+    return { tracks, version };
   } catch (err) {
     console.error("Failed to load ipod-videos.json", err);
-    return [];
+    return { tracks: [], version: 1 };
   }
 }
 
@@ -78,6 +84,7 @@ const initialIpodData: IpodData = {
   currentLyrics: null,
   isFullScreen: false,
   libraryState: "uninitialized",
+  lastKnownVersion: 0,
 };
 
 export interface IpodState extends IpodData {
@@ -120,9 +127,19 @@ export interface IpodState extends IpodData {
   addTrackFromVideoId: (urlOrId: string) => Promise<Track | null>;
   /** Load the default library if no tracks exist */
   initializeLibrary: () => Promise<void>;
+  /** Check for library updates and return whether an update is available */
+  checkForLibraryUpdate: () => Promise<{
+    hasUpdate: boolean;
+    newVersion: number;
+    newTracks: Track[];
+  }>;
+  /** Merge new tracks from library update with existing tracks */
+  mergeLibraryUpdate: (newTracks: Track[], newVersion: number) => void;
+  /** Sync library with server - checks for updates and ensures all default tracks are present */
+  syncLibrary: () => Promise<{ newTracksAdded: number; totalTracks: number }>;
 }
 
-const CURRENT_IPOD_STORE_VERSION = 17; // Incremented version for new state
+const CURRENT_IPOD_STORE_VERSION = 18; // Incremented version for auto-update feature
 
 export const useIpodStore = create<IpodState>()(
   persist(
@@ -162,13 +179,14 @@ export const useIpodStore = create<IpodState>()(
           libraryState: "cleared",
         }),
       resetLibrary: async () => {
-        const tracks = await loadDefaultTracks();
+        const { tracks, version } = await loadDefaultTracks();
         set({
           tracks,
           currentIndex: tracks.length > 0 ? 0 : -1,
           isPlaying: false,
           lyricsTranslationRequest: null,
           libraryState: "loaded",
+          lastKnownVersion: version,
         });
       },
       nextTrack: () =>
@@ -270,11 +288,12 @@ export const useIpodStore = create<IpodState>()(
         const current = get();
         // Only initialize if the library is in uninitialized state
         if (current.libraryState === "uninitialized") {
-          const tracks = await loadDefaultTracks();
+          const { tracks, version } = await loadDefaultTracks();
           set({
             tracks,
             currentIndex: tracks.length > 0 ? 0 : -1,
             libraryState: "loaded",
+            lastKnownVersion: version,
           });
         }
       },
@@ -403,6 +422,89 @@ export const useIpodStore = create<IpodState>()(
           return null;
         }
       },
+      checkForLibraryUpdate: async () => {
+        try {
+          const { tracks: newTracks, version: newVersion } =
+            await loadDefaultTracks();
+          const current = get();
+          const hasUpdate = newVersion > current.lastKnownVersion;
+          return { hasUpdate, newVersion, newTracks };
+        } catch (error) {
+          console.error("Error checking for library update:", error);
+          return { hasUpdate: false, newVersion: 0, newTracks: [] };
+        }
+      },
+      mergeLibraryUpdate: (newTracks: Track[], newVersion: number) => {
+        const current = get();
+        const existingIds = new Set(current.tracks.map((track) => track.id));
+        const wasEmpty = current.tracks.length === 0;
+
+        // Only add tracks that don't already exist
+        const tracksToAdd = newTracks.filter(
+          (track) => !existingIds.has(track.id)
+        );
+
+        if (tracksToAdd.length > 0) {
+          const updatedTracks = [...current.tracks, ...tracksToAdd];
+          set({
+            tracks: updatedTracks,
+            lastKnownVersion: newVersion,
+            // If library was empty and we added tracks, set first song as current
+            currentIndex:
+              wasEmpty && updatedTracks.length > 0 ? 0 : current.currentIndex,
+            // Reset playing state if we're setting a new current track
+            isPlaying:
+              wasEmpty && updatedTracks.length > 0 ? false : current.isPlaying,
+          });
+        } else {
+          // Even if no new tracks, update the version
+          set({ lastKnownVersion: newVersion });
+        }
+      },
+      syncLibrary: async () => {
+        try {
+          const { tracks: serverTracks, version: serverVersion } =
+            await loadDefaultTracks();
+          const current = get();
+          const existingIds = new Set(current.tracks.map((track) => track.id));
+          const wasEmpty = current.tracks.length === 0;
+
+          // Find tracks that are on the server but not in the user's library
+          const tracksToAdd = serverTracks.filter(
+            (track) => !existingIds.has(track.id)
+          );
+
+          // Add any missing default tracks to the user's library
+          if (tracksToAdd.length > 0) {
+            const newTracks = [...current.tracks, ...tracksToAdd];
+            set({
+              tracks: newTracks,
+              lastKnownVersion: serverVersion,
+              libraryState: "loaded",
+              // If library was empty and we added tracks, set first song as current
+              currentIndex:
+                wasEmpty && newTracks.length > 0 ? 0 : current.currentIndex,
+              // Reset playing state if we're setting a new current track
+              isPlaying:
+                wasEmpty && newTracks.length > 0 ? false : current.isPlaying,
+            });
+          } else {
+            // Even if no new tracks, update the version and state
+            set({
+              lastKnownVersion: serverVersion,
+              libraryState: "loaded",
+            });
+          }
+
+          return {
+            newTracksAdded: tracksToAdd.length,
+            totalTracks: current.tracks.length + tracksToAdd.length,
+          };
+        } catch (error) {
+          console.error("Error syncing library:", error);
+          throw error;
+        }
+      },
     }),
     {
       name: "ryos:ipod", // Unique name for localStorage persistence
@@ -422,6 +524,7 @@ export const useIpodStore = create<IpodState>()(
         koreanDisplay: state.koreanDisplay,
         isFullScreen: state.isFullScreen,
         libraryState: state.libraryState,
+        lastKnownVersion: state.lastKnownVersion,
       }),
       migrate: (persistedState, version) => {
         let state = persistedState as IpodState; // Type assertion
@@ -444,6 +547,7 @@ export const useIpodStore = create<IpodState>()(
             koreanDisplay: state.koreanDisplay ?? KoreanDisplay.Original,
             lyricsTranslationRequest: null, // Ensure this is not carried from old persisted state
             libraryState: "uninitialized" as LibraryState, // Reset to uninitialized on migration
+            lastKnownVersion: state.lastKnownVersion ?? 0,
           };
         }
         // Clean up potentially outdated fields if needed in future migrations

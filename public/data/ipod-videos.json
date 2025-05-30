@@ -1,13 +1,6 @@
 {
+  "version": 4,
   "videos": [
-    {
-      "id": "Q_K2UcyXmWk",
-      "url": "https://www.youtube.com/watch?v=Q_K2UcyXmWk",
-      "title": "LOVIN' YOU",
-      "artist": "吉田美奈子",
-      "album": "MONSTERS IN TOWN",
-      "lyricOffset": -12750
-    },
     {
       "id": "JFoevPP8hxY",
       "url": "https://www.youtube.com/watch?v=JFoevPP8hxY",
@@ -15,6 +8,14 @@
       "artist": "JayDon",
       "album": "I'll Be Good - Single",
       "lyricOffset": -5700
+    },
+    {
+      "id": "Q_K2UcyXmWk",
+      "url": "https://www.youtube.com/watch?v=Q_K2UcyXmWk",
+      "title": "LOVIN' YOU",
+      "artist": "吉田美奈子",
+      "album": "MONSTERS IN TOWN",
+      "lyricOffset": -12750
     },
     {
       "id": "cK3qpJfb7w8",
