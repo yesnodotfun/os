@@ -18,10 +18,10 @@ const DEFAULT_ELEVENLABS_VOICE_ID = "kAyjEabBEu68HYYYRAHR"; // Ryo v3
 const DEFAULT_ELEVENLABS_MODEL_ID = "eleven_turbo_v2_5"; // 2.5 turbo
 const DEFAULT_ELEVENLABS_OUTPUT_FORMAT = "mp3_44100_128";
 const DEFAULT_ELEVENLABS_VOICE_SETTINGS = {
-  stability: 0.5,
-  similarity_boost: 0.7,
+  stability: 0.3,
+  similarity_boost: 0.8,
   use_speaker_boost: true,
-  speed: 1,
+  speed: 1.1,
 };
 
 // --- Logging Utilities ---------------------------------------------------
