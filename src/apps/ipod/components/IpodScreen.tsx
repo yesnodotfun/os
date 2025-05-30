@@ -128,7 +128,7 @@ function Scrollbar({
       container.removeEventListener("scroll", updateScrollbar);
       observer.disconnect();
     };
-  }, [containerRef, menuMode, backlightOn]);
+  }, [containerRef, menuMode]);
 
   if (!menuMode) return null;
 
