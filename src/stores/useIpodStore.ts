@@ -449,7 +449,8 @@ export const useIpodStore = create<IpodState>()(
         );
 
         if (tracksToAdd.length > 0) {
-          const updatedTracks = [...current.tracks, ...tracksToAdd];
+          // Add new tracks to the top of the list
+          const updatedTracks = [...tracksToAdd, ...current.tracks];
           set({
             tracks: updatedTracks,
             lastKnownVersion: newVersion,
@@ -516,8 +517,8 @@ export const useIpodStore = create<IpodState>()(
           );
           newTracksAdded = tracksToAdd.length;
 
-          // Combine updated existing tracks with new tracks
-          const finalTracks = [...updatedTracks, ...tracksToAdd];
+          // Combine new tracks (at top) with updated existing tracks
+          const finalTracks = [...tracksToAdd, ...updatedTracks];
 
           // Update store if there were any changes
           if (newTracksAdded > 0 || tracksUpdated > 0) {

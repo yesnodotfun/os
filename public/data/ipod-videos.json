@@ -1,6 +1,13 @@
 {
-  "version": 7,
+  "version": 8,
   "videos": [
+    {
+      "id": "jG6RnLVX07I",
+      "url": "https://www.youtube.com/watch?v=jG6RnLVX07I",
+      "title": "Hold On",
+      "artist": "The Internet",
+      "lyricOffset": 1000
+    },
     {
       "id": "JFoevPP8hxY",
       "url": "https://www.youtube.com/watch?v=JFoevPP8hxY",
@@ -16,6 +23,13 @@
       "artist": "吉田美奈子",
       "album": "MONSTERS IN TOWN",
       "lyricOffset": -12750
+    },
+    {
+      "id": "z4tyThWCYU0",
+      "url": "https://www.youtube.com/watch?v=z4tyThWCYU0",
+      "title": "GANMA",
+      "artist": "劉柏辛",
+      "lyricOffset": 1000
     },
     {
       "id": "cK3qpJfb7w8",
