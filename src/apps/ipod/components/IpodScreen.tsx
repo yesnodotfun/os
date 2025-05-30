@@ -29,7 +29,7 @@ function BatteryIndicator({ backlightOn }: { backlightOn: boolean }) {
         }
       } catch (error) {
         // Fallback to a default level
-        setBatteryLevel(0.75); // 75% as fallback
+        setBatteryLevel(1.0); // 100% as fallback
       }
     };
 
@@ -37,7 +37,7 @@ function BatteryIndicator({ backlightOn }: { backlightOn: boolean }) {
   }, []);
 
   // Use fallback if no battery level detected
-  const level = batteryLevel ?? 0.75;
+  const level = batteryLevel ?? 1.0;
   const filledBars = Math.ceil(level * 4);
 
   return (
