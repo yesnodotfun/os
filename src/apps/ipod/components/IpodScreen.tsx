@@ -8,6 +8,66 @@ import { LyricsDisplay } from "./LyricsDisplay";
 import { useLyrics } from "@/hooks/useLyrics";
 import { LyricsAlignment, ChineseVariant, KoreanDisplay } from "@/types/lyrics";
 
+// Battery component
+function BatteryIndicator({ backlightOn }: { backlightOn: boolean }) {
+  const [batteryLevel, setBatteryLevel] = useState<number | null>(null);
+
+  useEffect(() => {
+    // Try to get battery information (deprecated API, may not work in all browsers)
+    const getBattery = async () => {
+      try {
+        // @ts-ignore - Battery API is deprecated but still works in some browsers
+        if ("getBattery" in navigator) {
+          // @ts-ignore
+          const battery = await navigator.getBattery();
+          setBatteryLevel(battery.level);
+
+          const updateLevel = () => setBatteryLevel(battery.level);
+          battery.addEventListener("levelchange", updateLevel);
+
+          return () => battery.removeEventListener("levelchange", updateLevel);
+        }
+      } catch (error) {
+        // Fallback to a default level
+        setBatteryLevel(0.75); // 75% as fallback
+      }
+    };
+
+    getBattery();
+  }, []);
+
+  // Use fallback if no battery level detected
+  const level = batteryLevel ?? 0.75;
+  const filledBars = Math.ceil(level * 4);
+
+  return (
+    <div className="flex items-center">
+      {/* Battery outline */}
+      <div className="relative w-[19px] h-[10px] border border-[#0a3667] bg-transparent">
+        {/* Battery bars */}
+        <div className="absolute inset-[1px] flex gap-[1px]">
+          {[1, 2, 3, 4].map((bar) => (
+            <div
+              key={bar}
+              className={`flex-1 h-full ${
+                bar <= filledBars ? "bg-[#0a3667]" : "bg-transparent"
+              }`}
+            />
+          ))}
+        </div>
+      </div>
+      {/* Battery tip */}
+      <div className="w-[2px] h-[4px] bg-[#0a3667] relative">
+        <div
+          className={`w-[2px] h-[2px] absolute top-[1px] left-[-2px] right-[0px] mx-auto ${
+            backlightOn ? "bg-[#c5e0f5]" : "bg-[#8a9da9]"
+          }`}
+        />
+      </div>
+    </div>
+  );
+}
+
 // Simplified Scrollbar component
 function Scrollbar({
   containerRef,
@@ -615,7 +675,7 @@ export function IpodScreen({
         <div className="truncate max-w-[80%] text-center">
           {currentMenuTitle}
         </div>
-        <div className="w-4 text-xs"></div>
+        <BatteryIndicator backlightOn={backlightOn} />
       </div>
 
       {/* Content area - this animates/slides */}
