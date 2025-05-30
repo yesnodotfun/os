@@ -666,7 +666,7 @@ export function IpodScreen({
       {/* Title bar - not animated, immediately swaps */}
       <div className="border-b border-[#0a3667] py-0 px-2 font-chicago text-[16px] flex items-center sticky top-0 z-10 text-[#0a3667] [text-shadow:1px_1px_0_rgba(0,0,0,0.15)]">
         <div
-          className={`w-8 flex items-center justify-start font-chicago ${
+          className={`w-6 flex items-center justify-start font-chicago ${
             isPlaying ? "text-xs" : "text-[18px]"
           }`}
         >
@@ -675,7 +675,7 @@ export function IpodScreen({
           </div>
         </div>
         <div className="flex-1 truncate text-center">{currentMenuTitle}</div>
-        <div className="w-8 flex items-center justify-end">
+        <div className="w-6 flex items-center justify-end">
           <BatteryIndicator backlightOn={backlightOn} />
         </div>
       </div>
