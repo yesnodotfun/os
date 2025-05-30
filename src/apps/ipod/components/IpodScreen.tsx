@@ -94,17 +94,20 @@ function Scrollbar({
       if (needsScrollbar) {
         track.style.opacity = "1";
         thumb.style.display = "block";
+
+        // Account for track's extended bounds: top-[-1px] bottom-[-2px] = +3px total height
+        const trackHeight = clientHeight + 3;
         const thumbHeight = Math.max(
-          (clientHeight / scrollHeight) * clientHeight,
+          (clientHeight / scrollHeight) * trackHeight,
           20
         );
         const maxScrollTop = scrollHeight - clientHeight;
-        const thumbMaxTop = clientHeight - thumbHeight;
+        const thumbMaxTop = trackHeight - thumbHeight;
         const thumbTop =
           maxScrollTop > 0 ? (scrollTop / maxScrollTop) * thumbMaxTop : 0;
 
         thumb.style.height = `${thumbHeight - 4}px`;
-        thumb.style.top = `${thumbTop + 2}px`;
+        thumb.style.top = `${thumbTop + 2}px`; // 1px gap at top (accounting for -1px track offset)
       } else {
         track.style.opacity = "0";
         thumb.style.display = "none";
