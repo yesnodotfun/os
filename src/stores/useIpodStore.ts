@@ -136,7 +136,11 @@ export interface IpodState extends IpodData {
   /** Merge new tracks from library update with existing tracks */
   mergeLibraryUpdate: (newTracks: Track[], newVersion: number) => void;
   /** Sync library with server - checks for updates and ensures all default tracks are present */
-  syncLibrary: () => Promise<{ newTracksAdded: number; totalTracks: number }>;
+  syncLibrary: () => Promise<{
+    newTracksAdded: number;
+    tracksUpdated: number;
+    totalTracks: number;
+  }>;
 }
 
 const CURRENT_IPOD_STORE_VERSION = 18; // Incremented version for auto-update feature
@@ -466,30 +470,70 @@ export const useIpodStore = create<IpodState>()(
           const { tracks: serverTracks, version: serverVersion } =
             await loadDefaultTracks();
           const current = get();
-          const existingIds = new Set(current.tracks.map((track) => track.id));
           const wasEmpty = current.tracks.length === 0;
 
+          // Create a map of server tracks by ID for efficient lookup
+          const serverTrackMap = new Map(
+            serverTracks.map((track) => [track.id, track])
+          );
+
+          let newTracksAdded = 0;
+          let tracksUpdated = 0;
+
+          // Process existing tracks: update metadata if track exists on server
+          const updatedTracks = current.tracks.map((currentTrack) => {
+            const serverTrack = serverTrackMap.get(currentTrack.id);
+            if (serverTrack) {
+              // Track exists on server, check if metadata needs updating
+              const hasChanges =
+                currentTrack.title !== serverTrack.title ||
+                currentTrack.artist !== serverTrack.artist ||
+                currentTrack.album !== serverTrack.album ||
+                currentTrack.url !== serverTrack.url ||
+                currentTrack.lyricOffset !== serverTrack.lyricOffset;
+
+              if (hasChanges) {
+                tracksUpdated++;
+                // Update with server metadata but preserve any user customizations we want to keep
+                return {
+                  ...currentTrack,
+                  title: serverTrack.title,
+                  artist: serverTrack.artist,
+                  album: serverTrack.album,
+                  url: serverTrack.url,
+                  lyricOffset: serverTrack.lyricOffset,
+                };
+              }
+            }
+            // Return unchanged track (either no server version or no changes)
+            return currentTrack;
+          });
+
           // Find tracks that are on the server but not in the user's library
+          const existingIds = new Set(current.tracks.map((track) => track.id));
           const tracksToAdd = serverTracks.filter(
             (track) => !existingIds.has(track.id)
           );
+          newTracksAdded = tracksToAdd.length;
 
-          // Add any missing default tracks to the user's library
-          if (tracksToAdd.length > 0) {
-            const newTracks = [...current.tracks, ...tracksToAdd];
+          // Combine updated existing tracks with new tracks
+          const finalTracks = [...updatedTracks, ...tracksToAdd];
+
+          // Update store if there were any changes
+          if (newTracksAdded > 0 || tracksUpdated > 0) {
             set({
-              tracks: newTracks,
+              tracks: finalTracks,
               lastKnownVersion: serverVersion,
               libraryState: "loaded",
               // If library was empty and we added tracks, set first song as current
               currentIndex:
-                wasEmpty && newTracks.length > 0 ? 0 : current.currentIndex,
+                wasEmpty && finalTracks.length > 0 ? 0 : current.currentIndex,
               // Reset playing state if we're setting a new current track
               isPlaying:
-                wasEmpty && newTracks.length > 0 ? false : current.isPlaying,
+                wasEmpty && finalTracks.length > 0 ? false : current.isPlaying,
             });
           } else {
-            // Even if no new tracks, update the version and state
+            // Even if no changes, update the version and state
             set({
               lastKnownVersion: serverVersion,
               libraryState: "loaded",
@@ -497,8 +541,9 @@ export const useIpodStore = create<IpodState>()(
           }
 
           return {
-            newTracksAdded: tracksToAdd.length,
-            totalTracks: current.tracks.length + tracksToAdd.length,
+            newTracksAdded,
+            tracksUpdated,
+            totalTracks: finalTracks.length,
           };
         } catch (error) {
           console.error("Error syncing library:", error);

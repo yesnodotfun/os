@@ -25,43 +25,120 @@ export function useLibraryUpdateChecker(isActive: boolean) {
 
     const checkForUpdates = async () => {
       try {
-        const result = await checkForLibraryUpdate();
-        if (result.hasUpdate && result.newTracks.length > 0) {
-          const currentTracks = useIpodStore.getState().tracks;
-          const existingIds = new Set(currentTracks.map((track) => track.id));
-          const newTracksCount = result.newTracks.filter(
-            (track) => !existingIds.has(track.id)
-          ).length;
-          const wasEmpty = currentTracks.length === 0;
+        // Use track-based comparison instead of version-based to avoid timing issues
+        const { tracks: serverTracks, version: serverVersion } =
+          await (async () => {
+            const res = await fetch("/data/ipod-videos.json");
+            const data = await res.json();
+            const videos: unknown[] = data.videos || data;
+            const version = data.version || 1;
+            const tracks = videos.map((v) => {
+              const video = v as Record<string, unknown>;
+              return {
+                id: video.id as string,
+                url: video.url as string,
+                title: video.title as string,
+                artist: video.artist as string | undefined,
+                album: (video.album as string | undefined) ?? "",
+                lyricOffset: video.lyricOffset as number | undefined,
+              };
+            });
+            return { tracks, version };
+          })();
 
+        const currentTracks = useIpodStore.getState().tracks;
+        const existingIds = new Set(currentTracks.map((track) => track.id));
+
+        // Find tracks that are on the server but not in the user's library
+        const tracksToAdd = serverTracks.filter(
+          (track) => !existingIds.has(track.id)
+        );
+
+        // Also check for track updates (metadata changes)
+        let tracksUpdated = 0;
+        const serverTrackMap = new Map(
+          serverTracks.map((track) => [track.id, track])
+        );
+        currentTracks.forEach((currentTrack) => {
+          const serverTrack = serverTrackMap.get(currentTrack.id);
+          if (serverTrack) {
+            const hasChanges =
+              currentTrack.title !== serverTrack.title ||
+              currentTrack.artist !== serverTrack.artist ||
+              currentTrack.album !== serverTrack.album ||
+              currentTrack.url !== serverTrack.url ||
+              currentTrack.lyricOffset !== serverTrack.lyricOffset;
+            if (hasChanges) tracksUpdated++;
+          }
+        });
+
+        const newTracksCount = tracksToAdd.length;
+        const wasEmpty = currentTracks.length === 0;
+
+        console.log("[iPod] Library update check result:", {
+          serverVersion,
+          newTracksCount,
+          tracksUpdated,
+          currentLastKnownVersion: useIpodStore.getState().lastKnownVersion,
+          currentTracksCount: currentTracks.length,
+          serverTracksCount: serverTracks.length,
+        });
+
+        if (newTracksCount > 0 || tracksUpdated > 0) {
           if (newTracksCount > 0) {
             toast.info("Library Update Available", {
               description: `${newTracksCount} new song${
                 newTracksCount === 1 ? "" : "s"
+              }${
+                tracksUpdated > 0
+                  ? ` and ${tracksUpdated} track update${
+                      tracksUpdated === 1 ? "" : "s"
+                    }`
+                  : ""
               } available`,
               action: {
                 label: "Update Library",
-                onClick: () => {
-                  mergeLibraryUpdate(result.newTracks, result.newVersion);
-                  const message =
-                    wasEmpty && newTracksCount > 0
-                      ? `Added ${newTracksCount} song${
-                          newTracksCount === 1 ? "" : "s"
-                        }. First song ready to play!`
-                      : `Added ${newTracksCount} new song${
-                          newTracksCount === 1 ? "" : "s"
-                        } to your library`;
+                onClick: async () => {
+                  try {
+                    const result = await syncLibrary();
+                    const message =
+                      wasEmpty && result.newTracksAdded > 0
+                        ? `Added ${result.newTracksAdded} song${
+                            result.newTracksAdded === 1 ? "" : "s"
+                          }. First song ready to play!`
+                        : `Added ${result.newTracksAdded} new song${
+                            result.newTracksAdded === 1 ? "" : "s"
+                          }${
+                            result.tracksUpdated
+                              ? ` and updated ${result.tracksUpdated} track${
+                                  result.tracksUpdated === 1 ? "" : "s"
+                                }`
+                              : ""
+                          }`;
 
-                  toast.success("Library Updated", {
-                    description: message,
-                  });
+                    toast.success("Library Updated", {
+                      description: message,
+                    });
+                  } catch (error) {
+                    console.error("Error updating library:", error);
+                    toast.error("Update Failed", {
+                      description: "Failed to update library",
+                    });
+                  }
                 },
               },
               duration: 8000, // Give user time to see and act on the notification
             });
-          } else {
-            // Version updated but no new tracks to add
-            mergeLibraryUpdate(result.newTracks, result.newVersion);
+          } else if (tracksUpdated > 0) {
+            // Silent update for metadata changes only
+            try {
+              await syncLibrary();
+              console.log(
+                `[iPod] Auto-updated ${tracksUpdated} track metadata`
+              );
+            } catch (error) {
+              console.error("Error auto-updating track metadata:", error);
+            }
           }
         }
       } catch (error) {
@@ -69,12 +146,14 @@ export function useLibraryUpdateChecker(isActive: boolean) {
       }
     };
 
-    // Check immediately if we haven't checked recently
-    const now = Date.now();
-    if (now - lastCheckedRef.current > CHECK_INTERVAL) {
+    // Always check immediately when app becomes active (with a small delay to allow store to rehydrate)
+    const immediateCheckTimeout = setTimeout(() => {
+      console.log(
+        "[iPod] Running immediate library update check on app activation"
+      );
       checkForUpdates();
-      lastCheckedRef.current = now;
-    }
+      lastCheckedRef.current = Date.now();
+    }, 100);
 
     // Set up periodic checking
     intervalRef.current = setInterval(() => {
@@ -83,6 +162,7 @@ export function useLibraryUpdateChecker(isActive: boolean) {
     }, CHECK_INTERVAL);
 
     return () => {
+      clearTimeout(immediateCheckTimeout);
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
@@ -137,7 +217,7 @@ export function useLibraryUpdateChecker(isActive: boolean) {
       const wasEmptyBefore = useIpodStore.getState().tracks.length === 0;
       const result = await syncLibrary();
 
-      if (result.newTracksAdded > 0) {
+      if (result.newTracksAdded > 0 || result.tracksUpdated > 0) {
         const message =
           wasEmptyBefore && result.newTracksAdded > 0
             ? `Added ${result.newTracksAdded} song${
@@ -145,6 +225,12 @@ export function useLibraryUpdateChecker(isActive: boolean) {
               }. First song ready to play!`
             : `Added ${result.newTracksAdded} new song${
                 result.newTracksAdded === 1 ? "" : "s"
+              }${
+                result.tracksUpdated > 0
+                  ? ` and updated ${result.tracksUpdated} track${
+                      result.tracksUpdated === 1 ? "" : "s"
+                    }`
+                  : ""
               }. Total: ${result.totalTracks} songs`;
 
         toast.success("Library Synced", {

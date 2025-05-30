@@ -1,5 +1,5 @@
 {
-  "version": 4,
+  "version": 7,
   "videos": [
     {
       "id": "JFoevPP8hxY",
@@ -395,7 +395,7 @@
       "id": "QlkBGDUsANo",
       "url": "https://www.youtube.com/watch?v=QlkBGDUsANo",
       "title": "Come",
-      "artist": "Namie Amuro",
+      "artist": "安室奈美恵",
       "album": "犬夜叉 BEST ALBUM 主題歌集",
       "lyricOffset": 1000
     },
@@ -448,11 +448,10 @@
       "lyricOffset": 1100
     },
     {
-      "id": "Yc4gp6oeN7k",
-      "url": "https://www.youtube.com/watch?v=Yc4gp6oeN7k",
+      "id": "L_OgLK3fmc8",
+      "url": "https://www.youtube.com/watch?v=L_OgLK3fmc8",
       "title": "Skrr",
-      "artist": "GISELLE",
-      "album": "Skrr - Single",
+      "artist": "DEAN & HANNI",
       "lyricOffset": 1000
     },
     {
