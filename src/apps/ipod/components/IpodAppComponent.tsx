@@ -1591,14 +1591,6 @@ export function IpodAppComponent({
     ipodVolume: state.ipodVolume,
   }));
 
-  // Derived state for translation
-  const currentTrackId = tracks[currentIndex]?.id;
-  const translateToForLyricsHook =
-    lyricsTranslationRequest &&
-    lyricsTranslationRequest.songId === currentTrackId
-      ? lyricsTranslationRequest.language
-      : null;
-
   // Always call useLyrics at the top level, outside of any conditional logic
   const fullScreenLyricsControls = useLyrics({
     title: tracks[currentIndex]?.title ?? "",
