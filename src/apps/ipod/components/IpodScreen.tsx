@@ -138,7 +138,7 @@ function Scrollbar({
       <div
         ref={trackRef}
         className={cn(
-          "w-full h-full border border-[#0a3667] transition-opacity duration-200",
+          "w-full h-full border border-[#0a3667] transition-all duration-500",
           backlightOn
             ? "bg-[#c5e0f5] bg-gradient-to-b from-[#d1e8fa] to-[#e0f0fc]"
             : "bg-[#8a9da9]"
