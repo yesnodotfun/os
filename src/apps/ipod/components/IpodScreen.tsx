@@ -11,6 +11,8 @@ import { LyricsAlignment, ChineseVariant, KoreanDisplay } from "@/types/lyrics";
 // Battery component
 function BatteryIndicator({ backlightOn }: { backlightOn: boolean }) {
   const [batteryLevel, setBatteryLevel] = useState<number | null>(null);
+  const [isCharging, setIsCharging] = useState<boolean>(false);
+  const [animationFrame, setAnimationFrame] = useState<number>(1);
 
   useEffect(() => {
     // Try to get battery information (deprecated API, may not work in all browsers)
@@ -21,24 +23,43 @@ function BatteryIndicator({ backlightOn }: { backlightOn: boolean }) {
           // @ts-ignore
           const battery = await navigator.getBattery();
           setBatteryLevel(battery.level);
+          setIsCharging(battery.charging);
 
           const updateLevel = () => setBatteryLevel(battery.level);
-          battery.addEventListener("levelchange", updateLevel);
+          const updateCharging = () => setIsCharging(battery.charging);
 
-          return () => battery.removeEventListener("levelchange", updateLevel);
+          battery.addEventListener("levelchange", updateLevel);
+          battery.addEventListener("chargingchange", updateCharging);
+
+          return () => {
+            battery.removeEventListener("levelchange", updateLevel);
+            battery.removeEventListener("chargingchange", updateCharging);
+          };
         }
       } catch (error) {
         // Fallback to a default level
         setBatteryLevel(1.0); // 100% as fallback
+        setIsCharging(false);
       }
     };
 
     getBattery();
   }, []);
 
+  // Animation effect for charging
+  useEffect(() => {
+    if (!isCharging) return;
+
+    const interval = setInterval(() => {
+      setAnimationFrame((prev) => (prev % 4) + 1);
+    }, 500); // Change frame every 500ms
+
+    return () => clearInterval(interval);
+  }, [isCharging]);
+
   // Use fallback if no battery level detected
   const level = batteryLevel ?? 1.0;
-  const filledBars = Math.ceil(level * 4);
+  const filledBars = isCharging ? animationFrame : Math.ceil(level * 4);
 
   return (
     <div className="flex items-center">
@@ -49,7 +70,7 @@ function BatteryIndicator({ backlightOn }: { backlightOn: boolean }) {
           {[1, 2, 3, 4].map((bar) => (
             <div
               key={bar}
-              className={`flex-1 h-full ${
+              className={`flex-1 h-full transition-colors duration-200 ${
                 bar <= filledBars ? "bg-[#0a3667]" : "bg-transparent"
               }`}
             />
