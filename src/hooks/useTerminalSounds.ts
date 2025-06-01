@@ -84,8 +84,9 @@ const DING_PRESET = {
 
 export function useTerminalSounds() {
   const [isInitialized, setIsInitialized] = useState(false);
-  // Initialize muted state based on global setting
-  const [isMuted, setIsMuted] = useState(!useAppStore.getState().terminalSoundsEnabled);
+  const terminalSoundsEnabled = useAppStore((s) => s.terminalSoundsEnabled);
+  const setTerminalSoundsEnabled = useAppStore((s) => s.setTerminalSoundsEnabled);
+  const isMuted = !terminalSoundsEnabled;
   const lastSoundTimeRef = useRef(0);
   const synthsRef = useRef<Record<SoundType, Tone.Synth | null>>({
     command: null,
@@ -131,13 +132,7 @@ export function useTerminalSounds() {
     timeoutIds: [],
   });
 
-  // Sync with global setting changes
-  useEffect(() => {
-    const unsub = useAppStore.subscribe((state) => {
-      setIsMuted(!state.terminalSoundsEnabled);
-    });
-    return () => unsub();
-  }, []);
+  // No local muted state; rely directly on global store
 
   // Function to generate a Brian Eno inspired ambient sound environment (for past and now)
   const setupAmbientEnvironment = useCallback(() => {
@@ -966,8 +961,8 @@ export function useTerminalSounds() {
   }, [isMuted, isInitialized]);
 
   const toggleMute = useCallback(() => {
-    setIsMuted((prev) => !prev);
-  }, []);
+    setTerminalSoundsEnabled(!useAppStore.getState().terminalSoundsEnabled);
+  }, [setTerminalSoundsEnabled]);
 
   // Cleanup on unmount (synths are created lazily now)
   useEffect(() => {
