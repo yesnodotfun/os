@@ -422,11 +422,17 @@ export async function POST(request) {
         body.username &&
         body.username.toLowerCase() !== username?.toLowerCase()
       ) {
-        logInfo(
-          requestId,
-          `Auth mismatch: body username (${body.username}) != auth username (${username})`
-        );
-        return createErrorResponse("Username mismatch", 401);
+        const allowedRyoProxy =
+          action === "sendMessage" &&
+          body.username.toLowerCase() === "ryo" &&
+          username;
+        if (!allowedRyoProxy) {
+          logInfo(
+            requestId,
+            `Auth mismatch: body username (${body.username}) != auth username (${username})`
+          );
+          return createErrorResponse("Username mismatch", 401);
+        }
       }
 
       // Validate authentication
