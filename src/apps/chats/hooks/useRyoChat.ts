@@ -119,9 +119,8 @@ export function useRyoChat({
         // Send as a regular message to the room
         // We'll need to call the API directly since we want it to appear from 'ryo'
         const { authToken, username } = useChatsStore.getState();
-        const headers: HeadersInit = {
-          "Content-Type": "application/json",
-        };
+        const headers: HeadersInit = { "Content-Type": "application/json" };
+
         if (authToken && username) {
           headers["Authorization"] = `Bearer ${authToken}`;
           headers["X-Username"] = username;
