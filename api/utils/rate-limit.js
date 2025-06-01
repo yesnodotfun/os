@@ -8,8 +8,8 @@ const redis = new Redis({
 
 // Constants for rate limiting
 const AI_RATE_LIMIT_PREFIX = "ai:ratelimit:";
-const ANONYMOUS_AI_LIMIT = 5;
-const DAILY_USER_AI_LIMIT = 100;
+const ANONYMOUS_AI_LIMIT = 4;
+const DAILY_USER_AI_LIMIT = 50;
 
 // Helper function to get rate limit key for a user
 const getAIRateLimitKey = (identifier) => {
