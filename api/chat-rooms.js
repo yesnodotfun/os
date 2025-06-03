@@ -60,6 +60,7 @@ const USER_EXPIRATION_TIME = 2592000; // 30 days
 // Add constants for max message and username length
 const MAX_MESSAGE_LENGTH = 1000;
 const MAX_USERNAME_LENGTH = 30;
+const MIN_USERNAME_LENGTH = 3; // Minimum username length (must be more than 2 characters)
 
 // Token constants
 const AUTH_TOKEN_PREFIX = "chat:token:";
@@ -256,7 +257,18 @@ async function ensureUserExists(username, requestId) {
     throw new Error("Username contains inappropriate language");
   }
 
-  // Check username length
+  // Check minimum username length
+  if (username.length < MIN_USERNAME_LENGTH) {
+    logInfo(
+      requestId,
+      `User check failed: Username too short: ${username.length} chars (min: ${MIN_USERNAME_LENGTH})`
+    );
+    throw new Error(
+      `Username must be at least ${MIN_USERNAME_LENGTH} characters`
+    );
+  }
+
+  // Check maximum username length
   if (username.length > MAX_USERNAME_LENGTH) {
     logInfo(
       requestId,
@@ -877,6 +889,18 @@ async function handleCreateUser(data, requestId) {
     );
     return createErrorResponse(
       `Username must be ${MAX_USERNAME_LENGTH} characters or less`,
+      400
+    );
+  }
+
+  // Check minimum username length
+  if (originalUsername.length < MIN_USERNAME_LENGTH) {
+    logInfo(
+      requestId,
+      `User creation failed: Username too short: ${originalUsername.length} chars (min: ${MIN_USERNAME_LENGTH})`
+    );
+    return createErrorResponse(
+      `Username must be at least ${MIN_USERNAME_LENGTH} characters`,
       400
     );
   }

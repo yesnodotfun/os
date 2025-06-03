@@ -39,9 +39,7 @@ export function CreateRoomDialog({
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeTab, setActiveTab] = useState<"public" | "private">(
-    isAdmin ? "public" : "private"
-  );
+  const [activeTab, setActiveTab] = useState<"public" | "private">("private");
 
   // Fetch all users when dialog opens
   useEffect(() => {
@@ -52,10 +50,8 @@ export function CreateRoomDialog({
       setRoomName("");
       setSelectedUsers([]);
       setSearchTerm("");
-      // Ensure non-admin users are always on private tab
-      if (!isAdmin) {
-        setActiveTab("private");
-      }
+      // Reset to private tab when opening
+      setActiveTab("private");
     }
   }, [isOpen, isAdmin]);
 
@@ -78,10 +74,13 @@ export function CreateRoomDialog({
     }
   };
 
-  // Filter users based on search term
-  const filteredUsers = users.filter((user) =>
-    user.username.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filter users based on search term (only show after 2 characters)
+  const filteredUsers =
+    searchTerm.length >= 2
+      ? users.filter((user) =>
+          user.username.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+      : [];
 
   const handleSubmit = async () => {
     setIsLoading(true);
@@ -131,18 +130,18 @@ export function CreateRoomDialog({
             onValueChange={(v) => setActiveTab(v as "public" | "private")}
           >
             {isAdmin && (
-              <TabsList className="grid grid-cols-2 w-full mb-4 h-9 bg-transparent p-0 border-none">
-                <TabsTrigger
-                  value="public"
-                  className="relative font-geneva-12 text-[12px] px-4 py-1.5 rounded-none border border-black bg-white data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:z-10 data-[state=inactive]:border-r-0"
-                >
-                  Public Room
-                </TabsTrigger>
+              <TabsList className="grid grid-cols-2 w-full mb-4 h-9 bg-transparent p-0 border border-black">
                 <TabsTrigger
                   value="private"
-                  className="relative font-geneva-12 text-[12px] px-4 py-1.5 rounded-none border border-black bg-white data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:z-10"
+                  className="relative font-geneva-12 text-[12px] px-4 py-1.5 rounded-none border border-black bg-white data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:z-10 data-[state=inactive]:border-r-0"
                 >
                   Private Message
+                </TabsTrigger>
+                <TabsTrigger
+                  value="public"
+                  className="relative font-geneva-12 text-[12px] px-4 py-1.5 rounded-none border border-black bg-white data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:z-10"
+                >
+                  Public Room
                 </TabsTrigger>
               </TabsList>
             )}
@@ -170,45 +169,51 @@ export function CreateRoomDialog({
 
             <TabsContent value="private" className="mt-0">
               <div className="space-y-3">
-                <div>
-                  <Label className="text-gray-700 text-[12px] font-geneva-12">
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="search-users"
+                    className="text-gray-700 text-[12px] font-geneva-12"
+                  >
                     Add to Private Chat
                   </Label>
                   <Input
+                    id="search-users"
                     placeholder="Search users..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="shadow-none font-geneva-12 text-[12px] h-8 mt-2"
+                    className="shadow-none font-geneva-12 text-[12px] h-8"
                     disabled={isLoading}
                   />
                 </div>
 
-                <div className="border border-gray-300 rounded max-h-[180px] overflow-y-auto bg-white">
-                  {filteredUsers.length === 0 ? (
-                    <div className="p-4 text-center text-gray-500 font-geneva-12 text-[12px]">
-                      No users found
-                    </div>
-                  ) : (
-                    <div className="p-1">
-                      {filteredUsers.map((user) => (
-                        <label
-                          key={user.username}
-                          className="flex items-center p-2 hover:bg-gray-100 cursor-pointer rounded font-geneva-12 text-[12px]"
-                        >
-                          <Checkbox
-                            checked={selectedUsers.includes(user.username)}
-                            onCheckedChange={() =>
-                              toggleUserSelection(user.username)
-                            }
-                            className="h-4 w-4"
-                            disabled={isLoading}
-                          />
-                          <span className="ml-2">@{user.username}</span>
-                        </label>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                {searchTerm.length >= 2 && (
+                  <div className="border border-gray-300 rounded max-h-[180px] overflow-y-auto bg-white">
+                    {filteredUsers.length === 0 ? (
+                      <div className="p-4 text-center text-gray-500 font-geneva-12 text-[12px]">
+                        No users found
+                      </div>
+                    ) : (
+                      <div className="p-1">
+                        {filteredUsers.map((user) => (
+                          <label
+                            key={user.username}
+                            className="flex items-center p-2 hover:bg-gray-100 cursor-pointer rounded font-geneva-12 text-[12px]"
+                          >
+                            <Checkbox
+                              checked={selectedUsers.includes(user.username)}
+                              onCheckedChange={() =>
+                                toggleUserSelection(user.username)
+                              }
+                              className="h-4 w-4"
+                              disabled={isLoading}
+                            />
+                            <span className="ml-2">@{user.username}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {selectedUsers.length > 0 && (
                   <div className="text-[11px] text-gray-600 font-geneva-12">
