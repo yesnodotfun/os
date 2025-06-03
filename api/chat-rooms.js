@@ -1472,15 +1472,16 @@ async function handleSendMessage(data, requestId) {
       `Updated user ${username} last active timestamp and reset expiration`
     );
 
-    // Trigger Pusher event for new message
+    // Trigger Pusher event for new message on per-room channel
     try {
-      await pusher.trigger("chats", "room-message", {
+      const channelName = `room-${roomId}`;
+      await pusher.trigger(channelName, "room-message", {
         roomId,
         message,
       });
       logInfo(
         requestId,
-        `Pusher event triggered: room-message for room ${roomId}`
+        `Pusher event triggered: room-message on ${channelName}`
       );
     } catch (pusherError) {
       logError(
@@ -1564,15 +1565,16 @@ async function handleDeleteMessage(roomId, messageId, username, requestId) {
     await redis.lrem(listKey, 1, targetRaw);
     logInfo(requestId, `Message deleted: ${messageId}`);
 
-    // Trigger Pusher event for message deletion
+    // Trigger Pusher event for message deletion on per-room channel
     try {
-      await pusher.trigger("chats", "message-deleted", {
+      const channelName = `room-${roomId}`;
+      await pusher.trigger(channelName, "message-deleted", {
         roomId,
         messageId,
       });
       logInfo(
         requestId,
-        `Pusher event triggered: message-deleted for room ${roomId}`
+        `Pusher event triggered: message-deleted on ${channelName}`
       );
     } catch (pusherError) {
       logError(
