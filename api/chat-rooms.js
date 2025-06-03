@@ -1628,12 +1628,24 @@ async function handleSwitchRoom(data, requestId) {
       const roomDataRaw = await redis.get(roomKey);
 
       if (roomDataRaw) {
-        await redis.srem(
-          `${CHAT_ROOM_USERS_PREFIX}${previousRoomId}`,
-          username
-        );
-        const userCount = await refreshRoomUserCount(previousRoomId);
-        changedRooms.push({ roomId: previousRoomId, userCount });
+        const roomData =
+          typeof roomDataRaw === "string"
+            ? JSON.parse(roomDataRaw)
+            : roomDataRaw;
+        // Skip automatic leave if the previous room is a private chat – users should remain members unless they explicitly leave.
+        if (roomData.type !== "private") {
+          await redis.srem(
+            `${CHAT_ROOM_USERS_PREFIX}${previousRoomId}`,
+            username
+          );
+          const userCount = await refreshRoomUserCount(previousRoomId);
+          changedRooms.push({ roomId: previousRoomId, userCount });
+        } else {
+          logInfo(
+            requestId,
+            `Skipping automatic leave for private room ${previousRoomId}`
+          );
+        }
       }
     }
 

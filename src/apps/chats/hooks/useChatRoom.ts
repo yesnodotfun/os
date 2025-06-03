@@ -660,6 +660,16 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
     const handleBeforeUnload = () => {
       const roomToLeave = previousRoomIdRef.current;
       if (roomToLeave && username) {
+        // Prevent automatic leaving of private rooms
+        const roomsSnapshot = useChatsStore.getState().rooms;
+        const roomMeta = roomsSnapshot.find((r) => r.id === roomToLeave);
+        if (roomMeta?.type === "private") {
+          console.log(
+            `[Room Hook Unmount/Unload] Skipping auto-leave for private room: ${roomToLeave}`
+          );
+          return;
+        }
+
         console.log("[Room Hook Unmount/Unload] Leaving room:", roomToLeave);
         const payload = { roomId: roomToLeave, username };
         const data = JSON.stringify(payload);
