@@ -123,9 +123,7 @@ export interface ChatsStoreState {
   fetchMessagesForRoom: (
     roomId: string
   ) => Promise<{ ok: boolean; error?: string }>;
-  fetchBulkMessages: (
-    roomIds: string[]
-  ) => Promise<{
+  fetchBulkMessages: (roomIds: string[]) => Promise<{
     ok: boolean;
     error?: string;
     messagesMap?: Record<string, ChatMessage[]>;
