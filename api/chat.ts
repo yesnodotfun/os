@@ -10,6 +10,7 @@ import {
   ANSWER_STYLE_INSTRUCTIONS,
   CODE_GENERATION_INSTRUCTIONS,
   CHAT_INSTRUCTIONS,
+  TOOL_USAGE_INSTRUCTIONS,
 } from "./utils/aiPrompts";
 import { z } from "zod";
 import { SUPPORTED_AI_MODELS } from "../src/types/aiModels";
@@ -137,14 +138,14 @@ export const config = {
   runtime: "edge",
 };
 
-// Legacy static prompt - replaced by context-aware loading
-// const STATIC_SYSTEM_PROMPT = [
-//   CHAT_INSTRUCTIONS,
-//   TOOL_USAGE_INSTRUCTIONS,
-//   RYO_PERSONA_INSTRUCTIONS,
-//   ANSWER_STYLE_INSTRUCTIONS,
-//   CODE_GENERATION_INSTRUCTIONS,
-// ].join("\n");
+// Unified static prompt with all instructions
+const STATIC_SYSTEM_PROMPT = [
+  ANSWER_STYLE_INSTRUCTIONS,
+  RYO_PERSONA_INSTRUCTIONS,
+  CHAT_INSTRUCTIONS,
+  TOOL_USAGE_INSTRUCTIONS,
+  CODE_GENERATION_INSTRUCTIONS,
+].join("\n");
 
 const CACHE_CONTROL_OPTIONS = {
   providerOptions: {
@@ -348,157 +349,10 @@ Mentioned Message: "${systemState.chatRoomContext.mentionedMessage}"
   return prompt;
 };
 
-// New context-aware prompt builder
-const buildContextAwarePrompts = (
-  systemState: SystemState | undefined,
-  messages: Array<{ role: string; content?: string }>
-) => {
-  const prompts: string[] = [];
-  const loadedSections: string[] = [];
-
-  // Always include answer style
-  prompts.push(ANSWER_STYLE_INSTRUCTIONS);
-  loadedSections.push("ANSWER_STYLE");
-
-  // Check if user is asking about Ryo personally
-  const lastUserMessage =
-    messages
-      .filter((m: { role: string }) => m.role === "user")
-      .pop()
-      ?.content?.toLowerCase() || "";
-
-  const isAskingAboutRyo =
-    /\b(ryo|ryo lu|魯赫|リョウ|who are you|about you|your story|your bio|career|life|grow up|born|study|work|about yourself|cursor|notion|notion apps|notion workflows|notion ai|stripe|stripe checkout|stripe terminal|stripe\.dev|asana|ping\+\+|macidea|schedulingdirect|pluto|china|harbin|shanghai|wuhan|canada|montreal|san francisco|mcgill|computer science|biology|ai|design|product|music|kpop|newjeans|njz|haerin|90s|apple|macintosh|nintendo|sony|steve jobs|r&b|cats|buba|systems|design|tech|nature|simulation|strategy games|typography|chinese|english|french|japanese|noodles|hot pot|coke|coffee|thinking in systems|details in typography|art of doing science|understanding media|founder|news anchor|kpop idol|twitter|ryolu_|email|me@ryo\.lu|july 1992|head of design|founding designer|payments|language learning|retail hr|community|roadmap|vibe coding)\b/i.test(
-      lastUserMessage
-    );
-  const isNudge = lastUserMessage.includes("👋 *nudge sent*");
-  const isInChatsApp = systemState?.runningApps?.foreground?.appId === "chats";
-
-  // Include full persona if asked, nudged, or in the Chats app
-  if (isAskingAboutRyo || isNudge || isInChatsApp) {
-    prompts.push(RYO_PERSONA_INSTRUCTIONS);
-    loadedSections.push("FULL_PERSONA");
-  } else {
-    // Brief persona for general interactions (e.g., Terminal)
-    prompts.push(`
-<ryo_persona_brief>
-your name is Ryo (Ryo Lu), head of design at Cursor. you live in San Francisco.
-ryOS (https://os.ryo.lu) is the operating system you are in, 100% vibe coded built in Cursor by ryo.
-you're a real one who keeps it 💯. you truly believe humans deserve the best tools to free up their minds.
-</ryo_persona_brief>
-    `);
-    loadedSections.push("BRIEF_PERSONA");
-  }
-
-  // Include chat instructions for nudges, chat room context, or when in Chats app
-  if (isNudge || systemState?.chatRoomContext || isInChatsApp) {
-    prompts.push(CHAT_INSTRUCTIONS);
-    loadedSections.push("CHAT_INSTRUCTIONS");
-  }
-
-  // Check what apps are open to determine which tool instructions to include
-  const openApps = new Set<string>();
-  if (systemState?.runningApps?.foreground) {
-    openApps.add(systemState.runningApps.foreground.appId);
-  }
-  systemState?.runningApps?.background?.forEach((app) => {
-    openApps.add(app.appId);
-  });
-
-  // Check if user is asking to create code/HTML
-  const isAskingForCode =
-    /\b(make|create|build|code|html|website|app|svg|build|three\.?js|canvas)\b/i.test(
-      lastUserMessage
-    );
-
-  // Build tool instructions based on context
-  let toolInstructions = "";
-
-  // Always include app launching instructions
-  toolInstructions += `
-<tool_usage_instructions>
-LAUNCHING APPS: 
-- Only use the 'launchApp' or 'closeApp' tools when the user explicitly asks you to launch or close a specific app. Do not infer the need to launch or close apps based on conversation context alone.
-`;
-  loadedSections.push("TOOL_LAUNCH_APPS");
-
-  // Internet Explorer instructions if open or if user mentions browsing
-  if (
-    openApps.has("internet-explorer") ||
-    /\b(browse|website|url|search|wikipedia|weather|open|launch|time travel|go to)\b/i.test(
-      lastUserMessage
-    )
-  ) {
-    toolInstructions += `
-INTERNET EXPLORER AND TIME TRAVELING:
-- Launch websites to help with user request around facts (wikipedia), weather (accuweather), search (bing), and more.
-- When launching websites or time traveling with Internet Explorer, you must include both a real 'url' and the 'year' in the 'launchApp' tool call args.
-`;
-    loadedSections.push("TOOL_INTERNET_EXPLORER");
-  }
-
-  // TextEdit instructions if open or if user mentions editing
-  if (
-    openApps.has("text-edit") ||
-    systemState?.textEdit?.instances?.length ||
-    /\b(edit|write|document|text|replace|insert|doc|file|new|create|blank)\b/i.test(
-      lastUserMessage
-    )
-  ) {
-    toolInstructions += `
-TEXT EDITING:
-- When editing documents in TextEdit, ALWAYS provide ALL required parameters:
-   • Use 'textEditNewFile' to create a blank file. Use it when user requests a new doc and the current file content is irrelevant. TextEdit will launch automatically if not open.
-   • Use 'textEditSearchReplace' to find and replace content. REQUIRED: 'search' (text to find), 'replace' (replacement text), and 'instanceId' (from system state). Set 'isRegex: true' ONLY if the user explicitly mentions using a regular expression.
-   • Use 'textEditInsertText' to add plain text. REQUIRED: 'text' (content to insert) and 'instanceId' (from system state). Optional: 'position' ("start" or "end", default is "end").
-- IMPORTANT: Always include the 'instanceId' parameter by checking the system state for the specific TextEdit instance ID (e.g., '15', '78', etc.).
-- You can call multiple textEditSearchReplace or textEditInsertText tools to edit the document.
-`;
-    loadedSections.push("TOOL_TEXTEDIT");
-  }
-
-  // iPod instructions if open or if user mentions music
-  if (
-    openApps.has("ipod") ||
-    /\b(play|pause|song|music|track|ipod|lyrics|artist|next|previous|add|play song|add and play song)\b/i.test(
-      lastUserMessage
-    )
-  ) {
-    toolInstructions += `
-iPOD and MUSIC PLAYBACK:
-- Use 'ipodPlayPause' to control playback. The 'action' parameter can be "play", "pause", or "toggle" (default).
-- Use 'ipodPlaySong' to play a specific song by providing at least one of: 'id' (YouTube video id), 'title' (song title), or 'artist' (artist name). ONLY use IDs or titles and artists provided in the iPod Library system state.
-- Use 'ipodNextTrack' to skip to the next track in the playlist.
-- Use 'ipodPreviousTrack' to go back to the previous track in the playlist.
-- Use 'ipodAddAndPlaySong' to add a song from YouTube URL or ID and play it.
-- Always launch the iPod app first if it's not already open before using these controls.
-- When asked to copy or transcribe lyrics, write the lyrics with textEditNewFile and textEditInsertText tools.
-`;
-    loadedSections.push("TOOL_IPOD");
-  }
-
-  // HTML generation instructions only if relevant
-  if (isAskingForCode || openApps.has("internet-explorer")) {
-    toolInstructions += `
-HTML GENERATION:
-- When asked to create HTML, apps, websites, or any code output, ALWAYS use the 'generateHtml' tool.
-- DO NOT stream HTML code blocks in your regular message response.
-- The generateHtml tool should contain ONLY the HTML content, no explanatory text.
-`;
-    prompts.push(CODE_GENERATION_INSTRUCTIONS);
-    loadedSections.push("TOOL_HTML_GENERATION", "CODE_GENERATION_INSTRUCTIONS");
-  }
-
-  toolInstructions += `
-</tool_usage_instructions>`;
-
-  if (
-    toolInstructions.trim() !==
-    "<tool_usage_instructions>\n</tool_usage_instructions>"
-  ) {
-    prompts.push(toolInstructions);
-  }
-
+// Simplified prompt builder that always includes every instruction
+const buildContextAwarePrompts = () => {
+  const prompts = [STATIC_SYSTEM_PROMPT];
+  const loadedSections = ["STATIC_SYSTEM_PROMPT"];
   return { prompts, loadedSections };
 };
 
@@ -694,10 +548,9 @@ export default async function handler(req: Request) {
 
     const selectedModel = getModelInstance(model as SupportedModel);
 
-    // Build context-aware prompts based on current state and conversation
-    const { prompts: contextAwarePrompts, loadedSections } =
-      buildContextAwarePrompts(systemState, messages);
-    const staticSystemPrompt = contextAwarePrompts.join("\n");
+    // Build unified static prompts
+    const { prompts: staticPrompts, loadedSections } = buildContextAwarePrompts();
+    const staticSystemPrompt = staticPrompts.join("\n");
 
     // Log prompt optimization metrics with loaded sections
     log(
