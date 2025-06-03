@@ -42,8 +42,10 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
   return (
     <div
       className={cn(
-        "flex flex-col h-full overflow-hidden font-geneva-12 text-[12px] border-black bg-neutral-100",
-        isOverlay ? "w-full border-b" : "w-56 border-r"
+        "flex flex-col font-geneva-12 text-[12px] border-black bg-neutral-100",
+        isOverlay
+          ? "w-full border-b h-full max-h-full"
+          : "w-56 border-r h-full overflow-hidden"
       )}
     >
       <div className="py-3 px-3 flex flex-col flex-1 overflow-hidden">
@@ -60,7 +62,13 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
             <Plus className="w-3 h-3" />
           </Button>
         </div>
-        <div className="flex-1 overflow-y-auto space-y-1 min-h-0">
+        <div
+          className={cn(
+            "flex-1 overflow-y-auto space-y-1 min-h-0 overscroll-contain",
+            isOverlay ? "pb-4" : ""
+          )}
+          style={{ WebkitOverflowScrolling: "touch" }}
+        >
           {/* Ryo (@ryo) Chat Selection */}
           <div
             className={cn(

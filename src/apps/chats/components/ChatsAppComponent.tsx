@@ -411,7 +411,7 @@ export function ChatsAppComponent({
                     stiffness: 300,
                     mass: 1,
                   }}
-                  className="relative w-full h-fit bg-neutral-200 z-10"
+                  className="relative w-full h-full bg-neutral-200 z-10"
                   style={{
                     transformPerspective: "2000px",
                     backfaceVisibility: "hidden",
