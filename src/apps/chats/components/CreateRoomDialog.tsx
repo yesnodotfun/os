@@ -157,14 +157,23 @@ export function CreateRoomDialog({
                   >
                     Room Name
                   </Label>
-                  <Input
-                    id="room-name"
-                    value={roomName}
-                    onChange={(e) => setRoomName(e.target.value)}
-                    placeholder="general"
-                    className="shadow-none font-geneva-12 text-[12px] h-8"
-                    disabled={isLoading}
-                  />
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-geneva-12 text-[12px] pointer-events-none">
+                      #
+                    </span>
+                    <Input
+                      id="room-name"
+                      value={roomName}
+                      onChange={(e) => {
+                        // Remove # if user types it
+                        const value = e.target.value.replace(/^#/, "");
+                        setRoomName(value);
+                      }}
+                      placeholder="general"
+                      className="shadow-none font-geneva-12 text-[12px] h-8 pl-6"
+                      disabled={isLoading}
+                    />
+                  </div>
                 </div>
               </TabsContent>
             )}
