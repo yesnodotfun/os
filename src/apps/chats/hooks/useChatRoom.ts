@@ -464,6 +464,85 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
     [isAdmin, currentRoomId, handleRoomSelect, username, authToken]
   );
 
+  // --- Pusher per-room event handlers (declare early) ---
+  const handleIncomingRoomMessage = useCallback(
+    (data: { roomId: string; message: ChatMessage }) => {
+      console.log("[Pusher Hook] Received room-message:", data);
+
+      // Skip duplicates
+      const existingMessages =
+        useChatsStore.getState().roomMessages[data.roomId] || [];
+      const isDuplicate = existingMessages.some((m) => {
+        const sameId = m.id === data.message.id;
+        const sameContentUser =
+          m.content === data.message.content &&
+          m.username === data.message.username;
+        return sameId || sameContentUser;
+      });
+      if (isDuplicate) {
+        console.log(
+          "[Pusher Hook] Duplicate message detected (id/content match). Skipping."
+        );
+        return;
+      }
+
+      const messageWithTimestamp = {
+        ...data.message,
+        timestamp:
+          typeof data.message.timestamp === "string" ||
+          typeof data.message.timestamp === "number"
+            ? new Date(data.message.timestamp).getTime()
+            : data.message.timestamp,
+      };
+      addMessageToRoom(data.roomId, messageWithTimestamp);
+
+      // Toast if message for other room
+      const activeRoomId = useChatsStore.getState().currentRoomId;
+      const currentUsername = useChatsStore.getState().username;
+      if (
+        data.roomId !== activeRoomId &&
+        data.message.username !== currentUsername
+      ) {
+        const latestRooms = useChatsStore.getState().rooms;
+        const room = latestRooms.find((r: ChatRoom) => r.id === data.roomId);
+        if (room) {
+          const roomTitle =
+            room.type === "private"
+              ? formatPrivateRoomName(room.name, currentUsername)
+              : `#${room.name}`;
+          toast(`${data.message.username} in ${roomTitle}`, {
+            description:
+              data.message.content.length > 50
+                ? data.message.content.substring(0, 47) + "..."
+                : data.message.content,
+            action: {
+              label: "View",
+              onClick: () => {
+                // Ensure Chat app is open and foreground
+                const { launchOrFocusApp } = useAppStore.getState();
+                launchOrFocusApp("chats");
+                // Select the room after bringing app forward
+                handleRoomSelect(room.id);
+              },
+            },
+            duration: 4000,
+          });
+        }
+      }
+    },
+    [addMessageToRoom, handleRoomSelect]
+  );
+
+  const handleMessageDeletedEvent = useCallback(
+    (data: { roomId: string; messageId: string }) => {
+      console.log(
+        `[Pusher Hook] Received message-deleted for room ${data.roomId}, message ${data.messageId}`
+      );
+      removeMessageFromRoom(data.roomId, data.messageId);
+    },
+    [removeMessageFromRoom]
+  );
+
   // --- Pusher Integration ---
 
   // Effect 1: Manage Pusher connection based on window visibility
@@ -514,6 +593,16 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
           }
         );
 
+        // Also listen for room-message and message-deleted relayed via personal channel
+        globalChannelRef.current.bind(
+          "room-message",
+          handleIncomingRoomMessage
+        );
+        globalChannelRef.current.bind(
+          "message-deleted",
+          handleMessageDeletedEvent
+        );
+
         globalChannelRef.current.bind(
           "messages-cleared",
           (data: { roomId: string; timestamp: number }) => {
@@ -556,6 +645,8 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
     currentRoomId,
     username,
     handleRoomSelect,
+    handleIncomingRoomMessage,
+    handleMessageDeletedEvent,
   ]); // Dependencies that affect event handlers
 
   // Effect 2: Fetch initial data once Pusher is connected
@@ -723,6 +814,8 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
     // Unsubscribe previous
     if (globalChannelRef.current) {
       globalChannelRef.current.unbind("rooms-updated");
+      globalChannelRef.current.unbind("room-message");
+      globalChannelRef.current.unbind("message-deleted");
       pusherRef.current.unsubscribe(globalChannelNameRef.current);
     }
 
@@ -743,85 +836,6 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
     globalChannelRef.current = newChannel;
     globalChannelNameRef.current = newChannelName;
   }, [username]);
-
-  // --- Pusher per-room event handlers ---
-  const handleIncomingRoomMessage = useCallback(
-    (data: { roomId: string; message: ChatMessage }) => {
-      console.log("[Pusher Hook] Received room-message:", data);
-
-      // Skip duplicates
-      const existingMessages =
-        useChatsStore.getState().roomMessages[data.roomId] || [];
-      const isDuplicate = existingMessages.some((m) => {
-        const sameId = m.id === data.message.id;
-        const sameContentUser =
-          m.content === data.message.content &&
-          m.username === data.message.username;
-        return sameId || sameContentUser;
-      });
-      if (isDuplicate) {
-        console.log(
-          "[Pusher Hook] Duplicate message detected (id/content match). Skipping."
-        );
-        return;
-      }
-
-      const messageWithTimestamp = {
-        ...data.message,
-        timestamp:
-          typeof data.message.timestamp === "string" ||
-          typeof data.message.timestamp === "number"
-            ? new Date(data.message.timestamp).getTime()
-            : data.message.timestamp,
-      };
-      addMessageToRoom(data.roomId, messageWithTimestamp);
-
-      // Toast if message for other room
-      const activeRoomId = useChatsStore.getState().currentRoomId;
-      const currentUsername = useChatsStore.getState().username;
-      if (
-        data.roomId !== activeRoomId &&
-        data.message.username !== currentUsername
-      ) {
-        const latestRooms = useChatsStore.getState().rooms;
-        const room = latestRooms.find((r: ChatRoom) => r.id === data.roomId);
-        if (room) {
-          const roomTitle =
-            room.type === "private"
-              ? formatPrivateRoomName(room.name, currentUsername)
-              : `#${room.name}`;
-          toast(`${data.message.username} in ${roomTitle}`, {
-            description:
-              data.message.content.length > 50
-                ? data.message.content.substring(0, 47) + "..."
-                : data.message.content,
-            action: {
-              label: "View",
-              onClick: () => {
-                // Ensure Chat app is open and foreground
-                const { launchOrFocusApp } = useAppStore.getState();
-                launchOrFocusApp("chats");
-                // Select the room after bringing app forward
-                handleRoomSelect(room.id);
-              },
-            },
-            duration: 4000,
-          });
-        }
-      }
-    },
-    [addMessageToRoom, handleRoomSelect]
-  );
-
-  const handleMessageDeletedEvent = useCallback(
-    (data: { roomId: string; messageId: string }) => {
-      console.log(
-        `[Pusher Hook] Received message-deleted for room ${data.roomId}, message ${data.messageId}`
-      );
-      removeMessageFromRoom(data.roomId, data.messageId);
-    },
-    [removeMessageFromRoom]
-  );
 
   // Effect: Subscribe to per-room channels based on visible rooms
   useEffect(() => {

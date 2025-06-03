@@ -1467,6 +1467,9 @@ async function handleSendMessage(data, requestId) {
         requestId,
         `Pusher event triggered: room-message on ${channelName}`
       );
+
+      // Fan-out to private room members as a fallback (personal channels)
+      await fanOutToPrivateMembers(roomId, "room-message", { roomId, message });
     } catch (pusherError) {
       logError(
         requestId,
@@ -1560,6 +1563,11 @@ async function handleDeleteMessage(roomId, messageId, username, requestId) {
         requestId,
         `Pusher event triggered: message-deleted on ${channelName}`
       );
+
+      await fanOutToPrivateMembers(roomId, "message-deleted", {
+        roomId,
+        messageId,
+      });
     } catch (pusherError) {
       logError(
         requestId,
@@ -1785,5 +1793,26 @@ async function broadcastRoomsUpdated() {
     }
   } catch (err) {
     console.error("[broadcastRoomsUpdated] Failed to broadcast rooms:", err);
+  }
+}
+
+// Helper: Broadcast an event to each member's personal channel for a private room
+async function fanOutToPrivateMembers(roomId, eventName, payload) {
+  try {
+    const roomRaw = await redis.get(`${CHAT_ROOM_PREFIX}${roomId}`);
+    if (!roomRaw) return;
+    const roomObj = typeof roomRaw === "string" ? JSON.parse(roomRaw) : roomRaw;
+    if (roomObj?.type !== "private" || !Array.isArray(roomObj.members)) return;
+
+    await Promise.all(
+      roomObj.members.map((member) =>
+        pusher.trigger(`chats-${member}`, eventName, payload)
+      )
+    );
+  } catch (err) {
+    console.error(
+      `[fanOutToPrivateMembers] Failed to fan-out ${eventName} for room ${roomId}:`,
+      err
+    );
   }
 }
