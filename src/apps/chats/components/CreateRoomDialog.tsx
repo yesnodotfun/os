@@ -131,16 +131,16 @@ export function CreateRoomDialog({
             onValueChange={(v) => setActiveTab(v as "public" | "private")}
           >
             {isAdmin && (
-              <TabsList className="grid grid-cols-2 w-full mb-4 h-8 bg-white border border-black">
+              <TabsList className="grid grid-cols-2 w-full mb-4 h-9 bg-transparent p-0 border-none">
                 <TabsTrigger
                   value="public"
-                  className="data-[state=active]:bg-black data-[state=active]:text-white font-geneva-12 text-[12px]"
+                  className="relative font-geneva-12 text-[12px] px-4 py-1.5 rounded-none border border-black bg-white data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:z-10 data-[state=inactive]:border-r-0"
                 >
                   Public Room
                 </TabsTrigger>
                 <TabsTrigger
                   value="private"
-                  className="data-[state=active]:bg-black data-[state=active]:text-white font-geneva-12 text-[12px]"
+                  className="relative font-geneva-12 text-[12px] px-4 py-1.5 rounded-none border border-black bg-white data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:z-10"
                 >
                   Private Message
                 </TabsTrigger>

@@ -479,7 +479,27 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
           "rooms-updated",
           (data: { rooms: ChatRoom[] }) => {
             console.log("[Pusher Hook] Received rooms-updated:", data);
-            debouncedSetRoomsRef.current(data.rooms);
+
+            // Filter rooms based on visibility - same logic as server-side
+            const currentUsername = useChatsStore.getState().username;
+            const filteredRooms = data.rooms.filter((room) => {
+              // Public rooms are visible to everyone
+              if (!room.type || room.type === "public") {
+                return true;
+              }
+
+              // Private rooms are only visible to members
+              if (room.type === "private" && room.members && currentUsername) {
+                return room.members.includes(currentUsername.toLowerCase());
+              }
+
+              return false;
+            });
+
+            console.log(
+              `[Pusher Hook] Filtered ${data.rooms.length} rooms to ${filteredRooms.length} visible rooms`
+            );
+            debouncedSetRoomsRef.current(filteredRooms);
           }
         );
 
@@ -732,6 +752,17 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
       });
     }
   }, [username, authToken, ensureAuthToken]);
+
+  // Effect 6: Re-fetch rooms when username changes
+  useEffect(() => {
+    // Only fetch if we have Pusher connection and username has changed
+    if (pusherRef.current && channelRef.current && username !== undefined) {
+      console.log(
+        `[Room Hook] Username changed to: ${username}, re-fetching rooms`
+      );
+      fetchRooms();
+    }
+  }, [username, fetchRooms]);
 
   // --- Dialog States & Handlers ---
   const [isUsernameDialogOpen, setIsUsernameDialogOpen] = useState(false);
