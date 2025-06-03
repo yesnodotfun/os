@@ -137,13 +137,13 @@ export function CreateRoomDialog({
                   value="private"
                   className="relative font-geneva-12 text-[12px] px-4 py-1.5 rounded-none bg-white data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:z-10 data-[state=inactive]:border-r-0"
                 >
-                  Private Message
+                  Private
                 </TabsTrigger>
                 <TabsTrigger
                   value="public"
                   className="relative font-geneva-12 text-[12px] px-4 py-1.5 rounded-none bg-white data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:z-10"
                 >
-                  Public Room
+                  Public
                 </TabsTrigger>
               </TabsList>
             )}
