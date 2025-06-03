@@ -29,7 +29,9 @@ function debounce<T extends (...args: any[]) => void>(
 const PUSHER_APP_KEY = "b47fd563805c8c42da1a";
 const PUSHER_CLUSTER = "us3";
 const getGlobalChannelName = (username?: string | null): string =>
-  username ? `chats-${username.toLowerCase()}` : "chats-public";
+  username
+    ? `chats-${username.toLowerCase().replace(/[^a-zA-Z0-9_\-\.]/g, "_")}`
+    : "chats-public";
 
 export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
   const {

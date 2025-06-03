@@ -1785,9 +1785,11 @@ async function broadcastRoomsUpdated() {
     // 2. Per-user channels
     const userKeys = await redis.keys(`${CHAT_USERS_PREFIX}*`);
     for (const key of userKeys) {
-      const username = key.substring(CHAT_USERS_PREFIX.length);
-      const userRooms = filterRoomsForUser(allRooms, username);
-      await pusher.trigger(`chats-${username}`, "rooms-updated", {
+      const safeUser = sanitizeForChannel(
+        key.substring(CHAT_USERS_PREFIX.length)
+      );
+      const userRooms = filterRoomsForUser(allRooms, safeUser);
+      await pusher.trigger(`chats-${safeUser}`, "rooms-updated", {
         rooms: userRooms,
       });
     }
@@ -1805,9 +1807,10 @@ async function fanOutToPrivateMembers(roomId, eventName, payload) {
     if (roomObj?.type !== "private" || !Array.isArray(roomObj.members)) return;
 
     await Promise.all(
-      roomObj.members.map((member) =>
-        pusher.trigger(`chats-${member}`, eventName, payload)
-      )
+      roomObj.members.map((member) => {
+        const safe = sanitizeForChannel(member);
+        return pusher.trigger(`chats-${safe}`, eventName, payload);
+      })
     );
   } catch (err) {
     console.error(
@@ -1816,3 +1819,6 @@ async function fanOutToPrivateMembers(roomId, eventName, payload) {
     );
   }
 }
+
+// Helper: sanitize strings for Pusher channel names
+const sanitizeForChannel = (name) => name.replace(/[^a-zA-Z0-9_\-\.]/g, "_");
