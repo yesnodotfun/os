@@ -235,13 +235,8 @@ const getAssistantVisibleText = (message: Message): string => {
 };
 
 export function useAiChat(onPromptSetUsername?: () => void) {
-  const {
-    aiMessages,
-    setAiMessages,
-    username,
-    authToken,
-    ensureAuthToken,
-  } = useChatsStore();
+  const { aiMessages, setAiMessages, username, authToken, ensureAuthToken } =
+    useChatsStore();
   const launchApp = useLaunchApp();
   const closeApp = useAppStore((state) => state.closeApp);
   const aiModel = useAppStore((state) => state.aiModel);
@@ -1003,6 +998,31 @@ export function useAiChat(onPromptSetUsername?: () => void) {
     onError: (err) => {
       console.error("AI Chat Error:", err);
 
+      // Helper function to handle authentication errors consistently
+      const handleAuthError = (message?: string) => {
+        console.error("Authentication error - clearing invalid token");
+
+        // Clear the invalid auth token
+        const setAuthToken = useChatsStore.getState().setAuthToken;
+        setAuthToken(null);
+
+        // Show user-friendly error message with action button
+        toast.error("Authentication Required", {
+          description:
+            message || "Please set your username to continue chatting.",
+          duration: 5000,
+          action: onPromptSetUsername
+            ? {
+                label: "Set Username",
+                onClick: onPromptSetUsername,
+              }
+            : undefined,
+        });
+
+        // Prompt for username
+        setNeedsUsername(true);
+      };
+
       // Check if this is a rate limit error (status 429)
       // The AI SDK wraps errors in a specific format
       if (err.message) {
@@ -1028,29 +1048,13 @@ export function useAiChat(onPromptSetUsername?: () => void) {
             }
 
             // Handle authentication failed error
-            if (errorData.error === "authentication_failed") {
-              console.error("Authentication failed - clearing invalid token");
-
-              // Clear the invalid auth token
-              const setAuthToken = useChatsStore.getState().setAuthToken;
-              setAuthToken(null);
-
-              // Show user-friendly error message with action button
-              toast.error("Authentication Error", {
-                description:
-                  "Your session has expired. Please set your username again to continue.",
-                duration: 5000,
-                action: onPromptSetUsername
-                  ? {
-                      label: "Set Username",
-                      onClick: onPromptSetUsername,
-                    }
-                  : undefined,
-              });
-
-              // Prompt for username
-              setNeedsUsername(true);
-
+            if (
+              errorData.error === "authentication_failed" ||
+              errorData.error === "unauthorized"
+            ) {
+              handleAuthError(
+                "Your session has expired. Please set your username again."
+              );
               return; // Exit early to prevent showing generic error toast
             }
           } catch (parseError) {
@@ -1080,28 +1084,15 @@ export function useAiChat(onPromptSetUsername?: () => void) {
         }
 
         // Check if error message contains 401 status (authentication error)
+        // This catches various 401 error formats
         if (
           err.message.includes("401") ||
-          err.message.includes("authentication_failed")
+          err.message.includes("Unauthorized") ||
+          err.message.includes("unauthorized") ||
+          err.message.includes("authentication_failed") ||
+          err.message.includes("Authentication failed")
         ) {
-          console.error("Authentication error detected in error message");
-
-          // Clear invalid auth token
-          const setAuthToken = useChatsStore.getState().setAuthToken;
-          setAuthToken(null);
-
-          toast.error("Session Expired", {
-            description: "Please set your username again to continue chatting.",
-            duration: 5000,
-            action: onPromptSetUsername
-              ? {
-                  label: "Set Username",
-                  onClick: onPromptSetUsername,
-                }
-              : undefined,
-          });
-
-          setNeedsUsername(true);
+          handleAuthError();
           return;
         }
       }
