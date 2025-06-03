@@ -11,6 +11,7 @@ import {
   CODE_GENERATION_INSTRUCTIONS,
   CHAT_INSTRUCTIONS,
   TOOL_USAGE_INSTRUCTIONS,
+  DELIVERABLE_REQUIREMENTS,
 } from "./utils/aiPrompts";
 import { z } from "zod";
 import { SUPPORTED_AI_MODELS } from "../src/types/aiModels";
@@ -145,6 +146,8 @@ const STATIC_SYSTEM_PROMPT = [
   CHAT_INSTRUCTIONS,
   TOOL_USAGE_INSTRUCTIONS,
   CODE_GENERATION_INSTRUCTIONS,
+  // Include delivery requirements after code generation instructions
+  DELIVERABLE_REQUIREMENTS,
 ].join("\n");
 
 const CACHE_CONTROL_OPTIONS = {
