@@ -3,14 +3,17 @@ import Pusher, { type Channel } from "pusher-js";
 import { useChatsStore } from "../../../stores/useChatsStore";
 import { toast } from "@/hooks/useToast";
 import { type ChatRoom, type ChatMessage } from "../../../../src/types/chat";
+import { formatPrivateRoomName } from "@/utils/chat";
 
 // Debounce helper
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function debounce<T extends (...args: any[]) => void>(
   func: T,
   wait: number
 ): (...args: Parameters<T>) => void {
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
-  return function (this: ThisParameterType<T>, ...args: Parameters<T>) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return function (this: any, ...args: Parameters<T>) {
     const context = this;
     if (timeoutId) {
       clearTimeout(timeoutId);
@@ -525,7 +528,11 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
                 (r: ChatRoom) => r.id === data.roomId
               );
               if (room) {
-                toast(`${data.message.username} in #${room.name}`, {
+                const roomTitle =
+                  room.type === "private"
+                    ? formatPrivateRoomName(room.name, currentUsername)
+                    : `#${room.name}`;
+                toast(`${data.message.username} in ${roomTitle}`, {
                   description:
                     data.message.content.length > 50
                       ? data.message.content.substring(0, 47) + "..."

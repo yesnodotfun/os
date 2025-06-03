@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { useRyoChat } from "../hooks/useRyoChat";
 import { ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { formatPrivateRoomName } from "@/utils/chat";
 
 // Define the expected message structure locally, matching ChatMessages internal type
 interface DisplayMessage extends Omit<UIMessage, "role"> {
@@ -333,7 +334,7 @@ export function ChatsAppComponent({
         title={
           currentRoom
             ? currentRoom.type === "private"
-              ? currentRoom.name
+              ? formatPrivateRoomName(currentRoom.name, username)
               : `#${currentRoom.name}`
             : "@ryo"
         }
@@ -411,6 +412,7 @@ export function ChatsAppComponent({
                     onDeleteRoom={(room) => promptDeleteRoom(room)}
                     isVisible={true} // Always visible when overlay is shown
                     isAdmin={isAdmin}
+                    username={username}
                     isOverlay={true}
                   />
                 </motion.div>
@@ -431,6 +433,7 @@ export function ChatsAppComponent({
                 onDeleteRoom={(room) => promptDeleteRoom(room)}
                 isVisible={sidebarVisibleBool}
                 isAdmin={isAdmin}
+                username={username}
               />
             </div>
 
@@ -447,7 +450,7 @@ export function ChatsAppComponent({
                     <h2 className="font-geneva-12 text-[12px] font-medium truncate">
                       {currentRoom
                         ? currentRoom.type === "private"
-                          ? currentRoom.name
+                          ? formatPrivateRoomName(currentRoom.name, username)
                           : `#${currentRoom.name}`
                         : "@ryo"}
                     </h2>

@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { generateAppShareUrl } from "@/utils/sharedUrl";
 import { useAppStoreShallow } from "@/stores/helpers";
 import { SYNTH_PRESETS } from "@/hooks/useChatSynth";
+import { formatPrivateRoomName } from "@/utils/chat";
 
 interface ChatsMenuBarProps {
   onClose: () => void;
@@ -162,26 +163,42 @@ export function ChatsMenuBar({
 
           {/* Room List */}
           {Array.isArray(rooms) &&
-            rooms.map((room) => (
-              <DropdownMenuItem
-                key={room.id}
-                onClick={() => onRoomSelect(room)}
-                className={cn(
-                  "text-md h-6 px-3 active:bg-gray-900 active:text-white",
-                  currentRoom?.id === room.id && "bg-gray-200"
-                )}
-              >
-                <span className={cn(!(currentRoom?.id === room.id) && "pl-4")}>
-                  {currentRoom?.id === room.id
-                    ? room.type === "private"
-                      ? `✓ ${room.name}`
-                      : `✓ #${room.name}`
-                    : room.type === "private"
-                    ? room.name
-                    : `#${room.name}`}
-                </span>
-              </DropdownMenuItem>
-            ))}
+            (() => {
+              // Sort rooms: private rooms first, then public rooms
+              const privateRooms = rooms.filter(
+                (room) => room.type === "private"
+              );
+              const publicRooms = rooms.filter(
+                (room) => room.type !== "private"
+              );
+              const sortedRooms = [...privateRooms, ...publicRooms];
+
+              return sortedRooms.map((room) => (
+                <DropdownMenuItem
+                  key={room.id}
+                  onClick={() => onRoomSelect(room)}
+                  className={cn(
+                    "text-md h-6 px-3 active:bg-gray-900 active:text-white",
+                    currentRoom?.id === room.id && "bg-gray-200"
+                  )}
+                >
+                  <span
+                    className={cn(!(currentRoom?.id === room.id) && "pl-4")}
+                  >
+                    {currentRoom?.id === room.id
+                      ? room.type === "private"
+                        ? `✓ ${formatPrivateRoomName(
+                            room.name,
+                            username ?? null
+                          )}`
+                        : `✓ #${room.name}`
+                      : room.type === "private"
+                      ? formatPrivateRoomName(room.name, username ?? null)
+                      : `#${room.name}`}
+                  </span>
+                </DropdownMenuItem>
+              ));
+            })()}
         </DropdownMenuContent>
       </DropdownMenu>
 
