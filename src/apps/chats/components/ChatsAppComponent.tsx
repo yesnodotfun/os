@@ -146,14 +146,16 @@ export function ChatsAppComponent({
 
   // Wrapper for room selection that handles unread scroll triggering
   const handleRoomSelectWithScroll = useCallback(
-    async (roomId: string | null) => {
-      const result = await handleRoomSelect(roomId);
-      if (result?.hadUnreads) {
-        console.log(
-          `[ChatsApp] Triggering scroll for room with unreads: ${roomId}`
-        );
-        setScrollToBottomTrigger((prev) => prev + 1);
-      }
+    (roomId: string | null) => {
+      // Switch rooms immediately; perform scroll logic once the async operation completes.
+      handleRoomSelect(roomId).then((result) => {
+        if (result?.hadUnreads) {
+          console.log(
+            `[ChatsApp] Triggering scroll for room with unreads: ${roomId}`
+          );
+          setScrollToBottomTrigger((prev) => prev + 1);
+        }
+      });
     },
     [handleRoomSelect]
   );
@@ -163,9 +165,9 @@ export function ChatsAppComponent({
 
   // Handler for mobile room selection that auto-dismisses the sidebar
   const handleMobileRoomSelect = useCallback(
-    async (room: ChatRoom | null) => {
-      await handleRoomSelectWithScroll(room ? room.id : null);
-      // Auto-dismiss sidebar on mobile after selecting a room
+    (room: ChatRoom | null) => {
+      handleRoomSelectWithScroll(room ? room.id : null);
+      // Auto-dismiss sidebar on mobile immediately after selecting a room
       if (sidebarVisibleBool) {
         toggleSidebarVisibility();
       }
