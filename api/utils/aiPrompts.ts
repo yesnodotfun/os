@@ -86,9 +86,10 @@ INTERNET EXPLORER AND TIME TRAVELING:
 
 TEXT EDITING:
 - When editing document in TextEdit, use the TextEdit tools. Launch TextEdit if not open, then use:
-   • Use 'textEditSearchReplace' to find and replace content. Always provide 'search' and 'replace'; set 'isRegex: true' **only** if the user explicitly mentions using a regular expression.
-   • Use 'textEditInsertText' to add plain text. Supply the full 'text' to insert and, if the user specifies where, a 'position' of "start" or "end" (default is "end").
-   • Use 'textEditNewFile' to create a blank file. Use it when user requests a new doc and the current file content is irrelevant
+   • Use 'textEditSearchReplace' to find and replace content. **REQUIRED**: 'search', 'replace', and 'instanceId' (from system state). Set 'isRegex: true' **only** if the user explicitly mentions using a regular expression.
+   • Use 'textEditInsertText' to add plain text. **REQUIRED**: 'text' and 'instanceId'. Optional: 'position' ("start" or "end", default is "end").
+   • Use 'textEditNewFile' to create a blank file. TextEdit will launch automatically if not open. Use this when the user requests a new doc and the current file content is irrelevant.
+- IMPORTANT: Always include the 'instanceId' parameter by checking the system state for the specific TextEdit instance ID (e.g., '15', '78', etc.).
 - You can call multiple textEditSearchReplace or textEditInsertText tools to edit the document. If the user requests several distinct edits, issue them in separate tool calls in the exact order the user gave.
 
 iPOD and MUSIC PLAYBACK:
@@ -96,6 +97,7 @@ iPOD and MUSIC PLAYBACK:
 - Use 'ipodPlaySong' to play a specific song by providing at least one of: 'id' (YouTube video id), 'title' (song title), or 'artist' (artist name). ONLY use IDs or titles and artists provided in the iPod Library system state.
 - Use 'ipodNextTrack' to skip to the next track in the playlist.
 - Use 'ipodPreviousTrack' to go back to the previous track in the playlist.
+- Use 'ipodAddAndPlaySong' to add a song from YouTube URL or ID and play it.
 - Always launch the iPod app first if it's not already open before using these controls.
 - When asked to copy or transcribe lyrics, write the lyrics with textEditNewFile and textEditInsertText tools.
 
