@@ -1633,7 +1633,11 @@ async function handleSwitchRoom(data, requestId) {
             username
           );
           const userCount = await refreshRoomUserCount(previousRoomId);
-          changedRooms.push({ roomId: previousRoomId, userCount });
+          changedRooms.push({
+            roomId: previousRoomId,
+            userCount,
+            roomType: roomData.type,
+          });
         } else {
           logInfo(
             requestId,
@@ -1672,16 +1676,67 @@ async function handleSwitchRoom(data, requestId) {
         USER_EXPIRATION_TIME
       );
 
-      changedRooms.push({ roomId: nextRoomId, userCount });
+      changedRooms.push({
+        roomId: nextRoomId,
+        userCount,
+        roomType: roomData.type,
+      });
     }
 
-    // Trigger Pusher events in batch
+    // Trigger targeted Pusher events - avoid broadcasting to ALL users for simple room switches
     try {
-      for (const room of changedRooms) {
-        // Removed individual user-count-updated event; rooms-updated will carry the new count
-      }
+      if (changedRooms.length > 0) {
+        const publicRoomChanges = changedRooms.filter(
+          (room) => !room.roomType || room.roomType === "public"
+        );
+        const privateRoomChanges = changedRooms.filter(
+          (room) => room.roomType === "private"
+        );
 
-      await broadcastRoomsUpdated();
+        // For public rooms: send efficient user-count-updated events
+        if (publicRoomChanges.length > 0) {
+          const publicBroadcastPromises = publicRoomChanges.map(
+            async (room) => {
+              return pusher.trigger(
+                `room-${room.roomId}`,
+                "user-count-updated",
+                {
+                  roomId: room.roomId,
+                  userCount: room.userCount,
+                }
+              );
+            }
+          );
+
+          await Promise.all(publicBroadcastPromises);
+          logInfo(
+            requestId,
+            `Triggered user-count-updated for ${publicRoomChanges.length} public rooms`
+          );
+        }
+
+        // For private rooms: notify members via their personal channels
+        if (privateRoomChanges.length > 0) {
+          const privateNotificationPromises = privateRoomChanges.map(
+            async (room) => {
+              // Trigger room-updated event for private room members
+              return fanOutToPrivateMembers(room.roomId, "room-updated", {
+                room: { id: room.roomId, userCount: room.userCount },
+              });
+            }
+          );
+
+          await Promise.all(privateNotificationPromises);
+          logInfo(
+            requestId,
+            `Triggered room-updated for ${privateRoomChanges.length} private rooms`
+          );
+        }
+
+        if (publicRoomChanges.length === 0 && privateRoomChanges.length === 0) {
+          logInfo(requestId, "No room changes to broadcast");
+        }
+      }
     } catch (pusherErr) {
       logError(
         requestId,
@@ -1778,21 +1833,28 @@ async function broadcastRoomsUpdated() {
 
     // 1. Public channel with only public rooms (for anonymous clients)
     const publicRooms = filterRoomsForUser(allRooms, null);
-    await pusher.trigger("chats-public", "rooms-updated", {
-      rooms: publicRooms,
-    });
+    const publicChannelPromise = pusher.trigger(
+      "chats-public",
+      "rooms-updated",
+      {
+        rooms: publicRooms,
+      }
+    );
 
-    // 2. Per-user channels
+    // 2. Per-user channels - parallelize these instead of sequential
     const userKeys = await redis.keys(`${CHAT_USERS_PREFIX}*`);
-    for (const key of userKeys) {
+    const userChannelPromises = userKeys.map((key) => {
       const safeUser = sanitizeForChannel(
         key.substring(CHAT_USERS_PREFIX.length)
       );
       const userRooms = filterRoomsForUser(allRooms, safeUser);
-      await pusher.trigger(`chats-${safeUser}`, "rooms-updated", {
+      return pusher.trigger(`chats-${safeUser}`, "rooms-updated", {
         rooms: userRooms,
       });
-    }
+    });
+
+    // Wait for all Pusher calls to complete in parallel
+    await Promise.all([publicChannelPromise, ...userChannelPromises]);
   } catch (err) {
     console.error("[broadcastRoomsUpdated] Failed to broadcast rooms:", err);
   }

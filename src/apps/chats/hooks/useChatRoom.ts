@@ -1,352 +1,236 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import Pusher, { type Channel } from "pusher-js";
+import type { PusherChannel } from "@/lib/pusherClient";
+import { getPusherClient } from "@/lib/pusherClient";
 import { useChatsStore } from "../../../stores/useChatsStore";
 import { toast } from "@/hooks/useToast";
 import { type ChatRoom, type ChatMessage } from "../../../../src/types/chat";
-import { formatPrivateRoomName } from "@/utils/chat";
-import { useAppStore } from "@/stores/useAppStore";
 
-// Debounce helper
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function debounce<T extends (...args: any[]) => void>(
-  func: T,
-  wait: number
-): (...args: Parameters<T>) => void {
-  let timeoutId: ReturnType<typeof setTimeout> | null = null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return function (this: any, ...args: Parameters<T>) {
-    const context = this;
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-    }
-    timeoutId = setTimeout(() => {
-      func.apply(context, args);
-      timeoutId = null;
-    }, wait);
-  };
-}
-
-const PUSHER_APP_KEY = "b47fd563805c8c42da1a";
-const PUSHER_CLUSTER = "us3";
 const getGlobalChannelName = (username?: string | null): string =>
   username
-    ? `chats-${username.toLowerCase().replace(/[^a-zA-Z0-9_\-\.]/g, "_")}`
+    ? `chats-${username.toLowerCase().replace(/[^a-zA-Z0-9_\-.]/g, "_")}`
     : "chats-public";
 
-export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
+export function useChatRoom(isWindowOpen: boolean) {
   const {
     username,
-    setUsername,
     authToken,
-    setAuthToken,
     rooms,
-    setRooms,
     currentRoomId,
-    setCurrentRoomId,
     roomMessages,
-    setRoomMessagesForCurrentRoom,
-    addMessageToRoom,
-    removeMessageFromRoom,
-    clearRoomMessages,
     isSidebarVisible,
     toggleSidebarVisibility,
-    ensureAuthToken,
+    // Store methods
+    fetchRooms,
+    fetchMessagesForRoom,
+    setRooms,
+    switchRoom,
+    createRoom,
+    deleteRoom,
+    sendMessage,
+    createUser,
+    addMessageToRoom,
+    removeMessageFromRoom,
+    incrementUnread,
   } = useChatsStore();
 
   // Derive isAdmin directly from the username
   const isAdmin = username === "ryo";
 
-  const pusherRef = useRef<Pusher | null>(null);
-  const globalChannelRef = useRef<Channel | null>(null); // 'chats' channel
-  const globalChannelNameRef = useRef<string>("");
-  const roomChannelsRef = useRef<Record<string, Channel>>({});
-  const previousRoomIdRef = useRef<string | null>(currentRoomId); // Initialize with store value
-  const debouncedSetRoomsRef = useRef(debounce(setRooms, 300)); // Debounce setRooms calls from Pusher
-  const hasFetchedInitialData = useRef(false); // Flag to prevent duplicate initial fetches
-  // Track when messages were last fetched for each room
-  const messagesFetchedAtRef = useRef<Record<string, number>>({});
+  // Pusher refs
+  const pusherRef = useRef<ReturnType<typeof getPusherClient> | null>(null);
+  const globalChannelRef = useRef<PusherChannel | null>(null);
+  const roomChannelsRef = useRef<Record<string, PusherChannel>>({});
+  const hasInitialized = useRef(false);
+  const hasFetchedInitialMessages = useRef(false);
 
-  // --- API Interaction ---
-  const callRoomAction = useCallback(
-    async (
-      action:
-        | "joinRoom"
-        | "leaveRoom"
-        | "switchRoom"
-        | "createRoom"
-        | "deleteRoom"
-        | "sendMessage"
-        | "getMessages"
-        | "getRooms"
-        | "createUser",
-      payload: any
-    ) => {
-      const queryParams = new URLSearchParams({ action });
-      // Append payload keys as query params for GET requests
-      const isGet = action === "getRooms" || action === "getMessages";
-      if (isGet && payload) {
-        Object.keys(payload).forEach((key) =>
-          queryParams.append(key, payload[key])
-        );
-      }
+  // Dialog states
+  const [isUsernameDialogOpen, setIsUsernameDialogOpen] = useState(false);
+  const [newUsername, setNewUsername] = useState("");
+  const [isSettingUsername, setIsSettingUsername] = useState(false);
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [isNewRoomDialogOpen, setIsNewRoomDialogOpen] = useState(false);
+  const [isDeleteRoomDialogOpen, setIsDeleteRoomDialogOpen] = useState(false);
+  const [roomToDelete, setRoomToDelete] = useState<ChatRoom | null>(null);
 
-      const url = `/api/chat-rooms?${queryParams.toString()}`;
-      const method = isGet ? "GET" : "POST";
+  // Get current room messages
+  const currentRoomMessages = currentRoomId
+    ? roomMessages[currentRoomId] || []
+    : [];
 
-      // Build headers with authentication
-      const headers: HeadersInit = {
-        "Content-Type": "application/json",
-      };
+  // --- Pusher Setup ---
+  const initializePusher = useCallback(() => {
+    if (pusherRef.current) return;
 
-      // Actions that require authentication
-      const protectedActions = [
-        "createRoom",
-        "deleteRoom",
-        "sendMessage",
-        "deleteMessage",
-      ];
+    console.log("[Pusher Hook] Getting singleton Pusher client...");
+    pusherRef.current = getPusherClient();
 
-      // Add authentication headers for protected actions
-      if (username && authToken && protectedActions.includes(action)) {
-        headers["Authorization"] = `Bearer ${authToken}`;
-        headers["X-Username"] = username;
-      }
+    pusherRef.current.connection.bind("connected", () => {
+      console.log("[Pusher Hook] Connected to Pusher");
+    });
 
-      const body = method === "POST" ? JSON.stringify(payload) : undefined;
+    pusherRef.current.connection.bind("error", (error: Error) => {
+      console.error("[Pusher Hook] Connection error:", error);
+    });
+  }, []);
 
+  const subscribeToGlobalChannel = useCallback(() => {
+    if (!pusherRef.current) return;
+
+    const channelName = getGlobalChannelName(username);
+
+    // Unsubscribe from previous channel if different
+    if (
+      globalChannelRef.current &&
+      globalChannelRef.current.name !== channelName
+    ) {
       console.log(
-        `[API Call] Action: ${action}, Method: ${method}, URL: ${url}`,
-        method === "POST" ? payload : ""
+        `[Pusher Hook] Unsubscribing from old global channel: ${globalChannelRef.current.name}`
       );
-
-      try {
-        const response = await fetch(url, { method, headers, body });
-        if (!response.ok) {
-          const errorData = await response
-            .json()
-            .catch(() => ({ error: `HTTP error! status: ${response.status}` }));
-          console.error(
-            `[API Error] Action: ${action}, Status: ${response.status}`,
-            errorData
-          );
-          return { ok: false, error: errorData.error || `Failed to ${action}` };
-        }
-        const data = await response.json();
-        console.log(`[API Success] Action: ${action}`, data);
-
-        // If server generated a new auth token for an existing user, save it
-        if (data.newAuthToken) {
-          console.log(
-            `[API] Received new auth token for user ${username}, saving...`
-          );
-          setAuthToken(data.newAuthToken);
-        }
-
-        return { ok: true, data };
-      } catch (error) {
-        console.error(`[API Network Error] Action: ${action}`, error);
-        return { ok: false, error: "Network error. Please try again." };
-      }
-    },
-    [username, authToken]
-  );
-
-  // --- Room Management ---
-  const fetchRooms = useCallback(async () => {
-    console.log("[Room Hook] Fetching rooms...");
-    // Pass username to filter private rooms
-    const payload = username ? { username } : {};
-    const result = await callRoomAction("getRooms", payload);
-    if (result.ok && result.data?.rooms) {
-      const fetchedRooms = result.data.rooms;
-      console.log(
-        "[Room Hook] Fetched rooms data type:",
-        typeof fetchedRooms,
-        "Is Array:",
-        Array.isArray(fetchedRooms)
-      );
-      // Ensure fetchedRooms is an array before setting
-      if (Array.isArray(fetchedRooms)) {
-        setRooms(fetchedRooms); // Let store handle deep comparison
-        // Restore last opened room if it exists in the fetched list
-        const lastRoomId = localStorage.getItem("chats:lastOpenedRoomId"); // Still needed temporarily for initial load logic
-        if (
-          lastRoomId &&
-          fetchedRooms.some((r: ChatRoom) => r.id === lastRoomId)
-        ) {
-          if (currentRoomId !== lastRoomId) {
-            console.log(
-              `[Room Hook] Restoring last opened room: ${lastRoomId}`
-            );
-            setCurrentRoomId(lastRoomId);
-          }
-        } else if (lastRoomId) {
-          console.log(
-            `[Room Hook] Last opened room ${lastRoomId} not found in fetched list, clearing.`
-          );
-          localStorage.removeItem("chats:lastOpenedRoomId");
-          if (currentRoomId === lastRoomId) setCurrentRoomId(null);
-        }
-      } else {
-        console.warn(
-          "[Room Hook] Fetched rooms data is not an array:",
-          fetchedRooms
-        );
-      }
-    } else {
-      console.error("[Room Hook] Failed to fetch rooms:", result.error);
-      // Optionally load from cache here if API fails?
+      pusherRef.current.unsubscribe(globalChannelRef.current.name);
+      globalChannelRef.current = null;
     }
-  }, [callRoomAction, setRooms, setCurrentRoomId, currentRoomId, username]);
 
-  const fetchMessagesForRoom = useCallback(
-    async (roomId: string) => {
-      if (!roomId) return;
-      console.log(`[Room Hook] Fetching messages for room ${roomId}...`);
-      const result = await callRoomAction("getMessages", { roomId }); // Pass roomId in payload for GET? API needs adjustment or use query param
-      // Correcting: GET actions usually pass params in URL
-      // const result = await fetch(`/api/chat-rooms?action=getMessages&roomId=${roomId}`);
-      // Let's stick to the unified callRoomAction for now, assuming API handles it
+    if (!globalChannelRef.current) {
+      console.log(
+        `[Pusher Hook] Subscribing to global channel: ${channelName}`
+      );
+      globalChannelRef.current = pusherRef.current.subscribe(channelName);
 
-      if (result.ok && result.data?.messages) {
-        const fetchedMessages: ChatMessage[] = (result.data.messages || [])
-          .map((msg: any) => ({
-            ...msg,
-            timestamp:
-              typeof msg.timestamp === "string" ||
-              typeof msg.timestamp === "number"
-                ? new Date(msg.timestamp).getTime()
-                : msg.timestamp,
-          }))
-          .sort((a: ChatMessage, b: ChatMessage) => a.timestamp - b.timestamp);
-        setRoomMessagesForCurrentRoom(fetchedMessages);
-        // Record fetch time
-        messagesFetchedAtRef.current[roomId] = Date.now();
-      } else {
-        console.error(
-          `[Room Hook] Failed to fetch messages for room ${roomId}:`,
-          result.error
-        );
-      }
-    },
-    [callRoomAction, setRoomMessagesForCurrentRoom]
-  );
+      // Handle room updates
+      globalChannelRef.current.bind(
+        "room-created",
+        (data: { room: ChatRoom }) => {
+          console.log("[Pusher Hook] Room created:", data.room);
+          fetchRooms(); // Refresh rooms list
+        }
+      );
 
-  // --- Username Management ---
-  const handleUsernameSubmit = useCallback(
-    async (submittedUsername: string) => {
-      const trimmedUsername = submittedUsername.trim();
-      if (!trimmedUsername)
-        return { ok: false, error: "Username cannot be empty." };
+      globalChannelRef.current.bind(
+        "room-deleted",
+        (data: { roomId: string }) => {
+          console.log("[Pusher Hook] Room deleted:", data.roomId);
+          fetchRooms(); // Refresh rooms list
+        }
+      );
 
-      const result = await callRoomAction("createUser", {
-        username: trimmedUsername,
+      globalChannelRef.current.bind(
+        "room-updated",
+        (data: { room: ChatRoom }) => {
+          console.log("[Pusher Hook] Room updated:", data.room);
+          fetchRooms(); // Refresh rooms list
+        }
+      );
+
+      // Handle real-time room list updates (includes user counts, new rooms, etc.)
+      globalChannelRef.current.bind(
+        "rooms-updated",
+        (data: { rooms: ChatRoom[] }) => {
+          console.log(
+            "[Pusher Hook] Rooms updated:",
+            data.rooms.length,
+            "rooms"
+          );
+          // Update rooms directly instead of fetching from API
+          setRooms(data.rooms);
+        }
+      );
+    }
+  }, [username, fetchRooms, setRooms]);
+
+  const subscribeToRoomChannel = useCallback(
+    (roomId: string) => {
+      if (!pusherRef.current || roomChannelsRef.current[roomId]) return;
+
+      console.log(`[Pusher Hook] Subscribing to room channel: room-${roomId}`);
+      const roomChannel = pusherRef.current.subscribe(`room-${roomId}`);
+      roomChannelsRef.current[roomId] = roomChannel;
+
+      roomChannel.bind("room-message", (data: { message: ChatMessage }) => {
+        console.log("[Pusher Hook] Received room-message:", data.message);
+
+        // Add message with proper timestamp
+        const messageWithTimestamp = {
+          ...data.message,
+          timestamp:
+            typeof data.message.timestamp === "string" ||
+            typeof data.message.timestamp === "number"
+              ? new Date(data.message.timestamp).getTime()
+              : data.message.timestamp,
+        };
+
+        addMessageToRoom(data.message.roomId, messageWithTimestamp);
+
+        // Show toast if the message is for a room that is not currently open
+        const { currentRoomId: activeRoomId } = useChatsStore.getState();
+        if (activeRoomId !== data.message.roomId) {
+          incrementUnread(data.message.roomId);
+          toast(`@${data.message.username}`, {
+            description: data.message.content.slice(0, 80),
+            action: {
+              label: "Open",
+              onClick: () => {
+                // Switch to the room and ensure we are subscribed
+                switchRoom(data.message.roomId);
+                subscribeToRoomChannel(data.message.roomId);
+              },
+            },
+          });
+        }
       });
 
-      if (result.ok && result.data?.user) {
-        setUsername(result.data.user.username);
-        console.log(`[Username] Set to: ${result.data.user.username}`);
-
-        // Store auth token if provided
-        if (result.data.token) {
-          setAuthToken(result.data.token);
-          console.log(
-            `[Username] Auth token set for user: ${result.data.user.username}`
-          );
+      // Handle message deletion events for admin actions
+      roomChannel.bind(
+        "message-deleted",
+        (data: { messageId: string; roomId: string }) => {
+          console.log("[Pusher Hook] Message deleted:", data.messageId);
+          // Remove the message locally so UI reflects deletion
+          removeMessageFromRoom(data.roomId, data.messageId);
         }
-
-        // Joining current room is now handled by the main effect reacting to username change
-        return { ok: true };
-      }
-      return { ok: false, error: result.error || "Failed to set username." };
+      );
     },
-    [callRoomAction, setUsername, setAuthToken]
+    [addMessageToRoom, removeMessageFromRoom, switchRoom, incrementUnread]
   );
 
-  // --- Room Actions ---
+  const unsubscribeFromRoomChannel = useCallback((roomId: string) => {
+    if (!pusherRef.current || !roomChannelsRef.current[roomId]) return;
+
+    console.log(
+      `[Pusher Hook] Unsubscribing from room channel: room-${roomId}`
+    );
+    pusherRef.current.unsubscribe(`room-${roomId}`);
+    delete roomChannelsRef.current[roomId];
+  }, []);
+
+  // --- Room Management ---
   const handleRoomSelect = useCallback(
-    (newRoomId: string | null) => {
-      const previousRoomId = previousRoomIdRef.current;
-      console.log(
-        `[Room Select] User selected room: ${newRoomId || "@ryo"} (from ${
-          previousRoomId || "@ryo"
-        })`
-      );
+    async (newRoomId: string | null) => {
+      if (newRoomId === currentRoomId) return;
 
-      // Only take action if the target room actually changes
-      if (newRoomId !== previousRoomId) {
-        setCurrentRoomId(newRoomId);
+      console.log(`[Room Hook] Switching to room: ${newRoomId || "@ryo"}`);
 
-        // If the user selected a real room (not the @ryo lobby)
-        if (newRoomId) {
-          // Check if we already have messages for this room cached in the store. If so, skip the fetch.
-          const cached = useChatsStore.getState().roomMessages[newRoomId];
-          const lastFetched = messagesFetchedAtRef.current[newRoomId] || 0;
-          const STALE_AFTER_MS = 60 * 1000; // 1 minute
-          const isStale = Date.now() - lastFetched > STALE_AFTER_MS;
+      // Simply switch room; we keep subscriptions so notifications still arrive.
+      await switchRoom(newRoomId);
 
-          if (!cached || cached.length === 0 || isStale) {
-            console.log(
-              `[Room Select] Fetching messages for ${newRoomId}. Reason: ${
-                !cached || cached.length === 0 ? "no cache" : "stale cache"
-              }`
-            );
-            fetchMessagesForRoom(newRoomId);
-          } else {
-            console.log(
-              `[Room Select] Messages for ${newRoomId} are fresh (cached ${cached.length} msgs). Skipping fetch.`
-            );
-          }
-        }
-        // Note: joining/leaving the room is handled by the membership effect reacting to currentRoomId.
-      } else {
-        console.log(
-          `[Room Select] Room ID ${newRoomId} is the same as the current one, skipping state update and fetch.`
-        );
+      // Ensure we're subscribed to the new room channel (no-op if already)
+      if (newRoomId) {
+        subscribeToRoomChannel(newRoomId);
       }
     },
-    [setCurrentRoomId, fetchMessagesForRoom]
+    [currentRoomId, switchRoom, subscribeToRoomChannel]
   );
 
   const sendRoomMessage = useCallback(
     async (content: string) => {
       if (!currentRoomId || !username || !content.trim()) return;
 
-      const tempId = `temp_${Math.random().toString(36).substring(2, 9)}`;
-      const newMessage: ChatMessage = {
-        id: tempId,
-        roomId: currentRoomId,
-        username,
-        content,
-        timestamp: Date.now(),
-      };
-
-      // Optimistically add message
-      addMessageToRoom(currentRoomId, newMessage);
-
-      const result = await callRoomAction("sendMessage", {
-        roomId: currentRoomId,
-        username,
-        content,
-      });
-
-      if (result.ok && result.data?.message) {
-        // Replace temp message with actual message from server
-        // The store logic should handle replacing the temp message
-      } else {
-        console.error("[Room Hook] Error sending room message:", result.error);
-        // Remove optimistic message on failure
-        removeMessageFromRoom(currentRoomId, tempId);
-        toast("Error", { description: "Failed to send message." });
+      const result = await sendMessage(currentRoomId, content.trim());
+      if (!result.ok) {
+        toast("Error", {
+          description: result.error || "Failed to send message.",
+        });
       }
     },
-    [
-      currentRoomId,
-      username,
-      callRoomAction,
-      addMessageToRoom,
-      removeMessageFromRoom,
-    ]
+    [currentRoomId, username, sendMessage]
   );
 
   const handleAddRoom = useCallback(
@@ -357,586 +241,80 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
     ) => {
       if (!username) return { ok: false, error: "Set a username first." };
 
-      // Check if user has auth token
-      if (!authToken) {
-        console.error(
-          "[Room Hook] No auth token available for user:",
-          username
-        );
-        // Try to generate one
-        const tokenResult = await ensureAuthToken();
-        if (!tokenResult.ok) {
-          return {
-            ok: false,
-            error:
-              "Authentication required. Please try setting your username again.",
-          };
-        }
+      if (type === "public" && !isAdmin) {
+        return {
+          ok: false,
+          error: "Permission denied. Admin access required.",
+        };
       }
 
-      if (type === "public") {
-        const trimmedRoomName = roomName.trim();
-        if (!trimmedRoomName)
-          return { ok: false, error: "Room name cannot be empty." };
-        if (!isAdmin)
-          return {
-            ok: false,
-            error: "Permission denied. Admin access required.",
-          };
+      const result = await createRoom(roomName, type, members);
+      if (result.ok && result.roomId) {
+        handleRoomSelect(result.roomId); // Switch to the new room
       }
-
-      const payload: any = { type };
-      if (type === "public") {
-        payload.name = roomName.trim();
-      } else {
-        payload.members = members;
-      }
-
-      const result = await callRoomAction("createRoom", payload);
-
-      if (result.ok && result.data?.room) {
-        const newRoom = result.data.room;
-        // Don't manually setRooms here, let Pusher update handle it
-        // setRooms([...rooms, newRoom]); // Add to local state immediately
-        handleRoomSelect(newRoom.id); // Switch to the new room
-        return { ok: true };
-      } else {
-        return { ok: false, error: result.error || "Failed to create room." };
-      }
+      return result;
     },
-    [
-      callRoomAction,
-      username,
-      authToken,
-      isAdmin,
-      handleRoomSelect,
-      ensureAuthToken,
-    ]
-  ); // Added isAdmin dependency
+    [username, isAdmin, createRoom, handleRoomSelect]
+  );
 
   const handleDeleteRoom = useCallback(
     async (roomId: string) => {
-      if (!roomId || !isAdmin)
+      if (!roomId || !isAdmin) {
         return { ok: false, error: "Permission denied or invalid room." };
-
-      // Use DELETE method directly since API now uses DELETE endpoint for room deletion
-      const url = `/api/chat-rooms?action=deleteRoom&roomId=${roomId}`;
-
-      // Build headers with authentication
-      const headers: HeadersInit = {
-        "Content-Type": "application/json",
-      };
-
-      // Add authentication headers since deleteRoom is a protected action
-      if (username && authToken) {
-        headers["Authorization"] = `Bearer ${authToken}`;
-        headers["X-Username"] = username;
       }
 
-      console.log(`[API Call] Action: deleteRoom, Method: DELETE, URL: ${url}`);
-
-      try {
-        const response = await fetch(url, { method: "DELETE", headers });
-        if (!response.ok) {
-          const errorData = await response
-            .json()
-            .catch(() => ({ error: `HTTP error! status: ${response.status}` }));
-          console.error(
-            `[API Error] Action: deleteRoom, Status: ${response.status}`,
-            errorData
-          );
-          return {
-            ok: false,
-            error: errorData.error || "Failed to delete room",
-          };
-        }
-        const data = await response.json();
-        console.log(`[API Success] Action: deleteRoom`, data);
-
-        // Don't manually setRooms here, let Pusher update handle it
-        if (currentRoomId === roomId) {
-          handleRoomSelect(null); // Switch back to @ryo
-        }
-        return { ok: true };
-      } catch (error) {
-        console.error(`[API Network Error] Action: deleteRoom`, error);
-        return { ok: false, error: "Network error. Please try again." };
+      const result = await deleteRoom(roomId);
+      if (result.ok && currentRoomId === roomId) {
+        handleRoomSelect(null); // Switch back to @ryo
       }
+      return result;
     },
-    [isAdmin, currentRoomId, handleRoomSelect, username, authToken]
+    [isAdmin, deleteRoom, currentRoomId, handleRoomSelect]
   );
 
-  // --- Pusher per-room event handlers (declare early) ---
-  const handleIncomingRoomMessage = useCallback(
-    (data: { roomId: string; message: ChatMessage }) => {
-      console.log("[Pusher Hook] Received room-message:", data);
-
-      // Skip duplicates
-      const existingMessages =
-        useChatsStore.getState().roomMessages[data.roomId] || [];
-      const isDuplicate = existingMessages.some((m) => {
-        const sameId = m.id === data.message.id;
-        const sameContentUser =
-          m.content === data.message.content &&
-          m.username === data.message.username;
-        return sameId || sameContentUser;
-      });
-      if (isDuplicate) {
-        console.log(
-          "[Pusher Hook] Duplicate message detected (id/content match). Skipping."
-        );
-        return;
+  // --- Username Management ---
+  const handleUsernameSubmit = useCallback(
+    async (submittedUsername: string) => {
+      const trimmedUsername = submittedUsername.trim();
+      if (!trimmedUsername) {
+        return { ok: false, error: "Username cannot be empty." };
       }
 
-      const messageWithTimestamp = {
-        ...data.message,
-        timestamp:
-          typeof data.message.timestamp === "string" ||
-          typeof data.message.timestamp === "number"
-            ? new Date(data.message.timestamp).getTime()
-            : data.message.timestamp,
-      };
-      addMessageToRoom(data.roomId, messageWithTimestamp);
-
-      // Toast if message for other room
-      const activeRoomId = useChatsStore.getState().currentRoomId;
-      const currentUsername = useChatsStore.getState().username;
-      if (
-        data.roomId !== activeRoomId &&
-        data.message.username !== currentUsername
-      ) {
-        const latestRooms = useChatsStore.getState().rooms;
-        const room = latestRooms.find((r: ChatRoom) => r.id === data.roomId);
-        if (room) {
-          const roomTitle =
-            room.type === "private"
-              ? formatPrivateRoomName(room.name, currentUsername)
-              : `#${room.name}`;
-          toast(`${data.message.username} in ${roomTitle}`, {
-            description:
-              data.message.content.length > 50
-                ? data.message.content.substring(0, 47) + "..."
-                : data.message.content,
-            action: {
-              label: "View",
-              onClick: () => {
-                // Ensure Chat app is open and foreground
-                const { launchOrFocusApp } = useAppStore.getState();
-                launchOrFocusApp("chats");
-                // Select the room after bringing app forward
-                handleRoomSelect(room.id);
-              },
-            },
-            duration: 4000,
-          });
-        }
+      const result = await createUser(trimmedUsername);
+      if (result.ok) {
+        console.log(`[Username] Set to: ${trimmedUsername}`);
       }
+      return result;
     },
-    [addMessageToRoom, handleRoomSelect]
+    [createUser]
   );
 
-  const handleMessageDeletedEvent = useCallback(
-    (data: { roomId: string; messageId: string }) => {
-      console.log(
-        `[Pusher Hook] Received message-deleted for room ${data.roomId}, message ${data.messageId}`
-      );
-      removeMessageFromRoom(data.roomId, data.messageId);
-    },
-    [removeMessageFromRoom]
-  );
-
-  // --- Pusher Integration ---
-
-  // Effect 1: Manage Pusher connection based on window visibility
-  useEffect(() => {
-    if (isWindowOpen && isForeground) {
-      if (!pusherRef.current) {
-        console.log("[Pusher Hook] Initializing Pusher...");
-        pusherRef.current = new Pusher(PUSHER_APP_KEY, {
-          cluster: PUSHER_CLUSTER,
-        });
-
-        console.log(
-          `[Pusher Hook] Subscribing to channel: ${getGlobalChannelName(
-            username
-          )}`
-        );
-        const initialGlobalName = getGlobalChannelName(username);
-        globalChannelRef.current =
-          pusherRef.current.subscribe(initialGlobalName);
-        globalChannelNameRef.current = initialGlobalName;
-
-        // Bind global events
-        globalChannelRef.current.bind(
-          "rooms-updated",
-          (data: { rooms: ChatRoom[] }) => {
-            console.log("[Pusher Hook] Received rooms-updated:", data);
-
-            // Filter rooms based on visibility - same logic as server-side
-            const currentUsername = useChatsStore.getState().username;
-            const filteredRooms = data.rooms.filter((room) => {
-              // Public rooms are visible to everyone
-              if (!room.type || room.type === "public") {
-                return true;
-              }
-
-              // Private rooms are only visible to members
-              if (room.type === "private" && room.members && currentUsername) {
-                return room.members.includes(currentUsername.toLowerCase());
-              }
-
-              return false;
-            });
-
-            console.log(
-              `[Pusher Hook] Filtered ${data.rooms.length} rooms to ${filteredRooms.length} visible rooms`
-            );
-            debouncedSetRoomsRef.current(filteredRooms);
-          }
-        );
-
-        // Also listen for room-message and message-deleted relayed via personal channel
-        globalChannelRef.current.bind(
-          "room-message",
-          handleIncomingRoomMessage
-        );
-        globalChannelRef.current.bind(
-          "message-deleted",
-          handleMessageDeletedEvent
-        );
-
-        globalChannelRef.current.bind(
-          "messages-cleared",
-          (data: { roomId: string; timestamp: number }) => {
-            console.log(
-              `[Pusher Hook] Received messages-cleared for room ${data.roomId}:`,
-              data
-            );
-            // Clear all room messages in the store regardless of current room
-            clearRoomMessages(data.roomId);
-          }
-        );
-      }
-    } else {
-      // Window closed or backgrounded, disconnect Pusher
-      if (pusherRef.current) {
-        console.log(
-          "[Pusher Hook] Disconnecting due to window close/background..."
-        );
-        pusherRef.current.disconnect();
-        pusherRef.current = null;
-        globalChannelRef.current = null;
-        hasFetchedInitialData.current = false; // Reset fetch flag on disconnect
-      }
-    }
-
-    // Cleanup function for this effect
-    return () => {
-      // No explicit disconnect here, handled by the else block above
-      // If component unmounts while window is open, the unmount effect below handles leaving room
-      console.log(
-        "[Pusher Hook] Connection effect cleanup potentially running."
-      );
-    };
-  }, [
-    isWindowOpen,
-    isForeground,
-    addMessageToRoom,
-    removeMessageFromRoom,
-    clearRoomMessages,
-    currentRoomId,
-    username,
-    handleRoomSelect,
-    handleIncomingRoomMessage,
-    handleMessageDeletedEvent,
-  ]); // Dependencies that affect event handlers
-
-  // Effect 2: Fetch initial data once Pusher is connected
-  useEffect(() => {
-    // Only run if Pusher is connected and initial data hasn't been fetched yet
-    if (
-      pusherRef.current &&
-      globalChannelRef.current &&
-      !hasFetchedInitialData.current
-    ) {
-      console.log("[Pusher Hook] Connected. Fetching initial room data...");
-      hasFetchedInitialData.current = true; // Set flag immediately
-
-      const fetchData = async () => {
-        await fetchRooms(); // Fetch rooms first
-        // After rooms are fetched, the store might update currentRoomId if restoring last opened
-        const finalRoomId = useChatsStore.getState().currentRoomId; // Get potentially updated room ID
-
-        // If a room was restored, fetch its messages
-        if (finalRoomId) {
-          console.log(
-            "[Pusher Hook] Restored room:",
-            finalRoomId,
-            "Fetching messages."
-          );
-          await fetchMessagesForRoom(finalRoomId); // Fetch messages for the initial room
-          previousRoomIdRef.current = finalRoomId; // Set the initial previous room ID
-          // Note: Joining the room is handled by Effect 4 based on username and currentRoomId
-        }
-      };
-
-      fetchData();
-    }
-  }, [fetchRooms, fetchMessagesForRoom]); // Dependencies: only fetch functions
-
-  // Effect 3: Handle leaving room on component unmount or window close
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      const roomToLeave = previousRoomIdRef.current;
-      if (roomToLeave && username) {
-        // Prevent automatic leaving of private rooms
-        const roomsSnapshot = useChatsStore.getState().rooms;
-        const roomMeta = roomsSnapshot.find((r) => r.id === roomToLeave);
-        if (roomMeta?.type === "private") {
-          console.log(
-            `[Room Hook Unmount/Unload] Skipping auto-leave for private room: ${roomToLeave}`
-          );
-          return;
-        }
-
-        console.log("[Room Hook Unmount/Unload] Leaving room:", roomToLeave);
-        const payload = { roomId: roomToLeave, username };
-        const data = JSON.stringify(payload);
-        // Use sendBeacon for reliability on page close
-        navigator.sendBeacon("/api/chat-rooms?action=leaveRoom", data);
-      }
-    };
-
-    // Add listener for page unload
-    window.addEventListener("beforeunload", handleBeforeUnload);
-
-    return () => {
-      // Remove listener on cleanup
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-
-      // Also handle component unmount (e.g., closing the app window)
-      handleBeforeUnload(); // Call it directly on unmount as well
-    };
-  }, [username]); // Only depends on username for the cleanup action
-
-  // Effect 4: Manage joining/leaving rooms based on username and currentRoomId changes
-  useEffect(() => {
-    const previousRoomId = previousRoomIdRef.current;
-    const roomToLeave = previousRoomId;
-    const roomToJoin = currentRoomId;
-
-    console.log(
-      `[Room Membership Effect] Running. User: ${username}, Current: ${roomToJoin}, Previous: ${roomToLeave}`
-    );
-
-    // Ensure Pusher is connected before attempting actions
-    if (!pusherRef.current || !globalChannelRef.current) {
-      console.log("[Room Membership Effect] Pusher not ready, skipping.");
-      return;
-    }
-
-    // Only proceed if username is set
-    if (username) {
-      if (roomToJoin !== roomToLeave) {
-        console.log(
-          `[Room Membership Effect] Switching from ${roomToLeave} to ${roomToJoin}`
-        );
-        callRoomAction("switchRoom", {
-          previousRoomId: roomToLeave,
-          nextRoomId: roomToJoin,
-          username,
-        });
-      }
-    } else {
-      // If username becomes null (e.g., user logs out?), leave the current room
-      if (roomToLeave) {
-        console.log(
-          `[Room Membership Effect] User logged out or username cleared, leaving room: ${roomToLeave}`
-        );
-        // We need the username *before* it became null to leave the room
-        // This case might be complex or handled elsewhere (e.g., on explicit logout)
-        // For now, we assume the username was available just before this effect ran.
-        // If not, leaving might fail silently.
-        // Consider passing the previous username if implementing logout.
-      }
-    }
-
-    // Update the ref *after* performing actions based on the *previous* value
-    if (previousRoomIdRef.current !== currentRoomId) {
-      console.log(
-        `[Room Membership Effect] Updating previousRoomIdRef to: ${currentRoomId}`
-      );
-      previousRoomIdRef.current = currentRoomId;
-    }
-  }, [username, currentRoomId, callRoomAction]); // Depend on username and current room ID
-
-  // Effect 5: Ensure auth token exists for existing users
-  useEffect(() => {
-    if (username && !authToken) {
-      console.log(
-        "[Auth Token Effect] Username exists but no token, generating..."
-      );
-      ensureAuthToken().then((result) => {
-        if (!result.ok) {
-          console.error(
-            "[Auth Token Effect] Failed to generate token:",
-            result.error
-          );
-          // Optionally show a toast notification
-          toast("Authentication Issue", {
-            description:
-              "Failed to generate authentication token. Some features may not work properly.",
-          });
-        }
-      });
-    }
-  }, [username, authToken, ensureAuthToken]);
-
-  // Effect 6: Re-fetch rooms when username changes
-  useEffect(() => {
-    // Only fetch if we have Pusher connection and username has changed
-    if (
-      pusherRef.current &&
-      globalChannelRef.current &&
-      username !== undefined
-    ) {
-      console.log(
-        `[Room Hook] Username changed to: ${username}, re-fetching rooms`
-      );
-      fetchRooms();
-    }
-  }, [username, fetchRooms]);
-
-  // Effect: Resubscribe global channel when username changes
-  useEffect(() => {
-    if (!pusherRef.current) return;
-    const newChannelName = getGlobalChannelName(username);
-    if (newChannelName === globalChannelNameRef.current) return;
-
-    // Unsubscribe previous
-    if (globalChannelRef.current) {
-      globalChannelRef.current.unbind("rooms-updated");
-      globalChannelRef.current.unbind("room-message");
-      globalChannelRef.current.unbind("message-deleted");
-      pusherRef.current.unsubscribe(globalChannelNameRef.current);
-    }
-
-    console.log(`[Pusher Hook] Switching global channel to: ${newChannelName}`);
-    const newChannel = pusherRef.current.subscribe(newChannelName);
-    newChannel.bind("rooms-updated", (data: { rooms: ChatRoom[] }) => {
-      const currentUsername = useChatsStore.getState().username;
-      const filteredRooms = data.rooms.filter((room) => {
-        if (!room.type || room.type === "public") return true;
-        if (room.type === "private" && room.members && currentUsername) {
-          return room.members.includes(currentUsername.toLowerCase());
-        }
-        return false;
-      });
-      debouncedSetRoomsRef.current(filteredRooms);
-    });
-
-    globalChannelRef.current = newChannel;
-    globalChannelNameRef.current = newChannelName;
-  }, [username]);
-
-  // Effect: Subscribe to per-room channels based on visible rooms
-  useEffect(() => {
-    if (!pusherRef.current) return;
-
-    const pusher = pusherRef.current;
-
-    rooms.forEach((room) => {
-      const channelName = `room-${room.id}`;
-      if (!roomChannelsRef.current[channelName]) {
-        console.log(
-          `[Pusher Hook] Subscribing to per-room channel: ${channelName}`
-        );
-        const roomChannel = pusher.subscribe(channelName);
-        roomChannel.bind("room-message", handleIncomingRoomMessage);
-        roomChannel.bind("message-deleted", handleMessageDeletedEvent);
-        roomChannelsRef.current[channelName] = roomChannel;
-      }
-    });
-
-    // Unsubscribe from channels the user no longer has access to
-    Object.keys(roomChannelsRef.current).forEach((channelName) => {
-      const roomId = channelName.replace(/^room-/, "");
-      const stillVisible = rooms.some((r) => r.id === roomId);
-      if (!stillVisible) {
-        console.log(`[Pusher Hook] Unsubscribing from channel: ${channelName}`);
-        const ch = roomChannelsRef.current[channelName];
-        if (ch) {
-          ch.unbind("room-message", handleIncomingRoomMessage);
-          ch.unbind("message-deleted", handleMessageDeletedEvent);
-          pusher.unsubscribe(channelName);
-        }
-        delete roomChannelsRef.current[channelName];
-      }
-    });
-  }, [rooms, handleIncomingRoomMessage, handleMessageDeletedEvent]);
-
-  // --- Dialog States & Handlers ---
-  const [isUsernameDialogOpen, setIsUsernameDialogOpen] = useState(false);
-  const [newUsername, setNewUsername] = useState("");
-  const [isSettingUsername, setIsSettingUsername] = useState(false);
-  const [usernameError, setUsernameError] = useState<string | null>(null);
-
-  const [isNewRoomDialogOpen, setIsNewRoomDialogOpen] = useState(false);
-  const [newRoomName, setNewRoomName] = useState("");
-  const [isCreatingRoom, setIsCreatingRoom] = useState(false);
-  const [roomError, setRoomError] = useState<string | null>(null);
-
-  const [isDeleteRoomDialogOpen, setIsDeleteRoomDialogOpen] = useState(false);
-  const [roomToDelete, setRoomToDelete] = useState<ChatRoom | null>(null);
-
+  // --- Dialog Handlers ---
   const promptSetUsername = useCallback(() => {
-    console.log(
-      "[ChatRoom Hook Debug] promptSetUsername called. Current username:",
-      username
-    );
-    setNewUsername(username || ""); // Ensure input field starts with current username or empty
+    setNewUsername("");
     setUsernameError(null);
     setIsUsernameDialogOpen(true);
-  }, [username]);
+  }, []);
 
   const submitUsernameDialog = useCallback(async () => {
     setIsSettingUsername(true);
+    setUsernameError(null);
+
     const result = await handleUsernameSubmit(newUsername);
-    setIsSettingUsername(false);
+
     if (result.ok) {
       setIsUsernameDialogOpen(false);
-      setUsernameError(null);
+      setNewUsername("");
     } else {
-      setUsernameError(result.error);
+      setUsernameError(result.error || "Failed to set username");
     }
-  }, [handleUsernameSubmit, newUsername, setIsUsernameDialogOpen]);
+
+    setIsSettingUsername(false);
+  }, [newUsername, handleUsernameSubmit]);
 
   const promptAddRoom = useCallback(() => {
-    if (!username) {
-      // If no username, prompt to set one first instead of opening the add room dialog
-      promptSetUsername();
-      toast("Set Username", {
-        description: "Please set a username before creating a room.",
-      });
-      return;
-    }
-    // Both admin and non-admin users can now create rooms (public for admin, private for non-admin)
-    setNewRoomName("");
-    setRoomError(null);
     setIsNewRoomDialogOpen(true);
-  }, [username, promptSetUsername]);
-
-  const submitNewRoomDialog = useCallback(async () => {
-    setIsCreatingRoom(true);
-    setRoomError(null);
-    const result = await handleAddRoom(newRoomName);
-    setIsCreatingRoom(false);
-    if (result.ok) {
-      setIsNewRoomDialogOpen(false);
-    } else {
-      setRoomError(result.error);
-    }
-  }, [handleAddRoom, newRoomName]);
+  }, []);
 
   const promptDeleteRoom = useCallback((room: ChatRoom) => {
     setRoomToDelete(room);
@@ -946,34 +324,99 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
   const confirmDeleteRoom = useCallback(async () => {
     if (!roomToDelete) return;
 
-    let result;
-    if (roomToDelete.type === "private") {
-      // For private rooms, leave the room instead of deleting
-      result = await callRoomAction("leaveRoom", {
-        roomId: roomToDelete.id,
-        username,
-      });
-      if (result.ok && currentRoomId === roomToDelete.id) {
-        handleRoomSelect(null); // Switch back to @ryo
-      }
+    const result = await handleDeleteRoom(roomToDelete.id);
+    if (result.ok) {
+      setIsDeleteRoomDialogOpen(false);
+      setRoomToDelete(null);
     } else {
-      // For public rooms, delete (admin only)
-      result = await handleDeleteRoom(roomToDelete.id);
+      toast("Error", { description: result.error || "Failed to delete room." });
+    }
+  }, [roomToDelete, handleDeleteRoom]);
+
+  // --- Effects ---
+
+  // Initialize when window opens
+  useEffect(() => {
+    if (!isWindowOpen || hasInitialized.current) return;
+
+    console.log("[Room Hook] Initializing chat room...");
+    hasInitialized.current = true;
+
+    initializePusher();
+    (async () => {
+      const result = await fetchRooms();
+      if (result.ok && currentRoomId) {
+        console.log(
+          `[useChatRoom] Initial fetch of messages for room ${currentRoomId}`
+        );
+        await fetchMessagesForRoom(currentRoomId);
+      }
+    })();
+  }, [
+    isWindowOpen,
+    initializePusher,
+    fetchRooms,
+    fetchMessagesForRoom,
+    currentRoomId,
+  ]);
+
+  // Handle username changes
+  useEffect(() => {
+    if (!isWindowOpen) return;
+
+    subscribeToGlobalChannel();
+  }, [isWindowOpen, username, subscribeToGlobalChannel]);
+
+  // Maintain subscriptions for ALL visible rooms
+  useEffect(() => {
+    if (!isWindowOpen) return;
+
+    // Fetch messages for the initial room exactly once on first load
+    if (
+      currentRoomId &&
+      !hasFetchedInitialMessages.current &&
+      (roomMessages[currentRoomId] || []).length === 0
+    ) {
+      hasFetchedInitialMessages.current = true;
+      fetchMessagesForRoom(currentRoomId);
     }
 
-    setIsDeleteRoomDialogOpen(false);
-    setRoomToDelete(null);
-    if (!result.ok) {
-      toast("Error", { description: result.error });
-    }
-  }, [
-    handleDeleteRoom,
-    roomToDelete,
-    callRoomAction,
-    username,
-    currentRoomId,
-    handleRoomSelect,
-  ]);
+    // Subscribe to any room we can see
+    rooms.forEach((room) => {
+      subscribeToRoomChannel(room.id);
+    });
+
+    // Unsubscribe from rooms no longer visible
+    Object.keys(roomChannelsRef.current).forEach((roomId) => {
+      const stillVisible = rooms.some((room) => room.id === roomId);
+      if (!stillVisible) {
+        unsubscribeFromRoomChannel(roomId);
+      }
+    });
+  }, [isWindowOpen, rooms, subscribeToRoomChannel, unsubscribeFromRoomChannel]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      console.log("[Pusher Hook] Cleaning up...");
+
+      // Unsubscribe from all room channels
+      Object.keys(roomChannelsRef.current).forEach((roomId) => {
+        unsubscribeFromRoomChannel(roomId);
+      });
+
+      // Unsubscribe from global channel
+      if (globalChannelRef.current && pusherRef.current) {
+        pusherRef.current.unsubscribe(globalChannelRef.current.name);
+        globalChannelRef.current = null;
+      }
+
+      // NOTE: We intentionally do NOT disconnect the global Pusher singleton here.
+      // We only unsubscribe from channels we've created. The underlying WebSocket
+      // stays open, preventing rapid connect/disconnect cycles under React
+      // Strict-Mode development re-mounts.
+    };
+  }, [unsubscribeFromRoomChannel]);
 
   return {
     // State
@@ -981,7 +424,7 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
     authToken,
     rooms,
     currentRoomId,
-    currentRoomMessages: roomMessages[currentRoomId || "@ryo"] || [], // Return messages for current room
+    currentRoomMessages,
     isSidebarVisible,
     isAdmin,
 
@@ -989,14 +432,12 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
     handleRoomSelect,
     sendRoomMessage,
     toggleSidebarVisibility,
-    handleAddRoom, // Add this
-
-    // Dialog Triggers & Handlers
-    promptSetUsername,
+    handleAddRoom,
     promptAddRoom,
     promptDeleteRoom,
 
-    // Username Dialog
+    // Username management
+    promptSetUsername,
     isUsernameDialogOpen,
     setIsUsernameDialogOpen,
     newUsername,
@@ -1004,23 +445,14 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
     isSettingUsername,
     usernameError,
     submitUsernameDialog,
+    setUsernameError,
 
-    // New Room Dialog
+    // Room dialogs
     isNewRoomDialogOpen,
     setIsNewRoomDialogOpen,
-    newRoomName,
-    setNewRoomName,
-    isCreatingRoom,
-    roomError,
-    submitNewRoomDialog,
-
-    // Delete Room Dialog
     isDeleteRoomDialogOpen,
     setIsDeleteRoomDialogOpen,
     roomToDelete,
     confirmDeleteRoom,
-
-    // Explicitly add setter for username error
-    setUsernameError,
   };
 }

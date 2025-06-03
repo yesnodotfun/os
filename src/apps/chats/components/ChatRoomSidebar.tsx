@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { type ChatRoom } from "@/types/chat";
 import { useSound, Sounds } from "@/hooks/useSound";
 import { getPrivateRoomDisplayName } from "@/utils/chat";
+import { useChatsStore } from "@/stores/useChatsStore";
 
 // Extracted ChatRoomSidebar component
 interface ChatRoomSidebarProps {
@@ -32,6 +33,7 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
   username,
 }) => {
   const { play: playButtonClick } = useSound(Sounds.BUTTON_CLICK);
+  const unreadCounts = useChatsStore((state) => state.unreadCounts);
 
   if (!isVisible) {
     return null;
@@ -84,75 +86,84 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
               );
               const sortedRooms = [...privateRooms, ...publicRooms];
 
-              return sortedRooms.map((room) => (
-                <div
-                  key={room.id}
-                  className={cn(
-                    "group relative p-2 py-1",
-                    currentRoom?.id === room.id
-                      ? "bg-black text-white"
-                      : "hover:bg-black/5"
-                  )}
-                  onClick={() => {
-                    playButtonClick();
-                    onRoomSelect(room);
-                  }}
-                >
-                  <div className="flex items-center">
-                    <span>
-                      {room.type === "private"
-                        ? getPrivateRoomDisplayName(room, username ?? null)
-                        : `#${room.name}`}
-                    </span>
-                    {room.type !== "private" && (
-                      <span
-                        className={cn(
-                          "text-[10px] ml-1.5 transition-opacity",
-                          currentRoom?.id === room.id
-                            ? "text-white/40"
-                            : "text-black/40",
-                          room.userCount > 0
-                            ? "opacity-100"
-                            : currentRoom?.id === room.id
-                            ? "opacity-100"
-                            : "opacity-0 group-hover:opacity-100"
-                        )}
-                      >
-                        {room.userCount} online
+              return sortedRooms.map((room) => {
+                const unreadCount = unreadCounts[room.id] || 0;
+                const hasUnread = unreadCount > 0;
+
+                return (
+                  <div
+                    key={room.id}
+                    className={cn(
+                      "group relative p-2 py-1",
+                      currentRoom?.id === room.id
+                        ? "bg-black text-white"
+                        : "hover:bg-black/5"
+                    )}
+                    onClick={() => {
+                      playButtonClick();
+                      onRoomSelect(room);
+                    }}
+                  >
+                    <div className="flex items-center">
+                      <span>
+                        {room.type === "private"
+                          ? getPrivateRoomDisplayName(room, username ?? null)
+                          : `#${room.name}`}
                       </span>
-                    )}
+                      {(hasUnread || room.type !== "private") && (
+                        <span
+                          className={cn(
+                            "text-[10px] ml-1.5 transition-opacity",
+                            hasUnread
+                              ? "text-orange-600"
+                              : currentRoom?.id === room.id
+                              ? "text-white/40"
+                              : "text-black/40",
+                            hasUnread || room.userCount > 0
+                              ? "opacity-100"
+                              : currentRoom?.id === room.id
+                              ? "opacity-100"
+                              : "opacity-0 group-hover:opacity-100"
+                          )}
+                        >
+                          {hasUnread
+                            ? `${unreadCount} unread`
+                            : `${room.userCount} online`}
+                        </span>
+                      )}
+                    </div>
+                    {((isAdmin && room.type !== "private") ||
+                      room.type === "private") &&
+                      onDeleteRoom && (
+                        <button
+                          className={cn(
+                            "absolute right-1 top-1/2 transform -translate-y-1/2 transition-opacity text-gray-500 hover:text-red-500 p-1 rounded hover:bg-black/5",
+                            currentRoom?.id === room.id
+                              ? "opacity-100"
+                              : "opacity-0 group-hover:opacity-100"
+                          )}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            playButtonClick();
+                            onDeleteRoom(room);
+                          }}
+                          aria-label={
+                            room.type === "private"
+                              ? "Leave conversation"
+                              : "Delete room"
+                          }
+                          title={
+                            room.type === "private"
+                              ? "Leave conversation"
+                              : "Delete room"
+                          }
+                        >
+                          <Trash className="w-3 h-3" />
+                        </button>
+                      )}
                   </div>
-                  {((isAdmin && room.type !== "private") ||
-                    room.type === "private") &&
-                    onDeleteRoom && (
-                      <button
-                        className={cn(
-                          "absolute right-1 top-1/2 transform -translate-y-1/2 transition-opacity text-gray-500 hover:text-red-500 p-1 rounded hover:bg-black/5",
-                          currentRoom?.id === room.id
-                            ? "opacity-100"
-                            : "opacity-0 group-hover:opacity-100"
-                        )}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          playButtonClick();
-                          onDeleteRoom(room);
-                        }}
-                        aria-label={
-                          room.type === "private"
-                            ? "Leave conversation"
-                            : "Delete room"
-                        }
-                        title={
-                          room.type === "private"
-                            ? "Leave conversation"
-                            : "Delete room"
-                        }
-                      >
-                        <Trash className="w-3 h-3" />
-                      </button>
-                    )}
-                </div>
-              ));
+                );
+              });
             })()}
         </div>
       </div>

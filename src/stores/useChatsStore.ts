@@ -7,6 +7,21 @@ import { type ChatRoom, type ChatMessage } from "@/types/chat";
 const USERNAME_RECOVERY_KEY = "_usr_recovery_key_";
 const AUTH_TOKEN_RECOVERY_KEY = "_auth_recovery_key_";
 
+// API Response Types
+interface ApiMessage {
+  id: string;
+  roomId: string;
+  username: string;
+  content: string;
+  timestamp: string | number;
+}
+
+interface CreateRoomPayload {
+  type: "public" | "private";
+  name?: string;
+  members?: string[];
+}
+
 // Simple encoding/decoding functions
 const encode = (value: string): string => {
   return btoa(value.split("").reverse().join(""));
@@ -84,6 +99,7 @@ export interface ChatsStoreState {
   rooms: ChatRoom[];
   currentRoomId: string | null; // ID of the currently selected room, null for AI chat (@ryo)
   roomMessages: Record<string, ChatMessage[]>; // roomId -> messages map
+  unreadCounts: Record<string, number>; // roomId -> unread message count
   // UI State
   isSidebarVisible: boolean;
   fontSize: number; // Add font size state
@@ -101,6 +117,30 @@ export interface ChatsStoreState {
   toggleSidebarVisibility: () => void;
   setFontSize: (size: number | ((prevSize: number) => number)) => void; // Add font size action
   ensureAuthToken: () => Promise<{ ok: boolean; error?: string }>; // Add auth token generation
+
+  // Room Management Actions
+  fetchRooms: () => Promise<{ ok: boolean; error?: string }>;
+  fetchMessagesForRoom: (
+    roomId: string
+  ) => Promise<{ ok: boolean; error?: string }>;
+  switchRoom: (
+    roomId: string | null
+  ) => Promise<{ ok: boolean; error?: string }>;
+  createRoom: (
+    name: string,
+    type?: "public" | "private",
+    members?: string[]
+  ) => Promise<{ ok: boolean; error?: string; roomId?: string }>;
+  deleteRoom: (roomId: string) => Promise<{ ok: boolean; error?: string }>;
+  sendMessage: (
+    roomId: string,
+    content: string
+  ) => Promise<{ ok: boolean; error?: string }>;
+  createUser: (username: string) => Promise<{ ok: boolean; error?: string }>;
+
+  incrementUnread: (roomId: string) => void;
+  clearUnread: (roomId: string) => void;
+
   reset: () => void; // Reset store to initial state
 }
 
@@ -127,6 +167,15 @@ const getInitialState = (): Omit<
   | "toggleSidebarVisibility"
   | "setFontSize"
   | "ensureAuthToken"
+  | "fetchRooms"
+  | "fetchMessagesForRoom"
+  | "switchRoom"
+  | "createRoom"
+  | "deleteRoom"
+  | "sendMessage"
+  | "createUser"
+  | "incrementUnread"
+  | "clearUnread"
 > => {
   // Try to recover username and auth token if available
   const recoveredUsername = getUsernameFromRecovery();
@@ -139,6 +188,7 @@ const getInitialState = (): Omit<
     rooms: [],
     currentRoomId: null,
     roomMessages: {},
+    unreadCounts: {},
     isSidebarVisible: true,
     fontSize: 13, // Default font size
   };
@@ -356,6 +406,383 @@ export const useChatsStore = create<ChatsStoreState>()(
           // Reset the store to initial state (which already tries to recover username and auth token)
           set(getInitialState());
         },
+        fetchRooms: async () => {
+          console.log("[ChatsStore] Fetching rooms...");
+          const currentUsername = get().username;
+
+          try {
+            const queryParams = new URLSearchParams({ action: "getRooms" });
+            if (currentUsername) {
+              queryParams.append("username", currentUsername);
+            }
+
+            const response = await fetch(
+              `/api/chat-rooms?${queryParams.toString()}`
+            );
+            if (!response.ok) {
+              const errorData = await response.json().catch(() => ({
+                error: `HTTP error! status: ${response.status}`,
+              }));
+              return {
+                ok: false,
+                error: errorData.error || "Failed to fetch rooms",
+              };
+            }
+
+            const data = await response.json();
+            if (data.rooms && Array.isArray(data.rooms)) {
+              set({ rooms: data.rooms });
+              return { ok: true };
+            }
+
+            return { ok: false, error: "Invalid response format" };
+          } catch (error) {
+            console.error("[ChatsStore] Error fetching rooms:", error);
+            return { ok: false, error: "Network error. Please try again." };
+          }
+        },
+        fetchMessagesForRoom: async (roomId: string) => {
+          if (!roomId) return { ok: false, error: "Room ID required" };
+
+          console.log(`[ChatsStore] Fetching messages for room ${roomId}...`);
+
+          try {
+            const queryParams = new URLSearchParams({
+              action: "getMessages",
+              roomId,
+            });
+
+            const response = await fetch(
+              `/api/chat-rooms?${queryParams.toString()}`
+            );
+            if (!response.ok) {
+              const errorData = await response.json().catch(() => ({
+                error: `HTTP error! status: ${response.status}`,
+              }));
+              return {
+                ok: false,
+                error: errorData.error || "Failed to fetch messages",
+              };
+            }
+
+            const data = await response.json();
+            if (data.messages) {
+              const fetchedMessages: ChatMessage[] = (data.messages || [])
+                .map((msg: ApiMessage) => ({
+                  ...msg,
+                  timestamp:
+                    typeof msg.timestamp === "string" ||
+                    typeof msg.timestamp === "number"
+                      ? new Date(msg.timestamp).getTime()
+                      : msg.timestamp,
+                }))
+                .sort(
+                  (a: ChatMessage, b: ChatMessage) => a.timestamp - b.timestamp
+                );
+
+              set((state) => ({
+                roomMessages: {
+                  ...state.roomMessages,
+                  [roomId]: fetchedMessages,
+                },
+              }));
+
+              return { ok: true };
+            }
+
+            return { ok: false, error: "Invalid response format" };
+          } catch (error) {
+            console.error(
+              `[ChatsStore] Error fetching messages for room ${roomId}:`,
+              error
+            );
+            return { ok: false, error: "Network error. Please try again." };
+          }
+        },
+        switchRoom: async (newRoomId: string | null) => {
+          const currentRoomId = get().currentRoomId;
+          const username = get().username;
+
+          console.log(
+            `[ChatsStore] Switching from ${currentRoomId} to ${newRoomId}`
+          );
+
+          // Update current room immediately
+          set({ currentRoomId: newRoomId });
+
+          // Clear unread count for the room we're entering
+          if (newRoomId) {
+            get().clearUnread(newRoomId);
+          }
+
+          // If switching to a real room and we have a username, handle the API call
+          if (username) {
+            try {
+              const response = await fetch(
+                "/api/chat-rooms?action=switchRoom",
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    previousRoomId: currentRoomId,
+                    nextRoomId: newRoomId,
+                    username,
+                  }),
+                }
+              );
+
+              if (!response.ok) {
+                const errorData = await response.json().catch(() => ({
+                  error: `HTTP error! status: ${response.status}`,
+                }));
+                console.error("[ChatsStore] Error switching rooms:", errorData);
+                // Don't revert the room change on API error, just log it
+              }
+            } catch (error) {
+              console.error(
+                "[ChatsStore] Network error switching rooms:",
+                error
+              );
+              // Don't revert the room change on network error, just log it
+            }
+          }
+
+          // Always fetch messages for the new room to ensure latest content
+          if (newRoomId) {
+            console.log(
+              `[ChatsStore] Fetching latest messages for room ${newRoomId}`
+            );
+            await get().fetchMessagesForRoom(newRoomId);
+          }
+
+          return { ok: true };
+        },
+        createRoom: async (
+          name: string,
+          type: "public" | "private" = "public",
+          members: string[] = []
+        ) => {
+          const username = get().username;
+          const authToken = get().authToken;
+
+          if (!username) {
+            return { ok: false, error: "Username required" };
+          }
+
+          if (!authToken) {
+            // Try to ensure auth token exists
+            const tokenResult = await get().ensureAuthToken();
+            if (!tokenResult.ok) {
+              return { ok: false, error: "Authentication required" };
+            }
+          }
+
+          try {
+            const payload: CreateRoomPayload = { type };
+            if (type === "public") {
+              payload.name = name.trim();
+            } else {
+              payload.members = members;
+            }
+
+            const headers: HeadersInit = {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${get().authToken}`,
+              "X-Username": username,
+            };
+
+            const response = await fetch("/api/chat-rooms?action=createRoom", {
+              method: "POST",
+              headers,
+              body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) {
+              const errorData = await response.json().catch(() => ({
+                error: `HTTP error! status: ${response.status}`,
+              }));
+              return {
+                ok: false,
+                error: errorData.error || "Failed to create room",
+              };
+            }
+
+            const data = await response.json();
+            if (data.room) {
+              // Room will be added via Pusher update, so we don't need to manually add it
+              return { ok: true, roomId: data.room.id };
+            }
+
+            return { ok: false, error: "Invalid response format" };
+          } catch (error) {
+            console.error("[ChatsStore] Error creating room:", error);
+            return { ok: false, error: "Network error. Please try again." };
+          }
+        },
+        deleteRoom: async (roomId: string) => {
+          const username = get().username;
+          const authToken = get().authToken;
+
+          if (!username || !authToken) {
+            return { ok: false, error: "Authentication required" };
+          }
+
+          try {
+            const headers: HeadersInit = {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${authToken}`,
+              "X-Username": username,
+            };
+
+            const response = await fetch(
+              `/api/chat-rooms?action=deleteRoom&roomId=${roomId}`,
+              {
+                method: "DELETE",
+                headers,
+              }
+            );
+
+            if (!response.ok) {
+              const errorData = await response.json().catch(() => ({
+                error: `HTTP error! status: ${response.status}`,
+              }));
+              return {
+                ok: false,
+                error: errorData.error || "Failed to delete room",
+              };
+            }
+
+            // Room will be removed via Pusher update
+            // If we're currently in this room, switch to @ryo
+            const currentRoomId = get().currentRoomId;
+            if (currentRoomId === roomId) {
+              set({ currentRoomId: null });
+            }
+
+            return { ok: true };
+          } catch (error) {
+            console.error("[ChatsStore] Error deleting room:", error);
+            return { ok: false, error: "Network error. Please try again." };
+          }
+        },
+        sendMessage: async (roomId: string, content: string) => {
+          const username = get().username;
+          const authToken = get().authToken;
+
+          if (!username || !content.trim()) {
+            return { ok: false, error: "Username and content required" };
+          }
+
+          // Create optimistic message
+          const tempId = `temp_${Math.random().toString(36).substring(2, 9)}`;
+          const optimisticMessage: ChatMessage = {
+            id: tempId,
+            roomId,
+            username,
+            content: content.trim(),
+            timestamp: Date.now(),
+          };
+
+          // Add optimistic message immediately
+          get().addMessageToRoom(roomId, optimisticMessage);
+
+          try {
+            const headers: HeadersInit = {
+              "Content-Type": "application/json",
+            };
+
+            if (authToken) {
+              headers["Authorization"] = `Bearer ${authToken}`;
+              headers["X-Username"] = username;
+            }
+
+            const response = await fetch("/api/chat-rooms?action=sendMessage", {
+              method: "POST",
+              headers,
+              body: JSON.stringify({
+                roomId,
+                username,
+                content: content.trim(),
+              }),
+            });
+
+            if (!response.ok) {
+              // Remove optimistic message on failure
+              get().removeMessageFromRoom(roomId, tempId);
+              const errorData = await response.json().catch(() => ({
+                error: `HTTP error! status: ${response.status}`,
+              }));
+              return {
+                ok: false,
+                error: errorData.error || "Failed to send message",
+              };
+            }
+
+            // Real message will be added via Pusher, which will replace the optimistic one
+            return { ok: true };
+          } catch (error) {
+            // Remove optimistic message on failure
+            get().removeMessageFromRoom(roomId, tempId);
+            console.error("[ChatsStore] Error sending message:", error);
+            return { ok: false, error: "Network error. Please try again." };
+          }
+        },
+        createUser: async (username: string) => {
+          const trimmedUsername = username.trim();
+          if (!trimmedUsername) {
+            return { ok: false, error: "Username cannot be empty" };
+          }
+
+          try {
+            const response = await fetch("/api/chat-rooms?action=createUser", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ username: trimmedUsername }),
+            });
+
+            if (!response.ok) {
+              const errorData = await response.json().catch(() => ({
+                error: `HTTP error! status: ${response.status}`,
+              }));
+              return {
+                ok: false,
+                error: errorData.error || "Failed to create user",
+              };
+            }
+
+            const data = await response.json();
+            if (data.user) {
+              set({ username: data.user.username });
+
+              if (data.token) {
+                set({ authToken: data.token });
+                saveAuthTokenToRecovery(data.token);
+              }
+
+              return { ok: true };
+            }
+
+            return { ok: false, error: "Invalid response format" };
+          } catch (error) {
+            console.error("[ChatsStore] Error creating user:", error);
+            return { ok: false, error: "Network error. Please try again." };
+          }
+        },
+        incrementUnread: (roomId) => {
+          set((state) => ({
+            unreadCounts: {
+              ...state.unreadCounts,
+              [roomId]: (state.unreadCounts[roomId] || 0) + 1,
+            },
+          }));
+        },
+        clearUnread: (roomId) => {
+          set((state) => {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { [roomId]: _removed, ...rest } = state.unreadCounts;
+            return { unreadCounts: rest };
+          });
+        },
       };
     },
     {
@@ -372,6 +799,7 @@ export const useChatsStore = create<ChatsStoreState>()(
         rooms: state.rooms, // Persist rooms list
         roomMessages: state.roomMessages, // Persist room messages cache
         fontSize: state.fontSize, // Persist font size
+        unreadCounts: state.unreadCounts,
       }),
       // --- Migration from old localStorage keys ---
       migrate: (persistedState, version) => {

@@ -45,10 +45,7 @@ export function ChatsAppComponent({
   const { aiMessages } = useChatsStore();
 
   // Get promptSetUsername from useChatRoom first
-  const chatRoomResult = useChatRoom(
-    isWindowOpen ?? false,
-    isForeground ?? false
-  );
+  const chatRoomResult = useChatRoom(isWindowOpen ?? false);
   const { promptSetUsername } = chatRoomResult;
 
   const {
