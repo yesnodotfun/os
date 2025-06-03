@@ -100,6 +100,7 @@ export interface ChatsStoreState {
   currentRoomId: string | null; // ID of the currently selected room, null for AI chat (@ryo)
   roomMessages: Record<string, ChatMessage[]>; // roomId -> messages map
   unreadCounts: Record<string, number>; // roomId -> unread message count
+  hasEverUsedChats: boolean; // Track if user has ever used chat before
   // UI State
   isSidebarVisible: boolean;
   fontSize: number; // Add font size state
@@ -145,6 +146,7 @@ export interface ChatsStoreState {
 
   incrementUnread: (roomId: string) => void;
   clearUnread: (roomId: string) => void;
+  setHasEverUsedChats: (value: boolean) => void;
 
   reset: () => void; // Reset store to initial state
 }
@@ -182,6 +184,7 @@ const getInitialState = (): Omit<
   | "createUser"
   | "incrementUnread"
   | "clearUnread"
+  | "setHasEverUsedChats"
 > => {
   // Try to recover username and auth token if available
   const recoveredUsername = getUsernameFromRecovery();
@@ -195,6 +198,7 @@ const getInitialState = (): Omit<
     currentRoomId: null,
     roomMessages: {},
     unreadCounts: {},
+    hasEverUsedChats: false,
     isSidebarVisible: true,
     fontSize: 13, // Default font size
   };
@@ -862,6 +866,9 @@ export const useChatsStore = create<ChatsStoreState>()(
             return { unreadCounts: rest };
           });
         },
+        setHasEverUsedChats: (value: boolean) => {
+          set({ hasEverUsedChats: value });
+        },
       };
     },
     {
@@ -879,6 +886,7 @@ export const useChatsStore = create<ChatsStoreState>()(
         roomMessages: state.roomMessages, // Persist room messages cache
         fontSize: state.fontSize, // Persist font size
         unreadCounts: state.unreadCounts,
+        hasEverUsedChats: state.hasEverUsedChats,
       }),
       // --- Migration from old localStorage keys ---
       migrate: (persistedState, version) => {

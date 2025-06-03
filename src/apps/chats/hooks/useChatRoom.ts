@@ -362,32 +362,47 @@ export function useChatRoom(isWindowOpen: boolean) {
 
           // Calculate unread counts for messages received while away
           if (bulkResult.ok) {
-            const { roomMessages: allRoomMessages, incrementUnread } =
-              useChatsStore.getState();
-            const now = Date.now();
-            const UNREAD_THRESHOLD_MINUTES = 60; // Only consider messages from last hour as potentially unread
-            const unreadThreshold = now - UNREAD_THRESHOLD_MINUTES * 60 * 1000;
+            const {
+              roomMessages: allRoomMessages,
+              incrementUnread,
+              hasEverUsedChats,
+              setHasEverUsedChats,
+            } = useChatsStore.getState();
 
-            roomIds.forEach((roomId) => {
-              const messages = allRoomMessages[roomId] || [];
-              if (messages.length > 0 && roomId !== currentRoomId) {
-                // Count only the most recent messages as unread (max 5 per room)
-                const recentMessages = messages
-                  .filter(
-                    (msg) =>
-                      msg.timestamp > unreadThreshold &&
-                      msg.username !== username // Don't count own messages as unread
-                  )
-                  .slice(0, 5); // Limit to max 5 unread per room
+            // Only calculate unread counts if user has used chats before
+            if (hasEverUsedChats) {
+              const now = Date.now();
+              const UNREAD_THRESHOLD_MINUTES = 60; // Only consider messages from last hour as potentially unread
+              const unreadThreshold =
+                now - UNREAD_THRESHOLD_MINUTES * 60 * 1000;
 
-                // Add unread count for recent messages
-                recentMessages.forEach(() => incrementUnread(roomId));
-              }
-            });
+              roomIds.forEach((roomId) => {
+                const messages = allRoomMessages[roomId] || [];
+                if (messages.length > 0 && roomId !== currentRoomId) {
+                  // Count only the most recent messages as unread (max 5 per room)
+                  const recentMessages = messages
+                    .filter(
+                      (msg) =>
+                        msg.timestamp > unreadThreshold &&
+                        msg.username !== username // Don't count own messages as unread
+                    )
+                    .slice(0, 5); // Limit to max 5 unread per room
 
-            console.log(
-              `[useChatRoom] Calculated unread counts for rooms with recent activity (last ${UNREAD_THRESHOLD_MINUTES} min)`
-            );
+                  // Add unread count for recent messages
+                  recentMessages.forEach(() => incrementUnread(roomId));
+                }
+              });
+
+              console.log(
+                `[useChatRoom] Calculated unread counts for rooms with recent activity (last ${UNREAD_THRESHOLD_MINUTES} min)`
+              );
+            } else {
+              // First time user - mark all as read from this point forward
+              console.log(
+                `[useChatRoom] First-time user detected - skipping unread calculation and marking as experienced user`
+              );
+              setHasEverUsedChats(true);
+            }
           }
         }
       }
