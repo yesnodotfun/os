@@ -2,7 +2,10 @@ import { streamText, smoothStream } from "ai";
 import { SupportedModel, DEFAULT_MODEL, getModelInstance } from "./utils/aiModels";
 import { Redis } from "@upstash/redis";
 import { normalizeUrlForCacheKey } from "./utils/url";
-import { RYO_PERSONA_INSTRUCTIONS, DELIVERABLE_REQUIREMENTS } from "./utils/aiPrompts"; // Import the shared prompts
+import {
+  RYO_PERSONA_INSTRUCTIONS,
+  DELIVERABLE_REQUIREMENTS,
+} from "./utils/aiPrompts";
 import { SUPPORTED_AI_MODELS } from "../src/types/aiModels";
 
 // Allowed origins for API requests (reuse list from chat.ts)
@@ -53,8 +56,15 @@ export const config = { runtime: "edge" };
 
 // --- Handler --------------------------------------------------------------
 
-// Function to generate the conditional system prompt
-const getConditionalSystemPrompt = (
+// Static portion of the system prompt shared across requests. This string is
+// passed via the `system` option to enable prompt caching by the model
+// provider.
+const STATIC_SYSTEM_PROMPT = `The user is in ryOS Internet Explorer asking to time travel with website context and a specific year. You are Ryo, a visionary designer specialized in turning present websites into past and futuristic coherent versions in story and design.\n\nGenerate content for the URL path and year provided, original site content, and use provided HTML as template if available.\n\n${DELIVERABLE_REQUIREMENTS}`;
+
+// Function to generate the dynamic portion of the system prompt. This portion
+// depends on the requested year and URL and will be sent as a regular system
+// message so it is not cached by the model provider.
+const getDynamicSystemPrompt = (
   year: number | null,
   rawUrl: string | null // Add rawUrl parameter
 ): string => {
@@ -62,8 +72,9 @@ const getConditionalSystemPrompt = (
 
   // --- Prompt Sections ---
 
-  const BASE_INTRO = `The user is in ryOS Internet Explorer asking to time travel with website context and a specific year. You are Ryo, a visionary designer specialized in turning present websites into past and futuristic coherent versions in story and design.
-Generate content for the URL path, the year provided (${year ?? 'current'}), original site content, and use provided HTML as template if provided.`;
+  const INTRO_LINE = `Generate content for the URL path, the year provided (${
+    year ?? 'current'
+  }), original site content, and use provided HTML as template if provided.`;
 
   const FUTURE_YEAR_INSTRUCTIONS = `For the future year ${year}:
 - Redesign the website so it feels perfectly at home in the future context provided in design, typography, colors, layout, storytelling, and technology
@@ -104,15 +115,12 @@ ${RYO_PERSONA_INSTRUCTIONS}`;
 
   // --- Assemble the Final Prompt ---
 
-  let finalPrompt = `${BASE_INTRO}\n\n${yearSpecificInstructions}`;
+  let finalPrompt = `${INTRO_LINE}\n\n${yearSpecificInstructions}`;
 
   // Conditionally add Ryo's persona instructions
   if (rawUrl && (rawUrl.includes('ryo.lu') || rawUrl.includes('x.com') || rawUrl.includes('notion') || rawUrl.includes('cursor'))) {
     finalPrompt += `\n\n${PERSONA_INSTRUCTIONS_BLOCK}`;
   }
-
-  // Add deliverable requirements
-  finalPrompt += `\n\n${DELIVERABLE_REQUIREMENTS}`;
 
   return finalPrompt;
 };
@@ -190,10 +198,10 @@ export default async function handler(req: Request) {
 
     const selectedModel = getModelInstance(model as SupportedModel);
 
-    // Generate conditional system prompt, passing the rawUrl
-    const systemPrompt = getConditionalSystemPrompt(effectiveYear, rawUrl ?? null);
+    // Generate dynamic portion of the system prompt, passing the rawUrl
+    const systemPrompt = getDynamicSystemPrompt(effectiveYear, rawUrl ?? null);
 
-    // Prepend IE system prompt
+    // Prepend the dynamic prompt as a system message
     const enrichedMessages = [
       { role: "system", content: systemPrompt },
       ...messages,
@@ -201,6 +209,7 @@ export default async function handler(req: Request) {
 
     const result = streamText({
       model: selectedModel,
+      system: STATIC_SYSTEM_PROMPT,
       messages: enrichedMessages,
       // We assume prompt/messages already include necessary system/user details
       temperature: 0.7,
