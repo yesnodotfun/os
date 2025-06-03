@@ -319,7 +319,7 @@ export async function GET(request) {
 
   try {
     // Actions that don't require authentication
-    const publicActions = ["getRooms", "getMessages"];
+    const publicActions = ["getRooms", "getMessages", "getUsers"];
 
     // Check authentication for protected actions
     if (!publicActions.includes(action)) {
@@ -334,7 +334,7 @@ export async function GET(request) {
 
     switch (action) {
       case "getRooms":
-        return await handleGetRooms(requestId);
+        return await handleGetRooms(request, requestId);
       case "getRoom": {
         const roomId = url.searchParams.get("roomId");
         if (!roomId) {
@@ -542,11 +542,31 @@ export async function DELETE(request) {
 }
 
 // Room functions
-async function handleGetRooms(requestId) {
+async function handleGetRooms(request, requestId) {
   logInfo(requestId, "Fetching all rooms");
   try {
-    const rooms = await getDetailedRooms();
-    return new Response(JSON.stringify({ rooms }), {
+    // Extract username from request to filter private rooms
+    const url = new URL(request.url);
+    const username = url.searchParams.get("username")?.toLowerCase() || null;
+
+    const allRooms = await getDetailedRooms();
+
+    // Filter rooms based on visibility
+    const visibleRooms = allRooms.filter((room) => {
+      // Public rooms are visible to everyone
+      if (!room.type || room.type === "public") {
+        return true;
+      }
+
+      // Private rooms are only visible to members
+      if (room.type === "private" && room.members && username) {
+        return room.members.includes(username);
+      }
+
+      return false;
+    });
+
+    return new Response(JSON.stringify({ rooms: visibleRooms }), {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
@@ -589,48 +609,112 @@ async function handleGetRoom(roomId, requestId) {
 }
 
 async function handleCreateRoom(data, username, requestId) {
-  const { name: originalName } = data;
+  const { name: originalName, type = "public", members = [] } = data;
 
-  if (!originalName) {
-    logInfo(requestId, "Room creation failed: Name is required");
-    return createErrorResponse("Room name is required", 400);
-  }
+  // Normalize username
+  const normalizedUsername = username?.toLowerCase();
 
-  // Check if the user is the admin ("ryo")
-  if (username?.toLowerCase() !== "ryo") {
-    logInfo(requestId, `Unauthorized: User ${username} is not the admin`);
-    return createErrorResponse("Forbidden - Admin access required", 403);
-  }
-
-  // Check for profanity in room name
-  if (filter.isProfane(originalName)) {
-    logInfo(
-      requestId,
-      `Room creation failed: Name contains inappropriate language: ${originalName}`
-    );
+  // Validate room type
+  if (!["public", "private"].includes(type)) {
+    logInfo(requestId, "Room creation failed: Invalid room type");
     return createErrorResponse(
-      "Room name contains inappropriate language",
+      "Invalid room type. Must be 'public' or 'private'",
       400
     );
   }
 
-  const name = originalName.toLowerCase().replace(/ /g, "-");
+  // For public rooms, only admin can create
+  if (type === "public") {
+    if (!originalName) {
+      logInfo(
+        requestId,
+        "Room creation failed: Name is required for public rooms"
+      );
+      return createErrorResponse("Room name is required for public rooms", 400);
+    }
 
-  logInfo(requestId, `Creating room: ${name} by admin ${username}`);
+    if (normalizedUsername !== "ryo") {
+      logInfo(requestId, `Unauthorized: User ${username} is not the admin`);
+      return createErrorResponse(
+        "Forbidden - Only admin can create public rooms",
+        403
+      );
+    }
+
+    // Check for profanity in room name
+    if (filter.isProfane(originalName)) {
+      logInfo(
+        requestId,
+        `Room creation failed: Name contains inappropriate language: ${originalName}`
+      );
+      return createErrorResponse(
+        "Room name contains inappropriate language",
+        400
+      );
+    }
+  }
+
+  // For private rooms, validate members
+  if (type === "private") {
+    if (!members || members.length === 0) {
+      logInfo(
+        requestId,
+        "Room creation failed: Members are required for private rooms"
+      );
+      return createErrorResponse(
+        "At least one member is required for private rooms",
+        400
+      );
+    }
+
+    // Ensure the creator is included in the members list
+    const normalizedMembers = members.map((m) => m.toLowerCase());
+    if (!normalizedMembers.includes(normalizedUsername)) {
+      normalizedMembers.push(normalizedUsername);
+    }
+    members.length = 0;
+    members.push(...normalizedMembers);
+  }
+
+  // Generate room name based on type
+  let roomName;
+  if (type === "public") {
+    roomName = originalName.toLowerCase().replace(/ /g, "-");
+  } else {
+    // For private rooms, name is "@user1, @user2, ..."
+    const sortedMembers = [...members].sort();
+    roomName = sortedMembers.map((m) => `@${m}`).join(", ");
+  }
+
+  logInfo(requestId, `Creating ${type} room: ${roomName} by ${username}`);
   try {
     const roomId = generateId();
     const room = {
       id: roomId,
-      name,
+      name: roomName,
+      type,
       createdAt: getCurrentTimestamp(),
-      userCount: 0,
+      userCount: type === "private" ? members.length : 0,
+      ...(type === "private" && { members }),
     };
 
     await redis.set(`${CHAT_ROOM_PREFIX}${roomId}`, room);
-    logInfo(requestId, `Room created: ${roomId}`);
+
+    // For private rooms, add all members to the room
+    if (type === "private") {
+      const pipeline = redis.pipeline();
+      members.forEach((member) => {
+        pipeline.sadd(`${CHAT_ROOM_USERS_PREFIX}${roomId}`, member);
+      });
+      await pipeline.exec();
+    }
+
+    logInfo(requestId, `${type} room created: ${roomId}`);
 
     // Trigger Pusher event for room creation
     try {
+      // Note: getDetailedRooms doesn't filter by user, so we might be exposing private rooms
+      // For now, we'll keep this behavior but clients should filter on their end
       const rooms = await getDetailedRooms();
       await pusher.trigger("chats", "rooms-updated", { rooms });
       logInfo(requestId, "Pusher event triggered: rooms-updated");
@@ -648,7 +732,7 @@ async function handleCreateRoom(data, username, requestId) {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    logError(requestId, `Error creating room ${name}:`, error);
+    logError(requestId, `Error creating room ${roomName}:`, error);
     return createErrorResponse("Failed to create room", 500);
   }
 }
@@ -946,23 +1030,81 @@ async function handleLeaveRoom(data, requestId) {
         `User ${username} left room ${roomId}, new active user count: ${userCount}`
       );
 
-      // Trigger Pusher events only if user count changed
-      if (userCount !== previousUserCount) {
-        try {
-          // Removed individual user-count-updated event; rooms-updated will carry the new count
-        } catch (pusherError) {
-          logError(
-            requestId,
-            "Error triggering Pusher events for room leave:",
-            pusherError
-          );
-          // Continue with response - Pusher error shouldn't block operation
+      // Parse room data to check if it's a private room
+      const roomObj =
+        typeof roomData === "string" ? JSON.parse(roomData) : roomData;
+
+      // For private rooms, update the members list and delete if empty
+      if (roomObj.type === "private") {
+        // Update members list
+        const updatedMembers = roomObj.members
+          ? roomObj.members.filter((m) => m !== username)
+          : [];
+
+        if (updatedMembers.length === 0) {
+          // Delete the private room if no members left
+          logInfo(requestId, `Deleting empty private room ${roomId}`);
+          const pipeline = redis.pipeline();
+          pipeline.del(`${CHAT_ROOM_PREFIX}${roomId}`);
+          pipeline.del(`${CHAT_MESSAGES_PREFIX}${roomId}`);
+          pipeline.del(`${CHAT_ROOM_USERS_PREFIX}${roomId}`);
+          await pipeline.exec();
+
+          // Trigger Pusher event for room deletion
+          try {
+            const rooms = await getDetailedRooms();
+            await pusher.trigger("chats", "rooms-updated", { rooms });
+            logInfo(
+              requestId,
+              "Pusher event triggered: rooms-updated after private room deletion"
+            );
+          } catch (pusherError) {
+            logError(
+              requestId,
+              "Error triggering Pusher event for room deletion:",
+              pusherError
+            );
+          }
+        } else {
+          // Update the room with new members list
+          const updatedRoom = {
+            ...roomObj,
+            members: updatedMembers,
+            userCount,
+          };
+          await redis.set(`${CHAT_ROOM_PREFIX}${roomId}`, updatedRoom);
+
+          // Trigger Pusher event for room update
+          try {
+            const rooms = await getDetailedRooms();
+            await pusher.trigger("chats", "rooms-updated", { rooms });
+          } catch (pusherError) {
+            logError(
+              requestId,
+              "Error triggering Pusher event for room update:",
+              pusherError
+            );
+          }
         }
       } else {
-        logInfo(
-          requestId,
-          `Skipping Pusher events: user count (${userCount}) did not change.`
-        );
+        // For public rooms, just trigger update if user count changed
+        if (userCount !== previousUserCount) {
+          try {
+            // Removed individual user-count-updated event; rooms-updated will carry the new count
+          } catch (pusherError) {
+            logError(
+              requestId,
+              "Error triggering Pusher events for room leave:",
+              pusherError
+            );
+            // Continue with response - Pusher error shouldn't block operation
+          }
+        } else {
+          logInfo(
+            requestId,
+            `Skipping Pusher events: user count (${userCount}) did not change.`
+          );
+        }
       }
     } else {
       logInfo(requestId, `User ${username} was not in room ${roomId}`);

@@ -1,0 +1,254 @@
+import { useState, useEffect } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
+import { type User } from "@/types/chat";
+
+interface CreateRoomDialogProps {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSubmit: (
+    name: string,
+    type: "public" | "private",
+    members: string[]
+  ) => Promise<{ ok: boolean; error?: string }>;
+  isAdmin: boolean;
+  currentUsername: string | null;
+}
+
+export function CreateRoomDialog({
+  isOpen,
+  onOpenChange,
+  onSubmit,
+  isAdmin,
+  currentUsername,
+}: CreateRoomDialogProps) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [roomName, setRoomName] = useState("");
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeTab, setActiveTab] = useState<"public" | "private">(
+    isAdmin ? "public" : "private"
+  );
+
+  // Fetch all users when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchUsers();
+      // Reset form when opening
+      setError(null);
+      setRoomName("");
+      setSelectedUsers([]);
+      setSearchTerm("");
+      // Ensure non-admin users are always on private tab
+      if (!isAdmin) {
+        setActiveTab("private");
+      }
+    }
+  }, [isOpen, isAdmin]);
+
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch("/api/chat-rooms?action=getUsers");
+      if (response.ok) {
+        const data = await response.json();
+        const usersList = data.users || [];
+        // Filter out current user and parse user data
+        const parsedUsers = usersList
+          .map((u: string | User) =>
+            typeof u === "string" ? JSON.parse(u) : u
+          )
+          .filter((u: User) => u.username !== currentUsername?.toLowerCase());
+        setUsers(parsedUsers);
+      }
+    } catch (error) {
+      console.error("Failed to fetch users:", error);
+    }
+  };
+
+  // Filter users based on search term
+  const filteredUsers = users.filter((user) =>
+    user.username.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleSubmit = async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const result = await onSubmit(roomName, activeTab, selectedUsers);
+
+      if (result.ok) {
+        onOpenChange(false);
+      } else {
+        setError(result.error || "Failed to create room");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const toggleUserSelection = (username: string) => {
+    setSelectedUsers((prev) =>
+      prev.includes(username)
+        ? prev.filter((u) => u !== username)
+        : [...prev, username]
+    );
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent
+        className="bg-system7-window-bg border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)] max-w-[400px]"
+        onKeyDown={(e: React.KeyboardEvent) => e.stopPropagation()}
+      >
+        <DialogHeader>
+          <DialogTitle className="font-normal text-[16px]">
+            New Chat
+          </DialogTitle>
+          <DialogDescription className="sr-only">
+            {isAdmin
+              ? "Create a public chat room or start a private conversation"
+              : "Start a private conversation"}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="pt-2 pb-6 px-6">
+          <Tabs
+            value={activeTab}
+            onValueChange={(v) => setActiveTab(v as "public" | "private")}
+          >
+            {isAdmin && (
+              <TabsList className="grid grid-cols-2 w-full mb-4 h-8 bg-white border border-black">
+                <TabsTrigger
+                  value="public"
+                  className="data-[state=active]:bg-black data-[state=active]:text-white font-geneva-12 text-[12px]"
+                >
+                  Public Room
+                </TabsTrigger>
+                <TabsTrigger
+                  value="private"
+                  className="data-[state=active]:bg-black data-[state=active]:text-white font-geneva-12 text-[12px]"
+                >
+                  Private Message
+                </TabsTrigger>
+              </TabsList>
+            )}
+
+            {isAdmin && (
+              <TabsContent value="public" className="mt-0">
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="room-name"
+                    className="text-gray-700 text-[12px] font-geneva-12"
+                  >
+                    Room Name
+                  </Label>
+                  <Input
+                    id="room-name"
+                    value={roomName}
+                    onChange={(e) => setRoomName(e.target.value)}
+                    placeholder="general"
+                    className="shadow-none font-geneva-12 text-[12px] h-8"
+                    disabled={isLoading}
+                  />
+                </div>
+              </TabsContent>
+            )}
+
+            <TabsContent value="private" className="mt-0">
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-gray-700 text-[12px] font-geneva-12">
+                    Add to Private Chat
+                  </Label>
+                  <Input
+                    placeholder="Search users..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="shadow-none font-geneva-12 text-[12px] h-8 mt-2"
+                    disabled={isLoading}
+                  />
+                </div>
+
+                <div className="border border-gray-300 rounded max-h-[180px] overflow-y-auto bg-white">
+                  {filteredUsers.length === 0 ? (
+                    <div className="p-4 text-center text-gray-500 font-geneva-12 text-[12px]">
+                      No users found
+                    </div>
+                  ) : (
+                    <div className="p-1">
+                      {filteredUsers.map((user) => (
+                        <label
+                          key={user.username}
+                          className="flex items-center p-2 hover:bg-gray-100 cursor-pointer rounded font-geneva-12 text-[12px]"
+                        >
+                          <Checkbox
+                            checked={selectedUsers.includes(user.username)}
+                            onCheckedChange={() =>
+                              toggleUserSelection(user.username)
+                            }
+                            className="h-4 w-4"
+                            disabled={isLoading}
+                          />
+                          <span className="ml-2">@{user.username}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {selectedUsers.length > 0 && (
+                  <div className="text-[11px] text-gray-600 font-geneva-12">
+                    Selected: {selectedUsers.map((u) => `@${u}`).join(", ")}
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
+
+          {error && (
+            <p className="text-red-600 text-[12px] font-geneva-12 mt-3">
+              {error}
+            </p>
+          )}
+
+          <DialogFooter className="mt-4 gap-2">
+            <Button
+              variant="retro"
+              onClick={() => onOpenChange(false)}
+              disabled={isLoading}
+              className="font-geneva-12 text-[12px]"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="retro"
+              onClick={handleSubmit}
+              disabled={
+                isLoading ||
+                (activeTab === "public" && !roomName.trim()) ||
+                (activeTab === "private" && selectedUsers.length === 0)
+              }
+              className="font-geneva-12 text-[12px]"
+            >
+              {isLoading ? "Creating..." : "Create"}
+            </Button>
+          </DialogFooter>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

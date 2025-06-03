@@ -145,7 +145,9 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
   // --- Room Management ---
   const fetchRooms = useCallback(async () => {
     console.log("[Room Hook] Fetching rooms...");
-    const result = await callRoomAction("getRooms", {});
+    // Pass username to filter private rooms
+    const payload = username ? { username } : {};
+    const result = await callRoomAction("getRooms", payload);
     if (result.ok && result.data?.rooms) {
       const fetchedRooms = result.data.rooms;
       console.log(
@@ -186,7 +188,7 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
       console.error("[Room Hook] Failed to fetch rooms:", result.error);
       // Optionally load from cache here if API fails?
     }
-  }, [callRoomAction, setRooms, setCurrentRoomId, currentRoomId]);
+  }, [callRoomAction, setRooms, setCurrentRoomId, currentRoomId, username]);
 
   const fetchMessagesForRoom = useCallback(
     async (roomId: string) => {
@@ -339,20 +341,49 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
   );
 
   const handleAddRoom = useCallback(
-    async (roomName: string) => {
-      const trimmedRoomName = roomName.trim();
-      if (!trimmedRoomName)
-        return { ok: false, error: "Room name cannot be empty." };
+    async (
+      roomName: string,
+      type: "public" | "private" = "public",
+      members: string[] = []
+    ) => {
       if (!username) return { ok: false, error: "Set a username first." };
-      if (!isAdmin)
-        return {
-          ok: false,
-          error: "Permission denied. Admin access required.",
-        };
 
-      const result = await callRoomAction("createRoom", {
-        name: trimmedRoomName,
-      });
+      // Check if user has auth token
+      if (!authToken) {
+        console.error(
+          "[Room Hook] No auth token available for user:",
+          username
+        );
+        // Try to generate one
+        const tokenResult = await ensureAuthToken();
+        if (!tokenResult.ok) {
+          return {
+            ok: false,
+            error:
+              "Authentication required. Please try setting your username again.",
+          };
+        }
+      }
+
+      if (type === "public") {
+        const trimmedRoomName = roomName.trim();
+        if (!trimmedRoomName)
+          return { ok: false, error: "Room name cannot be empty." };
+        if (!isAdmin)
+          return {
+            ok: false,
+            error: "Permission denied. Admin access required.",
+          };
+      }
+
+      const payload: any = { type };
+      if (type === "public") {
+        payload.name = roomName.trim();
+      } else {
+        payload.members = members;
+      }
+
+      const result = await callRoomAction("createRoom", payload);
 
       if (result.ok && result.data?.room) {
         const newRoom = result.data.room;
@@ -364,7 +395,14 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
         return { ok: false, error: result.error || "Failed to create room." };
       }
     },
-    [callRoomAction, username, isAdmin, handleRoomSelect]
+    [
+      callRoomAction,
+      username,
+      authToken,
+      isAdmin,
+      handleRoomSelect,
+      ensureAuthToken,
+    ]
   ); // Added isAdmin dependency
 
   const handleDeleteRoom = useCallback(
@@ -588,7 +626,6 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
 
       fetchData();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchRooms, fetchMessagesForRoom]); // Dependencies: only fetch functions
 
   // Effect 3: Handle leaving room on component unmount or window close
@@ -614,7 +651,6 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
       // Also handle component unmount (e.g., closing the app window)
       handleBeforeUnload(); // Call it directly on unmount as well
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [username]); // Only depends on username for the cleanup action
 
   // Effect 4: Manage joining/leaving rooms based on username and currentRoomId changes
@@ -735,16 +771,11 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
       });
       return;
     }
-    if (!isAdmin) {
-      toast("Permission Denied", {
-        description: "Only administrators can create rooms.",
-      });
-      return;
-    }
+    // Both admin and non-admin users can now create rooms (public for admin, private for non-admin)
     setNewRoomName("");
     setRoomError(null);
     setIsNewRoomDialogOpen(true);
-  }, [username, isAdmin, promptSetUsername]);
+  }, [username, promptSetUsername]);
 
   const submitNewRoomDialog = useCallback(async () => {
     setIsCreatingRoom(true);
@@ -765,13 +796,35 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
 
   const confirmDeleteRoom = useCallback(async () => {
     if (!roomToDelete) return;
-    const result = await handleDeleteRoom(roomToDelete.id);
+
+    let result;
+    if (roomToDelete.type === "private") {
+      // For private rooms, leave the room instead of deleting
+      result = await callRoomAction("leaveRoom", {
+        roomId: roomToDelete.id,
+        username,
+      });
+      if (result.ok && currentRoomId === roomToDelete.id) {
+        handleRoomSelect(null); // Switch back to @ryo
+      }
+    } else {
+      // For public rooms, delete (admin only)
+      result = await handleDeleteRoom(roomToDelete.id);
+    }
+
     setIsDeleteRoomDialogOpen(false);
     setRoomToDelete(null);
     if (!result.ok) {
       toast("Error", { description: result.error });
     }
-  }, [handleDeleteRoom, roomToDelete]);
+  }, [
+    handleDeleteRoom,
+    roomToDelete,
+    callRoomAction,
+    username,
+    currentRoomId,
+    handleRoomSelect,
+  ]);
 
   return {
     // State
@@ -787,6 +840,7 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
     handleRoomSelect,
     sendRoomMessage,
     toggleSidebarVisibility,
+    handleAddRoom, // Add this
 
     // Dialog Triggers & Handlers
     promptSetUsername,

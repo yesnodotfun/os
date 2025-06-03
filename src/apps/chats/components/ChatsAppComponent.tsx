@@ -6,6 +6,7 @@ import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { InputDialog } from "@/components/dialogs/InputDialog";
+import { CreateRoomDialog } from "./CreateRoomDialog";
 import { helpItems, appMetadata } from "..";
 import { useChatRoom } from "../hooks/useChatRoom";
 import { useAiChat } from "../hooks/useAiChat";
@@ -87,6 +88,7 @@ export function ChatsAppComponent({
     handleRoomSelect,
     sendRoomMessage,
     toggleSidebarVisibility,
+    handleAddRoom,
     promptAddRoom,
     promptDeleteRoom,
     isUsernameDialogOpen,
@@ -99,11 +101,6 @@ export function ChatsAppComponent({
     setUsernameError,
     isNewRoomDialogOpen,
     setIsNewRoomDialogOpen,
-    newRoomName,
-    setNewRoomName,
-    isCreatingRoom,
-    roomError,
-    submitNewRoomDialog,
     isDeleteRoomDialogOpen,
     setIsDeleteRoomDialogOpen,
     roomToDelete,
@@ -326,7 +323,6 @@ export function ChatsAppComponent({
         rooms={rooms}
         currentRoom={currentRoom ?? null}
         onRoomSelect={(room) => handleRoomSelect(room ? room.id : null)}
-        isAdmin={isAdmin}
         onIncreaseFontSize={handleIncreaseFontSize}
         onDecreaseFontSize={handleDecreaseFontSize}
         onResetFontSize={handleResetFontSize}
@@ -334,7 +330,13 @@ export function ChatsAppComponent({
         authToken={authToken} // Pass authToken to ChatsMenuBar
       />
       <WindowFrame
-        title={currentRoom ? `#${currentRoom.name}` : "@ryo"}
+        title={
+          currentRoom
+            ? currentRoom.type === "private"
+              ? currentRoom.name
+              : `#${currentRoom.name}`
+            : "@ryo"
+        }
         onClose={onClose}
         isForeground={isForeground}
         appId="chats"
@@ -443,7 +445,11 @@ export function ChatsAppComponent({
                     className="flex items-center gap-0.5 px-2 py-1 h-7"
                   >
                     <h2 className="font-geneva-12 text-[12px] font-medium truncate">
-                      {currentRoom ? `#${currentRoom.name}` : "@ryo"}
+                      {currentRoom
+                        ? currentRoom.type === "private"
+                          ? currentRoom.name
+                          : `#${currentRoom.name}`
+                        : "@ryo"}
                     </h2>
                     <ChevronDown className="h-3 w-3 transform transition-transform duration-200 text-neutral-400" />
                   </Button>
@@ -598,25 +604,27 @@ export function ChatsAppComponent({
           isLoading={isSettingUsername}
           errorMessage={usernameError}
         />
-        <InputDialog
+        <CreateRoomDialog
           isOpen={isNewRoomDialogOpen}
           onOpenChange={setIsNewRoomDialogOpen}
-          onSubmit={submitNewRoomDialog}
-          title="Create New Room"
-          description="Enter a name for the new chat room"
-          value={newRoomName}
-          onChange={(value) => {
-            setNewRoomName(value);
-          }}
-          isLoading={isCreatingRoom}
-          errorMessage={roomError}
+          onSubmit={handleAddRoom}
+          isAdmin={isAdmin}
+          currentUsername={username}
         />
         <ConfirmDialog
           isOpen={isDeleteRoomDialogOpen}
           onOpenChange={setIsDeleteRoomDialogOpen}
           onConfirm={confirmDeleteRoom}
-          title="Delete Chat Room"
-          description={`Are you sure you want to delete the room "${roomToDelete?.name}"?. This action cannot be undone.`}
+          title={
+            roomToDelete?.type === "private"
+              ? "Leave Conversation"
+              : "Delete Chat Room"
+          }
+          description={
+            roomToDelete?.type === "private"
+              ? `Are you sure you want to leave "${roomToDelete.name}"? You will no longer see messages in this conversation.`
+              : `Are you sure you want to delete the room "${roomToDelete?.name}"? This action cannot be undone.`
+          }
         />
       </WindowFrame>
     </>

@@ -27,7 +27,6 @@ interface ChatsMenuBarProps {
   rooms: ChatRoom[];
   currentRoom: ChatRoom | null;
   onRoomSelect: (room: ChatRoom | null) => void;
-  isAdmin: boolean;
   onIncreaseFontSize: () => void;
   onDecreaseFontSize: () => void;
   onResetFontSize: () => void;
@@ -48,7 +47,6 @@ export function ChatsMenuBar({
   rooms,
   currentRoom,
   onRoomSelect,
-  isAdmin,
   onIncreaseFontSize,
   onDecreaseFontSize,
   onResetFontSize,
@@ -126,15 +124,13 @@ export function ChatsMenuBar({
           sideOffset={1}
           className="px-0 max-h-[300px] overflow-y-auto"
         >
-          {/* New Room - only show when debugMode AND isAdmin */}
-          {debugMode && isAdmin && (
-            <DropdownMenuItem
-              onClick={onAddRoom}
-              className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
-            >
-              New Room...
-            </DropdownMenuItem>
-          )}
+          {/* New Room - available to all users */}
+          <DropdownMenuItem
+            onClick={onAddRoom}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+          >
+            New Chat...
+          </DropdownMenuItem>
 
           {/* Set Username - show when debugMode OR username not set OR authToken is null */}
           {(debugMode || !username || !authToken) && (
@@ -146,11 +142,10 @@ export function ChatsMenuBar({
             </DropdownMenuItem>
           )}
 
-          {/* Show separator if we have any items above AND rooms exist */}
-          {((debugMode && isAdmin) || debugMode || !username || !authToken) &&
-            rooms.length > 0 && (
-              <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
-            )}
+          {/* Show separator between menu actions and room list */}
+          {rooms.length > 0 && (
+            <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
+          )}
 
           {/* Ryo Chat Option */}
           <DropdownMenuItem
@@ -178,7 +173,11 @@ export function ChatsMenuBar({
               >
                 <span className={cn(!(currentRoom?.id === room.id) && "pl-4")}>
                   {currentRoom?.id === room.id
-                    ? `✓ #${room.name}`
+                    ? room.type === "private"
+                      ? `✓ ${room.name}`
+                      : `✓ #${room.name}`
+                    : room.type === "private"
+                    ? room.name
                     : `#${room.name}`}
                 </span>
               </DropdownMenuItem>
