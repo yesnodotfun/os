@@ -12,6 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { X } from "lucide-react";
 import { type User } from "@/types/chat";
 
 interface CreateRoomDialogProps {
@@ -184,40 +186,51 @@ export function CreateRoomDialog({
                     className="shadow-none font-geneva-12 text-[12px] h-8"
                     disabled={isLoading}
                   />
+
+                  {/* Selected users tokens */}
+                  {selectedUsers.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {selectedUsers.map((username) => (
+                        <Badge
+                          key={username}
+                          variant="secondary"
+                          className="font-geneva-12 text-[11px] py-0.5 pl-2 pr-1 bg-gray-100 hover:bg-gray-200 border-gray-300"
+                        >
+                          @{username}
+                          <button
+                            type="button"
+                            onClick={() => toggleUserSelection(username)}
+                            className="ml-1 hover:bg-gray-300 rounded-sm p-0.5"
+                            disabled={isLoading}
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                {searchTerm.length >= 2 && (
+                {searchTerm.length >= 2 && filteredUsers.length > 0 && (
                   <div className="border border-gray-300 rounded max-h-[180px] overflow-y-auto bg-white">
-                    {filteredUsers.length === 0 ? (
-                      <div className="p-4 text-center text-gray-500 font-geneva-12 text-[12px]">
-                        No users found
-                      </div>
-                    ) : (
-                      <div className="p-1">
-                        {filteredUsers.map((user) => (
-                          <label
-                            key={user.username}
-                            className="flex items-center p-2 hover:bg-gray-100 cursor-pointer rounded font-geneva-12 text-[12px]"
-                          >
-                            <Checkbox
-                              checked={selectedUsers.includes(user.username)}
-                              onCheckedChange={() =>
-                                toggleUserSelection(user.username)
-                              }
-                              className="h-4 w-4"
-                              disabled={isLoading}
-                            />
-                            <span className="ml-2">@{user.username}</span>
-                          </label>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {selectedUsers.length > 0 && (
-                  <div className="text-[11px] text-gray-600 font-geneva-12">
-                    Selected: {selectedUsers.map((u) => `@${u}`).join(", ")}
+                    <div className="p-1">
+                      {filteredUsers.map((user) => (
+                        <label
+                          key={user.username}
+                          className="flex items-center p-2 hover:bg-gray-100 cursor-pointer rounded font-geneva-12 text-[12px]"
+                        >
+                          <Checkbox
+                            checked={selectedUsers.includes(user.username)}
+                            onCheckedChange={() =>
+                              toggleUserSelection(user.username)
+                            }
+                            className="h-4 w-4"
+                            disabled={isLoading}
+                          />
+                          <span className="ml-2">@{user.username}</span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
