@@ -127,7 +127,9 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
                           )}
                         >
                           {hasUnread
-                            ? `${unreadCount} unread`
+                            ? unreadCount >= 20
+                              ? "20+"
+                              : unreadCount.toString()
                             : `${room.userCount} online`}
                         </span>
                       )}

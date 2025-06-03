@@ -534,10 +534,33 @@ export const useChatsStore = create<ChatsStoreState>()(
 
             const data = await response.json();
             if (data.messagesMap) {
+              // Process and sort messages for each room like fetchMessagesForRoom does
+              const processedMessagesMap: Record<string, ChatMessage[]> = {};
+
+              Object.entries(data.messagesMap).forEach(([roomId, messages]) => {
+                const processedMessages: ChatMessage[] = (
+                  messages as ApiMessage[]
+                )
+                  .map((msg: ApiMessage) => ({
+                    ...msg,
+                    timestamp:
+                      typeof msg.timestamp === "string" ||
+                      typeof msg.timestamp === "number"
+                        ? new Date(msg.timestamp).getTime()
+                        : msg.timestamp,
+                  }))
+                  .sort(
+                    (a: ChatMessage, b: ChatMessage) =>
+                      a.timestamp - b.timestamp
+                  );
+
+                processedMessagesMap[roomId] = processedMessages;
+              });
+
               set((state) => ({
                 roomMessages: {
                   ...state.roomMessages,
-                  ...data.messagesMap,
+                  ...processedMessagesMap,
                 },
               }));
 
