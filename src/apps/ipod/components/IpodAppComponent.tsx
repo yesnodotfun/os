@@ -1060,7 +1060,13 @@ export function IpodAppComponent({
       const shouldAutoplay = !(isIOS || isSafari);
 
       if (existingTrackIndex !== -1) {
-        toast.info("Opening shared track...");
+        toast.info(
+          <>
+            Opened shared track. Press{' '}
+            <span className="font-chicago">⏯</span>
+            {' '}to start playing.
+          </>
+        );
         console.log(`[iPod] Video ID ${videoId} found in tracks. Playing.`);
         setCurrentIndex(existingTrackIndex);
         if (shouldAutoplay) {
