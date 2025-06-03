@@ -24,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import { useRyoChat } from "../hooks/useRyoChat";
 import { ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { formatPrivateRoomName } from "@/utils/chat";
+import { getPrivateRoomDisplayName } from "@/utils/chat";
 
 // Define the expected message structure locally, matching ChatMessages internal type
 interface DisplayMessage extends Omit<UIMessage, "role"> {
@@ -125,7 +125,8 @@ export function ChatsAppComponent({
       : null;
 
   // Prepare tooltip text: display up to 3 users then show remaining count
-  const usersList = currentRoom?.users ?? [];
+  const usersList =
+    currentRoom?.type !== "private" ? currentRoom?.users ?? [] : [];
   const maxDisplayNames = 3;
   const displayNames = usersList.slice(0, maxDisplayNames);
   const remainingCount = usersList.length - displayNames.length;
@@ -334,7 +335,7 @@ export function ChatsAppComponent({
         title={
           currentRoom
             ? currentRoom.type === "private"
-              ? formatPrivateRoomName(currentRoom.name, username)
+              ? getPrivateRoomDisplayName(currentRoom, username)
               : `#${currentRoom.name}`
             : "@ryo"
         }
@@ -450,18 +451,20 @@ export function ChatsAppComponent({
                     <h2 className="font-geneva-12 text-[12px] font-medium truncate">
                       {currentRoom
                         ? currentRoom.type === "private"
-                          ? formatPrivateRoomName(currentRoom.name, username)
+                          ? getPrivateRoomDisplayName(currentRoom, username)
                           : `#${currentRoom.name}`
                         : "@ryo"}
                     </h2>
                     <ChevronDown className="h-3 w-3 transform transition-transform duration-200 text-neutral-400" />
                   </Button>
 
-                  {currentRoom && usersList.length > 0 && (
-                    <span className="font-geneva-12 text-[11px] text-neutral-500">
-                      {tooltipText}
-                    </span>
-                  )}
+                  {currentRoom &&
+                    currentRoom.type !== "private" &&
+                    usersList.length > 0 && (
+                      <span className="font-geneva-12 text-[11px] text-neutral-500">
+                        {tooltipText}
+                      </span>
+                    )}
                 </div>
                 <div className="flex items-center gap-0">
                   {/* Set Username button shown only in @ryo view when no username is set */}
@@ -476,6 +479,7 @@ export function ChatsAppComponent({
                       </span>
                     </Button>
                   )}
+
                   {/* Clear chat button shown only in @ryo (no current room) */}
                   {!currentRoom && (
                     <Button
@@ -484,6 +488,17 @@ export function ChatsAppComponent({
                       className="flex items-center gap-1 px-2 py-1 h-7"
                     >
                       <span className="font-geneva-12 text-[11px]">Clear</span>
+                    </Button>
+                  )}
+
+                  {/* Leave button for private rooms */}
+                  {currentRoom && currentRoom.type === "private" && (
+                    <Button
+                      variant="ghost"
+                      onClick={() => promptDeleteRoom(currentRoom)}
+                      className="flex items-center gap-1 px-2 py-1 h-7"
+                    >
+                      <span className="font-geneva-12 text-[11px]">Leave</span>
                     </Button>
                   )}
                 </div>

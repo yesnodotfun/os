@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { type ChatRoom } from "@/types/chat";
 import { useSound, Sounds } from "@/hooks/useSound";
-import { formatPrivateRoomName } from "@/utils/chat";
+import { getPrivateRoomDisplayName } from "@/utils/chat";
 
 // Extracted ChatRoomSidebar component
 interface ChatRoomSidebarProps {
@@ -101,24 +101,26 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
                   <div className="flex items-center">
                     <span>
                       {room.type === "private"
-                        ? formatPrivateRoomName(room.name, username ?? null)
+                        ? getPrivateRoomDisplayName(room, username ?? null)
                         : `#${room.name}`}
                     </span>
-                    <span
-                      className={cn(
-                        "text-[10px] ml-1.5 transition-opacity",
-                        currentRoom?.id === room.id
-                          ? "text-white/40"
-                          : "text-black/40",
-                        room.userCount > 0
-                          ? "opacity-100"
-                          : currentRoom?.id === room.id
-                          ? "opacity-100"
-                          : "opacity-0 group-hover:opacity-100"
-                      )}
-                    >
-                      {room.userCount} online
-                    </span>
+                    {room.type !== "private" && (
+                      <span
+                        className={cn(
+                          "text-[10px] ml-1.5 transition-opacity",
+                          currentRoom?.id === room.id
+                            ? "text-white/40"
+                            : "text-black/40",
+                          room.userCount > 0
+                            ? "opacity-100"
+                            : currentRoom?.id === room.id
+                            ? "opacity-100"
+                            : "opacity-0 group-hover:opacity-100"
+                        )}
+                      >
+                        {room.userCount} online
+                      </span>
+                    )}
                   </div>
                   {((isAdmin && room.type !== "private") ||
                     room.type === "private") &&

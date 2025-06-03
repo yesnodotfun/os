@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { generateAppShareUrl } from "@/utils/sharedUrl";
 import { useAppStoreShallow } from "@/stores/helpers";
 import { SYNTH_PRESETS } from "@/hooks/useChatSynth";
-import { formatPrivateRoomName } from "@/utils/chat";
+import { getPrivateRoomDisplayName } from "@/utils/chat";
 
 interface ChatsMenuBarProps {
   onClose: () => void;
@@ -187,13 +187,13 @@ export function ChatsMenuBar({
                   >
                     {currentRoom?.id === room.id
                       ? room.type === "private"
-                        ? `✓ ${formatPrivateRoomName(
-                            room.name,
+                        ? `✓ ${getPrivateRoomDisplayName(
+                            room,
                             username ?? null
                           )}`
                         : `✓ #${room.name}`
                       : room.type === "private"
-                      ? formatPrivateRoomName(room.name, username ?? null)
+                      ? getPrivateRoomDisplayName(room, username ?? null)
                       : `#${room.name}`}
                   </span>
                 </DropdownMenuItem>
