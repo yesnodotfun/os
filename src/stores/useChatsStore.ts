@@ -123,6 +123,13 @@ export interface ChatsStoreState {
   fetchMessagesForRoom: (
     roomId: string
   ) => Promise<{ ok: boolean; error?: string }>;
+  fetchBulkMessages: (
+    roomIds: string[]
+  ) => Promise<{
+    ok: boolean;
+    error?: string;
+    messagesMap?: Record<string, ChatMessage[]>;
+  }>;
   switchRoom: (
     roomId: string | null
   ) => Promise<{ ok: boolean; error?: string }>;
@@ -169,6 +176,7 @@ const getInitialState = (): Omit<
   | "ensureAuthToken"
   | "fetchRooms"
   | "fetchMessagesForRoom"
+  | "fetchBulkMessages"
   | "switchRoom"
   | "createRoom"
   | "deleteRoom"
@@ -494,6 +502,56 @@ export const useChatsStore = create<ChatsStoreState>()(
           } catch (error) {
             console.error(
               `[ChatsStore] Error fetching messages for room ${roomId}:`,
+              error
+            );
+            return { ok: false, error: "Network error. Please try again." };
+          }
+        },
+        fetchBulkMessages: async (roomIds: string[]) => {
+          if (roomIds.length === 0)
+            return { ok: false, error: "Room IDs required" };
+
+          console.log(
+            `[ChatsStore] Fetching messages for rooms: ${roomIds.join(", ")}...`
+          );
+
+          try {
+            const queryParams = new URLSearchParams({
+              action: "getBulkMessages",
+              roomIds: roomIds.join(","),
+            });
+
+            const response = await fetch(
+              `/api/chat-rooms?${queryParams.toString()}`
+            );
+            if (!response.ok) {
+              const errorData = await response.json().catch(() => ({
+                error: `HTTP error! status: ${response.status}`,
+              }));
+              return {
+                ok: false,
+                error: errorData.error || "Failed to fetch messages",
+              };
+            }
+
+            const data = await response.json();
+            if (data.messagesMap) {
+              set((state) => ({
+                roomMessages: {
+                  ...state.roomMessages,
+                  ...data.messagesMap,
+                },
+              }));
+
+              return { ok: true };
+            }
+
+            return { ok: false, error: "Invalid response format" };
+          } catch (error) {
+            console.error(
+              `[ChatsStore] Error fetching messages for rooms ${roomIds.join(
+                ", "
+              )}:`,
               error
             );
             return { ok: false, error: "Network error. Please try again." };

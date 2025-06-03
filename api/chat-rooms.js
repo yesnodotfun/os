@@ -331,7 +331,12 @@ export async function GET(request) {
 
   try {
     // Actions that don't require authentication
-    const publicActions = ["getRooms", "getMessages", "getUsers"];
+    const publicActions = [
+      "getRooms",
+      "getMessages",
+      "getBulkMessages",
+      "getUsers",
+    ];
 
     // Check authentication for protected actions
     if (!publicActions.includes(action)) {
@@ -362,6 +367,17 @@ export async function GET(request) {
           return createErrorResponse("roomId query parameter is required", 400);
         }
         return await handleGetMessages(roomId, requestId);
+      }
+      case "getBulkMessages": {
+        const roomIds = url.searchParams.get("roomIds");
+        if (!roomIds) {
+          logInfo(requestId, "Missing roomIds parameter");
+          return createErrorResponse(
+            "roomIds query parameter is required",
+            400
+          );
+        }
+        return await handleGetBulkMessages(roomIds.split(","), requestId);
       }
       case "getRoomUsers": {
         const roomId = url.searchParams.get("roomId");
@@ -796,6 +812,86 @@ async function handleDeleteRoom(roomId, username, requestId) {
 }
 
 // Message functions
+async function handleGetBulkMessages(roomIds, requestId) {
+  logInfo(
+    requestId,
+    `Fetching messages for ${roomIds.length} rooms: ${roomIds.join(", ")}`
+  );
+
+  try {
+    // Verify all rooms exist first
+    const roomExistenceChecks = await Promise.all(
+      roomIds.map((roomId) => redis.exists(`${CHAT_ROOM_PREFIX}${roomId}`))
+    );
+
+    const validRoomIds = roomIds.filter(
+      (_, index) => roomExistenceChecks[index]
+    );
+    const invalidRoomIds = roomIds.filter(
+      (_, index) => !roomExistenceChecks[index]
+    );
+
+    if (invalidRoomIds.length > 0) {
+      logInfo(requestId, `Invalid room IDs: ${invalidRoomIds.join(", ")}`);
+    }
+
+    // Fetch messages for all valid rooms in parallel
+    const messagePromises = validRoomIds.map(async (roomId) => {
+      const messagesKey = `${CHAT_MESSAGES_PREFIX}${roomId}`;
+      const messagesStrings = await redis.lrange(messagesKey, 0, 19); // Last 20 messages
+
+      const messages = messagesStrings
+        .map((item) => {
+          try {
+            if (typeof item === "object" && item !== null) {
+              return item;
+            } else if (typeof item === "string") {
+              return JSON.parse(item);
+            } else {
+              return null;
+            }
+          } catch (e) {
+            logError(requestId, `Failed to parse message for room ${roomId}:`, {
+              item,
+              error: e,
+            });
+            return null;
+          }
+        })
+        .filter((message) => message !== null);
+
+      return { roomId, messages };
+    });
+
+    const results = await Promise.all(messagePromises);
+
+    // Convert to object map
+    const messagesMap = {};
+    results.forEach(({ roomId, messages }) => {
+      messagesMap[roomId] = messages;
+    });
+
+    logInfo(
+      requestId,
+      `Successfully fetched messages for ${results.length} rooms`
+    );
+
+    return new Response(
+      JSON.stringify({
+        messagesMap,
+        validRoomIds,
+        invalidRoomIds,
+      }),
+      {
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  } catch (error) {
+    logError(requestId, "Error fetching bulk messages:", error);
+    return createErrorResponse("Failed to fetch bulk messages", 500);
+  }
+}
+
 async function handleGetMessages(roomId, requestId) {
   logInfo(requestId, `Fetching messages for room: ${roomId}`);
 

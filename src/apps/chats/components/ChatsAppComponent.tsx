@@ -144,19 +144,33 @@ export function ChatsAppComponent({
       })),
     });
 
+  // Wrapper for room selection that handles unread scroll triggering
+  const handleRoomSelectWithScroll = useCallback(
+    async (roomId: string | null) => {
+      const result = await handleRoomSelect(roomId);
+      if (result?.hadUnreads) {
+        console.log(
+          `[ChatsApp] Triggering scroll for room with unreads: ${roomId}`
+        );
+        setScrollToBottomTrigger((prev) => prev + 1);
+      }
+    },
+    [handleRoomSelect]
+  );
+
   // Ensure isSidebarVisible is always boolean for child components
   const sidebarVisibleBool = isSidebarVisible ?? false;
 
   // Handler for mobile room selection that auto-dismisses the sidebar
   const handleMobileRoomSelect = useCallback(
-    (room: ChatRoom | null) => {
-      handleRoomSelect(room ? room.id : null);
+    async (room: ChatRoom | null) => {
+      await handleRoomSelectWithScroll(room ? room.id : null);
       // Auto-dismiss sidebar on mobile after selecting a room
       if (sidebarVisibleBool) {
         toggleSidebarVisibility();
       }
     },
-    [handleRoomSelect, sidebarVisibleBool, toggleSidebarVisibility]
+    [handleRoomSelectWithScroll, sidebarVisibleBool, toggleSidebarVisibility]
   );
 
   const handleSubmit = useCallback(
@@ -321,7 +335,9 @@ export function ChatsAppComponent({
         onAddRoom={promptAddRoom}
         rooms={rooms}
         currentRoom={currentRoom ?? null}
-        onRoomSelect={(room) => handleRoomSelect(room ? room.id : null)}
+        onRoomSelect={(room) =>
+          handleRoomSelectWithScroll(room ? room.id : null)
+        }
         onIncreaseFontSize={handleIncreaseFontSize}
         onDecreaseFontSize={handleDecreaseFontSize}
         onResetFontSize={handleResetFontSize}
@@ -426,7 +442,9 @@ export function ChatsAppComponent({
               <ChatRoomSidebar
                 rooms={rooms}
                 currentRoom={currentRoom ?? null}
-                onRoomSelect={(room) => handleRoomSelect(room ? room.id : null)}
+                onRoomSelect={(room) =>
+                  handleRoomSelectWithScroll(room ? room.id : null)
+                }
                 onAddRoom={promptAddRoom}
                 onDeleteRoom={(room) => promptDeleteRoom(room)}
                 isVisible={sidebarVisibleBool}

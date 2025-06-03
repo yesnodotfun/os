@@ -22,6 +22,7 @@ export function useChatRoom(isWindowOpen: boolean) {
     // Store methods
     fetchRooms,
     fetchMessagesForRoom,
+    fetchBulkMessages,
     setRooms,
     switchRoom,
     createRoom,
@@ -208,6 +209,10 @@ export function useChatRoom(isWindowOpen: boolean) {
 
       console.log(`[Room Hook] Switching to room: ${newRoomId || "@ryo"}`);
 
+      // Check if the target room has unread messages before switching
+      const { unreadCounts } = useChatsStore.getState();
+      const hadUnreads = newRoomId ? (unreadCounts[newRoomId] || 0) > 0 : false;
+
       // Simply switch room; we keep subscriptions so notifications still arrive.
       await switchRoom(newRoomId);
 
@@ -215,6 +220,8 @@ export function useChatRoom(isWindowOpen: boolean) {
       if (newRoomId) {
         subscribeToRoomChannel(newRoomId);
       }
+
+      return { hadUnreads };
     },
     [currentRoomId, switchRoom, subscribeToRoomChannel]
   );
@@ -345,20 +352,47 @@ export function useChatRoom(isWindowOpen: boolean) {
     initializePusher();
     (async () => {
       const result = await fetchRooms();
-      if (result.ok && currentRoomId) {
-        console.log(
-          `[useChatRoom] Initial fetch of messages for room ${currentRoomId}`
-        );
-        await fetchMessagesForRoom(currentRoomId);
+      if (result.ok) {
+        // Get fresh rooms list to fetch messages for all visible rooms
+        const { rooms: freshRooms } = useChatsStore.getState();
+        if (freshRooms.length > 0) {
+          const roomIds = freshRooms.map((room) => room.id);
+          console.log(
+            `[useChatRoom] Initial bulk fetch of messages for ${roomIds.length} rooms`
+          );
+          const bulkResult = await fetchBulkMessages(roomIds);
+
+          // Calculate unread counts for messages received while away
+          if (bulkResult.ok) {
+            const { roomMessages: allRoomMessages, incrementUnread } =
+              useChatsStore.getState();
+            const now = Date.now();
+            const UNREAD_THRESHOLD_HOURS = 24; // Consider messages from last 24 hours as potentially unread
+            const unreadThreshold =
+              now - UNREAD_THRESHOLD_HOURS * 60 * 60 * 1000;
+
+            roomIds.forEach((roomId) => {
+              const messages = allRoomMessages[roomId] || [];
+              if (messages.length > 0 && roomId !== currentRoomId) {
+                // Count recent messages as unread for non-current rooms
+                const recentMessages = messages.filter(
+                  (msg) =>
+                    msg.timestamp > unreadThreshold && msg.username !== username // Don't count own messages as unread
+                );
+
+                // Add unread count for recent messages
+                recentMessages.forEach(() => incrementUnread(roomId));
+              }
+            });
+
+            console.log(
+              `[useChatRoom] Calculated unread counts for rooms with recent activity`
+            );
+          }
+        }
       }
     })();
-  }, [
-    isWindowOpen,
-    initializePusher,
-    fetchRooms,
-    fetchMessagesForRoom,
-    currentRoomId,
-  ]);
+  }, [isWindowOpen, initializePusher, fetchRooms, fetchBulkMessages]);
 
   // Handle username changes
   useEffect(() => {
