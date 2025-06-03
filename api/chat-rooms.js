@@ -725,10 +725,7 @@ async function handleCreateRoom(data, username, requestId) {
 
     // Trigger Pusher event for room creation
     try {
-      // Note: getDetailedRooms doesn't filter by user, so we might be exposing private rooms
-      // For now, we'll keep this behavior but clients should filter on their end
-      const rooms = await getDetailedRooms();
-      await pusher.trigger("chats", "rooms-updated", { rooms });
+      await broadcastRoomsUpdated();
       logInfo(requestId, "Pusher event triggered: rooms-updated");
     } catch (pusherError) {
       logError(
@@ -775,8 +772,7 @@ async function handleDeleteRoom(roomId, username, requestId) {
 
     // Trigger Pusher event for room deletion
     try {
-      const rooms = await getDetailedRooms();
-      await pusher.trigger("chats", "rooms-updated", { rooms });
+      await broadcastRoomsUpdated();
       logInfo(
         requestId,
         "Pusher event triggered: rooms-updated after deletion"
@@ -1076,8 +1072,7 @@ async function handleLeaveRoom(data, requestId) {
 
           // Trigger Pusher event for room deletion
           try {
-            const rooms = await getDetailedRooms();
-            await pusher.trigger("chats", "rooms-updated", { rooms });
+            await broadcastRoomsUpdated();
             logInfo(
               requestId,
               "Pusher event triggered: rooms-updated after private room deletion"
@@ -1100,8 +1095,7 @@ async function handleLeaveRoom(data, requestId) {
 
           // Trigger Pusher event for room update
           try {
-            const rooms = await getDetailedRooms();
-            await pusher.trigger("chats", "rooms-updated", { rooms });
+            await broadcastRoomsUpdated();
           } catch (pusherError) {
             logError(
               requestId,
@@ -1188,16 +1182,7 @@ async function handleClearAllMessages(username, requestId) {
 
     // Notify clients that messages have been cleared
     try {
-      // For each room, trigger a room-message event with an empty message list
-      const roomKeys = await redis.keys(`${CHAT_ROOM_PREFIX}*`);
-      const roomsData = await redis.mget(...roomKeys);
-      const rooms = roomsData.map((r) => r).filter(Boolean);
-
-      // Trigger a single event for all rooms to refresh
-      await pusher.trigger("chats", "messages-cleared", {
-        timestamp: getCurrentTimestamp(),
-      });
-
+      await broadcastRoomsUpdated();
       logInfo(requestId, "Pusher event triggered: messages-cleared");
     } catch (pusherError) {
       logError(
@@ -1276,8 +1261,7 @@ async function handleResetUserCounts(username, requestId) {
 
     // Notify clients that user counts have been reset
     try {
-      const rooms = await getDetailedRooms();
-      await pusher.trigger("chats", "rooms-updated", { rooms });
+      await broadcastRoomsUpdated();
       logInfo(
         requestId,
         "Pusher event triggered: rooms-updated after user count reset"
@@ -1689,8 +1673,7 @@ async function handleSwitchRoom(data, requestId) {
         // Removed individual user-count-updated event; rooms-updated will carry the new count
       }
 
-      const rooms = await getDetailedRooms();
-      await pusher.trigger("chats", "rooms-updated", { rooms });
+      await broadcastRoomsUpdated();
     } catch (pusherErr) {
       logError(
         requestId,
@@ -1758,5 +1741,49 @@ async function handleGenerateToken(data, requestId) {
   } catch (error) {
     logError(requestId, `Error generating token for user ${username}:`, error);
     return createErrorResponse("Failed to generate token", 500);
+  }
+}
+
+// Helper: Filter visible rooms for a given username (or public if null)
+const filterRoomsForUser = (rooms, username) => {
+  if (!username) {
+    return rooms.filter((room) => !room.type || room.type === "public");
+  }
+  const lower = username.toLowerCase();
+  return rooms.filter((room) => {
+    if (!room.type || room.type === "public") return true;
+    if (room.type === "private" && room.members) {
+      return room.members.includes(lower);
+    }
+    return false;
+  });
+};
+
+/**
+ * Broadcast a filtered rooms list to each active user as well as a public channel.
+ * The public channel ("chats-public") only contains public rooms. Each user gets
+ * their own channel: "chats-<username>".
+ */
+async function broadcastRoomsUpdated() {
+  try {
+    const allRooms = await getDetailedRooms();
+
+    // 1. Public channel with only public rooms (for anonymous clients)
+    const publicRooms = filterRoomsForUser(allRooms, null);
+    await pusher.trigger("chats-public", "rooms-updated", {
+      rooms: publicRooms,
+    });
+
+    // 2. Per-user channels
+    const userKeys = await redis.keys(`${CHAT_USERS_PREFIX}*`);
+    for (const key of userKeys) {
+      const username = key.substring(CHAT_USERS_PREFIX.length);
+      const userRooms = filterRoomsForUser(allRooms, username);
+      await pusher.trigger(`chats-${username}`, "rooms-updated", {
+        rooms: userRooms,
+      });
+    }
+  } catch (err) {
+    console.error("[broadcastRoomsUpdated] Failed to broadcast rooms:", err);
   }
 }

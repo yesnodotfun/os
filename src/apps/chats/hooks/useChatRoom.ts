@@ -4,6 +4,7 @@ import { useChatsStore } from "../../../stores/useChatsStore";
 import { toast } from "@/hooks/useToast";
 import { type ChatRoom, type ChatMessage } from "../../../../src/types/chat";
 import { formatPrivateRoomName } from "@/utils/chat";
+import { useAppStore } from "@/stores/useAppStore";
 
 // Debounce helper
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -27,7 +28,8 @@ function debounce<T extends (...args: any[]) => void>(
 
 const PUSHER_APP_KEY = "b47fd563805c8c42da1a";
 const PUSHER_CLUSTER = "us3";
-const PUSHER_CHANNEL = "chats";
+const getGlobalChannelName = (username?: string | null): string =>
+  username ? `chats-${username.toLowerCase()}` : "chats-public";
 
 export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
   const {
@@ -54,6 +56,7 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
 
   const pusherRef = useRef<Pusher | null>(null);
   const globalChannelRef = useRef<Channel | null>(null); // 'chats' channel
+  const globalChannelNameRef = useRef<string>("");
   const roomChannelsRef = useRef<Record<string, Channel>>({});
   const previousRoomIdRef = useRef<string | null>(currentRoomId); // Initialize with store value
   const debouncedSetRoomsRef = useRef(debounce(setRooms, 300)); // Debounce setRooms calls from Pusher
@@ -472,8 +475,15 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
           cluster: PUSHER_CLUSTER,
         });
 
-        console.log(`[Pusher Hook] Subscribing to channel: ${PUSHER_CHANNEL}`);
-        globalChannelRef.current = pusherRef.current.subscribe(PUSHER_CHANNEL);
+        console.log(
+          `[Pusher Hook] Subscribing to channel: ${getGlobalChannelName(
+            username
+          )}`
+        );
+        const initialGlobalName = getGlobalChannelName(username);
+        globalChannelRef.current =
+          pusherRef.current.subscribe(initialGlobalName);
+        globalChannelNameRef.current = initialGlobalName;
 
         // Bind global events
         globalChannelRef.current.bind(
@@ -704,6 +714,36 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
     }
   }, [username, fetchRooms]);
 
+  // Effect: Resubscribe global channel when username changes
+  useEffect(() => {
+    if (!pusherRef.current) return;
+    const newChannelName = getGlobalChannelName(username);
+    if (newChannelName === globalChannelNameRef.current) return;
+
+    // Unsubscribe previous
+    if (globalChannelRef.current) {
+      globalChannelRef.current.unbind("rooms-updated");
+      pusherRef.current.unsubscribe(globalChannelNameRef.current);
+    }
+
+    console.log(`[Pusher Hook] Switching global channel to: ${newChannelName}`);
+    const newChannel = pusherRef.current.subscribe(newChannelName);
+    newChannel.bind("rooms-updated", (data: { rooms: ChatRoom[] }) => {
+      const currentUsername = useChatsStore.getState().username;
+      const filteredRooms = data.rooms.filter((room) => {
+        if (!room.type || room.type === "public") return true;
+        if (room.type === "private" && room.members && currentUsername) {
+          return room.members.includes(currentUsername.toLowerCase());
+        }
+        return false;
+      });
+      debouncedSetRoomsRef.current(filteredRooms);
+    });
+
+    globalChannelRef.current = newChannel;
+    globalChannelNameRef.current = newChannelName;
+  }, [username]);
+
   // --- Pusher per-room event handlers ---
   const handleIncomingRoomMessage = useCallback(
     (data: { roomId: string; message: ChatMessage }) => {
@@ -757,7 +797,13 @@ export function useChatRoom(isWindowOpen: boolean, isForeground: boolean) {
                 : data.message.content,
             action: {
               label: "View",
-              onClick: () => handleRoomSelect(room.id),
+              onClick: () => {
+                // Ensure Chat app is open and foreground
+                const { launchOrFocusApp } = useAppStore.getState();
+                launchOrFocusApp("chats");
+                // Select the room after bringing app forward
+                handleRoomSelect(room.id);
+              },
             },
             duration: 4000,
           });
