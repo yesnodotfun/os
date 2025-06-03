@@ -124,7 +124,12 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
                     room.type === "private") &&
                     onDeleteRoom && (
                       <button
-                        className="absolute right-1 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-red-500 p-1 rounded hover:bg-black/5"
+                        className={cn(
+                          "absolute right-1 top-1/2 transform -translate-y-1/2 transition-opacity text-gray-500 hover:text-red-500 p-1 rounded hover:bg-black/5",
+                          currentRoom?.id === room.id
+                            ? "opacity-100"
+                            : "opacity-0 group-hover:opacity-100"
+                        )}
                         onClick={(e) => {
                           e.stopPropagation();
                           playButtonClick();
