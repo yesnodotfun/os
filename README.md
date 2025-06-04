@@ -1,6 +1,8 @@
 # ryOS — A web-based agentic AI OS, made with Cursor
 
-A modern web-based desktop environment inspired by classic macOS, built with a cutting-edge web stack and AI. Features multiple built-in applications, a familiar desktop interface, and a system context-aware AI agent. Works on all devices—including mobile, tablet, and desktop.
+A modern web-based desktop environment inspired by classic macOS, built with a cutting-edge web stack and AI. 
+Features multiple built-in applications, a familiar desktop interface, and a system context-aware AI agent. 
+Works on all devices—including mobile, tablet, and desktop.
 
 ## Features
 
@@ -16,7 +18,6 @@ A modern web-based desktop environment inspired by classic macOS, built with a c
 - System-wide UI, Chats, and Terminal sounds
 - System-wide Ryo AI, with tool calls and context of running applications
 - Virtual file system with local storage persistence and one-click Backup / Restore
-- Optional CRT, Galaxy & Aurora shader effects
 
 ### Built-in Applications
 
@@ -167,7 +168,3 @@ This project is licensed under the AGPL-3.0 License - see the [LICENSE](LICENSE)
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
-
-## Wiki
-
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/ryokun6/ryos)
