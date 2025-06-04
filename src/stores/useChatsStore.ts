@@ -7,6 +7,10 @@ import { type ChatRoom, type ChatMessage } from "@/types/chat";
 const USERNAME_RECOVERY_KEY = "_usr_recovery_key_";
 const AUTH_TOKEN_RECOVERY_KEY = "_auth_recovery_key_";
 
+// Token constants
+const TOKEN_REFRESH_THRESHOLD = 7 * 24 * 60 * 60 * 1000; // 7 days in ms (weekly refresh)
+const TOKEN_LAST_REFRESH_KEY = "_token_refresh_time_";
+
 // API Response Types
 interface ApiMessage {
   id: string;
@@ -71,6 +75,58 @@ const getAuthTokenFromRecovery = (): string | null => {
   return null;
 };
 
+// Save token refresh time
+const saveTokenRefreshTime = (username: string) => {
+  const key = `${TOKEN_LAST_REFRESH_KEY}${username}`;
+  localStorage.setItem(key, Date.now().toString());
+};
+
+// Get token refresh time
+const getTokenRefreshTime = (username: string): number | null => {
+  const key = `${TOKEN_LAST_REFRESH_KEY}${username}`;
+  const time = localStorage.getItem(key);
+  return time ? parseInt(time, 10) : null;
+};
+
+// API request wrapper with automatic token refresh
+const makeAuthenticatedRequest = async (
+  url: string,
+  options: RequestInit,
+  refreshToken: () => Promise<{ ok: boolean; error?: string; token?: string }>
+): Promise<Response> => {
+  const initialResponse = await fetch(url, options);
+
+  // If not 401 or no auth header, return as-is
+  if (
+    initialResponse.status !== 401 ||
+    !options.headers ||
+    !("Authorization" in options.headers)
+  ) {
+    return initialResponse;
+  }
+
+  console.log("[ChatsStore] Received 401, attempting token refresh...");
+
+  // Attempt to refresh the token
+  const refreshResult = await refreshToken();
+
+  if (!refreshResult.ok || !refreshResult.token) {
+    console.log(
+      "[ChatsStore] Token refresh failed, returning original 401 response"
+    );
+    return initialResponse;
+  }
+
+  // Retry the request with the new token
+  const newHeaders = {
+    ...options.headers,
+    Authorization: `Bearer ${refreshResult.token}`,
+  };
+
+  console.log("[ChatsStore] Retrying request with refreshed token");
+  return fetch(url, { ...options, headers: newHeaders });
+};
+
 // Ensure recovery keys are set if values exist in store but not in recovery
 const ensureRecoveryKeysAreSet = (
   username: string | null,
@@ -118,6 +174,12 @@ export interface ChatsStoreState {
   toggleSidebarVisibility: () => void;
   setFontSize: (size: number | ((prevSize: number) => number)) => void; // Add font size action
   ensureAuthToken: () => Promise<{ ok: boolean; error?: string }>; // Add auth token generation
+  refreshAuthToken: () => Promise<{
+    ok: boolean;
+    error?: string;
+    token?: string;
+  }>; // Add token refresh
+  checkAndRefreshTokenIfNeeded: () => Promise<{ refreshed: boolean }>; // Proactive token refresh
 
   // Room Management Actions
   fetchRooms: () => Promise<{ ok: boolean; error?: string }>;
@@ -174,6 +236,8 @@ const getInitialState = (): Omit<
   | "toggleSidebarVisibility"
   | "setFontSize"
   | "ensureAuthToken"
+  | "refreshAuthToken"
+  | "checkAndRefreshTokenIfNeeded"
   | "fetchRooms"
   | "fetchMessagesForRoom"
   | "fetchBulkMessages"
@@ -376,6 +440,8 @@ export const useChatsStore = create<ChatsStoreState>()(
               console.log("[ChatsStore] Auth token generated successfully");
               set({ authToken: data.token });
               saveAuthTokenToRecovery(data.token);
+              // Save token creation time
+              saveTokenRefreshTime(currentUsername);
               return { ok: true };
             } else if (response.status === 409) {
               // Token already exists on server, this shouldn't happen but handle it
@@ -400,6 +466,134 @@ export const useChatsStore = create<ChatsStoreState>()(
               ok: false,
               error: "Network error while generating auth token",
             };
+          }
+        },
+        refreshAuthToken: async () => {
+          const currentUsername = get().username;
+          const currentToken = get().authToken;
+
+          if (!currentUsername) {
+            console.log("[ChatsStore] No username set, skipping token refresh");
+            return { ok: false, error: "Username required" };
+          }
+
+          if (!currentToken) {
+            console.log(
+              "[ChatsStore] No auth token set, skipping token refresh"
+            );
+            return { ok: false, error: "Auth token required" };
+          }
+
+          console.log(
+            "[ChatsStore] Refreshing auth token for existing user:",
+            currentUsername
+          );
+
+          try {
+            const response = await fetch(
+              "/api/chat-rooms?action=refreshToken",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  username: currentUsername,
+                  oldToken: currentToken,
+                }),
+              }
+            );
+
+            if (!response.ok) {
+              const errorData = await response.json().catch(() => ({
+                error: `HTTP error! status: ${response.status}`,
+              }));
+              console.error("[ChatsStore] Error refreshing token:", errorData);
+              return {
+                ok: false,
+                error: errorData.error || "Failed to refresh token",
+              };
+            }
+
+            const data = await response.json();
+            if (data.token) {
+              console.log("[ChatsStore] Auth token refreshed successfully");
+              set({ authToken: data.token });
+              saveAuthTokenToRecovery(data.token);
+              // Save token refresh time
+              saveTokenRefreshTime(currentUsername);
+              return { ok: true, token: data.token };
+            } else {
+              console.error(
+                "[ChatsStore] Invalid response format for token refresh"
+              );
+              return {
+                ok: false,
+                error: "Invalid response format for token refresh",
+              };
+            }
+          } catch (error) {
+            console.error("[ChatsStore] Error refreshing token:", error);
+            return { ok: false, error: "Network error while refreshing token" };
+          }
+        },
+        checkAndRefreshTokenIfNeeded: async () => {
+          const currentUsername = get().username;
+          const currentToken = get().authToken;
+
+          if (!currentUsername || !currentToken) {
+            console.log(
+              "[ChatsStore] No username or auth token set, skipping token check"
+            );
+            return { refreshed: false };
+          }
+
+          // Get last refresh time
+          const lastRefreshTime = getTokenRefreshTime(currentUsername);
+
+          if (!lastRefreshTime) {
+            // No refresh time recorded, save current time (assume token is fresh)
+            console.log(
+              "[ChatsStore] No refresh time found, recording current time"
+            );
+            saveTokenRefreshTime(currentUsername);
+            return { refreshed: false };
+          }
+
+          const tokenAge = Date.now() - lastRefreshTime;
+          const tokenAgeDays = Math.floor(tokenAge / (24 * 60 * 60 * 1000));
+
+          console.log(`[ChatsStore] Token age: ${tokenAgeDays} days`);
+
+          // If token is older than threshold, refresh it
+          if (tokenAge > TOKEN_REFRESH_THRESHOLD) {
+            console.log(
+              `[ChatsStore] Token is ${tokenAgeDays} days old (weekly refresh due), refreshing...`
+            );
+
+            const refreshResult = await get().refreshAuthToken();
+
+            if (refreshResult.ok) {
+              // Update refresh time on successful refresh
+              saveTokenRefreshTime(currentUsername);
+              console.log(
+                "[ChatsStore] Token refreshed automatically (weekly refresh)"
+              );
+              return { refreshed: true };
+            } else {
+              console.error(
+                "[ChatsStore] Failed to refresh token (will retry next hour):",
+                refreshResult.error
+              );
+              return { refreshed: false };
+            }
+          } else {
+            console.log(
+              `[ChatsStore] Token is ${tokenAgeDays} days old, next refresh in ${
+                7 - tokenAgeDays
+              } days`
+            );
+            return { refreshed: false };
           }
         },
         reset: () => {
@@ -674,11 +868,15 @@ export const useChatsStore = create<ChatsStoreState>()(
               "X-Username": username,
             };
 
-            const response = await fetch("/api/chat-rooms?action=createRoom", {
-              method: "POST",
-              headers,
-              body: JSON.stringify(payload),
-            });
+            const response = await makeAuthenticatedRequest(
+              "/api/chat-rooms?action=createRoom",
+              {
+                method: "POST",
+                headers,
+                body: JSON.stringify(payload),
+              },
+              get().refreshAuthToken
+            );
 
             if (!response.ok) {
               const errorData = await response.json().catch(() => ({
@@ -717,12 +915,13 @@ export const useChatsStore = create<ChatsStoreState>()(
               "X-Username": username,
             };
 
-            const response = await fetch(
+            const response = await makeAuthenticatedRequest(
               `/api/chat-rooms?action=deleteRoom&roomId=${roomId}`,
               {
                 method: "DELETE",
                 headers,
-              }
+              },
+              get().refreshAuthToken
             );
 
             if (!response.ok) {
@@ -779,15 +978,29 @@ export const useChatsStore = create<ChatsStoreState>()(
               headers["X-Username"] = username;
             }
 
-            const response = await fetch("/api/chat-rooms?action=sendMessage", {
-              method: "POST",
-              headers,
-              body: JSON.stringify({
-                roomId,
-                username,
-                content: content.trim(),
-              }),
-            });
+            const response = authToken
+              ? await makeAuthenticatedRequest(
+                  "/api/chat-rooms?action=sendMessage",
+                  {
+                    method: "POST",
+                    headers,
+                    body: JSON.stringify({
+                      roomId,
+                      username,
+                      content: content.trim(),
+                    }),
+                  },
+                  get().refreshAuthToken
+                )
+              : await fetch("/api/chat-rooms?action=sendMessage", {
+                  method: "POST",
+                  headers,
+                  body: JSON.stringify({
+                    roomId,
+                    username,
+                    content: content.trim(),
+                  }),
+                });
 
             if (!response.ok) {
               // Remove optimistic message on failure
@@ -840,6 +1053,8 @@ export const useChatsStore = create<ChatsStoreState>()(
               if (data.token) {
                 set({ authToken: data.token });
                 saveAuthTokenToRecovery(data.token);
+                // Save initial token creation time
+                saveTokenRefreshTime(data.user.username);
               }
 
               return { ok: true };

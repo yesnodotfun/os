@@ -367,25 +367,71 @@ const redis = new Redis({
 
 // Add auth validation function
 const AUTH_TOKEN_PREFIX = "chat:token:";
+const TOKEN_LAST_PREFIX = "chat:token:last:";
+const USER_TTL_SECONDS = 30 * 24 * 60 * 60; // 30 days
+const TOKEN_GRACE_PERIOD = 7 * 24 * 60 * 60; // 7 days
 
 async function validateAuthToken(
   username: string | undefined | null,
   authToken: string | undefined | null
-): Promise<boolean> {
+): Promise<{ valid: boolean; newToken?: string }> {
   if (!username || !authToken) {
-    return false;
+    return { valid: false };
   }
 
-  const tokenKey = `${AUTH_TOKEN_PREFIX}${username.toLowerCase()}`;
+  const normalizedUsername = username.toLowerCase();
+  const tokenKey = `${AUTH_TOKEN_PREFIX}${normalizedUsername}`;
   const storedToken = await redis.get(tokenKey);
 
-  if (!storedToken || storedToken !== authToken) {
-    return false;
+  // Check if current token is valid
+  if (storedToken && storedToken === authToken) {
+    // Refresh token expiration on successful validation (30 days)
+    await redis.expire(tokenKey, USER_TTL_SECONDS);
+    return { valid: true };
   }
 
-  // Refresh token expiration on successful validation (30 days)
-  await redis.expire(tokenKey, 30 * 24 * 60 * 60);
-  return true;
+  // Token not found or doesn't match - check if it's in grace period
+  const lastTokenKey = `${TOKEN_LAST_PREFIX}${normalizedUsername}`;
+  const lastTokenData = await redis.get(lastTokenKey);
+
+  if (lastTokenData) {
+    try {
+      const { token: lastToken, expiredAt } = JSON.parse(
+        lastTokenData as string
+      );
+      const gracePeriodEnd = expiredAt + TOKEN_GRACE_PERIOD * 1000;
+
+      // Check if the provided token matches the last valid token and is within grace period
+      if (lastToken === authToken && Date.now() < gracePeriodEnd) {
+        console.log(
+          `[Auth] Token in grace period for user ${username}, refreshing...`
+        );
+
+        // Generate new token
+        const crypto = await import("crypto");
+        const newToken = crypto.randomBytes(32).toString("hex");
+
+        // Store the old token for future grace period use
+        await redis.set(
+          lastTokenKey,
+          JSON.stringify({
+            token: authToken,
+            expiredAt: Date.now() + USER_TTL_SECONDS * 1000,
+          }),
+          { ex: USER_TTL_SECONDS + TOKEN_GRACE_PERIOD }
+        );
+
+        // Store the new token
+        await redis.set(tokenKey, newToken, { ex: USER_TTL_SECONDS });
+
+        return { valid: true, newToken };
+      }
+    } catch (e) {
+      console.error("[Auth] Error parsing last token data:", e);
+    }
+  }
+
+  return { valid: false };
 }
 
 export default async function handler(req: Request) {
@@ -458,10 +504,10 @@ export default async function handler(req: Request) {
     const authToken = incomingSystemState?.authToken;
 
     // Validate authentication first
-    const isValidAuth = await validateAuthToken(username, authToken);
+    const validationResult = await validateAuthToken(username, authToken);
 
     // If username is provided but auth is invalid, reject the request
-    if (username && !isValidAuth) {
+    if (username && !validationResult.valid) {
       log(`Authentication failed for claimed user: ${username}`);
       return new Response(
         JSON.stringify({
@@ -479,7 +525,7 @@ export default async function handler(req: Request) {
     }
 
     // Use validated auth status for rate limiting
-    const isAuthenticated = isValidAuth;
+    const isAuthenticated = validationResult.valid;
     const identifier = isAuthenticated ? username!.toLowerCase() : `anon:${ip}`;
 
     // Only check rate limits for user messages (not system messages)
@@ -552,7 +598,8 @@ export default async function handler(req: Request) {
     const selectedModel = getModelInstance(model as SupportedModel);
 
     // Build unified static prompts
-    const { prompts: staticPrompts, loadedSections } = buildContextAwarePrompts();
+    const { prompts: staticPrompts, loadedSections } =
+      buildContextAwarePrompts();
     const staticSystemPrompt = staticPrompts.join("\n");
 
     // Log prompt optimization metrics with loaded sections
@@ -806,6 +853,13 @@ export default async function handler(req: Request) {
     // Add CORS headers to the response
     const headers = new Headers(response.headers);
     headers.set("Access-Control-Allow-Origin", validOrigin);
+
+    // If token was refreshed, add it to response headers
+    if (validationResult.newToken) {
+      headers.set("X-New-Auth-Token", validationResult.newToken);
+      headers.set("Access-Control-Expose-Headers", "X-New-Auth-Token");
+      log(`Token refreshed for user ${username}, new token sent in headers`);
+    }
 
     return new Response(response.body, {
       status: response.status,

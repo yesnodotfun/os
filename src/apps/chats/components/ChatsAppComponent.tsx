@@ -25,6 +25,8 @@ import { useRyoChat } from "../hooks/useRyoChat";
 import { ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getPrivateRoomDisplayName } from "@/utils/chat";
+import { useTokenRefresh } from "../hooks/useTokenRefresh";
+import { TokenStatus } from "./TokenStatus";
 
 // Define the expected message structure locally, matching ChatMessages internal type
 interface DisplayMessage extends Omit<UIMessage, "role"> {
@@ -43,6 +45,9 @@ export function ChatsAppComponent({
   onNavigatePrevious,
 }: AppProps) {
   const { aiMessages } = useChatsStore();
+
+  // Automatically check and refresh token if needed
+  useTokenRefresh();
 
   // Get promptSetUsername from useChatRoom first
   const chatRoomResult = useChatRoom(isWindowOpen ?? false);
@@ -483,7 +488,10 @@ export function ChatsAppComponent({
                       </span>
                     )}
                 </div>
-                <div className="flex items-center gap-0">
+                <div className="flex items-center gap-2">
+                  {/* Token status indicator */}
+                  {username && authToken && <TokenStatus />}
+
                   {/* Set Username button shown only in @ryo view when no username is set */}
                   {!currentRoom && !username && (
                     <Button

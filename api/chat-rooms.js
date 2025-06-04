@@ -65,6 +65,37 @@ const MIN_USERNAME_LENGTH = 3; // Minimum username length (must be more than 2 c
 // Token constants
 const AUTH_TOKEN_PREFIX = "chat:token:";
 const TOKEN_LENGTH = 32; // 32 bytes = 256 bits
+const TOKEN_GRACE_PERIOD = 86400 * 7; // 7 days grace period for refresh after expiry
+
+/**
+ * TOKEN ARCHITECTURE:
+ *
+ * 1. Token Generation:
+ *    - Users can generate a token via /api/chat-rooms?action=generateToken
+ *    - Tokens have the same TTL as users (30 days)
+ *    - Only one active token per user (unless force=true is used)
+ *
+ * 2. Token Refresh:
+ *    - Users can refresh tokens via /api/chat-rooms?action=refreshToken
+ *    - Requires the old token (even if expired) for validation
+ *    - Expired tokens can be used for refresh within a 7-day grace period
+ *    - When refreshing, the old token is stored for future grace period use
+ *
+ * 3. Token Storage:
+ *    - Active tokens: "chat:token:{username}" with 30-day TTL
+ *    - Last valid tokens: "chat:token:last:{username}" for grace period refresh
+ *    - Last valid tokens are stored with extended TTL (37 days total)
+ *
+ * 4. Authentication Flow:
+ *    - Most endpoints require Bearer token in Authorization header
+ *    - Username must be provided in X-Username header
+ *    - Token validation refreshes the token TTL on each successful auth
+ *
+ * 5. Grace Period:
+ *    - After a token expires, users have 7 days to refresh using the expired token
+ *    - This prevents users from being permanently locked out
+ *    - The grace period token data includes when the original token expired
+ */
 
 /**
  * Generate a secure authentication token
@@ -78,23 +109,54 @@ const generateAuthToken = () => {
  * @param {string} username - The username to validate
  * @param {string} token - The authentication token
  * @param {string} requestId - Request ID for logging
- * @returns {Promise<boolean>} - True if authenticated, false otherwise
+ * @param {boolean} allowExpired - Whether to allow recently expired tokens (for refresh)
+ * @returns {Promise<{valid: boolean, expired?: boolean}>} - Validation result
  */
-const validateAuth = async (username, token, requestId) => {
+const validateAuth = async (
+  username,
+  token,
+  requestId,
+  allowExpired = false
+) => {
   if (!username || !token) {
     logInfo(requestId, "Auth validation failed: Missing username or token");
-    return false;
+    return { valid: false };
   }
 
   const tokenKey = `${AUTH_TOKEN_PREFIX}${username.toLowerCase()}`;
   const storedToken = await redis.get(tokenKey);
 
   if (!storedToken) {
+    if (allowExpired) {
+      // Check if we have a record of this token being recently used
+      // We store the last valid token when it's refreshed
+      const lastTokenKey = `${AUTH_TOKEN_PREFIX}last:${username.toLowerCase()}`;
+      const lastTokenData = await redis.get(lastTokenKey);
+
+      if (lastTokenData) {
+        try {
+          const { token: lastToken, expiredAt } = JSON.parse(lastTokenData);
+          // Allow refresh within grace period (7 days after expiry)
+          const gracePeriodEnd = expiredAt + TOKEN_GRACE_PERIOD * 1000;
+
+          if (lastToken === token && Date.now() < gracePeriodEnd) {
+            logInfo(
+              requestId,
+              `Auth validation: Found recently expired token for user ${username} within grace period`
+            );
+            return { valid: true, expired: true };
+          }
+        } catch (e) {
+          logError(requestId, "Error parsing last token data", e);
+        }
+      }
+    }
+
     logInfo(
       requestId,
       `Auth validation failed: No token found for user ${username}`
     );
-    return false;
+    return { valid: false };
   }
 
   if (storedToken !== token) {
@@ -102,12 +164,27 @@ const validateAuth = async (username, token, requestId) => {
       requestId,
       `Auth validation failed: Invalid token for user ${username}`
     );
-    return false;
+    return { valid: false };
   }
 
   // Refresh token expiration on successful validation
   await redis.expire(tokenKey, USER_TTL_SECONDS);
-  return true;
+  return { valid: true, expired: false };
+};
+
+/**
+ * Store the last valid token when refreshing
+ */
+const storeLastValidToken = async (username, token) => {
+  const lastTokenKey = `${AUTH_TOKEN_PREFIX}last:${username.toLowerCase()}`;
+  const tokenData = {
+    token,
+    expiredAt: Date.now() + USER_EXPIRATION_TIME * 1000, // When the current token will expire
+  };
+  // Store with extended TTL to cover grace period
+  await redis.set(lastTokenKey, JSON.stringify(tokenData), {
+    ex: USER_EXPIRATION_TIME + TOKEN_GRACE_PERIOD,
+  });
 };
 
 /**
@@ -344,7 +421,7 @@ export async function GET(request) {
 
       // Validate authentication
       const isValid = await validateAuth(username, token, requestId);
-      if (!isValid) {
+      if (!isValid.valid) {
         return createErrorResponse("Unauthorized", 401);
       }
     }
@@ -369,15 +446,24 @@ export async function GET(request) {
         return await handleGetMessages(roomId, requestId);
       }
       case "getBulkMessages": {
-        const roomIds = url.searchParams.get("roomIds");
-        if (!roomIds) {
+        const roomIdsParam = url.searchParams.get("roomIds");
+        if (!roomIdsParam) {
           logInfo(requestId, "Missing roomIds parameter");
           return createErrorResponse(
             "roomIds query parameter is required",
             400
           );
         }
-        return await handleGetBulkMessages(roomIds.split(","), requestId);
+        // Parse comma-separated string into array
+        const roomIds = roomIdsParam
+          .split(",")
+          .map((id) => id.trim())
+          .filter((id) => id.length > 0);
+        if (roomIds.length === 0) {
+          logInfo(requestId, "No valid room IDs provided");
+          return createErrorResponse("At least one room ID is required", 400);
+        }
+        return await handleGetBulkMessages(roomIds, requestId);
       }
       case "getRoomUsers": {
         const roomId = url.searchParams.get("roomId");
@@ -429,6 +515,7 @@ export async function POST(request) {
       "leaveRoom",
       "switchRoom",
       "generateToken",
+      "refreshToken",
     ];
 
     // Actions that specifically require authentication
@@ -469,7 +556,7 @@ export async function POST(request) {
         token,
         requestId
       );
-      if (!isValid) {
+      if (!isValid.valid) {
         return createErrorResponse("Unauthorized", 401);
       }
     }
@@ -490,6 +577,8 @@ export async function POST(request) {
         return await handleCreateUser(body, requestId);
       case "generateToken":
         return await handleGenerateToken(body, requestId);
+      case "refreshToken":
+        return await handleRefreshToken(body, requestId);
       case "clearAllMessages":
         // Pass authenticated username for admin validation
         return await handleClearAllMessages(username, requestId);
@@ -524,7 +613,7 @@ export async function DELETE(request) {
 
     // Validate authentication
     const isValid = await validateAuth(username, token, requestId);
-    if (!isValid) {
+    if (!isValid.valid) {
       return createErrorResponse("Unauthorized", 401);
     }
 
@@ -1166,12 +1255,14 @@ async function handleLeaveRoom(data, requestId) {
           pipeline.del(`${CHAT_ROOM_USERS_PREFIX}${roomId}`);
           await pipeline.exec();
 
-          // Trigger Pusher event for room deletion
+          // Trigger Pusher event for room deletion - only to affected members
           try {
-            await broadcastRoomsUpdated();
+            // For private room deletion, only notify the members who were in the room
+            const affectedMembers = roomObj.members || [];
+            await broadcastToSpecificUsers(affectedMembers);
             logInfo(
               requestId,
-              "Pusher event triggered: rooms-updated after private room deletion"
+              `Pusher event triggered: rooms-updated to ${affectedMembers.length} affected members after private room deletion`
             );
           } catch (pusherError) {
             logError(
@@ -1189,9 +1280,59 @@ async function handleLeaveRoom(data, requestId) {
           };
           await redis.set(`${CHAT_ROOM_PREFIX}${roomId}`, updatedRoom);
 
-          // Trigger Pusher event for room update
+          // Trigger Pusher event for room update - only to affected users
           try {
-            await broadcastRoomsUpdated();
+            // Notify the user who left (to remove the room from their list)
+            const safeUsername = sanitizeForChannel(username);
+            const userRooms = await redis.keys(`${CHAT_ROOM_PREFIX}*`);
+            const roomsData = await redis.mget(...userRooms);
+            const rooms = roomsData
+              .map((raw) => {
+                if (!raw) return null;
+                const room = typeof raw === "string" ? JSON.parse(raw) : raw;
+                // Filter to only show rooms this user can see
+                if (!room.type || room.type === "public") return room;
+                if (room.type === "private" && room.members?.includes(username))
+                  return room;
+                return null;
+              })
+              .filter((r) => r !== null);
+
+            await pusher.trigger(`chats-${safeUsername}`, "rooms-updated", {
+              rooms,
+            });
+
+            // Also notify remaining members about the updated member list
+            for (const member of updatedMembers) {
+              if (member !== username) {
+                const safeMember = sanitizeForChannel(member);
+                const memberRooms = roomsData
+                  .map((raw) => {
+                    if (!raw) return null;
+                    const room =
+                      typeof raw === "string" ? JSON.parse(raw) : raw;
+                    // For other members, include the updated room
+                    if (room.id === roomId) return updatedRoom;
+                    if (!room.type || room.type === "public") return room;
+                    if (
+                      room.type === "private" &&
+                      room.members?.includes(member)
+                    )
+                      return room;
+                    return null;
+                  })
+                  .filter((r) => r !== null);
+
+                await pusher.trigger(`chats-${safeMember}`, "rooms-updated", {
+                  rooms: memberRooms,
+                });
+              }
+            }
+
+            logInfo(
+              requestId,
+              `Pusher event triggered: rooms-updated to user ${username} and ${updatedMembers.length} remaining members`
+            );
           } catch (pusherError) {
             logError(
               requestId,
@@ -1729,11 +1870,7 @@ async function handleSwitchRoom(data, requestId) {
             username
           );
           const userCount = await refreshRoomUserCount(previousRoomId);
-          changedRooms.push({
-            roomId: previousRoomId,
-            userCount,
-            roomType: roomData.type,
-          });
+          changedRooms.push({ roomId: previousRoomId, userCount });
         } else {
           logInfo(
             requestId,
@@ -1772,67 +1909,16 @@ async function handleSwitchRoom(data, requestId) {
         USER_EXPIRATION_TIME
       );
 
-      changedRooms.push({
-        roomId: nextRoomId,
-        userCount,
-        roomType: roomData.type,
-      });
+      changedRooms.push({ roomId: nextRoomId, userCount });
     }
 
-    // Trigger targeted Pusher events - avoid broadcasting to ALL users for simple room switches
+    // Trigger Pusher events in batch
     try {
-      if (changedRooms.length > 0) {
-        const publicRoomChanges = changedRooms.filter(
-          (room) => !room.roomType || room.roomType === "public"
-        );
-        const privateRoomChanges = changedRooms.filter(
-          (room) => room.roomType === "private"
-        );
-
-        // For public rooms: send efficient user-count-updated events
-        if (publicRoomChanges.length > 0) {
-          const publicBroadcastPromises = publicRoomChanges.map(
-            async (room) => {
-              return pusher.trigger(
-                `room-${room.roomId}`,
-                "user-count-updated",
-                {
-                  roomId: room.roomId,
-                  userCount: room.userCount,
-                }
-              );
-            }
-          );
-
-          await Promise.all(publicBroadcastPromises);
-          logInfo(
-            requestId,
-            `Triggered user-count-updated for ${publicRoomChanges.length} public rooms`
-          );
-        }
-
-        // For private rooms: notify members via their personal channels
-        if (privateRoomChanges.length > 0) {
-          const privateNotificationPromises = privateRoomChanges.map(
-            async (room) => {
-              // Trigger room-updated event for private room members
-              return fanOutToPrivateMembers(room.roomId, "room-updated", {
-                room: { id: room.roomId, userCount: room.userCount },
-              });
-            }
-          );
-
-          await Promise.all(privateNotificationPromises);
-          logInfo(
-            requestId,
-            `Triggered room-updated for ${privateRoomChanges.length} private rooms`
-          );
-        }
-
-        if (publicRoomChanges.length === 0 && privateRoomChanges.length === 0) {
-          logInfo(requestId, "No room changes to broadcast");
-        }
+      for (const room of changedRooms) {
+        // Removed individual user-count-updated event; rooms-updated will carry the new count
       }
+
+      await broadcastRoomsUpdated();
     } catch (pusherErr) {
       logError(
         requestId,
@@ -1852,7 +1938,7 @@ async function handleSwitchRoom(data, requestId) {
 }
 
 async function handleGenerateToken(data, requestId) {
-  const { username: originalUsername } = data;
+  const { username: originalUsername, force = false } = data;
 
   if (!originalUsername) {
     logInfo(requestId, "Token generation failed: Username is required");
@@ -1862,7 +1948,10 @@ async function handleGenerateToken(data, requestId) {
   // Normalize username to lowercase
   const username = originalUsername.toLowerCase();
 
-  logInfo(requestId, `Generating token for user: ${username}`);
+  logInfo(
+    requestId,
+    `Generating token for user: ${username}${force ? " (force mode)" : ""}`
+  );
   try {
     // Check if user exists
     const userKey = `${CHAT_USERS_PREFIX}${username}`;
@@ -1877,7 +1966,7 @@ async function handleGenerateToken(data, requestId) {
     const tokenKey = `${AUTH_TOKEN_PREFIX}${username}`;
     const existingToken = await redis.get(tokenKey);
 
-    if (existingToken) {
+    if (existingToken && !force) {
       logInfo(requestId, `Token already exists for user: ${username}`);
       return createErrorResponse("Token already exists for this user", 409);
     }
@@ -1891,7 +1980,12 @@ async function handleGenerateToken(data, requestId) {
     // Refresh user expiration
     await redis.expire(userKey, USER_EXPIRATION_TIME);
 
-    logInfo(requestId, `Token generated successfully for user ${username}`);
+    logInfo(
+      requestId,
+      `Token ${
+        existingToken && force ? "re-issued" : "generated"
+      } successfully for user ${username}`
+    );
 
     return new Response(JSON.stringify({ token: authToken }), {
       status: 201,
@@ -1900,6 +1994,78 @@ async function handleGenerateToken(data, requestId) {
   } catch (error) {
     logError(requestId, `Error generating token for user ${username}:`, error);
     return createErrorResponse("Failed to generate token", 500);
+  }
+}
+
+async function handleRefreshToken(data, requestId) {
+  const { username: originalUsername, oldToken } = data;
+
+  if (!originalUsername || !oldToken) {
+    logInfo(
+      requestId,
+      "Token refresh failed: Username and oldToken are required"
+    );
+    return createErrorResponse("Username and oldToken are required", 400);
+  }
+
+  // Normalize username to lowercase
+  const username = originalUsername.toLowerCase();
+
+  logInfo(requestId, `Refreshing token for user: ${username}`);
+  try {
+    // Check if user exists
+    const userKey = `${CHAT_USERS_PREFIX}${username}`;
+    const userData = await redis.get(userKey);
+
+    if (!userData) {
+      logInfo(requestId, `User not found: ${username}`);
+      return createErrorResponse("User not found", 404);
+    }
+
+    // Validate the old token (allowing expired tokens)
+    const validationResult = await validateAuth(
+      username,
+      oldToken,
+      requestId,
+      true
+    );
+
+    if (!validationResult.valid) {
+      logInfo(requestId, `Invalid old token provided for user: ${username}`);
+      return createErrorResponse("Invalid authentication token", 401);
+    }
+
+    // Store the old token for future grace period use (whether expired or not)
+    await storeLastValidToken(username, oldToken);
+    logInfo(
+      requestId,
+      `Stored old token for future grace period use for user: ${username}`
+    );
+
+    // Generate new token
+    const authToken = generateAuthToken();
+
+    // Store new token with same expiration as user
+    const tokenKey = `${AUTH_TOKEN_PREFIX}${username}`;
+    await redis.set(tokenKey, authToken, { ex: USER_EXPIRATION_TIME });
+
+    // Refresh user expiration
+    await redis.expire(userKey, USER_EXPIRATION_TIME);
+
+    logInfo(
+      requestId,
+      `Token refreshed successfully for user ${username} (was ${
+        validationResult.expired ? "expired" : "valid"
+      })`
+    );
+
+    return new Response(JSON.stringify({ token: authToken }), {
+      status: 201,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    logError(requestId, `Error refreshing token for user ${username}:`, error);
+    return createErrorResponse("Failed to refresh token", 500);
   }
 }
 
@@ -1929,28 +2095,20 @@ async function broadcastRoomsUpdated() {
 
     // 1. Public channel with only public rooms (for anonymous clients)
     const publicRooms = filterRoomsForUser(allRooms, null);
-    const publicChannelPromise = pusher.trigger(
-      "chats-public",
-      "rooms-updated",
-      {
-        rooms: publicRooms,
-      }
-    );
-
-    // 2. Per-user channels - parallelize these instead of sequential
-    const userKeys = await redis.keys(`${CHAT_USERS_PREFIX}*`);
-    const userChannelPromises = userKeys.map((key) => {
-      const safeUser = sanitizeForChannel(
-        key.substring(CHAT_USERS_PREFIX.length)
-      );
-      const userRooms = filterRoomsForUser(allRooms, safeUser);
-      return pusher.trigger(`chats-${safeUser}`, "rooms-updated", {
-        rooms: userRooms,
-      });
+    await pusher.trigger("chats-public", "rooms-updated", {
+      rooms: publicRooms,
     });
 
-    // Wait for all Pusher calls to complete in parallel
-    await Promise.all([publicChannelPromise, ...userChannelPromises]);
+    // 2. Per-user channels
+    const userKeys = await redis.keys(`${CHAT_USERS_PREFIX}*`);
+    for (const key of userKeys) {
+      const username = key.substring(CHAT_USERS_PREFIX.length);
+      const safeUsername = sanitizeForChannel(username);
+      const userRooms = filterRoomsForUser(allRooms, username);
+      await pusher.trigger(`chats-${safeUsername}`, "rooms-updated", {
+        rooms: userRooms,
+      });
+    }
   } catch (err) {
     console.error("[broadcastRoomsUpdated] Failed to broadcast rooms:", err);
   }
@@ -1980,3 +2138,24 @@ async function fanOutToPrivateMembers(roomId, eventName, payload) {
 
 // Helper: sanitize strings for Pusher channel names
 const sanitizeForChannel = (name) => name.replace(/[^a-zA-Z0-9_\-\.]/g, "_");
+
+// Helper: Broadcast rooms update to specific users only
+async function broadcastToSpecificUsers(usernames) {
+  if (!usernames || usernames.length === 0) return;
+
+  try {
+    // Fetch all rooms once
+    const allRooms = await getDetailedRooms();
+
+    // Send filtered rooms to each user
+    for (const username of usernames) {
+      const safeUsername = sanitizeForChannel(username);
+      const userRooms = filterRoomsForUser(allRooms, username);
+      await pusher.trigger(`chats-${safeUsername}`, "rooms-updated", {
+        rooms: userRooms,
+      });
+    }
+  } catch (err) {
+    console.error("[broadcastToSpecificUsers] Failed to broadcast:", err);
+  }
+}

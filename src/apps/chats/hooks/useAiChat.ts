@@ -235,8 +235,14 @@ const getAssistantVisibleText = (message: Message): string => {
 };
 
 export function useAiChat(onPromptSetUsername?: () => void) {
-  const { aiMessages, setAiMessages, username, authToken, ensureAuthToken } =
-    useChatsStore();
+  const {
+    aiMessages,
+    setAiMessages,
+    username,
+    authToken,
+    ensureAuthToken,
+    setAuthToken,
+  } = useChatsStore();
   const launchApp = useLaunchApp();
   const closeApp = useAppStore((state) => state.closeApp);
   const aiModel = useAppStore((state) => state.aiModel);
@@ -331,6 +337,20 @@ export function useAiChat(onPromptSetUsername?: () => void) {
       model: aiModel, // Pass the selected AI model
     },
     maxSteps: 25,
+    onResponse: (response) => {
+      // Check for refreshed token in response headers
+      const newToken = response.headers.get("X-New-Auth-Token");
+      if (newToken) {
+        console.log("[useAiChat] Received refreshed auth token from server");
+        setAuthToken(newToken);
+
+        // Also update the token refresh time in localStorage
+        if (username) {
+          const key = `_token_refresh_time_${username}`;
+          localStorage.setItem(key, Date.now().toString());
+        }
+      }
+    },
     async onToolCall({ toolCall }) {
       // Short delay to allow the UI to render the "call" state with a spinner before executing the tool logic.
       // Without this, fast-executing tool calls can jump straight to the "result" state, so users never see the loading indicator.

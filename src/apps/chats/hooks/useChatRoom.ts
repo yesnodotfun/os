@@ -95,44 +95,39 @@ export function useChatRoom(isWindowOpen: boolean) {
       );
       globalChannelRef.current = pusherRef.current.subscribe(channelName);
 
-      // Handle room updates
-      globalChannelRef.current.bind(
-        "room-created",
-        (data: { room: ChatRoom }) => {
-          console.log("[Pusher Hook] Room created:", data.room);
-          fetchRooms(); // Refresh rooms list
-        }
-      );
+      // Create event handlers
+      const handleRoomCreated = (data: { room: ChatRoom }) => {
+        console.log("[Pusher Hook] Room created:", data.room);
+        fetchRooms(); // Refresh rooms list
+      };
 
-      globalChannelRef.current.bind(
-        "room-deleted",
-        (data: { roomId: string }) => {
-          console.log("[Pusher Hook] Room deleted:", data.roomId);
-          fetchRooms(); // Refresh rooms list
-        }
-      );
+      const handleRoomDeleted = (data: { roomId: string }) => {
+        console.log("[Pusher Hook] Room deleted:", data.roomId);
+        fetchRooms(); // Refresh rooms list
+      };
 
-      globalChannelRef.current.bind(
-        "room-updated",
-        (data: { room: ChatRoom }) => {
-          console.log("[Pusher Hook] Room updated:", data.room);
-          fetchRooms(); // Refresh rooms list
-        }
-      );
+      const handleRoomUpdated = (data: { room: ChatRoom }) => {
+        console.log("[Pusher Hook] Room updated:", data.room);
+        fetchRooms(); // Refresh rooms list
+      };
 
-      // Handle real-time room list updates (includes user counts, new rooms, etc.)
-      globalChannelRef.current.bind(
-        "rooms-updated",
-        (data: { rooms: ChatRoom[] }) => {
-          console.log(
-            "[Pusher Hook] Rooms updated:",
-            data.rooms.length,
-            "rooms"
-          );
-          // Update rooms directly instead of fetching from API
-          setRooms(data.rooms);
-        }
-      );
+      const handleRoomsUpdated = (data: { rooms: ChatRoom[] }) => {
+        console.log("[Pusher Hook] Rooms updated:", data.rooms.length, "rooms");
+        // Update rooms directly instead of fetching from API
+        setRooms(data.rooms);
+      };
+
+      // Unbind any existing handlers first (safety measure)
+      globalChannelRef.current.unbind("room-created");
+      globalChannelRef.current.unbind("room-deleted");
+      globalChannelRef.current.unbind("room-updated");
+      globalChannelRef.current.unbind("rooms-updated");
+
+      // Bind the handlers
+      globalChannelRef.current.bind("room-created", handleRoomCreated);
+      globalChannelRef.current.bind("room-deleted", handleRoomDeleted);
+      globalChannelRef.current.bind("room-updated", handleRoomUpdated);
+      globalChannelRef.current.bind("rooms-updated", handleRoomsUpdated);
     }
   }, [username, fetchRooms, setRooms]);
 
@@ -144,7 +139,8 @@ export function useChatRoom(isWindowOpen: boolean) {
       const roomChannel = pusherRef.current.subscribe(`room-${roomId}`);
       roomChannelsRef.current[roomId] = roomChannel;
 
-      roomChannel.bind("room-message", (data: { message: ChatMessage }) => {
+      // Create event handlers with unique names to prevent duplicate binding
+      const handleRoomMessage = (data: { message: ChatMessage }) => {
         console.log("[Pusher Hook] Received room-message:", data.message);
 
         // Add message with proper timestamp
@@ -175,17 +171,24 @@ export function useChatRoom(isWindowOpen: boolean) {
             },
           });
         }
-      });
+      };
 
-      // Handle message deletion events for admin actions
-      roomChannel.bind(
-        "message-deleted",
-        (data: { messageId: string; roomId: string }) => {
-          console.log("[Pusher Hook] Message deleted:", data.messageId);
-          // Remove the message locally so UI reflects deletion
-          removeMessageFromRoom(data.roomId, data.messageId);
-        }
-      );
+      const handleMessageDeleted = (data: {
+        messageId: string;
+        roomId: string;
+      }) => {
+        console.log("[Pusher Hook] Message deleted:", data.messageId);
+        // Remove the message locally so UI reflects deletion
+        removeMessageFromRoom(data.roomId, data.messageId);
+      };
+
+      // Unbind any existing handlers first (safety measure)
+      roomChannel.unbind("room-message");
+      roomChannel.unbind("message-deleted");
+
+      // Bind the handlers
+      roomChannel.bind("room-message", handleRoomMessage);
+      roomChannel.bind("message-deleted", handleMessageDeleted);
     },
     [addMessageToRoom, removeMessageFromRoom, switchRoom, incrementUnread]
   );
@@ -360,48 +363,21 @@ export function useChatRoom(isWindowOpen: boolean) {
           );
           const bulkResult = await fetchBulkMessages(roomIds);
 
-          // Calculate unread counts for messages received while away
+          // For experienced users, don't recalculate unreads on reload - only track new messages going forward
           if (bulkResult.ok) {
-            const {
-              roomMessages: allRoomMessages,
-              incrementUnread,
-              hasEverUsedChats,
-              setHasEverUsedChats,
-            } = useChatsStore.getState();
+            const { hasEverUsedChats, setHasEverUsedChats } =
+              useChatsStore.getState();
 
-            // Only calculate unread counts if user has used chats before
-            if (hasEverUsedChats) {
-              const now = Date.now();
-              const UNREAD_THRESHOLD_MINUTES = 60; // Only consider messages from last hour as potentially unread
-              const unreadThreshold =
-                now - UNREAD_THRESHOLD_MINUTES * 60 * 1000;
-
-              roomIds.forEach((roomId) => {
-                const messages = allRoomMessages[roomId] || [];
-                if (messages.length > 0 && roomId !== currentRoomId) {
-                  // Count only the most recent messages as unread (max 5 per room)
-                  const recentMessages = messages
-                    .filter(
-                      (msg) =>
-                        msg.timestamp > unreadThreshold &&
-                        msg.username !== username // Don't count own messages as unread
-                    )
-                    .slice(0, 5); // Limit to max 5 unread per room
-
-                  // Add unread count for recent messages
-                  recentMessages.forEach(() => incrementUnread(roomId));
-                }
-              });
-
-              console.log(
-                `[useChatRoom] Calculated unread counts for rooms with recent activity (last ${UNREAD_THRESHOLD_MINUTES} min)`
-              );
-            } else {
+            if (!hasEverUsedChats) {
               // First time user - mark all as read from this point forward
               console.log(
                 `[useChatRoom] First-time user detected - skipping unread calculation and marking as experienced user`
               );
               setHasEverUsedChats(true);
+            } else {
+              console.log(
+                `[useChatRoom] Experienced user - skipping unread recalculation on reload, will track new messages only`
+              );
             }
           }
         }
