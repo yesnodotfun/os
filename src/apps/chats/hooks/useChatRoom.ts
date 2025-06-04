@@ -267,17 +267,32 @@ export function useChatRoom(isWindowOpen: boolean) {
 
   const handleDeleteRoom = useCallback(
     async (roomId: string) => {
-      if (!roomId || !isAdmin) {
-        return { ok: false, error: "Permission denied or invalid room." };
+      if (!roomId) {
+        return { ok: false, error: "Invalid room." };
       }
 
+      // Get the room to check its type
+      const room = rooms.find((r) => r.id === roomId);
+      if (!room) {
+        return { ok: false, error: "Room not found." };
+      }
+
+      // For public rooms, only admin can delete
+      if (room.type !== "private" && !isAdmin) {
+        return {
+          ok: false,
+          error: "Permission denied. Admin access required for public rooms.",
+        };
+      }
+
+      // For private rooms, the API will check if user is a member
       const result = await deleteRoom(roomId);
       if (result.ok && currentRoomId === roomId) {
         handleRoomSelect(null); // Switch back to @ryo
       }
       return result;
     },
-    [isAdmin, deleteRoom, currentRoomId, handleRoomSelect]
+    [isAdmin, deleteRoom, currentRoomId, handleRoomSelect, rooms]
   );
 
   // --- Username Management ---

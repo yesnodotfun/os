@@ -854,38 +854,106 @@ async function handleCreateRoom(data, username, requestId) {
 async function handleDeleteRoom(roomId, username, requestId) {
   logInfo(requestId, `Deleting room: ${roomId}`);
   try {
-    const roomExists = await redis.exists(`${CHAT_ROOM_PREFIX}${roomId}`);
+    const roomDataRaw = await redis.get(`${CHAT_ROOM_PREFIX}${roomId}`);
 
-    if (!roomExists) {
+    if (!roomDataRaw) {
       logInfo(requestId, `Room not found for deletion: ${roomId}`);
       return createErrorResponse("Room not found", 404);
     }
 
-    // Check if the user is the admin ("ryo")
-    if (username.toLowerCase() !== "ryo") {
-      logInfo(requestId, `Unauthorized: User ${username} is not the admin`);
-      return createErrorResponse("Unauthorized", 401);
+    // Parse room data to check permissions
+    const roomData =
+      typeof roomDataRaw === "string" ? JSON.parse(roomDataRaw) : roomDataRaw;
+
+    // Permission check based on room type
+    if (roomData.type === "private") {
+      // For private rooms, check if user is a member
+      if (
+        !roomData.members ||
+        !roomData.members.includes(username.toLowerCase())
+      ) {
+        logInfo(
+          requestId,
+          `Unauthorized: User ${username} is not a member of private room ${roomId}`
+        );
+        return createErrorResponse(
+          "Unauthorized - not a member of this room",
+          403
+        );
+      }
+    } else {
+      // For public rooms, only admin can delete
+      if (username.toLowerCase() !== "ryo") {
+        logInfo(requestId, `Unauthorized: User ${username} is not the admin`);
+        return createErrorResponse(
+          "Unauthorized - admin access required for public rooms",
+          403
+        );
+      }
     }
 
-    // Delete room and associated messages/users
-    const pipeline = redis.pipeline();
-    pipeline.del(`${CHAT_ROOM_PREFIX}${roomId}`);
-    pipeline.del(`${CHAT_MESSAGES_PREFIX}${roomId}`);
-    pipeline.del(`${CHAT_ROOM_USERS_PREFIX}${roomId}`);
-    await pipeline.exec();
-    logInfo(requestId, `Room deleted: ${roomId}`);
+    if (roomData.type === "private") {
+      // For private rooms, implement "leave" behavior
+      const updatedMembers = roomData.members.filter(
+        (member) => member !== username.toLowerCase()
+      );
 
-    // Trigger Pusher event for room deletion
+      if (updatedMembers.length <= 1) {
+        // Last member leaving OR only 1 member would remain - delete the entire room
+        const pipeline = redis.pipeline();
+        pipeline.del(`${CHAT_ROOM_PREFIX}${roomId}`);
+        pipeline.del(`${CHAT_MESSAGES_PREFIX}${roomId}`);
+        pipeline.del(`${CHAT_ROOM_USERS_PREFIX}${roomId}`);
+        await pipeline.exec();
+        logInfo(
+          requestId,
+          `Private room deleted (${
+            updatedMembers.length === 0
+              ? "last member left"
+              : "only 1 member would remain"
+          }): ${roomId}`
+        );
+      } else {
+        // Update room with remaining members (3+ members)
+        const updatedRoom = {
+          ...roomData,
+          members: updatedMembers,
+          userCount: updatedMembers.length,
+        };
+        await redis.set(`${CHAT_ROOM_PREFIX}${roomId}`, updatedRoom);
+
+        // Remove user from active users set
+        await redis.srem(
+          `${CHAT_ROOM_USERS_PREFIX}${roomId}`,
+          username.toLowerCase()
+        );
+
+        logInfo(
+          requestId,
+          `User ${username} left private room ${roomId}, ${updatedMembers.length} members remaining`
+        );
+      }
+    } else {
+      // For public rooms, delete entire room (admin only)
+      const pipeline = redis.pipeline();
+      pipeline.del(`${CHAT_ROOM_PREFIX}${roomId}`);
+      pipeline.del(`${CHAT_MESSAGES_PREFIX}${roomId}`);
+      pipeline.del(`${CHAT_ROOM_USERS_PREFIX}${roomId}`);
+      await pipeline.exec();
+      logInfo(requestId, `Public room deleted by admin: ${roomId}`);
+    }
+
+    // Trigger Pusher event for room changes
     try {
       await broadcastRoomsUpdated();
       logInfo(
         requestId,
-        "Pusher event triggered: rooms-updated after deletion"
+        "Pusher event triggered: rooms-updated after room deletion/leave"
       );
     } catch (pusherError) {
       logError(
         requestId,
-        "Error triggering Pusher event for room deletion:",
+        "Error triggering Pusher event for room deletion/leave:",
         pusherError
       );
       // Continue with response - Pusher error shouldn't block the operation
@@ -1183,7 +1251,18 @@ async function handleJoinRoom(data, requestId) {
       `User ${username} last active time updated and expiration reset to 30 days`
     );
 
-    // Removed individual user-count-updated event; rooms-updated will carry the new count
+    // Trigger optimized broadcast to update all clients with new room state
+    try {
+      await broadcastRoomsUpdated();
+      logInfo(requestId, `Pusher event triggered: rooms-updated for user join`);
+    } catch (pusherError) {
+      logError(
+        requestId,
+        "Error triggering Pusher event for room join:",
+        pusherError
+      );
+      // Continue with response - Pusher error shouldn't block operation
+    }
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { "Content-Type": "application/json" },
@@ -1212,12 +1291,15 @@ async function handleLeaveRoom(data, requestId) {
 
   logInfo(requestId, `User ${username} leaving room ${roomId}`);
   try {
-    // Check if room exists first
-    const roomData = await redis.get(`${CHAT_ROOM_PREFIX}${roomId}`);
-    if (!roomData) {
+    // Check if room exists and parse data once
+    const roomDataRaw = await redis.get(`${CHAT_ROOM_PREFIX}${roomId}`);
+    if (!roomDataRaw) {
       logInfo(requestId, `Room not found: ${roomId}`);
       return createErrorResponse("Room not found", 404);
     }
+
+    const roomObj =
+      typeof roomDataRaw === "string" ? JSON.parse(roomDataRaw) : roomDataRaw;
 
     // Remove user from room set
     const removed = await redis.srem(
@@ -1228,16 +1310,12 @@ async function handleLeaveRoom(data, requestId) {
     // If user was actually removed, update the count
     if (removed) {
       // Re-calculate active user count after possible pruning of stale users
-      const previousUserCount = roomData.userCount; // Get count before update
+      const previousUserCount = roomObj.userCount; // Get count before update
       const userCount = await refreshRoomUserCount(roomId);
       logInfo(
         requestId,
         `User ${username} left room ${roomId}, new active user count: ${userCount}`
       );
-
-      // Parse room data to check if it's a private room
-      const roomObj =
-        typeof roomData === "string" ? JSON.parse(roomData) : roomData;
 
       // For private rooms, update the members list and delete if empty
       if (roomObj.type === "private") {
@@ -1246,9 +1324,16 @@ async function handleLeaveRoom(data, requestId) {
           ? roomObj.members.filter((m) => m !== username)
           : [];
 
-        if (updatedMembers.length === 0) {
-          // Delete the private room if no members left
-          logInfo(requestId, `Deleting empty private room ${roomId}`);
+        if (updatedMembers.length <= 1) {
+          // Delete the private room if no members left OR only 1 member would remain
+          logInfo(
+            requestId,
+            `Deleting private room ${roomId} (${
+              updatedMembers.length === 0
+                ? "no members left"
+                : "only 1 member would remain"
+            })`
+          );
           const pipeline = redis.pipeline();
           pipeline.del(`${CHAT_ROOM_PREFIX}${roomId}`);
           pipeline.del(`${CHAT_MESSAGES_PREFIX}${roomId}`);
@@ -1272,7 +1357,7 @@ async function handleLeaveRoom(data, requestId) {
             );
           }
         } else {
-          // Update the room with new members list
+          // Update the room with new members list (3+ members)
           const updatedRoom = {
             ...roomObj,
             members: updatedMembers,
@@ -1280,58 +1365,13 @@ async function handleLeaveRoom(data, requestId) {
           };
           await redis.set(`${CHAT_ROOM_PREFIX}${roomId}`, updatedRoom);
 
-          // Trigger Pusher event for room update - only to affected users
+          // Trigger efficient Pusher event for room update
           try {
-            // Notify the user who left (to remove the room from their list)
-            const safeUsername = sanitizeForChannel(username);
-            const userRooms = await redis.keys(`${CHAT_ROOM_PREFIX}*`);
-            const roomsData = await redis.mget(...userRooms);
-            const rooms = roomsData
-              .map((raw) => {
-                if (!raw) return null;
-                const room = typeof raw === "string" ? JSON.parse(raw) : raw;
-                // Filter to only show rooms this user can see
-                if (!room.type || room.type === "public") return room;
-                if (room.type === "private" && room.members?.includes(username))
-                  return room;
-                return null;
-              })
-              .filter((r) => r !== null);
-
-            await pusher.trigger(`chats-${safeUsername}`, "rooms-updated", {
-              rooms,
-            });
-
-            // Also notify remaining members about the updated member list
-            for (const member of updatedMembers) {
-              if (member !== username) {
-                const safeMember = sanitizeForChannel(member);
-                const memberRooms = roomsData
-                  .map((raw) => {
-                    if (!raw) return null;
-                    const room =
-                      typeof raw === "string" ? JSON.parse(raw) : raw;
-                    // For other members, include the updated room
-                    if (room.id === roomId) return updatedRoom;
-                    if (!room.type || room.type === "public") return room;
-                    if (
-                      room.type === "private" &&
-                      room.members?.includes(member)
-                    )
-                      return room;
-                    return null;
-                  })
-                  .filter((r) => r !== null);
-
-                await pusher.trigger(`chats-${safeMember}`, "rooms-updated", {
-                  rooms: memberRooms,
-                });
-              }
-            }
-
+            // Use the optimized broadcast function instead of manual processing
+            await broadcastRoomsUpdated();
             logInfo(
               requestId,
-              `Pusher event triggered: rooms-updated to user ${username} and ${updatedMembers.length} remaining members`
+              `Pusher event triggered: rooms-updated for private room member update`
             );
           } catch (pusherError) {
             logError(
@@ -1342,10 +1382,14 @@ async function handleLeaveRoom(data, requestId) {
           }
         }
       } else {
-        // For public rooms, just trigger update if user count changed
+        // For public rooms, trigger efficient broadcast if user count changed
         if (userCount !== previousUserCount) {
           try {
-            // Removed individual user-count-updated event; rooms-updated will carry the new count
+            await broadcastRoomsUpdated();
+            logInfo(
+              requestId,
+              `Pusher event triggered: rooms-updated for public room user count change`
+            );
           } catch (pusherError) {
             logError(
               requestId,
@@ -2095,20 +2139,27 @@ async function broadcastRoomsUpdated() {
 
     // 1. Public channel with only public rooms (for anonymous clients)
     const publicRooms = filterRoomsForUser(allRooms, null);
-    await pusher.trigger("chats-public", "rooms-updated", {
-      rooms: publicRooms,
-    });
+    const publicChannelPromise = pusher.trigger(
+      "chats-public",
+      "rooms-updated",
+      {
+        rooms: publicRooms,
+      }
+    );
 
-    // 2. Per-user channels
+    // 2. Per-user channels - parallelize these for better performance
     const userKeys = await redis.keys(`${CHAT_USERS_PREFIX}*`);
-    for (const key of userKeys) {
+    const userChannelPromises = userKeys.map((key) => {
       const username = key.substring(CHAT_USERS_PREFIX.length);
       const safeUsername = sanitizeForChannel(username);
       const userRooms = filterRoomsForUser(allRooms, username);
-      await pusher.trigger(`chats-${safeUsername}`, "rooms-updated", {
+      return pusher.trigger(`chats-${safeUsername}`, "rooms-updated", {
         rooms: userRooms,
       });
-    }
+    });
+
+    // Wait for all Pusher calls to complete in parallel
+    await Promise.all([publicChannelPromise, ...userChannelPromises]);
   } catch (err) {
     console.error("[broadcastRoomsUpdated] Failed to broadcast rooms:", err);
   }
@@ -2147,14 +2198,17 @@ async function broadcastToSpecificUsers(usernames) {
     // Fetch all rooms once
     const allRooms = await getDetailedRooms();
 
-    // Send filtered rooms to each user
-    for (const username of usernames) {
+    // Send filtered rooms to each user in parallel
+    const pushPromises = usernames.map((username) => {
       const safeUsername = sanitizeForChannel(username);
       const userRooms = filterRoomsForUser(allRooms, username);
-      await pusher.trigger(`chats-${safeUsername}`, "rooms-updated", {
+      return pusher.trigger(`chats-${safeUsername}`, "rooms-updated", {
         rooms: userRooms,
       });
-    }
+    });
+
+    // Wait for all Pusher calls to complete in parallel
+    await Promise.all(pushPromises);
   } catch (err) {
     console.error("[broadcastToSpecificUsers] Failed to broadcast:", err);
   }
