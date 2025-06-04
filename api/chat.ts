@@ -407,9 +407,12 @@ async function validateAuthToken(
           `[Auth] Token in grace period for user ${username}, refreshing...`
         );
 
-        // Generate new token
-        const crypto = await import("crypto");
-        const newToken = crypto.randomBytes(32).toString("hex");
+        // Generate new token using Web Crypto API (Edge Runtime compatible)
+        const tokenBytes = new Uint8Array(32);
+        crypto.getRandomValues(tokenBytes);
+        const newToken = Array.from(tokenBytes, (byte) =>
+          byte.toString(16).padStart(2, "0")
+        ).join("");
 
         // Store the old token for future grace period use
         await redis.set(
