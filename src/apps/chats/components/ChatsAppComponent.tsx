@@ -423,7 +423,7 @@ export function ChatsAppComponent({
                     transformPerspective: "2000px",
                     backfaceVisibility: "hidden",
                     willChange: "transform",
-                    maxHeight: "70vh", // Limit height to 70% of viewport
+                    maxHeight: "70%", // Limit height to 70% of container
                   }}
                 >
                   <ChatRoomSidebar
