@@ -43,13 +43,16 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
     <div
       className={cn(
         "flex flex-col font-geneva-12 text-[12px] border-black bg-neutral-100",
-        isOverlay
-          ? "w-full border-b h-full max-h-full"
-          : "w-56 border-r h-full overflow-hidden"
+        isOverlay ? "w-full border-b" : "w-56 border-r h-full overflow-hidden"
       )}
     >
-      <div className="py-3 px-3 flex flex-col flex-1 overflow-hidden">
-        <div className="flex justify-between items-center mb-2">
+      <div
+        className={cn(
+          "py-3 px-3 flex flex-col",
+          isOverlay ? "" : "flex-1 overflow-hidden"
+        )}
+      >
+        <div className="flex justify-between items-center mb-2 flex-shrink-0">
           <div className="flex items-baseline gap-1.5">
             <h2 className="text-[14px] pl-1">Chats</h2>
           </div>
@@ -64,8 +67,10 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
         </div>
         <div
           className={cn(
-            "flex-1 overflow-y-auto space-y-1 min-h-0 overscroll-contain",
-            isOverlay ? "pb-4" : ""
+            "space-y-1 overscroll-contain",
+            isOverlay
+              ? "flex-1 overflow-y-auto min-h-0" // Only scroll when content overflows
+              : "flex-1 overflow-y-auto min-h-0"
           )}
           style={{ WebkitOverflowScrolling: "touch" }}
         >

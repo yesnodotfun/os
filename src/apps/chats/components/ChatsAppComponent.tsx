@@ -373,13 +373,13 @@ export function ChatsAppComponent({
           <AnimatePresence>
             {sidebarVisibleBool && isFrameNarrow && (
               <motion.div
-                className="absolute inset-x-0 top-0 bottom-0 z-20"
+                className="absolute inset-0 z-20"
                 style={{ perspective: "2000px" }}
               >
                 {/* Scrim - fades in and out */}
                 <motion.div
                   initial={{ opacity: 0 }}
-                  animate={{ opacity: 0.3 }}
+                  animate={{ opacity: 0.4 }}
                   exit={{ opacity: 0 }}
                   transition={{
                     duration: 0.2,
@@ -389,7 +389,7 @@ export function ChatsAppComponent({
                   onClick={toggleSidebarVisibility}
                 />
 
-                {/* Sidebar - 3D flip animation */}
+                {/* Sidebar - 3D flip animation, full width but fit content height */}
                 <motion.div
                   initial={{
                     rotateX: -60,
@@ -418,11 +418,12 @@ export function ChatsAppComponent({
                     stiffness: 300,
                     mass: 1,
                   }}
-                  className="relative w-full h-full bg-neutral-200 z-10"
+                  className="relative w-full bg-neutral-100 z-10"
                   style={{
                     transformPerspective: "2000px",
                     backfaceVisibility: "hidden",
                     willChange: "transform",
+                    maxHeight: "70vh", // Limit height to 70% of viewport
                   }}
                 >
                   <ChatRoomSidebar
