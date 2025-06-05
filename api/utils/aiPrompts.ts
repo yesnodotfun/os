@@ -120,5 +120,6 @@ DELIVERABLE REQUIREMENTS:
 6. For <img> tags: if there are image URLs provided in context, always try to use them. Do NOT link to imgur or image placeholders. Do NOT use data: base64 images.
 7. Map fonts: body -> font-geneva, headings (sans-serif) -> font-neuebit font-bold, serif -> font-mondwest, monospace -> font-monaco. For blackletter Gothic style (eg. The New York Times Logo) -> font-jacquard, do not use all caps for blockletters.
 8. Ensure hyperlinks/buttons use <a href="/..."> or <a href="https://..."> with real or plausible destinations.
+9. Use simple colors, avoid gradients, use backdrop-blur, use simple animations.
 </deliverable_requirements>
 `;
