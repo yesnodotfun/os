@@ -1,6 +1,13 @@
 {
   "videos": [
     {
+    "id": "cmlERpyGmYI",
+    "url": "https://www.youtube.com/watch?v=cmlERpyGmYI",
+    "title": "COME DANCE",
+    "artist": "劉柏辛",
+    "lyricOffset": 1000
+  },
+    {
       "id": "lNmBNXR5mKk",
       "url": "https://www.youtube.com/watch?v=lNmBNXR5mKk",
       "title": "Midnight Mirage",
