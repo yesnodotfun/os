@@ -142,6 +142,9 @@
   .no-touch-callout {
     -webkit-touch-callout: none;
   }
+  html {
+    overscroll-behavior: none;
+  }
   body {
     @apply bg-background text-foreground;
     user-select: none;
