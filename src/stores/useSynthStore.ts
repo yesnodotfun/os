@@ -194,7 +194,7 @@ const getOldLabelType = (): NoteLabelType => {
   try {
     const savedLabelType = localStorage.getItem("synth-label-type") as NoteLabelType;
     return savedLabelType || "off";
-  } catch (error) {
+  } catch {
     return "off";
   }
 };

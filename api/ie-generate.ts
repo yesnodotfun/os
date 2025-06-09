@@ -1,4 +1,4 @@
-import { streamText, smoothStream } from "ai";
+import { streamText, smoothStream, type Message } from "ai";
 import { SupportedModel, DEFAULT_MODEL, getModelInstance } from "./utils/aiModels";
 import { Redis } from "@upstash/redis";
 import { normalizeUrlForCacheKey } from "./utils/url";
@@ -38,6 +38,13 @@ const logError = (id: string, message: string, error: unknown) => {
 };
 
 const generateRequestId = (): string => Math.random().toString(36).substring(2, 10);
+
+interface IEGenerateRequestBody {
+  url?: string;
+  year?: string;
+  messages?: Message[];
+  model?: SupportedModel;
+}
 
 // --- Utility Functions ----------------------------------------------------
 
@@ -160,10 +167,12 @@ export default async function handler(req: Request) {
     const targetYear = urlObj.searchParams.get("year");
 
     // Parse JSON body once
-    const bodyData = await req.json().catch(() => ({}));
+    const bodyData = (await req
+      .json()
+      .catch(() => ({}))) as IEGenerateRequestBody;
 
-    const bodyUrl = (bodyData as any)?.url as string | undefined;
-    const bodyYear = (bodyData as any)?.year as string | undefined;
+    const bodyUrl = bodyData.url;
+    const bodyYear = bodyData.year;
     
     // Build a safe cache key using url/year present in query string or body
     const rawUrl = targetUrl || bodyUrl; // Get the url before normalization
@@ -175,7 +184,7 @@ export default async function handler(req: Request) {
 
     logRequest(req.method, req.url, `${rawUrl} (${effectiveYearStr || 'N/A'})`, requestId); // Log original requested URL
 
-    const { messages = [], model: bodyModel = DEFAULT_MODEL } = bodyData as any;
+    const { messages = [], model: bodyModel = DEFAULT_MODEL } = bodyData;
 
     // Use normalized URL for the cache key
     const cacheKey = normalizedUrlForKey && effectiveYearStr ?

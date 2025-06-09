@@ -52,7 +52,8 @@ export const useSoundboard = () => {
     (index: number, updates: Partial<import("@/types/types").SoundSlot>) => {
       if (activeBoardId) {
         // Ensure waveform is not passed to the store action
-        const { waveform, ...restUpdates } = updates;
+        const { waveform: _waveform, ...restUpdates } = updates;
+        void _waveform;
         updateSlotAction(activeBoardId, index, restUpdates);
       }
     },

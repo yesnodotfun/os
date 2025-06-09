@@ -29,14 +29,16 @@ export function useLibraryUpdateChecker(isActive: boolean) {
         // Get server tracks directly (same as syncLibrary does)
         const res = await fetch("/data/ipod-videos.json");
         const data = await res.json();
-        const serverTracks: Track[] = (data.videos || data).map((v: any) => ({
-          id: v.id as string,
-          url: v.url as string,
-          title: v.title as string,
-          artist: v.artist as string | undefined,
-          album: (v.album as string | undefined) ?? "",
-          lyricOffset: v.lyricOffset as number | undefined,
-        }));
+        const serverTracks: Track[] = (data.videos || data).map(
+          (v: Record<string, unknown>) => ({
+            id: v.id as string,
+            url: v.url as string,
+            title: v.title as string,
+            artist: v.artist as string | undefined,
+            album: (v.album as string | undefined) ?? "",
+            lyricOffset: v.lyricOffset as number | undefined,
+          })
+        );
         const serverVersion = data.version || 1;
 
         // Check for new tracks (same logic as syncLibrary)

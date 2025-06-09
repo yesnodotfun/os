@@ -876,7 +876,7 @@ export const useAppStore = create<AppStoreState>()(
     {
       name: "ryos:app-store",
       version: CURRENT_APP_STORE_VERSION,
-      partialize: (state) => ({
+      partialize: (state): Partial<AppStoreState> => ({
         windowOrder: state.windowOrder,
         apps: state.apps,
         version: state.version,
@@ -903,14 +903,13 @@ export const useAppStore = create<AppStoreState>()(
         masterVolume: state.masterVolume,
         // Only persist open instances to avoid storing closed instances
         instances: Object.fromEntries(
-          Object.entries(state.instances).filter(
-            ([_, instance]) => instance.isOpen
-          )
+          Object.entries(state.instances).filter(([, instance]) => instance.isOpen)
         ),
         instanceWindowOrder: state.instanceWindowOrder,
         nextInstanceId: state.nextInstanceId,
       }),
-      migrate: (persistedState: any, version: number) => {
+      migrate: (persistedState: unknown, version: number) => {
+        const migrated = persistedState as AppStoreState;
         console.log(
           "[AppStore] Migrating from version",
           version,
@@ -918,7 +917,7 @@ export const useAppStore = create<AppStoreState>()(
           CURRENT_APP_STORE_VERSION
         );
 
-        let migratedState = persistedState as AppStoreState;
+        let migratedState = migrated;
 
         // Migrate from version 1 to 2: Reset TTS settings to null
         if (version < 2) {

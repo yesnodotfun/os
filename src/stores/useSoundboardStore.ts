@@ -82,13 +82,13 @@ export const useSoundboardStore = create<SoundboardStoreState>()(
           const importedBoardsRaw =
             data.boards || (Array.isArray(data) ? data : [data]);
 
-          const importedBoards = importedBoardsRaw.map((boardData: any) => ({
+          const importedBoards = importedBoardsRaw.map((boardData: Partial<Soundboard>) => ({
             id:
               boardData.id ||
               Date.now().toString() + Math.random().toString(36).slice(2),
             name: boardData.name || "Imported Soundboard",
             slots: (boardData.slots || Array(9).fill(null)).map(
-              (slotData: any) => ({
+              (slotData: Partial<SoundSlot>) => ({
                 audioData: slotData?.audioData || null,
                 emoji: slotData?.emoji || undefined,
                 title: slotData?.title || undefined,
@@ -166,7 +166,7 @@ export const useSoundboardStore = create<SoundboardStoreState>()(
               newSlots[slotIndex] = { ...currentSlot, ...updates };
               if ("waveform" in updates) {
                 // Ensure non-serializable data isn't persisted
-                delete (newSlots[slotIndex] as any).waveform;
+                delete (newSlots[slotIndex] as { waveform?: unknown }).waveform;
               }
               return { ...board, slots: newSlots };
             }

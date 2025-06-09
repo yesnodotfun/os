@@ -1,16 +1,22 @@
 import { Loader2, Check } from "lucide-react";
 import HtmlPreview from "@/components/shared/HtmlPreview";
 
-interface ToolInvocation {
+export interface ToolInvocation {
   state: "partial-call" | "call" | "result";
   step: number;
   toolCallId: string;
   toolName: string;
-  args?: Record<string, any>;
-  result?: any;
+  args?: {
+    id?: string;
+    url?: string;
+    year?: string;
+    html?: string;
+    [key: string]: unknown;
+  };
+  result?: unknown;
 }
 
-interface ToolInvocationPart {
+export interface ToolInvocationPart {
   type: "tool-invocation";
   toolInvocation: ToolInvocation;
 }

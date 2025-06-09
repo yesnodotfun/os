@@ -940,7 +940,6 @@ export function InternetExplorerAppComponent({
             await generateFuturisticWebsite(
               normalizedTargetUrl,
               targetYearParam,
-              forceRegenerate,
               abortController.signal,
               null,
               currentHtmlContent
@@ -977,7 +976,6 @@ export function InternetExplorerAppComponent({
                 await generateFuturisticWebsite(
                   normalizedTargetUrl,
                   targetYearParam,
-                  forceRegenerate,
                   abortController.signal,
                   null,
                   currentHtmlContent
@@ -994,7 +992,6 @@ export function InternetExplorerAppComponent({
               await generateFuturisticWebsite(
                 normalizedTargetUrl,
                 targetYearParam,
-                forceRegenerate,
                 abortController.signal,
                 null,
                 currentHtmlContent

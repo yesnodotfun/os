@@ -4,7 +4,7 @@ import { AppId } from "@/config/appRegistry";
 // Export the interface
 export interface LaunchAppOptions {
   initialPath?: string;
-  initialData?: any; // Add initialData field
+  initialData?: unknown; // Add initialData field
   multiWindow?: boolean; // Add multiWindow flag
 }
 
