@@ -17,7 +17,6 @@ interface UseAiGenerationReturn {
   generateFuturisticWebsite: (
     url: string,
     year: string,
-    forceRegenerate?: boolean,
     signal?: AbortSignal,
     prefetchedTitle?: string | null,
     currentHtmlContent?: string | null
@@ -245,7 +244,6 @@ export function useAiGeneration({
   const generateFuturisticWebsite = async (
     url: string,
     year: string,
-    _forceRegenerate = false,
     signal?: AbortSignal,
     prefetchedTitle?: string | null,
     currentHtmlContent?: string | null

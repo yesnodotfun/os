@@ -742,9 +742,10 @@ export function SynthAppComponent({
     // that notes are triggered immediately when requested.
     try {
       // In some environments Tone.context might not be ready yet, so we wrap in try/catch
-      if (Tone && Tone.context) {
-        // @ts-ignore – Tone's type defs don't expose lookAhead as writable
-        Tone.context.lookAhead = 0;
+        if (Tone && Tone.context) {
+          // Tone's type defs don't expose lookAhead as writable
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (Tone.context as any).lookAhead = 0;
       }
     } catch {
       // Ignore if Tone isn't available – worst case we keep the default value.

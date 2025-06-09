@@ -23,7 +23,7 @@ export async function decodeSharedUrl(code: string): Promise<{ url: string; year
  */
 export function extractCodeFromPath(path: string): string | null {
   // Match /internet-explorer/{code} pattern
-  const match = path.match(/^\/internet-explorer\/([^\/]+)$/);
+  const match = path.match(/^\/internet-explorer\/([^/]+)$/);
   return match ? match[1] : null;
 }
 

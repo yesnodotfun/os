@@ -18,10 +18,8 @@ function BatteryIndicator({ backlightOn }: { backlightOn: boolean }) {
     // Try to get battery information (deprecated API, may not work in all browsers)
     const getBattery = async () => {
       try {
-        // @ts-ignore - Battery API is deprecated but still works in some browsers
         if ("getBattery" in navigator) {
-          // @ts-ignore
-          const battery = await navigator.getBattery();
+          const battery = await (navigator as any).getBattery();
           setBatteryLevel(battery.level);
           setIsCharging(battery.charging);
 
@@ -36,7 +34,7 @@ function BatteryIndicator({ backlightOn }: { backlightOn: boolean }) {
             battery.removeEventListener("chargingchange", updateCharging);
           };
         }
-      } catch (error) {
+      } catch {
         // Fallback to a default level
         setBatteryLevel(1.0); // 100% as fallback
         setIsCharging(false);

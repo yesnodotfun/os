@@ -28,6 +28,20 @@ import { AIModel, AI_MODEL_METADATA } from "@/types/aiModels";
 import { VolumeMixer } from "./VolumeMixer";
 import { v4 as uuidv4 } from "uuid";
 
+interface StoreItem {
+  name: string;
+  content?: string;
+  type?: string;
+  modifiedAt?: string;
+  size?: number;
+  [key: string]: unknown;
+}
+
+interface StoreItemWithKey {
+  key: string;
+  value: StoreItem;
+}
+
 type PhotoCategory =
   | "3d_graphics"
   | "convergency"
@@ -335,20 +349,6 @@ export function ControlPanelsAppComponent({
   };
 
   const handleBackup = async () => {
-    interface StoreItem {
-      name: string;
-      content?: string;
-      type?: string;
-      modifiedAt?: string;
-      size?: number;
-      [key: string]: unknown;
-    }
-
-    // Add interface for key-value pairs
-    interface StoreItemWithKey {
-      key: string;
-      value: StoreItem;
-    }
 
     const backup: {
       localStorage: Record<string, string | null>;
@@ -608,15 +608,18 @@ export function ControlPanelsAppComponent({
         } else if (backup.localStorage && backup.localStorage["ryos:files"]) {
           // For newer backups, also check if files lack UUIDs
           try {
-            const filesData = JSON.parse(backup.localStorage["ryos:files"]);
+            const filesDataStr = backup.localStorage["ryos:files"];
+            const filesData = filesDataStr ? JSON.parse(filesDataStr) : {};
             if (filesData.state && filesData.state.items) {
               // Check if any files lack UUIDs
-              const fileItems = Object.values(filesData.state.items).filter(
-                (item: any) => !item.isDirectory
+              const fileItems = (
+                Object.values(filesData.state.items) as Array<Record<string, unknown>>
+              ).filter(
+                (item) => !(item as { isDirectory?: boolean }).isDirectory
               );
               isOldBackupFormat =
                 fileItems.length > 0 &&
-                fileItems.every((item: any) => !item.uuid);
+                fileItems.every((item) => !(item as { uuid?: string }).uuid);
               if (isOldBackupFormat) {
                 console.log(
                   "[Restore] Detected old backup format (files lack UUIDs)"
@@ -656,7 +659,7 @@ export function ControlPanelsAppComponent({
             const db = await ensureIndexedDBInitialized();
             const restoreStoreData = async (
               storeName: string,
-              dataToRestore: any[] // Can be either StoreItem[] or StoreItemWithKey[]
+              dataToRestore: Array<StoreItem | StoreItemWithKey>
             ): Promise<void> => {
               console.log(
                 `Restoring ${dataToRestore.length} items to ${storeName}...`
@@ -673,22 +676,19 @@ export function ControlPanelsAppComponent({
                         let itemKey: string | undefined;
 
                         // Check if this is new format (with key) or old format (without key)
-                        if (
-                          itemOrPair.key !== undefined &&
-                          itemOrPair.value !== undefined
-                        ) {
+                        if ("value" in itemOrPair) {
+                          const pair = itemOrPair as StoreItemWithKey;
                           // New format: { key: string, value: StoreItem }
-                          itemKey = itemOrPair.key;
-                          restoredItem = { ...itemOrPair.value };
+                          itemKey = pair.key;
+                          restoredItem = { ...pair.value };
                         } else {
-                          // Old format: StoreItem
-                          restoredItem = { ...itemOrPair };
-                          // For old backups, use the name field as the key
+                          const oldItem = itemOrPair as StoreItem;
+                          restoredItem = { ...oldItem };
                           if (
-                            restoredItem.name &&
-                            typeof restoredItem.name === "string"
+                            oldItem.name &&
+                            typeof oldItem.name === "string"
                           ) {
-                            itemKey = restoredItem.name;
+                            itemKey = oldItem.name;
                           }
                         }
 

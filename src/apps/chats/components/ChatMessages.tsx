@@ -23,7 +23,10 @@ import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
 import { useTtsQueue } from "@/hooks/useTtsQueue";
 import { useAppStore } from "@/stores/useAppStore";
 import { appRegistry } from "@/config/appRegistry";
-import { ToolInvocationMessage } from "@/components/shared/ToolInvocationMessage";
+import {
+  ToolInvocationMessage,
+  type ToolInvocationPart,
+} from "@/components/shared/ToolInvocationMessage";
 import { useChatsStore } from "@/stores/useChatsStore";
 
 // --- Color Hashing for Usernames ---
@@ -956,7 +959,7 @@ function ChatMessagesContent({
                         return (
                           <ToolInvocationMessage
                             key={partKey}
-                            part={part as any}
+                            part={part as ToolInvocationPart}
                             partKey={partKey}
                             isLoading={isLoading}
                             getAppName={getAppName}

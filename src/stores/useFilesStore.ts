@@ -612,7 +612,7 @@ export const useFilesStore = create<FilesStoreState>()(
         items: state.items, // Persist the entire file structure
         libraryState: state.libraryState,
       }),
-      migrate: (persistedState: any, version: number) => {
+      migrate: (persistedState: unknown, version: number) => {
         if (version < 5) {
           const oldState = persistedState as {
             items: Record<string, FileSystemItem>;
