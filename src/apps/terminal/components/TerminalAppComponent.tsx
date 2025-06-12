@@ -75,6 +75,7 @@ const AVAILABLE_COMMANDS = [
   "whoami",
   "date",
   "vim",
+  "cowsay",
 ];
 
 // Helper: prettify tool names
@@ -83,6 +84,24 @@ const formatToolName = (name: string): string =>
     .replace(/([A-Z])/g, " $1")
     .replace(/^./, (ch) => ch.toUpperCase())
     .trim();
+
+// Helper function for the 'cowsay' command
+const cowsay = (message: string): string => {
+  const messageLength = message.length;
+  const topBorder = ` ${"_".repeat(messageLength + 2)} `;
+  const bottomBorder = ` ${"-".repeat(messageLength + 2)} `;
+
+  const cow = `        \\   ^__^
+         \\  (oo)\\_______
+            (__)\\       )\\/\\
+                ||----w |
+                ||     ||`;
+
+  return `${topBorder}
+< ${message} >
+${bottomBorder}
+${cow}`;
+};
 
 const getAppName = (id?: string): string => {
   if (!id) return "app";
@@ -1676,6 +1695,7 @@ terminal
   echo <text>      display text
   whoami           display current user
   date             display current date/time
+  cowsay <text>    a talking cow
 
 assistant
   ryo <prompt>     chat with ryo
@@ -2179,6 +2199,14 @@ assistant
         };
         return {
           output: now.toLocaleString("en-US", options),
+          isError: false,
+        };
+      }
+
+      case "cowsay": {
+        const message = args.join(" ") || "Moo!";
+        return {
+          output: cowsay(message),
           isError: false,
         };
       }
