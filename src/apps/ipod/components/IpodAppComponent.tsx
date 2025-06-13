@@ -1562,26 +1562,51 @@ export function IpodAppComponent({
   const [scale, setScale] = useState(1);
 
   useEffect(() => {
+    let timeoutId: number;
+    
     const handleResize = () => {
       if (!containerRef.current) return;
-      const containerWidth = containerRef.current.clientWidth;
-      const containerHeight = containerRef.current.clientHeight;
-      const baseWidth = 250;
-      const baseHeight = 400;
-      const availableWidth = containerWidth - 50;
-      const availableHeight = containerHeight - 50;
-      const widthScale = availableWidth / baseWidth;
-      const heightScale = availableHeight / baseHeight;
-      const newScale = Math.min(widthScale, heightScale, 2);
-      setScale(Math.max(1, newScale));
+      
+      // Use requestAnimationFrame to ensure we get accurate measurements
+      requestAnimationFrame(() => {
+        if (!containerRef.current) return;
+        
+        const containerWidth = containerRef.current.clientWidth;
+        const containerHeight = containerRef.current.clientHeight;
+        const baseWidth = 250;
+        const baseHeight = 400;
+        const availableWidth = containerWidth - 50;
+        const availableHeight = containerHeight - 50;
+        const widthScale = availableWidth / baseWidth;
+        const heightScale = availableHeight / baseHeight;
+        const newScale = Math.min(widthScale, heightScale, 2);
+        const finalScale = Math.max(1, newScale);
+        
+        // Only update if scale actually changed to prevent unnecessary re-renders
+        setScale(prevScale => {
+          if (Math.abs(prevScale - finalScale) > 0.01) {
+            return finalScale;
+          }
+          return prevScale;
+        });
+      });
     };
 
-    handleResize();
-    const resizeObserver = new ResizeObserver(handleResize);
+    // Initial resize with a small delay to ensure DOM is ready
+    timeoutId = window.setTimeout(handleResize, 10);
+    
+    const resizeObserver = new ResizeObserver(() => {
+      // Debounce resize events
+      clearTimeout(timeoutId);
+      timeoutId = window.setTimeout(handleResize, 10);
+    });
+    
     if (containerRef.current) {
       resizeObserver.observe(containerRef.current);
     }
+    
     return () => {
+      clearTimeout(timeoutId);
       resizeObserver.disconnect();
     };
   }, [isWindowOpen]);
@@ -1712,6 +1737,11 @@ export function IpodAppComponent({
         <div
           ref={containerRef}
           className="flex flex-col items-center justify-center w-full h-full bg-gradient-to-b from-gray-100/20 to-gray-300/20 backdrop-blur-lg p-4 select-none"
+          style={{
+            position: 'relative',
+            overflow: 'hidden',
+            contain: 'layout style paint'
+          }}
         >
           <div
             className={cn(
@@ -1722,6 +1752,13 @@ export function IpodAppComponent({
               transform: `scale(${scale})`,
               transformOrigin: "center",
               transition: "transform 0.2s ease",
+              minWidth: '250px',
+              minHeight: '400px',
+              maxWidth: '250px',
+              maxHeight: '400px',
+              contain: 'layout style paint',
+              willChange: 'transform',
+              backfaceVisibility: 'hidden'
             }}
           >
             <IpodScreen
