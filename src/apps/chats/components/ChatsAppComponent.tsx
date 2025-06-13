@@ -393,21 +393,21 @@ export function ChatsAppComponent({
                 <motion.div
                   initial={{
                     rotateX: -60,
-                    translateY: "-30%",
+                    y: "-30%",
                     scale: 0.9,
                     opacity: 0,
                     transformOrigin: "top center",
                   }}
                   animate={{
                     rotateX: 0,
-                    translateY: "0%",
+                    y: "0%",
                     scale: 1,
                     opacity: 1,
                     transformOrigin: "top center",
                   }}
                   exit={{
                     rotateX: -60,
-                    translateY: "-30%",
+                    y: "-30%",
                     scale: 0.9,
                     opacity: 0,
                     transformOrigin: "top center",
