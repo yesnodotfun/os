@@ -1,6 +1,13 @@
 {
   "videos": [
     {
+      "id": "11cta61wi0g",
+      "url": "https://www.youtube.com/watch?v=11cta61wi0g",
+      "title": "Hype Boy",
+      "artist": "NewJeans",
+      "lyricOffset": 1000
+    },
+    {
     "id": "cmlERpyGmYI",
     "url": "https://www.youtube.com/watch?v=cmlERpyGmYI",
     "title": "COME DANCE",
