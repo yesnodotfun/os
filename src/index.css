@@ -15,11 +15,13 @@
   font-style: normal;
 }
 
-@font-face {
-  font-family: "SerenityOS-Emoji";
-  src: url("/fonts/SerenityOS-Emoji.ttf") format("truetype");
-  font-weight: normal;
-  font-style: normal;
+@supports not (font: -apple-system-body) {
+  @font-face {
+    font-family: "SerenityOS-Emoji";
+    src: url("/fonts/SerenityOS-Emoji.ttf") format("truetype");
+    font-weight: normal;
+    font-style: normal;
+  }
 }
 
 @font-face {
@@ -583,4 +585,24 @@
 
 .animate-fade-in {
   animation: fade-in 0.3s ease-out;
+}
+
+/* ------------------------------------------------------------------------- */
+/* Safari override: disable SerenityOS-Emoji to fix missing emoji glyphs      */
+/* ------------------------------------------------------------------------- */
+
+@supports (font: -apple-system-body) {
+  /* Safari (both macOS & iOS) uniquely supports the proprietary
+     `-apple-system-body` value in the `font` shorthand. We redeclare the
+     SerenityOS-Emoji font inside this feature query with an empty `src` so
+     Safari falls back to its native Apple Color Emoji set, while other
+     browsers continue to use SerenityOS-Emoji. */
+  @font-face {
+    font-family: "SerenityOS-Emoji";
+    /* Point to a non-existent local font to prevent download */
+    src: local("☃︎");
+    /* Ensure all styles/weights are covered */
+    font-weight: normal;
+    font-style: normal;
+  }
 }
