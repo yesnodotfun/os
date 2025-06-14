@@ -2400,18 +2400,29 @@ export function InternetExplorerAppComponent({
                   <SelectTrigger className="!text-[16px]">
                     <SelectValue placeholder="Year" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="px-0">
                     {futureYears.map((y) => (
-                      <SelectItem key={y} value={y} className="text-blue-600">
+                      <SelectItem
+                        key={y}
+                        value={y}
+                        className="text-md h-6 px-3 active:bg-gray-900 active:text-white text-blue-600"
+                      >
                         {y}
                       </SelectItem>
                     ))}
-                    <SelectItem value="current">Now</SelectItem>
+                    <SelectItem
+                      value="current"
+                      className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+                    >
+                      Now
+                    </SelectItem>
                     {pastYears.map((y) => (
                       <SelectItem
                         key={y}
                         value={y}
-                        className={parseInt(y) <= 1995 ? "text-blue-600" : ""}
+                        className={`text-md h-6 px-3 active:bg-gray-900 active:text-white ${
+                          parseInt(y) <= 1995 ? "text-blue-600" : ""
+                        }`}
                       >
                         {y}
                       </SelectItem>
