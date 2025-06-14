@@ -2222,7 +2222,7 @@ export function InternetExplorerAppComponent({
                     handleFilterSuggestions(localUrl);
                     setIsUrlDropdownOpen(true);
                   }}
-                  className="flex-1 pr-8"
+                  className="flex-1 pr-8 !text-[16px]"
                   placeholder="Enter URL"
                   spellCheck="false"
                   autoComplete="off"
@@ -2397,7 +2397,7 @@ export function InternetExplorerAppComponent({
                   value={year}
                   onValueChange={(newYear) => handleNavigate(url, newYear)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="!text-[16px]">
                     <SelectValue placeholder="Year" />
                   </SelectTrigger>
                   <SelectContent>

@@ -814,7 +814,7 @@ export function FinderAppComponent({
         >
           <div className="flex flex-col gap-1 p-1 bg-gray-100 border-b border-black">
             <div className="flex gap-2 items-center">
-              <div className="flex gap-1">
+              <div className="flex gap-0 items-center">
                 <Button
                   variant="ghost"
                   size="icon"
@@ -896,7 +896,7 @@ export function FinderAppComponent({
                     navigateToPath((e.target as HTMLInputElement).value);
                   }
                 }}
-                className="flex-1"
+                className="flex-1 !text-[16px]"
                 placeholder="Enter path"
               />
             </div>
