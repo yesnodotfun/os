@@ -22,6 +22,7 @@ import { useFilesStore } from "@/stores/useFilesStore";
 import { FileItem } from "./FileList";
 import { useFinderStore } from "@/stores/useFinderStore";
 import { useAppStore } from "@/stores/useAppStore";
+import { RightClickMenu, MenuItem } from "@/components/ui/right-click-menu";
 
 // Type for Finder initial data
 interface FinderInitialData {
@@ -92,6 +93,11 @@ export function FinderAppComponent({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [storageSpace, setStorageSpace] = useState(calculateStorageSpace());
   const fileStore = useFilesStore();
+  const [contextMenuPos, setContextMenuPos] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+  const [contextMenuFile, setContextMenuFile] = useState<FileItem | null>(null);
 
   // Use instance-based store management
   const createFinderInstance = useFinderStore((state) => state.createInstance);
@@ -659,6 +665,58 @@ export function FinderAppComponent({
     setIsRenameDialogOpen(true);
   };
 
+  const handleItemContextMenu = (file: FileItem, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenuPos({ x: e.clientX, y: e.clientY });
+    setContextMenuFile(file);
+    handleFileSelect(file); // ensure selected
+  };
+
+  const handleBlankContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setContextMenuPos({ x: e.clientX, y: e.clientY });
+    setContextMenuFile(null);
+  };
+
+  // Inside component before return create two arrays
+  const blankMenuItems: MenuItem[] = [
+    {
+      type: "submenu",
+      label: "Sort By",
+      items: [
+        {
+          type: "radioGroup",
+          value: sortType,
+          onChange: (val) => setSortType(val as SortType),
+          items: [
+            { label: "Name", value: "name" },
+            { label: "Date", value: "date" },
+            { label: "Size", value: "size" },
+            { label: "Kind", value: "kind" },
+          ],
+        },
+      ],
+    },
+    { type: "separator" },
+    { type: "item", label: "New Folder…", onSelect: handleNewFolder },
+  ];
+
+  const fileMenuItems = (file: FileItem): MenuItem[] => [
+    { type: "item", label: "Rename…", onSelect: handleRename },
+    { type: "item", label: "Duplicate", onSelect: handleDuplicate },
+    {
+      type: "item",
+      label: "Move to Trash",
+      onSelect: () => moveToTrash(file),
+      disabled:
+        file.path.startsWith("/Trash") ||
+        file.path === "/Documents" ||
+        file.path === "/Images" ||
+        file.path === "/Applications",
+    },
+  ];
+
   if (!isWindowOpen) return null;
 
   return (
@@ -752,6 +810,7 @@ export function FinderAppComponent({
           onDragEnd={() => setIsDraggingOver(false)}
           onMouseLeave={() => setIsDraggingOver(false)}
           onDrop={handleFileDrop}
+          onContextMenu={handleBlankContextMenu}
         >
           <div className="flex flex-col gap-1 p-1 bg-gray-100 border-b border-black">
             <div className="flex gap-2 items-center">
@@ -864,6 +923,7 @@ export function FinderAppComponent({
                 canDropFiles={canCreateFolder}
                 currentPath={currentPath}
                 onRenameRequest={handleRenameRequest}
+                onItemContextMenu={handleItemContextMenu}
               />
             )}
           </div>
@@ -913,6 +973,13 @@ export function FinderAppComponent({
         description="Enter a name for the new folder:"
         value={newFolderName}
         onChange={setNewFolderName}
+      />
+      <RightClickMenu
+        position={contextMenuPos}
+        onClose={() => setContextMenuPos(null)}
+        items={
+          contextMenuFile ? fileMenuItems(contextMenuFile) : blankMenuItems
+        }
       />
     </>
   );

@@ -5,6 +5,8 @@ import { useState, useEffect, useRef } from "react";
 import { FileIcon } from "@/apps/finder/components/FileIcon";
 import { getAppIconPath } from "@/config/appRegistry";
 import { useWallpaper } from "@/hooks/useWallpaper";
+import { RightClickMenu, MenuItem } from "@/components/ui/right-click-menu";
+import { SortType } from "@/apps/finder/components/FinderMenuBar";
 
 interface DesktopStyles {
   backgroundImage?: string;
@@ -31,6 +33,11 @@ export function Desktop({
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
   const { wallpaperSource, isVideoWallpaper } = useWallpaper();
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [sortType, setSortType] = useState<SortType>("name");
+  const [contextMenuPos, setContextMenuPos] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
 
   // Add visibility change and focus handlers to resume video playback
   useEffect(() => {
@@ -139,10 +146,52 @@ export function Desktop({
     setSelectedAppId(null);
   };
 
+  // Compute sorted apps based on selected sort type
+  const sortedApps = [...apps]
+    .filter((app) => app.id !== "finder" && app.id !== "control-panels")
+    .sort((a, b) => {
+      switch (sortType) {
+        case "name":
+          return a.name.localeCompare(b.name);
+        case "kind":
+          return a.id.localeCompare(b.id);
+        default:
+          return 0;
+      }
+    });
+
+  const desktopMenuItems: MenuItem[] = [
+    {
+      type: "submenu",
+      label: "Sort By",
+      items: [
+        {
+          type: "radioGroup",
+          value: sortType,
+          onChange: (val) => setSortType(val as SortType),
+          items: [
+            { label: "Name", value: "name" },
+            { label: "Kind", value: "kind" },
+          ],
+        },
+      ],
+    },
+    { type: "separator" },
+    {
+      type: "item",
+      label: "Set Wallpaper…",
+      onSelect: () => toggleApp("control-panels"),
+    },
+  ];
+
   return (
     <div
       className="absolute inset-0 min-h-screen h-full z-[-1] desktop-background"
       onClick={onClick}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        setContextMenuPos({ x: e.clientX, y: e.clientY });
+      }}
       style={finalStyles}
     >
       <video
@@ -173,26 +222,29 @@ export function Desktop({
             isSelected={selectedAppId === "macintosh-hd"}
             size="large"
           />
-          {apps
-            .filter((app) => app.id !== "finder" && app.id !== "control-panels")
-            .map((app) => (
-              <FileIcon
-                key={app.id}
-                name={app.name}
-                isDirectory={false}
-                icon={getAppIconPath(app.id)}
-                onClick={(e) => handleIconClick(app.id, e)}
-                onDoubleClick={(e) => {
-                  e.stopPropagation();
-                  toggleApp(app.id);
-                  setSelectedAppId(null);
-                }}
-                isSelected={selectedAppId === app.id}
-                size="large"
-              />
-            ))}
+          {sortedApps.map((app) => (
+            <FileIcon
+              key={app.id}
+              name={app.name}
+              isDirectory={false}
+              icon={getAppIconPath(app.id)}
+              onClick={(e) => handleIconClick(app.id, e)}
+              onDoubleClick={(e) => {
+                e.stopPropagation();
+                toggleApp(app.id);
+                setSelectedAppId(null);
+              }}
+              isSelected={selectedAppId === app.id}
+              size="large"
+            />
+          ))}
         </div>
       </div>
+      <RightClickMenu
+        position={contextMenuPos}
+        onClose={() => setContextMenuPos(null)}
+        items={desktopMenuItems}
+      />
     </div>
   );
 }
