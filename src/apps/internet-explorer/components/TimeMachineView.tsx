@@ -544,7 +544,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
           z: PREVIEW_Z_SPACING, // Target z for distance = 1
           scale: 1 - PREVIEW_SCALE_FACTOR, // Target scale for distance = 1
           y: PREVIEW_Y_SPACING, // Target y for distance = 1
-          transition: { type: "spring", stiffness: 150, damping: 25 },
+          transition: { type: "spring" as const, stiffness: 150, damping: 25 },
         };
       } else {
         // direction === 'forward' or 'none'
@@ -554,7 +554,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
           z: 50, // Bring slightly forward
           scale: 1.05, // Scale up a bit
           y: -PREVIEW_Y_SPACING, // Subtle upward shift
-          transition: { type: "spring", stiffness: 150, damping: 25 },
+          transition: { type: "spring" as const, stiffness: 150, damping: 25 },
         };
       }
     },
@@ -614,7 +614,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
       opacity: [0.4, 0.7, 0.4],
       transition: {
         duration: 2.5,
-        ease: "easeInOut",
+        ease: "easeInOut" as const,
         repeat: Infinity,
       },
     },
