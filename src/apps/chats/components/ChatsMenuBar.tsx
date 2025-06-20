@@ -14,6 +14,10 @@ import { generateAppShareUrl } from "@/utils/sharedUrl";
 import { useAppStoreShallow } from "@/stores/helpers";
 import { SYNTH_PRESETS } from "@/hooks/useChatSynth";
 import { getPrivateRoomDisplayName } from "@/utils/chat";
+import { InputDialog } from "@/components/dialogs/InputDialog";
+import { useChatsStore } from "@/stores/useChatsStore";
+import { useShallow } from "zustand/react/shallow";
+import { useState } from "react";
 
 interface ChatsMenuBarProps {
   onClose: () => void;
@@ -72,7 +76,52 @@ export function ChatsMenuBar({
     debugMode: s.debugMode,
   }));
 
+  // Token refresh dialog state
+  const [isRefreshDialogOpen, setRefreshDialogOpen] = useState(false);
+  const [refreshTokenInput, setRefreshTokenInput] = useState("");
+  const [isRefreshingToken, setIsRefreshingToken] = useState(false);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
+
+  // Chats store actions
+  const { setAuthToken, refreshAuthToken } = useChatsStore(
+    useShallow((state) => ({
+      setAuthToken: state.setAuthToken,
+      refreshAuthToken: state.refreshAuthToken,
+    }))
+  );
+
+  const handleRefreshTokenSubmit = async (token: string) => {
+    if (!token.trim()) {
+      setRefreshError("Token required");
+      return;
+    }
+
+    setIsRefreshingToken(true);
+    setRefreshError(null);
+
+    try {
+      // Temporarily set the provided token so the store can use it for refresh
+      setAuthToken(token.trim());
+
+      const result = await refreshAuthToken();
+
+      if (result.ok) {
+        toast.success("Token refreshed successfully");
+        setRefreshDialogOpen(false);
+        setRefreshTokenInput("");
+      } else {
+        setRefreshError(result.error ?? "Failed to refresh token");
+      }
+    } catch (err) {
+      console.error("[ChatsMenuBar] Unexpected error refreshing token", err);
+      setRefreshError("Unexpected error refreshing token");
+    } finally {
+      setIsRefreshingToken(false);
+    }
+  };
+
   return (
+    <>
     <MenuBar>
       {/* File Menu */}
       <DropdownMenu>
@@ -140,6 +189,16 @@ export function ChatsMenuBar({
               className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
             >
               Set Username...
+            </DropdownMenuItem>
+          )}
+
+          {/* Refresh Token - visible only in debug mode */}
+          {debugMode && (
+            <DropdownMenuItem
+              onClick={() => setRefreshDialogOpen(true)}
+              className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+            >
+              Refresh Token...
             </DropdownMenuItem>
           )}
 
@@ -345,5 +404,25 @@ export function ChatsMenuBar({
         </DropdownMenuContent>
       </DropdownMenu>
     </MenuBar>
+
+    {/* Refresh Token Dialog */}
+    <InputDialog
+      isOpen={isRefreshDialogOpen}
+      onOpenChange={(open) => {
+        setRefreshDialogOpen(open);
+        if (!open) {
+          setRefreshError(null);
+        }
+      }}
+      title="Refresh Token"
+      description="Enter your current token to obtain a new token."
+      value={refreshTokenInput}
+      onChange={setRefreshTokenInput}
+      onSubmit={handleRefreshTokenSubmit}
+      isLoading={isRefreshingToken}
+      errorMessage={refreshError ?? undefined}
+      submitLabel="Refresh"
+    />
+    </>
   );
 }
