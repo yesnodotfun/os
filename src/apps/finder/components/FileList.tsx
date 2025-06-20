@@ -10,6 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useState, useRef, useEffect } from "react";
+import { useLongPress } from "@/hooks/useLongPress";
 
 export interface FileItem {
   name: string;
@@ -244,6 +245,145 @@ export function FileList({
     return false;
   };
 
+  // --------------- Subcomponents with hook usage ---------------
+
+  interface ListRowProps {
+    file: FileItem;
+  }
+
+  const ListRow: React.FC<ListRowProps> = ({ file }) => {
+    const longPressHandlers = useLongPress((touchEvent) => {
+      if (onItemContextMenu) {
+        const touch = touchEvent.touches[0];
+        onItemContextMenu(file, {
+          preventDefault: () => {},
+          stopPropagation: () => {},
+          clientX: touch.clientX,
+          clientY: touch.clientY,
+        } as unknown as React.MouseEvent);
+      }
+    });
+
+    return (
+      <TableRow
+        key={file.path}
+        className={`border-none hover:bg-gray-100/50 transition-colors cursor-default ${
+          selectedFile?.path === file.path || dropTargetPath === file.path
+            ? "bg-black text-white hover:bg-black"
+            : "odd:bg-gray-200/50"
+        }`}
+        onClick={() => handleFileSelect(file)}
+        onContextMenu={(e: React.MouseEvent) => {
+          if (onItemContextMenu) {
+            onItemContextMenu(file, e);
+          }
+        }}
+        onDoubleClick={() => handleFileOpen(file)}
+        draggable={!file.isDirectory}
+        onDragStart={(e) => handleDragStart(e, file)}
+        onDragOver={(e) => handleDragOver(e, file)}
+        onDragLeave={handleDragLeave}
+        onDrop={(e) => handleDrop(e, file)}
+        onDragEnd={handleDragEnd}
+        {...longPressHandlers}
+      >
+        <TableCell className="flex items-center gap-2">
+          {file.contentUrl && isImageFile(file) ? (
+            <img
+              src={file.contentUrl}
+              alt={file.name}
+              className="w-4 h-4 object-contain"
+              style={{ imageRendering: "pixelated" }}
+              onError={(e) => {
+                console.error(`Error loading thumbnail for ${file.name}`);
+                (e.target as HTMLImageElement).style.display = "none";
+              }}
+            />
+          ) : (
+            <img
+              src={file.icon}
+              alt={file.isDirectory ? "Directory" : "File"}
+              className={`w-4 h-4 ${
+                selectedFile?.path === file.path || dropTargetPath === file.path
+                  ? "invert"
+                  : ""
+              }`}
+              style={{ imageRendering: "pixelated" }}
+            />
+          )}
+          {file.name}
+        </TableCell>
+        <TableCell>{getFileType(file)}</TableCell>
+        <TableCell className="whitespace-nowrap">
+          {file.size
+            ? file.size < 1024
+              ? `${file.size} B`
+              : file.size < 1024 * 1024
+              ? `${(file.size / 1024).toFixed(1)} KB`
+              : `${(file.size / (1024 * 1024)).toFixed(1)} MB`
+            : "--"}
+        </TableCell>
+        <TableCell className="whitespace-nowrap">
+          {file.modifiedAt
+            ? new Date(file.modifiedAt).toLocaleDateString()
+            : "--"}
+        </TableCell>
+      </TableRow>
+    );
+  };
+
+  interface GridItemProps {
+    file: FileItem;
+  }
+
+  const GridItem: React.FC<GridItemProps> = ({ file }) => {
+    const longPressHandlers = useLongPress((touchEvent) => {
+      if (onItemContextMenu) {
+        const touch = touchEvent.touches[0];
+        onItemContextMenu(file, {
+          preventDefault: () => {},
+          stopPropagation: () => {},
+          clientX: touch.clientX,
+          clientY: touch.clientY,
+        } as unknown as React.MouseEvent);
+      }
+    });
+
+    return (
+      <div
+        key={file.path}
+        draggable={!file.isDirectory}
+        onDragStart={(e) => handleDragStart(e, file)}
+        onDragOver={(e) => handleDragOver(e, file)}
+        onDragLeave={handleDragLeave}
+        onDrop={(e) => handleDrop(e, file)}
+        onDragEnd={handleDragEnd}
+        className="p-1 transition-all duration-75"
+        onContextMenu={(e: React.MouseEvent) => {
+          if (onItemContextMenu) {
+            onItemContextMenu(file, e);
+          }
+        }}
+        {...longPressHandlers}
+      >
+        <FileIcon
+          name={file.name}
+          isDirectory={file.isDirectory}
+          icon={file.icon}
+          content={isImageFile(file) ? file.content : undefined}
+          contentUrl={isImageFile(file) ? file.contentUrl : undefined}
+          onDoubleClick={() => handleFileOpen(file)}
+          onClick={() => handleFileSelect(file)}
+          isSelected={selectedFile?.path === file.path}
+          isDropTarget={dropTargetPath === file.path}
+          size={viewType === "large" ? "large" : "small"}
+        />
+      </div>
+    );
+  };
+
+  // ------------------- Render -------------------
+
   if (viewType === "list") {
     return (
       <div
@@ -271,73 +411,7 @@ export function FileList({
           </TableHeader>
           <TableBody className="text-[11px]">
             {files.map((file) => (
-              <TableRow
-                key={file.path}
-                className={`border-none hover:bg-gray-100/50 transition-colors cursor-default ${
-                  selectedFile?.path === file.path ||
-                  dropTargetPath === file.path
-                    ? "bg-black text-white hover:bg-black"
-                    : "odd:bg-gray-200/50"
-                }`}
-                onClick={() => handleFileSelect(file)}
-                onContextMenu={(e: React.MouseEvent) => {
-                  if (onItemContextMenu) {
-                    onItemContextMenu(file, e);
-                  }
-                }}
-                onDoubleClick={() => handleFileOpen(file)}
-                draggable={!file.isDirectory}
-                onDragStart={(e) => handleDragStart(e, file)}
-                onDragOver={(e) => handleDragOver(e, file)}
-                onDragLeave={handleDragLeave}
-                onDrop={(e) => handleDrop(e, file)}
-                onDragEnd={handleDragEnd}
-              >
-                <TableCell className="flex items-center gap-2">
-                  {file.contentUrl && isImageFile(file) ? (
-                    <img
-                      src={file.contentUrl}
-                      alt={file.name}
-                      className="w-4 h-4 object-contain"
-                      style={{ imageRendering: "pixelated" }}
-                      onError={(e) => {
-                        console.error(
-                          `Error loading thumbnail for ${file.name}`
-                        );
-                        (e.target as HTMLImageElement).style.display = "none";
-                      }}
-                    />
-                  ) : (
-                    <img
-                      src={file.icon}
-                      alt={file.isDirectory ? "Directory" : "File"}
-                      className={`w-4 h-4 ${
-                        selectedFile?.path === file.path ||
-                        dropTargetPath === file.path
-                          ? "invert"
-                          : ""
-                      }`}
-                      style={{ imageRendering: "pixelated" }}
-                    />
-                  )}
-                  {file.name}
-                </TableCell>
-                <TableCell>{getFileType(file)}</TableCell>
-                <TableCell className="whitespace-nowrap">
-                  {file.size
-                    ? file.size < 1024
-                      ? `${file.size} B`
-                      : file.size < 1024 * 1024
-                      ? `${(file.size / 1024).toFixed(1)} KB`
-                      : `${(file.size / (1024 * 1024)).toFixed(1)} MB`
-                    : "--"}
-                </TableCell>
-                <TableCell className="whitespace-nowrap">
-                  {file.modifiedAt
-                    ? new Date(file.modifiedAt).toLocaleDateString()
-                    : "--"}
-                </TableCell>
-              </TableRow>
+              <ListRow key={file.path} file={file} />
             ))}
           </TableBody>
         </Table>
@@ -353,34 +427,7 @@ export function FileList({
       onDrop={handleContainerDrop}
     >
       {files.map((file) => (
-        <div
-          key={file.path}
-          draggable={!file.isDirectory}
-          onDragStart={(e) => handleDragStart(e, file)}
-          onDragOver={(e) => handleDragOver(e, file)}
-          onDragLeave={handleDragLeave}
-          onDrop={(e) => handleDrop(e, file)}
-          onDragEnd={handleDragEnd}
-          className="p-1 transition-all duration-75"
-          onContextMenu={(e: React.MouseEvent) => {
-            if (onItemContextMenu) {
-              onItemContextMenu(file, e);
-            }
-          }}
-        >
-          <FileIcon
-            name={file.name}
-            isDirectory={file.isDirectory}
-            icon={file.icon}
-            content={isImageFile(file) ? file.content : undefined}
-            contentUrl={isImageFile(file) ? file.contentUrl : undefined}
-            onDoubleClick={() => handleFileOpen(file)}
-            onClick={() => handleFileSelect(file)}
-            isSelected={selectedFile?.path === file.path}
-            isDropTarget={dropTargetPath === file.path}
-            size={viewType === "large" ? "large" : "small"}
-          />
-        </div>
+        <GridItem key={file.path} file={file} />
       ))}
     </div>
   );

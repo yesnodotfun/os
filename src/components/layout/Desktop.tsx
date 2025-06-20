@@ -7,6 +7,7 @@ import { getAppIconPath } from "@/config/appRegistry";
 import { useWallpaper } from "@/hooks/useWallpaper";
 import { RightClickMenu, MenuItem } from "@/components/ui/right-click-menu";
 import { SortType } from "@/apps/finder/components/FinderMenuBar";
+import { useLongPress } from "@/hooks/useLongPress";
 
 interface DesktopStyles {
   backgroundImage?: string;
@@ -38,6 +39,13 @@ export function Desktop({
     x: number;
     y: number;
   } | null>(null);
+
+  // ------------------ Mobile long-press support ------------------
+  // Show the desktop context menu after the user holds for 500 ms.
+  const longPressHandlers = useLongPress((e) => {
+    const touch = e.touches[0];
+    setContextMenuPos({ x: touch.clientX, y: touch.clientY });
+  });
 
   // Add visibility change and focus handlers to resume video playback
   useEffect(() => {
@@ -193,6 +201,7 @@ export function Desktop({
         setContextMenuPos({ x: e.clientX, y: e.clientY });
       }}
       style={finalStyles}
+      {...longPressHandlers}
     >
       <video
         ref={videoRef}

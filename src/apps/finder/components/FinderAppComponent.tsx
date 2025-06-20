@@ -23,6 +23,7 @@ import { FileItem } from "./FileList";
 import { useFinderStore } from "@/stores/useFinderStore";
 import { useAppStore } from "@/stores/useAppStore";
 import { RightClickMenu, MenuItem } from "@/components/ui/right-click-menu";
+import { useLongPress } from "@/hooks/useLongPress";
 
 // Type for Finder initial data
 interface FinderInitialData {
@@ -679,6 +680,13 @@ export function FinderAppComponent({
     setContextMenuFile(null);
   };
 
+  // ------------------ Mobile long-press support (blank area) ------------------
+  const blankLongPressHandlers = useLongPress((e) => {
+    const touch = e.touches[0];
+    setContextMenuPos({ x: touch.clientX, y: touch.clientY });
+    setContextMenuFile(null);
+  });
+
   // Inside component before return create two arrays
   const blankMenuItems: MenuItem[] = [
     {
@@ -811,6 +819,7 @@ export function FinderAppComponent({
           onMouseLeave={() => setIsDraggingOver(false)}
           onDrop={handleFileDrop}
           onContextMenu={handleBlankContextMenu}
+          {...blankLongPressHandlers}
         >
           <div className="flex flex-col gap-1 p-1 bg-gray-100 border-b border-black">
             <div className="flex gap-2 items-center">
