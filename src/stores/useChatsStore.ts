@@ -814,6 +814,14 @@ export const useChatsStore = create<ChatsStoreState>()(
                 }));
                 console.error("[ChatsStore] Error switching rooms:", errorData);
                 // Don't revert the room change on API error, just log it
+              } else {
+                console.log("[ChatsStore] Room switch API call successful");
+                // Immediately refresh rooms to show updated presence counts
+                // This ensures the UI reflects the change immediately rather than waiting for Pusher
+                setTimeout(() => {
+                  console.log("[ChatsStore] Refreshing rooms after switch");
+                  get().fetchRooms();
+                }, 50); // Small delay to let the server finish processing
               }
             } catch (error) {
               console.error(

@@ -50,12 +50,16 @@ const CHAT_ROOM_PREFIX = "chat:room:";
 const CHAT_MESSAGES_PREFIX = "chat:messages:";
 const CHAT_USERS_PREFIX = "chat:users:";
 const CHAT_ROOM_USERS_PREFIX = "chat:room:users:";
+const CHAT_ROOM_PRESENCE_PREFIX = "chat:presence:"; // New: for tracking user presence in rooms with TTL
 
 // USER TTL (in seconds) – after this period of inactivity the user record expires automatically
 const USER_TTL_SECONDS = 2592000; // 30 days
 
 // User expiration time in seconds (30 days)
 const USER_EXPIRATION_TIME = 2592000; // 30 days
+
+// Room presence TTL (in seconds) – after this period of inactivity, user is considered offline in room
+const ROOM_PRESENCE_TTL_SECONDS = 86400; // 1 day (24 hours)
 
 // Add constants for max message and username length
 const MAX_MESSAGE_LENGTH = 1000;
@@ -215,37 +219,89 @@ const setUserWithTTL = async (username, data) => {
 };
 
 /**
- * Returns the list of active usernames in a room (based on presence of the
- * user key). Any stale usernames that no longer have a backing user key are
- * pruned from the room set so that future SCARD operations are accurate.
+ * Set user presence in a room with automatic expiration.
+ * This tracks that a user is "online" in a specific room.
  */
-const getActiveUsersAndPrune = async (roomId) => {
-  const roomUsersKey = `${CHAT_ROOM_USERS_PREFIX}${roomId}`;
-  const usernames = await redis.smembers(roomUsersKey);
+const setRoomPresence = async (roomId, username) => {
+  const presenceKey = `${CHAT_ROOM_PRESENCE_PREFIX}${roomId}:${username}`;
+  await redis.set(presenceKey, getCurrentTimestamp(), {
+    ex: ROOM_PRESENCE_TTL_SECONDS,
+  });
+};
 
-  if (usernames.length === 0) return [];
+/**
+ * Refresh user presence in a room (extend the TTL).
+ */
+const refreshRoomPresence = async (roomId, username) => {
+  const presenceKey = `${CHAT_ROOM_PRESENCE_PREFIX}${roomId}:${username}`;
+  // Only refresh if the key exists (user is currently present)
+  const exists = await redis.exists(presenceKey);
+  if (exists) {
+    await redis.expire(presenceKey, ROOM_PRESENCE_TTL_SECONDS);
+  }
+};
 
-  // Fetch all user keys in a single round-trip
-  const userKeys = usernames.map((u) => `${CHAT_USERS_PREFIX}${u}`);
-  const userDataList = await redis.mget(...userKeys);
+/**
+ * Get all users currently present in a room (based on presence TTL).
+ * This replaces the old logic that relied on sets + user existence.
+ */
+const getActiveUsersInRoom = async (roomId) => {
+  const pattern = `${CHAT_ROOM_PRESENCE_PREFIX}${roomId}:*`;
+  const keys = await redis.keys(pattern);
 
-  const activeUsers = [];
-  const staleUsers = [];
-
-  usernames.forEach((username, idx) => {
-    if (userDataList[idx]) {
-      activeUsers.push(username);
-    } else {
-      staleUsers.push(username);
-    }
+  // Extract usernames from the keys
+  const users = keys.map((key) => {
+    const parts = key.split(":");
+    return parts[parts.length - 1]; // Last part is the username
   });
 
-  // Remove stale users from the set so counts stay in sync
-  if (staleUsers.length > 0) {
-    await redis.srem(roomUsersKey, ...staleUsers);
+  return users;
+};
+
+/**
+ * Returns the list of active usernames in a room (based on presence TTL).
+ * This uses the new presence-based system instead of relying on user existence.
+ * Also cleans up the old room user sets for backward compatibility.
+ */
+const getActiveUsersAndPrune = async (roomId) => {
+  // Get users based on presence (new system)
+  const activeUsers = await getActiveUsersInRoom(roomId);
+
+  // For backward compatibility, also clean up the old room user sets
+  // This can be removed after a migration period
+  const roomUsersKey = `${CHAT_ROOM_USERS_PREFIX}${roomId}`;
+  const oldSetMembers = await redis.smembers(roomUsersKey);
+
+  if (oldSetMembers.length > 0) {
+    // Remove all members from the old set since we're now using presence-based tracking
+    await redis.del(roomUsersKey);
   }
 
   return activeUsers;
+};
+
+/**
+ * Clean up expired presence entries and update room counts.
+ * This can be called periodically to ensure accurate presence counts.
+ */
+const cleanupExpiredPresence = async () => {
+  try {
+    // Get all room keys to update their counts
+    const roomKeys = await redis.keys(`${CHAT_ROOM_PREFIX}*`);
+
+    for (const roomKey of roomKeys) {
+      const roomId = roomKey.substring(CHAT_ROOM_PREFIX.length);
+      const newCount = await refreshRoomUserCount(roomId);
+      console.log(
+        `[cleanupExpiredPresence] Updated room ${roomId} count to ${newCount}`
+      );
+    }
+
+    return { success: true, roomsUpdated: roomKeys.length };
+  } catch (error) {
+    console.error("[cleanupExpiredPresence] Error:", error);
+    return { success: false, error: error.message };
+  }
 };
 
 /**
@@ -478,6 +534,73 @@ export async function GET(request) {
       }
       case "getUsers":
         return await handleGetUsers(requestId);
+      case "cleanupPresence": {
+        // This is an admin-only endpoint for cleaning up expired presence
+        const { username, token } = extractAuth(request);
+        const isValid = await validateAuth(username, token, requestId);
+        if (!isValid.valid || username?.toLowerCase() !== "ryo") {
+          return createErrorResponse(
+            "Unauthorized - Admin access required",
+            403
+          );
+        }
+
+        const result = await cleanupExpiredPresence();
+        if (result.success) {
+          // Broadcast updated room counts
+          await broadcastRoomsUpdated();
+        }
+        return new Response(JSON.stringify(result), {
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      case "debugPresence": {
+        // Debug endpoint to check presence state
+        const { username, token } = extractAuth(request);
+        const isValid = await validateAuth(username, token, requestId);
+        if (!isValid.valid || username?.toLowerCase() !== "ryo") {
+          return createErrorResponse(
+            "Unauthorized - Admin access required",
+            403
+          );
+        }
+
+        try {
+          // Get all presence keys
+          const presenceKeys = await redis.keys(
+            `${CHAT_ROOM_PRESENCE_PREFIX}*`
+          );
+          const presenceData = {};
+
+          for (const key of presenceKeys) {
+            const value = await redis.get(key);
+            const ttl = await redis.ttl(key);
+            presenceData[key] = { value, ttl };
+          }
+
+          // Get all rooms and their calculated counts
+          const rooms = await getDetailedRooms();
+
+          return new Response(
+            JSON.stringify({
+              presenceKeys: presenceKeys.length,
+              presenceData,
+              rooms: rooms.map((r) => ({
+                id: r.id,
+                name: r.name,
+                userCount: r.userCount,
+                users: r.users,
+              })),
+            }),
+            {
+              headers: { "Content-Type": "application/json" },
+            }
+          );
+        } catch (error) {
+          logError(requestId, "Error in debugPresence:", error);
+          return createErrorResponse("Debug failed", 500);
+        }
+      }
       default:
         logInfo(requestId, `Invalid action: ${action}`);
         return createErrorResponse("Invalid action", 400);
@@ -820,13 +943,12 @@ async function handleCreateRoom(data, username, requestId) {
 
     await redis.set(`${CHAT_ROOM_PREFIX}${roomId}`, room);
 
-    // For private rooms, add all members to the room
+    // For private rooms, set presence for all members
     if (type === "private") {
-      const pipeline = redis.pipeline();
-      members.forEach((member) => {
-        pipeline.sadd(`${CHAT_ROOM_USERS_PREFIX}${roomId}`, member);
-      });
-      await pipeline.exec();
+      const presencePromises = members.map((member) =>
+        setRoomPresence(roomId, member)
+      );
+      await Promise.all(presencePromises);
     }
 
     logInfo(requestId, `${type} room created: ${roomId}`);
@@ -907,6 +1029,14 @@ async function handleDeleteRoom(roomId, username, requestId) {
         pipeline.del(`${CHAT_ROOM_PREFIX}${roomId}`);
         pipeline.del(`${CHAT_MESSAGES_PREFIX}${roomId}`);
         pipeline.del(`${CHAT_ROOM_USERS_PREFIX}${roomId}`);
+
+        // Clean up all presence keys for this room
+        const presencePattern = `${CHAT_ROOM_PRESENCE_PREFIX}${roomId}:*`;
+        const presenceKeys = await redis.keys(presencePattern);
+        if (presenceKeys.length > 0) {
+          presenceKeys.forEach((key) => pipeline.del(key));
+        }
+
         await pipeline.exec();
         logInfo(
           requestId,
@@ -925,11 +1055,9 @@ async function handleDeleteRoom(roomId, username, requestId) {
         };
         await redis.set(`${CHAT_ROOM_PREFIX}${roomId}`, updatedRoom);
 
-        // Remove user from active users set
-        await redis.srem(
-          `${CHAT_ROOM_USERS_PREFIX}${roomId}`,
-          username.toLowerCase()
-        );
+        // Remove user presence from room
+        const presenceKey = `${CHAT_ROOM_PRESENCE_PREFIX}${roomId}:${username.toLowerCase()}`;
+        await redis.del(presenceKey);
 
         logInfo(
           requestId,
@@ -942,6 +1070,14 @@ async function handleDeleteRoom(roomId, username, requestId) {
       pipeline.del(`${CHAT_ROOM_PREFIX}${roomId}`);
       pipeline.del(`${CHAT_MESSAGES_PREFIX}${roomId}`);
       pipeline.del(`${CHAT_ROOM_USERS_PREFIX}${roomId}`);
+
+      // Clean up all presence keys for this room
+      const presencePattern = `${CHAT_ROOM_PRESENCE_PREFIX}${roomId}:*`;
+      const presenceKeys = await redis.keys(presencePattern);
+      if (presenceKeys.length > 0) {
+        presenceKeys.forEach((key) => pipeline.del(key));
+      }
+
       await pipeline.exec();
       logInfo(requestId, `Public room deleted by admin: ${roomId}`);
     }
@@ -1232,11 +1368,11 @@ async function handleJoinRoom(data, requestId) {
       return createErrorResponse("User not found", 404);
     }
 
-    // Add user to room set
-    await redis.sadd(`${CHAT_ROOM_USERS_PREFIX}${roomId}`, username);
+    // Set user presence in room with TTL
+    await setRoomPresence(roomId, username);
 
-    // Update room user count - Fetch latest count after adding
-    const userCount = await redis.scard(`${CHAT_ROOM_USERS_PREFIX}${roomId}`);
+    // Update room user count based on presence
+    const userCount = await refreshRoomUserCount(roomId);
     const updatedRoom = { ...roomData, userCount };
     await redis.set(`${CHAT_ROOM_PREFIX}${roomId}`, updatedRoom);
     logInfo(
@@ -1304,11 +1440,9 @@ async function handleLeaveRoom(data, requestId) {
     const roomObj =
       typeof roomDataRaw === "string" ? JSON.parse(roomDataRaw) : roomDataRaw;
 
-    // Remove user from room set
-    const removed = await redis.srem(
-      `${CHAT_ROOM_USERS_PREFIX}${roomId}`,
-      username
-    );
+    // Remove user presence from room
+    const presenceKey = `${CHAT_ROOM_PRESENCE_PREFIX}${roomId}:${username}`;
+    const removed = await redis.del(presenceKey);
 
     // If user was actually removed, update the count
     if (removed) {
@@ -1516,16 +1650,23 @@ async function handleResetUserCounts(username, requestId) {
       );
     }
 
-    // Get all room user set keys
+    // Get all room user set keys (old system) and presence keys (new system)
     const roomUserKeys = await redis.keys(`${CHAT_ROOM_USERS_PREFIX}*`);
+    const presenceKeys = await redis.keys(`${CHAT_ROOM_PRESENCE_PREFIX}*`);
 
-    // First, clear all room user sets
+    // Clear all room user sets and presence keys
     const deleteRoomUsersPipeline = redis.pipeline();
     roomUserKeys.forEach((key) => {
       deleteRoomUsersPipeline.del(key);
     });
+    presenceKeys.forEach((key) => {
+      deleteRoomUsersPipeline.del(key);
+    });
     await deleteRoomUsersPipeline.exec();
-    logInfo(requestId, `Cleared ${roomUserKeys.length} room user sets`);
+    logInfo(
+      requestId,
+      `Cleared ${roomUserKeys.length} room user sets and ${presenceKeys.length} presence keys`
+    );
 
     // Then update all room objects to set userCount to 0
     const roomsData = await redis.mget(...roomKeys);
@@ -1735,6 +1876,9 @@ async function handleSendMessage(data, requestId) {
     ); // Ensure it's stringified for Redis
     // Refresh expiration time again just to be safe upon activity
     await redis.expire(`${CHAT_USERS_PREFIX}${username}`, USER_EXPIRATION_TIME);
+
+    // Refresh room presence when user sends a message
+    await refreshRoomPresence(roomId, username);
     logInfo(
       requestId,
       `Updated user ${username} last active timestamp and reset expiration`
@@ -1910,18 +2054,26 @@ async function handleSwitchRoom(data, requestId) {
           typeof roomDataRaw === "string"
             ? JSON.parse(roomDataRaw)
             : roomDataRaw;
-        // Skip automatic leave if the previous room is a private chat – users should remain members unless they explicitly leave.
+        // For public rooms, remove presence immediately when switching away
+        // For private rooms, keep presence (they remain "online" until TTL expires)
         if (roomData.type !== "private") {
-          await redis.srem(
-            `${CHAT_ROOM_USERS_PREFIX}${previousRoomId}`,
-            username
+          // Remove presence for public rooms
+          const presenceKey = `${CHAT_ROOM_PRESENCE_PREFIX}${previousRoomId}:${username}`;
+          await redis.del(presenceKey);
+          logInfo(
+            requestId,
+            `Removed presence for user ${username} from room ${previousRoomId}`
           );
           const userCount = await refreshRoomUserCount(previousRoomId);
+          logInfo(
+            requestId,
+            `Updated user count for room ${previousRoomId}: ${userCount}`
+          );
           changedRooms.push({ roomId: previousRoomId, userCount });
         } else {
           logInfo(
             requestId,
-            `Skipping automatic leave for private room ${previousRoomId}`
+            `Keeping presence for private room ${previousRoomId} (will expire via TTL)`
           );
         }
       }
@@ -1936,9 +2088,16 @@ async function handleSwitchRoom(data, requestId) {
         return createErrorResponse("Next room not found", 404);
       }
 
-      await redis.sadd(`${CHAT_ROOM_USERS_PREFIX}${nextRoomId}`, username);
-      const userCount = await redis.scard(
-        `${CHAT_ROOM_USERS_PREFIX}${nextRoomId}`
+      // Set presence in the new room
+      await setRoomPresence(nextRoomId, username);
+      logInfo(
+        requestId,
+        `Set presence for user ${username} in room ${nextRoomId}`
+      );
+      const userCount = await refreshRoomUserCount(nextRoomId);
+      logInfo(
+        requestId,
+        `Updated user count for room ${nextRoomId}: ${userCount}`
       );
 
       // Update room object with new count
