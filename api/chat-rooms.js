@@ -524,6 +524,7 @@ export async function POST(request) {
       "sendMessage",
       "clearAllMessages",
       "resetUserCounts",
+      "verifyToken",
     ];
 
     // Check authentication for protected actions
@@ -585,6 +586,8 @@ export async function POST(request) {
       case "resetUserCounts":
         // Pass authenticated username for admin validation
         return await handleResetUserCounts(username, requestId);
+      case "verifyToken":
+        return await handleVerifyToken(username, requestId);
       default:
         logInfo(requestId, `Invalid action: ${action}`);
         return createErrorResponse("Invalid action", 400);
@@ -2110,6 +2113,28 @@ async function handleRefreshToken(data, requestId) {
   } catch (error) {
     logError(requestId, `Error refreshing token for user ${username}:`, error);
     return createErrorResponse("Failed to refresh token", 500);
+  }
+}
+
+async function handleVerifyToken(username, requestId) {
+  logInfo(requestId, `Verifying token for user: ${username}`);
+
+  try {
+    // If we get here, the token has already been validated by the auth middleware
+    // Just return success with user info
+    return new Response(
+      JSON.stringify({
+        valid: true,
+        username: username,
+        message: "Token is valid",
+      }),
+      {
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  } catch (error) {
+    logError(requestId, `Error verifying token for user ${username}:`, error);
+    return createErrorResponse("Failed to verify token", 500);
   }
 }
 

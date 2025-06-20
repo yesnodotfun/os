@@ -350,6 +350,14 @@ export function ChatsAppComponent({
         onResetFontSize={handleResetFontSize}
         username={username}
         authToken={authToken} // Pass authToken to ChatsMenuBar
+        onVerifyToken={chatRoomResult.promptVerifyToken}
+        isVerifyDialogOpen={chatRoomResult.isVerifyDialogOpen}
+        setVerifyDialogOpen={chatRoomResult.setVerifyDialogOpen}
+        verifyTokenInput={chatRoomResult.verifyTokenInput}
+        setVerifyTokenInput={chatRoomResult.setVerifyTokenInput}
+        isVerifyingToken={chatRoomResult.isVerifyingToken}
+        verifyError={chatRoomResult.verifyError}
+        handleVerifyTokenSubmit={chatRoomResult.handleVerifyTokenSubmit}
       />
       <WindowFrame
         title={
