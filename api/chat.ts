@@ -607,31 +607,40 @@ export default async function handler(req: Request) {
 
     // Log prompt optimization metrics with loaded sections
     log(
-      `Context-aware prompts (${
-        loadedSections.length
-      } sections): ${loadedSections.join(", ")}`
+      `Context-aware prompts (${loadedSections.length} sections): ${loadedSections.join(", ")}`
     );
     const approxTokens = staticSystemPrompt.length / 4; // rough estimate
     log(`Approximate prompt tokens: ${Math.round(approxTokens)}`);
 
-    const dynamicSystemMessage = {
-      role: "system",
-      content: generateDynamicSystemPrompt(systemState),
-      ...CACHE_CONTROL_OPTIONS,
+    // -------------------------------------------------------------
+    // System messages – first the LARGE static prompt (cached),
+    // then the smaller dynamic prompt (not cached)
+    // -------------------------------------------------------------
+
+    // 1) Static system instructions – mark as cacheable so Anthropic
+    // can reuse this costly prefix across calls (min-1024-token rule)
+    const staticSystemMessage = {
+      role: "system" as const,
+      content: staticSystemPrompt,
+      ...CACHE_CONTROL_OPTIONS, // { providerOptions: { anthropic: { cacheControl: { type: "ephemeral" } } } }
     };
 
-    const enrichedMessages = [dynamicSystemMessage, ...messages];
+    // 2) Dynamic, user-specific system state (don’t cache)
+    const dynamicSystemMessage = {
+      role: "system" as const,
+      content: generateDynamicSystemPrompt(systemState),
+    };
+
+    // Merge all messages: static sys → dynamic sys → user/assistant turns
+    const enrichedMessages = [staticSystemMessage, dynamicSystemMessage, ...messages];
 
     // Log all messages right before model call (as per user preference)
     enrichedMessages.forEach((msg, index) => {
-      log(
-        `Message ${index} [${msg.role}]: ${msg.content?.substring(0, 100)}...`
-      );
+      log(`Message ${index} [${msg.role}]: ${String(msg.content).substring(0, 100)}...`);
     });
 
     const result = streamText({
       model: selectedModel,
-      system: staticSystemPrompt,
       messages: enrichedMessages,
       tools: {
         launchApp: {
