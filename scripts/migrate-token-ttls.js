@@ -94,8 +94,8 @@ async function migrateTokenTTLs() {
       }
     } while (cursor !== "0");
 
-    // Update user records
-    console.log("\n3. Updating user records...");
+    // Remove TTL from user records (make them permanent)
+    console.log("\n3. Removing TTL from user records (making them permanent)...");
     cursor = "0";
     do {
       const [nextCursor, keys] = await redis.scan(cursor, {
@@ -108,13 +108,10 @@ async function migrateTokenTTLs() {
         for (const key of keys) {
           const ttl = await redis.ttl(key);
           if (ttl > 0) {
-            // Extend user TTL by 60 days (difference between 90 and 30)
-            const extensionSeconds = 60 * 24 * 60 * 60;
-            const newTTL = Math.min(ttl + extensionSeconds, NEW_USER_TTL_SECONDS);
-            
-            await redis.expire(key, newTTL);
+            // Remove TTL by using PERSIST command
+            await redis.persist(key);
             usersUpdated++;
-            console.log(`Updated user ${key}: TTL ${ttl}s -> ${newTTL}s`);
+            console.log(`Removed TTL from user ${key} (was ${ttl}s, now permanent)`);
           }
         }
       }
@@ -123,13 +120,13 @@ async function migrateTokenTTLs() {
     console.log("\n--- Migration Complete ---");
     console.log(`Active tokens updated: ${tokensUpdated}`);
     console.log(`Last tokens (grace period) updated: ${lastTokensUpdated}`);
-    console.log(`User records updated: ${usersUpdated}`);
+    console.log(`User records made permanent: ${usersUpdated}`);
     console.log(`Total records updated: ${tokensUpdated + lastTokensUpdated + usersUpdated}`);
     
-    console.log("\nNote: The TTLs have been extended proportionally.");
+    console.log("\nNote:");
     console.log("- Active tokens: extended by ~60 days (to reach 90-day total)");
     console.log("- Last tokens: extended by ~358 days (to reach 455-day total)");
-    console.log("- User records: extended by ~60 days (to reach 90-day total)");
+    console.log("- User records: TTL removed - they now persist forever");
 
   } catch (error) {
     console.error("\n--- Error during migration ---");
