@@ -369,7 +369,7 @@ const redis = new Redis({
 const AUTH_TOKEN_PREFIX = "chat:token:";
 const TOKEN_LAST_PREFIX = "chat:token:last:";
 const USER_TTL_SECONDS = 90 * 24 * 60 * 60; // 90 days
-const TOKEN_GRACE_PERIOD = 7 * 24 * 60 * 60; // 7 days
+const TOKEN_GRACE_PERIOD = 365 * 24 * 60 * 60; // 365 days (1 year)
 
 async function validateAuthToken(
   username: string | undefined | null,
