@@ -1,6 +1,13 @@
 {
   "videos": [
     {
+      "id": "YvVDPNOScAw",
+      "url": "https://www.youtube.com/watch?v=YvVDPNOScAw",
+      "title": "Second Emotion",
+      "artist": "Justin Bieber",
+      "lyricOffset": 900
+    },
+    {
       "id": "RNBiaZbFGII",
       "url": "https://www.youtube.com/watch?v=RNBiaZbFGII",
       "title": "come again",
