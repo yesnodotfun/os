@@ -1,5 +1,5 @@
 import React from "react";
-import { Plus, Trash } from "lucide-react";
+import { SquarePen, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { type ChatRoom } from "@/types/chat";
@@ -62,7 +62,7 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
             onClick={onAddRoom}
             className="flex items-center text-xs hover:bg-black/5 w-[24px] h-[24px]"
           >
-            <Plus className="w-3 h-3" />
+            <SquarePen className="w-3 h-3" />
           </Button>
         </div>
         <div
