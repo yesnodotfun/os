@@ -163,7 +163,7 @@ export const useAppStore = create<AppStoreState>()(
       setTypingSynthEnabled: (enabled) => set({ typingSynthEnabled: enabled }),
       speechEnabled: false,
       setSpeechEnabled: (enabled) => set({ speechEnabled: enabled }),
-      speechVolume: 1.5,
+      speechVolume: 2,
       setSpeechVolume: (v) => set({ speechVolume: v }),
       ttsModel: null, // Default to null (select option)
       setTtsModel: (model) => set({ ttsModel: model }),
@@ -903,7 +903,9 @@ export const useAppStore = create<AppStoreState>()(
         masterVolume: state.masterVolume,
         // Only persist open instances to avoid storing closed instances
         instances: Object.fromEntries(
-          Object.entries(state.instances).filter(([, instance]) => instance.isOpen)
+          Object.entries(state.instances).filter(
+            ([, instance]) => instance.isOpen
+          )
         ),
         instanceWindowOrder: state.instanceWindowOrder,
         nextInstanceId: state.nextInstanceId,

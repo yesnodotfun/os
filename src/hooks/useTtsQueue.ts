@@ -311,7 +311,7 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
           useAppStore.getState().chatSynthVolume;
         const duckedChatSynth = Math.max(
           0,
-          originalChatSynthVolumeRef.current * 0.45
+          originalChatSynthVolumeRef.current * 0.6
         );
         setChatSynthVolumeGlobal(duckedChatSynth);
       }
