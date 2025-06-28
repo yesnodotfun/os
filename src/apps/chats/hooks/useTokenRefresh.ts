@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { useChatsStore } from "@/stores/useChatsStore";
 import * as React from "react";
 
-const CHECK_INTERVAL = 60 * 60 * 1000; // Check every hour (more frequent for weekly refresh)
+const CHECK_INTERVAL = 60 * 60 * 1000; // Check every hour
 
 export function useTokenRefresh() {
   const checkAndRefreshTokenIfNeeded = useChatsStore(

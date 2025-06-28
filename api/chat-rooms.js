@@ -52,11 +52,13 @@ const CHAT_USERS_PREFIX = "chat:users:";
 const CHAT_ROOM_USERS_PREFIX = "chat:room:users:";
 const CHAT_ROOM_PRESENCE_PREFIX = "chat:presence:"; // New: for tracking user presence in rooms with TTL
 
-// USER TTL (in seconds) – after this period of inactivity the user record expires automatically
-const USER_TTL_SECONDS = 2592000; // 30 days
+// TOKEN TTL (in seconds) – tokens expire after 90 days
+const USER_TTL_SECONDS = 7776000; // 90 days (kept for token expiry)
 
-// User expiration time in seconds (30 days)
-const USER_EXPIRATION_TIME = 2592000; // 30 days
+// Token expiration time in seconds (90 days)
+const USER_EXPIRATION_TIME = 7776000; // 90 days
+
+// Note: User records no longer expire - they persist forever
 
 // Room presence TTL (in seconds) – after this period of inactivity, user is considered offline in room
 const ROOM_PRESENCE_TTL_SECONDS = 86400; // 1 day (24 hours)
@@ -69,26 +71,26 @@ const MIN_USERNAME_LENGTH = 3; // Minimum username length (must be more than 2 c
 // Token constants
 const AUTH_TOKEN_PREFIX = "chat:token:";
 const TOKEN_LENGTH = 32; // 32 bytes = 256 bits
-const TOKEN_GRACE_PERIOD = 86400 * 7; // 7 days grace period for refresh after expiry
+const TOKEN_GRACE_PERIOD = 86400 * 365; // 365 days (1 year) grace period for refresh after expiry
 
 /**
  * TOKEN ARCHITECTURE:
  *
  * 1. Token Generation:
  *    - Users can generate a token via /api/chat-rooms?action=generateToken
- *    - Tokens have the same TTL as users (30 days)
+ *    - Tokens have the same TTL as users (90 days)
  *    - Only one active token per user (unless force=true is used)
  *
  * 2. Token Refresh:
  *    - Users can refresh tokens via /api/chat-rooms?action=refreshToken
  *    - Requires the old token (even if expired) for validation
- *    - Expired tokens can be used for refresh within a 7-day grace period
+ *    - Expired tokens can be used for refresh within a 365-day (1 year) grace period
  *    - When refreshing, the old token is stored for future grace period use
  *
  * 3. Token Storage:
- *    - Active tokens: "chat:token:{username}" with 30-day TTL
+ *    - Active tokens: "chat:token:{username}" with 90-day TTL
  *    - Last valid tokens: "chat:token:last:{username}" for grace period refresh
- *    - Last valid tokens are stored with extended TTL (37 days total)
+ *    - Last valid tokens are stored with extended TTL (455 days total - 90 days + 365 days grace)
  *
  * 4. Authentication Flow:
  *    - Most endpoints require Bearer token in Authorization header
@@ -96,7 +98,7 @@ const TOKEN_GRACE_PERIOD = 86400 * 7; // 7 days grace period for refresh after e
  *    - Token validation refreshes the token TTL on each successful auth
  *
  * 5. Grace Period:
- *    - After a token expires, users have 7 days to refresh using the expired token
+ *    - After a token expires, users have 365 days (1 year) to refresh using the expired token
  *    - This prevents users from being permanently locked out
  *    - The grace period token data includes when the original token expired
  */
@@ -140,7 +142,7 @@ const validateAuth = async (
       if (lastTokenData) {
         try {
           const { token: lastToken, expiredAt } = JSON.parse(lastTokenData);
-          // Allow refresh within grace period (7 days after expiry)
+          // Allow refresh within grace period (365 days after expiry)
           const gracePeriodEnd = expiredAt + TOKEN_GRACE_PERIOD * 1000;
 
           if (lastToken === token && Date.now() < gracePeriodEnd) {
@@ -209,13 +211,11 @@ const extractAuth = (request) => {
 };
 
 /**
- * Helper to set (or update) a user record **with** an expiry so stale
- * users are automatically evicted by Redis.
+ * Helper to set (or update) a user record WITHOUT expiry.
+ * User records now persist forever.
  */
-const setUserWithTTL = async (username, data) => {
-  await redis.set(`${CHAT_USERS_PREFIX}${username}`, JSON.stringify(data), {
-    ex: USER_TTL_SECONDS,
-  });
+const setUser = async (username, data) => {
+  await redis.set(`${CHAT_USERS_PREFIX}${username}`, JSON.stringify(data));
 };
 
 /**
@@ -415,8 +415,7 @@ async function ensureUserExists(username, requestId) {
   // Attempt to get existing user
   let userData = await redis.get(userKey);
   if (userData) {
-    logInfo(requestId, `User ${username} exists. Refreshing TTL.`);
-    await redis.expire(userKey, USER_TTL_SECONDS); // Refresh TTL
+    logInfo(requestId, `User ${username} exists.`);
     return parseUserData(userData);
   }
 
@@ -429,8 +428,7 @@ async function ensureUserExists(username, requestId) {
   const created = await redis.setnx(userKey, JSON.stringify(newUser));
 
   if (created) {
-    logInfo(requestId, `User ${username} created successfully. Setting TTL.`);
-    await redis.expire(userKey, USER_TTL_SECONDS);
+    logInfo(requestId, `User ${username} created successfully.`);
     return newUser;
   } else {
     // Race condition: User was created between GET and SETNX. Fetch the existing user.
@@ -440,7 +438,6 @@ async function ensureUserExists(username, requestId) {
     );
     userData = await redis.get(userKey);
     if (userData) {
-      await redis.expire(userKey, USER_TTL_SECONDS); // Refresh TTL just in case
       return parseUserData(userData);
     } else {
       // Should be rare, but handle case where user disappeared again
@@ -1320,11 +1317,9 @@ async function handleCreateUser(data, requestId) {
     // Store token with same expiration as user
     await redis.set(tokenKey, authToken, { ex: USER_EXPIRATION_TIME });
 
-    // Set expiration time for the new user
-    await redis.expire(userKey, USER_EXPIRATION_TIME);
     logInfo(
       requestId,
-      `User created with 30-day expiration and auth token: ${username}`
+                `User created with auth token: ${username}`
     );
 
     return new Response(JSON.stringify({ user, token: authToken }), {
@@ -1383,11 +1378,9 @@ async function handleJoinRoom(data, requestId) {
     // Update user's last active timestamp
     const updatedUser = { ...userData, lastActive: getCurrentTimestamp() };
     await redis.set(`${CHAT_USERS_PREFIX}${username}`, updatedUser);
-    // Refresh user expiration
-    await redis.expire(`${CHAT_USERS_PREFIX}${username}`, USER_EXPIRATION_TIME);
     logInfo(
       requestId,
-      `User ${username} last active time updated and expiration reset to 30 days`
+                `User ${username} last active time updated`
     );
 
     // Trigger optimized broadcast to update all clients with new room state
@@ -2110,10 +2103,6 @@ async function handleSwitchRoom(data, requestId) {
         `${CHAT_USERS_PREFIX}${username}`,
         JSON.stringify({ username, lastActive: getCurrentTimestamp() })
       );
-      await redis.expire(
-        `${CHAT_USERS_PREFIX}${username}`,
-        USER_EXPIRATION_TIME
-      );
 
       changedRooms.push({ roomId: nextRoomId, userCount });
     }
@@ -2180,11 +2169,8 @@ async function handleGenerateToken(data, requestId) {
     // Generate new token
     const authToken = generateAuthToken();
 
-    // Store token with same expiration as user
+    // Store token with expiration
     await redis.set(tokenKey, authToken, { ex: USER_EXPIRATION_TIME });
-
-    // Refresh user expiration
-    await redis.expire(userKey, USER_EXPIRATION_TIME);
 
     logInfo(
       requestId,
@@ -2251,12 +2237,9 @@ async function handleRefreshToken(data, requestId) {
     // Generate new token
     const authToken = generateAuthToken();
 
-    // Store new token with same expiration as user
+    // Store new token with expiration
     const tokenKey = `${AUTH_TOKEN_PREFIX}${username}`;
     await redis.set(tokenKey, authToken, { ex: USER_EXPIRATION_TIME });
-
-    // Refresh user expiration
-    await redis.expire(userKey, USER_EXPIRATION_TIME);
 
     logInfo(
       requestId,
