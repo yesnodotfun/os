@@ -196,6 +196,14 @@ export const DEFAULT_FAVORITES: Favorite[] = [
         isDirectory: false,
       },
       {
+        title: "Ekin",
+        url: "https://www.ekinoflazer.com",
+        favicon:
+          "https://www.google.com/s2/favicons?domain=www.ekinoflazer.com&sz=32",
+        year: "current",
+        isDirectory: false,
+      },
+      {
         title: "Lucas",
         url: "https://www.lucasn.com",
         favicon:
@@ -324,7 +332,7 @@ export const DEFAULT_FAVORITES: Favorite[] = [
 ];
 
 // Define the current version for the store
-const CURRENT_IE_STORE_VERSION = 2;
+const CURRENT_IE_STORE_VERSION = 3;
 
 // Helper function to classify year into navigation mode
 function classifyYear(year: string): NavigationMode {
