@@ -1484,7 +1484,7 @@ export function IpodAppComponent({
   const handleWheelRotation = useCallback(
     (direction: "clockwise" | "counterclockwise") => {
       playScrollSound();
-      vibrate();
+      // vibrate(); // Removed vibration for wheel scrolling
       registerActivity();
 
       if (menuMode) {
@@ -1549,7 +1549,6 @@ export function IpodAppComponent({
     },
     [
       playScrollSound,
-      vibrate,
       registerActivity,
       menuMode,
       menuHistory,
