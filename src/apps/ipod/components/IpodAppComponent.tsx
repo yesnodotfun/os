@@ -329,7 +329,7 @@ export function IpodAppComponent({
   onNavigatePrevious,
 }: AppProps<IpodInitialData>) {
   const { play: playClickSound } = useSound(Sounds.BUTTON_CLICK);
-  const { play: playScrollSound } = useSound(Sounds.MENU_OPEN);
+  const { play: playScrollSound } = useSound(Sounds.IPOD_CLICK_WHEEL);
   const vibrate = useVibration(100, 50);
 
   const {

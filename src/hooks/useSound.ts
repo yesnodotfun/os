@@ -190,6 +190,8 @@ export const Sounds = {
   // Boot sound
   BOOT: "/sounds/Boot.mp3",
   VOLUME_CHANGE: "/sounds/Volume.mp3",
+  // iPod sounds
+  IPOD_CLICK_WHEEL: "/sounds/WheelsOfTime.m4a",
 } as const;
 
 // Lazily preload sounds after the first user interaction (click or touch)
