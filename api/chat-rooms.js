@@ -53,10 +53,10 @@ const CHAT_ROOM_USERS_PREFIX = "chat:room:users:";
 const CHAT_ROOM_PRESENCE_PREFIX = "chat:presence:"; // New: for tracking user presence in rooms with TTL
 
 // USER TTL (in seconds) – after this period of inactivity the user record expires automatically
-const USER_TTL_SECONDS = 2592000; // 30 days
+const USER_TTL_SECONDS = 7776000; // 90 days
 
-// User expiration time in seconds (30 days)
-const USER_EXPIRATION_TIME = 2592000; // 30 days
+// User expiration time in seconds (90 days)
+const USER_EXPIRATION_TIME = 7776000; // 90 days
 
 // Room presence TTL (in seconds) – after this period of inactivity, user is considered offline in room
 const ROOM_PRESENCE_TTL_SECONDS = 86400; // 1 day (24 hours)
@@ -76,7 +76,7 @@ const TOKEN_GRACE_PERIOD = 86400 * 7; // 7 days grace period for refresh after e
  *
  * 1. Token Generation:
  *    - Users can generate a token via /api/chat-rooms?action=generateToken
- *    - Tokens have the same TTL as users (30 days)
+ *    - Tokens have the same TTL as users (90 days)
  *    - Only one active token per user (unless force=true is used)
  *
  * 2. Token Refresh:
@@ -86,9 +86,9 @@ const TOKEN_GRACE_PERIOD = 86400 * 7; // 7 days grace period for refresh after e
  *    - When refreshing, the old token is stored for future grace period use
  *
  * 3. Token Storage:
- *    - Active tokens: "chat:token:{username}" with 30-day TTL
+ *    - Active tokens: "chat:token:{username}" with 90-day TTL
  *    - Last valid tokens: "chat:token:last:{username}" for grace period refresh
- *    - Last valid tokens are stored with extended TTL (37 days total)
+ *    - Last valid tokens are stored with extended TTL (97 days total)
  *
  * 4. Authentication Flow:
  *    - Most endpoints require Bearer token in Authorization header
@@ -1324,7 +1324,7 @@ async function handleCreateUser(data, requestId) {
     await redis.expire(userKey, USER_EXPIRATION_TIME);
     logInfo(
       requestId,
-      `User created with 30-day expiration and auth token: ${username}`
+                `User created with 90-day expiration and auth token: ${username}`
     );
 
     return new Response(JSON.stringify({ user, token: authToken }), {
@@ -1387,7 +1387,7 @@ async function handleJoinRoom(data, requestId) {
     await redis.expire(`${CHAT_USERS_PREFIX}${username}`, USER_EXPIRATION_TIME);
     logInfo(
       requestId,
-      `User ${username} last active time updated and expiration reset to 30 days`
+                `User ${username} last active time updated and expiration reset to 90 days`
     );
 
     // Trigger optimized broadcast to update all clients with new room state

@@ -8,7 +8,7 @@ const USERNAME_RECOVERY_KEY = "_usr_recovery_key_";
 const AUTH_TOKEN_RECOVERY_KEY = "_auth_recovery_key_";
 
 // Token constants
-const TOKEN_REFRESH_THRESHOLD = 7 * 24 * 60 * 60 * 1000; // 7 days in ms (weekly refresh)
+const TOKEN_REFRESH_THRESHOLD = 83 * 24 * 60 * 60 * 1000; // 83 days in ms (refresh 7 days before 90-day expiry)
 const TOKEN_LAST_REFRESH_KEY = "_token_refresh_time_";
 
 // API Response Types
@@ -568,7 +568,7 @@ export const useChatsStore = create<ChatsStoreState>()(
           // If token is older than threshold, refresh it
           if (tokenAge > TOKEN_REFRESH_THRESHOLD) {
             console.log(
-              `[ChatsStore] Token is ${tokenAgeDays} days old (weekly refresh due), refreshing...`
+              `[ChatsStore] Token is ${tokenAgeDays} days old (refresh due - 7 days before 90-day expiry), refreshing...`
             );
 
             const refreshResult = await get().refreshAuthToken();
@@ -577,7 +577,7 @@ export const useChatsStore = create<ChatsStoreState>()(
               // Update refresh time on successful refresh
               saveTokenRefreshTime(currentUsername);
               console.log(
-                "[ChatsStore] Token refreshed automatically (weekly refresh)"
+                "[ChatsStore] Token refreshed automatically (7 days before expiry)"
               );
               return { refreshed: true };
             } else {
@@ -590,7 +590,7 @@ export const useChatsStore = create<ChatsStoreState>()(
           } else {
             console.log(
               `[ChatsStore] Token is ${tokenAgeDays} days old, next refresh in ${
-                7 - tokenAgeDays
+                83 - tokenAgeDays
               } days`
             );
             return { refreshed: false };

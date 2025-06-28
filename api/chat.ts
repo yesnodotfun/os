@@ -368,7 +368,7 @@ const redis = new Redis({
 // Add auth validation function
 const AUTH_TOKEN_PREFIX = "chat:token:";
 const TOKEN_LAST_PREFIX = "chat:token:last:";
-const USER_TTL_SECONDS = 30 * 24 * 60 * 60; // 30 days
+const USER_TTL_SECONDS = 90 * 24 * 60 * 60; // 90 days
 const TOKEN_GRACE_PERIOD = 7 * 24 * 60 * 60; // 7 days
 
 async function validateAuthToken(
@@ -385,7 +385,7 @@ async function validateAuthToken(
 
   // Check if current token is valid
   if (storedToken && storedToken === authToken) {
-    // Refresh token expiration on successful validation (30 days)
+    // Refresh token expiration on successful validation (90 days)
     await redis.expire(tokenKey, USER_TTL_SECONDS);
     return { valid: true };
   }
