@@ -55,15 +55,11 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
 
   // Subscribe to iPod playing state so our effect reacts when playback starts/stops
   const ipodIsPlaying = useIpodStore((s) => s.isPlaying);
-  const setIpodIsPlaying = useIpodStore((s) => s.setIsPlaying);
 
   // Detect iOS (Safari) environment where programmatic volume control is restricted
   const isIOS =
     typeof navigator !== "undefined" &&
     /iP(hone|od|ad)/.test(navigator.userAgent);
-
-  // Track whether we paused the iPod ourselves (to avoid resuming if user paused)
-  const didPauseIpodRef = useRef(false);
 
   const ensureContext = () => {
     // Always use the shared global context
@@ -303,16 +299,10 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
   useEffect(() => {
     if (isSpeaking) {
       // Activate ducking only once at the start of speech
-      if (originalIpodVolumeRef.current === null) {
-        if (isIOS) {
-          // iOS Safari does not allow programmatic volume changes. Pause playback instead.
-          didPauseIpodRef.current = true;
-          setIpodIsPlaying(false);
-        } else if (ipodIsPlaying) {
-          originalIpodVolumeRef.current = useAppStore.getState().ipodVolume;
-          const duckedIpod = Math.max(0, originalIpodVolumeRef.current * 0.35);
-          setIpodVolumeGlobal(duckedIpod);
-        }
+      if (originalIpodVolumeRef.current === null && ipodIsPlaying && !isIOS) {
+        originalIpodVolumeRef.current = useAppStore.getState().ipodVolume;
+        const duckedIpod = Math.max(0, originalIpodVolumeRef.current * 0.35);
+        setIpodVolumeGlobal(duckedIpod);
       }
 
       // Duck chat synth volume
@@ -326,14 +316,6 @@ export function useTtsQueue(endpoint: string = "/api/speech") {
         setChatSynthVolumeGlobal(duckedChatSynth);
       }
     } else {
-      // Restore after speech
-      if (isIOS) {
-        if (didPauseIpodRef.current) {
-          setIpodIsPlaying(true);
-        }
-        didPauseIpodRef.current = false;
-      }
-
       // Restore iPod volume if it was ducked
       if (originalIpodVolumeRef.current !== null) {
         setIpodVolumeGlobal(originalIpodVolumeRef.current);
