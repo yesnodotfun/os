@@ -59,9 +59,7 @@ export function LoginDialog({
   isSignUpLoading,
   signUpError,
 }: LoginDialogProps) {
-  const [activeTab, setActiveTab] = useState<"login" | "signup">(
-    initialTab
-  );
+  const [activeTab, setActiveTab] = useState<"login" | "signup">(initialTab);
 
   // Reset to the initial tab whenever the dialog is reopened
   useEffect(() => {
@@ -165,8 +163,11 @@ export function LoginDialog({
 
         <div className="pt-2 pb-6 px-6">
           <form onSubmit={handleSubmit}>
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "login" | "signup")}
-              className="w-full">
+            <Tabs
+              value={activeTab}
+              onValueChange={(v) => setActiveTab(v as "login" | "signup")}
+              className="w-full"
+            >
               <TabsList className="grid grid-cols-2 w-full h-fit mb-4 bg-transparent p-0.5 border border-black">
                 <TabsTrigger
                   value="signup"
@@ -217,7 +218,7 @@ export function LoginDialog({
                     : "Creating..."
                   : activeTab === "login"
                   ? "Log In"
-                  : "Create"}
+                  : "Create Account"}
               </Button>
             </DialogFooter>
           </form>
