@@ -1396,7 +1396,7 @@ export function ControlPanelsAppComponent({
                       <div className="flex items-center justify-between">
                         <div className="flex flex-col">
                           <span className="text-[13px] font-geneva-12 font-medium">
-                            {username}
+                            @{username}
                           </span>
                           <span className="text-[11px] text-gray-600 font-geneva-12">
                             Logged in to ryOS
