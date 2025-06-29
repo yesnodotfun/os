@@ -24,6 +24,10 @@ export function useAuth() {
   // Password state
   const [hasPassword, setHasPassword] = useState<boolean | null>(null);
 
+  // Logout confirmation dialog state
+  const [isLogoutConfirmDialogOpen, setIsLogoutConfirmDialogOpen] =
+    useState(false);
+
   // Username management
   const promptSetUsername = useCallback(() => {
     setNewUsername("");
@@ -285,6 +289,7 @@ export function useAuth() {
     // Clear local dialog states
     setIsUsernameDialogOpen(false);
     setVerifyDialogOpen(false);
+    setIsLogoutConfirmDialogOpen(false);
     setNewUsername("");
     setNewPassword("");
     setVerifyTokenInput("");
@@ -301,6 +306,17 @@ export function useAuth() {
       description: "You have been successfully logged out.",
     });
   }, [logout]);
+
+  // Show logout confirmation dialog
+  const promptLogout = useCallback(async () => {
+    setIsLogoutConfirmDialogOpen(true);
+  }, []);
+
+  // Handle logout confirmation
+  const confirmLogout = useCallback(() => {
+    setIsLogoutConfirmDialogOpen(false);
+    handleLogout();
+  }, [handleLogout]);
 
   return {
     // State
@@ -340,6 +356,9 @@ export function useAuth() {
     setPassword,
 
     // Logout
-    logout: handleLogout,
+    logout: promptLogout,
+    confirmLogout,
+    isLogoutConfirmDialogOpen,
+    setIsLogoutConfirmDialogOpen,
   };
 }

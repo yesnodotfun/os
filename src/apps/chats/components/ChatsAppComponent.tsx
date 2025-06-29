@@ -5,6 +5,7 @@ import { ChatsMenuBar } from "./ChatsMenuBar";
 import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
+import { LogoutDialog } from "@/components/dialogs/LogoutDialog";
 import { InputDialog } from "@/components/dialogs/InputDialog";
 import { CreateRoomDialog } from "./CreateRoomDialog";
 import { helpItems, appMetadata } from "..";
@@ -103,6 +104,9 @@ export function ChatsAppComponent({
     verifyError,
     handleVerifyTokenSubmit,
     logout,
+    confirmLogout,
+    isLogoutConfirmDialogOpen,
+    setIsLogoutConfirmDialogOpen,
   } = authResult;
 
   // Destructure room properties from chatRoomResult
@@ -702,6 +706,11 @@ export function ChatsAppComponent({
               ? `Are you sure you want to leave "${roomToDelete.name}"? You will no longer see messages in this conversation.`
               : `Are you sure you want to delete the room "${roomToDelete?.name}"? This action cannot be undone.`
           }
+        />
+        <LogoutDialog
+          isOpen={isLogoutConfirmDialogOpen}
+          onOpenChange={setIsLogoutConfirmDialogOpen}
+          onConfirm={confirmLogout}
         />
       </WindowFrame>
     </>

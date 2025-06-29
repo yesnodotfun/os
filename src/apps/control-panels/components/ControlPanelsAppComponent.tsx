@@ -6,6 +6,7 @@ import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { LoginDialog } from "@/components/dialogs/LoginDialog";
 import { InputDialog } from "@/components/dialogs/InputDialog";
+import { LogoutDialog } from "@/components/dialogs/LogoutDialog";
 import { helpItems, appMetadata } from "..";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -279,6 +280,9 @@ export function ControlPanelsAppComponent({
     setPassword,
     authToken,
     logout,
+    confirmLogout,
+    isLogoutConfirmDialogOpen,
+    setIsLogoutConfirmDialogOpen,
     isVerifyingToken,
     verifyError,
     handleVerifyTokenSubmit,
@@ -1869,6 +1873,11 @@ export function ControlPanelsAppComponent({
           isLoading={isSettingPassword}
           errorMessage={passwordError}
           submitLabel="Set Password"
+        />
+        <LogoutDialog
+          isOpen={isLogoutConfirmDialogOpen}
+          onOpenChange={setIsLogoutConfirmDialogOpen}
+          onConfirm={confirmLogout}
         />
       </WindowFrame>
     </>

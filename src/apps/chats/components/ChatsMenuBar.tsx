@@ -127,6 +127,43 @@ export function ChatsMenuBar({
               Clear Chat
             </DropdownMenuItem>
             <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
+
+            {/* Account Section */}
+            {username && authToken ? (
+              // When logged in: Show Switch Account and Log Out
+              <>
+                <DropdownMenuItem
+                  onClick={onVerifyToken}
+                  className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+                >
+                  Switch Account...
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => onLogout?.()}
+                  className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+                >
+                  Log Out
+                </DropdownMenuItem>
+              </>
+            ) : (
+              // When not logged in: Show Create Account and Login
+              <>
+                <DropdownMenuItem
+                  onClick={onSetUsername}
+                  className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+                >
+                  Create Account...
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={onVerifyToken}
+                  className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+                >
+                  Login...
+                </DropdownMenuItem>
+              </>
+            )}
+
+            <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
             <DropdownMenuItem
               onClick={onClose}
               className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
@@ -136,7 +173,7 @@ export function ChatsMenuBar({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Rooms Menu */}
+        {/* Chats Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -144,7 +181,7 @@ export function ChatsMenuBar({
               size="default"
               className="h-6 text-md px-2 py-1 border-none hover:bg-gray-200 active:bg-gray-900 active:text-white focus-visible:ring-0"
             >
-              Rooms
+              Chats
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
@@ -152,7 +189,7 @@ export function ChatsMenuBar({
             sideOffset={1}
             className="px-0 max-h-[300px] overflow-y-auto"
           >
-            {/* New Room - available to all users */}
+            {/* New Chat - available to all users */}
             <DropdownMenuItem
               onClick={onAddRoom}
               className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
@@ -160,37 +197,7 @@ export function ChatsMenuBar({
               New Chat...
             </DropdownMenuItem>
 
-            {/* Create Account - show when debugMode OR username not set OR authToken is null */}
-            {(debugMode || !username || !authToken) && (
-              <DropdownMenuItem
-                onClick={onSetUsername}
-                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
-              >
-                Create Account...
-              </DropdownMenuItem>
-            )}
-
-            {/* Log In - visible only in debug mode */}
-            {debugMode && (
-              <DropdownMenuItem
-                onClick={onVerifyToken}
-                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
-              >
-                Log In...
-              </DropdownMenuItem>
-            )}
-
-            {/* Log Out - show when user is logged in and debug mode is enabled */}
-            {username && authToken && onLogout && debugMode && (
-              <DropdownMenuItem
-                onClick={() => onLogout()}
-                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
-              >
-                Log Out
-              </DropdownMenuItem>
-            )}
-
-            {/* Show separator between menu actions and room list */}
+            {/* Show separator between menu actions and chat list */}
             {rooms.length > 0 && (
               <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
             )}
@@ -208,7 +215,7 @@ export function ChatsMenuBar({
               </span>
             </DropdownMenuItem>
 
-            {/* Room List */}
+            {/* Chat List */}
             {Array.isArray(rooms) &&
               (() => {
                 // Sort rooms: private rooms first, then public rooms
