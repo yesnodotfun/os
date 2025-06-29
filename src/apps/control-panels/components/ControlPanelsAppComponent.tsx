@@ -1498,7 +1498,7 @@ export function ControlPanelsAppComponent({
                             >
                               Set Password
                             </Button>
-                          ) : hasPassword === true ? (
+                          ) : (
                             <Button
                               variant="retro"
                               onClick={logout}
@@ -1506,7 +1506,7 @@ export function ControlPanelsAppComponent({
                             >
                               Log Out
                             </Button>
-                          ) : null}
+                          )}
                         </div>
                       </div>
                     </div>
