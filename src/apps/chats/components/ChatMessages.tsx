@@ -126,13 +126,13 @@ const getErrorMessage = (error: Error): string => {
         if (errorData.isAuthenticated) {
           return `Daily AI message limit reached.`;
         } else {
-          return `Set a username to continue chatting with Ryo.`;
+          return `Login to continue chatting with Ryo.`;
         }
       }
 
       // Handle authentication error
       if (errorData.error === "authentication_failed") {
-        return `Session expired. Please set your username again.`;
+        return `Session expired. Please login again.`;
       }
 
       // Return the error field if it exists and is a string

@@ -51,7 +51,7 @@ export function ChatsAppComponent({
   const { promptSetUsername } = authResult;
 
   // Get room functionality from useChatRoom
-  const chatRoomResult = useChatRoom(isWindowOpen ?? false);
+  const chatRoomResult = useChatRoom(isWindowOpen ?? false, promptSetUsername);
 
   const {
     messages,
@@ -525,7 +525,7 @@ export function ChatsAppComponent({
                       className="flex items-center gap-1 px-2 py-1 h-7"
                     >
                       <span className="font-geneva-12 text-[11px]">
-                        Create Account
+                        Login to ryOS
                       </span>
                     </Button>
                   )}
@@ -589,7 +589,7 @@ export function ChatsAppComponent({
                       onClick={promptSetUsername}
                       className="w-full h-9 font-geneva-12 text-[12px] bg-orange-600 text-white hover:bg-orange-700 transition-all duration-200"
                     >
-                      {"Create Account to Chat"}
+                      {"Login to Chat"}
                     </Button>
                   ) : (
                     // AI Chat or in a room with username set

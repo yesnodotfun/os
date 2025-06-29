@@ -10,7 +10,10 @@ const getGlobalChannelName = (username?: string | null): string =>
     ? `chats-${username.toLowerCase().replace(/[^a-zA-Z0-9_\-.]/g, "_")}`
     : "chats-public";
 
-export function useChatRoom(isWindowOpen: boolean) {
+export function useChatRoom(
+  isWindowOpen: boolean,
+  onPromptSetUsername?: () => void
+) {
   const {
     username,
     authToken,
@@ -228,12 +231,32 @@ export function useChatRoom(isWindowOpen: boolean) {
 
       const result = await sendMessage(currentRoomId, content.trim());
       if (!result.ok) {
-        toast("Error", {
-          description: result.error || "Failed to send message.",
-        });
+        // Check if this is an authentication error
+        const isAuthError =
+          result.error?.toLowerCase().includes("authentication required") ||
+          result.error?.toLowerCase().includes("unauthorized") ||
+          result.error?.toLowerCase().includes("authentication failed") ||
+          result.error?.toLowerCase().includes("username mismatch");
+
+        if (isAuthError) {
+          toast.error("Login Required", {
+            description: "Please login to send messages.",
+            duration: 5000,
+            action: onPromptSetUsername
+              ? {
+                  label: "Login",
+                  onClick: onPromptSetUsername,
+                }
+              : undefined,
+          });
+        } else {
+          toast("Error", {
+            description: result.error || "Failed to send message.",
+          });
+        }
       }
     },
-    [currentRoomId, username, sendMessage]
+    [currentRoomId, username, sendMessage, onPromptSetUsername]
   );
 
   const handleAddRoom = useCallback(
@@ -309,9 +332,31 @@ export function useChatRoom(isWindowOpen: boolean) {
       setIsDeleteRoomDialogOpen(false);
       setRoomToDelete(null);
     } else {
-      toast("Error", { description: result.error || "Failed to delete room." });
+      // Check if this is an authentication error
+      const isAuthError =
+        result.error?.toLowerCase().includes("authentication required") ||
+        result.error?.toLowerCase().includes("unauthorized") ||
+        result.error?.toLowerCase().includes("authentication failed") ||
+        result.error?.toLowerCase().includes("username mismatch");
+
+      if (isAuthError) {
+        toast.error("Login Required", {
+          description: "Please login to delete rooms.",
+          duration: 5000,
+          action: onPromptSetUsername
+            ? {
+                label: "Login",
+                onClick: onPromptSetUsername,
+              }
+            : undefined,
+        });
+      } else {
+        toast("Error", {
+          description: result.error || "Failed to delete room.",
+        });
+      }
     }
-  }, [roomToDelete, handleDeleteRoom]);
+  }, [roomToDelete, handleDeleteRoom, onPromptSetUsername]);
 
   // --- Effects ---
 

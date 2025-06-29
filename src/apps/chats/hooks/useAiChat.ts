@@ -1027,7 +1027,7 @@ export function useAiChat(onPromptSetUsername?: () => void) {
         setAuthToken(null);
 
         // Show user-friendly error message with action button
-        toast.error("Authentication Required", {
+        toast.error("Login Required", {
           description: message || "Please login to continue chatting.",
           duration: 5000,
           action: onPromptSetUsername
@@ -1069,7 +1069,8 @@ export function useAiChat(onPromptSetUsername?: () => void) {
             // Handle authentication failed error
             if (
               errorData.error === "authentication_failed" ||
-              errorData.error === "unauthorized"
+              errorData.error === "unauthorized" ||
+              errorData.error === "username mismatch"
             ) {
               handleAuthError("Your session has expired. Please login again.");
               return; // Exit early to prevent showing generic error toast
@@ -1107,7 +1108,9 @@ export function useAiChat(onPromptSetUsername?: () => void) {
           err.message.includes("Unauthorized") ||
           err.message.includes("unauthorized") ||
           err.message.includes("authentication_failed") ||
-          err.message.includes("Authentication failed")
+          err.message.includes("Authentication failed") ||
+          err.message.includes("username mismatch") ||
+          err.message.includes("Username mismatch")
         ) {
           handleAuthError();
           return;
