@@ -195,12 +195,12 @@ export function CreateRoomDialog({
                     htmlFor="search-users"
                     className="text-gray-700 text-[12px] font-geneva-12"
                   >
-                    Add to Private Chat
+                    Add Users to Private Chat
                   </Label>
                   <div className="relative">
                     <Input
                       id="search-users"
-                      placeholder="Search users (min 2 characters)..."
+                      placeholder="Search username..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="shadow-none font-geneva-12 text-[12px] h-8 pr-8"
@@ -268,7 +268,7 @@ export function CreateRoomDialog({
             </p>
           )}
 
-          <DialogFooter className="mt-4 gap-2">
+          <DialogFooter className="mt-4">
             <Button
               variant="retro"
               onClick={() => onOpenChange(false)}
