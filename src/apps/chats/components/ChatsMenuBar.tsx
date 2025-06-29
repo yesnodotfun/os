@@ -37,8 +37,6 @@ interface ChatsMenuBarProps {
   onVerifyToken: () => void;
   isVerifyDialogOpen: boolean;
   setVerifyDialogOpen: (open: boolean) => void;
-  verifyTokenInput: string;
-  setVerifyTokenInput: (input: string) => void;
   verifyPasswordInput: string;
   setVerifyPasswordInput: (input: string) => void;
   verifyUsernameInput: string;
@@ -73,8 +71,6 @@ export function ChatsMenuBar({
   onVerifyToken,
   isVerifyDialogOpen,
   setVerifyDialogOpen,
-  verifyTokenInput,
-  setVerifyTokenInput,
   verifyPasswordInput,
   setVerifyPasswordInput,
   verifyUsernameInput,
@@ -397,27 +393,34 @@ export function ChatsMenuBar({
         </DropdownMenu>
       </MenuBar>
 
-      {/* Log In Dialog */}
+      {/* Log In / Sign Up Dialog */}
       <LoginDialog
         isOpen={isVerifyDialogOpen}
         onOpenChange={(open) => {
           setVerifyDialogOpen(open);
         }}
-        onSubmit={handleVerifyTokenSubmit}
-        tokenInput={verifyTokenInput}
-        onTokenInputChange={setVerifyTokenInput}
-        passwordInput={verifyPasswordInput}
-        onPasswordInputChange={setVerifyPasswordInput}
+        /* Login props */
         usernameInput={verifyUsernameInput}
         onUsernameInputChange={setVerifyUsernameInput}
-        isLoading={isVerifyingToken}
-        error={verifyError}
-        username={username}
-        debugMode={debugMode}
-        onSwitchToSignUp={() => {
+        passwordInput={verifyPasswordInput}
+        onPasswordInputChange={setVerifyPasswordInput}
+        onLoginSubmit={async () => {
+          await handleVerifyTokenSubmit(verifyPasswordInput, true);
+        }}
+        isLoginLoading={isVerifyingToken}
+        loginError={verifyError}
+
+        /* Sign Up props */
+        newUsername={verifyUsernameInput}
+        onNewUsernameChange={setVerifyUsernameInput}
+        newPassword={verifyPasswordInput}
+        onNewPasswordChange={setVerifyPasswordInput}
+        onSignUpSubmit={async () => {
           setVerifyDialogOpen(false);
           onSetUsername();
         }}
+        isSignUpLoading={false}
+        signUpError={null}
       />
     </>
   );

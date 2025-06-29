@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -13,66 +13,87 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface LoginDialogProps {
+  /* Common */
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (input: string, isPassword: boolean) => Promise<void>;
-  tokenInput: string;
-  onTokenInputChange: (value: string) => void;
-  passwordInput: string;
-  onPasswordInputChange: (value: string) => void;
+  /** When the dialog opens, choose which tab is active first */
+  initialTab?: "login" | "signup";
+
+  /* Login fields */
   usernameInput: string;
   onUsernameInputChange: (value: string) => void;
-  isLoading: boolean;
-  error: string | null;
-  username?: string | null;
-  debugMode?: boolean;
-  onSwitchToSignUp?: () => void;
+  passwordInput: string;
+  onPasswordInputChange: (value: string) => void;
+  onLoginSubmit: () => Promise<void>;
+  isLoginLoading: boolean;
+  loginError: string | null;
+
+  /* Sign-up fields */
+  newUsername: string;
+  onNewUsernameChange: (value: string) => void;
+  newPassword: string;
+  onNewPasswordChange: (value: string) => void;
+  onSignUpSubmit: () => Promise<void>;
+  isSignUpLoading: boolean;
+  signUpError: string | null;
 }
 
 export function LoginDialog({
   isOpen,
   onOpenChange,
-  onSubmit,
-  tokenInput,
-  onTokenInputChange,
-  passwordInput,
-  onPasswordInputChange,
+  initialTab = "login",
+  /* Login props */
   usernameInput,
   onUsernameInputChange,
-  isLoading,
-  error,
-  debugMode = false,
-  onSwitchToSignUp,
+  passwordInput,
+  onPasswordInputChange,
+  onLoginSubmit,
+  isLoginLoading,
+  loginError,
+  /* Sign-up props */
+  newUsername,
+  onNewUsernameChange,
+  newPassword,
+  onNewPasswordChange,
+  onSignUpSubmit,
+  isSignUpLoading,
+  signUpError,
 }: LoginDialogProps) {
-  const [activeTab, setActiveTab] = useState<"token" | "password">("password");
+  const [activeTab, setActiveTab] = useState<"login" | "signup">(initialTab);
 
-  // Reset to password tab when dialog opens
+  // Reset to the initial tab whenever the dialog is reopened
   useEffect(() => {
     if (isOpen) {
-      setActiveTab("password");
+      setActiveTab(initialTab);
     }
-  }, [isOpen]);
+  }, [isOpen, initialTab]);
 
+  /* Handlers */
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!isLoading) {
-      const input = activeTab === "token" ? tokenInput : passwordInput;
-      await onSubmit(input, activeTab === "password");
+    if (activeTab === "login") {
+      if (!isLoginLoading) {
+        await onLoginSubmit();
+      }
+    } else {
+      if (!isSignUpLoading) {
+        await onSignUpSubmit();
+      }
     }
   };
 
-  const renderPasswordForm = () => (
+  const renderLoginForm = () => (
     <div className="space-y-3">
       <div className="space-y-2">
         <Label className="text-gray-700 text-[12px] font-geneva-12">
           Username
         </Label>
         <Input
+          autoFocus={activeTab === "login"}
           value={usernameInput}
           onChange={(e) => onUsernameInputChange(e.target.value)}
-          placeholder=""
           className="shadow-none font-geneva-12 text-[12px] h-8"
-          disabled={isLoading}
+          disabled={isLoginLoading}
         />
       </div>
       <div className="space-y-2">
@@ -80,17 +101,48 @@ export function LoginDialog({
           Password
         </Label>
         <Input
-          autoFocus={!debugMode || activeTab === "password"}
           type="password"
           value={passwordInput}
           onChange={(e) => onPasswordInputChange(e.target.value)}
-          placeholder=""
           className="shadow-none font-geneva-12 text-[12px] h-8"
-          disabled={isLoading}
+          disabled={isLoginLoading}
         />
       </div>
     </div>
   );
+
+  const renderSignUpForm = () => (
+    <div className="space-y-3">
+      <div className="space-y-2">
+        <Label className="text-gray-700 text-[12px] font-geneva-12">
+          Set Username
+        </Label>
+        <Input
+          autoFocus={activeTab === "signup"}
+          value={newUsername}
+          onChange={(e) => onNewUsernameChange(e.target.value)}
+          className="shadow-none font-geneva-12 text-[12px] h-8"
+          disabled={isSignUpLoading}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label className="text-gray-700 text-[12px] font-geneva-12">
+          Set Password (optional)
+        </Label>
+        <Input
+          type="password"
+          value={newPassword}
+          onChange={(e) => onNewPasswordChange(e.target.value)}
+          className="shadow-none font-geneva-12 text-[12px] h-8"
+          disabled={isSignUpLoading}
+        />
+      </div>
+    </div>
+  );
+
+  const isActionLoading =
+    activeTab === "login" ? isLoginLoading : isSignUpLoading;
+  const activeError = activeTab === "login" ? loginError : signUpError;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -100,94 +152,74 @@ export function LoginDialog({
       >
         <DialogHeader>
           <DialogTitle className="font-normal text-[16px]">
-            Log In to ryOS
+            {activeTab === "login" ? "Log In to ryOS" : "Create New Account"}
           </DialogTitle>
           <DialogDescription className="sr-only">
-            Log in to your account
+            {activeTab === "login"
+              ? "Log in to your account"
+              : "Create an account to access chat rooms and save your settings"}
           </DialogDescription>
         </DialogHeader>
 
         <div className="pt-2 pb-6 px-6">
           <form onSubmit={handleSubmit}>
-            {debugMode ? (
-              <Tabs
-                value={activeTab}
-                onValueChange={(v) => setActiveTab(v as "token" | "password")}
-              >
-                <TabsList className="grid grid-cols-2 w-full h-fit mb-4 bg-transparent p-0.5 border border-black">
-                  <TabsTrigger
-                    value="password"
-                    className="relative font-geneva-12 text-[12px] px-4 py-1.5 rounded-none bg-white data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:z-10 data-[state=inactive]:border-r-0"
-                  >
-                    Password
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="token"
-                    className="relative font-geneva-12 text-[12px] px-4 py-1.5 rounded-none bg-white data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:z-10"
-                  >
-                    Token
-                  </TabsTrigger>
-                </TabsList>
+            <Tabs
+              value={activeTab}
+              onValueChange={(v) => setActiveTab(v as "login" | "signup")}
+              className="w-full"
+            >
+              <TabsList className="grid grid-cols-2 w-full h-fit mb-4 bg-transparent p-0.5 border border-black">
+                <TabsTrigger
+                  value="signup"
+                  className="relative font-geneva-12 text-[12px] px-4 py-1.5 rounded-none bg-white data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:z-10 data-[state=inactive]:border-r-0"
+                >
+                  Sign Up
+                </TabsTrigger>
+                <TabsTrigger
+                  value="login"
+                  className="relative font-geneva-12 text-[12px] px-4 py-1.5 rounded-none bg-white data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:z-10"
+                >
+                  Log In
+                </TabsTrigger>
+              </TabsList>
 
-                <TabsContent value="password" className="mt-0">
-                  {renderPasswordForm()}
-                </TabsContent>
+              {/* Sign Up */}
+              <TabsContent value="signup" className="mt-0">
+                {renderSignUpForm()}
+              </TabsContent>
 
-                <TabsContent value="token" className="mt-0">
-                  <div className="space-y-2">
-                    <Label className="text-gray-700 text-[12px] font-geneva-12">
-                      Authentication Token
-                    </Label>
-                    <Input
-                      autoFocus={activeTab === "token"}
-                      value={tokenInput}
-                      onChange={(e) => onTokenInputChange(e.target.value)}
-                      placeholder="Enter your authentication token"
-                      className="shadow-none font-geneva-12 text-[12px] h-8"
-                      disabled={isLoading}
-                    />
-                  </div>
-                </TabsContent>
-              </Tabs>
-            ) : (
-              renderPasswordForm()
-            )}
+              {/* Login */}
+              <TabsContent value="login" className="mt-0">
+                {renderLoginForm()}
+              </TabsContent>
+            </Tabs>
 
-            {error && (
+            {activeError && (
               <p className="text-red-600 text-[12px] font-geneva-12 mt-3">
-                {error}
+                {activeError}
               </p>
             )}
 
-            <DialogFooter className="mt-4 gap-2 sm:justify-between">
-              <div className="flex gap-2 w-full sm:w-auto">
-                {onSwitchToSignUp && (
-                  <Button
-                    type="button"
-                    variant="link"
-                    onClick={onSwitchToSignUp}
-                    disabled={isLoading}
-                    className="w-full sm:w-auto font-geneva-12 text-[12px] p-0 text-blue-600"
-                  >
-                    Create a new account
-                  </Button>
-                )}
-              </div>
-              <div className="flex flex-col-reverse gap-2 w-full sm:w-auto sm:flex-row">
-                <Button
-                  type="submit"
-                  variant="retro"
-                  disabled={
-                    isLoading ||
-                    (activeTab === "token"
-                      ? !tokenInput.trim()
-                      : !passwordInput.trim() || !usernameInput.trim())
-                  }
-                  className="w-full sm:w-auto"
-                >
-                  {isLoading ? "Logging in..." : "Log In"}
-                </Button>
-              </div>
+            <DialogFooter className="mt-4 gap-2 sm:justify-end">
+              <Button
+                type="submit"
+                variant="retro"
+                disabled={
+                  isActionLoading ||
+                  (activeTab === "login"
+                    ? !usernameInput.trim() || !passwordInput.trim()
+                    : !newUsername.trim())
+                }
+                className="w-full sm:w-auto"
+              >
+                {isActionLoading
+                  ? activeTab === "login"
+                    ? "Logging in..."
+                    : "Creating..."
+                  : activeTab === "login"
+                  ? "Log In"
+                  : "Create Account"}
+              </Button>
             </DialogFooter>
           </form>
         </div>

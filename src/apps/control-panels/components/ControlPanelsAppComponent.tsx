@@ -4,7 +4,6 @@ import { ControlPanelsMenuBar } from "./ControlPanelsMenuBar";
 import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
-import { SetUsernameDialog } from "@/components/dialogs/SetUsernameDialog";
 import { LoginDialog } from "@/components/dialogs/LoginDialog";
 import { InputDialog } from "@/components/dialogs/InputDialog";
 import { helpItems, appMetadata } from "..";
@@ -263,20 +262,14 @@ export function ControlPanelsAppComponent({
     setIsUsernameDialogOpen,
     newUsername,
     setNewUsername,
+    newPassword,
+    setNewPassword,
     isSettingUsername,
     usernameError,
     submitUsernameDialog,
-    setUsernameError,
     promptVerifyToken,
     isVerifyDialogOpen,
     setVerifyDialogOpen,
-    verifyTokenInput,
-    setVerifyTokenInput,
-    isVerifyingToken,
-    verifyError,
-    handleVerifyTokenSubmit,
-    newPassword,
-    setNewPassword,
     verifyPasswordInput,
     setVerifyPasswordInput,
     verifyUsernameInput,
@@ -286,6 +279,9 @@ export function ControlPanelsAppComponent({
     setPassword,
     authToken,
     logout,
+    isVerifyingToken,
+    verifyError,
+    handleVerifyTokenSubmit,
   } = useAuth();
 
   // Password dialog states
@@ -1797,40 +1793,58 @@ export function ControlPanelsAppComponent({
           title="Format File System"
           description="Are you sure you want to format the file system? This will permanently delete all documents (except sample documents), images, and custom wallpapers. ryOS will restart after format."
         />
-        <SetUsernameDialog
+        {/* Sign Up Dialog (was SetUsernameDialog) */}
+        <LoginDialog
+          initialTab="signup"
           isOpen={isUsernameDialogOpen}
           onOpenChange={setIsUsernameDialogOpen}
-          onSubmit={submitUsernameDialog}
-          username={newUsername}
-          onUsernameChange={setNewUsername}
-          password={newPassword}
-          onPasswordChange={setNewPassword}
-          isLoading={isSettingUsername}
-          error={usernameError}
-          onErrorChange={setUsernameError}
-          onSwitchToLogin={() => {
-            setIsUsernameDialogOpen(false);
-            promptVerifyToken();
+          /* Login props (inactive) */
+          usernameInput={verifyUsernameInput}
+          onUsernameInputChange={setVerifyUsernameInput}
+          passwordInput={verifyPasswordInput}
+          onPasswordInputChange={setVerifyPasswordInput}
+          onLoginSubmit={async () => {
+            await handleVerifyTokenSubmit(verifyPasswordInput, true);
           }}
+          isLoginLoading={isVerifyingToken}
+          loginError={verifyError}
+
+          /* Sign Up props */
+          newUsername={newUsername}
+          onNewUsernameChange={setNewUsername}
+          newPassword={newPassword}
+          onNewPasswordChange={setNewPassword}
+          onSignUpSubmit={submitUsernameDialog}
+          isSignUpLoading={isSettingUsername}
+          signUpError={usernameError}
         />
+
+        {/* Log In Dialog */}
         <LoginDialog
           isOpen={isVerifyDialogOpen}
           onOpenChange={setVerifyDialogOpen}
-          onSubmit={handleVerifyTokenSubmit}
-          tokenInput={verifyTokenInput}
-          onTokenInputChange={setVerifyTokenInput}
-          passwordInput={verifyPasswordInput}
-          onPasswordInputChange={setVerifyPasswordInput}
+          /* Login props */
           usernameInput={verifyUsernameInput}
           onUsernameInputChange={setVerifyUsernameInput}
-          isLoading={isVerifyingToken}
-          error={verifyError}
-          username={username}
-          debugMode={debugMode}
-          onSwitchToSignUp={() => {
+          passwordInput={verifyPasswordInput}
+          onPasswordInputChange={setVerifyPasswordInput}
+          onLoginSubmit={async () => {
+            await handleVerifyTokenSubmit(verifyPasswordInput, true);
+          }}
+          isLoginLoading={isVerifyingToken}
+          loginError={verifyError}
+
+          /* Sign Up props (inactive) */
+          newUsername={verifyUsernameInput}
+          onNewUsernameChange={setVerifyUsernameInput}
+          newPassword={verifyPasswordInput}
+          onNewPasswordChange={setVerifyPasswordInput}
+          onSignUpSubmit={async () => {
             setVerifyDialogOpen(false);
             promptSetUsername();
           }}
+          isSignUpLoading={false}
+          signUpError={null}
         />
         <InputDialog
           isOpen={isPasswordDialogOpen}
