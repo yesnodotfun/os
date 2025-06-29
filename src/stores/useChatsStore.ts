@@ -204,7 +204,10 @@ export interface ChatsStoreState {
     roomId: string,
     content: string
   ) => Promise<{ ok: boolean; error?: string }>;
-  createUser: (username: string) => Promise<{ ok: boolean; error?: string }>;
+  createUser: (
+    username: string,
+    password?: string
+  ) => Promise<{ ok: boolean; error?: string }>;
 
   incrementUnread: (roomId: string) => void;
   clearUnread: (roomId: string) => void;
@@ -1031,7 +1034,7 @@ export const useChatsStore = create<ChatsStoreState>()(
             return { ok: false, error: "Network error. Please try again." };
           }
         },
-        createUser: async (username: string) => {
+        createUser: async (username: string, password?: string) => {
           const trimmedUsername = username.trim();
           if (!trimmedUsername) {
             return { ok: false, error: "Username cannot be empty" };
@@ -1041,7 +1044,7 @@ export const useChatsStore = create<ChatsStoreState>()(
             const response = await fetch("/api/chat-rooms?action=createUser", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ username: trimmedUsername }),
+              body: JSON.stringify({ username: trimmedUsername, password }),
             });
 
             if (!response.ok) {

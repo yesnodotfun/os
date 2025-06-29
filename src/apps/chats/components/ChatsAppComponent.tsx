@@ -11,6 +11,7 @@ import { CreateRoomDialog } from "./CreateRoomDialog";
 import { helpItems, appMetadata } from "..";
 import { useChatRoom } from "../hooks/useChatRoom";
 import { useAiChat } from "../hooks/useAiChat";
+import { useAuth } from "@/hooks/useAuth";
 import React from "react";
 import { ChatMessages } from "./ChatMessages";
 import { ChatInput } from "./ChatInput";
@@ -50,9 +51,12 @@ export function ChatsAppComponent({
   // Automatically check and refresh token if needed
   useTokenRefresh();
 
-  // Get promptSetUsername from useChatRoom first
+  // Use auth hook for authentication functionality
+  const authResult = useAuth();
+  const { promptSetUsername } = authResult;
+
+  // Get room functionality from useChatRoom
   const chatRoomResult = useChatRoom(isWindowOpen ?? false);
-  const { promptSetUsername } = chatRoomResult;
 
   const {
     messages,
@@ -80,10 +84,36 @@ export function ChatsAppComponent({
     needsUsername,
   } = useAiChat(promptSetUsername); // Pass promptSetUsername to useAiChat
 
-  // Destructure the rest of the properties from chatRoomResult
+  // Destructure auth properties from authResult
   const {
     username,
     authToken,
+    isUsernameDialogOpen,
+    setIsUsernameDialogOpen,
+    newUsername,
+    setNewUsername,
+    newPassword,
+    setNewPassword,
+    isSettingUsername,
+    usernameError,
+    submitUsernameDialog,
+    setUsernameError,
+    promptVerifyToken,
+    isVerifyDialogOpen,
+    setVerifyDialogOpen,
+    verifyTokenInput,
+    setVerifyTokenInput,
+    verifyPasswordInput,
+    setVerifyPasswordInput,
+    verifyUsernameInput,
+    setVerifyUsernameInput,
+    isVerifyingToken,
+    verifyError,
+    handleVerifyTokenSubmit,
+  } = authResult;
+
+  // Destructure room properties from chatRoomResult
+  const {
     rooms,
     currentRoomId,
     currentRoomMessages,
@@ -95,14 +125,6 @@ export function ChatsAppComponent({
     handleAddRoom,
     promptAddRoom,
     promptDeleteRoom,
-    isUsernameDialogOpen,
-    setIsUsernameDialogOpen,
-    newUsername,
-    setNewUsername,
-    isSettingUsername,
-    usernameError,
-    submitUsernameDialog,
-    setUsernameError,
     isNewRoomDialogOpen,
     setIsNewRoomDialogOpen,
     isDeleteRoomDialogOpen,
@@ -351,14 +373,18 @@ export function ChatsAppComponent({
         onResetFontSize={handleResetFontSize}
         username={username}
         authToken={authToken} // Pass authToken to ChatsMenuBar
-        onVerifyToken={chatRoomResult.promptVerifyToken}
-        isVerifyDialogOpen={chatRoomResult.isVerifyDialogOpen}
-        setVerifyDialogOpen={chatRoomResult.setVerifyDialogOpen}
-        verifyTokenInput={chatRoomResult.verifyTokenInput}
-        setVerifyTokenInput={chatRoomResult.setVerifyTokenInput}
-        isVerifyingToken={chatRoomResult.isVerifyingToken}
-        verifyError={chatRoomResult.verifyError}
-        handleVerifyTokenSubmit={chatRoomResult.handleVerifyTokenSubmit}
+        onVerifyToken={promptVerifyToken}
+        isVerifyDialogOpen={isVerifyDialogOpen}
+        setVerifyDialogOpen={setVerifyDialogOpen}
+        verifyTokenInput={verifyTokenInput}
+        setVerifyTokenInput={setVerifyTokenInput}
+        verifyPasswordInput={verifyPasswordInput}
+        setVerifyPasswordInput={setVerifyPasswordInput}
+        verifyUsernameInput={verifyUsernameInput}
+        setVerifyUsernameInput={setVerifyUsernameInput}
+        isVerifyingToken={isVerifyingToken}
+        verifyError={verifyError}
+        handleVerifyTokenSubmit={handleVerifyTokenSubmit}
       />
       <WindowFrame
         title={
@@ -502,7 +528,7 @@ export function ChatsAppComponent({
                   {/* Token status indicator */}
                   {username && authToken && <TokenStatus />}
 
-                  {/* Set Username button shown only in @ryo view when no username is set */}
+                  {/* Create Account button shown only in @ryo view when no username is set */}
                   {!currentRoom && !username && (
                     <Button
                       variant="ghost"
@@ -510,7 +536,7 @@ export function ChatsAppComponent({
                       className="flex items-center gap-1 px-2 py-1 h-7"
                     >
                       <span className="font-geneva-12 text-[11px]">
-                        Set Username
+                        Create Account
                       </span>
                     </Button>
                   )}
@@ -563,9 +589,9 @@ export function ChatsAppComponent({
                     isSpeaking={isSpeaking}
                   />
                 </div>
-                {/* Input Area or Set Username Prompt */}
+                {/* Input Area or Create Account Prompt */}
                 <div className="absolute bottom-0 z-10 w-full p-2">
-                  {/* Show "Set Username" button in two cases:
+                  {/* Show "Create Account" button in two cases:
                       1. In a chat room without username
                       2. In @ryo chat when rate limit is hit for anonymous users */}
                   {(currentRoomId && !username) ||
@@ -574,7 +600,7 @@ export function ChatsAppComponent({
                       onClick={promptSetUsername}
                       className="w-full h-9 font-geneva-12 text-[12px] bg-orange-600 text-white hover:bg-orange-700 transition-all duration-200"
                     >
-                      {"Set Username to Chat"}
+                      {"Create Account to Chat"}
                     </Button>
                   ) : (
                     // AI Chat or in a room with username set
@@ -649,9 +675,15 @@ export function ChatsAppComponent({
           onSubmit={submitUsernameDialog}
           username={newUsername}
           onUsernameChange={setNewUsername}
+          password={newPassword}
+          onPasswordChange={setNewPassword}
           isLoading={isSettingUsername}
           error={usernameError}
           onErrorChange={setUsernameError}
+          onSwitchToLogin={() => {
+            setIsUsernameDialogOpen(false);
+            promptVerifyToken();
+          }}
         />
         <CreateRoomDialog
           isOpen={isNewRoomDialogOpen}

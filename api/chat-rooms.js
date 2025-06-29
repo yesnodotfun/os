@@ -2,6 +2,7 @@ import { Redis } from "@upstash/redis";
 import { Filter } from "bad-words";
 import Pusher from "pusher";
 import crypto from "crypto";
+import bcrypt from "bcryptjs";
 
 // Initialize profanity filter with custom placeholder
 const filter = new Filter({ placeHolder: "█" });
@@ -72,6 +73,50 @@ const MIN_USERNAME_LENGTH = 3; // Minimum username length (must be more than 2 c
 const AUTH_TOKEN_PREFIX = "chat:token:";
 const TOKEN_LENGTH = 32; // 32 bytes = 256 bits
 const TOKEN_GRACE_PERIOD = 86400 * 365; // 365 days (1 year) grace period for refresh after expiry
+
+// Password constants
+const PASSWORD_HASH_PREFIX = "chat:password:";
+const PASSWORD_MIN_LENGTH = 8;
+const PASSWORD_BCRYPT_ROUNDS = 10;
+
+/**
+ * Hash a password using bcrypt
+ * @param {string} password - The plaintext password
+ * @returns {Promise<string>} - The hashed password
+ */
+const hashPassword = async (password) => {
+  return await bcrypt.hash(password, PASSWORD_BCRYPT_ROUNDS);
+};
+
+/**
+ * Verify a password against a hash
+ * @param {string} password - The plaintext password
+ * @param {string} hash - The bcrypt hash
+ * @returns {Promise<boolean>} - Whether the password matches
+ */
+const verifyPassword = async (password, hash) => {
+  return await bcrypt.compare(password, hash);
+};
+
+/**
+ * Set or update a user's password hash
+ * @param {string} username - The username
+ * @param {string} passwordHash - The bcrypt hash
+ */
+const setUserPasswordHash = async (username, passwordHash) => {
+  const passwordKey = `${PASSWORD_HASH_PREFIX}${username.toLowerCase()}`;
+  await redis.set(passwordKey, passwordHash);
+};
+
+/**
+ * Get a user's password hash
+ * @param {string} username - The username
+ * @returns {Promise<string|null>} - The password hash or null if not set
+ */
+const getUserPasswordHash = async (username) => {
+  const passwordKey = `${PASSWORD_HASH_PREFIX}${username.toLowerCase()}`;
+  return await redis.get(passwordKey);
+};
 
 /**
  * TOKEN ARCHITECTURE:
@@ -516,7 +561,17 @@ export async function GET(request) {
     if (!publicActions.includes(action)) {
       const { username, token } = extractAuth(request);
 
-      // Validate authentication
+      // Special handling for checkPassword - it's a protected action
+      if (action === "checkPassword") {
+        // Validate authentication
+        const isValid = await validateAuth(username, token, requestId);
+        if (!isValid.valid) {
+          return createErrorResponse("Unauthorized", 401);
+        }
+        return await handleCheckPassword(username, requestId);
+      }
+
+      // Validate authentication for other protected actions
       const isValid = await validateAuth(username, token, requestId);
       if (!isValid.valid) {
         return createErrorResponse("Unauthorized", 401);
@@ -691,6 +746,7 @@ export async function POST(request) {
       "switchRoom",
       "generateToken",
       "refreshToken",
+      "authenticateWithPassword", // New: password-based auth
     ];
 
     // Actions that specifically require authentication
@@ -700,6 +756,7 @@ export async function POST(request) {
       "clearAllMessages",
       "resetUserCounts",
       "verifyToken",
+      "setPassword", // New: set password for existing user
     ];
 
     // Check authentication for protected actions
@@ -763,6 +820,10 @@ export async function POST(request) {
         return await handleResetUserCounts(username, requestId);
       case "verifyToken":
         return await handleVerifyToken(username, requestId);
+      case "authenticateWithPassword":
+        return await handleAuthenticateWithPassword(body, requestId);
+      case "setPassword":
+        return await handleSetPassword(body, username, requestId);
       default:
         logInfo(requestId, `Invalid action: ${action}`);
         return createErrorResponse("Invalid action", 400);
@@ -1329,7 +1390,7 @@ async function handleGetMessages(roomId, requestId) {
 }
 
 async function handleCreateUser(data, requestId) {
-  const { username: originalUsername } = data;
+  const { username: originalUsername, password } = data;
 
   if (!originalUsername) {
     logInfo(requestId, "User creation failed: Username is required");
@@ -1369,10 +1430,25 @@ async function handleCreateUser(data, requestId) {
     );
   }
 
+  // Validate password if provided
+  if (password && password.length < PASSWORD_MIN_LENGTH) {
+    logInfo(
+      requestId,
+      `User creation failed: Password too short: ${password.length} chars (min: ${PASSWORD_MIN_LENGTH})`
+    );
+    return createErrorResponse(
+      `Password must be at least ${PASSWORD_MIN_LENGTH} characters`,
+      400
+    );
+  }
+
   // Normalize username to lowercase
   const username = originalUsername.toLowerCase();
 
-  logInfo(requestId, `Creating user: ${username}`);
+  logInfo(
+    requestId,
+    `Creating user: ${username}${password ? " with password" : ""}`
+  );
   try {
     // Check if username already exists using setnx for atomicity
     const userKey = `${CHAT_USERS_PREFIX}${username}`;
@@ -1387,6 +1463,13 @@ async function handleCreateUser(data, requestId) {
       // User already exists - return conflict error
       logInfo(requestId, `Username already taken: ${username}`);
       return createErrorResponse("Username already taken", 409);
+    }
+
+    // Hash and store password if provided
+    if (password) {
+      const passwordHash = await hashPassword(password);
+      await setUserPasswordHash(username, passwordHash);
+      logInfo(requestId, `Password hash stored for user: ${username}`);
     }
 
     // Generate authentication token
@@ -2551,5 +2634,127 @@ async function broadcastToSpecificUsers(usernames) {
     await Promise.all(pushPromises);
   } catch (err) {
     console.error("[broadcastToSpecificUsers] Failed to broadcast:", err);
+  }
+}
+
+// Add these new handler functions after the existing handlers
+
+async function handleAuthenticateWithPassword(data, requestId) {
+  const { username: originalUsername, password } = data;
+
+  if (!originalUsername || !password) {
+    logInfo(requestId, "Auth failed: Username and password are required");
+    return createErrorResponse("Username and password are required", 400);
+  }
+
+  // Normalize username to lowercase
+  const username = originalUsername.toLowerCase();
+
+  logInfo(requestId, `Authenticating user with password: ${username}`);
+  try {
+    // Check if user exists
+    const userKey = `${CHAT_USERS_PREFIX}${username}`;
+    const userData = await redis.get(userKey);
+
+    if (!userData) {
+      logInfo(requestId, `User not found: ${username}`);
+      return createErrorResponse("Invalid username or password", 401);
+    }
+
+    // Get password hash
+    const passwordHash = await getUserPasswordHash(username);
+
+    if (!passwordHash) {
+      logInfo(requestId, `No password set for user: ${username}`);
+      return createErrorResponse("Invalid username or password", 401);
+    }
+
+    // Verify password
+    const isValid = await verifyPassword(password, passwordHash);
+
+    if (!isValid) {
+      logInfo(requestId, `Invalid password for user: ${username}`);
+      return createErrorResponse("Invalid username or password", 401);
+    }
+
+    // Generate new token
+    const authToken = generateAuthToken();
+    const tokenKey = `${AUTH_TOKEN_PREFIX}${username}`;
+
+    // Store token with expiration
+    await redis.set(tokenKey, authToken, { ex: USER_EXPIRATION_TIME });
+
+    logInfo(
+      requestId,
+      `Password authentication successful for user ${username}`
+    );
+
+    return new Response(JSON.stringify({ token: authToken, username }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    logError(requestId, `Error authenticating user ${username}:`, error);
+    return createErrorResponse("Failed to authenticate", 500);
+  }
+}
+
+async function handleSetPassword(data, username, requestId) {
+  const { password } = data;
+
+  if (!password) {
+    logInfo(requestId, "Set password failed: Password is required");
+    return createErrorResponse("Password is required", 400);
+  }
+
+  // Validate password length
+  if (password.length < PASSWORD_MIN_LENGTH) {
+    logInfo(
+      requestId,
+      `Set password failed: Password too short: ${password.length} chars (min: ${PASSWORD_MIN_LENGTH})`
+    );
+    return createErrorResponse(
+      `Password must be at least ${PASSWORD_MIN_LENGTH} characters`,
+      400
+    );
+  }
+
+  logInfo(requestId, `Setting password for user: ${username}`);
+  try {
+    // Hash and store password
+    const passwordHash = await hashPassword(password);
+    await setUserPasswordHash(username, passwordHash);
+
+    logInfo(requestId, `Password set successfully for user ${username}`);
+
+    return new Response(JSON.stringify({ success: true }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    logError(requestId, `Error setting password for user ${username}:`, error);
+    return createErrorResponse("Failed to set password", 500);
+  }
+}
+
+async function handleCheckPassword(username, requestId) {
+  logInfo(requestId, `Checking if password is set for user: ${username}`);
+
+  try {
+    const passwordHash = await getUserPasswordHash(username);
+    const hasPassword = !!passwordHash;
+
+    return new Response(
+      JSON.stringify({
+        hasPassword,
+        username: username,
+      }),
+      {
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  } catch (error) {
+    logError(requestId, `Error checking password for user ${username}:`, error);
+    return createErrorResponse("Failed to check password status", 500);
   }
 }

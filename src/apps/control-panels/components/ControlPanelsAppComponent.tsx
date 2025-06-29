@@ -5,7 +5,8 @@ import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { SetUsernameDialog } from "@/components/dialogs/SetUsernameDialog";
-import { VerifyTokenDialog } from "@/components/dialogs/VerifyTokenDialog";
+import { LoginDialog } from "@/components/dialogs/LoginDialog";
+import { InputDialog } from "@/components/dialogs/InputDialog";
 import { helpItems, appMetadata } from "..";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -30,6 +31,8 @@ import { AIModel, AI_MODEL_METADATA } from "@/types/aiModels";
 import { VolumeMixer } from "./VolumeMixer";
 import { v4 as uuidv4 } from "uuid";
 import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
+import React from "react";
 
 interface StoreItem {
   name: string;
@@ -272,7 +275,66 @@ export function ControlPanelsAppComponent({
     isVerifyingToken,
     verifyError,
     handleVerifyTokenSubmit,
+    newPassword,
+    setNewPassword,
+    verifyPasswordInput,
+    setVerifyPasswordInput,
+    verifyUsernameInput,
+    setVerifyUsernameInput,
+    hasPassword,
+    checkHasPassword,
+    setPassword,
+    authToken,
   } = useAuth();
+
+  // Password dialog states
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [passwordInput, setPasswordInput] = useState("");
+  const [isSettingPassword, setIsSettingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+
+  // Check if user has password when component mounts or username/token changes
+  React.useEffect(() => {
+    if (username && authToken) {
+      console.log("[ControlPanel] Checking password for user:", username);
+      checkHasPassword();
+    }
+  }, [username, authToken, checkHasPassword]);
+
+  // Debug hasPassword value
+  React.useEffect(() => {
+    console.log(
+      "[ControlPanel] hasPassword value:",
+      hasPassword,
+      "type:",
+      typeof hasPassword
+    );
+  }, [hasPassword]);
+
+  const handleSetPassword = async (password: string) => {
+    setIsSettingPassword(true);
+    setPasswordError(null);
+
+    if (!password || password.length < 8) {
+      setPasswordError("Password must be at least 8 characters");
+      setIsSettingPassword(false);
+      return;
+    }
+
+    const result = await setPassword(password);
+
+    if (result.ok) {
+      toast.success("Password Set", {
+        description: "You can now use your password to recover your account",
+      });
+      setIsPasswordDialogOpen(false);
+      setPasswordInput("");
+    } else {
+      setPasswordError(result.error || "Failed to set password");
+    }
+
+    setIsSettingPassword(false);
+  };
 
   // States for previous volume levels for mute/unmute functionality
   const [prevMasterVolume, setPrevMasterVolume] = useState(
@@ -1402,19 +1464,30 @@ export function ControlPanelsAppComponent({
                             Logged in to ryOS
                           </span>
                         </div>
-                        <Button
-                          variant="retro"
-                          onClick={() => {
-                            // Placeholder for future manage functionality
-                            // For now, in debug mode, show verify token dialog
-                            if (debugMode) {
-                              promptVerifyToken();
-                            }
-                          }}
-                          className="h-7"
-                        >
-                          {debugMode ? "Verify Token" : "Manage"}
-                        </Button>
+                        <div className="flex gap-2">
+                          {debugMode && (
+                            <Button
+                              variant="retro"
+                              onClick={promptVerifyToken}
+                              className="h-7"
+                            >
+                              Log In
+                            </Button>
+                          )}
+                          {!hasPassword && (
+                            <Button
+                              variant="retro"
+                              onClick={() => {
+                                setPasswordInput("");
+                                setPasswordError(null);
+                                setIsPasswordDialogOpen(true);
+                              }}
+                              className="h-7"
+                            >
+                              Set Password
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ) : (
@@ -1721,18 +1794,49 @@ export function ControlPanelsAppComponent({
           onSubmit={submitUsernameDialog}
           username={newUsername}
           onUsernameChange={setNewUsername}
+          password={newPassword}
+          onPasswordChange={setNewPassword}
           isLoading={isSettingUsername}
           error={usernameError}
           onErrorChange={setUsernameError}
+          onSwitchToLogin={() => {
+            setIsUsernameDialogOpen(false);
+            promptVerifyToken();
+          }}
         />
-        <VerifyTokenDialog
+        <LoginDialog
           isOpen={isVerifyDialogOpen}
           onOpenChange={setVerifyDialogOpen}
           onSubmit={handleVerifyTokenSubmit}
           tokenInput={verifyTokenInput}
           onTokenInputChange={setVerifyTokenInput}
+          passwordInput={verifyPasswordInput}
+          onPasswordInputChange={setVerifyPasswordInput}
+          usernameInput={verifyUsernameInput}
+          onUsernameInputChange={setVerifyUsernameInput}
           isLoading={isVerifyingToken}
           error={verifyError}
+          username={username}
+          debugMode={debugMode}
+          onSwitchToSignUp={() => {
+            setVerifyDialogOpen(false);
+            promptSetUsername();
+          }}
+        />
+        <InputDialog
+          isOpen={isPasswordDialogOpen}
+          onOpenChange={setIsPasswordDialogOpen}
+          onSubmit={handleSetPassword}
+          title="Set Password"
+          description="Set a password to enable account recovery. You can use this password to get a new token if you lose access."
+          value={passwordInput}
+          onChange={(value) => {
+            setPasswordInput(value);
+            setPasswordError(null);
+          }}
+          isLoading={isSettingPassword}
+          errorMessage={passwordError}
+          submitLabel="Set Password"
         />
       </WindowFrame>
     </>

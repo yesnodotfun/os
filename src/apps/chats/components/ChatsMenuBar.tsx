@@ -14,7 +14,7 @@ import { generateAppShareUrl } from "@/utils/sharedUrl";
 import { useAppStoreShallow } from "@/stores/helpers";
 import { SYNTH_PRESETS } from "@/hooks/useChatSynth";
 import { getPrivateRoomDisplayName } from "@/utils/chat";
-import { VerifyTokenDialog } from "@/components/dialogs/VerifyTokenDialog";
+import { LoginDialog } from "@/components/dialogs/LoginDialog";
 
 interface ChatsMenuBarProps {
   onClose: () => void;
@@ -39,9 +39,16 @@ interface ChatsMenuBarProps {
   setVerifyDialogOpen: (open: boolean) => void;
   verifyTokenInput: string;
   setVerifyTokenInput: (input: string) => void;
+  verifyPasswordInput: string;
+  setVerifyPasswordInput: (input: string) => void;
+  verifyUsernameInput: string;
+  setVerifyUsernameInput: (input: string) => void;
   isVerifyingToken: boolean;
   verifyError: string | null;
-  handleVerifyTokenSubmit: (token: string) => Promise<void>;
+  handleVerifyTokenSubmit: (
+    input: string,
+    isPassword: boolean
+  ) => Promise<void>;
 }
 
 export function ChatsMenuBar({
@@ -67,6 +74,10 @@ export function ChatsMenuBar({
   setVerifyDialogOpen,
   verifyTokenInput,
   setVerifyTokenInput,
+  verifyPasswordInput,
+  setVerifyPasswordInput,
+  verifyUsernameInput,
+  setVerifyUsernameInput,
   isVerifyingToken,
   verifyError,
   handleVerifyTokenSubmit,
@@ -151,23 +162,23 @@ export function ChatsMenuBar({
               New Chat...
             </DropdownMenuItem>
 
-            {/* Set Username - show when debugMode OR username not set OR authToken is null */}
+            {/* Create Account - show when debugMode OR username not set OR authToken is null */}
             {(debugMode || !username || !authToken) && (
               <DropdownMenuItem
                 onClick={onSetUsername}
                 className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
               >
-                Set Username...
+                Create Account...
               </DropdownMenuItem>
             )}
 
-            {/* Verify Token - visible only in debug mode */}
+            {/* Log In - visible only in debug mode */}
             {debugMode && (
               <DropdownMenuItem
                 onClick={onVerifyToken}
                 className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
               >
-                Verify Token...
+                Log In...
               </DropdownMenuItem>
             )}
 
@@ -374,8 +385,8 @@ export function ChatsMenuBar({
         </DropdownMenu>
       </MenuBar>
 
-      {/* Verify Token Dialog */}
-      <VerifyTokenDialog
+      {/* Log In Dialog */}
+      <LoginDialog
         isOpen={isVerifyDialogOpen}
         onOpenChange={(open) => {
           setVerifyDialogOpen(open);
@@ -383,8 +394,18 @@ export function ChatsMenuBar({
         onSubmit={handleVerifyTokenSubmit}
         tokenInput={verifyTokenInput}
         onTokenInputChange={setVerifyTokenInput}
+        passwordInput={verifyPasswordInput}
+        onPasswordInputChange={setVerifyPasswordInput}
+        usernameInput={verifyUsernameInput}
+        onUsernameInputChange={setVerifyUsernameInput}
         isLoading={isVerifyingToken}
         error={verifyError}
+        username={username}
+        debugMode={debugMode}
+        onSwitchToSignUp={() => {
+          setVerifyDialogOpen(false);
+          onSetUsername();
+        }}
       />
     </>
   );

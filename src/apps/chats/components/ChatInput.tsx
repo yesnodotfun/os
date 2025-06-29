@@ -329,7 +329,7 @@ export function ChatInput({
                     : isTranscribing
                     ? "Transcribing..."
                     : needsUsername && !isInChatRoom
-                    ? "Set username to continue..."
+                    ? "Create account to continue..."
                     : isFocused || isTouchDevice
                     ? "Type a message..."
                     : "Type or push 'space' to talk..."

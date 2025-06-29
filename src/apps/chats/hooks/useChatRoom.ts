@@ -27,11 +27,9 @@ export function useChatRoom(isWindowOpen: boolean) {
     createRoom,
     deleteRoom,
     sendMessage,
-    createUser,
     addMessageToRoom,
     removeMessageFromRoom,
     incrementUnread,
-    setAuthToken,
   } = useChatsStore();
 
   // Derive isAdmin directly from the username
@@ -43,20 +41,10 @@ export function useChatRoom(isWindowOpen: boolean) {
   const roomChannelsRef = useRef<Record<string, PusherChannel>>({});
   const hasInitialized = useRef(false);
 
-  // Dialog states
-  const [isUsernameDialogOpen, setIsUsernameDialogOpen] = useState(false);
-  const [newUsername, setNewUsername] = useState("");
-  const [isSettingUsername, setIsSettingUsername] = useState(false);
-  const [usernameError, setUsernameError] = useState<string | null>(null);
+  // Dialog states (only room-related)
   const [isNewRoomDialogOpen, setIsNewRoomDialogOpen] = useState(false);
   const [isDeleteRoomDialogOpen, setIsDeleteRoomDialogOpen] = useState(false);
   const [roomToDelete, setRoomToDelete] = useState<ChatRoom | null>(null);
-
-  // Token verification dialog states
-  const [isVerifyDialogOpen, setVerifyDialogOpen] = useState(false);
-  const [verifyTokenInput, setVerifyTokenInput] = useState("");
-  const [isVerifyingToken, setIsVerifyingToken] = useState(false);
-  const [verifyError, setVerifyError] = useState<string | null>(null);
 
   // Get current room messages
   const currentRoomMessages = currentRoomId
@@ -302,45 +290,7 @@ export function useChatRoom(isWindowOpen: boolean) {
     [isAdmin, deleteRoom, currentRoomId, handleRoomSelect, rooms]
   );
 
-  // --- Username Management ---
-  const handleUsernameSubmit = useCallback(
-    async (submittedUsername: string) => {
-      const trimmedUsername = submittedUsername.trim();
-      if (!trimmedUsername) {
-        return { ok: false, error: "Username cannot be empty." };
-      }
-
-      const result = await createUser(trimmedUsername);
-      if (result.ok) {
-        console.log(`[Username] Set to: ${trimmedUsername}`);
-      }
-      return result;
-    },
-    [createUser]
-  );
-
   // --- Dialog Handlers ---
-  const promptSetUsername = useCallback(() => {
-    setNewUsername("");
-    setUsernameError(null);
-    setIsUsernameDialogOpen(true);
-  }, []);
-
-  const submitUsernameDialog = useCallback(async () => {
-    setIsSettingUsername(true);
-    setUsernameError(null);
-
-    const result = await handleUsernameSubmit(newUsername);
-
-    if (result.ok) {
-      setIsUsernameDialogOpen(false);
-      setNewUsername("");
-    } else {
-      setUsernameError(result.error || "Failed to set username");
-    }
-
-    setIsSettingUsername(false);
-  }, [newUsername, handleUsernameSubmit]);
 
   const promptAddRoom = useCallback(() => {
     setIsNewRoomDialogOpen(true);
@@ -362,66 +312,6 @@ export function useChatRoom(isWindowOpen: boolean) {
       toast("Error", { description: result.error || "Failed to delete room." });
     }
   }, [roomToDelete, handleDeleteRoom]);
-
-  // --- Token Verification Management ---
-  const promptVerifyToken = useCallback(() => {
-    setVerifyTokenInput("");
-    setVerifyError(null);
-    setVerifyDialogOpen(true);
-  }, []);
-
-  const handleVerifyTokenSubmit = useCallback(
-    async (token: string) => {
-      if (!token.trim()) {
-        setVerifyError("Token required");
-        return;
-      }
-
-      setIsVerifyingToken(true);
-      setVerifyError(null);
-
-      try {
-        // Test the token using the dedicated verification endpoint
-        const testResponse = await fetch("/api/chat-rooms?action=verifyToken", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token.trim()}`,
-            "X-Username": username || "test",
-          },
-          body: JSON.stringify({}), // Empty body for POST request
-        });
-
-        if (!testResponse.ok) {
-          if (testResponse.status === 401) {
-            setVerifyError("Invalid token - authentication failed");
-          } else {
-            setVerifyError(`Token validation failed (${testResponse.status})`);
-          }
-          return;
-        }
-
-        // Parse the response to get validation details
-        const result = await testResponse.json();
-        console.log("[useChatRoom] Token validation successful:", result);
-
-        // Token is valid, set it in the store
-        setAuthToken(token.trim());
-
-        toast("Success", {
-          description: "Token verified and set successfully",
-        });
-        setVerifyDialogOpen(false);
-        setVerifyTokenInput("");
-      } catch (err) {
-        console.error("[useChatRoom] Error verifying token", err);
-        setVerifyError("Network error while verifying token");
-      } finally {
-        setIsVerifyingToken(false);
-      }
-    },
-    [setAuthToken, username]
-  );
 
   // --- Effects ---
 
@@ -533,17 +423,6 @@ export function useChatRoom(isWindowOpen: boolean) {
     promptAddRoom,
     promptDeleteRoom,
 
-    // Username management
-    promptSetUsername,
-    isUsernameDialogOpen,
-    setIsUsernameDialogOpen,
-    newUsername,
-    setNewUsername,
-    isSettingUsername,
-    usernameError,
-    submitUsernameDialog,
-    setUsernameError,
-
     // Room dialogs
     isNewRoomDialogOpen,
     setIsNewRoomDialogOpen,
@@ -551,15 +430,5 @@ export function useChatRoom(isWindowOpen: boolean) {
     setIsDeleteRoomDialogOpen,
     roomToDelete,
     confirmDeleteRoom,
-
-    // Token verification
-    promptVerifyToken,
-    isVerifyDialogOpen,
-    setVerifyDialogOpen,
-    verifyTokenInput,
-    setVerifyTokenInput,
-    isVerifyingToken,
-    verifyError,
-    handleVerifyTokenSubmit,
   };
 }
