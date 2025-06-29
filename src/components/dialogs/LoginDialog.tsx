@@ -115,7 +115,7 @@ export function LoginDialog({
     <div className="space-y-3">
       <div className="space-y-2">
         <Label className="text-gray-700 text-[12px] font-geneva-12">
-          Set Username
+          Username
         </Label>
         <Input
           autoFocus={activeTab === "signup"}
@@ -127,7 +127,7 @@ export function LoginDialog({
       </div>
       <div className="space-y-2">
         <Label className="text-gray-700 text-[12px] font-geneva-12">
-          Set Password (optional)
+          Password (optional)
         </Label>
         <Input
           type="password"
@@ -143,6 +143,32 @@ export function LoginDialog({
   const isActionLoading =
     activeTab === "login" ? isLoginLoading : isSignUpLoading;
   const activeError = activeTab === "login" ? loginError : signUpError;
+
+  // Automatically close the dialog when an action completes successfully
+  const prevLoginLoading = React.useRef(isLoginLoading);
+  const prevSignUpLoading = React.useRef(isSignUpLoading);
+
+  React.useEffect(() => {
+    // Detect transition from loading -> not loading with no errors
+    const loginFinishedSuccessfully =
+      prevLoginLoading.current &&
+      !isLoginLoading &&
+      !loginError &&
+      activeTab === "login";
+
+    const signUpFinishedSuccessfully =
+      prevSignUpLoading.current &&
+      !isSignUpLoading &&
+      !signUpError &&
+      activeTab === "signup";
+
+    if (isOpen && (loginFinishedSuccessfully || signUpFinishedSuccessfully)) {
+      onOpenChange(false);
+    }
+
+    prevLoginLoading.current = isLoginLoading;
+    prevSignUpLoading.current = isSignUpLoading;
+  }, [isOpen, isLoginLoading, isSignUpLoading, loginError, signUpError, activeTab, onOpenChange]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
