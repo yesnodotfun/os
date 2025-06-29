@@ -6,7 +6,6 @@ import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { InputDialog } from "@/components/dialogs/InputDialog";
-import { SetUsernameDialog } from "@/components/dialogs/SetUsernameDialog";
 import { CreateRoomDialog } from "./CreateRoomDialog";
 import { helpItems, appMetadata } from "..";
 import { useChatRoom } from "../hooks/useChatRoom";
@@ -29,6 +28,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { getPrivateRoomDisplayName } from "@/utils/chat";
 import { useTokenRefresh } from "../hooks/useTokenRefresh";
 import { TokenStatus } from "./TokenStatus";
+import { LoginDialog } from "@/components/dialogs/LoginDialog";
 
 // Define the expected message structure locally, matching ChatMessages internal type
 interface DisplayMessage extends Omit<UIMessage, "role"> {
@@ -666,26 +666,34 @@ export function ChatsAppComponent({
           value={saveFileName}
           onChange={setSaveFileName}
         />
-        <SetUsernameDialog
+        <LoginDialog
+          initialTab="signup"
           isOpen={isUsernameDialogOpen}
           onOpenChange={(open) => {
             console.log(
-              `[ChatApp Debug] Username SetUsernameDialog onOpenChange called with: ${open}`
+              `[ChatApp Debug] Username LoginDialog onOpenChange called with: ${open}`
             );
             setIsUsernameDialogOpen(open);
           }}
-          onSubmit={submitUsernameDialog}
-          username={newUsername}
-          onUsernameChange={setNewUsername}
-          password={newPassword}
-          onPasswordChange={setNewPassword}
-          isLoading={isSettingUsername}
-          error={usernameError}
-          onErrorChange={setUsernameError}
-          onSwitchToLogin={() => {
-            setIsUsernameDialogOpen(false);
-            promptVerifyToken();
+          /* Login props (not used in sign-up but required) */
+          usernameInput={verifyUsernameInput}
+          onUsernameInputChange={setVerifyUsernameInput}
+          passwordInput={verifyPasswordInput}
+          onPasswordInputChange={setVerifyPasswordInput}
+          onLoginSubmit={async () => {
+            await handleVerifyTokenSubmit(verifyPasswordInput, true);
           }}
+          isLoginLoading={isVerifyingToken}
+          loginError={verifyError}
+
+          /* Sign-up props */
+          newUsername={newUsername}
+          onNewUsernameChange={setNewUsername}
+          newPassword={newPassword}
+          onNewPasswordChange={setNewPassword}
+          onSignUpSubmit={submitUsernameDialog}
+          isSignUpLoading={isSettingUsername}
+          signUpError={usernameError}
         />
         <CreateRoomDialog
           isOpen={isNewRoomDialogOpen}
