@@ -87,7 +87,6 @@ export function ChatsMenuBar({
     setTypingSynthEnabled,
     synthPreset,
     setSynthPreset,
-    debugMode,
   } = useAppStoreShallow((s) => ({
     speechEnabled: s.speechEnabled,
     setSpeechEnabled: s.setSpeechEnabled,
