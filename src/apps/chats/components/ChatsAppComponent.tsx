@@ -97,7 +97,6 @@ export function ChatsAppComponent({
     isSettingUsername,
     usernameError,
     submitUsernameDialog,
-    setUsernameError,
     promptVerifyToken,
     isVerifyDialogOpen,
     setVerifyDialogOpen,
