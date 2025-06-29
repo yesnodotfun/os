@@ -214,7 +214,7 @@ export interface ChatsStoreState {
   setHasEverUsedChats: (value: boolean) => void;
 
   reset: () => void; // Reset store to initial state
-  logout: () => void; // Logout and clear all user data
+  logout: () => Promise<void>; // Logout and clear all user data
 }
 
 const initialAiMessage: Message = {
@@ -615,7 +615,7 @@ export const useChatsStore = create<ChatsStoreState>()(
           // Reset the store to initial state (which already tries to recover username and auth token)
           set(getInitialState());
         },
-        logout: () => {
+        logout: async () => {
           console.log("[ChatsStore] Logging out user...");
 
           // Get current username for cleanup
@@ -640,6 +640,18 @@ export const useChatsStore = create<ChatsStoreState>()(
             currentRoomId: null, // Clear current selection but keep rooms
             // Keep rooms, roomMessages, unreadCounts, hasEverUsedChats, isSidebarVisible, fontSize
           }));
+
+          // Re-fetch rooms to show only public rooms visible to anonymous users
+          console.log("[ChatsStore] Re-fetching rooms after logout...");
+          try {
+            await get().fetchRooms();
+            console.log("[ChatsStore] Rooms refreshed after logout");
+          } catch (error) {
+            console.error(
+              "[ChatsStore] Error refreshing rooms after logout:",
+              error
+            );
+          }
 
           console.log("[ChatsStore] User logged out successfully");
         },

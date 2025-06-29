@@ -70,7 +70,7 @@ export function LoginDialog({
         <Input
           value={usernameInput}
           onChange={(e) => onUsernameInputChange(e.target.value)}
-          placeholder="Enter username"
+          placeholder=""
           className="shadow-none font-geneva-12 text-[12px] h-8"
           disabled={isLoading}
         />
@@ -84,7 +84,7 @@ export function LoginDialog({
           type="password"
           value={passwordInput}
           onChange={(e) => onPasswordInputChange(e.target.value)}
-          placeholder="Enter password"
+          placeholder=""
           className="shadow-none font-geneva-12 text-[12px] h-8"
           disabled={isLoading}
         />
@@ -167,7 +167,7 @@ export function LoginDialog({
                     variant="link"
                     onClick={onSwitchToSignUp}
                     disabled={isLoading}
-                    className="w-full sm:w-auto font-geneva-12 text-[12px] p-0"
+                    className="w-full sm:w-auto font-geneva-12 text-[12px] p-0 text-blue-600"
                   >
                     Create a new account
                   </Button>

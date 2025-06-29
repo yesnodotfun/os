@@ -51,7 +51,7 @@ export function useAuth() {
         "->",
         trimmedUsername
       );
-      logout();
+      await logout();
     }
 
     const result = await createUser(trimmedUsername, newPassword || undefined);
@@ -101,7 +101,7 @@ export function useAuth() {
               "->",
               targetUsername
             );
-            logout();
+            await logout();
           }
 
           // Authenticate with password
@@ -144,7 +144,7 @@ export function useAuth() {
             console.log(
               "[useAuth] Clearing existing user data before token login to prevent mixing"
             );
-            logout();
+            await logout();
           }
 
           // Test the token using the dedicated verification endpoint
@@ -275,7 +275,7 @@ export function useAuth() {
   );
 
   // Logout functionality
-  const handleLogout = useCallback(() => {
+  const handleLogout = useCallback(async () => {
     console.log("[useAuth] Logging out user...");
 
     // Clear local dialog states
@@ -290,8 +290,8 @@ export function useAuth() {
     setVerifyError(null);
     setHasPassword(null);
 
-    // Call store logout to clear all user data
-    logout();
+    // Call store logout to clear all user data and refresh rooms
+    await logout();
 
     toast.success("Logged Out", {
       description: "You have been successfully logged out.",

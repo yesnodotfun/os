@@ -53,7 +53,7 @@ export function SetUsernameDialog({
       >
         <DialogHeader>
           <DialogTitle className="font-normal text-[16px]">
-            Create ryOS Account
+            Create New Account
           </DialogTitle>
           <DialogDescription className="sr-only">
             Create an account to access chat rooms and save your settings
@@ -65,7 +65,7 @@ export function SetUsernameDialog({
             <div className="space-y-3">
               <div className="space-y-2">
                 <Label className="text-gray-700 text-[12px] font-geneva-12">
-                  Username
+                  Set Username
                 </Label>
                 <Input
                   autoFocus
@@ -82,7 +82,7 @@ export function SetUsernameDialog({
 
               <div className="space-y-2">
                 <Label className="text-gray-700 text-[12px] font-geneva-12">
-                  Password (optional)
+                  Set Password (optional)
                 </Label>
                 <Input
                   type="password"
@@ -115,7 +115,7 @@ export function SetUsernameDialog({
                     variant="link"
                     onClick={onSwitchToLogin}
                     disabled={isLoading}
-                    className="w-full sm:w-auto font-geneva-12 text-[12px] p-0"
+                    className="w-full sm:w-auto font-geneva-12 text-[12px] p-0 text-blue-600"
                   >
                     Login to an existing account
                   </Button>

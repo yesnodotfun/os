@@ -49,7 +49,7 @@ interface ChatsMenuBarProps {
     input: string,
     isPassword: boolean
   ) => Promise<void>;
-  onLogout?: () => void;
+  onLogout?: () => Promise<void>;
 }
 
 export function ChatsMenuBar({
@@ -187,7 +187,7 @@ export function ChatsMenuBar({
             {/* Log Out - show when user is logged in and debug mode is enabled */}
             {username && authToken && onLogout && debugMode && (
               <DropdownMenuItem
-                onClick={onLogout}
+                onClick={() => onLogout()}
                 className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
               >
                 Log Out
