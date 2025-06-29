@@ -285,6 +285,7 @@ export function ControlPanelsAppComponent({
     checkHasPassword,
     setPassword,
     authToken,
+    logout,
   } = useAuth();
 
   // Password dialog states
@@ -1474,7 +1475,7 @@ export function ControlPanelsAppComponent({
                               Log In
                             </Button>
                           )}
-                          {!hasPassword && (
+                          {hasPassword === false ? (
                             <Button
                               variant="retro"
                               onClick={() => {
@@ -1486,7 +1487,15 @@ export function ControlPanelsAppComponent({
                             >
                               Set Password
                             </Button>
-                          )}
+                          ) : hasPassword === true ? (
+                            <Button
+                              variant="retro"
+                              onClick={logout}
+                              className="h-7"
+                            >
+                              Log Out
+                            </Button>
+                          ) : null}
                         </div>
                       </div>
                     </div>
@@ -1498,7 +1507,7 @@ export function ControlPanelsAppComponent({
                             ryOS Account
                           </span>
                           <span className="text-[11px] text-gray-600 font-geneva-12">
-                            Create a username to access chat rooms and more.
+                            Login to access chat rooms and more.
                           </span>
                         </div>
                         <Button
@@ -1506,7 +1515,7 @@ export function ControlPanelsAppComponent({
                           onClick={promptSetUsername}
                           className="h-7"
                         >
-                          Login
+                          Create Account
                         </Button>
                       </div>
                     </div>

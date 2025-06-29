@@ -100,7 +100,9 @@ export function LoginDialog({
         onKeyDown={(e: React.KeyboardEvent) => e.stopPropagation()}
       >
         <DialogHeader>
-          <DialogTitle className="font-normal text-[16px]">Log In</DialogTitle>
+          <DialogTitle className="font-normal text-[16px]">
+            Log In to ryOS
+          </DialogTitle>
           <DialogDescription className="sr-only">
             Log in to your account
           </DialogDescription>
@@ -145,9 +147,6 @@ export function LoginDialog({
                       className="shadow-none font-geneva-12 text-[12px] h-8"
                       disabled={isLoading}
                     />
-                    <p className="text-[11px] text-gray-600 font-geneva-12">
-                      Use your authentication token to log in.
-                    </p>
                   </div>
                 </TabsContent>
               </Tabs>
@@ -171,7 +170,7 @@ export function LoginDialog({
                     disabled={isLoading}
                     className="w-full sm:w-auto font-geneva-12 text-[12px] p-0"
                   >
-                    Create an account
+                    Create a new account
                   </Button>
                 )}
               </div>

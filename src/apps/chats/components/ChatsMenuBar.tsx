@@ -49,6 +49,7 @@ interface ChatsMenuBarProps {
     input: string,
     isPassword: boolean
   ) => Promise<void>;
+  onLogout?: () => void;
 }
 
 export function ChatsMenuBar({
@@ -81,6 +82,7 @@ export function ChatsMenuBar({
   isVerifyingToken,
   verifyError,
   handleVerifyTokenSubmit,
+  onLogout,
 }: ChatsMenuBarProps) {
   const {
     speechEnabled,
@@ -179,6 +181,16 @@ export function ChatsMenuBar({
                 className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
               >
                 Log In...
+              </DropdownMenuItem>
+            )}
+
+            {/* Log Out - show when user is logged in */}
+            {username && authToken && onLogout && (
+              <DropdownMenuItem
+                onClick={onLogout}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+              >
+                Log Out
               </DropdownMenuItem>
             )}
 

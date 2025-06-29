@@ -214,6 +214,7 @@ export interface ChatsStoreState {
   setHasEverUsedChats: (value: boolean) => void;
 
   reset: () => void; // Reset store to initial state
+  logout: () => void; // Logout and clear all user data
 }
 
 const initialAiMessage: Message = {
@@ -227,6 +228,7 @@ const getInitialState = (): Omit<
   ChatsStoreState,
   | "isAdmin"
   | "reset"
+  | "logout"
   | "setAiMessages"
   | "setUsername"
   | "setAuthToken"
@@ -612,6 +614,34 @@ export const useChatsStore = create<ChatsStoreState>()(
 
           // Reset the store to initial state (which already tries to recover username and auth token)
           set(getInitialState());
+        },
+        logout: () => {
+          console.log("[ChatsStore] Logging out user...");
+
+          // Get current username for cleanup
+          const currentUsername = get().username;
+
+          // Clear recovery keys from localStorage
+          localStorage.removeItem(USERNAME_RECOVERY_KEY);
+          localStorage.removeItem(AUTH_TOKEN_RECOVERY_KEY);
+
+          // Clear token refresh time for current user
+          if (currentUsername) {
+            const tokenRefreshKey = `${TOKEN_LAST_REFRESH_KEY}${currentUsername}`;
+            localStorage.removeItem(tokenRefreshKey);
+          }
+
+          // Reset only user-specific data, preserve rooms and messages
+          set((state) => ({
+            ...state,
+            aiMessages: [initialAiMessage],
+            username: null,
+            authToken: null,
+            currentRoomId: null, // Clear current selection but keep rooms
+            // Keep rooms, roomMessages, unreadCounts, hasEverUsedChats, isSidebarVisible, fontSize
+          }));
+
+          console.log("[ChatsStore] User logged out successfully");
         },
         fetchRooms: async () => {
           console.log("[ChatsStore] Fetching rooms...");

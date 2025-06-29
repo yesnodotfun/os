@@ -3,7 +3,8 @@ import { useChatsStore } from "@/stores/useChatsStore";
 import { toast } from "sonner";
 
 export function useAuth() {
-  const { username, authToken, setAuthToken, createUser } = useChatsStore();
+  const { username, authToken, setAuthToken, setUsername, createUser, logout } =
+    useChatsStore();
 
   // Set username dialog states
   const [isUsernameDialogOpen, setIsUsernameDialogOpen] = useState(false);
@@ -40,6 +41,17 @@ export function useAuth() {
       setUsernameError("Username cannot be empty.");
       setIsSettingUsername(false);
       return;
+    }
+
+    // If we have a different user already logged in, clear their data first
+    if (username && username !== trimmedUsername) {
+      console.log(
+        "[useAuth] Clearing old user data for different user:",
+        username,
+        "->",
+        trimmedUsername
+      );
+      logout();
     }
 
     const result = await createUser(trimmedUsername, newPassword || undefined);
@@ -79,6 +91,19 @@ export function useAuth() {
 
       try {
         if (isPassword) {
+          const targetUsername = verifyUsernameInput.trim() || username || "";
+
+          // If we have a different user already logged in, clear their data first
+          if (username && username !== targetUsername) {
+            console.log(
+              "[useAuth] Clearing old user data for different user login:",
+              username,
+              "->",
+              targetUsername
+            );
+            logout();
+          }
+
           // Authenticate with password
           const response = await fetch(
             "/api/chat-rooms?action=authenticateWithPassword",
@@ -88,7 +113,7 @@ export function useAuth() {
                 "Content-Type": "application/json",
               },
               body: JSON.stringify({
-                username: verifyUsernameInput.trim() || username || "",
+                username: targetUsername,
                 password: input.trim(),
               }),
             }
@@ -103,6 +128,10 @@ export function useAuth() {
           const result = await response.json();
           if (result.token) {
             setAuthToken(result.token);
+            // Set username from the response to ensure it's properly stored
+            if (result.username) {
+              setUsername(result.username);
+            }
             toast.success("Success", {
               description: "Logged in successfully with password",
             });
@@ -110,6 +139,14 @@ export function useAuth() {
             setVerifyPasswordInput("");
           }
         } else {
+          // For token login, clear any existing user data to prevent token mixing
+          if (username || authToken) {
+            console.log(
+              "[useAuth] Clearing existing user data before token login to prevent mixing"
+            );
+            logout();
+          }
+
           // Test the token using the dedicated verification endpoint
           const testResponse = await fetch(
             "/api/chat-rooms?action=verifyToken",
@@ -142,6 +179,11 @@ export function useAuth() {
           // Token is valid, set it in the store
           setAuthToken(input.trim());
 
+          // Set username from the response to ensure it's properly stored
+          if (result.username) {
+            setUsername(result.username);
+          }
+
           toast.success("Success", {
             description: "Token verified and set successfully",
           });
@@ -155,7 +197,7 @@ export function useAuth() {
         setIsVerifyingToken(false);
       }
     },
-    [setAuthToken, username, verifyUsernameInput]
+    [setAuthToken, setUsername, username, verifyUsernameInput]
   );
 
   // Check if user has a password set
@@ -232,6 +274,30 @@ export function useAuth() {
     [username, authToken]
   );
 
+  // Logout functionality
+  const handleLogout = useCallback(() => {
+    console.log("[useAuth] Logging out user...");
+
+    // Clear local dialog states
+    setIsUsernameDialogOpen(false);
+    setVerifyDialogOpen(false);
+    setNewUsername("");
+    setNewPassword("");
+    setVerifyTokenInput("");
+    setVerifyPasswordInput("");
+    setVerifyUsernameInput("");
+    setUsernameError(null);
+    setVerifyError(null);
+    setHasPassword(null);
+
+    // Call store logout to clear all user data
+    logout();
+
+    toast.success("Logged Out", {
+      description: "You have been successfully logged out.",
+    });
+  }, [logout]);
+
   return {
     // State
     username,
@@ -268,5 +334,8 @@ export function useAuth() {
     // Password management
     checkHasPassword,
     setPassword,
+
+    // Logout
+    logout: handleLogout,
   };
 }

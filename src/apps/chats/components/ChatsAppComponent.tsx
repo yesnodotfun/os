@@ -110,6 +110,7 @@ export function ChatsAppComponent({
     isVerifyingToken,
     verifyError,
     handleVerifyTokenSubmit,
+    logout,
   } = authResult;
 
   // Destructure room properties from chatRoomResult
@@ -385,6 +386,7 @@ export function ChatsAppComponent({
         isVerifyingToken={isVerifyingToken}
         verifyError={verifyError}
         handleVerifyTokenSubmit={handleVerifyTokenSubmit}
+        onLogout={logout}
       />
       <WindowFrame
         title={
