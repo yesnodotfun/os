@@ -1419,17 +1419,23 @@ export function ControlPanelsAppComponent({
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      <Button
-                        variant="retro"
-                        onClick={promptSetUsername}
-                        className="w-full"
-                      >
-                        Login to ryOS
-                      </Button>
-                      <p className="text-[11px] text-gray-600 font-geneva-12">
-                        Create a username to access chat rooms and personalized
-                        features.
-                      </p>
+                      <div className="flex items-center justify-between">
+                        <div className="flex flex-col">
+                          <span className="text-[13px] font-geneva-12 font-medium">
+                            ryOS Account
+                          </span>
+                          <span className="text-[11px] text-gray-600 font-geneva-12">
+                            Create a username to access chat rooms and more.
+                          </span>
+                        </div>
+                        <Button
+                          variant="retro"
+                          onClick={promptSetUsername}
+                          className="h-7"
+                        >
+                          Login
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>
