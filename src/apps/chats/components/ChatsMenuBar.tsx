@@ -184,8 +184,8 @@ export function ChatsMenuBar({
               </DropdownMenuItem>
             )}
 
-            {/* Log Out - show when user is logged in */}
-            {username && authToken && onLogout && (
+            {/* Log Out - show when user is logged in and debug mode is enabled */}
+            {username && authToken && onLogout && debugMode && (
               <DropdownMenuItem
                 onClick={onLogout}
                 className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
