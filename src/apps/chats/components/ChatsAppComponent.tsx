@@ -101,8 +101,6 @@ export function ChatsAppComponent({
     promptVerifyToken,
     isVerifyDialogOpen,
     setVerifyDialogOpen,
-    verifyTokenInput,
-    setVerifyTokenInput,
     verifyPasswordInput,
     setVerifyPasswordInput,
     verifyUsernameInput,
@@ -377,8 +375,6 @@ export function ChatsAppComponent({
         onVerifyToken={promptVerifyToken}
         isVerifyDialogOpen={isVerifyDialogOpen}
         setVerifyDialogOpen={setVerifyDialogOpen}
-        verifyTokenInput={verifyTokenInput}
-        setVerifyTokenInput={setVerifyTokenInput}
         verifyPasswordInput={verifyPasswordInput}
         setVerifyPasswordInput={setVerifyPasswordInput}
         verifyUsernameInput={verifyUsernameInput}
