@@ -1878,6 +1878,12 @@ export function ControlPanelsAppComponent({
           isOpen={isLogoutConfirmDialogOpen}
           onOpenChange={setIsLogoutConfirmDialogOpen}
           onConfirm={confirmLogout}
+          hasPassword={hasPassword}
+          onSetPassword={() => {
+            setPasswordInput("");
+            setPasswordError(null);
+            setIsPasswordDialogOpen(true);
+          }}
         />
       </WindowFrame>
     </>

@@ -28,6 +28,7 @@ import { ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getPrivateRoomDisplayName } from "@/utils/chat";
 import { LoginDialog } from "@/components/dialogs/LoginDialog";
+import { toast } from "sonner";
 
 // Define the expected message structure locally, matching ChatMessages internal type
 interface DisplayMessage extends Omit<UIMessage, "role"> {
@@ -103,6 +104,9 @@ export function ChatsAppComponent({
     isVerifyingToken,
     verifyError,
     handleVerifyTokenSubmit,
+    hasPassword,
+    checkHasPassword,
+    setPassword,
     logout,
     confirmLogout,
     isLogoutConfirmDialogOpen,
@@ -139,6 +143,12 @@ export function ChatsAppComponent({
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
   // Add state to trigger scroll in ChatMessages
   const [scrollToBottomTrigger, setScrollToBottomTrigger] = useState(0);
+
+  // Password dialog states
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [passwordInput, setPasswordInput] = useState("");
+  const [isSettingPassword, setIsSettingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
 
   // Safety check: ensure rooms is an array before finding
   const currentRoom =
@@ -328,6 +338,46 @@ export function ChatsAppComponent({
     }
     prevFrameNarrowRef.current = isFrameNarrow;
   }, [isFrameNarrow, sidebarVisibleBool, toggleSidebarVisibility]);
+
+  // Check if user has password when component mounts or username/token changes
+  useEffect(() => {
+    if (username && authToken) {
+      checkHasPassword();
+    }
+  }, [username, authToken, checkHasPassword]);
+
+  // Password setting handler
+  const handleSetPassword = async (password: string) => {
+    setIsSettingPassword(true);
+    setPasswordError(null);
+
+    if (!password || password.length < 8) {
+      setPasswordError("Password must be at least 8 characters");
+      setIsSettingPassword(false);
+      return;
+    }
+
+    const result = await setPassword(password);
+
+    if (result.ok) {
+      toast.success("Password Set", {
+        description: "You can now use your password to recover your account",
+      });
+      setIsPasswordDialogOpen(false);
+      setPasswordInput("");
+    } else {
+      setPasswordError(result.error || "Failed to set password");
+    }
+
+    setIsSettingPassword(false);
+  };
+
+  // Function to open password setting dialog
+  const promptSetPassword = useCallback(() => {
+    setPasswordInput("");
+    setPasswordError(null);
+    setIsPasswordDialogOpen(true);
+  }, []);
 
   if (!isWindowOpen) return null;
 
@@ -711,6 +761,23 @@ export function ChatsAppComponent({
           isOpen={isLogoutConfirmDialogOpen}
           onOpenChange={setIsLogoutConfirmDialogOpen}
           onConfirm={confirmLogout}
+          hasPassword={hasPassword}
+          onSetPassword={promptSetPassword}
+        />
+        <InputDialog
+          isOpen={isPasswordDialogOpen}
+          onOpenChange={setIsPasswordDialogOpen}
+          onSubmit={handleSetPassword}
+          title="Set Password"
+          description="Set a password to enable account recovery. You can use this password to get a new token if you lose access."
+          value={passwordInput}
+          onChange={(value) => {
+            setPasswordInput(value);
+            setPasswordError(null);
+          }}
+          isLoading={isSettingPassword}
+          errorMessage={passwordError}
+          submitLabel="Set Password"
         />
       </WindowFrame>
     </>
