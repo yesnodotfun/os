@@ -1511,7 +1511,7 @@ export function ControlPanelsAppComponent({
                           onClick={promptSetUsername}
                           className="h-7"
                         >
-                          Create Account
+                          Login
                         </Button>
                       </div>
                     </div>
@@ -1808,7 +1808,6 @@ export function ControlPanelsAppComponent({
           }}
           isLoginLoading={isVerifyingToken}
           loginError={verifyError}
-
           /* Sign Up props */
           newUsername={newUsername}
           onNewUsernameChange={setNewUsername}
@@ -1833,7 +1832,6 @@ export function ControlPanelsAppComponent({
           }}
           isLoginLoading={isVerifyingToken}
           loginError={verifyError}
-
           /* Sign Up props (inactive) */
           newUsername={verifyUsernameInput}
           onNewUsernameChange={setVerifyUsernameInput}
