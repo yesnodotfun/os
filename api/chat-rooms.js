@@ -530,7 +530,8 @@ export async function GET(request) {
         });
       }
       case "getUsers":
-        return await handleGetUsers(requestId);
+        const searchQuery = url.searchParams.get("search") || "";
+        return await handleGetUsers(requestId, searchQuery);
       case "cleanupPresence": {
         // This is an admin-only endpoint for cleaning up expired presence
         const { username, token } = extractAuth(request);
@@ -1317,10 +1318,7 @@ async function handleCreateUser(data, requestId) {
     // Store token with same expiration as user
     await redis.set(tokenKey, authToken, { ex: USER_EXPIRATION_TIME });
 
-    logInfo(
-      requestId,
-                `User created with auth token: ${username}`
-    );
+    logInfo(requestId, `User created with auth token: ${username}`);
 
     return new Response(JSON.stringify({ user, token: authToken }), {
       status: 201,
@@ -1378,10 +1376,7 @@ async function handleJoinRoom(data, requestId) {
     // Update user's last active timestamp
     const updatedUser = { ...userData, lastActive: getCurrentTimestamp() };
     await redis.set(`${CHAT_USERS_PREFIX}${username}`, updatedUser);
-    logInfo(
-      requestId,
-                `User ${username} last active time updated`
-    );
+    logInfo(requestId, `User ${username} last active time updated`);
 
     // Trigger optimized broadcast to update all clients with new room state
     try {
@@ -1709,22 +1704,61 @@ async function handleResetUserCounts(username, requestId) {
 }
 
 // User functions
-async function handleGetUsers(requestId) {
-  logInfo(requestId, "Fetching all users");
+async function handleGetUsers(requestId, searchQuery = "") {
+  logInfo(requestId, `Fetching users with search query: "${searchQuery}"`);
   try {
-    const keys = await redis.keys(`${CHAT_USERS_PREFIX}*`);
-    logInfo(requestId, `Found ${keys.length} users`);
-
-    if (keys.length === 0) {
+    // Only search if query is at least 2 characters
+    if (searchQuery.length < 2) {
       return new Response(JSON.stringify({ users: [] }), {
         headers: { "Content-Type": "application/json" },
       });
     }
 
-    const usersData = await redis.mget(...keys);
-    const users = usersData.map((user) => user).filter(Boolean);
+    const users = [];
+    let cursor = 0;
+    const maxResults = 20; // Limit results
+    const pattern = `${CHAT_USERS_PREFIX}*${searchQuery.toLowerCase()}*`;
 
-    return new Response(JSON.stringify({ users }), {
+    // Use SCAN instead of KEYS to avoid performance issues
+    do {
+      const [newCursor, keys] = await redis.scan(cursor, {
+        match: pattern,
+        count: 100, // Scan 100 keys at a time
+      });
+
+      cursor = parseInt(newCursor);
+
+      if (keys.length > 0) {
+        const usersData = await redis.mget(...keys);
+        const foundUsers = usersData
+          .map((user) => {
+            try {
+              return typeof user === "string" ? JSON.parse(user) : user;
+            } catch (e) {
+              logError(requestId, "Error parsing user data:", e);
+              return null;
+            }
+          })
+          .filter(Boolean);
+
+        users.push(...foundUsers);
+
+        // Stop if we have enough results
+        if (users.length >= maxResults) {
+          break;
+        }
+      }
+    } while (cursor !== 0 && users.length < maxResults);
+
+    // Limit to maxResults
+    const limitedUsers = users.slice(0, maxResults);
+
+    logInfo(
+      requestId,
+      `Found ${limitedUsers.length} users matching "${searchQuery}"`
+    );
+
+    return new Response(JSON.stringify({ users: limitedUsers }), {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
