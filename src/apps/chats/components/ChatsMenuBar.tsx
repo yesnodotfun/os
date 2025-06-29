@@ -409,7 +409,6 @@ export function ChatsMenuBar({
         }}
         isLoginLoading={isVerifyingToken}
         loginError={verifyError}
-
         /* Sign Up props */
         newUsername={verifyUsernameInput}
         onNewUsernameChange={setVerifyUsernameInput}
