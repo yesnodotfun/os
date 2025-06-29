@@ -137,6 +137,8 @@ export function useAuth() {
             });
             setVerifyDialogOpen(false);
             setVerifyPasswordInput("");
+            // Also close the sign-up/username dialog if it happens to be open
+            setIsUsernameDialogOpen(false);
           }
         } else {
           // For token login, clear any existing user data to prevent token mixing
@@ -189,6 +191,8 @@ export function useAuth() {
           });
           setVerifyDialogOpen(false);
           setVerifyTokenInput("");
+          // Also close the sign-up/username dialog if it happens to be open
+          setIsUsernameDialogOpen(false);
         }
       } catch (err) {
         console.error("[useAuth] Error verifying:", err);
