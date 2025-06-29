@@ -1518,7 +1518,7 @@ export function ControlPanelsAppComponent({
                             ryOS Account
                           </span>
                           <span className="text-[11px] text-gray-600 font-geneva-12">
-                            Login to access chat rooms and more.
+                            Login to send messages and more.
                           </span>
                         </div>
                         <Button
