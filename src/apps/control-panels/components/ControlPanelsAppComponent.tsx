@@ -262,6 +262,8 @@ export function ControlPanelsAppComponent({
     setIsUsernameDialogOpen,
     newUsername,
     setNewUsername,
+    newPassword,
+    setNewPassword,
     isSettingUsername,
     usernameError,
     submitUsernameDialog,
@@ -277,6 +279,9 @@ export function ControlPanelsAppComponent({
     setPassword,
     authToken,
     logout,
+    isVerifyingToken,
+    verifyError,
+    handleVerifyTokenSubmit,
   } = useAuth();
 
   // Password dialog states
