@@ -247,13 +247,26 @@ const refreshRoomPresence = async (roomId, username) => {
  */
 const getActiveUsersInRoom = async (roomId) => {
   const pattern = `${CHAT_ROOM_PRESENCE_PREFIX}${roomId}:*`;
-  const keys = await redis.keys(pattern);
+  const users = [];
+  let cursor = 0;
 
-  // Extract usernames from the keys
-  const users = keys.map((key) => {
-    const parts = key.split(":");
-    return parts[parts.length - 1]; // Last part is the username
-  });
+  // Use SCAN to iterate through presence keys
+  do {
+    const [newCursor, keys] = await redis.scan(cursor, {
+      match: pattern,
+      count: 100, // Process 100 keys at a time
+    });
+
+    cursor = parseInt(newCursor);
+
+    // Extract usernames from the keys
+    const userBatch = keys.map((key) => {
+      const parts = key.split(":");
+      return parts[parts.length - 1]; // Last part is the username
+    });
+
+    users.push(...userBatch);
+  } while (cursor !== 0);
 
   return users;
 };
@@ -286,8 +299,19 @@ const getActiveUsersAndPrune = async (roomId) => {
  */
 const cleanupExpiredPresence = async () => {
   try {
-    // Get all room keys to update their counts
-    const roomKeys = await redis.keys(`${CHAT_ROOM_PREFIX}*`);
+    // Get all room keys using SCAN
+    const roomKeys = [];
+    let cursor = 0;
+
+    do {
+      const [newCursor, keys] = await redis.scan(cursor, {
+        match: `${CHAT_ROOM_PREFIX}*`,
+        count: 100, // Process 100 keys at a time
+      });
+
+      cursor = parseInt(newCursor);
+      roomKeys.push(...keys);
+    } while (cursor !== 0);
 
     for (const roomKey of roomKeys) {
       const roomId = roomKey.substring(CHAT_ROOM_PREFIX.length);
@@ -334,17 +358,37 @@ const refreshRoomUserCount = async (roomId) => {
 
 // Add helper to fetch rooms with user list
 async function getDetailedRooms() {
-  const keys = await redis.keys(`${CHAT_ROOM_PREFIX}*`);
-  const roomsData = await redis.mget(...keys);
-  const rooms = await Promise.all(
-    roomsData.map(async (raw) => {
-      if (!raw) return null;
-      const roomObj = typeof raw === "string" ? JSON.parse(raw) : raw;
-      const activeUsers = await getActiveUsersAndPrune(roomObj.id);
-      return { ...roomObj, userCount: activeUsers.length, users: activeUsers };
-    })
-  );
-  return rooms.filter((r) => r !== null);
+  const rooms = [];
+  let cursor = 0;
+
+  // Use SCAN to iterate through room keys
+  do {
+    const [newCursor, keys] = await redis.scan(cursor, {
+      match: `${CHAT_ROOM_PREFIX}*`,
+      count: 100, // Process 100 keys at a time
+    });
+
+    cursor = parseInt(newCursor);
+
+    if (keys.length > 0) {
+      const roomsData = await redis.mget(...keys);
+      const roomBatch = await Promise.all(
+        roomsData.map(async (raw, index) => {
+          if (!raw) return null;
+          const roomObj = typeof raw === "string" ? JSON.parse(raw) : raw;
+          const activeUsers = await getActiveUsersAndPrune(roomObj.id);
+          return {
+            ...roomObj,
+            userCount: activeUsers.length,
+            users: activeUsers,
+          };
+        })
+      );
+      rooms.push(...roomBatch.filter((r) => r !== null));
+    }
+  } while (cursor !== 0);
+
+  return rooms;
 }
 
 // Helper functions
@@ -564,10 +608,20 @@ export async function GET(request) {
         }
 
         try {
-          // Get all presence keys
-          const presenceKeys = await redis.keys(
-            `${CHAT_ROOM_PRESENCE_PREFIX}*`
-          );
+          // Get all presence keys using SCAN
+          const presenceKeys = [];
+          let cursor = 0;
+
+          do {
+            const [newCursor, keys] = await redis.scan(cursor, {
+              match: `${CHAT_ROOM_PRESENCE_PREFIX}*`,
+              count: 100, // Process 100 keys at a time
+            });
+
+            cursor = parseInt(newCursor);
+            presenceKeys.push(...keys);
+          } while (cursor !== 0);
+
           const presenceData = {};
 
           for (const key of presenceKeys) {
@@ -1030,7 +1084,19 @@ async function handleDeleteRoom(roomId, username, requestId) {
 
         // Clean up all presence keys for this room
         const presencePattern = `${CHAT_ROOM_PRESENCE_PREFIX}${roomId}:*`;
-        const presenceKeys = await redis.keys(presencePattern);
+        const presenceKeys = [];
+        let cursor = 0;
+
+        do {
+          const [newCursor, keys] = await redis.scan(cursor, {
+            match: presencePattern,
+            count: 100,
+          });
+
+          cursor = parseInt(newCursor);
+          presenceKeys.push(...keys);
+        } while (cursor !== 0);
+
         if (presenceKeys.length > 0) {
           presenceKeys.forEach((key) => pipeline.del(key));
         }
@@ -1071,7 +1137,19 @@ async function handleDeleteRoom(roomId, username, requestId) {
 
       // Clean up all presence keys for this room
       const presencePattern = `${CHAT_ROOM_PRESENCE_PREFIX}${roomId}:*`;
-      const presenceKeys = await redis.keys(presencePattern);
+      const presenceKeys = [];
+      let cursor = 0;
+
+      do {
+        const [newCursor, keys] = await redis.scan(cursor, {
+          match: presencePattern,
+          count: 100,
+        });
+
+        cursor = parseInt(newCursor);
+        presenceKeys.push(...keys);
+      } while (cursor !== 0);
+
       if (presenceKeys.length > 0) {
         presenceKeys.forEach((key) => pipeline.del(key));
       }
@@ -1558,8 +1636,20 @@ async function handleClearAllMessages(username, requestId) {
   }
 
   try {
-    // Get all message keys
-    const messageKeys = await redis.keys(`${CHAT_MESSAGES_PREFIX}*`);
+    // Get all message keys using SCAN
+    const messageKeys = [];
+    let cursor = 0;
+
+    do {
+      const [newCursor, keys] = await redis.scan(cursor, {
+        match: `${CHAT_MESSAGES_PREFIX}*`,
+        count: 100, // Process 100 keys at a time
+      });
+
+      cursor = parseInt(newCursor);
+      messageKeys.push(...keys);
+    } while (cursor !== 0);
+
     logInfo(
       requestId,
       `Found ${messageKeys.length} message collections to clear`
@@ -1625,8 +1715,20 @@ async function handleResetUserCounts(username, requestId) {
   }
 
   try {
-    // Get all room keys
-    const roomKeys = await redis.keys(`${CHAT_ROOM_PREFIX}*`);
+    // Get all room keys using SCAN
+    const roomKeys = [];
+    let cursor = 0;
+
+    do {
+      const [newCursor, keys] = await redis.scan(cursor, {
+        match: `${CHAT_ROOM_PREFIX}*`,
+        count: 100,
+      });
+
+      cursor = parseInt(newCursor);
+      roomKeys.push(...keys);
+    } while (cursor !== 0);
+
     logInfo(requestId, `Found ${roomKeys.length} rooms to update`);
 
     if (roomKeys.length === 0) {
@@ -1638,9 +1740,33 @@ async function handleResetUserCounts(username, requestId) {
       );
     }
 
-    // Get all room user set keys (old system) and presence keys (new system)
-    const roomUserKeys = await redis.keys(`${CHAT_ROOM_USERS_PREFIX}*`);
-    const presenceKeys = await redis.keys(`${CHAT_ROOM_PRESENCE_PREFIX}*`);
+    // Get all room user set keys (old system) using SCAN
+    const roomUserKeys = [];
+    cursor = 0;
+
+    do {
+      const [newCursor, keys] = await redis.scan(cursor, {
+        match: `${CHAT_ROOM_USERS_PREFIX}*`,
+        count: 100,
+      });
+
+      cursor = parseInt(newCursor);
+      roomUserKeys.push(...keys);
+    } while (cursor !== 0);
+
+    // Get all presence keys (new system) using SCAN
+    const presenceKeys = [];
+    cursor = 0;
+
+    do {
+      const [newCursor, keys] = await redis.scan(cursor, {
+        match: `${CHAT_ROOM_PRESENCE_PREFIX}*`,
+        count: 100,
+      });
+
+      cursor = parseInt(newCursor);
+      presenceKeys.push(...keys);
+    } while (cursor !== 0);
 
     // Clear all room user sets and presence keys
     const deleteRoomUsersPipeline = redis.pipeline();
@@ -2348,8 +2474,21 @@ async function broadcastRoomsUpdated() {
       }
     );
 
-    // 2. Per-user channels - parallelize these for better performance
-    const userKeys = await redis.keys(`${CHAT_USERS_PREFIX}*`);
+    // 2. Per-user channels - get all user keys using SCAN
+    const userKeys = [];
+    let cursor = 0;
+
+    do {
+      const [newCursor, keys] = await redis.scan(cursor, {
+        match: `${CHAT_USERS_PREFIX}*`,
+        count: 100, // Process 100 keys at a time
+      });
+
+      cursor = parseInt(newCursor);
+      userKeys.push(...keys);
+    } while (cursor !== 0);
+
+    // Parallelize the user channel broadcasts
     const userChannelPromises = userKeys.map((key) => {
       const username = key.substring(CHAT_USERS_PREFIX.length);
       const safeUsername = sanitizeForChannel(username);
