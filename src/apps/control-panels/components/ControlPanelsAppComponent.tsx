@@ -423,12 +423,23 @@ export function ControlPanelsAppComponent({
   };
 
   const performReset = () => {
-    // Preserve file metadata store while clearing everything else
+    // Preserve critical recovery keys while clearing everything else
     const fileMetadataStore = localStorage.getItem("ryos:files");
+    const usernameRecovery = localStorage.getItem("_usr_recovery_key_");
+    const authTokenRecovery = localStorage.getItem("_auth_recovery_key_");
+
     clearAllAppStates();
+
     if (fileMetadataStore) {
       localStorage.setItem("ryos:files", fileMetadataStore);
     }
+    if (usernameRecovery) {
+      localStorage.setItem("_usr_recovery_key_", usernameRecovery);
+    }
+    if (authTokenRecovery) {
+      localStorage.setItem("_auth_recovery_key_", authTokenRecovery);
+    }
+
     window.location.reload();
   };
 
