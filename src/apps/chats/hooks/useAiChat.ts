@@ -1028,12 +1028,11 @@ export function useAiChat(onPromptSetUsername?: () => void) {
 
         // Show user-friendly error message with action button
         toast.error("Authentication Required", {
-          description:
-            message || "Please set your username to continue chatting.",
+          description: message || "Please login to continue chatting.",
           duration: 5000,
           action: onPromptSetUsername
             ? {
-                label: "Set Username",
+                label: "Login",
                 onClick: onPromptSetUsername,
               }
             : undefined,
@@ -1072,9 +1071,7 @@ export function useAiChat(onPromptSetUsername?: () => void) {
               errorData.error === "authentication_failed" ||
               errorData.error === "unauthorized"
             ) {
-              handleAuthError(
-                "Your session has expired. Please set your username again."
-              );
+              handleAuthError("Your session has expired. Please login again.");
               return; // Exit early to prevent showing generic error toast
             }
           } catch (parseError) {
@@ -1091,11 +1088,11 @@ export function useAiChat(onPromptSetUsername?: () => void) {
           setNeedsUsername(true);
           toast.error("Rate Limit Exceeded", {
             description:
-              "You've reached the message limit. Please set a username to continue.",
+              "You've reached the message limit. Please login to continue.",
             duration: 5000,
             action: onPromptSetUsername
               ? {
-                  label: "Set Username",
+                  label: "Login",
                   onClick: onPromptSetUsername,
                 }
               : undefined,
@@ -1251,8 +1248,8 @@ export function useAiChat(onPromptSetUsername?: () => void) {
 
       // Check if user needs to set username before submitting
       if (needsUsername && !username) {
-        toast.error("Username Required", {
-          description: "Please set a username to continue chatting.",
+        toast.error("Login Required", {
+          description: "Please login to continue chatting.",
           duration: 3000,
         });
         return;
@@ -1282,8 +1279,8 @@ export function useAiChat(onPromptSetUsername?: () => void) {
 
       // Check if user needs to set username before submitting
       if (needsUsername && !username) {
-        toast.error("Username Required", {
-          description: "Please set a username to continue chatting.",
+        toast.error("Login Required", {
+          description: "Please login to continue chatting.",
           duration: 3000,
         });
         return;

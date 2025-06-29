@@ -41,7 +41,6 @@ export function LoginDialog({
   onUsernameInputChange,
   isLoading,
   error,
-  username,
   debugMode = false,
   onSwitchToSignUp,
 }: LoginDialogProps) {

@@ -74,7 +74,7 @@ export function SetUsernameDialog({
                     onUsernameChange(e.target.value);
                     onErrorChange(null);
                   }}
-                  placeholder="Choose a username"
+                  placeholder=""
                   className="shadow-none font-geneva-12 text-[12px] h-8"
                   disabled={isLoading}
                 />
@@ -91,7 +91,7 @@ export function SetUsernameDialog({
                     onPasswordChange(e.target.value);
                     onErrorChange(null);
                   }}
-                  placeholder="Set password"
+                  placeholder=""
                   className="shadow-none font-geneva-12 text-[12px] h-8"
                   disabled={isLoading}
                 />
