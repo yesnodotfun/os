@@ -14,7 +14,7 @@ import { generateAppShareUrl } from "@/utils/sharedUrl";
 import { useAppStoreShallow } from "@/stores/helpers";
 import { SYNTH_PRESETS } from "@/hooks/useChatSynth";
 import { getPrivateRoomDisplayName } from "@/utils/chat";
-import { InputDialog } from "@/components/dialogs/InputDialog";
+import { VerifyTokenDialog } from "@/components/dialogs/VerifyTokenDialog";
 
 interface ChatsMenuBarProps {
   onClose: () => void;
@@ -41,7 +41,7 @@ interface ChatsMenuBarProps {
   setVerifyTokenInput: (input: string) => void;
   isVerifyingToken: boolean;
   verifyError: string | null;
-  handleVerifyTokenSubmit: (token: string) => void;
+  handleVerifyTokenSubmit: (token: string) => Promise<void>;
 }
 
 export function ChatsMenuBar({
@@ -375,19 +375,16 @@ export function ChatsMenuBar({
       </MenuBar>
 
       {/* Verify Token Dialog */}
-      <InputDialog
+      <VerifyTokenDialog
         isOpen={isVerifyDialogOpen}
         onOpenChange={(open) => {
           setVerifyDialogOpen(open);
         }}
-        title="Verify Token"
-        description="Enter your token to verify and set it for authentication."
-        value={verifyTokenInput}
-        onChange={setVerifyTokenInput}
         onSubmit={handleVerifyTokenSubmit}
+        tokenInput={verifyTokenInput}
+        onTokenInputChange={setVerifyTokenInput}
         isLoading={isVerifyingToken}
-        errorMessage={verifyError ?? undefined}
-        submitLabel="Verify"
+        error={verifyError}
       />
     </>
   );

@@ -6,6 +6,7 @@ import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { InputDialog } from "@/components/dialogs/InputDialog";
+import { SetUsernameDialog } from "@/components/dialogs/SetUsernameDialog";
 import { CreateRoomDialog } from "./CreateRoomDialog";
 import { helpItems, appMetadata } from "..";
 import { useChatRoom } from "../hooks/useChatRoom";
@@ -637,24 +638,20 @@ export function ChatsAppComponent({
           value={saveFileName}
           onChange={setSaveFileName}
         />
-        <InputDialog
+        <SetUsernameDialog
           isOpen={isUsernameDialogOpen}
           onOpenChange={(open) => {
             console.log(
-              `[ChatApp Debug] Username InputDialog onOpenChange called with: ${open}`
+              `[ChatApp Debug] Username SetUsernameDialog onOpenChange called with: ${open}`
             );
             setIsUsernameDialogOpen(open);
           }}
           onSubmit={submitUsernameDialog}
-          title="Set Username"
-          description="Set your ryOS username to continue chatting"
-          value={newUsername}
-          onChange={(value) => {
-            setNewUsername(value);
-            setUsernameError(null);
-          }}
+          username={newUsername}
+          onUsernameChange={setNewUsername}
           isLoading={isSettingUsername}
-          errorMessage={usernameError}
+          error={usernameError}
+          onErrorChange={setUsernameError}
         />
         <CreateRoomDialog
           isOpen={isNewRoomDialogOpen}

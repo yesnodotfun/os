@@ -4,6 +4,8 @@ import { ControlPanelsMenuBar } from "./ControlPanelsMenuBar";
 import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
+import { SetUsernameDialog } from "@/components/dialogs/SetUsernameDialog";
+import { VerifyTokenDialog } from "@/components/dialogs/VerifyTokenDialog";
 import { helpItems, appMetadata } from "..";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -27,6 +29,7 @@ import { setNextBootMessage, clearNextBootMessage } from "@/utils/bootMessage";
 import { AIModel, AI_MODEL_METADATA } from "@/types/aiModels";
 import { VolumeMixer } from "./VolumeMixer";
 import { v4 as uuidv4 } from "uuid";
+import { useAuth } from "@/hooks/useAuth";
 
 interface StoreItem {
   name: string;
@@ -249,6 +252,28 @@ export function ControlPanelsAppComponent({
     setCurrentWallpaper: s.setCurrentWallpaper,
   }));
 
+  // Use auth hook
+  const {
+    username,
+    promptSetUsername,
+    isUsernameDialogOpen,
+    setIsUsernameDialogOpen,
+    newUsername,
+    setNewUsername,
+    isSettingUsername,
+    usernameError,
+    submitUsernameDialog,
+    setUsernameError,
+    promptVerifyToken,
+    isVerifyDialogOpen,
+    setVerifyDialogOpen,
+    verifyTokenInput,
+    setVerifyTokenInput,
+    isVerifyingToken,
+    verifyError,
+    handleVerifyTokenSubmit,
+  } = useAuth();
+
   // States for previous volume levels for mute/unmute functionality
   const [prevMasterVolume, setPrevMasterVolume] = useState(
     masterVolume > 0 ? masterVolume : 1
@@ -349,7 +374,6 @@ export function ControlPanelsAppComponent({
   };
 
   const handleBackup = async () => {
-
     const backup: {
       localStorage: Record<string, string | null>;
       indexedDB: {
@@ -613,7 +637,9 @@ export function ControlPanelsAppComponent({
             if (filesData.state && filesData.state.items) {
               // Check if any files lack UUIDs
               const fileItems = (
-                Object.values(filesData.state.items) as Array<Record<string, unknown>>
+                Object.values(filesData.state.items) as Array<
+                  Record<string, unknown>
+                >
               ).filter(
                 (item) => !(item as { isDirectory?: boolean }).isDirectory
               );
@@ -1363,6 +1389,53 @@ export function ControlPanelsAppComponent({
               className="mt-0 bg-[#E3E3E3] border border-t-0 border-[#808080] h-[calc(100%-2rem)]"
             >
               <div className="space-y-4 h-full overflow-y-auto p-4">
+                {/* User Account Section */}
+                <div className="space-y-2">
+                  {username ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex flex-col">
+                          <span className="text-[13px] font-geneva-12 font-medium">
+                            {username}
+                          </span>
+                          <span className="text-[11px] text-gray-600 font-geneva-12">
+                            Logged in to ryOS
+                          </span>
+                        </div>
+                        <Button
+                          variant="retro"
+                          onClick={() => {
+                            // Placeholder for future manage functionality
+                            // For now, in debug mode, show verify token dialog
+                            if (debugMode) {
+                              promptVerifyToken();
+                            }
+                          }}
+                          className="h-7"
+                        >
+                          {debugMode ? "Verify Token" : "Manage"}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Button
+                        variant="retro"
+                        onClick={promptSetUsername}
+                        className="w-full"
+                      >
+                        Login to ryOS
+                      </Button>
+                      <p className="text-[11px] text-gray-600 font-geneva-12">
+                        Create a username to access chat rooms and personalized
+                        features.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <hr className="border-gray-400 my-4" />
+
                 <div className="space-y-2">
                   <div className="flex gap-2">
                     <Button
@@ -1635,6 +1708,25 @@ export function ControlPanelsAppComponent({
           onConfirm={handleConfirmFormat}
           title="Format File System"
           description="Are you sure you want to format the file system? This will permanently delete all documents (except sample documents), images, and custom wallpapers. ryOS will restart after format."
+        />
+        <SetUsernameDialog
+          isOpen={isUsernameDialogOpen}
+          onOpenChange={setIsUsernameDialogOpen}
+          onSubmit={submitUsernameDialog}
+          username={newUsername}
+          onUsernameChange={setNewUsername}
+          isLoading={isSettingUsername}
+          error={usernameError}
+          onErrorChange={setUsernameError}
+        />
+        <VerifyTokenDialog
+          isOpen={isVerifyDialogOpen}
+          onOpenChange={setVerifyDialogOpen}
+          onSubmit={handleVerifyTokenSubmit}
+          tokenInput={verifyTokenInput}
+          onTokenInputChange={setVerifyTokenInput}
+          isLoading={isVerifyingToken}
+          error={verifyError}
         />
       </WindowFrame>
     </>
