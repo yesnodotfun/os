@@ -129,21 +129,13 @@ export function ChatsMenuBar({
 
             {/* Account Section */}
             {username && authToken ? (
-              // When logged in: Show Switch Account and Log Out
-              <>
-                <DropdownMenuItem
-                  onClick={onVerifyToken}
-                  className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
-                >
-                  Switch Account...
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => onLogout?.()}
-                  className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
-                >
-                  Log Out
-                </DropdownMenuItem>
-              </>
+              // When logged in: Show Log Out only
+              <DropdownMenuItem
+                onClick={() => onLogout?.()}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+              >
+                Log Out
+              </DropdownMenuItem>
             ) : (
               // When not logged in: Show Create Account and Login
               <>
