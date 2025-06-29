@@ -6,6 +6,12 @@ import { type ChatRoom } from "@/types/chat";
 import { useSound, Sounds } from "@/hooks/useSound";
 import { getPrivateRoomDisplayName } from "@/utils/chat";
 import { useChatsStore } from "@/stores/useChatsStore";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 // Extracted ChatRoomSidebar component
 interface ChatRoomSidebarProps {
@@ -56,14 +62,23 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
           <div className="flex items-baseline gap-1.5">
             <h2 className="text-[14px] pl-1">Chats</h2>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onAddRoom}
-            className="flex items-center text-xs hover:bg-black/5 w-[24px] h-[24px]"
-          >
-            <SquarePen className="w-3 h-3" />
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onAddRoom}
+                  className="flex items-center text-xs hover:bg-black/5 w-[24px] h-[24px]"
+                >
+                  <SquarePen className="w-3 h-3" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>New Chat</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
         <div
           className={cn(
