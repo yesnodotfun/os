@@ -268,7 +268,7 @@ export function CreateRoomDialog({
             </p>
           )}
 
-          <DialogFooter className="mt-4">
+          <DialogFooter className="mt-4 gap-2 sm:gap-0">
             <Button
               variant="retro"
               onClick={() => onOpenChange(false)}

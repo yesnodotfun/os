@@ -168,7 +168,15 @@ export function LoginDialog({
 
     prevLoginLoading.current = isLoginLoading;
     prevSignUpLoading.current = isSignUpLoading;
-  }, [isOpen, isLoginLoading, isSignUpLoading, loginError, signUpError, activeTab, onOpenChange]);
+  }, [
+    isOpen,
+    isLoginLoading,
+    isSignUpLoading,
+    loginError,
+    signUpError,
+    activeTab,
+    onOpenChange,
+  ]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -178,7 +186,7 @@ export function LoginDialog({
       >
         <DialogHeader>
           <DialogTitle className="font-normal text-[16px]">
-            {activeTab === "login" ? "Log In to ryOS" : "Create New Account"}
+            ryOS Login
           </DialogTitle>
           <DialogDescription className="sr-only">
             {activeTab === "login"
@@ -187,7 +195,7 @@ export function LoginDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="pt-2 pb-6 px-6">
+        <div className="pt-1 pb-6 px-6">
           <form onSubmit={handleSubmit}>
             <Tabs
               value={activeTab}
@@ -199,7 +207,7 @@ export function LoginDialog({
                   value="signup"
                   className="relative font-geneva-12 text-[12px] px-4 py-1.5 rounded-none bg-white data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:z-10 data-[state=inactive]:border-r-0"
                 >
-                  Sign Up
+                  Create Account
                 </TabsTrigger>
                 <TabsTrigger
                   value="login"
@@ -226,7 +234,7 @@ export function LoginDialog({
               </p>
             )}
 
-            <DialogFooter className="mt-4 gap-2 sm:justify-end">
+            <DialogFooter className="mt-6 gap-2 sm:justify-end">
               <Button
                 type="submit"
                 variant="retro"
