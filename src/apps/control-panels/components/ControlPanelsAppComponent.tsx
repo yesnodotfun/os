@@ -912,10 +912,22 @@ export function ControlPanelsAppComponent({
                   path: string,
                   name: string,
                   type: string,
-                  icon: string
+                  icon: string,
+                  existingUuid?: string
                 ) => {
+                  // Helper chooses a UUID to use: prefer existingUuid (from store key) then existing item uuid else generate new
+                  let uuidToUse: string | undefined = existingUuid;
+
+                  if (items[path]) {
+                    uuidToUse = uuidToUse || items[path].uuid;
+                  }
+
+                  if (!uuidToUse) {
+                    uuidToUse = uuidv4();
+                  }
+
                   if (!items[path]) {
-                    const uuid = uuidv4();
+                    // Create new metadata entry
                     items[path] = {
                       path,
                       name,
@@ -923,25 +935,19 @@ export function ControlPanelsAppComponent({
                       type,
                       icon,
                       status: "active",
-                      uuid, // Always generate UUID for restored files
+                      uuid: uuidToUse,
                     };
                     hasChanges = true;
-                    fileUUIDMap.set(name, uuid); // Track for migration
-                    console.log(
-                      `[Restore] Created metadata with UUID for: ${path} (${uuid})`
-                    );
+                    console.log(`[Restore] Created metadata for ${path} with UUID ${uuidToUse}`);
                   } else if (!items[path].uuid) {
-                    // File exists but lacks UUID (old backup)
-                    const uuid = uuidv4();
-                    items[path].uuid = uuid;
+                    // Existing metadata without uuid
+                    items[path].uuid = uuidToUse;
                     hasChanges = true;
-                    fileUUIDMap.set(name, uuid); // Track for migration
-                    console.log(
-                      `[Restore] Added UUID to existing file: ${path} (${uuid})`
-                    );
-                  } else {
-                    // File already has UUID
-                    fileUUIDMap.set(name, items[path].uuid);
+                    console.log(`[Restore] Added UUID ${uuidToUse} to existing metadata for ${path}`);
+                  }
+
+                  if (uuidToUse) {
+                    fileUUIDMap.set(name, uuidToUse);
                   }
                 };
 
@@ -1010,65 +1016,60 @@ export function ControlPanelsAppComponent({
                 }
 
                 // Scan documents store and ensure metadata exists
-                const docsTransaction = db.transaction("documents", "readonly");
-                const docsStore = docsTransaction.objectStore("documents");
-                const docsRequest = docsStore.getAll();
-
                 await new Promise<void>((resolve) => {
-                  docsRequest.onsuccess = () => {
-                    const docs = docsRequest.result;
-                    console.log(
-                      `[Restore] Found ${docs.length} documents in IndexedDB`
-                    );
-                    for (const doc of docs) {
-                      if (doc.name) {
-                        const path = `/Documents/${doc.name}`;
-                        const type = doc.name.endsWith(".md")
-                          ? "markdown"
-                          : "text";
-                        ensureFileMetadata(
-                          path,
-                          doc.name,
-                          type,
-                          "/icons/file-text.png"
-                        );
+                  const transaction = db.transaction("documents", "readonly");
+                  const store = transaction.objectStore("documents");
+                  const request = store.openCursor();
+
+                  let count = 0;
+                  request.onsuccess = (event) => {
+                    const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
+                    if (cursor) {
+                      const key = cursor.key as string;
+                      const value = cursor.value as { name?: string };
+                      if (value.name) {
+                        const path = `/Documents/${value.name}`;
+                        const type = value.name.endsWith(".md") ? "markdown" : "text";
+                        ensureFileMetadata(path, value.name, type, "/icons/file-text.png", key);
+                        count++;
                       }
+                      cursor.continue();
+                    } else {
+                      console.log(`[Restore] Found ${count} documents in IndexedDB`);
+                      resolve();
                     }
-                    resolve();
                   };
-                  docsRequest.onerror = () => {
+                  request.onerror = () => {
                     console.warn("[Restore] Failed to scan documents store");
                     resolve();
                   };
                 });
 
                 // Scan images store and ensure metadata exists
-                const imagesTransaction = db.transaction("images", "readonly");
-                const imagesStore = imagesTransaction.objectStore("images");
-                const imagesRequest = imagesStore.getAll();
-
                 await new Promise<void>((resolve) => {
-                  imagesRequest.onsuccess = () => {
-                    const images = imagesRequest.result;
-                    console.log(
-                      `[Restore] Found ${images.length} images in IndexedDB`
-                    );
-                    for (const img of images) {
-                      if (img.name) {
-                        const path = `/Images/${img.name}`;
-                        const ext =
-                          img.name.split(".").pop()?.toLowerCase() || "png";
-                        ensureFileMetadata(
-                          path,
-                          img.name,
-                          ext,
-                          "/icons/image.png"
-                        );
+                  const transaction = db.transaction("images", "readonly");
+                  const store = transaction.objectStore("images");
+                  const request = store.openCursor();
+
+                  let count = 0;
+                  request.onsuccess = (event) => {
+                    const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
+                    if (cursor) {
+                      const key = cursor.key as string;
+                      const value = cursor.value as { name?: string };
+                      if (value.name) {
+                        const path = `/Images/${value.name}`;
+                        const ext = value.name.split(".").pop()?.toLowerCase() || "png";
+                        ensureFileMetadata(path, value.name, ext, "/icons/image.png", key);
+                        count++;
                       }
+                      cursor.continue();
+                    } else {
+                      console.log(`[Restore] Found ${count} images in IndexedDB`);
+                      resolve();
                     }
-                    resolve();
                   };
-                  imagesRequest.onerror = () => {
+                  request.onerror = () => {
                     console.warn("[Restore] Failed to scan images store");
                     resolve();
                   };
