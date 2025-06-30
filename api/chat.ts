@@ -528,12 +528,11 @@ export default async function handler(req: Request) {
     // Prefer credentials in the incoming system state (back-compat),
     // but fall back to HTTP headers for multi-token support (Authorization & X-Username)
 
-    const headerAuthToken = headerAuthTokenInitial;
+    const headerAuthToken = headerAuthTokenInitial ?? undefined;
     const headerUsername = headerUsernameInitial;
 
-    // Combine sources – body first (if provided), then headers
     const username = headerUsername || null;
-    const authToken = headerAuthToken; // Only trust token from header
+    const authToken: string | undefined = headerAuthToken;
 
     // ---------------------------
     // Rate-limit & auth checks
@@ -575,11 +574,9 @@ export default async function handler(req: Request) {
       (m: { role: string }) => m.role === "user"
     );
     if (userMessages.length > 0) {
-      /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
       const rateLimitResult = await checkAndIncrementAIMessageCount(
         identifier,
-        isAuthenticated,
-        authToken as any // cast to satisfy type checker – rate-limit util is JS
+        isAuthenticated
       );
 
       if (!rateLimitResult.allowed) {
