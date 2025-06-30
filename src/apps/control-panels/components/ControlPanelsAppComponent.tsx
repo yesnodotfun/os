@@ -258,6 +258,7 @@ export function ControlPanelsAppComponent({
   // Use auth hook
   const {
     username,
+    authToken,
     promptSetUsername,
     isUsernameDialogOpen,
     setIsUsernameDialogOpen,
@@ -291,6 +292,9 @@ export function ControlPanelsAppComponent({
   const [passwordInput, setPasswordInput] = useState("");
   const [isSettingPassword, setIsSettingPassword] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
+
+  // Log out all devices state
+  const [isLoggingOutAllDevices, setIsLoggingOutAllDevices] = useState(false);
 
   // Password status is now automatically checked by the store when username/token changes
 
@@ -327,6 +331,53 @@ export function ControlPanelsAppComponent({
     }
 
     setIsSettingPassword(false);
+  };
+
+  const handleLogoutAllDevices = async () => {
+    setIsLoggingOutAllDevices(true);
+
+    try {
+      // Ensure we have auth info from the auth hook
+      if (!authToken || !username) {
+        toast.error("Authentication Error", {
+          description: "No authentication token found",
+        });
+        return;
+      }
+
+      const response = await fetch("/api/chat-rooms?action=logoutAllDevices", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`,
+          "X-Username": username,
+        },
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success("Logged Out", {
+          description: data.message || "Logged out from all devices",
+        });
+
+        // Immediately clear auth via store logout (bypass confirmation)
+        confirmLogout();
+
+        // No full page reload needed – UI will update via store reset
+      } else {
+        toast.error("Logout Failed", {
+          description: data.error || "Failed to logout from all devices",
+        });
+      }
+    } catch (error) {
+      console.error("Error logging out all devices:", error);
+      toast.error("Network Error", {
+        description: "Failed to connect to server",
+      });
+    } finally {
+      setIsLoggingOutAllDevices(false);
+    }
   };
 
   // States for previous volume levels for mute/unmute functionality
@@ -938,12 +989,16 @@ export function ControlPanelsAppComponent({
                       uuid: uuidToUse,
                     };
                     hasChanges = true;
-                    console.log(`[Restore] Created metadata for ${path} with UUID ${uuidToUse}`);
+                    console.log(
+                      `[Restore] Created metadata for ${path} with UUID ${uuidToUse}`
+                    );
                   } else if (!items[path].uuid) {
                     // Existing metadata without uuid
                     items[path].uuid = uuidToUse;
                     hasChanges = true;
-                    console.log(`[Restore] Added UUID ${uuidToUse} to existing metadata for ${path}`);
+                    console.log(
+                      `[Restore] Added UUID ${uuidToUse} to existing metadata for ${path}`
+                    );
                   }
 
                   if (uuidToUse) {
@@ -1023,19 +1078,31 @@ export function ControlPanelsAppComponent({
 
                   let count = 0;
                   request.onsuccess = (event) => {
-                    const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
+                    const cursor = (
+                      event.target as IDBRequest<IDBCursorWithValue>
+                    ).result;
                     if (cursor) {
                       const key = cursor.key as string;
                       const value = cursor.value as { name?: string };
                       if (value.name) {
                         const path = `/Documents/${value.name}`;
-                        const type = value.name.endsWith(".md") ? "markdown" : "text";
-                        ensureFileMetadata(path, value.name, type, "/icons/file-text.png", key);
+                        const type = value.name.endsWith(".md")
+                          ? "markdown"
+                          : "text";
+                        ensureFileMetadata(
+                          path,
+                          value.name,
+                          type,
+                          "/icons/file-text.png",
+                          key
+                        );
                         count++;
                       }
                       cursor.continue();
                     } else {
-                      console.log(`[Restore] Found ${count} documents in IndexedDB`);
+                      console.log(
+                        `[Restore] Found ${count} documents in IndexedDB`
+                      );
                       resolve();
                     }
                   };
@@ -1053,19 +1120,30 @@ export function ControlPanelsAppComponent({
 
                   let count = 0;
                   request.onsuccess = (event) => {
-                    const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
+                    const cursor = (
+                      event.target as IDBRequest<IDBCursorWithValue>
+                    ).result;
                     if (cursor) {
                       const key = cursor.key as string;
                       const value = cursor.value as { name?: string };
                       if (value.name) {
                         const path = `/Images/${value.name}`;
-                        const ext = value.name.split(".").pop()?.toLowerCase() || "png";
-                        ensureFileMetadata(path, value.name, ext, "/icons/image.png", key);
+                        const ext =
+                          value.name.split(".").pop()?.toLowerCase() || "png";
+                        ensureFileMetadata(
+                          path,
+                          value.name,
+                          ext,
+                          "/icons/image.png",
+                          key
+                        );
                         count++;
                       }
                       cursor.continue();
                     } else {
-                      console.log(`[Restore] Found ${count} images in IndexedDB`);
+                      console.log(
+                        `[Restore] Found ${count} images in IndexedDB`
+                      );
                       resolve();
                     }
                   };
@@ -1502,6 +1580,20 @@ export function ControlPanelsAppComponent({
                           )}
                         </div>
                       </div>
+                      {debugMode && (
+                        <div className="flex">
+                          <Button
+                            variant="retro"
+                            onClick={handleLogoutAllDevices}
+                            disabled={isLoggingOutAllDevices}
+                            className="w-full"
+                          >
+                            {isLoggingOutAllDevices
+                              ? "Logging out..."
+                              : "Log Out of All Devices"}
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="space-y-2">

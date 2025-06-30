@@ -743,8 +743,28 @@ export const useChatsStore = create<ChatsStoreState>()(
         logout: async () => {
           console.log("[ChatsStore] Logging out user...");
 
-          // Get current username for cleanup
           const currentUsername = get().username;
+          const currentToken = get().authToken;
+
+          // Inform server to invalidate current token if we have auth
+          if (currentUsername && currentToken) {
+            try {
+              await fetch("/api/chat-rooms?action=logoutCurrent", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${currentToken}`,
+                  "X-Username": currentUsername,
+                },
+                body: JSON.stringify({}),
+              });
+            } catch (err) {
+              console.warn(
+                "[ChatsStore] Failed to notify server during logout:",
+                err
+              );
+            }
+          }
 
           // Clear recovery keys from localStorage
           localStorage.removeItem(USERNAME_RECOVERY_KEY);
@@ -762,16 +782,13 @@ export const useChatsStore = create<ChatsStoreState>()(
             aiMessages: [initialAiMessage],
             username: null,
             authToken: null,
-            hasPassword: null, // Reset password status
-            currentRoomId: null, // Clear current selection but keep rooms
-            // Keep rooms, roomMessages, unreadCounts, hasEverUsedChats, isSidebarVisible, fontSize
+            hasPassword: null,
+            currentRoomId: null,
           }));
 
           // Re-fetch rooms to show only public rooms visible to anonymous users
-          console.log("[ChatsStore] Re-fetching rooms after logout...");
           try {
             await get().fetchRooms();
-            console.log("[ChatsStore] Rooms refreshed after logout");
           } catch (error) {
             console.error(
               "[ChatsStore] Error refreshing rooms after logout:",

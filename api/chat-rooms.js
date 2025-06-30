@@ -214,10 +214,30 @@ const generateAuthToken = () => {
 /** Build the Redis key used for a specific auth token */
 const getTokenKey = (token) => `${AUTH_TOKEN_PREFIX}${token}`;
 
+/** Build the Redis key for user-specific tokens (new pattern) */
+const getUserTokenKey = (username, token) =>
+  `${AUTH_TOKEN_PREFIX}user:${username.toLowerCase()}:${token}`;
+
+/** Get all token keys for a user using pattern matching */
+const getUserTokenPattern = (username) =>
+  `${AUTH_TOKEN_PREFIX}user:${username.toLowerCase()}:*`;
+
 /** Persist a freshly generated token for a user */
 const storeToken = async (username, token) => {
   if (!token) return;
-  await redis.set(getTokenKey(token), username.toLowerCase(), {
+  const normalizedUsername = username.toLowerCase();
+
+  // Store in new format: chat:token:user:{username}:{token} -> timestamp
+  await redis.set(
+    getUserTokenKey(normalizedUsername, token),
+    getCurrentTimestamp(),
+    {
+      ex: USER_EXPIRATION_TIME,
+    }
+  );
+
+  // Also store in old format for backward compatibility during migration
+  await redis.set(getTokenKey(token), normalizedUsername, {
     ex: USER_EXPIRATION_TIME,
   });
 };
@@ -225,7 +245,136 @@ const storeToken = async (username, token) => {
 /** Delete a single auth token (e.g. on logout or when refreshing) */
 const deleteToken = async (token) => {
   if (!token) return;
+
+  // First, find which user owns this token (from old format)
+  const username = await redis.get(getTokenKey(token));
+
+  // Delete from both old and new formats
   await redis.del(getTokenKey(token));
+
+  if (username) {
+    await redis.del(getUserTokenKey(username, token));
+  }
+};
+
+/** Delete all tokens for a user */
+const deleteAllUserTokens = async (username) => {
+  // Normalise for consistent key access
+  const normalizedUsername = username.toLowerCase();
+
+  let deletedCount = 0;
+
+  // ------------------------------------------------------------
+  // 1. NEW scheme: chat:token:user:{username}:{token}
+  // ------------------------------------------------------------
+  const pattern = getUserTokenPattern(normalizedUsername);
+  const userTokenKeys = [];
+  let cursor = 0;
+
+  do {
+    const [newCursor, foundKeys] = await redis.scan(cursor, {
+      match: pattern,
+      count: 100,
+    });
+    cursor = parseInt(newCursor);
+    userTokenKeys.push(...foundKeys);
+  } while (cursor !== 0);
+
+  if (userTokenKeys.length > 0) {
+    const pipeline = redis.pipeline();
+
+    for (const key of userTokenKeys) {
+      // Extract the raw token value from the key (last segment)
+      const parts = key.split(":");
+      const token = parts[parts.length - 1];
+
+      // Delete new-scheme key
+      pipeline.del(key);
+      // Delete old multi-token mapping for the same token
+      pipeline.del(getTokenKey(token));
+    }
+
+    await pipeline.exec();
+    // Count tokens (not individual Redis key deletions)
+    deletedCount += userTokenKeys.length;
+  }
+
+  // ------------------------------------------------------------
+  // 2. OLD multi-token mapping: chat:token:{token} -> username
+  //    Some very old tokens might exist only in this format (no new-scheme key).
+  // ------------------------------------------------------------
+  cursor = 0;
+  const oldTokenKeysToDelete = [];
+  const oldTokenPattern = `${AUTH_TOKEN_PREFIX}*`;
+
+  do {
+    const [newCursor, foundKeys] = await redis.scan(cursor, {
+      match: oldTokenPattern,
+      count: 100,
+    });
+
+    cursor = parseInt(newCursor);
+
+    for (const key of foundKeys) {
+      // Skip keys we have already handled: new-scheme (contains "user:") and grace-period / legacy keys handled separately
+      if (key.includes(`:${normalizedUsername}:`) || key.includes(":user:"))
+        continue;
+      if (key.startsWith(`${AUTH_TOKEN_PREFIX}last:`)) continue;
+      if (key === `${AUTH_TOKEN_PREFIX}${normalizedUsername}`) continue; // legacy single-token path handled later
+
+      const mappedUser = await redis.get(key);
+      if (mappedUser && mappedUser.toLowerCase() === normalizedUsername) {
+        oldTokenKeysToDelete.push(key);
+      }
+    }
+  } while (cursor !== 0);
+
+  if (oldTokenKeysToDelete.length > 0) {
+    const deleted = await redis.del(...oldTokenKeysToDelete);
+    deletedCount += deleted; // redis.del returns number of keys deleted
+  }
+
+  // ------------------------------------------------------------
+  // 3. Legacy single-token mapping: chat:token:{username}
+  // ------------------------------------------------------------
+  const legacyKey = `${AUTH_TOKEN_PREFIX}${normalizedUsername}`;
+  const legacyDeleted = await redis.del(legacyKey);
+  deletedCount += legacyDeleted;
+
+  // ------------------------------------------------------------
+  // 4. Grace-period token store: chat:token:last:{username}
+  //    Removing this prevents refresh using old tokens after a full logout.
+  // ------------------------------------------------------------
+  const lastTokenKey = `${AUTH_TOKEN_PREFIX}last:${normalizedUsername}`;
+  const lastDeleted = await redis.del(lastTokenKey);
+  deletedCount += lastDeleted;
+
+  return deletedCount;
+};
+
+/** Get all active tokens for a user */
+const getUserTokens = async (username) => {
+  const pattern = getUserTokenPattern(username);
+  const tokens = [];
+  let cursor = 0;
+
+  do {
+    const [newCursor, keys] = await redis.scan(cursor, {
+      match: pattern,
+      count: 100,
+    });
+    cursor = parseInt(newCursor);
+
+    // Extract tokens from keys
+    for (const key of keys) {
+      const parts = key.split(":");
+      const token = parts[parts.length - 1];
+      const timestamp = await redis.get(key);
+      tokens.push({ token, createdAt: timestamp });
+    }
+  } while (cursor !== 0);
+
+  return tokens;
 };
 
 /** Retrieve the username associated with a token (if any) */
@@ -254,28 +403,49 @@ const validateAuth = async (
   }
 
   const normalizedUsername = username.toLowerCase();
+
   // ---------------------------
-  // 1. Preferred path: token -> username mapping (multi-token support)
+  // 1. NEW preferred path: user-scoped token (chat:token:user:{username}:{token})
   // ---------------------------
-  const mappedUsername = await getUsernameForToken(token);
-  if (mappedUsername && mappedUsername.toLowerCase() === normalizedUsername) {
-    // Refresh TTL for this token
+  const userTokenKey = getUserTokenKey(normalizedUsername, token);
+  const userTokenExists = await redis.exists(userTokenKey);
+  if (userTokenExists) {
+    // Refresh TTL for this token in both formats
+    await redis.expire(userTokenKey, USER_TTL_SECONDS);
     await redis.expire(getTokenKey(token), USER_TTL_SECONDS);
     return { valid: true, expired: false };
   }
 
   // ---------------------------
-  // 2. Legacy single-token path (username -> token). Keep for backward compat.
+  // 2. Old multi-token path: token -> username mapping
+  // ---------------------------
+  const mappedUsername = await getUsernameForToken(token);
+  if (mappedUsername && mappedUsername.toLowerCase() === normalizedUsername) {
+    // Refresh TTL for this token
+    await redis.expire(getTokenKey(token), USER_TTL_SECONDS);
+    // Also migrate to new format for future validations
+    await redis.set(userTokenKey, getCurrentTimestamp(), {
+      ex: USER_TTL_SECONDS,
+    });
+    return { valid: true, expired: false };
+  }
+
+  // ---------------------------
+  // 3. Legacy single-token path (username -> token). Keep for backward compat.
   // ---------------------------
   const legacyKey = `${AUTH_TOKEN_PREFIX}${normalizedUsername}`;
   const storedToken = await redis.get(legacyKey);
   if (storedToken && storedToken === token) {
     await redis.expire(legacyKey, USER_TTL_SECONDS);
+    // Migrate to new format
+    await redis.set(userTokenKey, getCurrentTimestamp(), {
+      ex: USER_TTL_SECONDS,
+    });
     return { valid: true, expired: false };
   }
 
   // ---------------------------
-  // 3. Grace-period path – allow refresh of recently expired tokens
+  // 4. Grace-period path – allow refresh of recently expired tokens
   // ---------------------------
   if (allowExpired) {
     const lastTokenKey = `${AUTH_TOKEN_PREFIX}last:${normalizedUsername}`;
@@ -820,8 +990,17 @@ export async function POST(request) {
   logRequest("POST", request.url, action, requestId);
 
   try {
-    // Parse JSON body
-    const body = await request.json();
+    // Parse JSON body safely – some actions (e.g. logoutAllDevices) send no body
+    let body = {};
+    const contentType = request.headers.get("content-type") || "";
+    if (contentType.includes("application/json")) {
+      try {
+        body = await request.json();
+      } catch {
+        // Invalid or empty JSON – treat as empty object to avoid SyntaxError
+        body = {};
+      }
+    }
 
     // ---------------- Rate limiting ----------------
     const sensitiveRateLimitActions = new Set([
@@ -869,6 +1048,9 @@ export async function POST(request) {
       "verifyToken",
       "setPassword", // New: set password for existing user
       "generateToken", // Generating/reissuing tokens now requires authentication
+      "listTokens", // List all active tokens for a user
+      "logoutAllDevices", // Logout from all devices
+      "logoutCurrent", // Logout current session
     ];
 
     // Check authentication for protected actions
@@ -937,6 +1119,12 @@ export async function POST(request) {
         return await handleAuthenticateWithPassword(body, requestId);
       case "setPassword":
         return await handleSetPassword(body, username, requestId);
+      case "listTokens":
+        return await handleListTokens(username, request, requestId);
+      case "logoutAllDevices":
+        return await handleLogoutAllDevices(username, request, requestId);
+      case "logoutCurrent":
+        return await handleLogoutCurrent(username, token, requestId);
       default:
         logInfo(requestId, `Invalid action: ${action}`);
         return createErrorResponse("Invalid action", 400);
@@ -2993,6 +3181,105 @@ async function handleCheckPassword(username, requestId) {
   } catch (error) {
     logError(requestId, `Error checking password for user ${username}:`, error);
     return createErrorResponse("Failed to check password status", 500);
+  }
+}
+
+async function handleListTokens(username, request, requestId) {
+  logInfo(requestId, `Listing active tokens for user: ${username}`);
+
+  try {
+    const tokens = await getUserTokens(username);
+
+    // Add information about which token is being used for current request
+    const { token: currentToken } = extractAuth(request);
+
+    const tokenList = tokens.map((t) => ({
+      ...t,
+      isCurrent: t.token === currentToken,
+      // Mask token for security - only show last 8 characters
+      maskedToken: `...${t.token.slice(-8)}`,
+    }));
+
+    logInfo(
+      requestId,
+      `Found ${tokenList.length} active tokens for user ${username}`
+    );
+
+    return new Response(
+      JSON.stringify({
+        tokens: tokenList,
+        count: tokenList.length,
+      }),
+      {
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  } catch (error) {
+    logError(requestId, `Error listing tokens for user ${username}:`, error);
+    return createErrorResponse("Failed to list tokens", 500);
+  }
+}
+
+async function handleLogoutAllDevices(username, request, requestId) {
+  logInfo(requestId, `Logging out all devices for user: ${username}`);
+
+  try {
+    // Get current token to exclude it (optional - we could log out all including current)
+    const { token: currentToken } = extractAuth(request);
+
+    // Delete all tokens for the user
+    const deletedCount = await deleteAllUserTokens(username);
+
+    // Optionally: restore current token if we want to keep current session active
+    // await storeToken(username, currentToken);
+
+    logInfo(requestId, `Deleted ${deletedCount} tokens for user ${username}`);
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: `Logged out from ${deletedCount} devices`,
+        deletedCount,
+      }),
+      {
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  } catch (error) {
+    logError(
+      requestId,
+      `Error logging out all devices for user ${username}:`,
+      error
+    );
+    return createErrorResponse("Failed to logout all devices", 500);
+  }
+}
+
+async function handleLogoutCurrent(username, token, requestId) {
+  logInfo(requestId, `Logging out current session for user: ${username}`);
+
+  try {
+    // Delete the current token for the user
+    await deleteToken(token);
+
+    logInfo(requestId, `Current session logged out for user: ${username}`);
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: `Logged out from current session`,
+      }),
+      {
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  } catch (error) {
+    logError(
+      requestId,
+      `Error logging out current session for user ${username}:`,
+      error
+    );
+    return createErrorResponse("Failed to logout current session", 500);
   }
 }
 
