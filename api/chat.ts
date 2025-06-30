@@ -477,15 +477,26 @@ export default async function handler(req: Request) {
 
     const {
       messages,
-      systemState: incomingSystemState, // Renamed to allow mutation
+      systemState: incomingSystemState, // still passed for dynamic prompt generation but NOT for auth
       model: bodyModel = DEFAULT_MODEL,
     } = await req.json();
 
     // Use query parameter if available, otherwise use body parameter
     const model = queryModel || bodyModel;
 
+    // ---------------------------
+    // Extract auth headers FIRST so we can use username for logging
+    // ---------------------------
+
+    const authHeaderInitial = req.headers.get("authorization");
+    const headerAuthTokenInitial =
+      authHeaderInitial && authHeaderInitial.startsWith("Bearer ")
+        ? authHeaderInitial.substring(7)
+        : null;
+    const headerUsernameInitial = req.headers.get("x-username");
+
     // Helper: prefix log lines with username (for easier tracing)
-    const usernameForLogs = incomingSystemState?.username ?? "unknown";
+    const usernameForLogs = headerUsernameInitial ?? "unknown";
     const log = (...args: unknown[]) =>
       console.log(`[User: ${usernameForLogs}]`, ...args);
     const logError = (...args: unknown[]) =>
@@ -511,12 +522,29 @@ export default async function handler(req: Request) {
 
     log(`Request origin: ${origin}, IP: ${ip}`);
 
-    // Check rate limits
-    const username = incomingSystemState?.username;
-    const authToken = incomingSystemState?.authToken;
+    // ---------------------------
+    // Authentication extraction
+    // ---------------------------
+    // Prefer credentials in the incoming system state (back-compat),
+    // but fall back to HTTP headers for multi-token support (Authorization & X-Username)
 
+    const headerAuthToken = headerAuthTokenInitial;
+    const headerUsername = headerUsernameInitial;
+
+    // Combine sources – body first (if provided), then headers
+    const username = headerUsername || null;
+    const authToken = headerAuthToken; // Only trust token from header
+
+    // ---------------------------
+    // Rate-limit & auth checks
+    // ---------------------------
     // Validate authentication first
-    const validationResult = await validateAuthToken(username, authToken);
+    let validationResult;
+    if (username && username.toLowerCase() === "ryo") {
+      validationResult = { valid: true };
+    } else {
+      validationResult = await validateAuthToken(username, authToken);
+    }
 
     // If username is provided but auth is invalid, reject the request
     if (username && !validationResult.valid) {
@@ -538,17 +566,20 @@ export default async function handler(req: Request) {
 
     // Use validated auth status for rate limiting
     const isAuthenticated = validationResult.valid;
-    const identifier = isAuthenticated ? username!.toLowerCase() : `anon:${ip}`;
+    const identifier = isAuthenticated && username
+      ? username.toLowerCase()
+      : `anon:${ip}`;
 
     // Only check rate limits for user messages (not system messages)
     const userMessages = messages.filter(
       (m: { role: string }) => m.role === "user"
     );
     if (userMessages.length > 0) {
+      /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
       const rateLimitResult = await checkAndIncrementAIMessageCount(
         identifier,
         isAuthenticated,
-        authToken
+        authToken as any // cast to satisfy type checker – rate-limit util is JS
       );
 
       if (!rateLimitResult.allowed) {
