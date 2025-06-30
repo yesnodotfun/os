@@ -276,9 +276,7 @@ export function ControlPanelsAppComponent({
     verifyUsernameInput,
     setVerifyUsernameInput,
     hasPassword,
-    checkHasPassword,
     setPassword,
-    authToken,
     logout,
     confirmLogout,
     isLogoutConfirmDialogOpen,
@@ -294,13 +292,7 @@ export function ControlPanelsAppComponent({
   const [isSettingPassword, setIsSettingPassword] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
 
-  // Check if user has password when component mounts or username/token changes
-  React.useEffect(() => {
-    if (username && authToken) {
-      console.log("[ControlPanel] Checking password for user:", username);
-      checkHasPassword();
-    }
-  }, [username, authToken, checkHasPassword]);
+  // Password status is now automatically checked by the store when username/token changes
 
   // Debug hasPassword value
   React.useEffect(() => {

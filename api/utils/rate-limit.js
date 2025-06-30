@@ -8,17 +8,15 @@ const redis = new Redis({
 
 // Constants for rate limiting
 const AI_RATE_LIMIT_PREFIX = "rl:ai:";
-const ANONYMOUS_AI_LIMIT = 4;
-const DAILY_USER_AI_LIMIT = 50;
+const AI_LIMIT_PER_5_HOURS = 25;
+const AI_LIMIT_ANON_PER_5_HOURS = 3;
 
 // Helper function to get rate limit key for a user
 const getAIRateLimitKey = (identifier) => {
-  const now = new Date();
-  const dateStr = now.toISOString().split("T")[0]; // YYYY-MM-DD
-  // Key format: rl:ai:{identifier}:{date}
-  // For authenticated users: rl:ai:username:2024-01-15
-  // For anonymous users: rl:ai:anon:123.45.67.89:2024-01-15
-  return `${AI_RATE_LIMIT_PREFIX}${identifier}:${dateStr}`;
+  // Simple key format: rl:ai:{identifier}
+  // For authenticated users: rl:ai:username
+  // For anonymous users: rl:ai:anon:123.45.67.89
+  return `${AI_RATE_LIMIT_PREFIX}${identifier}`;
 };
 
 // Helper function to check and increment AI message count
@@ -31,7 +29,11 @@ async function checkAndIncrementAIMessageCount(
   const currentCount = await redis.get(key);
   const count = currentCount ? parseInt(currentCount) : 0;
 
-  const limit = isAuthenticated ? DAILY_USER_AI_LIMIT : ANONYMOUS_AI_LIMIT;
+  // Determine if user is anonymous (identifier starts with "anon:")
+  const isAnonymous = identifier.startsWith("anon:");
+
+  // Set limit based on authentication status
+  const limit = isAnonymous ? AI_LIMIT_ANON_PER_5_HOURS : AI_LIMIT_PER_5_HOURS;
 
   // Allow ryo to bypass rate limits
   const isRyo = identifier === "ryo";
@@ -43,8 +45,8 @@ async function checkAndIncrementAIMessageCount(
     const storedToken = await redis.get(tokenKey);
 
     if (!storedToken || storedToken !== authToken) {
-      // Invalid token, treat as unauthenticated
-      return { allowed: false, count: 0, limit: ANONYMOUS_AI_LIMIT };
+      // Invalid token, treat as unauthenticated (use anon limit)
+      return { allowed: false, count: 0, limit: AI_LIMIT_ANON_PER_5_HOURS };
     }
   }
 
@@ -55,12 +57,9 @@ async function checkAndIncrementAIMessageCount(
   // Increment count
   await redis.incr(key);
 
-  // Set expiration to end of day if this is the first message
+  // Set TTL to 5 hours if this is the first message
   if (count === 0) {
-    const now = new Date();
-    const endOfDay = new Date(now);
-    endOfDay.setHours(23, 59, 59, 999);
-    const ttlSeconds = Math.floor((endOfDay - now) / 1000);
+    const ttlSeconds = 5 * 60 * 60; // 5 hours in seconds
     await redis.expire(key, ttlSeconds);
   }
 
@@ -70,6 +69,6 @@ async function checkAndIncrementAIMessageCount(
 // Export rate limit functions
 export {
   checkAndIncrementAIMessageCount,
-  ANONYMOUS_AI_LIMIT,
-  DAILY_USER_AI_LIMIT,
+  AI_LIMIT_PER_5_HOURS,
+  AI_LIMIT_ANON_PER_5_HOURS,
 };

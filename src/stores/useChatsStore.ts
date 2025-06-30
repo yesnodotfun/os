@@ -152,6 +152,7 @@ export interface ChatsStoreState {
   // Room State
   username: string | null;
   authToken: string | null; // Authentication token
+  hasPassword: boolean | null; // Whether user has password set (null = unknown/not checked)
   rooms: ChatRoom[];
   currentRoomId: string | null; // ID of the currently selected room, null for AI chat (@ryo)
   roomMessages: Record<string, ChatMessage[]>; // roomId -> messages map
@@ -165,6 +166,9 @@ export interface ChatsStoreState {
   setAiMessages: (messages: Message[]) => void;
   setUsername: (username: string | null) => void;
   setAuthToken: (token: string | null) => void; // Set auth token
+  setHasPassword: (hasPassword: boolean | null) => void; // Set password status
+  checkHasPassword: () => Promise<{ ok: boolean; error?: string }>; // Check if user has password
+  setPassword: (password: string) => Promise<{ ok: boolean; error?: string }>; // Set password for user
   setRooms: (rooms: ChatRoom[]) => void;
   setCurrentRoomId: (roomId: string | null) => void;
   setRoomMessagesForCurrentRoom: (messages: ChatMessage[]) => void; // Sets messages for the *current* room
@@ -232,6 +236,9 @@ const getInitialState = (): Omit<
   | "setAiMessages"
   | "setUsername"
   | "setAuthToken"
+  | "setHasPassword"
+  | "checkHasPassword"
+  | "setPassword"
   | "setRooms"
   | "setCurrentRoomId"
   | "setRoomMessagesForCurrentRoom"
@@ -263,6 +270,7 @@ const getInitialState = (): Omit<
     aiMessages: [initialAiMessage],
     username: recoveredUsername,
     authToken: recoveredAuthToken,
+    hasPassword: null, // Unknown until checked
     rooms: [],
     currentRoomId: null,
     roomMessages: {},
@@ -293,11 +301,128 @@ export const useChatsStore = create<ChatsStoreState>()(
           // Save username to recovery storage when it's set
           saveUsernameToRecovery(username);
           set({ username });
+
+          // Check password status when username changes (if we have a token)
+          const currentToken = get().authToken;
+          if (username && currentToken) {
+            setTimeout(() => {
+              get().checkHasPassword();
+            }, 100);
+          } else if (!username) {
+            // Clear password status when username is cleared
+            set({ hasPassword: null });
+          }
         },
         setAuthToken: (token) => {
           // Save auth token to recovery storage when it's set
           saveAuthTokenToRecovery(token);
           set({ authToken: token });
+
+          // Check password status when token changes (if we have a username)
+          const currentUsername = get().username;
+          if (token && currentUsername) {
+            setTimeout(() => {
+              get().checkHasPassword();
+            }, 100);
+          } else if (!token) {
+            // Clear password status when token is cleared
+            set({ hasPassword: null });
+          }
+        },
+        setHasPassword: (hasPassword) => {
+          set({ hasPassword });
+        },
+        checkHasPassword: async () => {
+          const currentUsername = get().username;
+          const currentToken = get().authToken;
+
+          if (!currentUsername || !currentToken) {
+            console.log(
+              "[ChatsStore] checkHasPassword: No username or token, setting null"
+            );
+            set({ hasPassword: null });
+            return { ok: false, error: "Authentication required" };
+          }
+
+          console.log(
+            "[ChatsStore] checkHasPassword: Checking for user",
+            currentUsername
+          );
+          try {
+            const response = await fetch(
+              "/api/chat-rooms?action=checkPassword",
+              {
+                method: "GET",
+                headers: {
+                  Authorization: `Bearer ${currentToken}`,
+                  "X-Username": currentUsername,
+                },
+              }
+            );
+
+            console.log(
+              "[ChatsStore] checkHasPassword: Response status",
+              response.status
+            );
+            if (response.ok) {
+              const data = await response.json();
+              console.log("[ChatsStore] checkHasPassword: Result", data);
+              set({ hasPassword: data.hasPassword });
+              return { ok: true };
+            } else {
+              console.log(
+                "[ChatsStore] checkHasPassword: Failed with status",
+                response.status
+              );
+              set({ hasPassword: null });
+              return { ok: false, error: "Failed to check password status" };
+            }
+          } catch (error) {
+            console.error(
+              "[ChatsStore] Error checking password status:",
+              error
+            );
+            set({ hasPassword: null });
+            return {
+              ok: false,
+              error: "Network error while checking password",
+            };
+          }
+        },
+        setPassword: async (password) => {
+          const currentUsername = get().username;
+          const currentToken = get().authToken;
+
+          if (!currentUsername || !currentToken) {
+            return { ok: false, error: "Authentication required" };
+          }
+
+          try {
+            const response = await fetch("/api/chat-rooms?action=setPassword", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${currentToken}`,
+                "X-Username": currentUsername,
+              },
+              body: JSON.stringify({ password }),
+            });
+
+            if (!response.ok) {
+              const data = await response.json();
+              return {
+                ok: false,
+                error: data.error || "Failed to set password",
+              };
+            }
+
+            // Update local state to reflect password has been set
+            set({ hasPassword: true });
+            return { ok: true };
+          } catch (error) {
+            console.error("[ChatsStore] Error setting password:", error);
+            return { ok: false, error: "Network error while setting password" };
+          }
         },
         setRooms: (newRooms) => {
           // Ensure incoming data is an array
@@ -637,6 +762,7 @@ export const useChatsStore = create<ChatsStoreState>()(
             aiMessages: [initialAiMessage],
             username: null,
             authToken: null,
+            hasPassword: null, // Reset password status
             currentRoomId: null, // Clear current selection but keep rooms
             // Keep rooms, roomMessages, unreadCounts, hasEverUsedChats, isSidebarVisible, fontSize
           }));
@@ -1110,6 +1236,13 @@ export const useChatsStore = create<ChatsStoreState>()(
                 saveTokenRefreshTime(data.user.username);
               }
 
+              // Check password status after user creation
+              if (data.token) {
+                setTimeout(() => {
+                  get().checkHasPassword();
+                }, 100); // Small delay to ensure token is set
+              }
+
               return { ok: true };
             }
 
@@ -1148,6 +1281,7 @@ export const useChatsStore = create<ChatsStoreState>()(
         aiMessages: state.aiMessages,
         username: state.username,
         authToken: state.authToken, // Persist auth token
+        hasPassword: state.hasPassword, // Persist password status
         currentRoomId: state.currentRoomId,
         isSidebarVisible: state.isSidebarVisible,
         rooms: state.rooms, // Persist rooms list

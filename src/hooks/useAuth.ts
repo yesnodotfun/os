@@ -3,8 +3,17 @@ import { useChatsStore } from "@/stores/useChatsStore";
 import { toast } from "sonner";
 
 export function useAuth() {
-  const { username, authToken, setAuthToken, setUsername, createUser, logout } =
-    useChatsStore();
+  const {
+    username,
+    authToken,
+    hasPassword,
+    setAuthToken,
+    setUsername,
+    createUser,
+    logout,
+    checkHasPassword: storeCheckHasPassword,
+    setPassword: storeSetPassword,
+  } = useChatsStore();
 
   // Set username dialog states
   const [isUsernameDialogOpen, setIsUsernameDialogOpen] = useState(false);
@@ -21,8 +30,7 @@ export function useAuth() {
   const [isVerifyingToken, setIsVerifyingToken] = useState(false);
   const [verifyError, setVerifyError] = useState<string | null>(null);
 
-  // Password state
-  const [hasPassword, setHasPassword] = useState<boolean | null>(null);
+  // Password state is now managed by the store
 
   // Logout confirmation dialog state
   const [isLogoutConfirmDialogOpen, setIsLogoutConfirmDialogOpen] =
@@ -208,78 +216,17 @@ export function useAuth() {
     [setAuthToken, setUsername, username, verifyUsernameInput]
   );
 
-  // Check if user has a password set
+  // Check if user has a password set (now uses store)
   const checkHasPassword = useCallback(async () => {
-    if (!username || !authToken) {
-      console.log(
-        "[useAuth] checkHasPassword: No username or token, setting null"
-      );
-      setHasPassword(null);
-      return;
-    }
+    return storeCheckHasPassword();
+  }, [storeCheckHasPassword]);
 
-    console.log("[useAuth] checkHasPassword: Checking for user", username);
-    try {
-      const response = await fetch("/api/chat-rooms?action=checkPassword", {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-          "X-Username": username,
-        },
-      });
-
-      console.log(
-        "[useAuth] checkHasPassword: Response status",
-        response.status
-      );
-      if (response.ok) {
-        const data = await response.json();
-        console.log("[useAuth] checkHasPassword: Result", data);
-        setHasPassword(data.hasPassword);
-      } else {
-        console.log(
-          "[useAuth] checkHasPassword: Failed with status",
-          response.status
-        );
-        setHasPassword(null);
-      }
-    } catch (error) {
-      console.error("[useAuth] Error checking password status:", error);
-      setHasPassword(null);
-    }
-  }, [username, authToken]);
-
-  // Set password for existing user
+  // Set password for existing user (now uses store)
   const setPassword = useCallback(
     async (password: string) => {
-      if (!username || !authToken) {
-        return { ok: false, error: "Authentication required" };
-      }
-
-      try {
-        const response = await fetch("/api/chat-rooms?action=setPassword", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${authToken}`,
-            "X-Username": username,
-          },
-          body: JSON.stringify({ password }),
-        });
-
-        if (!response.ok) {
-          const data = await response.json();
-          return { ok: false, error: data.error || "Failed to set password" };
-        }
-
-        setHasPassword(true);
-        return { ok: true };
-      } catch (error) {
-        console.error("[useAuth] Error setting password:", error);
-        return { ok: false, error: "Network error while setting password" };
-      }
+      return storeSetPassword(password);
     },
-    [username, authToken]
+    [storeSetPassword]
   );
 
   // Logout functionality
@@ -297,7 +244,7 @@ export function useAuth() {
     setVerifyUsernameInput("");
     setUsernameError(null);
     setVerifyError(null);
-    setHasPassword(null);
+    // hasPassword is now managed by the store and reset automatically on logout
 
     // Call store logout to clear all user data and refresh rooms
     await logout();

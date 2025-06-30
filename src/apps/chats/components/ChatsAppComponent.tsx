@@ -105,7 +105,6 @@ export function ChatsAppComponent({
     verifyError,
     handleVerifyTokenSubmit,
     hasPassword,
-    checkHasPassword,
     setPassword,
     logout,
     confirmLogout,
@@ -339,12 +338,7 @@ export function ChatsAppComponent({
     prevFrameNarrowRef.current = isFrameNarrow;
   }, [isFrameNarrow, sidebarVisibleBool, toggleSidebarVisibility]);
 
-  // Check if user has password when component mounts or username/token changes
-  useEffect(() => {
-    if (username && authToken) {
-      checkHasPassword();
-    }
-  }, [username, authToken, checkHasPassword]);
+  // Password status is now automatically checked by the store when username/token changes
 
   // Password setting handler
   const handleSetPassword = async (password: string) => {

@@ -18,8 +18,7 @@ import { SUPPORTED_AI_MODELS } from "../src/types/aiModels";
 import { appIds } from "../src/config/appIds";
 import {
   checkAndIncrementAIMessageCount,
-  ANONYMOUS_AI_LIMIT,
-  DAILY_USER_AI_LIMIT,
+  AI_LIMIT_PER_5_HOURS,
 } from "./utils/rate-limit";
 import { Redis } from "@upstash/redis";
 
@@ -552,9 +551,7 @@ export default async function handler(req: Request) {
           isAuthenticated,
           count: rateLimitResult.count,
           limit: rateLimitResult.limit,
-          message: isAuthenticated
-            ? `You've hit your daily limit of ${DAILY_USER_AI_LIMIT} messages. Come back tomorrow.`
-            : `You've hit the limit of ${ANONYMOUS_AI_LIMIT} messages. Set a username to continue.`,
+          message: `You've hit your limit of ${AI_LIMIT_PER_5_HOURS} messages in this 5-hour window. Please wait a few hours and try again.`,
         };
 
         return new Response(JSON.stringify(errorResponse), {
@@ -607,7 +604,9 @@ export default async function handler(req: Request) {
 
     // Log prompt optimization metrics with loaded sections
     log(
-      `Context-aware prompts (${loadedSections.length} sections): ${loadedSections.join(", ")}`
+      `Context-aware prompts (${
+        loadedSections.length
+      } sections): ${loadedSections.join(", ")}`
     );
     const approxTokens = staticSystemPrompt.length / 4; // rough estimate
     log(`Approximate prompt tokens: ${Math.round(approxTokens)}`);
@@ -632,11 +631,20 @@ export default async function handler(req: Request) {
     };
 
     // Merge all messages: static sys → dynamic sys → user/assistant turns
-    const enrichedMessages = [staticSystemMessage, dynamicSystemMessage, ...messages];
+    const enrichedMessages = [
+      staticSystemMessage,
+      dynamicSystemMessage,
+      ...messages,
+    ];
 
     // Log all messages right before model call (as per user preference)
     enrichedMessages.forEach((msg, index) => {
-      log(`Message ${index} [${msg.role}]: ${String(msg.content).substring(0, 100)}...`);
+      log(
+        `Message ${index} [${msg.role}]: ${String(msg.content).substring(
+          0,
+          100
+        )}...`
+      );
     });
 
     const result = streamText({
