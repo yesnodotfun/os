@@ -531,6 +531,7 @@ export default async function handler(req: Request) {
     const headerAuthToken = headerAuthTokenInitial ?? undefined;
     const headerUsername = headerUsernameInitial;
 
+    // Combine sources – body first (if provided), then headers
     const username = headerUsername || null;
     const authToken: string | undefined = headerAuthToken;
 
