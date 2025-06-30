@@ -7,7 +7,7 @@ const redis = new Redis({
 });
 
 // Constants for rate limiting
-const AI_RATE_LIMIT_PREFIX = "ai:ratelimit:";
+const AI_RATE_LIMIT_PREFIX = "rl:ai:";
 const ANONYMOUS_AI_LIMIT = 4;
 const DAILY_USER_AI_LIMIT = 50;
 
@@ -15,9 +15,9 @@ const DAILY_USER_AI_LIMIT = 50;
 const getAIRateLimitKey = (identifier) => {
   const now = new Date();
   const dateStr = now.toISOString().split("T")[0]; // YYYY-MM-DD
-  // Key format: ai:ratelimit:{identifier}:{date}
-  // For authenticated users: ai:ratelimit:username:2024-01-15
-  // For anonymous users: ai:ratelimit:anon:123.45.67.89:2024-01-15
+  // Key format: rl:ai:{identifier}:{date}
+  // For authenticated users: rl:ai:username:2024-01-15
+  // For anonymous users: rl:ai:anon:123.45.67.89:2024-01-15
   return `${AI_RATE_LIMIT_PREFIX}${identifier}:${dateStr}`;
 };
 
