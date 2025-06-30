@@ -26,6 +26,7 @@ interface CreateRoomDialogProps {
   ) => Promise<{ ok: boolean; error?: string }>;
   isAdmin: boolean;
   currentUsername: string | null;
+  initialUsers?: string[]; // Optional prop to prefill users
 }
 
 export function CreateRoomDialog({
@@ -34,6 +35,7 @@ export function CreateRoomDialog({
   onSubmit,
   isAdmin,
   currentUsername,
+  initialUsers = [],
 }: CreateRoomDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,13 +52,13 @@ export function CreateRoomDialog({
       // Reset form when opening
       setError(null);
       setRoomName("");
-      setSelectedUsers([]);
+      setSelectedUsers(initialUsers); // Use initialUsers if provided
       setSearchTerm("");
       setUsers([]);
       // Reset to private tab when opening
       setActiveTab("private");
     }
-  }, [isOpen]);
+  }, [isOpen, initialUsers]);
 
   // Search for users when search term changes (with debouncing)
   useEffect(() => {

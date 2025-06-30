@@ -149,6 +149,9 @@ export function ChatsAppComponent({
   const [isSettingPassword, setIsSettingPassword] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
 
+  // Send message dialog state
+  const [prefilledUser, setPrefilledUser] = useState<string>("");
+
   // Safety check: ensure rooms is an array before finding
   const currentRoom =
     Array.isArray(rooms) && currentRoomId
@@ -371,6 +374,12 @@ export function ChatsAppComponent({
     setPasswordInput("");
     setPasswordError(null);
     setIsPasswordDialogOpen(true);
+  }, []);
+
+  // Function to handle send message button click
+  const handleSendMessage = useCallback((username: string) => {
+    setPrefilledUser(username);
+    setIsNewRoomDialogOpen(true);
   }, []);
 
   if (!isWindowOpen) return null;
@@ -624,6 +633,7 @@ export function ChatsAppComponent({
                     scrollToBottomTrigger={scrollToBottomTrigger}
                     highlightSegment={highlightSegment}
                     isSpeaking={isSpeaking}
+                    onSendMessage={handleSendMessage}
                   />
                 </div>
                 {/* Input Area or Create Account Prompt */}
@@ -731,10 +741,16 @@ export function ChatsAppComponent({
         />
         <CreateRoomDialog
           isOpen={isNewRoomDialogOpen}
-          onOpenChange={setIsNewRoomDialogOpen}
+          onOpenChange={(open) => {
+            if (!open) {
+              setPrefilledUser(""); // Reset prefilled user when dialog closes
+            }
+            setIsNewRoomDialogOpen(open);
+          }}
           onSubmit={handleAddRoom}
           isAdmin={isAdmin}
           currentUsername={username}
+          initialUsers={prefilledUser ? [prefilledUser] : []}
         />
         <ConfirmDialog
           isOpen={isDeleteRoomDialogOpen}

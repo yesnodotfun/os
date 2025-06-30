@@ -9,6 +9,7 @@ import {
   Trash,
   Volume2,
   Pause,
+  Send,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,12 @@ import {
   type ToolInvocationPart,
 } from "@/components/shared/ToolInvocationMessage";
 import { useChatsStore } from "@/stores/useChatsStore";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 // --- Color Hashing for Usernames ---
 const userColors = [
@@ -201,6 +208,7 @@ interface ChatMessagesProps {
   scrollToBottomTrigger: number; // Add scroll trigger prop
   highlightSegment?: { messageId: string; start: number; end: number } | null;
   isSpeaking?: boolean;
+  onSendMessage?: (username: string) => void; // Callback when send message button is clicked
 }
 
 // Component to render the scroll-to-bottom button using the library's context
@@ -242,6 +250,7 @@ interface ChatMessagesContentProps {
   scrollToBottomTrigger: number;
   highlightSegment?: { messageId: string; start: number; end: number } | null;
   isSpeaking?: boolean;
+  onSendMessage?: (username: string) => void;
 }
 
 function ChatMessagesContent({
@@ -259,6 +268,7 @@ function ChatMessagesContent({
   scrollToBottomTrigger,
   highlightSegment,
   isSpeaking,
+  onSendMessage,
 }: ChatMessagesContentProps) {
   const { playNote } = useChatSynth();
   const { playElevatorMusic, stopElevatorMusic, playDingSound } =
@@ -491,18 +501,27 @@ function ChatMessagesContent({
               {message.role === "user" && (
                 <>
                   {isAdmin && isRoomView && (
-                    <motion.button
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{
-                        opacity: hoveredMessageId === messageKey ? 1 : 0,
-                        scale: 1,
-                      }}
-                      className="h-3 w-3 text-gray-400 hover:text-red-600 transition-colors"
-                      onClick={() => deleteMessage(message)}
-                      aria-label="Delete message"
-                    >
-                      <Trash className="h-3 w-3" />
-                    </motion.button>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <motion.button
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{
+                              opacity: hoveredMessageId === messageKey ? 1 : 0,
+                              scale: 1,
+                            }}
+                            className="h-3 w-3 text-gray-400 hover:text-red-600 transition-colors"
+                            onClick={() => deleteMessage(message)}
+                            aria-label="Delete message"
+                          >
+                            <Trash className="h-3 w-3" />
+                          </motion.button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Delete</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   )}
                   <motion.button
                     initial={{ opacity: 0, scale: 0.8 }}
@@ -681,37 +700,54 @@ function ChatMessagesContent({
                   )}
                 </>
               )}
-              {isRoomView && message.role === "human" && (
-                <motion.button
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{
-                    opacity: hoveredMessageId === messageKey ? 1 : 0,
-                    scale: 1,
-                  }}
-                  className="h-3 w-3 text-gray-400 hover:text-gray-600 transition-colors"
-                  onClick={() => copyMessage(message)}
-                  aria-label="Copy message"
-                >
-                  {copiedMessageId === messageKey ? (
-                    <Check className="h-3 w-3" />
-                  ) : (
-                    <Copy className="h-3 w-3" />
-                  )}
-                </motion.button>
-              )}
+              {isRoomView &&
+                message.role === "human" &&
+                onSendMessage &&
+                message.username && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <motion.button
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{
+                            opacity: hoveredMessageId === messageKey ? 1 : 0,
+                            scale: 1,
+                          }}
+                          className="h-3 w-3 text-gray-400 hover:text-blue-600 transition-colors"
+                          onClick={() => onSendMessage(message.username!)}
+                          aria-label="Send message"
+                        >
+                          <Send className="h-3 w-3" />
+                        </motion.button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Message {message.username}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
               {isAdmin && isRoomView && message.role !== "user" && (
-                <motion.button
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{
-                    opacity: hoveredMessageId === messageKey ? 1 : 0,
-                    scale: 1,
-                  }}
-                  className="h-3 w-3 text-gray-400 hover:text-red-600 transition-colors"
-                  onClick={() => deleteMessage(message)}
-                  aria-label="Delete message"
-                >
-                  <Trash className="h-3 w-3" />
-                </motion.button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <motion.button
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{
+                          opacity: hoveredMessageId === messageKey ? 1 : 0,
+                          scale: 1,
+                        }}
+                        className="h-3 w-3 text-gray-400 hover:text-red-600 transition-colors"
+                        onClick={() => deleteMessage(message)}
+                        aria-label="Delete message"
+                      >
+                        <Trash className="h-3 w-3" />
+                      </motion.button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Delete</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               )}
             </motion.div>
 
@@ -1128,6 +1164,7 @@ export function ChatMessages({
   scrollToBottomTrigger, // Destructure scroll trigger prop
   highlightSegment,
   isSpeaking,
+  onSendMessage,
 }: ChatMessagesProps) {
   return (
     // Use StickToBottom component as the main container
@@ -1155,6 +1192,7 @@ export function ChatMessages({
           scrollToBottomTrigger={scrollToBottomTrigger}
           highlightSegment={highlightSegment}
           isSpeaking={isSpeaking}
+          onSendMessage={onSendMessage}
         />
       </StickToBottom.Content>
 
