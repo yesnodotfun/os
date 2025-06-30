@@ -1569,7 +1569,75 @@ async function handleCreateUser(data, requestId) {
     const created = await redis.setnx(userKey, JSON.stringify(user));
 
     if (!created) {
-      // User already exists - return conflict error
+      // User already exists - attempt login if password provided
+      if (password) {
+        logInfo(
+          requestId,
+          `Username ${username} exists, attempting authentication with provided password`
+        );
+
+        try {
+          // Get password hash for existing user
+          const passwordHash = await getUserPasswordHash(username);
+
+          if (passwordHash) {
+            // Verify password
+            const isValid = await verifyPassword(password, passwordHash);
+
+            if (isValid) {
+              // Password matches - log them in instead of throwing error
+              logInfo(
+                requestId,
+                `Password correct for existing user ${username}, logging in`
+              );
+
+              // Generate authentication token
+              const authToken = generateAuthToken();
+              const tokenKey = `${AUTH_TOKEN_PREFIX}${username}`;
+
+              // Store token with expiration
+              await redis.set(tokenKey, authToken, {
+                ex: USER_EXPIRATION_TIME,
+              });
+
+              // Get existing user data
+              const existingUserData = await redis.get(userKey);
+              const existingUser = existingUserData
+                ? typeof existingUserData === "string"
+                  ? JSON.parse(existingUserData)
+                  : existingUserData
+                : { username, lastActive: getCurrentTimestamp() };
+
+              logInfo(
+                requestId,
+                `User ${username} authenticated via signup form with correct password`
+              );
+
+              return new Response(
+                JSON.stringify({ user: existingUser, token: authToken }),
+                {
+                  status: 200,
+                  headers: { "Content-Type": "application/json" },
+                }
+              );
+            }
+          }
+
+          // Password doesn't match or no password hash found
+          logInfo(
+            requestId,
+            `Authentication failed for existing user ${username} - incorrect password`
+          );
+        } catch (authError) {
+          logError(
+            requestId,
+            `Error during authentication attempt for ${username}:`,
+            authError
+          );
+        }
+      }
+
+      // No password provided or authentication failed - return original error
       logInfo(requestId, `Username already taken: ${username}`);
       return createErrorResponse("Username already taken", 409);
     }

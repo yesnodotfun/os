@@ -72,7 +72,7 @@ export function useAuth() {
       setIsUsernameDialogOpen(false);
       setNewUsername("");
       setNewPassword("");
-      toast.success("Username Set", {
+      toast.success("Logged In", {
         description: `Welcome, ${trimmedUsername}!`,
       });
     } else {
