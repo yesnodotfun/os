@@ -1056,14 +1056,31 @@ function ChatMessagesContent({
       })}
       {error &&
         (() => {
-          // Check if it's a rate limit or username error that's handled elsewhere
           const errorMessage = getErrorMessage(error);
+
+          // Check if it's a rate limit error that's handled elsewhere
           const isRateLimitError =
             errorMessage === "Daily AI message limit reached." ||
             errorMessage === "Set a username to continue chatting with Ryo.";
 
           // Don't show these errors in chat since they're handled by other UI
           if (isRateLimitError) return null;
+
+          // Special handling for login message - render in gray like "Start a new conversation?"
+          if (errorMessage === "Login to continue chatting with Ryo.") {
+            return (
+              <motion.div
+                layout="position"
+                key="login-message"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center gap-2 text-gray-500 font-['Geneva-9'] text-[16px] antialiased h-[12px]"
+              >
+                <MessageSquare className="h-3 w-3" />
+                <span>{errorMessage}</span>
+              </motion.div>
+            );
+          }
 
           return (
             <motion.div
