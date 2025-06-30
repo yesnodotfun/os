@@ -528,12 +528,20 @@ export default async function handler(req: Request) {
     // Prefer credentials in the incoming system state (back-compat),
     // but fall back to HTTP headers for multi-token support (Authorization & X-Username)
 
+<<<<<<< HEAD
     const headerAuthToken = headerAuthTokenInitial ?? undefined;
+=======
+    const headerAuthToken = headerAuthTokenInitial;
+>>>>>>> fe884f7 (Refactor auth handling in chat API to prioritize headers and improve logging)
     const headerUsername = headerUsernameInitial;
 
     // Combine sources – body first (if provided), then headers
     const username = headerUsername || null;
+<<<<<<< HEAD
     const authToken: string | undefined = headerAuthToken;
+=======
+    const authToken = headerAuthToken; // Only trust token from header
+>>>>>>> fe884f7 (Refactor auth handling in chat API to prioritize headers and improve logging)
 
     // ---------------------------
     // Rate-limit & auth checks
