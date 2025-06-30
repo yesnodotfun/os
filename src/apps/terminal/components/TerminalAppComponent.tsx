@@ -73,6 +73,8 @@ const AVAILABLE_COMMANDS = [
   "chat",
   "echo",
   "whoami",
+  "su",
+  "logout",
   "date",
   "vim",
   "cowsay",
@@ -1694,6 +1696,8 @@ terminal
   about            about terminal
   echo <text>      display text
   whoami           display current user
+  su <user> [pass] switch user / create (optional password)
+  logout           log out current user
   date             display current date/time
   cowsay <text>    a talking cow
 
@@ -2183,6 +2187,141 @@ assistant
           output: username || "you",
           isError: false,
         };
+      }
+
+      case "su": {
+        if (args.length === 0) {
+          return {
+            output: "usage: su <username> [password]",
+            isError: true,
+          };
+        }
+
+        const targetUsername = args[0].trim();
+        const passwordArg = args[1] ? args[1].trim() : undefined;
+        const tempOutput = `switching to ${targetUsername}...`;
+
+        class SuHandler {
+          async perform() {
+            try {
+              const store = useChatsStore.getState();
+
+              // If already that user, nothing to do
+              if (store.username === targetUsername) {
+                this.updateOutput(`already user ${targetUsername}`);
+                return;
+              }
+
+              // Logout current user if different
+              if (store.username && store.username !== targetUsername) {
+                await store.logout();
+              }
+
+              // If password provided, attempt authentication first
+              if (passwordArg) {
+                const authResp = await fetch(
+                  "/api/chat-rooms?action=authenticateWithPassword",
+                  {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      username: targetUsername,
+                      password: passwordArg,
+                    }),
+                  }
+                );
+
+                if (authResp.ok) {
+                  const data = await authResp.json();
+                  if (data.token) {
+                    store.setUsername(targetUsername);
+                    store.setAuthToken(data.token);
+                    this.updateOutput(`logged in as ${targetUsername}`);
+                    return;
+                  }
+                }
+                // fallthrough if auth failed -> will attempt create
+              }
+
+              // Attempt to create user (with or without password)
+              const createResult = await store.createUser(
+                targetUsername,
+                passwordArg
+              );
+
+              if (createResult.ok) {
+                this.updateOutput(`created and logged in as ${targetUsername}`);
+              } else {
+                // If creation failed and we didn't succeed auth, show error
+                this.updateOutput(
+                  `su failed: ${createResult.error || "unknown error"}`
+                );
+              }
+            } catch (err) {
+              const errorMsg = err instanceof Error ? err.message : "unknown error";
+              this.updateOutput(`su failed: ${errorMsg}`);
+            }
+          }
+
+          updateOutput(content: string) {
+            setCommandHistory((prev) => {
+              const last = prev[prev.length - 1];
+              if (last.output === tempOutput) {
+                return [
+                  ...prev.slice(0, -1),
+                  { ...last, output: content },
+                ];
+              }
+              return prev;
+            });
+          }
+        }
+
+        setTimeout(() => {
+          new SuHandler().perform();
+        }, 50);
+
+        return { output: tempOutput, isError: false };
+      }
+
+      case "logout": {
+        if (!username) {
+          return { output: "not logged in", isError: true };
+        }
+
+        const tempOutput = "logging out...";
+
+        class LogoutHandler {
+          async perform() {
+            try {
+              await useChatsStore.getState().logout();
+              this.updateOutput("logged out");
+            } catch (err) {
+              const errorMsg =
+                err instanceof Error ? err.message : "unknown error";
+              this.updateOutput(`logout failed: ${errorMsg}`);
+            }
+          }
+
+          updateOutput(content: string) {
+            setCommandHistory((prev) => {
+              const last = prev[prev.length - 1];
+              if (last.output === tempOutput) {
+                return [
+                  ...prev.slice(0, -1),
+                  { ...last, output: content },
+                ];
+              }
+              return prev;
+            });
+          }
+        }
+
+        setTimeout(() => {
+          new LogoutHandler().perform();
+        }, 50);
+
+        return { output: tempOutput, isError: false };
       }
 
       case "date": {
