@@ -316,6 +316,14 @@ export function useAiChat(onPromptSetUsername?: () => void) {
   } | null>(null);
   const [needsUsername, setNeedsUsername] = useState(false);
 
+  // Prepare headers for API calls – include auth token & username when available
+  const apiHeaders: Record<string, string> | undefined = username
+    ? {
+        "X-Username": username,
+        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+      }
+    : undefined;
+
   // --- AI Chat Hook (Vercel AI SDK) ---
   const {
     messages: currentSdkMessages,
@@ -332,6 +340,7 @@ export function useAiChat(onPromptSetUsername?: () => void) {
     api: "/api/chat",
     initialMessages: aiMessages, // Initialize from store
     experimental_throttle: 50,
+    headers: apiHeaders,
     body: {
       systemState: getSystemState(), // Initial system state
       model: aiModel, // Pass the selected AI model
