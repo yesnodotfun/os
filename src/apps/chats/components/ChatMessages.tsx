@@ -60,6 +60,25 @@ const getUserColorClass = (username?: string): string => {
 };
 // --- End Color Hashing ---
 
+// Helper to decode common HTML entities so they render correctly
+const decodeHtmlEntities = (str: string): string => {
+  if (!str) return str;
+  // Prefer DOM-based decoding when available (browser environment)
+  if (typeof window !== "undefined" && typeof document !== "undefined") {
+    const txt = document.createElement("textarea");
+    txt.innerHTML = str;
+    return txt.value;
+  }
+  // Fallback: basic replacements (covers most common entities)
+  return str
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'");
+};
+
 // Helper function to parse markdown and segment text
 const parseMarkdown = (
   text: string
@@ -459,10 +478,11 @@ function ChatMessagesContent({
         else if (message.role === "human")
           bgColorClass = getUserColorClass(message.username);
 
-        // Trim leading "!!!!" for urgent messages to match assistant behavior
-        const displayContent = isUrgentMessage(message.content)
+        // Trim leading "!!!!" for urgent messages and decode HTML entities
+        const rawContent = isUrgentMessage(message.content)
           ? message.content.slice(4).trimStart()
           : message.content;
+        const displayContent = decodeHtmlEntities(rawContent);
 
         const combinedHighlightSeg = highlightSegment || localHighlightSegment;
         const combinedIsSpeaking = isSpeaking || localTtsSpeaking;
@@ -872,9 +892,10 @@ function ChatMessagesContent({
                           }
                         }
 
-                        const displayContent = isUrgentMessage(part.text)
+                        const rawPartContent = isUrgentMessage(part.text)
                           ? part.text.slice(4).trimStart()
                           : part.text;
+                        const displayContent = decodeHtmlEntities(rawPartContent);
                         const { hasHtml, htmlContent, textContent } =
                           extractHtmlContent(displayContent);
 
