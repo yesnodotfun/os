@@ -123,10 +123,12 @@ export function useAuth() {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
+                ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
               },
               body: JSON.stringify({
                 username: targetUsername,
                 password: input.trim(),
+                ...(authToken ? { oldToken: authToken } : {}),
               }),
             }
           );

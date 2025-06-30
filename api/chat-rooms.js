@@ -206,6 +206,34 @@ const generateAuthToken = () => {
   return crypto.randomBytes(TOKEN_LENGTH).toString("hex");
 };
 
+// ---------------------------------------------------------------------------
+// NEW: Multi-token helpers – map each token -> username so that a user can be
+// signed in from multiple devices simultaneously.
+// ---------------------------------------------------------------------------
+
+/** Build the Redis key used for a specific auth token */
+const getTokenKey = (token) => `${AUTH_TOKEN_PREFIX}${token}`;
+
+/** Persist a freshly generated token for a user */
+const storeToken = async (username, token) => {
+  if (!token) return;
+  await redis.set(getTokenKey(token), username.toLowerCase(), {
+    ex: USER_EXPIRATION_TIME,
+  });
+};
+
+/** Delete a single auth token (e.g. on logout or when refreshing) */
+const deleteToken = async (token) => {
+  if (!token) return;
+  await redis.del(getTokenKey(token));
+};
+
+/** Retrieve the username associated with a token (if any) */
+const getUsernameForToken = async (token) => {
+  if (!token) return null;
+  return await redis.get(getTokenKey(token));
+};
+
 /**
  * Validate authentication for a request
  * @param {string} username - The username to validate
@@ -225,68 +253,53 @@ const validateAuth = async (
     return { valid: false };
   }
 
-  const tokenKey = `${AUTH_TOKEN_PREFIX}${username.toLowerCase()}`;
-  const storedToken = await redis.get(tokenKey);
+  const normalizedUsername = username.toLowerCase();
+  // ---------------------------
+  // 1. Preferred path: token -> username mapping (multi-token support)
+  // ---------------------------
+  const mappedUsername = await getUsernameForToken(token);
+  if (mappedUsername && mappedUsername.toLowerCase() === normalizedUsername) {
+    // Refresh TTL for this token
+    await redis.expire(getTokenKey(token), USER_TTL_SECONDS);
+    return { valid: true, expired: false };
+  }
 
-  if (!storedToken) {
-    if (allowExpired) {
-      // Check if we have a record of this token being recently used
-      // We store the last valid token when it's refreshed
-      const lastTokenKey = `${AUTH_TOKEN_PREFIX}last:${username.toLowerCase()}`;
-      const lastTokenData = await redis.get(lastTokenKey);
+  // ---------------------------
+  // 2. Legacy single-token path (username -> token). Keep for backward compat.
+  // ---------------------------
+  const legacyKey = `${AUTH_TOKEN_PREFIX}${normalizedUsername}`;
+  const storedToken = await redis.get(legacyKey);
+  if (storedToken && storedToken === token) {
+    await redis.expire(legacyKey, USER_TTL_SECONDS);
+    return { valid: true, expired: false };
+  }
 
-      if (lastTokenData) {
-        try {
-          const { token: lastToken, expiredAt } = JSON.parse(lastTokenData);
-          // Allow refresh within grace period (365 days after expiry)
-          const gracePeriodEnd = expiredAt + TOKEN_GRACE_PERIOD * 1000;
+  // ---------------------------
+  // 3. Grace-period path – allow refresh of recently expired tokens
+  // ---------------------------
+  if (allowExpired) {
+    const lastTokenKey = `${AUTH_TOKEN_PREFIX}last:${normalizedUsername}`;
+    const lastTokenData = await redis.get(lastTokenKey);
 
-          if (lastToken === token && Date.now() < gracePeriodEnd) {
-            logInfo(
-              requestId,
-              `Auth validation: Found recently expired token for user ${username} within grace period`
-            );
-            return { valid: true, expired: true };
-          }
-        } catch (e) {
-          logError(requestId, "Error parsing last token data", e);
+    if (lastTokenData) {
+      try {
+        const { token: lastToken, expiredAt } = JSON.parse(lastTokenData);
+        const gracePeriodEnd = expiredAt + TOKEN_GRACE_PERIOD * 1000;
+        if (lastToken === token && Date.now() < gracePeriodEnd) {
+          logInfo(
+            requestId,
+            `Auth validation: Found expired token for user ${username} within grace period`
+          );
+          return { valid: true, expired: true };
         }
+      } catch (e) {
+        logError(requestId, "Error parsing last token data", e);
       }
     }
-
-    logInfo(
-      requestId,
-      `Auth validation failed: No token found for user ${username}`
-    );
-    return { valid: false };
   }
 
-  // Perform timing-safe comparison
-  try {
-    const a = Buffer.from(storedToken);
-    const b = Buffer.from(token);
-    // Length check must pass before timingSafeEqual
-    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
-      logInfo(
-        requestId,
-        `Auth validation failed: Invalid token for user ${username}`
-      );
-      return { valid: false };
-    }
-  } catch (cmpErr) {
-    // Fallback (should not happen)
-    if (storedToken !== token) {
-      logInfo(
-        requestId,
-        `Auth validation failed (fallback): Invalid token for user ${username}`
-      );
-      return { valid: false };
-    }
-  }
-
-  // Refresh token expiration on successful validation
-  await redis.expire(tokenKey, USER_TTL_SECONDS);
-  return { valid: true, expired: false };
+  logInfo(requestId, `Auth validation failed for user ${username}`);
+  return { valid: false };
 };
 
 /**
@@ -1656,6 +1669,9 @@ async function handleCreateUser(data, requestId) {
     // Store token with same expiration as user
     await redis.set(tokenKey, authToken, { ex: USER_EXPIRATION_TIME });
 
+    // NEW: store token->username mapping to allow multiple concurrent tokens
+    await storeToken(username, authToken);
+
     logInfo(requestId, `User created with auth token: ${username}`);
 
     return new Response(JSON.stringify({ user, token: authToken }), {
@@ -2606,10 +2622,10 @@ async function handleGenerateToken(data, requestId) {
     // Check if token already exists
     const tokenKey = `${AUTH_TOKEN_PREFIX}${username}`;
     const existingToken = await redis.get(tokenKey);
+    // Multiple tokens per user are now supported; we no longer treat an existing token as an error.
 
     if (existingToken && !force) {
-      logInfo(requestId, `Token already exists for user: ${username}`);
-      return createErrorResponse("Token already exists for this user", 409);
+      // Legacy logic removed: we now allow generating multiple tokens per user.
     }
 
     // Generate new token
@@ -2617,6 +2633,9 @@ async function handleGenerateToken(data, requestId) {
 
     // Store token with expiration
     await redis.set(tokenKey, authToken, { ex: USER_EXPIRATION_TIME });
+
+    // Persist token->username mapping for multi-token support
+    await storeToken(username, authToken);
 
     logInfo(
       requestId,
@@ -2680,12 +2699,18 @@ async function handleRefreshToken(data, requestId) {
       `Stored old token for future grace period use for user: ${username}`
     );
 
+    // Remove the old token so that it is no longer valid on this device
+    await deleteToken(oldToken);
+
     // Generate new token
     const authToken = generateAuthToken();
 
     // Store new token with expiration
     const tokenKey = `${AUTH_TOKEN_PREFIX}${username}`;
     await redis.set(tokenKey, authToken, { ex: USER_EXPIRATION_TIME });
+
+    // Persist token->username mapping for multi-token support
+    await storeToken(username, authToken);
 
     logInfo(
       requestId,
@@ -2843,7 +2868,7 @@ async function broadcastToSpecificUsers(usernames) {
 // Add these new handler functions after the existing handlers
 
 async function handleAuthenticateWithPassword(data, requestId) {
-  const { username: originalUsername, password } = data;
+  const { username: originalUsername, password, oldToken } = data;
 
   if (!originalUsername || !password) {
     logInfo(requestId, "Auth failed: Username and password are required");
@@ -2880,12 +2905,21 @@ async function handleAuthenticateWithPassword(data, requestId) {
       return createErrorResponse("Invalid username or password", 401);
     }
 
+    // Remove previous token mapping from this device if provided
+    if (oldToken) {
+      await deleteToken(oldToken);
+      await storeLastValidToken(username, oldToken);
+    }
+
     // Generate new token
     const authToken = generateAuthToken();
     const tokenKey = `${AUTH_TOKEN_PREFIX}${username}`;
 
     // Store token with expiration
     await redis.set(tokenKey, authToken, { ex: USER_EXPIRATION_TIME });
+
+    // Persist token -> username mapping
+    await storeToken(username, authToken);
 
     logInfo(
       requestId,

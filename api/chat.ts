@@ -379,13 +379,20 @@ async function validateAuthToken(
   }
 
   const normalizedUsername = username.toLowerCase();
-  const tokenKey = `${AUTH_TOKEN_PREFIX}${normalizedUsername}`;
-  const storedToken = await redis.get(tokenKey);
+  // 1) First, try the new token->username mapping
+  const directKey = `${AUTH_TOKEN_PREFIX}${authToken}`;
+  const mappedUsername = await redis.get(directKey);
+  if (mappedUsername && String(mappedUsername).toLowerCase() === normalizedUsername) {
+    await redis.expire(directKey, USER_TTL_SECONDS);
+    return { valid: true };
+  }
 
-  // Check if current token is valid
+  // 2) Fallback to legacy single-token mapping (username -> token)
+  const legacyKey = `${AUTH_TOKEN_PREFIX}${normalizedUsername}`;
+  const storedToken = await redis.get(legacyKey);
+
   if (storedToken && storedToken === authToken) {
-    // Refresh token expiration on successful validation (90 days)
-    await redis.expire(tokenKey, USER_TTL_SECONDS);
+    await redis.expire(legacyKey, USER_TTL_SECONDS);
     return { valid: true };
   }
 
@@ -424,7 +431,10 @@ async function validateAuthToken(
         );
 
         // Store the new token
-        await redis.set(tokenKey, newToken, { ex: USER_TTL_SECONDS });
+        await redis.set(legacyKey, newToken, { ex: USER_TTL_SECONDS });
+
+        // Also store the mapping for multi-token support
+        await redis.set(`${AUTH_TOKEN_PREFIX}${newToken}`, normalizedUsername, { ex: USER_TTL_SECONDS });
 
         return { valid: true, newToken };
       }
@@ -624,7 +634,7 @@ export default async function handler(req: Request) {
       ...CACHE_CONTROL_OPTIONS, // { providerOptions: { anthropic: { cacheControl: { type: "ephemeral" } } } }
     };
 
-    // 2) Dynamic, user-specific system state (don’t cache)
+    // 2) Dynamic, user-specific system state (don't cache)
     const dynamicSystemMessage = {
       role: "system" as const,
       content: generateDynamicSystemPrompt(systemState),
