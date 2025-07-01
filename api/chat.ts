@@ -382,7 +382,10 @@ async function validateAuthToken(
   // 1) First, try the new token->username mapping
   const directKey = `${AUTH_TOKEN_PREFIX}${authToken}`;
   const mappedUsername = await redis.get(directKey);
-  if (mappedUsername && String(mappedUsername).toLowerCase() === normalizedUsername) {
+  if (
+    mappedUsername &&
+    String(mappedUsername).toLowerCase() === normalizedUsername
+  ) {
     await redis.expire(directKey, USER_TTL_SECONDS);
     return { valid: true };
   }
@@ -434,7 +437,9 @@ async function validateAuthToken(
         await redis.set(legacyKey, newToken, { ex: USER_TTL_SECONDS });
 
         // Also store the mapping for multi-token support
-        await redis.set(`${AUTH_TOKEN_PREFIX}${newToken}`, normalizedUsername, { ex: USER_TTL_SECONDS });
+        await redis.set(`${AUTH_TOKEN_PREFIX}${newToken}`, normalizedUsername, {
+          ex: USER_TTL_SECONDS,
+        });
 
         return { valid: true, newToken };
       }
@@ -537,17 +542,14 @@ export default async function handler(req: Request) {
     // ---------------------------
     // Rate-limit & auth checks
     // ---------------------------
-    // Validate authentication first
-    let validationResult;
-    if (username && username.toLowerCase() === "ryo") {
-      validationResult = { valid: true };
-    } else {
-      validationResult = await validateAuthToken(username, authToken);
-    }
+    // Validate authentication (all users, including "ryo", must present a valid token)
+    const validationResult = await validateAuthToken(username, authToken);
 
-    // If username is provided but auth is invalid, reject the request
+    // If a username was provided but the token is missing/invalid, reject the request early
     if (username && !validationResult.valid) {
-      log(`Authentication failed for claimed user: ${username}`);
+      console.log(
+        `[User: ${username}] Authentication failed – invalid or missing token`
+      );
       return new Response(
         JSON.stringify({
           error: "authentication_failed",
@@ -565,9 +567,8 @@ export default async function handler(req: Request) {
 
     // Use validated auth status for rate limiting
     const isAuthenticated = validationResult.valid;
-    const identifier = isAuthenticated && username
-      ? username.toLowerCase()
-      : `anon:${ip}`;
+    const identifier =
+      isAuthenticated && username ? username.toLowerCase() : `anon:${ip}`;
 
     // Only check rate limits for user messages (not system messages)
     const userMessages = messages.filter(
@@ -576,7 +577,8 @@ export default async function handler(req: Request) {
     if (userMessages.length > 0) {
       const rateLimitResult = await checkAndIncrementAIMessageCount(
         identifier,
-        isAuthenticated
+        isAuthenticated,
+        authToken
       );
 
       if (!rateLimitResult.allowed) {
