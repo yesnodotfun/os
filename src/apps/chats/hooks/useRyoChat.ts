@@ -102,6 +102,16 @@ export function useRyoChat({
   onScrollToBottom,
   roomMessages = [],
 }: UseRyoChatProps) {
+  // Pull current auth credentials from store (reactive)
+  const { authToken, username } = useChatsStore();
+
+  // Build auth headers once per render (updates when authToken/username change)
+  const authHeaders: Record<string, string> = {};
+  if (authToken && username) {
+    authHeaders["Authorization"] = `Bearer ${authToken}`;
+    authHeaders["X-Username"] = username;
+  }
+
   // Create a separate AI chat hook for @ryo mentions in chat rooms
   const {
     messages: ryoMessages,
@@ -113,12 +123,12 @@ export function useRyoChat({
     body: {
       systemState: getSystemState(),
     },
+    headers: authHeaders,
     onFinish: async (message) => {
       // When AI finishes responding, send the response to the chat room
       if (currentRoomId && message.role === "assistant") {
         // Send as a regular message to the room
         // We'll need to call the API directly since we want it to appear from 'ryo'
-        const { authToken, username } = useChatsStore.getState();
         const headers: HeadersInit = { "Content-Type": "application/json" };
 
         if (authToken && username) {
