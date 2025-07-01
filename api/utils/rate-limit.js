@@ -35,14 +35,10 @@ async function checkAndIncrementAIMessageCount(
   // Set limit based on authentication status
   const limit = isAnonymous ? AI_LIMIT_ANON_PER_5_HOURS : AI_LIMIT_PER_5_HOURS;
 
-  // Allow ryo to bypass rate limits
+  // Identify privileged user (ryo)
   const isRyo = identifier === "ryo";
 
-  // Skip all rate limiting for ryo
-  if (isRyo) {
-    return { allowed: true, count, limit };
-  }
-
+  // --- Authentication validation section ---
   // If authenticated, validate the token
   if (isAuthenticated && authToken) {
     const AUTH_TOKEN_PREFIX = "chat:token:";
@@ -64,6 +60,20 @@ async function checkAndIncrementAIMessageCount(
         limit: AI_LIMIT_ANON_PER_5_HOURS,
       };
     }
+
+    // If the request is from ryo **and** the token is valid, bypass rate limits entirely
+    if (isRyo) {
+      return { allowed: true, count, limit };
+    }
+  }
+
+  // If the user *claims* to be ryo but is **not** authenticated, deny the request outright
+  if (isRyo) {
+    return {
+      allowed: false,
+      count: 0,
+      limit: AI_LIMIT_ANON_PER_5_HOURS,
+    };
   }
 
   if (count >= limit && !isRyo) {
