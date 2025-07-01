@@ -27,7 +27,7 @@ type TranslateLyricsRequest = z.infer<typeof TranslateLyricsRequestSchema>;
 // ------------------------------------------------------------------
 // Redis cache helpers
 // ------------------------------------------------------------------
-const LYRIC_TRANSLATION_CACHE_PREFIX = "lyrics_translation:cache:";
+const LYRIC_TRANSLATION_CACHE_PREFIX = "lyrics:translations:";
 
 // Simple djb2 string hash -> 32-bit unsigned then hex
 const hashString = (str: string): string => {
