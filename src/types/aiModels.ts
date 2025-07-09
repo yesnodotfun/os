@@ -2,7 +2,11 @@
 
 // Single source of truth for AI models
 export const AI_MODELS = {
-  "gemini-2.5-pro-preview-05-06": {
+  "gemini-2.5-flash": {
+    name: "gemini-2.5-flash",
+    provider: "Google",
+  },
+  "gemini-2.5-pro": {
     name: "gemini-2.5-pro",
     provider: "Google",
   },
@@ -54,4 +58,4 @@ export const AI_MODEL_METADATA: AIModelInfo[] = Object.entries(AI_MODELS).map(
 );
 
 // Default model
-export const DEFAULT_AI_MODEL: SupportedModel = "claude-4";
+export const DEFAULT_AI_MODEL: SupportedModel = "gemini-2.5-flash";
