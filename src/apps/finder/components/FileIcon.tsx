@@ -1,6 +1,7 @@
 import { useSound, Sounds } from "@/hooks/useSound";
 import { useEffect, useState, useRef } from "react";
 import { isMobileDevice } from "@/utils/device";
+import { useLongPress } from "@/hooks/useLongPress";
 
 interface FileIconProps {
   name: string;
@@ -9,6 +10,7 @@ interface FileIconProps {
   content?: string | Blob;
   contentUrl?: string;
   onDoubleClick?: (event: React.MouseEvent<HTMLDivElement>) => void;
+  onContextMenu?: (event: React.MouseEvent<HTMLDivElement>) => void;
   isSelected?: boolean;
   isDropTarget?: boolean;
   onClick?: (event: React.MouseEvent<HTMLDivElement>) => void;
@@ -23,6 +25,7 @@ export function FileIcon({
   content,
   contentUrl,
   onDoubleClick,
+  onContextMenu,
   isSelected,
   isDropTarget,
   onClick,
@@ -201,11 +204,28 @@ export function FileIcon({
     }
   };
 
+  // Add long-press support for context menu on mobile
+  const longPressHandlers = useLongPress((touchEvent) => {
+    if (onContextMenu) {
+      const touch = touchEvent.touches[0];
+      const syntheticEvent = {
+        preventDefault: () => {},
+        stopPropagation: () => {},
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+      } as unknown as React.MouseEvent<HTMLDivElement>;
+      onContextMenu(syntheticEvent);
+    }
+  });
+
   return (
     <div
       className={`flex flex-col items-center justify-start cursor-pointer gap-1 ${sizes.container} ${className}`}
       onDoubleClick={handleDoubleClick}
       onClick={handleClick}
+      onContextMenu={onContextMenu}
+      data-desktop-icon="true"
+      {...longPressHandlers}
     >
       <div
         className={`flex items-center justify-center ${sizes.icon} ${

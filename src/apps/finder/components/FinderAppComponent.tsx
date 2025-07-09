@@ -682,6 +682,13 @@ export function FinderAppComponent({
 
   // ------------------ Mobile long-press support (blank area) ------------------
   const blankLongPressHandlers = useLongPress((e) => {
+    // Check if the target is within a file item - if so, don't show blank context menu
+    const target = e.target as HTMLElement;
+    const fileItem = target.closest('[data-file-item]');
+    if (fileItem) {
+      return; // Let the file item handle its own context menu
+    }
+    
     const touch = e.touches[0];
     setContextMenuPos({ x: touch.clientX, y: touch.clientY });
     setContextMenuFile(null);
@@ -711,6 +718,8 @@ export function FinderAppComponent({
   ];
 
   const fileMenuItems = (file: FileItem): MenuItem[] => [
+    { type: "item", label: "Open", onSelect: () => handleFileOpen(file) },
+    { type: "separator" },
     { type: "item", label: "Rename…", onSelect: handleRename },
     { type: "item", label: "Duplicate", onSelect: handleDuplicate },
     {

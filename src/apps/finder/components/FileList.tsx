@@ -303,6 +303,7 @@ export function FileList({
         onDragLeave={handleDragLeave}
         onDrop={(e) => handleDrop(e, file)}
         onDragEnd={handleDragEnd}
+        data-file-item="true"
         {...longPressHandlers}
       >
         <TableCell className="flex items-center gap-2">
@@ -382,6 +383,7 @@ export function FileList({
             onItemContextMenu(file, e);
           }
         }}
+        data-file-item="true"
         {...longPressHandlers}
       >
         <FileIcon
