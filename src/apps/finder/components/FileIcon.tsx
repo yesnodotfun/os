@@ -1,5 +1,6 @@
 import { useSound, Sounds } from "@/hooks/useSound";
 import { useEffect, useState, useRef } from "react";
+import { isMobileDevice } from "@/utils/device";
 
 interface FileIconProps {
   name: string;
@@ -181,14 +182,30 @@ export function FileIcon({
     );
   };
 
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    playClick();
+    
+    // On mobile devices, single tap should open the app (execute onDoubleClick)
+    if (isMobileDevice() && onDoubleClick) {
+      onDoubleClick(e);
+    } else {
+      // On desktop, execute the regular onClick handler (selection)
+      onClick?.(e);
+    }
+  };
+
+  const handleDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Only handle double-click on desktop (mobile uses single tap)
+    if (!isMobileDevice()) {
+      onDoubleClick?.(e);
+    }
+  };
+
   return (
     <div
       className={`flex flex-col items-center justify-start cursor-pointer gap-1 ${sizes.container} ${className}`}
-      onDoubleClick={onDoubleClick}
-      onClick={(e) => {
-        playClick();
-        onClick?.(e);
-      }}
+      onDoubleClick={handleDoubleClick}
+      onClick={handleClick}
     >
       <div
         className={`flex items-center justify-center ${sizes.icon} ${

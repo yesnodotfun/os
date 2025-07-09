@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/table";
 import { useState, useRef, useEffect } from "react";
 import { useLongPress } from "@/hooks/useLongPress";
+import { isMobileDevice } from "@/utils/device";
 
 export interface FileItem {
   name: string;
@@ -264,6 +265,23 @@ export function FileList({
       }
     });
 
+    const handleClick = () => {
+      // On mobile devices, single tap should open the file (execute handleFileOpen)
+      if (isMobileDevice()) {
+        handleFileOpen(file);
+      } else {
+        // On desktop, execute the regular click handler (selection)
+        handleFileSelect(file);
+      }
+    };
+
+    const handleDoubleClick = () => {
+      // Only handle double-click on desktop (mobile uses single tap)
+      if (!isMobileDevice()) {
+        handleFileOpen(file);
+      }
+    };
+
     return (
       <TableRow
         key={file.path}
@@ -272,13 +290,13 @@ export function FileList({
             ? "bg-black text-white hover:bg-black"
             : "odd:bg-gray-200/50"
         }`}
-        onClick={() => handleFileSelect(file)}
+        onClick={handleClick}
         onContextMenu={(e: React.MouseEvent) => {
           if (onItemContextMenu) {
             onItemContextMenu(file, e);
           }
         }}
-        onDoubleClick={() => handleFileOpen(file)}
+        onDoubleClick={handleDoubleClick}
         draggable={!file.isDirectory}
         onDragStart={(e) => handleDragStart(e, file)}
         onDragOver={(e) => handleDragOver(e, file)}

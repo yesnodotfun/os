@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { AppProps } from "../../base/types";
 import { WindowFrame } from "@/components/layout/WindowFrame";
 import { MinesweeperMenuBar } from "./MinesweeperMenuBar";
@@ -8,6 +8,7 @@ import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { helpItems, appMetadata } from "..";
 import { useSound, Sounds } from "@/hooks/useSound";
+import { isMobileDevice } from "@/utils/device";
 
 const BOARD_SIZE = 9;
 const MINES_COUNT = 10;
@@ -22,19 +23,22 @@ type CellContent = {
 function useLongPress(
   onLongPress: (e: React.TouchEvent | React.MouseEvent) => void,
   onClick: () => void,
-  { shouldPreventDefault = true, delay = 500 } = {}
+  { shouldPreventDefault = false, delay = 500 } = {}
 ) {
-  const [longPressTriggered, setLongPressTriggered] = useState(false);
   const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout>();
+  const longPressTriggeredRef = useRef(false);
 
   const start = useCallback(
     (e: React.TouchEvent | React.MouseEvent) => {
       if (shouldPreventDefault && e.target) {
         e.preventDefault();
       }
+      // Reset the flag when starting a new gesture
+      longPressTriggeredRef.current = false;
+      
       const timer = setTimeout(() => {
         onLongPress(e);
-        setLongPressTriggered(true);
+        longPressTriggeredRef.current = true;
       }, delay);
       setTimeoutId(timer);
     },
@@ -47,12 +51,18 @@ function useLongPress(
         clearTimeout(timeoutId);
       }
       setTimeoutId(undefined);
-      if (shouldTriggerClick && !longPressTriggered && onClick) {
+      
+      // Use ref to ensure we have the most current value
+      if (shouldTriggerClick && !longPressTriggeredRef.current && onClick) {
         onClick();
       }
-      setLongPressTriggered(false);
+      
+      // Reset after a small delay to prevent race conditions
+      setTimeout(() => {
+        longPressTriggeredRef.current = false;
+      }, 100);
     },
-    [onClick, timeoutId, longPressTriggered]
+    [onClick, timeoutId]
   );
 
   return {
@@ -85,17 +95,38 @@ function Cell({
   onCellRightClick,
   disabled,
 }: CellProps) {
+  const handleClick = () => {
+    // On mobile, if this is a revealed cell with a number, trigger the reveal adjacent behavior
+    if (isMobileDevice() && cell.isRevealed && cell.neighborMines > 0) {
+      onCellClick(rowIndex, colIndex, true);
+    } else {
+      // Otherwise, regular click behavior
+      onCellClick(rowIndex, colIndex, false);
+    }
+  };
+
   const longPressHandlers = useLongPress(
     (e) => onCellRightClick(e, rowIndex, colIndex),
-    () => onCellClick(rowIndex, colIndex, false),
-    { delay: 500 }
+    handleClick,
+    { delay: 500, shouldPreventDefault: false }
   );
 
   const handleDoubleClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (cell.isRevealed && cell.neighborMines > 0) {
+    // Only handle double-click on desktop (mobile uses single tap)
+    if (!isMobileDevice() && cell.isRevealed && cell.neighborMines > 0) {
       onCellClick(rowIndex, colIndex, true);
     }
+  };
+
+  const handleContextMenu = (e: React.MouseEvent) => {
+    // On mobile, prevent context menu since we use long press for flagging
+    if (isMobileDevice()) {
+      e.preventDefault();
+      return;
+    }
+    // On desktop, allow right-click for flagging
+    onCellRightClick(e, rowIndex, colIndex);
   };
 
   return (
@@ -108,7 +139,7 @@ function Cell({
             : "bg-[#c0c0c0] border-2 border-t-white border-l-white border-r-gray-800 border-b-gray-800 hover:bg-[#d0d0d0] active:border active:border-gray-600"
         }`}
       {...longPressHandlers}
-      onContextMenu={(e) => onCellRightClick(e, rowIndex, colIndex)}
+      onContextMenu={handleContextMenu}
       onDoubleClick={handleDoubleClick}
       disabled={disabled}
     >
