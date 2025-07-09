@@ -146,6 +146,12 @@
   }
   html {
     overscroll-behavior: none;
+    overscroll-behavior-x: none;
+    overscroll-behavior-y: none;
+    /* Disable pull-to-refresh and back gestures on Android Chrome */
+    -webkit-overscroll-behavior: none;
+    -webkit-overscroll-behavior-x: none;
+    -webkit-overscroll-behavior-y: none;
   }
   body {
     @apply bg-background text-foreground;
@@ -158,6 +164,16 @@
     overflow: hidden;
     position: fixed;
     inset: 0;
+    /* Additional mobile gesture prevention */
+    overscroll-behavior: none;
+    overscroll-behavior-x: none;
+    overscroll-behavior-y: none;
+    -webkit-overscroll-behavior: none;
+    -webkit-overscroll-behavior-x: none;
+    -webkit-overscroll-behavior-y: none;
+    /* Prevent touch scrolling behaviors */
+    touch-action: none;
+    -ms-touch-action: none;
   }
 }
 
@@ -333,6 +349,30 @@
 
   .animate-highlight {
     animation: highlight-bg-opacity 1.5s ease-in-out infinite;
+  }
+
+  /* Draggable area styles - prevents browser gestures on touch devices */
+  .draggable-area {
+    touch-action: none !important;
+    -ms-touch-action: none !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+    /* Prevent default touch behaviors */
+    -webkit-touch-callout: none !important;
+    /* Disable context menu on long press */
+    -webkit-context-menu-trigger: none !important;
+    /* Prevent text selection highlighting */
+    -webkit-tap-highlight-color: transparent !important;
+  }
+
+  /* Resize handle styles - ensures proper touch handling */
+  .resize-handle {
+    touch-action: none !important;
+    -ms-touch-action: none !important;
+    -webkit-touch-callout: none !important;
   }
 }
 
