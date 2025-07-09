@@ -1,4 +1,4 @@
-import { openai } from "@ai-sdk/openai";
+import { google } from "@ai-sdk/google";
 import { generateObject } from "ai";
 import { z } from "zod";
 import { Redis } from "@upstash/redis";
@@ -166,7 +166,7 @@ If a line is purely instrumental or cannot be translated (e.g., "---"), return i
 Do not include timestamps or any other formatting in your output strings; just the raw translated text for each line.`;
 
     const { object: aiResponse } = await generateObject({
-      model: openai("gpt-4.1-mini"),
+      model: google("gemini-2.5-flash"),
       schema: AiTranslatedTextsSchema, // Use the new simplified schema for AI output
       prompt: JSON.stringify(lines.map((line) => ({ words: line.words }))), // Send only words to AI for translation context
       system: systemPrompt,
