@@ -56,8 +56,8 @@ export function FileList({
   onItemContextMenu,
 }: FileListProps) {
   const { play: playClick } = useSound(Sounds.BUTTON_CLICK, 0.3);
-  const [draggedFile, setDraggedFile] = useState<FileItem | null>(null);
   const [dropTargetPath, setDropTargetPath] = useState<string | null>(null);
+  const draggedFileRef = useRef<FileItem | null>(null);
 
   // Add refs for rename timing
   const clickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -124,7 +124,11 @@ export function FileList({
       return;
     }
 
-    // Set dragged file data
+    // Store the dragged file
+    draggedFileRef.current = file;
+
+    // Set drag data
+    e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData(
       "application/json",
       JSON.stringify({
@@ -132,7 +136,14 @@ export function FileList({
         name: file.name,
       })
     );
-    setDraggedFile(file);
+
+    // Set drag image to be the element itself
+    const target = e.currentTarget as HTMLElement;
+    e.dataTransfer.setDragImage(
+      target,
+      e.nativeEvent.offsetX,
+      e.nativeEvent.offsetY
+    );
   };
 
   const handleDragOver = (e: React.DragEvent<HTMLElement>, file: FileItem) => {
@@ -140,8 +151,8 @@ export function FileList({
     if (
       file.isDirectory &&
       canDropFiles &&
-      draggedFile &&
-      draggedFile.path !== file.path
+      draggedFileRef.current &&
+      draggedFileRef.current.path !== file.path
     ) {
       e.preventDefault();
       setDropTargetPath(file.path);
@@ -162,27 +173,27 @@ export function FileList({
     setDropTargetPath(null);
 
     // Only process if we have a dragged file and onFileDrop handler
-    if (!draggedFile || !onFileDrop || !targetFolder.isDirectory) {
-      setDraggedFile(null);
+    if (!draggedFileRef.current || !onFileDrop || !targetFolder.isDirectory) {
+      draggedFileRef.current = null;
       return;
     }
 
     // Prevent dropping a folder into itself or its descendant
     if (
-      draggedFile.path === targetFolder.path ||
-      targetFolder.path.startsWith(draggedFile.path + "/")
+      draggedFileRef.current.path === targetFolder.path ||
+      targetFolder.path.startsWith(draggedFileRef.current.path + "/")
     ) {
-      setDraggedFile(null);
+      draggedFileRef.current = null;
       return;
     }
 
     // Call the handler with source and target
-    onFileDrop(draggedFile, targetFolder);
-    setDraggedFile(null);
+    onFileDrop(draggedFileRef.current, targetFolder);
+    draggedFileRef.current = null;
   };
 
   const handleDragEnd = () => {
-    setDraggedFile(null);
+    draggedFileRef.current = null;
     setDropTargetPath(null);
   };
 
@@ -190,7 +201,7 @@ export function FileList({
   const handleContainerDragOver = (e: React.DragEvent<HTMLElement>) => {
     if (
       canDropFiles &&
-      draggedFile &&
+      draggedFileRef.current &&
       (currentPath === "/Documents" || currentPath === "/Images")
     ) {
       e.preventDefault();
@@ -212,14 +223,14 @@ export function FileList({
 
     // Process drop on the container
     if (
-      draggedFile &&
+      draggedFileRef.current &&
       onDropToCurrentDirectory &&
       (currentPath === "/Documents" || currentPath === "/Images")
     ) {
-      onDropToCurrentDirectory(draggedFile);
+      onDropToCurrentDirectory(draggedFileRef.current);
     }
 
-    setDraggedFile(null);
+    draggedFileRef.current = null;
   };
 
   // Add a helper function to detect image files
@@ -291,6 +302,12 @@ export function FileList({
             : "odd:bg-gray-200/50"
         }`}
         onClick={handleClick}
+        onMouseDown={() => {
+          // Immediately select the file on mouse down for drag preparation
+          if (!file.isDirectory && selectedFile?.path !== file.path) {
+            onFileSelect(file);
+          }
+        }}
         onContextMenu={(e: React.MouseEvent) => {
           if (onItemContextMenu) {
             onItemContextMenu(file, e);
@@ -304,7 +321,7 @@ export function FileList({
         onDrop={(e) => handleDrop(e, file)}
         onDragEnd={handleDragEnd}
         data-file-item="true"
-        {...longPressHandlers}
+        {...(isMobileDevice() ? longPressHandlers : {})}
       >
         <TableCell className="flex items-center gap-2">
           {file.contentUrl && isImageFile(file) ? (
@@ -371,6 +388,12 @@ export function FileList({
     return (
       <div
         key={file.path}
+        onMouseDown={() => {
+          // Immediately select the file on mouse down for drag preparation
+          if (!file.isDirectory && selectedFile?.path !== file.path) {
+            onFileSelect(file);
+          }
+        }}
         draggable={!file.isDirectory}
         onDragStart={(e) => handleDragStart(e, file)}
         onDragOver={(e) => handleDragOver(e, file)}
@@ -384,7 +407,7 @@ export function FileList({
           }
         }}
         data-file-item="true"
-        {...longPressHandlers}
+        {...(isMobileDevice() ? longPressHandlers : {})}
       >
         <FileIcon
           name={file.name}
