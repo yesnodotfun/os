@@ -8,6 +8,14 @@ import { LyricsDisplay } from "./LyricsDisplay";
 import { useLyrics } from "@/hooks/useLyrics";
 import { LyricsAlignment, ChineseVariant, KoreanDisplay } from "@/types/lyrics";
 
+// Minimal BatteryManager interface for browsers that expose navigator.getBattery
+interface BatteryManager {
+  charging: boolean;
+  level: number;
+  addEventListener(type: string, listener: () => void): void;
+  removeEventListener(type: string, listener: () => void): void;
+}
+
 // Battery component
 function BatteryIndicator({ backlightOn }: { backlightOn: boolean }) {
   const [batteryLevel, setBatteryLevel] = useState<number | null>(null);
@@ -18,8 +26,10 @@ function BatteryIndicator({ backlightOn }: { backlightOn: boolean }) {
     // Try to get battery information (deprecated API, may not work in all browsers)
     const getBattery = async () => {
       try {
-        if ("getBattery" in navigator) {
-          const battery = await (navigator as any).getBattery();
+          if ("getBattery" in navigator) {
+            const battery = await (
+              navigator as unknown as { getBattery: () => Promise<BatteryManager> }
+            ).getBattery();
           setBatteryLevel(battery.level);
           setIsCharging(battery.charging);
 
