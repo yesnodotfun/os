@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Loader2, AlertCircle, Music, Video, ExternalLink } from "lucide-react";
+import { Loader2, AlertCircle, Music, ExternalLink } from "lucide-react";
 import { useLaunchApp } from "@/hooks/useLaunchApp";
 
 interface LinkMetadata {
@@ -56,26 +56,16 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
     }
   };
 
-  // Handle adding to Videos
-  const handleAddToVideos = (e: React.MouseEvent) => {
+  // Handle opening YouTube externally
+  const handleOpenYouTube = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const videoId = extractYouTubeVideoId(url);
-    if (videoId) {
-      launchApp("videos", { initialData: { videoId } });
-    }
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
-  // Handle opening in Internet Explorer
-  const handleOpenInIE = (e: React.MouseEvent) => {
+  // Handle opening link externally
+  const handleOpenExternally = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const urlObj = new URL(url);
-    const domain = urlObj.hostname.replace(/^www\./, '');
-    const path = urlObj.pathname + urlObj.search;
-    const cleanUrl = domain + path;
-    
-    launchApp("internet-explorer", { 
-      initialData: { url: cleanUrl, year: "current" }
-    });
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   useEffect(() => {
@@ -235,25 +225,25 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
                   <span>Add to iPod</span>
                 </button>
                 <button
-                  onClick={handleAddToVideos}
+                  onClick={handleOpenYouTube}
                   className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
-                  title="Add to Videos"
+                  title="Open YouTube"
                   data-link-preview
                 >
-                  <Video className="h-3 w-3" />
-                  <span>Add to Videos</span>
+                  <ExternalLink className="h-3 w-3" />
+                  <span>Open YouTube</span>
                 </button>
               </div>
             ) : (
               <div className="flex gap-2 pt-2 border-t border-gray-100">
                 <button
-                  onClick={handleOpenInIE}
+                  onClick={handleOpenExternally}
                   className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors w-full"
-                  title="Open in Internet Explorer"
+                  title="Open Externally"
                   data-link-preview
                 >
                   <ExternalLink className="h-3 w-3" />
-                  <span>Open in IE</span>
+                  <span>Open Externally</span>
                 </button>
               </div>
             )}
@@ -355,25 +345,25 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
                   <span>Add to iPod</span>
                 </button>
                 <button
-                  onClick={handleAddToVideos}
+                  onClick={handleOpenYouTube}
                   className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
-                  title="Add to Videos"
+                  title="Open YouTube"
                   data-link-preview
                 >
-                  <Video className="h-3 w-3" />
-                  <span>Add to Videos</span>
+                  <ExternalLink className="h-3 w-3" />
+                  <span>Open YouTube</span>
                 </button>
               </div>
             ) : (
               <div className="flex gap-2 pt-2 border-t border-gray-100">
                 <button
-                  onClick={handleOpenInIE}
+                  onClick={handleOpenExternally}
                   className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors w-full"
-                  title="Open in Internet Explorer"
+                  title="Open Externally"
                   data-link-preview
                 >
                   <ExternalLink className="h-3 w-3" />
-                  <span>Open in IE</span>
+                  <span>Open Externally</span>
                 </button>
               </div>
             )}
