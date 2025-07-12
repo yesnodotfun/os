@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Loader2, AlertCircle, Music, Video, ExternalLink } from "lucide-react";
 import { useLaunchApp } from "@/hooks/useLaunchApp";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 interface LinkMetadata {
   title?: string;
@@ -30,6 +31,7 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
     return isYouTubeUrl(url);
   });
   const launchApp = useLaunchApp();
+  const isMobile = useIsMobile();
 
   // Helper function to extract YouTube video ID
   const extractYouTubeVideoId = (url: string): string | null => {
@@ -48,7 +50,7 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
   };
 
   // Handle adding to iPod
-  const handleAddToIpod = (e: React.MouseEvent) => {
+  const handleAddToIpod = (e: React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation();
     const videoId = extractYouTubeVideoId(url);
     if (videoId) {
@@ -57,7 +59,7 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
   };
 
   // Handle adding to Videos
-  const handleAddToVideos = (e: React.MouseEvent) => {
+  const handleAddToVideos = (e: React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation();
     const videoId = extractYouTubeVideoId(url);
     if (videoId) {
@@ -66,7 +68,7 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
   };
 
   // Handle opening in Internet Explorer
-  const handleOpenInIE = (e: React.MouseEvent) => {
+  const handleOpenInIE = (e: React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation();
     const urlObj = new URL(url);
     const domain = urlObj.hostname.replace(/^www\./, '');
@@ -152,17 +154,29 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
     return null;
   }
 
-  const handleClick = () => {
-    window.open(url, "_blank", "noopener,noreferrer");
+  const handleClick = (e: React.MouseEvent | React.TouchEvent) => {
+    // On mobile, navigate directly without any delay
+    if (isMobile && 'touches' in e) {
+      e.stopPropagation();
+      window.open(url, "_blank", "noopener,noreferrer");
+    } else {
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
   };
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`bg-white border border-gray-200 overflow-hidden hover:shadow-md transition-shadow cursor-pointer font-geneva-12 ${className}`}
+      className={`link-preview-container bg-white border border-gray-200 overflow-hidden hover:shadow-md transition-shadow cursor-pointer font-geneva-12 ${className}`}
       style={{ borderRadius: '3px' }}
       onClick={handleClick}
+      onTouchStart={(e) => {
+        if (isMobile) {
+          // Prevent the parent message from handling this touch
+          e.stopPropagation();
+        }
+      }}
     >
       {isFullWidthThumbnail && metadata.image ? (
         // Full width thumbnail layout with overlay
@@ -207,6 +221,7 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
               <div className="flex gap-2 pt-2 border-t border-gray-100">
                 <button
                   onClick={handleAddToIpod}
+                  onTouchStart={(e) => isMobile && e.stopPropagation()}
                   className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
                   title="Add to iPod"
                 >
@@ -215,6 +230,7 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
                 </button>
                 <button
                   onClick={handleAddToVideos}
+                  onTouchStart={(e) => isMobile && e.stopPropagation()}
                   className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
                   title="Add to Videos"
                 >
@@ -226,6 +242,7 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
               <div className="flex gap-2 pt-2 border-t border-gray-100">
                 <button
                   onClick={handleOpenInIE}
+                  onTouchStart={(e) => isMobile && e.stopPropagation()}
                   className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors w-full"
                   title="Open in Internet Explorer"
                 >
@@ -324,6 +341,7 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
               <div className="flex gap-2 pt-2 border-t border-gray-100">
                 <button
                   onClick={handleAddToIpod}
+                  onTouchStart={(e) => isMobile && e.stopPropagation()}
                   className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
                   title="Add to iPod"
                 >
@@ -332,6 +350,7 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
                 </button>
                 <button
                   onClick={handleAddToVideos}
+                  onTouchStart={(e) => isMobile && e.stopPropagation()}
                   className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
                   title="Add to Videos"
                 >
@@ -343,6 +362,7 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
               <div className="flex gap-2 pt-2 border-t border-gray-100">
                 <button
                   onClick={handleOpenInIE}
+                  onTouchStart={(e) => isMobile && e.stopPropagation()}
                   className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors w-full"
                   title="Open in Internet Explorer"
                 >
