@@ -153,7 +153,26 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
   }
 
   const handleClick = () => {
-    window.open(url, "_blank", "noopener,noreferrer");
+    if (isYouTubeUrl(url)) {
+      // For YouTube links, launch Videos app
+      const videoId = extractYouTubeVideoId(url);
+      if (videoId) {
+        launchApp("videos", { initialData: { videoId } });
+      } else {
+        // Fallback to opening in browser if videoId extraction fails
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
+    } else {
+      // For other links, launch Internet Explorer
+      const urlObj = new URL(url);
+      const domain = urlObj.hostname.replace(/^www\./, '');
+      const path = urlObj.pathname + urlObj.search;
+      const cleanUrl = domain + path;
+      
+      launchApp("internet-explorer", { 
+        initialData: { url: cleanUrl, year: "current" }
+      });
+    }
   };
 
   return (
