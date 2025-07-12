@@ -35,6 +35,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { LinkPreview } from "@/components/shared/LinkPreview";
 
 // --- Color Hashing for Usernames ---
 const userColors = [
@@ -441,6 +442,20 @@ function ChatMessagesContent({
   };
 
   const isUrgentMessage = (content: string) => content.startsWith("!!!!");
+
+  // Helper function to extract URLs from message content for link previews
+  const extractUrls = (content: string): string[] => {
+    const urls = new Set<string>();
+    const tokens = segmentText(content);
+    
+    tokens.forEach(token => {
+      if (token.type === "link" && token.url) {
+        urls.add(token.url);
+      }
+    });
+    
+    return Array.from(urls);
+  };
 
   // Return the message list rendering logic
   return (
@@ -1034,6 +1049,37 @@ function ChatMessagesContent({
                         return null;
                     }
                   })}
+                  
+                  {/* Link Previews for Assistant Messages */}
+                  {(() => {
+                    const allUrls = new Set<string>();
+                    message.parts?.forEach(part => {
+                      if (part.type === "text") {
+                        const partContent = isUrgentMessage(part.text) 
+                          ? part.text.slice(4).trimStart() 
+                          : part.text;
+                        const decodedContent = decodeHtmlEntities(partContent);
+                        const { textContent } = extractHtmlContent(decodedContent);
+                        if (textContent) {
+                          extractUrls(textContent).forEach(url => allUrls.add(url));
+                        }
+                      }
+                    });
+                    
+                    if (allUrls.size === 0) return null;
+                    
+                    return (
+                      <div className="flex flex-col gap-2 mt-2 w-full">
+                        {Array.from(allUrls).map((url, index) => (
+                          <LinkPreview
+                            key={`${messageKey}-assistant-link-${index}`}
+                            url={url}
+                            className="w-full"
+                          />
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </motion.div>
               ) : (
                 <>
@@ -1108,6 +1154,24 @@ function ChatMessagesContent({
                 </>
               )}
             </motion.div>
+            
+            {/* Link Previews */}
+            {(() => {
+              const urls = extractUrls(displayContent);
+              if (urls.length === 0) return null;
+              
+              return (
+                <div className="flex flex-col gap-2 mt-2 max-w-[90%]">
+                  {urls.map((url, index) => (
+                    <LinkPreview
+                      key={`${messageKey}-link-${index}`}
+                      url={url}
+                      className="w-full"
+                    />
+                  ))}
+                </div>
+              );
+            })()}
           </motion.div>
         );
       })}
