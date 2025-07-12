@@ -48,7 +48,7 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
   };
 
   // Handle adding to iPod
-  const handleAddToIpod = (e: React.MouseEvent) => {
+  const handleAddToIpod = (e: React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation();
     const videoId = extractYouTubeVideoId(url);
     if (videoId) {
@@ -57,13 +57,13 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
   };
 
   // Handle opening YouTube externally
-  const handleOpenYouTube = (e: React.MouseEvent) => {
+  const handleOpenYouTube = (e: React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation();
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
   // Handle opening link externally
-  const handleOpenExternally = (e: React.MouseEvent) => {
+  const handleOpenExternally = (e: React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation();
     window.open(url, "_blank", "noopener,noreferrer");
   };
@@ -142,7 +142,19 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
     return null;
   }
 
-  const handleClick = () => {
+  const handleClick = (e?: React.MouseEvent | React.TouchEvent) => {
+    // Helper to detect if we're on a touch device
+    const isTouchDevice = () => {
+      return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    };
+
+    // On mobile touch, navigate directly to external link
+    if (e && 'touches' in e && isTouchDevice()) {
+      e.stopPropagation();
+      window.open(url, "_blank", "noopener,noreferrer");
+      return;
+    }
+
     if (isYouTubeUrl(url)) {
       // For YouTube links, launch Videos app
       const videoId = extractYouTubeVideoId(url);
@@ -169,9 +181,13 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`bg-white border border-gray-200 overflow-hidden hover:shadow-md transition-shadow cursor-pointer font-geneva-12 ${className}`}
+      className={`link-preview-container bg-white border border-gray-200 overflow-hidden hover:shadow-md transition-shadow cursor-pointer font-geneva-12 ${className}`}
       style={{ borderRadius: '3px' }}
       onClick={handleClick}
+      onTouchStart={(e) => {
+        // Prevent the parent message from handling this touch
+        e.stopPropagation();
+      }}
       data-link-preview
     >
       {isFullWidthThumbnail && metadata.image ? (
@@ -217,6 +233,7 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
               <div className="flex gap-2 pt-2 border-t border-gray-100">
                 <button
                   onClick={handleAddToIpod}
+                  onTouchStart={(e) => e.stopPropagation()}
                   className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
                   title="Add to iPod"
                   data-link-preview
@@ -226,6 +243,7 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
                 </button>
                 <button
                   onClick={handleOpenYouTube}
+                  onTouchStart={(e) => e.stopPropagation()}
                   className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
                   title="Open YouTube"
                   data-link-preview
@@ -238,6 +256,7 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
               <div className="flex gap-2 pt-2 border-t border-gray-100">
                 <button
                   onClick={handleOpenExternally}
+                  onTouchStart={(e) => e.stopPropagation()}
                   className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors w-full"
                   title="Open Externally"
                   data-link-preview
@@ -337,6 +356,7 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
               <div className="flex gap-2 pt-2 border-t border-gray-100">
                 <button
                   onClick={handleAddToIpod}
+                  onTouchStart={(e) => e.stopPropagation()}
                   className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
                   title="Add to iPod"
                   data-link-preview
@@ -346,6 +366,7 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
                 </button>
                 <button
                   onClick={handleOpenYouTube}
+                  onTouchStart={(e) => e.stopPropagation()}
                   className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
                   title="Open YouTube"
                   data-link-preview
@@ -358,6 +379,7 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
               <div className="flex gap-2 pt-2 border-t border-gray-100">
                 <button
                   onClick={handleOpenExternally}
+                  onTouchStart={(e) => e.stopPropagation()}
                   className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors w-full"
                   title="Open Externally"
                   data-link-preview

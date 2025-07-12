@@ -539,14 +539,9 @@ function ChatMessagesContent({
                 const target = e.target as HTMLElement;
                 const isLinkPreview = target.closest('[data-link-preview]');
                 if (!isLinkPreview) {
+                  e.preventDefault();
                   setHoveredMessageId(messageKey);
                 }
-              }
-            }}
-            onTouchEnd={() => {
-              // Hide hover buttons after touch
-              if (isTouchDevice()) {
-                setTimeout(() => setHoveredMessageId(null), 100);
               }
             }}
           >

@@ -2,12 +2,17 @@ import { useState, useEffect } from "react";
 
 export function useIsMobile(breakpoint = 768) {
   const [isMobile, setIsMobile] = useState(() => {
-    return typeof window !== "undefined" && window.innerWidth < breakpoint;
+    if (typeof window === "undefined") return false;
+    const hasTouchScreen = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    const hasSmallScreen = window.innerWidth < breakpoint;
+    return hasTouchScreen || hasSmallScreen;
   });
 
   useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.innerWidth < breakpoint);
+      const hasTouchScreen = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      const hasSmallScreen = window.innerWidth < breakpoint;
+      setIsMobile(hasTouchScreen || hasSmallScreen);
     };
 
     // Set initial value
