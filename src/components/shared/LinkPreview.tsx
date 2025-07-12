@@ -56,32 +56,16 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
     }
   };
 
-  // Handle adding to Videos (for thumbnail clicks)
-  const handleAddToVideos = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const videoId = extractYouTubeVideoId(url);
-    if (videoId) {
-      launchApp("videos", { initialData: { videoId } });
-    }
-  };
-
-  // Handle opening in YouTube
-  const handleOpenInYouTube = (e: React.MouseEvent) => {
+  // Handle opening YouTube externally
+  const handleOpenYouTube = (e: React.MouseEvent) => {
     e.stopPropagation();
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
-  // Handle opening in Internet Explorer
-  const handleOpenInIE = (e: React.MouseEvent) => {
+  // Handle opening link externally
+  const handleOpenExternally = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const urlObj = new URL(url);
-    const domain = urlObj.hostname.replace(/^www\./, '');
-    const path = urlObj.pathname + urlObj.search;
-    const cleanUrl = domain + path;
-    
-    launchApp("internet-explorer", { 
-      initialData: { url: cleanUrl, year: "current" }
-    });
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   useEffect(() => {
@@ -131,11 +115,11 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className={`flex items-center gap-2 p-3 bg-white border border-gray-200 text-[10px] font-geneva-12 ${className}`}
+        className={`flex items-center gap-2 p-3 bg-gray-50 border text-sm font-geneva-12 ${className}`}
         style={{ borderRadius: '3px' }}
       >
-        <Loader2 className="h-3 w-3 animate-spin text-gray-400" />
-        <span className="text-gray-500">Loading preview...</span>
+        <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
+        <span className="text-gray-600">Loading preview...</span>
       </motion.div>
     );
   }
@@ -158,26 +142,42 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
     return null;
   }
 
-  // Handle opening original link
-  const handleOpenOriginalLink = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    window.open(url, "_blank", "noopener,noreferrer");
+  const handleClick = () => {
+    if (isYouTubeUrl(url)) {
+      // For YouTube links, launch Videos app
+      const videoId = extractYouTubeVideoId(url);
+      if (videoId) {
+        launchApp("videos", { initialData: { videoId } });
+      } else {
+        // Fallback to opening in browser if videoId extraction fails
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
+    } else {
+      // For other links, launch Internet Explorer
+      const urlObj = new URL(url);
+      const domain = urlObj.hostname.replace(/^www\./, '');
+      const path = urlObj.pathname + urlObj.search;
+      const cleanUrl = domain + path;
+      
+      launchApp("internet-explorer", { 
+        initialData: { url: cleanUrl, year: "current" }
+      });
+    }
   };
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`bg-white border border-gray-200 overflow-hidden hover:shadow-md transition-shadow font-geneva-12 ${className}`}
+      className={`bg-white border border-gray-200 overflow-hidden hover:shadow-md transition-shadow cursor-pointer font-geneva-12 ${className}`}
       style={{ borderRadius: '3px' }}
+      onClick={handleClick}
+      data-link-preview
     >
       {isFullWidthThumbnail && metadata.image ? (
         // Full width thumbnail layout with overlay
         <>
-          <div 
-            className="relative aspect-video bg-gray-100 overflow-hidden cursor-pointer"
-            onClick={isYouTubeUrl(url) ? handleAddToVideos : handleOpenInIE}
-          >
+          <div className="relative aspect-video bg-gray-100 overflow-hidden">
             <img
               src={metadata.image}
               alt={metadata.title || "Link preview"}
@@ -219,28 +219,31 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
                   onClick={handleAddToIpod}
                   className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
                   title="Add to iPod"
+                  data-link-preview
                 >
                   <Music className="h-3 w-3" />
                   <span>Add to iPod</span>
                 </button>
                 <button
-                  onClick={handleOpenInYouTube}
+                  onClick={handleOpenYouTube}
                   className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
-                  title="Open in YouTube"
+                  title="Open YouTube"
+                  data-link-preview
                 >
                   <ExternalLink className="h-3 w-3" />
-                  <span>Open in YouTube</span>
+                  <span>Open YouTube</span>
                 </button>
               </div>
             ) : (
               <div className="flex gap-2 pt-2 border-t border-gray-100">
                 <button
-                  onClick={handleOpenOriginalLink}
+                  onClick={handleOpenExternally}
                   className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors w-full"
-                  title="Open External Link"
+                  title="Open Externally"
+                  data-link-preview
                 >
                   <ExternalLink className="h-3 w-3" />
-                  <span>Open External Link</span>
+                  <span>Open Externally</span>
                 </button>
               </div>
             )}
@@ -251,10 +254,7 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
         <>
           <div className="flex">
             {metadata.image && (
-              <div 
-                className="w-20 h-12 bg-gray-100 relative overflow-hidden flex-shrink-0 cursor-pointer"
-                onClick={isYouTubeUrl(url) ? handleAddToVideos : handleOpenInIE}
-              >
+              <div className="w-20 h-12 bg-gray-100 relative overflow-hidden flex-shrink-0">
                 <img
                   src={metadata.image}
                   alt={metadata.title || "Link preview"}
@@ -339,28 +339,31 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
                   onClick={handleAddToIpod}
                   className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
                   title="Add to iPod"
+                  data-link-preview
                 >
                   <Music className="h-3 w-3" />
                   <span>Add to iPod</span>
                 </button>
                 <button
-                  onClick={handleOpenInYouTube}
+                  onClick={handleOpenYouTube}
                   className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
-                  title="Open in YouTube"
+                  title="Open YouTube"
+                  data-link-preview
                 >
                   <ExternalLink className="h-3 w-3" />
-                  <span>Open in YouTube</span>
+                  <span>Open YouTube</span>
                 </button>
               </div>
             ) : (
               <div className="flex gap-2 pt-2 border-t border-gray-100">
                 <button
-                  onClick={handleOpenOriginalLink}
+                  onClick={handleOpenExternally}
                   className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors w-full"
-                  title="Open External Link"
+                  title="Open Externally"
+                  data-link-preview
                 >
                   <ExternalLink className="h-3 w-3" />
-                  <span>Open External Link</span>
+                  <span>Open Externally</span>
                 </button>
               </div>
             )}

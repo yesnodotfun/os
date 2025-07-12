@@ -302,6 +302,11 @@ function ChatMessagesContent({
   const [isInteractingWithPreview, setIsInteractingWithPreview] =
     useState(false);
 
+  // Helper to detect if we're on a touch device
+  const isTouchDevice = () => {
+    return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  };
+
   // Local highlight state for manual speech triggered from this component
   const [localHighlightSegment, setLocalHighlightSegment] = useState<{
     messageId: string;
@@ -523,11 +528,27 @@ function ChatMessagesContent({
                 message.role === "user" ? "bottom right" : "bottom left",
             }}
             onMouseEnter={() =>
-              !isInteractingWithPreview && setHoveredMessageId(messageKey)
+              !isInteractingWithPreview && !isTouchDevice() && setHoveredMessageId(messageKey)
             }
             onMouseLeave={() =>
-              !isInteractingWithPreview && setHoveredMessageId(null)
+              !isInteractingWithPreview && !isTouchDevice() && setHoveredMessageId(null)
             }
+            onTouchStart={(e) => {
+              // Only show hover buttons on touch if not touching a link preview
+              if (!isInteractingWithPreview && isTouchDevice()) {
+                const target = e.target as HTMLElement;
+                const isLinkPreview = target.closest('[data-link-preview]');
+                if (!isLinkPreview) {
+                  setHoveredMessageId(messageKey);
+                }
+              }
+            }}
+            onTouchEnd={() => {
+              // Hide hover buttons after touch
+              if (isTouchDevice()) {
+                setTimeout(() => setHoveredMessageId(null), 100);
+              }
+            }}
           >
             <motion.div
               layout="position"
