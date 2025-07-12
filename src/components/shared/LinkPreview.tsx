@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Loader2, AlertCircle, Music, ExternalLink } from "lucide-react";
 import { useLaunchApp } from "@/hooks/useLaunchApp";
+import { toast } from "sonner";
 
 interface LinkMetadata {
   title?: string;
@@ -33,8 +34,35 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
 
   // Helper function to extract YouTube video ID
   const extractYouTubeVideoId = (url: string): string | null => {
-    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/);
-    return match ? match[1] : null;
+    try {
+      // Handle youtu.be links
+      if (url.includes('youtu.be/')) {
+        const match = url.match(/youtu\.be\/([^&\n?#]+)/);
+        return match ? match[1] : null;
+      }
+      
+      // Handle youtube.com links
+      if (url.includes('youtube.com/')) {
+        const urlObj = new URL(url);
+        
+        // Handle /watch?v= format
+        if (urlObj.pathname === '/watch') {
+          const videoId = urlObj.searchParams.get('v');
+          return videoId;
+        }
+        
+        // Handle /embed/ format
+        if (urlObj.pathname.startsWith('/embed/')) {
+          const match = urlObj.pathname.match(/\/embed\/([^&\n?#]+)/);
+          return match ? match[1] : null;
+        }
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error extracting YouTube video ID:', error);
+      return null;
+    }
   };
 
   // Helper function to get favicon URL
@@ -50,9 +78,17 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
   // Handle adding to iPod
   const handleAddToIpod = (e: React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation();
-    const videoId = extractYouTubeVideoId(url);
-    if (videoId) {
-      launchApp("ipod", { initialData: { videoId } });
+    try {
+      const videoId = extractYouTubeVideoId(url);
+      if (videoId) {
+        launchApp("ipod", { initialData: { videoId } });
+      } else {
+        toast.error('Could not extract video ID from this YouTube URL');
+        console.warn('Could not extract video ID from YouTube URL:', url);
+      }
+    } catch (error) {
+      toast.error('Failed to open video in iPod app');
+      console.error('Error launching iPod app:', error);
     }
   };
 
@@ -115,11 +151,11 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className={`flex items-center gap-2 p-3 bg-gray-50 border text-sm font-geneva-12 ${className}`}
+        className={`flex items-center gap-2 p-3 bg-white border border-gray-200 text-sm font-geneva-12 ${className}`}
         style={{ borderRadius: '3px' }}
       >
-        <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
-        <span className="text-gray-600">Loading preview...</span>
+        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+        <span className="text-muted-foreground">Loading preview...</span>
       </motion.div>
     );
   }
@@ -157,11 +193,20 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
 
     if (isYouTubeUrl(url)) {
       // For YouTube links, launch Videos app
-      const videoId = extractYouTubeVideoId(url);
-      if (videoId) {
-        launchApp("videos", { initialData: { videoId } });
-      } else {
-        // Fallback to opening in browser if videoId extraction fails
+      try {
+        const videoId = extractYouTubeVideoId(url);
+        if (videoId) {
+          launchApp("videos", { initialData: { videoId } });
+        } else {
+          toast.error('Could not extract video ID from this YouTube URL');
+          console.warn('Could not extract video ID from YouTube URL:', url);
+          // Fallback to opening in browser if videoId extraction fails
+          window.open(url, "_blank", "noopener,noreferrer");
+        }
+      } catch (error) {
+        toast.error('Failed to open video in Videos app');
+        console.error('Error launching Videos app:', error);
+        // Fallback to opening in browser if app launch fails
         window.open(url, "_blank", "noopener,noreferrer");
       }
     } else {
