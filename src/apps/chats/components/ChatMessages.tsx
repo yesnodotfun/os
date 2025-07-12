@@ -36,7 +36,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { LinkPreview } from "@/components/shared/LinkPreview";
-import { useIsMobile } from "@/hooks/useIsMobile";
 
 // --- Color Hashing for Usernames ---
 const userColors = [
@@ -302,7 +301,11 @@ function ChatMessagesContent({
   const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
   const [isInteractingWithPreview, setIsInteractingWithPreview] =
     useState(false);
-  const isMobile = useIsMobile();
+
+  // Helper to detect if we're on a touch device
+  const isTouchDevice = () => {
+    return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  };
 
   // Local highlight state for manual speech triggered from this component
   const [localHighlightSegment, setLocalHighlightSegment] = useState<{
@@ -525,24 +528,21 @@ function ChatMessagesContent({
                 message.role === "user" ? "bottom right" : "bottom left",
             }}
             onMouseEnter={() =>
-              !isInteractingWithPreview && !isMobile && setHoveredMessageId(messageKey)
+              !isInteractingWithPreview && !isTouchDevice() && setHoveredMessageId(messageKey)
             }
             onMouseLeave={() =>
-              !isInteractingWithPreview && !isMobile && setHoveredMessageId(null)
+              !isInteractingWithPreview && !isTouchDevice() && setHoveredMessageId(null)
             }
             onTouchStart={(e) => {
-              if (!isMobile) return;
-              
-              // Check if touch is on link preview
-              const target = e.target as HTMLElement;
-              const linkPreviewParent = target.closest('.link-preview-container');
-              
-              if (!linkPreviewParent) {
-                // Touch is on message, not link preview - show actions
-                e.preventDefault();
-                setHoveredMessageId(messageKey);
+              // Only show hover buttons on touch if not touching a link preview
+              if (!isInteractingWithPreview && isTouchDevice()) {
+                const target = e.target as HTMLElement;
+                const isLinkPreview = target.closest('[data-link-preview]');
+                if (!isLinkPreview) {
+                  e.preventDefault();
+                  setHoveredMessageId(messageKey);
+                }
               }
-              // If touch is on link preview, let it bubble up naturally
             }}
           >
             <motion.div

@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Loader2, AlertCircle, Music, Video, ExternalLink } from "lucide-react";
+import { Loader2, AlertCircle, Music, ExternalLink } from "lucide-react";
 import { useLaunchApp } from "@/hooks/useLaunchApp";
-import { useIsMobile } from "@/hooks/useIsMobile";
 
 interface LinkMetadata {
   title?: string;
@@ -31,7 +30,6 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
     return isYouTubeUrl(url);
   });
   const launchApp = useLaunchApp();
-  const isMobile = useIsMobile();
 
   // Helper function to extract YouTube video ID
   const extractYouTubeVideoId = (url: string): string | null => {
@@ -58,26 +56,16 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
     }
   };
 
-  // Handle adding to Videos
-  const handleAddToVideos = (e: React.MouseEvent | React.TouchEvent) => {
+  // Handle opening YouTube externally
+  const handleOpenYouTube = (e: React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation();
-    const videoId = extractYouTubeVideoId(url);
-    if (videoId) {
-      launchApp("videos", { initialData: { videoId } });
-    }
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
-  // Handle opening in Internet Explorer
-  const handleOpenInIE = (e: React.MouseEvent | React.TouchEvent) => {
+  // Handle opening link externally
+  const handleOpenExternally = (e: React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation();
-    const urlObj = new URL(url);
-    const domain = urlObj.hostname.replace(/^www\./, '');
-    const path = urlObj.pathname + urlObj.search;
-    const cleanUrl = domain + path;
-    
-    launchApp("internet-explorer", { 
-      initialData: { url: cleanUrl, year: "current" }
-    });
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   useEffect(() => {
@@ -154,13 +142,38 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
     return null;
   }
 
-  const handleClick = (e: React.MouseEvent | React.TouchEvent) => {
-    // On mobile, navigate directly without any delay
-    if (isMobile && 'touches' in e) {
+  const handleClick = (e?: React.MouseEvent | React.TouchEvent) => {
+    // Helper to detect if we're on a touch device
+    const isTouchDevice = () => {
+      return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    };
+
+    // On mobile touch, navigate directly to external link
+    if (e && 'touches' in e && isTouchDevice()) {
       e.stopPropagation();
       window.open(url, "_blank", "noopener,noreferrer");
+      return;
+    }
+
+    if (isYouTubeUrl(url)) {
+      // For YouTube links, launch Videos app
+      const videoId = extractYouTubeVideoId(url);
+      if (videoId) {
+        launchApp("videos", { initialData: { videoId } });
+      } else {
+        // Fallback to opening in browser if videoId extraction fails
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
     } else {
-      window.open(url, "_blank", "noopener,noreferrer");
+      // For other links, launch Internet Explorer
+      const urlObj = new URL(url);
+      const domain = urlObj.hostname.replace(/^www\./, '');
+      const path = urlObj.pathname + urlObj.search;
+      const cleanUrl = domain + path;
+      
+      launchApp("internet-explorer", { 
+        initialData: { url: cleanUrl, year: "current" }
+      });
     }
   };
 
@@ -172,11 +185,10 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
       style={{ borderRadius: '3px' }}
       onClick={handleClick}
       onTouchStart={(e) => {
-        if (isMobile) {
-          // Prevent the parent message from handling this touch
-          e.stopPropagation();
-        }
+        // Prevent the parent message from handling this touch
+        e.stopPropagation();
       }}
+      data-link-preview
     >
       {isFullWidthThumbnail && metadata.image ? (
         // Full width thumbnail layout with overlay
@@ -221,33 +233,36 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
               <div className="flex gap-2 pt-2 border-t border-gray-100">
                 <button
                   onClick={handleAddToIpod}
-                  onTouchStart={(e) => isMobile && e.stopPropagation()}
+                  onTouchStart={(e) => e.stopPropagation()}
                   className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
                   title="Add to iPod"
+                  data-link-preview
                 >
                   <Music className="h-3 w-3" />
                   <span>Add to iPod</span>
                 </button>
                 <button
-                  onClick={handleAddToVideos}
-                  onTouchStart={(e) => isMobile && e.stopPropagation()}
+                  onClick={handleOpenYouTube}
+                  onTouchStart={(e) => e.stopPropagation()}
                   className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
-                  title="Add to Videos"
+                  title="Open YouTube"
+                  data-link-preview
                 >
-                  <Video className="h-3 w-3" />
-                  <span>Add to Videos</span>
+                  <ExternalLink className="h-3 w-3" />
+                  <span>Open YouTube</span>
                 </button>
               </div>
             ) : (
               <div className="flex gap-2 pt-2 border-t border-gray-100">
                 <button
-                  onClick={handleOpenInIE}
-                  onTouchStart={(e) => isMobile && e.stopPropagation()}
+                  onClick={handleOpenExternally}
+                  onTouchStart={(e) => e.stopPropagation()}
                   className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors w-full"
-                  title="Open in Internet Explorer"
+                  title="Open Externally"
+                  data-link-preview
                 >
                   <ExternalLink className="h-3 w-3" />
-                  <span>Open in IE</span>
+                  <span>Open Externally</span>
                 </button>
               </div>
             )}
@@ -341,33 +356,36 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
               <div className="flex gap-2 pt-2 border-t border-gray-100">
                 <button
                   onClick={handleAddToIpod}
-                  onTouchStart={(e) => isMobile && e.stopPropagation()}
+                  onTouchStart={(e) => e.stopPropagation()}
                   className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
                   title="Add to iPod"
+                  data-link-preview
                 >
                   <Music className="h-3 w-3" />
                   <span>Add to iPod</span>
                 </button>
                 <button
-                  onClick={handleAddToVideos}
-                  onTouchStart={(e) => isMobile && e.stopPropagation()}
+                  onClick={handleOpenYouTube}
+                  onTouchStart={(e) => e.stopPropagation()}
                   className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
-                  title="Add to Videos"
+                  title="Open YouTube"
+                  data-link-preview
                 >
-                  <Video className="h-3 w-3" />
-                  <span>Add to Videos</span>
+                  <ExternalLink className="h-3 w-3" />
+                  <span>Open YouTube</span>
                 </button>
               </div>
             ) : (
               <div className="flex gap-2 pt-2 border-t border-gray-100">
                 <button
-                  onClick={handleOpenInIE}
-                  onTouchStart={(e) => isMobile && e.stopPropagation()}
+                  onClick={handleOpenExternally}
+                  onTouchStart={(e) => e.stopPropagation()}
                   className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors w-full"
-                  title="Open in Internet Explorer"
+                  title="Open Externally"
+                  data-link-preview
                 >
                   <ExternalLink className="h-3 w-3" />
-                  <span>Open in IE</span>
+                  <span>Open Externally</span>
                 </button>
               </div>
             )}
