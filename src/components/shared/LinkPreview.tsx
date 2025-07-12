@@ -163,6 +163,7 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
       className={`bg-white border border-gray-200 overflow-hidden hover:shadow-md transition-shadow cursor-pointer font-geneva-12 ${className}`}
       style={{ borderRadius: '3px' }}
       onClick={handleClick}
+      data-link-preview
     >
       {isFullWidthThumbnail && metadata.image ? (
         // Full width thumbnail layout with overlay
@@ -209,6 +210,7 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
                   onClick={handleAddToIpod}
                   className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
                   title="Add to iPod"
+                  data-link-preview
                 >
                   <Music className="h-3 w-3" />
                   <span>Add to iPod</span>
@@ -217,6 +219,7 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
                   onClick={handleAddToVideos}
                   className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
                   title="Add to Videos"
+                  data-link-preview
                 >
                   <Video className="h-3 w-3" />
                   <span>Add to Videos</span>
@@ -228,6 +231,7 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
                   onClick={handleOpenInIE}
                   className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors w-full"
                   title="Open in Internet Explorer"
+                  data-link-preview
                 >
                   <ExternalLink className="h-3 w-3" />
                   <span>Open in IE</span>
@@ -326,6 +330,7 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
                   onClick={handleAddToIpod}
                   className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
                   title="Add to iPod"
+                  data-link-preview
                 >
                   <Music className="h-3 w-3" />
                   <span>Add to iPod</span>
@@ -334,6 +339,7 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
                   onClick={handleAddToVideos}
                   className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
                   title="Add to Videos"
+                  data-link-preview
                 >
                   <Video className="h-3 w-3" />
                   <span>Add to Videos</span>
@@ -345,6 +351,7 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
                   onClick={handleOpenInIE}
                   className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors w-full"
                   title="Open in Internet Explorer"
+                  data-link-preview
                 >
                   <ExternalLink className="h-3 w-3" />
                   <span>Open in IE</span>
