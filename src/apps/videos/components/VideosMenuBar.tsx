@@ -26,8 +26,8 @@ interface VideosMenuBarProps {
   onShowHelp: () => void;
   onShowAbout: () => void;
   videos: Video[];
-  currentIndex: number;
-  onPlayVideo: (index: number) => void;
+  currentVideoId: string | null;
+  onPlayVideo: (videoId: string) => void;
   onClearPlaylist: () => void;
   onShufflePlaylist: () => void;
   onToggleLoopAll: () => void;
@@ -51,7 +51,7 @@ export function VideosMenuBar({
   onShowHelp,
   onShowAbout,
   videos,
-  currentIndex,
+  currentVideoId,
   onPlayVideo,
   onClearPlaylist,
   onShufflePlaylist,
@@ -71,13 +71,13 @@ export function VideosMenuBar({
   onShareVideo,
 }: VideosMenuBarProps) {
   // Group videos by artist
-  const videosByArtist = videos.reduce<Record<string, { video: Video; index: number }[]>>(
-    (acc, video, index) => {
+  const videosByArtist = videos.reduce<Record<string, Video[]>>(
+    (acc, video) => {
       const artist = video.artist || 'Unknown Artist';
       if (!acc[artist]) {
         acc[artist] = [];
       }
-      acc[artist].push({ video, index });
+      acc[artist].push(video);
       return acc;
     },
     {}
@@ -222,23 +222,23 @@ export function VideosMenuBar({
                   </div>
                 </DropdownMenuSubTrigger>
                 <DropdownMenuSubContent className="px-0 max-w-[180px] sm:max-w-[220px]">
-                  {videos.map((video, index) => (
+                  {videos.map((video) => (
                     <DropdownMenuItem
                       key={`all-${video.id}`}
-                      onClick={() => onPlayVideo(index)}
+                      onClick={() => onPlayVideo(video.id)}
                       className={cn(
                         "text-md h-6 px-3 active:bg-gray-900 active:text-white max-w-[220px] truncate",
-                        index === currentIndex && "bg-gray-200"
+                        video.id === currentVideoId && "bg-gray-200"
                       )}
                     >
                       <div className="flex items-center w-full">
                         <span
                           className={cn(
                             "flex-none whitespace-nowrap",
-                            index === currentIndex ? "mr-1" : "pl-5"
+                            video.id === currentVideoId ? "mr-1" : "pl-5"
                           )}
                         >
-                          {index === currentIndex ? "♪ " : ""}
+                          {video.id === currentVideoId ? "♪ " : ""}
                         </span>
                         <span className="truncate min-w-0">{video.title}</span>
                       </div>
@@ -256,23 +256,23 @@ export function VideosMenuBar({
                     </div>
                   </DropdownMenuSubTrigger>
                   <DropdownMenuSubContent className="px-0 max-w-[180px] sm:max-w-[220px]">
-                    {videosByArtist[artist].map(({ video, index }) => (
+                    {videosByArtist[artist].map((video) => (
                       <DropdownMenuItem
                         key={`${artist}-${video.id}`}
-                        onClick={() => onPlayVideo(index)}
+                        onClick={() => onPlayVideo(video.id)}
                         className={cn(
                           "text-md h-6 px-3 active:bg-gray-900 active:text-white max-w-[160px] sm:max-w-[200px] truncate",
-                          index === currentIndex && "bg-gray-200"
+                          video.id === currentVideoId && "bg-gray-200"
                         )}
                       >
                         <div className="flex items-center w-full">
                           <span
                             className={cn(
                               "flex-none whitespace-nowrap",
-                              index === currentIndex ? "mr-1" : "pl-5"
+                              video.id === currentVideoId ? "mr-1" : "pl-5"
                             )}
                           >
-                            {index === currentIndex ? "♪ " : ""}
+                            {video.id === currentVideoId ? "♪ " : ""}
                           </span>
                           <span className="truncate min-w-0">{video.title}</span>
                         </div>
