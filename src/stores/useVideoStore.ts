@@ -139,45 +139,7 @@ interface VideoStoreState {
   getCurrentVideo: () => Video | null;
 }
 
-const CURRENT_VIDEO_STORE_VERSION = 6; // Increment version to force migration
-
-// Safe state validation function
-const validateState = (state: Partial<VideoStoreState>): VideoStoreState => {
-  const videos = Array.isArray(state.videos) ? state.videos : DEFAULT_VIDEOS;
-  
-  // Handle migration from old currentIndex to currentVideoId
-  let currentVideoId = state.currentVideoId;
-  if (currentVideoId === undefined && typeof (state as Partial<VideoStoreState> & { currentIndex?: number }).currentIndex === 'number') {
-    // Migrate from old currentIndex to currentVideoId
-    const currentIndex = (state as Partial<VideoStoreState> & { currentIndex?: number }).currentIndex!;
-    const safeIndex = Math.max(0, Math.min(currentIndex, videos.length - 1));
-    currentVideoId = videos[safeIndex]?.id || null;
-  }
-  
-  // Ensure currentVideoId is valid
-  if (currentVideoId && !videos.find(v => v.id === currentVideoId)) {
-    currentVideoId = videos.length > 0 ? videos[0].id : null;
-  }
-  
-  return {
-    videos,
-    currentVideoId: currentVideoId || (videos.length > 0 ? videos[0].id : null),
-    loopAll: typeof state.loopAll === 'boolean' ? state.loopAll : true,
-    loopCurrent: typeof state.loopCurrent === 'boolean' ? state.loopCurrent : false,
-    isShuffled: typeof state.isShuffled === 'boolean' ? state.isShuffled : false,
-    isPlaying: false, // Always start with not playing
-    // Include all required methods (they'll be added by the create function)
-    setVideos: (() => {}) as any,
-    setCurrentVideoId: (() => {}) as any,
-    setLoopAll: (() => {}) as any,
-    setLoopCurrent: (() => {}) as any,
-    setIsShuffled: (() => {}) as any,
-    togglePlay: (() => {}) as any,
-    setIsPlaying: (() => {}) as any,
-    getCurrentIndex: (() => {}) as any,
-    getCurrentVideo: (() => {}) as any,
-  };
-};
+const CURRENT_VIDEO_STORE_VERSION = 7; // Clean ID-based version
 
 const getInitialState = () => ({
   videos: DEFAULT_VIDEOS,
@@ -236,31 +198,10 @@ export const useVideoStore = create<VideoStoreState>()(
     {
       name: "ryos:videos",
       version: CURRENT_VIDEO_STORE_VERSION,
-      migrate: (persistedState, version) => {
-        console.log(
-          `Migrating video store from version ${version} to ${CURRENT_VIDEO_STORE_VERSION}`
-        );
-        
-        try {
-          // Validate and fix any corrupted state
-          const validatedState = validateState(persistedState as Partial<VideoStoreState>);
-          
-          // For major version changes, reset to defaults
-          if (version < CURRENT_VIDEO_STORE_VERSION) {
-            return {
-              videos: DEFAULT_VIDEOS,
-              currentVideoId: DEFAULT_VIDEOS.length > 0 ? DEFAULT_VIDEOS[0].id : null,
-              loopAll: validatedState.loopAll,
-              loopCurrent: validatedState.loopCurrent,
-              isShuffled: validatedState.isShuffled,
-            };
-          }
-          
-          return validatedState;
-        } catch (error) {
-          console.error("Error migrating video store, resetting to defaults:", error);
-          return getInitialState();
-        }
+      migrate: () => {
+        console.log(`Migrating video store to clean ID-based version ${CURRENT_VIDEO_STORE_VERSION}`);
+        // Always reset to defaults for clean start
+        return getInitialState();
       },
       // Persist videos array to prevent ID-based errors
       partialize: (state) => ({

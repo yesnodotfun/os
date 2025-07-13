@@ -641,7 +641,7 @@ export function VideosAppComponent({
         throw error; // Re-throw to let caller handle
       }
     },
-    [setCurrentIndex, setIsPlaying, handleAddAndPlayVideoById, showStatus]
+    [safeSetCurrentVideoId, setIsPlaying, handleAddAndPlayVideoById, showStatus]
   );
 
   // --- Simplified: Effect for initial data on mount ---
@@ -809,7 +809,7 @@ export function VideosAppComponent({
 
   // --- NEW: Handler to open share dialog ---
   const handleShareVideo = () => {
-    if (videos.length > 0 && currentIndex >= 0) {
+    if (videos.length > 0 && currentVideoId) {
       setIsShareDialogOpen(true);
     }
   };
@@ -837,9 +837,9 @@ export function VideosAppComponent({
         onShowHelp={() => setIsHelpDialogOpen(true)}
         onShowAbout={() => setIsAboutDialogOpen(true)}
         videos={videos}
-        currentIndex={currentIndex}
-        onPlayVideo={(index) => {
-          safeSetCurrentIndex(index);
+        currentVideoId={currentVideoId}
+        onPlayVideo={(videoId) => {
+          safeSetCurrentVideoId(videoId);
           setIsPlaying(true);
         }}
         onClearPlaylist={() => {
@@ -854,22 +854,8 @@ export function VideosAppComponent({
         onTogglePlay={() => {
           togglePlay();
         }}
-        onNext={() => {
-          if (currentIndex < videos.length - 1) {
-            playButtonClick();
-            safeSetCurrentIndex(currentIndex + 1);
-            setIsPlaying(true);
-            showStatus("NEXT ⏭");
-          }
-        }}
-        onPrevious={() => {
-          if (currentIndex > 0) {
-            playButtonClick();
-            safeSetCurrentIndex(currentIndex - 1);
-            setIsPlaying(true);
-            showStatus("PREV ⏮");
-          }
-        }}
+        onNext={nextVideo}
+        onPrevious={previousVideo}
         onAddVideo={() => setIsAddDialogOpen(true)}
         onOpenVideo={() => {
           setIsAddDialogOpen(true);
@@ -901,7 +887,7 @@ export function VideosAppComponent({
                 >
                   <ReactPlayer
                     ref={playerRef}
-                    url={videos[currentIndex].url}
+                    url={getCurrentVideo()?.url || ""}
                     playing={isPlaying}
                     controls={false}
                     width="100%"
@@ -992,7 +978,7 @@ export function VideosAppComponent({
                 >
                   <div>Track</div>
                   <div className="text-xl">
-                    <AnimatedNumber number={currentIndex + 1} />
+                    <AnimatedNumber number={getCurrentIndex() + 1} />
                   </div>
                 </div>
                 <div
@@ -1018,9 +1004,9 @@ export function VideosAppComponent({
                   <div className="relative overflow-hidden">
                     <AnimatedTitle
                       title={
-                        videos[currentIndex].artist
-                          ? `${videos[currentIndex].title} - ${videos[currentIndex].artist}`
-                          : videos[currentIndex].title
+                        getCurrentVideo()?.artist
+                          ? `${getCurrentVideo()?.title} - ${getCurrentVideo()?.artist}`
+                          : getCurrentVideo()?.title || ""
                       }
                       direction={animationDirection}
                       isPlaying={isPlaying}
@@ -1150,7 +1136,7 @@ export function VideosAppComponent({
           onOpenChange={setIsConfirmClearOpen}
           onConfirm={() => {
             setVideos([]);
-            safeSetCurrentIndex(0);
+            safeSetCurrentVideoId(null);
             setIsPlaying(false);
             setIsConfirmClearOpen(false);
           }}
@@ -1162,7 +1148,7 @@ export function VideosAppComponent({
           onOpenChange={setIsConfirmResetOpen}
           onConfirm={() => {
             setVideos(DEFAULT_VIDEOS);
-            safeSetCurrentIndex(0);
+            safeSetCurrentVideoId(DEFAULT_VIDEOS.length > 0 ? DEFAULT_VIDEOS[0].id : null);
             setIsPlaying(false);
             setOriginalOrder(DEFAULT_VIDEOS);
             setIsConfirmResetOpen(false);
@@ -1186,9 +1172,9 @@ export function VideosAppComponent({
           isOpen={isShareDialogOpen}
           onClose={() => setIsShareDialogOpen(false)}
           itemType="Video"
-          itemIdentifier={videos[currentIndex]?.id || ""}
-          title={videos[currentIndex]?.title}
-          details={videos[currentIndex]?.artist}
+          itemIdentifier={getCurrentVideo()?.id || ""}
+          title={getCurrentVideo()?.title}
+          details={getCurrentVideo()?.artist}
           generateShareUrl={videosGenerateShareUrl}
         />
       </WindowFrame>
