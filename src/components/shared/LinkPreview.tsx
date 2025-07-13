@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Loader2, AlertCircle, Music, ExternalLink } from "lucide-react";
+import { AlertCircle, Music, ExternalLink } from "lucide-react";
 import { useLaunchApp } from "@/hooks/useLaunchApp";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 interface LinkMetadata {
   title?: string;
@@ -20,7 +21,9 @@ interface LinkPreviewProps {
 export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
   // Helper function to check if URL is YouTube
   const isYouTubeUrl = (url: string): boolean => {
-    return /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)/.test(url);
+    return /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)/.test(
+      url
+    );
   };
 
   const [metadata, setMetadata] = useState<LinkMetadata | null>(null);
@@ -86,12 +89,12 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
       if (videoId) {
         launchApp("ipod", { initialData: { videoId } });
       } else {
-        toast.error('Could not extract video ID from this YouTube URL');
-        console.warn('Could not extract video ID from YouTube URL:', url);
+        toast.error("Could not extract video ID from this YouTube URL");
+        console.warn("Could not extract video ID from YouTube URL:", url);
       }
     } catch (error) {
-      toast.error('Failed to open video in iPod app');
-      console.error('Error launching iPod app:', error);
+      toast.error("Failed to open video in iPod app");
+      console.error("Error launching iPod app:", error);
     }
   };
 
@@ -112,26 +115,28 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
       try {
         setLoading(true);
         setError(null);
-        
+
         // Create a simple metadata extraction API endpoint
-        const response = await fetch(`/api/link-preview?url=${encodeURIComponent(url)}`);
-        
+        const response = await fetch(
+          `/api/link-preview?url=${encodeURIComponent(url)}`
+        );
+
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const data = await response.json();
-        
+
         if (data.error) {
           throw new Error(data.error);
         }
-        
+
         setMetadata({
           title: data.title,
           description: data.description,
           image: data.image,
           siteName: data.siteName,
-          url: url
+          url: url,
         });
       } catch (err) {
         console.error("Error fetching link metadata:", err);
@@ -139,7 +144,7 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
         // Set basic metadata with just the URL
         setMetadata({
           title: url,
-          url: url
+          url: url,
         });
       } finally {
         setLoading(false);
@@ -154,12 +159,17 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className={`flex items-center gap-2 p-3 bg-white border border-gray-200 text-sm font-geneva-12 ${className}`}
-        style={{ borderRadius: '3px' }}
-      >
-        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-        <span className="text-muted-foreground">Loading preview...</span>
-      </motion.div>
+        className={cn(
+          "h-[106px] w-full min-w-[280px] max-w-[420px]",
+          "relative overflow-hidden",
+          "border border-gray-200 rounded",
+          "before:absolute before:inset-0",
+          "before:bg-gradient-to-r before:from-gray-200 before:via-gray-100 before:to-gray-200",
+          "before:animate-[shimmer_2s_linear_infinite]",
+          "before:bg-[length:200%_100%]",
+          className
+        )}
+      />
     );
   }
 
@@ -168,8 +178,8 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className={`flex items-center gap-2 p-3 bg-red-50 border border-red-200 text-sm font-geneva-12 ${className}`}
-        style={{ borderRadius: '3px' }}
+        className={`flex items-center gap-2 p-3 bg-red-50 border border-red-200 text-sm font-geneva-12 max-w-[420px] ${className}`}
+        style={{ borderRadius: "3px" }}
       >
         <AlertCircle className="h-4 w-4 text-red-500" />
         <span className="text-red-600">{error}</span>
@@ -184,11 +194,11 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
   const handleClick = (e?: React.MouseEvent | React.TouchEvent) => {
     // Helper to detect if we're on a touch device
     const isTouchDevice = () => {
-      return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      return "ontouchstart" in window || navigator.maxTouchPoints > 0;
     };
 
     // On mobile touch, navigate directly to external link
-    if (e && 'touches' in e && isTouchDevice()) {
+    if (e && "touches" in e && isTouchDevice()) {
       e.stopPropagation();
       window.open(url, "_blank", "noopener,noreferrer");
       return;
@@ -199,25 +209,30 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
       try {
         const videoId = extractYouTubeVideoId(url);
         if (videoId) {
-          console.log(`[LinkPreview] Launching Videos app with videoId: ${videoId}`);
+          console.log(
+            `[LinkPreview] Launching Videos app with videoId: ${videoId}`
+          );
           launchApp("videos", { initialData: { videoId } });
         } else {
-          console.warn('Could not extract video ID from YouTube URL, opening in browser:', url);
+          console.warn(
+            "Could not extract video ID from YouTube URL, opening in browser:",
+            url
+          );
           window.open(url, "_blank", "noopener,noreferrer");
         }
       } catch (error) {
-        console.error('Error launching Videos app, opening in browser:', error);
+        console.error("Error launching Videos app, opening in browser:", error);
         window.open(url, "_blank", "noopener,noreferrer");
       }
     } else {
       // For other links, launch Internet Explorer
       const urlObj = new URL(url);
-      const domain = urlObj.hostname.replace(/^www\./, '');
+      const domain = urlObj.hostname.replace(/^www\./, "");
       const path = urlObj.pathname + urlObj.search;
       const cleanUrl = domain + path;
-      
-      launchApp("internet-explorer", { 
-        initialData: { url: cleanUrl, year: "current" }
+
+      launchApp("internet-explorer", {
+        initialData: { url: cleanUrl, year: "current" },
       });
     }
   };
@@ -226,7 +241,7 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`link-preview-container bg-white border border-gray-200 overflow-hidden hover:shadow-md transition-shadow cursor-pointer font-geneva-12 rounded ${className}`}
+      className={`link-preview-container relative bg-white border border-gray-200 overflow-hidden cursor-pointer font-geneva-12 rounded group max-w-[420px] ${className}`}
       onClick={handleClick}
       onTouchStart={(e) => {
         // Prevent the parent message from handling this touch
@@ -234,6 +249,7 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
       }}
       data-link-preview
     >
+      <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-5 transition-opacity z-10 pointer-events-none" />
       {isFullWidthThumbnail && metadata.image ? (
         // Full width thumbnail layout with overlay
         <>
@@ -247,18 +263,20 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
                 e.currentTarget.style.display = "none";
               }}
             />
-            
+
             {/* Overlay with favicon and title */}
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3">
               <div className="flex items-center gap-2">
-                <img 
-                  src={getFaviconUrl(url)} 
-                  alt="Site favicon" 
+                <img
+                  src={getFaviconUrl(url)}
+                  alt="Site favicon"
                   className="h-4 w-4 flex-shrink-0"
                   onError={(e) => {
                     // Fallback to a simple circle if favicon fails to load
                     e.currentTarget.style.display = "none";
-                    e.currentTarget.nextElementSibling?.classList.remove("hidden");
+                    e.currentTarget.nextElementSibling?.classList.remove(
+                      "hidden"
+                    );
                   }}
                 />
                 <div className="h-4 w-4 bg-gray-300 rounded-full flex-shrink-0 hidden"></div>
@@ -270,7 +288,7 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
               </div>
             </div>
           </div>
-          
+
           {/* Action buttons */}
           <div className="px-2 pb-2">
             {isYouTubeUrl(url) ? (
@@ -317,7 +335,7 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
         <>
           <div className="flex">
             {metadata.image && (
-              <div className="w-16 h-16 bg-gray-100 relative overflow-hidden flex-shrink-0">
+              <div className="w-18 h-18 bg-gray-100 relative overflow-hidden flex-shrink-0">
                 <img
                   src={metadata.image}
                   alt={metadata.title || "Link preview"}
@@ -330,8 +348,9 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
                     // Determine if this should be full width
                     const img = e.currentTarget;
                     const aspectRatio = img.naturalWidth / img.naturalHeight;
-                    const shouldBeFullWidth = isYouTubeUrl(url) || aspectRatio > 1.5;
-                    
+                    const shouldBeFullWidth =
+                      isYouTubeUrl(url) || aspectRatio > 1.5;
+
                     if (shouldBeFullWidth) {
                       setIsFullWidthThumbnail(true);
                     }
@@ -339,40 +358,54 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
                 />
               </div>
             )}
-            
-            <div className={`flex-1 min-w-0 p-3 ${metadata.image ? 'flex flex-col justify-center' : ''}`}>
+
+            <div
+              className={`flex-1 min-w-0 p-3 ${
+                metadata.image ? "flex flex-col justify-center" : ""
+              }`}
+            >
               {metadata.title && (
-                <h3 className="font-semibold text-gray-900 text-[10px] mb-1" style={{
-                  display: "-webkit-box",
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: "vertical",
-                  overflow: "hidden"
-                }}>
+                <h3
+                  className="font-semibold text-gray-900 text-[10px]"
+                  style={{
+                    display: "-webkit-box",
+                    WebkitLineClamp: 1,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                  }}
+                >
                   {metadata.title}
                 </h3>
               )}
-              
+
               {metadata.description && (
-                <p className={`text-[10px] text-gray-600 ${metadata.image ? '' : 'mb-2'}`} style={{
-                  display: "-webkit-box",
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: "vertical",
-                  overflow: "hidden"
-                }}>
+                <p
+                  className={`text-[10px] text-gray-600 ${
+                    metadata.image ? "" : "mb-2"
+                  }`}
+                  style={{
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                  }}
+                >
                   {metadata.description}
                 </p>
               )}
-              
+
               {!metadata.image && (
                 <div className="flex items-center gap-2">
-                  <img 
-                    src={getFaviconUrl(url)} 
-                    alt="Site favicon" 
+                  <img
+                    src={getFaviconUrl(url)}
+                    alt="Site favicon"
                     className="h-4 w-4 flex-shrink-0"
                     onError={(e) => {
                       // Fallback to a simple circle if favicon fails to load
                       e.currentTarget.style.display = "none";
-                      e.currentTarget.nextElementSibling?.classList.remove("hidden");
+                      e.currentTarget.nextElementSibling?.classList.remove(
+                        "hidden"
+                      );
                     }}
                   />
                   <div className="h-4 w-4 bg-gray-300 rounded-full flex-shrink-0 hidden"></div>
@@ -383,10 +416,10 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
               )}
             </div>
           </div>
-          
+
           {/* Action buttons */}
-          <div className="px-2 pb-2">
-            <div className="border-t border-gray-100 pt-2">
+          <div className="px-2 pb-2 border-t border-gray-100">
+            <div className=" pt-2">
               {isYouTubeUrl(url) ? (
                 <div className="flex gap-2">
                   <button
