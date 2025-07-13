@@ -312,18 +312,20 @@ export function VideosAppComponent({
   const { play: playButtonClick } = useSound(Sounds.BUTTON_CLICK);
   const videos = useVideoStore((s) => s.videos);
   const setVideos = useVideoStore((s) => s.setVideos);
-  const currentIndex = useVideoStore((s) => s.currentIndex);
-  const setCurrentIndex = useVideoStore((s) => s.setCurrentIndex);
+  const currentVideoId = useVideoStore((s) => s.currentVideoId);
+  const setCurrentVideoId = useVideoStore((s) => s.setCurrentVideoId);
+  const getCurrentIndex = useVideoStore((s) => s.getCurrentIndex);
+  const getCurrentVideo = useVideoStore((s) => s.getCurrentVideo);
   
-  // Safe setter that ensures currentIndex is within valid bounds
-  const safeSetCurrentIndex = (index: number) => {
-    if (videos.length === 0) {
-      setCurrentIndex(0);
+  // Safe setter that ensures currentVideoId is valid
+  const safeSetCurrentVideoId = (videoId: string | null) => {
+    if (!videoId || videos.length === 0) {
+      setCurrentVideoId(videos.length > 0 ? videos[0].id : null);
       return;
     }
-    const maxIndex = videos.length - 1;
-    const safeIndex = Math.max(0, Math.min(index, maxIndex));
-    setCurrentIndex(safeIndex);
+    
+    const validVideo = videos.find(v => v.id === videoId);
+    setCurrentVideoId(validVideo ? videoId : (videos.length > 0 ? videos[0].id : null));
   };
   const loopCurrent = useVideoStore((s) => s.loopCurrent);
   const setLoopCurrent = useVideoStore((s) => s.setLoopCurrent);
@@ -377,13 +379,15 @@ export function VideosAppComponent({
     // dependency array intentionally empty to run once
   }, [isPlaying, setIsPlaying]);
 
-  // Ensure currentIndex is within bounds when videos change
+  // Ensure currentVideoId is valid when videos change
   useEffect(() => {
-    if (videos.length > 0 && currentIndex >= videos.length) {
-      console.warn(`[Videos] currentIndex ${currentIndex} out of bounds for ${videos.length} videos, resetting to 0`);
-      safeSetCurrentIndex(0);
+    if (videos.length > 0 && currentVideoId && !videos.find(v => v.id === currentVideoId)) {
+      console.warn(`[Videos] currentVideoId ${currentVideoId} not found in videos, resetting to first video`);
+      safeSetCurrentVideoId(videos[0].id);
+    } else if (videos.length > 0 && !currentVideoId) {
+      safeSetCurrentVideoId(videos[0].id);
     }
-  }, [videos, currentIndex, safeSetCurrentIndex]);
+  }, [videos, currentVideoId, safeSetCurrentVideoId]);
 
   // Function to show status message
   const showStatus = (message: string) => {
@@ -396,56 +400,52 @@ export function VideosAppComponent({
     }, 2000);
   };
 
-  // Update animation direction before changing currentIndex
-  const updateCurrentIndex = (
-    indexOrUpdater: number | ((prev: number) => number)
-  ) => {
-    const newIndex =
-      typeof indexOrUpdater === "number"
-        ? indexOrUpdater
-        : indexOrUpdater(currentIndex);
-    setAnimationDirection(newIndex > currentIndex ? "next" : "prev");
-    safeSetCurrentIndex(newIndex);
+  // Update animation direction before changing currentVideoId
+  const updateCurrentVideoId = (videoId: string | null, direction: "next" | "prev") => {
+    setAnimationDirection(direction);
+    safeSetCurrentVideoId(videoId);
   };
 
   const nextVideo = () => {
     if (videos.length === 0) return;
     playButtonClick();
-    updateCurrentIndex((prev: number) => {
-      if (prev === videos.length - 1) {
-        if (loopAll) {
-          showStatus("REPEATING PLAYLIST");
-          return 0;
-        }
-        return prev;
+    
+    const currentIndex = getCurrentIndex();
+    if (currentIndex === videos.length - 1) {
+      if (loopAll) {
+        showStatus("REPEATING PLAYLIST");
+        updateCurrentVideoId(videos[0].id, "next");
       }
+      // If not looping, stay on current video
+    } else {
       showStatus("NEXT ⏭");
-      return prev + 1;
-    });
+      updateCurrentVideoId(videos[currentIndex + 1].id, "next");
+    }
     setIsPlaying(true);
   };
 
   const previousVideo = () => {
     if (videos.length === 0) return;
     playButtonClick();
-    updateCurrentIndex((prev: number) => {
-      if (prev === 0) {
-        if (loopAll) {
-          showStatus("REPEATING PLAYLIST");
-          return videos.length - 1;
-        }
-        return prev;
+    
+    const currentIndex = getCurrentIndex();
+    if (currentIndex === 0) {
+      if (loopAll) {
+        showStatus("REPEATING PLAYLIST");
+        updateCurrentVideoId(videos[videos.length - 1].id, "prev");
       }
+      // If not looping, stay on current video
+    } else {
       showStatus("PREV ⏮");
-      return prev - 1;
-    });
+      updateCurrentVideoId(videos[currentIndex - 1].id, "prev");
+    }
     setIsPlaying(true);
   };
 
   // Reset elapsed time when changing tracks
   useEffect(() => {
     setElapsedTime(0);
-  }, [currentIndex]);
+  }, [currentVideoId]);
 
   // Replace the existing useEffect for shuffle initialization
   useEffect(() => {
@@ -549,9 +549,8 @@ export function VideosAppComponent({
           setOriginalOrder(newVideos);
         }
         
-        // Set current index to the newly added video (last position)
-        const newVideoIndex = newVideos.length - 1;
-        safeSetCurrentIndex(newVideoIndex);
+        // Set current video to the newly added video
+        safeSetCurrentVideoId(newVideo.id);
         setIsPlaying(true);
         
         return newVideos;
@@ -570,7 +569,7 @@ export function VideosAppComponent({
       );
       // Reset state on error to prevent inconsistent state
       if (videos.length > 0) {
-        safeSetCurrentIndex(Math.max(0, videos.length - 1));
+        safeSetCurrentVideoId(videos[videos.length - 1].id);
       }
       setIsPlaying(false);
     } finally {
@@ -618,7 +617,7 @@ export function VideosAppComponent({
 
         if (existingVideoIndex !== -1) {
           console.log(`[Videos] Video ID ${videoId} found in playlist. Playing.`);
-          safeSetCurrentIndex(existingVideoIndex);
+          safeSetCurrentVideoId(videoId);
           // --- Only set playing if allowed ---
           if (shouldAutoplay) {
             setIsPlaying(true);
