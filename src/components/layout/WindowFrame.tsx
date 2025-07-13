@@ -9,6 +9,7 @@ import { getWindowConfig } from "@/config/appRegistry";
 import { useSwipeNavigation } from "@/hooks/useSwipeNavigation";
 import { AppId } from "@/config/appIds";
 import { useIsMobile } from "@/hooks/useIsMobile";
+import { useIsPhone } from "@/hooks/useIsPhone";
 import { useAppStoreShallow } from "@/stores/helpers";
 
 interface WindowFrameProps {
@@ -91,6 +92,7 @@ export function WindowFrame({
   const [isMaximized, setIsMaximized] = useState(false);
   const isClosingRef = useRef(false);
   const isMobile = useIsMobile();
+  const isPhone = useIsPhone();
   const lastTapTimeRef = useRef<number>(0);
   const doubleTapTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isProcessingTapRef = useRef(false);
@@ -98,7 +100,7 @@ export function WindowFrame({
   // Keep track of window size before maximizing to restore it later
   const previousSizeRef = useRef({ width: 0, height: 0 });
 
-  // Setup swipe navigation for mobile
+  // Setup swipe navigation for phones only
   const {
     handleTouchStart,
     handleTouchMove,
@@ -107,7 +109,7 @@ export function WindowFrame({
     swipeDirection,
   } = useSwipeNavigation({
     currentAppId: appId as AppId,
-    isActive: isMobile && isForeground,
+    isActive: isPhone && isForeground,
     onSwipeLeft: () => {
       playWindowMoveStop();
       vibrateSwap();
@@ -492,7 +494,7 @@ export function WindowFrame({
 
   // Calculate dynamic style for swipe animation feedback
   const getSwipeStyle = () => {
-    if (!isMobile || !isSwiping || !swipeDirection) {
+    if (!isPhone || !isSwiping || !swipeDirection) {
       return {};
     }
 
@@ -696,17 +698,17 @@ export function WindowFrame({
             onMouseDown={handleMouseDownWithForeground}
             onTouchStart={(e: React.TouchEvent<HTMLElement>) => {
               handleMouseDownWithForeground(e);
-              if (isMobile) {
+              if (isPhone) {
                 handleTouchStart(e);
               }
             }}
             onTouchMove={(e: React.TouchEvent<HTMLElement>) => {
-              if (isMobile) {
+              if (isPhone) {
                 handleTouchMove(e);
               }
             }}
             onTouchEnd={() => {
-              if (isMobile) {
+              if (isPhone) {
                 handleTouchEnd();
               }
             }}
