@@ -116,8 +116,6 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
     try {
       const videoId = extractYouTubeVideoId(url);
       if (videoId) {
-        // Construct YouTube URL and use the same logic as regular YouTube links
-        const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
         console.log(
           `[LinkPreview] Launching Videos app with videoId: ${videoId}`
         );
