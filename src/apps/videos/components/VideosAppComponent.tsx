@@ -314,6 +314,17 @@ export function VideosAppComponent({
   const setVideos = useVideoStore((s) => s.setVideos);
   const currentIndex = useVideoStore((s) => s.currentIndex);
   const setCurrentIndex = useVideoStore((s) => s.setCurrentIndex);
+  
+  // Safe setter that ensures currentIndex is within valid bounds
+  const safeSetCurrentIndex = (index: number) => {
+    if (videos.length === 0) {
+      setCurrentIndex(0);
+      return;
+    }
+    const maxIndex = videos.length - 1;
+    const safeIndex = Math.max(0, Math.min(index, maxIndex));
+    setCurrentIndex(safeIndex);
+  };
   const loopCurrent = useVideoStore((s) => s.loopCurrent);
   const setLoopCurrent = useVideoStore((s) => s.setLoopCurrent);
   const loopAll = useVideoStore((s) => s.loopAll);
@@ -348,8 +359,8 @@ export function VideosAppComponent({
 
   // --- Prevent unwanted autoplay on Mobile Safari ---
   const hasAutoplayCheckedRef = useRef(false);
-  // Track the last processed initialData to avoid duplicates
-  const lastProcessedInitialDataRef = useRef<unknown>(null);
+  // Track the last processed videoId to avoid duplicates
+  const lastProcessedVideoIdRef = useRef<string | null>(null);
   useEffect(() => {
     if (hasAutoplayCheckedRef.current) return;
 
@@ -365,6 +376,14 @@ export function VideosAppComponent({
     hasAutoplayCheckedRef.current = true;
     // dependency array intentionally empty to run once
   }, [isPlaying, setIsPlaying]);
+
+  // Ensure currentIndex is within bounds when videos change
+  useEffect(() => {
+    if (videos.length > 0 && currentIndex >= videos.length) {
+      console.warn(`[Videos] currentIndex ${currentIndex} out of bounds for ${videos.length} videos, resetting to 0`);
+      safeSetCurrentIndex(0);
+    }
+  }, [videos, currentIndex, safeSetCurrentIndex]);
 
   // Function to show status message
   const showStatus = (message: string) => {
@@ -386,7 +405,7 @@ export function VideosAppComponent({
         ? indexOrUpdater
         : indexOrUpdater(currentIndex);
     setAnimationDirection(newIndex > currentIndex ? "next" : "prev");
-    setCurrentIndex(newIndex);
+    safeSetCurrentIndex(newIndex);
   };
 
   const nextVideo = () => {
@@ -529,11 +548,12 @@ export function VideosAppComponent({
         if (!isShuffled) {
           setOriginalOrder(newVideos);
         }
-        // Set current index and start playing the new video
-        setCurrentIndex(newVideos.length - 1);
-        setIsPlaying(true);
         return newVideos;
       });
+      
+      // Set current index and start playing the new video (after state update)
+      safeSetCurrentIndex(videos.length); // videos.length is the index of the newly added video
+      setIsPlaying(true);
 
       showStatus("VIDEO ADDED"); // Update status message
 
@@ -546,6 +566,11 @@ export function VideosAppComponent({
           error instanceof Error ? error.message : "Unknown error"
         }`
       );
+      // Reset state on error to prevent inconsistent state
+      if (videos.length > 0) {
+        safeSetCurrentIndex(Math.max(0, videos.length - 1));
+      }
+      setIsPlaying(false);
     } finally {
       setIsAddingVideo(false);
     }
@@ -584,7 +609,7 @@ export function VideosAppComponent({
 
       if (existingVideoIndex !== -1) {
         console.log(`[Videos] Video ID ${videoId} found in playlist. Playing.`);
-        setCurrentIndex(existingVideoIndex);
+        safeSetCurrentIndex(existingVideoIndex);
         // --- Only set playing if allowed ---
         if (shouldAutoplay) {
           setIsPlaying(true);
@@ -620,8 +645,8 @@ export function VideosAppComponent({
       initialData?.videoId &&
       typeof initialData.videoId === "string"
     ) {
-      // Skip if this initialData has already been processed
-      if (lastProcessedInitialDataRef.current === initialData) return;
+      // Skip if this videoId has already been processed
+      if (lastProcessedVideoIdRef.current === initialData.videoId) return;
       const videoIdToProcess = initialData.videoId;
       console.log(
         `[Videos] Processing initialData.videoId on mount: ${videoIdToProcess}`
@@ -648,8 +673,8 @@ export function VideosAppComponent({
             });
           });
       }, 100);
-      // Mark this initialData as processed
-      lastProcessedInitialDataRef.current = initialData;
+      // Mark this videoId as processed
+      lastProcessedVideoIdRef.current = initialData.videoId;
     }
   }, [
     isWindowOpen,
@@ -668,8 +693,8 @@ export function VideosAppComponent({
         event.detail.appId === "videos" &&
         event.detail.initialData?.videoId
       ) {
-        // Skip if this initialData has already been processed
-        if (lastProcessedInitialDataRef.current === event.detail.initialData)
+        // Skip if this videoId has already been processed
+        if (lastProcessedVideoIdRef.current === event.detail.initialData.videoId)
           return;
         const videoId = event.detail.initialData.videoId;
         console.log(
@@ -686,8 +711,8 @@ export function VideosAppComponent({
             description: `Video ID: ${videoId}`,
           });
         });
-        // Mark this initialData as processed
-        lastProcessedInitialDataRef.current = event.detail.initialData;
+        // Mark this videoId as processed
+        lastProcessedVideoIdRef.current = event.detail.initialData.videoId;
       }
     };
 
@@ -806,7 +831,7 @@ export function VideosAppComponent({
         videos={videos}
         currentIndex={currentIndex}
         onPlayVideo={(index) => {
-          setCurrentIndex(index);
+          safeSetCurrentIndex(index);
           setIsPlaying(true);
         }}
         onClearPlaylist={() => {
@@ -824,7 +849,7 @@ export function VideosAppComponent({
         onNext={() => {
           if (currentIndex < videos.length - 1) {
             playButtonClick();
-            setCurrentIndex(currentIndex + 1);
+            safeSetCurrentIndex(currentIndex + 1);
             setIsPlaying(true);
             showStatus("NEXT ⏭");
           }
@@ -832,7 +857,7 @@ export function VideosAppComponent({
         onPrevious={() => {
           if (currentIndex > 0) {
             playButtonClick();
-            setCurrentIndex(currentIndex - 1);
+            safeSetCurrentIndex(currentIndex - 1);
             setIsPlaying(true);
             showStatus("PREV ⏮");
           }
@@ -1117,7 +1142,7 @@ export function VideosAppComponent({
           onOpenChange={setIsConfirmClearOpen}
           onConfirm={() => {
             setVideos([]);
-            setCurrentIndex(0);
+            safeSetCurrentIndex(0);
             setIsPlaying(false);
             setIsConfirmClearOpen(false);
           }}
@@ -1129,7 +1154,7 @@ export function VideosAppComponent({
           onOpenChange={setIsConfirmResetOpen}
           onConfirm={() => {
             setVideos(DEFAULT_VIDEOS);
-            setCurrentIndex(0);
+            safeSetCurrentIndex(0);
             setIsPlaying(false);
             setOriginalOrder(DEFAULT_VIDEOS);
             setIsConfirmResetOpen(false);

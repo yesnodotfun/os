@@ -198,15 +198,13 @@ export const useVideoStore = create<VideoStoreState>()(
 
         return partializedState as VideoStoreState; // Return the potentially migrated state
       },
-      // Optional: Re-add partialize here if you want to exclude videos AFTER migration
-      // if they match defaults and you want to save space
+      // Persist videos array to prevent index out of bounds errors
       partialize: (state) => ({
+        videos: state.videos,
         currentIndex: state.currentIndex,
         loopAll: state.loopAll,
         loopCurrent: state.loopCurrent,
         isShuffled: state.isShuffled,
-        // Exclude videos if it matches defaults to save space,
-        // Requires a check or assume defaults are handled by initial state/migration
       }),
     }
   )
