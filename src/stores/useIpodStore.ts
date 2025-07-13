@@ -36,6 +36,7 @@ interface IpodData {
   isFullScreen: boolean;
   libraryState: LibraryState;
   lastKnownVersion: number;
+  recentlyPlayed: string[]; // Track IDs of recently played songs
 }
 
 async function loadDefaultTracks(): Promise<{
@@ -85,6 +86,7 @@ const initialIpodData: IpodData = {
   isFullScreen: false,
   libraryState: "uninitialized",
   lastKnownVersion: 0,
+  recentlyPlayed: [],
 };
 
 export interface IpodState extends IpodData {
@@ -138,6 +140,61 @@ export interface IpodState extends IpodData {
 
 const CURRENT_IPOD_STORE_VERSION = 18; // Incremented version for auto-update feature
 
+// Helper function to get a random track index avoiding recently played songs
+function getRandomTrackIndexAvoidingRecent(
+  tracks: Track[],
+  recentlyPlayed: string[],
+  currentIndex: number,
+  maxRecentToAvoid: number = 5
+): number {
+  if (tracks.length === 0) return -1;
+  if (tracks.length === 1) return 0;
+  
+  // Get the most recent songs to avoid (up to maxRecentToAvoid)
+  const recentToAvoid = recentlyPlayed.slice(-maxRecentToAvoid);
+  
+  // Create a list of available indices (excluding recently played)
+  const availableIndices = tracks
+    .map((_, index) => index)
+    .filter(index => {
+      const trackId = tracks[index].id;
+      return !recentToAvoid.includes(trackId) && index !== currentIndex;
+    });
+  
+  // If we have available tracks, pick from them
+  if (availableIndices.length > 0) {
+    const randomIndex = Math.floor(Math.random() * availableIndices.length);
+    return availableIndices[randomIndex];
+  }
+  
+  // If all tracks are recently played, just avoid the current one
+  const allIndicesExceptCurrent = tracks
+    .map((_, index) => index)
+    .filter(index => index !== currentIndex);
+  
+  if (allIndicesExceptCurrent.length > 0) {
+    const randomIndex = Math.floor(Math.random() * allIndicesExceptCurrent.length);
+    return allIndicesExceptCurrent[randomIndex];
+  }
+  
+  // Fallback: return current index if no other options
+  return currentIndex;
+}
+
+// Helper function to update recently played list
+function updateRecentlyPlayed(
+  recentlyPlayed: string[],
+  trackId: string,
+  maxHistory: number = 10
+): string[] {
+  // Remove the track if it's already in the list
+  const filtered = recentlyPlayed.filter(id => id !== trackId);
+  // Add the new track to the end
+  const updated = [...filtered, trackId];
+  // Keep only the most recent tracks
+  return updated.slice(-maxHistory);
+}
+
 export const useIpodStore = create<IpodState>()(
   persist(
     (set, get) => ({
@@ -190,21 +247,31 @@ export const useIpodStore = create<IpodState>()(
         set((state) => {
           if (state.tracks.length === 0)
             return { currentIndex: -1, lyricsTranslationRequest: null };
-          let next = state.isShuffled
-            ? Math.floor(Math.random() * state.tracks.length)
-            : (state.currentIndex + 1) % state.tracks.length;
-          if (
-            state.isShuffled &&
-            next === state.currentIndex &&
-            state.tracks.length > 1
-          ) {
-            // Ensure shuffle doesn't pick the same song if possible
-            next = (next + 1) % state.tracks.length;
+          
+          let next: number;
+          if (state.isShuffled) {
+            // Use improved shuffle algorithm
+            next = getRandomTrackIndexAvoidingRecent(
+              state.tracks,
+              state.recentlyPlayed,
+              state.currentIndex
+            );
+          } else {
+            // Sequential playback
+            next = (state.currentIndex + 1) % state.tracks.length;
           }
+          
+          // Update recently played list
+          const currentTrackId = state.tracks[state.currentIndex]?.id;
+          const newRecentlyPlayed = currentTrackId 
+            ? updateRecentlyPlayed(state.recentlyPlayed, currentTrackId)
+            : state.recentlyPlayed;
+          
           return {
             currentIndex: next,
             isPlaying: true,
             lyricsTranslationRequest: null,
+            recentlyPlayed: newRecentlyPlayed,
           };
         }),
       previousTrack: () =>
