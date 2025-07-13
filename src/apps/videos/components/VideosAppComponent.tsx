@@ -593,7 +593,15 @@ export function VideosAppComponent({
     const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
     try {
       await addVideo(youtubeUrl); // addVideo sets current index and plays
-              showStatus(`Added and playing video`);
+      
+      // Check if on iOS Safari and show appropriate status message
+      const ua = navigator.userAgent;
+      const isIOS = /iP(hone|od|ad)/.test(ua);
+      const isSafari = /Safari/.test(ua) && !/Chrome/.test(ua) && !/CriOS/.test(ua);
+      
+      if (isIOS && isSafari) {
+        showStatus("PRESS ⏯ TO PLAY");
+      }
     } catch (error) {
       console.error(
         `[Videos] Error adding video for videoId ${videoId}:`,
@@ -669,7 +677,13 @@ export function VideosAppComponent({
         `[Videos] Processing initialData.videoId on mount: ${videoIdToProcess}`
       );
       
-      toast.info("Opening shared video...");
+      toast.info(
+        <>
+          Opened shared video. Press{' '}
+          <span className="font-chicago">⏯</span>
+          {' '}to start playing.
+        </>
+      );
       
       // Process immediately without delay and with better error handling
       processVideoId(videoIdToProcess)
@@ -720,7 +734,13 @@ export function VideosAppComponent({
           `[Videos] Received updateApp event with videoId: ${videoId}`
         );
         bringToForeground("videos");
-        toast.info("Opening shared video...");
+        toast.info(
+          <>
+            Opened shared video. Press{' '}
+            <span className="font-chicago">⏯</span>
+            {' '}to start playing.
+          </>
+        );
         processVideoId(videoId).catch((error) => {
           console.error(
             `[Videos] Error processing videoId ${videoId} from updateApp event:`,
