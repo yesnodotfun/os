@@ -153,7 +153,7 @@ function getRandomTrackIndexAvoidingRecent(
   // Get the most recent songs to avoid (up to maxRecentToAvoid)
   const recentToAvoid = recentlyPlayed.slice(-maxRecentToAvoid);
   
-  // Create a list of available indices (excluding recently played)
+  // Create a list of available indices (excluding recently played and current)
   const availableIndices = tracks
     .map((_, index) => index)
     .filter(index => {
@@ -177,8 +177,12 @@ function getRandomTrackIndexAvoidingRecent(
     return allIndicesExceptCurrent[randomIndex];
   }
   
-  // Fallback: return current index if no other options
-  return currentIndex;
+  // If we only have one track, return it
+  if (tracks.length === 1) return 0;
+  
+  // Fallback: return a different random index if possible
+  const randomIndex = Math.floor(Math.random() * tracks.length);
+  return randomIndex !== currentIndex ? randomIndex : (randomIndex + 1) % tracks.length;
 }
 
 // Helper function to update recently played list
@@ -201,11 +205,37 @@ export const useIpodStore = create<IpodState>()(
       ...initialIpodData,
       // --- Actions ---
       setCurrentIndex: (index) =>
-        set({ currentIndex: index, lyricsTranslationRequest: null }),
+        set((state) => {
+          // Only update recently played if we're actually changing tracks
+          if (index !== state.currentIndex && index >= 0 && index < state.tracks.length) {
+            const currentTrackId = state.tracks[state.currentIndex]?.id;
+            const newRecentlyPlayed = currentTrackId 
+              ? updateRecentlyPlayed(state.recentlyPlayed, currentTrackId)
+              : state.recentlyPlayed;
+            
+            return { 
+              currentIndex: index, 
+              lyricsTranslationRequest: null,
+              recentlyPlayed: newRecentlyPlayed,
+            };
+          }
+          
+          return { 
+            currentIndex: index, 
+            lyricsTranslationRequest: null,
+          };
+        }),
       toggleLoopCurrent: () =>
         set((state) => ({ loopCurrent: !state.loopCurrent })),
       toggleLoopAll: () => set((state) => ({ loopAll: !state.loopAll })),
-      toggleShuffle: () => set((state) => ({ isShuffled: !state.isShuffled })),
+      toggleShuffle: () => set((state) => {
+        const newShuffleState = !state.isShuffled;
+        return { 
+          isShuffled: newShuffleState,
+          // Clear recently played when turning shuffle on to start fresh
+          recentlyPlayed: newShuffleState ? [] : state.recentlyPlayed
+        };
+      }),
       togglePlay: () => set((state) => ({ isPlaying: !state.isPlaying })),
       setIsPlaying: (playing) => set({ isPlaying: playing }),
       toggleVideo: () => set((state) => ({ showVideo: !state.showVideo })),
@@ -223,6 +253,7 @@ export const useIpodStore = create<IpodState>()(
           isPlaying: true,
           lyricsTranslationRequest: null,
           libraryState: "loaded",
+          recentlyPlayed: [], // Clear recently played when adding new tracks
         })),
       clearLibrary: () =>
         set({
@@ -231,6 +262,7 @@ export const useIpodStore = create<IpodState>()(
           isPlaying: false,
           lyricsTranslationRequest: null,
           libraryState: "cleared",
+          recentlyPlayed: [], // Clear recently played when clearing library
         }),
       resetLibrary: async () => {
         const { tracks, version } = await loadDefaultTracks();
@@ -241,6 +273,7 @@ export const useIpodStore = create<IpodState>()(
           lyricsTranslationRequest: null,
           libraryState: "loaded",
           lastKnownVersion: version,
+          recentlyPlayed: [], // Clear recently played when resetting library
         });
       },
       nextTrack: () =>
@@ -278,14 +311,31 @@ export const useIpodStore = create<IpodState>()(
         set((state) => {
           if (state.tracks.length === 0)
             return { currentIndex: -1, lyricsTranslationRequest: null };
-          const prev = state.isShuffled
-            ? Math.floor(Math.random() * state.tracks.length)
-            : (state.currentIndex - 1 + state.tracks.length) %
-              state.tracks.length;
+          
+          let prev: number;
+          if (state.isShuffled) {
+            // Use improved shuffle algorithm (same as nextTrack for consistency)
+            prev = getRandomTrackIndexAvoidingRecent(
+              state.tracks,
+              state.recentlyPlayed,
+              state.currentIndex
+            );
+          } else {
+            // Sequential playback
+            prev = (state.currentIndex - 1 + state.tracks.length) % state.tracks.length;
+          }
+          
+          // Update recently played list
+          const currentTrackId = state.tracks[state.currentIndex]?.id;
+          const newRecentlyPlayed = currentTrackId 
+            ? updateRecentlyPlayed(state.recentlyPlayed, currentTrackId)
+            : state.recentlyPlayed;
+          
           return {
             currentIndex: prev,
             isPlaying: true,
             lyricsTranslationRequest: null,
+            recentlyPlayed: newRecentlyPlayed,
           };
         }),
       setShowVideo: (show) => set({ showVideo: show }),
@@ -338,6 +388,7 @@ export const useIpodStore = create<IpodState>()(
             isPlaying: false,
             lyricsTranslationRequest: null,
             libraryState: "loaded",
+            recentlyPlayed: [], // Clear recently played when importing library
           });
         } catch (error) {
           console.error("Failed to import library:", error);
