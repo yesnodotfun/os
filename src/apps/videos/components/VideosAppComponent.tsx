@@ -548,12 +548,14 @@ export function VideosAppComponent({
         if (!isShuffled) {
           setOriginalOrder(newVideos);
         }
+        
+        // Set current index to the newly added video (last position)
+        const newVideoIndex = newVideos.length - 1;
+        safeSetCurrentIndex(newVideoIndex);
+        setIsPlaying(true);
+        
         return newVideos;
       });
-      
-      // Set current index and start playing the new video (after state update)
-      safeSetCurrentIndex(videos.length); // videos.length is the index of the newly added video
-      setIsPlaying(true);
 
       showStatus("VIDEO ADDED"); // Update status message
 
@@ -628,17 +630,10 @@ export function VideosAppComponent({
             `[Videos] Video ID ${videoId} not found. Adding and playing.`
           );
           await handleAddAndPlayVideoById(videoId);
-          // --- Only set playing if allowed ---
-          if (shouldAutoplay) {
-            const newIndex = useVideoStore.getState().currentIndex;
-            const addedVideo = useVideoStore.getState().videos[newIndex];
-            if (addedVideo?.id === videoId) {
-              setIsPlaying(true);
-            } else {
-              console.warn(
-                "[Videos] Index mismatch after adding video, autoplay skipped."
-              );
-            }
+          // Note: handleAddAndPlayVideoById already sets isPlaying to true
+          // Only need to handle mobile Safari case here
+          if (!shouldAutoplay) {
+            setIsPlaying(false);
           }
         }
       } catch (error) {
