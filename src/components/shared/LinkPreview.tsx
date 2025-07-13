@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { AlertCircle, Music, ExternalLink } from "lucide-react";
+import { AlertCircle, Music, ExternalLink, Tv } from "lucide-react";
 import { useLaunchApp } from "@/hooks/useLaunchApp";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -19,9 +19,9 @@ interface LinkPreviewProps {
 }
 
 export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
-  // Helper function to check if URL is YouTube
+  // Helper function to check if URL is YouTube or iPod link
   const isYouTubeUrl = (url: string): boolean => {
-    return /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)/.test(
+    return /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|os\.ryo\.lu\/ipod\/)/.test(
       url
     );
   };
@@ -40,6 +40,12 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
     try {
       const validateId = (id: string | null) =>
         id && /^[a-zA-Z0-9_-]{11}$/.test(id) ? id : null;
+
+      // Handle os.ryo.lu/ipod/ links
+      if (url.includes("os.ryo.lu/ipod/")) {
+        const match = url.match(/os\.ryo\.lu\/ipod\/([^&\n?#]+)/);
+        return validateId(match ? match[1] : null);
+      }
 
       // Handle youtu.be links
       if (url.includes("youtu.be/")) {
@@ -74,6 +80,11 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
   // Helper function to get favicon URL
   const getFaviconUrl = (url: string): string => {
     try {
+      // For os.ryo.lu/ipod/ links, use YouTube favicon
+      if (url.includes("os.ryo.lu/ipod/")) {
+        return `https://www.google.com/s2/favicons?domain=youtube.com&sz=16`;
+      }
+
       const domain = new URL(url).hostname;
       return `https://www.google.com/s2/favicons?domain=${domain}&sz=16`;
     } catch {
@@ -98,9 +109,45 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
     }
   };
 
+  // Handle opening in Videos app
+  const handleOpenInVideos = (e: React.MouseEvent | React.TouchEvent) => {
+    e.stopPropagation();
+    // For iPod links, we need to construct a YouTube URL and use the same logic
+    try {
+      const videoId = extractYouTubeVideoId(url);
+      if (videoId) {
+        // Construct YouTube URL and use the same logic as regular YouTube links
+        const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
+        console.log(
+          `[LinkPreview] Launching Videos app with videoId: ${videoId}`
+        );
+        launchApp("videos", { initialData: { videoId } });
+      } else {
+        console.warn(
+          "Could not extract video ID from URL, opening in browser:",
+          url
+        );
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
+    } catch (error) {
+      console.error("Error launching Videos app, opening in browser:", error);
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
+  };
+
   // Handle opening YouTube externally
   const handleOpenYouTube = (e: React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation();
+    // For iPod links, construct YouTube URL from video ID
+    if (url.includes("os.ryo.lu/ipod/")) {
+      const videoId = extractYouTubeVideoId(url);
+      if (videoId) {
+        const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
+        window.open(youtubeUrl, "_blank", "noopener,noreferrer");
+        return;
+      }
+    }
+    // For regular YouTube links, use original URL
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
@@ -115,6 +162,54 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
       try {
         setLoading(true);
         setError(null);
+
+        // Handle os.ryo.lu/ipod/ links specially - use YouTube metadata
+        if (url.includes("os.ryo.lu/ipod/")) {
+          const videoId = extractYouTubeVideoId(url);
+          if (videoId) {
+            // Fetch actual YouTube metadata for the video
+            try {
+              const youtubeResponse = await fetch(
+                `/api/link-preview?url=${encodeURIComponent(
+                  `https://www.youtube.com/watch?v=${videoId}`
+                )}`
+              );
+
+              if (youtubeResponse.ok) {
+                const youtubeData = await youtubeResponse.json();
+                if (!youtubeData.error) {
+                  setMetadata({
+                    title: youtubeData.title,
+                    description: youtubeData.description,
+                    image:
+                      youtubeData.image ||
+                      `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+                    siteName: "YouTube",
+                    url: url,
+                  });
+                  setLoading(false);
+                  return;
+                }
+              }
+            } catch (youtubeError) {
+              console.warn(
+                "Failed to fetch YouTube metadata, using fallback:",
+                youtubeError
+              );
+            }
+
+            // Fallback to basic YouTube-style metadata
+            setMetadata({
+              title: `YouTube Video ${videoId}`,
+              description: "Watch on YouTube",
+              image: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+              siteName: "YouTube",
+              url: url,
+            });
+            setLoading(false);
+            return;
+          }
+        }
 
         // Create a simple metadata extraction API endpoint
         const response = await fetch(
@@ -205,24 +300,46 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
     }
 
     if (isYouTubeUrl(url)) {
-      // For YouTube links, launch Videos app with simplified error handling
-      try {
-        const videoId = extractYouTubeVideoId(url);
-        if (videoId) {
-          console.log(
-            `[LinkPreview] Launching Videos app with videoId: ${videoId}`
-          );
-          launchApp("videos", { initialData: { videoId } });
-        } else {
-          console.warn(
-            "Could not extract video ID from YouTube URL, opening in browser:",
-            url
+      // For iPod links, main action is add to iPod
+      if (url.includes("os.ryo.lu/ipod/")) {
+        try {
+          const videoId = extractYouTubeVideoId(url);
+          if (videoId) {
+            console.log(
+              `[LinkPreview] Adding iPod link to iPod with videoId: ${videoId}`
+            );
+            launchApp("ipod", { initialData: { videoId } });
+          } else {
+            toast.error("Could not extract video ID from this iPod URL");
+            console.warn("Could not extract video ID from iPod URL:", url);
+          }
+        } catch (error) {
+          toast.error("Failed to open video in iPod app");
+          console.error("Error launching iPod app:", error);
+        }
+      } else {
+        // For regular YouTube links, launch Videos app
+        try {
+          const videoId = extractYouTubeVideoId(url);
+          if (videoId) {
+            console.log(
+              `[LinkPreview] Launching Videos app with videoId: ${videoId}`
+            );
+            launchApp("videos", { initialData: { videoId } });
+          } else {
+            console.warn(
+              "Could not extract video ID from YouTube URL, opening in browser:",
+              url
+            );
+            window.open(url, "_blank", "noopener,noreferrer");
+          }
+        } catch (error) {
+          console.error(
+            "Error launching Videos app, opening in browser:",
+            error
           );
           window.open(url, "_blank", "noopener,noreferrer");
         }
-      } catch (error) {
-        console.error("Error launching Videos app, opening in browser:", error);
-        window.open(url, "_blank", "noopener,noreferrer");
       }
     } else {
       // For other links, launch Internet Explorer
@@ -292,28 +409,53 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
           {/* Action buttons */}
           <div className="px-2 pb-2">
             {isYouTubeUrl(url) ? (
-              <div className="flex gap-2 pt-2 border-t border-gray-100">
-                <button
-                  onClick={handleAddToIpod}
-                  onTouchStart={(e) => e.stopPropagation()}
-                  className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
-                  title="Add to iPod"
-                  data-link-preview
-                >
-                  <Music className="h-3 w-3" />
-                  <span>Add to iPod</span>
-                </button>
-                <button
-                  onClick={handleOpenYouTube}
-                  onTouchStart={(e) => e.stopPropagation()}
-                  className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
-                  title="Open YouTube"
-                  data-link-preview
-                >
-                  <ExternalLink className="h-3 w-3" />
-                  <span>Open YouTube</span>
-                </button>
-              </div>
+              url.includes("os.ryo.lu/ipod/") ? (
+                <div className="flex gap-2 pt-2 border-t border-gray-100">
+                  <button
+                    onClick={handleOpenInVideos}
+                    onTouchStart={(e) => e.stopPropagation()}
+                    className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
+                    title="Open in Videos"
+                    data-link-preview
+                  >
+                    <Tv className="h-3 w-3" />
+                    <span>Open in Videos</span>
+                  </button>
+                  <button
+                    onClick={handleOpenYouTube}
+                    onTouchStart={(e) => e.stopPropagation()}
+                    className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
+                    title="Open YouTube"
+                    data-link-preview
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    <span>Open YouTube</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2 pt-2 border-t border-gray-100">
+                  <button
+                    onClick={handleAddToIpod}
+                    onTouchStart={(e) => e.stopPropagation()}
+                    className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
+                    title="Add to iPod"
+                    data-link-preview
+                  >
+                    <Music className="h-3 w-3" />
+                    <span>Add to iPod</span>
+                  </button>
+                  <button
+                    onClick={handleOpenYouTube}
+                    onTouchStart={(e) => e.stopPropagation()}
+                    className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
+                    title="Open YouTube"
+                    data-link-preview
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    <span>Open YouTube</span>
+                  </button>
+                </div>
+              )
             ) : (
               <div className="flex gap-2 pt-2 border-t border-gray-100">
                 <button
@@ -421,28 +563,53 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
           <div className="px-2 pb-2 border-t border-gray-100">
             <div className=" pt-2">
               {isYouTubeUrl(url) ? (
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleAddToIpod}
-                    onTouchStart={(e) => e.stopPropagation()}
-                    className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
-                    title="Add to iPod"
-                    data-link-preview
-                  >
-                    <Music className="h-3 w-3" />
-                    <span>Add to iPod</span>
-                  </button>
-                  <button
-                    onClick={handleOpenYouTube}
-                    onTouchStart={(e) => e.stopPropagation()}
-                    className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
-                    title="Open YouTube"
-                    data-link-preview
-                  >
-                    <ExternalLink className="h-3 w-3" />
-                    <span>Open YouTube</span>
-                  </button>
-                </div>
+                url.includes("os.ryo.lu/ipod/") ? (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleOpenInVideos}
+                      onTouchStart={(e) => e.stopPropagation()}
+                      className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
+                      title="Open in Videos"
+                      data-link-preview
+                    >
+                      <Tv className="h-3 w-3" />
+                      <span>Open in Videos</span>
+                    </button>
+                    <button
+                      onClick={handleOpenYouTube}
+                      onTouchStart={(e) => e.stopPropagation()}
+                      className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
+                      title="Open YouTube"
+                      data-link-preview
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      <span>Open YouTube</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleAddToIpod}
+                      onTouchStart={(e) => e.stopPropagation()}
+                      className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
+                      title="Add to iPod"
+                      data-link-preview
+                    >
+                      <Music className="h-3 w-3" />
+                      <span>Add to iPod</span>
+                    </button>
+                    <button
+                      onClick={handleOpenYouTube}
+                      onTouchStart={(e) => e.stopPropagation()}
+                      className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
+                      title="Open YouTube"
+                      data-link-preview
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      <span>Open YouTube</span>
+                    </button>
+                  </div>
+                )
               ) : (
                 <div className="flex gap-2">
                   <button
