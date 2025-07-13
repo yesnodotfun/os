@@ -108,6 +108,53 @@ const escapeHTML = (str = "") =>
       }[ch])
   );
 
+// Filter profanity while preserving URLs (especially underscores in URLs)
+const filterProfanityPreservingUrls = (content) => {
+  // URL regex pattern to match HTTP/HTTPS URLs
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  
+  // Extract URLs and their positions
+  const urls = [];
+  let match;
+  const urlMatches = [];
+  
+  while ((match = urlRegex.exec(content)) !== null) {
+    urlMatches.push({
+      url: match[1],
+      start: match.index,
+      end: match.index + match[1].length
+    });
+  }
+  
+  // If no URLs found, apply normal profanity filter
+  if (urlMatches.length === 0) {
+    return filter.clean(content);
+  }
+  
+  // Split content into URL and non-URL parts
+  let result = '';
+  let lastIndex = 0;
+  
+  for (const urlMatch of urlMatches) {
+    // Add filtered non-URL part before this URL
+    const beforeUrl = content.substring(lastIndex, urlMatch.start);
+    result += filter.clean(beforeUrl);
+    
+    // Add the URL unchanged
+    result += urlMatch.url;
+    
+    lastIndex = urlMatch.end;
+  }
+  
+  // Add any remaining non-URL content after the last URL
+  if (lastIndex < content.length) {
+    const afterLastUrl = content.substring(lastIndex);
+    result += filter.clean(afterLastUrl);
+  }
+  
+  return result;
+};
+
 /** Validate a username string. Throws on failure. */
 function assertValidUsername(username, requestId) {
   if (!USERNAME_REGEX.test(username)) {
@@ -2391,8 +2438,8 @@ async function handleSendMessage(data, requestId) {
     return createErrorResponse("Content is required", 400);
   }
 
-  // Filter profanity then escape HTML to mitigate XSS
-  const content = escapeHTML(filter.clean(originalContent));
+  // Filter profanity preserving URLs then escape HTML to mitigate XSS
+  const content = escapeHTML(filterProfanityPreservingUrls(originalContent));
 
   logInfo(requestId, `Sending message in room ${roomId} from user ${username}`);
 
