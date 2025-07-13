@@ -234,7 +234,9 @@ export const useVideoStore = create<VideoStoreState>()(
           return getInitialState();
         }
       },
+      // Persist videos array to prevent index out of bounds errors
       partialize: (state) => ({
+        videos: state.videos,
         currentIndex: state.currentIndex,
         loopAll: state.loopAll,
         loopCurrent: state.loopCurrent,
