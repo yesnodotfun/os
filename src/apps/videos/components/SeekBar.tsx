@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { cn } from "@/lib/utils";
 
 interface SeekBarProps {
   duration: number;
@@ -96,13 +95,6 @@ export function SeekBar({
       };
     }
   }, [isDragging, duration, onSeek]);
-
-  // Format time for display
-  const formatTime = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = Math.floor(seconds % 60);
-    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
-  };
 
   const isVisible =
     isPlaying && (parentHovered || isLocalHovered || isDragging);

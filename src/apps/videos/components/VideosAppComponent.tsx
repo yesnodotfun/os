@@ -167,7 +167,6 @@ function WhiteNoiseEffect() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number>();
   const [brightness, setBrightness] = useState(0);
-  const [scanLineOffset, setScanLineOffset] = useState(0);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -240,14 +239,6 @@ function WhiteNoiseEffect() {
     };
 
     animate();
-  }, []);
-
-  // Animate scan lines
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setScanLineOffset((prev) => (prev + 1) % 2);
-    }, 100);
-    return () => clearInterval(interval);
   }, []);
 
   return (
