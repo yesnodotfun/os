@@ -542,19 +542,19 @@ export function VideosAppComponent({
         artist: videoInfo.artist,
       };
 
-      setVideos((prev) => {
-        const newVideos = [...prev, newVideo];
-        // Update original order if not shuffled
-        if (!isShuffled) {
-          setOriginalOrder(newVideos);
-        }
-        
-        // Set current video to the newly added video
-        safeSetCurrentVideoId(newVideo.id);
-        setIsPlaying(true);
-        
-        return newVideos;
-      });
+      // Add video to store
+      const currentVideos = useVideoStore.getState().videos;
+      const newVideos = [...currentVideos, newVideo];
+      setVideos(newVideos);
+      
+      // Update original order if not shuffled
+      if (!isShuffled) {
+        setOriginalOrder(newVideos);
+      }
+      
+      // Set current video to the newly added video
+      safeSetCurrentVideoId(newVideo.id);
+      setIsPlaying(true);
 
       showStatus("VIDEO ADDED"); // Update status message
 
