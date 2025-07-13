@@ -226,8 +226,7 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`link-preview-container bg-white border border-gray-200 overflow-hidden hover:shadow-md transition-shadow cursor-pointer font-geneva-12 ${className}`}
-      style={{ borderRadius: '3px' }}
+      className={`link-preview-container bg-white border border-gray-200 overflow-hidden hover:shadow-md transition-shadow cursor-pointer font-geneva-12 rounded ${className}`}
       onClick={handleClick}
       onTouchStart={(e) => {
         // Prevent the parent message from handling this touch
@@ -318,7 +317,7 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
         <>
           <div className="flex">
             {metadata.image && (
-              <div className="w-20 h-12 bg-gray-100 relative overflow-hidden flex-shrink-0">
+              <div className="w-16 h-16 bg-gray-100 relative overflow-hidden flex-shrink-0">
                 <img
                   src={metadata.image}
                   alt={metadata.title || "Link preview"}
@@ -330,30 +329,18 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
                   onLoad={(e) => {
                     // Determine if this should be full width
                     const img = e.currentTarget;
-                    const container = img.parentElement;
                     const aspectRatio = img.naturalWidth / img.naturalHeight;
                     const shouldBeFullWidth = isYouTubeUrl(url) || aspectRatio > 1.5;
                     
                     if (shouldBeFullWidth) {
                       setIsFullWidthThumbnail(true);
-                    } else {
-                      // Adjust container for side-by-side layout
-                      if (container) {
-                        if (aspectRatio > 1.5) {
-                          // Wide image (16:9 or similar) - use 80x45 (16:9)
-                          container.className = "w-20 h-11 bg-gray-100 relative overflow-hidden flex-shrink-0";
-                        } else {
-                          // Square or tall image - use 48x48 (square)
-                          container.className = "w-12 h-12 bg-gray-100 relative overflow-hidden flex-shrink-0";
-                        }
-                      }
                     }
                   }}
                 />
               </div>
             )}
             
-            <div className="flex-1 min-w-0 p-3">
+            <div className={`flex-1 min-w-0 p-3 ${metadata.image ? 'flex flex-col justify-center' : ''}`}>
               {metadata.title && (
                 <h3 className="font-semibold text-gray-900 text-[10px] mb-1" style={{
                   display: "-webkit-box",
@@ -366,9 +353,9 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
               )}
               
               {metadata.description && (
-                <p className="text-[10px] text-gray-600 mb-2" style={{
+                <p className={`text-[10px] text-gray-600 ${metadata.image ? '' : 'mb-2'}`} style={{
                   display: "-webkit-box",
-                  WebkitLineClamp: 3,
+                  WebkitLineClamp: 2,
                   WebkitBoxOrient: "vertical",
                   overflow: "hidden"
                 }}>
@@ -376,64 +363,68 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
                 </p>
               )}
               
-              <div className="flex items-center gap-2">
-                <img 
-                  src={getFaviconUrl(url)} 
-                  alt="Site favicon" 
-                  className="h-4 w-4 flex-shrink-0"
-                  onError={(e) => {
-                    // Fallback to a simple circle if favicon fails to load
-                    e.currentTarget.style.display = "none";
-                    e.currentTarget.nextElementSibling?.classList.remove("hidden");
-                  }}
-                />
-                <div className="h-4 w-4 bg-gray-300 rounded-full flex-shrink-0 hidden"></div>
-                <p className="text-[10px] text-gray-500 truncate">
-                  {metadata.siteName || new URL(url).hostname}
-                </p>
-              </div>
+              {!metadata.image && (
+                <div className="flex items-center gap-2">
+                  <img 
+                    src={getFaviconUrl(url)} 
+                    alt="Site favicon" 
+                    className="h-4 w-4 flex-shrink-0"
+                    onError={(e) => {
+                      // Fallback to a simple circle if favicon fails to load
+                      e.currentTarget.style.display = "none";
+                      e.currentTarget.nextElementSibling?.classList.remove("hidden");
+                    }}
+                  />
+                  <div className="h-4 w-4 bg-gray-300 rounded-full flex-shrink-0 hidden"></div>
+                  <p className="text-[10px] text-gray-500 truncate">
+                    {metadata.siteName || new URL(url).hostname}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
           
           {/* Action buttons */}
           <div className="px-2 pb-2">
-            {isYouTubeUrl(url) ? (
-              <div className="flex gap-2 pt-2 border-t border-gray-100">
-                <button
-                  onClick={handleAddToIpod}
-                  onTouchStart={(e) => e.stopPropagation()}
-                  className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
-                  title="Add to iPod"
-                  data-link-preview
-                >
-                  <Music className="h-3 w-3" />
-                  <span>Add to iPod</span>
-                </button>
-                <button
-                  onClick={handleOpenYouTube}
-                  onTouchStart={(e) => e.stopPropagation()}
-                  className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
-                  title="Open YouTube"
-                  data-link-preview
-                >
-                  <ExternalLink className="h-3 w-3" />
-                  <span>Open YouTube</span>
-                </button>
-              </div>
-            ) : (
-              <div className="flex gap-2 pt-2 border-t border-gray-100">
-                <button
-                  onClick={handleOpenExternally}
-                  onTouchStart={(e) => e.stopPropagation()}
-                  className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors w-full"
-                  title="Open Externally"
-                  data-link-preview
-                >
-                  <ExternalLink className="h-3 w-3" />
-                  <span>Open Externally</span>
-                </button>
-              </div>
-            )}
+            <div className="border-t border-gray-100 pt-2">
+              {isYouTubeUrl(url) ? (
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleAddToIpod}
+                    onTouchStart={(e) => e.stopPropagation()}
+                    className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
+                    title="Add to iPod"
+                    data-link-preview
+                  >
+                    <Music className="h-3 w-3" />
+                    <span>Add to iPod</span>
+                  </button>
+                  <button
+                    onClick={handleOpenYouTube}
+                    onTouchStart={(e) => e.stopPropagation()}
+                    className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
+                    title="Open YouTube"
+                    data-link-preview
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    <span>Open YouTube</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleOpenExternally}
+                    onTouchStart={(e) => e.stopPropagation()}
+                    className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors w-full"
+                    title="Open Externally"
+                    data-link-preview
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    <span>Open Externally</span>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </>
       )}
