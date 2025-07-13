@@ -163,7 +163,7 @@ Your task is to translate the "words" for each line into ${targetLanguage}.
 Respond ONLY with a valid JSON object containing a single key "translatedTexts". The value of "translatedTexts" MUST be an array of strings.
 This array should contain only the translated versions of the "words" from the input, in the exact same order as they appeared in the input array.
 If a line is purely instrumental or cannot be translated (e.g., "---"), return its original "words" text.
-Do not include timestamps or any other formatting in your output strings; just the raw translated text for each line.`;
+Do not include timestamps or any other formatting in your output strings; just the raw translated text for each line. Do not use , . ! ? : ; `;
 
     const { object: aiResponse } = await generateObject({
       model: google("gemini-2.5-flash"),
