@@ -124,7 +124,12 @@ export function FileIcon({
   const sizes = sizeClasses[size];
 
   const handleImageError = () => {
-    console.error(`Error loading thumbnail for ${name}, fallback to icon. Current imgSrc: ${imgSrc?.substring(0, 50)}...`);
+    console.error(
+      `Error loading thumbnail for ${name}, fallback to icon. Current imgSrc: ${imgSrc?.substring(
+        0,
+        50
+      )}...`
+    );
 
     // If we have a Blob but URL failed, try regenerating URL one time
     if (
@@ -145,7 +150,12 @@ export function FileIcon({
         const newUrl = URL.createObjectURL(contentRef.current);
         blobUrlRef.current = newUrl;
         setImgSrc(newUrl);
-        console.log(`[FileIcon] Created new URL for ${name}: ${newUrl.substring(0, 50)}...`);
+        console.log(
+          `[FileIcon] Created new URL for ${name}: ${newUrl.substring(
+            0,
+            50
+          )}...`
+        );
         return;
       }
     }
@@ -177,7 +187,9 @@ export function FileIcon({
       <img
         src={getIconPath()}
         alt={isDirectory ? "Directory" : "File"}
-        className={`no-touch-callout object-contain ${sizes.image} ${isDirectory && isDropTarget ? "invert" : ""}`}
+        className={`no-touch-callout object-contain ${sizes.image} ${
+          isDirectory && isDropTarget ? "invert" : ""
+        }`}
         style={{ imageRendering: "pixelated" }}
         onContextMenu={(e) => e.preventDefault()}
         draggable={false}
@@ -187,7 +199,7 @@ export function FileIcon({
 
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     playClick();
-    
+
     // On mobile devices, single tap should open the app (execute onDoubleClick)
     if (isMobileDevice() && onDoubleClick) {
       onDoubleClick(e);
@@ -220,7 +232,7 @@ export function FileIcon({
 
   return (
     <div
-      className={`flex flex-col items-center justify-start cursor-pointer gap-1 ${sizes.container} ${className}`}
+      className={`flex flex-col items-center justify-start cursor-default gap-1 ${sizes.container} ${className}`}
       onDoubleClick={handleDoubleClick}
       onClick={handleClick}
       onContextMenu={onContextMenu}
@@ -229,7 +241,9 @@ export function FileIcon({
     >
       <div
         className={`flex items-center justify-center ${sizes.icon} ${
-          isSelected || (isDropTarget && isDirectory) ? "brightness-65 contrast-100" : ""
+          isSelected || (isDropTarget && isDirectory)
+            ? "brightness-65 contrast-100"
+            : ""
         }`}
       >
         {renderIcon()}
@@ -237,7 +251,11 @@ export function FileIcon({
       <span
         className={`text-center px-1 font-geneva-12 break-words truncate ${
           sizes.text
-        } ${isSelected || (isDropTarget && isDirectory) ? "bg-black text-white" : "bg-white text-black"}`}
+        } ${
+          isSelected || (isDropTarget && isDirectory)
+            ? "bg-black text-white"
+            : "bg-white text-black"
+        }`}
       >
         {name}
       </span>
