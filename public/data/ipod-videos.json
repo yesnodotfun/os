@@ -1,6 +1,13 @@
 {
   "videos": [
     {
+      "id": "negtrQu5mTA",
+      "url": "https://www.youtube.com/watch?v=negtrQu5mTA",
+      "title": "빌려온 고양이 (Do the Dance)",
+      "artist": "ILLIT",
+      "lyricOffset": -41450
+    },
+    {
       "id": "YvVDPNOScAw",
       "url": "https://www.youtube.com/watch?v=YvVDPNOScAw",
       "title": "Second Emotion",
@@ -300,14 +307,6 @@
       "artist": "JENNIE",
       "album": "Ruby",
       "lyricOffset": 1000
-    },
-    {
-      "id": "osNYssIep5w",
-      "url": "https://www.youtube.com/watch?v=osNYssIep5w",
-      "title": "Mantra (House Remix)",
-      "artist": "JENNIE",
-      "album": "Ruby",
-      "lyricOffset": 2400
     },
     {
       "id": "DskqpUrvlmw",
