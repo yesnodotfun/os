@@ -37,6 +37,7 @@ interface IpodData {
   libraryState: LibraryState;
   lastKnownVersion: number;
   playbackHistory: string[]; // Track IDs in playback order for back functionality and avoiding recent tracks
+  historyPosition: number; // Current position in playback history (-1 means at the end)
 }
 
 async function loadDefaultTracks(): Promise<{
@@ -87,6 +88,7 @@ const initialIpodData: IpodData = {
   libraryState: "uninitialized",
   lastKnownVersion: 0,
   playbackHistory: [],
+  historyPosition: -1,
 };
 
 export interface IpodState extends IpodData {
@@ -200,19 +202,43 @@ function updatePlaybackHistory(
 // Helper function to get the previous track from playback history
 function getPreviousTrackFromHistory(
   playbackHistory: string[],
-  currentTrackId: string,
+  historyPosition: number,
   tracks: Track[]
-): number | null {
-  if (playbackHistory.length === 0) return null;
+): { trackIndex: number; newHistoryPosition: number } | null {
+  if (playbackHistory.length === 0 || historyPosition <= 0) return null;
   
-  // Find the last occurrence of a different track in history
-  for (let i = playbackHistory.length - 1; i >= 0; i--) {
-    if (playbackHistory[i] !== currentTrackId) {
-      // Find the index of this track in the tracks array
-      const trackIndex = tracks.findIndex(track => track.id === playbackHistory[i]);
-      if (trackIndex !== -1) {
-        return trackIndex;
-      }
+  // Go back one step in history
+  const newHistoryPosition = historyPosition - 1;
+  const previousTrackId = playbackHistory[newHistoryPosition];
+  
+  if (previousTrackId) {
+    // Find the index of this track in the tracks array
+    const trackIndex = tracks.findIndex(track => track.id === previousTrackId);
+    if (trackIndex !== -1) {
+      return { trackIndex, newHistoryPosition };
+    }
+  }
+  
+  return null;
+}
+
+// Helper function to get the next track from playback history (for forward navigation)
+function getNextTrackFromHistory(
+  playbackHistory: string[],
+  historyPosition: number,
+  tracks: Track[]
+): { trackIndex: number; newHistoryPosition: number } | null {
+  if (playbackHistory.length === 0 || historyPosition >= playbackHistory.length - 1) return null;
+  
+  // Go forward one step in history
+  const newHistoryPosition = historyPosition + 1;
+  const nextTrackId = playbackHistory[newHistoryPosition];
+  
+  if (nextTrackId) {
+    // Find the index of this track in the tracks array
+    const trackIndex = tracks.findIndex(track => track.id === nextTrackId);
+    if (trackIndex !== -1) {
+      return { trackIndex, newHistoryPosition };
     }
   }
   
@@ -237,6 +263,7 @@ export const useIpodStore = create<IpodState>()(
               currentIndex: index, 
               lyricsTranslationRequest: null,
               playbackHistory: newPlaybackHistory,
+              historyPosition: newPlaybackHistory.length - 1,
             };
           }
           
@@ -253,7 +280,8 @@ export const useIpodStore = create<IpodState>()(
         return { 
           isShuffled: newShuffleState,
           // Clear playback history when turning shuffle on to start fresh
-          playbackHistory: newShuffleState ? [] : state.playbackHistory
+          playbackHistory: newShuffleState ? [] : state.playbackHistory,
+          historyPosition: newShuffleState ? -1 : state.historyPosition
         };
       }),
       togglePlay: () => set((state) => ({ isPlaying: !state.isPlaying })),
@@ -274,6 +302,7 @@ export const useIpodStore = create<IpodState>()(
           lyricsTranslationRequest: null,
           libraryState: "loaded",
           playbackHistory: [], // Clear playback history when adding new tracks
+          historyPosition: -1,
         })),
       clearLibrary: () =>
         set({
@@ -283,6 +312,7 @@ export const useIpodStore = create<IpodState>()(
           lyricsTranslationRequest: null,
           libraryState: "cleared",
           playbackHistory: [], // Clear playback history when clearing library
+          historyPosition: -1,
         }),
       resetLibrary: async () => {
         const { tracks, version } = await loadDefaultTracks();
@@ -294,6 +324,7 @@ export const useIpodStore = create<IpodState>()(
           libraryState: "loaded",
           lastKnownVersion: version,
           playbackHistory: [], // Clear playback history when resetting library
+          historyPosition: -1,
         });
       },
       nextTrack: () =>
@@ -302,16 +333,33 @@ export const useIpodStore = create<IpodState>()(
             return { currentIndex: -1, lyricsTranslationRequest: null };
           
           let next: number;
+          let newHistoryPosition = state.historyPosition;
+          
           if (state.isShuffled) {
-            // Use improved shuffle algorithm
-            next = getRandomTrackIndexAvoidingRecent(
-              state.tracks,
+            // Check if we can go forward in history first
+            const nextFromHistory = getNextTrackFromHistory(
               state.playbackHistory,
-              state.currentIndex
+              state.historyPosition,
+              state.tracks
             );
+            
+            if (nextFromHistory !== null) {
+              next = nextFromHistory.trackIndex;
+              newHistoryPosition = nextFromHistory.newHistoryPosition;
+            } else {
+              // Use improved shuffle algorithm for new tracks
+              next = getRandomTrackIndexAvoidingRecent(
+                state.tracks,
+                state.playbackHistory,
+                state.currentIndex
+              );
+              // When playing a new track, add it to history and move to end
+              newHistoryPosition = -1; // Will be updated below
+            }
           } else {
             // Sequential playback
             next = (state.currentIndex + 1) % state.tracks.length;
+            newHistoryPosition = -1; // Will be updated below
           }
           
           // Update playback history with current track
@@ -319,6 +367,10 @@ export const useIpodStore = create<IpodState>()(
           let newPlaybackHistory = state.playbackHistory;
           if (currentTrackId) {
             newPlaybackHistory = updatePlaybackHistory(state.playbackHistory, currentTrackId);
+            // If we're adding a new track to history, move to the end
+            if (newHistoryPosition === -1) {
+              newHistoryPosition = newPlaybackHistory.length - 1;
+            }
           }
           
           return {
@@ -326,6 +378,7 @@ export const useIpodStore = create<IpodState>()(
             isPlaying: true,
             lyricsTranslationRequest: null,
             playbackHistory: newPlaybackHistory,
+            historyPosition: newHistoryPosition,
           };
         }),
       previousTrack: () =>
@@ -334,15 +387,19 @@ export const useIpodStore = create<IpodState>()(
             return { currentIndex: -1, lyricsTranslationRequest: null };
           
           let prev: number;
+          let newHistoryPosition = state.historyPosition;
+          
           if (state.isShuffled) {
             // Try to get the actual previous track from playback history
-            const currentTrackId = state.tracks[state.currentIndex]?.id;
-            const previousFromHistory = currentTrackId 
-              ? getPreviousTrackFromHistory(state.playbackHistory, currentTrackId, state.tracks)
-              : null;
+            const previousFromHistory = getPreviousTrackFromHistory(
+              state.playbackHistory,
+              state.historyPosition,
+              state.tracks
+            );
             
             if (previousFromHistory !== null) {
-              prev = previousFromHistory;
+              prev = previousFromHistory.trackIndex;
+              newHistoryPosition = previousFromHistory.newHistoryPosition;
             } else {
               // Fallback to shuffle algorithm if no history
               prev = getRandomTrackIndexAvoidingRecent(
@@ -350,10 +407,12 @@ export const useIpodStore = create<IpodState>()(
                 state.playbackHistory,
                 state.currentIndex
               );
+              newHistoryPosition = -1; // Will be updated below
             }
           } else {
             // Sequential playback
             prev = (state.currentIndex - 1 + state.tracks.length) % state.tracks.length;
+            newHistoryPosition = -1; // Will be updated below
           }
           
           // Update playback history with current track
@@ -361,6 +420,10 @@ export const useIpodStore = create<IpodState>()(
           let newPlaybackHistory = state.playbackHistory;
           if (currentTrackId) {
             newPlaybackHistory = updatePlaybackHistory(state.playbackHistory, currentTrackId);
+            // If we're adding a new track to history, move to the end
+            if (newHistoryPosition === -1) {
+              newHistoryPosition = newPlaybackHistory.length - 1;
+            }
           }
           
           return {
@@ -368,6 +431,7 @@ export const useIpodStore = create<IpodState>()(
             isPlaying: true,
             lyricsTranslationRequest: null,
             playbackHistory: newPlaybackHistory,
+            historyPosition: newHistoryPosition,
           };
         }),
       setShowVideo: (show) => set({ showVideo: show }),
@@ -421,6 +485,7 @@ export const useIpodStore = create<IpodState>()(
             lyricsTranslationRequest: null,
             libraryState: "loaded",
             playbackHistory: [], // Clear playback history when importing library
+            historyPosition: -1,
           });
         } catch (error) {
           console.error("Failed to import library:", error);
@@ -442,6 +507,7 @@ export const useIpodStore = create<IpodState>()(
             libraryState: "loaded",
             lastKnownVersion: version,
             playbackHistory: [], // Clear playback history when initializing library
+            historyPosition: -1,
           });
         }
       },
