@@ -121,52 +121,29 @@ export const DEFAULT_VIDEOS: Video[] = [
 
 interface VideoStoreState {
   videos: Video[];
-  currentIndex: number;
+  currentVideoId: string | null;
   loopAll: boolean;
   loopCurrent: boolean;
   isShuffled: boolean;
   isPlaying: boolean;
   // actions
   setVideos: (videos: Video[] | ((prev: Video[]) => Video[])) => void;
-  setCurrentIndex: (index: number) => void;
+  setCurrentVideoId: (videoId: string | null) => void;
   setLoopAll: (val: boolean) => void;
   setLoopCurrent: (val: boolean) => void;
   setIsShuffled: (val: boolean) => void;
   togglePlay: () => void;
   setIsPlaying: (val: boolean) => void;
+  // derived state helpers
+  getCurrentIndex: () => number;
+  getCurrentVideo: () => Video | null;
 }
 
-const CURRENT_VIDEO_STORE_VERSION = 6; // Increment version to force migration
-
-// Safe state validation function
-const validateState = (state: Partial<VideoStoreState>): VideoStoreState => {
-  const videos = Array.isArray(state.videos) ? state.videos : DEFAULT_VIDEOS;
-  const currentIndex = typeof state.currentIndex === 'number' ? state.currentIndex : 0;
-  
-  // Ensure currentIndex is within bounds
-  const safeCurrentIndex = Math.max(0, Math.min(currentIndex, videos.length - 1));
-  
-  return {
-    videos,
-    currentIndex: safeCurrentIndex,
-    loopAll: typeof state.loopAll === 'boolean' ? state.loopAll : true,
-    loopCurrent: typeof state.loopCurrent === 'boolean' ? state.loopCurrent : false,
-    isShuffled: typeof state.isShuffled === 'boolean' ? state.isShuffled : false,
-    isPlaying: false, // Always start with not playing
-    // Include all required methods (they'll be added by the create function)
-    setVideos: (() => {}) as any,
-    setCurrentIndex: (() => {}) as any,
-    setLoopAll: (() => {}) as any,
-    setLoopCurrent: (() => {}) as any,
-    setIsShuffled: (() => {}) as any,
-    togglePlay: (() => {}) as any,
-    setIsPlaying: (() => {}) as any,
-  };
-};
+const CURRENT_VIDEO_STORE_VERSION = 7; // Clean ID-based version
 
 const getInitialState = () => ({
   videos: DEFAULT_VIDEOS,
-  currentIndex: 0,
+  currentVideoId: DEFAULT_VIDEOS.length > 0 ? DEFAULT_VIDEOS[0].id : null,
   loopAll: true,
   loopCurrent: false,
   isShuffled: false,
@@ -175,7 +152,7 @@ const getInitialState = () => ({
 
 export const useVideoStore = create<VideoStoreState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       ...getInitialState(),
 
       setVideos: (videosOrUpdater) => {
@@ -185,59 +162,51 @@ export const useVideoStore = create<VideoStoreState>()(
               ? (videosOrUpdater as (prev: Video[]) => Video[])(state.videos)
               : videosOrUpdater;
           
-          // Validate currentIndex when videos change
-          const safeCurrentIndex = Math.max(0, Math.min(state.currentIndex, newVideos.length - 1));
+          // Validate currentVideoId when videos change
+          let currentVideoId = state.currentVideoId;
+          if (currentVideoId && !newVideos.find(v => v.id === currentVideoId)) {
+            currentVideoId = newVideos.length > 0 ? newVideos[0].id : null;
+          }
           
           return { 
             videos: newVideos,
-            currentIndex: safeCurrentIndex
-          } as Partial<VideoStoreState>;
+            currentVideoId
+          };
         });
       },
-      setCurrentIndex: (index) => set((state) => {
-        // Ensure index is within bounds
-        const safeIndex = Math.max(0, Math.min(index, state.videos.length - 1));
-        return { currentIndex: safeIndex };
+      setCurrentVideoId: (videoId) => set((state) => {
+        // Ensure videoId exists in videos array
+        const validVideoId = videoId && state.videos.find(v => v.id === videoId) ? videoId : null;
+        return { currentVideoId: validVideoId };
       }),
       setLoopAll: (val) => set({ loopAll: val }),
       setLoopCurrent: (val) => set({ loopCurrent: val }),
       setIsShuffled: (val) => set({ isShuffled: val }),
       togglePlay: () => set((state) => ({ isPlaying: !state.isPlaying })),
       setIsPlaying: (val) => set({ isPlaying: val }),
+      
+      // Derived state helpers
+      getCurrentIndex: () => {
+        const state = get();
+        return state.currentVideoId ? state.videos.findIndex(v => v.id === state.currentVideoId) : -1;
+      },
+      getCurrentVideo: () => {
+        const state = get();
+        return state.currentVideoId ? state.videos.find(v => v.id === state.currentVideoId) || null : null;
+      },
     }),
     {
       name: "ryos:videos",
       version: CURRENT_VIDEO_STORE_VERSION,
-      migrate: (persistedState, version) => {
-        console.log(
-          `Migrating video store from version ${version} to ${CURRENT_VIDEO_STORE_VERSION}`
-        );
-        
-        try {
-          // Validate and fix any corrupted state
-          const validatedState = validateState(persistedState as Partial<VideoStoreState>);
-          
-          // For major version changes, reset to defaults
-          if (version < CURRENT_VIDEO_STORE_VERSION) {
-            return {
-              videos: DEFAULT_VIDEOS,
-              currentIndex: 0,
-              loopAll: validatedState.loopAll,
-              loopCurrent: validatedState.loopCurrent,
-              isShuffled: validatedState.isShuffled,
-            };
-          }
-          
-          return validatedState;
-        } catch (error) {
-          console.error("Error migrating video store, resetting to defaults:", error);
-          return getInitialState();
-        }
+      migrate: () => {
+        console.log(`Migrating video store to clean ID-based version ${CURRENT_VIDEO_STORE_VERSION}`);
+        // Always reset to defaults for clean start
+        return getInitialState();
       },
-      // Persist videos array to prevent index out of bounds errors
+      // Persist videos array to prevent ID-based errors
       partialize: (state) => ({
         videos: state.videos,
-        currentIndex: state.currentIndex,
+        currentVideoId: state.currentVideoId,
         loopAll: state.loopAll,
         loopCurrent: state.loopCurrent,
         isShuffled: state.isShuffled,

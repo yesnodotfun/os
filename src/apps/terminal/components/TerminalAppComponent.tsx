@@ -120,7 +120,7 @@ const getSystemState = () => {
   const ipodStore = useIpodStore.getState();
   const textEditStore = useTextEditStore.getState();
 
-  const currentVideo = videoStore.videos[videoStore.currentIndex];
+  const currentVideo = videoStore.getCurrentVideo();
   const currentTrack =
     ipodStore.tracks &&
     ipodStore.currentIndex >= 0 &&

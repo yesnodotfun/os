@@ -378,7 +378,7 @@ export function useFileSystem(
   } = useIpodStore();
   const {
     videos: videoTracks,
-    setCurrentIndex: setVideoIndex,
+    setCurrentVideoId: setVideoIndex,
     setIsPlaying: setVideoPlaying,
   } = useVideoStore();
   const internetExplorerStore = useInternetExplorerStore();
@@ -609,7 +609,6 @@ export function useFileSystem(
 
         // Display all videos for this artist
         displayFiles = artistVideos.map((video) => {
-          const globalIndex = videoTracks.findIndex((v) => v.id === video.id);
           return {
             name: `${video.title}.mov`,
             isDirectory: false,
@@ -617,7 +616,7 @@ export function useFileSystem(
             icon: "/icons/video-tape.png",
             appId: "videos",
             type: "Video",
-            data: { index: globalIndex },
+            data: { videoId: video.id },
           };
         });
       } else if (currentPath.startsWith("/Sites")) {
@@ -940,9 +939,9 @@ export function useFileSystem(
           setIpodIndex(trackIndex);
           setIpodPlaying(true);
           launchApp("ipod");
-        } else if (file.appId === "videos" && file.data?.index !== undefined) {
-          // Videos uses data directly, no change needed here for initialData
-          setVideoIndex(file.data.index);
+        } else if (file.appId === "videos" && file.data?.videoId) {
+          // Videos uses video ID directly
+          setVideoIndex(file.data.videoId);
           setVideoPlaying(true);
           launchApp("videos");
         } else if (file.type === "site-link" && file.data?.url) {

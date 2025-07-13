@@ -312,18 +312,28 @@ export function VideosAppComponent({
   const { play: playButtonClick } = useSound(Sounds.BUTTON_CLICK);
   const videos = useVideoStore((s) => s.videos);
   const setVideos = useVideoStore((s) => s.setVideos);
-  const currentIndex = useVideoStore((s) => s.currentIndex);
-  const setCurrentIndex = useVideoStore((s) => s.setCurrentIndex);
+  const currentVideoId = useVideoStore((s) => s.currentVideoId);
+  const setCurrentVideoId = useVideoStore((s) => s.setCurrentVideoId);
+  const getCurrentIndex = useVideoStore((s) => s.getCurrentIndex);
+  const getCurrentVideo = useVideoStore((s) => s.getCurrentVideo);
   
-  // Safe setter that ensures currentIndex is within valid bounds
-  const safeSetCurrentIndex = (index: number) => {
-    if (videos.length === 0) {
-      setCurrentIndex(0);
+  // Safe setter that ensures currentVideoId is valid
+  const safeSetCurrentVideoId = (videoId: string | null) => {
+    // Get fresh state from store to avoid stale closure issues
+    const currentVideos = useVideoStore.getState().videos;
+    console.log(`[Videos] safeSetCurrentVideoId called with: ${videoId}. Videos in store: ${currentVideos.length}`);
+    
+    if (!videoId || currentVideos.length === 0) {
+      const fallbackId = currentVideos.length > 0 ? currentVideos[0].id : null;
+      console.log(`[Videos] No videoId or empty videos, setting to fallback: ${fallbackId}`);
+      setCurrentVideoId(fallbackId);
       return;
     }
-    const maxIndex = videos.length - 1;
-    const safeIndex = Math.max(0, Math.min(index, maxIndex));
-    setCurrentIndex(safeIndex);
+    
+    const validVideo = currentVideos.find(v => v.id === videoId);
+    const resultId = validVideo ? videoId : (currentVideos.length > 0 ? currentVideos[0].id : null);
+    console.log(`[Videos] Video ${videoId} ${validVideo ? 'found' : 'NOT FOUND'} in store. Setting currentVideoId to: ${resultId}`);
+    setCurrentVideoId(resultId);
   };
   const loopCurrent = useVideoStore((s) => s.loopCurrent);
   const setLoopCurrent = useVideoStore((s) => s.setLoopCurrent);
@@ -377,13 +387,15 @@ export function VideosAppComponent({
     // dependency array intentionally empty to run once
   }, [isPlaying, setIsPlaying]);
 
-  // Ensure currentIndex is within bounds when videos change
+  // Ensure currentVideoId is valid when videos change
   useEffect(() => {
-    if (videos.length > 0 && currentIndex >= videos.length) {
-      console.warn(`[Videos] currentIndex ${currentIndex} out of bounds for ${videos.length} videos, resetting to 0`);
-      safeSetCurrentIndex(0);
+    if (videos.length > 0 && currentVideoId && !videos.find(v => v.id === currentVideoId)) {
+      console.warn(`[Videos] currentVideoId ${currentVideoId} not found in videos, resetting to first video`);
+      safeSetCurrentVideoId(videos[0].id);
+    } else if (videos.length > 0 && !currentVideoId) {
+      safeSetCurrentVideoId(videos[0].id);
     }
-  }, [videos, currentIndex, safeSetCurrentIndex]);
+  }, [videos, currentVideoId, safeSetCurrentVideoId]);
 
   // Function to show status message
   const showStatus = (message: string) => {
@@ -396,56 +408,52 @@ export function VideosAppComponent({
     }, 2000);
   };
 
-  // Update animation direction before changing currentIndex
-  const updateCurrentIndex = (
-    indexOrUpdater: number | ((prev: number) => number)
-  ) => {
-    const newIndex =
-      typeof indexOrUpdater === "number"
-        ? indexOrUpdater
-        : indexOrUpdater(currentIndex);
-    setAnimationDirection(newIndex > currentIndex ? "next" : "prev");
-    safeSetCurrentIndex(newIndex);
+  // Update animation direction before changing currentVideoId
+  const updateCurrentVideoId = (videoId: string | null, direction: "next" | "prev") => {
+    setAnimationDirection(direction);
+    safeSetCurrentVideoId(videoId);
   };
 
   const nextVideo = () => {
     if (videos.length === 0) return;
     playButtonClick();
-    updateCurrentIndex((prev: number) => {
-      if (prev === videos.length - 1) {
-        if (loopAll) {
-          showStatus("REPEATING PLAYLIST");
-          return 0;
-        }
-        return prev;
+    
+    const currentIndex = getCurrentIndex();
+    if (currentIndex === videos.length - 1) {
+      if (loopAll) {
+        showStatus("REPEATING PLAYLIST");
+        updateCurrentVideoId(videos[0].id, "next");
       }
+      // If not looping, stay on current video
+    } else {
       showStatus("NEXT ⏭");
-      return prev + 1;
-    });
+      updateCurrentVideoId(videos[currentIndex + 1].id, "next");
+    }
     setIsPlaying(true);
   };
 
   const previousVideo = () => {
     if (videos.length === 0) return;
     playButtonClick();
-    updateCurrentIndex((prev: number) => {
-      if (prev === 0) {
-        if (loopAll) {
-          showStatus("REPEATING PLAYLIST");
-          return videos.length - 1;
-        }
-        return prev;
+    
+    const currentIndex = getCurrentIndex();
+    if (currentIndex === 0) {
+      if (loopAll) {
+        showStatus("REPEATING PLAYLIST");
+        updateCurrentVideoId(videos[videos.length - 1].id, "prev");
       }
+      // If not looping, stay on current video
+    } else {
       showStatus("PREV ⏮");
-      return prev - 1;
-    });
+      updateCurrentVideoId(videos[currentIndex - 1].id, "prev");
+    }
     setIsPlaying(true);
   };
 
   // Reset elapsed time when changing tracks
   useEffect(() => {
     setElapsedTime(0);
-  }, [currentIndex]);
+  }, [currentVideoId]);
 
   // Replace the existing useEffect for shuffle initialization
   useEffect(() => {
@@ -542,20 +550,22 @@ export function VideosAppComponent({
         artist: videoInfo.artist,
       };
 
-      setVideos((prev) => {
-        const newVideos = [...prev, newVideo];
-        // Update original order if not shuffled
-        if (!isShuffled) {
-          setOriginalOrder(newVideos);
-        }
-        
-        // Set current index to the newly added video (last position)
-        const newVideoIndex = newVideos.length - 1;
-        safeSetCurrentIndex(newVideoIndex);
-        setIsPlaying(true);
-        
-        return newVideos;
-      });
+      // Add video to store
+      const currentVideos = useVideoStore.getState().videos;
+      const newVideos = [...currentVideos, newVideo];
+      console.log(`[Videos] Adding video ${newVideo.id} (${newVideo.title}). Videos count: ${currentVideos.length} -> ${newVideos.length}`);
+      setVideos(newVideos);
+      
+      // Update original order if not shuffled
+      if (!isShuffled) {
+        setOriginalOrder(newVideos);
+      }
+      
+      // Set current video to the newly added video
+      console.log(`[Videos] Setting current video to newly added: ${newVideo.id}`);
+      safeSetCurrentVideoId(newVideo.id);
+      setIsPlaying(true);
+      console.log(`[Videos] Video added successfully. Current video should be: ${newVideo.id}`);
 
       showStatus("VIDEO ADDED"); // Update status message
 
@@ -570,7 +580,7 @@ export function VideosAppComponent({
       );
       // Reset state on error to prevent inconsistent state
       if (videos.length > 0) {
-        safeSetCurrentIndex(Math.max(0, videos.length - 1));
+        safeSetCurrentVideoId(videos[videos.length - 1].id);
       }
       setIsPlaying(false);
     } finally {
@@ -618,7 +628,7 @@ export function VideosAppComponent({
 
         if (existingVideoIndex !== -1) {
           console.log(`[Videos] Video ID ${videoId} found in playlist. Playing.`);
-          safeSetCurrentIndex(existingVideoIndex);
+          safeSetCurrentVideoId(videoId);
           // --- Only set playing if allowed ---
           if (shouldAutoplay) {
             setIsPlaying(true);
@@ -642,7 +652,7 @@ export function VideosAppComponent({
         throw error; // Re-throw to let caller handle
       }
     },
-    [setCurrentIndex, setIsPlaying, handleAddAndPlayVideoById, showStatus]
+    [safeSetCurrentVideoId, setIsPlaying, handleAddAndPlayVideoById, showStatus]
   );
 
   // --- Simplified: Effect for initial data on mount ---
@@ -810,7 +820,7 @@ export function VideosAppComponent({
 
   // --- NEW: Handler to open share dialog ---
   const handleShareVideo = () => {
-    if (videos.length > 0 && currentIndex >= 0) {
+    if (videos.length > 0 && currentVideoId) {
       setIsShareDialogOpen(true);
     }
   };
@@ -838,9 +848,9 @@ export function VideosAppComponent({
         onShowHelp={() => setIsHelpDialogOpen(true)}
         onShowAbout={() => setIsAboutDialogOpen(true)}
         videos={videos}
-        currentIndex={currentIndex}
-        onPlayVideo={(index) => {
-          safeSetCurrentIndex(index);
+        currentVideoId={currentVideoId}
+        onPlayVideo={(videoId) => {
+          safeSetCurrentVideoId(videoId);
           setIsPlaying(true);
         }}
         onClearPlaylist={() => {
@@ -855,22 +865,8 @@ export function VideosAppComponent({
         onTogglePlay={() => {
           togglePlay();
         }}
-        onNext={() => {
-          if (currentIndex < videos.length - 1) {
-            playButtonClick();
-            safeSetCurrentIndex(currentIndex + 1);
-            setIsPlaying(true);
-            showStatus("NEXT ⏭");
-          }
-        }}
-        onPrevious={() => {
-          if (currentIndex > 0) {
-            playButtonClick();
-            safeSetCurrentIndex(currentIndex - 1);
-            setIsPlaying(true);
-            showStatus("PREV ⏮");
-          }
-        }}
+        onNext={nextVideo}
+        onPrevious={previousVideo}
         onAddVideo={() => setIsAddDialogOpen(true)}
         onOpenVideo={() => {
           setIsAddDialogOpen(true);
@@ -902,7 +898,7 @@ export function VideosAppComponent({
                 >
                   <ReactPlayer
                     ref={playerRef}
-                    url={videos[currentIndex].url}
+                    url={getCurrentVideo()?.url || ""}
                     playing={isPlaying}
                     controls={false}
                     width="100%"
@@ -993,7 +989,7 @@ export function VideosAppComponent({
                 >
                   <div>Track</div>
                   <div className="text-xl">
-                    <AnimatedNumber number={currentIndex + 1} />
+                    <AnimatedNumber number={getCurrentIndex() + 1} />
                   </div>
                 </div>
                 <div
@@ -1019,9 +1015,9 @@ export function VideosAppComponent({
                   <div className="relative overflow-hidden">
                     <AnimatedTitle
                       title={
-                        videos[currentIndex].artist
-                          ? `${videos[currentIndex].title} - ${videos[currentIndex].artist}`
-                          : videos[currentIndex].title
+                        getCurrentVideo()?.artist
+                          ? `${getCurrentVideo()?.title} - ${getCurrentVideo()?.artist}`
+                          : getCurrentVideo()?.title || ""
                       }
                       direction={animationDirection}
                       isPlaying={isPlaying}
@@ -1151,7 +1147,7 @@ export function VideosAppComponent({
           onOpenChange={setIsConfirmClearOpen}
           onConfirm={() => {
             setVideos([]);
-            safeSetCurrentIndex(0);
+            safeSetCurrentVideoId(null);
             setIsPlaying(false);
             setIsConfirmClearOpen(false);
           }}
@@ -1163,7 +1159,7 @@ export function VideosAppComponent({
           onOpenChange={setIsConfirmResetOpen}
           onConfirm={() => {
             setVideos(DEFAULT_VIDEOS);
-            safeSetCurrentIndex(0);
+            safeSetCurrentVideoId(DEFAULT_VIDEOS.length > 0 ? DEFAULT_VIDEOS[0].id : null);
             setIsPlaying(false);
             setOriginalOrder(DEFAULT_VIDEOS);
             setIsConfirmResetOpen(false);
@@ -1187,9 +1183,9 @@ export function VideosAppComponent({
           isOpen={isShareDialogOpen}
           onClose={() => setIsShareDialogOpen(false)}
           itemType="Video"
-          itemIdentifier={videos[currentIndex]?.id || ""}
-          title={videos[currentIndex]?.title}
-          details={videos[currentIndex]?.artist}
+          itemIdentifier={getCurrentVideo()?.id || ""}
+          title={getCurrentVideo()?.title}
+          details={getCurrentVideo()?.artist}
           generateShareUrl={videosGenerateShareUrl}
         />
       </WindowFrame>
