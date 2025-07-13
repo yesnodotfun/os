@@ -195,21 +195,18 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
     }
 
     if (isYouTubeUrl(url)) {
-      // For YouTube links, launch Videos app
+      // For YouTube links, launch Videos app with simplified error handling
       try {
         const videoId = extractYouTubeVideoId(url);
         if (videoId) {
+          console.log(`[LinkPreview] Launching Videos app with videoId: ${videoId}`);
           launchApp("videos", { initialData: { videoId } });
         } else {
-          toast.error('Could not extract video ID from this YouTube URL');
-          console.warn('Could not extract video ID from YouTube URL:', url);
-          // Fallback to opening in browser if videoId extraction fails
+          console.warn('Could not extract video ID from YouTube URL, opening in browser:', url);
           window.open(url, "_blank", "noopener,noreferrer");
         }
       } catch (error) {
-        toast.error('Failed to open video in Videos app');
-        console.error('Error launching Videos app:', error);
-        // Fallback to opening in browser if app launch fails
+        console.error('Error launching Videos app, opening in browser:', error);
         window.open(url, "_blank", "noopener,noreferrer");
       }
     } else {

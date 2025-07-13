@@ -562,7 +562,7 @@ export function VideosAppComponent({
     } catch (error) {
       console.error("Failed to add video:", error);
       showStatus(
-        `❌ Error adding: ${
+        `Error adding: ${
           error instanceof Error ? error.message : "Unknown error"
         }`
       );
@@ -576,69 +576,81 @@ export function VideosAppComponent({
     }
   };
 
-  // --- NEW: Function to add and play video by ID ---
+  // --- Simplified: Function to add and play video by ID ---
   const handleAddAndPlayVideoById = async (videoId: string) => {
     const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
     try {
       await addVideo(youtubeUrl); // addVideo sets current index and plays
-      showStatus(`▶ Playing shared video`);
+              showStatus(`Added and playing video`);
     } catch (error) {
       console.error(
         `[Videos] Error adding video for videoId ${videoId}:`,
         error
       );
-      showStatus(`❌ Error adding ${videoId}`);
+              showStatus(`Failed to add video`);
+      throw error; // Re-throw to let caller handle
     }
   };
 
-  // --- NEW: Function to process video ID (find or add/play) ---
+  // --- Simplified: Function to process video ID (find or add/play) ---
   const processVideoId = useCallback(
     async (videoId: string) => {
-      const currentVideos = useVideoStore.getState().videos;
-      const existingVideoIndex = currentVideos.findIndex(
-        (video) => video.id === videoId
-      );
-
-      // --- Check for mobile Safari BEFORE setting playing state ---
-      const ua = navigator.userAgent;
-      const isIOS = /iP(hone|od|ad)/.test(ua);
-      const isSafari =
-        /Safari/.test(ua) && !/Chrome/.test(ua) && !/CriOS/.test(ua);
-      const shouldAutoplay = !(isIOS || isSafari);
-      // --- End check ---
-
-      if (existingVideoIndex !== -1) {
-        console.log(`[Videos] Video ID ${videoId} found in playlist. Playing.`);
-        safeSetCurrentIndex(existingVideoIndex);
-        // --- Only set playing if allowed ---
-        if (shouldAutoplay) {
-          setIsPlaying(true);
+      try {
+        // Validate videoId format
+        if (!videoId || typeof videoId !== 'string' || videoId.length !== 11) {
+          throw new Error(`Invalid video ID format: ${videoId}`);
         }
-        // Optionally show status
-        showStatus(`▶ Playing ${currentVideos[existingVideoIndex].title}`);
-      } else {
-        console.log(
-          `[Videos] Video ID ${videoId} not found. Adding and playing.`
+
+        const currentVideos = useVideoStore.getState().videos;
+        const existingVideoIndex = currentVideos.findIndex(
+          (video) => video.id === videoId
         );
-        await handleAddAndPlayVideoById(videoId);
-        // --- Only set playing if allowed ---
-        if (shouldAutoplay) {
-          const newIndex = useVideoStore.getState().currentIndex;
-          const addedVideo = useVideoStore.getState().videos[newIndex];
-          if (addedVideo?.id === videoId) {
+
+        // --- Check for mobile Safari BEFORE setting playing state ---
+        const ua = navigator.userAgent;
+        const isIOS = /iP(hone|od|ad)/.test(ua);
+        const isSafari =
+          /Safari/.test(ua) && !/Chrome/.test(ua) && !/CriOS/.test(ua);
+        const shouldAutoplay = !(isIOS || isSafari);
+        // --- End check ---
+
+        if (existingVideoIndex !== -1) {
+          console.log(`[Videos] Video ID ${videoId} found in playlist. Playing.`);
+          safeSetCurrentIndex(existingVideoIndex);
+          // --- Only set playing if allowed ---
+          if (shouldAutoplay) {
             setIsPlaying(true);
-          } else {
-            console.warn(
-              "[Videos] Index mismatch after adding video, autoplay skipped."
-            );
+          }
+          // Optionally show status
+          showStatus(`▶ Playing ${currentVideos[existingVideoIndex].title}`);
+        } else {
+          console.log(
+            `[Videos] Video ID ${videoId} not found. Adding and playing.`
+          );
+          await handleAddAndPlayVideoById(videoId);
+          // --- Only set playing if allowed ---
+          if (shouldAutoplay) {
+            const newIndex = useVideoStore.getState().currentIndex;
+            const addedVideo = useVideoStore.getState().videos[newIndex];
+            if (addedVideo?.id === videoId) {
+              setIsPlaying(true);
+            } else {
+              console.warn(
+                "[Videos] Index mismatch after adding video, autoplay skipped."
+              );
+            }
           }
         }
+      } catch (error) {
+        console.error(`[Videos] Error processing video ID ${videoId}:`, error);
+        showStatus(`Failed to process video: ${videoId}`);
+        throw error; // Re-throw to let caller handle
       }
     },
     [setCurrentIndex, setIsPlaying, handleAddAndPlayVideoById, showStatus]
   );
 
-  // --- NEW: Effect for initial data on mount ---
+  // --- Simplified: Effect for initial data on mount ---
   useEffect(() => {
     if (
       isWindowOpen &&
@@ -651,28 +663,30 @@ export function VideosAppComponent({
       console.log(
         `[Videos] Processing initialData.videoId on mount: ${videoIdToProcess}`
       );
+      
       toast.info("Opening shared video...");
-      setTimeout(() => {
-        processVideoId(videoIdToProcess)
-          .then(() => {
-            // Use instanceId if available (new system), otherwise fallback to appId (legacy)
-            if (instanceId) {
-              clearInstanceInitialData(instanceId);
-            }
-            console.log(
-              `[Videos] Cleared initialData after processing ${videoIdToProcess}`
-            );
-          })
-          .catch((error) => {
-            console.error(
-              `[Videos] Error processing initial videoId ${videoIdToProcess}:`,
-              error
-            );
-            toast.error("Failed to load shared video", {
-              description: `Video ID: ${videoIdToProcess}`,
-            });
+      
+      // Process immediately without delay and with better error handling
+      processVideoId(videoIdToProcess)
+        .then(() => {
+          // Use instanceId if available (new system), otherwise fallback to appId (legacy)
+          if (instanceId) {
+            clearInstanceInitialData(instanceId);
+          }
+          console.log(
+            `[Videos] Successfully processed and cleared initialData for ${videoIdToProcess}`
+          );
+        })
+        .catch((error) => {
+          console.error(
+            `[Videos] Error processing initial videoId ${videoIdToProcess}:`,
+            error
+          );
+          toast.error("Failed to load shared video", {
+            description: `Video ID: ${videoIdToProcess}`,
           });
-      }, 100);
+        });
+      
       // Mark this videoId as processed
       lastProcessedVideoIdRef.current = initialData.videoId;
     }
@@ -724,7 +738,7 @@ export function VideosAppComponent({
 
   const togglePlay = () => {
     togglePlayStore();
-    showStatus(!isPlaying ? "PLAY ▶" : "PAUSED ❙❙");
+    showStatus(!isPlaying ? "PLAY" : "PAUSED");
     playVideoTape();
   };
 
