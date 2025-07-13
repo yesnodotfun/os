@@ -37,6 +37,7 @@ interface IpodData {
   libraryState: LibraryState;
   lastKnownVersion: number;
   recentlyPlayed: string[]; // Track IDs of recently played songs
+  playbackHistory: number[]; // Indices of songs in playback order for back functionality
 }
 
 async function loadDefaultTracks(): Promise<{
@@ -87,6 +88,7 @@ const initialIpodData: IpodData = {
   libraryState: "uninitialized",
   lastKnownVersion: 0,
   recentlyPlayed: [],
+  playbackHistory: [],
 };
 
 export interface IpodState extends IpodData {
@@ -197,6 +199,35 @@ function updateRecentlyPlayed(
   const updated = [...filtered, trackId];
   // Keep only the most recent tracks
   return updated.slice(-maxHistory);
+}
+
+// Helper function to update playback history
+function updatePlaybackHistory(
+  playbackHistory: number[],
+  currentIndex: number,
+  maxHistory: number = 50
+): number[] {
+  // Add the current index to the history
+  const updated = [...playbackHistory, currentIndex];
+  // Keep only the most recent indices
+  return updated.slice(-maxHistory);
+}
+
+// Helper function to get the previous track from playback history
+function getPreviousTrackFromHistory(
+  playbackHistory: number[],
+  currentIndex: number
+): number | null {
+  if (playbackHistory.length === 0) return null;
+  
+  // Find the last occurrence of a different track in history
+  for (let i = playbackHistory.length - 1; i >= 0; i--) {
+    if (playbackHistory[i] !== currentIndex) {
+      return playbackHistory[i];
+    }
+  }
+  
+  return null;
 }
 
 export const useIpodStore = create<IpodState>()(
@@ -314,12 +345,22 @@ export const useIpodStore = create<IpodState>()(
           
           let prev: number;
           if (state.isShuffled) {
-            // Use improved shuffle algorithm (same as nextTrack for consistency)
-            prev = getRandomTrackIndexAvoidingRecent(
-              state.tracks,
-              state.recentlyPlayed,
+            // Try to get the actual previous track from playback history
+            const previousFromHistory = getPreviousTrackFromHistory(
+              state.playbackHistory,
               state.currentIndex
             );
+            
+            if (previousFromHistory !== null) {
+              prev = previousFromHistory;
+            } else {
+              // Fallback to shuffle algorithm if no history
+              prev = getRandomTrackIndexAvoidingRecent(
+                state.tracks,
+                state.recentlyPlayed,
+                state.currentIndex
+              );
+            }
           } else {
             // Sequential playback
             prev = (state.currentIndex - 1 + state.tracks.length) % state.tracks.length;
