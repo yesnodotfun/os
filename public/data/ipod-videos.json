@@ -1,6 +1,21 @@
 {
   "videos": [
     {
+      "id": "yupEwQ6qCd0",
+      "url": "https://www.youtube.com/watch?v=yupEwQ6qCd0",
+      "title": "大展鴻圖",
+      "artist": "攬佬",
+      "lyricOffset": 1250
+    },
+    {
+      "id": "negtrQu5mTA",
+      "url": "https://www.youtube.com/watch?v=negtrQu5mTA",
+      "title": "빌려온 고양이 (Do the Dance)",
+      "artist": "ILLIT",
+      "album": "",
+      "lyricOffset": -41150
+    },
+    {
       "id": "YvVDPNOScAw",
       "url": "https://www.youtube.com/watch?v=YvVDPNOScAw",
       "title": "Second Emotion",
