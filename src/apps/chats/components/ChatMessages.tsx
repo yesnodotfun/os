@@ -1186,7 +1186,9 @@ function ChatMessagesContent({
               if (urls.length === 0) return null;
               
               return (
-                <div className="flex flex-col gap-2 mt-2 max-w-[90%]">
+                <div className={`flex flex-col gap-2 max-w-[90%] ${
+                  isUrlOnly(displayContent) ? "mt-1" : "mt-2"
+                }`}>
                   {urls.map((url, index) => (
                     <LinkPreview
                       key={`${messageKey}-link-${index}`}
