@@ -36,7 +36,7 @@ const getSystemState = () => {
   const textEditStore = useTextEditStore.getState();
   const chatsStore = useChatsStore.getState();
 
-  const currentVideo = videoStore.videos[videoStore.currentIndex];
+  const currentVideo = videoStore.getCurrentVideo();
   const currentTrack =
     ipodStore.tracks &&
     ipodStore.currentIndex >= 0 &&
