@@ -808,8 +808,8 @@ function ChatMessagesContent({
               )}
             </motion.div>
 
-            {/* Only show message bubble if it's not a URL-only user message */}
-            {!(message.role === "user" && isUrlOnly(displayContent)) && (
+            {/* Only show message bubble if it's not a URL-only message */}
+            {!isUrlOnly(displayContent) && (
               <motion.div
                 layout="position"
                 initial={{
