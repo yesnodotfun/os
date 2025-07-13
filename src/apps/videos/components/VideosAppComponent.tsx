@@ -16,6 +16,7 @@ import { useSound, Sounds } from "@/hooks/useSound";
 import { ShareItemDialog } from "@/components/dialogs/ShareItemDialog";
 import { toast } from "sonner";
 import { useAppStore } from "@/stores/useAppStore";
+import { SeekBar } from "./SeekBar";
 
 interface Video {
   id: string;
@@ -250,49 +251,28 @@ function WhiteNoiseEffect() {
   }, []);
 
   return (
-    <div className="absolute inset-0 pointer-events-none">
-      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
-      <div
-        className="absolute inset-0"
-        style={{
-          background: "rgba(0,0,0,0.1)",
-          opacity: 1 - brightness,
-          transition: "opacity 0.05s linear",
-        }}
-      />
-      <div
-        className="absolute inset-0"
-        style={{
-          background: `linear-gradient(
-            to bottom,
-            rgba(0,0,0,0.1) 0%,
-            rgba(0,0,0,0.1) 50%,
-            rgba(0,0,0,0.1) 100%
-          )`,
-          transform: `translateY(${scanLineOffset}px)`,
-          transition: "transform 0.1s linear",
-        }}
-      />
-    </div>
+    <canvas
+      ref={canvasRef}
+      className="w-full h-full pointer-events-none"
+      style={{ position: "absolute", top: 0, left: 0 }}
+    />
   );
 }
 
 function StatusDisplay({ message }: { message: string }) {
   return (
-    <div className="absolute top-4 left-4 pointer-events-none">
-      <div className="relative">
-        <div className="font-geneva-12 text-white text-xl relative z-10">
-          {message}
-        </div>
-        <div
-          className="font-geneva-12 text-black text-xl absolute inset-0"
-          style={{
-            WebkitTextStroke: "3px black",
-            textShadow: "none",
-          }}
-        >
-          {message}
-        </div>
+    <div className="relative">
+      <div className="font-geneva-12 text-white text-xl relative z-10">
+        {message}
+      </div>
+      <div
+        className="font-geneva-12 text-black text-xl absolute inset-0"
+        style={{
+          WebkitTextStroke: "3px black",
+          textShadow: "none",
+        }}
+      >
+        {message}
       </div>
     </div>
   );
@@ -316,23 +296,35 @@ export function VideosAppComponent({
   const setCurrentVideoId = useVideoStore((s) => s.setCurrentVideoId);
   const getCurrentIndex = useVideoStore((s) => s.getCurrentIndex);
   const getCurrentVideo = useVideoStore((s) => s.getCurrentVideo);
-  
+
   // Safe setter that ensures currentVideoId is valid
   const safeSetCurrentVideoId = (videoId: string | null) => {
     // Get fresh state from store to avoid stale closure issues
     const currentVideos = useVideoStore.getState().videos;
-    console.log(`[Videos] safeSetCurrentVideoId called with: ${videoId}. Videos in store: ${currentVideos.length}`);
-    
+    console.log(
+      `[Videos] safeSetCurrentVideoId called with: ${videoId}. Videos in store: ${currentVideos.length}`
+    );
+
     if (!videoId || currentVideos.length === 0) {
       const fallbackId = currentVideos.length > 0 ? currentVideos[0].id : null;
-      console.log(`[Videos] No videoId or empty videos, setting to fallback: ${fallbackId}`);
+      console.log(
+        `[Videos] No videoId or empty videos, setting to fallback: ${fallbackId}`
+      );
       setCurrentVideoId(fallbackId);
       return;
     }
-    
-    const validVideo = currentVideos.find(v => v.id === videoId);
-    const resultId = validVideo ? videoId : (currentVideos.length > 0 ? currentVideos[0].id : null);
-    console.log(`[Videos] Video ${videoId} ${validVideo ? 'found' : 'NOT FOUND'} in store. Setting currentVideoId to: ${resultId}`);
+
+    const validVideo = currentVideos.find((v) => v.id === videoId);
+    const resultId = validVideo
+      ? videoId
+      : currentVideos.length > 0
+      ? currentVideos[0].id
+      : null;
+    console.log(
+      `[Videos] Video ${videoId} ${
+        validVideo ? "found" : "NOT FOUND"
+      } in store. Setting currentVideoId to: ${resultId}`
+    );
     setCurrentVideoId(resultId);
   };
   const loopCurrent = useVideoStore((s) => s.loopCurrent);
@@ -360,6 +352,11 @@ export function VideosAppComponent({
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const statusTimeoutRef = useRef<NodeJS.Timeout>();
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  const [duration, setDuration] = useState(0);
+  const [playedSeconds, setPlayedSeconds] = useState(0);
+  const [isVideoHovered, setIsVideoHovered] = useState(false);
+  const [isDraggingSeek, setIsDraggingSeek] = useState(false);
+  const [dragSeekTime, setDragSeekTime] = useState(0);
 
   // --- App Store hooks ---
   const bringToForeground = useAppStore((state) => state.bringToForeground);
@@ -389,8 +386,14 @@ export function VideosAppComponent({
 
   // Ensure currentVideoId is valid when videos change
   useEffect(() => {
-    if (videos.length > 0 && currentVideoId && !videos.find(v => v.id === currentVideoId)) {
-      console.warn(`[Videos] currentVideoId ${currentVideoId} not found in videos, resetting to first video`);
+    if (
+      videos.length > 0 &&
+      currentVideoId &&
+      !videos.find((v) => v.id === currentVideoId)
+    ) {
+      console.warn(
+        `[Videos] currentVideoId ${currentVideoId} not found in videos, resetting to first video`
+      );
       safeSetCurrentVideoId(videos[0].id);
     } else if (videos.length > 0 && !currentVideoId) {
       safeSetCurrentVideoId(videos[0].id);
@@ -409,7 +412,10 @@ export function VideosAppComponent({
   };
 
   // Update animation direction before changing currentVideoId
-  const updateCurrentVideoId = (videoId: string | null, direction: "next" | "prev") => {
+  const updateCurrentVideoId = (
+    videoId: string | null,
+    direction: "next" | "prev"
+  ) => {
     setAnimationDirection(direction);
     safeSetCurrentVideoId(videoId);
   };
@@ -417,7 +423,7 @@ export function VideosAppComponent({
   const nextVideo = () => {
     if (videos.length === 0) return;
     playButtonClick();
-    
+
     const currentIndex = getCurrentIndex();
     if (currentIndex === videos.length - 1) {
       if (loopAll) {
@@ -435,7 +441,7 @@ export function VideosAppComponent({
   const previousVideo = () => {
     if (videos.length === 0) return;
     playButtonClick();
-    
+
     const currentIndex = getCurrentIndex();
     if (currentIndex === 0) {
       if (loopAll) {
@@ -553,19 +559,25 @@ export function VideosAppComponent({
       // Add video to store
       const currentVideos = useVideoStore.getState().videos;
       const newVideos = [...currentVideos, newVideo];
-      console.log(`[Videos] Adding video ${newVideo.id} (${newVideo.title}). Videos count: ${currentVideos.length} -> ${newVideos.length}`);
+      console.log(
+        `[Videos] Adding video ${newVideo.id} (${newVideo.title}). Videos count: ${currentVideos.length} -> ${newVideos.length}`
+      );
       setVideos(newVideos);
-      
+
       // Update original order if not shuffled
       if (!isShuffled) {
         setOriginalOrder(newVideos);
       }
-      
+
       // Set current video to the newly added video
-      console.log(`[Videos] Setting current video to newly added: ${newVideo.id}`);
+      console.log(
+        `[Videos] Setting current video to newly added: ${newVideo.id}`
+      );
       safeSetCurrentVideoId(newVideo.id);
       setIsPlaying(true);
-      console.log(`[Videos] Video added successfully. Current video should be: ${newVideo.id}`);
+      console.log(
+        `[Videos] Video added successfully. Current video should be: ${newVideo.id}`
+      );
 
       showStatus("VIDEO ADDED"); // Update status message
 
@@ -593,12 +605,13 @@ export function VideosAppComponent({
     const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
     try {
       await addVideo(youtubeUrl); // addVideo sets current index and plays
-      
+
       // Check if on iOS Safari and show appropriate status message
       const ua = navigator.userAgent;
       const isIOS = /iP(hone|od|ad)/.test(ua);
-      const isSafari = /Safari/.test(ua) && !/Chrome/.test(ua) && !/CriOS/.test(ua);
-      
+      const isSafari =
+        /Safari/.test(ua) && !/Chrome/.test(ua) && !/CriOS/.test(ua);
+
       if (isIOS && isSafari) {
         showStatus("PRESS ⏯ TO PLAY");
       }
@@ -607,7 +620,7 @@ export function VideosAppComponent({
         `[Videos] Error adding video for videoId ${videoId}:`,
         error
       );
-              showStatus(`Failed to add video`);
+      showStatus(`Failed to add video`);
       throw error; // Re-throw to let caller handle
     }
   };
@@ -617,7 +630,7 @@ export function VideosAppComponent({
     async (videoId: string) => {
       try {
         // Validate videoId format
-        if (!videoId || typeof videoId !== 'string' || videoId.length !== 11) {
+        if (!videoId || typeof videoId !== "string" || videoId.length !== 11) {
           throw new Error(`Invalid video ID format: ${videoId}`);
         }
 
@@ -635,7 +648,9 @@ export function VideosAppComponent({
         // --- End check ---
 
         if (existingVideoIndex !== -1) {
-          console.log(`[Videos] Video ID ${videoId} found in playlist. Playing.`);
+          console.log(
+            `[Videos] Video ID ${videoId} found in playlist. Playing.`
+          );
           safeSetCurrentVideoId(videoId);
           // --- Only set playing if allowed ---
           if (shouldAutoplay) {
@@ -676,15 +691,14 @@ export function VideosAppComponent({
       console.log(
         `[Videos] Processing initialData.videoId on mount: ${videoIdToProcess}`
       );
-      
+
       toast.info(
         <>
-          Opened shared video. Press{' '}
-          <span className="font-chicago">⏯</span>
-          {' '}to start playing.
+          Opened shared video. Press <span className="font-chicago">⏯</span> to
+          start playing.
         </>
       );
-      
+
       // Process immediately without delay and with better error handling
       processVideoId(videoIdToProcess)
         .then(() => {
@@ -705,7 +719,7 @@ export function VideosAppComponent({
             description: `Video ID: ${videoIdToProcess}`,
           });
         });
-      
+
       // Mark this videoId as processed
       lastProcessedVideoIdRef.current = initialData.videoId;
     }
@@ -727,7 +741,9 @@ export function VideosAppComponent({
         event.detail.initialData?.videoId
       ) {
         // Skip if this videoId has already been processed
-        if (lastProcessedVideoIdRef.current === event.detail.initialData.videoId)
+        if (
+          lastProcessedVideoIdRef.current === event.detail.initialData.videoId
+        )
           return;
         const videoId = event.detail.initialData.videoId;
         console.log(
@@ -736,9 +752,8 @@ export function VideosAppComponent({
         bringToForeground("videos");
         toast.info(
           <>
-            Opened shared video. Press{' '}
-            <span className="font-chicago">⏯</span>
-            {' '}to start playing.
+            Opened shared video. Press <span className="font-chicago">⏯</span>{" "}
+            to start playing.
           </>
         );
         processVideoId(videoId).catch((error) => {
@@ -763,7 +778,7 @@ export function VideosAppComponent({
 
   const togglePlay = () => {
     togglePlayStore();
-    showStatus(!isPlaying ? "PLAY" : "PAUSED");
+    showStatus(!isPlaying ? "PLAY ▶" : "PAUSED ⏸");
     playVideoTape();
   };
 
@@ -782,7 +797,18 @@ export function VideosAppComponent({
   };
 
   const handleProgress = (state: { playedSeconds: number }) => {
+    setPlayedSeconds(state.playedSeconds);
     setElapsedTime(Math.floor(state.playedSeconds));
+  };
+
+  const handleDuration = (duration: number) => {
+    setDuration(duration);
+  };
+
+  const handleSeek = (time: number) => {
+    if (playerRef.current) {
+      playerRef.current.seekTo(time, "seconds");
+    }
   };
 
   // Add new handlers for YouTube player state sync
@@ -911,11 +937,12 @@ export function VideosAppComponent({
         <div className="flex flex-col w-full h-full bg-[#1a1a1a] text-white">
           <div className="flex-1 relative">
             {videos.length > 0 ? (
-              <div className="w-full h-full overflow-hidden relative">
-                <div
-                  className="w-full pointer-events-none"
-                  style={{ height: "calc(100% + 140px)", marginTop: "-70px" }}
-                >
+              <div
+                className="w-full h-full overflow-hidden relative"
+                onMouseEnter={() => setIsVideoHovered(true)}
+                onMouseLeave={() => setIsVideoHovered(false)}
+              >
+                <div className="w-full h-[calc(100%+120px)] mt-[-60px] relative">
                   <ReactPlayer
                     ref={playerRef}
                     url={getCurrentVideo()?.url || ""}
@@ -925,6 +952,7 @@ export function VideosAppComponent({
                     height="100%"
                     onEnded={handleVideoEnd}
                     onProgress={handleProgress}
+                    onDuration={handleDuration}
                     onPlay={handlePlay}
                     onPause={handlePause}
                     onReady={handleReady}
@@ -940,11 +968,12 @@ export function VideosAppComponent({
                           fs: 0,
                           disablekb: 1,
                           playsinline: 1,
-                          autoplay: 0, // Ensure no autoplay
+                          autoplay: 0,
                         },
                       },
                     }}
                   />
+                  {/* White noise effect (z-10) */}
                   <AnimatePresence>
                     {!isPlaying && (
                       <motion.div
@@ -956,20 +985,36 @@ export function VideosAppComponent({
                           delay: 0.1,
                           ease: [0.4, 0, 0.2, 1],
                         }}
-                        className="absolute inset-0"
+                        className="absolute inset-0 z-10"
                       >
                         <WhiteNoiseEffect />
                       </motion.div>
                     )}
                   </AnimatePresence>
+                  {/* Clickable overlay for play/pause (z-20) */}
+                  <div
+                    className="absolute inset-0 cursor-pointer z-20"
+                    onClick={togglePlay}
+                    aria-label={isPlaying ? "Pause" : "Play"}
+                  />
                 </div>
-                {/* Clickable overlay for all browsers */}
-                <div
-                  className="absolute inset-0 cursor-pointer"
-                  onClick={togglePlay}
-                  aria-label={isPlaying ? "Pause" : "Play"}
-                />
-                {/* Status Display */}
+                {/* SeekBar positioned at the bottom (z-30) - moved outside oversized container */}
+                <div className="absolute bottom-0 left-0 right-0 z-30">
+                  <SeekBar
+                    duration={duration}
+                    currentTime={playedSeconds}
+                    onSeek={handleSeek}
+                    isPlaying={isPlaying}
+                    isHovered={isVideoHovered}
+                    onDragChange={(isDragging, seekTime) => {
+                      setIsDraggingSeek(isDragging);
+                      if (seekTime !== undefined) {
+                        setDragSeekTime(seekTime);
+                      }
+                    }}
+                  />
+                </div>
+                {/* Status Display (z-40) - moved outside oversized container */}
                 <AnimatePresence>
                   {statusMessage && (
                     <motion.div
@@ -977,6 +1022,7 @@ export function VideosAppComponent({
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.2 }}
+                      className="absolute top-4 left-4 z-40"
                     >
                       <StatusDisplay message={statusMessage} />
                     </motion.div>
@@ -1019,7 +1065,11 @@ export function VideosAppComponent({
                   )}
                 >
                   <div>Time</div>
-                  <div className="text-xl">{formatTime(elapsedTime)}</div>
+                  <div className="text-xl">
+                    {formatTime(
+                      isDraggingSeek ? Math.floor(dragSeekTime) : elapsedTime
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="relative overflow-hidden flex-1 px-2">
@@ -1036,7 +1086,9 @@ export function VideosAppComponent({
                     <AnimatedTitle
                       title={
                         getCurrentVideo()?.artist
-                          ? `${getCurrentVideo()?.title} - ${getCurrentVideo()?.artist}`
+                          ? `${getCurrentVideo()?.title} - ${
+                              getCurrentVideo()?.artist
+                            }`
                           : getCurrentVideo()?.title || ""
                       }
                       direction={animationDirection}
@@ -1179,7 +1231,9 @@ export function VideosAppComponent({
           onOpenChange={setIsConfirmResetOpen}
           onConfirm={() => {
             setVideos(DEFAULT_VIDEOS);
-            safeSetCurrentVideoId(DEFAULT_VIDEOS.length > 0 ? DEFAULT_VIDEOS[0].id : null);
+            safeSetCurrentVideoId(
+              DEFAULT_VIDEOS.length > 0 ? DEFAULT_VIDEOS[0].id : null
+            );
             setIsPlaying(false);
             setOriginalOrder(DEFAULT_VIDEOS);
             setIsConfirmResetOpen(false);
