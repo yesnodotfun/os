@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { AlertCircle, Music, ExternalLink, Video } from "lucide-react";
+import { AlertCircle, Music, ExternalLink, Videotape } from "lucide-react";
 import { useLaunchApp } from "@/hooks/useLaunchApp";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -418,7 +418,7 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
                     title="Open in Videos"
                     data-link-preview
                   >
-                    <Video className="h-3 w-3" />
+                    <Videotape className="h-3 w-3" />
                     <span>Open in Videos</span>
                   </button>
                   <button
@@ -572,7 +572,7 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
                       title="Open in Videos"
                       data-link-preview
                     >
-                      <Video className="h-3 w-3" />
+                      <Videotape className="h-3 w-3" />
                       <span>Open in Videos</span>
                     </button>
                     <button
