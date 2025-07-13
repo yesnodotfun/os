@@ -137,6 +137,12 @@ const isEmojiOnly = (text: string): boolean => {
   return emojiRegex.test(text);
 };
 
+const isUrlOnly = (text: string): boolean => {
+  const trimmedText = text.trim();
+  const urlRegex = /^https?:\/\/[^\s]+$/;
+  return urlRegex.test(trimmedText);
+};
+
 // Helper function to extract user-friendly error message
 const getErrorMessage = (error: Error): string => {
   if (!error.message) return "An error occurred";
@@ -802,93 +808,95 @@ function ChatMessagesContent({
               )}
             </motion.div>
 
-            <motion.div
-              layout="position"
-              initial={{
-                backgroundColor:
-                  message.role === "user"
-                    ? "#fef9c3"
-                    : message.role === "assistant"
-                    ? "#dbeafe"
-                    : // For human messages, convert bg-color-100 to hex (approximately)
-                    bgColorClass.split(" ")[0].includes("pink")
-                    ? "#fce7f3"
-                    : bgColorClass.split(" ")[0].includes("purple")
-                    ? "#f3e8ff"
-                    : bgColorClass.split(" ")[0].includes("indigo")
-                    ? "#e0e7ff"
-                    : bgColorClass.split(" ")[0].includes("teal")
-                    ? "#ccfbf1"
-                    : bgColorClass.split(" ")[0].includes("lime")
-                    ? "#ecfccb"
-                    : bgColorClass.split(" ")[0].includes("amber")
-                    ? "#fef3c7"
-                    : bgColorClass.split(" ")[0].includes("cyan")
-                    ? "#cffafe"
-                    : bgColorClass.split(" ")[0].includes("rose")
-                    ? "#ffe4e6"
-                    : "#f3f4f6", // gray-100 fallback
-                color: "#000000",
-              }}
-              animate={
-                isUrgentMessage(message.content)
-                  ? {
-                      backgroundColor: [
-                        "#fee2e2", // Start with red for urgent (lighter red-100)
-                        message.role === "user"
-                          ? "#fef9c3"
-                          : message.role === "assistant"
-                          ? "#dbeafe"
-                          : // For human messages, convert bg-color-100 to hex (approximately)
-                          bgColorClass.split(" ")[0].includes("pink")
-                          ? "#fce7f3"
-                          : bgColorClass.split(" ")[0].includes("purple")
-                          ? "#f3e8ff"
-                          : bgColorClass.split(" ")[0].includes("indigo")
-                          ? "#e0e7ff"
-                          : bgColorClass.split(" ")[0].includes("teal")
-                          ? "#ccfbf1"
-                          : bgColorClass.split(" ")[0].includes("lime")
-                          ? "#ecfccb"
-                          : bgColorClass.split(" ")[0].includes("amber")
-                          ? "#fef3c7"
-                          : bgColorClass.split(" ")[0].includes("cyan")
-                          ? "#cffafe"
-                          : bgColorClass.split(" ")[0].includes("rose")
-                          ? "#ffe4e6"
-                          : "#f3f4f6", // gray-100 fallback
-                      ],
-                      color: ["#C92D2D", "#000000"],
-                      transition: {
-                        duration: 1,
-                        repeat: 1,
-                        repeatType: "reverse",
-                        ease: "easeInOut",
-                        delay: 0,
-                      },
-                    }
-                  : {}
-              }
-              className={`${
-                // Apply dynamic font size here
-                `p-1.5 px-2 ${
-                  bgColorClass ||
-                  (message.role === "user"
-                    ? "bg-yellow-100 text-black"
-                    : "bg-blue-100 text-black")
-                } ${
-                  isHtmlCodeBlock(message.content).isHtml ||
-                  message.parts?.some(
-                    (part) =>
-                      part.type === "text" &&
-                      extractHtmlContent(part.text).hasHtml
-                  )
-                    ? "w-full"
-                    : "w-fit max-w-[90%]"
-                }`
-              } min-h-[12px] rounded leading-snug font-geneva-12 break-words select-text`}
-              style={{ fontSize: `${fontSize}px` }} // Apply font size via style prop
-            >
+            {/* Only show message bubble if it's not a URL-only message */}
+            {!isUrlOnly(displayContent) && (
+              <motion.div
+                layout="position"
+                initial={{
+                  backgroundColor:
+                    message.role === "user"
+                      ? "#fef9c3"
+                      : message.role === "assistant"
+                      ? "#dbeafe"
+                      : // For human messages, convert bg-color-100 to hex (approximately)
+                      bgColorClass.split(" ")[0].includes("pink")
+                      ? "#fce7f3"
+                      : bgColorClass.split(" ")[0].includes("purple")
+                      ? "#f3e8ff"
+                      : bgColorClass.split(" ")[0].includes("indigo")
+                      ? "#e0e7ff"
+                      : bgColorClass.split(" ")[0].includes("teal")
+                      ? "#ccfbf1"
+                      : bgColorClass.split(" ")[0].includes("lime")
+                      ? "#ecfccb"
+                      : bgColorClass.split(" ")[0].includes("amber")
+                      ? "#fef3c7"
+                      : bgColorClass.split(" ")[0].includes("cyan")
+                      ? "#cffafe"
+                      : bgColorClass.split(" ")[0].includes("rose")
+                      ? "#ffe4e6"
+                      : "#f3f4f6", // gray-100 fallback
+                  color: "#000000",
+                }}
+                animate={
+                  isUrgentMessage(message.content)
+                    ? {
+                        backgroundColor: [
+                          "#fee2e2", // Start with red for urgent (lighter red-100)
+                          message.role === "user"
+                            ? "#fef9c3"
+                            : message.role === "assistant"
+                            ? "#dbeafe"
+                            : // For human messages, convert bg-color-100 to hex (approximately)
+                            bgColorClass.split(" ")[0].includes("pink")
+                            ? "#fce7f3"
+                            : bgColorClass.split(" ")[0].includes("purple")
+                            ? "#f3e8ff"
+                            : bgColorClass.split(" ")[0].includes("indigo")
+                            ? "#e0e7ff"
+                            : bgColorClass.split(" ")[0].includes("teal")
+                            ? "#ccfbf1"
+                            : bgColorClass.split(" ")[0].includes("lime")
+                            ? "#ecfccb"
+                            : bgColorClass.split(" ")[0].includes("amber")
+                            ? "#fef3c7"
+                            : bgColorClass.split(" ")[0].includes("cyan")
+                            ? "#cffafe"
+                            : bgColorClass.split(" ")[0].includes("rose")
+                            ? "#ffe4e6"
+                            : "#f3f4f6", // gray-100 fallback
+                        ],
+                        color: ["#C92D2D", "#000000"],
+                        transition: {
+                          duration: 1,
+                          repeat: 1,
+                          repeatType: "reverse",
+                          ease: "easeInOut",
+                          delay: 0,
+                        },
+                      }
+                    : {}
+                }
+                className={`${
+                  // Apply dynamic font size here
+                  `p-1.5 px-2 ${
+                    bgColorClass ||
+                    (message.role === "user"
+                      ? "bg-yellow-100 text-black"
+                      : "bg-blue-100 text-black")
+                  } ${
+                    isHtmlCodeBlock(message.content).isHtml ||
+                    message.parts?.some(
+                      (part) =>
+                        part.type === "text" &&
+                        extractHtmlContent(part.text).hasHtml
+                    )
+                      ? "w-full"
+                      : "w-fit max-w-[90%]"
+                  }`
+                } min-h-[12px] rounded leading-snug font-geneva-12 break-words select-text`}
+                style={{ fontSize: `${fontSize}px` }} // Apply font size via style prop
+              >
               {message.role === "assistant" ? (
                 <motion.div className="select-text flex flex-col gap-1">
                   {message.parts?.map((part, partIndex) => {
@@ -1170,6 +1178,7 @@ function ChatMessagesContent({
                 </>
               )}
             </motion.div>
+            )}
             
             {/* Link Previews */}
             {(() => {
@@ -1177,7 +1186,9 @@ function ChatMessagesContent({
               if (urls.length === 0) return null;
               
               return (
-                <div className="flex flex-col gap-2 mt-2 max-w-[90%]">
+                <div className={`flex flex-col gap-2 max-w-[90%] ${
+                  isUrlOnly(displayContent) ? "mt-0" : "mt-2"
+                }`}>
                   {urls.map((url, index) => (
                     <LinkPreview
                       key={`${messageKey}-link-${index}`}
