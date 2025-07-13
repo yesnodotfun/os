@@ -319,13 +319,21 @@ export function VideosAppComponent({
   
   // Safe setter that ensures currentVideoId is valid
   const safeSetCurrentVideoId = (videoId: string | null) => {
-    if (!videoId || videos.length === 0) {
-      setCurrentVideoId(videos.length > 0 ? videos[0].id : null);
+    // Get fresh state from store to avoid stale closure issues
+    const currentVideos = useVideoStore.getState().videos;
+    console.log(`[Videos] safeSetCurrentVideoId called with: ${videoId}. Videos in store: ${currentVideos.length}`);
+    
+    if (!videoId || currentVideos.length === 0) {
+      const fallbackId = currentVideos.length > 0 ? currentVideos[0].id : null;
+      console.log(`[Videos] No videoId or empty videos, setting to fallback: ${fallbackId}`);
+      setCurrentVideoId(fallbackId);
       return;
     }
     
-    const validVideo = videos.find(v => v.id === videoId);
-    setCurrentVideoId(validVideo ? videoId : (videos.length > 0 ? videos[0].id : null));
+    const validVideo = currentVideos.find(v => v.id === videoId);
+    const resultId = validVideo ? videoId : (currentVideos.length > 0 ? currentVideos[0].id : null);
+    console.log(`[Videos] Video ${videoId} ${validVideo ? 'found' : 'NOT FOUND'} in store. Setting currentVideoId to: ${resultId}`);
+    setCurrentVideoId(resultId);
   };
   const loopCurrent = useVideoStore((s) => s.loopCurrent);
   const setLoopCurrent = useVideoStore((s) => s.setLoopCurrent);
@@ -545,6 +553,7 @@ export function VideosAppComponent({
       // Add video to store
       const currentVideos = useVideoStore.getState().videos;
       const newVideos = [...currentVideos, newVideo];
+      console.log(`[Videos] Adding video ${newVideo.id} (${newVideo.title}). Videos count: ${currentVideos.length} -> ${newVideos.length}`);
       setVideos(newVideos);
       
       // Update original order if not shuffled
@@ -553,8 +562,10 @@ export function VideosAppComponent({
       }
       
       // Set current video to the newly added video
+      console.log(`[Videos] Setting current video to newly added: ${newVideo.id}`);
       safeSetCurrentVideoId(newVideo.id);
       setIsPlaying(true);
+      console.log(`[Videos] Video added successfully. Current video should be: ${newVideo.id}`);
 
       showStatus("VIDEO ADDED"); // Update status message
 
