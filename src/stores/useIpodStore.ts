@@ -152,16 +152,12 @@ function getUnplayedTrackIds(tracks: Track[], playbackHistory: string[]): string
 function getRandomTrackAvoidingRecent(
   tracks: Track[],
   playbackHistory: string[],
-  currentIndex: number,
-  maxRecentToAvoid: number = 10
-): number {
-  if (tracks.length === 0) return -1;
-  if (tracks.length === 1) return 0;
+  currentIndex: number
+): { trackIndex: number; shouldClearHistory: boolean } {
+  if (tracks.length === 0) return { trackIndex: -1, shouldClearHistory: false };
+  if (tracks.length === 1) return { trackIndex: 0, shouldClearHistory: false };
   
-  // Get the most recent songs to avoid
-  const recentToAvoid = playbackHistory.slice(-maxRecentToAvoid);
-  
-  // Get unplayed tracks first
+  // Get unplayed tracks first (tracks that have never been played)
   const unplayedIds = getUnplayedTrackIds(tracks, playbackHistory);
   
   // If we have unplayed tracks, prioritize them
@@ -173,33 +169,47 @@ function getRandomTrackAvoidingRecent(
     
     if (availableUnplayed.length > 0) {
       const randomUnplayedId = availableUnplayed[Math.floor(Math.random() * availableUnplayed.length)];
-      return tracks.findIndex(track => track.id === randomUnplayedId);
+      return { 
+        trackIndex: tracks.findIndex(track => track.id === randomUnplayedId),
+        shouldClearHistory: false
+      };
     }
   }
   
-  // If no unplayed tracks or all unplayed tracks are current, pick from all tracks avoiding recent
+  // If no unplayed tracks, we've played everything at least once
+  // Now avoid ALL recently played songs (no cap) to ensure maximum variety
+  const allPlayedIds = new Set(playbackHistory);
+  
+  // Find tracks that haven't been played recently
   const availableIndices = tracks
     .map((_, index) => index)
     .filter(index => {
       const trackId = tracks[index].id;
-      return !recentToAvoid.includes(trackId) && index !== currentIndex;
+      return !allPlayedIds.has(trackId) && index !== currentIndex;
     });
   
   if (availableIndices.length > 0) {
-    return availableIndices[Math.floor(Math.random() * availableIndices.length)];
+    return { 
+      trackIndex: availableIndices[Math.floor(Math.random() * availableIndices.length)],
+      shouldClearHistory: false
+    };
   }
   
-  // If all tracks are recent, just avoid current
+  // If ALL tracks have been played recently, we need to clear history and start fresh
+  // This means we've played everything and need to reset
   const allIndicesExceptCurrent = tracks
     .map((_, index) => index)
     .filter(index => index !== currentIndex);
   
   if (allIndicesExceptCurrent.length > 0) {
-    return allIndicesExceptCurrent[Math.floor(Math.random() * allIndicesExceptCurrent.length)];
+    return { 
+      trackIndex: allIndicesExceptCurrent[Math.floor(Math.random() * allIndicesExceptCurrent.length)],
+      shouldClearHistory: true
+    };
   }
   
   // Fallback: return current index if it's the only option
-  return currentIndex;
+  return { trackIndex: currentIndex, shouldClearHistory: false };
 }
 
 // Helper function to update playback history
@@ -365,11 +375,12 @@ export const useIpodStore = create<IpodState>()(
               newHistoryPosition = nextFromHistory.newHistoryPosition;
             } else {
               // We need to pick a new random track
-              next = getRandomTrackAvoidingRecent(
+              const { trackIndex, shouldClearHistory } = getRandomTrackAvoidingRecent(
                 state.tracks,
                 state.playbackHistory,
                 state.currentIndex
               );
+              next = trackIndex;
               
               // When picking a new random track, we need to handle history properly
               // If we're not at the end of history, we need to truncate it
@@ -386,6 +397,12 @@ export const useIpodStore = create<IpodState>()(
               
               // Move to the end of history
               newHistoryPosition = newPlaybackHistory.length - 1;
+              
+              // If we cleared history, reset it
+              if (shouldClearHistory) {
+                newPlaybackHistory = [];
+                newHistoryPosition = -1;
+              }
             }
           } else {
             // Sequential playback
@@ -430,11 +447,12 @@ export const useIpodStore = create<IpodState>()(
               newHistoryPosition = previousFromHistory.newHistoryPosition;
             } else {
               // Fallback to shuffle algorithm if no history
-              prev = getRandomTrackAvoidingRecent(
+              const { trackIndex, shouldClearHistory } = getRandomTrackAvoidingRecent(
                 state.tracks,
                 state.playbackHistory,
                 state.currentIndex
               );
+              prev = trackIndex;
               
               // When picking a new random track, handle history properly
               if (state.historyPosition < state.playbackHistory.length - 1) {
@@ -450,6 +468,12 @@ export const useIpodStore = create<IpodState>()(
               
               // Move to the end of history
               newHistoryPosition = newPlaybackHistory.length - 1;
+              
+              // If we cleared history, reset it
+              if (shouldClearHistory) {
+                newPlaybackHistory = [];
+                newHistoryPosition = -1;
+              }
             }
           } else {
             // Sequential playback
