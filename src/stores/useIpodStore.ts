@@ -38,6 +38,7 @@ interface IpodData {
   lastKnownVersion: number;
   playbackHistory: string[]; // Track IDs in playback order for back functionality and avoiding recent tracks
   historyPosition: number; // Current position in playback history (-1 means at the end)
+  unplayedTrackIds: string[]; // Track IDs that haven't been played in current shuffle cycle
 }
 
 async function loadDefaultTracks(): Promise<{
@@ -89,6 +90,7 @@ const initialIpodData: IpodData = {
   lastKnownVersion: 0,
   playbackHistory: [],
   historyPosition: -1,
+  unplayedTrackIds: [],
 };
 
 export interface IpodState extends IpodData {
@@ -141,6 +143,67 @@ export interface IpodState extends IpodData {
 }
 
 const CURRENT_IPOD_STORE_VERSION = 18; // Incremented version for auto-update feature
+
+// Helper function to get a random track from unplayed tracks
+function getRandomUnplayedTrackIndex(
+  tracks: Track[],
+  unplayedTrackIds: string[],
+  currentIndex: number
+): number {
+  if (tracks.length === 0) return -1;
+  if (tracks.length === 1) return 0;
+  
+  // If we have unplayed tracks, pick from them
+  if (unplayedTrackIds.length > 0) {
+    // Filter out the current track from unplayed if it's there
+    const availableUnplayed = unplayedTrackIds.filter(id => {
+      const trackIndex = tracks.findIndex(track => track.id === id);
+      return trackIndex !== currentIndex;
+    });
+    
+    if (availableUnplayed.length > 0) {
+      const randomUnplayedId = availableUnplayed[Math.floor(Math.random() * availableUnplayed.length)];
+      return tracks.findIndex(track => track.id === randomUnplayedId);
+    }
+  }
+  
+  // If no unplayed tracks available, we need to reset and pick from all tracks
+  // This ensures we don't get stuck when all tracks have been played
+  const availableIndices = tracks
+    .map((_, index) => index)
+    .filter(index => index !== currentIndex);
+  
+  if (availableIndices.length > 0) {
+    return availableIndices[Math.floor(Math.random() * availableIndices.length)];
+  }
+  
+  // Fallback: return current index if it's the only option
+  return currentIndex;
+}
+
+// Helper function to initialize unplayed tracks
+function initializeUnplayedTracks(tracks: Track[]): string[] {
+  return tracks.map(track => track.id);
+}
+
+// Helper function to remove track from unplayed list
+function removeFromUnplayedTracks(unplayedTrackIds: string[], trackId: string): string[] {
+  return unplayedTrackIds.filter(id => id !== trackId);
+}
+
+// Helper function to reset unplayed tracks when needed
+function resetUnplayedTracksIfNeeded(
+  unplayedTrackIds: string[],
+  tracks: Track[],
+  playbackHistory: string[]
+): string[] {
+  // If we've played all tracks, reset the unplayed list
+  if (unplayedTrackIds.length === 0) {
+    return initializeUnplayedTracks(tracks);
+  }
+  
+  return unplayedTrackIds;
+}
 
 // Helper function to get a random track index avoiding recently played songs
 function getRandomTrackIndexAvoidingRecent(
@@ -259,11 +322,19 @@ export const useIpodStore = create<IpodState>()(
               ? updatePlaybackHistory(state.playbackHistory, currentTrackId)
               : state.playbackHistory;
             
+            // Update unplayed tracks in shuffle mode
+            let newUnplayedTrackIds = state.unplayedTrackIds;
+            if (state.isShuffled && currentTrackId) {
+              newUnplayedTrackIds = removeFromUnplayedTracks(state.unplayedTrackIds, currentTrackId);
+              newUnplayedTrackIds = resetUnplayedTracksIfNeeded(newUnplayedTrackIds, state.tracks, state.playbackHistory);
+            }
+            
             return { 
               currentIndex: index, 
               lyricsTranslationRequest: null,
               playbackHistory: newPlaybackHistory,
               historyPosition: newPlaybackHistory.length - 1,
+              unplayedTrackIds: newUnplayedTrackIds,
             };
           }
           
@@ -281,7 +352,9 @@ export const useIpodStore = create<IpodState>()(
           isShuffled: newShuffleState,
           // Clear playback history when turning shuffle on to start fresh
           playbackHistory: newShuffleState ? [] : state.playbackHistory,
-          historyPosition: newShuffleState ? -1 : state.historyPosition
+          historyPosition: newShuffleState ? -1 : state.historyPosition,
+          // Initialize unplayed tracks when turning shuffle on
+          unplayedTrackIds: newShuffleState ? initializeUnplayedTracks(state.tracks) : state.unplayedTrackIds
         };
       }),
       togglePlay: () => set((state) => ({ isPlaying: !state.isPlaying })),
@@ -303,6 +376,7 @@ export const useIpodStore = create<IpodState>()(
           libraryState: "loaded",
           playbackHistory: [], // Clear playback history when adding new tracks
           historyPosition: -1,
+          unplayedTrackIds: state.isShuffled ? [track.id, ...state.unplayedTrackIds] : state.unplayedTrackIds,
         })),
       clearLibrary: () =>
         set({
@@ -313,6 +387,7 @@ export const useIpodStore = create<IpodState>()(
           libraryState: "cleared",
           playbackHistory: [], // Clear playback history when clearing library
           historyPosition: -1,
+          unplayedTrackIds: [], // Clear unplayed tracks when clearing library
         }),
       resetLibrary: async () => {
         const { tracks, version } = await loadDefaultTracks();
@@ -325,6 +400,7 @@ export const useIpodStore = create<IpodState>()(
           lastKnownVersion: version,
           playbackHistory: [], // Clear playback history when resetting library
           historyPosition: -1,
+          unplayedTrackIds: tracks.map(track => track.id), // Initialize unplayed tracks
         });
       },
       nextTrack: () =>
@@ -334,6 +410,8 @@ export const useIpodStore = create<IpodState>()(
           
           let next: number;
           let newHistoryPosition = state.historyPosition;
+          let newUnplayedTrackIds = state.unplayedTrackIds;
+          let newPlaybackHistory = state.playbackHistory;
           
           if (state.isShuffled) {
             // Check if we can go forward in history first
@@ -344,31 +422,54 @@ export const useIpodStore = create<IpodState>()(
             );
             
             if (nextFromHistory !== null) {
+              // We're navigating forward in history
               next = nextFromHistory.trackIndex;
               newHistoryPosition = nextFromHistory.newHistoryPosition;
             } else {
-              // Use improved shuffle algorithm for new tracks
-              next = getRandomTrackIndexAvoidingRecent(
+              // We need to pick a new random track
+              next = getRandomUnplayedTrackIndex(
                 state.tracks,
-                state.playbackHistory,
+                state.unplayedTrackIds,
                 state.currentIndex
               );
-              // When playing a new track, add it to history and move to end
-              newHistoryPosition = -1; // Will be updated below
+              
+              // Remove the track from unplayed list and reset if needed
+              const nextTrackId = state.tracks[next]?.id;
+              if (nextTrackId) {
+                newUnplayedTrackIds = removeFromUnplayedTracks(state.unplayedTrackIds, nextTrackId);
+              }
+              
+              // Check if we need to reset unplayed tracks (when we've played everything)
+              if (newUnplayedTrackIds.length === 0) {
+                newUnplayedTrackIds = initializeUnplayedTracks(state.tracks);
+                // Remove the track we just picked from the reset list
+                newUnplayedTrackIds = removeFromUnplayedTracks(newUnplayedTrackIds, nextTrackId);
+              }
+              
+              // When picking a new random track, we need to handle history properly
+              // If we're not at the end of history, we need to truncate it
+              if (state.historyPosition < state.playbackHistory.length - 1) {
+                // We're branching from history, so truncate it
+                newPlaybackHistory = state.playbackHistory.slice(0, state.historyPosition + 1);
+              }
+              
+              // Add current track to history before moving to next
+              const currentTrackId = state.tracks[state.currentIndex]?.id;
+              if (currentTrackId) {
+                newPlaybackHistory = updatePlaybackHistory(newPlaybackHistory, currentTrackId);
+              }
+              
+              // Move to the end of history
+              newHistoryPosition = newPlaybackHistory.length - 1;
             }
           } else {
             // Sequential playback
             next = (state.currentIndex + 1) % state.tracks.length;
-            newHistoryPosition = -1; // Will be updated below
-          }
-          
-          // Update playback history with current track
-          const currentTrackId = state.tracks[state.currentIndex]?.id;
-          let newPlaybackHistory = state.playbackHistory;
-          if (currentTrackId) {
-            newPlaybackHistory = updatePlaybackHistory(state.playbackHistory, currentTrackId);
-            // If we're adding a new track to history, move to the end
-            if (newHistoryPosition === -1) {
+            
+            // Add current track to history
+            const currentTrackId = state.tracks[state.currentIndex]?.id;
+            if (currentTrackId) {
+              newPlaybackHistory = updatePlaybackHistory(state.playbackHistory, currentTrackId);
               newHistoryPosition = newPlaybackHistory.length - 1;
             }
           }
@@ -379,6 +480,7 @@ export const useIpodStore = create<IpodState>()(
             lyricsTranslationRequest: null,
             playbackHistory: newPlaybackHistory,
             historyPosition: newHistoryPosition,
+            unplayedTrackIds: newUnplayedTrackIds,
           };
         }),
       previousTrack: () =>
@@ -388,6 +490,8 @@ export const useIpodStore = create<IpodState>()(
           
           let prev: number;
           let newHistoryPosition = state.historyPosition;
+          let newUnplayedTrackIds = state.unplayedTrackIds;
+          let newPlaybackHistory = state.playbackHistory;
           
           if (state.isShuffled) {
             // Try to get the actual previous track from playback history
@@ -398,30 +502,47 @@ export const useIpodStore = create<IpodState>()(
             );
             
             if (previousFromHistory !== null) {
+              // We're navigating backward in history
               prev = previousFromHistory.trackIndex;
               newHistoryPosition = previousFromHistory.newHistoryPosition;
             } else {
               // Fallback to shuffle algorithm if no history
-              prev = getRandomTrackIndexAvoidingRecent(
+              prev = getRandomUnplayedTrackIndex(
                 state.tracks,
-                state.playbackHistory,
+                state.unplayedTrackIds,
                 state.currentIndex
               );
-              newHistoryPosition = -1; // Will be updated below
+              
+              // Remove the track from unplayed list and reset if needed
+              const prevTrackId = state.tracks[prev]?.id;
+              if (prevTrackId) {
+                newUnplayedTrackIds = removeFromUnplayedTracks(state.unplayedTrackIds, prevTrackId);
+                newUnplayedTrackIds = resetUnplayedTracksIfNeeded(newUnplayedTrackIds, state.tracks, state.playbackHistory);
+              }
+              
+              // When picking a new random track, handle history properly
+              if (state.historyPosition < state.playbackHistory.length - 1) {
+                // We're branching from history, so truncate it
+                newPlaybackHistory = state.playbackHistory.slice(0, state.historyPosition + 1);
+              }
+              
+              // Add current track to history before moving to previous
+              const currentTrackId = state.tracks[state.currentIndex]?.id;
+              if (currentTrackId) {
+                newPlaybackHistory = updatePlaybackHistory(newPlaybackHistory, currentTrackId);
+              }
+              
+              // Move to the end of history
+              newHistoryPosition = newPlaybackHistory.length - 1;
             }
           } else {
             // Sequential playback
             prev = (state.currentIndex - 1 + state.tracks.length) % state.tracks.length;
-            newHistoryPosition = -1; // Will be updated below
-          }
-          
-          // Update playback history with current track
-          const currentTrackId = state.tracks[state.currentIndex]?.id;
-          let newPlaybackHistory = state.playbackHistory;
-          if (currentTrackId) {
-            newPlaybackHistory = updatePlaybackHistory(state.playbackHistory, currentTrackId);
-            // If we're adding a new track to history, move to the end
-            if (newHistoryPosition === -1) {
+            
+            // Add current track to history
+            const currentTrackId = state.tracks[state.currentIndex]?.id;
+            if (currentTrackId) {
+              newPlaybackHistory = updatePlaybackHistory(state.playbackHistory, currentTrackId);
               newHistoryPosition = newPlaybackHistory.length - 1;
             }
           }
@@ -432,6 +553,7 @@ export const useIpodStore = create<IpodState>()(
             lyricsTranslationRequest: null,
             playbackHistory: newPlaybackHistory,
             historyPosition: newHistoryPosition,
+            unplayedTrackIds: newUnplayedTrackIds,
           };
         }),
       setShowVideo: (show) => set({ showVideo: show }),
@@ -486,6 +608,7 @@ export const useIpodStore = create<IpodState>()(
             libraryState: "loaded",
             playbackHistory: [], // Clear playback history when importing library
             historyPosition: -1,
+            unplayedTrackIds: importedTracks.map(track => track.id), // Initialize unplayed tracks
           });
         } catch (error) {
           console.error("Failed to import library:", error);
