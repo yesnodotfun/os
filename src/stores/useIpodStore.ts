@@ -38,7 +38,6 @@ interface IpodData {
   lastKnownVersion: number;
   playbackHistory: string[]; // Track IDs in playback order for back functionality and avoiding recent tracks
   historyPosition: number; // Current position in playback history (-1 means at the end)
-  unplayedTrackIds: string[]; // Track IDs that haven't been played in current shuffle cycle
 }
 
 async function loadDefaultTracks(): Promise<{
@@ -90,7 +89,6 @@ const initialIpodData: IpodData = {
   lastKnownVersion: 0,
   playbackHistory: [],
   historyPosition: -1,
-  unplayedTrackIds: [],
 };
 
 export interface IpodState extends IpodData {
@@ -144,19 +142,31 @@ export interface IpodState extends IpodData {
 
 const CURRENT_IPOD_STORE_VERSION = 18; // Incremented version for auto-update feature
 
-// Helper function to get a random track from unplayed tracks
-function getRandomUnplayedTrackIndex(
+// Helper function to get unplayed track IDs from history
+function getUnplayedTrackIds(tracks: Track[], playbackHistory: string[]): string[] {
+  const playedIds = new Set(playbackHistory);
+  return tracks.map(track => track.id).filter(id => !playedIds.has(id));
+}
+
+// Helper function to get a random track avoiding recently played songs
+function getRandomTrackAvoidingRecent(
   tracks: Track[],
-  unplayedTrackIds: string[],
-  currentIndex: number
+  playbackHistory: string[],
+  currentIndex: number,
+  maxRecentToAvoid: number = 10
 ): number {
   if (tracks.length === 0) return -1;
   if (tracks.length === 1) return 0;
   
-  // If we have unplayed tracks, pick from them
-  if (unplayedTrackIds.length > 0) {
-    // Filter out the current track from unplayed if it's there
-    const availableUnplayed = unplayedTrackIds.filter(id => {
+  // Get the most recent songs to avoid
+  const recentToAvoid = playbackHistory.slice(-maxRecentToAvoid);
+  
+  // Get unplayed tracks first
+  const unplayedIds = getUnplayedTrackIds(tracks, playbackHistory);
+  
+  // If we have unplayed tracks, prioritize them
+  if (unplayedIds.length > 0) {
+    const availableUnplayed = unplayedIds.filter(id => {
       const trackIndex = tracks.findIndex(track => track.id === id);
       return trackIndex !== currentIndex;
     });
@@ -167,58 +177,7 @@ function getRandomUnplayedTrackIndex(
     }
   }
   
-  // If no unplayed tracks available, we need to reset and pick from all tracks
-  // This ensures we don't get stuck when all tracks have been played
-  const availableIndices = tracks
-    .map((_, index) => index)
-    .filter(index => index !== currentIndex);
-  
-  if (availableIndices.length > 0) {
-    return availableIndices[Math.floor(Math.random() * availableIndices.length)];
-  }
-  
-  // Fallback: return current index if it's the only option
-  return currentIndex;
-}
-
-// Helper function to initialize unplayed tracks
-function initializeUnplayedTracks(tracks: Track[]): string[] {
-  return tracks.map(track => track.id);
-}
-
-// Helper function to remove track from unplayed list
-function removeFromUnplayedTracks(unplayedTrackIds: string[], trackId: string): string[] {
-  return unplayedTrackIds.filter(id => id !== trackId);
-}
-
-// Helper function to reset unplayed tracks when needed
-function resetUnplayedTracksIfNeeded(
-  unplayedTrackIds: string[],
-  tracks: Track[],
-  playbackHistory: string[]
-): string[] {
-  // If we've played all tracks, reset the unplayed list
-  if (unplayedTrackIds.length === 0) {
-    return initializeUnplayedTracks(tracks);
-  }
-  
-  return unplayedTrackIds;
-}
-
-// Helper function to get a random track index avoiding recently played songs
-function getRandomTrackIndexAvoidingRecent(
-  tracks: Track[],
-  playbackHistory: string[],
-  currentIndex: number,
-  maxRecentToAvoid: number = 5
-): number {
-  if (tracks.length === 0) return -1;
-  if (tracks.length === 1) return 0;
-  
-  // Get the most recent songs to avoid (up to maxRecentToAvoid)
-  const recentToAvoid = playbackHistory.slice(-maxRecentToAvoid);
-  
-  // Create a list of available indices (excluding recently played and current)
+  // If no unplayed tracks or all unplayed tracks are current, pick from all tracks avoiding recent
   const availableIndices = tracks
     .map((_, index) => index)
     .filter(index => {
@@ -226,28 +185,21 @@ function getRandomTrackIndexAvoidingRecent(
       return !recentToAvoid.includes(trackId) && index !== currentIndex;
     });
   
-  // If we have available tracks, pick from them
   if (availableIndices.length > 0) {
-    const randomIndex = Math.floor(Math.random() * availableIndices.length);
-    return availableIndices[randomIndex];
+    return availableIndices[Math.floor(Math.random() * availableIndices.length)];
   }
   
-  // If all tracks are recently played, just avoid the current one
+  // If all tracks are recent, just avoid current
   const allIndicesExceptCurrent = tracks
     .map((_, index) => index)
     .filter(index => index !== currentIndex);
   
   if (allIndicesExceptCurrent.length > 0) {
-    const randomIndex = Math.floor(Math.random() * allIndicesExceptCurrent.length);
-    return allIndicesExceptCurrent[randomIndex];
+    return allIndicesExceptCurrent[Math.floor(Math.random() * allIndicesExceptCurrent.length)];
   }
   
-  // If we only have one track, return it
-  if (tracks.length === 1) return 0;
-  
-  // Fallback: return a different random index if possible
-  const randomIndex = Math.floor(Math.random() * tracks.length);
-  return randomIndex !== currentIndex ? randomIndex : (randomIndex + 1) % tracks.length;
+  // Fallback: return current index if it's the only option
+  return currentIndex;
 }
 
 // Helper function to update playback history
@@ -322,19 +274,11 @@ export const useIpodStore = create<IpodState>()(
               ? updatePlaybackHistory(state.playbackHistory, currentTrackId)
               : state.playbackHistory;
             
-            // Update unplayed tracks in shuffle mode
-            let newUnplayedTrackIds = state.unplayedTrackIds;
-            if (state.isShuffled && currentTrackId) {
-              newUnplayedTrackIds = removeFromUnplayedTracks(state.unplayedTrackIds, currentTrackId);
-              newUnplayedTrackIds = resetUnplayedTracksIfNeeded(newUnplayedTrackIds, state.tracks, state.playbackHistory);
-            }
-            
             return { 
               currentIndex: index, 
               lyricsTranslationRequest: null,
               playbackHistory: newPlaybackHistory,
               historyPosition: newPlaybackHistory.length - 1,
-              unplayedTrackIds: newUnplayedTrackIds,
             };
           }
           
@@ -352,9 +296,7 @@ export const useIpodStore = create<IpodState>()(
           isShuffled: newShuffleState,
           // Clear playback history when turning shuffle on to start fresh
           playbackHistory: newShuffleState ? [] : state.playbackHistory,
-          historyPosition: newShuffleState ? -1 : state.historyPosition,
-          // Initialize unplayed tracks when turning shuffle on
-          unplayedTrackIds: newShuffleState ? initializeUnplayedTracks(state.tracks) : state.unplayedTrackIds
+          historyPosition: newShuffleState ? -1 : state.historyPosition
         };
       }),
       togglePlay: () => set((state) => ({ isPlaying: !state.isPlaying })),
@@ -376,7 +318,6 @@ export const useIpodStore = create<IpodState>()(
           libraryState: "loaded",
           playbackHistory: [], // Clear playback history when adding new tracks
           historyPosition: -1,
-          unplayedTrackIds: state.isShuffled ? [track.id, ...state.unplayedTrackIds] : state.unplayedTrackIds,
         })),
       clearLibrary: () =>
         set({
@@ -387,7 +328,6 @@ export const useIpodStore = create<IpodState>()(
           libraryState: "cleared",
           playbackHistory: [], // Clear playback history when clearing library
           historyPosition: -1,
-          unplayedTrackIds: [], // Clear unplayed tracks when clearing library
         }),
       resetLibrary: async () => {
         const { tracks, version } = await loadDefaultTracks();
@@ -400,7 +340,6 @@ export const useIpodStore = create<IpodState>()(
           lastKnownVersion: version,
           playbackHistory: [], // Clear playback history when resetting library
           historyPosition: -1,
-          unplayedTrackIds: tracks.map(track => track.id), // Initialize unplayed tracks
         });
       },
       nextTrack: () =>
@@ -410,7 +349,6 @@ export const useIpodStore = create<IpodState>()(
           
           let next: number;
           let newHistoryPosition = state.historyPosition;
-          let newUnplayedTrackIds = state.unplayedTrackIds;
           let newPlaybackHistory = state.playbackHistory;
           
           if (state.isShuffled) {
@@ -427,24 +365,11 @@ export const useIpodStore = create<IpodState>()(
               newHistoryPosition = nextFromHistory.newHistoryPosition;
             } else {
               // We need to pick a new random track
-              next = getRandomUnplayedTrackIndex(
+              next = getRandomTrackAvoidingRecent(
                 state.tracks,
-                state.unplayedTrackIds,
+                state.playbackHistory,
                 state.currentIndex
               );
-              
-              // Remove the track from unplayed list and reset if needed
-              const nextTrackId = state.tracks[next]?.id;
-              if (nextTrackId) {
-                newUnplayedTrackIds = removeFromUnplayedTracks(state.unplayedTrackIds, nextTrackId);
-              }
-              
-              // Check if we need to reset unplayed tracks (when we've played everything)
-              if (newUnplayedTrackIds.length === 0) {
-                newUnplayedTrackIds = initializeUnplayedTracks(state.tracks);
-                // Remove the track we just picked from the reset list
-                newUnplayedTrackIds = removeFromUnplayedTracks(newUnplayedTrackIds, nextTrackId);
-              }
               
               // When picking a new random track, we need to handle history properly
               // If we're not at the end of history, we need to truncate it
@@ -480,7 +405,6 @@ export const useIpodStore = create<IpodState>()(
             lyricsTranslationRequest: null,
             playbackHistory: newPlaybackHistory,
             historyPosition: newHistoryPosition,
-            unplayedTrackIds: newUnplayedTrackIds,
           };
         }),
       previousTrack: () =>
@@ -490,7 +414,6 @@ export const useIpodStore = create<IpodState>()(
           
           let prev: number;
           let newHistoryPosition = state.historyPosition;
-          let newUnplayedTrackIds = state.unplayedTrackIds;
           let newPlaybackHistory = state.playbackHistory;
           
           if (state.isShuffled) {
@@ -507,18 +430,11 @@ export const useIpodStore = create<IpodState>()(
               newHistoryPosition = previousFromHistory.newHistoryPosition;
             } else {
               // Fallback to shuffle algorithm if no history
-              prev = getRandomUnplayedTrackIndex(
+              prev = getRandomTrackAvoidingRecent(
                 state.tracks,
-                state.unplayedTrackIds,
+                state.playbackHistory,
                 state.currentIndex
               );
-              
-              // Remove the track from unplayed list and reset if needed
-              const prevTrackId = state.tracks[prev]?.id;
-              if (prevTrackId) {
-                newUnplayedTrackIds = removeFromUnplayedTracks(state.unplayedTrackIds, prevTrackId);
-                newUnplayedTrackIds = resetUnplayedTracksIfNeeded(newUnplayedTrackIds, state.tracks, state.playbackHistory);
-              }
               
               // When picking a new random track, handle history properly
               if (state.historyPosition < state.playbackHistory.length - 1) {
@@ -553,7 +469,6 @@ export const useIpodStore = create<IpodState>()(
             lyricsTranslationRequest: null,
             playbackHistory: newPlaybackHistory,
             historyPosition: newHistoryPosition,
-            unplayedTrackIds: newUnplayedTrackIds,
           };
         }),
       setShowVideo: (show) => set({ showVideo: show }),
@@ -608,7 +523,6 @@ export const useIpodStore = create<IpodState>()(
             libraryState: "loaded",
             playbackHistory: [], // Clear playback history when importing library
             historyPosition: -1,
-            unplayedTrackIds: importedTracks.map(track => track.id), // Initialize unplayed tracks
           });
         } catch (error) {
           console.error("Failed to import library:", error);
