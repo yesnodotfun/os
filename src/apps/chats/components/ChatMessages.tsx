@@ -1180,8 +1180,8 @@ function ChatMessagesContent({
             </motion.div>
             )}
             
-            {/* Link Previews */}
-            {(() => {
+            {/* Link Previews - Only for non-assistant messages */}
+            {message.role !== "assistant" && (() => {
               const urls = extractUrls(displayContent);
               if (urls.length === 0) return null;
               
