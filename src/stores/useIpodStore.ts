@@ -230,17 +230,30 @@ function getPreviousTrackFromHistory(
   historyPosition: number,
   tracks: Track[]
 ): { trackIndex: number; newHistoryPosition: number } | null {
-  if (playbackHistory.length === 0 || historyPosition <= 0) return null;
+  if (playbackHistory.length === 0) return null;
   
-  // Go back one step in history
-  const newHistoryPosition = historyPosition - 1;
-  const previousTrackId = playbackHistory[newHistoryPosition];
+  let targetPosition: number;
   
+  // Handle the case where we're at the end of history (historyPosition = -1)
+  if (historyPosition === -1) {
+    // If we're at the end, go to the last track in history
+    targetPosition = playbackHistory.length - 1;
+  } else {
+    // Handle normal case: go back one step in history
+    targetPosition = historyPosition - 1;
+  }
+  
+  // Check if the target position is valid
+  if (targetPosition < 0 || targetPosition >= playbackHistory.length) {
+    return null;
+  }
+  
+  const previousTrackId = playbackHistory[targetPosition];
   if (previousTrackId) {
     // Find the index of this track in the tracks array
     const trackIndex = tracks.findIndex(track => track.id === previousTrackId);
     if (trackIndex !== -1) {
-      return { trackIndex, newHistoryPosition };
+      return { trackIndex, newHistoryPosition: targetPosition };
     }
   }
   
