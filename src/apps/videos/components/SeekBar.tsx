@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 
 interface SeekBarProps {
@@ -8,6 +8,7 @@ interface SeekBarProps {
   isPlaying: boolean;
   isHovered?: boolean;
   onDragChange?: (isDragging: boolean, seekTime?: number) => void;
+  autoDismissTimeout?: number; // Time in milliseconds before auto-dismissing
 }
 
 export function SeekBar({
@@ -17,11 +18,14 @@ export function SeekBar({
   isPlaying,
   isHovered: parentHovered,
   onDragChange,
+  autoDismissTimeout = 3000, // Default 3 seconds
 }: SeekBarProps) {
   const [isLocalHovered, setIsLocalHovered] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [seekPosition, setSeekPosition] = useState(0);
+  const [isVisible, setIsVisible] = useState(false);
   const seekBarRef = useRef<HTMLDivElement>(null);
+  const autoDismissTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Calculate progress percentage
   const progress = (currentTime / duration) * 100;
@@ -33,37 +37,129 @@ export function SeekBar({
     }
   }, [currentTime, duration, isDragging, progress]);
 
+  // Auto-dismiss functionality
+  const startAutoDismissTimer = useCallback(() => {
+    if (autoDismissTimerRef.current) {
+      clearTimeout(autoDismissTimerRef.current);
+    }
+    
+    if (isPlaying && !isDragging) {
+      autoDismissTimerRef.current = setTimeout(() => {
+        setIsVisible(false);
+      }, autoDismissTimeout);
+    }
+  }, [isPlaying, isDragging, autoDismissTimeout]);
+
+  const clearAutoDismissTimer = useCallback(() => {
+    if (autoDismissTimerRef.current) {
+      clearTimeout(autoDismissTimerRef.current);
+      autoDismissTimerRef.current = null;
+    }
+  }, []);
+
+  // Show seekbar when interaction occurs
+  const showSeekBar = useCallback(() => {
+    setIsVisible(true);
+    clearAutoDismissTimer();
+    startAutoDismissTimer();
+  }, [clearAutoDismissTimer, startAutoDismissTimer]);
+
+  // Handle visibility based on interactions
+  useEffect(() => {
+    if (isPlaying && (parentHovered || isLocalHovered || isDragging)) {
+      setIsVisible(true);
+      clearAutoDismissTimer();
+      if (!isDragging) {
+        startAutoDismissTimer();
+      }
+    } else if (!isPlaying) {
+      setIsVisible(false);
+      clearAutoDismissTimer();
+    }
+  }, [isPlaying, parentHovered, isLocalHovered, isDragging, clearAutoDismissTimer, startAutoDismissTimer]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      clearAutoDismissTimer();
+    };
+  }, [clearAutoDismissTimer]);
+
+  // Calculate position from client coordinates (works for both mouse and touch)
+  const calculatePosition = useCallback((clientX: number) => {
+    if (!seekBarRef.current) return 0;
+    const rect = seekBarRef.current.getBoundingClientRect();
+    const position = ((clientX - rect.left) / rect.width) * 100;
+    return Math.max(0, Math.min(100, position));
+  }, []);
+
   // Handle mouse movement on seek bar
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!seekBarRef.current) return;
-    const rect = seekBarRef.current.getBoundingClientRect();
-    const position = ((e.clientX - rect.left) / rect.width) * 100;
-    const clampedPosition = Math.max(0, Math.min(100, position));
-    setSeekPosition(clampedPosition);
+    if (!isDragging) return;
+    const position = calculatePosition(e.clientX);
+    setSeekPosition(position);
   };
 
   // Handle mouse down on seek bar
   const handleMouseDown = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent click from reaching the play/pause overlay
     setIsDragging(true);
-    handleMouseMove(e);
-    const rect = seekBarRef.current?.getBoundingClientRect();
-    if (rect && onDragChange) {
-      const position = ((e.clientX - rect.left) / rect.width) * 100;
-      const clampedPosition = Math.max(0, Math.min(100, position));
-      const seekTime = (clampedPosition / 100) * duration;
+    showSeekBar();
+    const position = calculatePosition(e.clientX);
+    setSeekPosition(position);
+    if (onDragChange) {
+      const seekTime = (position / 100) * duration;
       onDragChange(true, seekTime);
     }
   };
 
   // Handle mouse up - seek to position
-  const handleMouseUp = () => {
+  const handleMouseUp = useCallback(() => {
     if (isDragging) {
       onSeek((seekPosition / 100) * duration);
       setIsDragging(false);
       if (onDragChange) {
         onDragChange(false);
       }
+      startAutoDismissTimer();
+    }
+  }, [isDragging, onSeek, seekPosition, duration, onDragChange, startAutoDismissTimer]);
+
+  // Touch event handlers
+  const handleTouchStart = (e: React.TouchEvent) => {
+    e.preventDefault(); // Prevent default touch behavior
+    e.stopPropagation();
+    setIsDragging(true);
+    showSeekBar();
+    const touch = e.touches[0];
+    const position = calculatePosition(touch.clientX);
+    setSeekPosition(position);
+    if (onDragChange) {
+      const seekTime = (position / 100) * duration;
+      onDragChange(true, seekTime);
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+    e.preventDefault(); // Prevent scrolling while dragging
+    const touch = e.touches[0];
+    const position = calculatePosition(touch.clientX);
+    setSeekPosition(position);
+    if (onDragChange) {
+      const seekTime = (position / 100) * duration;
+      onDragChange(true, seekTime);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (isDragging) {
+      onSeek((seekPosition / 100) * duration);
+      setIsDragging(false);
+      if (onDragChange) {
+        onDragChange(false);
+      }
+      startAutoDismissTimer();
     }
   };
 
@@ -75,13 +171,11 @@ export function SeekBar({
       };
 
       const handleGlobalMouseMove = (e: MouseEvent) => {
-        if (!seekBarRef.current) return;
-        const rect = seekBarRef.current.getBoundingClientRect();
-        const position = ((e.clientX - rect.left) / rect.width) * 100;
-        const clampedPosition = Math.max(0, Math.min(100, position));
-        setSeekPosition(clampedPosition);
+        if (!isDragging) return;
+        const position = calculatePosition(e.clientX);
+        setSeekPosition(position);
         if (onDragChange) {
-          const seekTime = (clampedPosition / 100) * duration;
+          const seekTime = (position / 100) * duration;
           onDragChange(true, seekTime);
         }
       };
@@ -94,10 +188,7 @@ export function SeekBar({
         document.removeEventListener("mousemove", handleGlobalMouseMove);
       };
     }
-  }, [isDragging, duration, onSeek]);
-
-  const isVisible =
-    isPlaying && (parentHovered || isLocalHovered || isDragging);
+  }, [isDragging, duration, onSeek, onDragChange, calculatePosition, handleMouseUp]);
 
   if (!isPlaying) return null;
 
@@ -113,8 +204,16 @@ export function SeekBar({
         duration: 0.2,
         ease: "easeOut",
       }}
-      onMouseEnter={() => setIsLocalHovered(true)}
-      onMouseLeave={() => setIsLocalHovered(false)}
+      onMouseEnter={() => {
+        setIsLocalHovered(true);
+        showSeekBar();
+      }}
+      onMouseLeave={() => {
+        setIsLocalHovered(false);
+        if (!isDragging) {
+          startAutoDismissTimer();
+        }
+      }}
     >
       <div className="absolute bottom-0 left-0 right-0 px-4 py-3">
         {/* Seek bar */}
@@ -127,6 +226,12 @@ export function SeekBar({
           }`}
           onMouseDown={handleMouseDown}
           onMouseMove={!isDragging ? handleMouseMove : undefined}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          style={{
+            touchAction: 'none', // Prevent default touch behaviors
+          }}
         >
           {/* Progress bar */}
           <div
