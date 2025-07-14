@@ -270,6 +270,14 @@ function getNextTrackFromHistory(
   return null;
 }
 
+// Helper function to check if there are tracks after current position in history
+function hasTracksAfterCurrentPosition(
+  playbackHistory: string[],
+  historyPosition: number
+): boolean {
+  return historyPosition < playbackHistory.length - 1;
+}
+
 export const useIpodStore = create<IpodState>()(
   persist(
     (set, get) => ({
@@ -362,7 +370,7 @@ export const useIpodStore = create<IpodState>()(
           let newPlaybackHistory = state.playbackHistory;
           
           if (state.isShuffled) {
-            // Check if we can go forward in history first
+            // First, check if we can go forward in history
             const nextFromHistory = getNextTrackFromHistory(
               state.playbackHistory,
               state.historyPosition,
@@ -374,34 +382,58 @@ export const useIpodStore = create<IpodState>()(
               next = nextFromHistory.trackIndex;
               newHistoryPosition = nextFromHistory.newHistoryPosition;
             } else {
-              // We need to pick a new random track
-              const { trackIndex, shouldClearHistory } = getRandomTrackAvoidingRecent(
-                state.tracks,
-                state.playbackHistory,
-                state.currentIndex
-              );
-              next = trackIndex;
-              
-              // When picking a new random track, we need to handle history properly
-              // If we're not at the end of history, we need to truncate it
-              if (state.historyPosition < state.playbackHistory.length - 1) {
-                // We're branching from history, so truncate it
-                newPlaybackHistory = state.playbackHistory.slice(0, state.historyPosition + 1);
-              }
-              
-              // Add current track to history before moving to next
-              const currentTrackId = state.tracks[state.currentIndex]?.id;
-              if (currentTrackId) {
-                newPlaybackHistory = updatePlaybackHistory(newPlaybackHistory, currentTrackId);
-              }
-              
-              // Move to the end of history
-              newHistoryPosition = newPlaybackHistory.length - 1;
-              
-              // If we cleared history, reset it
-              if (shouldClearHistory) {
-                newPlaybackHistory = [];
-                newHistoryPosition = -1;
+              // Check if there are tracks after our current position in history
+              // This handles the case where we went back and added a new track
+              if (hasTracksAfterCurrentPosition(state.playbackHistory, state.historyPosition)) {
+                // There are tracks after us in history, so we should go to the next one
+                const nextHistoryPosition = state.historyPosition + 1;
+                const nextTrackId = state.playbackHistory[nextHistoryPosition];
+                const trackIndex = state.tracks.findIndex(track => track.id === nextTrackId);
+                
+                if (trackIndex !== -1) {
+                  next = trackIndex;
+                  newHistoryPosition = nextHistoryPosition;
+                } else {
+                  // Track not found, fall back to random
+                  const { trackIndex: randomIndex, shouldClearHistory } = getRandomTrackAvoidingRecent(
+                    state.tracks,
+                    state.playbackHistory,
+                    state.currentIndex
+                  );
+                  next = randomIndex;
+                  
+                  // Handle history updates for random selection
+                  const currentTrackId = state.tracks[state.currentIndex]?.id;
+                  if (currentTrackId) {
+                    newPlaybackHistory = updatePlaybackHistory(state.playbackHistory, currentTrackId);
+                    newHistoryPosition = newPlaybackHistory.length - 1;
+                  }
+                  
+                  if (shouldClearHistory) {
+                    newPlaybackHistory = [];
+                    newHistoryPosition = -1;
+                  }
+                }
+              } else {
+                // No tracks after us, pick a new random track
+                const { trackIndex, shouldClearHistory } = getRandomTrackAvoidingRecent(
+                  state.tracks,
+                  state.playbackHistory,
+                  state.currentIndex
+                );
+                next = trackIndex;
+                
+                // Add current track to history
+                const currentTrackId = state.tracks[state.currentIndex]?.id;
+                if (currentTrackId) {
+                  newPlaybackHistory = updatePlaybackHistory(state.playbackHistory, currentTrackId);
+                  newHistoryPosition = newPlaybackHistory.length - 1;
+                }
+                
+                if (shouldClearHistory) {
+                  newPlaybackHistory = [];
+                  newHistoryPosition = -1;
+                }
               }
             }
           } else {
