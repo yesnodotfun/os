@@ -381,6 +381,7 @@ export const useIpodStore = create<IpodState>()(
           let next: number;
           let newHistoryPosition = state.historyPosition;
           let newPlaybackHistory = state.playbackHistory;
+          let shouldAddCurrentToHistory = false;
           
           if (state.isShuffled) {
             // First, check if we can go forward in history
@@ -391,9 +392,10 @@ export const useIpodStore = create<IpodState>()(
             );
             
             if (nextFromHistory !== null) {
-              // We're navigating forward in history
+              // We're navigating forward in history - don't add current track
               next = nextFromHistory.trackIndex;
               newHistoryPosition = nextFromHistory.newHistoryPosition;
+              shouldAddCurrentToHistory = false;
             } else {
               // Check if there are tracks after our current position in history
               // This handles the case where we went back and added a new track
@@ -406,6 +408,7 @@ export const useIpodStore = create<IpodState>()(
                 if (trackIndex !== -1) {
                   next = trackIndex;
                   newHistoryPosition = nextHistoryPosition;
+                  shouldAddCurrentToHistory = false;
                 } else {
                   // Track not found, fall back to random
                   const { trackIndex: randomIndex, shouldClearHistory } = getRandomTrackAvoidingRecent(
@@ -414,13 +417,7 @@ export const useIpodStore = create<IpodState>()(
                     state.currentIndex
                   );
                   next = randomIndex;
-                  
-                  // Handle history updates for random selection
-                  const currentTrackId = state.tracks[state.currentIndex]?.id;
-                  if (currentTrackId) {
-                    newPlaybackHistory = updatePlaybackHistory(state.playbackHistory, currentTrackId);
-                    newHistoryPosition = newPlaybackHistory.length - 1;
-                  }
+                  shouldAddCurrentToHistory = true;
                   
                   if (shouldClearHistory) {
                     newPlaybackHistory = [];
@@ -435,13 +432,7 @@ export const useIpodStore = create<IpodState>()(
                   state.currentIndex
                 );
                 next = trackIndex;
-                
-                // Add current track to history
-                const currentTrackId = state.tracks[state.currentIndex]?.id;
-                if (currentTrackId) {
-                  newPlaybackHistory = updatePlaybackHistory(state.playbackHistory, currentTrackId);
-                  newHistoryPosition = newPlaybackHistory.length - 1;
-                }
+                shouldAddCurrentToHistory = true;
                 
                 if (shouldClearHistory) {
                   newPlaybackHistory = [];
@@ -452,8 +443,11 @@ export const useIpodStore = create<IpodState>()(
           } else {
             // Sequential playback
             next = (state.currentIndex + 1) % state.tracks.length;
-            
-            // Add current track to history
+            shouldAddCurrentToHistory = true;
+          }
+          
+          // Only add current track to history if we're not navigating within history
+          if (shouldAddCurrentToHistory) {
             const currentTrackId = state.tracks[state.currentIndex]?.id;
             if (currentTrackId) {
               newPlaybackHistory = updatePlaybackHistory(state.playbackHistory, currentTrackId);
@@ -477,6 +471,7 @@ export const useIpodStore = create<IpodState>()(
           let prev: number;
           let newHistoryPosition = state.historyPosition;
           let newPlaybackHistory = state.playbackHistory;
+          let shouldAddCurrentToHistory = false;
           
           if (state.isShuffled) {
             // Try to get the actual previous track from playback history
@@ -487,9 +482,10 @@ export const useIpodStore = create<IpodState>()(
             );
             
             if (previousFromHistory !== null) {
-              // We're navigating backward in history
+              // We're navigating backward in history - don't add current track
               prev = previousFromHistory.trackIndex;
               newHistoryPosition = previousFromHistory.newHistoryPosition;
+              shouldAddCurrentToHistory = false;
             } else {
               // Fallback to shuffle algorithm if no history
               const { trackIndex, shouldClearHistory } = getRandomTrackAvoidingRecent(
@@ -498,6 +494,7 @@ export const useIpodStore = create<IpodState>()(
                 state.currentIndex
               );
               prev = trackIndex;
+              shouldAddCurrentToHistory = true;
               
               // When picking a new random track, handle history properly
               if (state.historyPosition < state.playbackHistory.length - 1) {
@@ -505,16 +502,6 @@ export const useIpodStore = create<IpodState>()(
                 newPlaybackHistory = state.playbackHistory.slice(0, state.historyPosition + 1);
               }
               
-              // Add current track to history before moving to previous
-              const currentTrackId = state.tracks[state.currentIndex]?.id;
-              if (currentTrackId) {
-                newPlaybackHistory = updatePlaybackHistory(newPlaybackHistory, currentTrackId);
-              }
-              
-              // Move to the end of history
-              newHistoryPosition = newPlaybackHistory.length - 1;
-              
-              // If we cleared history, reset it
               if (shouldClearHistory) {
                 newPlaybackHistory = [];
                 newHistoryPosition = -1;
@@ -523,8 +510,11 @@ export const useIpodStore = create<IpodState>()(
           } else {
             // Sequential playback
             prev = (state.currentIndex - 1 + state.tracks.length) % state.tracks.length;
-            
-            // Add current track to history
+            shouldAddCurrentToHistory = true;
+          }
+          
+          // Only add current track to history if we're not navigating within history
+          if (shouldAddCurrentToHistory) {
             const currentTrackId = state.tracks[state.currentIndex]?.id;
             if (currentTrackId) {
               newPlaybackHistory = updatePlaybackHistory(state.playbackHistory, currentTrackId);
