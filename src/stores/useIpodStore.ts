@@ -266,7 +266,12 @@ function getNextTrackFromHistory(
   historyPosition: number,
   tracks: Track[]
 ): { trackIndex: number; newHistoryPosition: number } | null {
-  if (playbackHistory.length === 0 || historyPosition >= playbackHistory.length - 1) return null;
+  if (
+    playbackHistory.length === 0 ||
+    historyPosition === -1 ||
+    historyPosition >= playbackHistory.length - 1
+  )
+    return null;
   
   // Go forward one step in history
   const newHistoryPosition = historyPosition + 1;
@@ -288,7 +293,7 @@ function hasTracksAfterCurrentPosition(
   playbackHistory: string[],
   historyPosition: number
 ): boolean {
-  return historyPosition < playbackHistory.length - 1;
+  return historyPosition !== -1 && historyPosition < playbackHistory.length - 1;
 }
 
 export const useIpodStore = create<IpodState>()(
@@ -309,7 +314,7 @@ export const useIpodStore = create<IpodState>()(
               currentIndex: index, 
               lyricsTranslationRequest: null,
               playbackHistory: newPlaybackHistory,
-              historyPosition: newPlaybackHistory.length - 1,
+              historyPosition: -1,
             };
           }
           
@@ -451,7 +456,7 @@ export const useIpodStore = create<IpodState>()(
             const currentTrackId = state.tracks[state.currentIndex]?.id;
             if (currentTrackId) {
               newPlaybackHistory = updatePlaybackHistory(state.playbackHistory, currentTrackId);
-              newHistoryPosition = newPlaybackHistory.length - 1;
+              newHistoryPosition = -1;
             }
           }
           
@@ -497,7 +502,10 @@ export const useIpodStore = create<IpodState>()(
               shouldAddCurrentToHistory = true;
               
               // When picking a new random track, handle history properly
-              if (state.historyPosition < state.playbackHistory.length - 1) {
+              if (
+                state.historyPosition >= 0 &&
+                state.historyPosition < state.playbackHistory.length - 1
+              ) {
                 // We're branching from history, so truncate it
                 newPlaybackHistory = state.playbackHistory.slice(0, state.historyPosition + 1);
               }
@@ -518,7 +526,7 @@ export const useIpodStore = create<IpodState>()(
             const currentTrackId = state.tracks[state.currentIndex]?.id;
             if (currentTrackId) {
               newPlaybackHistory = updatePlaybackHistory(state.playbackHistory, currentTrackId);
-              newHistoryPosition = newPlaybackHistory.length - 1;
+              newHistoryPosition = -1;
             }
           }
           
