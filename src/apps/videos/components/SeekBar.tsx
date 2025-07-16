@@ -42,7 +42,7 @@ export function SeekBar({
     if (autoDismissTimerRef.current) {
       clearTimeout(autoDismissTimerRef.current);
     }
-    
+
     if (isPlaying && !isDragging) {
       autoDismissTimerRef.current = setTimeout(() => {
         setIsVisible(false);
@@ -76,7 +76,29 @@ export function SeekBar({
       setIsVisible(false);
       clearAutoDismissTimer();
     }
-  }, [isPlaying, parentHovered, isLocalHovered, isDragging, clearAutoDismissTimer, startAutoDismissTimer]);
+  }, [
+    isPlaying,
+    parentHovered,
+    isLocalHovered,
+    isDragging,
+    clearAutoDismissTimer,
+    startAutoDismissTimer,
+  ]);
+
+  // NEW: Always ensure a timer is running whenever the bar is visible and dragging has ended.
+  // This catches mobile swipe cases where parentHovered may remain true longer than expected.
+  useEffect(() => {
+    if (isVisible && !isDragging && isPlaying) {
+      clearAutoDismissTimer();
+      startAutoDismissTimer();
+    }
+  }, [
+    isVisible,
+    isDragging,
+    isPlaying,
+    clearAutoDismissTimer,
+    startAutoDismissTimer,
+  ]);
 
   // Cleanup timer on unmount
   useEffect(() => {
@@ -123,7 +145,14 @@ export function SeekBar({
       }
       startAutoDismissTimer();
     }
-  }, [isDragging, onSeek, seekPosition, duration, onDragChange, startAutoDismissTimer]);
+  }, [
+    isDragging,
+    onSeek,
+    seekPosition,
+    duration,
+    onDragChange,
+    startAutoDismissTimer,
+  ]);
 
   // Touch event handlers
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -188,7 +217,14 @@ export function SeekBar({
         document.removeEventListener("mousemove", handleGlobalMouseMove);
       };
     }
-  }, [isDragging, duration, onSeek, onDragChange, calculatePosition, handleMouseUp]);
+  }, [
+    isDragging,
+    duration,
+    onSeek,
+    onDragChange,
+    calculatePosition,
+    handleMouseUp,
+  ]);
 
   if (!isPlaying) return null;
 
@@ -230,7 +266,7 @@ export function SeekBar({
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
           style={{
-            touchAction: 'none', // Prevent default touch behaviors
+            touchAction: "none", // Prevent default touch behaviors
           }}
         >
           {/* Progress bar */}
