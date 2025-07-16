@@ -349,6 +349,99 @@ export function VideosAppComponent({
   const [isDraggingSeek, setIsDraggingSeek] = useState(false);
   const [dragSeekTime, setDragSeekTime] = useState(0);
 
+  // Ref to detect paused -> playing transitions so we can auto-show the SeekBar
+  const prevIsPlayingRef = useRef(isPlaying);
+  const autoShowHoverResetRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    const wasPlaying = prevIsPlayingRef.current;
+    if (!wasPlaying && isPlaying) {
+      // Just started playing -> force-show SeekBar briefly
+      setIsVideoHovered(true);
+      if (autoShowHoverResetRef.current) {
+        clearTimeout(autoShowHoverResetRef.current);
+      }
+      // Release the hover flag shortly after so auto-dismiss can take over
+      autoShowHoverResetRef.current = setTimeout(() => {
+        setIsVideoHovered(false);
+      }, 150); // small delay; SeekBar sets its own auto-dismiss timer on show
+    }
+    prevIsPlayingRef.current = isPlaying;
+    return () => {
+      if (autoShowHoverResetRef.current) {
+        clearTimeout(autoShowHoverResetRef.current);
+        autoShowHoverResetRef.current = null;
+      }
+    };
+  }, [isPlaying]);
+
+  // Track pointer/touch interactions on the video area so we can distinguish tap vs swipe on mobile.
+  // If the user swipes (moves more than a small threshold), we'll reveal the SeekBar but NOT toggle play/pause.
+  // If the user taps (no significant movement), we'll toggle play/pause as before.
+  const touchGestureRef = useRef<{
+    startX: number;
+    startY: number;
+    moved: boolean;
+    pointerId: number | null;
+  } | null>(null);
+  const SWIPE_MOVE_THRESHOLD = 10; // px
+
+  const handleOverlayPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === "touch") {
+      touchGestureRef.current = {
+        startX: e.clientX,
+        startY: e.clientY,
+        moved: false,
+        pointerId: e.pointerId,
+      };
+      // Show the seekbar immediately on touch start (user intent to interact)
+      setIsVideoHovered(true);
+    }
+  };
+
+  const handleOverlayPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType !== "touch" || !touchGestureRef.current) return;
+    const dx = Math.abs(e.clientX - touchGestureRef.current.startX);
+    const dy = Math.abs(e.clientY - touchGestureRef.current.startY);
+    if (
+      !touchGestureRef.current.moved &&
+      (dx > SWIPE_MOVE_THRESHOLD || dy > SWIPE_MOVE_THRESHOLD)
+    ) {
+      touchGestureRef.current.moved = true;
+      // Ensure seekbar visible while swiping
+      setIsVideoHovered(true);
+    }
+  };
+
+  const handleOverlayPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === "touch") {
+      // Prevent the synthetic mouse click that usually follows a touch so we don't double-trigger.
+      e.preventDefault();
+      e.stopPropagation();
+      const wasSwipe = touchGestureRef.current?.moved;
+      touchGestureRef.current = null;
+      // Hide hover flag (SeekBar will auto-dismiss on its own timer)
+      setIsVideoHovered(false);
+      if (!wasSwipe) {
+        // Treat as tap -> toggle play/pause
+        togglePlay();
+      } else {
+        // Swipe: just show seekbar (already shown); do not toggle play/pause
+        // No-op here.
+      }
+      return;
+    }
+
+    // Mouse / pen: behave like a normal click toggle
+    togglePlay();
+  };
+
+  const handleOverlayPointerCancel = () => {
+    // Reset and allow SeekBar to dismiss
+    touchGestureRef.current = null;
+    setIsVideoHovered(false);
+  };
+
   // --- App Store hooks ---
   const bringToForeground = useAppStore((state) => state.bringToForeground);
   const clearInstanceInitialData = useAppStore(
@@ -982,11 +1075,14 @@ export function VideosAppComponent({
                       </motion.div>
                     )}
                   </AnimatePresence>
-                  {/* Clickable overlay for play/pause (z-20) */}
+                  {/* Pointer-interaction overlay for play/pause + swipe-to-show-seekbar (z-20) */}
                   <div
                     className="absolute inset-0 cursor-pointer z-20"
-                    onClick={togglePlay}
                     aria-label={isPlaying ? "Pause" : "Play"}
+                    onPointerDown={handleOverlayPointerDown}
+                    onPointerMove={handleOverlayPointerMove}
+                    onPointerUp={handleOverlayPointerUp}
+                    onPointerCancel={handleOverlayPointerCancel}
                   />
                 </div>
                 {/* SeekBar positioned at the bottom (z-30) - moved outside oversized container */}
