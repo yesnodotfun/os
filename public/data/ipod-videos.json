@@ -1,6 +1,13 @@
 {
   "videos": [
     {
+      "id": "sVTy_wmn5SU",
+      "url": "https://www.youtube.com/watch?v=sVTy_wmn5SU",
+      "title": "OMG",
+      "artist": "NewJeans",
+      "lyricOffset": 350
+    },
+    {
       "id": "yupEwQ6qCd0",
       "url": "https://www.youtube.com/watch?v=yupEwQ6qCd0",
       "title": "大展鴻圖",
