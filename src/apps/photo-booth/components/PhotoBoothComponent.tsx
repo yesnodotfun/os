@@ -12,6 +12,7 @@ import { useSound, Sounds } from "@/hooks/useSound";
 import { Webcam } from "@/components/Webcam";
 import { useFileSystem } from "@/apps/finder/hooks/useFileSystem";
 import { usePhotoBoothStore } from "@/stores/usePhotoBoothStore";
+import { useThemeStore } from "@/stores/useThemeStore";
 
 interface Effect {
   name: string;
@@ -32,9 +33,18 @@ const cssFilters: Effect[] = [
   { name: "High Contrast", filter: "contrast(200%) brightness(110%)" },
   { name: "Normal", filter: "none" },
   { name: "Vintage", filter: "sepia(80%) brightness(90%) contrast(120%)" },
-  { name: "X-Ray", filter: "invert(100%) hue-rotate(180deg) hue-rotate(180deg)" },
-  { name: "Neon", filter: "brightness(120%) contrast(120%) saturate(200%) hue-rotate(310deg)" },
-  { name: "Black & White", filter: "brightness(90%) hue-rotate(20deg) saturate(0%)" },
+  {
+    name: "X-Ray",
+    filter: "invert(100%) hue-rotate(180deg) hue-rotate(180deg)",
+  },
+  {
+    name: "Neon",
+    filter: "brightness(120%) contrast(120%) saturate(200%) hue-rotate(310deg)",
+  },
+  {
+    name: "Black & White",
+    filter: "brightness(90%) hue-rotate(20deg) saturate(0%)",
+  },
 ];
 
 const distortionFilters: Effect[] = [
@@ -57,7 +67,7 @@ const effects: Effect[] = [...cssFilters, ...distortionFilters];
 function useSwipeDetection(onSwipeLeft: () => void, onSwipeRight: () => void) {
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
-  
+
   // Minimum distance required for a swipe
   const MIN_SWIPE_DISTANCE = 50;
 
@@ -71,10 +81,10 @@ function useSwipeDetection(onSwipeLeft: () => void, onSwipeRight: () => void) {
 
   const onTouchEnd = () => {
     if (!touchStartX.current || !touchEndX.current) return;
-    
+
     const distance = touchStartX.current - touchEndX.current;
     const isSwipe = Math.abs(distance) > MIN_SWIPE_DISTANCE;
-    
+
     if (isSwipe) {
       if (distance > 0) {
         // Swipe left
@@ -84,7 +94,7 @@ function useSwipeDetection(onSwipeLeft: () => void, onSwipeRight: () => void) {
         onSwipeRight();
       }
     }
-    
+
     // Reset
     touchStartX.current = null;
     touchEndX.current = null;
@@ -118,8 +128,7 @@ export function PhotoBoothComponent({
     []
   );
   const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null);
-  const { photos, addPhoto, addPhotos, clearPhotos } =
-    usePhotoBoothStore();
+  const { photos, addPhoto, addPhotos, clearPhotos } = usePhotoBoothStore();
   const [isMultiPhotoMode, setIsMultiPhotoMode] = useState(false);
   const [multiPhotoCount, setMultiPhotoCount] = useState(0);
   const [multiPhotoTimer, setMultiPhotoTimer] = useState<NodeJS.Timeout | null>(
@@ -133,6 +142,25 @@ export function PhotoBoothComponent({
   const [newPhotoIndex, setNewPhotoIndex] = useState<number | null>(null);
   const [mainStream, setMainStream] = useState<MediaStream | null>(null);
   const { saveFile, files } = useFileSystem("/Images");
+
+  const currentTheme = useThemeStore((state) => state.current);
+  const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
+
+  const menuBar = (
+    <PhotoBoothMenuBar
+      onClose={onClose}
+      onShowHelp={() => setShowHelp(true)}
+      onShowAbout={() => setShowAbout(true)}
+      onClearPhotos={handleClearPhotos}
+      onExportPhotos={handleExportPhotos}
+      effects={effects}
+      selectedEffect={selectedEffect}
+      onEffectSelect={setSelectedEffect}
+      availableCameras={availableCameras}
+      selectedCameraId={selectedCameraId}
+      onCameraSelect={handleCameraSelect}
+    />
+  );
 
   // Add a small delay before showing photo strip to prevent flickering
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -189,7 +217,7 @@ export function PhotoBoothComponent({
     });
 
     // Clear local references so React knows the streams are gone
-      setStream(null);
+    setStream(null);
     setMainStream(null);
 
     // Clear any running interval that might be taking additional photos
@@ -763,19 +791,7 @@ export function PhotoBoothComponent({
 
   return (
     <>
-      <PhotoBoothMenuBar
-        onClose={onClose}
-        onShowHelp={() => setShowHelp(true)}
-        onShowAbout={() => setShowAbout(true)}
-        onClearPhotos={handleClearPhotos}
-        onExportPhotos={handleExportPhotos}
-        effects={effects}
-        selectedEffect={selectedEffect}
-        onEffectSelect={setSelectedEffect}
-        availableCameras={availableCameras}
-        selectedCameraId={selectedCameraId}
-        onCameraSelect={handleCameraSelect}
-      />
+      {!isXpTheme && menuBar}
       <WindowFrame
         title="Photo Booth"
         onClose={onClose}
@@ -785,6 +801,7 @@ export function PhotoBoothComponent({
         instanceId={instanceId}
         onNavigateNext={onNavigateNext}
         onNavigatePrevious={onNavigatePrevious}
+        menuBar={isXpTheme ? menuBar : undefined}
       >
         <div className="flex flex-col w-full h-full bg-neutral-500 max-h-full overflow-hidden">
           {/* Camera view area - takes available space but doesn't overflow */}
@@ -861,7 +878,10 @@ export function PhotoBoothComponent({
                       }}
                       style={{ originX: 0.5, originY: 0.5 }}
                     >
-                      {(currentEffectsPage === 0 ? cssFilters : distortionFilters).map((effect) => (
+                      {(currentEffectsPage === 0
+                        ? cssFilters
+                        : distortionFilters
+                      ).map((effect) => (
                         <motion.div
                           key={effect.name}
                           className={`relative aspect-video overflow-hidden rounded-lg cursor-pointer border-2 ${
@@ -907,13 +927,25 @@ export function PhotoBoothComponent({
                         className="text-white rounded-full p-0.5 hover:bg-white/10"
                         onClick={() => toggleEffectsPage(0)}
                       >
-                        <div className={`w-2 h-2 rounded-full ${currentEffectsPage === 0 ? 'bg-white' : 'bg-white/40'}`} />
+                        <div
+                          className={`w-2 h-2 rounded-full ${
+                            currentEffectsPage === 0
+                              ? "bg-white"
+                              : "bg-white/40"
+                          }`}
+                        />
                       </button>
                       <button
                         className="text-white rounded-full p-0.5 hover:bg-white/10"
                         onClick={() => toggleEffectsPage(1)}
                       >
-                        <div className={`w-2 h-2 rounded-full ${currentEffectsPage === 1 ? 'bg-white' : 'bg-white/40'}`} />
+                        <div
+                          className={`w-2 h-2 rounded-full ${
+                            currentEffectsPage === 1
+                              ? "bg-white"
+                              : "bg-white/40"
+                          }`}
+                        />
                       </button>
                     </div>
                   </motion.div>

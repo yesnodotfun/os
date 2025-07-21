@@ -10,6 +10,7 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { generateAppShareUrl } from "@/utils/sharedUrl";
+import { useThemeStore } from "@/stores/useThemeStore";
 
 export interface TerminalMenuBarProps {
   onClose: () => void;
@@ -34,8 +35,11 @@ export function TerminalMenuBar({
   onToggleMute,
   isMuted = false,
 }: TerminalMenuBarProps) {
+  const currentTheme = useThemeStore((state) => state.current);
+  const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
+
   return (
-    <MenuBar>
+    <MenuBar inWindowFrame={isXpTheme}>
       {/* File Menu */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

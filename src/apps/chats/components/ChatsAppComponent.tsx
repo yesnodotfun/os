@@ -29,6 +29,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { getPrivateRoomDisplayName } from "@/utils/chat";
 import { LoginDialog } from "@/components/dialogs/LoginDialog";
 import { toast } from "sonner";
+import { useThemeStore } from "@/stores/useThemeStore";
 
 // Define the expected message structure locally, matching ChatMessages internal type
 interface DisplayMessage extends Omit<UIMessage, "role"> {
@@ -382,6 +383,42 @@ export function ChatsAppComponent({
     setIsNewRoomDialogOpen(true);
   }, []);
 
+  const currentTheme = useThemeStore((state) => state.current);
+  const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
+
+  const menuBar = (
+    <ChatsMenuBar
+      onClose={onClose}
+      onShowHelp={() => setIsHelpDialogOpen(true)}
+      onShowAbout={() => setIsAboutDialogOpen(true)}
+      onClearChats={() => setIsClearDialogOpen(true)}
+      onSaveTranscript={handleSaveTranscript}
+      onSetUsername={promptSetUsername}
+      onToggleSidebar={toggleSidebarVisibility}
+      isSidebarVisible={sidebarVisibleBool} // Pass boolean
+      onAddRoom={promptAddRoom}
+      rooms={rooms}
+      currentRoom={currentRoom ?? null}
+      onRoomSelect={(room) => handleRoomSelectWithScroll(room ? room.id : null)}
+      onIncreaseFontSize={handleIncreaseFontSize}
+      onDecreaseFontSize={handleDecreaseFontSize}
+      onResetFontSize={handleResetFontSize}
+      username={username}
+      authToken={authToken} // Pass authToken to ChatsMenuBar
+      onVerifyToken={promptVerifyToken}
+      isVerifyDialogOpen={isVerifyDialogOpen}
+      setVerifyDialogOpen={setVerifyDialogOpen}
+      verifyPasswordInput={verifyPasswordInput}
+      setVerifyPasswordInput={setVerifyPasswordInput}
+      verifyUsernameInput={verifyUsernameInput}
+      setVerifyUsernameInput={setVerifyUsernameInput}
+      isVerifyingToken={isVerifyingToken}
+      verifyError={verifyError}
+      handleVerifyTokenSubmit={handleVerifyTokenSubmit}
+      onLogout={logout}
+    />
+  );
+
   if (!isWindowOpen) return null;
 
   // Explicitly type the array using the local DisplayMessage interface
@@ -403,38 +440,7 @@ export function ChatsAppComponent({
 
   return (
     <>
-      <ChatsMenuBar
-        onClose={onClose}
-        onShowHelp={() => setIsHelpDialogOpen(true)}
-        onShowAbout={() => setIsAboutDialogOpen(true)}
-        onClearChats={() => setIsClearDialogOpen(true)}
-        onSaveTranscript={handleSaveTranscript}
-        onSetUsername={promptSetUsername}
-        onToggleSidebar={toggleSidebarVisibility}
-        isSidebarVisible={sidebarVisibleBool} // Pass boolean
-        onAddRoom={promptAddRoom}
-        rooms={rooms}
-        currentRoom={currentRoom ?? null}
-        onRoomSelect={(room) =>
-          handleRoomSelectWithScroll(room ? room.id : null)
-        }
-        onIncreaseFontSize={handleIncreaseFontSize}
-        onDecreaseFontSize={handleDecreaseFontSize}
-        onResetFontSize={handleResetFontSize}
-        username={username}
-        authToken={authToken} // Pass authToken to ChatsMenuBar
-        onVerifyToken={promptVerifyToken}
-        isVerifyDialogOpen={isVerifyDialogOpen}
-        setVerifyDialogOpen={setVerifyDialogOpen}
-        verifyPasswordInput={verifyPasswordInput}
-        setVerifyPasswordInput={setVerifyPasswordInput}
-        verifyUsernameInput={verifyUsernameInput}
-        setVerifyUsernameInput={setVerifyUsernameInput}
-        isVerifyingToken={isVerifyingToken}
-        verifyError={verifyError}
-        handleVerifyTokenSubmit={handleVerifyTokenSubmit}
-        onLogout={logout}
-      />
+      {!isXpTheme && menuBar}
       <WindowFrame
         title={
           currentRoom
@@ -451,6 +457,7 @@ export function ChatsAppComponent({
         onNavigateNext={onNavigateNext}
         onNavigatePrevious={onNavigatePrevious}
         isShaking={isShaking}
+        menuBar={isXpTheme ? menuBar : undefined}
       >
         <div ref={containerRef} className="relative h-full w-full">
           {/* Mobile sidebar overlay with framer-motion 3D animations */}

@@ -21,6 +21,7 @@ import { usePaintStore } from "@/stores/usePaintStore";
 import { Filter } from "./PaintFiltersMenu";
 import { useAppStore } from "@/stores/useAppStore";
 import { toast } from "sonner";
+import { useThemeStore } from "@/stores/useThemeStore";
 
 export const PaintAppComponent: React.FC<AppProps<PaintInitialData>> = ({
   isWindowOpen,
@@ -410,35 +411,44 @@ export const PaintAppComponent: React.FC<AppProps<PaintInitialData>> = ({
     loadPersistedFile();
   }, [currentFilePath, initialFileLoaded, handleFileOpen]);
 
+  const handleApplyFilter = useCallback((filter: Filter) => {
+    canvasRef.current?.applyFilter(filter);
+  }, []);
+
+  const currentTheme = useThemeStore((state) => state.current);
+  const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
+
+  const menuBar = (
+    <PaintMenuBar
+      isWindowOpen={isWindowOpen}
+      isForeground={isForeground}
+      onClose={onClose}
+      canUndo={canUndo}
+      canRedo={canRedo}
+      onUndo={handleUndo}
+      onRedo={handleRedo}
+      onClear={handleClear}
+      onShowHelp={() => setIsHelpDialogOpen(true)}
+      onShowAbout={() => setIsAboutDialogOpen(true)}
+      onNewFile={handleNewFile}
+      onSave={handleSave}
+      onImportFile={handleImportFile}
+      onExportFile={handleExportFile}
+      hasUnsavedChanges={hasUnsavedChanges}
+      currentFilePath={currentFilePath}
+      handleFileSelect={handleFileSelect}
+      onCut={handleCut}
+      onCopy={handleCopy}
+      onPaste={handlePaste}
+      onApplyFilter={handleApplyFilter}
+    />
+  );
+
   if (!isWindowOpen) return null;
 
   return (
     <>
-      <PaintMenuBar
-        isWindowOpen={isWindowOpen}
-        isForeground={isForeground}
-        onClose={onClose}
-        canUndo={canUndo}
-        canRedo={canRedo}
-        onUndo={handleUndo}
-        onRedo={handleRedo}
-        onClear={handleClear}
-        onShowHelp={() => setIsHelpDialogOpen(true)}
-        onShowAbout={() => setIsAboutDialogOpen(true)}
-        onNewFile={handleNewFile}
-        onSave={handleSave}
-        onImportFile={handleImportFile}
-        onExportFile={handleExportFile}
-        hasUnsavedChanges={hasUnsavedChanges}
-        currentFilePath={currentFilePath}
-        handleFileSelect={handleFileSelect}
-        onCut={handleCut}
-        onCopy={handleCopy}
-        onPaste={handlePaste}
-        onApplyFilter={(filter) => {
-          canvasRef.current?.applyFilter(filter);
-        }}
-      />
+      {!isXpTheme && menuBar}
       <WindowFrame
         title={
           currentFilePath
@@ -452,6 +462,7 @@ export const PaintAppComponent: React.FC<AppProps<PaintInitialData>> = ({
         instanceId={instanceId}
         onNavigateNext={onNavigateNext}
         onNavigatePrevious={onNavigatePrevious}
+        menuBar={isXpTheme ? menuBar : undefined}
       >
         <div
           className="flex flex-col h-full w-full min-h-0 p-2"

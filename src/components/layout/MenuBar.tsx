@@ -17,6 +17,7 @@ import { useAppStoreShallow } from "@/stores/helpers";
 import { Slider } from "@/components/ui/slider";
 import { Volume1, Volume2, VolumeX, Settings } from "lucide-react";
 import { useSound, Sounds } from "@/hooks/useSound";
+import { useThemeStore } from "@/stores/useThemeStore";
 
 const finderHelpItems = [
   {
@@ -49,6 +50,7 @@ const finderMetadata = {
 
 interface MenuBarProps {
   children?: React.ReactNode;
+  inWindowFrame?: boolean; // Add prop to indicate if MenuBar is inside a window
 }
 
 function Clock() {
@@ -493,7 +495,7 @@ function VolumeControl() {
   );
 }
 
-export function MenuBar({ children }: MenuBarProps) {
+export function MenuBar({ children, inWindowFrame = false }: MenuBarProps) {
   const { apps } = useAppContext();
   const { getForegroundInstance } = useAppStoreShallow((s) => ({
     getForegroundInstance: s.getForegroundInstance,
@@ -501,6 +503,25 @@ export function MenuBar({ children }: MenuBarProps) {
 
   const foregroundInstance = getForegroundInstance();
   const hasActiveApp = !!foregroundInstance;
+
+  // Get current theme
+  const currentTheme = useThemeStore((state) => state.current);
+  const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
+
+  // If inside window frame for XP/98, use plain style
+  if (inWindowFrame && isXpTheme) {
+    return (
+      <div
+        className="flex items-center h-7 px-1"
+        style={{
+          fontFamily: isXpTheme ? "var(--font-ms-sans)" : "var(--os-font-ui)",
+          fontSize: "11px",
+        }}
+      >
+        {children}
+      </div>
+    );
+  }
 
   return (
     <div

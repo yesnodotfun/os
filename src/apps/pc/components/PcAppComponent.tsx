@@ -9,6 +9,7 @@ import { helpItems, appMetadata } from "..";
 import { Game, loadGames } from "@/stores/usePcStore";
 import { motion } from "framer-motion";
 import { useJsDos, DosProps, DosEvent } from "../hooks/useJsDos";
+import { useThemeStore } from "@/stores/useThemeStore";
 
 export function PcAppComponent({
   isWindowOpen,
@@ -36,6 +37,9 @@ export function PcAppComponent({
   const [mouseSensitivity, setMouseSensitivity] = useState(1.0);
   const containerRef = useRef<HTMLDivElement>(null);
   const dosPropsRef = useRef<DosProps | null>(null);
+
+  const currentTheme = useThemeStore((state) => state.current);
+  const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
 
   useEffect(() => {
     // Cleanup dosbox instance when window is closed
@@ -228,28 +232,32 @@ export function PcAppComponent({
     setIsResetDialogOpen(false);
   };
 
+  const menuBar = (
+    <PcMenuBar
+      onClose={onClose}
+      onShowHelp={() => setIsHelpDialogOpen(true)}
+      onShowAbout={() => setIsAboutDialogOpen(true)}
+      onSaveState={handleSaveState}
+      onLoadState={handleLoadState}
+      onReset={() => setIsResetDialogOpen(true)}
+      onLoadGame={handleLoadGame}
+      selectedGame={selectedGame}
+      onSetMouseCapture={handleSetMouseCapture}
+      onSetFullScreen={handleSetFullScreen}
+      onSetRenderAspect={handleSetRenderAspect}
+      onSetMouseSensitivity={handleSetMouseSensitivity}
+      isMouseCaptured={isMouseCaptured}
+      isFullScreen={isFullScreen}
+      currentRenderAspect={currentRenderAspect}
+      mouseSensitivity={mouseSensitivity}
+    />
+  );
+
   if (!isWindowOpen) return null;
 
   return (
     <>
-      <PcMenuBar
-        onClose={onClose}
-        onShowHelp={() => setIsHelpDialogOpen(true)}
-        onShowAbout={() => setIsAboutDialogOpen(true)}
-        onSaveState={handleSaveState}
-        onLoadState={handleLoadState}
-        onReset={() => setIsResetDialogOpen(true)}
-        onLoadGame={handleLoadGame}
-        selectedGame={selectedGame}
-        onSetMouseCapture={handleSetMouseCapture}
-        onSetFullScreen={handleSetFullScreen}
-        onSetRenderAspect={handleSetRenderAspect}
-        onSetMouseSensitivity={handleSetMouseSensitivity}
-        isMouseCaptured={isMouseCaptured}
-        isFullScreen={isFullScreen}
-        currentRenderAspect={currentRenderAspect}
-        mouseSensitivity={mouseSensitivity}
-      />
+      {!isXpTheme && menuBar}
       <WindowFrame
         title="Virtual PC"
         onClose={onClose}
@@ -259,6 +267,7 @@ export function PcAppComponent({
         instanceId={instanceId}
         onNavigateNext={onNavigateNext}
         onNavigatePrevious={onNavigatePrevious}
+        menuBar={isXpTheme ? menuBar : undefined}
       >
         <div className="flex flex-col h-full w-full bg-[#1a1a1a]">
           <div className="flex-1 relative h-full">

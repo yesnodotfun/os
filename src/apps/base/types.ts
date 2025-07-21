@@ -1,8 +1,6 @@
-import React from "react";
-
 export interface AppProps<TInitialData = unknown> {
-  onClose: () => void;
   isWindowOpen: boolean;
+  onClose: () => void;
   isForeground?: boolean;
   className?: string;
   skipInitialSound?: boolean;
@@ -17,6 +15,8 @@ export interface AppProps<TInitialData = unknown> {
   title?: string;
   onNavigateNext?: () => void;
   onNavigatePrevious?: () => void;
+  // Menu bar prop for XP/98 themes
+  menuBar?: React.ReactNode;
 }
 
 export interface BaseApp<TInitialData = unknown> {
@@ -123,3 +123,19 @@ export type AnyInitialData =
   | VideosInitialData
   | FinderInitialData
   | unknown;
+
+// Theme-aware menu bar pattern:
+// For XP/98 themes, pass the menu bar as a prop to WindowFrame
+// For other themes, render the menu bar normally outside WindowFrame
+// Example:
+// const currentTheme = useThemeStore((state) => state.current);
+// const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
+// const menuBar = <AppMenuBar ... />;
+// return (
+//   <>
+//     {!isXpTheme && menuBar}
+//     <WindowFrame menuBar={isXpTheme ? menuBar : undefined}>
+//       ...
+//     </WindowFrame>
+//   </>
+// );

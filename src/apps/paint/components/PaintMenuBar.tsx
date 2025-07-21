@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Filter } from "./PaintFiltersMenu";
 import { toast } from "sonner";
 import { generateAppShareUrl } from "@/utils/sharedUrl";
+import { useThemeStore } from "@/stores/useThemeStore";
 
 interface PaintMenuBarProps {
   isWindowOpen: boolean;
@@ -618,6 +619,7 @@ const filterCategories = {
 };
 
 export function PaintMenuBar({
+  isWindowOpen,
   onClose,
   onShowHelp,
   onShowAbout,
@@ -637,10 +639,15 @@ export function PaintMenuBar({
   onPaste,
   onApplyFilter,
 }: PaintMenuBarProps) {
+  if (!isWindowOpen) return null;
+
+  const currentTheme = useThemeStore((state) => state.current);
+  const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
+
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   return (
-    <MenuBar>
+    <MenuBar inWindowFrame={isXpTheme}>
       <input
         type="file"
         ref={fileInputRef}

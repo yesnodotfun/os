@@ -24,6 +24,7 @@ import { useFinderStore } from "@/stores/useFinderStore";
 import { useAppStore } from "@/stores/useAppStore";
 import { RightClickMenu, MenuItem } from "@/components/ui/right-click-menu";
 import { useLongPress } from "@/hooks/useLongPress";
+import { useThemeStore } from "@/stores/useThemeStore";
 
 // Type for Finder initial data
 interface FinderInitialData {
@@ -684,11 +685,11 @@ export function FinderAppComponent({
   const blankLongPressHandlers = useLongPress((e) => {
     // Check if the target is within a file item - if so, don't show blank context menu
     const target = e.target as HTMLElement;
-    const fileItem = target.closest('[data-file-item]');
+    const fileItem = target.closest("[data-file-item]");
     if (fileItem) {
       return; // Let the file item handle its own context menu
     }
-    
+
     const touch = e.touches[0];
     setContextMenuPos({ x: touch.clientX, y: touch.clientY });
     setContextMenuFile(null);
@@ -734,37 +735,44 @@ export function FinderAppComponent({
     },
   ];
 
+  const currentTheme = useThemeStore((state) => state.current);
+  const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
+
+  const menuBar = (
+    <FinderMenuBar
+      onClose={onClose}
+      onShowHelp={() => setIsHelpDialogOpen(true)}
+      onShowAbout={() => setIsAboutDialogOpen(true)}
+      viewType={viewType}
+      onViewTypeChange={setViewType}
+      sortType={sortType}
+      onSortTypeChange={setSortType}
+      selectedFile={selectedFile}
+      onMoveToTrash={moveToTrash}
+      onEmptyTrash={handleEmptyTrash}
+      onRestore={handleRestore}
+      isTrashEmpty={trashItemsCount === 0}
+      isInTrash={Boolean(selectedFile?.path.startsWith("/Trash"))}
+      onNavigateBack={navigateBack}
+      onNavigateForward={navigateForward}
+      canNavigateBack={canNavigateBack()}
+      canNavigateForward={canNavigateForward()}
+      onNavigateToPath={navigateToPath}
+      onImportFile={handleImportFile}
+      onRename={handleRename}
+      onDuplicate={handleDuplicate}
+      onNewFolder={handleNewFolder}
+      canCreateFolder={canCreateFolder}
+      rootFolders={rootFolders}
+      onNewWindow={handleNewWindow}
+    />
+  );
+
   if (!isWindowOpen) return null;
 
   return (
     <>
-      <FinderMenuBar
-        onClose={onClose}
-        onShowHelp={() => setIsHelpDialogOpen(true)}
-        onShowAbout={() => setIsAboutDialogOpen(true)}
-        viewType={viewType}
-        onViewTypeChange={setViewType}
-        sortType={sortType}
-        onSortTypeChange={setSortType}
-        selectedFile={selectedFile}
-        onMoveToTrash={moveToTrash}
-        onEmptyTrash={handleEmptyTrash}
-        onRestore={handleRestore}
-        isTrashEmpty={trashItemsCount === 0}
-        isInTrash={Boolean(selectedFile?.path.startsWith("/Trash"))}
-        onNavigateBack={navigateBack}
-        onNavigateForward={navigateForward}
-        canNavigateBack={canNavigateBack()}
-        canNavigateForward={canNavigateForward()}
-        onNavigateToPath={navigateToPath}
-        onImportFile={handleImportFile}
-        onRename={handleRename}
-        onDuplicate={handleDuplicate}
-        onNewFolder={handleNewFolder}
-        canCreateFolder={canCreateFolder}
-        rootFolders={rootFolders}
-        onNewWindow={handleNewWindow}
-      />
+      {!isXpTheme && menuBar}
       <input
         type="file"
         ref={fileInputRef}
@@ -773,8 +781,6 @@ export function FinderAppComponent({
         onChange={handleFileInputChange}
       />
       <WindowFrame
-        appId="finder"
-        instanceId={instanceId}
         title={
           currentPath === "/"
             ? "Macintosh HD"
@@ -791,9 +797,12 @@ export function FinderAppComponent({
         }
         onClose={onClose}
         isForeground={isForeground}
+        appId="finder"
         skipInitialSound={skipInitialSound}
+        instanceId={instanceId}
         onNavigateNext={onNavigateNext}
         onNavigatePrevious={onNavigatePrevious}
+        menuBar={isXpTheme ? menuBar : undefined}
       >
         <div
           className={`flex flex-col h-full w-full bg-white relative ${

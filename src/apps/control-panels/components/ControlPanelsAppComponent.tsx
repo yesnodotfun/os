@@ -1390,15 +1390,21 @@ export function ControlPanelsAppComponent({
     performFormat();
   };
 
+  const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
+
+  const menuBar = (
+    <ControlPanelsMenuBar
+      onClose={onClose}
+      onShowHelp={() => setIsHelpDialogOpen(true)}
+      onShowAbout={() => setIsAboutDialogOpen(true)}
+    />
+  );
+
   if (!isWindowOpen) return null;
 
   return (
     <>
-      <ControlPanelsMenuBar
-        onClose={onClose}
-        onShowHelp={() => setIsHelpDialogOpen(true)}
-        onShowAbout={() => setIsAboutDialogOpen(true)}
-      />
+      {!isXpTheme && menuBar}
       <WindowFrame
         title="Control Panels"
         onClose={onClose}
@@ -1408,6 +1414,7 @@ export function ControlPanelsAppComponent({
         instanceId={instanceId}
         onNavigateNext={onNavigateNext}
         onNavigatePrevious={onNavigatePrevious}
+        menuBar={isXpTheme ? menuBar : undefined}
       >
         <div className="flex flex-col h-full bg-[#E3E3E3] p-4 w-full">
           <Tabs

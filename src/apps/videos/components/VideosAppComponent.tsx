@@ -17,6 +17,7 @@ import { ShareItemDialog } from "@/components/dialogs/ShareItemDialog";
 import { toast } from "sonner";
 import { useAppStore } from "@/stores/useAppStore";
 import { SeekBar } from "./SeekBar";
+import { useThemeStore } from "@/stores/useThemeStore";
 
 interface Video {
   id: string;
@@ -969,45 +970,52 @@ export function VideosAppComponent({
     };
   }, []);
 
+  const currentTheme = useThemeStore((state) => state.current);
+  const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
+
+  const menuBar = (
+    <VideosMenuBar
+      onClose={onClose}
+      onShowHelp={() => setIsHelpDialogOpen(true)}
+      onShowAbout={() => setIsAboutDialogOpen(true)}
+      videos={videos}
+      currentVideoId={currentVideoId}
+      onPlayVideo={(videoId) => {
+        safeSetCurrentVideoId(videoId);
+        setIsPlaying(true);
+      }}
+      onClearPlaylist={() => {
+        setIsConfirmClearOpen(true);
+      }}
+      onResetPlaylist={() => {
+        setIsConfirmResetOpen(true);
+      }}
+      onShufflePlaylist={toggleShuffle}
+      onToggleLoopAll={() => setLoopAll(!loopAll)}
+      onToggleLoopCurrent={() => setLoopCurrent(!loopCurrent)}
+      onTogglePlay={() => {
+        togglePlay();
+      }}
+      onNext={nextVideo}
+      onPrevious={previousVideo}
+      onAddVideo={() => setIsAddDialogOpen(true)}
+      onOpenVideo={() => {
+        setIsAddDialogOpen(true);
+      }}
+      isPlaying={isPlaying}
+      isLoopAll={loopAll}
+      isLoopCurrent={loopCurrent}
+      isShuffled={isShuffled}
+      onFullScreen={handleFullScreen}
+      onShareVideo={handleShareVideo}
+    />
+  );
+
   if (!isWindowOpen) return null;
 
   return (
     <>
-      <VideosMenuBar
-        onClose={onClose}
-        onShowHelp={() => setIsHelpDialogOpen(true)}
-        onShowAbout={() => setIsAboutDialogOpen(true)}
-        videos={videos}
-        currentVideoId={currentVideoId}
-        onPlayVideo={(videoId) => {
-          safeSetCurrentVideoId(videoId);
-          setIsPlaying(true);
-        }}
-        onClearPlaylist={() => {
-          setIsConfirmClearOpen(true);
-        }}
-        onResetPlaylist={() => {
-          setIsConfirmResetOpen(true);
-        }}
-        onShufflePlaylist={toggleShuffle}
-        onToggleLoopAll={() => setLoopAll(!loopAll)}
-        onToggleLoopCurrent={() => setLoopCurrent(!loopCurrent)}
-        onTogglePlay={() => {
-          togglePlay();
-        }}
-        onNext={nextVideo}
-        onPrevious={previousVideo}
-        onAddVideo={() => setIsAddDialogOpen(true)}
-        onOpenVideo={() => {
-          setIsAddDialogOpen(true);
-        }}
-        isPlaying={isPlaying}
-        isLoopAll={loopAll}
-        isLoopCurrent={loopCurrent}
-        isShuffled={isShuffled}
-        onFullScreen={handleFullScreen}
-        onShareVideo={handleShareVideo}
-      />
+      {!isXpTheme && menuBar}
       <WindowFrame
         title="Videos"
         onClose={onClose}
@@ -1017,6 +1025,7 @@ export function VideosAppComponent({
         instanceId={instanceId}
         onNavigateNext={onNavigateNext}
         onNavigatePrevious={onNavigatePrevious}
+        menuBar={isXpTheme ? menuBar : undefined}
       >
         <div className="flex flex-col w-full h-full bg-[#1a1a1a] text-white">
           <div className="flex-1 relative">

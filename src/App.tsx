@@ -12,7 +12,6 @@ import { AnyApp } from "./apps/base/types";
 const apps: AnyApp[] = Object.values(appRegistry);
 
 export function App() {
-  const [isHydrated, setIsHydrated] = useState(false);
   const { displayMode, isFirstBoot, setHasBooted } = useAppStoreShallow(
     (state) => ({
       displayMode: state.displayMode,

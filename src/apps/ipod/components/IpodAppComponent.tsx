@@ -24,6 +24,7 @@ import { createPortal } from "react-dom";
 import { LyricsDisplay } from "./LyricsDisplay";
 import { useLyrics } from "@/hooks/useLyrics";
 import { useLibraryUpdateChecker } from "../hooks/useLibraryUpdateChecker";
+import { useThemeStore } from "@/stores/useThemeStore";
 
 // Add this component definition before the IpodAppComponent
 interface FullScreenPortalProps {
@@ -1062,9 +1063,8 @@ export function IpodAppComponent({
       if (existingTrackIndex !== -1) {
         toast.info(
           <>
-            Opened shared track. Press{' '}
-            <span className="font-chicago">⏯</span>
-            {' '}to start playing.
+            Opened shared track. Press <span className="font-chicago">⏯</span>{" "}
+            to start playing.
           </>
         );
         console.log(`[iPod] Video ID ${videoId} found in tracks. Playing.`);
@@ -1562,14 +1562,14 @@ export function IpodAppComponent({
 
   useEffect(() => {
     let timeoutId: number;
-    
+
     const handleResize = () => {
       if (!containerRef.current) return;
-      
+
       // Use requestAnimationFrame to ensure we get accurate measurements
       requestAnimationFrame(() => {
         if (!containerRef.current) return;
-        
+
         const containerWidth = containerRef.current.clientWidth;
         const containerHeight = containerRef.current.clientHeight;
         const baseWidth = 250;
@@ -1580,9 +1580,9 @@ export function IpodAppComponent({
         const heightScale = availableHeight / baseHeight;
         const newScale = Math.min(widthScale, heightScale, 2);
         const finalScale = Math.max(1, newScale);
-        
+
         // Only update if scale actually changed to prevent unnecessary re-renders
-        setScale(prevScale => {
+        setScale((prevScale) => {
           if (Math.abs(prevScale - finalScale) > 0.01) {
             return finalScale;
           }
@@ -1593,17 +1593,17 @@ export function IpodAppComponent({
 
     // Initial resize with a small delay to ensure DOM is ready
     timeoutId = window.setTimeout(handleResize, 10);
-    
+
     const resizeObserver = new ResizeObserver(() => {
       // Debounce resize events
       clearTimeout(timeoutId);
       timeoutId = window.setTimeout(handleResize, 10);
     });
-    
+
     if (containerRef.current) {
       resizeObserver.observe(containerRef.current);
     }
-    
+
     return () => {
       clearTimeout(timeoutId);
       resizeObserver.disconnect();
@@ -1706,22 +1706,28 @@ export function IpodAppComponent({
     };
   }, [isFullScreen, toggleFullScreen]);
 
+  const currentTheme = useThemeStore((state) => state.current);
+  const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
+
+  const menuBar = (
+    <IpodMenuBar
+      onClose={onClose}
+      onShowHelp={() => setIsHelpDialogOpen(true)}
+      onShowAbout={() => setIsAboutDialogOpen(true)}
+      onClearLibrary={() => {
+        setIsConfirmClearOpen(true);
+      }}
+      onSyncLibrary={manualSync}
+      onAddTrack={() => setIsAddDialogOpen(true)}
+      onShareSong={handleShareSong}
+    />
+  );
+
   if (!isWindowOpen) return null;
 
   return (
     <>
-      <IpodMenuBar
-        onClose={onClose}
-        onShowHelp={() => setIsHelpDialogOpen(true)}
-        onShowAbout={() => setIsAboutDialogOpen(true)}
-        onClearLibrary={() => {
-          setIsConfirmClearOpen(true);
-        }}
-        onSyncLibrary={manualSync}
-        onAddTrack={() => setIsAddDialogOpen(true)}
-        onShareSong={handleShareSong}
-      />
-
+      {!isXpTheme && menuBar}
       <WindowFrame
         title="iPod"
         onClose={onClose}
@@ -1732,14 +1738,15 @@ export function IpodAppComponent({
         instanceId={instanceId}
         onNavigateNext={onNavigateNext}
         onNavigatePrevious={onNavigatePrevious}
+        menuBar={isXpTheme ? menuBar : undefined}
       >
         <div
           ref={containerRef}
           className="flex flex-col items-center justify-center w-full h-full bg-gradient-to-b from-gray-100/20 to-gray-300/20 backdrop-blur-lg p-4 select-none"
           style={{
-            position: 'relative',
-            overflow: 'hidden',
-            contain: 'layout style paint'
+            position: "relative",
+            overflow: "hidden",
+            contain: "layout style paint",
           }}
         >
           <div
@@ -1751,13 +1758,13 @@ export function IpodAppComponent({
               transform: `scale(${scale})`,
               transformOrigin: "center",
               transition: "transform 0.2s ease",
-              minWidth: '250px',
-              minHeight: '400px',
-              maxWidth: '250px',
-              maxHeight: '400px',
-              contain: 'layout style paint',
-              willChange: 'transform',
-              backfaceVisibility: 'hidden'
+              minWidth: "250px",
+              minHeight: "400px",
+              maxWidth: "250px",
+              maxHeight: "400px",
+              contain: "layout style paint",
+              willChange: "transform",
+              backfaceVisibility: "hidden",
             }}
           >
             <IpodScreen

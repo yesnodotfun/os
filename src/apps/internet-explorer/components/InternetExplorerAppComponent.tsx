@@ -56,6 +56,14 @@ import {
 } from "@/components/ui/tooltip";
 import { ShareItemDialog } from "@/components/dialogs/ShareItemDialog";
 import { toast } from "sonner";
+import { ErrorDialog } from "@/components/dialogs/ErrorDialog";
+import { useAuth } from "@/hooks/useAuth";
+import { useAiGeneration } from "../hooks/useAiGeneration";
+import { helpItems } from "..";
+import Markdown from "react-markdown";
+import { LoadingDialog } from "@/components/dialogs/LoadingDialog";
+import { useThemeStore } from "@/stores/useThemeStore";
+import { WebsiteView } from "./WebsiteView";
 
 // Analytics event namespace for Internet Explorer events
 export const IE_ANALYTICS = {
@@ -1872,207 +1880,59 @@ export function InternetExplorerAppComponent({
     setIsShareDialogOpen(true);
   }, []);
 
+  const currentTheme = useThemeStore((state) => state.current);
+  const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
+
+  const menuBar = (
+    <InternetExplorerMenuBar
+      isWindowOpen={isWindowOpen}
+      isForeground={isForeground}
+      onRefresh={handleRefresh}
+      onStop={handleStop}
+      onFocusUrlInput={handleGoToUrl}
+      onHome={handleHome}
+      onShowHelp={() => setHelpDialogOpen(true)}
+      onShowAbout={() => setAboutDialogOpen(true)}
+      isLoading={isLoading}
+      favorites={favorites}
+      history={history}
+      onAddFavorite={handleAddFavorite}
+      onClearFavorites={() => setClearFavoritesDialogOpen(true)}
+      onResetFavorites={() => setResetFavoritesDialogOpen(true)}
+      onNavigateToFavorite={(favUrl, favYear) =>
+        handleNavigateWithHistory(favUrl, favYear)
+      }
+      onNavigateToHistory={handleNavigateWithHistory}
+      onGoBack={handleGoBack}
+      onGoForward={handleGoForward}
+      canGoBack={historyIndex < history.length - 1}
+      canGoForward={historyIndex > 0}
+      onClearHistory={() => setClearHistoryDialogOpen(true)}
+      onOpenTimeMachine={() => setTimeMachineViewOpen(true)}
+      onClose={onClose}
+      onEditFuture={() => setFutureSettingsDialogOpen(true)}
+      language={language}
+      location={location}
+      year={year}
+      onLanguageChange={setLanguage}
+      onLocationChange={setLocation}
+      onYearChange={(newYear) => handleNavigate(url, newYear)}
+      onSharePage={handleSharePage}
+      skipInitialSound={skipInitialSound}
+      instanceId={instanceId}
+      onNavigateNext={onNavigateNext}
+      onNavigatePrevious={onNavigatePrevious}
+    />
+  );
+
   if (!isWindowOpen) return null;
 
   const isLoading =
     status === "loading" || isAiLoading || isFetchingWebsiteContent;
-  const isFutureYear = mode === "future";
-
-  const loadingBarVariants = {
-    hidden: {
-      height: 0,
-      opacity: 0,
-      transition: { duration: 0.3 },
-    },
-    visible: {
-      height: "0.25rem",
-      opacity: 1,
-      transition: { duration: 0.3 },
-    },
-  };
-
-  const renderErrorPage = () => {
-    if (!errorDetails) return null;
-
-    const errorHostname = errorDetails.hostname || "the website";
-
-    const commonSuggestions: ReactNode[] = [
-      "Try time traveling to a different year",
-      <>
-        Go{" "}
-        <a
-          href="#"
-          role="button"
-          onClick={(e) => {
-            e.preventDefault();
-            handleGoBack();
-          }}
-          className="text-red-600 underline"
-        >
-          Back
-        </a>{" "}
-        or change the URL to visit a different website
-      </>,
-    ];
-
-    const refreshSuggestion: ReactNode = (
-      <>
-        Click the{" "}
-        <a
-          href="#"
-          role="button"
-          onClick={(e) => {
-            e.preventDefault();
-            handleRefresh();
-          }}
-          className="text-red-600 underline"
-        >
-          Refresh
-        </a>{" "}
-        link to try again
-      </>
-    );
-
-    switch (errorDetails.type) {
-      case "http_error":
-        return (
-          <ErrorPage
-            title="The page cannot be displayed"
-            primaryMessage="The page you are looking for might have been removed, had its name changed, or is temporarily unavailable."
-            suggestions={[
-              "If you typed the page address in the Address bar, make sure that it is spelled correctly.",
-              <>
-                Open{" "}
-                <a
-                  href={`https://${errorHostname}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-red-600 underline"
-                >
-                  {errorHostname}
-                </a>{" "}
-                in a new tab, and then look for links to the information you
-                want.
-              </>,
-              <>
-                Go{" "}
-                <a
-                  href="#"
-                  role="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleGoBack();
-                  }}
-                  className="text-red-600 underline"
-                >
-                  Back
-                </a>{" "}
-                or change the URL to try another page.
-              </>,
-            ]}
-            details={errorHostname}
-            footerText={`HTTP ${errorDetails.status || 404} - ${
-              errorDetails.statusText || "Not Found"
-            }\nInternet Explorer`}
-            onGoBack={handleGoBack}
-            onRetry={handleRefresh}
-          />
-        );
-      case "connection_error":
-        return (
-          <ErrorPage
-            title="The page cannot be displayed"
-            primaryMessage={
-              errorDetails.message ||
-              "Internet Explorer cannot access this website."
-            }
-            suggestions={[refreshSuggestion, ...commonSuggestions]}
-            details={errorDetails.details || "Connection failed"}
-            footerText={`Connection Error\nInternet Explorer`}
-            onGoBack={handleGoBack}
-            onRetry={handleRefresh}
-          />
-        );
-      case "ai_generation_error":
-        return (
-          <ErrorPage
-            title="The page cannot be imagined"
-            primaryMessage={errorDetails.message}
-            suggestions={[refreshSuggestion, ...commonSuggestions]}
-            details={errorDetails.details}
-            footerText={`Time Machine Error\nInternet Explorer`}
-            onGoBack={handleGoBack}
-            onRetry={handleRefresh}
-          />
-        );
-      default:
-        return (
-          <ErrorPage
-            title="An error occurred"
-            primaryMessage={errorDetails.message}
-            suggestions={[refreshSuggestion, ...commonSuggestions]}
-            details={errorDetails.details}
-            footerText={`Error\nInternet Explorer`}
-            onGoBack={handleGoBack}
-            onRetry={handleRefresh}
-          />
-        );
-    }
-  };
-
-  const ieGenerateShareUrl = (
-    identifier: string,
-    secondary?: string
-  ): string => {
-    // Simple encoding function (client-side)
-    const encodeData = (urlToEncode: string, yearToEncode: string): string => {
-      const combined = `${urlToEncode}|${yearToEncode}`;
-      return btoa(combined)
-        .replace(/\+/g, "-")
-        .replace(/\//g, "_")
-        .replace(/=+$/, "");
-    };
-    const code = encodeData(identifier, secondary || "current");
-    return `${window.location.origin}/internet-explorer/${code}`;
-  };
 
   return (
-    <TooltipProvider delayDuration={100}>
-      <InternetExplorerMenuBar
-        isWindowOpen={isWindowOpen}
-        isForeground={isForeground}
-        onRefresh={handleRefresh}
-        onStop={handleStop}
-        onFocusUrlInput={handleGoToUrl}
-        onHome={handleHome}
-        onShowHelp={() => setHelpDialogOpen(true)}
-        onShowAbout={() => setAboutDialogOpen(true)}
-        isLoading={isLoading}
-        favorites={favorites}
-        history={history}
-        onAddFavorite={handleAddFavorite}
-        onClearFavorites={() => setClearFavoritesDialogOpen(true)}
-        onResetFavorites={() => setResetFavoritesDialogOpen(true)}
-        onNavigateToFavorite={(favUrl, favYear) =>
-          handleNavigateWithHistory(favUrl, favYear)
-        }
-        onNavigateToHistory={handleNavigateWithHistory}
-        onGoBack={handleGoBack}
-        onGoForward={handleGoForward}
-        canGoBack={historyIndex < history.length - 1}
-        canGoForward={historyIndex > 0}
-        onClearHistory={() => setClearHistoryDialogOpen(true)}
-        onOpenTimeMachine={() => setTimeMachineViewOpen(true)}
-        onClose={onClose}
-        onEditFuture={() => setFutureSettingsDialogOpen(true)}
-        language={language}
-        location={location}
-        year={year}
-        onLanguageChange={setLanguage}
-        onLocationChange={setLocation}
-        onYearChange={(newYear) => handleNavigate(url, newYear)}
-        onSharePage={handleSharePage}
-      />
+    <>
+      {!isXpTheme && menuBar}
       <WindowFrame
         title={displayTitle}
         onClose={onClose}
@@ -2082,6 +1942,7 @@ export function InternetExplorerAppComponent({
         instanceId={instanceId}
         onNavigateNext={onNavigateNext}
         onNavigatePrevious={onNavigatePrevious}
+        menuBar={isXpTheme ? menuBar : undefined}
       >
         <div className="flex flex-col h-full w-full relative">
           <div className="flex flex-col gap-1 p-1 bg-gray-100 border-b border-black">
@@ -2701,6 +2562,6 @@ export function InternetExplorerAppComponent({
         title={currentPageTitle || url} // Use page title or URL as title
         generateShareUrl={ieGenerateShareUrl}
       />
-    </TooltipProvider>
+    </>
   );
 }

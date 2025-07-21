@@ -44,35 +44,29 @@ export function AppManager({ apps }: AppManagerProps) {
   // if ANY instance is open, and `isForeground` should reflect the foreground
   // instance. We also prefer the foreground instance for position/size data.
 
-  const legacyAppStates = Object.values(instances).reduce(
-    (acc, instance) => {
-      const existing = acc[instance.appId];
+  const legacyAppStates = Object.values(instances).reduce((acc, instance) => {
+    const existing = acc[instance.appId];
 
-      // Determine whether this instance should be the source of foreground /
-      // positional data. We always keep foreground instance data if available.
-      const shouldReplace =
-        !existing || // first encounter
-        (instance.isForeground && !existing.isForeground); // take foreground
+    // Determine whether this instance should be the source of foreground /
+    // positional data. We always keep foreground instance data if available.
+    const shouldReplace =
+      !existing || // first encounter
+      (instance.isForeground && !existing.isForeground); // take foreground
 
-      acc[instance.appId] = {
-        // isOpen is true if any instance is open
-        isOpen: (existing?.isOpen ?? false) || instance.isOpen,
-        // isForeground true if this particular instance is foreground, or an
-        // earlier one already marked foreground
-        isForeground:
-          (existing?.isForeground ?? false) || instance.isForeground,
-        // For position / size / initialData, prefer the chosen instance
-        position: shouldReplace ? instance.position : existing?.position,
-        size: shouldReplace ? instance.size : existing?.size,
-        initialData: shouldReplace
-          ? instance.initialData
-          : existing?.initialData,
-      };
+    acc[instance.appId] = {
+      // isOpen is true if any instance is open
+      isOpen: (existing?.isOpen ?? false) || instance.isOpen,
+      // isForeground true if this particular instance is foreground, or an
+      // earlier one already marked foreground
+      isForeground: (existing?.isForeground ?? false) || instance.isForeground,
+      // For position / size / initialData, prefer the chosen instance
+      position: shouldReplace ? instance.position : existing?.position,
+      size: shouldReplace ? instance.size : existing?.size,
+      initialData: shouldReplace ? instance.initialData : existing?.initialData,
+    };
 
-      return acc;
-    },
-    {} as { [appId: string]: AppState }
-  );
+    return acc;
+  }, {} as { [appId: string]: AppState });
 
   const getZIndexForInstance = (instanceId: string) => {
     const index = instanceWindowOrder.indexOf(instanceId);

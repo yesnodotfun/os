@@ -9,6 +9,9 @@ import { Button } from "@/components/ui/button";
 import { helpItems, appMetadata } from "..";
 import { useSound, Sounds } from "@/hooks/useSound";
 import { isMobileDevice } from "@/utils/device";
+import { useMinesweeperStore } from "@/stores/useMinesweeperStore";
+import { cn } from "@/lib/utils";
+import { useThemeStore } from "@/stores/useThemeStore";
 
 const BOARD_SIZE = 9;
 const MINES_COUNT = 10;
@@ -35,7 +38,7 @@ function useLongPress(
       }
       // Reset the flag when starting a new gesture
       longPressTriggeredRef.current = false;
-      
+
       const timer = setTimeout(() => {
         onLongPress(e);
         longPressTriggeredRef.current = true;
@@ -51,12 +54,12 @@ function useLongPress(
         clearTimeout(timeoutId);
       }
       setTimeoutId(undefined);
-      
+
       // Use ref to ensure we have the most current value
       if (shouldTriggerClick && !longPressTriggeredRef.current && onClick) {
         onClick();
       }
-      
+
       // Reset after a small delay to prevent race conditions
       setTimeout(() => {
         longPressTriggeredRef.current = false;
@@ -391,16 +394,23 @@ export function MinesweeperAppComponent({
     setRemainingMines(MINES_COUNT);
   }
 
+  const currentTheme = useThemeStore((state) => state.current);
+  const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
+
+  const menuBar = (
+    <MinesweeperMenuBar
+      onClose={onClose}
+      onShowHelp={() => setIsHelpDialogOpen(true)}
+      onShowAbout={() => setIsAboutDialogOpen(true)}
+      onNewGame={() => setIsNewGameDialogOpen(true)}
+    />
+  );
+
   if (!isWindowOpen) return null;
 
   return (
     <>
-      <MinesweeperMenuBar
-        onClose={onClose}
-        onShowHelp={() => setIsHelpDialogOpen(true)}
-        onShowAbout={() => setIsAboutDialogOpen(true)}
-        onNewGame={() => setIsNewGameDialogOpen(true)}
-      />
+      {!isXpTheme && menuBar}
       <WindowFrame
         title="Minesweeper"
         onClose={onClose}
@@ -410,6 +420,7 @@ export function MinesweeperAppComponent({
         instanceId={instanceId}
         onNavigateNext={onNavigateNext}
         onNavigatePrevious={onNavigatePrevious}
+        menuBar={isXpTheme ? menuBar : undefined}
         windowConstraints={{
           minWidth: 270,
           maxWidth: 270,

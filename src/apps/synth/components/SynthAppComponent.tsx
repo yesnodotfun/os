@@ -10,7 +10,11 @@ import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { InputDialog } from "@/components/dialogs/InputDialog";
 import { helpItems, appMetadata } from "..";
 // Using store for all Synth settings
-import { useSynthStore, SynthPreset, NoteLabelType } from "@/stores/useSynthStore";
+import {
+  useSynthStore,
+  SynthPreset,
+  NoteLabelType,
+} from "@/stores/useSynthStore";
 import { Button } from "@/components/ui/button";
 import { useSound, Sounds } from "@/hooks/useSound";
 import {
@@ -23,6 +27,9 @@ import {
 import { Dial } from "@/components/ui/dial";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { Waveform3D } from "./Waveform3D";
+import { Oscillator } from "tone/build/esm/source/oscillator/Oscillator";
+import { toast } from "sonner";
+import { useThemeStore } from "@/stores/useThemeStore";
 
 // Define oscillator type
 type OscillatorType = "sine" | "square" | "triangle" | "sawtooth";
@@ -307,7 +314,14 @@ export function SynthAppComponent({
   // Determine default label type based on screen size
   const isMobile = useMediaQuery("(max-width: 768px)");
   // Use labelType from persisted store
-  const { labelType, setLabelType, presets, setPresets, currentPreset, setCurrentPreset } = useSynthStore();
+  const {
+    labelType,
+    setLabelType,
+    presets,
+    setPresets,
+    currentPreset,
+    setCurrentPreset,
+  } = useSynthStore();
 
   // Update label type when screen size changes - now using store
   useEffect(() => {
@@ -742,10 +756,10 @@ export function SynthAppComponent({
     // that notes are triggered immediately when requested.
     try {
       // In some environments Tone.context might not be ready yet, so we wrap in try/catch
-        if (Tone && Tone.context) {
-          // Tone's type defs don't expose lookAhead as writable
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (Tone.context as any).lookAhead = 0;
+      if (Tone && Tone.context) {
+        // Tone's type defs don't expose lookAhead as writable
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (Tone.context as any).lookAhead = 0;
       }
     } catch {
       // Ignore if Tone isn't available – worst case we keep the default value.
@@ -794,33 +808,42 @@ export function SynthAppComponent({
     };
   }, [isWindowOpen, releaseNote]);
 
+  const currentTheme = useThemeStore((state) => state.current);
+  const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
+
+  const menuBar = (
+    <SynthMenuBar
+      onAddPreset={addPreset}
+      onShowHelp={() => setIsHelpOpen(true)}
+      onShowAbout={() => setIsAboutOpen(true)}
+      onReset={resetSynth}
+      onClose={onClose}
+      presets={presets}
+      currentPresetId={currentPreset.id}
+      onLoadPresetById={(id) => {
+        const preset = presets.find((p) => p.id === id);
+        if (preset) loadPreset(preset);
+      }}
+      labelType={labelType}
+      onLabelTypeChange={setLabelType}
+    />
+  );
+
+  if (!isWindowOpen) return null;
+
   return (
     <>
-      <SynthMenuBar
-        onAddPreset={addPreset}
-        onShowHelp={() => setIsHelpOpen(true)}
-        onShowAbout={() => setIsAboutOpen(true)}
-        onReset={resetSynth}
-        onClose={onClose}
-        presets={presets}
-        currentPresetId={currentPreset.id}
-        onLoadPresetById={(id) => {
-          const preset = presets.find((p) => p.id === id);
-          if (preset) loadPreset(preset);
-        }}
-        labelType={labelType}
-        onLabelTypeChange={setLabelType}
-      />
-
+      {!isXpTheme && menuBar}
       <WindowFrame
         title="Synth"
-        appId="synth"
         onClose={onClose}
         isForeground={isForeground}
+        appId="synth"
         skipInitialSound={skipInitialSound}
         instanceId={instanceId}
         onNavigateNext={onNavigateNext}
         onNavigatePrevious={onNavigatePrevious}
+        menuBar={isXpTheme ? menuBar : undefined}
       >
         <div
           ref={appContainerRef}

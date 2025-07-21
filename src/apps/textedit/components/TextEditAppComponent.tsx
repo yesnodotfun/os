@@ -44,6 +44,7 @@ import {
 } from "@/utils/markdown";
 import { useAppStore } from "@/stores/useAppStore";
 import { JSONContent, Editor } from "@tiptap/core";
+import { useThemeStore } from "@/stores/useThemeStore";
 
 // Define the type for TextEdit initial data
 interface TextEditInitialData {
@@ -132,6 +133,8 @@ export function TextEditAppComponent({
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const clearInitialData = useAppStore((state) => state.clearInitialData);
   const launchAppInstance = useAppStore((state) => state.launchApp);
+  const currentTheme = useThemeStore((state) => state.current);
+  const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
 
   // Use store actions directly to avoid reference changes
   const createTextEditInstance = useTextEditStore(
@@ -1056,6 +1059,25 @@ export function TextEditAppComponent({
         editor.getText().trim().length > 0 ||
         editor.getHTML() !== "<p></p>"));
 
+  const menuBar = (
+    <TextEditMenuBar
+      editor={editor}
+      onClose={handleClose}
+      isWindowOpen={isWindowOpen}
+      onShowHelp={() => setIsHelpDialogOpen(true)}
+      onShowAbout={() => setIsAboutDialogOpen(true)}
+      onNewFile={handleNewFile}
+      onImportFile={handleImportFile}
+      onExportFile={handleExportFile}
+      onSave={handleSave}
+      hasUnsavedChanges={hasUnsavedChanges}
+      currentFilePath={currentFilePath}
+      handleFileSelect={handleFileSelect}
+    />
+  );
+
+  if (!isWindowOpen) return null;
+
   return (
     <>
       <input
@@ -1065,20 +1087,7 @@ export function TextEditAppComponent({
         accept=".txt,.html,.md,.rtf,.doc,.docx"
         className="hidden"
       />
-      <TextEditMenuBar
-        editor={editor}
-        onClose={handleClose}
-        isWindowOpen={isWindowOpen}
-        onShowHelp={() => setIsHelpDialogOpen(true)}
-        onShowAbout={() => setIsAboutDialogOpen(true)}
-        onNewFile={handleNewFile}
-        onImportFile={handleImportFile}
-        onExportFile={handleExportFile}
-        onSave={handleSave}
-        hasUnsavedChanges={hasUnsavedChanges}
-        currentFilePath={currentFilePath}
-        handleFileSelect={handleFileSelect}
-      />
+      {!isXpTheme && menuBar}
       <WindowFrame
         title={
           customTitle ||
@@ -1096,6 +1105,7 @@ export function TextEditAppComponent({
         interceptClose={true}
         onNavigateNext={onNavigateNext}
         onNavigatePrevious={onNavigatePrevious}
+        menuBar={isXpTheme ? menuBar : undefined}
       >
         <div className="flex flex-col h-full w-full">
           <div

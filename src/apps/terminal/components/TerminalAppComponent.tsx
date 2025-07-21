@@ -38,6 +38,7 @@ import { htmlToMarkdown } from "@/utils/markdown";
 import { useInternetExplorerStore } from "@/stores/useInternetExplorerStore";
 import { useVideoStore } from "@/stores/useVideoStore";
 import { useFilesStore } from "@/stores/useFilesStore";
+import { useThemeStore } from "@/stores/useThemeStore";
 
 // Analytics event namespace for terminal AI events
 export const TERMINAL_ANALYTICS = {
@@ -2258,7 +2259,8 @@ assistant
                 );
               }
             } catch (err) {
-              const errorMsg = err instanceof Error ? err.message : "unknown error";
+              const errorMsg =
+                err instanceof Error ? err.message : "unknown error";
               this.updateOutput(`su failed: ${errorMsg}`);
             }
           }
@@ -2267,10 +2269,7 @@ assistant
             setCommandHistory((prev) => {
               const last = prev[prev.length - 1];
               if (last.output === tempOutput) {
-                return [
-                  ...prev.slice(0, -1),
-                  { ...last, output: content },
-                ];
+                return [...prev.slice(0, -1), { ...last, output: content }];
               }
               return prev;
             });
@@ -2307,10 +2306,7 @@ assistant
             setCommandHistory((prev) => {
               const last = prev[prev.length - 1];
               if (last.output === tempOutput) {
-                return [
-                  ...prev.slice(0, -1),
-                  { ...last, output: content },
-                ];
+                return [...prev.slice(0, -1), { ...last, output: content }];
               }
               return prev;
             });
@@ -3460,27 +3456,34 @@ assistant
     );
   };
 
+  const currentTheme = useThemeStore((state) => state.current);
+  const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
+
+  const menuBar = (
+    <TerminalMenuBar
+      onClose={onClose}
+      onShowHelp={() => setIsHelpDialogOpen(true)}
+      onShowAbout={() => setIsAboutDialogOpen(true)}
+      onClear={() => {
+        setIsClearingTerminal(true);
+        setTimeout(() => {
+          setIsClearingTerminal(false);
+          setCommandHistory([]);
+        }, 500);
+      }}
+      onIncreaseFontSize={increaseFontSize}
+      onDecreaseFontSize={decreaseFontSize}
+      onResetFontSize={resetFontSize}
+      onToggleMute={toggleMute}
+      isMuted={isMuted}
+    />
+  );
+
   if (!isWindowOpen) return null;
 
   return (
     <>
-      <TerminalMenuBar
-        onClose={onClose}
-        onShowHelp={() => setIsHelpDialogOpen(true)}
-        onShowAbout={() => setIsAboutDialogOpen(true)}
-        onClear={() => {
-          setIsClearingTerminal(true);
-          setTimeout(() => {
-            setIsClearingTerminal(false);
-            setCommandHistory([]);
-          }, 500);
-        }}
-        onIncreaseFontSize={increaseFontSize}
-        onDecreaseFontSize={decreaseFontSize}
-        onResetFontSize={resetFontSize}
-        onToggleMute={toggleMute}
-        isMuted={isMuted}
-      />
+      {!isXpTheme && menuBar}
       <WindowFrame
         appId="terminal"
         title="Terminal"
@@ -3491,6 +3494,7 @@ assistant
         instanceId={instanceId}
         onNavigateNext={onNavigateNext}
         onNavigatePrevious={onNavigatePrevious}
+        menuBar={isXpTheme ? menuBar : undefined}
       >
         <motion.div
           className="flex flex-col h-full w-full bg-black/80 backdrop-blur-lg text-white antialiased font-monaco p-2 overflow-hidden select-text"

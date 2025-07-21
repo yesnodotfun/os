@@ -35,6 +35,7 @@ interface WindowFrameProps {
   onNavigatePrevious?: () => void;
   // Close interception support
   interceptClose?: boolean;
+  menuBar?: React.ReactNode; // Add menuBar prop
 }
 
 export function WindowFrame({
@@ -51,6 +52,7 @@ export function WindowFrame({
   onNavigateNext,
   onNavigatePrevious,
   interceptClose = false,
+  menuBar, // Add menuBar to destructured props
 }: WindowFrameProps) {
   const config = getWindowConfig(appId);
   const defaultConstraints = {
@@ -848,7 +850,21 @@ export function WindowFrame({
             </div>
           )}
 
-          {/* Content */}
+          {/* For XP/98 themes, render the menuBar inside the window */}
+          {isXpTheme && menuBar && (
+            <div
+              className="menubar-container"
+              style={{
+                background: "var(--button-face)",
+                borderBottom: "1px solid var(--button-shadow)",
+                padding: "2px 0",
+              }}
+            >
+              {menuBar}
+            </div>
+          )}
+
+          {/* Window content */}
           <div
             className={cn(
               "flex flex-1 min-h-0 flex-col md:flex-row",

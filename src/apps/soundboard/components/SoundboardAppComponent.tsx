@@ -13,6 +13,7 @@ import { AppProps } from "../../base/types";
 import { SoundboardMenuBar } from "./SoundboardMenuBar";
 import { appMetadata } from "..";
 import { useSoundboardStore } from "@/stores/useSoundboardStore";
+import { useThemeStore } from "@/stores/useThemeStore";
 
 interface ImportedSlot {
   audioData: string | null;
@@ -55,6 +56,10 @@ export function SoundboardAppComponent({
     (state) => state.initializeBoards
   );
   const hasInitialized = useSoundboardStore((state) => state.hasInitialized);
+
+  // Get current theme
+  const currentTheme = useThemeStore((state) => state.current);
+  const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
 
   useEffect(() => {
     if (!hasInitialized) {
@@ -312,6 +317,31 @@ export function SoundboardAppComponent({
     }
   };
 
+  const menuBar = (
+    <SoundboardMenuBar
+      onClose={onClose}
+      isWindowOpen={isWindowOpen}
+      onNewBoard={addNewBoard}
+      onImportBoard={() => importInputRef.current?.click()}
+      onExportBoard={exportBoard}
+      onReloadBoard={reloadFromJson}
+      onReloadAllSounds={reloadFromAllSounds}
+      onRenameBoard={() => setIsEditingTitle(true)}
+      onDeleteBoard={() => {
+        if (activeBoardId && boards.length > 1) {
+          storeDeleteBoard(activeBoardId);
+        }
+      }}
+      canDeleteBoard={boards.length > 1}
+      onShowHelp={() => setHelpDialogOpen(true)}
+      onShowAbout={() => setAboutDialogOpen(true)}
+      showWaveforms={showWaveforms}
+      onToggleWaveforms={setShowWaveforms}
+      showEmojis={showEmojis}
+      onToggleEmojis={setShowEmojis}
+    />
+  );
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!isForeground || !activeBoard) return;
@@ -362,30 +392,13 @@ export function SoundboardAppComponent({
 
   return (
     <>
-      <SoundboardMenuBar
-        onClose={onClose}
-        isWindowOpen={isWindowOpen}
-        onNewBoard={addNewBoard}
-        onImportBoard={() => importInputRef.current?.click()}
-        onExportBoard={exportBoard}
-        onReloadBoard={reloadFromJson}
-        onReloadAllSounds={reloadFromAllSounds}
-        onRenameBoard={() => setIsEditingTitle(true)}
-        onDeleteBoard={() => {
-          if (activeBoardId && boards.length > 1) {
-            storeDeleteBoard(activeBoardId);
-          }
-        }}
-        canDeleteBoard={boards.length > 1}
-        onShowHelp={() => setHelpDialogOpen(true)}
-        onShowAbout={() => setAboutDialogOpen(true)}
-        showWaveforms={showWaveforms}
-        onToggleWaveforms={setShowWaveforms}
-        showEmojis={showEmojis}
-        onToggleEmojis={setShowEmojis}
-      />
+      {!isXpTheme && menuBar}
       <WindowFrame
-        title="Soundboard"
+        title={
+          isEditingTitle
+            ? "Soundboard"
+            : activeBoard?.name || `Soundboard ${activeBoardId}`
+        }
         onClose={onClose}
         isForeground={isForeground}
         appId="soundboard"
@@ -393,6 +406,7 @@ export function SoundboardAppComponent({
         instanceId={instanceId}
         onNavigateNext={onNavigateNext}
         onNavigatePrevious={onNavigatePrevious}
+        menuBar={isXpTheme ? menuBar : undefined}
         windowConstraints={{
           minHeight: window.innerWidth >= 768 ? 475 : 625,
         }}
