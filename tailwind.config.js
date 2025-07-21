@@ -20,6 +20,7 @@ module.exports = {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        os: "var(--os-metrics-radius)",
       },
       colors: {
         background: "hsl(var(--background))",
@@ -55,6 +56,44 @@ module.exports = {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
+        // OS Theme colors
+        os: {
+          window: {
+            bg: "var(--os-color-window-bg)",
+            border: "var(--os-color-window-border)",
+          },
+          menubar: {
+            bg: "var(--os-color-menubar-bg)",
+            border: "var(--os-color-menubar-border)",
+            text: "var(--os-color-menubar-text)",
+          },
+          titlebar: {
+            active: {
+              bg: "var(--os-color-titlebar-active-bg)",
+              text: "var(--os-color-titlebar-text)",
+            },
+            inactive: {
+              bg: "var(--os-color-titlebar-inactive-bg)",
+              text: "var(--os-color-titlebar-text-inactive)",
+            },
+          },
+          button: {
+            face: "var(--os-color-button-face)",
+            highlight: "var(--os-color-button-highlight)",
+            shadow: "var(--os-color-button-shadow)",
+            activeFace: "var(--os-color-button-active-face)",
+          },
+          selection: {
+            bg: "var(--os-color-selection-bg)",
+            text: "var(--os-color-selection-text)",
+          },
+          text: {
+            primary: "var(--os-color-text-primary)",
+            secondary: "var(--os-color-text-secondary)",
+            disabled: "var(--os-color-text-disabled)",
+          },
+        },
+        // Keep system7 for backwards compatibility temporarily
         system7: {
           "window-bg": "#FFFFFF",
           "menubar-bg": "#FFFFFF",
@@ -71,6 +110,27 @@ module.exports = {
           4: "hsl(var(--chart-4))",
           5: "hsl(var(--chart-5))",
         },
+      },
+      boxShadow: {
+        "os-window": "var(--os-window-shadow)",
+      },
+      borderWidth: {
+        os: "var(--os-metrics-border-width)",
+      },
+      borderColor: {
+        "os-window": "var(--os-color-window-border)",
+        "os-menubar": "var(--os-color-menubar-border)",
+      },
+      height: {
+        "os-titlebar": "var(--os-metrics-titlebar-height)",
+        "os-menubar": "var(--os-metrics-menubar-height)",
+      },
+      fontFamily: {
+        "os-ui": "var(--os-font-ui)",
+        "os-mono": "var(--os-font-mono)",
+      },
+      backgroundImage: {
+        "os-titlebar-pattern": "var(--os-color-titlebar-pattern, none)",
       },
       typography: {
         DEFAULT: {

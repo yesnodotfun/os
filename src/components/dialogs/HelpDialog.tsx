@@ -8,7 +8,7 @@ interface HelpCardProps {
 
 function HelpCard({ icon, title, description }: HelpCardProps) {
   return (
-    <div className="p-4 bg-black/5 rounded-lg transition-colors">
+    <div className="p-4 bg-black/5 rounded-os transition-colors">
       <div className="text-xl">{icon}</div>
       <h3 className="font-medium">{title}</h3>
       <p className="text-gray-700  font-geneva-12 text-[10px]">{description}</p>
@@ -31,7 +31,7 @@ export function HelpDialog({
 }: HelpDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-system7-window-bg border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)] max-w-[600px]">
+      <DialogContent className="bg-os-window-bg border-[length:var(--os-metrics-border-width)] border-os-window rounded-os shadow-os-window max-w-[600px]">
         <DialogHeader>
           <DialogTitle className="font-normal text-[16px]">Help</DialogTitle>
           <DialogDescription className="sr-only">Help and documentation for {appName}</DialogDescription>

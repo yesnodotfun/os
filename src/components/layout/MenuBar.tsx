@@ -128,7 +128,8 @@ function DefaultMenuItems() {
           <Button
             variant="ghost"
             size="default"
-            className="h-6 text-md px-2 py-1 border-none hover:bg-gray-200 active:bg-gray-900 active:text-white focus-visible:ring-0"
+            className="h-6 text-md px-2 py-1 border-none hover:bg-black/10 active:bg-black/20 focus-visible:ring-0"
+            style={{ color: "inherit" }}
           >
             File
           </Button>
@@ -172,7 +173,8 @@ function DefaultMenuItems() {
           <Button
             variant="ghost"
             size="default"
-            className="h-6 text-md px-2 py-1 border-none hover:bg-gray-200 active:bg-gray-900 active:text-white focus-visible:ring-0"
+            className="h-6 text-md px-2 py-1 border-none hover:bg-black/10 active:bg-black/20 focus-visible:ring-0"
+            style={{ color: "inherit" }}
           >
             Edit
           </Button>
@@ -225,7 +227,8 @@ function DefaultMenuItems() {
           <Button
             variant="ghost"
             size="default"
-            className="h-6 text-md px-2 py-1 border-none hover:bg-gray-200 active:bg-gray-900 active:text-white focus-visible:ring-0"
+            className="h-6 text-md px-2 py-1 border-none hover:bg-black/10 active:bg-black/20 focus-visible:ring-0"
+            style={{ color: "inherit" }}
           >
             View
           </Button>
@@ -283,7 +286,8 @@ function DefaultMenuItems() {
           <Button
             variant="ghost"
             size="default"
-            className="h-6 text-md px-2 py-1 border-none hover:bg-gray-200 active:bg-gray-900 active:text-white focus-visible:ring-0"
+            className="h-6 text-md px-2 py-1 border-none hover:bg-black/10 active:bg-black/20 focus-visible:ring-0"
+            style={{ color: "inherit" }}
           >
             Go
           </Button>
@@ -388,7 +392,8 @@ function DefaultMenuItems() {
           <Button
             variant="ghost"
             size="default"
-            className="h-6 text-md px-2 py-1 border-none hover:bg-gray-200 active:bg-gray-900 active:text-white focus-visible:ring-0"
+            className="h-6 text-md px-2 py-1 border-none hover:bg-black/10 active:bg-black/20 focus-visible:ring-0"
+            style={{ color: "inherit" }}
           >
             Help
           </Button>
@@ -450,7 +455,8 @@ function VolumeControl() {
         <Button
           variant="ghost"
           size="icon"
-          className="h-6 w-6 text-md px-1 py-1 border-none hover:bg-gray-200 active:bg-gray-900 active:text-white focus-visible:ring-0 mr-2"
+          className="h-6 w-6 text-md px-1 py-1 border-none hover:bg-black/10 active:bg-black/20 focus-visible:ring-0 mr-2"
+          style={{ color: "inherit" }}
         >
           {getVolumeIcon()}
         </Button>
@@ -497,7 +503,14 @@ export function MenuBar({ children }: MenuBarProps) {
   const hasActiveApp = !!foregroundInstance;
 
   return (
-    <div className="fixed top-0 left-0 right-0 flex bg-system7-menubar-bg border-b-[2px] border-black px-2 h-7 items-center">
+    <div
+      className="fixed top-0 left-0 right-0 flex border-b-[length:var(--os-metrics-border-width)] border-os-menubar px-2 h-os-menubar items-center font-os-ui"
+      style={{
+        background: "var(--os-color-menubar-bg)",
+        fontFamily: "var(--os-font-ui)",
+        color: "var(--os-color-menubar-text)",
+      }}
+    >
       <AppleMenu apps={apps} />
       {hasActiveApp ? children : <DefaultMenuItems />}
       <div className="ml-auto flex items-center">

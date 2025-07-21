@@ -1,0 +1,127 @@
+/* Default/fallback values */
+:root {
+  --os-font-ui: Geneva, Chicago, -apple-system, BlinkMacSystemFont, sans-serif;
+  --os-font-mono: Monaco, monospace;
+  --os-color-window-bg: #ffffff;
+  --os-color-menubar-bg: #ffffff;
+  --os-color-menubar-border: #000000;
+  --os-color-menubar-text: #000000;
+  --os-color-window-border: #000000;
+  --os-color-titlebar-active-bg: #ffffff;
+  --os-color-titlebar-inactive-bg: #ffffff;
+  --os-color-titlebar-text: #000000;
+  --os-color-titlebar-text-inactive: #666666;
+  --os-color-button-face: #ffffff;
+  --os-color-button-highlight: #ffffff;
+  --os-color-button-shadow: #808080;
+  --os-color-button-active-face: #cccccc;
+  --os-color-selection-bg: #000000;
+  --os-color-selection-text: #ffffff;
+  --os-color-text-primary: #000000;
+  --os-color-text-secondary: #666666;
+  --os-color-text-disabled: #999999;
+  --os-metrics-border-width: 2px;
+  --os-metrics-radius: 0.5rem;
+  --os-metrics-titlebar-height: 1.5rem;
+  --os-metrics-menubar-height: 1.75rem; /* 28px */
+  --os-window-shadow: 2px 2px 0px 0px rgba(0, 0, 0, 0.5);
+}
+
+/* System 7 Theme */
+:root[data-os-theme="system7"] {
+  --os-font-ui: "ChicagoKare", Geneva, -apple-system, BlinkMacSystemFont,
+    sans-serif;
+  --os-font-mono: Monaco, monospace;
+  --os-color-window-bg: #ffffff;
+  --os-color-menubar-bg: #ffffff;
+  --os-color-menubar-border: #000000;
+  --os-color-menubar-text: #000000;
+  --os-color-window-border: #000000;
+  --os-color-titlebar-active-bg: #ffffff;
+  --os-color-titlebar-inactive-bg: #ffffff;
+  --os-color-titlebar-text: #000000;
+  --os-color-titlebar-text-inactive: #666666;
+  --os-color-titlebar-pattern: linear-gradient(#000 50%, transparent 0);
+  --os-color-button-face: #ffffff;
+  --os-color-button-highlight: #ffffff;
+  --os-color-button-shadow: #808080;
+  --os-color-button-active-face: #cccccc;
+  --os-color-selection-bg: #000000;
+  --os-color-selection-text: #ffffff;
+  --os-color-text-primary: #000000;
+  --os-color-text-secondary: #666666;
+  --os-color-text-disabled: #999999;
+  --os-metrics-border-width: 2px;
+  --os-metrics-radius: 0px; /* System 7 has square corners */
+  --os-metrics-titlebar-height: 1.5rem;
+  --os-metrics-menubar-height: 1.75rem; /* 28px */
+  --os-window-shadow: 2px 2px 0px 0px rgba(0, 0, 0, 0.5);
+}
+
+/* Mac OS X Theme */
+:root[data-os-theme="macosx"] {
+  --os-font-ui: "Lucida Grande", Geneva, -apple-system, BlinkMacSystemFont,
+    sans-serif;
+  --os-font-mono: Monaco, Menlo, monospace;
+  --os-color-window-bg: #ececec;
+  --os-color-menubar-bg: linear-gradient(to bottom, #fafafa, #d1d1d1);
+  --os-color-menubar-border: #8e8e8e;
+  --os-color-menubar-text: #000000;
+  --os-color-window-border: #7c7c7c;
+  --os-color-titlebar-active-bg: linear-gradient(to bottom, #ededed, #c8c8c8);
+  --os-color-titlebar-inactive-bg: linear-gradient(to bottom, #f6f6f6, #e0e0e0);
+  --os-color-titlebar-text: #000000;
+  --os-color-titlebar-text-inactive: #7f7f7f;
+  --os-color-button-face: #ffffff;
+  --os-color-button-highlight: #ffffff;
+  --os-color-button-shadow: #999999;
+  --os-color-button-active-face: #e0e0e0;
+  --os-color-selection-bg: #3875d7;
+  --os-color-selection-text: #ffffff;
+  --os-color-text-primary: #000000;
+  --os-color-text-secondary: #4b4b4b;
+  --os-color-text-disabled: #999999;
+  --os-metrics-border-width: 1px;
+  --os-metrics-radius: 0.375rem;
+  --os-metrics-titlebar-height: 1.375rem;
+  --os-metrics-menubar-height: 1.375rem;
+  --os-window-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* Windows XP Theme */
+:root[data-os-theme="xp"] {
+  --os-font-ui: Tahoma, Segoe UI, sans-serif;
+  --os-font-mono: Consolas, Courier New, monospace;
+  --os-color-window-bg: #ece9d8;
+  --os-color-menubar-bg: linear-gradient(to bottom, #245edc, #1941a5);
+  --os-color-menubar-border: #0a246a;
+  --os-color-menubar-text: #ffffff;
+  --os-color-window-border: #0054e3;
+  --os-color-titlebar-active-bg: linear-gradient(to bottom, #0058e6, #1941a5);
+  --os-color-titlebar-inactive-bg: linear-gradient(to bottom, #8b9dc3, #7a8aab);
+  --os-color-titlebar-text: #ffffff;
+  --os-color-titlebar-text-inactive: #d5ddf3;
+  --os-color-button-face: #ece9d8;
+  --os-color-button-highlight: #ffffff;
+  --os-color-button-shadow: #aca899;
+  --os-color-button-active-face: #d8d5c8;
+  --os-color-selection-bg: #316ac5;
+  --os-color-selection-text: #ffffff;
+  --os-color-text-primary: #000000;
+  --os-color-text-secondary: #5a5a5a;
+  --os-color-text-disabled: #a0a0a0;
+  --os-metrics-border-width: 3px;
+  --os-metrics-radius: 0.5rem;
+  --os-metrics-titlebar-height: 1.875rem;
+  --os-metrics-menubar-height: 1.875rem;
+  --os-window-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
+}
+
+/* Backwards compatibility aliases */
+.bg-system7-window-bg {
+  background: var(--os-color-window-bg);
+}
+
+.bg-system7-menubar-bg {
+  background: var(--os-color-menubar-bg);
+}

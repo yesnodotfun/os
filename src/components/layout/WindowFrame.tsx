@@ -676,24 +676,24 @@ export function WindowFrame({
 
         <div
           className={cn(
-            "w-full h-full flex flex-col border-[2px] border-black rounded-lg overflow-hidden",
-            !transparentBackground && "bg-system7-window-bg",
-            isForeground ? "shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)]" : ""
+            "w-full h-full flex flex-col border-[length:var(--os-metrics-border-width)] border-os-window rounded-os overflow-hidden",
+            !transparentBackground && "bg-os-window-bg",
+            isForeground ? "shadow-os-window" : ""
           )}
           style={getSwipeStyle()}
         >
           {/* Title bar */}
           <div
             className={cn(
-              "flex items-center shrink-0 h-6 min-h-6 mx-0 my-[0.1rem] mb-0 px-[0.1rem] py-[0.2rem] select-none cursor-move border-b-[1.5px] user-select-none z-50 draggable-area",
-              transparentBackground && "mt-0 h-6.5",
+              "flex items-center shrink-0 h-os-titlebar min-h-[1.5rem] mx-0 my-[0.1rem] mb-0 px-[0.1rem] py-[0.2rem] select-none cursor-move border-b-[1.5px] user-select-none z-50 draggable-area",
+              transparentBackground && "mt-0",
               isForeground
                 ? transparentBackground
-                  ? "bg-white/70 backdrop-blur-sm border-b-black"
-                  : "bg-white bg-[linear-gradient(#000_50%,transparent_0)] bg-clip-content bg-[length:6.6666666667%_13.3333333333%] border-b-black"
+                  ? "bg-white/70 backdrop-blur-sm border-b-os-window"
+                  : "bg-os-titlebar-active-bg bg-os-titlebar-pattern bg-clip-content bg-[length:6.6666666667%_13.3333333333%] border-b-os-window"
                 : transparentBackground
-                ? "bg-white/20 backdrop-blur-sm border-b-black"
-                : "bg-white border-b-gray-400"
+                ? "bg-white/20 backdrop-blur-sm border-b-os-window"
+                : "bg-os-titlebar-inactive-bg border-b-gray-400"
             )}
             onMouseDown={handleMouseDownWithForeground}
             onTouchStart={(e: React.TouchEvent<HTMLElement>) => {
@@ -723,18 +723,21 @@ export function WindowFrame({
               {/* Larger click area */}
               <div
                 className={`w-4 h-4 ${
-                  !transparentBackground && "bg-white shadow-[0_0_0_1px_white]"
-                } border-2 border-black hover:bg-gray-200 active:bg-gray-300 flex items-center justify-center ${
+                  !transparentBackground &&
+                  "bg-os-button-face shadow-[0_0_0_1px_var(--os-color-button-face)]"
+                } border-2 border-os-window hover:bg-gray-200 active:bg-gray-300 flex items-center justify-center ${
                   !isForeground && "invisible"
                 }`}
               />
             </div>
             <span
-              className={`select-none mx-auto ${
-                !transparentBackground && "bg-white"
-              } px-2 py-0 h-full flex items-center whitespace-nowrap overflow-hidden text-ellipsis max-w-[80%] ${
-                !isForeground && "text-black/50"
-              }`}
+              className={cn(
+                "select-none mx-auto px-2 py-0 h-full flex items-center whitespace-nowrap overflow-hidden text-ellipsis max-w-[80%]",
+                !transparentBackground && "bg-os-button-face",
+                isForeground
+                  ? "text-os-titlebar-active-text"
+                  : "text-os-titlebar-inactive-text"
+              )}
               onDoubleClick={handleFullMaximize}
               onTouchStart={(e) => {
                 handleTitleBarTap(e);

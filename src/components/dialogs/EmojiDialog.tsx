@@ -225,7 +225,7 @@ export function EmojiDialog({
 }: EmojiDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-system7-window-bg border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)]">
+      <DialogContent className="bg-os-window-bg border-[length:var(--os-metrics-border-width)] border-os-window rounded-os shadow-os-window">
         <DialogHeader>
           <DialogTitle className="font-normal text-[16px]">Set Emoji</DialogTitle>
           <DialogDescription className="sr-only">Choose an emoji for this sound slot</DialogDescription>

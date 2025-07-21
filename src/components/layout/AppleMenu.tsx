@@ -32,7 +32,8 @@ export function AppleMenu({ apps }: AppleMenuProps) {
           <Button
             variant="ghost"
             size="default"
-            className="h-6 text-md px-3 py-1 border-none hover:bg-gray-200 active:bg-gray-900 active:text-white focus-visible:ring-0"
+            className="h-6 text-md px-3 py-1 border-none hover:bg-black/10 active:bg-black/20 focus-visible:ring-0"
+            style={{ color: "inherit" }}
           >
             
           </Button>

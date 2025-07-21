@@ -11,7 +11,8 @@ import { AnyApp } from "./apps/base/types";
 // Convert registry to array
 const apps: AnyApp[] = Object.values(appRegistry);
 
-function App() {
+export function App() {
+  const [isHydrated, setIsHydrated] = useState(false);
   const { displayMode, isFirstBoot, setHasBooted } = useAppStoreShallow(
     (state) => ({
       displayMode: state.displayMode,
@@ -66,5 +67,3 @@ function App() {
     </>
   );
 }
-
-export default App;

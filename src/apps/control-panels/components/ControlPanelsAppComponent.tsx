@@ -33,6 +33,8 @@ import { v4 as uuidv4 } from "uuid";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import React from "react";
+import { useThemeStore } from "@/stores/useThemeStore";
+import { themes } from "@/themes";
 
 interface StoreItem {
   name: string;
@@ -254,6 +256,9 @@ export function ControlPanelsAppComponent({
     setMasterVolume: s.setMasterVolume,
     setCurrentWallpaper: s.setCurrentWallpaper,
   }));
+
+  // Theme state
+  const { current: currentTheme, setTheme } = useThemeStore();
 
   // Use auth hook
   const {
@@ -1434,6 +1439,31 @@ export function ControlPanelsAppComponent({
               className="mt-0 bg-[#E3E3E3] border border-t-0 border-[#808080] h-[calc(100%-2rem)]"
             >
               <div className="space-y-4 h-full overflow-y-auto p-4">
+                {/* Theme Selector */}
+                <div className="flex flex-col gap-2">
+                  <Label>Desktop Theme</Label>
+                  <Select
+                    value={currentTheme}
+                    onValueChange={(value) => setTheme(value as any)}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select a theme" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(themes).map(([id, theme]) => (
+                        <SelectItem key={id} value={id}>
+                          {theme.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Changes the appearance of windows, menus, and controls
+                  </p>
+                </div>
+
+                <div className="border-t border-gray-400 my-4" />
+
                 <WallpaperPicker />
               </div>
             </TabsContent>

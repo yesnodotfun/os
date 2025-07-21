@@ -57,7 +57,7 @@ const FutureSettingsDialog = ({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent
-        className="bg-system7-window-bg border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)]"
+        className="bg-os-window-bg border-[length:var(--os-metrics-border-width)] border-os-window rounded-os shadow-os-window"
         onOpenAutoFocus={(e) => {
           e.preventDefault();
           saveButtonRef.current?.focus();
