@@ -4,6 +4,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { useSound, Sounds } from "@/hooks/useSound";
 
 import { cn } from "@/lib/utils";
+import { useThemeStore } from "@/stores/useThemeStore";
 
 const buttonVariants = cva(
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
@@ -48,11 +49,25 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, ...props }, ref) => {
     const { play: playButtonClick } = useSound(Sounds.BUTTON_CLICK);
     const Comp = asChild ? Slot : "button";
+    const currentTheme = useThemeStore((state) => state.current);
+    const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
 
     const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
       playButtonClick();
       props.onClick?.(e);
     };
+
+    // For XP/Win98 themes, use xp.css button class
+    if (isXpTheme && variant === "default") {
+      return (
+        <Comp
+          className={cn("button", className)}
+          ref={ref}
+          {...props}
+          onClick={handleClick}
+        />
+      );
+    }
 
     return (
       <Comp

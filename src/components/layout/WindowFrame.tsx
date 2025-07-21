@@ -11,6 +11,7 @@ import { AppId } from "@/config/appIds";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useIsPhone } from "@/hooks/useIsPhone";
 import { useAppStoreShallow } from "@/stores/helpers";
+import { useThemeStore } from "@/stores/useThemeStore";
 
 interface WindowFrameProps {
   children: React.ReactNode;
@@ -99,6 +100,10 @@ export function WindowFrame({
   const lastToggleTimeRef = useRef<number>(0);
   // Keep track of window size before maximizing to restore it later
   const previousSizeRef = useRef({ width: 0, height: 0 });
+
+  // Get current theme
+  const currentTheme = useThemeStore((state) => state.current);
+  const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
 
   // Setup swipe navigation for phones only
   const {
@@ -676,83 +681,163 @@ export function WindowFrame({
 
         <div
           className={cn(
-            "w-full h-full flex flex-col border-[length:var(--os-metrics-border-width)] border-os-window rounded-os overflow-hidden",
-            !transparentBackground && "bg-os-window-bg",
-            isForeground ? "shadow-os-window" : ""
+            isXpTheme
+              ? "window flex flex-col h-full" // Use xp.css window class with flex layout
+              : "w-full h-full flex flex-col border-[length:var(--os-metrics-border-width)] border-os-window rounded-os overflow-hidden",
+            !transparentBackground && !isXpTheme && "bg-os-window-bg",
+            isForeground && !isXpTheme ? "shadow-os-window" : ""
           )}
-          style={getSwipeStyle()}
+          style={!isXpTheme ? getSwipeStyle() : undefined}
         >
           {/* Title bar */}
-          <div
-            className={cn(
-              "flex items-center shrink-0 h-os-titlebar min-h-[1.5rem] mx-0 my-[0.1rem] mb-0 px-[0.1rem] py-[0.2rem] select-none cursor-move border-b-[1.5px] user-select-none z-50 draggable-area",
-              transparentBackground && "mt-0",
-              isForeground
-                ? transparentBackground
-                  ? "bg-white/70 backdrop-blur-sm border-b-os-window"
-                  : "bg-os-titlebar-active-bg bg-os-titlebar-pattern bg-clip-content bg-[length:6.6666666667%_13.3333333333%] border-b-os-window"
-                : transparentBackground
-                ? "bg-white/20 backdrop-blur-sm border-b-os-window"
-                : "bg-os-titlebar-inactive-bg border-b-gray-400"
-            )}
-            onMouseDown={handleMouseDownWithForeground}
-            onTouchStart={(e: React.TouchEvent<HTMLElement>) => {
-              handleMouseDownWithForeground(e);
-              if (isPhone) {
-                handleTouchStart(e);
-              }
-            }}
-            onTouchMove={(e: React.TouchEvent<HTMLElement>) => {
-              if (isPhone) {
-                handleTouchMove(e);
-              }
-            }}
-            onTouchEnd={() => {
-              if (isPhone) {
-                handleTouchEnd();
-              }
-            }}
-          >
+          {isXpTheme ? (
+            // XP/98 theme title bar structure
             <div
-              onClick={handleClose}
-              onMouseDown={(e) => e.stopPropagation()}
-              onTouchStart={(e) => e.stopPropagation()}
-              className="relative ml-2 w-4 h-4 cursor-default select-none"
-            >
-              <div className="absolute inset-0 -m-2" />{" "}
-              {/* Larger click area */}
-              <div
-                className={`w-4 h-4 ${
-                  !transparentBackground &&
-                  "bg-os-button-face shadow-[0_0_0_1px_var(--os-color-button-face)]"
-                } border-2 border-os-window hover:bg-gray-200 active:bg-gray-300 flex items-center justify-center ${
-                  !isForeground && "invisible"
-                }`}
-              />
-            </div>
-            <span
-              className={cn(
-                "select-none mx-auto px-2 py-0 h-full flex items-center whitespace-nowrap overflow-hidden text-ellipsis max-w-[80%]",
-                !transparentBackground && "bg-os-button-face",
-                isForeground
-                  ? "text-os-titlebar-active-text"
-                  : "text-os-titlebar-inactive-text"
-              )}
-              onDoubleClick={handleFullMaximize}
-              onTouchStart={(e) => {
-                handleTitleBarTap(e);
-                // Allow the event to bubble up to the titlebar for drag handling
+              className="title-bar"
+              style={currentTheme === "xp" ? { minHeight: "30px" } : undefined}
+              onMouseDown={handleMouseDownWithForeground}
+              onTouchStart={(e: React.TouchEvent<HTMLElement>) => {
                 handleMouseDownWithForeground(e);
+                if (isPhone) {
+                  handleTouchStart(e);
+                }
               }}
-              onTouchMove={(e) => e.preventDefault()}
+              onTouchMove={(e: React.TouchEvent<HTMLElement>) => {
+                if (isPhone) {
+                  handleTouchMove(e);
+                }
+              }}
+              onTouchEnd={() => {
+                if (isPhone) {
+                  handleTouchEnd();
+                }
+              }}
             >
-              <span className="truncate">{title}</span>
-            </span>
-            <div className="mr-2 w-4 h-4" />
-          </div>
+              <div
+                className="title-bar-text"
+                onDoubleClick={handleFullMaximize}
+                onTouchStart={(e) => {
+                  handleTitleBarTap(e);
+                  // Allow the event to bubble up to the titlebar for drag handling
+                  handleMouseDownWithForeground(e);
+                }}
+                onTouchMove={(e) => e.preventDefault()}
+              >
+                {title}
+              </div>
+              <div className="title-bar-controls">
+                <button
+                  aria-label="Minimize"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Minimize functionality could be added here
+                  }}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onTouchStart={(e) => e.stopPropagation()}
+                />
+                <button
+                  aria-label="Maximize"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleFullMaximize(e);
+                  }}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onTouchStart={(e) => e.stopPropagation()}
+                />
+                <button
+                  aria-label="Close"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleClose();
+                  }}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onTouchStart={(e) => e.stopPropagation()}
+                />
+              </div>
+            </div>
+          ) : (
+            // Original Mac theme title bar
+            <div
+              className={cn(
+                "flex items-center shrink-0 h-os-titlebar min-h-[1.5rem] mx-0 my-[0.1rem] mb-0 px-[0.1rem] py-[0.2rem] select-none cursor-move border-b-[1.5px] user-select-none z-50 draggable-area",
+                transparentBackground && "mt-0",
+                isForeground
+                  ? transparentBackground
+                    ? "bg-white/70 backdrop-blur-sm border-b-os-window"
+                    : "bg-os-titlebar-active-bg bg-os-titlebar-pattern bg-clip-content bg-[length:6.6666666667%_13.3333333333%] border-b-os-window"
+                  : transparentBackground
+                  ? "bg-white/20 backdrop-blur-sm border-b-os-window"
+                  : "bg-os-titlebar-inactive-bg border-b-gray-400"
+              )}
+              onMouseDown={handleMouseDownWithForeground}
+              onTouchStart={(e: React.TouchEvent<HTMLElement>) => {
+                handleMouseDownWithForeground(e);
+                if (isPhone) {
+                  handleTouchStart(e);
+                }
+              }}
+              onTouchMove={(e: React.TouchEvent<HTMLElement>) => {
+                if (isPhone) {
+                  handleTouchMove(e);
+                }
+              }}
+              onTouchEnd={() => {
+                if (isPhone) {
+                  handleTouchEnd();
+                }
+              }}
+            >
+              <div
+                onClick={handleClose}
+                onMouseDown={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
+                className="relative ml-2 w-4 h-4 cursor-default select-none"
+              >
+                <div className="absolute inset-0 -m-2" />{" "}
+                {/* Larger click area */}
+                <div
+                  className={`w-4 h-4 ${
+                    !transparentBackground &&
+                    "bg-os-button-face shadow-[0_0_0_1px_var(--os-color-button-face)]"
+                  } border-2 border-os-window hover:bg-gray-200 active:bg-gray-300 flex items-center justify-center ${
+                    !isForeground && "invisible"
+                  }`}
+                />
+              </div>
+              <span
+                className={cn(
+                  "select-none mx-auto px-2 py-0 h-full flex items-center whitespace-nowrap overflow-hidden text-ellipsis max-w-[80%]",
+                  !transparentBackground && "bg-os-button-face",
+                  isForeground
+                    ? "text-os-titlebar-active-text"
+                    : "text-os-titlebar-inactive-text"
+                )}
+                onDoubleClick={handleFullMaximize}
+                onTouchStart={(e) => {
+                  handleTitleBarTap(e);
+                  // Allow the event to bubble up to the titlebar for drag handling
+                  handleMouseDownWithForeground(e);
+                }}
+                onTouchMove={(e) => e.preventDefault()}
+              >
+                <span className="truncate">{title}</span>
+              </span>
+              <div className="mr-2 w-4 h-4" />
+            </div>
+          )}
 
           {/* Content */}
-          <div className="flex flex-1 min-h-0 flex-col md:flex-row">
+          <div
+            className={cn(
+              "flex flex-1 min-h-0 flex-col md:flex-row",
+              isXpTheme && "window-body flex-1"
+            )}
+            style={
+              isXpTheme
+                ? { margin: currentTheme === "xp" ? "3px" : "0" }
+                : undefined
+            }
+          >
             {children}
           </div>
         </div>

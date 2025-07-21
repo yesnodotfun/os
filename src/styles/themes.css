@@ -88,6 +88,35 @@
   --os-window-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
 }
 
+/* Windows 98 Theme */
+:root[data-os-theme="win98"] {
+  --os-font-ui: Tahoma, "MS Sans Serif", sans-serif;
+  --os-font-mono: Consolas, "Courier New", monospace;
+  --os-color-window-bg: #c0c0c0;
+  --os-color-menubar-bg: #c0c0c0;
+  --os-color-menubar-border: #808080;
+  --os-color-menubar-text: #000000;
+  --os-color-window-border: #000000;
+  --os-color-titlebar-active-bg: linear-gradient(to right, #000084, #1084d0);
+  --os-color-titlebar-inactive-bg: linear-gradient(to right, #808080, #c0c0c0);
+  --os-color-titlebar-text: #ffffff;
+  --os-color-titlebar-text-inactive: #e0e0e0;
+  --os-color-button-face: #c0c0c0;
+  --os-color-button-highlight: #ffffff;
+  --os-color-button-shadow: #808080;
+  --os-color-button-active-face: #b0b0b0;
+  --os-color-selection-bg: #000080;
+  --os-color-selection-text: #ffffff;
+  --os-color-text-primary: #000000;
+  --os-color-text-secondary: #333333;
+  --os-color-text-disabled: #7f7f7f;
+  --os-metrics-border-width: 2px;
+  --os-metrics-radius: 0px;
+  --os-metrics-titlebar-height: 1.375rem;
+  --os-metrics-menubar-height: 1.375rem;
+  --os-window-shadow: none;
+}
+
 /* Windows XP Theme */
 :root[data-os-theme="xp"] {
   --os-font-ui: Tahoma, Segoe UI, sans-serif;
