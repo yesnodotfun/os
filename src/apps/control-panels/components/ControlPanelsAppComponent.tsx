@@ -35,6 +35,7 @@ import { toast } from "sonner";
 import React from "react";
 import { useThemeStore } from "@/stores/useThemeStore";
 import { themes } from "@/themes";
+import { OsThemeId } from "@/themes/types";
 
 interface StoreItem {
   name: string;
@@ -1441,10 +1442,9 @@ export function ControlPanelsAppComponent({
               <div className="space-y-4 h-full overflow-y-auto p-4">
                 {/* Theme Selector */}
                 <div className="flex flex-col gap-2">
-                  <Label>Desktop Theme</Label>
                   <Select
                     value={currentTheme}
-                    onValueChange={(value) => setTheme(value as any)}
+                    onValueChange={(value) => setTheme(value as OsThemeId)}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select a theme" />
@@ -1457,7 +1457,7 @@ export function ControlPanelsAppComponent({
                       ))}
                     </SelectContent>
                   </Select>
-                  <p className="text-sm text-gray-600 mt-1">
+                  <p className="text-[11px] text-gray-600 font-geneva-12">
                     Changes the appearance of windows, menus, and controls
                   </p>
                 </div>

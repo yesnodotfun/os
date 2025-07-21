@@ -25,13 +25,8 @@ async function ensureLegacyCss(theme: OsThemeId) {
   if (currentVariant === desiredVariant) return; // already loaded
 
   try {
-    const href = (
-      await import(
-        desiredVariant === "XP"
-          ? "xp.css/dist/XP.css?url"
-          : "xp.css/dist/98.css?url"
-      )
-    ).default as string;
+    // Use our forked CSS files from public directory
+    const href = theme === "xp" ? "/css/xp-custom.css" : "/css/98-custom.css";
 
     const link = document.createElement("link");
     link.rel = "stylesheet";

@@ -648,3 +648,11 @@
     font-style: normal;
   }
 }
+
+/* Prevent text selection on interactive elements */
+.user-select-none {
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  user-select: none !important;
+}

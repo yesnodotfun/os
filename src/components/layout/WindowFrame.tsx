@@ -12,6 +12,7 @@ import { useIsMobile } from "@/hooks/useIsMobile";
 import { useIsPhone } from "@/hooks/useIsPhone";
 import { useAppStoreShallow } from "@/stores/helpers";
 import { useThemeStore } from "@/stores/useThemeStore";
+import { getTheme } from "@/themes";
 
 interface WindowFrameProps {
   children: React.ReactNode;
@@ -104,6 +105,7 @@ export function WindowFrame({
   // Get current theme
   const currentTheme = useThemeStore((state) => state.current);
   const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
+  const theme = getTheme(currentTheme);
 
   // Setup swipe navigation for phones only
   const {
@@ -693,8 +695,18 @@ export function WindowFrame({
           {isXpTheme ? (
             // XP/98 theme title bar structure
             <div
-              className="title-bar"
-              style={currentTheme === "xp" ? { minHeight: "30px" } : undefined}
+              className={cn(
+                "title-bar",
+                !isForeground && "inactive" // Add inactive class when not in foreground
+              )}
+              style={{
+                ...(currentTheme === "xp" ? { minHeight: "30px" } : undefined),
+                ...(!isForeground
+                  ? {
+                      background: theme.colors.titleBar.inactiveBg,
+                    }
+                  : undefined),
+              }}
               onMouseDown={handleMouseDownWithForeground}
               onTouchStart={(e: React.TouchEvent<HTMLElement>) => {
                 handleMouseDownWithForeground(e);
@@ -714,7 +726,17 @@ export function WindowFrame({
               }}
             >
               <div
-                className="title-bar-text"
+                className={cn(
+                  "title-bar-text",
+                  !isForeground && "inactive" // Add inactive class for text too
+                )}
+                style={
+                  !isForeground
+                    ? {
+                        color: theme.colors.titleBar.inactiveText,
+                      }
+                    : undefined
+                }
                 onDoubleClick={handleFullMaximize}
                 onTouchStart={(e) => {
                   handleTitleBarTap(e);
