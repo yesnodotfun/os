@@ -127,7 +127,7 @@ function AnimatedTitle({
                   }
             }
             className={cn(
-              "shrink-0 font-geneva-12 text-[18px] px-2 transition-colors duration-300",
+              "shrink-0 font-geneva-12 text-[18px] px-2 transition-colors duration-300 -mt-1",
               isPlaying ? "text-[#ff00ff]" : "text-gray-600",
               !isPlaying && "opacity-50"
             )}
@@ -150,7 +150,7 @@ function AnimatedTitle({
                   }
             }
             className={cn(
-              "shrink-0 font-geneva-12 text-[18px] px-2 transition-colors duration-300",
+              "shrink-0 font-geneva-12 text-[18px] px-2 transition-colors duration-300 -mt-1",
               isPlaying ? "text-[#ff00ff]" : "text-gray-600",
               !isPlaying && "opacity-50"
             )}
@@ -1178,7 +1178,7 @@ export function VideosAppComponent({
                   Title
                 </div>
                 {videos.length > 0 && (
-                  <div className="relative overflow-hidden flex items-baseline">
+                  <div className="relative overflow-hidden">
                     <AnimatedTitle
                       title={
                         getCurrentVideo()?.artist
