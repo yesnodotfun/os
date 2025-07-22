@@ -302,14 +302,24 @@ export function IpodWheel({
           : "bg-neutral-800/50"
       )}
     >
-      {/* Center button */}
-      <button
+      {/* Center control changed from <button> to <div role="button"> to avoid global XP/98 button styles overriding radius/background */}
+      <div
+        role="button"
+        tabIndex={0}
+        aria-label="Select"
         onClick={() => {
           if (recentTouchRef.current || isInTouchDragRef.current) return;
           onWheelClick("center");
         }}
+        onKeyDown={(e) => {
+          if (recentTouchRef.current || isInTouchDragRef.current) return;
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onWheelClick("center");
+          }
+        }}
         className={cn(
-          "absolute w-16 h-16 rounded-full z-10 flex items-center justify-center",
+          "ipod-wheel-center absolute w-16 h-16 rounded-full z-10 flex items-center justify-center outline-none focus:ring-2 focus:ring-white/40",
           theme === "classic"
             ? "bg-white/30"
             : theme === "u2"

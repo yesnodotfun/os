@@ -259,7 +259,7 @@ function FullScreenPortal({
   return createPortal(
     <div
       ref={containerRef}
-      className="fixed inset-0 z-[9999] bg-black select-none"
+      className="ipod-force-font fixed inset-0 z-[9999] bg-black select-none"
     >
       <div className="absolute top-6 right-6 z-[10001] pointer-events-auto">
         <button
@@ -1742,7 +1742,7 @@ export function IpodAppComponent({
       >
         <div
           ref={containerRef}
-          className="flex flex-col items-center justify-center w-full h-full bg-gradient-to-b from-gray-100/20 to-gray-300/20 backdrop-blur-lg p-4 select-none"
+          className="ipod-force-font flex flex-col items-center justify-center w-full h-full bg-gradient-to-b from-gray-100/20 to-gray-300/20 backdrop-blur-lg p-4 select-none"
           style={{
             position: "relative",
             overflow: "hidden",
@@ -1751,7 +1751,7 @@ export function IpodAppComponent({
         >
           <div
             className={cn(
-              "w-[250px] h-[400px] rounded-2xl shadow-xl border border-black/40 flex flex-col items-center p-4 pb-8",
+              "ipod-force-font w-[250px] h-[400px] rounded-2xl shadow-xl border border-black/40 flex flex-col items-center p-4 pb-8",
               theme === "classic" ? "bg-white/85" : "bg-black/85"
             )}
             style={{

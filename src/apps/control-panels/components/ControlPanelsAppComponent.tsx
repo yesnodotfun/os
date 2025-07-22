@@ -1391,6 +1391,19 @@ export function ControlPanelsAppComponent({
   };
 
   const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
+  const isClassicMacTheme =
+    currentTheme === "macosx" || currentTheme === "system7";
+  const isWindowsLegacyTheme = isXpTheme;
+
+  const tabListBase = "flex w-full h-6 space-x-0.5 shadow-none";
+  const tabListClassic = "bg-[#E3E3E3] border-b border-[#808080]";
+  const tabTriggerBase =
+    "relative flex-1 h-6 px-2 -mb-[1px] rounded-t shadow-none! text-[16px]";
+  const tabTriggerClassic =
+    "bg-[#D4D4D4] data-[state=active]:bg-[#E3E3E3] border border-[#808080] data-[state=active]:border-b-[#E3E3E3]";
+  const tabContentBase =
+    "mt-0 h-[calc(100%-2rem)] bg-white border border-[#919b9c]";
+  const tabContentClassic = "bg-[#E3E3E3] border border-t-0 border-[#808080]";
 
   const menuBar = (
     <ControlPanelsMenuBar
@@ -1416,35 +1429,64 @@ export function ControlPanelsAppComponent({
         onNavigatePrevious={onNavigatePrevious}
         menuBar={isXpTheme ? menuBar : undefined}
       >
-        <div className="flex flex-col h-full bg-[#E3E3E3] p-4 w-full">
+        <div
+          className={`flex flex-col h-full w-full ${
+            isWindowsLegacyTheme ? "pt-0 pb-2 px-2" : ""
+          } ${isClassicMacTheme ? "bg-[#E3E3E3] p-4" : ""}`}
+        >
           <Tabs
             defaultValue={initialData?.defaultTab || "appearance"}
             className="w-full h-full"
           >
-            <TabsList className="flex w-full h-6 space-x-0.5 bg-[#E3E3E3] shadow-none border-b border-[#808080]">
-              <TabsTrigger
-                value="appearance"
-                className="relative flex-1 h-6 px-2 -mb-[1px] rounded-t bg-[#D4D4D4] data-[state=active]:bg-[#E3E3E3] border border-[#808080] data-[state=active]:border-b-[#E3E3E3] shadow-none! text-[16px]"
+            {isWindowsLegacyTheme ? (
+              <TabsList asChild>
+                <menu
+                  role="tablist"
+                  className="h-7! flex justify-start p-0 -mt-1 -mb-[2px] bg-transparent shadow-none /* Windows XP/98 tab strip */"
+                >
+                  <TabsTrigger value="appearance">Appearance</TabsTrigger>
+                  <TabsTrigger value="sound">Sound</TabsTrigger>
+                  <TabsTrigger value="system">System</TabsTrigger>
+                </menu>
+              </TabsList>
+            ) : (
+              <TabsList
+                className={`${tabListBase} ${
+                  isClassicMacTheme ? tabListClassic : ""
+                }`}
               >
-                Appearance
-              </TabsTrigger>
-              <TabsTrigger
-                value="sound"
-                className="relative flex-1 h-6 px-2 -mb-[1px] rounded-t bg-[#D4D4D4] data-[state=active]:bg-[#E3E3E3] border border-[#808080] data-[state=active]:border-b-[#E3E3E3] shadow-none! text-[16px]"
-              >
-                Sound
-              </TabsTrigger>
-              <TabsTrigger
-                value="system"
-                className="relative flex-1 h-6 px-2 -mb-[1px] rounded-t bg-[#D4D4D4] data-[state=active]:bg-[#E3E3E3] border border-[#808080] data-[state=active]:border-b-[#E3E3E3] shadow-none! text-[16px]"
-              >
-                System
-              </TabsTrigger>
-            </TabsList>
+                <TabsTrigger
+                  value="appearance"
+                  className={`${tabTriggerBase} ${
+                    isClassicMacTheme ? tabTriggerClassic : ""
+                  }`}
+                >
+                  Appearance
+                </TabsTrigger>
+                <TabsTrigger
+                  value="sound"
+                  className={`${tabTriggerBase} ${
+                    isClassicMacTheme ? tabTriggerClassic : ""
+                  }`}
+                >
+                  Sound
+                </TabsTrigger>
+                <TabsTrigger
+                  value="system"
+                  className={`${tabTriggerBase} ${
+                    isClassicMacTheme ? tabTriggerClassic : ""
+                  }`}
+                >
+                  System
+                </TabsTrigger>
+              </TabsList>
+            )}
 
             <TabsContent
               value="appearance"
-              className="mt-0 bg-[#E3E3E3] border border-t-0 border-[#808080] h-[calc(100%-2rem)]"
+              className={`${tabContentBase} ${
+                isClassicMacTheme ? tabContentClassic : ""
+              }`}
             >
               <div className="space-y-4 h-full overflow-y-auto p-4">
                 {/* Theme Selector */}
@@ -1477,7 +1519,9 @@ export function ControlPanelsAppComponent({
 
             <TabsContent
               value="sound"
-              className="mt-0 bg-[#E3E3E3] border border-t-0 border-[#808080] h-[calc(100%-2rem)]"
+              className={`${tabContentBase} ${
+                isClassicMacTheme ? tabContentClassic : ""
+              }`}
             >
               <div className="space-y-4 h-full overflow-y-auto p-4">
                 {/* UI Sounds toggle + volume */}
@@ -1568,7 +1612,9 @@ export function ControlPanelsAppComponent({
 
             <TabsContent
               value="system"
-              className="mt-0 bg-[#E3E3E3] border border-t-0 border-[#808080] h-[calc(100%-2rem)]"
+              className={`${tabContentBase} ${
+                isClassicMacTheme ? tabContentClassic : ""
+              }`}
             >
               <div className="space-y-4 h-full overflow-y-auto p-4">
                 {/* User Account Section */}

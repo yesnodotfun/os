@@ -691,3 +691,12 @@ ul.tree-view {
     inset 2px 2px #0a0a0a;
 }
 /*# sourceMappingURL=98.css.map */
+
+/* iPod font isolation (Win98 theme) */
+.ipod-force-font,
+.ipod-force-font *:not(code):not(pre):not(.font-mono) {
+  font-family: "ChicagoKare", "ArkPixel", "SerenityOS-Emoji", system-ui,
+    -apple-system, sans-serif !important;
+  -webkit-font-smoothing: antialiased;
+  font-synthesis: none;
+}
