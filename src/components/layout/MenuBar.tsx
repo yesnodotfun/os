@@ -512,7 +512,12 @@ function VolumeControl() {
 
 export function MenuBar({ children, inWindowFrame = false }: MenuBarProps) {
   const { apps } = useAppContext();
-  const { getForegroundInstance, instances, instanceWindowOrder, bringInstanceToForeground } = useAppStoreShallow((s) => ({
+  const {
+    getForegroundInstance,
+    instances,
+    instanceWindowOrder,
+    bringInstanceToForeground,
+  } = useAppStoreShallow((s) => ({
     getForegroundInstance: s.getForegroundInstance,
     instances: s.instances,
     instanceWindowOrder: s.instanceWindowOrder,
@@ -545,20 +550,20 @@ export function MenuBar({ children, inWindowFrame = false }: MenuBarProps) {
   if (isXpTheme && !inWindowFrame) {
     return (
       <div
-        className="fixed bottom-0 left-0 right-0 flex items-center h-10 px-1 border-t-2 z-50"
+        className="fixed bottom-0 left-0 right-0 flex items-center h-[30px] px-0 z-50"
         style={{
           background:
             currentTheme === "xp"
-              ? "linear-gradient(to bottom, #245EDC, #1941A5)"
+              ? "linear-gradient(0deg, #042b8e 0%, #0551f6 6%, #0453ff 51%, #0551f6 63%, #0551f6 81%, #3a8be8 90%, #0453ff 100%)"
               : "#c0c0c0", // Flat gray for Windows 98
-          borderTopColor: currentTheme === "xp" ? "#4A90E2" : "#dfdfdf",
           fontFamily: "var(--font-ms-sans)",
           fontSize: "11px",
           color: currentTheme === "xp" ? "#ffffff" : "#000000",
+          userSelect: "none",
         }}
       >
         {/* Start Button */}
-        <div className="flex items-center mr-2">
+        <div className="flex items-center">
           <StartMenu apps={apps} />
         </div>
 
@@ -569,35 +574,45 @@ export function MenuBar({ children, inWindowFrame = false }: MenuBarProps) {
             instanceWindowOrder.map((instanceId) => {
               const instance = instances[instanceId];
               if (!instance || !instance.isOpen) return null;
-              
-              const isForeground = instanceId === instanceWindowOrder[instanceWindowOrder.length - 1];
+
+              const isForeground =
+                instanceId ===
+                instanceWindowOrder[instanceWindowOrder.length - 1];
               const appIconPath = getAppIconPath(instance.appId);
-              
+
               return (
                 <button
                   key={instanceId}
-                  className="px-3 py-1 h-7 text-left min-w-32 max-w-48 truncate rounded-sm flex items-center gap-2"
+                  className="px-3 text-left min-w-[120px] max-w-[160px] truncate rounded-sm flex items-center gap-2"
                   onClick={() => bringInstanceToForeground(instanceId)}
                   style={{
+                    height: "22px",
                     background: isForeground
-                      ? (currentTheme === "xp"
-                          ? "linear-gradient(to bottom, #E8F0FE, #C7D9F7, #9ABEF5)"
-                          : "#c0c0c0") // Flat gray for Windows 98
-                      : (currentTheme === "xp"
-                          ? "linear-gradient(to bottom, #F0F0F0, #E0E0E0)"
-                          : "#c0c0c0"),
-                    border: currentTheme === "xp"
-                      ? "1px solid #7BA7E7"
-                      : "2px inset #c0c0c0",
-                    color: currentTheme === "xp" ? "#003D82" : "#000000",
-                    boxShadow: currentTheme === "xp"
-                      ? "inset -1px -1px 0 rgba(0,0,0,0.1), inset 1px 1px 0 rgba(255,255,255,0.8)"
-                      : "inset -1px -1px 0 #808080, inset 1px 1px 0 #ffffff",
+                      ? currentTheme === "xp"
+                        ? "linear-gradient(to bottom, #7DA2EE, #4E80E8, #3163DC)"
+                        : "#c0c0c0" // Flat gray for Windows 98
+                      : currentTheme === "xp"
+                      ? "linear-gradient(to bottom, #6788D8, #5470C7, #415FB8)"
+                      : "#c0c0c0",
+                    border:
+                      currentTheme === "xp"
+                        ? isForeground
+                          ? "1px solid #001ea0"
+                          : "1px solid #245EDC"
+                        : "2px inset #c0c0c0",
+                    color: currentTheme === "xp" ? "#ffffff" : "#000000",
+                    fontSize: "11px",
+                    boxShadow:
+                      currentTheme === "xp"
+                        ? isForeground
+                          ? "inset 1px 1px 1px rgba(255,255,255,0.3)"
+                          : "none"
+                        : "inset -1px -1px 0 #808080, inset 1px 1px 0 #ffffff",
                   }}
                 >
-                  <img 
-                    src={appIconPath} 
-                    alt="" 
+                  <img
+                    src={appIconPath}
+                    alt=""
                     className="w-4 h-4 flex-shrink-0"
                     style={{ imageRendering: "pixelated" }}
                   />
@@ -608,25 +623,22 @@ export function MenuBar({ children, inWindowFrame = false }: MenuBarProps) {
               );
             })
           ) : (
-            <div className="text-xs opacity-50 px-2">
-              No active windows
-            </div>
+            <div className="text-xs opacity-50 px-2">No active windows</div>
           )}
         </div>
 
         {/* System Tray */}
         <div
-          className="flex items-center gap-1 px-2 h-8 mr-1"
+          className="flex items-center gap-1 px-2 h-full mr-1"
           style={{
             background:
               currentTheme === "xp"
-                ? "linear-gradient(to bottom, rgba(255,255,255,0.1), rgba(255,255,255,0.05))"
+                ? "linear-gradient(0deg, #0a5bc6 0%, #1198e9 6%, #1198e9 51%, #1198e9 63%, #1198e9 77%, #19b9f3 85%, #19b9f3 93%, #075dca 97%)"
                 : "#c0c0c0", // Flat gray for Windows 98
-            border:
-              currentTheme === "xp"
-                ? "1px solid rgba(255,255,255,0.2)"
-                : "1px inset #c0c0c0",
-            borderRadius: "2px",
+            boxShadow:
+              currentTheme === "xp" ? "2px 0px 3px #20e2fc inset" : "none",
+            borderLeft:
+              currentTheme === "xp" ? "1px solid #1075f5" : "1px inset #c0c0c0",
           }}
         >
           <div className="hidden sm:flex">

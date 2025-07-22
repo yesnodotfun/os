@@ -6,7 +6,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { AboutFinderDialog } from "@/components/dialogs/AboutFinderDialog";
 import { AnyApp } from "@/apps/base/types";
@@ -32,36 +31,46 @@ export function StartMenu({ apps }: StartMenuProps) {
       <DropdownMenu open={isStartMenuOpen} onOpenChange={setIsStartMenuOpen}>
         <DropdownMenuTrigger asChild>
           <button
-            className="flex items-center gap-2 px-3 py-1 h-8 text-white font-bold rounded-sm transition-all duration-75"
+            className="flex items-center gap-2 px-4 text-white font-bold transition-all"
             style={{
+              width: "100px",
+              height: "30px",
+              borderRadius: "0 3px 3px 0",
               background:
                 currentTheme === "xp"
-                  ? "linear-gradient(to bottom, #3A7BE0, #2E6CE8, #1E4F99)"
+                  ? isStartMenuOpen
+                    ? "linear-gradient(0deg, #2f892f 0%, #4eb64e 6%, #4eb64e 51%, #4eb64e 63%, #4eb64e 77%, #c4ffc4 85%, #c4ffc4 93%, #2f892f 97%)"
+                    : "linear-gradient(0deg, #0c450c 0%, #308f2f 6%, #308f2f 51%, #308f2f 63%, #308f2f 77%, #97c597 85%, #97c597 93%, #308f2f 97%)"
                   : "#c0c0c0", // Flat gray for Windows 98
-              border:
-                currentTheme === "xp"
-                  ? "1px solid #1941A5"
-                  : "2px outset #c0c0c0",
+              border: currentTheme === "xp" ? "none" : "2px outset #c0c0c0",
               color: currentTheme === "xp" ? "#ffffff" : "#000000",
-              boxShadow: isStartMenuOpen
-                ? currentTheme === "xp"
-                  ? "inset -1px -1px 0 rgba(255,255,255,0.3), inset 1px 1px 0 rgba(0,0,0,0.3)"
-                  : "inset -1px -1px 0 #ffffff, inset 1px 1px 0 #808080"
-                : currentTheme === "xp"
-                ? "inset 1px 1px 0 rgba(255,255,255,0.3), inset -1px -1px 0 rgba(0,0,0,0.3)"
-                : "inset 1px 1px 0 #ffffff, inset -1px -1px 0 #808080",
+              fontWeight: currentTheme === "xp" ? "500" : "bold",
+              fontSize: currentTheme === "xp" ? "1.1rem" : "11px",
+              fontStyle: currentTheme === "xp" ? "italic" : "normal",
+              boxShadow:
+                currentTheme === "xp"
+                  ? "-2px -2px 10px #0000008e inset"
+                  : isStartMenuOpen
+                  ? "inset -1px -1px 0 #ffffff, inset 1px 1px 0 #808080"
+                  : "inset 1px 1px 0 #ffffff, inset -1px -1px 0 #808080",
             }}
           >
             <img
               src="/icons/apple.png"
               alt="Start"
               className="w-6 h-6 [image-rendering:pixelated]"
+              style={{
+                filter:
+                  currentTheme === "xp"
+                    ? "drop-shadow(2px 2px 2px rgba(0, 0, 0, 0.705))"
+                    : "none",
+              }}
             />
             <span
               style={{
                 textShadow:
                   currentTheme === "xp"
-                    ? "1px 1px 1px rgba(0,0,0,0.5)"
+                    ? "2px 2px 2px rgba(0, 0, 0, 0.685)"
                     : "none",
               }}
             >
@@ -72,61 +81,109 @@ export function StartMenu({ apps }: StartMenuProps) {
         <DropdownMenuContent
           align="start"
           side="top"
-          sideOffset={8}
-          className="w-64 max-h-96 overflow-y-auto px-0"
+          sideOffset={2}
+          className="p-0 overflow-hidden"
           style={{
+            width: "380px",
+            maxHeight: "480px",
             background:
-              currentTheme === "xp"
-                ? "linear-gradient(to right, #245EDC 50px, #ffffff 50px)"
-                : "#c0c0c0", // Flat gray for Windows 98
+              currentTheme === "xp" || currentTheme === "win98"
+                ? "#ece9d8"
+                : "#c0c0c0",
             border:
               currentTheme === "xp"
-                ? "1px solid #1941A5"
+                ? "3px solid #0855dd"
+                : currentTheme === "win98"
+                ? "2px outset #c0c0c0"
                 : "2px outset #c0c0c0",
+            borderRadius: currentTheme === "xp" ? "5px 5px 0 0" : "0",
           }}
         >
-          <DropdownMenuItem
-            onClick={() => setAboutFinderOpen(true)}
-            className="text-md h-6 px-3 hover:bg-blue-100 flex items-center"
-            style={{
-              color: currentTheme === "xp" ? "#000000" : "#000000",
-            }}
-          >
-            About This Computer
-          </DropdownMenuItem>
-          <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
-
-          {/* Programs Section */}
-          <div className="px-2">
-            <div
-              className="text-xs font-bold mb-2 px-2"
-              style={{ color: currentTheme === "xp" ? "#003D82" : "#000000" }}
-            >
-              Programs
-            </div>
-            {apps.map((app) => (
-              <DropdownMenuItem
-                key={app.id}
-                onClick={() => handleAppClick(app.id)}
-                className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-blue-100 rounded"
+          <div className="flex h-full">
+            {/* Left Panel with rotated text */}
+            {(currentTheme === "xp" || currentTheme === "win98") && (
+              <div
+                className="relative w-[32px] overflow-hidden"
                 style={{
-                  color: currentTheme === "xp" ? "#000000" : "#000000",
+                  background:
+                    currentTheme === "xp"
+                      ? "linear-gradient(to bottom, #3a6fd8, #2559ce)"
+                      : "linear-gradient(to bottom, #1e4096, #143366)",
+                  borderRight: "1px solid #1f4788",
                 }}
               >
-                {typeof app.icon === "string" ? (
-                  <div className="w-6 h-6 flex items-center justify-center">
-                    {app.icon}
-                  </div>
-                ) : (
-                  <img
-                    src={app.icon.src}
-                    alt=""
-                    className="w-6 h-6 [image-rendering:pixelated]"
-                  />
-                )}
-                {app.name}
-              </DropdownMenuItem>
-            ))}
+                <div
+                  className="absolute whitespace-nowrap text-white font-semibold"
+                  style={{
+                    bottom: "12px",
+                    left: "50%",
+                    transform: "rotate(-90deg)",
+                    transformOrigin: "left",
+                    fontSize: "16px",
+                    letterSpacing: "1px",
+                    textShadow: "1px 1px 2px rgba(0,0,0,0.5)",
+                    width: "400px",
+                    textAlign: "left",
+                  }}
+                >
+                  ryOS {currentTheme === "xp" ? "Professional" : "98"}
+                </div>
+              </div>
+            )}
+
+            {/* Right Panel with menu items */}
+            <div
+              className="flex-1 flex flex-col"
+              style={{
+                background:
+                  currentTheme === "xp" || currentTheme === "win98"
+                    ? "#ffffff"
+                    : "#c0c0c0",
+              }}
+            >
+              {/* Top section with pinned items */}
+              <div className="border-b" style={{ borderColor: "#9e9e9e" }}>
+                <DropdownMenuItem
+                  onClick={() => setAboutFinderOpen(true)}
+                  className="h-8 px-3 flex items-center gap-2 hover:bg-blue-500 hover:text-white"
+                  style={{
+                    fontSize: "11px",
+                    color: "#000000",
+                  }}
+                >
+                  <img src="/icons/info.png" alt="" className="w-4 h-4" />
+                  About This Computer
+                </DropdownMenuItem>
+              </div>
+
+              {/* Programs Section */}
+              <div className="py-1">
+                {apps.map((app) => (
+                  <DropdownMenuItem
+                    key={app.id}
+                    onClick={() => handleAppClick(app.id)}
+                    className="h-8 px-3 flex items-center gap-2 hover:bg-blue-500 hover:text-white"
+                    style={{
+                      fontSize: "11px",
+                      color: "#000000",
+                    }}
+                  >
+                    {typeof app.icon === "string" ? (
+                      <div className="w-6 h-6 flex items-center justify-center">
+                        {app.icon}
+                      </div>
+                    ) : (
+                      <img
+                        src={app.icon.src}
+                        alt=""
+                        className="w-6 h-6 [image-rendering:pixelated]"
+                      />
+                    )}
+                    {app.name}
+                  </DropdownMenuItem>
+                ))}
+              </div>
+            </div>
           </div>
         </DropdownMenuContent>
       </DropdownMenu>
