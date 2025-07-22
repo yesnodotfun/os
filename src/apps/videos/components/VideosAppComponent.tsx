@@ -1178,7 +1178,7 @@ export function VideosAppComponent({
                   Title
                 </div>
                 {videos.length > 0 && (
-                  <div className="relative overflow-hidden">
+                  <div className="relative overflow-hidden flex items-baseline">
                     <AnimatedTitle
                       title={
                         getCurrentVideo()?.artist
