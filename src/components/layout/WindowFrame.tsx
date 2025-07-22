@@ -871,7 +871,7 @@ export function WindowFrame({
             )}
             style={
               isXpTheme
-                ? { margin: currentTheme === "xp" ? "3px" : "0" }
+                ? { margin: currentTheme === "xp" ? "0px 3px" : "0" }
                 : undefined
             }
           >
