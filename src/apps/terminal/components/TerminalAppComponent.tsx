@@ -3163,7 +3163,7 @@ assistant
               onKeyDown={handleKeyDown}
               onFocus={() => setInputFocused(true)}
               onBlur={() => setInputFocused(false)}
-              className={`flex-1 bg-transparent text-white focus:outline-none ${
+              className={`flex-1 bg-transparent text-white focus:outline-none terminal-input ${
                 inputFocused ? "input--focused" : ""
               }`}
               style={{ fontSize: `${fontSize}px` }}
@@ -3435,7 +3435,7 @@ assistant
                 onTouchStart={(e) => {
                   e.preventDefault();
                 }}
-                className={`w-full text-white focus:outline-none bg-transparent ${
+                className={`w-full text-white focus:outline-none bg-transparent terminal-input ${
                   inputFocused ? "input--focused" : ""
                 }`}
                 style={{ fontSize: `${fontSize}px` }}

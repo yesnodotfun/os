@@ -77,6 +77,7 @@ const PianoKey: React.FC<{
   labelType: NoteLabelType;
   keyMap: Record<string, string>;
   octaveOffset: number;
+  isSystem7Theme?: boolean;
 }> = ({
   note,
   isBlack = false,
@@ -86,6 +87,7 @@ const PianoKey: React.FC<{
   labelType,
   keyMap,
   octaveOffset,
+  isSystem7Theme = false,
 }) => {
   const handleMouseDown = () => {
     onPress(note);
@@ -133,7 +135,8 @@ const PianoKey: React.FC<{
       type="button"
       data-note={note}
       className={cn(
-        "relative touch-none select-none outline-none transition-colors duration-100",
+        "piano-key relative touch-none select-none outline-none transition-colors duration-100",
+        isSystem7Theme && "system7-square",
         isBlack
           ? cn(
               "absolute top-0 left-[65%] w-[74%] h-[70%] rounded-b-md z-10",
@@ -808,6 +811,7 @@ export function SynthAppComponent({
 
   const currentTheme = useThemeStore((state) => state.current);
   const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
+  const isSystem7Theme = currentTheme === "system7";
 
   const menuBar = (
     <SynthMenuBar
@@ -1506,6 +1510,7 @@ export function SynthAppComponent({
                         labelType={labelType}
                         keyMap={keyToNoteMap}
                         octaveOffset={octaveOffset}
+                        isSystem7Theme={isSystem7Theme}
                       />
                     </div>
                   ))}
@@ -1540,6 +1545,7 @@ export function SynthAppComponent({
                               labelType={labelType}
                               keyMap={keyToNoteMap}
                               octaveOffset={octaveOffset}
+                              isSystem7Theme={isSystem7Theme}
                             />
                           </div>
                         )}
