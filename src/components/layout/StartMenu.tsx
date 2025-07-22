@@ -138,18 +138,20 @@ export function StartMenu({ apps }: StartMenuProps) {
                 <div
                   className="absolute whitespace-nowrap text-white font-semibold"
                   style={{
-                    bottom: "12px",
+                    bottom: "8px",
                     left: "50%",
                     transform: "rotate(-90deg)",
                     transformOrigin: "left",
                     fontSize: "16px",
-                    letterSpacing: "1px",
                     textShadow: "1px 1px 2px rgba(0,0,0,0.5)",
                     width: "400px",
                     textAlign: "left",
                   }}
                 >
-                  ryOS {currentTheme === "xp" ? "Professional" : "98"}
+                  ryOS{" "}
+                  <span style={{ fontWeight: "100" }}>
+                    {currentTheme === "xp" ? "Professional" : "98"}
+                  </span>
                 </div>
               </div>
             )}
@@ -162,25 +164,37 @@ export function StartMenu({ apps }: StartMenuProps) {
                   currentTheme === "xp" || currentTheme === "win98"
                     ? "#ffffff"
                     : "#c0c0c0",
+                height: "480px", // Fixed height to enable scrolling
               }}
             >
-              {/* Top section with pinned items */}
-              <div className="border-b" style={{ borderColor: "#9e9e9e" }}>
+              {/* All Menu Items Section */}
+              <div className="py-1 overflow-y-auto flex-1 min-h-0">
+                {/* About This Computer */}
                 <DropdownMenuItem
                   onClick={() => setAboutFinderOpen(true)}
                   className="h-8 px-3 flex items-center gap-2 hover:bg-blue-500 hover:text-white"
                   style={{
                     fontSize: "11px",
                     color: "#000000",
+                    fontFamily: "var(--font-ms-sans)",
+                    imageRendering: "pixelated",
                   }}
                 >
-                  <img src="/icons/info.png" alt="" className="w-4 h-4" />
+                  <img
+                    src="/icons/info.png"
+                    alt=""
+                    className="w-6 h-6 [image-rendering:pixelated]"
+                  />
                   About This Computer
                 </DropdownMenuItem>
-              </div>
 
-              {/* Programs Section */}
-              <div className="py-1">
+                {/* Separator */}
+                <div
+                  className="border-b mx-2 my-1"
+                  style={{ borderColor: "#9e9e9e" }}
+                />
+
+                {/* Apps */}
                 {apps.map((app) => (
                   <DropdownMenuItem
                     key={app.id}
@@ -189,6 +203,8 @@ export function StartMenu({ apps }: StartMenuProps) {
                     style={{
                       fontSize: "11px",
                       color: "#000000",
+                      fontFamily: "var(--font-ms-sans)",
+                      imageRendering: "pixelated",
                     }}
                   >
                     {typeof app.icon === "string" ? (

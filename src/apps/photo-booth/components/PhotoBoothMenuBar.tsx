@@ -10,6 +10,7 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { generateAppShareUrl } from "@/utils/sharedUrl";
+import { useThemeStore } from "@/stores/useThemeStore";
 
 interface Effect {
   name: string;
@@ -43,8 +44,12 @@ export function PhotoBoothMenuBar({
   selectedCameraId,
   onCameraSelect,
 }: PhotoBoothMenuBarProps) {
+  const currentTheme = useThemeStore((s) => s.current);
+  const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
+
   return (
-    <MenuBar>
+    <MenuBar inWindowFrame={isXpTheme}>
+      {/* File Menu */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -79,7 +84,6 @@ export function PhotoBoothMenuBar({
         </DropdownMenuContent>
       </DropdownMenu>
 
-
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -97,8 +101,11 @@ export function PhotoBoothMenuBar({
               onClick={() => onCameraSelect(camera.deviceId)}
               className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
             >
-              <span className={cn(selectedCameraId !== camera.deviceId && "pl-4")}>
-                {selectedCameraId === camera.deviceId ? "✓ " : ""}{camera.label || `Camera ${camera.deviceId.slice(0, 4)}`}
+              <span
+                className={cn(selectedCameraId !== camera.deviceId && "pl-4")}
+              >
+                {selectedCameraId === camera.deviceId ? "✓ " : ""}
+                {camera.label || `Camera ${camera.deviceId.slice(0, 4)}`}
               </span>
             </DropdownMenuItem>
           ))}
@@ -122,14 +129,16 @@ export function PhotoBoothMenuBar({
               onClick={() => onEffectSelect(effect)}
               className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
             >
-              <span className={cn(selectedEffect.name !== effect.name && "pl-4")}>
-                {selectedEffect.name === effect.name ? "✓ " : ""}{effect.name}
+              <span
+                className={cn(selectedEffect.name !== effect.name && "pl-4")}
+              >
+                {selectedEffect.name === effect.name ? "✓ " : ""}
+                {effect.name}
               </span>
             </DropdownMenuItem>
           ))}
         </DropdownMenuContent>
       </DropdownMenu>
-
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

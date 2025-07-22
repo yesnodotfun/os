@@ -92,6 +92,7 @@
 :root[data-os-theme="win98"] {
   --os-font-ui: Tahoma, "MS Sans Serif", sans-serif;
   --os-font-mono: Consolas, "Courier New", monospace;
+  --font-ms-sans: "Pixelated MS Sans Serif", "MS Sans Serif", sans-serif;
   --os-color-window-bg: #c0c0c0;
   --os-color-menubar-bg: #c0c0c0;
   --os-color-menubar-border: #808080;
@@ -121,6 +122,7 @@
 :root[data-os-theme="xp"] {
   --os-font-ui: Tahoma, Segoe UI, sans-serif;
   --os-font-mono: Consolas, Courier New, monospace;
+  --font-ms-sans: "Pixelated MS Sans Serif", "MS Sans Serif", sans-serif;
   --os-color-window-bg: #ece9d8;
   --os-color-menubar-bg: linear-gradient(to bottom, #245edc, #1941a5);
   --os-color-menubar-border: #0a246a;

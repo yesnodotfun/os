@@ -1074,6 +1074,24 @@ export function PhotoBoothComponent({
                     ? "opacity-50 cursor-not-allowed"
                     : ""
                 }`}
+                style={{
+                  background: isXpTheme
+                    ? "rgba(255, 255, 255, 0.1)"
+                    : undefined,
+                  border: isXpTheme ? "none" : undefined,
+                }}
+                onMouseEnter={(e) => {
+                  if (isXpTheme) {
+                    e.currentTarget.style.background =
+                      "rgba(255, 255, 255, 0.2)";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (isXpTheme) {
+                    e.currentTarget.style.background =
+                      "rgba(255, 255, 255, 0.1)";
+                  }
+                }}
                 onClick={togglePhotoStrip}
                 disabled={validPhotos.length === 0}
               >
@@ -1081,6 +1099,24 @@ export function PhotoBoothComponent({
               </button>
               <button
                 className="h-10 w-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white"
+                style={{
+                  background: isXpTheme
+                    ? "rgba(255, 255, 255, 0.1)"
+                    : undefined,
+                  border: isXpTheme ? "none" : undefined,
+                }}
+                onMouseEnter={(e) => {
+                  if (isXpTheme) {
+                    e.currentTarget.style.background =
+                      "rgba(255, 255, 255, 0.2)";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (isXpTheme) {
+                    e.currentTarget.style.background =
+                      "rgba(255, 255, 255, 0.1)";
+                  }
+                }}
                 onClick={startMultiPhotoSequence}
                 disabled={isMultiPhotoMode}
               >
@@ -1102,6 +1138,25 @@ export function PhotoBoothComponent({
                   ? `bg-gray-500 cursor-not-allowed`
                   : `bg-red-500 hover:bg-red-600`
               }`}
+              style={{
+                background: isXpTheme
+                  ? isMultiPhotoMode
+                    ? "#6b7280"
+                    : "#dc2626"
+                  : undefined,
+                border: isXpTheme ? "none" : undefined,
+                cursor: isMultiPhotoMode ? "not-allowed" : "pointer",
+              }}
+              onMouseEnter={(e) => {
+                if (isXpTheme && !isMultiPhotoMode) {
+                  e.currentTarget.style.background = "#b91c1c";
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (isXpTheme && !isMultiPhotoMode) {
+                  e.currentTarget.style.background = "#dc2626";
+                }
+              }}
               disabled={isMultiPhotoMode}
             >
               <Camera stroke="white" />
@@ -1110,6 +1165,20 @@ export function PhotoBoothComponent({
             <Button
               onClick={toggleEffects}
               className="h-10 px-5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-[16px]"
+              style={{
+                background: isXpTheme ? "rgba(255, 255, 255, 0.1)" : undefined,
+                border: isXpTheme ? "none" : undefined,
+              }}
+              onMouseEnter={(e) => {
+                if (isXpTheme) {
+                  e.currentTarget.style.background = "rgba(255, 255, 255, 0.2)";
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (isXpTheme) {
+                  e.currentTarget.style.background = "rgba(255, 255, 255, 0.1)";
+                }
+              }}
             >
               Effects
             </Button>

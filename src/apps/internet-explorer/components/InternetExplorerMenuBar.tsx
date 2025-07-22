@@ -11,10 +11,16 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { AppProps } from "../../base/types";
 import { MenuBar } from "@/components/layout/MenuBar";
-import { Favorite, HistoryEntry, LanguageOption, LocationOption } from "@/stores/useInternetExplorerStore";
+import {
+  Favorite,
+  HistoryEntry,
+  LanguageOption,
+  LocationOption,
+} from "@/stores/useInternetExplorerStore";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { generateAppShareUrl } from "@/utils/sharedUrl";
+import { useThemeStore } from "@/stores/useThemeStore";
 
 interface InternetExplorerMenuBarProps extends Omit<AppProps, "onClose"> {
   onRefresh?: () => void;
@@ -52,7 +58,7 @@ interface InternetExplorerMenuBarProps extends Omit<AppProps, "onClose"> {
 // Recursive function to render favorite items or submenus
 const renderFavoriteItem = (
   favorite: Favorite,
-  onNavigate: (url: string, year?: string) => void,
+  onNavigate: (url: string, year?: string) => void
 ) => {
   if (favorite.children && favorite.children.length > 0) {
     // Render as a submenu (folder)
@@ -67,7 +73,9 @@ const renderFavoriteItem = (
           {favorite.title}
         </DropdownMenuSubTrigger>
         <DropdownMenuSubContent className="max-w-xs">
-          {favorite.children.map((child) => renderFavoriteItem(child, onNavigate))}
+          {favorite.children.map((child) =>
+            renderFavoriteItem(child, onNavigate)
+          )}
         </DropdownMenuSubContent>
       </DropdownMenuSub>
     );
@@ -89,9 +97,7 @@ const renderFavoriteItem = (
         />
         {favorite.title}
         {favorite.year && favorite.year !== "current" && (
-          <span className="text-xs text-gray-500 ml-1">
-            ({favorite.year})
-          </span>
+          <span className="text-xs text-gray-500 ml-1">({favorite.year})</span>
         )}
       </DropdownMenuItem>
     );
@@ -134,27 +140,54 @@ export function InternetExplorerMenuBar({
 }: InternetExplorerMenuBarProps) {
   // Get current year for generating year lists
   const currentYear = new Date().getFullYear();
-  
+
   // Generate lists of future and past years
   const futureYears = [
-    ...Array.from(
-      { length: 8 }, 
-      (_, i) => (2030 + i * 10).toString()
-    ).filter(yr => parseInt(yr) !== currentYear),
-    "2150", "2200", "2250", "2300", "2400", "2500", "2750", "3000"
+    ...Array.from({ length: 8 }, (_, i) => (2030 + i * 10).toString()).filter(
+      (yr) => parseInt(yr) !== currentYear
+    ),
+    "2150",
+    "2200",
+    "2250",
+    "2300",
+    "2400",
+    "2500",
+    "2750",
+    "3000",
   ].sort((a, b) => parseInt(b) - parseInt(a));
 
   const pastYears = [
-    "1000 BC", "1 CE", "500", "800", "1000", "1200", "1400", "1600", "1700", "1800", "1900",
-    "1910", "1920", "1930", "1940", "1950", "1960", "1970", "1980", "1985", "1990",
-    ...Array.from(
-      { length: currentYear - 1991 + 1 },
-      (_, i) => (1991 + i).toString()
-    ).filter(yr => parseInt(yr) !== currentYear)
+    "1000 BC",
+    "1 CE",
+    "500",
+    "800",
+    "1000",
+    "1200",
+    "1400",
+    "1600",
+    "1700",
+    "1800",
+    "1900",
+    "1910",
+    "1920",
+    "1930",
+    "1940",
+    "1950",
+    "1960",
+    "1970",
+    "1980",
+    "1985",
+    "1990",
+    ...Array.from({ length: currentYear - 1991 + 1 }, (_, i) =>
+      (1991 + i).toString()
+    ).filter((yr) => parseInt(yr) !== currentYear),
   ].reverse();
 
+  const currentTheme = useThemeStore((s) => s.current);
+  const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
+
   return (
-    <MenuBar>
+    <MenuBar inWindowFrame={isXpTheme}>
       {/* File Menu */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -226,7 +259,7 @@ export function InternetExplorerMenuBar({
             Stop
           </DropdownMenuItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
-          
+
           {/* Year Submenu */}
           <DropdownMenuSub>
             <DropdownMenuSubTrigger className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
@@ -245,7 +278,7 @@ export function InternetExplorerMenuBar({
                   </span>
                 </DropdownMenuItem>
               ))}
-              
+
               {/* Current Year */}
               <DropdownMenuItem
                 onClick={() => onYearChange?.("current")}
@@ -255,13 +288,15 @@ export function InternetExplorerMenuBar({
                   {year === "current" ? "✓ Now" : "Now"}
                 </span>
               </DropdownMenuItem>
-              
+
               {/* Past Years */}
               {pastYears.map((yearOption) => (
                 <DropdownMenuItem
                   key={yearOption}
                   onClick={() => onYearChange?.(yearOption)}
-                  className={`text-md h-6 px-3 active:bg-gray-900 active:text-white ${parseInt(yearOption) <= 1995 ? "text-blue-600" : ""}`}
+                  className={`text-md h-6 px-3 active:bg-gray-900 active:text-white ${
+                    parseInt(yearOption) <= 1995 ? "text-blue-600" : ""
+                  }`}
                 >
                   <span className={cn(year !== yearOption && "pl-4")}>
                     {year === yearOption ? `✓ ${yearOption}` : yearOption}
@@ -270,7 +305,7 @@ export function InternetExplorerMenuBar({
               ))}
             </DropdownMenuSubContent>
           </DropdownMenuSub>
-          
+
           {/* Language Submenu */}
           <DropdownMenuSub>
             <DropdownMenuSubTrigger className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
@@ -349,7 +384,7 @@ export function InternetExplorerMenuBar({
                   {language === "german" ? "✓ German" : "German"}
                 </span>
               </DropdownMenuItem>
-              
+
               {/* Ancient Languages */}
               <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
               <DropdownMenuItem
@@ -368,7 +403,7 @@ export function InternetExplorerMenuBar({
                   {language === "sanskrit" ? "✓ Sanskrit" : "Sanskrit"}
                 </span>
               </DropdownMenuItem>
-              
+
               {/* Futuristic/Non-human Languages */}
               <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
               <DropdownMenuItem
@@ -392,7 +427,9 @@ export function InternetExplorerMenuBar({
                 className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
               >
                 <span className={cn(language !== "digital_being" && "pl-4")}>
-                  {language === "digital_being" ? "✓ Digital Being" : "Digital Being"}
+                  {language === "digital_being"
+                    ? "✓ Digital Being"
+                    : "Digital Being"}
                 </span>
               </DropdownMenuItem>
             </DropdownMenuSubContent>
@@ -417,7 +454,9 @@ export function InternetExplorerMenuBar({
                 className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
               >
                 <span className={cn(location !== "united_states" && "pl-4")}>
-                  {location === "united_states" ? "✓ United States" : "United States"}
+                  {location === "united_states"
+                    ? "✓ United States"
+                    : "United States"}
                 </span>
               </DropdownMenuItem>
               <DropdownMenuItem
@@ -526,7 +565,7 @@ export function InternetExplorerMenuBar({
               </DropdownMenuItem>
             </DropdownMenuSubContent>
           </DropdownMenuSub>
-          
+
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
           <DropdownMenuItem
             onClick={onEditFuture}
@@ -548,7 +587,11 @@ export function InternetExplorerMenuBar({
             Favorites
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" sideOffset={1} className="px-0 max-w-xs">
+        <DropdownMenuContent
+          align="start"
+          sideOffset={1}
+          className="px-0 max-w-xs"
+        >
           <DropdownMenuItem
             onClick={onHome}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
@@ -566,7 +609,9 @@ export function InternetExplorerMenuBar({
             <>
               <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
               {favorites.map((favorite) =>
-                renderFavoriteItem(favorite, (url, year) => onNavigateToFavorite?.(url, year))
+                renderFavoriteItem(favorite, (url, year) =>
+                  onNavigateToFavorite?.(url, year)
+                )
               )}
               <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
               <DropdownMenuItem
@@ -631,7 +676,9 @@ export function InternetExplorerMenuBar({
               {history.slice(0, 10).map((entry) => (
                 <DropdownMenuItem
                   key={entry.url + entry.timestamp}
-                  onClick={() => onNavigateToHistory?.(entry.url, entry.year || "current")}
+                  onClick={() =>
+                    onNavigateToHistory?.(entry.url, entry.year || "current")
+                  }
                   className="text-md h-6 px-3 active:bg-gray-900 active:text-white flex items-center gap-2"
                 >
                   <img

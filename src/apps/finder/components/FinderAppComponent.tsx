@@ -805,7 +805,7 @@ export function FinderAppComponent({
         menuBar={isXpTheme ? menuBar : undefined}
       >
         <div
-          className={`flex flex-col h-full w-full bg-white relative ${
+          className={`flex flex-col h-full w-full relative ${
             isDraggingOver && currentPath === "/Documents"
               ? "after:absolute after:inset-0 after:bg-black/20"
               : ""
@@ -839,7 +839,16 @@ export function FinderAppComponent({
           onContextMenu={handleBlankContextMenu}
           {...blankLongPressHandlers}
         >
-          <div className="flex flex-col gap-1 p-1 bg-gray-100 border-b border-black">
+          <div
+            className={`flex flex-col gap-1 p-1 ${
+              isXpTheme
+                ? "border-b border-[#919b9c]"
+                : "bg-gray-100 border-b border-black"
+            }`}
+            style={{
+              background: isXpTheme ? "transparent" : undefined,
+            }}
+          >
             <div className="flex gap-2 items-center">
               <div className="flex gap-0 items-center">
                 <Button
@@ -930,7 +939,7 @@ export function FinderAppComponent({
               />
             </div>
           </div>
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 overflow-auto bg-white">
             {isLoading ? (
               <div className="flex items-center justify-center h-full">
                 Loading...

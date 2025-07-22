@@ -1994,7 +1994,13 @@ export function InternetExplorerAppComponent({
           menuBar={isXpTheme ? menuBar : undefined}
         >
           <div className="flex flex-col h-full w-full relative">
-            <div className="flex flex-col gap-1 p-1 bg-gray-100 border-b border-black">
+            <div
+              className={`flex flex-col gap-1 p-1 ${
+                isXpTheme
+                  ? "bg-transparent border-b border-[#919b9c]"
+                  : "bg-gray-100 border-b border-black"
+              }`}
+            >
               <div className="flex gap-2 items-center">
                 <div className="flex gap-0 items-center">
                   <Button
