@@ -127,7 +127,7 @@ function AnimatedTitle({
                   }
             }
             className={cn(
-              "shrink-0 font-geneva-12 text-xl px-2 transition-colors duration-300",
+              "shrink-0 font-geneva-12 text-[18px] px-2 transition-colors duration-300",
               isPlaying ? "text-[#ff00ff]" : "text-gray-600",
               !isPlaying && "opacity-50"
             )}
@@ -150,7 +150,7 @@ function AnimatedTitle({
                   }
             }
             className={cn(
-              "shrink-0 font-geneva-12 text-xl px-2 transition-colors duration-300",
+              "shrink-0 font-geneva-12 text-[18px] px-2 transition-colors duration-300",
               isPlaying ? "text-[#ff00ff]" : "text-gray-600",
               !isPlaying && "opacity-50"
             )}
