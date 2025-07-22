@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { generateAppShareUrl } from "@/utils/sharedUrl";
+import { useThemeStore } from "@/stores/useThemeStore";
 
 interface ControlPanelsMenuBarProps {
   onClose: () => void;
@@ -21,8 +22,11 @@ export function ControlPanelsMenuBar({
   onShowHelp,
   onShowAbout,
 }: ControlPanelsMenuBarProps) {
+  const currentTheme = useThemeStore((state) => state.current);
+  const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
+
   return (
-    <MenuBar>
+    <MenuBar inWindowFrame={isXpTheme}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button

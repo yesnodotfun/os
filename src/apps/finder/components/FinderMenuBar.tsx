@@ -11,6 +11,7 @@ import {
 import { FileItem } from "./FileList";
 import { toast } from "sonner";
 import { generateAppShareUrl } from "@/utils/sharedUrl";
+import { useThemeStore } from "@/stores/useThemeStore";
 
 export type ViewType = "small" | "large" | "list";
 export type SortType = "name" | "date" | "size" | "kind";
@@ -70,6 +71,9 @@ export function FinderMenuBar({
   rootFolders,
   onNewWindow,
 }: FinderMenuBarProps) {
+  const currentTheme = useThemeStore((state) => state.current);
+  const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
+
   const canMoveToTrash =
     selectedFile &&
     selectedFile.path !== "/Trash" &&
@@ -84,7 +88,7 @@ export function FinderMenuBar({
   const canDuplicate = selectedFile && onDuplicate && !selectedFile.isDirectory;
 
   return (
-    <MenuBar>
+    <MenuBar inWindowFrame={isXpTheme}>
       {/* File Menu */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

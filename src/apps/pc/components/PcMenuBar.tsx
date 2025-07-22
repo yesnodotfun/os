@@ -13,6 +13,7 @@ import {
 import { Game, loadGames } from "@/stores/usePcStore";
 import { toast } from "sonner";
 import { generateAppShareUrl } from "@/utils/sharedUrl";
+import { useThemeStore } from "@/stores/useThemeStore";
 
 interface PcMenuBarProps {
   onClose: () => void;
@@ -51,12 +52,14 @@ export function PcMenuBar({
   currentRenderAspect,
   mouseSensitivity,
 }: PcMenuBarProps) {
+  const currentTheme = useThemeStore((state) => state.current);
+  const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
   const availableGames = loadGames();
   const renderAspects = ["AsIs", "1/1", "5/4", "4/3", "16/10", "16/9", "Fit"];
   const sensitivityOptions = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
 
   return (
-    <MenuBar>
+    <MenuBar inWindowFrame={isXpTheme}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button

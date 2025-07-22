@@ -13,6 +13,7 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { generateAppShareUrl } from "@/utils/sharedUrl";
+import { useThemeStore } from "@/stores/useThemeStore";
 
 interface Video {
   id: string;
@@ -70,6 +71,9 @@ export function VideosMenuBar({
   onFullScreen,
   onShareVideo,
 }: VideosMenuBarProps) {
+  const currentTheme = useThemeStore((state) => state.current);
+  const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
+
   // Group videos by artist
   const videosByArtist = videos.reduce<Record<string, Video[]>>(
     (acc, video) => {
@@ -87,7 +91,7 @@ export function VideosMenuBar({
   const artists = Object.keys(videosByArtist).sort();
 
   return (
-    <MenuBar>
+    <MenuBar inWindowFrame={isXpTheme}>
       {/* File Menu */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

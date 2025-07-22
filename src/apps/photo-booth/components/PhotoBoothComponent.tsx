@@ -146,6 +146,24 @@ export function PhotoBoothComponent({
   const currentTheme = useThemeStore((state) => state.current);
   const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
 
+  // Add handler for camera selection
+  const handleCameraSelect = async (deviceId: string) => {
+    console.log("Switching to camera:", deviceId);
+    setSelectedCameraId(deviceId);
+    await startCamera();
+  };
+
+  const handleClearPhotos = () => {
+    clearPhotos();
+    setCurrentPhotoBatch([]);
+  };
+
+  const handleExportPhotos = () => {
+    // TODO: Implement photo export functionality
+    console.log("Export photos");
+  };
+
+  // Component render with menu bar
   const menuBar = (
     <PhotoBoothMenuBar
       onClose={onClose}
@@ -701,16 +719,6 @@ export function PhotoBoothComponent({
     window.dispatchEvent(event);
   };
 
-  const handleClearPhotos = () => {
-    clearPhotos();
-    setCurrentPhotoBatch([]);
-  };
-
-  const handleExportPhotos = () => {
-    // TODO: Implement photo export functionality
-    console.log("Export photos");
-  };
-
   const toggleEffects = () => {
     setShowEffects(!showEffects);
   };
@@ -734,13 +742,6 @@ export function PhotoBoothComponent({
 
   // Setup swipe handlers
   const swipeHandlers = useSwipeDetection(goToNextPage, goToPrevPage);
-
-  // Add handler for camera selection
-  const handleCameraSelect = async (deviceId: string) => {
-    console.log("Switching to camera:", deviceId);
-    setSelectedCameraId(deviceId);
-    await startCamera();
-  };
 
   // Add useEffect for cleanup
   useEffect(() => {

@@ -15,6 +15,7 @@ import { useAppStoreShallow } from "@/stores/helpers";
 import { SYNTH_PRESETS } from "@/hooks/useChatSynth";
 import { getPrivateRoomDisplayName } from "@/utils/chat";
 import { LoginDialog } from "@/components/dialogs/LoginDialog";
+import { useThemeStore } from "@/stores/useThemeStore";
 
 interface ChatsMenuBarProps {
   onClose: () => void;
@@ -80,6 +81,9 @@ export function ChatsMenuBar({
   handleVerifyTokenSubmit,
   onLogout,
 }: ChatsMenuBarProps) {
+  const currentTheme = useThemeStore((state) => state.current);
+  const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
+
   const {
     speechEnabled,
     setSpeechEnabled,
@@ -99,7 +103,7 @@ export function ChatsMenuBar({
 
   return (
     <>
-      <MenuBar>
+      <MenuBar inWindowFrame={isXpTheme}>
         {/* File Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

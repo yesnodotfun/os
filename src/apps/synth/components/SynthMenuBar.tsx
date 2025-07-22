@@ -10,9 +10,8 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { generateAppShareUrl } from "@/utils/sharedUrl";
-
-// Define the label type
-export type NoteLabelType = "note" | "key" | "off";
+import { useThemeStore } from "@/stores/useThemeStore";
+import type { NoteLabelType } from "@/stores/useSynthStore";
 
 interface SynthMenuBarProps {
   onAddPreset: () => void;
@@ -39,8 +38,11 @@ export function SynthMenuBar({
   labelType,
   onLabelTypeChange,
 }: SynthMenuBarProps) {
+  const currentTheme = useThemeStore((state) => state.current);
+  const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
+
   return (
-    <MenuBar>
+    <MenuBar inWindowFrame={isXpTheme}>
       {/* File Menu */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

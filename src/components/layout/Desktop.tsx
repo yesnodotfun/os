@@ -8,6 +8,7 @@ import { useWallpaper } from "@/hooks/useWallpaper";
 import { RightClickMenu, MenuItem } from "@/components/ui/right-click-menu";
 import { SortType } from "@/apps/finder/components/FinderMenuBar";
 import { useLongPress } from "@/hooks/useLongPress";
+import { useThemeStore } from "@/stores/useThemeStore";
 
 interface DesktopStyles {
   backgroundImage?: string;
@@ -40,6 +41,10 @@ export function Desktop({
     y: number;
   } | null>(null);
   const [contextMenuAppId, setContextMenuAppId] = useState<string | null>(null);
+
+  // Get current theme for layout adjustments
+  const currentTheme = useThemeStore((state) => state.current);
+  const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
 
   // ------------------ Mobile long-press support ------------------
   // Show the desktop context menu after the user holds for 500 ms.
@@ -263,7 +268,11 @@ export function Desktop({
           display: isVideoWallpaper ? "block" : "none",
         }}
       />
-      <div className="pt-8 p-4 flex flex-col items-end h-[calc(100%-2rem)] relative z-[1]">
+      <div className={`p-4 flex flex-col items-end relative z-[1] ${
+        isXpTheme 
+          ? "pt-4 h-[calc(100%-2.5rem)]" // Account for bottom taskbar (40px = 2.5rem)
+          : "pt-8 h-[calc(100%-2rem)]"   // Account for top menubar
+      }`}>
         <div className="flex flex-col flex-wrap-reverse justify-start gap-1 content-start h-full">
           <FileIcon
             name="Macintosh HD"

@@ -15,6 +15,7 @@ import { useIpodStoreShallow } from "@/stores/helpers";
 import { toast } from "sonner";
 import { generateAppShareUrl } from "@/utils/sharedUrl";
 import { LyricsAlignment, ChineseVariant, KoreanDisplay } from "@/types/lyrics";
+import { useThemeStore } from "@/stores/useThemeStore";
 
 interface IpodMenuBarProps {
   onClose: () => void;
@@ -126,6 +127,9 @@ export function IpodMenuBar({
     exportLibrary: s.exportLibrary,
   }));
 
+  const appTheme = useThemeStore((state) => state.current);
+  const isXpTheme = appTheme === "xp" || appTheme === "win98";
+
   const handlePlayTrack = (index: number) => {
     setCurrentIndex(index);
     setIsPlaying(true);
@@ -192,7 +196,7 @@ export function IpodMenuBar({
   };
 
   return (
-    <MenuBar>
+    <MenuBar inWindowFrame={isXpTheme}>
       {/* File Menu */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

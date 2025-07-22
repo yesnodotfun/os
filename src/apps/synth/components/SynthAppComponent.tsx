@@ -27,8 +27,6 @@ import {
 import { Dial } from "@/components/ui/dial";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { Waveform3D } from "./Waveform3D";
-import { Oscillator } from "tone/build/esm/source/oscillator/Oscillator";
-import { toast } from "sonner";
 import { useThemeStore } from "@/stores/useThemeStore";
 
 // Define oscillator type

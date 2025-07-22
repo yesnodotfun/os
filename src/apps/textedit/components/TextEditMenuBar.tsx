@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import React from "react";
 import { toast } from "sonner";
 import { generateAppShareUrl } from "@/utils/sharedUrl";
+import { useThemeStore } from "@/stores/useThemeStore";
 
 interface TextEditMenuBarProps {
   editor: Editor | null;
@@ -43,10 +44,13 @@ export function TextEditMenuBar({
   currentFilePath,
   handleFileSelect,
 }: TextEditMenuBarProps) {
+  const currentTheme = useThemeStore((state) => state.current);
+  const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
+
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   return (
-    <MenuBar>
+    <MenuBar inWindowFrame={isXpTheme}>
       <input
         type="file"
         ref={fileInputRef}

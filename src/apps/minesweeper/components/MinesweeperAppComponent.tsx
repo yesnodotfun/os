@@ -9,8 +9,6 @@ import { Button } from "@/components/ui/button";
 import { helpItems, appMetadata } from "..";
 import { useSound, Sounds } from "@/hooks/useSound";
 import { isMobileDevice } from "@/utils/device";
-import { useMinesweeperStore } from "@/stores/useMinesweeperStore";
-import { cn } from "@/lib/utils";
 import { useThemeStore } from "@/stores/useThemeStore";
 
 const BOARD_SIZE = 9;
