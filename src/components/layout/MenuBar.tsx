@@ -19,7 +19,13 @@ import { Slider } from "@/components/ui/slider";
 import { Volume1, Volume2, VolumeX, Settings } from "lucide-react";
 import { useSound, Sounds } from "@/hooks/useSound";
 import { useThemeStore } from "@/stores/useThemeStore";
-import { getAppIconPath } from "@/config/appRegistry";
+import { getAppIconPath, appRegistry } from "@/config/appRegistry";
+
+// Helper function to get app name
+const getAppName = (appId: string): string => {
+  const app = appRegistry[appId as keyof typeof appRegistry];
+  return app?.name || appId;
+};
 
 const finderHelpItems = [
   {
@@ -596,7 +602,7 @@ export function MenuBar({ children, inWindowFrame = false }: MenuBarProps) {
                     style={{ imageRendering: "pixelated" }}
                   />
                   <span className="truncate">
-                    {instance.title || instance.appId}
+                    {instance.title || getAppName(instance.appId)}
                   </span>
                 </button>
               );
