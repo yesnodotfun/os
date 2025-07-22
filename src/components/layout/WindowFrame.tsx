@@ -563,7 +563,7 @@ export function WindowFrame({
                 ? "top-[-100px] h-[200px]"
                 : isMobile
                 ? isXpTheme
-                  ? "top-[22px] h-6" // Position below title bar for XP/98 themes (XP: 21px, 98: 22px)
+                  ? "top-0 h-4" // Start from top but be shorter for XP/98 themes
                   : "top-0 h-8"
                 : "top-1 h-2"
             )}
