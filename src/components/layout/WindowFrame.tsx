@@ -562,7 +562,9 @@ export function WindowFrame({
               resizeType?.includes("n")
                 ? "top-[-100px] h-[200px]"
                 : isMobile
-                ? "top-0 h-8"
+                ? isXpTheme
+                  ? "top-0 h-4" // Start from top but be shorter for XP/98 themes
+                  : "top-0 h-8"
                 : "top-1 h-2"
             )}
             onMouseDown={(e) =>
