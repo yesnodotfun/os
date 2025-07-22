@@ -562,7 +562,9 @@ export function WindowFrame({
               resizeType?.includes("n")
                 ? "top-[-100px] h-[200px]"
                 : isMobile
-                ? "top-0 h-8"
+                ? isXpTheme
+                  ? "top-[22px] h-6" // Position below title bar for XP/98 themes (XP: 21px, 98: 22px)
+                  : "top-0 h-8"
                 : "top-1 h-2"
             )}
             onMouseDown={(e) =>
