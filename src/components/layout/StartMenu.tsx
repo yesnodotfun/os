@@ -36,7 +36,8 @@ export function StartMenu({ apps }: StartMenuProps) {
               width: currentTheme === "xp" ? "100px" : "auto",
               height: currentTheme === "xp" ? "100%" : "85%",
               marginTop: currentTheme === "win98" ? "2px" : "0px",
-              borderRadius: currentTheme === "xp" ? "0 3px 3px 0" : "0",
+              marginLeft: currentTheme === "win98" ? "4px" : "0px",
+              borderRadius: currentTheme === "xp" ? "0 12px 12px 0" : "0",
               background:
                 currentTheme === "xp"
                   ? isStartMenuOpen
@@ -77,10 +78,14 @@ export function StartMenu({ apps }: StartMenuProps) {
               src={
                 currentTheme === "xp"
                   ? "/icons/windows-xp.png"
+                  : currentTheme === "win98"
+                  ? "/icons/windows-98.png"
                   : "/icons/apple.png"
               }
               alt="Start"
-              className="w-5 h-5 [image-rendering:pixelated]"
+              className={`[image-rendering:pixelated] ${
+                currentTheme === "xp" ? "w-5 h-4" : "w-5 h-5"
+              }`}
               style={{
                 filter:
                   currentTheme === "xp"
@@ -89,7 +94,9 @@ export function StartMenu({ apps }: StartMenuProps) {
               }}
             />
             <span
-              className="tracking-wider pr-2"
+              className={`tracking-wider ${
+                currentTheme === "xp" ? "pr-2" : ""
+              }`}
               style={{
                 textShadow:
                   currentTheme === "xp"

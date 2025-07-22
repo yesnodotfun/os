@@ -385,8 +385,6 @@ export function ChatsAppComponent({
 
   const currentTheme = useThemeStore((state) => state.current);
   const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
-  const isClassicMacTheme =
-    currentTheme === "macosx" || currentTheme === "system7";
   const isWindowsLegacyTheme = isXpTheme;
 
   const menuBar = (

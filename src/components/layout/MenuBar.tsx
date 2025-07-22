@@ -480,8 +480,11 @@ function VolumeControl() {
             isXpTheme
               ? "hover:bg-white/20 active:bg-white/30"
               : "hover:bg-black/10 active:bg-black/20"
-          } mr-2`}
-          style={{ color: "inherit" }}
+          } ${isXpTheme ? "" : "mr-2"}`}
+          style={{
+            color:
+              isXpTheme && currentTheme === "win98" ? "#000000" : "inherit",
+          }}
         >
           {getVolumeIcon()}
         </Button>
@@ -660,22 +663,26 @@ export function MenuBar({ children, inWindowFrame = false }: MenuBarProps) {
 
         {/* System Tray */}
         <div
-          className="flex items-center gap-1 px-2 h-full text-white border box-border flex items-center justify-end text-sm"
+          className="flex items-center gap-1 px-2 text-white border box-border flex items-center justify-end text-sm"
           style={{
+            height: currentTheme === "win98" ? "85%" : "100%",
+            marginTop: currentTheme === "win98" ? "2px" : "0px",
+            marginRight: currentTheme === "win98" ? "4px" : "0px",
             background:
               currentTheme === "xp"
                 ? "linear-gradient(0deg, #0a5bc6 0%, #1198e9 6%, #1198e9 51%, #1198e9 63%, #1198e9 77%, #19b9f3 85%, #19b9f3 93%, #075dca 97%)"
                 : "#c0c0c0", // Flat gray for Windows 98
             boxShadow:
-              currentTheme === "xp" ? "2px -0px 3px #20e2fc inset" : "none",
+              currentTheme === "xp"
+                ? "2px -0px 3px #20e2fc inset"
+                : "inset -1px -1px #fff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px grey", // Windows 98 inset
             borderTop:
-              currentTheme === "xp" ? "1px solid #075dca" : "1px inset #c0c0c0",
+              currentTheme === "xp" ? "1px solid #075dca" : "transparent",
             borderBottom:
-              currentTheme === "xp" ? "1px solid #0a5bc6" : "1px inset #c0c0c0",
-            borderRight:
-              currentTheme === "xp" ? "transparent" : "1px inset #c0c0c0",
+              currentTheme === "xp" ? "1px solid #0a5bc6" : "transparent",
+            borderRight: currentTheme === "xp" ? "transparent" : "transparent",
             borderLeft:
-              currentTheme === "xp" ? "1px solid #000000" : "1px inset #c0c0c0",
+              currentTheme === "xp" ? "1px solid #000000" : "transparent",
             paddingTop: currentTheme === "xp" ? "1px" : "0px",
           }}
         >
