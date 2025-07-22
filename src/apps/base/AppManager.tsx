@@ -20,6 +20,7 @@ export function AppManager({ apps }: AppManagerProps) {
   const {
     instances,
     instanceWindowOrder,
+    foregroundInstanceId, // Add this to get the foreground instance ID
     launchApp,
     closeAppInstance,
     bringInstanceToForeground,
@@ -28,6 +29,7 @@ export function AppManager({ apps }: AppManagerProps) {
   } = useAppStoreShallow((state) => ({
     instances: state.instances,
     instanceWindowOrder: state.instanceWindowOrder,
+    foregroundInstanceId: state.foregroundInstanceId, // Add this
     launchApp: state.launchApp,
     closeAppInstance: state.closeAppInstance,
     bringInstanceToForeground: state.bringInstanceToForeground,
@@ -69,6 +71,13 @@ export function AppManager({ apps }: AppManagerProps) {
   }, {} as { [appId: string]: AppState });
 
   const getZIndexForInstance = (instanceId: string) => {
+    // If this is the foreground instance, give it the highest z-index
+    if (instanceId === foregroundInstanceId) {
+      // Use a reasonable z-index that's below dialogs/menus (z-50)
+      return BASE_Z_INDEX + 30;
+    }
+
+    // For non-foreground instances, use their position in the window order
     const index = instanceWindowOrder.indexOf(instanceId);
     if (index === -1) return BASE_Z_INDEX;
     return BASE_Z_INDEX + (index + 1) * FOREGROUND_Z_INDEX_OFFSET;

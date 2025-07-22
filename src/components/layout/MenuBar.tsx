@@ -64,6 +64,8 @@ interface MenuBarProps {
 function Clock() {
   const [time, setTime] = useState(new Date());
   const [viewportWidth, setViewportWidth] = useState(window.innerWidth);
+  const currentTheme = useThemeStore((state) => state.current);
+  const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -87,10 +89,17 @@ function Clock() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Format the display based on viewport width
+  // Format the display based on theme and viewport width
   let displayTime;
 
-  if (viewportWidth < 420) {
+  if (isXpTheme) {
+    // For XP/98 themes: time with AM/PM (e.g., "1:34 AM")
+    displayTime = time.toLocaleTimeString([], {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+  } else if (viewportWidth < 420) {
     // For small screens: just time without AM/PM (e.g., "1:34")
     const timeString = time.toLocaleTimeString([], {
       hour: "numeric",
@@ -118,7 +127,7 @@ function Clock() {
     displayTime = `${shortWeekday} ${month} ${day} ${timeString}`;
   }
 
-  return <div className="ml-auto mr-2">{displayTime}</div>;
+  return <div className={isXpTheme ? "" : "ml-auto mr-2"}>{displayTime}</div>;
 }
 
 function DefaultMenuItems() {
@@ -517,11 +526,13 @@ export function MenuBar({ children, inWindowFrame = false }: MenuBarProps) {
     instances,
     instanceWindowOrder,
     bringInstanceToForeground,
+    foregroundInstanceId, // Add this to get the foreground instance ID
   } = useAppStoreShallow((s) => ({
     getForegroundInstance: s.getForegroundInstance,
     instances: s.instances,
     instanceWindowOrder: s.instanceWindowOrder,
     bringInstanceToForeground: s.bringInstanceToForeground,
+    foregroundInstanceId: s.foregroundInstanceId, // Add this
   }));
 
   const foregroundInstance = getForegroundInstance();
@@ -560,54 +571,67 @@ export function MenuBar({ children, inWindowFrame = false }: MenuBarProps) {
           fontSize: "11px",
           color: currentTheme === "xp" ? "#ffffff" : "#000000",
           userSelect: "none",
+          width: "100vw",
         }}
       >
         {/* Start Button */}
-        <div className="flex items-center">
+        <div className="flex items-center h-full">
           <StartMenu apps={apps} />
         </div>
 
         {/* Running Apps Area */}
-        <div className="flex-1 flex items-center gap-1 px-2 overflow-x-auto">
+        <div className="flex-1 flex items-center gap-1 px-2 overflow-x-auto h-full">
           {/* Show all active instances as taskbar buttons */}
-          {instanceWindowOrder.length > 0 ? (
+          {instanceWindowOrder.length > 0 &&
             instanceWindowOrder.map((instanceId) => {
               const instance = instances[instanceId];
               if (!instance || !instance.isOpen) return null;
 
-              const isForeground =
-                instanceId ===
-                instanceWindowOrder[instanceWindowOrder.length - 1];
+              const isForeground = instanceId === foregroundInstanceId;
               const appIconPath = getAppIconPath(instance.appId);
 
               return (
                 <button
                   key={instanceId}
-                  className="px-3 text-left min-w-[120px] max-w-[160px] truncate rounded-sm flex items-center gap-2"
+                  className="px-2 gap-1 border-t border-y rounded-sm flex items-center justify-start"
                   onClick={() => bringInstanceToForeground(instanceId)}
                   style={{
-                    height: "22px",
+                    height: "85%",
+                    width: "160px",
+                    marginTop: "2px",
+                    marginRight: "4px",
                     background: isForeground
                       ? currentTheme === "xp"
-                        ? "linear-gradient(to bottom, #7DA2EE, #4E80E8, #3163DC)"
+                        ? "#3980f4" // Active should be lighter blue
                         : "#c0c0c0" // Flat gray for Windows 98
                       : currentTheme === "xp"
-                      ? "linear-gradient(to bottom, #6788D8, #5470C7, #415FB8)"
+                      ? "#1658dd" // Inactive should be darker blue
                       : "#c0c0c0",
                     border:
                       currentTheme === "xp"
                         ? isForeground
-                          ? "1px solid #001ea0"
-                          : "1px solid #245EDC"
+                          ? "1px solid #255be1" // Active border
+                          : "1px solid #255be1" // Inactive border - same as active
                         : "2px inset #c0c0c0",
                     color: currentTheme === "xp" ? "#ffffff" : "#000000",
                     fontSize: "11px",
                     boxShadow:
                       currentTheme === "xp"
-                        ? isForeground
-                          ? "inset 1px 1px 1px rgba(255,255,255,0.3)"
-                          : "none"
+                        ? "2px 2px 5px rgba(255, 255, 255, 0.267) inset"
                         : "inset -1px -1px 0 #808080, inset 1px 1px 0 #ffffff",
+                    transition: "all 0.1s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (currentTheme === "xp" && !isForeground) {
+                      e.currentTarget.style.background = "#1b50b8";
+                      e.currentTarget.style.borderColor = "#082875";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (currentTheme === "xp" && !isForeground) {
+                      e.currentTarget.style.background = "#1658dd";
+                      e.currentTarget.style.borderColor = "#255be1";
+                    }
                   }}
                 >
                   <img
@@ -616,36 +640,40 @@ export function MenuBar({ children, inWindowFrame = false }: MenuBarProps) {
                     className="w-4 h-4 flex-shrink-0"
                     style={{ imageRendering: "pixelated" }}
                   />
-                  <span className="truncate">
+                  <span className="truncate text-xs">
                     {instance.title || getAppName(instance.appId)}
                   </span>
                 </button>
               );
-            })
-          ) : (
-            <div className="text-xs opacity-50 px-2">No active windows</div>
-          )}
+            })}
         </div>
 
         {/* System Tray */}
         <div
-          className="flex items-center gap-1 px-2 h-full mr-1"
+          className="flex items-center gap-1 px-2 h-full text-white border box-border flex items-center justify-end text-sm"
           style={{
             background:
               currentTheme === "xp"
                 ? "linear-gradient(0deg, #0a5bc6 0%, #1198e9 6%, #1198e9 51%, #1198e9 63%, #1198e9 77%, #19b9f3 85%, #19b9f3 93%, #075dca 97%)"
                 : "#c0c0c0", // Flat gray for Windows 98
             boxShadow:
-              currentTheme === "xp" ? "2px 0px 3px #20e2fc inset" : "none",
+              currentTheme === "xp" ? "2px -0px 3px #20e2fc inset" : "none",
+            borderTop:
+              currentTheme === "xp" ? "1px solid #075dca" : "1px inset #c0c0c0",
+            borderBottom:
+              currentTheme === "xp" ? "1px solid #0a5bc6" : "1px inset #c0c0c0",
+            borderRight:
+              currentTheme === "xp" ? "transparent" : "1px inset #c0c0c0",
             borderLeft:
-              currentTheme === "xp" ? "1px solid #1075f5" : "1px inset #c0c0c0",
+              currentTheme === "xp" ? "1px solid #000000" : "1px inset #c0c0c0",
+            paddingTop: currentTheme === "xp" ? "1px" : "0px",
           }}
         >
           <div className="hidden sm:flex">
             <VolumeControl />
           </div>
           <div
-            className="text-xs font-bold px-2"
+            className={`text-xs font-bold ${isXpTheme ? "" : "px-2"}`}
             style={{
               color: currentTheme === "xp" ? "#ffffff" : "#000000",
               textShadow:

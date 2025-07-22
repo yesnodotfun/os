@@ -43,6 +43,7 @@ interface AppStoreState extends AppManagerState {
   // Add instance management
   instances: Record<string, AppInstance>;
   instanceWindowOrder: string[];
+  foregroundInstanceId: string | null; // Add separate foreground tracking
   nextInstanceId: number;
 
   // Add version tracking
@@ -584,6 +585,7 @@ export const useAppStore = create<AppStoreState>()(
       // Add instance management
       instances: {},
       instanceWindowOrder: [],
+      foregroundInstanceId: null, // Initialize new field
       nextInstanceId: 0,
 
       // Instance management methods
@@ -628,6 +630,7 @@ export const useAppStore = create<AppStoreState>()(
             },
           },
           instanceWindowOrder: [...state.instanceWindowOrder, instanceId],
+          foregroundInstanceId: instanceId, // Set as foreground instance
         }));
 
         // Bring all other instances to background
@@ -716,6 +719,7 @@ export const useAppStore = create<AppStoreState>()(
           const newState = {
             instances: newInstances,
             instanceWindowOrder: newInstanceWindowOrder,
+            foregroundInstanceId: nextForegroundInstanceId, // Update foreground tracking
           };
 
           // Emit DOM event for closing
@@ -747,7 +751,8 @@ export const useAppStore = create<AppStoreState>()(
         set((state) => {
           const newState = {
             instances: { ...state.instances },
-            instanceWindowOrder: [...state.instanceWindowOrder],
+            instanceWindowOrder: [...state.instanceWindowOrder], // Keep order stable
+            foregroundInstanceId: instanceId, // Update new field
           };
 
           // If empty string provided, just clear foreground flags
@@ -758,22 +763,17 @@ export const useAppStore = create<AppStoreState>()(
                 isForeground: false,
               };
             });
+            newState.foregroundInstanceId = null; // Clear new field
           } else {
-            // Re‑order instanceWindowOrder so that instanceId is last (top‑most)
-            newState.instanceWindowOrder = [
-              ...newState.instanceWindowOrder.filter(
-                (id: string) => id !== instanceId
-              ),
-              instanceId,
-            ];
-
-            // Set foreground flags
+            // Don't reorder instanceWindowOrder - keep taskbar order stable
+            // Just set foreground flags
             Object.keys(newState.instances).forEach((id) => {
               newState.instances[id] = {
                 ...newState.instances[id],
                 isForeground: id === instanceId,
               };
             });
+            newState.foregroundInstanceId = instanceId; // Update new field
           }
 
           // Emit DOM event (keep behaviour parity)
@@ -809,11 +809,9 @@ export const useAppStore = create<AppStoreState>()(
         );
       },
       getForegroundInstance: () => {
-        const { instanceWindowOrder, instances } = get();
-        if (instanceWindowOrder.length > 0) {
-          const lastInstanceId =
-            instanceWindowOrder[instanceWindowOrder.length - 1];
-          return instances[lastInstanceId] || null;
+        const { foregroundInstanceId } = get();
+        if (foregroundInstanceId) {
+          return get().instances[foregroundInstanceId] || null;
         }
         return null;
       },
@@ -908,6 +906,7 @@ export const useAppStore = create<AppStoreState>()(
           )
         ),
         instanceWindowOrder: state.instanceWindowOrder,
+        foregroundInstanceId: state.foregroundInstanceId, // Add new field to partialize
         nextInstanceId: state.nextInstanceId,
       }),
       migrate: (persistedState: unknown, version: number) => {

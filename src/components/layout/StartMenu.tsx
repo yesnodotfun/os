@@ -31,10 +31,10 @@ export function StartMenu({ apps }: StartMenuProps) {
       <DropdownMenu open={isStartMenuOpen} onOpenChange={setIsStartMenuOpen}>
         <DropdownMenuTrigger asChild>
           <button
-            className="flex items-center gap-2 px-4 text-white font-bold transition-all"
+            className="flex items-center gap-1 px-2 text-white font-bold transition-all"
             style={{
               width: "100px",
-              height: "30px",
+              height: "100%",
               borderRadius: "0 3px 3px 0",
               background:
                 currentTheme === "xp"
@@ -53,12 +53,19 @@ export function StartMenu({ apps }: StartMenuProps) {
                   : isStartMenuOpen
                   ? "inset -1px -1px 0 #ffffff, inset 1px 1px 0 #808080"
                   : "inset 1px 1px 0 #ffffff, inset -1px -1px 0 #808080",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
             <img
-              src="/icons/apple.png"
+              src={
+                currentTheme === "xp"
+                  ? "/icons/windows-xp.png"
+                  : "/icons/apple.png"
+              }
               alt="Start"
-              className="w-6 h-6 [image-rendering:pixelated]"
+              className="w-5 h-5 [image-rendering:pixelated]"
               style={{
                 filter:
                   currentTheme === "xp"
@@ -67,6 +74,7 @@ export function StartMenu({ apps }: StartMenuProps) {
               }}
             />
             <span
+              className="tracking-wider pr-2"
               style={{
                 textShadow:
                   currentTheme === "xp"
