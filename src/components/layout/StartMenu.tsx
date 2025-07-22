@@ -33,16 +33,17 @@ export function StartMenu({ apps }: StartMenuProps) {
           <button
             className="flex items-center gap-1 px-2 text-white font-bold transition-all"
             style={{
-              width: "100px",
-              height: "100%",
-              borderRadius: "0 3px 3px 0",
+              width: currentTheme === "xp" ? "100px" : "auto",
+              height: currentTheme === "xp" ? "100%" : "85%",
+              marginTop: currentTheme === "win98" ? "2px" : "0px",
+              borderRadius: currentTheme === "xp" ? "0 3px 3px 0" : "0",
               background:
                 currentTheme === "xp"
                   ? isStartMenuOpen
                     ? "linear-gradient(0deg, #2f892f 0%, #4eb64e 6%, #4eb64e 51%, #4eb64e 63%, #4eb64e 77%, #c4ffc4 85%, #c4ffc4 93%, #2f892f 97%)"
                     : "linear-gradient(0deg, #0c450c 0%, #308f2f 6%, #308f2f 51%, #308f2f 63%, #308f2f 77%, #97c597 85%, #97c597 93%, #308f2f 97%)"
                   : "#c0c0c0", // Flat gray for Windows 98
-              border: currentTheme === "xp" ? "none" : "2px outset #c0c0c0",
+              border: currentTheme === "xp" ? "none" : "none", // Windows 98 uses box-shadow instead of border
               color: currentTheme === "xp" ? "#ffffff" : "#000000",
               fontWeight: currentTheme === "xp" ? "500" : "bold",
               fontSize: currentTheme === "xp" ? "1.1rem" : "11px",
@@ -51,11 +52,25 @@ export function StartMenu({ apps }: StartMenuProps) {
                 currentTheme === "xp"
                   ? "-2px -2px 10px #0000008e inset"
                   : isStartMenuOpen
-                  ? "inset -1px -1px 0 #ffffff, inset 1px 1px 0 #808080"
-                  : "inset 1px 1px 0 #ffffff, inset -1px -1px 0 #808080",
+                  ? "inset -1px -1px #fff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px grey" // Windows 98 pressed
+                  : "inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px grey, inset 2px 2px #dfdfdf", // Windows 98 raised
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
+            }}
+            onMouseEnter={(e) => {
+              if (currentTheme === "win98" && !isStartMenuOpen) {
+                // Windows 98 hover - keep raised style, don't depress
+                e.currentTarget.style.boxShadow =
+                  "inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px grey, inset 2px 2px #dfdfdf";
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (currentTheme === "win98" && !isStartMenuOpen) {
+                // Windows 98 return to normal raised state
+                e.currentTarget.style.boxShadow =
+                  "inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px grey, inset 2px 2px #dfdfdf";
+              }
             }}
           >
             <img

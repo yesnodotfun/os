@@ -752,7 +752,7 @@ export const useAppStore = create<AppStoreState>()(
           const newState = {
             instances: { ...state.instances },
             instanceWindowOrder: [...state.instanceWindowOrder], // Keep order stable
-            foregroundInstanceId: instanceId, // Update new field
+            foregroundInstanceId: null as string | null, // Initialize as null
           };
 
           // If empty string provided, just clear foreground flags
@@ -763,7 +763,7 @@ export const useAppStore = create<AppStoreState>()(
                 isForeground: false,
               };
             });
-            newState.foregroundInstanceId = null; // Clear new field
+            // Already null, no need to set again
           } else {
             // Don't reorder instanceWindowOrder - keep taskbar order stable
             // Just set foreground flags

@@ -612,25 +612,35 @@ export function MenuBar({ children, inWindowFrame = false }: MenuBarProps) {
                         ? isForeground
                           ? "1px solid #255be1" // Active border
                           : "1px solid #255be1" // Inactive border - same as active
-                        : "2px inset #c0c0c0",
+                        : "none", // Windows 98 uses box-shadow instead of border
                     color: currentTheme === "xp" ? "#ffffff" : "#000000",
                     fontSize: "11px",
                     boxShadow:
                       currentTheme === "xp"
                         ? "2px 2px 5px rgba(255, 255, 255, 0.267) inset"
-                        : "inset -1px -1px 0 #808080, inset 1px 1px 0 #ffffff",
+                        : isForeground
+                        ? "inset -1px -1px #fff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px grey" // Windows 98 active - inset
+                        : "inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px grey, inset 2px 2px #dfdfdf", // Windows 98 inactive - raised
                     transition: "all 0.1s ease",
                   }}
                   onMouseEnter={(e) => {
                     if (currentTheme === "xp" && !isForeground) {
                       e.currentTarget.style.background = "#1b50b8";
                       e.currentTarget.style.borderColor = "#082875";
+                    } else if (currentTheme === "win98" && !isForeground) {
+                      // Windows 98 hover - keep raised style, don't depress
+                      e.currentTarget.style.boxShadow =
+                        "inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px grey, inset 2px 2px #dfdfdf";
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (currentTheme === "xp" && !isForeground) {
                       e.currentTarget.style.background = "#1658dd";
                       e.currentTarget.style.borderColor = "#255be1";
+                    } else if (currentTheme === "win98" && !isForeground) {
+                      // Windows 98 return to normal raised state
+                      e.currentTarget.style.boxShadow =
+                        "inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px grey, inset 2px 2px #dfdfdf";
                     }
                   }}
                 >

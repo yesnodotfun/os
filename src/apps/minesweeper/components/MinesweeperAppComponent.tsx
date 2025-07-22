@@ -133,12 +133,8 @@ function Cell({
   return (
     <button
       key={`${rowIndex}-${colIndex}`}
-      className={`w-7 h-7 flex items-center justify-center text-sm font-bold rounded-none select-none touch-none
-        ${
-          cell.isRevealed
-            ? "bg-[#d1d1d1] border border-t-gray-600 border-l-gray-600 border-r-[#f0f0f0] border-b-[#f0f0f0]"
-            : "bg-[#c0c0c0] border-2 border-t-white border-l-white border-r-gray-800 border-b-gray-800 hover:bg-[#d0d0d0] active:border active:border-gray-600"
-        }`}
+      className={`w-7 h-7 flex items-center justify-center text-sm font-bold rounded-none select-none touch-none minesweeper-cell
+        ${cell.isRevealed ? "minesweeper-revealed" : "minesweeper-hidden"}`}
       {...longPressHandlers}
       onContextMenu={handleContextMenu}
       onDoubleClick={handleDoubleClick}
@@ -185,6 +181,40 @@ export function MinesweeperAppComponent({
   const { play: playMineHit } = useSound(Sounds.ALERT_BONK, 0.3);
   const { play: playGameWin } = useSound(Sounds.ALERT_INDIGO, 0.3);
   const { play: playFlag } = useSound(Sounds.BUTTON_CLICK, 0.3);
+
+  // Add CSS to override global button styles
+  const minesweeperStyles = `
+    .minesweeper-cell {
+      font-size: 11px !important;
+      box-sizing: border-box !important;
+      border: none !important;
+      background: #c0c0c0 !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+    }
+    .minesweeper-hidden {
+      border-top: 2px solid #ffffff !important;
+      border-left: 2px solid #ffffff !important;
+      border-right: 2px solid #808080 !important;
+      border-bottom: 2px solid #808080 !important;
+    }
+    .minesweeper-hidden:hover {
+      background-color: #d0d0d0 !important;
+    }
+    .minesweeper-hidden:active {
+      border-top: 1px solid #808080 !important;
+      border-left: 1px solid #808080 !important;
+      border-right: 1px solid #808080 !important;
+      border-bottom: 1px solid #808080 !important;
+    }
+    .minesweeper-revealed {
+      background: #d1d1d1 !important;
+      border-top: 1px solid #808080 !important;
+      border-left: 1px solid #808080 !important;
+      border-right: 1px solid #f0f0f0 !important;
+      border-bottom: 1px solid #f0f0f0 !important;
+    }
+  `;
 
   function initializeBoard(): CellContent[][] {
     const board = Array(BOARD_SIZE)
@@ -408,6 +438,7 @@ export function MinesweeperAppComponent({
 
   return (
     <>
+      <style>{minesweeperStyles}</style>
       {!isXpTheme && menuBar}
       <WindowFrame
         title="Minesweeper"
