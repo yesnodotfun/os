@@ -923,7 +923,9 @@ export function FinderAppComponent({
                     navigateToPath((e.target as HTMLInputElement).value);
                   }
                 }}
-                className="flex-1 !text-[16px]"
+                className={`flex-1 ${
+                  isXpTheme ? "!text-[11px]" : "!text-[16px]"
+                } `}
                 placeholder="Enter path"
               />
             </div>

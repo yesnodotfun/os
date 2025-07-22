@@ -2133,7 +2133,9 @@ export function InternetExplorerAppComponent({
                       handleFilterSuggestions(localUrl);
                       setIsUrlDropdownOpen(true);
                     }}
-                    className="flex-1 pr-8 !text-[16px]"
+                    className={`flex-1 pr-8 ${
+                      isXpTheme ? "!text-[11px]" : "!text-[16px]"
+                    } `}
                     placeholder="Enter URL"
                     spellCheck="false"
                     autoComplete="off"
@@ -2309,7 +2311,9 @@ export function InternetExplorerAppComponent({
                     value={year}
                     onValueChange={(newYear) => handleNavigate(url, newYear)}
                   >
-                    <SelectTrigger className="!text-[16px]">
+                    <SelectTrigger
+                      className={isXpTheme ? "!text-[11px]" : "!text-[16px]"}
+                    >
                       <SelectValue placeholder="Year" />
                     </SelectTrigger>
                     <SelectContent className="px-0">

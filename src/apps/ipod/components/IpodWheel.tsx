@@ -319,7 +319,7 @@ export function IpodWheel({
           }
         }}
         className={cn(
-          "ipod-wheel-center absolute w-16 h-16 rounded-full z-10 flex items-center justify-center outline-none focus:ring-2 focus:ring-white/40",
+          "ipod-wheel-center absolute w-16 h-16 rounded-full z-10 flex items-center justify-center outline-none focus:outline-none focus-visible:outline-none",
           theme === "classic"
             ? "bg-white/30"
             : theme === "u2"
