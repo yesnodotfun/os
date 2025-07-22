@@ -57,11 +57,29 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       props.onClick?.(e);
     };
 
-    // For XP/Win98 themes, use xp.css button class
+    // For XP/Win98 themes, use xp.css button class only for default variant
+    // Ghost variant should maintain its clean appearance for menubars
     if (isXpTheme && variant === "default") {
       return (
         <Comp
           className={cn("button", className)}
+          ref={ref}
+          {...props}
+          onClick={handleClick}
+        />
+      );
+    }
+
+    // For XP/Win98 themes with ghost variant, add specific classes to override global button styles
+    if (isXpTheme && variant === "ghost") {
+      return (
+        <Comp
+          className={cn(
+            buttonVariants({ variant, size }),
+            "!border-none !bg-transparent !shadow-none !box-shadow-none !background-none",
+            "[background:transparent!important] [box-shadow:none!important] [border:none!important]",
+            className
+          )}
           ref={ref}
           {...props}
           onClick={handleClick}

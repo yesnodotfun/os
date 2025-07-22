@@ -12,6 +12,7 @@ import { MenuBar } from "@/components/layout/MenuBar";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { generateAppShareUrl } from "@/utils/sharedUrl";
+import { useThemeStore } from "@/stores/useThemeStore";
 
 interface SoundboardMenuBarProps extends Omit<AppProps, "onClose"> {
   onClose: () => void;
@@ -49,6 +50,8 @@ export function SoundboardMenuBar({
   onClose,
 }: SoundboardMenuBarProps) {
   const [isOptionPressed, setIsOptionPressed] = useState(false);
+  const currentTheme = useThemeStore((state) => state.current);
+  const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -72,7 +75,7 @@ export function SoundboardMenuBar({
   }, []);
 
   return (
-    <MenuBar>
+    <MenuBar inWindowFrame={isXpTheme}>
       {/* File Menu */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

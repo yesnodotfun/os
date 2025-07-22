@@ -857,7 +857,6 @@ export function WindowFrame({
               style={{
                 background: "var(--button-face)",
                 borderBottom: "1px solid var(--button-shadow)",
-                padding: "2px 0",
               }}
             >
               {menuBar}
