@@ -4,7 +4,7 @@ export const macosx: OsTheme = {
   id: "macosx",
   name: "Mac OS X",
   fonts: {
-    ui: "Lucida Grande, Geneva, -apple-system, BlinkMacSystemFont, sans-serif",
+    ui: "Lucida Grande, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
     mono: "Monaco, Menlo, monospace",
   },
   colors: {
@@ -23,6 +23,11 @@ export const macosx: OsTheme = {
       highlight: "#FFFFFF",
       shadow: "#999999",
       activeFace: "#E0E0E0",
+    },
+    trafficLights: {
+      close: "#FF5F57",
+      minimize: "#FFBD2E",
+      maximize: "#28CA42",
     },
     selection: {
       bg: "#3875D7",

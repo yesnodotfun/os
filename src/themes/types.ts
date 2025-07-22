@@ -25,6 +25,11 @@ export interface OsTheme {
       shadow: string;
       activeFace?: string;
     };
+    trafficLights?: {
+      close: string;
+      minimize: string;
+      maximize: string;
+    };
     selection: {
       bg: string;
       text: string;

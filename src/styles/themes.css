@@ -60,7 +60,7 @@
 
 /* Mac OS X Theme */
 :root[data-os-theme="macosx"] {
-  --os-font-ui: "Lucida Grande", Geneva, -apple-system, BlinkMacSystemFont,
+  --os-font-ui: "Lucida Grande", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
     sans-serif;
   --os-font-mono: Monaco, Menlo, monospace;
   --os-color-window-bg: #ececec;
@@ -76,6 +76,9 @@
   --os-color-button-highlight: #ffffff;
   --os-color-button-shadow: #999999;
   --os-color-button-active-face: #e0e0e0;
+  --os-color-traffic-light-close: #ff5f57;
+  --os-color-traffic-light-minimize: #ffbd2e;
+  --os-color-traffic-light-maximize: #28ca42;
   --os-color-selection-bg: #3875d7;
   --os-color-selection-text: #ffffff;
   --os-color-text-primary: #000000;

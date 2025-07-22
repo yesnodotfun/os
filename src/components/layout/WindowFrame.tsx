@@ -792,8 +792,117 @@ export function WindowFrame({
                 />
               </div>
             </div>
+          ) : currentTheme === "macosx" ? (
+            // Mac OS X theme title bar with traffic light buttons
+            <div
+              className={cn(
+                "flex items-center shrink-0 h-os-titlebar min-h-[1.5rem] mx-0 my-[0.1rem] mb-0 px-[0.1rem] py-[0.2rem] select-none cursor-move border-b-[1.5px] user-select-none z-50 draggable-area",
+                transparentBackground && "mt-0",
+                isForeground
+                  ? transparentBackground
+                    ? "bg-white/70 backdrop-blur-sm border-b-os-window"
+                    : "bg-os-titlebar-active-bg border-b-os-window"
+                  : transparentBackground
+                  ? "bg-white/20 backdrop-blur-sm border-b-os-window"
+                  : "bg-os-titlebar-inactive-bg border-b-gray-400"
+              )}
+              onMouseDown={handleMouseDownWithForeground}
+              onTouchStart={(e: React.TouchEvent<HTMLElement>) => {
+                handleMouseDownWithForeground(e);
+                if (isPhone) {
+                  handleTouchStart(e);
+                }
+              }}
+              onTouchMove={(e: React.TouchEvent<HTMLElement>) => {
+                if (isPhone) {
+                  handleTouchMove(e);
+                }
+              }}
+              onTouchEnd={() => {
+                if (isPhone) {
+                  handleTouchEnd();
+                }
+              }}
+            >
+              {/* Traffic Light Buttons */}
+              <div className="flex items-center gap-1 ml-2">
+                {/* Close Button (Red) */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleClose();
+                  }}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onTouchStart={(e) => e.stopPropagation()}
+                  className={cn(
+                    "w-3 h-3 rounded-full border border-gray-400 hover:brightness-110 transition-all duration-150",
+                    !isForeground && "opacity-50"
+                  )}
+                  style={{
+                    backgroundColor: theme.colors.trafficLights?.close || "#FF5F57",
+                  }}
+                  aria-label="Close"
+                />
+                {/* Minimize Button (Yellow) */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Minimize functionality could be added here
+                  }}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onTouchStart={(e) => e.stopPropagation()}
+                  className={cn(
+                    "w-3 h-3 rounded-full border border-gray-400 hover:brightness-110 transition-all duration-150",
+                    !isForeground && "opacity-50"
+                  )}
+                  style={{
+                    backgroundColor: theme.colors.trafficLights?.minimize || "#FFBD2E",
+                  }}
+                  aria-label="Minimize"
+                />
+                {/* Maximize Button (Green) */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleFullMaximize(e);
+                  }}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onTouchStart={(e) => e.stopPropagation()}
+                  className={cn(
+                    "w-3 h-3 rounded-full border border-gray-400 hover:brightness-110 transition-all duration-150",
+                    !isForeground && "opacity-50"
+                  )}
+                  style={{
+                    backgroundColor: theme.colors.trafficLights?.maximize || "#28CA42",
+                  }}
+                  aria-label="Maximize"
+                />
+              </div>
+              
+              {/* Title - removed white background */}
+              <span
+                className={cn(
+                  "select-none mx-auto px-2 py-0 h-full flex items-center whitespace-nowrap overflow-hidden text-ellipsis max-w-[80%]",
+                  isForeground
+                    ? "text-os-titlebar-active-text"
+                    : "text-os-titlebar-inactive-text"
+                )}
+                onDoubleClick={handleFullMaximize}
+                onTouchStart={(e) => {
+                  handleTitleBarTap(e);
+                  // Allow the event to bubble up to the titlebar for drag handling
+                  handleMouseDownWithForeground(e);
+                }}
+                onTouchMove={(e) => e.preventDefault()}
+              >
+                <span className="truncate">{title}</span>
+              </span>
+              
+              {/* Spacer to balance the traffic lights */}
+              <div className="mr-2 w-12 h-4" />
+            </div>
           ) : (
-            // Original Mac theme title bar
+            // Original Mac theme title bar (for System 7)
             <div
               className={cn(
                 "flex items-center shrink-0 h-os-titlebar min-h-[1.5rem] mx-0 my-[0.1rem] mb-0 px-[0.1rem] py-[0.2rem] select-none cursor-move border-b-[1.5px] user-select-none z-50 draggable-area",
