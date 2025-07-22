@@ -19,6 +19,13 @@ import { Slider } from "@/components/ui/slider";
 import { Volume1, Volume2, VolumeX, Settings } from "lucide-react";
 import { useSound, Sounds } from "@/hooks/useSound";
 import { useThemeStore } from "@/stores/useThemeStore";
+import { getAppIconPath, appRegistry } from "@/config/appRegistry";
+
+// Helper function to get app name
+const getAppName = (appId: string): string => {
+  const app = appRegistry[appId as keyof typeof appRegistry];
+  return app?.name || appId;
+};
 
 const finderHelpItems = [
   {
@@ -505,8 +512,11 @@ function VolumeControl() {
 
 export function MenuBar({ children, inWindowFrame = false }: MenuBarProps) {
   const { apps } = useAppContext();
-  const { getForegroundInstance } = useAppStoreShallow((s) => ({
+  const { getForegroundInstance, instances, instanceWindowOrder, bringInstanceToForeground } = useAppStoreShallow((s) => ({
     getForegroundInstance: s.getForegroundInstance,
+    instances: s.instances,
+    instanceWindowOrder: s.instanceWindowOrder,
+    bringInstanceToForeground: s.bringInstanceToForeground,
   }));
 
   const foregroundInstance = getForegroundInstance();
@@ -553,29 +563,54 @@ export function MenuBar({ children, inWindowFrame = false }: MenuBarProps) {
         </div>
 
         {/* Running Apps Area */}
-        <div className="flex-1 flex items-center gap-1 px-2">
-          {/* Show active apps as taskbar buttons */}
-          {hasActiveApp && foregroundInstance && (
-            <button
-              className="px-3 py-1 h-7 text-left min-w-32 max-w-48 truncate rounded-sm"
-              style={{
-                background:
-                  currentTheme === "xp"
-                    ? "linear-gradient(to bottom, #E8F0FE, #C7D9F7, #9ABEF5)"
-                    : "#c0c0c0", // Flat gray for Windows 98
-                border:
-                  currentTheme === "xp"
-                    ? "1px solid #7BA7E7"
-                    : "2px inset #c0c0c0",
-                color: currentTheme === "xp" ? "#003D82" : "#000000",
-                boxShadow:
-                  currentTheme === "xp"
-                    ? "inset -1px -1px 0 rgba(0,0,0,0.1), inset 1px 1px 0 rgba(255,255,255,0.8)"
-                    : "inset -1px -1px 0 #808080, inset 1px 1px 0 #ffffff",
-              }}
-            >
-              {foregroundInstance.title || "App"}
-            </button>
+        <div className="flex-1 flex items-center gap-1 px-2 overflow-x-auto">
+          {/* Show all active instances as taskbar buttons */}
+          {instanceWindowOrder.length > 0 ? (
+            instanceWindowOrder.map((instanceId) => {
+              const instance = instances[instanceId];
+              if (!instance || !instance.isOpen) return null;
+              
+              const isForeground = instanceId === instanceWindowOrder[instanceWindowOrder.length - 1];
+              const appIconPath = getAppIconPath(instance.appId);
+              
+              return (
+                <button
+                  key={instanceId}
+                  className="px-3 py-1 h-7 text-left min-w-32 max-w-48 truncate rounded-sm flex items-center gap-2"
+                  onClick={() => bringInstanceToForeground(instanceId)}
+                  style={{
+                    background: isForeground
+                      ? (currentTheme === "xp"
+                          ? "linear-gradient(to bottom, #E8F0FE, #C7D9F7, #9ABEF5)"
+                          : "#c0c0c0") // Flat gray for Windows 98
+                      : (currentTheme === "xp"
+                          ? "linear-gradient(to bottom, #F0F0F0, #E0E0E0)"
+                          : "#c0c0c0"),
+                    border: currentTheme === "xp"
+                      ? "1px solid #7BA7E7"
+                      : "2px inset #c0c0c0",
+                    color: currentTheme === "xp" ? "#003D82" : "#000000",
+                    boxShadow: currentTheme === "xp"
+                      ? "inset -1px -1px 0 rgba(0,0,0,0.1), inset 1px 1px 0 rgba(255,255,255,0.8)"
+                      : "inset -1px -1px 0 #808080, inset 1px 1px 0 #ffffff",
+                  }}
+                >
+                  <img 
+                    src={appIconPath} 
+                    alt="" 
+                    className="w-4 h-4 flex-shrink-0"
+                    style={{ imageRendering: "pixelated" }}
+                  />
+                  <span className="truncate">
+                    {instance.title || getAppName(instance.appId)}
+                  </span>
+                </button>
+              );
+            })
+          ) : (
+            <div className="text-xs opacity-50 px-2">
+              No active windows
+            </div>
           )}
         </div>
 
