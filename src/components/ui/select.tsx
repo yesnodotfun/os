@@ -2,6 +2,7 @@ import * as React from "react";
 import * as SelectPrimitive from "@radix-ui/react-select";
 import { Check, ChevronDown, ChevronUp } from "lucide-react";
 import { useSound, Sounds } from "@/hooks/useSound";
+import { useThemeStore } from "@/stores/useThemeStore";
 
 import { cn } from "@/lib/utils";
 
@@ -35,6 +36,7 @@ const SelectTrigger = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger>
 >(({ className, children, ...props }, ref) => {
   const { play: playClick } = useSound(Sounds.BUTTON_CLICK, 0.3);
+  const currentTheme = useThemeStore((state) => state.current);
 
   return (
     <SelectPrimitive.Trigger
@@ -43,6 +45,16 @@ const SelectTrigger = React.forwardRef<
         "flex h-9 w-full items-center justify-between whitespace-nowrap rounded-md border border-input bg-transparent px-3 py-2 text-sm [border-image:url('/button.svg')_30_stretch] active:[border-image:url('/button-default.svg')_60_stretch] focus:[border-image:url('/button-default.svg')_60_stretch] border-[5px] ring-offset-background placeholder:text-muted-foreground focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
         className
       )}
+      style={{
+        fontFamily:
+          currentTheme === "xp" || currentTheme === "win98"
+            ? '"Pixelated MS Sans Serif", Arial'
+            : undefined,
+        fontSize:
+          currentTheme === "xp" || currentTheme === "win98"
+            ? "11px"
+            : undefined,
+      }}
       onClick={() => playClick()}
       {...props}
     >
@@ -125,13 +137,27 @@ SelectContent.displayName = SelectPrimitive.Content.displayName;
 const SelectLabel = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Label>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Label>
->(({ className, ...props }, ref) => (
-  <SelectPrimitive.Label
-    ref={ref}
-    className={cn("px-2 py-1.5 text-sm font-semibold", className)}
-    {...props}
-  />
-));
+>(({ className, ...props }, ref) => {
+  const currentTheme = useThemeStore((state) => state.current);
+
+  return (
+    <SelectPrimitive.Label
+      ref={ref}
+      className={cn("px-2 py-1.5 text-sm font-semibold", className)}
+      style={{
+        fontFamily:
+          currentTheme === "xp" || currentTheme === "win98"
+            ? '"Pixelated MS Sans Serif", Arial'
+            : undefined,
+        fontSize:
+          currentTheme === "xp" || currentTheme === "win98"
+            ? "11px"
+            : undefined,
+      }}
+      {...props}
+    />
+  );
+});
 SelectLabel.displayName = SelectPrimitive.Label.displayName;
 
 const SelectItem = React.forwardRef<
@@ -139,6 +165,7 @@ const SelectItem = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Item>
 >(({ className, children, ...props }, ref) => {
   const { play: playClick } = useSound(Sounds.BUTTON_CLICK, 0.3);
+  const currentTheme = useThemeStore((state) => state.current);
 
   return (
     <SelectPrimitive.Item
@@ -147,6 +174,16 @@ const SelectItem = React.forwardRef<
         "relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-2 pr-8 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
         className
       )}
+      style={{
+        fontFamily:
+          currentTheme === "xp" || currentTheme === "win98"
+            ? '"Pixelated MS Sans Serif", Arial'
+            : undefined,
+        fontSize:
+          currentTheme === "xp" || currentTheme === "win98"
+            ? "11px"
+            : undefined,
+      }}
       onSelect={(event) => {
         playClick();
         props.onSelect?.(event);

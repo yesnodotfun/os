@@ -40,8 +40,28 @@ export function AboutDialog({
           className="w-12 h-12 mx-auto [image-rendering:pixelated]"
         />
       </div>
-      <div className="space-y-0 font-geneva-12 text-[10px] text-center">
-        <div className="text-2xl font-medium font-apple-garamond">
+      <div
+        className={cn(
+          "space-y-0 text-center",
+          isXpTheme
+            ? "font-['Pixelated_MS_Sans_Serif',Arial] text-[11px]"
+            : "font-geneva-12 text-[10px]"
+        )}
+        style={{
+          fontFamily: isXpTheme
+            ? '"Pixelated MS Sans Serif", Arial'
+            : undefined,
+          fontSize: isXpTheme ? "11px" : undefined,
+        }}
+      >
+        <div
+          className={cn(
+            "text-2xl font-medium",
+            isXpTheme
+              ? "font-['Pixelated_MS_Sans_Serif',Arial]"
+              : "font-apple-garamond"
+          )}
+        >
           {metadata.name}
         </div>
         <p className="text-gray-500">Version {metadata.version}</p>
@@ -75,9 +95,12 @@ export function AboutDialog({
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
         <DialogContent
           className={cn(
-            "p-0 overflow-hidden",
-            currentTheme === "xp" ? "window" : ""
+            "p-0 overflow-hidden max-w-[240px] border-0", // Remove border but keep box-shadow
+            currentTheme === "xp" ? "window" : "window" // Use window class for both themes
           )}
+          style={{
+            fontSize: "11px",
+          }}
         >
           <div
             className="title-bar"
@@ -88,7 +111,9 @@ export function AboutDialog({
               <button aria-label="Close" onClick={() => onOpenChange(false)} />
             </div>
           </div>
-          <div className="window-body">{dialogContent}</div>
+          <div className={`window-body ${isXpTheme ? "p-2 px-4" : "p-4"}`}>
+            {dialogContent}
+          </div>
         </DialogContent>
       </Dialog>
     );

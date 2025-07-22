@@ -411,62 +411,68 @@ export function SoundboardAppComponent({
           minHeight: window.innerWidth >= 768 ? 475 : 625,
         }}
       >
-        <input
-          type="file"
-          ref={importInputRef}
-          className="hidden"
-          accept="application/json"
-          onChange={handleImportBoard}
-        />
+        <div
+          className={`h-full w-full flex ${
+            isXpTheme ? "border-t border-[#919b9c]" : ""
+          }`}
+        >
+          <input
+            type="file"
+            ref={importInputRef}
+            className="hidden"
+            accept="application/json"
+            onChange={handleImportBoard}
+          />
 
-        <BoardList
-          boards={boards}
-          activeBoardId={activeBoardId}
-          onBoardSelect={setActiveBoardId}
-          onNewBoard={addNewBoard}
-          selectedDeviceId={selectedDeviceId || ""}
-          onDeviceSelect={storeSetSelectedDeviceId}
-          audioDevices={audioDevices}
-          micPermissionGranted={micPermissionGranted}
-        />
+          <BoardList
+            boards={boards}
+            activeBoardId={activeBoardId}
+            onBoardSelect={setActiveBoardId}
+            onNewBoard={addNewBoard}
+            selectedDeviceId={selectedDeviceId || ""}
+            onDeviceSelect={storeSetSelectedDeviceId}
+            audioDevices={audioDevices}
+            micPermissionGranted={micPermissionGranted}
+          />
 
-        <SoundGrid
-          board={activeBoard}
-          playbackStates={playbackStates}
-          isEditingTitle={isEditingTitle}
-          onTitleChange={(name) => updateBoardName(name)}
-          onTitleBlur={(name) => {
-            updateBoardName(name);
-            setIsEditingTitle(false);
-          }}
-          onTitleKeyDown={(e) => {
-            if (e.key === "Enter") {
-              updateBoardName(e.currentTarget.value);
+          <SoundGrid
+            board={activeBoard}
+            playbackStates={playbackStates}
+            isEditingTitle={isEditingTitle}
+            onTitleChange={(name) => updateBoardName(name)}
+            onTitleBlur={(name) => {
+              updateBoardName(name);
               setIsEditingTitle(false);
+            }}
+            onTitleKeyDown={(e) => {
+              if (e.key === "Enter") {
+                updateBoardName(e.currentTarget.value);
+                setIsEditingTitle(false);
+              }
+            }}
+            onSlotClick={handleSlotClick}
+            onSlotDelete={deleteSlot}
+            onSlotEmojiClick={(index) =>
+              setDialogState({
+                type: "emoji",
+                isOpen: true,
+                slotIndex: index,
+                value: activeBoard.slots[index]?.emoji || "",
+              })
             }
-          }}
-          onSlotClick={handleSlotClick}
-          onSlotDelete={deleteSlot}
-          onSlotEmojiClick={(index) =>
-            setDialogState({
-              type: "emoji",
-              isOpen: true,
-              slotIndex: index,
-              value: activeBoard.slots[index]?.emoji || "",
-            })
-          }
-          onSlotTitleClick={(index) =>
-            setDialogState({
-              type: "title",
-              isOpen: true,
-              slotIndex: index,
-              value: activeBoard.slots[index]?.title || "",
-            })
-          }
-          setIsEditingTitle={setIsEditingTitle}
-          showWaveforms={showWaveforms}
-          showEmojis={showEmojis}
-        />
+            onSlotTitleClick={(index) =>
+              setDialogState({
+                type: "title",
+                isOpen: true,
+                slotIndex: index,
+                value: activeBoard.slots[index]?.title || "",
+              })
+            }
+            setIsEditingTitle={setIsEditingTitle}
+            showWaveforms={showWaveforms}
+            showEmojis={showEmojis}
+          />
+        </div>
 
         <EmojiDialog
           isOpen={dialogState.isOpen && dialogState.type === "emoji"}

@@ -11,6 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useThemeStore } from "@/stores/useThemeStore";
+import { cn } from "@/lib/utils";
 
 interface LoginDialogProps {
   /* Common */
@@ -60,6 +62,8 @@ export function LoginDialog({
   signUpError,
 }: LoginDialogProps) {
   const [activeTab, setActiveTab] = useState<"login" | "signup">(initialTab);
+  const currentTheme = useThemeStore((state) => state.current);
+  const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
 
   // Reset to the initial tab whenever the dialog is reopened
   useEffect(() => {
@@ -85,26 +89,74 @@ export function LoginDialog({
   const renderLoginForm = () => (
     <div className="space-y-3">
       <div className="space-y-2">
-        <Label className="text-gray-700 text-[12px] font-geneva-12">
+        <Label
+          className={cn(
+            "text-gray-700",
+            isXpTheme
+              ? "font-['Pixelated_MS_Sans_Serif',Arial] text-[11px]"
+              : "font-geneva-12 text-[12px]"
+          )}
+          style={{
+            fontFamily: isXpTheme
+              ? '"Pixelated MS Sans Serif", Arial'
+              : undefined,
+            fontSize: isXpTheme ? "11px" : undefined,
+          }}
+        >
           Username
         </Label>
         <Input
           autoFocus={activeTab === "login"}
           value={usernameInput}
           onChange={(e) => onUsernameInputChange(e.target.value)}
-          className="shadow-none font-geneva-12 text-[12px] h-8"
+          className={cn(
+            "shadow-none h-8",
+            isXpTheme
+              ? "font-['Pixelated_MS_Sans_Serif',Arial] text-[11px]"
+              : "font-geneva-12 text-[12px]"
+          )}
+          style={{
+            fontFamily: isXpTheme
+              ? '"Pixelated MS Sans Serif", Arial'
+              : undefined,
+            fontSize: isXpTheme ? "11px" : undefined,
+          }}
           disabled={isLoginLoading}
         />
       </div>
       <div className="space-y-2">
-        <Label className="text-gray-700 text-[12px] font-geneva-12">
+        <Label
+          className={cn(
+            "text-gray-700",
+            isXpTheme
+              ? "font-['Pixelated_MS_Sans_Serif',Arial] text-[11px]"
+              : "font-geneva-12 text-[12px]"
+          )}
+          style={{
+            fontFamily: isXpTheme
+              ? '"Pixelated MS Sans Serif", Arial'
+              : undefined,
+            fontSize: isXpTheme ? "11px" : undefined,
+          }}
+        >
           Password
         </Label>
         <Input
           type="password"
           value={passwordInput}
           onChange={(e) => onPasswordInputChange(e.target.value)}
-          className="shadow-none font-geneva-12 text-[12px] h-8"
+          className={cn(
+            "shadow-none h-8",
+            isXpTheme
+              ? "font-['Pixelated_MS_Sans_Serif',Arial] text-[11px]"
+              : "font-geneva-12 text-[12px]"
+          )}
+          style={{
+            fontFamily: isXpTheme
+              ? '"Pixelated MS Sans Serif", Arial'
+              : undefined,
+            fontSize: isXpTheme ? "11px" : undefined,
+          }}
           disabled={isLoginLoading}
         />
       </div>
@@ -114,26 +166,74 @@ export function LoginDialog({
   const renderSignUpForm = () => (
     <div className="space-y-3">
       <div className="space-y-2">
-        <Label className="text-gray-700 text-[12px] font-geneva-12">
+        <Label
+          className={cn(
+            "text-gray-700",
+            isXpTheme
+              ? "font-['Pixelated_MS_Sans_Serif',Arial] text-[11px]"
+              : "font-geneva-12 text-[12px]"
+          )}
+          style={{
+            fontFamily: isXpTheme
+              ? '"Pixelated MS Sans Serif", Arial'
+              : undefined,
+            fontSize: isXpTheme ? "11px" : undefined,
+          }}
+        >
           Username
         </Label>
         <Input
           autoFocus={activeTab === "signup"}
           value={newUsername}
           onChange={(e) => onNewUsernameChange(e.target.value)}
-          className="shadow-none font-geneva-12 text-[12px] h-8"
+          className={cn(
+            "shadow-none h-8",
+            isXpTheme
+              ? "font-['Pixelated_MS_Sans_Serif',Arial] text-[11px]"
+              : "font-geneva-12 text-[12px]"
+          )}
+          style={{
+            fontFamily: isXpTheme
+              ? '"Pixelated MS Sans Serif", Arial'
+              : undefined,
+            fontSize: isXpTheme ? "11px" : undefined,
+          }}
           disabled={isSignUpLoading}
         />
       </div>
       <div className="space-y-2">
-        <Label className="text-gray-700 text-[12px] font-geneva-12">
-          Password (optional)
+        <Label
+          className={cn(
+            "text-gray-700",
+            isXpTheme
+              ? "font-['Pixelated_MS_Sans_Serif',Arial] text-[11px]"
+              : "font-geneva-12 text-[12px]"
+          )}
+          style={{
+            fontFamily: isXpTheme
+              ? '"Pixelated MS Sans Serif", Arial'
+              : undefined,
+            fontSize: isXpTheme ? "11px" : undefined,
+          }}
+        >
+          Password
         </Label>
         <Input
           type="password"
           value={newPassword}
           onChange={(e) => onNewPasswordChange(e.target.value)}
-          className="shadow-none font-geneva-12 text-[12px] h-8"
+          className={cn(
+            "shadow-none h-8",
+            isXpTheme
+              ? "font-['Pixelated_MS_Sans_Serif',Arial] text-[11px]"
+              : "font-geneva-12 text-[12px]"
+          )}
+          style={{
+            fontFamily: isXpTheme
+              ? '"Pixelated MS Sans Serif", Arial'
+              : undefined,
+            fontSize: isXpTheme ? "11px" : undefined,
+          }}
           disabled={isSignUpLoading}
         />
       </div>
@@ -178,6 +278,145 @@ export function LoginDialog({
     onOpenChange,
   ]);
 
+  const dialogContent = (
+    <div className="pt-1 pb-6 px-6">
+      <form onSubmit={handleSubmit}>
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) => setActiveTab(v as "login" | "signup")}
+          className="w-full"
+        >
+          <TabsList className="grid grid-cols-2 w-full h-fit mb-4 bg-transparent p-0.5 border border-black">
+            <TabsTrigger
+              value="signup"
+              className={cn(
+                "relative px-4 py-1.5 rounded-none bg-white data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:z-10 data-[state=inactive]:border-r-0",
+                isXpTheme
+                  ? "font-['Pixelated_MS_Sans_Serif',Arial] text-[11px]"
+                  : "font-geneva-12 text-[12px]"
+              )}
+              style={{
+                fontFamily: isXpTheme
+                  ? '"Pixelated MS Sans Serif", Arial'
+                  : undefined,
+                fontSize: isXpTheme ? "11px" : undefined,
+              }}
+            >
+              Create Account
+            </TabsTrigger>
+            <TabsTrigger
+              value="login"
+              className={cn(
+                "relative px-4 py-1.5 rounded-none bg-white data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:z-10",
+                isXpTheme
+                  ? "font-['Pixelated_MS_Sans_Serif',Arial] text-[11px]"
+                  : "font-geneva-12 text-[12px]"
+              )}
+              style={{
+                fontFamily: isXpTheme
+                  ? '"Pixelated MS Sans Serif", Arial'
+                  : undefined,
+                fontSize: isXpTheme ? "11px" : undefined,
+              }}
+            >
+              Log In
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Sign Up */}
+          <TabsContent value="signup" className="mt-0">
+            {renderSignUpForm()}
+          </TabsContent>
+
+          {/* Login */}
+          <TabsContent value="login" className="mt-0">
+            {renderLoginForm()}
+          </TabsContent>
+        </Tabs>
+
+        {activeError && (
+          <p
+            className={cn(
+              "text-red-600 mt-3",
+              isXpTheme
+                ? "font-['Pixelated_MS_Sans_Serif',Arial] text-[11px]"
+                : "font-geneva-12 text-[12px]"
+            )}
+            style={{
+              fontFamily: isXpTheme
+                ? '"Pixelated MS Sans Serif", Arial'
+                : undefined,
+              fontSize: isXpTheme ? "11px" : undefined,
+            }}
+          >
+            {activeError}
+          </p>
+        )}
+
+        <DialogFooter className="mt-6 gap-1 sm:justify-end">
+          <Button
+            type="submit"
+            variant="retro"
+            disabled={
+              isActionLoading ||
+              (activeTab === "login"
+                ? !usernameInput.trim() || !passwordInput.trim()
+                : !newUsername.trim())
+            }
+            className={cn(
+              "w-full sm:w-auto h-7",
+              isXpTheme
+                ? "font-['Pixelated_MS_Sans_Serif',Arial] text-[11px]"
+                : "font-geneva-12 text-[12px]"
+            )}
+            style={{
+              fontFamily: isXpTheme
+                ? '"Pixelated MS Sans Serif", Arial'
+                : undefined,
+              fontSize: isXpTheme ? "11px" : undefined,
+            }}
+          >
+            {isActionLoading
+              ? activeTab === "login"
+                ? "Logging in..."
+                : "Creating..."
+              : activeTab === "login"
+              ? "Log In"
+              : "Create Account"}
+          </Button>
+        </DialogFooter>
+      </form>
+    </div>
+  );
+
+  if (isXpTheme) {
+    return (
+      <Dialog open={isOpen} onOpenChange={onOpenChange}>
+        <DialogContent
+          className={cn(
+            "p-0 overflow-hidden max-w-[400px] border-0", // Remove border but keep box-shadow
+            currentTheme === "xp" ? "window" : "window" // Use window class for both themes
+          )}
+          style={{
+            fontSize: "11px",
+          }}
+          onKeyDown={(e: React.KeyboardEvent) => e.stopPropagation()}
+        >
+          <div
+            className="title-bar"
+            style={currentTheme === "xp" ? { minHeight: "30px" } : undefined}
+          >
+            <div className="title-bar-text">ryOS Login</div>
+            <div className="title-bar-controls">
+              <button aria-label="Close" onClick={() => onOpenChange(false)} />
+            </div>
+          </div>
+          <div className="window-body">{dialogContent}</div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent
@@ -194,69 +433,7 @@ export function LoginDialog({
               : "Create an account to access chat rooms and save your settings"}
           </DialogDescription>
         </DialogHeader>
-
-        <div className="pt-1 pb-6 px-6">
-          <form onSubmit={handleSubmit}>
-            <Tabs
-              value={activeTab}
-              onValueChange={(v) => setActiveTab(v as "login" | "signup")}
-              className="w-full"
-            >
-              <TabsList className="grid grid-cols-2 w-full h-fit mb-4 bg-transparent p-0.5 border border-black">
-                <TabsTrigger
-                  value="signup"
-                  className="relative font-geneva-12 text-[12px] px-4 py-1.5 rounded-none bg-white data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:z-10 data-[state=inactive]:border-r-0"
-                >
-                  Create Account
-                </TabsTrigger>
-                <TabsTrigger
-                  value="login"
-                  className="relative font-geneva-12 text-[12px] px-4 py-1.5 rounded-none bg-white data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:z-10"
-                >
-                  Log In
-                </TabsTrigger>
-              </TabsList>
-
-              {/* Sign Up */}
-              <TabsContent value="signup" className="mt-0">
-                {renderSignUpForm()}
-              </TabsContent>
-
-              {/* Login */}
-              <TabsContent value="login" className="mt-0">
-                {renderLoginForm()}
-              </TabsContent>
-            </Tabs>
-
-            {activeError && (
-              <p className="text-red-600 text-[12px] font-geneva-12 mt-3">
-                {activeError}
-              </p>
-            )}
-
-            <DialogFooter className="mt-6 gap-2 sm:justify-end">
-              <Button
-                type="submit"
-                variant="retro"
-                disabled={
-                  isActionLoading ||
-                  (activeTab === "login"
-                    ? !usernameInput.trim() || !passwordInput.trim()
-                    : !newUsername.trim())
-                }
-                className="w-full sm:w-auto"
-              >
-                {isActionLoading
-                  ? activeTab === "login"
-                    ? "Logging in..."
-                    : "Creating..."
-                  : activeTab === "login"
-                  ? "Log In"
-                  : "Create Account"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </div>
+        {dialogContent}
       </DialogContent>
     </Dialog>
   );

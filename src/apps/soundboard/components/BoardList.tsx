@@ -9,6 +9,7 @@ import {
 import { Plus } from "lucide-react";
 import { Soundboard } from "@/types/types";
 import { cn } from "@/lib/utils";
+import { useThemeStore } from "@/stores/useThemeStore";
 
 interface BoardListProps {
   boards: Soundboard[];
@@ -31,8 +32,19 @@ export function BoardList({
   audioDevices,
   micPermissionGranted,
 }: BoardListProps) {
+  // Theme detection for border styling
+  const currentTheme = useThemeStore((state) => state.current);
+  const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
+  const isWindowsLegacyTheme = isXpTheme;
+
   return (
-    <div className="w-full bg-neutral-100 border-b flex flex-col max-h-44 overflow-hidden md:w-56 md:border-r md:border-b-0 md:max-h-full font-geneva-12 text-[12px]">
+    <div
+      className={`w-full bg-neutral-100 flex flex-col max-h-44 overflow-hidden md:w-56 md:max-h-full font-geneva-12 text-[12px] ${
+        isWindowsLegacyTheme
+          ? "border-b border-[#919b9c] md:border-r md:border-b-0"
+          : "border-b border-black md:border-r md:border-b-0"
+      }`}
+    >
       <div className="py-3 px-3 flex flex-col flex-1 overflow-hidden">
         <div className="flex justify-between items-center md:mb-2">
           <h2 className="text-[14px] pl-1 mb-1">Soundboards</h2>
@@ -63,14 +75,22 @@ export function BoardList({
         </div>
 
         {micPermissionGranted && (
-          <div className="mt-auto pt-2 border-t border-gray-300 px-2 pb-2">
+          <div
+            className={`mt-auto pt-2 border-t px-2 pb-2 ${
+              isWindowsLegacyTheme ? "border-[#919b9c]" : "border-gray-300"
+            }`}
+          >
             <Select value={selectedDeviceId} onValueChange={onDeviceSelect}>
               <SelectTrigger className="w-full h-7 text-xs">
                 <SelectValue placeholder="Select microphone" />
               </SelectTrigger>
               <SelectContent>
                 {audioDevices.map((device) => (
-                  <SelectItem key={device.deviceId} value={device.deviceId} className="text-xs">
+                  <SelectItem
+                    key={device.deviceId}
+                    value={device.deviceId}
+                    className="text-xs"
+                  >
                     {device.label ||
                       `Microphone ${device.deviceId.slice(0, 4)}...`}
                   </SelectItem>

@@ -385,6 +385,9 @@ export function ChatsAppComponent({
 
   const currentTheme = useThemeStore((state) => state.current);
   const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
+  const isClassicMacTheme =
+    currentTheme === "macosx" || currentTheme === "system7";
+  const isWindowsLegacyTheme = isXpTheme;
 
   const menuBar = (
     <ChatsMenuBar
@@ -459,7 +462,12 @@ export function ChatsAppComponent({
         isShaking={isShaking}
         menuBar={isXpTheme ? menuBar : undefined}
       >
-        <div ref={containerRef} className="relative h-full w-full">
+        <div
+          ref={containerRef}
+          className={`relative h-full w-full ${
+            isWindowsLegacyTheme ? "border-t border-[#919b9c]" : ""
+          }`}
+        >
           {/* Mobile sidebar overlay with framer-motion 3D animations */}
           <AnimatePresence>
             {sidebarVisibleBool && isFrameNarrow && (
@@ -555,7 +563,11 @@ export function ChatsAppComponent({
             {/* Chat area */}
             <div className="relative flex flex-col flex-1 h-full bg-white/85">
               {/* Mobile chat title bar */}
-              <div className="sticky top-0 z-10 flex items-center justify-between px-2 py-1 bg-neutral-200/90 backdrop-blur-lg border-b border-black">
+              <div
+                className={`sticky top-0 z-10 flex items-center justify-between px-2 py-1 bg-neutral-200/90 backdrop-blur-lg border-b ${
+                  isWindowsLegacyTheme ? "border-[#919b9c]" : "border-black"
+                }`}
+              >
                 <div className="flex items-center">
                   <Button
                     variant="ghost"

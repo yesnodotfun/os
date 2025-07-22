@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import {
-  Dialog,  DialogContent,
+  Dialog,
+  DialogContent,
   DialogHeader,
   DialogFooter,
   DialogTitle,
@@ -9,6 +10,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { useThemeStore } from "@/stores/useThemeStore";
+import { cn } from "@/lib/utils";
 
 interface ShareItemDialogProps {
   isOpen: boolean;
@@ -34,6 +37,8 @@ export function ShareItemDialog({
   const [isLoading, setIsLoading] = useState(false);
   const [shareUrl, setShareUrl] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const currentTheme = useThemeStore((state) => state.current);
+  const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
 
   // Generate the share link when the dialog opens or identifiers change
   useEffect(() => {
@@ -58,7 +63,7 @@ export function ShareItemDialog({
         setShareUrl("");
       }
     };
-  // Include all dependencies that affect URL generation
+    // Include all dependencies that affect URL generation
   }, [isOpen, itemIdentifier, secondaryIdentifier, itemType, generateShareUrl]);
 
   // Focus the input when the share URL is available
@@ -107,13 +112,160 @@ export function ShareItemDialog({
       text += ` by ${details}`;
     }
     if (secondaryIdentifier) {
-       // Handle year specifically for now, could be made more generic
-       if (itemType === 'Page' && secondaryIdentifier !== 'current') {
-         text += ` from ${secondaryIdentifier}`;
-       }
+      // Handle year specifically for now, could be made more generic
+      if (itemType === "Page" && secondaryIdentifier !== "current") {
+        text += ` from ${secondaryIdentifier}`;
+      }
     }
     return text;
   };
+
+  const dialogContent = (
+    <div className="p-3 w-full">
+      <div className="flex flex-col items-center space-y-3 w-full">
+        {/* QR Code */}
+        {isLoading ? (
+          <div className="w-32 h-32 flex items-center justify-center bg-gray-100 rounded">
+            <p
+              className={cn(
+                "text-gray-500",
+                isXpTheme
+                  ? "font-['Pixelated_MS_Sans_Serif',Arial] text-[10px]"
+                  : "font-geneva-12 text-[10px]"
+              )}
+              style={{
+                fontFamily: isXpTheme
+                  ? '"Pixelated MS Sans Serif", Arial'
+                  : undefined,
+                fontSize: isXpTheme ? "10px" : undefined,
+              }}
+            >
+              Generating...
+            </p>
+          </div>
+        ) : shareUrl ? (
+          <div className="bg-white p-1.5 w-32 h-32 flex items-center justify-center">
+            <img
+              src={getQRCodeUrl()}
+              alt={`QR Code for ${shareUrl}`}
+              className="w-28 h-28"
+              title={`Scan to open: ${shareUrl}`}
+            />
+          </div>
+        ) : (
+          <div className="w-32 h-32 flex items-center justify-center bg-gray-100 rounded">
+            <p
+              className={cn(
+                "text-gray-500",
+                isXpTheme
+                  ? "font-['Pixelated_MS_Sans_Serif',Arial] text-[10px]"
+                  : "font-geneva-12 text-[10px]"
+              )}
+              style={{
+                fontFamily: isXpTheme
+                  ? '"Pixelated MS Sans Serif", Arial'
+                  : undefined,
+                fontSize: isXpTheme ? "10px" : undefined,
+              }}
+            >
+              QR code
+            </p>
+          </div>
+        )}
+        {/* Descriptive text below QR code */}
+        <p
+          className={cn(
+            "text-neutral-500 text-center mt-0 mb-4 break-words w-[80%]",
+            isXpTheme
+              ? "font-['Pixelated_MS_Sans_Serif',Arial] text-[10px]"
+              : "font-geneva-12 text-xs"
+          )}
+          style={{
+            fontFamily: isXpTheme
+              ? '"Pixelated MS Sans Serif", Arial'
+              : undefined,
+            fontSize: isXpTheme ? "10px" : undefined,
+          }}
+        >
+          {descriptionText()}
+        </p>
+
+        {/* URL Input */}
+        <Input
+          ref={inputRef}
+          value={shareUrl}
+          readOnly
+          className={cn(
+            "shadow-none h-8 w-full",
+            isXpTheme
+              ? "font-['Pixelated_MS_Sans_Serif',Arial] text-[11px]"
+              : "text-sm"
+          )}
+          style={{
+            fontFamily: isXpTheme
+              ? '"Pixelated MS Sans Serif", Arial'
+              : undefined,
+            fontSize: isXpTheme ? "11px" : undefined,
+          }}
+          placeholder={
+            isLoading
+              ? "Generating..."
+              : `Share link for ${itemType.toLowerCase()}`
+          }
+        />
+      </div>
+
+      <DialogFooter className="mt-2 flex justify-end gap-1">
+        <Button
+          onClick={handleCopyToClipboard}
+          disabled={!shareUrl || isLoading}
+          variant="retro"
+          className={cn(
+            "w-full h-7",
+            isXpTheme
+              ? "font-['Pixelated_MS_Sans_Serif',Arial] text-[11px]"
+              : "font-geneva-12 text-[12px]"
+          )}
+          style={{
+            fontFamily: isXpTheme
+              ? '"Pixelated MS Sans Serif", Arial'
+              : undefined,
+            fontSize: isXpTheme ? "11px" : undefined,
+          }}
+        >
+          Copy Link
+        </Button>
+      </DialogFooter>
+    </div>
+  );
+
+  if (isXpTheme) {
+    return (
+      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <DialogContent
+          className={cn(
+            "p-0 overflow-hidden max-w-xs border-0", // Remove border but keep box-shadow
+            currentTheme === "xp" ? "window" : "window" // Use window class for both themes
+          )}
+          style={{
+            fontSize: "11px",
+          }}
+          onKeyDown={(e: React.KeyboardEvent) => e.stopPropagation()}
+        >
+          <div
+            className="title-bar"
+            style={currentTheme === "xp" ? { minHeight: "30px" } : undefined}
+          >
+            <div className="title-bar-text">Share {itemType}</div>
+            <div className="title-bar-controls">
+              <button aria-label="Close" onClick={onClose} />
+            </div>
+          </div>
+          <div className="window-body">{dialogContent}</div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -122,57 +274,15 @@ export function ShareItemDialog({
         onKeyDown={(e: React.KeyboardEvent) => e.stopPropagation()}
       >
         <DialogHeader>
-          <DialogTitle className="font-normal text-[16px]">Share {itemType}</DialogTitle>
-          <DialogDescription className="sr-only">Share this {itemType.toLowerCase()} via link or QR code</DialogDescription>
+          <DialogTitle className="font-normal text-[16px]">
+            Share {itemType}
+          </DialogTitle>
+          <DialogDescription className="sr-only">
+            Share this {itemType.toLowerCase()} via link or QR code
+          </DialogDescription>
         </DialogHeader>
-        <div className="p-3 w-full">
-          <div className="flex flex-col items-center space-y-3 w-full">
-            {/* QR Code */}
-            {isLoading ? (
-              <div className="w-32 h-32 flex items-center justify-center bg-gray-100 rounded">
-                <p className="text-gray-500 text-[10px] font-geneva-12">Generating...</p>
-              </div>
-            ) : shareUrl ? (
-              <div className="bg-white p-1.5 w-32 h-32 flex items-center justify-center">
-                <img
-                  src={getQRCodeUrl()}
-                  alt={`QR Code for ${shareUrl}`}
-                  className="w-28 h-28"
-                  title={`Scan to open: ${shareUrl}`}
-                />
-              </div>
-            ) : (
-              <div className="w-32 h-32 flex items-center justify-center bg-gray-100 rounded">
-                <p className="text-gray-500 text-[10px] font-geneva-12">QR code</p>
-              </div>
-            )}
-            {/* Descriptive text below QR code */}
-            <p className="text-xs text-neutral-500 text-center mt-0 mb-4 break-words font-geneva-12 w-[80%]">
-              {descriptionText()}
-            </p>
-
-            {/* URL Input */}
-            <Input
-              ref={inputRef}
-              value={shareUrl}
-              readOnly
-              className="shadow-none h-8 text-sm w-full"
-              placeholder={isLoading ? "Generating..." : `Share link for ${itemType.toLowerCase()}`}
-            />
-          </div>
-
-          <DialogFooter className="mt-2 flex justify-end gap-1">
-            <Button
-              onClick={handleCopyToClipboard}
-              disabled={!shareUrl || isLoading}
-              variant="retro"
-              className="w-full"
-            >
-              Copy Link
-            </Button>
-          </DialogFooter>
-        </div>
+        {dialogContent}
       </DialogContent>
     </Dialog>
   );
-} 
+}

@@ -9,6 +9,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useThemeStore } from "@/stores/useThemeStore";
+import { cn } from "@/lib/utils";
 
 interface InputDialogProps {
   isOpen: boolean;
@@ -45,11 +47,185 @@ export function InputDialog({
   submitLabel = "Save",
   showCancel = true,
 }: InputDialogProps) {
+  const currentTheme = useThemeStore((state) => state.current);
+  const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
+
   const handleSubmit = () => {
     if (!isLoading) {
       onSubmit(value);
     }
   };
+
+  const dialogContent = (
+    <div className={isXpTheme ? "p-2 px-4" : "p-4 px-6"}>
+      <p
+        className={cn(
+          "text-gray-500 mb-2",
+          isXpTheme
+            ? "font-['Pixelated_MS_Sans_Serif',Arial] text-[11px]"
+            : "font-geneva-12 text-[12px]"
+        )}
+        style={{
+          fontFamily: isXpTheme
+            ? '"Pixelated MS Sans Serif", Arial'
+            : undefined,
+          fontSize: isXpTheme ? "11px" : undefined,
+        }}
+        id="dialog-description"
+      >
+        {description}
+      </p>
+      <Input
+        autoFocus
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => {
+          e.stopPropagation();
+          if (e.key === "Enter" && !isLoading) {
+            handleSubmit();
+          }
+        }}
+        className={cn(
+          "shadow-none",
+          isXpTheme
+            ? "font-['Pixelated_MS_Sans_Serif',Arial] text-[11px]"
+            : "font-geneva-12 text-[12px]"
+        )}
+        style={{
+          fontFamily: isXpTheme
+            ? '"Pixelated MS Sans Serif", Arial'
+            : undefined,
+          fontSize: isXpTheme ? "11px" : undefined,
+        }}
+        disabled={isLoading}
+      />
+      {errorMessage && (
+        <p className="text-red-600 text-sm mt-1">{errorMessage}</p>
+      )}
+      <DialogFooter className="mt-4 gap-1 sm:justify-between">
+        <div className="flex gap-1 w-full sm:w-auto">
+          {additionalActions
+            .filter((action) => action.position === "left")
+            .map((action, index) => (
+              <Button
+                key={`left-${index}`}
+                variant={action.variant || "retro"}
+                onClick={action.onClick}
+                disabled={isLoading}
+                className={cn(
+                  "w-full sm:w-auto h-7",
+                  isXpTheme
+                    ? "font-['Pixelated_MS_Sans_Serif',Arial] text-[11px]"
+                    : "font-geneva-12 text-[12px]"
+                )}
+                style={{
+                  fontFamily: isXpTheme
+                    ? '"Pixelated MS Sans Serif", Arial'
+                    : undefined,
+                  fontSize: isXpTheme ? "11px" : undefined,
+                }}
+              >
+                {action.label}
+              </Button>
+            ))}
+        </div>
+        <div className="flex flex-col-reverse gap-1 w-full sm:w-auto sm:flex-row">
+          {additionalActions
+            .filter((action) => action.position !== "left")
+            .map((action, index) => (
+              <Button
+                key={`right-${index}`}
+                variant={action.variant || "retro"}
+                onClick={action.onClick}
+                disabled={isLoading}
+                className={cn(
+                  "w-full sm:w-auto h-7",
+                  isXpTheme
+                    ? "font-['Pixelated_MS_Sans_Serif',Arial] text-[11px]"
+                    : "font-geneva-12 text-[12px]"
+                )}
+                style={{
+                  fontFamily: isXpTheme
+                    ? '"Pixelated MS Sans Serif", Arial'
+                    : undefined,
+                  fontSize: isXpTheme ? "11px" : undefined,
+                }}
+              >
+                {action.label}
+              </Button>
+            ))}
+          {showCancel && (
+            <Button
+              variant="retro"
+              onClick={() => onOpenChange(false)}
+              disabled={isLoading}
+              className={cn(
+                "w-full sm:w-auto h-7",
+                isXpTheme
+                  ? "font-['Pixelated_MS_Sans_Serif',Arial] text-[11px]"
+                  : "font-geneva-12 text-[12px]"
+              )}
+              style={{
+                fontFamily: isXpTheme
+                  ? '"Pixelated MS Sans Serif", Arial'
+                  : undefined,
+                fontSize: isXpTheme ? "11px" : undefined,
+              }}
+            >
+              Cancel
+            </Button>
+          )}
+          <Button
+            variant="retro"
+            onClick={handleSubmit}
+            disabled={isLoading}
+            className={cn(
+              "w-full sm:w-auto h-7",
+              isXpTheme
+                ? "font-['Pixelated_MS_Sans_Serif',Arial] text-[11px]"
+                : "font-geneva-12 text-[12px]"
+            )}
+            style={{
+              fontFamily: isXpTheme
+                ? '"Pixelated MS Sans Serif", Arial'
+                : undefined,
+              fontSize: isXpTheme ? "11px" : undefined,
+            }}
+          >
+            {isLoading ? "Adding..." : submitLabel}
+          </Button>
+        </div>
+      </DialogFooter>
+    </div>
+  );
+
+  if (isXpTheme) {
+    return (
+      <Dialog open={isOpen} onOpenChange={onOpenChange}>
+        <DialogContent
+          className={cn(
+            "p-0 overflow-hidden max-w-[500px] border-0", // Remove border but keep box-shadow
+            currentTheme === "xp" ? "window" : "window" // Use window class for both themes
+          )}
+          style={{
+            fontSize: "11px",
+          }}
+          onKeyDown={(e: React.KeyboardEvent) => e.stopPropagation()}
+        >
+          <div
+            className="title-bar"
+            style={currentTheme === "xp" ? { minHeight: "30px" } : undefined}
+          >
+            <div className="title-bar-text">{title}</div>
+            <div className="title-bar-controls">
+              <button aria-label="Close" onClick={() => onOpenChange(false)} />
+            </div>
+          </div>
+          <div className="window-body">{dialogContent}</div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -63,80 +239,7 @@ export function InputDialog({
             {description}
           </DialogDescription>
         </DialogHeader>
-        <div className="p-4 px-6">
-          <p
-            className="text-gray-500 mb-2 text-[12px] font-geneva-12"
-            id="dialog-description"
-          >
-            {description}
-          </p>
-          <Input
-            autoFocus
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            onKeyDown={(e) => {
-              e.stopPropagation();
-              if (e.key === "Enter" && !isLoading) {
-                handleSubmit();
-              }
-            }}
-            className="shadow-none font-geneva-12 text-[12px]"
-            disabled={isLoading}
-          />
-          {errorMessage && (
-            <p className="text-red-600 text-sm mt-1">{errorMessage}</p>
-          )}
-          <DialogFooter className="mt-4 gap-2 sm:justify-between">
-            <div className="flex gap-2 w-full sm:w-auto">
-              {additionalActions
-                .filter((action) => action.position === "left")
-                .map((action, index) => (
-                  <Button
-                    key={`left-${index}`}
-                    variant={action.variant || "retro"}
-                    onClick={action.onClick}
-                    disabled={isLoading}
-                    className="w-full sm:w-auto"
-                  >
-                    {action.label}
-                  </Button>
-                ))}
-            </div>
-            <div className="flex flex-col-reverse gap-2 w-full sm:w-auto sm:flex-row">
-              {additionalActions
-                .filter((action) => action.position !== "left")
-                .map((action, index) => (
-                  <Button
-                    key={`right-${index}`}
-                    variant={action.variant || "retro"}
-                    onClick={action.onClick}
-                    disabled={isLoading}
-                    className="w-full sm:w-auto"
-                  >
-                    {action.label}
-                  </Button>
-                ))}
-              {showCancel && (
-                <Button
-                  variant="retro"
-                  onClick={() => onOpenChange(false)}
-                  disabled={isLoading}
-                  className="w-full sm:w-auto"
-                >
-                  Cancel
-                </Button>
-              )}
-              <Button
-                variant="retro"
-                onClick={handleSubmit}
-                disabled={isLoading}
-                className="w-full sm:w-auto"
-              >
-                {isLoading ? "Adding..." : submitLabel}
-              </Button>
-            </div>
-          </DialogFooter>
-        </div>
+        {dialogContent}
       </DialogContent>
     </Dialog>
   );

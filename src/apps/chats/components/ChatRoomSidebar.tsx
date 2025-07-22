@@ -6,6 +6,7 @@ import { type ChatRoom } from "@/types/chat";
 import { useSound, Sounds } from "@/hooks/useSound";
 import { getPrivateRoomDisplayName } from "@/utils/chat";
 import { useChatsStore } from "@/stores/useChatsStore";
+import { useThemeStore } from "@/stores/useThemeStore";
 import {
   Tooltip,
   TooltipContent,
@@ -41,6 +42,11 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
   const { play: playButtonClick } = useSound(Sounds.BUTTON_CLICK);
   const unreadCounts = useChatsStore((state) => state.unreadCounts);
 
+  // Theme detection for border styling
+  const currentTheme = useThemeStore((state) => state.current);
+  const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
+  const isWindowsLegacyTheme = isXpTheme;
+
   if (!isVisible) {
     return null;
   }
@@ -48,8 +54,14 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
   return (
     <div
       className={cn(
-        "flex flex-col font-geneva-12 text-[12px] border-black bg-neutral-100",
-        isOverlay ? "w-full border-b" : "w-56 border-r h-full overflow-hidden"
+        "flex flex-col font-geneva-12 text-[12px] bg-neutral-100",
+        isOverlay
+          ? `w-full border-b ${
+              isWindowsLegacyTheme ? "border-[#919b9c]" : "border-black"
+            }`
+          : `w-56 border-r h-full overflow-hidden ${
+              isWindowsLegacyTheme ? "border-[#919b9c]" : "border-black"
+            }`
       )}
     >
       <div

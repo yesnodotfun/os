@@ -5,7 +5,7 @@ import { useSound, Sounds } from "@/hooks/useSound";
 import { useVibration } from "@/hooks/useVibration";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { cn } from "@/lib/utils";
-import { getWindowConfig } from "@/config/appRegistry";
+import { getWindowConfig, getAppIconPath } from "@/config/appRegistry";
 import { useSwipeNavigation } from "@/hooks/useSwipeNavigation";
 import { AppId } from "@/config/appIds";
 import { useIsMobile } from "@/hooks/useIsMobile";
@@ -734,13 +734,15 @@ export function WindowFrame({
                   "title-bar-text",
                   !isForeground && "inactive" // Add inactive class for text too
                 )}
-                style={
-                  !isForeground
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  ...(!isForeground
                     ? {
                         color: theme.colors.titleBar.inactiveText,
                       }
-                    : undefined
-                }
+                    : {}),
+                }}
                 onDoubleClick={handleFullMaximize}
                 onTouchStart={(e) => {
                   handleTitleBarTap(e);
@@ -749,6 +751,15 @@ export function WindowFrame({
                 }}
                 onTouchMove={(e) => e.preventDefault()}
               >
+                <img
+                  src={getAppIconPath(appId)}
+                  alt=""
+                  className="w-4 h-4 mr-1"
+                  style={{
+                    imageRendering: "pixelated",
+                    filter: !isForeground ? "grayscale(100%)" : "none",
+                  }}
+                />
                 {title}
               </div>
               <div className="title-bar-controls">
