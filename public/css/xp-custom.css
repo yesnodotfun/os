@@ -1435,3 +1435,22 @@ progress:not([value])::-moz-progress-bar:not([value]) {
   -webkit-font-smoothing: antialiased;
   font-synthesis: none;
 }
+
+/* Fix for videos app title font size in XP theme */
+.font-geneva-12.text-\[10px\] {
+  font-size: 10px !important;
+}
+
+/* Ensure videos app title maintains correct size */
+[data-os-theme="xp"] .font-geneva-12.text-\[10px\] {
+  font-size: 10px !important;
+}
+
+/* Override any global font-size inheritance for videos app */
+[data-os-theme="xp"] .font-geneva-12 {
+  font-size: inherit;
+}
+
+[data-os-theme="xp"] .font-geneva-12.text-\[10px\] {
+  font-size: 10px !important;
+}
