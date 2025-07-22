@@ -701,21 +701,4 @@ ul.tree-view {
   font-synthesis: none;
 }
 
-/* Fix for videos app title font size in Win98 theme */
-.font-geneva-12.text-\[10px\] {
-  font-size: 10px !important;
-}
 
-/* Ensure videos app title maintains correct size */
-[data-os-theme="win98"] .font-geneva-12.text-\[10px\] {
-  font-size: 10px !important;
-}
-
-/* Override any global font-size inheritance for videos app */
-[data-os-theme="win98"] .font-geneva-12 {
-  font-size: inherit;
-}
-
-[data-os-theme="win98"] .font-geneva-12.text-\[10px\] {
-  font-size: 10px !important;
-}
