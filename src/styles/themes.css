@@ -491,7 +491,7 @@
   content: "";
   position: absolute;
   left: 1px;
-  right: 1px;
+  right: 25px; /* Leave space for the arrows on the right */
   height: 40%;
   background: linear-gradient(
     rgba(255, 255, 255, 0.9),

@@ -88,6 +88,8 @@ const SelectTrigger = React.forwardRef<
           backgroundImage: `url("data:image/svg+xml;charset=utf-8,%3Csvg width='8' height='10' viewBox='0 0 8 10' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 3.5L4 1L7 3.5M1 6.5L4 9L7 6.5' stroke='%23333' stroke-width='1' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`,
           backgroundPosition: "right 6px center",
           backgroundRepeat: "no-repeat",
+          backgroundAttachment: "scroll", /* Ensure arrows stay in place */
+          backgroundClip: "padding-box", /* Ensure proper clipping */
         }),
       }}
       onClick={() => playClick()}
