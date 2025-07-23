@@ -84,7 +84,7 @@ const DropdownMenuSubTrigger = React.forwardRef<
           currentTheme === "xp" || currentTheme === "win98"
             ? '"Pixelated MS Sans Serif", Arial'
             : currentTheme === "macosx"
-            ? 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif'
+            ? '"Lucida Grande", "Lucida Sans Unicode", sans-serif'
             : undefined,
         fontSize:
           currentTheme === "xp" || currentTheme === "win98"
@@ -93,8 +93,8 @@ const DropdownMenuSubTrigger = React.forwardRef<
             ? "12px !important"
             : undefined,
         ...(currentTheme === "macosx" && {
-          borderRadius: "4px",
-          padding: "2px 8px 2px 12px",
+          borderRadius: "0px",
+          padding: "6px 16px 6px 20px",
           margin: "1px 0",
           WebkitFontSmoothing: "antialiased",
         }),
@@ -127,13 +127,11 @@ const DropdownMenuSubContent = React.forwardRef<
         style={{
           ...(isMacOSTheme && {
             border: "none",
-            borderRadius: "6px",
-            backgroundColor: "rgba(255, 255, 255, 0.7)",
-            backdropFilter: "blur(20px)",
-            WebkitBackdropFilter: "blur(20px)",
-            boxShadow:
-              "0 0 0 1px rgba(0, 0, 0, 0.15), 0 4px 10px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1)",
-            padding: "4px",
+            borderRadius: "0px",
+            background: "var(--os-pinstripe-window)",
+            opacity: "0.92",
+            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.25)",
+            padding: "4px 0px",
           }),
         }}
         {...props}
@@ -164,13 +162,11 @@ const DropdownMenuContent = React.forwardRef<
         style={{
           ...(isMacOSTheme && {
             border: "none",
-            borderRadius: "6px",
-            backgroundColor: "rgba(255, 255, 255, 0.7)",
-            backdropFilter: "blur(20px)",
-            WebkitBackdropFilter: "blur(20px)",
-            boxShadow:
-              "0 0 0 1px rgba(0, 0, 0, 0.15), 0 4px 10px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1)",
-            padding: "4px",
+            borderRadius: "0px",
+            background: "var(--os-pinstripe-window)",
+            opacity: "0.92",
+            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.25)",
+            padding: "4px 0px",
           }),
         }}
         {...props}
@@ -202,7 +198,7 @@ const DropdownMenuItem = React.forwardRef<
         fontFamily: isXpTheme
           ? '"Pixelated MS Sans Serif", Arial'
           : isMacOSTheme
-          ? 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif'
+          ? '"Lucida Grande", "Lucida Sans Unicode", sans-serif'
           : undefined,
         fontSize: isXpTheme
           ? "11px"
@@ -210,8 +206,8 @@ const DropdownMenuItem = React.forwardRef<
           ? "13px !important"
           : undefined,
         ...(isMacOSTheme && {
-          borderRadius: "4px",
-          padding: "2px 12px 2px 8px",
+          borderRadius: "0px",
+          padding: "6px 20px 6px 16px",
           margin: "1px 0",
           WebkitFontSmoothing: "antialiased",
         }),
@@ -241,7 +237,7 @@ const DropdownMenuCheckboxItem = React.forwardRef<
         fontFamily: isXpTheme
           ? '"Pixelated MS Sans Serif", Arial'
           : isMacOSTheme
-          ? 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif'
+          ? '"Lucida Grande", "Lucida Sans Unicode", sans-serif'
           : undefined,
         fontSize: isXpTheme
           ? "11px"
@@ -249,8 +245,8 @@ const DropdownMenuCheckboxItem = React.forwardRef<
           ? "13px !important"
           : undefined,
         ...(isMacOSTheme && {
-          borderRadius: "4px",
-          padding: "2px 12px 2px 28px",
+          borderRadius: "0px",
+          padding: "6px 20px 6px 36px",
           margin: "1px 0",
           WebkitFontSmoothing: "antialiased",
         }),
@@ -287,6 +283,8 @@ const DropdownMenuRadioItem = React.forwardRef<
         fontFamily:
           currentTheme === "xp" || currentTheme === "win98"
             ? '"Pixelated MS Sans Serif", Arial'
+            : currentTheme === "macosx"
+            ? '"Lucida Grande", "Lucida Sans Unicode", sans-serif'
             : undefined,
         fontSize:
           currentTheme === "xp" || currentTheme === "win98"
@@ -326,6 +324,8 @@ const DropdownMenuLabel = React.forwardRef<
         fontFamily:
           currentTheme === "xp" || currentTheme === "win98"
             ? '"Pixelated MS Sans Serif", Arial'
+            : currentTheme === "macosx"
+            ? '"Lucida Grande", "Lucida Sans Unicode", sans-serif'
             : undefined,
         fontSize:
           currentTheme === "xp" || currentTheme === "win98"

@@ -60,14 +60,14 @@ const SelectTrigger = React.forwardRef<
         fontFamily: isXpTheme
           ? '"Pixelated MS Sans Serif", Arial'
           : isMacOSTheme
-          ? 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif'
+          ? '"Lucida Grande", "Lucida Sans Unicode", sans-serif'
           : undefined,
         fontSize: isXpTheme ? "11px" : isMacOSTheme ? "14px" : undefined,
         ...(isMacOSTheme && {
           height: "28px", // Match Input h-7 height for macOS theme
           lineHeight: 1,
           minWidth: "60px",
-          borderRadius: "6px", // macOS should use 6px radius
+          borderRadius: "6px",
           position: "relative",
           overflow: "hidden",
           cursor: "default",
@@ -176,13 +176,11 @@ const SelectContent = React.forwardRef<
         style={{
           ...(isMacOSTheme && {
             border: "none",
-            borderRadius: "6px",
-            backgroundColor: "rgba(255, 255, 255, 0.7)",
-            backdropFilter: "blur(20px)",
-            WebkitBackdropFilter: "blur(20px)",
-            boxShadow:
-              "0 0 0 1px rgba(0, 0, 0, 0.15), 0 4px 10px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1)",
-            padding: "0px",
+            borderRadius: "0px",
+            background: "var(--os-pinstripe-window)",
+            opacity: "0.92",
+            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.25)",
+            padding: "4px 0px",
           }),
         }}
         position={position}
@@ -193,7 +191,8 @@ const SelectContent = React.forwardRef<
           className={cn(
             "p-1",
             position === "popper" &&
-              "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]"
+              "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]",
+            isMacOSTheme && "p-0"
           )}
         >
           {children}
@@ -222,7 +221,7 @@ const SelectLabel = React.forwardRef<
         fontFamily: isXpTheme
           ? '"Pixelated MS Sans Serif", Arial'
           : isMacOSTheme
-          ? 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif'
+          ? '"Lucida Grande", "Lucida Sans Unicode", sans-serif'
           : undefined,
         fontSize: isXpTheme ? "11px" : isMacOSTheme ? "11px" : undefined,
         ...(isMacOSTheme && {
@@ -257,7 +256,7 @@ const SelectItem = React.forwardRef<
         fontFamily: isXpTheme
           ? '"Pixelated MS Sans Serif", Arial'
           : isMacOSTheme
-          ? 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif'
+          ? '"Lucida Grande", "Lucida Sans Unicode", sans-serif'
           : undefined,
         fontSize: isXpTheme
           ? "11px"
@@ -267,8 +266,8 @@ const SelectItem = React.forwardRef<
         ...(isMacOSTheme && {
           WebkitFontSmoothing: "antialiased",
           fontSmooth: "auto",
-          borderRadius: "4px",
-          padding: "2px 12px 2px 8px",
+          borderRadius: "0px",
+          padding: "6px 20px 6px 16px",
           margin: "1px 0",
           minHeight: "24px",
         }),
