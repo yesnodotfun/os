@@ -698,7 +698,8 @@ export function WindowFrame({
             ...(!isXpTheme ? getSwipeStyle() : undefined),
             ...(currentTheme === "macosx" && !transparentBackground
               ? {
-                  backgroundImage: `var(--os-pinstripe-window), var(--os-color-window-bg)`,
+                  backgroundColor: "var(--os-color-window-bg)",
+                  backgroundImage: "var(--os-pinstripe-window)",
                 }
               : {}),
           }}
@@ -815,11 +816,11 @@ export function WindowFrame({
               )}
               style={{
                 borderRadius: "8px 8px 0px 0px",
-                background: !transparentBackground
-                  ? isForeground
-                    ? theme.colors.titleBar.activeBg
-                    : theme.colors.titleBar.inactiveBg
-                  : undefined,
+                ...(!transparentBackground && isForeground
+                  ? { backgroundImage: "var(--os-pinstripe-titlebar)" }
+                  : !transparentBackground && !isForeground
+                  ? { backgroundColor: "rgba(255, 255, 255, 0.3)" }
+                  : {}),
                 borderBottom: `1px solid ${
                   isForeground
                     ? theme.colors.titleBar.borderBottom ||
@@ -930,8 +931,9 @@ export function WindowFrame({
                 )}
                 style={{
                   textShadow: isForeground
-                    ? "0 1px 0 rgba(255, 255, 255, 0.5)"
+                    ? "0 1px 2px rgba(0, 0, 0, 0.2)"
                     : "none",
+                  fontWeight: 500,
                 }}
                 onDoubleClick={handleFullMaximize}
                 onTouchStart={(e) => {
@@ -1040,6 +1042,11 @@ export function WindowFrame({
             style={
               isXpTheme
                 ? { margin: currentTheme === "xp" ? "0px 3px" : "0" }
+                : currentTheme === "macosx" && !transparentBackground
+                ? {
+                    backgroundColor: "var(--os-color-window-bg)",
+                    backgroundImage: "var(--os-pinstripe-window)",
+                  }
                 : undefined
             }
           >

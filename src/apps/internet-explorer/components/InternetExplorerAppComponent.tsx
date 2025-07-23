@@ -1999,7 +1999,7 @@ export function InternetExplorerAppComponent({
                 isXpTheme
                   ? "bg-transparent border-b border-[#919b9c]"
                   : currentTheme === "macosx"
-                  ? "bg-gray-100 border-b border-gray-300"
+                  ? "bg-transparent border-b border-gray-300"
                   : currentTheme === "system7"
                   ? "bg-gray-100 border-b border-black"
                   : "bg-gray-100 border-b border-gray-300"

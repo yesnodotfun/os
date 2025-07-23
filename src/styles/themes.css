@@ -73,8 +73,8 @@
   --os-color-titlebar-border-inactive: rgba(0, 0, 0, 0.05);
   --os-color-titlebar-active-bg: linear-gradient(
     to bottom,
-    #f6f6f6 0%,
-    #dadada 100%
+    #e8e8e8 0%,
+    #d0d0d0 100%
   );
   --os-color-titlebar-inactive-bg: linear-gradient(to bottom, #f6f6f6, #e0e0e0);
   --os-color-titlebar-text: #000000;
@@ -98,28 +98,20 @@
   --os-metrics-menubar-height: 1.5rem;
   --os-window-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
   /* Pinstripe patterns */
-  --os-pinstripe-titlebar: repeating-linear-gradient(
-    0deg,
-    transparent 0px,
-    transparent 2px,
-    rgba(255, 255, 255, 0.8) 1px,
-    rgba(255, 255, 255, 0.8) 2px,
-    transparent 2px,
-    transparent 3px,
-    rgba(0, 0, 0, 0.1) 3px,
-    rgba(0, 0, 0, 0.1) 4px
+  --os-pinstripe-titlebar: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.3) 0%,
+    rgba(219, 219, 219, 0.6) 70%,
+    rgba(206, 206, 206, 0.7) 100%
   );
   --os-pinstripe-window: repeating-linear-gradient(
-    0deg,
-    transparent 0px,
-    transparent 1px,
-    rgba(255, 255, 255, 0.6) 1px,
-    rgba(255, 255, 255, 0.6) 2px,
-    transparent 2px,
-    transparent 3px,
-    rgba(0, 0, 0, 0.08) 3px,
-    rgba(0, 0, 0, 0.08) 4px
-  );
+      0deg,
+      transparent 0px,
+      transparent 1.5px,
+      rgba(255, 255, 255, 0.85) 1.5px,
+      rgba(255, 255, 255, 0.85) 4px
+    ),
+    linear-gradient(to bottom, #ececec 0%, #ececec 100%);
 }
 
 /* Windows 98 Theme */
@@ -337,11 +329,12 @@
 /* macOS specific font sizes and gloss effect */
 :root[data-os-theme="macosx"] .menubar {
   font-size: 14px !important;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
-  font-weight: normal !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  font-weight: 500 !important;
   position: relative;
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset,
     0 -1px 0 rgba(0, 0, 0, 0.1) inset;
+  background-image: var(--os-pinstripe-window) !important;
 }
 
 /* Add gloss effect to macOS menubar */
@@ -372,6 +365,7 @@
 
 :root[data-os-theme="macosx"] .title-bar {
   font-size: 13px !important;
+  font-weight: 500 !important;
 }
 
 :root[data-os-theme="macosx"] button:not(.aqua-button):not(.aqua-tab) {

@@ -1396,23 +1396,34 @@ export function ControlPanelsAppComponent({
   const isClassicMacTheme = isMacOSXTheme || isSystem7Theme;
   const isWindowsLegacyTheme = isXpTheme;
 
-  const tabListBase = `flex w-full ${isMacOSXTheme ? "" : "h-6"} space-x-0.5 shadow-none`;
-  
+  const separatorColor = isMacOSXTheme
+    ? "rgba(0, 0, 0, 0.07)"
+    : isSystem7Theme || isWindowsLegacyTheme
+    ? "#808080"
+    : "rgba(0, 0, 0, 0.2)";
+  const separatorStyle: React.CSSProperties = { borderColor: separatorColor };
+
+  const tabListBase = `flex w-full ${
+    isMacOSXTheme ? "" : "h-6"
+  } space-x-0.5 shadow-none`;
+
   // System 7 styling - classic, no gradients or gloss
   const tabListSystem7 = "bg-[#E3E3E3] border-b border-[#808080]";
   const tabTriggerSystem7 =
     "bg-[#D4D4D4] data-[state=active]:bg-[#E3E3E3] border border-[#808080] data-[state=active]:border-b-[#E3E3E3]";
   const tabContentSystem7 = "bg-[#E3E3E3] border border-t-0 border-[#808080]";
-  
+
   // macOS styling - use aqua-button CSS classes
   const tabListMacOSX = "aqua-tab-bar";
   const tabTriggerMacOSX = "aqua-tab";
-  const tabContentMacOSX = "bg-[#ececec] border border-t-0 border-black/20";
-  
-  const tabTriggerBase =
-    `relative flex-1 ${isMacOSXTheme ? "" : "h-6"} px-2 ${isMacOSXTheme ? "" : "-mb-[1px]"} rounded-t shadow-none! text-[16px]`;
-  const tabContentBase =
-    `mt-0 h-[calc(100%-2rem)] ${isMacOSXTheme ? "" : "bg-white"} border border-black/20`;
+  const tabContentMacOSX = "border border-t-0 border-black/20 bg-transparent";
+
+  const tabTriggerBase = `relative flex-1 ${isMacOSXTheme ? "" : "h-6"} px-2 ${
+    isMacOSXTheme ? "" : "-mb-[1px]"
+  } rounded-t shadow-none! text-[16px]`;
+  const tabContentBase = `mt-0 h-[calc(100%-2rem)] ${
+    isMacOSXTheme ? "" : "bg-white"
+  } border border-black/20`;
 
   const menuBar = (
     <ControlPanelsMenuBar
@@ -1441,7 +1452,13 @@ export function ControlPanelsAppComponent({
         <div
           className={`flex flex-col h-full w-full ${
             isWindowsLegacyTheme ? "pt-0 pb-2 px-2" : ""
-          } ${isClassicMacTheme ? "bg-[#E3E3E3] p-4" : ""}`}
+          } ${
+            isClassicMacTheme
+              ? isMacOSXTheme
+                ? "p-4"
+                : "bg-[#E3E3E3] p-4"
+              : ""
+          }`}
         >
           <Tabs
             defaultValue={initialData?.defaultTab || "appearance"}
@@ -1461,13 +1478,21 @@ export function ControlPanelsAppComponent({
             ) : (
               <TabsList
                 className={`${tabListBase} ${
-                  isSystem7Theme ? tabListSystem7 : isMacOSXTheme ? tabListMacOSX : ""
+                  isSystem7Theme
+                    ? tabListSystem7
+                    : isMacOSXTheme
+                    ? tabListMacOSX
+                    : ""
                 }`}
               >
                 <TabsTrigger
                   value="appearance"
                   className={`${tabTriggerBase} ${
-                    isSystem7Theme ? tabTriggerSystem7 : isMacOSXTheme ? tabTriggerMacOSX : ""
+                    isSystem7Theme
+                      ? tabTriggerSystem7
+                      : isMacOSXTheme
+                      ? tabTriggerMacOSX
+                      : ""
                   }`}
                 >
                   Appearance
@@ -1475,7 +1500,11 @@ export function ControlPanelsAppComponent({
                 <TabsTrigger
                   value="sound"
                   className={`${tabTriggerBase} ${
-                    isSystem7Theme ? tabTriggerSystem7 : isMacOSXTheme ? tabTriggerMacOSX : ""
+                    isSystem7Theme
+                      ? tabTriggerSystem7
+                      : isMacOSXTheme
+                      ? tabTriggerMacOSX
+                      : ""
                   }`}
                 >
                   Sound
@@ -1483,7 +1512,11 @@ export function ControlPanelsAppComponent({
                 <TabsTrigger
                   value="system"
                   className={`${tabTriggerBase} ${
-                    isSystem7Theme ? tabTriggerSystem7 : isMacOSXTheme ? tabTriggerMacOSX : ""
+                    isSystem7Theme
+                      ? tabTriggerSystem7
+                      : isMacOSXTheme
+                      ? tabTriggerMacOSX
+                      : ""
                   }`}
                 >
                   System
@@ -1494,7 +1527,11 @@ export function ControlPanelsAppComponent({
             <TabsContent
               value="appearance"
               className={`${tabContentBase} ${
-                isSystem7Theme ? tabContentSystem7 : isMacOSXTheme ? tabContentMacOSX : ""
+                isSystem7Theme
+                  ? tabContentSystem7
+                  : isMacOSXTheme
+                  ? tabContentMacOSX
+                  : ""
               }`}
             >
               <div className="space-y-4 h-full overflow-y-auto p-4">
@@ -1520,7 +1557,7 @@ export function ControlPanelsAppComponent({
                   </p>
                 </div>
 
-                <div className="border-t border-gray-400 my-4" />
+                <div className="border-t my-4" style={separatorStyle} />
 
                 <WallpaperPicker />
               </div>
@@ -1529,7 +1566,11 @@ export function ControlPanelsAppComponent({
             <TabsContent
               value="sound"
               className={`${tabContentBase} ${
-                isSystem7Theme ? tabContentSystem7 : isMacOSXTheme ? tabContentMacOSX : ""
+                isSystem7Theme
+                  ? tabContentSystem7
+                  : isMacOSXTheme
+                  ? tabContentMacOSX
+                  : ""
               }`}
             >
               <div className="space-y-4 h-full overflow-y-auto p-4">
@@ -1590,7 +1631,7 @@ export function ControlPanelsAppComponent({
                 </div>
 
                 {/* Volume controls separator */}
-                <hr className="border-gray-400 my-3" />
+                <hr className="my-3 border-t" style={separatorStyle} />
 
                 {/* Vertical Volume Sliders - Mixer UI */}
                 <VolumeMixer
@@ -1622,7 +1663,11 @@ export function ControlPanelsAppComponent({
             <TabsContent
               value="system"
               className={`${tabContentBase} ${
-                isSystem7Theme ? tabContentSystem7 : isMacOSXTheme ? tabContentMacOSX : ""
+                isSystem7Theme
+                  ? tabContentSystem7
+                  : isMacOSXTheme
+                  ? tabContentMacOSX
+                  : ""
               }`}
             >
               <div className="space-y-4 h-full overflow-y-auto p-4">
@@ -1710,7 +1755,7 @@ export function ControlPanelsAppComponent({
                   )}
                 </div>
 
-                <hr className="border-gray-400 my-4" />
+                <hr className="my-4 border-t" style={separatorStyle} />
 
                 <div className="space-y-2">
                   <div className="flex gap-2">
@@ -1771,7 +1816,7 @@ export function ControlPanelsAppComponent({
                   </p>
                 </div>
 
-                <hr className="border-gray-400 my-4"></hr>
+                <hr className="my-4 border-t" style={separatorStyle} />
 
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col gap-1">

@@ -268,7 +268,7 @@ const SelectItem = React.forwardRef<
           WebkitFontSmoothing: "antialiased",
           fontSmooth: "auto",
           borderRadius: "4px",
-          padding: "2px 12px",
+          padding: "2px 12px 2px 8px",
           margin: "1px 0",
           minHeight: "24px",
         }),

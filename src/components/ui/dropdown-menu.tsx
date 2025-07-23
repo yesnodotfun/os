@@ -189,7 +189,7 @@ const DropdownMenuItem = React.forwardRef<
           : undefined,
         ...(isMacOSTheme && {
           borderRadius: "4px",
-          padding: "2px 12px",
+          padding: "2px 12px 2px 8px",
           margin: "1px 0",
           WebkitFontSmoothing: "antialiased",
         }),

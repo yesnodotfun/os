@@ -5,6 +5,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  SelectSeparator,
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useWallpaper } from "@/hooks/useWallpaper";
@@ -466,18 +467,17 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
               <SelectValue placeholder="Select a category" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="videos">
-                Videos
-                <span className="ml-1.5 px-0.5 text-[9px] font-geneva-12 bg-neutral-500 text-white rounded-md">
-                  NEW
-                </span>
-              </SelectItem>
-              <SelectItem value="custom">
-                Custom
-                <span className="ml-1.5 px-0.5 text-[9px] font-geneva-12 bg-neutral-500 text-white rounded-md">
-                  NEW
-                </span>
-              </SelectItem>
+              <SelectItem value="videos">Videos</SelectItem>
+              <SelectItem value="custom">Custom</SelectItem>
+              <SelectSeparator
+                className="-mx-1 my-1 h-px"
+                style={{
+                  backgroundColor: "rgba(0, 0, 0, 0.15)",
+                  border: "none",
+                  margin: "4px 0",
+                  height: "1px",
+                }}
+              />
               <SelectItem value="tiles">Tiled Patterns</SelectItem>
               {PHOTO_CATEGORIES.filter(
                 (cat) => cat !== "custom" && cat !== "videos"
