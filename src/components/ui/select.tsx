@@ -67,7 +67,7 @@ const SelectTrigger = React.forwardRef<
           height: "28px", // Match Input h-7 height for macOS theme
           lineHeight: 1,
           minWidth: "60px",
-          borderRadius: "4px", // Changed from 6px to 4px to match Input styling
+          borderRadius: "6px", // macOS should use 6px radius
           position: "relative",
           overflow: "hidden",
           cursor: "default",
@@ -85,9 +85,6 @@ const SelectTrigger = React.forwardRef<
           color: "black",
           textShadow: "0 1px 1px rgba(255, 255, 255, 0.5)",
           paddingRight: "24px",
-          backgroundImage: `url("data:image/svg+xml;charset=utf-8,%3Csvg width='8' height='10' viewBox='0 0 8 10' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 3.5L4 1L7 3.5M1 6.5L4 9L7 6.5' stroke='%23333' stroke-width='1' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`,
-          backgroundPosition: "right 6px center",
-          backgroundRepeat: "no-repeat",
         }),
       }}
       onClick={() => playClick()}
@@ -179,7 +176,7 @@ const SelectContent = React.forwardRef<
         style={{
           ...(isMacOSTheme && {
             border: "none",
-            borderRadius: "4px",
+            borderRadius: "6px",
             backgroundColor: "rgba(255, 255, 255, 0.7)",
             backdropFilter: "blur(20px)",
             WebkitBackdropFilter: "blur(20px)",
@@ -270,7 +267,7 @@ const SelectItem = React.forwardRef<
         ...(isMacOSTheme && {
           WebkitFontSmoothing: "antialiased",
           fontSmooth: "auto",
-          borderRadius: "4px",
+          borderRadius: "6px",
           padding: "4px 12px",
           margin: "1px 0",
           minHeight: "24px",
