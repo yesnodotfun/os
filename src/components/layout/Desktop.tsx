@@ -268,10 +268,10 @@ export function Desktop({
           display: isVideoWallpaper ? "block" : "none",
         }}
       />
-      <div className={`p-4 flex flex-col items-end relative z-[1] ${
+      <div className={`p-4 flex flex-col relative z-[1] ${
         isXpTheme 
-          ? "pt-4 h-[calc(100%-2.5rem)]" // Account for bottom taskbar (40px = 2.5rem)
-          : "pt-8 h-[calc(100%-2rem)]"   // Account for top menubar
+          ? "items-start pt-4 h-[calc(100%-2.5rem)]" // Account for bottom taskbar (40px = 2.5rem) - start from left for XP/98
+          : "items-end pt-8 h-[calc(100%-2rem)]"     // Account for top menubar - keep right alignment for other themes
       }`}>
         <div className="flex flex-col flex-wrap-reverse justify-start gap-1 content-start h-full">
           <FileIcon
