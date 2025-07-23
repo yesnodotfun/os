@@ -1391,19 +1391,29 @@ export function ControlPanelsAppComponent({
   };
 
   const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
-  const isClassicMacTheme =
-    currentTheme === "macosx" || currentTheme === "system7";
+  const isMacOSXTheme = currentTheme === "macosx";
+  const isSystem7Theme = currentTheme === "system7";
+  const isClassicMacTheme = isMacOSXTheme || isSystem7Theme;
   const isWindowsLegacyTheme = isXpTheme;
 
   const tabListBase = "flex w-full h-6 space-x-0.5 shadow-none";
-  const tabListClassic = "bg-[#E3E3E3] border-b border-[#808080]";
+  
+  // System 7 styling - classic, no gradients or gloss
+  const tabListSystem7 = "bg-[#E3E3E3] border-b border-[#808080]";
+  const tabTriggerSystem7 =
+    "bg-[#D4D4D4] data-[state=active]:bg-[#E3E3E3] border border-[#808080] data-[state=active]:border-b-[#E3E3E3]";
+  const tabContentSystem7 = "bg-[#E3E3E3] border border-t-0 border-[#808080]";
+  
+  // macOS styling - aqua-button inspired with gradients and gloss for active tabs
+  const tabListMacOSX = "border-b border-black/20";
+  const tabTriggerMacOSX =
+    "bg-[#f0f0f0] hover:bg-[#f4f4f4] border border-black/20 data-[state=active]:bg-gradient-to-b data-[state=active]:from-[#ffffff] data-[state=active]:to-[#e8e8e8] data-[state=active]:border-b-[#ececec] data-[state=active]:shadow-sm data-[state=active]:shadow-inner data-[state=active]:relative data-[state=active]:overflow-hidden data-[state=active]:before:absolute data-[state=active]:before:inset-x-2 data-[state=active]:before:top-1 data-[state=active]:before:h-[20%] data-[state=active]:before:bg-gradient-to-b data-[state=active]:before:from-white/80 data-[state=active]:before:to-white/20 data-[state=active]:before:rounded-t data-[state=active]:before:pointer-events-none data-[state=active]:after:absolute data-[state=active]:after:inset-x-2 data-[state=active]:after:bottom-1 data-[state=active]:after:h-[15%] data-[state=active]:after:bg-gradient-to-t data-[state=active]:after:from-white/30 data-[state=active]:after:to-transparent data-[state=active]:after:rounded-b data-[state=active]:after:pointer-events-none";
+  const tabContentMacOSX = "bg-[#ececec] border border-t-0 border-black/20";
+  
   const tabTriggerBase =
     "relative flex-1 h-6 px-2 -mb-[1px] rounded-t shadow-none! text-[16px]";
-  const tabTriggerClassic =
-    "bg-[#D4D4D4] data-[state=active]:bg-[#E3E3E3] border border-[#808080] data-[state=active]:border-b-[#E3E3E3]";
   const tabContentBase =
-    "mt-0 h-[calc(100%-2rem)] bg-white border border-[#919b9c]";
-  const tabContentClassic = "bg-[#E3E3E3] border border-t-0 border-[#808080]";
+    "mt-0 h-[calc(100%-2rem)] bg-white border border-black/20";
 
   const menuBar = (
     <ControlPanelsMenuBar
@@ -1452,13 +1462,13 @@ export function ControlPanelsAppComponent({
             ) : (
               <TabsList
                 className={`${tabListBase} ${
-                  isClassicMacTheme ? tabListClassic : ""
+                  isSystem7Theme ? tabListSystem7 : isMacOSXTheme ? tabListMacOSX : ""
                 }`}
               >
                 <TabsTrigger
                   value="appearance"
                   className={`${tabTriggerBase} ${
-                    isClassicMacTheme ? tabTriggerClassic : ""
+                    isSystem7Theme ? tabTriggerSystem7 : isMacOSXTheme ? tabTriggerMacOSX : ""
                   }`}
                 >
                   Appearance
@@ -1466,7 +1476,7 @@ export function ControlPanelsAppComponent({
                 <TabsTrigger
                   value="sound"
                   className={`${tabTriggerBase} ${
-                    isClassicMacTheme ? tabTriggerClassic : ""
+                    isSystem7Theme ? tabTriggerSystem7 : isMacOSXTheme ? tabTriggerMacOSX : ""
                   }`}
                 >
                   Sound
@@ -1474,7 +1484,7 @@ export function ControlPanelsAppComponent({
                 <TabsTrigger
                   value="system"
                   className={`${tabTriggerBase} ${
-                    isClassicMacTheme ? tabTriggerClassic : ""
+                    isSystem7Theme ? tabTriggerSystem7 : isMacOSXTheme ? tabTriggerMacOSX : ""
                   }`}
                 >
                   System
@@ -1485,7 +1495,7 @@ export function ControlPanelsAppComponent({
             <TabsContent
               value="appearance"
               className={`${tabContentBase} ${
-                isClassicMacTheme ? tabContentClassic : ""
+                isSystem7Theme ? tabContentSystem7 : isMacOSXTheme ? tabContentMacOSX : ""
               }`}
             >
               <div className="space-y-4 h-full overflow-y-auto p-4">
@@ -1520,7 +1530,7 @@ export function ControlPanelsAppComponent({
             <TabsContent
               value="sound"
               className={`${tabContentBase} ${
-                isClassicMacTheme ? tabContentClassic : ""
+                isSystem7Theme ? tabContentSystem7 : isMacOSXTheme ? tabContentMacOSX : ""
               }`}
             >
               <div className="space-y-4 h-full overflow-y-auto p-4">
@@ -1613,7 +1623,7 @@ export function ControlPanelsAppComponent({
             <TabsContent
               value="system"
               className={`${tabContentBase} ${
-                isClassicMacTheme ? tabContentClassic : ""
+                isSystem7Theme ? tabContentSystem7 : isMacOSXTheme ? tabContentMacOSX : ""
               }`}
             >
               <div className="space-y-4 h-full overflow-y-auto p-4">
