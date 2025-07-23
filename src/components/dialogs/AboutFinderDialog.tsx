@@ -166,45 +166,42 @@ export function AboutFinderDialog({
     </div>
   );
 
-  if (isXpTheme) {
-    return (
-      <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent
-          className={cn(
-            "p-0 overflow-hidden max-w-[400px] border-0", // Remove border but keep box-shadow
-            currentTheme === "xp" ? "window" : "window" // Use window class for both themes
-          )}
-          style={{
-            fontSize: "11px",
-          }}
-        >
-          <div
-            className="title-bar"
-            style={currentTheme === "xp" ? { minHeight: "30px" } : undefined}
-          >
-            <div className="title-bar-text">About This Computer</div>
-            <div className="title-bar-controls">
-              <button aria-label="Close" onClick={() => onOpenChange(false)} />
-            </div>
-          </div>
-          <div className="window-body">{dialogContent}</div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-os-window-bg border-[length:var(--os-metrics-border-width)] border-os-window rounded-os shadow-os-window max-w-[400px] focus:outline-none">
-        <DialogHeader>
-          <DialogTitle className="font-normal text-[16px]">
-            About This Computer
-          </DialogTitle>
-          <DialogDescription className="sr-only">
-            Information about ryOS on this computer
-          </DialogDescription>
-        </DialogHeader>
-        {dialogContent}
+      <DialogContent
+        className={cn(
+          "max-w-[400px]",
+          isXpTheme && "p-0 overflow-hidden"
+        )}
+        style={
+          isXpTheme
+            ? { fontSize: "11px" }
+            : undefined
+        }
+      >
+        {isXpTheme ? (
+          <>
+            <DialogHeader>About This Computer</DialogHeader>
+            <div className="window-body">{dialogContent}</div>
+          </>
+        ) : currentTheme === "macosx" ? (
+          <>
+            <DialogHeader>About This Computer</DialogHeader>
+            {dialogContent}
+          </>
+        ) : (
+          <>
+            <DialogHeader>
+              <DialogTitle className="font-normal text-[16px]">
+                About This Computer
+              </DialogTitle>
+              <DialogDescription className="sr-only">
+                Information about ryOS on this computer
+              </DialogDescription>
+            </DialogHeader>
+            {dialogContent}
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );

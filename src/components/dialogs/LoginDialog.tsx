@@ -389,51 +389,45 @@ export function LoginDialog({
     </div>
   );
 
-  if (isXpTheme) {
-    return (
-      <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent
-          className={cn(
-            "p-0 overflow-hidden max-w-[400px] border-0", // Remove border but keep box-shadow
-            currentTheme === "xp" ? "window" : "window" // Use window class for both themes
-          )}
-          style={{
-            fontSize: "11px",
-          }}
-          onKeyDown={(e: React.KeyboardEvent) => e.stopPropagation()}
-        >
-          <div
-            className="title-bar"
-            style={currentTheme === "xp" ? { minHeight: "30px" } : undefined}
-          >
-            <div className="title-bar-text">ryOS Login</div>
-            <div className="title-bar-controls">
-              <button aria-label="Close" onClick={() => onOpenChange(false)} />
-            </div>
-          </div>
-          <div className="window-body">{dialogContent}</div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent
-        className="bg-os-window-bg border-[length:var(--os-metrics-border-width)] border-os-window rounded-os shadow-os-window max-w-[400px]"
+        className={cn(
+          "max-w-[400px]",
+          isXpTheme && "p-0 overflow-hidden"
+        )}
+        style={
+          isXpTheme
+            ? { fontSize: "11px" }
+            : undefined
+        }
         onKeyDown={(e: React.KeyboardEvent) => e.stopPropagation()}
       >
-        <DialogHeader>
-          <DialogTitle className="font-normal text-[16px]">
-            ryOS Login
-          </DialogTitle>
-          <DialogDescription className="sr-only">
-            {activeTab === "login"
-              ? "Log in to your account"
-              : "Create an account to access chat rooms and save your settings"}
-          </DialogDescription>
-        </DialogHeader>
-        {dialogContent}
+        {isXpTheme ? (
+          <>
+            <DialogHeader>ryOS Login</DialogHeader>
+            <div className="window-body">{dialogContent}</div>
+          </>
+        ) : currentTheme === "macosx" ? (
+          <>
+            <DialogHeader>ryOS Login</DialogHeader>
+            {dialogContent}
+          </>
+        ) : (
+          <>
+            <DialogHeader>
+              <DialogTitle className="font-normal text-[16px]">
+                ryOS Login
+              </DialogTitle>
+              <DialogDescription className="sr-only">
+                {activeTab === "login"
+                  ? "Log in to your account"
+                  : "Create an account to access chat rooms and save your settings"}
+              </DialogDescription>
+            </DialogHeader>
+            {dialogContent}
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );

@@ -721,3 +721,12 @@
 :root[data-os-theme="macosx"] .shadow-os-window:not(.is-foreground) {
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
+
+/* macOS Theme Dialog Styling */
+:root[data-os-theme="macosx"] .macosx-dialog {
+  border-radius: 7.2px !important;
+}
+
+:root[data-os-theme="macosx"] .macosx-dialog-header {
+  border-radius: 7.2px 7.2px 0px 0px !important;
+}
