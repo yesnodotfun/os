@@ -11,12 +11,13 @@ export const macosx: OsTheme = {
     windowBg: "#ECECEC",
     menubarBg: "linear-gradient(to bottom, #FAFAFA, #D1D1D1)",
     menubarBorder: "#8E8E8E",
-    windowBorder: "#7C7C7C",
+    windowBorder: "rgba(0, 0, 0, 0.2)",
     titleBar: {
       activeBg: "linear-gradient(to bottom, #EDEDED, #C8C8C8)",
       inactiveBg: "linear-gradient(to bottom, #F6F6F6, #E0E0E0)",
       text: "#000000",
       inactiveText: "#7F7F7F",
+      border: "rgba(0, 0, 0, 0.1)",
     },
     button: {
       face: "#FFFFFF",

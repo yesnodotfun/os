@@ -17,6 +17,7 @@ export interface OsTheme {
       inactiveBg: string;
       text: string;
       inactiveText: string;
+      border?: string; // For macOS semi-transparent border
       pattern?: string; // For System 7's dotted pattern
     };
     button: {

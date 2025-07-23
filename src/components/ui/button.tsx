@@ -22,6 +22,7 @@ const buttonVariants = cva(
         link: "text-primary underline-offset-4 hover:underline",
         retro:
           "border-[5px] border-solid border-transparent [border-image:url('/button.svg')_30_stretch] active:[border-image:url('/button-default.svg')_60_stretch] focus:[border-image:url('/button-default.svg')_60_stretch] shadow-none focus:outline-none focus:ring-0",
+        aqua: "aqua-button secondary text-sm h-auto px-4 py-2 min-w-0 transform-none m-0",
         player:
           "text-[9px] flex items-center justify-center focus:outline-none relative min-w-[45px] h-[20px] border border-solid border-transparent [border-image:url('/assets/videos/switch.png')_1_fill] [border-image-slice:1] bg-none font-geneva-12 text-black hover:brightness-90 active:brightness-50 [&[data-state=on]]:brightness-60",
       },
@@ -51,11 +52,48 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const Comp = asChild ? Slot : "button";
     const currentTheme = useThemeStore((state) => state.current);
     const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
+    const isMacTheme = currentTheme === "macosx";
 
     const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
       playButtonClick();
       props.onClick?.(e);
     };
+
+    // For macOS theme, use aqua variant for default buttons
+    if (isMacTheme && variant === "default") {
+      return (
+        <Comp
+          className={cn("aqua-button primary", className)}
+          ref={ref}
+          {...props}
+          onClick={handleClick}
+        />
+      );
+    }
+
+    // For macOS theme with secondary variant, use aqua secondary
+    if (isMacTheme && variant === "secondary") {
+      return (
+        <Comp
+          className={cn("aqua-button secondary", className)}
+          ref={ref}
+          {...props}
+          onClick={handleClick}
+        />
+      );
+    }
+
+    // For macOS theme with retro variant, use aqua primary
+    if (isMacTheme && variant === "retro") {
+      return (
+        <Comp
+          className={cn("aqua-button secondary", className)}
+          ref={ref}
+          {...props}
+          onClick={handleClick}
+        />
+      );
+    }
 
     // For XP/Win98 themes, use xp.css button class only for default variant
     // Ghost variant should maintain its clean appearance for menubars
@@ -72,6 +110,23 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
     // For XP/Win98 themes with ghost variant, add specific classes to override global button styles
     if (isXpTheme && variant === "ghost") {
+      return (
+        <Comp
+          className={cn(
+            buttonVariants({ variant, size }),
+            "!border-none !bg-transparent !shadow-none !box-shadow-none !background-none",
+            "[background:transparent!important] [box-shadow:none!important] [border:none!important]",
+            className
+          )}
+          ref={ref}
+          {...props}
+          onClick={handleClick}
+        />
+      );
+    }
+
+    // For macOS theme with ghost variant, maintain clean appearance for menubars
+    if (isMacTheme && variant === "ghost") {
       return (
         <Comp
           className={cn(
