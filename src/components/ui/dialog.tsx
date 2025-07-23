@@ -82,7 +82,7 @@ const DialogContent = React.forwardRef<
     if (isMacOsxTheme) {
       return cn(
         "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-0 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 origin-center",
-        "bg-os-window-bg border-[length:var(--os-metrics-border-width)] border-os-window shadow-os-window",
+        "bg-os-window-bg border-[length:var(--os-metrics-border-width)] border-os-window shadow-os-window macosx-dialog",
         className
       );
     }
@@ -105,7 +105,6 @@ const DialogContent = React.forwardRef<
           isMacOsxTheme
             ? {
                 backgroundImage: `var(--os-pinstripe-window), var(--os-color-window-bg)`,
-                borderRadius: "0.45rem",
               }
             : undefined
         }
@@ -155,11 +154,10 @@ const DialogHeader = ({
     return (
       <div
         className={cn(
-          "flex items-center shrink-0 h-6 min-h-[1.25rem] mx-0 mb-0 px-[0.1rem] py-[0.1rem] select-none cursor-move user-select-none z-50 draggable-area",
+          "flex items-center shrink-0 h-6 min-h-[1.25rem] mx-0 mb-0 px-[0.1rem] py-[0.1rem] select-none cursor-move user-select-none z-50 draggable-area macosx-dialog-header",
           className
         )}
         style={{
-          borderRadius: "0.45rem 0.45rem 0px 0px",
           background: theme.colors.titleBar.activeBg,
           borderBottom: `1px solid ${theme.colors.titleBar.borderBottom || theme.colors.titleBar.border || "rgba(0, 0, 0, 0.1)"}`,
         }}
