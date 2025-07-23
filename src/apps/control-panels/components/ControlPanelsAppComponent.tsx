@@ -1416,7 +1416,7 @@ export function ControlPanelsAppComponent({
   // macOS styling - use aqua-button CSS classes
   const tabListMacOSX = "aqua-tab-bar";
   const tabTriggerMacOSX = "aqua-tab";
-  const tabContentMacOSX = "border border-t-0 border-black/20 bg-transparent";
+  const tabContentMacOSX = "aqua-tab-content";
 
   const tabTriggerBase = `relative flex-1 ${isMacOSXTheme ? "" : "h-6"} px-2 ${
     isMacOSXTheme ? "" : "-mb-[1px]"

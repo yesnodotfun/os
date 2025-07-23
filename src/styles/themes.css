@@ -762,13 +762,15 @@
   font-size: 12px !important;
 }
 
-.aqua-tab:hover {
-  background: linear-gradient(rgba(250, 250, 250, 1), rgba(212, 212, 212, 1));
+.aqua-tab:hover:not([data-state="active"]) {
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05),
+    inset 0 2px 3px 1px rgba(187, 187, 187, 0.6), 0 1px 1px rgba(0, 0, 0, 0.2);
 }
 
 .aqua-tab[data-state="active"] {
   /* Active tab - no position shift or extension */
   margin-top: 0;
+  z-index: 10;
   /* Active tab (primary aqua button style) */
   background: linear-gradient(
     rgb(48 123 201),
@@ -836,7 +838,6 @@
     rgba(244, 244, 244, 1),
     rgba(232, 232, 232, 1)
   ) !important;
-  border-bottom: 4px solid rgba(65, 105, 225, 0.9);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
   position: relative;
   height: 28px !important;
@@ -847,13 +848,28 @@
   padding-bottom: 0 !important;
 }
 
-.aqua-tab-bar:before {
-  content: none !important;
-  background: none !important;
-  box-shadow: none !important;
+.aqua-tab-bar:after {
+  content: "";
+  position: absolute;
+  bottom: -5px;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: linear-gradient(
+    to bottom,
+    #2260a4 0%,
+    #e2fbfd 8%,
+    #aecef3 25%,
+    #7aafee 40%,
+    #98ceff 60%,
+    #9dcfff 80%,
+    #74deff 100%
+  );
+  box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.3),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.3);
 }
 
-.aqua-tab-bar:after {
+.aqua-tab-bar:before {
   content: none !important;
   background: none !important;
   box-shadow: none !important;
@@ -880,4 +896,11 @@
 /* Specifically target the TabsList component container */
 :root[data-os-theme="macosx"] .aqua-tab-bar:not(.aqua-tab) {
   background: transparent !important;
+}
+
+/* Aqua tab content - just borders, no top border since tab bar handles that */
+.aqua-tab-content {
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-top: none;
+  background: transparent;
 }

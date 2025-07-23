@@ -844,13 +844,17 @@ export function FinderAppComponent({
               isXpTheme
                 ? "border-b border-[#919b9c]"
                 : currentTheme === "macosx"
-                ? "bg-transparent border-b border-gray-300"
+                ? "bg-transparent"
                 : currentTheme === "system7"
                 ? "bg-gray-100 border-b border-black"
                 : "bg-gray-100 border-b border-gray-300"
             }`}
             style={{
               background: isXpTheme ? "transparent" : undefined,
+              borderBottom:
+                currentTheme === "macosx"
+                  ? `var(--os-metrics-titlebar-border-width, 1px) solid var(--os-color-titlebar-border, rgba(0, 0, 0, 0.35))`
+                  : undefined,
             }}
           >
             <div className="flex gap-2 items-center">
