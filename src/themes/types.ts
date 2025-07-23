@@ -12,12 +12,14 @@ export interface OsTheme {
     menubarBg: string;
     menubarBorder: string;
     windowBorder: string;
+    windowBorderInactive?: string; // For macOS inactive window borders
     titleBar: {
       activeBg: string;
       inactiveBg: string;
       text: string;
       inactiveText: string;
       border?: string; // For macOS semi-transparent border
+      borderInactive?: string; // For macOS inactive border
       pattern?: string; // For System 7's dotted pattern
     };
     button: {

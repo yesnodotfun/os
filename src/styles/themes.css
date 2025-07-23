@@ -347,6 +347,20 @@
     var(--os-color-titlebar-border) !important;
 }
 
+/* Inactive window styling for macOS */
+:root[data-os-theme="macosx"] .window:not(.is-foreground) .title-bar,
+:root[data-os-theme="macosx"] .title-bar:not(.active) {
+  border: var(--os-metrics-titlebar-border-width) solid
+    var(--os-color-titlebar-border-inactive) !important;
+  border-bottom: var(--os-metrics-titlebar-border-width) solid
+    var(--os-color-titlebar-border-inactive) !important;
+}
+
 :root[data-os-theme="macosx"] .window {
   border: var(--os-metrics-border-width) solid var(--os-color-window-border) !important;
+}
+
+:root[data-os-theme="macosx"] .window:not(.is-foreground) {
+  border: var(--os-metrics-border-width) solid
+    var(--os-color-window-border-inactive) !important;
 }
