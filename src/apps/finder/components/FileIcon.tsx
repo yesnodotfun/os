@@ -237,7 +237,9 @@ export function FileIcon({
 
   return (
     <div
-      className={`flex flex-col items-center justify-start cursor-default gap-1 ${sizes.container} ${className}`}
+      className={`flex flex-col items-center justify-start cursor-default ${
+        isMacOSXTheme ? "gap-0.5 pb-3" : "gap-1"
+      } ${sizes.container} ${className}`}
       onDoubleClick={handleDoubleClick}
       onClick={handleClick}
       onContextMenu={onContextMenu}
@@ -256,18 +258,25 @@ export function FileIcon({
       <span
         className={`text-center px-1 font-geneva-12 break-words truncate ${
           sizes.text
-        } ${
+        } ${isMacOSXTheme ? "font-bold" : ""} ${
           isSelected || (isDropTarget && isDirectory)
             ? "bg-black text-white"
             : isWin98Theme
-              ? "bg-white text-black"
-              : (isXpTheme || isMacOSXTheme)
-                ? "bg-transparent text-white"
-                : "bg-white text-black"
+            ? "bg-white text-black"
+            : isXpTheme || isMacOSXTheme
+            ? "bg-transparent text-white"
+            : "bg-white text-black"
         }`}
         style={
-          !isSelected && !(isDropTarget && isDirectory) && (isXpTheme || isMacOSXTheme)
-            ? { textShadow: "1px 1px 2px rgba(0, 0, 0, 0.8)" }
+          !isSelected &&
+          !(isDropTarget && isDirectory) &&
+          (isXpTheme || isMacOSXTheme)
+            ? isMacOSXTheme
+              ? {
+                  textShadow:
+                    "0 1px 0 rgba(0,0,0,0.9), 0 2px 1px rgba(0,0,0,0.75), 0 3px 2px rgba(0,0,0,0.55)",
+                }
+              : { textShadow: "1px 1px 2px rgba(0, 0, 0, 0.8)" }
             : {}
         }
       >

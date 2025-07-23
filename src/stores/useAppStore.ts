@@ -1099,7 +1099,7 @@ const saveCustomWallpaper = async (file: File): Promise<string> => {
       dateAdded: new Date().toISOString(),
     };
     await new Promise<void>((resolve, reject) => {
-      const req = store.put(wallpaper);
+      const req = store.put(wallpaper, wallpaperName);
       req.onsuccess = () => resolve();
       req.onerror = () => reject(req.error);
     });
