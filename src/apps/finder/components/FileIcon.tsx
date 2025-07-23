@@ -35,7 +35,8 @@ export function FileIcon({
 }: FileIconProps) {
   const { play: playClick } = useSound(Sounds.BUTTON_CLICK, 0.3);
   const currentTheme = useThemeStore((state) => state.current);
-  const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
+  const isXpTheme = currentTheme === "xp";
+  const isWin98Theme = currentTheme === "win98";
   const isMacOSXTheme = currentTheme === "macosx";
   const [imgSrc, setImgSrc] = useState<string | undefined>(contentUrl);
   const [fallbackToIcon, setFallbackToIcon] = useState(false);
@@ -257,12 +258,12 @@ export function FileIcon({
           sizes.text
         } ${
           isSelected || (isDropTarget && isDirectory)
-            ? (isXpTheme || isMacOSXTheme) 
-              ? "bg-black text-white"
-              : "bg-black text-white"
-            : (isXpTheme || isMacOSXTheme)
-              ? "bg-transparent text-white"
-              : "bg-white text-black"
+            ? "bg-black text-white"
+            : isWin98Theme
+              ? "bg-white text-black"
+              : (isXpTheme || isMacOSXTheme)
+                ? "bg-transparent text-white"
+                : "bg-white text-black"
         }`}
         style={
           !isSelected && !(isDropTarget && isDirectory) && (isXpTheme || isMacOSXTheme)
