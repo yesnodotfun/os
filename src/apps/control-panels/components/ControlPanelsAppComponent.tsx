@@ -1405,15 +1405,31 @@ export function ControlPanelsAppComponent({
   const tabContentSystem7 = "bg-[#E3E3E3] border border-t-0 border-[#808080]";
   
   // macOS styling - aqua-button inspired with gradients and gloss for active tabs
-  const tabListMacOSX = "border-b border-black/20";
+  const tabListMacOSX = "bg-gradient-to-b from-[#f4f4f4] to-[#e8e8e8] border-b border-black/20 shadow-inner relative overflow-hidden before:absolute before:inset-x-0 before:top-0 before:h-[40%] before:bg-gradient-to-b before:from-white/40 before:to-white/10 before:pointer-events-none";
   const tabTriggerMacOSX =
-    "bg-[#f0f0f0] hover:bg-[#f4f4f4] border border-black/20 data-[state=active]:bg-gradient-to-b data-[state=active]:from-[#ffffff] data-[state=active]:to-[#e8e8e8] data-[state=active]:border-b-[#ececec] data-[state=active]:shadow-sm data-[state=active]:shadow-inner data-[state=active]:relative data-[state=active]:overflow-hidden data-[state=active]:before:absolute data-[state=active]:before:inset-x-2 data-[state=active]:before:top-1 data-[state=active]:before:h-[20%] data-[state=active]:before:bg-gradient-to-b data-[state=active]:before:from-white/80 data-[state=active]:before:to-white/20 data-[state=active]:before:rounded-t data-[state=active]:before:pointer-events-none data-[state=active]:after:absolute data-[state=active]:after:inset-x-2 data-[state=active]:after:bottom-1 data-[state=active]:after:h-[15%] data-[state=active]:after:bg-gradient-to-t data-[state=active]:after:from-white/30 data-[state=active]:after:to-transparent data-[state=active]:after:rounded-b data-[state=active]:after:pointer-events-none";
+    "relative overflow-hidden border border-black/30 rounded-t-lg transition-all duration-150 " +
+    // Inactive tab (secondary aqua button style)
+    "bg-gradient-to-b from-[#f8f8f8] to-[#d0d0d0] " +
+    "shadow-[inset_0_1px_2px_rgba(0,0,0,0.1),inset_0_2px_3px_1px_rgba(187,187,187,0.8),0_1px_1px_rgba(0,0,0,0.3)] " +
+    "text-black text-shadow-[0_1px_1px_rgba(0,0,0,0.25)] " +
+    "hover:from-[#fafafa] hover:to-[#d4d4d4] " +
+    // Active tab (primary aqua button style)  
+    "data-[state=active]:bg-gradient-to-b data-[state=active]:from-[rgba(100,149,237,0.9)] data-[state=active]:to-[rgba(65,105,225,0.9)] " +
+    "data-[state=active]:shadow-[inset_0_1px_3px_rgba(0,17,49,0.8),inset_0_2px_3px_1px_rgba(0,78,187,0.75),0_2px_3px_rgba(0,0,0,0.3),0_1px_1px_rgba(0,78,187,0.5)] " +
+    "data-[state=active]:text-white data-[state=active]:text-shadow-[0_1px_1px_rgba(30,77,161,0.5)] " +
+    "data-[state=active]:border-b-[rgba(100,149,237,0.9)] " +
+    // Gloss effects for both states
+    "before:absolute before:inset-x-1 before:top-1 before:h-[33%] before:bg-gradient-to-b before:from-white/80 before:to-white/20 before:rounded-t-md before:pointer-events-none before:z-10 " +
+    "after:absolute after:inset-x-1.5 after:bottom-1 after:h-[25%] after:bg-gradient-to-t after:from-white/30 after:to-transparent after:rounded-b-sm after:pointer-events-none after:z-10 " +
+    // Enhanced gloss for active state
+    "data-[state=active]:before:from-white/90 data-[state=active]:before:to-white/30 " +
+    "data-[state=active]:after:from-white/40 data-[state=active]:after:to-transparent";
   const tabContentMacOSX = "bg-[#ececec] border border-t-0 border-black/20";
   
   const tabTriggerBase =
-    "relative flex-1 h-6 px-2 -mb-[1px] rounded-t shadow-none! text-[16px]";
+    "relative flex-1 h-8 px-4 -mb-[1px] rounded-t shadow-none! text-[13px] font-medium";
   const tabContentBase =
-    "mt-0 h-[calc(100%-2rem)] bg-white border border-black/20";
+    "mt-0 h-[calc(100%-2.5rem)] bg-white border border-black/20";
 
   const menuBar = (
     <ControlPanelsMenuBar
