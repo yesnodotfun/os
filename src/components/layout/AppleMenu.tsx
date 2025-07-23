@@ -11,6 +11,8 @@ import { AboutFinderDialog } from "@/components/dialogs/AboutFinderDialog";
 import { AnyApp } from "@/apps/base/types";
 import { AppId } from "@/config/appRegistry";
 import { useLaunchApp } from "@/hooks/useLaunchApp";
+import { useThemeStore } from "@/stores/useThemeStore";
+import { cn } from "@/lib/utils";
 
 interface AppleMenuProps {
   apps: AnyApp[];
@@ -19,6 +21,8 @@ interface AppleMenuProps {
 export function AppleMenu({ apps }: AppleMenuProps) {
   const [aboutFinderOpen, setAboutFinderOpen] = useState(false);
   const launchApp = useLaunchApp();
+  const currentTheme = useThemeStore((state) => state.current);
+  const isMacOsxTheme = currentTheme === "macosx";
 
   const handleAppClick = (appId: string) => {
     // Simply launch the app - the instance system will handle focus if already open
@@ -32,7 +36,10 @@ export function AppleMenu({ apps }: AppleMenuProps) {
           <Button
             variant="ghost"
             size="default"
-            className="h-6 text-md px-3 py-1 border-none hover:bg-black/10 active:bg-black/20 focus-visible:ring-0"
+            className={cn(
+              "border-none hover:bg-black/10 active:bg-black/20 focus-visible:ring-0",
+              isMacOsxTheme ? "h-8 text-lg px-4 py-2" : "h-6 text-md px-3 py-1"
+            )}
             style={{ color: "inherit" }}
           >
             
