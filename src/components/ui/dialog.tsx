@@ -56,7 +56,6 @@ const DialogContent = React.forwardRef<
   const currentTheme = useThemeStore((state) => state.current);
   const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
   const isMacOsxTheme = currentTheme === "macosx";
-  const theme = getTheme(currentTheme);
 
   // Function to clean up pointer-events
   const cleanupPointerEvents = React.useCallback(() => {
@@ -129,7 +128,6 @@ const DialogHeader = ({
   const currentTheme = useThemeStore((state) => state.current);
   const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
   const isMacOsxTheme = currentTheme === "macosx";
-  const theme = getTheme(currentTheme);
 
   if (isXpTheme) {
     return (
@@ -152,6 +150,7 @@ const DialogHeader = ({
   }
 
   if (isMacOsxTheme) {
+    const theme = getTheme(currentTheme);
     return (
       <div
         className={cn(
