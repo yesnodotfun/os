@@ -51,11 +51,11 @@ export function Desktop({
   const longPressHandlers = useLongPress((e) => {
     // Check if the target is within an icon - if so, don't show desktop context menu
     const target = e.target as HTMLElement;
-    const iconContainer = target.closest('[data-desktop-icon]');
+    const iconContainer = target.closest("[data-desktop-icon]");
     if (iconContainer) {
       return; // Let the icon handle its own context menu
     }
-    
+
     const touch = e.touches[0];
     setContextMenuPos({ x: touch.clientX, y: touch.clientY });
     setContextMenuAppId(null);
@@ -268,12 +268,20 @@ export function Desktop({
           display: isVideoWallpaper ? "block" : "none",
         }}
       />
-      <div className={`p-4 flex flex-col relative z-[1] ${
-        isXpTheme 
-          ? "items-start pt-4 h-[calc(100%-2.5rem)]" // Account for bottom taskbar (40px = 2.5rem) - start from left for XP/98
-          : "items-end pt-8 h-[calc(100%-2rem)]"     // Account for top menubar - keep right alignment for other themes
-      }`}>
-        <div className="flex flex-col flex-wrap-reverse justify-start gap-1 content-start h-full">
+      <div
+        className={`p-4 flex flex-col relative z-[1] ${
+          isXpTheme
+            ? "items-start pt-4 h-[calc(100%-2.5rem)]" // Account for bottom taskbar (40px = 2.5rem) - start from left for XP/98
+            : "items-end pt-8 h-[calc(100%-2rem)]" // Account for top menubar - keep right alignment for other themes
+        }`}
+      >
+        <div
+          className={
+            isXpTheme
+              ? "flex flex-col flex-wrap justify-start gap-1 content-start h-full"
+              : "flex flex-col flex-wrap-reverse justify-start gap-1 content-start h-full"
+          }
+        >
           <FileIcon
             name={isXpTheme ? "My Computer" : "Macintosh HD"}
             isDirectory={true}
@@ -283,7 +291,9 @@ export function Desktop({
               setSelectedAppId("macintosh-hd");
             }}
             onDoubleClick={handleFinderOpen}
-            onContextMenu={(e: React.MouseEvent<HTMLDivElement>) => handleIconContextMenu("macintosh-hd", e)}
+            onContextMenu={(e: React.MouseEvent<HTMLDivElement>) =>
+              handleIconContextMenu("macintosh-hd", e)
+            }
             isSelected={selectedAppId === "macintosh-hd"}
             size="large"
           />
@@ -299,7 +309,9 @@ export function Desktop({
                 toggleApp(app.id);
                 setSelectedAppId(null);
               }}
-              onContextMenu={(e: React.MouseEvent<HTMLDivElement>) => handleIconContextMenu(app.id, e)}
+              onContextMenu={(e: React.MouseEvent<HTMLDivElement>) =>
+                handleIconContextMenu(app.id, e)
+              }
               isSelected={selectedAppId === app.id}
               size="large"
             />

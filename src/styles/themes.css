@@ -760,9 +760,8 @@
   margin-top: 4px;
   /* Inactive tab (secondary aqua button style) */
   background: linear-gradient(rgba(248, 248, 248, 1), rgba(208, 208, 208, 1));
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1), 
-              inset 0 2px 3px 1px rgba(187, 187, 187, 0.8), 
-              0 1px 1px rgba(0, 0, 0, 0.3);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1),
+    inset 0 2px 3px 1px rgba(187, 187, 187, 0.8), 0 1px 1px rgba(0, 0, 0, 0.3);
   color: black;
   text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
 }
@@ -775,11 +774,13 @@
   /* Active tab - no position shift or extension */
   margin-top: 0;
   /* Active tab (primary aqua button style) */
-  background: linear-gradient(rgba(100, 149, 237, 0.9), rgba(65, 105, 225, 0.9));
-  box-shadow: inset 0 1px 3px rgba(0, 17, 49, 0.8), 
-              inset 0 2px 3px 1px rgba(0, 78, 187, 0.75), 
-              0 2px 3px rgba(0, 0, 0, 0.3), 
-              0 1px 1px rgba(0, 78, 187, 0.5);
+  background: linear-gradient(
+    rgba(100, 149, 237, 0.9),
+    rgba(65, 105, 225, 0.9)
+  );
+  box-shadow: inset 0 1px 3px rgba(0, 17, 49, 0.8),
+    inset 0 2px 3px 1px rgba(0, 78, 187, 0.75), 0 2px 3px rgba(0, 0, 0, 0.3),
+    0 1px 1px rgba(0, 78, 187, 0.5);
   color: white !important;
   text-shadow: 0 1px 1px rgba(30, 77, 161, 0.5);
   border-bottom: none;
@@ -793,7 +794,10 @@
   right: 2px;
   top: 2px;
   height: 35%;
-  background: linear-gradient(rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.25));
+  background: linear-gradient(
+    rgba(255, 255, 255, 0.85),
+    rgba(255, 255, 255, 0.25)
+  );
   border-radius: 4px 4px 0 0;
   pointer-events: none;
   z-index: 10;
@@ -815,7 +819,10 @@
 
 /* Enhanced gloss for active state */
 .aqua-tab[data-state="active"]:before {
-  background: linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.35));
+  background: linear-gradient(
+    rgba(255, 255, 255, 0.9),
+    rgba(255, 255, 255, 0.35)
+  );
 }
 
 .aqua-tab[data-state="active"]:after {
@@ -824,7 +831,10 @@
 
 /* Aqua tab bar */
 .aqua-tab-bar {
-  background: linear-gradient(rgba(244, 244, 244, 1), rgba(232, 232, 232, 1)) !important;
+  background: linear-gradient(
+    rgba(244, 244, 244, 1),
+    rgba(232, 232, 232, 1)
+  ) !important;
   border-bottom: 4px solid rgba(65, 105, 225, 0.9);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
   position: relative;
@@ -836,20 +846,26 @@
   padding-bottom: 0 !important;
 }
 
-  .aqua-tab-bar:before {
-    content: "";
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 0;
-    height: 40%;
-    background: linear-gradient(rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.1));
-    pointer-events: none;
-  }
+.aqua-tab-bar:before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 40%;
+  background: linear-gradient(
+    rgba(255, 255, 255, 0.4),
+    rgba(255, 255, 255, 0.1)
+  );
+  pointer-events: none;
+}
 
 /* Remove default Tabs background for macOS */
 :root[data-os-theme="macosx"] [role="tablist"].aqua-tab-bar {
-  background: linear-gradient(rgba(244, 244, 244, 1), rgba(232, 232, 232, 1)) !important;
+  background: linear-gradient(
+    rgba(244, 244, 244, 1),
+    rgba(232, 232, 232, 1)
+  ) !important;
 }
 
 :root[data-os-theme="macosx"] [data-radix-tabs-root] {
@@ -867,5 +883,8 @@
 
 /* Specifically target the TabsList component container */
 :root[data-os-theme="macosx"] .aqua-tab-bar:not(.aqua-tab) {
-  background: linear-gradient(rgba(244, 244, 244, 1), rgba(232, 232, 232, 1)) !important;
+  background: linear-gradient(
+    rgba(244, 244, 244, 1),
+    rgba(232, 232, 232, 1)
+  ) !important;
 }
