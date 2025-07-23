@@ -1427,9 +1427,9 @@ export function ControlPanelsAppComponent({
   const tabContentMacOSX = "bg-[#ececec] border border-t-0 border-black/20";
   
   const tabTriggerBase =
-    "relative flex-1 h-8 px-4 -mb-[1px] rounded-t shadow-none! text-[13px] font-medium";
+    "relative flex-1 h-6 px-2 -mb-[1px] rounded-t shadow-none! text-[16px]";
   const tabContentBase =
-    "mt-0 h-[calc(100%-2.5rem)] bg-white border border-black/20";
+    "mt-0 h-[calc(100%-2rem)] bg-white border border-black/20";
 
   const menuBar = (
     <ControlPanelsMenuBar
