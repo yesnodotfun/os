@@ -1468,7 +1468,7 @@ export function ControlPanelsAppComponent({
               <TabsList asChild>
                 <menu
                   role="tablist"
-                  className="h-7! flex justify-start p-0 -mt-1 -mb-[2px] bg-transparent shadow-none /* Windows XP/98 tab strip */"
+                  className="h-7! flex justify-start! p-0 -mt-1 -mb-[2px] bg-transparent shadow-none /* Windows XP/98 tab strip */"
                 >
                   <TabsTrigger value="appearance">Appearance</TabsTrigger>
                   <TabsTrigger value="sound">Sound</TabsTrigger>
