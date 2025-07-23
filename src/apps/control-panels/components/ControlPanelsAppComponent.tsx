@@ -1396,14 +1396,14 @@ export function ControlPanelsAppComponent({
   const isWindowsLegacyTheme = isXpTheme;
 
   const tabListBase = "flex w-full h-6 space-x-0.5 shadow-none";
-  const tabListClassic = "bg-[#E3E3E3] border-b border-[#808080]";
+  const tabListClassic = "bg-[#E3E3E3] border-b border-black/20";
   const tabTriggerBase =
     "relative flex-1 h-6 px-2 -mb-[1px] rounded-t shadow-none! text-[16px]";
   const tabTriggerClassic =
-    "bg-[#D4D4D4] data-[state=active]:bg-[#E3E3E3] border border-[#808080] data-[state=active]:border-b-[#E3E3E3]";
+    "bg-gradient-to-b from-[#f6f6f6] to-[#dadada] data-[state=active]:bg-gradient-to-b data-[state=active]:from-[#ffffff] data-[state=active]:to-[#e8e8e8] border border-black/20 data-[state=active]:border-b-[#E3E3E3] shadow-sm data-[state=active]:shadow-inner relative overflow-hidden before:absolute before:inset-x-1 before:top-0.5 before:h-[30%] before:bg-gradient-to-b before:from-white/80 before:to-white/20 before:rounded-t before:pointer-events-none";
   const tabContentBase =
-    "mt-0 h-[calc(100%-2rem)] bg-white border border-[#919b9c]";
-  const tabContentClassic = "bg-[#E3E3E3] border border-t-0 border-[#808080]";
+    "mt-0 h-[calc(100%-2rem)] bg-white border border-black/20";
+  const tabContentClassic = "bg-[#E3E3E3] border border-t-0 border-black/20";
 
   const menuBar = (
     <ControlPanelsMenuBar
