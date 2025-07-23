@@ -275,9 +275,9 @@ export function Desktop({
       }`}>
         <div className="flex flex-col flex-wrap-reverse justify-start gap-1 content-start h-full">
           <FileIcon
-            name="Macintosh HD"
+            name={isXpTheme ? "My Computer" : "Macintosh HD"}
             isDirectory={true}
-            icon="/icons/disk.png"
+            icon={isXpTheme ? "/icons/pc.png" : "/icons/disk.png"}
             onClick={(e) => {
               e.stopPropagation();
               setSelectedAppId("macintosh-hd");
