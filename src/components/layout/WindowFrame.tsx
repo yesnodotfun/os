@@ -849,7 +849,7 @@ export function WindowFrame({
               }}
             >
               {/* Traffic Light Buttons */}
-              <div className="flex items-center gap-1.5 ml-1.5">
+              <div className="flex items-center gap-2 ml-1.5">
                 {/* Close Button (Red) */}
                 <button
                   onClick={(e) => {
@@ -858,8 +858,10 @@ export function WindowFrame({
                   }}
                   onMouseDown={(e) => e.stopPropagation()}
                   onTouchStart={(e) => e.stopPropagation()}
-                  className="w-3 h-3 rounded-full relative overflow-hidden cursor-default outline-none box-border"
+                  className="rounded-full relative overflow-hidden cursor-default outline-none box-border"
                   style={{
+                    width: "13px",
+                    height: "13px",
                     background: isForeground
                       ? "linear-gradient(rgb(193, 58, 45), rgb(205, 73, 52))"
                       : "linear-gradient(rgba(160, 160, 160, 0.625), rgba(255, 255, 255, 0.625))",
@@ -905,8 +907,10 @@ export function WindowFrame({
                   }}
                   onMouseDown={(e) => e.stopPropagation()}
                   onTouchStart={(e) => e.stopPropagation()}
-                  className="w-3 h-3 rounded-full relative overflow-hidden cursor-default outline-none box-border"
+                  className="rounded-full relative overflow-hidden cursor-default outline-none box-border"
                   style={{
+                    width: "13px",
+                    height: "13px",
                     background: isForeground
                       ? "linear-gradient(rgb(202, 130, 13), rgb(253, 253, 149))"
                       : "linear-gradient(rgba(160, 160, 160, 0.625), rgba(255, 255, 255, 0.625))",
@@ -952,8 +956,10 @@ export function WindowFrame({
                   }}
                   onMouseDown={(e) => e.stopPropagation()}
                   onTouchStart={(e) => e.stopPropagation()}
-                  className="w-3 h-3 rounded-full relative overflow-hidden cursor-default outline-none box-border"
+                  className="rounded-full relative overflow-hidden cursor-default outline-none box-border"
                   style={{
+                    width: "13px",
+                    height: "13px",
                     background: isForeground
                       ? "linear-gradient(rgb(111, 174, 58), rgb(138, 192, 50))"
                       : "linear-gradient(rgba(160, 160, 160, 0.625), rgba(255, 255, 255, 0.625))",
@@ -1003,7 +1009,7 @@ export function WindowFrame({
                 )}
                 style={{
                   textShadow: isForeground
-                    ? "0 1px 2px rgba(0, 0, 0, 0.2)"
+                    ? "0 2px 3px rgba(0, 0, 0, 0.25)"
                     : "none",
                   fontWeight: 500,
                 }}

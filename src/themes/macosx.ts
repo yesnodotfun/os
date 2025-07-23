@@ -18,9 +18,9 @@ export const macosx: OsTheme = {
       inactiveBg: "#f6f6f6",
       text: "#000000",
       inactiveText: "#7F7F7F",
-      border: "rgba(0, 0, 0, 0.1)",
+      border: "rgba(0, 0, 0, 0.2)",
       borderInactive: "rgba(0, 0, 0, 0.1)",
-      borderBottom: "rgba(0, 0, 0, 0.25)",
+      borderBottom: "rgba(0, 0, 0, 0.35)",
     },
     button: {
       face: "#FFFFFF",

@@ -36,7 +36,7 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
             fontFamily:
               'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif',
             WebkitFontSmoothing: "antialiased",
-            backgroundColor: "rgba(255, 255, 255, 0.8)",
+            backgroundColor: "rgba(255, 255, 255, 1)",
             boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.1)",
             transition: "all 0.2s ease",
             paddingLeft: "6px",
@@ -63,7 +63,7 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
             e.currentTarget &&
             !e.currentTarget.matches(":focus")
           ) {
-            e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.8)";
+            e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 1)";
             e.currentTarget.style.borderColor = "rgba(0, 0, 0, 0.2)";
             e.currentTarget.style.boxShadow =
               "inset 0 1px 2px rgba(0, 0, 0, 0.1)";
@@ -81,7 +81,7 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
         }}
         onBlur={(e) => {
           if (isMacOSTheme && e.currentTarget) {
-            e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.8)";
+            e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 1)";
             e.currentTarget.style.borderColor = "rgba(0, 0, 0, 0.2)";
             e.currentTarget.style.boxShadow =
               "inset 0 1px 2px rgba(0, 0, 0, 0.1)";

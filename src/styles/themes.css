@@ -67,10 +67,10 @@
   --os-color-menubar-bg: linear-gradient(to bottom, #f8f8f8, #d4d4d4);
   --os-color-menubar-border: rgba(0, 0, 0, 0.44);
   --os-color-menubar-text: #000000;
-  --os-color-window-border: rgba(0, 0, 0, 0.2);
+  --os-color-window-border: rgba(0, 0, 0, 0.4);
   --os-color-window-border-inactive: rgba(0, 0, 0, 0.08);
-  --os-color-titlebar-border: rgba(0, 0, 0, 0.1);
-  --os-color-titlebar-border-inactive: rgba(0, 0, 0, 0.05);
+  --os-color-titlebar-border: rgba(0, 0, 0, 0.35);
+  --os-color-titlebar-border-inactive: rgba(0, 0, 0, 0.15);
   --os-color-titlebar-active-bg: linear-gradient(
     to bottom,
     #e8e8e8 0%,

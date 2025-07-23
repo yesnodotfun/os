@@ -946,7 +946,6 @@ export function FinderAppComponent({
                 style={
                   currentTheme === "macosx"
                     ? {
-                        backgroundColor: "rgba(0, 0, 0, 0.05)",
                         paddingTop: "2px",
                         paddingBottom: "2px",
                       }
