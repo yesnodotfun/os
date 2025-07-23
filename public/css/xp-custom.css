@@ -578,7 +578,7 @@ legend {
 
 menu[role="tablist"] {
   position: relative;
-  margin: 0 0 -2px;
+  margin: 0 0 -3px;
   text-indent: 0;
   list-style-type: none;
   display: flex;
@@ -595,7 +595,7 @@ menu[role="tablist"] button {
 
 menu[role="tablist"] button[aria-selected="true"] {
   padding-bottom: 6px;
-  margin-top: -2px;
+  margin-top: -1px;
   background-color: #ece9d8;
   position: relative;
   z-index: 8;
@@ -1435,5 +1435,3 @@ progress:not([value])::-moz-progress-bar:not([value]) {
   -webkit-font-smoothing: antialiased;
   font-synthesis: none;
 }
-
-
