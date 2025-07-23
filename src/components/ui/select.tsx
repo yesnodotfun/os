@@ -38,30 +38,87 @@ const SelectTrigger = React.forwardRef<
   const { play: playClick } = useSound(Sounds.BUTTON_CLICK, 0.3);
   const currentTheme = useThemeStore((state) => state.current);
 
+  const [isFocused, setIsFocused] = React.useState(false);
+  const [isPressed, setIsPressed] = React.useState(false);
+
+  const isMacOSTheme = currentTheme === "macosx";
+  const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
+
   return (
     <SelectPrimitive.Trigger
       ref={ref}
       className={cn(
-        "flex h-9 w-full items-center justify-between whitespace-nowrap rounded-md border border-input bg-transparent px-3 py-2 text-sm [border-image:url('/button.svg')_30_stretch] active:[border-image:url('/button-default.svg')_60_stretch] focus:[border-image:url('/button-default.svg')_60_stretch] border-[5px] ring-offset-background placeholder:text-muted-foreground focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
+        // Base classes for non-macOS themes
+        !isMacOSTheme &&
+          "flex h-9 w-full items-center justify-between whitespace-nowrap rounded-md border border-input bg-transparent px-3 py-2 text-sm [border-image:url('/button.svg')_30_stretch] active:[border-image:url('/button-default.svg')_60_stretch] focus:[border-image:url('/button-default.svg')_60_stretch] border-[5px] ring-offset-background placeholder:text-muted-foreground focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
+        // macOS theme classes
+        isMacOSTheme &&
+          "macos-select-trigger flex w-full items-center justify-between whitespace-nowrap rounded px-2 py-1 text-sm placeholder:text-muted-foreground focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
         className
       )}
       style={{
-        fontFamily:
-          currentTheme === "xp" || currentTheme === "win98"
-            ? '"Pixelated MS Sans Serif", Arial'
-            : undefined,
-        fontSize:
-          currentTheme === "xp" || currentTheme === "win98"
-            ? "11px"
-            : undefined,
+        fontFamily: isXpTheme
+          ? '"Pixelated MS Sans Serif", Arial'
+          : isMacOSTheme
+          ? 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif'
+          : undefined,
+        fontSize: isXpTheme ? "11px" : isMacOSTheme ? "14px" : undefined,
+        ...(isMacOSTheme && {
+          height: "22px",
+          lineHeight: 1,
+          minWidth: "60px",
+          borderRadius: "6px",
+          position: "relative",
+          overflow: "hidden",
+          cursor: "default",
+          border: "none",
+          boxSizing: "border-box",
+          WebkitFontSmoothing: "antialiased",
+          background: isPressed
+            ? "linear-gradient(rgba(140, 140, 140, 0.625), rgba(235, 235, 235, 0.625))"
+            : "linear-gradient(rgba(160, 160, 160, 0.625), rgba(255, 255, 255, 0.625))",
+          boxShadow: isPressed
+            ? "inset 0 1px 2px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.2)"
+            : isFocused
+            ? "0 2px 3px rgba(0, 0, 0, 0.2), 0 1px 1px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 0, 0, 0.3), 0 0 3px rgba(52, 106, 227, 0.5)"
+            : "0 2px 3px rgba(0, 0, 0, 0.2), 0 1px 1px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 0, 0, 0.3)",
+          color: "black",
+          textShadow: "0 1px 1px rgba(255, 255, 255, 0.5)",
+          paddingRight: "24px",
+          backgroundImage: `url("data:image/svg+xml;charset=utf-8,%3Csvg width='8' height='10' viewBox='0 0 8 10' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 3.5L4 1L7 3.5M1 6.5L4 9L7 6.5' stroke='%23333' stroke-width='1' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`,
+          backgroundPosition: "right 6px center",
+          backgroundRepeat: "no-repeat",
+        }),
       }}
       onClick={() => playClick()}
+      onFocus={(e) => {
+        setIsFocused(true);
+        props.onFocus?.(e);
+      }}
+      onBlur={(e) => {
+        setIsFocused(false);
+        props.onBlur?.(e);
+      }}
+      onMouseDown={(e) => {
+        setIsPressed(true);
+        props.onMouseDown?.(e);
+      }}
+      onMouseUp={(e) => {
+        setIsPressed(false);
+        props.onMouseUp?.(e);
+      }}
+      onMouseLeave={(e) => {
+        setIsPressed(false);
+        props.onMouseLeave?.(e);
+      }}
       {...props}
     >
       {children}
-      <SelectPrimitive.Icon asChild>
-        <ChevronDown className="h-4 w-4 opacity-50" />
-      </SelectPrimitive.Icon>
+      {!isMacOSTheme && (
+        <SelectPrimitive.Icon asChild>
+          <ChevronDown className="h-4 w-4 opacity-50" />
+        </SelectPrimitive.Icon>
+      )}
     </SelectPrimitive.Trigger>
   );
 });
@@ -105,33 +162,50 @@ SelectScrollDownButton.displayName =
 const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
->(({ className, children, position = "popper", ...props }, ref) => (
-  <SelectPrimitive.Portal>
-    <SelectPrimitive.Content
-      ref={ref}
-      className={cn(
-        "relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
-        position === "popper" &&
-          "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
-        className
-      )}
-      position={position}
-      {...props}
-    >
-      <SelectScrollUpButton />
-      <SelectPrimitive.Viewport
+>(({ className, children, position = "popper", ...props }, ref) => {
+  const currentTheme = useThemeStore((state) => state.current);
+  const isMacOSTheme = currentTheme === "macosx";
+
+  return (
+    <SelectPrimitive.Portal>
+      <SelectPrimitive.Content
+        ref={ref}
         className={cn(
-          "p-1",
+          "relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
           position === "popper" &&
-            "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]"
+            "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
+          className
         )}
+        style={{
+          ...(isMacOSTheme && {
+            border: "none",
+            borderRadius: "4px",
+            backgroundColor: "rgba(255, 255, 255, 0.7)",
+            backdropFilter: "blur(20px)",
+            WebkitBackdropFilter: "blur(20px)",
+            boxShadow:
+              "0 0 0 1px rgba(0, 0, 0, 0.3), 0 4px 10px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1)",
+            padding: "2px",
+          }),
+        }}
+        position={position}
+        {...props}
       >
-        {children}
-      </SelectPrimitive.Viewport>
-      <SelectScrollDownButton />
-    </SelectPrimitive.Content>
-  </SelectPrimitive.Portal>
-));
+        <SelectScrollUpButton />
+        <SelectPrimitive.Viewport
+          className={cn(
+            "p-1",
+            position === "popper" &&
+              "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]"
+          )}
+        >
+          {children}
+        </SelectPrimitive.Viewport>
+        <SelectScrollDownButton />
+      </SelectPrimitive.Content>
+    </SelectPrimitive.Portal>
+  );
+});
 SelectContent.displayName = SelectPrimitive.Content.displayName;
 
 const SelectLabel = React.forwardRef<
@@ -140,19 +214,24 @@ const SelectLabel = React.forwardRef<
 >(({ className, ...props }, ref) => {
   const currentTheme = useThemeStore((state) => state.current);
 
+  const isMacOSTheme = currentTheme === "macosx";
+  const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
+
   return (
     <SelectPrimitive.Label
       ref={ref}
       className={cn("px-2 py-1.5 text-sm font-semibold", className)}
       style={{
-        fontFamily:
-          currentTheme === "xp" || currentTheme === "win98"
-            ? '"Pixelated MS Sans Serif", Arial'
-            : undefined,
-        fontSize:
-          currentTheme === "xp" || currentTheme === "win98"
-            ? "11px"
-            : undefined,
+        fontFamily: isXpTheme
+          ? '"Pixelated MS Sans Serif", Arial'
+          : isMacOSTheme
+          ? 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif'
+          : undefined,
+        fontSize: isXpTheme ? "11px" : isMacOSTheme ? "11px" : undefined,
+        ...(isMacOSTheme && {
+          WebkitFontSmoothing: "antialiased",
+          fontSmooth: "auto",
+        }),
       }}
       {...props}
     />
@@ -167,6 +246,9 @@ const SelectItem = React.forwardRef<
   const { play: playClick } = useSound(Sounds.BUTTON_CLICK, 0.3);
   const currentTheme = useThemeStore((state) => state.current);
 
+  const isMacOSTheme = currentTheme === "macosx";
+  const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
+
   return (
     <SelectPrimitive.Item
       ref={ref}
@@ -175,14 +257,24 @@ const SelectItem = React.forwardRef<
         className
       )}
       style={{
-        fontFamily:
-          currentTheme === "xp" || currentTheme === "win98"
-            ? '"Pixelated MS Sans Serif", Arial'
-            : undefined,
-        fontSize:
-          currentTheme === "xp" || currentTheme === "win98"
-            ? "11px"
-            : undefined,
+        fontFamily: isXpTheme
+          ? '"Pixelated MS Sans Serif", Arial'
+          : isMacOSTheme
+          ? 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif'
+          : undefined,
+        fontSize: isXpTheme
+          ? "11px"
+          : isMacOSTheme
+          ? "13px !important"
+          : undefined,
+        ...(isMacOSTheme && {
+          WebkitFontSmoothing: "antialiased",
+          fontSmooth: "auto",
+          borderRadius: "4px",
+          padding: "4px 12px",
+          margin: "1px 0",
+          minHeight: "24px",
+        }),
       }}
       onSelect={(event) => {
         playClick();

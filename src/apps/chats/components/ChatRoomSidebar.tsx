@@ -57,10 +57,18 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
         "flex flex-col font-geneva-12 text-[12px] bg-neutral-100",
         isOverlay
           ? `w-full border-b ${
-              isWindowsLegacyTheme ? "border-[#919b9c]" : "border-black"
+              isWindowsLegacyTheme
+                ? "border-[#919b9c]"
+                : currentTheme === "macosx"
+                ? "border-black/10"
+                : "border-black"
             }`
           : `w-56 border-r h-full overflow-hidden ${
-              isWindowsLegacyTheme ? "border-[#919b9c]" : "border-black"
+              isWindowsLegacyTheme
+                ? "border-[#919b9c]"
+                : currentTheme === "macosx"
+                ? "border-black/10"
+                : "border-black"
             }`
       )}
     >

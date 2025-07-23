@@ -1141,7 +1141,7 @@ export function VideosAppComponent({
           {/* Retro CD Player Controls */}
           <div className="p-4 bg-[#2a2a2a] border-t border-[#3a3a3a] flex flex-col gap-4">
             {/* LCD Display */}
-            <div className="bg-black py-2 px-4 flex items-center justify-between w-full">
+            <div className="videos-lcd bg-black py-2 px-4 flex items-center justify-between w-full">
               <div className="flex items-center gap-8">
                 <div
                   className={cn(

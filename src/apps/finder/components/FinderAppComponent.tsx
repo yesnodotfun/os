@@ -843,7 +843,11 @@ export function FinderAppComponent({
             className={`flex flex-col gap-1 p-1 ${
               isXpTheme
                 ? "border-b border-[#919b9c]"
-                : "bg-gray-100 border-b border-black"
+                : currentTheme === "macosx"
+                ? "bg-gray-100 border-b border-gray-300"
+                : currentTheme === "system7"
+                ? "bg-gray-100 border-b border-black"
+                : "bg-gray-100 border-b border-gray-300"
             }`}
             style={{
               background: isXpTheme ? "transparent" : undefined,
@@ -933,8 +937,21 @@ export function FinderAppComponent({
                   }
                 }}
                 className={`flex-1 ${
-                  isXpTheme ? "!text-[11px]" : "!text-[16px]"
+                  isXpTheme
+                    ? "!text-[11px]"
+                    : currentTheme === "macosx"
+                    ? "!text-[12px] h-7"
+                    : "!text-[16px]"
                 } `}
+                style={
+                  currentTheme === "macosx"
+                    ? {
+                        backgroundColor: "rgba(0, 0, 0, 0.05)",
+                        paddingTop: "2px",
+                        paddingBottom: "2px",
+                      }
+                    : undefined
+                }
                 placeholder="Enter path"
               />
             </div>

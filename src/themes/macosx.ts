@@ -4,22 +4,23 @@ export const macosx: OsTheme = {
   id: "macosx",
   name: "Mac OS X",
   fonts: {
-    ui: "Lucida Grande, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
+    ui: "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', sans-serif",
     mono: "Monaco, Menlo, monospace",
   },
   colors: {
     windowBg: "#ECECEC",
     menubarBg: "linear-gradient(to bottom, #FAFAFA, #D1D1D1)",
     menubarBorder: "#8E8E8E",
-    windowBorder: "rgba(0, 0, 0, 0.2)",
-    windowBorderInactive: "rgba(0, 0, 0, 0.08)",
+    windowBorder: "rgba(0, 0, 0, 0.3)",
+    windowBorderInactive: "rgba(0, 0, 0, 0.2)",
     titleBar: {
-      activeBg: "linear-gradient(to bottom, #EDEDED, #C8C8C8)",
-      inactiveBg: "linear-gradient(to bottom, #F6F6F6, #E0E0E0)",
+      activeBg: "linear-gradient(to bottom, #f6f6f6 0%, #dadada 100%)",
+      inactiveBg: "#f6f6f6",
       text: "#000000",
       inactiveText: "#7F7F7F",
       border: "rgba(0, 0, 0, 0.1)",
-      borderInactive: "rgba(0, 0, 0, 0.05)",
+      borderInactive: "rgba(0, 0, 0, 0.1)",
+      borderBottom: "rgba(0, 0, 0, 0.25)",
     },
     button: {
       face: "#FFFFFF",
@@ -28,12 +29,15 @@ export const macosx: OsTheme = {
       activeFace: "#E0E0E0",
     },
     trafficLights: {
-      close: "#FF5F57",
+      close: "#FF6057",
+      closeHover: "#E14640",
       minimize: "#FFBD2E",
-      maximize: "#28CA42",
+      minimizeHover: "#DFA123",
+      maximize: "#27C93F",
+      maximizeHover: "#1DAD2B",
     },
     selection: {
-      bg: "#3875D7",
+      bg: "#3067da",
       text: "#FFFFFF",
     },
     text: {
@@ -44,9 +48,10 @@ export const macosx: OsTheme = {
   },
   metrics: {
     borderWidth: "1px",
-    radius: "0.375rem", // 6px - subtle rounding
+    radius: "0.5rem", // 8px - macOS style rounding
     titleBarHeight: "1.375rem", // 22px - classic OS X height
-    windowShadow: "0 3px 10px rgba(0,0,0,0.3)",
+    titleBarRadius: "8px 8px 0px 0px", // macOS style rounded top corners
+    windowShadow: "0 8px 25px rgba(0,0,0,0.5)",
   },
   wallpaperDefaults: {
     photo: "/wallpapers/photos/landscapes/french_alps.jpg",

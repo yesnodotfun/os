@@ -563,7 +563,11 @@ export function ChatsAppComponent({
               {/* Mobile chat title bar */}
               <div
                 className={`sticky top-0 z-10 flex items-center justify-between px-2 py-1 bg-neutral-200/90 backdrop-blur-lg border-b ${
-                  isWindowsLegacyTheme ? "border-[#919b9c]" : "border-black"
+                  isWindowsLegacyTheme
+                    ? "border-[#919b9c]"
+                    : currentTheme === "macosx"
+                    ? "border-black/10"
+                    : "border-black"
                 }`}
               >
                 <div className="flex items-center">

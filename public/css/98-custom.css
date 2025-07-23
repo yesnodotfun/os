@@ -693,12 +693,21 @@ ul.tree-view {
 /*# sourceMappingURL=98.css.map */
 
 /* iPod font isolation (Win98 theme) */
-.ipod-force-font,
-.ipod-force-font *:not(code):not(pre):not(.font-mono) {
+.ipod-force-font {
   font-family: "ChicagoKare", "ArkPixel", "SerenityOS-Emoji", system-ui,
     -apple-system, sans-serif !important;
   -webkit-font-smoothing: antialiased;
   font-synthesis: none;
 }
 
+/* Preserve font-chicago in iPod */
+.ipod-force-font .font-chicago {
+  font-family: "ChicagoKare", "ArkPixel", "SerenityOS-Emoji", system-ui,
+    -apple-system, sans-serif !important;
+}
 
+/* Preserve font-geneva-12 in iPod */
+.ipod-force-font .font-geneva-12 {
+  font-family: "Geneva-12", "ArkPixel", "SerenityOS-Emoji", system-ui,
+    -apple-system, sans-serif !important;
+}

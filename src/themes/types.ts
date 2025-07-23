@@ -20,6 +20,7 @@ export interface OsTheme {
       inactiveText: string;
       border?: string; // For macOS semi-transparent border
       borderInactive?: string; // For macOS inactive border
+      borderBottom?: string; // For Yosemite style bottom border
       pattern?: string; // For System 7's dotted pattern
     };
     button: {
@@ -30,8 +31,11 @@ export interface OsTheme {
     };
     trafficLights?: {
       close: string;
+      closeHover?: string;
       minimize: string;
+      minimizeHover?: string;
       maximize: string;
+      maximizeHover?: string;
     };
     selection: {
       bg: string;
@@ -47,6 +51,7 @@ export interface OsTheme {
     borderWidth: string;
     radius: string;
     titleBarHeight: string;
+    titleBarRadius?: string; // For Yosemite style rounded corners
     windowShadow: string;
   };
   assets?: {

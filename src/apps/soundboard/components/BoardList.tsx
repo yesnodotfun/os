@@ -42,6 +42,8 @@ export function BoardList({
       className={`w-full bg-neutral-100 flex flex-col max-h-44 overflow-hidden md:w-56 md:max-h-full font-geneva-12 text-[12px] ${
         isWindowsLegacyTheme
           ? "border-b border-[#919b9c] md:border-r md:border-b-0"
+          : currentTheme === "macosx"
+          ? "border-b border-black/10 md:border-r md:border-b-0"
           : "border-b border-black md:border-r md:border-b-0"
       }`}
     >

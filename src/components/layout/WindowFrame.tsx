@@ -691,9 +691,17 @@ export function WindowFrame({
               ? "window flex flex-col h-full" // Use xp.css window class with flex layout
               : "w-full h-full flex flex-col border-[length:var(--os-metrics-border-width)] border-os-window rounded-os overflow-hidden",
             !transparentBackground && !isXpTheme && "bg-os-window-bg",
-            isForeground && !isXpTheme ? "shadow-os-window" : ""
+            !isXpTheme ? "shadow-os-window" : "",
+            isForeground ? "is-foreground" : ""
           )}
-          style={!isXpTheme ? getSwipeStyle() : undefined}
+          style={{
+            ...(!isXpTheme ? getSwipeStyle() : undefined),
+            ...(currentTheme === "macosx" && !transparentBackground
+              ? {
+                  backgroundImage: `var(--os-pinstripe-window), var(--os-color-window-bg)`,
+                }
+              : {}),
+          }}
         >
           {/* Title bar */}
           {isXpTheme ? (
@@ -796,16 +804,31 @@ export function WindowFrame({
             // Mac OS X theme title bar with traffic light buttons
             <div
               className={cn(
-                "flex items-center shrink-0 h-os-titlebar min-h-[1.5rem] mx-0 my-[0.1rem] mb-0 px-[0.1rem] py-[0.2rem] select-none cursor-move border-b-[1.5px] user-select-none z-50 draggable-area",
+                "flex items-center shrink-0 h-6 min-h-[1.25rem] mx-0 mb-0 px-[0.1rem] py-[0.1rem] select-none cursor-move user-select-none z-50 draggable-area",
                 transparentBackground && "mt-0",
-                isForeground
-                  ? transparentBackground
-                    ? "bg-white/70 backdrop-blur-sm border-b-os-window"
-                    : "bg-os-titlebar-active-bg border-b-os-window"
-                  : transparentBackground
-                  ? "bg-white/20 backdrop-blur-sm border-b-os-window"
-                  : "bg-os-titlebar-inactive-bg border-b-gray-400"
+                transparentBackground &&
+                  isForeground &&
+                  "bg-white/70 backdrop-blur-sm",
+                transparentBackground &&
+                  !isForeground &&
+                  "bg-white/20 backdrop-blur-sm"
               )}
+              style={{
+                borderRadius: "8px 8px 0px 0px",
+                background: !transparentBackground
+                  ? isForeground
+                    ? theme.colors.titleBar.activeBg
+                    : theme.colors.titleBar.inactiveBg
+                  : undefined,
+                borderBottom: `1px solid ${
+                  isForeground
+                    ? theme.colors.titleBar.borderBottom ||
+                      theme.colors.titleBar.border ||
+                      "rgba(0, 0, 0, 0.1)"
+                    : theme.colors.titleBar.borderInactive ||
+                      "rgba(0, 0, 0, 0.05)"
+                }`,
+              }}
               onMouseDown={handleMouseDownWithForeground}
               onTouchStart={(e: React.TouchEvent<HTMLElement>) => {
                 handleMouseDownWithForeground(e);
@@ -825,7 +848,7 @@ export function WindowFrame({
               }}
             >
               {/* Traffic Light Buttons */}
-              <div className="flex items-center gap-1 ml-2">
+              <div className="flex items-center gap-1.5 ml-1.5">
                 {/* Close Button (Red) */}
                 <button
                   onClick={(e) => {
@@ -834,12 +857,18 @@ export function WindowFrame({
                   }}
                   onMouseDown={(e) => e.stopPropagation()}
                   onTouchStart={(e) => e.stopPropagation()}
-                  className={cn(
-                    "w-3 h-3 rounded-full border border-gray-400 hover:brightness-110 transition-all duration-150",
-                    !isForeground && "opacity-50"
-                  )}
+                  className="w-3 h-3 rounded-full relative transition-all duration-150"
                   style={{
-                    backgroundColor: theme.colors.trafficLights?.close || "#FF5F57",
+                    background: isForeground
+                      ? theme.colors.trafficLights?.close ||
+                        "rgba(255, 96, 87, 1)"
+                      : "rgba(0, 0, 0, 0.14)",
+                    border: `1px solid ${
+                      isForeground
+                        ? theme.colors.trafficLights?.closeHover ||
+                          "rgba(225, 70, 64, 1)"
+                        : "rgba(0, 0, 0, 0.2)"
+                    }`,
                   }}
                   aria-label="Close"
                 />
@@ -851,12 +880,18 @@ export function WindowFrame({
                   }}
                   onMouseDown={(e) => e.stopPropagation()}
                   onTouchStart={(e) => e.stopPropagation()}
-                  className={cn(
-                    "w-3 h-3 rounded-full border border-gray-400 hover:brightness-110 transition-all duration-150",
-                    !isForeground && "opacity-50"
-                  )}
+                  className="w-3 h-3 rounded-full relative transition-all duration-150"
                   style={{
-                    backgroundColor: theme.colors.trafficLights?.minimize || "#FFBD2E",
+                    background: isForeground
+                      ? theme.colors.trafficLights?.minimize ||
+                        "rgba(255, 189, 46, 1)"
+                      : "rgba(0, 0, 0, 0.14)",
+                    border: `1px solid ${
+                      isForeground
+                        ? theme.colors.trafficLights?.minimizeHover ||
+                          "rgba(223, 161, 35, 1)"
+                        : "rgba(0, 0, 0, 0.2)"
+                    }`,
                   }}
                   aria-label="Minimize"
                 />
@@ -868,25 +903,36 @@ export function WindowFrame({
                   }}
                   onMouseDown={(e) => e.stopPropagation()}
                   onTouchStart={(e) => e.stopPropagation()}
-                  className={cn(
-                    "w-3 h-3 rounded-full border border-gray-400 hover:brightness-110 transition-all duration-150",
-                    !isForeground && "opacity-50"
-                  )}
+                  className="w-3 h-3 rounded-full relative transition-all duration-150"
                   style={{
-                    backgroundColor: theme.colors.trafficLights?.maximize || "#28CA42",
+                    background: isForeground
+                      ? theme.colors.trafficLights?.maximize ||
+                        "rgba(39, 201, 63, 1)"
+                      : "rgba(0, 0, 0, 0.14)",
+                    border: `1px solid ${
+                      isForeground
+                        ? theme.colors.trafficLights?.maximizeHover ||
+                          "rgba(29, 173, 43, 1)"
+                        : "rgba(0, 0, 0, 0.2)"
+                    }`,
                   }}
                   aria-label="Maximize"
                 />
               </div>
-              
+
               {/* Title - removed white background */}
               <span
                 className={cn(
-                  "select-none mx-auto px-2 py-0 h-full flex items-center whitespace-nowrap overflow-hidden text-ellipsis max-w-[80%]",
+                  "select-none mx-auto px-2 py-0 h-full flex items-center whitespace-nowrap overflow-hidden text-ellipsis max-w-[80%] text-[12px]",
                   isForeground
                     ? "text-os-titlebar-active-text"
                     : "text-os-titlebar-inactive-text"
                 )}
+                style={{
+                  textShadow: isForeground
+                    ? "0 1px 0 rgba(255, 255, 255, 0.5)"
+                    : "none",
+                }}
                 onDoubleClick={handleFullMaximize}
                 onTouchStart={(e) => {
                   handleTitleBarTap(e);
@@ -897,7 +943,7 @@ export function WindowFrame({
               >
                 <span className="truncate">{title}</span>
               </span>
-              
+
               {/* Spacer to balance the traffic lights */}
               <div className="mr-2 w-12 h-4" />
             </div>

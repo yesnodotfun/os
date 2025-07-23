@@ -690,11 +690,17 @@ export function MenuBar({ children, inWindowFrame = false }: MenuBarProps) {
             <VolumeControl />
           </div>
           <div
-            className={`text-xs font-bold ${isXpTheme ? "" : "px-2"}`}
+            className={`text-xs ${isXpTheme ? "font-bold" : "font-normal"} ${
+              isXpTheme ? "" : "px-2"
+            }`}
             style={{
-              color: currentTheme === "xp" ? "#ffffff" : "#000000",
+              color: isXpTheme ? "#ffffff" : "#000000",
               textShadow:
-                currentTheme === "xp" ? "1px 1px 1px rgba(0,0,0,0.5)" : "none",
+                currentTheme === "xp" || currentTheme === "win98"
+                  ? "1px 1px 1px rgba(0,0,0,0.5)"
+                  : currentTheme === "macosx"
+                  ? "0 1px 0 rgba(255, 255, 255, 0.5)"
+                  : "none",
             }}
           >
             <Clock />

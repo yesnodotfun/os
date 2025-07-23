@@ -1998,7 +1998,11 @@ export function InternetExplorerAppComponent({
               className={`flex flex-col gap-1 p-1 ${
                 isXpTheme
                   ? "bg-transparent border-b border-[#919b9c]"
-                  : "bg-gray-100 border-b border-black"
+                  : currentTheme === "macosx"
+                  ? "bg-gray-100 border-b border-gray-300"
+                  : currentTheme === "system7"
+                  ? "bg-gray-100 border-b border-black"
+                  : "bg-gray-100 border-b border-gray-300"
               }`}
             >
               <div className="flex gap-2 items-center">
@@ -2140,8 +2144,21 @@ export function InternetExplorerAppComponent({
                       setIsUrlDropdownOpen(true);
                     }}
                     className={`flex-1 pr-8 ${
-                      isXpTheme ? "!text-[11px]" : "!text-[16px]"
+                      isXpTheme
+                        ? "!text-[11px]"
+                        : currentTheme === "macosx"
+                        ? "!text-[12px] h-7"
+                        : "!text-[16px]"
                     } `}
+                    style={
+                      currentTheme === "macosx"
+                        ? {
+                            backgroundColor: "rgba(0, 0, 0, 0.05)",
+                            paddingTop: "2px",
+                            paddingBottom: "2px",
+                          }
+                        : undefined
+                    }
                     placeholder="Enter URL"
                     spellCheck="false"
                     autoComplete="off"
@@ -2318,7 +2335,13 @@ export function InternetExplorerAppComponent({
                     onValueChange={(newYear) => handleNavigate(url, newYear)}
                   >
                     <SelectTrigger
-                      className={isXpTheme ? "!text-[11px]" : "!text-[16px]"}
+                      className={
+                        isXpTheme
+                          ? "!text-[11px]"
+                          : currentTheme === "macosx"
+                          ? "!text-[12px]"
+                          : "!text-[16px]"
+                      }
                     >
                       <SelectValue placeholder="Year" />
                     </SelectTrigger>
@@ -2552,7 +2575,11 @@ export function InternetExplorerAppComponent({
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 20 }}
                   transition={{ duration: 0.15 }}
-                  className="absolute bottom-0 left-0 right-0 bg-gray-100 border-t border-black font-geneva-12 text-[10px] px-2 py-1 flex items-center z-50"
+                  className={`absolute bottom-0 left-0 right-0 bg-gray-100 font-geneva-12 text-[10px] px-2 py-1 flex items-center z-50 ${
+                    currentTheme === "system7"
+                      ? "border-t border-black"
+                      : "border-t border-gray-300"
+                  }`}
                 >
                   <div className="flex-1 truncate">
                     {getDebugStatusMessage()}

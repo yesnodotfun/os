@@ -61,11 +61,21 @@ const DropdownMenuSubTrigger = React.forwardRef<
         fontFamily:
           currentTheme === "xp" || currentTheme === "win98"
             ? '"Pixelated MS Sans Serif", Arial'
+            : currentTheme === "macosx"
+            ? 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif'
             : undefined,
         fontSize:
           currentTheme === "xp" || currentTheme === "win98"
             ? "11px"
+            : currentTheme === "macosx"
+            ? "12px !important"
             : undefined,
+        ...(currentTheme === "macosx" && {
+          borderRadius: "4px",
+          padding: "2px 8px 2px 12px",
+          margin: "1px 0",
+          WebkitFontSmoothing: "antialiased",
+        }),
       }}
       {...props}
     >
@@ -80,36 +90,72 @@ DropdownMenuSubTrigger.displayName =
 const DropdownMenuSubContent = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.SubContent>,
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.SubContent>
->(({ className, ...props }, ref) => (
-  <DropdownMenuPrimitive.SubContent
-    ref={ref}
-    className={cn(
-      "z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-lg data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
-      className
-    )}
-    {...props}
-  />
-));
+>(({ className, ...props }, ref) => {
+  const currentTheme = useThemeStore((state) => state.current);
+  const isMacOSTheme = currentTheme === "macosx";
+
+  return (
+    <DropdownMenuPrimitive.Portal>
+      <DropdownMenuPrimitive.SubContent
+        ref={ref}
+        className={cn(
+          "z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-lg data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+          className
+        )}
+        style={{
+          ...(isMacOSTheme && {
+            border: "none",
+            borderRadius: "4px",
+            backgroundColor: "rgba(255, 255, 255, 0.7)",
+            backdropFilter: "blur(20px)",
+            WebkitBackdropFilter: "blur(20px)",
+            boxShadow:
+              "0 0 0 1px rgba(0, 0, 0, 0.3), 0 4px 10px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1)",
+            padding: "4px 6px",
+          }),
+        }}
+        {...props}
+      />
+    </DropdownMenuPrimitive.Portal>
+  );
+});
 DropdownMenuSubContent.displayName =
   DropdownMenuPrimitive.SubContent.displayName;
 
 const DropdownMenuContent = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content>
->(({ className, sideOffset = 4, ...props }, ref) => (
-  <DropdownMenuPrimitive.Portal>
-    <DropdownMenuPrimitive.Content
-      ref={ref}
-      sideOffset={sideOffset}
-      className={cn(
-        "z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md",
-        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
-        className
-      )}
-      {...props}
-    />
-  </DropdownMenuPrimitive.Portal>
-));
+>(({ className, sideOffset = 4, ...props }, ref) => {
+  const currentTheme = useThemeStore((state) => state.current);
+  const isMacOSTheme = currentTheme === "macosx";
+
+  return (
+    <DropdownMenuPrimitive.Portal>
+      <DropdownMenuPrimitive.Content
+        ref={ref}
+        sideOffset={sideOffset}
+        className={cn(
+          "z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md",
+          "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+          className
+        )}
+        style={{
+          ...(isMacOSTheme && {
+            border: "none",
+            borderRadius: "4px",
+            backgroundColor: "rgba(255, 255, 255, 0.7)",
+            backdropFilter: "blur(20px)",
+            WebkitBackdropFilter: "blur(20px)",
+            boxShadow:
+              "0 0 0 1px rgba(0, 0, 0, 0.3), 0 4px 10px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1)",
+            padding: "4px 6px",
+          }),
+        }}
+        {...props}
+      />
+    </DropdownMenuPrimitive.Portal>
+  );
+});
 DropdownMenuContent.displayName = DropdownMenuPrimitive.Content.displayName;
 
 const DropdownMenuItem = React.forwardRef<
@@ -119,6 +165,8 @@ const DropdownMenuItem = React.forwardRef<
   }
 >(({ className, inset, ...props }, ref) => {
   const currentTheme = useThemeStore((state) => state.current);
+  const isMacOSTheme = currentTheme === "macosx";
+  const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
 
   return (
     <DropdownMenuPrimitive.Item
@@ -129,14 +177,22 @@ const DropdownMenuItem = React.forwardRef<
         className
       )}
       style={{
-        fontFamily:
-          currentTheme === "xp" || currentTheme === "win98"
-            ? '"Pixelated MS Sans Serif", Arial'
-            : undefined,
-        fontSize:
-          currentTheme === "xp" || currentTheme === "win98"
-            ? "11px"
-            : undefined,
+        fontFamily: isXpTheme
+          ? '"Pixelated MS Sans Serif", Arial'
+          : isMacOSTheme
+          ? 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif'
+          : undefined,
+        fontSize: isXpTheme
+          ? "11px"
+          : isMacOSTheme
+          ? "13px !important"
+          : undefined,
+        ...(isMacOSTheme && {
+          borderRadius: "4px",
+          padding: "2px 12px",
+          margin: "1px 0",
+          WebkitFontSmoothing: "antialiased",
+        }),
       }}
       {...props}
     />
@@ -149,6 +205,8 @@ const DropdownMenuCheckboxItem = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.CheckboxItem>
 >(({ className, children, checked, ...props }, ref) => {
   const currentTheme = useThemeStore((state) => state.current);
+  const isMacOSTheme = currentTheme === "macosx";
+  const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
 
   return (
     <DropdownMenuPrimitive.CheckboxItem
@@ -158,14 +216,22 @@ const DropdownMenuCheckboxItem = React.forwardRef<
         className
       )}
       style={{
-        fontFamily:
-          currentTheme === "xp" || currentTheme === "win98"
-            ? '"Pixelated MS Sans Serif", Arial'
-            : undefined,
-        fontSize:
-          currentTheme === "xp" || currentTheme === "win98"
-            ? "11px"
-            : undefined,
+        fontFamily: isXpTheme
+          ? '"Pixelated MS Sans Serif", Arial'
+          : isMacOSTheme
+          ? 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif'
+          : undefined,
+        fontSize: isXpTheme
+          ? "11px"
+          : isMacOSTheme
+          ? "13px !important"
+          : undefined,
+        ...(isMacOSTheme && {
+          borderRadius: "4px",
+          padding: "2px 12px 2px 28px",
+          margin: "1px 0",
+          WebkitFontSmoothing: "antialiased",
+        }),
       }}
       checked={checked}
       {...props}
@@ -253,16 +319,33 @@ DropdownMenuLabel.displayName = DropdownMenuPrimitive.Label.displayName;
 const DropdownMenuSeparator = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.Separator>,
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Separator>
->(({ className, ...props }, ref) => (
-  <DropdownMenuPrimitive.Separator
-    ref={ref}
-    className={cn(
-      className,
-      "-mx-1 my-1 h-[1px] border-t border-dotted border-muted border-b-0"
-    )}
-    {...props}
-  />
-));
+>(({ className, ...props }, ref) => {
+  const currentTheme = useThemeStore((state) => state.current);
+  const isSystem7 = currentTheme === "system7";
+  const isMacOSTheme = currentTheme === "macosx";
+
+  return (
+    <DropdownMenuPrimitive.Separator
+      ref={ref}
+      className={cn(
+        className,
+        "-mx-1 my-1 h-[1px] border-b-0",
+        !isMacOSTheme && "border-t border-muted",
+        isSystem7 && "border-dotted",
+        !isSystem7 && !isMacOSTheme && "border-solid"
+      )}
+      style={{
+        ...(isMacOSTheme && {
+          backgroundColor: "rgba(0, 0, 0, 0.15)",
+          border: "none",
+          margin: "4px 0",
+          height: "1px",
+        }),
+      }}
+      {...props}
+    />
+  );
+});
 DropdownMenuSeparator.displayName = DropdownMenuPrimitive.Separator.displayName;
 
 const DropdownMenuShortcut = ({
