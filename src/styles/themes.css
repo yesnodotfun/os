@@ -507,7 +507,7 @@
 :root[data-os-theme="macosx"] .macos-select-trigger:after {
   content: "";
   position: absolute;
-  right: 6px;
+  right: 10px;
   top: 50%;
   transform: translateY(-50%);
   width: 8px;
