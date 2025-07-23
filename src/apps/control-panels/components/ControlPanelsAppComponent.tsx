@@ -1396,7 +1396,7 @@ export function ControlPanelsAppComponent({
   const isClassicMacTheme = isMacOSXTheme || isSystem7Theme;
   const isWindowsLegacyTheme = isXpTheme;
 
-  const tabListBase = "flex w-full h-6 space-x-0.5 shadow-none";
+  const tabListBase = `flex w-full ${isMacOSXTheme ? "" : "h-6"} space-x-0.5 shadow-none`;
   
   // System 7 styling - classic, no gradients or gloss
   const tabListSystem7 = "bg-[#E3E3E3] border-b border-[#808080]";
@@ -1404,16 +1404,15 @@ export function ControlPanelsAppComponent({
     "bg-[#D4D4D4] data-[state=active]:bg-[#E3E3E3] border border-[#808080] data-[state=active]:border-b-[#E3E3E3]";
   const tabContentSystem7 = "bg-[#E3E3E3] border border-t-0 border-[#808080]";
   
-  // macOS styling - aqua-button inspired with gradients and gloss for active tabs
-  const tabListMacOSX = "border-b border-black/20";
-  const tabTriggerMacOSX =
-    "bg-[#f0f0f0] hover:bg-[#f4f4f4] border border-black/20 data-[state=active]:bg-gradient-to-b data-[state=active]:from-[#ffffff] data-[state=active]:to-[#e8e8e8] data-[state=active]:border-b-[#ececec] data-[state=active]:shadow-sm data-[state=active]:shadow-inner data-[state=active]:relative data-[state=active]:overflow-hidden data-[state=active]:before:absolute data-[state=active]:before:inset-x-2 data-[state=active]:before:top-1 data-[state=active]:before:h-[20%] data-[state=active]:before:bg-gradient-to-b data-[state=active]:before:from-white/80 data-[state=active]:before:to-white/20 data-[state=active]:before:rounded-t data-[state=active]:before:pointer-events-none data-[state=active]:after:absolute data-[state=active]:after:inset-x-2 data-[state=active]:after:bottom-1 data-[state=active]:after:h-[15%] data-[state=active]:after:bg-gradient-to-t data-[state=active]:after:from-white/30 data-[state=active]:after:to-transparent data-[state=active]:after:rounded-b data-[state=active]:after:pointer-events-none";
+  // macOS styling - use aqua-button CSS classes
+  const tabListMacOSX = "aqua-tab-bar";
+  const tabTriggerMacOSX = "aqua-tab";
   const tabContentMacOSX = "bg-[#ececec] border border-t-0 border-black/20";
   
   const tabTriggerBase =
-    "relative flex-1 h-6 px-2 -mb-[1px] rounded-t shadow-none! text-[16px]";
+    `relative flex-1 ${isMacOSXTheme ? "" : "h-6"} px-2 ${isMacOSXTheme ? "" : "-mb-[1px]"} rounded-t shadow-none! text-[16px]`;
   const tabContentBase =
-    "mt-0 h-[calc(100%-2rem)] bg-white border border-black/20";
+    `mt-0 h-[calc(100%-2rem)] ${isMacOSXTheme ? "" : "bg-white"} border border-black/20`;
 
   const menuBar = (
     <ControlPanelsMenuBar
