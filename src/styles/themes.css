@@ -195,7 +195,7 @@
 .aqua-button {
   font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
     "SF Pro Display", "SF Pro Text", sans-serif;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1;
   height: 24px;
   padding: 0 16px;
@@ -371,11 +371,11 @@
 }
 
 :root[data-os-theme="macosx"] .title-bar {
-  font-size: 12px !important;
+  font-size: 13px !important;
 }
 
-:root[data-os-theme="macosx"] button:not(.aqua-button) {
-  font-size: 12px !important;
+:root[data-os-theme="macosx"] button:not(.aqua-button):not(.aqua-tab) {
+  font-size: 13px !important;
   font-weight: normal !important;
 }
 
@@ -395,7 +395,7 @@
 
 :root[data-os-theme="macosx"] p,
 :root[data-os-theme="macosx"] div {
-  font-size: 11px !important;
+  font-size: 13px !important;
 }
 
 /* Preserve bookmark bar button text size in Internet Explorer */
@@ -726,7 +726,7 @@
 :root[data-os-theme="macosx"] [role="menuitemcheckbox"],
 :root[data-os-theme="macosx"] [role="menuitemradio"],
 :root[data-os-theme="macosx"] [role="option"] {
-  font-size: 12px !important;
+  font-size: 13px !important;
 }
 
 /* Enhanced shadow for macOS foreground windows */
@@ -764,6 +764,8 @@
     inset 0 2px 3px 1px rgba(187, 187, 187, 0.8), 0 1px 1px rgba(0, 0, 0, 0.3);
   color: black;
   text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
+  font-weight: 500 !important;
+  font-size: 12px !important;
 }
 
 .aqua-tab:hover {
@@ -784,6 +786,10 @@
   color: white !important;
   text-shadow: 0 1px 1px rgba(30, 77, 161, 0.5);
   border-bottom: none;
+}
+
+.aqua-tab:not([data-state="active"]) {
+  font-weight: 400 !important;
 }
 
 /* Top shine for aqua tabs */
@@ -807,8 +813,8 @@
 .aqua-tab:after {
   content: "";
   position: absolute;
-  left: 4px;
-  right: 4px;
+  left: 2px;
+  right: 2px;
   bottom: 2px;
   height: 20%;
   background: linear-gradient(transparent, rgba(255, 255, 255, 0.35));
@@ -820,7 +826,7 @@
 /* Enhanced gloss for active state */
 .aqua-tab[data-state="active"]:before {
   background: linear-gradient(
-    rgba(255, 255, 255, 0.9),
+    rgba(255, 255, 255, 0.8),
     rgba(255, 255, 255, 0.35)
   );
 }
@@ -847,25 +853,20 @@
 }
 
 .aqua-tab-bar:before {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: 40%;
-  background: linear-gradient(
-    rgba(255, 255, 255, 0.4),
-    rgba(255, 255, 255, 0.1)
-  );
-  pointer-events: none;
+  content: none !important;
+  background: none !important;
+  box-shadow: none !important;
+}
+
+.aqua-tab-bar:after {
+  content: none !important;
+  background: none !important;
+  box-shadow: none !important;
 }
 
 /* Remove default Tabs background for macOS */
 :root[data-os-theme="macosx"] [role="tablist"].aqua-tab-bar {
-  background: linear-gradient(
-    rgba(244, 244, 244, 1),
-    rgba(232, 232, 232, 1)
-  ) !important;
+  background: transparent !important;
 }
 
 :root[data-os-theme="macosx"] [data-radix-tabs-root] {
@@ -883,8 +884,5 @@
 
 /* Specifically target the TabsList component container */
 :root[data-os-theme="macosx"] .aqua-tab-bar:not(.aqua-tab) {
-  background: linear-gradient(
-    rgba(244, 244, 244, 1),
-    rgba(232, 232, 232, 1)
-  ) !important;
+  background: transparent !important;
 }

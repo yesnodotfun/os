@@ -9,6 +9,7 @@ import { appIds, AppId } from "@/config/appIds";
 import { useAppStore } from "@/stores/useAppStore";
 import { useSound, Sounds } from "./useSound";
 import { getWindowConfig } from "@/config/appRegistry";
+import { useThemeStore } from "@/stores/useThemeStore";
 
 interface UseWindowManagerProps {
   appId: AppId;
@@ -25,6 +26,10 @@ export const useWindowManager = ({
     instanceId ? state.instances[instanceId] : null
   );
   const config = getWindowConfig(appId);
+
+  // Theme-dependent constraints
+  const currentTheme = useThemeStore((state) => state.current);
+  const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
 
   // Helper to compute default window state (mirrors previous logic)
   const computeDefaultWindowState = (): {
@@ -210,7 +215,11 @@ export const useWindowManager = ({
 
         const newX = clientX - dragOffset.x;
         const newY = clientY - dragOffset.y;
-        const menuBarHeight = 30;
+
+        // Top clearance equals menu bar height for Mac theme, 0 for XP/98
+        const menuBarHeight = isXpTheme ? 0 : 30;
+        // Bottom clearance equals taskbar height for XP/98, 0 otherwise
+        const taskbarHeight = isXpTheme ? 30 : 0;
 
         // Start playing move sound in a loop when actual movement starts
         if (!moveAudioRef.current && !isMobile) {
@@ -223,9 +232,9 @@ export const useWindowManager = ({
           setWindowPosition({ x: 0, y: Math.max(menuBarHeight, newY) });
         } else {
           const maxX = window.innerWidth - windowSize.width;
-          const maxY = window.innerHeight - windowSize.height;
+          const maxY = window.innerHeight - windowSize.height - taskbarHeight;
           const x = Math.min(Math.max(0, newX), maxX);
-          const y = Math.min(Math.max(menuBarHeight, newY), maxY);
+          const y = Math.min(Math.max(menuBarHeight, newY), Math.max(0, maxY));
           setWindowPosition({ x, y });
         }
       }
@@ -387,6 +396,7 @@ export const useWindowManager = ({
     updateWindowState,
     updateInstanceWindowState,
     instanceId,
+    isXpTheme,
   ]);
 
   return {

@@ -105,13 +105,13 @@ const DropdownMenuSubContent = React.forwardRef<
         style={{
           ...(isMacOSTheme && {
             border: "none",
-            borderRadius: "4px",
+            borderRadius: "6px",
             backgroundColor: "rgba(255, 255, 255, 0.7)",
             backdropFilter: "blur(20px)",
             WebkitBackdropFilter: "blur(20px)",
             boxShadow:
-              "0 0 0 1px rgba(0, 0, 0, 0.3), 0 4px 10px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1)",
-            padding: "4px 6px",
+              "0 0 0 1px rgba(0, 0, 0, 0.15), 0 4px 10px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1)",
+            padding: "4px",
           }),
         }}
         {...props}
@@ -142,13 +142,13 @@ const DropdownMenuContent = React.forwardRef<
         style={{
           ...(isMacOSTheme && {
             border: "none",
-            borderRadius: "4px",
+            borderRadius: "6px",
             backgroundColor: "rgba(255, 255, 255, 0.7)",
             backdropFilter: "blur(20px)",
             WebkitBackdropFilter: "blur(20px)",
             boxShadow:
-              "0 0 0 1px rgba(0, 0, 0, 0.3), 0 4px 10px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1)",
-            padding: "4px 6px",
+              "0 0 0 1px rgba(0, 0, 0, 0.15), 0 4px 10px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1)",
+            padding: "4px",
           }),
         }}
         {...props}
