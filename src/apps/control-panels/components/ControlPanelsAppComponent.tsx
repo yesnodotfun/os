@@ -1396,7 +1396,7 @@ export function ControlPanelsAppComponent({
   const isClassicMacTheme = isMacOSXTheme || isSystem7Theme;
   const isWindowsLegacyTheme = isXpTheme;
 
-  const tabListBase = "flex w-full h-6 space-x-0.5 shadow-none";
+  const tabListBase = `flex w-full ${isMacOSXTheme ? "" : "h-6"} space-x-0.5 shadow-none`;
   
   // System 7 styling - classic, no gradients or gloss
   const tabListSystem7 = "bg-[#E3E3E3] border-b border-[#808080]";
