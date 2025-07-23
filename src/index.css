@@ -204,12 +204,14 @@ input.terminal-input[type="text"] {
   border-radius: 0 !important;
   height: auto !important;
   line-height: inherit !important;
+  box-shadow: none !important;
 }
 
 input.terminal-input[type="text"]:focus {
   outline: none !important;
   border: none !important;
   background-color: transparent !important;
+  box-shadow: none !important;
 }
 
 /* Piano key override styles to prevent XP/98 theme button interference */
