@@ -694,10 +694,12 @@ export function MenuBar({ children, inWindowFrame = false }: MenuBarProps) {
               isXpTheme ? "" : "px-2"
             }`}
             style={{
-              color: isXpTheme ? "#ffffff" : "#000000",
+              color: currentTheme === "win98" ? "#000000" : isXpTheme ? "#ffffff" : "#000000",
               textShadow:
-                currentTheme === "xp" || currentTheme === "win98"
+                currentTheme === "xp"
                   ? "1px 1px 1px rgba(0,0,0,0.5)"
+                  : currentTheme === "win98"
+                  ? "none"
                   : currentTheme === "macosx"
                   ? "0 1px 0 rgba(255, 255, 255, 0.5)"
                   : "none",

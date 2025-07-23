@@ -2,6 +2,7 @@ import { useSound, Sounds } from "@/hooks/useSound";
 import { useEffect, useState, useRef } from "react";
 import { isMobileDevice } from "@/utils/device";
 import { useLongPress } from "@/hooks/useLongPress";
+import { useThemeStore } from "@/stores/useThemeStore";
 
 interface FileIconProps {
   name: string;
@@ -33,6 +34,10 @@ export function FileIcon({
   className,
 }: FileIconProps) {
   const { play: playClick } = useSound(Sounds.BUTTON_CLICK, 0.3);
+  const currentTheme = useThemeStore((state) => state.current);
+  const isXpTheme = currentTheme === "xp";
+  const isWin98Theme = currentTheme === "win98";
+  const isMacOSXTheme = currentTheme === "macosx";
   const [imgSrc, setImgSrc] = useState<string | undefined>(contentUrl);
   const [fallbackToIcon, setFallbackToIcon] = useState(false);
   const attemptedUrlsRef = useRef<Set<string>>(new Set());
@@ -254,8 +259,17 @@ export function FileIcon({
         } ${
           isSelected || (isDropTarget && isDirectory)
             ? "bg-black text-white"
-            : "bg-white text-black"
+            : isWin98Theme
+              ? "bg-white text-black"
+              : (isXpTheme || isMacOSXTheme)
+                ? "bg-transparent text-white"
+                : "bg-white text-black"
         }`}
+        style={
+          !isSelected && !(isDropTarget && isDirectory) && (isXpTheme || isMacOSXTheme)
+            ? { textShadow: "1px 1px 2px rgba(0, 0, 0, 0.8)" }
+            : {}
+        }
       >
         {name}
       </span>
