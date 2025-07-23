@@ -694,7 +694,12 @@ export function MenuBar({ children, inWindowFrame = false }: MenuBarProps) {
               isXpTheme ? "" : "px-2"
             }`}
             style={{
-              color: currentTheme === "win98" ? "#000000" : isXpTheme ? "#ffffff" : "#000000",
+              color:
+                currentTheme === "win98"
+                  ? "#000000"
+                  : isXpTheme
+                  ? "#ffffff"
+                  : "#000000",
               textShadow:
                 currentTheme === "xp"
                   ? "1px 1px 1px rgba(0,0,0,0.5)"
@@ -717,7 +722,19 @@ export function MenuBar({ children, inWindowFrame = false }: MenuBarProps) {
     <div
       className="fixed top-0 left-0 right-0 flex border-b-[length:var(--os-metrics-border-width)] border-os-menubar px-2 h-os-menubar items-center font-os-ui"
       style={{
-        background: "var(--os-color-menubar-bg)",
+        background:
+          currentTheme === "macosx"
+            ? "rgba(248, 248, 248, 0.85)"
+            : "var(--os-color-menubar-bg)",
+        backgroundImage:
+          currentTheme === "macosx" ? "var(--os-pinstripe-window)" : undefined,
+        backdropFilter: currentTheme === "macosx" ? "blur(20px)" : undefined,
+        WebkitBackdropFilter:
+          currentTheme === "macosx" ? "blur(20px)" : undefined,
+        boxShadow:
+          currentTheme === "macosx"
+            ? "0 2px 8px rgba(0, 0, 0, 0.15)"
+            : undefined,
         fontFamily: "var(--os-font-ui)",
         color: "var(--os-color-menubar-text)",
       }}

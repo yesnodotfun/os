@@ -1397,7 +1397,7 @@ export function ControlPanelsAppComponent({
   const isWindowsLegacyTheme = isXpTheme;
 
   const separatorColor = isMacOSXTheme
-    ? "rgba(0, 0, 0, 0.07)"
+    ? "rgba(0, 0, 0, 0.2)"
     : isSystem7Theme || isWindowsLegacyTheme
     ? "#808080"
     : "rgba(0, 0, 0, 0.2)";

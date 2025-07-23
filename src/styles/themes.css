@@ -753,7 +753,7 @@
   /* Inactive tab - shifted up from top */
   margin-top: 4px;
   /* Inactive tab (secondary aqua button style) */
-  background: linear-gradient(rgba(248, 248, 248, 1), rgba(208, 208, 208, 1));
+  background: linear-gradient(rgb(197 197 197), rgb(255 255 255));
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1),
     inset 0 2px 3px 1px rgba(187, 187, 187, 0.8), 0 1px 1px rgba(0, 0, 0, 0.3);
   color: black;
@@ -771,13 +771,13 @@
   margin-top: 0;
   /* Active tab (primary aqua button style) */
   background: linear-gradient(
-    rgba(100, 149, 237, 0.9),
-    rgba(65, 105, 225, 0.9)
+    rgb(48 123 201),
+    rgb(152 189 228),
+    rgb(210 255 255)
   );
   box-shadow: inset 0 1px 3px rgba(0, 17, 49, 0.8),
     inset 0 2px 3px 1px rgba(0, 78, 187, 0.75), 0 2px 3px rgba(0, 0, 0, 0.3),
     0 1px 1px rgba(0, 78, 187, 0.5);
-  color: white !important;
   text-shadow: 0 1px 1px rgba(30, 77, 161, 0.5);
   border-bottom: none;
 }
@@ -790,12 +790,12 @@
 .aqua-tab:before {
   content: "";
   position: absolute;
-  left: 2px;
-  right: 2px;
-  top: 2px;
-  height: 35%;
+  left: 1px;
+  right: 1px;
+  top: 1px;
+  height: 15%;
   background: linear-gradient(
-    rgba(255, 255, 255, 0.85),
+    rgba(255, 255, 255, 0.55),
     rgba(255, 255, 255, 0.25)
   );
   border-radius: 4px 4px 0 0;
@@ -807,14 +807,15 @@
 .aqua-tab:after {
   content: "";
   position: absolute;
-  left: 2px;
-  right: 2px;
-  bottom: 2px;
+  left: 1px;
+  right: 1px;
+  bottom: 0px;
   height: 20%;
   background: linear-gradient(transparent, rgba(255, 255, 255, 0.35));
   border-radius: 0 0 2px 2px;
   pointer-events: none;
   z-index: 10;
+  filter: blur(1px);
 }
 
 /* Enhanced gloss for active state */

@@ -31,7 +31,29 @@ const DropdownMenu = ({
 };
 DropdownMenu.displayName = DropdownMenuPrimitive.Root.displayName;
 
-const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger;
+const DropdownMenuTrigger = React.forwardRef<
+  React.ElementRef<typeof DropdownMenuPrimitive.Trigger>,
+  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Trigger>
+>(({ className, style, ...props }, ref) => {
+  const currentTheme = useThemeStore((state) => state.current);
+
+  const macosTextShadow =
+    currentTheme === "macosx"
+      ? {
+          textShadow: "0 2px 3px rgba(0, 0, 0, 0.25)",
+        }
+      : {};
+
+  return (
+    <DropdownMenuPrimitive.Trigger
+      ref={ref}
+      className={className}
+      style={{ ...macosTextShadow, ...style }}
+      {...props}
+    />
+  );
+});
+DropdownMenuTrigger.displayName = DropdownMenuPrimitive.Trigger.displayName;
 
 const DropdownMenuGroup = DropdownMenuPrimitive.Group;
 
