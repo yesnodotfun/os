@@ -1410,7 +1410,7 @@ export function ControlPanelsAppComponent({
   const tabContentMacOSX = "bg-[#ececec] border border-t-0 border-black/20";
   
   const tabTriggerBase =
-    `relative flex-1 ${isMacOSXTheme ? "h-7" : "h-6"} px-2 -mb-[1px] rounded-t shadow-none! text-[16px]`;
+    `relative flex-1 ${isMacOSXTheme ? "" : "h-6"} px-2 ${isMacOSXTheme ? "" : "-mb-[1px]"} rounded-t shadow-none! text-[16px]`;
   const tabContentBase =
     `mt-0 h-[calc(100%-2rem)] ${isMacOSXTheme ? "" : "bg-white"} border border-black/20`;
 
