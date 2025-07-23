@@ -90,45 +90,37 @@ export function AboutDialog({
     </div>
   );
 
-  if (isXpTheme) {
-    return (
-      <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent
-          className={cn(
-            "p-0 overflow-hidden max-w-[240px] border-0", // Remove border but keep box-shadow
-            currentTheme === "xp" ? "window" : "window" // Use window class for both themes
-          )}
-          style={{
-            fontSize: "11px",
-          }}
-        >
-          <div
-            className="title-bar"
-            style={currentTheme === "xp" ? { minHeight: "30px" } : undefined}
-          >
-            <div className="title-bar-text">About</div>
-            <div className="title-bar-controls">
-              <button aria-label="Close" onClick={() => onOpenChange(false)} />
-            </div>
-          </div>
-          <div className={`window-body ${isXpTheme ? "p-2 px-4" : "p-4"}`}>
-            {dialogContent}
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-os-window-bg border-[length:var(--os-metrics-border-width)] border-os-window rounded-os shadow-os-window max-w-[280px]">
-        <DialogHeader>
-          <DialogTitle className="font-normal text-[16px]">About</DialogTitle>
-          <DialogDescription className="sr-only">
-            Information about the application
-          </DialogDescription>
-        </DialogHeader>
-        {dialogContent}
+      <DialogContent
+        className={cn(
+          "max-w-[280px]",
+          isXpTheme && "p-0 overflow-hidden"
+        )}
+        style={
+          isXpTheme
+            ? { fontSize: "11px" }
+            : undefined
+        }
+      >
+        {isXpTheme ? (
+          <>
+            <DialogHeader>About</DialogHeader>
+            <div className={`window-body ${isXpTheme ? "p-2 px-4" : "p-4"}`}>
+              {dialogContent}
+            </div>
+          </>
+        ) : (
+          <>
+            <DialogHeader>
+              <DialogTitle className="font-normal text-[16px]">About</DialogTitle>
+              <DialogDescription className="sr-only">
+                Information about the application
+              </DialogDescription>
+            </DialogHeader>
+            {dialogContent}
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
