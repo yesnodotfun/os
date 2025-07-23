@@ -181,8 +181,8 @@ const SelectContent = React.forwardRef<
             backdropFilter: "blur(20px)",
             WebkitBackdropFilter: "blur(20px)",
             boxShadow:
-              "0 0 0 1px rgba(0, 0, 0, 0.3), 0 4px 10px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1)",
-            padding: "2px",
+              "0 0 0 1px rgba(0, 0, 0, 0.15), 0 4px 10px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1)",
+            padding: "0px",
           }),
         }}
         position={position}
@@ -267,8 +267,8 @@ const SelectItem = React.forwardRef<
         ...(isMacOSTheme && {
           WebkitFontSmoothing: "antialiased",
           fontSmooth: "auto",
-          borderRadius: "6px",
-          padding: "4px 12px",
+          borderRadius: "4px",
+          padding: "2px 12px",
           margin: "1px 0",
           minHeight: "24px",
         }),
