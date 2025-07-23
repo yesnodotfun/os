@@ -37,8 +37,8 @@ export function AppleMenu({ apps }: AppleMenuProps) {
             variant="ghost"
             size="default"
             className={cn(
-              "border-none hover:bg-black/10 active:bg-black/20 focus-visible:ring-0",
-              isMacOsxTheme ? "h-8 text-lg px-4 py-2" : "h-6 text-md px-3 py-1"
+              "h-6 px-3 py-1 border-none hover:bg-black/10 active:bg-black/20 focus-visible:ring-0",
+              isMacOsxTheme ? "text-xl" : "text-md"
             )}
             style={{ color: "inherit" }}
           >
