@@ -858,14 +858,14 @@ export function WindowFrame({
                   }}
                   onMouseDown={(e) => e.stopPropagation()}
                   onTouchStart={(e) => e.stopPropagation()}
-                  className="w-3 h-3 rounded-full relative overflow-hidden cursor-default outline-none border-none box-border"
+                  className="w-3 h-3 rounded-full relative overflow-hidden cursor-default outline-none box-border"
                   style={{
                     background: isForeground
-                      ? "linear-gradient(rgba(255, 96, 87, 0.8), rgba(225, 70, 64, 0.8))"
+                      ? "linear-gradient(rgb(193, 58, 45), rgb(205, 73, 52))"
                       : "linear-gradient(rgba(160, 160, 160, 0.625), rgba(255, 255, 255, 0.625))",
                     boxShadow: isForeground
-                      ? "0 2px 3px rgba(0, 0, 0, 0.3), 0 1px 1px rgba(225, 70, 64, 0.5), inset 0 1px 3px rgba(150, 40, 30, 0.8), inset 0 2px 3px 1px rgba(225, 70, 64, 0.75)"
-                      : "0 2px 3px rgba(0, 0, 0, 0.2), 0 1px 1px rgba(0, 0, 0, 0.3), inset 0 1px 2px rgba(0, 0, 0, 0.4), inset 0 2px 3px 1px #bbbbbb",
+                      ? "rgba(0, 0, 0, 0.5) 0px 2px 4px, rgba(0, 0, 0, 0.4) 0px 1px 2px, rgba(225, 70, 64, 0.5) 0px 1px 1px, rgba(0, 0, 0, 0.3) 0px 0px 0px 0.5px inset, rgba(150, 40, 30, 0.8) 0px 1px 3px inset, rgba(225, 70, 64, 0.75) 0px 2px 3px 1px inset"
+                      : "0 2px 3px rgba(0, 0, 0, 0.2), 0 1px 1px rgba(0, 0, 0, 0.3), inset 0 0 0 0.5px rgba(0, 0, 0, 0.3), inset 0 1px 2px rgba(0, 0, 0, 0.4), inset 0 2px 3px 1px #bbbbbb",
                   }}
                   aria-label="Close"
                 >
@@ -876,7 +876,7 @@ export function WindowFrame({
                       height: "33%",
                       background:
                         "linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.3))",
-                      width: "calc(100% - 4px)",
+                      width: "calc(100% - 6px)",
                       borderRadius: "6px 6px 0 0",
                       top: "1px",
                       filter: "blur(0.2px)",
@@ -905,14 +905,14 @@ export function WindowFrame({
                   }}
                   onMouseDown={(e) => e.stopPropagation()}
                   onTouchStart={(e) => e.stopPropagation()}
-                  className="w-3 h-3 rounded-full relative overflow-hidden cursor-default outline-none border-none box-border"
+                  className="w-3 h-3 rounded-full relative overflow-hidden cursor-default outline-none box-border"
                   style={{
                     background: isForeground
-                      ? "linear-gradient(rgba(255, 189, 46, 0.8), rgba(223, 161, 35, 0.8))"
+                      ? "linear-gradient(rgb(202, 130, 13), rgb(253, 253, 149))"
                       : "linear-gradient(rgba(160, 160, 160, 0.625), rgba(255, 255, 255, 0.625))",
                     boxShadow: isForeground
-                      ? "0 2px 3px rgba(0, 0, 0, 0.3), 0 1px 1px rgba(223, 161, 35, 0.5), inset 0 1px 3px rgba(160, 120, 20, 0.8), inset 0 2px 3px 1px rgba(223, 161, 35, 0.75)"
-                      : "0 2px 3px rgba(0, 0, 0, 0.2), 0 1px 1px rgba(0, 0, 0, 0.3), inset 0 1px 2px rgba(0, 0, 0, 0.4), inset 0 2px 3px 1px #bbbbbb",
+                      ? "rgba(0, 0, 0, 0.5) 0px 2px 4px, rgba(0, 0, 0, 0.4) 0px 1px 2px, rgba(223, 161, 35, 0.5) 0px 1px 1px, rgba(0, 0, 0, 0.3) 0px 0px 0px 0.5px inset, rgb(155, 78, 21) 0px 1px 3px inset, rgb(241, 157, 20) 0px 2px 3px 1px inset"
+                      : "0 2px 3px rgba(0, 0, 0, 0.2), 0 1px 1px rgba(0, 0, 0, 0.3), inset 0 0 0 0.5px rgba(0, 0, 0, 0.3), inset 0 1px 2px rgba(0, 0, 0, 0.4), inset 0 2px 3px 1px #bbbbbb",
                   }}
                   aria-label="Minimize"
                 >
@@ -923,7 +923,7 @@ export function WindowFrame({
                       height: "33%",
                       background:
                         "linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.3))",
-                      width: "calc(100% - 4px)",
+                      width: "calc(100% - 6px)",
                       borderRadius: "6px 6px 0 0",
                       top: "1px",
                       filter: "blur(0.2px)",
@@ -952,14 +952,14 @@ export function WindowFrame({
                   }}
                   onMouseDown={(e) => e.stopPropagation()}
                   onTouchStart={(e) => e.stopPropagation()}
-                  className="w-3 h-3 rounded-full relative overflow-hidden cursor-default outline-none border-none box-border"
+                  className="w-3 h-3 rounded-full relative overflow-hidden cursor-default outline-none box-border"
                   style={{
                     background: isForeground
-                      ? "linear-gradient(rgba(39, 201, 63, 0.8), rgba(29, 173, 43, 0.8))"
+                      ? "linear-gradient(rgb(111, 174, 58), rgb(138, 192, 50))"
                       : "linear-gradient(rgba(160, 160, 160, 0.625), rgba(255, 255, 255, 0.625))",
                     boxShadow: isForeground
-                      ? "0 2px 3px rgba(0, 0, 0, 0.3), 0 1px 1px rgba(29, 173, 43, 0.5), inset 0 1px 3px rgba(20, 120, 30, 0.8), inset 0 2px 3px 1px rgba(29, 173, 43, 0.75)"
-                      : "0 2px 3px rgba(0, 0, 0, 0.2), 0 1px 1px rgba(0, 0, 0, 0.3), inset 0 1px 2px rgba(0, 0, 0, 0.4), inset 0 2px 3px 1px #bbbbbb",
+                      ? "rgba(0, 0, 0, 0.5) 0px 2px 4px, rgba(0, 0, 0, 0.4) 0px 1px 2px, rgb(59, 173, 29, 0.5) 0px 1px 1px, rgba(0, 0, 0, 0.3) 0px 0px 0px 0.5px inset, rgb(53, 91, 17) 0px 1px 3px inset, rgb(98, 187, 19) 0px 2px 3px 1px inset"
+                      : "0 2px 3px rgba(0, 0, 0, 0.2), 0 1px 1px rgba(0, 0, 0, 0.3), inset 0 0 0 0.5px rgba(0, 0, 0, 0.3), inset 0 1px 2px rgba(0, 0, 0, 0.4), inset 0 2px 3px 1px #bbbbbb",
                   }}
                   aria-label="Maximize"
                 >
@@ -970,7 +970,7 @@ export function WindowFrame({
                       height: "33%",
                       background:
                         "linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.3))",
-                      width: "calc(100% - 4px)",
+                      width: "calc(100% - 6px)",
                       borderRadius: "6px 6px 0 0",
                       top: "1px",
                       filter: "blur(0.2px)",
