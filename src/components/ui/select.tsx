@@ -64,7 +64,7 @@ const SelectTrigger = React.forwardRef<
           : undefined,
         fontSize: isXpTheme ? "11px" : isMacOSTheme ? "14px" : undefined,
         ...(isMacOSTheme && {
-          height: "22px",
+          height: "28px", // Match Input h-7 height for macOS theme
           lineHeight: 1,
           minWidth: "60px",
           borderRadius: "6px",
