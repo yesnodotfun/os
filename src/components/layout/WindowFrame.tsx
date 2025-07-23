@@ -858,21 +858,45 @@ export function WindowFrame({
                   }}
                   onMouseDown={(e) => e.stopPropagation()}
                   onTouchStart={(e) => e.stopPropagation()}
-                  className="w-3 h-3 rounded-full relative transition-all duration-150"
+                  className="w-3 h-3 rounded-full relative overflow-hidden cursor-default outline-none border-none box-border"
                   style={{
                     background: isForeground
-                      ? theme.colors.trafficLights?.close ||
-                        "rgba(255, 96, 87, 1)"
-                      : "rgba(0, 0, 0, 0.14)",
-                    border: `1px solid ${
-                      isForeground
-                        ? theme.colors.trafficLights?.closeHover ||
-                          "rgba(225, 70, 64, 1)"
-                        : "rgba(0, 0, 0, 0.2)"
-                    }`,
+                      ? "linear-gradient(rgba(255, 96, 87, 0.8), rgba(225, 70, 64, 0.8))"
+                      : "linear-gradient(rgba(160, 160, 160, 0.625), rgba(255, 255, 255, 0.625))",
+                    boxShadow: isForeground
+                      ? "0 2px 3px rgba(0, 0, 0, 0.3), 0 1px 1px rgba(225, 70, 64, 0.5), inset 0 1px 3px rgba(150, 40, 30, 0.8), inset 0 2px 3px 1px rgba(225, 70, 64, 0.75)"
+                      : "0 2px 3px rgba(0, 0, 0, 0.2), 0 1px 1px rgba(0, 0, 0, 0.3), inset 0 1px 2px rgba(0, 0, 0, 0.4), inset 0 2px 3px 1px #bbbbbb",
                   }}
                   aria-label="Close"
-                />
+                >
+                  {/* Top shine */}
+                  <div
+                    className="absolute left-1/2 transform -translate-x-1/2 pointer-events-none"
+                    style={{
+                      height: "33%",
+                      background:
+                        "linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.3))",
+                      width: "calc(100% - 4px)",
+                      borderRadius: "6px 6px 0 0",
+                      top: "1px",
+                      filter: "blur(0.2px)",
+                      zIndex: 2,
+                    }}
+                  />
+                  {/* Bottom glow */}
+                  <div
+                    className="absolute left-1/2 transform -translate-x-1/2 pointer-events-none"
+                    style={{
+                      height: "33%",
+                      background:
+                        "linear-gradient(rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.5))",
+                      width: "calc(100% - 3px)",
+                      borderRadius: "0 0 6px 6px",
+                      bottom: "1px",
+                      filter: "blur(0.3px)",
+                    }}
+                  />
+                </button>
                 {/* Minimize Button (Yellow) */}
                 <button
                   onClick={(e) => {
@@ -881,21 +905,45 @@ export function WindowFrame({
                   }}
                   onMouseDown={(e) => e.stopPropagation()}
                   onTouchStart={(e) => e.stopPropagation()}
-                  className="w-3 h-3 rounded-full relative transition-all duration-150"
+                  className="w-3 h-3 rounded-full relative overflow-hidden cursor-default outline-none border-none box-border"
                   style={{
                     background: isForeground
-                      ? theme.colors.trafficLights?.minimize ||
-                        "rgba(255, 189, 46, 1)"
-                      : "rgba(0, 0, 0, 0.14)",
-                    border: `1px solid ${
-                      isForeground
-                        ? theme.colors.trafficLights?.minimizeHover ||
-                          "rgba(223, 161, 35, 1)"
-                        : "rgba(0, 0, 0, 0.2)"
-                    }`,
+                      ? "linear-gradient(rgba(255, 189, 46, 0.8), rgba(223, 161, 35, 0.8))"
+                      : "linear-gradient(rgba(160, 160, 160, 0.625), rgba(255, 255, 255, 0.625))",
+                    boxShadow: isForeground
+                      ? "0 2px 3px rgba(0, 0, 0, 0.3), 0 1px 1px rgba(223, 161, 35, 0.5), inset 0 1px 3px rgba(160, 120, 20, 0.8), inset 0 2px 3px 1px rgba(223, 161, 35, 0.75)"
+                      : "0 2px 3px rgba(0, 0, 0, 0.2), 0 1px 1px rgba(0, 0, 0, 0.3), inset 0 1px 2px rgba(0, 0, 0, 0.4), inset 0 2px 3px 1px #bbbbbb",
                   }}
                   aria-label="Minimize"
-                />
+                >
+                  {/* Top shine */}
+                  <div
+                    className="absolute left-1/2 transform -translate-x-1/2 pointer-events-none"
+                    style={{
+                      height: "33%",
+                      background:
+                        "linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.3))",
+                      width: "calc(100% - 4px)",
+                      borderRadius: "6px 6px 0 0",
+                      top: "1px",
+                      filter: "blur(0.2px)",
+                      zIndex: 2,
+                    }}
+                  />
+                  {/* Bottom glow */}
+                  <div
+                    className="absolute left-1/2 transform -translate-x-1/2 pointer-events-none"
+                    style={{
+                      height: "33%",
+                      background:
+                        "linear-gradient(rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.5))",
+                      width: "calc(100% - 3px)",
+                      borderRadius: "0 0 6px 6px",
+                      bottom: "1px",
+                      filter: "blur(0.3px)",
+                    }}
+                  />
+                </button>
                 {/* Maximize Button (Green) */}
                 <button
                   onClick={(e) => {
@@ -904,21 +952,45 @@ export function WindowFrame({
                   }}
                   onMouseDown={(e) => e.stopPropagation()}
                   onTouchStart={(e) => e.stopPropagation()}
-                  className="w-3 h-3 rounded-full relative transition-all duration-150"
+                  className="w-3 h-3 rounded-full relative overflow-hidden cursor-default outline-none border-none box-border"
                   style={{
                     background: isForeground
-                      ? theme.colors.trafficLights?.maximize ||
-                        "rgba(39, 201, 63, 1)"
-                      : "rgba(0, 0, 0, 0.14)",
-                    border: `1px solid ${
-                      isForeground
-                        ? theme.colors.trafficLights?.maximizeHover ||
-                          "rgba(29, 173, 43, 1)"
-                        : "rgba(0, 0, 0, 0.2)"
-                    }`,
+                      ? "linear-gradient(rgba(39, 201, 63, 0.8), rgba(29, 173, 43, 0.8))"
+                      : "linear-gradient(rgba(160, 160, 160, 0.625), rgba(255, 255, 255, 0.625))",
+                    boxShadow: isForeground
+                      ? "0 2px 3px rgba(0, 0, 0, 0.3), 0 1px 1px rgba(29, 173, 43, 0.5), inset 0 1px 3px rgba(20, 120, 30, 0.8), inset 0 2px 3px 1px rgba(29, 173, 43, 0.75)"
+                      : "0 2px 3px rgba(0, 0, 0, 0.2), 0 1px 1px rgba(0, 0, 0, 0.3), inset 0 1px 2px rgba(0, 0, 0, 0.4), inset 0 2px 3px 1px #bbbbbb",
                   }}
                   aria-label="Maximize"
-                />
+                >
+                  {/* Top shine */}
+                  <div
+                    className="absolute left-1/2 transform -translate-x-1/2 pointer-events-none"
+                    style={{
+                      height: "33%",
+                      background:
+                        "linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.3))",
+                      width: "calc(100% - 4px)",
+                      borderRadius: "6px 6px 0 0",
+                      top: "1px",
+                      filter: "blur(0.2px)",
+                      zIndex: 2,
+                    }}
+                  />
+                  {/* Bottom glow */}
+                  <div
+                    className="absolute left-1/2 transform -translate-x-1/2 pointer-events-none"
+                    style={{
+                      height: "33%",
+                      background:
+                        "linear-gradient(rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.5))",
+                      width: "calc(100% - 3px)",
+                      borderRadius: "0 0 6px 6px",
+                      bottom: "1px",
+                      filter: "blur(0.3px)",
+                    }}
+                  />
+                </button>
               </div>
 
               {/* Title - removed white background */}
