@@ -110,6 +110,11 @@ export function AboutDialog({
               {dialogContent}
             </div>
           </>
+        ) : currentTheme === "macosx" ? (
+          <>
+            <DialogHeader>About</DialogHeader>
+            {dialogContent}
+          </>
         ) : (
           <>
             <DialogHeader>

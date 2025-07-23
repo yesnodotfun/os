@@ -288,6 +288,11 @@ export function EmojiDialog({
             <DialogHeader>Set Emoji</DialogHeader>
             <div className="window-body">{dialogContent}</div>
           </>
+        ) : currentTheme === "macosx" ? (
+          <>
+            <DialogHeader>Set Emoji</DialogHeader>
+            {dialogContent}
+          </>
         ) : (
           <>
             <DialogHeader>

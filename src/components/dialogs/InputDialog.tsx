@@ -218,6 +218,11 @@ export function InputDialog({
             <DialogHeader>{title}</DialogHeader>
             <div className="window-body">{dialogContent}</div>
           </>
+        ) : currentTheme === "macosx" ? (
+          <>
+            <DialogHeader>{title}</DialogHeader>
+            {dialogContent}
+          </>
         ) : (
           <>
             <DialogHeader>

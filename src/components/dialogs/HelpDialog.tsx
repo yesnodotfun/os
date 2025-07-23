@@ -117,6 +117,11 @@ export function HelpDialog({
             <DialogHeader>Help</DialogHeader>
             <div className="window-body">{dialogContent}</div>
           </>
+        ) : currentTheme === "macosx" ? (
+          <>
+            <DialogHeader>Help</DialogHeader>
+            {dialogContent}
+          </>
         ) : (
           <>
             <DialogHeader>

@@ -408,6 +408,11 @@ export function LoginDialog({
             <DialogHeader>ryOS Login</DialogHeader>
             <div className="window-body">{dialogContent}</div>
           </>
+        ) : currentTheme === "macosx" ? (
+          <>
+            <DialogHeader>ryOS Login</DialogHeader>
+            {dialogContent}
+          </>
         ) : (
           <>
             <DialogHeader>

@@ -440,6 +440,11 @@ export function CreateRoomDialog({
             <DialogHeader>New Chat</DialogHeader>
             <div className="window-body">{dialogContent}</div>
           </>
+        ) : currentTheme === "macosx" ? (
+          <>
+            <DialogHeader>New Chat</DialogHeader>
+            {dialogContent}
+          </>
         ) : (
           <>
             <DialogHeader>

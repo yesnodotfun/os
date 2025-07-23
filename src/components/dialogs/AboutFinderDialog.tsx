@@ -184,6 +184,11 @@ export function AboutFinderDialog({
             <DialogHeader>About This Computer</DialogHeader>
             <div className="window-body">{dialogContent}</div>
           </>
+        ) : currentTheme === "macosx" ? (
+          <>
+            <DialogHeader>About This Computer</DialogHeader>
+            {dialogContent}
+          </>
         ) : (
           <>
             <DialogHeader>

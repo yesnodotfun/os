@@ -130,6 +130,11 @@ export function ConfirmDialog({
             <DialogHeader>{title}</DialogHeader>
             <div className="window-body">{dialogContent}</div>
           </>
+        ) : currentTheme === "macosx" ? (
+          <>
+            <DialogHeader>{title}</DialogHeader>
+            {dialogContent}
+          </>
         ) : (
           <>
             <DialogHeader>
