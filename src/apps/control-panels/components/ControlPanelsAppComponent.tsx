@@ -1740,7 +1740,7 @@ export function ControlPanelsAppComponent({
                             ryOS Account
                           </span>
                           <span className="text-[11px] text-gray-600 font-geneva-12">
-                            Login to send messages and more.
+                            Login to send messages and more
                           </span>
                         </div>
                         <Button
@@ -1782,7 +1782,7 @@ export function ControlPanelsAppComponent({
                     />
                   </div>
                   <p className="text-[11px] text-gray-600 font-geneva-12">
-                    Backup or restore all app settings and files.
+                    Backup or restore all app settings and files
                   </p>
                 </div>
 
