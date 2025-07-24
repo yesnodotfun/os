@@ -73,22 +73,25 @@ export function AboutFinderDialog({
               <ThemedIcon
                 name="mac-classic.png"
                 alt="Happy Mac"
-                className="w-10 h-10 mb-0 [image-rendering:pixelated]"
+                className="w-10 h-10 mb-1 mr-0"
               />
               <div
                 className={cn(
                   isXpTheme
                     ? "font-['Pixelated_MS_Sans_Serif',Arial] text-[16px]"
-                    : "font-apple-garamond text-xl"
+                    : "font-apple-garamond text-2xl"
                 )}
-                style={{
-                  fontFamily: isXpTheme
-                    ? '"Pixelated MS Sans Serif", Arial'
-                    : undefined,
-                  fontSize: isXpTheme ? "16px" : undefined,
-                }}
               >
                 ryOS
+                {currentTheme === "system7"
+                  ? " 7"
+                  : currentTheme === "macosx"
+                  ? " X"
+                  : currentTheme === "win98"
+                  ? " 98"
+                  : currentTheme === "xp"
+                  ? " XP"
+                  : ""}
               </div>
             </div>
 
