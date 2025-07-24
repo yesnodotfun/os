@@ -151,14 +151,24 @@ export function AboutFinderDialog({
             }}
           >
             {memoryUsage.map((app, index) => (
-              <div className="flex flex-row gap-1" key={index}>
+              <div className="flex flex-row items-center gap-1" key={index}>
                 <div className="flex justify-between w-full">
                   <div className="w-1/2 truncate">{app.name}</div>
                   <div className="w-1/3">{app.memoryMB.toFixed(1)} MB</div>
                 </div>
-                <div className="h-2 bg-gray-200 w-full ">
+                <div
+                  className={cn(
+                    "h-2 w-full",
+                    currentTheme === "macosx" ? "aqua-progress" : "bg-gray-200"
+                  )}
+                >
                   <div
-                    className="h-full bg-blue-500 transition-all duration-200"
+                    className={cn(
+                      "h-full transition-all duration-200",
+                      currentTheme === "macosx"
+                        ? "aqua-progress-fill"
+                        : "bg-blue-500"
+                    )}
                     style={{ width: `${app.percentage}%` }}
                   />
                 </div>
