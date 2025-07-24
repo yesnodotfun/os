@@ -16,16 +16,38 @@ export const ThemedIcon: React.FC<ThemedIconProps> = ({
   ...imgProps
 }) => {
   const currentTheme = useThemeStore?.((s: any) => s.current) || null;
-  // Use legacy-aware resolution immediately for a synchronous best guess.
+
+  // Simple passthrough for remote resources (avoid theming logic entirely)
+  if (/^https?:\/\//i.test(name)) {
+    return <img src={name} alt={alt || name} {...imgProps} />;
+  }
+
+  // Legacy-aware initial resolution (may already be themed path or absolute /icons/...)
   const resolved = resolveIconLegacyAware(name, themeOverride ?? currentTheme);
-  // Still leverage async manifest-based fine-tuning if name was relative.
-  const path = useIconPath(
-    resolved
-      .replace("/icons/default/", "")
-      .replace(/^(?:\/icons\/[^/]+\/)/, ""),
-    themeOverride ?? currentTheme
-  );
+
+  // If result is a remote URL (in case resolver passed one through) just use it.
+  if (/^https?:\/\//i.test(resolved)) {
+    return <img src={resolved} alt={alt || name} {...imgProps} />;
+  }
+
+  // Derive logical name for async theming only if inside /icons/ path.
+  const logical = resolved.startsWith("/icons/")
+    ? resolved
+        .replace("/icons/default/", "")
+        .replace(/^(?:\/icons\/[^/]+\/)/, "")
+    : resolved;
+
+  const themedPath = useIconPath(logical, themeOverride ?? currentTheme);
+
+  // Keep it simple: if async path still pending, show resolved immediately. Avoid switching for remote URLs.
+  const src = themedPath || resolved;
+
   return (
-    <img src={resolved} data-final-src={path} alt={alt || name} {...imgProps} />
+    <img
+      src={src}
+      data-initial-src={resolved}
+      alt={alt || name}
+      {...imgProps}
+    />
   );
 };

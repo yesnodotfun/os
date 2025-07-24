@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2025-07-24T05:39:02.975Z",
+  "generatedAt": "2025-07-24T06:05:50.921Z",
   "themes": {
     "default": [
       "apple.png",
@@ -130,22 +130,35 @@
     "macosx": [
       "applications.png",
       "cdrom.png",
+      "control-panels/appearance-manager/app.png",
       "directory.png",
+      "disk.png",
       "documents.png",
       "error.png",
       "file-text.png",
       "file.png",
       "folder.png",
       "ie-site.png",
+      "ie.png",
       "image.png",
       "images.png",
+      "ipod.png",
+      "mac-classic.png",
       "mac.png",
       "movies.png",
+      "paint.png",
+      "pc.png",
+      "photo-booth.png",
+      "question.png",
       "sites.png",
       "sound.png",
       "sounds.png",
+      "synth.png",
+      "terminal.png",
+      "textedit.png",
       "trash-empty.png",
       "trash-full.png",
+      "videos.png",
       "warn.png"
     ]
   }

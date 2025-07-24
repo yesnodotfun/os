@@ -4,7 +4,6 @@ import { isMobileDevice } from "@/utils/device";
 import { useLongPress } from "@/hooks/useLongPress";
 import { useThemeStore } from "@/stores/useThemeStore";
 import { ThemedIcon } from "@/components/shared/ThemedIcon";
-import { resolveIconLegacyAware } from "@/utils/icons";
 
 interface FileIconProps {
   name: string;

@@ -34,14 +34,23 @@ export function pickIconPath(
   name: string,
   { theme, fallbackTheme = "default", manifest }: GetIconPathOptions = {}
 ): string {
-  // If no theme or same as fallback, short-circuit.
-  if (!theme || theme === fallbackTheme) {
+  // No theme provided: always fallback.
+  if (!theme) {
+    return `/icons/${fallbackTheme}/${name}`;
+  }
+  // If theme explicitly equals fallback, just return fallback path.
+  if (theme === fallbackTheme) {
     return `/icons/${fallbackTheme}/${name}`;
   }
   const m = manifestCache || manifest; // allow pre-supplied
-  if (m && m.themes[theme] && m.themes[theme].includes(name)) {
+  // If manifest not yet loaded, optimistically return themed path to avoid flash.
+  if (!m) {
     return `/icons/${theme}/${name}`;
   }
+  if (m.themes[theme] && m.themes[theme].includes(name)) {
+    return `/icons/${theme}/${name}`;
+  }
+  // Fallback if manifest knows the theme or icon missing.
   return `/icons/${fallbackTheme}/${name}`;
 }
 
@@ -55,36 +64,45 @@ export function resolveIconLegacyAware(
   iconOrName: string,
   theme?: string | null
 ): string {
+  // Pass through absolute/remote URLs & data/blob URIs
+  if (/^(https?:|data:|blob:|\/\/)/i.test(iconOrName)) {
+    return iconOrName;
+  }
   // If it's already a full /icons/... path, try to reduce to relative name & re-theme.
   if (iconOrName.startsWith("/icons/")) {
     const rest = iconOrName.slice("/icons/".length); // e.g. default/file.png OR file.png OR macpaint/brush.png
     const parts = rest.split("/");
     const maybeTheme = parts[0];
-    // If manifest loaded and first segment is a known theme, strip it.
+    // Known themes (even before manifest loads). Include 'default'.
+    const KNOWN_THEMES = ["default", "macosx", "system7", "xp", "win98"];
     const m = manifestCache;
-    if (m && m.themes[maybeTheme]) {
+    const isKnownTheme =
+      (m && m.themes[maybeTheme]) || KNOWN_THEMES.includes(maybeTheme);
+    if (isKnownTheme) {
       const relative = parts.slice(1).join("/");
       if (!relative) return iconOrName; // nothing after theme
       return pickIconPath(relative, { theme });
     }
-    // Not a known theme: treat whole rest as relative logical name
+    // Not a known theme folder; treat whole rest as a logical name (already relative).
     return pickIconPath(rest, { theme });
   }
-  // Otherwise treat as relative logical name
+  // Otherwise treat as relative logical name.
   return pickIconPath(iconOrName, { theme });
 }
 
 export function useIconPath(name: string, theme?: string | null) {
-  const [path, setPath] = useState(`/icons/default/${name}`);
+  // Start with an optimistic themed path (or fallback) to prevent flash.
+  const [path, setPath] = useState(pickIconPath(name, { theme }));
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         const m = await loadManifest();
         if (cancelled) return;
+        // Re-evaluate with manifest; may fallback if icon not present.
         setPath(pickIconPath(name, { theme, manifest: m }));
       } catch {
-        // ignore; fallback already set
+        // ignore; optimistic path already set
       }
     })();
     return () => {
