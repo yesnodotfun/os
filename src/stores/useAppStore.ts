@@ -444,16 +444,17 @@ export const useAppStore = create<AppStoreState>()(
         set((state) => {
           const nextNum = state.nextInstanceId + 1;
           createdId = nextNum.toString();
-          const sameAppOpen = Object.values(state.instances).filter(
-            (i) => i.appId === appId && i.isOpen
-          ).length;
-          const baseOffset = 16,
-            offsetStep = 32;
+          // Stagger position based on total number of open instances (global), not per-app
+          const openInstances = state.instanceOrder.length; // existing before adding new
+          const baseOffset = 16;
+          const offsetStep = 32;
           const isMobile =
             typeof window !== "undefined" && window.innerWidth < 768;
           const position = {
-            x: isMobile ? 0 : baseOffset + sameAppOpen * offsetStep,
-            y: isMobile ? 28 : 40 + sameAppOpen * 20,
+            x: isMobile ? 0 : baseOffset + openInstances * offsetStep,
+            y: isMobile
+              ? 28 + openInstances * offsetStep
+              : 40 + openInstances * 20,
           };
           const cfg = getWindowConfig(appId);
           const size = isMobile

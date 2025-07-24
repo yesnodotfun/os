@@ -519,7 +519,7 @@ export function WindowFrame({
   return (
     <div
       className={cn(
-        "absolute p-2 md:p-0 w-full h-full md:mt-0 select-none",
+        "absolute p-2 md:p-0 w-full md:h-full md:mt-0 select-none",
         "transition-all duration-200 ease-in-out",
         isInitialMount && "animate-in fade-in-0 zoom-in-95 duration-200",
         isShaking && "animate-shake",
