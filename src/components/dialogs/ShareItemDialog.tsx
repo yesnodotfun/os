@@ -39,6 +39,7 @@ export function ShareItemDialog({
   const inputRef = useRef<HTMLInputElement>(null);
   const currentTheme = useThemeStore((state) => state.current);
   const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
+  const isMacOsxTheme = currentTheme === "macosx";
 
   // Generate the share link when the dialog opens or identifiers change
   useEffect(() => {
@@ -273,14 +274,23 @@ export function ShareItemDialog({
         className="bg-os-window-bg border-[length:var(--os-metrics-border-width)] border-os-window rounded-os shadow-os-window max-w-xs"
         onKeyDown={(e: React.KeyboardEvent) => e.stopPropagation()}
       >
-        <DialogHeader>
-          <DialogTitle className="font-normal text-[16px]">
-            Share {itemType}
-          </DialogTitle>
-          <DialogDescription className="sr-only">
-            Share this {itemType.toLowerCase()} via link or QR code
-          </DialogDescription>
-        </DialogHeader>
+        {isMacOsxTheme ? (
+          <>
+            <DialogHeader>Share {itemType}</DialogHeader>
+            <DialogDescription className="sr-only">
+              Share this {itemType.toLowerCase()} via link or QR code
+            </DialogDescription>
+          </>
+        ) : (
+          <DialogHeader>
+            <DialogTitle className="font-normal text-[16px]">
+              Share {itemType}
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              Share this {itemType.toLowerCase()} via link or QR code
+            </DialogDescription>
+          </DialogHeader>
+        )}
         {dialogContent}
       </DialogContent>
     </Dialog>
