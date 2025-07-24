@@ -32,6 +32,7 @@ export function ConfirmDialog({
   const { play: playAlertSound } = useSound(Sounds.ALERT_SOSUMI);
   const currentTheme = useThemeStore((state) => state.current);
   const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
+  const isMacTheme = currentTheme === "macosx";
 
   // Play sound when dialog opens
   useEffect(() => {
@@ -87,11 +88,11 @@ export function ConfirmDialog({
           Cancel
         </Button>
         <Button
-          variant="retro"
+          variant={isMacTheme ? "default" : "retro"}
           onClick={onConfirm}
           ref={confirmButtonRef}
           className={cn(
-            "h-7",
+            !isMacTheme && "h-7",
             isXpTheme
               ? "font-['Pixelated_MS_Sans_Serif',Arial] text-[11px]"
               : "font-geneva-12 text-[12px]"

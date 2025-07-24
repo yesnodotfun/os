@@ -1,7 +1,8 @@
 /* Default/fallback values */
 :root {
-  --os-font-ui: Geneva, Chicago, -apple-system, BlinkMacSystemFont, sans-serif;
-  --os-font-mono: Monaco, monospace;
+  --os-font-ui: "Geneva-12", "ArkPixel", "SerenityOS-Emoji", system-ui,
+    -apple-system, sans-serif;
+  --os-font-mono: "Monaco", "ArkPixel", "SerenityOS-Emoji", monospace;
   --os-color-window-bg: #ffffff;
   --os-color-menubar-bg: #ffffff;
   --os-color-menubar-border: #000000;
@@ -29,9 +30,9 @@
 
 /* System 7 Theme */
 :root[data-os-theme="system7"] {
-  --os-font-ui: "ChicagoKare", Geneva, -apple-system, BlinkMacSystemFont,
-    sans-serif;
-  --os-font-mono: Monaco, monospace;
+  --os-font-ui: "ChicagoKare", "ArkPixel", "SerenityOS-Emoji", system-ui,
+    -apple-system, sans-serif;
+  --os-font-mono: "Monaco", "ArkPixel", "SerenityOS-Emoji", monospace;
   --os-color-window-bg: #ffffff;
   --os-color-menubar-bg: #ffffff;
   --os-color-menubar-border: #000000;
@@ -61,8 +62,7 @@
 /* Mac OS X Theme */
 :root[data-os-theme="macosx"] {
   --os-font-ui: "LucidaGrande", "Lucida Grande", ui-sans-serif, system-ui,
-    -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
-    sans-serif;
+    -apple-system, BlinkMacSystemFont, sans-serif;
   --os-font-mono: Monaco, Menlo, monospace;
   --os-color-window-bg: #ececec;
   --os-color-menubar-bg: linear-gradient(to bottom, #f8f8f8, #d4d4d4);
@@ -117,9 +117,11 @@
 
 /* Windows 98 Theme */
 :root[data-os-theme="win98"] {
-  --os-font-ui: Tahoma, "Pixelated MS Sans Serif", "MS Sans Serif", "ArkPixel", "SerenityOS-Emoji", sans-serif;
-  --os-font-mono: Consolas, "Courier New", monospace;
-  --font-ms-sans: "Pixelated MS Sans Serif", "MS Sans Serif", "ArkPixel", "SerenityOS-Emoji", system-ui, sans-serif;
+  --os-font-ui: "Pixelated MS Sans Serif", "MS Sans Serif", "ArkPixel",
+    "SerenityOS-Emoji", sans-serif;
+  --os-font-mono: Monaco, Consolas, "Courier New", monospace;
+  --font-ms-sans: "Pixelated MS Sans Serif", "MS Sans Serif", "ArkPixel",
+    "SerenityOS-Emoji", system-ui, sans-serif;
   --os-color-window-bg: #c0c0c0;
   --os-color-menubar-bg: #c0c0c0;
   --os-color-menubar-border: #808080;
@@ -147,9 +149,11 @@
 
 /* Windows XP Theme */
 :root[data-os-theme="xp"] {
-  --os-font-ui: Tahoma, Segoe UI, "Pixelated MS Sans Serif", "MS Sans Serif", "ArkPixel", "SerenityOS-Emoji", sans-serif;
+  --os-font-ui: Tahoma, "Pixelated MS Sans Serif", "MS Sans Serif", "ArkPixel",
+    "SerenityOS-Emoji", sans-serif;
   --os-font-mono: Consolas, Courier New, monospace;
-  --font-ms-sans: "Pixelated MS Sans Serif", "MS Sans Serif", "ArkPixel", "SerenityOS-Emoji", system-ui, sans-serif;
+  --font-ms-sans: "Pixelated MS Sans Serif", "MS Sans Serif", "ArkPixel",
+    "SerenityOS-Emoji", system-ui, sans-serif;
   --os-color-window-bg: #ece9d8;
   --os-color-menubar-bg: linear-gradient(to bottom, #245edc, #1941a5);
   --os-color-menubar-border: #0a246a;
@@ -186,9 +190,6 @@
 
 /* Mac OS X Aqua Button Styles */
 .aqua-button {
-  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-    "SF Pro Display", "SF Pro Text", sans-serif;
-  font-size: 13px;
   line-height: 1;
   height: 24px;
   padding: 0 16px;
@@ -285,25 +286,23 @@
   position: relative;
   z-index: 3;
   font-weight: 500;
-  color: white;
 }
 
 .aqua-button.primary span,
 .aqua-button.primary {
-  text-shadow: 0 1px 1px rgba(30, 77, 161, 0.5);
+  text-shadow: 0 2px 2px rgba(30, 77, 161, 0.5);
+  color: black;
 }
 
 .aqua-button.secondary span,
 .aqua-button.secondary {
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
+  text-shadow: 0 2px 2px rgba(0, 0, 0, 0.25);
   color: black;
 }
 
 /* macOS Theme Font Overrides */
 :root[data-os-theme="macosx"] body {
-  font-family: "LucidaGrande", "Lucida Grande", ui-sans-serif, system-ui,
-    -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
-    sans-serif !important;
+  font-family: var(--os-font-ui) !important;
   -webkit-font-smoothing: antialiased !important;
   font-smooth: auto !important;
   font-size: 12px !important;
@@ -322,9 +321,7 @@
 :root[data-os-theme="macosx"] .menubar,
 :root[data-os-theme="macosx"] .window,
 :root[data-os-theme="macosx"] .title-bar {
-  font-family: "LucidaGrande", "Lucida Grande", ui-sans-serif, system-ui,
-    -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
-    sans-serif !important;
+  font-family: var(--os-font-ui) !important;
   -webkit-font-smoothing: antialiased !important;
   font-smooth: auto !important;
 }
@@ -778,8 +775,7 @@
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1),
     inset 0 2px 3px 1px rgba(187, 187, 187, 0.8), 0 1px 1px rgba(0, 0, 0, 0.3);
   color: black;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
-  font-weight: 500 !important;
+  text-shadow: 0 2px 2px rgba(0, 0, 0, 0.25);
   font-size: 12px !important;
 }
 
@@ -802,11 +798,8 @@
     inset 0 2px 3px 1px rgba(0, 78, 187, 0.75), 0 2px 3px rgba(0, 0, 0, 0.3),
     0 1px 1px rgba(0, 78, 187, 0.5);
   text-shadow: 0 1px 1px rgba(30, 77, 161, 0.5);
-  border-bottom: none;
-}
-
-.aqua-tab:not([data-state="active"]) {
-  font-weight: 400 !important;
+  border-bottom: 1px solid rgb(210 255 255) !important;
+  transition: border-bottom 0;
 }
 
 /* Top shine for aqua tabs */
@@ -855,11 +848,6 @@
 
 /* Aqua tab bar */
 .aqua-tab-bar {
-  background: linear-gradient(
-    rgba(244, 244, 244, 1),
-    rgba(232, 232, 232, 1)
-  ) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
   position: relative;
   align-items: flex-end !important;
   justify-content: flex-start;
