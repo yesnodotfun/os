@@ -665,7 +665,6 @@
     sans-serif !important;
   -webkit-font-smoothing: antialiased !important;
   font-smooth: auto !important;
-  font-size: 12px !important;
 }
 
 /* Preserve specific iPod font sizes */
@@ -938,4 +937,26 @@
 
 :root[data-os-theme="macosx"] .macosx-dialog .text-gray-500 {
   font-size: 10px !important;
+}
+
+/* Status bar specific sizing - force 10px and prevent global overrides */
+:root[data-os-theme="macosx"] .os-status-bar,
+:root[data-os-theme="macosx"] .os-status-bar-text {
+  font-size: 10px !important;
+  line-height: 1 !important;
+  font-family: "Geneva-12", "ArkPixel", "SerenityOS-Emoji", system-ui,
+    -apple-system, sans-serif !important;
+  -webkit-font-smoothing: antialiased !important;
+  font-smooth: auto !important;
+}
+:root[data-os-theme="macosx"] .os-status-bar * {
+  font-size: inherit !important;
+  -webkit-font-smoothing: inherit !important;
+  font-smooth: inherit !important;
+}
+/* Avoid geneva-12 macOS upscale by removing that class; ensure consistency if present */
+:root[data-os-theme="macosx"] .os-status-bar .font-geneva-12,
+:root[data-os-theme="macosx"] .os-status-bar-text .font-geneva-12 {
+  font-size: 10px !important;
+  font-family: inherit !important;
 }

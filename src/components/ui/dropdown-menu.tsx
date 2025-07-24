@@ -94,7 +94,7 @@ const DropdownMenuSubTrigger = React.forwardRef<
             : undefined,
         ...(currentTheme === "macosx" && {
           borderRadius: "0px",
-          padding: "6px 16px 6px 20px",
+          padding: "6px 12px 6px 16px",
           margin: "1px 0",
           WebkitFontSmoothing: "antialiased",
           textShadow: "0 2px 3px rgba(0, 0, 0, 0.25)",
@@ -133,6 +133,7 @@ const DropdownMenuSubContent = React.forwardRef<
             opacity: "0.92",
             boxShadow: "0 4px 16px rgba(0, 0, 0, 0.4)",
             padding: "4px 0px",
+            minWidth: "180px",
           }),
         }}
         {...props}
@@ -168,6 +169,7 @@ const DropdownMenuContent = React.forwardRef<
             opacity: "0.92",
             boxShadow: "0 4px 16px rgba(0, 0, 0, 0.4)",
             padding: "4px 0px",
+            minWidth: "180px",
           }),
         }}
         {...props}

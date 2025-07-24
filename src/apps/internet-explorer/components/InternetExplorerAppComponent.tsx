@@ -2580,7 +2580,7 @@ export function InternetExplorerAppComponent({
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 20 }}
                   transition={{ duration: 0.15 }}
-                  className={`absolute bottom-0 left-0 right-0 bg-gray-100 font-geneva-12 text-[10px] px-2 py-1 flex items-center z-50 ${
+                  className={`os-status-bar os-status-bar-text font-geneva-12 absolute bottom-0 left-0 right-0 bg-gray-100 text-[10px] px-2 py-1 flex items-center z-50 ${
                     currentTheme === "system7"
                       ? "border-t border-black"
                       : "border-t border-gray-300"
