@@ -2150,7 +2150,7 @@ export function InternetExplorerAppComponent({
                       handleFilterSuggestions(localUrl);
                       setIsUrlDropdownOpen(true);
                     }}
-                    className={`flex-1 pr-8 ${
+                    className={`flex-1 pl-2 pr-8 ${
                       isXpTheme
                         ? "!text-[11px]"
                         : currentTheme === "macosx"

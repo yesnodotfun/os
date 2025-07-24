@@ -312,7 +312,7 @@ export function ChatInput({
             }
             onSubmit(e);
           }}
-          className="flex gap-1"
+          className={`flex ${isMacTheme ? "gap-2" : "gap-1"}`}
         >
           <AnimatePresence mode="popLayout" initial={false}>
             <motion.div
@@ -337,7 +337,7 @@ export function ChatInput({
                     ? "Type a message..."
                     : "Type or push 'space' to talk..."
                 }
-                className={`w-full border-1 border-gray-800 text-xs font-geneva-12 h-9 pr-16 backdrop-blur-lg bg-white/80 ${
+                className={`w-full border-1 border-gray-800 text-xs font-geneva-12 h-9 pl-4 pr-16 backdrop-blur-lg bg-white/80 rounded-full ${
                   isFocused ? "input--focused" : ""
                 } ${isTypingRyoMention ? "border-blue-600 bg-blue-50" : ""} ${
                   needsUsername && !isInChatRoom

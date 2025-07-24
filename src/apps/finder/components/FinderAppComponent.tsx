@@ -940,7 +940,7 @@ export function FinderAppComponent({
                     navigateToPath((e.target as HTMLInputElement).value);
                   }
                 }}
-                className={`flex-1 ${
+                className={`flex-1 pl-2 ${
                   isXpTheme
                     ? "!text-[11px]"
                     : currentTheme === "macosx"

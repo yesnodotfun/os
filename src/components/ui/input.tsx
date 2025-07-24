@@ -3,10 +3,15 @@ import { useThemeStore } from "@/stores/useThemeStore";
 
 import { cn } from "@/lib/utils";
 
-const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
+interface InputProps extends React.ComponentProps<"input"> {
+  unstyled?: boolean;
+}
+
+const Input = React.forwardRef<HTMLInputElement, InputProps>(
   (
     {
       className,
+      unstyled = false,
       type,
       style,
       onMouseEnter,
@@ -29,30 +34,29 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
           className
         )}
         style={{
-          ...(isMacOSTheme && {
-            border: "1px solid rgba(0, 0, 0, 0.2)",
-            borderRadius: "4px",
-            fontSize: "12px",
-            fontFamily:
-              'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif',
-            WebkitFontSmoothing: "antialiased",
-            backgroundColor: "rgba(255, 255, 255, 1)",
-            boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.1)",
-            transition: "all 0.2s ease",
-            paddingLeft: "6px",
-            paddingRight: "8px",
-            paddingTop: "4px",
-            paddingBottom: "4px",
-          }),
-          ...(isSystem7Theme && {
-            borderColor: "#000000",
-            borderWidth: "1px",
-            borderRadius: "0",
-          }),
+          ...(isMacOSTheme &&
+            !unstyled && {
+              border: "1px solid rgba(0, 0, 0, 0.2)",
+
+              fontSize: "12px",
+              fontFamily:
+                'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif',
+              WebkitFontSmoothing: "antialiased",
+              backgroundColor: "rgba(255, 255, 255, 1)",
+              boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.1)",
+              transition: "all 0.2s ease",
+              // Padding intentionally omitted so consumer classes (e.g. pl-4 pr-16) take effect
+            }),
+          ...(isSystem7Theme &&
+            !unstyled && {
+              borderColor: "#000000",
+              borderWidth: "1px",
+              borderRadius: "0",
+            }),
           ...style,
         }}
         onMouseEnter={(e) => {
-          if (isMacOSTheme && e.currentTarget) {
+          if (isMacOSTheme && !unstyled && e.currentTarget) {
             e.currentTarget.style.backgroundColor = "rgba(0, 0, 0, 0.08)";
           }
           onMouseEnter?.(e);
@@ -60,6 +64,7 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
         onMouseLeave={(e) => {
           if (
             isMacOSTheme &&
+            !unstyled &&
             e.currentTarget &&
             !e.currentTarget.matches(":focus")
           ) {
@@ -71,7 +76,7 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
           onMouseLeave?.(e);
         }}
         onFocus={(e) => {
-          if (isMacOSTheme && e.currentTarget) {
+          if (isMacOSTheme && !unstyled && e.currentTarget) {
             e.currentTarget.style.backgroundColor = "#ffffff";
             e.currentTarget.style.borderColor = "rgba(52, 106, 227, 0.6)";
             e.currentTarget.style.boxShadow =
@@ -80,7 +85,7 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
           onFocus?.(e);
         }}
         onBlur={(e) => {
-          if (isMacOSTheme && e.currentTarget) {
+          if (isMacOSTheme && !unstyled && e.currentTarget) {
             e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 1)";
             e.currentTarget.style.borderColor = "rgba(0, 0, 0, 0.2)";
             e.currentTarget.style.boxShadow =
