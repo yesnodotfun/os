@@ -98,7 +98,13 @@ export function SoundboardAppComponent({
   const [aboutDialogOpen, setAboutDialogOpen] = useState(false);
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
   const importInputRef = useRef<HTMLInputElement>(null);
-  const [showWaveforms, setShowWaveforms] = useState(true);
+  // Disable waveforms by default on mobile Safari to prevent initial freeze
+  const isMobileSafari =
+    typeof navigator !== "undefined" &&
+    /Safari/.test(navigator.userAgent) &&
+    /Mobile|iP(hone|ad|od)/.test(navigator.userAgent) &&
+    !/CriOS|FxiOS|EdgiOS/.test(navigator.userAgent);
+  const [showWaveforms, setShowWaveforms] = useState(!isMobileSafari);
   const [showEmojis, setShowEmojis] = useState(true);
   const activeSlotRef = useRef<number | null>(null);
 
@@ -412,7 +418,7 @@ export function SoundboardAppComponent({
         }}
       >
         <div
-          className={`h-full w-full flex ${
+          className={`h-full w-full flex flex-col md:flex-row ${
             isXpTheme ? "border-t border-[#919b9c]" : ""
           }`}
         >

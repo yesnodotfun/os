@@ -1,9 +1,13 @@
-import WaveSurfer from "wavesurfer.js";
+// Dynamic waveform creation & lightweight audio helpers optimized for mobile Safari
 
-export const createWaveform = (
+export const createWaveform = async (
   container: HTMLElement,
   base64Data: string
-): Promise<WaveSurfer> => {
+): Promise<import("wavesurfer.js").default> => {
+  // Dynamically import WaveSurfer to avoid adding it to the initial bundle
+  const { default: WaveSurfer } = await import("wavesurfer.js");
+
+  // Decode base64 → Uint8Array (keep synchronous but this now happens lazily only when waveform requested)
   const binary = atob(base64Data);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) {
@@ -33,34 +37,27 @@ export const createWaveform = (
   });
 
   return new Promise((resolve, reject) => {
-    wavesurfer.on("ready", () => {
-      resolve(wavesurfer);
-    });
+    wavesurfer.on("ready", () => resolve(wavesurfer));
     wavesurfer.on("error", (err) => {
       console.error("WaveSurfer error:", err);
-      wavesurfer.destroy(); // Clean up on error
+      wavesurfer.destroy();
       reject(err);
     });
-
     try {
-      wavesurfer.loadBlob(blob); // Start loading
+      wavesurfer.loadBlob(blob);
     } catch (error) {
       console.error("Error calling wavesurfer.loadBlob:", error);
-      wavesurfer.destroy(); // Clean up on synchronous error
+      wavesurfer.destroy();
       reject(error);
     }
   });
 };
 
 export const createAudioFromBase64 = (base64Data: string): HTMLAudioElement => {
-  const binary = atob(base64Data);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
+  // Use data URL directly to avoid manual byte copy loops for short clips
   const mimeType = getSupportedMimeType();
-  const blob = new Blob([bytes], { type: mimeType });
-  return new Audio(URL.createObjectURL(blob));
+  // Some browsers (older) may choke on very large data URIs; these clips are short
+  return new Audio(`data:${mimeType};base64,${base64Data}`);
 };
 
 export const getSupportedMimeType = (): string => {
