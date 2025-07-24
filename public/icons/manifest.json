@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2025-07-24T08:39:56.312Z",
+  "generatedAt": "2025-07-24T08:48:32.076Z",
   "themes": {
     "default": [
       "apple.png",
@@ -204,8 +204,10 @@
       "cdrom.png",
       "control-panels/appearance-manager/app.png",
       "directory.png",
+      "disk.png",
       "documents.png",
       "error.png",
+      "file-text.png",
       "file.png",
       "folder.png",
       "games.png",
@@ -216,6 +218,7 @@
       "info.png",
       "ipod.png",
       "mac.png",
+      "minesweeper.png",
       "movies.png",
       "paint.png",
       "pc.png",
@@ -224,6 +227,7 @@
       "sites.png",
       "sound.png",
       "sounds.png",
+      "synth.png",
       "terminal.png",
       "textedit.png",
       "trash-empty.png",
