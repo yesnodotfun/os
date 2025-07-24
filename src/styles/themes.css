@@ -940,18 +940,18 @@
 
 /* AboutDialog body text styling for macOS theme */
 :root[data-os-theme="macosx"] .macosx-dialog p {
-  font-size: 11px !important;
+  font-size: 13px !important;
 }
 
 :root[data-os-theme="macosx"] .macosx-dialog .text-gray-500 {
-  font-size: 10px !important;
+  font-size: 11px !important;
 }
 
 /* Status bar specific sizing - force 10px and prevent global overrides */
 :root[data-os-theme="macosx"] .os-status-bar,
 :root[data-os-theme="macosx"] .os-status-bar-text {
-  font-size: 10px !important;
-  line-height: 1 !important;
+  font-size: 11px !important;
+  line-height: 1.2 !important;
   font-family: "Geneva-12", "ArkPixel", "SerenityOS-Emoji", system-ui,
     -apple-system, sans-serif !important;
   -webkit-font-smoothing: antialiased !important;
@@ -965,7 +965,7 @@
 /* Avoid geneva-12 macOS upscale by removing that class; ensure consistency if present */
 :root[data-os-theme="macosx"] .os-status-bar .font-geneva-12,
 :root[data-os-theme="macosx"] .os-status-bar-text .font-geneva-12 {
-  font-size: 10px !important;
+  font-size: 11px !important;
   font-family: inherit !important;
 }
 
@@ -1125,15 +1125,15 @@
   /* top adjusted from 1px to 2px */
   content: "";
   position: absolute;
-  left: 6px;
+  left: 7px;
   right: 6px;
-  top: 2px;
+  top: 1px;
   height: 6px;
   background: linear-gradient(
-    rgba(255, 255, 255, 0.9),
+    rgba(255, 255, 255, 0.8),
     rgba(255, 255, 255, 0.25)
   );
-  border-radius: 10px 10px 4px 4px;
+  border-radius: 16px 16px 4px 4px;
   pointer-events: none;
   z-index: 1;
 }
