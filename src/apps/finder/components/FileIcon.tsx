@@ -17,6 +17,7 @@ interface FileIconProps {
   onClick?: (event: React.MouseEvent<HTMLDivElement>) => void;
   size?: "small" | "large";
   className?: string;
+  context?: "desktop" | "finder";
 }
 
 export function FileIcon({
@@ -32,12 +33,14 @@ export function FileIcon({
   onClick,
   size = "small",
   className,
+  context = "desktop",
 }: FileIconProps) {
   const { play: playClick } = useSound(Sounds.BUTTON_CLICK, 0.3);
   const currentTheme = useThemeStore((state) => state.current);
   const isXpTheme = currentTheme === "xp";
   const isWin98Theme = currentTheme === "win98";
   const isMacOSXTheme = currentTheme === "macosx";
+  const isFinderContext = context === "finder";
   const [imgSrc, setImgSrc] = useState<string | undefined>(contentUrl);
   const [fallbackToIcon, setFallbackToIcon] = useState(false);
   const attemptedUrlsRef = useRef<Set<string>>(new Set());
@@ -258,19 +261,20 @@ export function FileIcon({
       <span
         className={`text-center px-1 font-geneva-12 break-words truncate ${
           sizes.text
-        } ${isMacOSXTheme ? "font-bold" : ""} ${
+        } ${isMacOSXTheme && !isFinderContext ? "font-bold" : ""} ${
           isSelected || (isDropTarget && isDirectory)
             ? "bg-black text-white"
             : isWin98Theme
             ? "bg-white text-black"
-            : isXpTheme || isMacOSXTheme
+            : (isXpTheme || isMacOSXTheme) && !isFinderContext
             ? "bg-transparent text-white"
             : "bg-white text-black"
         }`}
         style={
           !isSelected &&
           !(isDropTarget && isDirectory) &&
-          (isXpTheme || isMacOSXTheme)
+          (isXpTheme || isMacOSXTheme) &&
+          !isFinderContext
             ? isMacOSXTheme
               ? {
                   textShadow:

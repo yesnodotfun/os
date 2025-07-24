@@ -420,6 +420,7 @@ export function FileList({
           isSelected={selectedFile?.path === file.path}
           isDropTarget={dropTargetPath === file.path}
           size={viewType === "large" ? "large" : "small"}
+          context="finder"
         />
       </div>
     );
