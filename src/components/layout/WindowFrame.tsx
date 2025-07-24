@@ -807,7 +807,7 @@ export function WindowFrame({
             // Mac OS X theme title bar with traffic light buttons
             <div
               className={cn(
-                "flex items-center shrink-0 h-6 min-h-[1.25rem] mx-0 mb-0 px-[0.1rem] py-[0.1rem] select-none cursor-move user-select-none z-50 draggable-area",
+                "title-bar flex items-center shrink-0 h-6 min-h-[1.25rem] mx-0 mb-0 px-[0.1rem] py-[0.1rem] select-none cursor-move user-select-none z-50 draggable-area",
                 transparentBackground && "mt-0",
                 transparentBackground &&
                   isForeground &&
@@ -1004,7 +1004,7 @@ export function WindowFrame({
               {/* Title - removed white background */}
               <span
                 className={cn(
-                  "select-none mx-auto px-2 py-0 h-full flex items-center whitespace-nowrap overflow-hidden text-ellipsis max-w-[80%] text-[12px]",
+                  "select-none mx-auto px-2 py-0 h-full flex items-center whitespace-nowrap overflow-hidden text-ellipsis max-w-[80%] text-[13px]",
                   isForeground
                     ? "text-os-titlebar-active-text"
                     : "text-os-titlebar-inactive-text"
