@@ -250,11 +250,51 @@ function ScrollToBottomButton() {
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.8, y: 10 }}
           transition={{ type: "spring", duration: 0.2 }}
-          className="absolute bottom-14 right-3 bg-black/70 hover:bg-black text-white p-1.5 rounded-full shadow-md z-20"
+          className="absolute bottom-14 right-3 rounded-full z-20 flex items-center justify-center cursor-pointer select-none transition-transform hover:scale-105 relative overflow-hidden"
+          style={{
+            position: "absolute",
+            bottom: "56px", // fallback to replicate bottom-14
+            right: "12px", // fallback to replicate right-3
+            width: 28,
+            height: 28,
+            background:
+              "linear-gradient(rgba(160,160,160,0.625), rgba(255,255,255,0.625))",
+            boxShadow:
+              "0 2px 3px rgba(0,0,0,0.2), 0 1px 1px rgba(0,0,0,0.3), inset 0 0 0 0.5px rgba(0,0,0,0.3), inset 0 1px 2px rgba(0,0,0,0.4), inset 0 2px 3px 1px #bbbbbb",
+            backdropFilter: "blur(2px)",
+          }}
           onClick={() => scrollToBottom()} // Use the library's function
           aria-label="Scroll to bottom"
         >
-          <ChevronDown className="h-4 w-4 translate-y-0.3" />
+          {/* Top shine */}
+          <div
+            className="pointer-events-none absolute left-1/2 -translate-x-1/2"
+            style={{
+              top: "2px",
+              height: "30%",
+              width: "calc(100% - 12px)",
+              borderRadius: "8px 8px 4px 4px",
+              background:
+                "linear-gradient(rgba(255,255,255,0.9), rgba(255,255,255,0.25))",
+              filter: "blur(0.2px)",
+              zIndex: 2,
+            }}
+          />
+          {/* Bottom glow */}
+          <div
+            className="pointer-events-none absolute left-1/2 -translate-x-1/2"
+            style={{
+              bottom: "1px",
+              height: "38%",
+              width: "calc(100% - 4px)",
+              borderRadius: "4px 4px 8px 8px",
+              background:
+                "linear-gradient(rgba(255,255,255,0.15), rgba(255,255,255,0.55))",
+              filter: "blur(0.3px)",
+              zIndex: 1,
+            }}
+          />
+          <ChevronDown className="h-4 w-4 text-black/70 relative z-10" />
         </motion.button>
       )}
     </AnimatePresence>
