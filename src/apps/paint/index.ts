@@ -47,13 +47,13 @@ export const appMetadata = {
     url: "https://github.com/ryokun6",
   },
   github: "https://github.com/ryokun6/ryos",
-  icon: "/icons/paint.png",
+  icon: "/icons/default/paint.png",
 };
 
 export const PaintApp: BaseApp<PaintInitialData> = {
   id: "paint",
   name: "MacPaint",
-  icon: { type: "image", src: "/icons/paint.png" },
+  icon: { type: "image", src: "/icons/default/paint.png" },
   description: "Classic MacPaint-style drawing application",
   component: PaintAppComponent,
   helpItems,

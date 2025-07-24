@@ -2399,7 +2399,7 @@ export function InternetExplorerAppComponent({
                                 className="whitespace-nowrap hover:bg-gray-200 font-geneva-12 text-[10px] gap-1 px-1 mr-1 w-content min-w-[60px] max-w-[120px] flex-shrink-0"
                               >
                                 <img
-                                  src={"/icons/directory.png"} // Folder icon
+                                  src={"/icons/default/directory.png"} // Folder icon
                                   alt="Folder"
                                   className="w-4 h-4 mr-1"
                                 />

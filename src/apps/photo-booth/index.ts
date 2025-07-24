@@ -9,15 +9,14 @@ export const appMetadata = {
     url: "https://github.com/ryokun6",
   },
   github: "https://github.com/ryokun6/ryos",
-  icon: "/icons/photo-booth.png",
+  icon: "/icons/default/photo-booth.png",
 };
 
 export const helpItems = [
   {
     icon: "📸",
     title: "Taking a Photo",
-    description:
-      "Click the large red camera button to capture a single image.",
+    description: "Click the large red camera button to capture a single image.",
   },
   {
     icon: "⏱️",
@@ -54,7 +53,7 @@ export const helpItems = [
 export const PhotoBoothApp: BaseApp = {
   id: "photo-booth",
   name: "Photo Booth",
-  icon: { type: "image", src: "/icons/photo-booth.png" },
+  icon: { type: "image", src: "/icons/default/photo-booth.png" },
   description: "Take photos with your camera and apply fun effects",
   component: PhotoBoothComponent,
   helpItems,

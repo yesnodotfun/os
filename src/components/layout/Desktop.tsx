@@ -285,7 +285,9 @@ export function Desktop({
           <FileIcon
             name={isXpTheme ? "My Computer" : "Macintosh HD"}
             isDirectory={true}
-            icon={isXpTheme ? "/icons/pc.png" : "/icons/disk.png"}
+            icon={
+              isXpTheme ? "/icons/default/pc.png" : "/icons/default/disk.png"
+            }
             onClick={(e) => {
               e.stopPropagation();
               setSelectedAppId("macintosh-hd");

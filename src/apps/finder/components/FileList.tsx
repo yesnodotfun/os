@@ -9,6 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ThemedIcon } from "@/components/shared/ThemedIcon";
 import { useState, useRef, useEffect } from "react";
 import { useLongPress } from "@/hooks/useLongPress";
 import { isMobileDevice } from "@/utils/device";
@@ -257,6 +258,15 @@ export function FileList({
     return false;
   };
 
+  // Helper to resolve icon path (legacy-aware names, works with ThemedIcon)
+  const getIconPath = (file: FileItem) => {
+    if (file.icon) return file.icon;
+    if (file.isDirectory) return "/icons/directory.png"; // logical name; ThemedIcon will theme it
+    if (file.name.endsWith(".txt") || file.name.endsWith(".md"))
+      return "/icons/file-text.png";
+    return "/icons/file.png";
+  };
+
   // --------------- Subcomponents with hook usage ---------------
 
   interface ListRowProps {
@@ -336,8 +346,8 @@ export function FileList({
               }}
             />
           ) : (
-            <img
-              src={file.icon}
+            <ThemedIcon
+              name={getIconPath(file)}
               alt={file.isDirectory ? "Directory" : "File"}
               className={`w-4 h-4 ${
                 selectedFile?.path === file.path || dropTargetPath === file.path
@@ -345,6 +355,7 @@ export function FileList({
                   : ""
               }`}
               style={{ imageRendering: "pixelated" }}
+              data-legacy-aware="true"
             />
           )}
           {file.name}

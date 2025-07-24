@@ -43,7 +43,7 @@ export const appMetadata = {
     url: "https://ryo.lu",
   },
   github: "https://github.com/ryokun6/ryos",
-  icon: "/icons/textedit.png",
+  icon: "/icons/default/textedit.png",
 };
 
 export const TextEditApp: BaseApp = {

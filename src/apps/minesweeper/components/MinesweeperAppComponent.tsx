@@ -524,7 +524,7 @@ export function MinesweeperAppComponent({
               version: "1.0.0",
               creator: { name: "Ryo", url: "https://github.com/ryokun6" },
               github: "https://github.com/ryokun6/ryos",
-              icon: "/icons/minesweeper.png",
+              icon: "/icons/default/minesweeper.png",
             }
           }
         />

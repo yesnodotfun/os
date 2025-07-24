@@ -11,6 +11,7 @@ import { useRef, useEffect } from "react";
 import { useSound, Sounds } from "@/hooks/useSound";
 import { useThemeStore } from "@/stores/useThemeStore";
 import { cn } from "@/lib/utils";
+import { ThemedIcon } from "@/components/shared/ThemedIcon";
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -42,8 +43,8 @@ export function ConfirmDialog({
   const dialogContent = (
     <div className={isXpTheme ? "p-2 px-4" : "p-4 px-6"}>
       <div className="flex gap-3 items-start">
-        <img
-          src="/icons/warn.png"
+        <ThemedIcon
+          name="warn.png"
           alt="Warning"
           className="w-[32px] h-[32px] mt-0.5 [image-rendering:pixelated]"
           width={32}
@@ -67,8 +68,8 @@ export function ConfirmDialog({
         </p>
       </div>
       <DialogFooter className="mt-4 gap-1">
-        <Button 
-          variant="retro" 
+        <Button
+          variant="retro"
           onClick={() => onOpenChange(false)}
           className={cn(
             "h-7",
@@ -85,9 +86,9 @@ export function ConfirmDialog({
         >
           Cancel
         </Button>
-        <Button 
-          variant="retro" 
-          onClick={onConfirm} 
+        <Button
+          variant="retro"
+          onClick={onConfirm}
           ref={confirmButtonRef}
           className={cn(
             "h-7",
@@ -111,15 +112,8 @@ export function ConfirmDialog({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent
-        className={cn(
-          "max-w-[400px]",
-          isXpTheme && "p-0 overflow-hidden"
-        )}
-        style={
-          isXpTheme
-            ? { fontSize: "11px" }
-            : undefined
-        }
+        className={cn("max-w-[400px]", isXpTheme && "p-0 overflow-hidden")}
+        style={isXpTheme ? { fontSize: "11px" } : undefined}
         onOpenAutoFocus={(e) => {
           e.preventDefault();
           confirmButtonRef.current?.focus();
@@ -138,7 +132,9 @@ export function ConfirmDialog({
         ) : (
           <>
             <DialogHeader>
-              <DialogTitle className="font-normal text-[16px]">{title}</DialogTitle>
+              <DialogTitle className="font-normal text-[16px]">
+                {title}
+              </DialogTitle>
               <DialogDescription className="sr-only">
                 {description}
               </DialogDescription>

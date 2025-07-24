@@ -42,7 +42,7 @@ export const appMetadata = {
     url: "https://ryo.lu",
   },
   github: "https://github.com/ryokun6/ryos",
-  icon: "/icons/ipod.png",
+  icon: "/icons/default/ipod.png",
 };
 
 export const IpodApp: BaseApp<IpodInitialData> = {

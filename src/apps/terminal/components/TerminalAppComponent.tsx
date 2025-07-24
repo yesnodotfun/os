@@ -3550,7 +3550,7 @@ assistant
               url: "https://github.com/ryokun6/ryos",
             },
             github: "https://github.com/ryokun6/ryos",
-            icon: "/icons/terminal.png",
+            icon: "/icons/default/terminal.png",
           }
         }
       />

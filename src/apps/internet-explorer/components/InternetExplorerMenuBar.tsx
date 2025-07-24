@@ -66,7 +66,7 @@ const renderFavoriteItem = (
       <DropdownMenuSub key={favorite.title}>
         <DropdownMenuSubTrigger className="text-md h-6 px-3 active:bg-gray-900 active:text-white flex items-center gap-2">
           <img
-            src={"/icons/directory.png"} // Use folder icon
+            src={"/icons/default/directory.png"} // Use folder icon
             alt="Folder"
             className="w-4 h-4"
           />

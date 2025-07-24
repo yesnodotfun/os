@@ -12,6 +12,7 @@ import { FileItem } from "./FileList";
 import { toast } from "sonner";
 import { generateAppShareUrl } from "@/utils/sharedUrl";
 import { useThemeStore } from "@/stores/useThemeStore";
+import { ThemedIcon } from "@/components/shared/ThemedIcon";
 
 export type ViewType = "small" | "large" | "list";
 export type SortType = "name" | "date" | "size" | "kind";
@@ -304,8 +305,8 @@ export function FinderMenuBar({
               onClick={() => onNavigateToPath?.(folder.path)}
               className="text-md h-6 px-3 active:bg-gray-900 active:text-white flex items-center gap-2"
             >
-              <img
-                src={folder.icon || "/icons/folder.png"}
+              <ThemedIcon
+                name={folder.icon || "/icons/directory.png"}
                 alt=""
                 className="w-4 h-4 [image-rendering:pixelated]"
               />
@@ -318,8 +319,8 @@ export function FinderMenuBar({
             onClick={() => onNavigateToPath?.("/Trash")}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white flex items-center gap-2"
           >
-            <img
-              src={
+            <ThemedIcon
+              name={
                 isTrashEmpty
                   ? "/icons/trash-empty.png"
                   : "/icons/trash-full.png"

@@ -640,7 +640,7 @@ export function FinderAppComponent({
       name: item.name,
       isDirectory: true,
       path: item.path,
-      icon: item.icon || "/icons/folder.png",
+      icon: item.icon || "/icons/default/directory.png",
     }));
 
   // Add a new handler for rename requests

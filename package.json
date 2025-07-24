@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "clear-chats": "bun scripts/clear-chat-data.js"
+    "clear-chats": "bun scripts/clear-chat-data.js",
+    "generate:icons": "bun run scripts/generate-icon-manifest.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^1.2.12",

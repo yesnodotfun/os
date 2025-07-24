@@ -6,7 +6,7 @@ export const TerminalApp: BaseApp = {
   name: "Terminal",
   icon: {
     type: "image",
-    src: "/icons/terminal.png",
+    src: "/icons/default/terminal.png",
   },
   description: "A Unix-like terminal for interacting with the system",
   component: TerminalAppComponent,
@@ -56,7 +56,7 @@ export const TerminalApp: BaseApp = {
       url: "https://github.com/ryokun6/ryos",
     },
     github: "https://github.com/ryokun6/ryos",
-    icon: "/icons/terminal.png",
+    icon: "/icons/default/terminal.png",
   },
 };
 

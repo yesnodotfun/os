@@ -42,7 +42,7 @@ export const appMetadata = {
     url: "https://ryo.lu",
   },
   github: "https://github.com/ryokun6/ryos",
-  icon: "/icons/synth.png",
+  icon: "/icons/default/synth.png",
 };
 
 export const SynthApp: BaseApp = {

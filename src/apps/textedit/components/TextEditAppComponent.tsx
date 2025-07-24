@@ -1145,7 +1145,7 @@ export function TextEditAppComponent({
                     className="w-[26px] h-[22px] flex items-center justify-center"
                   >
                     <img
-                      src={`/icons/text-editor/bold-${
+                      src={`/icons/default/text-editor/bold-${
                         editor?.isActive("bold") ? "depressed" : "off"
                       }.png`}
                       alt="Bold"
@@ -1160,7 +1160,7 @@ export function TextEditAppComponent({
                     className="w-[26px] h-[22px] flex items-center justify-center"
                   >
                     <img
-                      src={`/icons/text-editor/italic-${
+                      src={`/icons/default/text-editor/italic-${
                         editor?.isActive("italic") ? "depressed" : "off"
                       }.png`}
                       alt="Italic"
@@ -1175,7 +1175,7 @@ export function TextEditAppComponent({
                     className="w-[26px] h-[22px] flex items-center justify-center"
                   >
                     <img
-                      src={`/icons/text-editor/underline-${
+                      src={`/icons/default/text-editor/underline-${
                         editor?.isActive("underline") ? "depressed" : "off"
                       }.png`}
                       alt="Underline"
@@ -1278,7 +1278,7 @@ export function TextEditAppComponent({
                     className="w-[26px] h-[22px] flex items-center justify-center"
                   >
                     <img
-                      src={`/icons/text-editor/align-left-${
+                      src={`/icons/default/text-editor/align-left-${
                         editor?.isActive({ textAlign: "left" })
                           ? "depressed"
                           : "off"
@@ -1295,7 +1295,7 @@ export function TextEditAppComponent({
                     className="w-[26px] h-[22px] flex items-center justify-center"
                   >
                     <img
-                      src={`/icons/text-editor/align-center-${
+                      src={`/icons/default/text-editor/align-center-${
                         editor?.isActive({ textAlign: "center" })
                           ? "depressed"
                           : "off"
@@ -1312,7 +1312,7 @@ export function TextEditAppComponent({
                     className="w-[26px] h-[22px] flex items-center justify-center"
                   >
                     <img
-                      src={`/icons/text-editor/align-right-${
+                      src={`/icons/default/text-editor/align-right-${
                         editor?.isActive({ textAlign: "right" })
                           ? "depressed"
                           : "off"
@@ -1336,7 +1336,7 @@ export function TextEditAppComponent({
                     className="w-[26px] h-[22px] flex items-center justify-center"
                   >
                     <img
-                      src={`/icons/text-editor/unordered-list-${
+                      src={`/icons/default/text-editor/unordered-list-${
                         editor?.isActive("bulletList") ? "depressed" : "off"
                       }.png`}
                       alt="Bullet List"
@@ -1351,7 +1351,7 @@ export function TextEditAppComponent({
                     className="w-[26px] h-[22px] flex items-center justify-center"
                   >
                     <img
-                      src={`/icons/text-editor/ordered-list-${
+                      src={`/icons/default/text-editor/ordered-list-${
                         editor?.isActive("orderedList") ? "depressed" : "off"
                       }.png`}
                       alt="Ordered List"

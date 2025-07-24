@@ -3,6 +3,8 @@ import { useEffect, useState, useRef } from "react";
 import { isMobileDevice } from "@/utils/device";
 import { useLongPress } from "@/hooks/useLongPress";
 import { useThemeStore } from "@/stores/useThemeStore";
+import { ThemedIcon } from "@/components/shared/ThemedIcon";
+import { resolveIconLegacyAware } from "@/utils/icons";
 
 interface FileIconProps {
   name: string;
@@ -108,7 +110,7 @@ export function FileIcon({
 
   const getIconPath = () => {
     if (icon) return icon;
-    if (isDirectory) return "/icons/directory.png";
+    if (isDirectory) return "/icons/directory.png"; // legacy logical path
     if (name.endsWith(".txt") || name.endsWith(".md"))
       return "/icons/file-text.png";
     return "/icons/file.png";
@@ -186,19 +188,20 @@ export function FileIcon({
             onError={handleImageError}
             onContextMenu={(e) => e.preventDefault()}
             draggable={false}
+            data-legacy-aware="true"
           />
         </div>
       );
     }
 
     return (
-      <img
-        src={getIconPath()}
+      <ThemedIcon
+        name={getIconPath()}
         alt={isDirectory ? "Directory" : "File"}
         className={`no-touch-callout object-contain ${sizes.image} ${
           isDirectory && isDropTarget ? "invert" : ""
         }`}
-        style={{ imageRendering: "pixelated" }}
+        style={{ imageRendering: "pixelated" } as React.CSSProperties}
         onContextMenu={(e) => e.preventDefault()}
         draggable={false}
       />

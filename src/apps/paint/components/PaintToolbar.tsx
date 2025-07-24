@@ -14,36 +14,40 @@ interface PaintToolbarProps {
 
 const tools = [
   // Selection tools
-  { id: "select", icon: "/icons/macpaint/lasso.png", label: "Select" },
+  { id: "select", icon: "/icons/default/macpaint/lasso.png", label: "Select" },
   {
     id: "rect-select",
-    icon: "/icons/macpaint/select.png",
+    icon: "/icons/default/macpaint/select.png",
     label: "Rectangle Select",
   },
 
   // Text and eraser
-  { id: "hand", icon: "/icons/macpaint/hand.png", label: "Hand" },
+  { id: "hand", icon: "/icons/default/macpaint/hand.png", label: "Hand" },
 
-  { id: "text", icon: "/icons/macpaint/text.png", label: "Text" },
+  { id: "text", icon: "/icons/default/macpaint/text.png", label: "Text" },
 
   // Fill and spray
-  { id: "bucket", icon: "/icons/macpaint/bucket.png", label: "Fill Color" },
-  { id: "spray", icon: "/icons/macpaint/spray.png", label: "Spray" },
+  {
+    id: "bucket",
+    icon: "/icons/default/macpaint/bucket.png",
+    label: "Fill Color",
+  },
+  { id: "spray", icon: "/icons/default/macpaint/spray.png", label: "Spray" },
 
   // Drawing tools
-  { id: "brush", icon: "/icons/macpaint/brush.png", label: "Brush" },
-  { id: "pencil", icon: "/icons/macpaint/pencil.png", label: "Pencil" },
+  { id: "brush", icon: "/icons/default/macpaint/brush.png", label: "Brush" },
+  { id: "pencil", icon: "/icons/default/macpaint/pencil.png", label: "Pencil" },
 
   // Shapes
-  { id: "line", icon: "/icons/macpaint/line.png", label: "Line" },
-  { id: "eraser", icon: "/icons/macpaint/eraser.png", label: "Eraser" },
+  { id: "line", icon: "/icons/default/macpaint/line.png", label: "Line" },
+  { id: "eraser", icon: "/icons/default/macpaint/eraser.png", label: "Eraser" },
 
   {
     id: "rectangle",
-    icon: "/icons/macpaint/rectangle.png",
+    icon: "/icons/default/macpaint/rectangle.png",
     label: "Rectangle",
   },
-  { id: "oval", icon: "/icons/macpaint/oval.png", label: "Oval" },
+  { id: "oval", icon: "/icons/default/macpaint/oval.png", label: "Oval" },
 ];
 
 export const PaintToolbar: React.FC<PaintToolbarProps> = ({

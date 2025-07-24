@@ -48,7 +48,7 @@ export const appMetadata = {
     url: "https://ryo.lu",
   },
   github: "https://github.com/ryokun6/ryos",
-  icon: "/icons/ie.png",
+  icon: "/icons/default/ie.png",
 };
 
 export const InternetExplorerApp: BaseApp<InternetExplorerInitialData> = {

@@ -11,8 +11,7 @@ export const helpItems = [
   {
     icon: "#️⃣",
     title: "Join Chat Rooms",
-    description:
-      "Connect with netizens in public chat rooms.",
+    description: "Connect with netizens in public chat rooms.",
   },
   {
     icon: "🎤",
@@ -48,7 +47,7 @@ export const appMetadata = {
     url: "https://ryo.lu",
   },
   github: "https://github.com/ryokun6/ryos",
-  icon: "/icons/question.png",
+  icon: "/icons/default/question.png",
 };
 
 export const ChatsApp: BaseApp = {

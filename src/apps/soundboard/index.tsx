@@ -42,7 +42,7 @@ export const appMetadata = {
     url: "https://ryo.lu",
   },
   github: "https://github.com/ryokun6/ryos",
-  icon: "/icons/cdrom.png",
+  icon: "/icons/default/cdrom.png",
 };
 
 export const SoundboardApp: BaseApp = {

@@ -9,7 +9,7 @@ export const appMetadata: BaseApp["metadata"] = {
     url: "https://github.com/ryokun6",
   },
   github: "https://github.com/ryokun6/ryos",
-  icon: "/icons/minesweeper.png",
+  icon: "/icons/default/minesweeper.png",
 };
 
 export const helpItems: BaseApp["helpItems"] = [
@@ -33,8 +33,7 @@ export const helpItems: BaseApp["helpItems"] = [
   {
     icon: "⏱️",
     title: "Timer & Counter",
-    description:
-      "Top bar shows elapsed time and remaining unflagged mines.",
+    description: "Top bar shows elapsed time and remaining unflagged mines.",
   },
   {
     icon: "🔄",
@@ -47,7 +46,7 @@ export const helpItems: BaseApp["helpItems"] = [
 export const MinesweeperApp: BaseApp = {
   id: "minesweeper",
   name: "Minesweeper",
-  icon: { type: "image", src: "/icons/minesweeper.png" },
+  icon: { type: "image", src: "/icons/default/minesweeper.png" },
   description: "Classic Minesweeper game",
   component: MinesweeperAppComponent,
   helpItems,
