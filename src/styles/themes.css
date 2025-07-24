@@ -1141,9 +1141,9 @@
   left: 0px;
   right: 0px;
   bottom: 0px;
-  height: 12px;
+  height: 20px;
   background: linear-gradient(
-    rgba(255, 255, 255, 0.15),
+    rgba(255, 255, 255, 0),
     rgba(255, 255, 255, 0.45)
   );
   border-radius: 4px;
@@ -1156,4 +1156,39 @@
 :root[data-os-theme="macosx"] .chat-bubble > * {
   position: relative;
   z-index: 2;
+}
+
+/* macOS chat bubble background overrides (medium Aqua shades, lightened one level) */
+:root[data-os-theme="macosx"] .chat-bubble.bg-yellow-100 {
+  background-color: #fde68a !important; /* amber-200 */
+}
+:root[data-os-theme="macosx"] .chat-bubble.bg-blue-100 {
+  background-color: #bfdbfe !important; /* blue-200 */
+}
+:root[data-os-theme="macosx"] .chat-bubble.bg-pink-200 {
+  background-color: #fbcfe8 !important; /* pink-200 */
+}
+:root[data-os-theme="macosx"] .chat-bubble.bg-purple-200 {
+  background-color: #e9d5ff !important; /* purple-200 */
+}
+:root[data-os-theme="macosx"] .chat-bubble.bg-indigo-200 {
+  background-color: #c7d2fe !important; /* indigo-200 */
+}
+:root[data-os-theme="macosx"] .chat-bubble.bg-teal-100 {
+  background-color: #99f6e4 !important; /* teal-200 */
+}
+:root[data-os-theme="macosx"] .chat-bubble.bg-lime-100 {
+  background-color: #d9f99d !important; /* lime-200 */
+}
+:root[data-os-theme="macosx"] .chat-bubble.bg-amber-100 {
+  background-color: #fde68a !important; /* amber-200 */
+}
+:root[data-os-theme="macosx"] .chat-bubble.bg-cyan-100 {
+  background-color: #a5f3fc !important; /* cyan-200 */
+}
+:root[data-os-theme="macosx"] .chat-bubble.bg-rose-100 {
+  background-color: #fecdd3 !important; /* rose-200 */
+}
+:root[data-os-theme="macosx"] .chat-bubble.bg-gray-100 {
+  background-color: #e5e7eb !important; /* gray-200 */
 }

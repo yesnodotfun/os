@@ -598,23 +598,7 @@ function ChatMessagesContent({
               : bgColorClass.split(" ")[0].includes("rose")
               ? "#ffe4e6"
               : "#f3f4f6"; // gray-100 fallback
-          if (currentTheme === "macosx") {
-            // Second-level darkening for Aqua bubbles (approx Tailwind 300 palette)
-            const darkerMap: Record<string, string> = {
-              "#fef9c3": "#fcd34d", // yellow -> yellow/amber 300
-              "#dbeafe": "#93c5fd", // blue 200 -> 300
-              "#fce7f3": "#f9a8d4", // pink 200 -> 300
-              "#f3e8ff": "#d8b4fe", // purple 200 -> 300
-              "#e0e7ff": "#a5b4fc", // indigo 200 -> 300
-              "#ccfbf1": "#5eead4", // teal 100 -> 300
-              "#ecfccb": "#bef264", // lime 100 -> 300
-              "#fef3c7": "#fcd34d", // amber 100 -> 300
-              "#cffafe": "#67e8f9", // cyan 100 -> 300
-              "#ffe4e6": "#fda4af", // rose 100 -> 300
-              "#f3f4f6": "#d1d5db", // gray 100 -> 300
-            };
-            return darkerMap[base] || base;
-          }
+          /* macOS darkening moved to CSS theme overrides (.chat-bubble.*) */
           return base;
         })();
 
@@ -918,26 +902,24 @@ function ChatMessagesContent({
             {!isUrlOnly(displayContent) && (
               <motion.div
                 layout="position"
-                initial={{
-                  backgroundColor: baseBgHex,
-                  color: "#000000",
-                }}
+                initial={{ opacity: 0 }}
                 animate={
                   isUrgentMessage(message.content)
-                    ? {
-                        backgroundColor: [
-                          "#fee2e2", // Start with red for urgent flash
-                          baseBgHex,
-                        ],
-                        color: ["#C92D2D", "#000000"],
-                        transition: {
-                          duration: 1,
-                          repeat: 1,
-                          repeatType: "reverse",
-                          ease: "easeInOut",
-                          delay: 0,
-                        },
-                      }
+                    ? currentTheme === "macosx"
+                      ? {
+                          /* Skip bg animation; CSS handles final color */
+                        }
+                      : {
+                          backgroundColor: ["#fee2e2", baseBgHex],
+                          color: ["#C92D2D", "#000000"],
+                          transition: {
+                            duration: 1,
+                            repeat: 1,
+                            repeatType: "reverse",
+                            ease: "easeInOut",
+                            delay: 0,
+                          },
+                        }
                     : {}
                 }
                 className={`${
