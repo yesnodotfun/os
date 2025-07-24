@@ -1476,15 +1476,23 @@ export function ControlPanelsAppComponent({
               value="appearance"
               className={tabStyles.tabContentClasses}
             >
-              <div className="space-y-4 h-full overflow-y-auto p-4">
+              <div className="space-y-4 h-full overflow-y-auto p-4 pt-6">
                 {/* Theme Selector */}
-                <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col gap-1">
+                    <Label>Theme</Label>
+                    <Label className="text-[11px] text-gray-600 font-geneva-12">
+                      Changes the appearance of windows, menus, and controls
+                    </Label>
+                  </div>
                   <Select
                     value={currentTheme}
                     onValueChange={(value) => setTheme(value as OsThemeId)}
                   >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select a theme" />
+                    <SelectTrigger className="w-[160px]">
+                      <SelectValue placeholder="Select">
+                        {themes[currentTheme]?.name || "Select"}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {Object.entries(themes).map(([id, theme]) => (
@@ -1494,9 +1502,6 @@ export function ControlPanelsAppComponent({
                       ))}
                     </SelectContent>
                   </Select>
-                  <p className="text-[11px] text-gray-600 font-geneva-12">
-                    Changes the appearance of windows, menus, and controls
-                  </p>
                 </div>
 
                 <div
@@ -1509,7 +1514,7 @@ export function ControlPanelsAppComponent({
             </TabsContent>
 
             <TabsContent value="sound" className={tabStyles.tabContentClasses}>
-              <div className="space-y-4 h-full overflow-y-auto p-4">
+              <div className="space-y-4 h-full overflow-y-auto p-4 pt-6">
                 {/* UI Sounds toggle + volume */}
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center justify-between">
