@@ -60,8 +60,9 @@
 
 /* Mac OS X Theme */
 :root[data-os-theme="macosx"] {
-  --os-font-ui: "Lucida Grande", ui-sans-serif, system-ui, -apple-system,
-    BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif;
+  --os-font-ui: "LucidaGrande", "Lucida Grande", ui-sans-serif, system-ui,
+    -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+    sans-serif;
   --os-font-mono: Monaco, Menlo, monospace;
   --os-color-window-bg: #ececec;
   --os-color-menubar-bg: linear-gradient(to bottom, #f8f8f8, #d4d4d4);
@@ -300,8 +301,9 @@
 
 /* macOS Theme Font Overrides */
 :root[data-os-theme="macosx"] body {
-  font-family: "Lucida Grande", ui-sans-serif, system-ui, -apple-system,
-    BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif !important;
+  font-family: "LucidaGrande", "Lucida Grande", ui-sans-serif, system-ui,
+    -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+    sans-serif !important;
   -webkit-font-smoothing: antialiased !important;
   font-smooth: auto !important;
   font-size: 12px !important;
@@ -320,8 +322,9 @@
 :root[data-os-theme="macosx"] .menubar,
 :root[data-os-theme="macosx"] .window,
 :root[data-os-theme="macosx"] .title-bar {
-  font-family: "Lucida Grande", ui-sans-serif, system-ui, -apple-system,
-    BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif !important;
+  font-family: "LucidaGrande", "Lucida Grande", ui-sans-serif, system-ui,
+    -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+    sans-serif !important;
   -webkit-font-smoothing: antialiased !important;
   font-smooth: auto !important;
 }
@@ -452,8 +455,9 @@
 
 /* macOS select styling - similar to aqua buttons */
 :root[data-os-theme="macosx"] select {
-  font-family: "Lucida Grande", ui-sans-serif, system-ui, -apple-system,
-    BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif !important;
+  font-family: "LucidaGrande", "Lucida Grande", ui-sans-serif, system-ui,
+    -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+    sans-serif !important;
   font-size: 14px !important;
   line-height: 1;
   height: 22px;
@@ -656,8 +660,9 @@
   .font-geneva-12:not(.ipod-force-font .font-geneva-12):not(
     .videos-lcd .font-geneva-12
   ) {
-  font-family: "Lucida Grande", ui-sans-serif, system-ui, -apple-system,
-    BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif !important;
+  font-family: "LucidaGrande", "Lucida Grande", ui-sans-serif, system-ui,
+    -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+    sans-serif !important;
   -webkit-font-smoothing: antialiased !important;
   font-smooth: auto !important;
   font-size: 12px !important;
@@ -912,4 +917,26 @@
   border: 1px solid rgba(0, 0, 0, 0.2);
   border-top: none;
   background: transparent;
+}
+
+/* AboutDialog title styling for macOS theme */
+:root[data-os-theme="macosx"] .font-apple-garamond {
+  font-family: "AppleGaramond", "Apple Garamond", "Times New Roman", serif !important;
+  font-size: 1.25rem !important;
+  font-weight: 500 !important;
+}
+
+/* Ensure AboutDialog title doesn't get overridden by general div styles */
+:root[data-os-theme="macosx"] .font-apple-garamond.text-2xl {
+  font-size: 1.25rem !important;
+  font-family: "AppleGaramond", "Apple Garamond", "Times New Roman", serif !important;
+}
+
+/* AboutDialog body text styling for macOS theme */
+:root[data-os-theme="macosx"] .macosx-dialog p {
+  font-size: 11px !important;
+}
+
+:root[data-os-theme="macosx"] .macosx-dialog .text-gray-500 {
+  font-size: 10px !important;
 }

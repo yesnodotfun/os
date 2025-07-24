@@ -406,7 +406,7 @@ button.piano-key.piano-key[class*="bg-[#ff33ff]"] {
   }
 
   .font-apple-garamond {
-    font-family: "Mondwest", "Georgia", "Palatino", serif;
+    font-family: "Apple Garamond", "Georgia", "Palatino", serif;
     -webkit-font-smoothing: antialiased;
     font-smooth: always;
   }

@@ -93,15 +93,8 @@ export function AboutDialog({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent
-        className={cn(
-          "max-w-[280px]",
-          isXpTheme && "p-0 overflow-hidden"
-        )}
-        style={
-          isXpTheme
-            ? { fontSize: "11px" }
-            : undefined
-        }
+        className={cn("max-w-[280px]", isXpTheme && "p-0 overflow-hidden")}
+        style={isXpTheme ? { fontSize: "11px" } : undefined}
       >
         {isXpTheme ? (
           <>
@@ -118,7 +111,9 @@ export function AboutDialog({
         ) : (
           <>
             <DialogHeader>
-              <DialogTitle className="font-normal text-[16px]">About</DialogTitle>
+              <DialogTitle className="font-normal text-[16px]">
+                About
+              </DialogTitle>
               <DialogDescription className="sr-only">
                 Information about the application
               </DialogDescription>
