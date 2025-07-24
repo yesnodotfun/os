@@ -906,12 +906,11 @@ function ChatMessagesContent({
                 animate={
                   isUrgentMessage(message.content)
                     ? currentTheme === "macosx"
-                      ? {
-                          /* Skip bg animation; CSS handles final color */
-                        }
+                      ? { opacity: 1 }
                       : {
                           backgroundColor: ["#fee2e2", baseBgHex],
                           color: ["#C92D2D", "#000000"],
+                          opacity: 1,
                           transition: {
                             duration: 1,
                             repeat: 1,
@@ -920,27 +919,24 @@ function ChatMessagesContent({
                             delay: 0,
                           },
                         }
-                    : {}
+                    : { opacity: 1 }
                 }
-                className={`${
-                  // Apply dynamic font size here
-                  `p-1.5 px-2 chat-bubble ${
-                    bgColorClass ||
-                    (message.role === "user"
-                      ? "bg-yellow-100 text-black"
-                      : "bg-blue-100 text-black")
-                  } ${
-                    isHtmlCodeBlock(message.content).isHtml ||
-                    message.parts?.some(
-                      (part) =>
-                        part.type === "text" &&
-                        extractHtmlContent(part.text).hasHtml
-                    )
-                      ? "w-full"
-                      : "w-fit max-w-[90%]"
-                  }`
-                } min-h-[12px] rounded leading-snug font-geneva-12 break-words select-text`}
-                style={{ fontSize: `${fontSize}px` }} // Apply font size via style prop
+                className={`${`p-1.5 px-2 chat-bubble ${
+                  bgColorClass ||
+                  (message.role === "user"
+                    ? "bg-yellow-100 text-black"
+                    : "bg-blue-100 text-black")
+                } ${
+                  isHtmlCodeBlock(message.content).isHtml ||
+                  message.parts?.some(
+                    (part) =>
+                      part.type === "text" &&
+                      extractHtmlContent(part.text).hasHtml
+                  )
+                    ? "w-full"
+                    : "w-fit max-w-[90%]"
+                }`} min-h-[12px] rounded leading-snug font-geneva-12 break-words select-text`}
+                style={{ ["--chat-bubble-font-size" as any]: `${fontSize}px` }}
               >
                 {message.role === "assistant" ? (
                   <motion.div className="select-text flex flex-col gap-1">

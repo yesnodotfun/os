@@ -15,6 +15,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { AI_MODELS } from "@/types/aiModels";
+import { useThemeStore } from "@/stores/useThemeStore";
 
 // Animated ellipsis component (copied from TerminalAppComponent)
 function AnimatedEllipsis() {
@@ -107,6 +108,8 @@ export function ChatInput({
       aiModel: s.aiModel,
     })
   );
+  const currentTheme = useThemeStore((s) => s.current);
+  const isMacTheme = currentTheme === "macosx";
 
   // Get the model display name for debug information
   const modelDisplayName = aiModel ? AI_MODELS[aiModel]?.name : null;
@@ -447,9 +450,61 @@ export function ChatInput({
                     track(CHAT_ANALYTICS.STOP_GENERATION);
                     onStop();
                   }}
-                  className="bg-black hover:bg-black/80 text-white text-xs border-2 border-gray-800 w-9 h-9 p-0 flex items-center justify-center"
+                  className={`text-xs w-9 h-9 p-0 flex items-center justify-center rounded-full ${
+                    isMacTheme
+                      ? "relative overflow-hidden transition-transform hover:scale-105"
+                      : "bg-black hover:bg-black/80 text-white border-2 border-gray-800"
+                  }`}
+                  style={
+                    isMacTheme
+                      ? {
+                          background:
+                            "linear-gradient(rgba(254, 205, 211, 0.9), rgba(252, 165, 165, 0.9))",
+                          boxShadow:
+                            "0 2px 3px rgba(0,0,0,0.2), 0 1px 1px rgba(0,0,0,0.3), inset 0 0 0 0.5px rgba(0,0,0,0.3), inset 0 1px 2px rgba(0,0,0,0.4), inset 0 2px 3px 1px rgba(254, 205, 211, 0.5)",
+                          backdropFilter: "blur(2px)",
+                        }
+                      : {}
+                  }
                 >
-                  <Square className="h-4 w-4" fill="currentColor" />
+                  {isMacTheme && (
+                    <>
+                      {/* Top shine */}
+                      <div
+                        className="pointer-events-none absolute left-1/2 -translate-x-1/2"
+                        style={{
+                          top: "2px",
+                          height: "30%",
+                          width: "calc(100% - 18px)",
+                          borderRadius: "8px 8px 4px 4px",
+                          background:
+                            "linear-gradient(rgba(255,255,255,0.9), rgba(255,255,255,0.25))",
+                          filter: "blur(0.2px)",
+                          zIndex: 2,
+                        }}
+                      />
+                      {/* Bottom glow */}
+                      <div
+                        className="pointer-events-none absolute left-1/2 -translate-x-1/2"
+                        style={{
+                          bottom: "1px",
+                          height: "38%",
+                          width: "calc(100% - 4px)",
+                          borderRadius: "4px 4px 100% 100%",
+                          background:
+                            "linear-gradient(rgba(255,255,255,0.15), rgba(255,255,255,0.55))",
+                          filter: "blur(0.3px)",
+                          zIndex: 1,
+                        }}
+                      />
+                    </>
+                  )}
+                  <Square
+                    className={`h-4 w-4 ${
+                      isMacTheme ? "text-black/70 relative z-10" : ""
+                    }`}
+                    fill="currentColor"
+                  />
                 </Button>
               </motion.div>
             ) : input.trim() !== "" ? (
@@ -463,10 +518,61 @@ export function ChatInput({
               >
                 <Button
                   type="submit"
-                  className="bg-black hover:bg-black/80 text-white text-xs border-2 border-gray-800 w-9 h-9 p-0 flex items-center justify-center"
+                  className={`text-xs w-9 h-9 p-0 flex items-center justify-center rounded-full ${
+                    isMacTheme
+                      ? "relative overflow-hidden transition-transform hover:scale-105"
+                      : "bg-black hover:bg-black/80 text-white border-2 border-gray-800"
+                  }`}
+                  style={
+                    isMacTheme
+                      ? {
+                          background:
+                            "linear-gradient(rgba(217, 249, 157, 0.9), rgba(190, 227, 120, 0.9))",
+                          boxShadow:
+                            "0 2px 3px rgba(0,0,0,0.2), 0 1px 1px rgba(0,0,0,0.3), inset 0 0 0 0.5px rgba(0,0,0,0.3), inset 0 1px 2px rgba(0,0,0,0.4), inset 0 2px 3px 1px rgba(217, 249, 157, 0.5)",
+                          backdropFilter: "blur(2px)",
+                        }
+                      : {}
+                  }
                   disabled={isLoading}
                 >
-                  <ArrowUp className="h-6 w-6" />
+                  {isMacTheme && (
+                    <>
+                      {/* Top shine */}
+                      <div
+                        className="pointer-events-none absolute left-1/2 -translate-x-1/2"
+                        style={{
+                          top: "2px",
+                          height: "30%",
+                          width: "calc(100% - 18px)",
+                          borderRadius: "8px 8px 4px 4px",
+                          background:
+                            "linear-gradient(rgba(255,255,255,0.9), rgba(255,255,255,0.25))",
+                          filter: "blur(0.2px)",
+                          zIndex: 2,
+                        }}
+                      />
+                      {/* Bottom glow */}
+                      <div
+                        className="pointer-events-none absolute left-1/2 -translate-x-1/2"
+                        style={{
+                          bottom: "1px",
+                          height: "38%",
+                          width: "calc(100% - 4px)",
+                          borderRadius: "4px 4px 100% 100%",
+                          background:
+                            "linear-gradient(rgba(255,255,255,0.15), rgba(255,255,255,0.55))",
+                          filter: "blur(0.3px)",
+                          zIndex: 1,
+                        }}
+                      />
+                    </>
+                  )}
+                  <ArrowUp
+                    className={`h-6 w-6 ${
+                      isMacTheme ? "text-black/70 relative z-10" : ""
+                    }`}
+                  />
                 </Button>
               </motion.div>
             ) : null}
