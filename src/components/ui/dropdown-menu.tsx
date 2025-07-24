@@ -97,6 +97,7 @@ const DropdownMenuSubTrigger = React.forwardRef<
           padding: "6px 16px 6px 20px",
           margin: "1px 0",
           WebkitFontSmoothing: "antialiased",
+          textShadow: "0 2px 3px rgba(0, 0, 0, 0.25)",
         }),
       }}
       {...props}
@@ -210,6 +211,7 @@ const DropdownMenuItem = React.forwardRef<
           padding: "6px 20px 6px 16px",
           margin: "1px 0",
           WebkitFontSmoothing: "antialiased",
+          textShadow: "0 2px 3px rgba(0, 0, 0, 0.25)",
         }),
       }}
       {...props}
@@ -249,6 +251,7 @@ const DropdownMenuCheckboxItem = React.forwardRef<
           padding: "6px 20px 6px 36px",
           margin: "1px 0",
           WebkitFontSmoothing: "antialiased",
+          textShadow: "0 2px 3px rgba(0, 0, 0, 0.25)",
         }),
       }}
       checked={checked}

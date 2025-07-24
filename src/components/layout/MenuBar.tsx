@@ -127,7 +127,19 @@ function Clock() {
     displayTime = `${shortWeekday} ${month} ${day} ${timeString}`;
   }
 
-  return <div className={isXpTheme ? "" : "ml-auto mr-2"}>{displayTime}</div>;
+  return (
+    <div
+      className={isXpTheme ? "" : "ml-auto mr-2"}
+      style={{
+        textShadow:
+          currentTheme === "macosx"
+            ? "0 2px 3px rgba(0, 0, 0, 0.25)"
+            : undefined,
+      }}
+    >
+      {displayTime}
+    </div>
+  );
 }
 
 function DefaultMenuItems() {
@@ -706,7 +718,7 @@ export function MenuBar({ children, inWindowFrame = false }: MenuBarProps) {
                   : currentTheme === "win98"
                   ? "none"
                   : currentTheme === "macosx"
-                  ? "0 1px 0 rgba(255, 255, 255, 0.5)"
+                  ? "0 2px 3px rgba(0, 0, 0, 0.25)"
                   : "none",
             }}
           >

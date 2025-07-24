@@ -83,7 +83,7 @@ const SelectTrigger = React.forwardRef<
             ? "0 2px 3px rgba(0, 0, 0, 0.2), 0 1px 1px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 0, 0, 0.3), 0 0 3px rgba(52, 106, 227, 0.5)"
             : "0 2px 3px rgba(0, 0, 0, 0.2), 0 1px 1px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 0, 0, 0.3)",
           color: "black",
-          textShadow: "0 1px 1px rgba(255, 255, 255, 0.5)",
+          textShadow: "0 2px 3px rgba(0, 0, 0, 0.25)",
           paddingRight: "24px",
         }),
       }}
@@ -227,6 +227,7 @@ const SelectLabel = React.forwardRef<
         ...(isMacOSTheme && {
           WebkitFontSmoothing: "antialiased",
           fontSmooth: "auto",
+          textShadow: "0 2px 3px rgba(0, 0, 0, 0.25)",
         }),
       }}
       {...props}
@@ -270,6 +271,7 @@ const SelectItem = React.forwardRef<
           padding: "6px 20px 6px 16px",
           margin: "1px 0",
           minHeight: "24px",
+          textShadow: "0 2px 3px rgba(0, 0, 0, 0.25)",
         }),
       }}
       onSelect={(event) => {
