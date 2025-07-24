@@ -84,7 +84,7 @@ const DropdownMenuSubTrigger = React.forwardRef<
           currentTheme === "xp" || currentTheme === "win98"
             ? '"Pixelated MS Sans Serif", Arial'
             : currentTheme === "macosx"
-            ? '"Lucida Grande", "Lucida Sans Unicode", sans-serif'
+            ? '"LucidaGrande", "Lucida Grande", "Lucida Sans Unicode", sans-serif'
             : undefined,
         fontSize:
           currentTheme === "xp" || currentTheme === "win98"
@@ -199,7 +199,7 @@ const DropdownMenuItem = React.forwardRef<
         fontFamily: isXpTheme
           ? '"Pixelated MS Sans Serif", Arial'
           : isMacOSTheme
-          ? '"Lucida Grande", "Lucida Sans Unicode", sans-serif'
+          ? '"LucidaGrande", "Lucida Grande", "Lucida Sans Unicode", sans-serif'
           : undefined,
         fontSize: isXpTheme
           ? "11px"
@@ -239,7 +239,7 @@ const DropdownMenuCheckboxItem = React.forwardRef<
         fontFamily: isXpTheme
           ? '"Pixelated MS Sans Serif", Arial'
           : isMacOSTheme
-          ? '"Lucida Grande", "Lucida Sans Unicode", sans-serif'
+          ? '"LucidaGrande", "Lucida Grande", "Lucida Sans Unicode", sans-serif'
           : undefined,
         fontSize: isXpTheme
           ? "11px"
@@ -287,7 +287,7 @@ const DropdownMenuRadioItem = React.forwardRef<
           currentTheme === "xp" || currentTheme === "win98"
             ? '"Pixelated MS Sans Serif", Arial'
             : currentTheme === "macosx"
-            ? '"Lucida Grande", "Lucida Sans Unicode", sans-serif'
+            ? '"LucidaGrande", "Lucida Grande", "Lucida Sans Unicode", sans-serif'
             : undefined,
         fontSize:
           currentTheme === "xp" || currentTheme === "win98"
@@ -328,7 +328,7 @@ const DropdownMenuLabel = React.forwardRef<
           currentTheme === "xp" || currentTheme === "win98"
             ? '"Pixelated MS Sans Serif", Arial'
             : currentTheme === "macosx"
-            ? '"Lucida Grande", "Lucida Sans Unicode", sans-serif'
+            ? '"LucidaGrande", "Lucida Grande", "Lucida Sans Unicode", sans-serif'
             : undefined,
         fontSize:
           currentTheme === "xp" || currentTheme === "win98"

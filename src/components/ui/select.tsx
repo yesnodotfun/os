@@ -60,7 +60,7 @@ const SelectTrigger = React.forwardRef<
         fontFamily: isXpTheme
           ? '"Pixelated MS Sans Serif", Arial'
           : isMacOSTheme
-          ? '"Lucida Grande", "Lucida Sans Unicode", sans-serif'
+          ? '"LucidaGrande", "Lucida Grande", "Lucida Sans Unicode", sans-serif'
           : undefined,
         fontSize: isXpTheme ? "11px" : isMacOSTheme ? "14px" : undefined,
         ...(isMacOSTheme && {
@@ -221,7 +221,7 @@ const SelectLabel = React.forwardRef<
         fontFamily: isXpTheme
           ? '"Pixelated MS Sans Serif", Arial'
           : isMacOSTheme
-          ? '"Lucida Grande", "Lucida Sans Unicode", sans-serif'
+          ? '"LucidaGrande", "Lucida Grande", "Lucida Sans Unicode", sans-serif'
           : undefined,
         fontSize: isXpTheme ? "11px" : isMacOSTheme ? "11px" : undefined,
         ...(isMacOSTheme && {
@@ -257,7 +257,7 @@ const SelectItem = React.forwardRef<
         fontFamily: isXpTheme
           ? '"Pixelated MS Sans Serif", Arial'
           : isMacOSTheme
-          ? '"Lucida Grande", "Lucida Sans Unicode", sans-serif'
+          ? '"LucidaGrande", "Lucida Grande", "Lucida Sans Unicode", sans-serif'
           : undefined,
         fontSize: isXpTheme
           ? "11px"
