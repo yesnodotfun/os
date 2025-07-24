@@ -1092,3 +1092,67 @@
     #ebebeb
   ) !important; /* neutral gray fill horizontal */
 }
+
+/* -------------------------------------------------- */
+/* macOS Chat bubble aqua style */
+/* -------------------------------------------------- */
+:root[data-os-theme="macosx"] .chat-bubble {
+  position: relative;
+  border-radius: 12px !important; /* match aqua-button */
+  /* Enhanced shadow with subtle outer lift and multi-layer inset stroke similar to traffic lights */
+  box-shadow:
+    /* outer shadows */ 0 2px 4px rgba(0, 0, 0, 0.14),
+    0 1px 1px rgba(0, 0, 0, 0.25),
+    /* inner highlight (top) */ inset 0 1px 2px rgba(255, 255, 255, 0.6),
+    /* soft inner ambient */ inset 0 0 4px rgba(0, 0, 0, 0.05),
+    /* crisp inner stroke */ inset 0 0 0 0.5px rgba(0, 0, 0, 0.28),
+    /* existing light outline */ inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
+  -webkit-font-smoothing: antialiased;
+  text-shadow: 0 2px 2px rgba(0, 0, 0, 0.07);
+}
+
+/* Top shine: reuse semi-transparent white so underlying role color shows */
+:root[data-os-theme="macosx"] .chat-bubble:before {
+  /* top adjusted from 1px to 2px */
+  content: "";
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  top: 2px;
+  height: 28%;
+  background: linear-gradient(
+    rgba(255, 255, 255, 0.9),
+    rgba(255, 255, 255, 0.25)
+  );
+  border-radius: 8px 8px 4px 4px;
+  filter: blur(0.4px);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Bottom glow */
+:root[data-os-theme="macosx"] .chat-bubble:after {
+  content: "";
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  bottom: 2px;
+  height: 30%;
+  background: linear-gradient(
+    rgba(255, 255, 255, 0.15),
+    rgba(255, 255, 255, 0.45)
+  );
+  border-radius: 4px;
+  filter: blur(0.6px);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Ensure inner text stays above shine */
+:root[data-os-theme="macosx"] .chat-bubble > * {
+  position: relative;
+  z-index: 2;
+}

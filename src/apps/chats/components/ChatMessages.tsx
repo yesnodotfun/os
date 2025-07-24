@@ -520,6 +520,49 @@ function ChatMessagesContent({
           combinedHighlightSeg &&
           combinedHighlightSeg.messageId === message.id;
 
+        const baseBgHex = (() => {
+          const base =
+            message.role === "user"
+              ? "#fef9c3"
+              : message.role === "assistant"
+              ? "#dbeafe"
+              : bgColorClass.split(" ")[0].includes("pink")
+              ? "#fce7f3"
+              : bgColorClass.split(" ")[0].includes("purple")
+              ? "#f3e8ff"
+              : bgColorClass.split(" ")[0].includes("indigo")
+              ? "#e0e7ff"
+              : bgColorClass.split(" ")[0].includes("teal")
+              ? "#ccfbf1"
+              : bgColorClass.split(" ")[0].includes("lime")
+              ? "#ecfccb"
+              : bgColorClass.split(" ")[0].includes("amber")
+              ? "#fef3c7"
+              : bgColorClass.split(" ")[0].includes("cyan")
+              ? "#cffafe"
+              : bgColorClass.split(" ")[0].includes("rose")
+              ? "#ffe4e6"
+              : "#f3f4f6"; // gray-100 fallback
+          if (currentTheme === "macosx") {
+            // Second-level darkening for Aqua bubbles (approx Tailwind 300 palette)
+            const darkerMap: Record<string, string> = {
+              "#fef9c3": "#fcd34d", // yellow -> yellow/amber 300
+              "#dbeafe": "#93c5fd", // blue 200 -> 300
+              "#fce7f3": "#f9a8d4", // pink 200 -> 300
+              "#f3e8ff": "#d8b4fe", // purple 200 -> 300
+              "#e0e7ff": "#a5b4fc", // indigo 200 -> 300
+              "#ccfbf1": "#5eead4", // teal 100 -> 300
+              "#ecfccb": "#bef264", // lime 100 -> 300
+              "#fef3c7": "#fcd34d", // amber 100 -> 300
+              "#cffafe": "#67e8f9", // cyan 100 -> 300
+              "#ffe4e6": "#fda4af", // rose 100 -> 300
+              "#f3f4f6": "#d1d5db", // gray 100 -> 300
+            };
+            return darkerMap[base] || base;
+          }
+          return base;
+        })();
+
         return (
           <motion.div
             layout="position"
@@ -821,58 +864,15 @@ function ChatMessagesContent({
               <motion.div
                 layout="position"
                 initial={{
-                  backgroundColor:
-                    message.role === "user"
-                      ? "#fef9c3"
-                      : message.role === "assistant"
-                      ? "#dbeafe"
-                      : // For human messages, convert bg-color-100 to hex (approximately)
-                      bgColorClass.split(" ")[0].includes("pink")
-                      ? "#fce7f3"
-                      : bgColorClass.split(" ")[0].includes("purple")
-                      ? "#f3e8ff"
-                      : bgColorClass.split(" ")[0].includes("indigo")
-                      ? "#e0e7ff"
-                      : bgColorClass.split(" ")[0].includes("teal")
-                      ? "#ccfbf1"
-                      : bgColorClass.split(" ")[0].includes("lime")
-                      ? "#ecfccb"
-                      : bgColorClass.split(" ")[0].includes("amber")
-                      ? "#fef3c7"
-                      : bgColorClass.split(" ")[0].includes("cyan")
-                      ? "#cffafe"
-                      : bgColorClass.split(" ")[0].includes("rose")
-                      ? "#ffe4e6"
-                      : "#f3f4f6", // gray-100 fallback
+                  backgroundColor: baseBgHex,
                   color: "#000000",
                 }}
                 animate={
                   isUrgentMessage(message.content)
                     ? {
                         backgroundColor: [
-                          "#fee2e2", // Start with red for urgent (lighter red-100)
-                          message.role === "user"
-                            ? "#fef9c3"
-                            : message.role === "assistant"
-                            ? "#dbeafe"
-                            : // For human messages, convert bg-color-100 to hex (approximately)
-                            bgColorClass.split(" ")[0].includes("pink")
-                            ? "#fce7f3"
-                            : bgColorClass.split(" ")[0].includes("purple")
-                            ? "#f3e8ff"
-                            : bgColorClass.split(" ")[0].includes("indigo")
-                            ? "#e0e7ff"
-                            : bgColorClass.split(" ")[0].includes("teal")
-                            ? "#ccfbf1"
-                            : bgColorClass.split(" ")[0].includes("lime")
-                            ? "#ecfccb"
-                            : bgColorClass.split(" ")[0].includes("amber")
-                            ? "#fef3c7"
-                            : bgColorClass.split(" ")[0].includes("cyan")
-                            ? "#cffafe"
-                            : bgColorClass.split(" ")[0].includes("rose")
-                            ? "#ffe4e6"
-                            : "#f3f4f6", // gray-100 fallback
+                          "#fee2e2", // Start with red for urgent flash
+                          baseBgHex,
                         ],
                         color: ["#C92D2D", "#000000"],
                         transition: {
@@ -887,7 +887,7 @@ function ChatMessagesContent({
                 }
                 className={`${
                   // Apply dynamic font size here
-                  `p-1.5 px-2 ${
+                  `p-1.5 px-2 chat-bubble ${
                     bgColorClass ||
                     (message.role === "user"
                       ? "bg-yellow-100 text-black"
