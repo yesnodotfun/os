@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useThemeStore } from "@/stores/useThemeStore";
 import { cn } from "@/lib/utils";
+import { getTabStyles } from "@/utils/tabStyles";
 
 interface LoginDialogProps {
   /* Common */
@@ -64,6 +65,7 @@ export function LoginDialog({
   const [activeTab, setActiveTab] = useState<"login" | "signup">(initialTab);
   const currentTheme = useThemeStore((state) => state.current);
   const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
+  const tabStyles = getTabStyles(currentTheme);
 
   // Reset to the initial tab whenever the dialog is reopened
   useEffect(() => {
@@ -279,58 +281,101 @@ export function LoginDialog({
   ]);
 
   const dialogContent = (
-    <div className="pt-1 pb-6 px-6">
+    <div className="pt-3 pb-6 px-6">
       <form onSubmit={handleSubmit}>
         <Tabs
           value={activeTab}
           onValueChange={(v) => setActiveTab(v as "login" | "signup")}
           className="w-full"
         >
-          <TabsList className="grid grid-cols-2 w-full h-fit mb-4 bg-transparent p-0.5 border border-black">
-            <TabsTrigger
-              value="signup"
+          {isXpTheme ? (
+            <TabsList asChild>
+              <menu
+                role="tablist"
+                className="h-7! flex justify-start! p-0 -mt-1 -mb-[2px] bg-transparent shadow-none grid grid-cols-2 w-full"
+              >
+                <TabsTrigger
+                  value="signup"
+                  className={cn(
+                    "relative px-4 py-1.5 rounded-none bg-white data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:z-10 data-[state=inactive]:border-r-0",
+                    "font-['Pixelated_MS_Sans_Serif',Arial] text-[11px]"
+                  )}
+                  style={{
+                    fontFamily: '"Pixelated MS Sans Serif", Arial',
+                    fontSize: "11px",
+                  }}
+                >
+                  Create Account
+                </TabsTrigger>
+                <TabsTrigger
+                  value="login"
+                  className={cn(
+                    "relative px-4 py-1.5 rounded-none bg-white data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:z-10",
+                    "font-['Pixelated_MS_Sans_Serif',Arial] text-[11px]"
+                  )}
+                  style={{
+                    fontFamily: '"Pixelated MS Sans Serif", Arial',
+                    fontSize: "11px",
+                  }}
+                >
+                  Log In
+                </TabsTrigger>
+              </menu>
+            </TabsList>
+          ) : (
+            <TabsList
               className={cn(
-                "relative px-4 py-1.5 rounded-none bg-white data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:z-10 data-[state=inactive]:border-r-0",
-                isXpTheme
-                  ? "font-['Pixelated_MS_Sans_Serif',Arial] text-[11px]"
-                  : "font-geneva-12 text-[12px]"
+                tabStyles.tabListClasses,
+                "grid grid-cols-2 w-full"
               )}
-              style={{
-                fontFamily: isXpTheme
-                  ? '"Pixelated MS Sans Serif", Arial'
-                  : undefined,
-                fontSize: isXpTheme ? "11px" : undefined,
-              }}
             >
-              Create Account
-            </TabsTrigger>
-            <TabsTrigger
-              value="login"
-              className={cn(
-                "relative px-4 py-1.5 rounded-none bg-white data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:z-10",
-                isXpTheme
-                  ? "font-['Pixelated_MS_Sans_Serif',Arial] text-[11px]"
-                  : "font-geneva-12 text-[12px]"
-              )}
-              style={{
-                fontFamily: isXpTheme
-                  ? '"Pixelated MS Sans Serif", Arial'
-                  : undefined,
-                fontSize: isXpTheme ? "11px" : undefined,
-              }}
-            >
-              Log In
-            </TabsTrigger>
-          </TabsList>
+              <TabsTrigger
+                value="signup"
+                className={cn(
+                  tabStyles.tabTriggerClasses,
+                  "px-4 py-1.5",
+                  isXpTheme
+                    ? "font-['Pixelated_MS_Sans_Serif',Arial] text-[11px]"
+                    : "font-geneva-12 text-[12px]"
+                )}
+                style={{
+                  fontFamily: isXpTheme
+                    ? '"Pixelated MS Sans Serif", Arial'
+                    : undefined,
+                  fontSize: isXpTheme ? "11px" : undefined,
+                }}
+              >
+                Create Account
+              </TabsTrigger>
+              <TabsTrigger
+                value="login"
+                className={cn(
+                  tabStyles.tabTriggerClasses,
+                  "px-4 py-1.5",
+                  isXpTheme
+                    ? "font-['Pixelated_MS_Sans_Serif',Arial] text-[11px]"
+                    : "font-geneva-12 text-[12px]"
+                )}
+                style={{
+                  fontFamily: isXpTheme
+                    ? '"Pixelated MS Sans Serif", Arial'
+                    : undefined,
+                  fontSize: isXpTheme ? "11px" : undefined,
+                }}
+              >
+                Log In
+              </TabsTrigger>
+            </TabsList>
+          )}
 
           {/* Sign Up */}
-          <TabsContent value="signup" className="mt-0">
-            {renderSignUpForm()}
+          <TabsContent value="signup" className={tabStyles.tabContentClasses}>
+            <div className="p-4">{renderSignUpForm()}</div>
           </TabsContent>
 
           {/* Login */}
-          <TabsContent value="login" className="mt-0">
-            {renderLoginForm()}
+          <TabsContent value="login" className={tabStyles.tabContentClasses}>
+            <div className="p-4">{renderLoginForm()}</div>
           </TabsContent>
         </Tabs>
 
@@ -392,15 +437,8 @@ export function LoginDialog({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent
-        className={cn(
-          "max-w-[400px]",
-          isXpTheme && "p-0 overflow-hidden"
-        )}
-        style={
-          isXpTheme
-            ? { fontSize: "11px" }
-            : undefined
-        }
+        className={cn("max-w-[400px]", isXpTheme && "p-0 overflow-hidden")}
+        style={isXpTheme ? { fontSize: "11px" } : undefined}
         onKeyDown={(e: React.KeyboardEvent) => e.stopPropagation()}
       >
         {isXpTheme ? (

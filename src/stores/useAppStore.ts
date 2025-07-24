@@ -43,6 +43,7 @@ interface AppStoreState extends AppManagerState {
   // Add instance management
   instances: Record<string, AppInstance>;
   instanceWindowOrder: string[];
+  instanceStackOrder: string[]; // Strict z-index stacking order (visual)
   foregroundInstanceId: string | null; // Add separate foreground tracking
   nextInstanceId: number;
 
@@ -585,6 +586,7 @@ export const useAppStore = create<AppStoreState>()(
       // Add instance management
       instances: {},
       instanceWindowOrder: [],
+      instanceStackOrder: [], // New: controls strict z-index stacking order (top = last)
       foregroundInstanceId: null, // Initialize new field
       nextInstanceId: 0,
 
@@ -630,6 +632,10 @@ export const useAppStore = create<AppStoreState>()(
             },
           },
           instanceWindowOrder: [...state.instanceWindowOrder, instanceId],
+          instanceStackOrder: [
+            ...state.instanceStackOrder.filter((id) => id !== instanceId),
+            instanceId,
+          ],
           foregroundInstanceId: instanceId, // Set as foreground instance
         }));
 
@@ -662,6 +668,10 @@ export const useAppStore = create<AppStoreState>()(
 
           const closingInstance = state.instances[instanceId];
           const newInstanceWindowOrder = state.instanceWindowOrder.filter(
+            (id) => id !== instanceId
+          );
+          // Remove from stack order and (if we pick a new foreground later) we'll push it to end
+          let newInstanceStackOrder = state.instanceStackOrder.filter(
             (id) => id !== instanceId
           );
           const newInstances: Record<string, AppInstance> = {
@@ -716,9 +726,20 @@ export const useAppStore = create<AppStoreState>()(
             };
           });
 
+          // If we selected a next foreground, move it to top of stack (end)
+          if (nextForegroundInstanceId) {
+            newInstanceStackOrder = [
+              ...newInstanceStackOrder.filter(
+                (id) => id !== nextForegroundInstanceId
+              ),
+              nextForegroundInstanceId,
+            ];
+          }
+
           const newState = {
             instances: newInstances,
             instanceWindowOrder: newInstanceWindowOrder,
+            instanceStackOrder: newInstanceStackOrder,
             foregroundInstanceId: nextForegroundInstanceId, // Update foreground tracking
           };
 
@@ -751,7 +772,8 @@ export const useAppStore = create<AppStoreState>()(
         set((state) => {
           const newState = {
             instances: { ...state.instances },
-            instanceWindowOrder: [...state.instanceWindowOrder], // Keep order stable
+            instanceWindowOrder: [...state.instanceWindowOrder], // Keep taskbar order stable
+            instanceStackOrder: [...state.instanceStackOrder], // Will be reordered for visual stacking
             foregroundInstanceId: null as string | null, // Initialize as null
           };
 
@@ -773,6 +795,11 @@ export const useAppStore = create<AppStoreState>()(
                 isForeground: id === instanceId,
               };
             });
+            // Reorder stacking: move focused to end (top)
+            newState.instanceStackOrder = [
+              ...newState.instanceStackOrder.filter((id) => id !== instanceId),
+              instanceId,
+            ];
             newState.foregroundInstanceId = instanceId; // Update new field
           }
 
@@ -906,6 +933,7 @@ export const useAppStore = create<AppStoreState>()(
           )
         ),
         instanceWindowOrder: state.instanceWindowOrder,
+        instanceStackOrder: state.instanceStackOrder,
         foregroundInstanceId: state.foregroundInstanceId, // Add new field to partialize
         nextInstanceId: state.nextInstanceId,
       }),
