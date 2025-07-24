@@ -10,6 +10,7 @@ import {
 import { AboutFinderDialog } from "@/components/dialogs/AboutFinderDialog";
 import { AnyApp } from "@/apps/base/types";
 import { AppId } from "@/config/appIds";
+import { ThemedIcon } from "@/components/shared/ThemedIcon";
 
 interface StartMenuProps {
   apps: AnyApp[];
@@ -187,9 +188,9 @@ export function StartMenu({ apps }: StartMenuProps) {
                     imageRendering: "pixelated",
                   }}
                 >
-                  <img
-                    src="/icons/info.png"
-                    alt=""
+                  <ThemedIcon
+                    name="info.png"
+                    alt="About"
                     className="w-6 h-6 [image-rendering:pixelated]"
                   />
                   About This Computer
@@ -215,13 +216,21 @@ export function StartMenu({ apps }: StartMenuProps) {
                     }}
                   >
                     {typeof app.icon === "string" ? (
-                      <div className="w-6 h-6 flex items-center justify-center">
-                        {app.icon}
-                      </div>
+                      app.icon.startsWith("/icons/") ? (
+                        <ThemedIcon
+                          name={app.icon}
+                          alt={app.name}
+                          className="w-6 h-6 [image-rendering:pixelated]"
+                        />
+                      ) : (
+                        <div className="w-6 h-6 flex items-center justify-center">
+                          {app.icon}
+                        </div>
+                      )
                     ) : (
-                      <img
-                        src={app.icon.src}
-                        alt=""
+                      <ThemedIcon
+                        name={app.icon.src}
+                        alt={app.name}
                         className="w-6 h-6 [image-rendering:pixelated]"
                       />
                     )}

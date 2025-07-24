@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2025-07-24T06:05:50.921Z",
+  "generatedAt": "2025-07-24T06:22:33.621Z",
   "themes": {
     "default": [
       "apple.png",
@@ -145,6 +145,7 @@
       "ipod.png",
       "mac-classic.png",
       "mac.png",
+      "minesweeper.png",
       "movies.png",
       "paint.png",
       "pc.png",
@@ -158,6 +159,7 @@
       "textedit.png",
       "trash-empty.png",
       "trash-full.png",
+      "video-tape.png",
       "videos.png",
       "warn.png"
     ]

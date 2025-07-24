@@ -20,6 +20,7 @@ import { Volume1, Volume2, VolumeX, Settings } from "lucide-react";
 import { useSound, Sounds } from "@/hooks/useSound";
 import { useThemeStore } from "@/stores/useThemeStore";
 import { getAppIconPath, appRegistry } from "@/config/appRegistry";
+import { ThemedIcon } from "@/components/shared/ThemedIcon";
 
 // Helper function to get app name
 const getAppName = (appId: string): string => {
@@ -341,9 +342,9 @@ function DefaultMenuItems() {
             onClick={() => handleLaunchFinder("/Applications")}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white flex items-center gap-2"
           >
-            <img
-              src="/icons/applications.png"
-              alt=""
+            <ThemedIcon
+              name="applications.png"
+              alt="Applications"
               className="w-4 h-4 [image-rendering:pixelated]"
             />
             Applications
@@ -352,9 +353,9 @@ function DefaultMenuItems() {
             onClick={() => handleLaunchFinder("/Documents")}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white flex items-center gap-2"
           >
-            <img
-              src="/icons/documents.png"
-              alt=""
+            <ThemedIcon
+              name="documents.png"
+              alt="Documents"
               className="w-4 h-4 [image-rendering:pixelated]"
             />
             Documents
@@ -363,9 +364,9 @@ function DefaultMenuItems() {
             onClick={() => handleLaunchFinder("/Images")}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white flex items-center gap-2"
           >
-            <img
-              src="/icons/images.png"
-              alt=""
+            <ThemedIcon
+              name="images.png"
+              alt="Images"
               className="w-4 h-4 [image-rendering:pixelated]"
             />
             Images
@@ -374,9 +375,9 @@ function DefaultMenuItems() {
             onClick={() => handleLaunchFinder("/Music")}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white flex items-center gap-2"
           >
-            <img
-              src="/icons/sounds.png"
-              alt=""
+            <ThemedIcon
+              name="sounds.png"
+              alt="Music"
               className="w-4 h-4 [image-rendering:pixelated]"
             />
             Music
@@ -385,9 +386,9 @@ function DefaultMenuItems() {
             onClick={() => handleLaunchFinder("/Sites")}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white flex items-center gap-2"
           >
-            <img
-              src="/icons/sites.png"
-              alt=""
+            <ThemedIcon
+              name="sites.png"
+              alt="Sites"
               className="w-4 h-4 [image-rendering:pixelated]"
             />
             Sites
@@ -396,9 +397,9 @@ function DefaultMenuItems() {
             onClick={() => handleLaunchFinder("/Videos")}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white flex items-center gap-2"
           >
-            <img
-              src="/icons/movies.png"
-              alt=""
+            <ThemedIcon
+              name="movies.png"
+              alt="Videos"
               className="w-4 h-4 [image-rendering:pixelated]"
             />
             Videos
@@ -407,9 +408,9 @@ function DefaultMenuItems() {
             onClick={() => handleLaunchFinder("/Trash")}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white flex items-center gap-2"
           >
-            <img
-              src="/icons/trash-empty.png"
-              alt=""
+            <ThemedIcon
+              name="trash-empty.png"
+              alt="Trash"
               className="w-4 h-4 [image-rendering:pixelated]"
             />
             Trash
@@ -665,11 +666,10 @@ export function MenuBar({ children, inWindowFrame = false }: MenuBarProps) {
                     }
                   }}
                 >
-                  <img
-                    src={appIconPath}
+                  <ThemedIcon
+                    name={appIconPath}
                     alt=""
-                    className="w-4 h-4 flex-shrink-0"
-                    style={{ imageRendering: "pixelated" }}
+                    className="w-4 h-4 flex-shrink-0 [image-rendering:pixelated]"
                   />
                   <span className="truncate text-xs">
                     {instance.title || getAppName(instance.appId)}

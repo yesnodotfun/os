@@ -10,6 +10,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useThemeStore } from "@/stores/useThemeStore";
 import { cn } from "@/lib/utils";
 import { useMemo } from "react";
+import { ThemedIcon } from "@/components/shared/ThemedIcon";
 
 interface AboutFinderDialogProps {
   isOpen: boolean;
@@ -69,8 +70,8 @@ export function AboutFinderDialog({
         <div className="space-y-3 flex-1 ">
           <div className="flex flex-row items-center space-x-2 p-2 px-4">
             <div className="flex flex-col w-1/3 items-center space-x-2">
-              <img
-                src="/icons/mac-classic.png"
+              <ThemedIcon
+                name="mac-classic.png"
                 alt="Happy Mac"
                 className="w-10 h-10 mb-0 [image-rendering:pixelated]"
               />
@@ -169,15 +170,8 @@ export function AboutFinderDialog({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent
-        className={cn(
-          "max-w-[400px]",
-          isXpTheme && "p-0 overflow-hidden"
-        )}
-        style={
-          isXpTheme
-            ? { fontSize: "11px" }
-            : undefined
-        }
+        className={cn("max-w-[400px]", isXpTheme && "p-0 overflow-hidden")}
+        style={isXpTheme ? { fontSize: "11px" } : undefined}
       >
         {isXpTheme ? (
           <>

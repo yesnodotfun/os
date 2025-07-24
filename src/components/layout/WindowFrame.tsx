@@ -13,6 +13,7 @@ import { useIsPhone } from "@/hooks/useIsPhone";
 import { useAppStoreShallow } from "@/stores/helpers";
 import { useThemeStore } from "@/stores/useThemeStore";
 import { getTheme } from "@/themes";
+import { ThemedIcon } from "@/components/shared/ThemedIcon";
 
 interface WindowFrameProps {
   children: React.ReactNode;
@@ -760,12 +761,11 @@ export function WindowFrame({
                 }}
                 onTouchMove={(e) => e.preventDefault()}
               >
-                <img
-                  src={getAppIconPath(appId)}
-                  alt=""
-                  className="w-4 h-4 mr-1"
+                <ThemedIcon
+                  name={getAppIconPath(appId)}
+                  alt={title}
+                  className="w-4 h-4 mr-1 [image-rendering:pixelated]"
                   style={{
-                    imageRendering: "pixelated",
                     filter: !isForeground ? "grayscale(100%)" : "none",
                   }}
                 />
