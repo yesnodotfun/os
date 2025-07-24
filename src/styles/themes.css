@@ -117,7 +117,7 @@
 
 /* Windows 98 Theme */
 :root[data-os-theme="win98"] {
-  --os-font-ui: Tahoma, "MS Sans Serif", "ArkPixel", "SerenityOS-Emoji", sans-serif;
+  --os-font-ui: Tahoma, "Pixelated MS Sans Serif", "MS Sans Serif", "ArkPixel", "SerenityOS-Emoji", sans-serif;
   --os-font-mono: Consolas, "Courier New", monospace;
   --font-ms-sans: "Pixelated MS Sans Serif", "MS Sans Serif", "ArkPixel", "SerenityOS-Emoji", system-ui, sans-serif;
   --os-color-window-bg: #c0c0c0;
@@ -147,7 +147,7 @@
 
 /* Windows XP Theme */
 :root[data-os-theme="xp"] {
-  --os-font-ui: Tahoma, Segoe UI, "ArkPixel", "SerenityOS-Emoji", sans-serif;
+  --os-font-ui: Tahoma, Segoe UI, "Pixelated MS Sans Serif", "MS Sans Serif", "ArkPixel", "SerenityOS-Emoji", sans-serif;
   --os-font-mono: Consolas, Courier New, monospace;
   --font-ms-sans: "Pixelated MS Sans Serif", "MS Sans Serif", "ArkPixel", "SerenityOS-Emoji", system-ui, sans-serif;
   --os-color-window-bg: #ece9d8;
