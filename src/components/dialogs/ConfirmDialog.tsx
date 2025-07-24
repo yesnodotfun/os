@@ -42,7 +42,7 @@ export function ConfirmDialog({
   }, [isOpen, playAlertSound]);
 
   const dialogContent = (
-    <div className={isXpTheme ? "p-2 px-4" : "p-4 px-6"}>
+    <div className={isXpTheme ? "p-2 px-4" : "p-6"}>
       <div className="flex gap-3 items-start">
         <ThemedIcon
           name="warn.png"
@@ -68,7 +68,7 @@ export function ConfirmDialog({
           {description}
         </p>
       </div>
-      <DialogFooter className="mt-4 gap-1">
+      <DialogFooter className="mt-2 gap-1.5">
         <Button
           variant="retro"
           onClick={() => onOpenChange(false)}

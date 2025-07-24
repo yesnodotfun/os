@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { useThemeStore } from "@/stores/useThemeStore";
 import { cn } from "@/lib/utils";
+import { ThemedIcon } from "@/components/shared/ThemedIcon";
 
 interface AboutDialogProps {
   isOpen: boolean;
@@ -32,10 +33,10 @@ export function AboutDialog({
   const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
 
   const dialogContent = (
-    <div className="flex flex-col items-center justify-center space-y-4 py-4">
+    <div className="flex flex-col items-center justify-center space-y-2 py-8">
       <div>
-        <img
-          src={metadata.icon}
+        <ThemedIcon
+          name={metadata.icon}
           alt="App Icon"
           className="w-12 h-12 mx-auto [image-rendering:pixelated]"
         />

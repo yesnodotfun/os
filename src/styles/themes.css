@@ -863,6 +863,7 @@
   left: 0;
   right: 0;
   height: 6px;
+  z-index: 3;
   background: linear-gradient(
     to bottom,
     #2260a4 0%,

@@ -49,6 +49,7 @@ export function InputDialog({
 }: InputDialogProps) {
   const currentTheme = useThemeStore((state) => state.current);
   const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
+  const isMacTheme = currentTheme === "macosx";
 
   const handleSubmit = () => {
     if (!isLoading) {
@@ -129,7 +130,7 @@ export function InputDialog({
               </Button>
             ))}
         </div>
-        <div className="flex flex-col-reverse gap-1 w-full sm:w-auto sm:flex-row">
+        <div className="flex flex-col-reverse gap-2 w-full sm:w-auto sm:flex-row">
           {additionalActions
             .filter((action) => action.position !== "left")
             .map((action, index) => (
@@ -156,11 +157,12 @@ export function InputDialog({
             ))}
           {showCancel && (
             <Button
-              variant="retro"
+              variant={isMacTheme ? "secondary" : "retro"}
               onClick={() => onOpenChange(false)}
               disabled={isLoading}
               className={cn(
-                "w-full sm:w-auto h-7",
+                "w-full sm:w-auto",
+                !isMacTheme && "h-7",
                 isXpTheme
                   ? "font-['Pixelated_MS_Sans_Serif',Arial] text-[11px]"
                   : "font-geneva-12 text-[12px]"
@@ -176,11 +178,12 @@ export function InputDialog({
             </Button>
           )}
           <Button
-            variant="retro"
+            variant={isMacTheme ? "default" : "retro"}
             onClick={handleSubmit}
             disabled={isLoading}
             className={cn(
-              "w-full sm:w-auto h-7",
+              "w-full sm:w-auto",
+              !isMacTheme && "h-7",
               isXpTheme
                 ? "font-['Pixelated_MS_Sans_Serif',Arial] text-[11px]"
                 : "font-geneva-12 text-[12px]"
@@ -202,15 +205,8 @@ export function InputDialog({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent
-        className={cn(
-          "max-w-[500px]",
-          isXpTheme && "p-0 overflow-hidden"
-        )}
-        style={
-          isXpTheme
-            ? { fontSize: "11px" }
-            : undefined
-        }
+        className={cn("max-w-[500px]", isXpTheme && "p-0 overflow-hidden")}
+        style={isXpTheme ? { fontSize: "11px" } : undefined}
         onKeyDown={(e: React.KeyboardEvent) => e.stopPropagation()}
       >
         {isXpTheme ? (
@@ -226,7 +222,9 @@ export function InputDialog({
         ) : (
           <>
             <DialogHeader>
-              <DialogTitle className="font-normal text-[16px]">{title}</DialogTitle>
+              <DialogTitle className="font-normal text-[16px]">
+                {title}
+              </DialogTitle>
               <DialogDescription className="sr-only">
                 {description}
               </DialogDescription>
