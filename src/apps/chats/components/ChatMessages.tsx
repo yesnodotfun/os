@@ -36,6 +36,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { LinkPreview } from "@/components/shared/LinkPreview";
+import { useThemeStore } from "@/stores/useThemeStore";
 
 // --- Color Hashing for Usernames ---
 const userColors = [
@@ -302,6 +303,7 @@ function ChatMessagesContent({
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const { speak, stop, isSpeaking: localTtsSpeaking } = useTtsQueue();
   const speechEnabled = useAppStore((state) => state.speechEnabled);
+  const currentTheme = useThemeStore((s) => s.current);
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
   const [speechLoadingId, setSpeechLoadingId] = useState<string | null>(null);
   const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
@@ -310,7 +312,7 @@ function ChatMessagesContent({
 
   // Helper to detect if we're on a touch device
   const isTouchDevice = () => {
-    return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    return "ontouchstart" in window || navigator.maxTouchPoints > 0;
   };
 
   // Local highlight state for manual speech triggered from this component
@@ -458,13 +460,13 @@ function ChatMessagesContent({
   const extractUrls = (content: string): string[] => {
     const urls = new Set<string>();
     const tokens = segmentText(content);
-    
-    tokens.forEach(token => {
+
+    tokens.forEach((token) => {
       if (token.type === "link" && token.url) {
         urls.add(token.url);
       }
     });
-    
+
     return Array.from(urls);
   };
 
@@ -534,16 +536,20 @@ function ChatMessagesContent({
                 message.role === "user" ? "bottom right" : "bottom left",
             }}
             onMouseEnter={() =>
-              !isInteractingWithPreview && !isTouchDevice() && setHoveredMessageId(messageKey)
+              !isInteractingWithPreview &&
+              !isTouchDevice() &&
+              setHoveredMessageId(messageKey)
             }
             onMouseLeave={() =>
-              !isInteractingWithPreview && !isTouchDevice() && setHoveredMessageId(null)
+              !isInteractingWithPreview &&
+              !isTouchDevice() &&
+              setHoveredMessageId(null)
             }
             onTouchStart={(e) => {
               // Only show hover buttons on touch if not touching a link preview
               if (!isInteractingWithPreview && isTouchDevice()) {
                 const target = e.target as HTMLElement;
-                const isLinkPreview = target.closest('[data-link-preview]');
+                const isLinkPreview = target.closest("[data-link-preview]");
                 if (!isLinkPreview) {
                   e.preventDefault();
                   setHoveredMessageId(messageKey);
@@ -553,7 +559,9 @@ function ChatMessagesContent({
           >
             <motion.div
               layout="position"
-              className="text-[16px] text-gray-500 mb-0.5 font-['Geneva-9'] mb-[-2px] select-text flex items-center gap-2"
+              className={`${
+                currentTheme === "macosx" ? "text-[10px]" : "text-[16px]"
+              } chat-messages-meta text-gray-500 mb-0.5 font-['Geneva-9'] mb-[-2px] select-text flex items-center gap-2`}
             >
               {message.role === "user" && (
                 <>
@@ -897,308 +905,321 @@ function ChatMessagesContent({
                 } min-h-[12px] rounded leading-snug font-geneva-12 break-words select-text`}
                 style={{ fontSize: `${fontSize}px` }} // Apply font size via style prop
               >
-              {message.role === "assistant" ? (
-                <motion.div className="select-text flex flex-col gap-1">
-                  {message.parts?.map((part, partIndex) => {
-                    const partKey = `${messageKey}-part-${partIndex}`;
-                    switch (part.type) {
-                      case "text": {
-                        const hasXmlTags =
-                          /<textedit:(insert|replace|delete)/i.test(part.text);
-                        if (hasXmlTags) {
-                          const openTags = (
-                            part.text.match(
-                              /<textedit:(insert|replace|delete)/g
-                            ) || []
-                          ).length;
-                          const closeTags = (
-                            part.text.match(
-                              /<\/textedit:(insert|replace)>|<textedit:delete[^>]*\/>/g
-                            ) || []
-                          ).length;
-                          if (openTags !== closeTags) {
-                            return (
-                              <motion.span
-                                key={partKey}
-                                initial={{ opacity: 1 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ duration: 0 }}
-                                className="select-text italic"
-                              >
-                                editing...
-                              </motion.span>
+                {message.role === "assistant" ? (
+                  <motion.div className="select-text flex flex-col gap-1">
+                    {message.parts?.map((part, partIndex) => {
+                      const partKey = `${messageKey}-part-${partIndex}`;
+                      switch (part.type) {
+                        case "text": {
+                          const hasXmlTags =
+                            /<textedit:(insert|replace|delete)/i.test(
+                              part.text
+                            );
+                          if (hasXmlTags) {
+                            const openTags = (
+                              part.text.match(
+                                /<textedit:(insert|replace|delete)/g
+                              ) || []
+                            ).length;
+                            const closeTags = (
+                              part.text.match(
+                                /<\/textedit:(insert|replace)>|<textedit:delete[^>]*\/>/g
+                              ) || []
+                            ).length;
+                            if (openTags !== closeTags) {
+                              return (
+                                <motion.span
+                                  key={partKey}
+                                  initial={{ opacity: 1 }}
+                                  animate={{ opacity: 1 }}
+                                  transition={{ duration: 0 }}
+                                  className="select-text italic"
+                                >
+                                  editing...
+                                </motion.span>
+                              );
+                            }
+                          }
+
+                          const rawPartContent = isUrgentMessage(part.text)
+                            ? part.text.slice(4).trimStart()
+                            : part.text;
+                          const displayContent =
+                            decodeHtmlEntities(rawPartContent);
+                          const { hasHtml, htmlContent, textContent } =
+                            extractHtmlContent(displayContent);
+
+                          return (
+                            <div key={partKey} className="w-full">
+                              <div className="whitespace-pre-wrap">
+                                {textContent &&
+                                  (() => {
+                                    const tokens = segmentText(
+                                      textContent.trim()
+                                    );
+                                    let charPos = 0;
+                                    return tokens.map((segment, idx) => {
+                                      const start = charPos;
+                                      const end =
+                                        charPos + segment.content.length;
+                                      charPos = end;
+                                      return (
+                                        <motion.span
+                                          key={`${partKey}-segment-${idx}`}
+                                          initial={
+                                            isInitialMessage
+                                              ? { opacity: 1, y: 0 }
+                                              : { opacity: 0, y: 12 }
+                                          }
+                                          animate={{ opacity: 1, y: 0 }}
+                                          className={`select-text ${
+                                            isEmojiOnly(textContent)
+                                              ? "text-[24px]"
+                                              : ""
+                                          } ${
+                                            segment.type === "bold"
+                                              ? "font-bold"
+                                              : segment.type === "italic"
+                                              ? "italic"
+                                              : ""
+                                          }`}
+                                          style={{
+                                            userSelect: "text",
+                                            fontSize: isEmojiOnly(textContent)
+                                              ? undefined
+                                              : `${fontSize}px`,
+                                          }}
+                                          transition={{
+                                            duration: 0.08,
+                                            delay: idx * 0.02,
+                                            ease: "easeOut",
+                                            onComplete: () => {
+                                              if (idx % 2 === 0) {
+                                                playNote();
+                                              }
+                                            },
+                                          }}
+                                        >
+                                          {/* Apply highlight */}
+                                          {highlightActive &&
+                                          start <
+                                            (combinedHighlightSeg?.end ?? 0) &&
+                                          end >
+                                            (combinedHighlightSeg?.start ??
+                                              0) ? (
+                                            <span className="animate-highlight">
+                                              {segment.type === "link" &&
+                                              segment.url ? (
+                                                <a
+                                                  href={segment.url}
+                                                  target="_blank"
+                                                  rel="noopener noreferrer"
+                                                  className="text-blue-600 hover:underline"
+                                                  onClick={(e) =>
+                                                    e.stopPropagation()
+                                                  }
+                                                >
+                                                  {segment.content}
+                                                </a>
+                                              ) : (
+                                                segment.content
+                                              )}
+                                            </span>
+                                          ) : segment.type === "link" &&
+                                            segment.url ? (
+                                            <a
+                                              href={segment.url}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-blue-600 hover:underline"
+                                              onClick={(e) =>
+                                                e.stopPropagation()
+                                              }
+                                            >
+                                              {segment.content}
+                                            </a>
+                                          ) : (
+                                            segment.content
+                                          )}
+                                        </motion.span>
+                                      );
+                                    });
+                                  })()}
+                              </div>
+                              {hasHtml && htmlContent && (
+                                <HtmlPreview
+                                  htmlContent={htmlContent}
+                                  onInteractionChange={
+                                    setIsInteractingWithPreview
+                                  }
+                                  isStreaming={
+                                    isLoading &&
+                                    message === messages[messages.length - 1]
+                                  }
+                                  playElevatorMusic={playElevatorMusic}
+                                  stopElevatorMusic={stopElevatorMusic}
+                                  playDingSound={playDingSound}
+                                  className="my-1"
+                                />
+                              )}
+                            </div>
+                          );
+                        }
+                        case "tool-invocation": {
+                          return (
+                            <ToolInvocationMessage
+                              key={partKey}
+                              part={part as ToolInvocationPart}
+                              partKey={partKey}
+                              isLoading={isLoading}
+                              getAppName={getAppName}
+                              formatToolName={formatToolName}
+                              setIsInteractingWithPreview={
+                                setIsInteractingWithPreview
+                              }
+                              playElevatorMusic={playElevatorMusic}
+                              stopElevatorMusic={stopElevatorMusic}
+                              playDingSound={playDingSound}
+                            />
+                          );
+                        }
+                        default:
+                          return null;
+                      }
+                    })}
+
+                    {/* Link Previews for Assistant Messages */}
+                    {(() => {
+                      const allUrls = new Set<string>();
+                      message.parts?.forEach((part) => {
+                        if (part.type === "text") {
+                          const partContent = isUrgentMessage(part.text)
+                            ? part.text.slice(4).trimStart()
+                            : part.text;
+                          const decodedContent =
+                            decodeHtmlEntities(partContent);
+                          const { textContent } =
+                            extractHtmlContent(decodedContent);
+                          if (textContent) {
+                            extractUrls(textContent).forEach((url) =>
+                              allUrls.add(url)
                             );
                           }
                         }
-
-                        const rawPartContent = isUrgentMessage(part.text)
-                          ? part.text.slice(4).trimStart()
-                          : part.text;
-                        const displayContent = decodeHtmlEntities(rawPartContent);
-                        const { hasHtml, htmlContent, textContent } =
-                          extractHtmlContent(displayContent);
-
-                        return (
-                          <div key={partKey} className="w-full">
-                            <div className="whitespace-pre-wrap">
-                              {textContent &&
-                                (() => {
-                                  const tokens = segmentText(
-                                    textContent.trim()
-                                  );
-                                  let charPos = 0;
-                                  return tokens.map((segment, idx) => {
-                                    const start = charPos;
-                                    const end =
-                                      charPos + segment.content.length;
-                                    charPos = end;
-                                    return (
-                                      <motion.span
-                                        key={`${partKey}-segment-${idx}`}
-                                        initial={
-                                          isInitialMessage
-                                            ? { opacity: 1, y: 0 }
-                                            : { opacity: 0, y: 12 }
-                                        }
-                                        animate={{ opacity: 1, y: 0 }}
-                                        className={`select-text ${
-                                          isEmojiOnly(textContent)
-                                            ? "text-[24px]"
-                                            : ""
-                                        } ${
-                                          segment.type === "bold"
-                                            ? "font-bold"
-                                            : segment.type === "italic"
-                                            ? "italic"
-                                            : ""
-                                        }`}
-                                        style={{
-                                          userSelect: "text",
-                                          fontSize: isEmojiOnly(textContent)
-                                            ? undefined
-                                            : `${fontSize}px`,
-                                        }}
-                                        transition={{
-                                          duration: 0.08,
-                                          delay: idx * 0.02,
-                                          ease: "easeOut",
-                                          onComplete: () => {
-                                            if (idx % 2 === 0) {
-                                              playNote();
-                                            }
-                                          },
-                                        }}
-                                      >
-                                        {/* Apply highlight */}
-                                        {highlightActive &&
-                                        start <
-                                          (combinedHighlightSeg?.end ?? 0) &&
-                                        end >
-                                          (combinedHighlightSeg?.start ?? 0) ? (
-                                          <span className="animate-highlight">
-                                            {segment.type === "link" &&
-                                            segment.url ? (
-                                              <a
-                                                href={segment.url}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="text-blue-600 hover:underline"
-                                                onClick={(e) =>
-                                                  e.stopPropagation()
-                                                }
-                                              >
-                                                {segment.content}
-                                              </a>
-                                            ) : (
-                                              segment.content
-                                            )}
-                                          </span>
-                                        ) : segment.type === "link" &&
-                                          segment.url ? (
-                                          <a
-                                            href={segment.url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-blue-600 hover:underline"
-                                            onClick={(e) => e.stopPropagation()}
-                                          >
-                                            {segment.content}
-                                          </a>
-                                        ) : (
-                                          segment.content
-                                        )}
-                                      </motion.span>
-                                    );
-                                  });
-                                })()}
-                            </div>
-                            {hasHtml && htmlContent && (
-                              <HtmlPreview
-                                htmlContent={htmlContent}
-                                onInteractionChange={
-                                  setIsInteractingWithPreview
-                                }
-                                isStreaming={
-                                  isLoading &&
-                                  message === messages[messages.length - 1]
-                                }
-                                playElevatorMusic={playElevatorMusic}
-                                stopElevatorMusic={stopElevatorMusic}
-                                playDingSound={playDingSound}
-                                className="my-1"
-                              />
-                            )}
-                          </div>
-                        );
-                      }
-                      case "tool-invocation": {
-                        return (
-                          <ToolInvocationMessage
-                            key={partKey}
-                            part={part as ToolInvocationPart}
-                            partKey={partKey}
-                            isLoading={isLoading}
-                            getAppName={getAppName}
-                            formatToolName={formatToolName}
-                            setIsInteractingWithPreview={
-                              setIsInteractingWithPreview
-                            }
-                            playElevatorMusic={playElevatorMusic}
-                            stopElevatorMusic={stopElevatorMusic}
-                            playDingSound={playDingSound}
-                          />
-                        );
-                      }
-                      default:
-                        return null;
-                    }
-                  })}
-                  
-                  {/* Link Previews for Assistant Messages */}
-                  {(() => {
-                    const allUrls = new Set<string>();
-                    message.parts?.forEach(part => {
-                      if (part.type === "text") {
-                        const partContent = isUrgentMessage(part.text) 
-                          ? part.text.slice(4).trimStart() 
-                          : part.text;
-                        const decodedContent = decodeHtmlEntities(partContent);
-                        const { textContent } = extractHtmlContent(decodedContent);
-                        if (textContent) {
-                          extractUrls(textContent).forEach(url => allUrls.add(url));
-                        }
-                      }
-                    });
-                    
-                    if (allUrls.size === 0) return null;
-                    
-                    return (
-                      <div className="flex flex-col gap-2 mt-2 w-full">
-                        {Array.from(allUrls).map((url, index) => (
-                          <LinkPreview
-                            key={`${messageKey}-assistant-link-${index}`}
-                            url={url}
-                            className="w-full"
-                          />
-                        ))}
-                      </div>
-                    );
-                  })()}
-                </motion.div>
-              ) : (
-                <>
-                  <span
-                    className={`select-text whitespace-pre-wrap ${
-                      isEmojiOnly(displayContent) ? "text-[24px]" : ""
-                    }`}
-                    style={{
-                      userSelect: "text",
-                      fontSize: isEmojiOnly(displayContent)
-                        ? undefined
-                        : `${fontSize}px`,
-                    }} // Apply font size via style prop
-                  >
-                    {(() => {
-                      const tokens = segmentText(displayContent);
-                      let charPos2 = 0;
-                      return tokens.map((segment, idx) => {
-                        const start2 = charPos2;
-                        const end2 = charPos2 + segment.content.length;
-                        charPos2 = end2;
-                        const isHighlight =
-                          highlightActive &&
-                          start2 < (combinedHighlightSeg?.end ?? 0) &&
-                          end2 > (combinedHighlightSeg?.start ?? 0);
-                        const contentNode =
-                          segment.type === "link" && segment.url ? (
-                            <a
-                              href={segment.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:underline"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {segment.content}
-                            </a>
-                          ) : (
-                            segment.content
-                          );
-                        return (
-                          <span
-                            key={`${messageKey}-segment-${idx}`}
-                            className={`${
-                              segment.type === "bold"
-                                ? "font-bold"
-                                : segment.type === "italic"
-                                ? "italic"
-                                : ""
-                            }`}
-                          >
-                            {isHighlight ? (
-                              <span className="bg-yellow-200 animate-highlight">
-                                {contentNode}
-                              </span>
-                            ) : (
-                              contentNode
-                            )}
-                          </span>
-                        );
                       });
+
+                      if (allUrls.size === 0) return null;
+
+                      return (
+                        <div className="flex flex-col gap-2 mt-2 w-full">
+                          {Array.from(allUrls).map((url, index) => (
+                            <LinkPreview
+                              key={`${messageKey}-assistant-link-${index}`}
+                              url={url}
+                              className="w-full"
+                            />
+                          ))}
+                        </div>
+                      );
                     })()}
-                  </span>
-                  {isHtmlCodeBlock(displayContent).isHtml && (
-                    <HtmlPreview
-                      htmlContent={isHtmlCodeBlock(displayContent).content}
-                      onInteractionChange={setIsInteractingWithPreview}
-                      playElevatorMusic={playElevatorMusic}
-                      stopElevatorMusic={stopElevatorMusic}
-                      playDingSound={playDingSound}
-                    />
-                  )}
-                </>
-              )}
-            </motion.div>
+                  </motion.div>
+                ) : (
+                  <>
+                    <span
+                      className={`select-text whitespace-pre-wrap ${
+                        isEmojiOnly(displayContent) ? "text-[24px]" : ""
+                      }`}
+                      style={{
+                        userSelect: "text",
+                        fontSize: isEmojiOnly(displayContent)
+                          ? undefined
+                          : `${fontSize}px`,
+                      }} // Apply font size via style prop
+                    >
+                      {(() => {
+                        const tokens = segmentText(displayContent);
+                        let charPos2 = 0;
+                        return tokens.map((segment, idx) => {
+                          const start2 = charPos2;
+                          const end2 = charPos2 + segment.content.length;
+                          charPos2 = end2;
+                          const isHighlight =
+                            highlightActive &&
+                            start2 < (combinedHighlightSeg?.end ?? 0) &&
+                            end2 > (combinedHighlightSeg?.start ?? 0);
+                          const contentNode =
+                            segment.type === "link" && segment.url ? (
+                              <a
+                                href={segment.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:underline"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {segment.content}
+                              </a>
+                            ) : (
+                              segment.content
+                            );
+                          return (
+                            <span
+                              key={`${messageKey}-segment-${idx}`}
+                              className={`${
+                                segment.type === "bold"
+                                  ? "font-bold"
+                                  : segment.type === "italic"
+                                  ? "italic"
+                                  : ""
+                              }`}
+                            >
+                              {isHighlight ? (
+                                <span className="bg-yellow-200 animate-highlight">
+                                  {contentNode}
+                                </span>
+                              ) : (
+                                contentNode
+                              )}
+                            </span>
+                          );
+                        });
+                      })()}
+                    </span>
+                    {isHtmlCodeBlock(displayContent).isHtml && (
+                      <HtmlPreview
+                        htmlContent={isHtmlCodeBlock(displayContent).content}
+                        onInteractionChange={setIsInteractingWithPreview}
+                        playElevatorMusic={playElevatorMusic}
+                        stopElevatorMusic={stopElevatorMusic}
+                        playDingSound={playDingSound}
+                      />
+                    )}
+                  </>
+                )}
+              </motion.div>
             )}
-            
+
             {/* Link Previews - Only for non-assistant messages */}
-            {message.role !== "assistant" && (() => {
-              const urls = extractUrls(displayContent);
-              if (urls.length === 0) return null;
-              
-              return (
-                <div className={`flex flex-col gap-2 max-w-[90%] ${
-                  isUrlOnly(displayContent) ? "mt-0" : "mt-2"
-                }`}>
-                  {urls.map((url, index) => (
-                    <LinkPreview
-                      key={`${messageKey}-link-${index}`}
-                      url={url}
-                      className="w-full"
-                    />
-                  ))}
-                </div>
-              );
-            })()}
+            {message.role !== "assistant" &&
+              (() => {
+                const urls = extractUrls(displayContent);
+                if (urls.length === 0) return null;
+
+                return (
+                  <div
+                    className={`flex flex-col gap-2 max-w-[90%] ${
+                      isUrlOnly(displayContent) ? "mt-0" : "mt-2"
+                    }`}
+                  >
+                    {urls.map((url, index) => (
+                      <LinkPreview
+                        key={`${messageKey}-link-${index}`}
+                        url={url}
+                        className="w-full"
+                      />
+                    ))}
+                  </div>
+                );
+              })()}
           </motion.div>
         );
       })}
