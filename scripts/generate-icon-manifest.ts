@@ -8,7 +8,23 @@ import { readdir, stat, writeFile } from "node:fs/promises";
 import { join, relative, sep } from "node:path";
 
 const ICONS_ROOT = "public/icons";
-const THEME_DIRS = ["default", "macosx"]; // added macosx theme
+// Auto-detect theme directories under public/icons (any subdirectory)
+async function detectThemeDirs(): Promise<string[]> {
+  try {
+    const entries = await readdir(ICONS_ROOT, { withFileTypes: true } as any);
+    return entries
+      .filter((e: any) => e.isDirectory())
+      .map((e: any) => e.name)
+      .filter((name: string) => !name.startsWith("."))
+      .sort();
+  } catch (e) {
+    console.warn(
+      "[manifest] Failed to detect theme directories:",
+      (e as Error).message
+    );
+    return ["default"]; // fallback
+  }
+}
 
 async function collectFiles(theme: string) {
   const themeRoot = join(ICONS_ROOT, theme);
@@ -40,7 +56,8 @@ async function collectFiles(theme: string) {
 
 async function build() {
   const themes: Record<string, string[]> = {};
-  for (const theme of THEME_DIRS) {
+  const themeDirs = await detectThemeDirs();
+  for (const theme of themeDirs) {
     themes[theme] = await collectFiles(theme);
   }
 
