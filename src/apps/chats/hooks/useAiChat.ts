@@ -140,7 +140,7 @@ const getSystemState = () => {
     runningApps: {
       foreground: foregroundInstance,
       background: backgroundInstances,
-      instanceWindowOrder: appStore.instanceWindowOrder,
+      instanceWindowOrder: appStore.instanceOrder,
     },
     internetExplorer: {
       url: ieStore.url,

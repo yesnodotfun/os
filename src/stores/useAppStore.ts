@@ -8,20 +8,13 @@ import { ShaderType } from "@/components/shared/GalaxyBackground";
 import { DisplayMode } from "@/utils/displayMode";
 import { AIModel } from "@/types/aiModels";
 import { ensureIndexedDBInitialized } from "@/utils/indexedDB";
-// Re-export for backward compatibility
 export type { AIModel } from "@/types/aiModels";
 
-// Add new types for instance management
+// ---------------- Types ---------------------------------------------------------
 export interface AppInstance extends AppState {
   instanceId: string;
   appId: AppId;
-  title?: string; // For window title customization
-}
-
-export interface AppInstanceManagerState {
-  instances: Record<string, AppInstance>; // instanceId -> instance
-  windowOrder: string[]; // Now contains instanceIds instead of appIds
-  nextInstanceId: number;
+  title?: string;
 }
 
 const getInitialState = (): AppManagerState => {
@@ -32,25 +25,20 @@ const getInitialState = (): AppManagerState => {
     },
     {} as { [appId: string]: AppState }
   );
-
-  return {
-    windowOrder: [],
-    apps,
-  };
+  return { windowOrder: [], apps };
 };
 
 interface AppStoreState extends AppManagerState {
-  // Add instance management
+  // Instance (window) management
   instances: Record<string, AppInstance>;
-  instanceWindowOrder: string[];
-  instanceStackOrder: string[]; // Strict z-index stacking order (visual)
-  foregroundInstanceId: string | null; // Add separate foreground tracking
+  instanceOrder: string[]; // END = TOP (foreground)
+  foregroundInstanceId: string | null;
   nextInstanceId: number;
 
-  // Add version tracking
+  // Version / migration
   version: number;
 
-  // Instance management methods
+  // Instance methods
   createAppInstance: (
     appId: AppId,
     initialData?: unknown,
@@ -74,257 +62,215 @@ interface AppStoreState extends AppManagerState {
     multiWindow?: boolean
   ) => string;
 
-  debugMode: boolean;
-  setDebugMode: (enabled: boolean) => void;
-  shaderEffectEnabled: boolean;
-  setShaderEffectEnabled: (enabled: boolean) => void;
-  selectedShaderType: ShaderType;
-  setSelectedShaderType: (shaderType: ShaderType) => void;
-  aiModel: AIModel;
-  setAiModel: (model: AIModel) => void;
-  terminalSoundsEnabled: boolean;
-  setTerminalSoundsEnabled: (enabled: boolean) => void;
-  uiSoundsEnabled: boolean;
-  setUiSoundsEnabled: (enabled: boolean) => void;
-  typingSynthEnabled: boolean;
-  setTypingSynthEnabled: (enabled: boolean) => void;
-  speechEnabled: boolean;
-  setSpeechEnabled: (enabled: boolean) => void;
-  speechVolume: number;
-  setSpeechVolume: (v: number) => void;
-  ttsModel: "openai" | "elevenlabs" | null;
-  setTtsModel: (model: "openai" | "elevenlabs" | null) => void;
-  ttsVoice: string | null;
-  setTtsVoice: (voice: string | null) => void;
-  synthPreset: string;
-  setSynthPreset: (preset: string) => void;
-  displayMode: DisplayMode;
-  setDisplayMode: (mode: DisplayMode) => void;
-  updateWindowState: (
-    appId: AppId,
-    position: { x: number; y: number },
-    size: { width: number; height: number }
-  ) => void;
+  // Legacy app‑level window APIs (kept as wrappers)
   bringToForeground: (appId: AppId | "") => void;
   toggleApp: (appId: AppId, initialData?: unknown) => void;
   closeApp: (appId: AppId) => void;
   navigateToNextApp: (currentAppId: AppId) => void;
   navigateToPreviousApp: (currentAppId: AppId) => void;
+  launchOrFocusApp: (appId: AppId, initialData?: unknown) => void;
+
+  // Misc state & helpers
   clearInitialData: (appId: AppId) => void;
   clearInstanceInitialData: (instanceId: string) => void;
-  launchOrFocusApp: (appId: AppId, initialData?: unknown) => void;
+  debugMode: boolean;
+  setDebugMode: (v: boolean) => void;
+  shaderEffectEnabled: boolean;
+  setShaderEffectEnabled: (v: boolean) => void;
+  selectedShaderType: ShaderType;
+  setSelectedShaderType: (t: ShaderType) => void;
+  aiModel: AIModel;
+  setAiModel: (m: AIModel) => void;
+  terminalSoundsEnabled: boolean;
+  setTerminalSoundsEnabled: (v: boolean) => void;
+  uiSoundsEnabled: boolean;
+  setUiSoundsEnabled: (v: boolean) => void;
+  typingSynthEnabled: boolean;
+  setTypingSynthEnabled: (v: boolean) => void;
+  speechEnabled: boolean;
+  setSpeechEnabled: (v: boolean) => void;
+  speechVolume: number;
+  setSpeechVolume: (v: number) => void;
+  ttsModel: "openai" | "elevenlabs" | null;
+  setTtsModel: (m: "openai" | "elevenlabs" | null) => void;
+  ttsVoice: string | null;
+  setTtsVoice: (v: string | null) => void;
+  synthPreset: string;
+  setSynthPreset: (v: string) => void;
+  displayMode: DisplayMode;
+  setDisplayMode: (m: DisplayMode) => void;
+  updateWindowState: (
+    appId: AppId,
+    position: { x: number; y: number },
+    size: { width: number; height: number }
+  ) => void;
   currentWallpaper: string;
-  setCurrentWallpaper: (wallpaperPath: string) => void;
+  setCurrentWallpaper: (p: string) => void;
   wallpaperSource: string;
-  setWallpaper: (path: string | File) => Promise<void>;
+  setWallpaper: (p: string | File) => Promise<void>;
   loadCustomWallpapers: () => Promise<string[]>;
   getWallpaperData: (reference: string) => Promise<string | null>;
   isFirstBoot: boolean;
   setHasBooted: () => void;
   htmlPreviewSplit: boolean;
-  setHtmlPreviewSplit: (val: boolean) => void;
+  setHtmlPreviewSplit: (v: boolean) => void;
   uiVolume: number;
-  setUiVolume: (vol: number) => void;
+  setUiVolume: (v: number) => void;
   chatSynthVolume: number;
-  setChatSynthVolume: (vol: number) => void;
+  setChatSynthVolume: (v: number) => void;
   ipodVolume: number;
-  setIpodVolume: (vol: number) => void;
+  setIpodVolume: (v: number) => void;
   masterVolume: number;
-  setMasterVolume: (vol: number) => void;
+  setMasterVolume: (v: number) => void;
+  _debugCheckInstanceIntegrity: () => void;
 }
 
-// Define current store version
-const CURRENT_APP_STORE_VERSION = 2; // Increment to trigger TTS migration
-
-// Run the check once on script load
+const CURRENT_APP_STORE_VERSION = 3; // bump for instanceOrder unification
 const initialShaderState = checkShaderPerformance();
 
+// ---------------- Store ---------------------------------------------------------
 export const useAppStore = create<AppStoreState>()(
   persist(
     (set, get) => ({
       ...getInitialState(),
-      // Add version tracking
       version: CURRENT_APP_STORE_VERSION,
 
+      // Misc toggles / settings
       debugMode: false,
       setDebugMode: (enabled) => set({ debugMode: enabled }),
       shaderEffectEnabled: initialShaderState,
       setShaderEffectEnabled: (enabled) =>
         set({ shaderEffectEnabled: enabled }),
       selectedShaderType: ShaderType.AURORA,
-      setSelectedShaderType: (shaderType) =>
-        set({ selectedShaderType: shaderType }),
-      aiModel: null, // Default model set to null for client-side
-      setAiModel: (model) => set({ aiModel: model }),
-      terminalSoundsEnabled: true, // Default to true for terminal/IE sounds
-      setTerminalSoundsEnabled: (enabled) =>
-        set({ terminalSoundsEnabled: enabled }),
+      setSelectedShaderType: (t) => set({ selectedShaderType: t }),
+      aiModel: null,
+      setAiModel: (m) => set({ aiModel: m }),
+      terminalSoundsEnabled: true,
+      setTerminalSoundsEnabled: (v) => set({ terminalSoundsEnabled: v }),
       uiSoundsEnabled: true,
-      setUiSoundsEnabled: (enabled) => set({ uiSoundsEnabled: enabled }),
+      setUiSoundsEnabled: (v) => set({ uiSoundsEnabled: v }),
       typingSynthEnabled: false,
-      setTypingSynthEnabled: (enabled) => set({ typingSynthEnabled: enabled }),
+      setTypingSynthEnabled: (v) => set({ typingSynthEnabled: v }),
       speechEnabled: false,
-      setSpeechEnabled: (enabled) => set({ speechEnabled: enabled }),
+      setSpeechEnabled: (v) => set({ speechEnabled: v }),
       speechVolume: 2,
       setSpeechVolume: (v) => set({ speechVolume: v }),
-      ttsModel: null, // Default to null (select option)
-      setTtsModel: (model) => set({ ttsModel: model }),
-      ttsVoice: null, // Default to null (select option)
-      setTtsVoice: (voice) => set({ ttsVoice: voice }),
+      ttsModel: null,
+      setTtsModel: (m) => set({ ttsModel: m }),
+      ttsVoice: null,
+      setTtsVoice: (v) => set({ ttsVoice: v }),
       synthPreset: "classic",
-      setSynthPreset: (preset) => set({ synthPreset: preset }),
+      setSynthPreset: (v) => set({ synthPreset: v }),
       displayMode: "color",
-      setDisplayMode: (mode) => set({ displayMode: mode }),
+      setDisplayMode: (m) => set({ displayMode: m }),
       isFirstBoot: true,
-      setHasBooted: () => {
-        set({ isFirstBoot: false });
-      },
+      setHasBooted: () => set({ isFirstBoot: false }),
       masterVolume: 1,
       setMasterVolume: (vol) => set({ masterVolume: vol }),
+
       updateWindowState: (appId, position, size) =>
         set((state) => ({
           apps: {
             ...state.apps,
-            [appId]: {
-              ...state.apps[appId],
-              position,
-              size,
-            },
+            [appId]: { ...state.apps[appId], position, size },
           },
         })),
-      currentWallpaper: "/wallpapers/videos/blue_flowers_loop.mp4", // Default wallpaper
+
+      currentWallpaper: "/wallpapers/videos/blue_flowers_loop.mp4",
       wallpaperSource: "/wallpapers/videos/blue_flowers_loop.mp4",
-      setCurrentWallpaper: (wallpaperPath) =>
-        set({
-          currentWallpaper: wallpaperPath,
-          wallpaperSource: wallpaperPath,
-        }),
+      setCurrentWallpaper: (p) =>
+        set({ currentWallpaper: p, wallpaperSource: p }),
 
-      // High-level helper to change wallpaper (string path or File)
       setWallpaper: async (path) => {
-        let wallpaperPath: string;
-
-        // 1. If user passed a File -> save it first
+        let wall: string;
         if (path instanceof File) {
           try {
-            wallpaperPath = await saveCustomWallpaper(path);
-          } catch (err) {
-            console.error("setWallpaper: failed to save custom wallpaper", err);
+            wall = await saveCustomWallpaper(path);
+          } catch (e) {
+            console.error("setWallpaper failed", e);
             return;
           }
         } else {
-          wallpaperPath = path;
+          wall = path;
         }
-
-        // 2. Update store with new path (optimistically)
-        set({
-          currentWallpaper: wallpaperPath,
-          wallpaperSource: wallpaperPath,
-        });
-
-        // 3. If it is an IndexedDB reference, load actual data
-        if (wallpaperPath.startsWith(INDEXEDDB_PREFIX)) {
-          const data = await get().getWallpaperData(wallpaperPath);
-          if (data) {
-            set({ wallpaperSource: data });
-          }
+        set({ currentWallpaper: wall, wallpaperSource: wall });
+        if (wall.startsWith(INDEXEDDB_PREFIX)) {
+          const data = await get().getWallpaperData(wall);
+          if (data) set({ wallpaperSource: data });
         }
-
-        // 4. Inform rest of application (for same-window listeners)
         window.dispatchEvent(
-          new CustomEvent("wallpaperChange", { detail: wallpaperPath })
+          new CustomEvent("wallpaperChange", { detail: wall })
         );
       },
 
-      // Return references (indexeddb://<id>) of all saved custom wallpapers
       loadCustomWallpapers: async () => {
         try {
           const db = await ensureIndexedDBInitialized();
           const tx = db.transaction(CUSTOM_WALLPAPERS_STORE, "readonly");
           const store = tx.objectStore(CUSTOM_WALLPAPERS_STORE);
-          const keysRequest = store.getAllKeys();
-          const refs: string[] = await new Promise((resolve, reject) => {
-            keysRequest.onsuccess = () =>
-              resolve(keysRequest.result as string[]);
-            keysRequest.onerror = () => reject(keysRequest.error);
+          const keysReq = store.getAllKeys();
+          const keys: string[] = await new Promise((res, rej) => {
+            keysReq.onsuccess = () => res(keysReq.result as string[]);
+            keysReq.onerror = () => rej(keysReq.error);
           });
           db.close();
-          return refs.map((k) => `${INDEXEDDB_PREFIX}${k}`);
-        } catch (err) {
-          console.error("Error loading custom wallpapers:", err);
+          return keys.map((k) => `${INDEXEDDB_PREFIX}${k}`);
+        } catch (e) {
+          console.error("loadCustomWallpapers", e);
           return [];
         }
       },
 
-      // Fetch the actual data (object URL or data URL) for a wallpaper reference
       getWallpaperData: async (reference) => {
-        if (!reference.startsWith(INDEXEDDB_PREFIX)) {
-          return reference; // Plain path
-        }
-
+        if (!reference.startsWith(INDEXEDDB_PREFIX)) return reference;
         const id = reference.substring(INDEXEDDB_PREFIX.length);
-
-        // Use cached URL if available
         if (objectURLs[id]) return objectURLs[id];
-
         try {
           const db = await ensureIndexedDBInitialized();
           const tx = db.transaction(CUSTOM_WALLPAPERS_STORE, "readonly");
           const store = tx.objectStore(CUSTOM_WALLPAPERS_STORE);
           const req = store.get(id);
-
           const result = await new Promise<StoredWallpaper | null>(
-            (resolve, reject) => {
-              req.onsuccess = () => resolve(req.result as StoredWallpaper);
-              req.onerror = () => reject(req.error);
+            (res, rej) => {
+              req.onsuccess = () => res(req.result as StoredWallpaper);
+              req.onerror = () => rej(req.error);
             }
           );
-
           db.close();
-
           if (!result) return null;
-
           let objectURL: string | null = null;
-
-          if (result.blob) {
-            objectURL = URL.createObjectURL(result.blob);
-          } else if (result.content) {
+          if (result.blob) objectURL = URL.createObjectURL(result.blob);
+          else if (result.content) {
             const blob = dataURLToBlob(result.content);
             objectURL = blob ? URL.createObjectURL(blob) : result.content;
           }
-
           if (objectURL) {
             objectURLs[id] = objectURL;
             return objectURL;
           }
-
           return null;
-        } catch (err) {
-          console.error("Error getting wallpaper data:", err);
+        } catch (e) {
+          console.error("getWallpaperData", e);
           return null;
         }
       },
 
+      // Legacy app-level wrappers (kept)
       bringToForeground: (appId) => {
         set((state) => {
           const newState: AppManagerState = {
             windowOrder: [...state.windowOrder],
             apps: { ...state.apps },
           };
-
-          // If empty string provided, just clear foreground flags
           if (!appId) {
             Object.keys(newState.apps).forEach((id) => {
               newState.apps[id] = { ...newState.apps[id], isForeground: false };
             });
           } else {
-            // Re‑order windowOrder so that appId is last (top‑most)
             newState.windowOrder = [
               ...newState.windowOrder.filter((id) => id !== appId),
               appId,
             ];
-
-            // Set foreground flags
             Object.keys(newState.apps).forEach((id) => {
               newState.apps[id] = {
                 ...newState.apps[id],
@@ -332,290 +278,186 @@ export const useAppStore = create<AppStoreState>()(
               };
             });
           }
-
-          // Emit DOM event (keep behaviour parity)
-          const appStateChangeEvent = new CustomEvent("appStateChange", {
-            detail: {
-              appId,
-              isOpen: newState.apps[appId]?.isOpen || false,
-              isForeground: true,
-            },
-          });
-          window.dispatchEvent(appStateChangeEvent);
-
+          window.dispatchEvent(
+            new CustomEvent("appStateChange", {
+              detail: {
+                appId,
+                isOpen: newState.apps[appId]?.isOpen || false,
+                isForeground: true,
+              },
+            })
+          );
           return newState;
         });
       },
-
       toggleApp: (appId, initialData) => {
         set((state) => {
-          const isCurrentlyOpen = state.apps[appId]?.isOpen;
-          let newWindowOrder = [...state.windowOrder];
-
-          if (isCurrentlyOpen) {
-            // Remove the app from window order
-            newWindowOrder = newWindowOrder.filter((id) => id !== appId);
-          } else {
-            // Add the app to window order
-            newWindowOrder = [...newWindowOrder, appId];
-          }
-
-          const newApps: { [appId: string]: AppState } = { ...state.apps };
-
-          // If closing the app and there are other open apps, bring the most recent one to foreground
-          const shouldBringPreviousToForeground =
-            isCurrentlyOpen && newWindowOrder.length > 0;
-          const previousAppId = shouldBringPreviousToForeground
-            ? newWindowOrder[newWindowOrder.length - 1]
+          const isOpen = state.apps[appId]?.isOpen;
+          let windowOrder = [...state.windowOrder];
+          windowOrder = isOpen
+            ? windowOrder.filter((id) => id !== appId)
+            : [...windowOrder, appId];
+          const apps: Record<string, AppState> = { ...state.apps };
+          const shouldBringPrev = isOpen && windowOrder.length > 0;
+          const prev = shouldBringPrev
+            ? windowOrder[windowOrder.length - 1]
             : null;
-
-          Object.keys(newApps).forEach((id) => {
+          Object.keys(apps).forEach((id) => {
             if (id === appId) {
-              newApps[id] = {
-                ...newApps[id],
-                isOpen: !isCurrentlyOpen,
-                isForeground: !isCurrentlyOpen,
-                initialData: !isCurrentlyOpen ? initialData : undefined,
+              apps[id] = {
+                ...apps[id],
+                isOpen: !isOpen,
+                isForeground: !isOpen,
+                initialData: !isOpen ? initialData : undefined,
               };
             } else {
-              newApps[id] = {
-                ...newApps[id],
-                isForeground:
-                  shouldBringPreviousToForeground && id === previousAppId,
+              apps[id] = {
+                ...apps[id],
+                isForeground: shouldBringPrev && id === prev,
               };
             }
           });
-
-          const newState: AppManagerState = {
-            windowOrder: newWindowOrder,
-            apps: newApps,
-          };
-
-          const appStateChangeEvent = new CustomEvent("appStateChange", {
-            detail: {
-              appId,
-              isOpen: !isCurrentlyOpen,
-              isForeground: !isCurrentlyOpen,
-            },
-          });
-          window.dispatchEvent(appStateChangeEvent);
-
-          return newState;
+          window.dispatchEvent(
+            new CustomEvent("appStateChange", {
+              detail: { appId, isOpen: !isOpen, isForeground: !isOpen },
+            })
+          );
+          return { windowOrder, apps };
         });
       },
-
       closeApp: (appId) => {
         set((state) => {
-          if (!state.apps[appId]?.isOpen) {
-            console.log(`App ${appId} is already closed. No action taken.`);
-            return state; // App is already closed, do nothing
-          }
-
-          console.log(`Closing app: ${appId}`);
-
-          const newWindowOrder = state.windowOrder.filter((id) => id !== appId);
-          const newApps: { [id: string]: AppState } = { ...state.apps };
-
-          // Determine the next app to bring to foreground
-          const nextForegroundAppId =
-            newWindowOrder.length > 0
-              ? newWindowOrder[newWindowOrder.length - 1]
-              : null;
-
-          Object.keys(newApps).forEach((id) => {
-            if (id === appId) {
-              newApps[id] = {
-                ...newApps[id],
+          if (!state.apps[appId]?.isOpen) return state;
+          const windowOrder = state.windowOrder.filter((id) => id !== appId);
+          const nextId = windowOrder.length
+            ? windowOrder[windowOrder.length - 1]
+            : null;
+          const apps = { ...state.apps };
+          Object.keys(apps).forEach((id) => {
+            if (id === appId)
+              apps[id] = {
+                ...apps[id],
                 isOpen: false,
                 isForeground: false,
-                initialData: undefined, // Clear initial data on close
+                initialData: undefined,
               };
-            } else {
-              newApps[id] = {
-                ...newApps[id],
-                // Bring the next app in order to foreground if this wasn't the last app closed
-                isForeground: id === nextForegroundAppId,
-              };
-            }
+            else apps[id] = { ...apps[id], isForeground: id === nextId };
           });
-
-          const newState: AppManagerState = {
-            windowOrder: newWindowOrder,
-            apps: newApps,
-          };
-
-          // Emit DOM event for closing
-          const appStateChangeEvent = new CustomEvent("appStateChange", {
-            detail: {
-              appId,
-              isOpen: false,
-              isForeground: false,
-            },
-          });
-          window.dispatchEvent(appStateChangeEvent);
-          console.log(`App ${appId} closed. New window order:`, newWindowOrder);
-          console.log(
-            `App ${nextForegroundAppId || "none"} brought to foreground.`
+          window.dispatchEvent(
+            new CustomEvent("appStateChange", {
+              detail: { appId, isOpen: false, isForeground: false },
+            })
           );
-
-          return newState;
+          return { windowOrder, apps };
         });
       },
-
       launchOrFocusApp: (appId, initialData) => {
         set((state) => {
-          const isCurrentlyOpen = state.apps[appId]?.isOpen;
-          let newWindowOrder = [...state.windowOrder];
-          const newApps: { [id: string]: AppState } = { ...state.apps };
-
-          console.log(
-            `[AppStore:launchOrFocusApp] App: ${appId}, Currently Open: ${isCurrentlyOpen}, InitialData:`,
-            initialData
+          const isOpen = state.apps[appId]?.isOpen;
+          let windowOrder = [...state.windowOrder];
+          if (isOpen)
+            windowOrder = [...windowOrder.filter((id) => id !== appId), appId];
+          else windowOrder.push(appId);
+          const apps = { ...state.apps };
+          Object.keys(apps).forEach((id) => {
+            const target = id === appId;
+            apps[id] = {
+              ...apps[id],
+              isOpen: target ? true : apps[id].isOpen,
+              isForeground: target,
+              initialData: target ? initialData : apps[id].initialData,
+            };
+          });
+          window.dispatchEvent(
+            new CustomEvent("appStateChange", {
+              detail: {
+                appId,
+                isOpen: true,
+                isForeground: true,
+                updatedData: !!initialData,
+              },
+            })
           );
+          return { windowOrder, apps };
+        });
+      },
+      navigateToNextApp: (current) => {
+        const { windowOrder } = get();
+        if (windowOrder.length <= 1) return;
+        const idx = windowOrder.indexOf(current);
+        if (idx === -1) return;
+        get().bringToForeground(
+          windowOrder[(idx + 1) % windowOrder.length] as AppId
+        );
+      },
+      navigateToPreviousApp: (current) => {
+        const { windowOrder } = get();
+        if (windowOrder.length <= 1) return;
+        const idx = windowOrder.indexOf(current);
+        if (idx === -1) return;
+        const prev = (idx - 1 + windowOrder.length) % windowOrder.length;
+        get().bringToForeground(windowOrder[prev] as AppId);
+      },
 
-          if (isCurrentlyOpen) {
-            // App is open: Bring to front, update initialData
-            newWindowOrder = newWindowOrder.filter((id) => id !== appId);
-            newWindowOrder.push(appId);
-          } else {
-            // App is closed: Add to end
-            newWindowOrder.push(appId);
-          }
-
-          // Update all apps for foreground status and the target app's data/open state
-          Object.keys(newApps).forEach((id) => {
-            const isTargetApp = id === appId;
-            newApps[id] = {
-              ...newApps[id],
-              isOpen: isTargetApp ? true : newApps[id].isOpen, // Ensure target is open
-              isForeground: isTargetApp, // Target is foreground
-              // Update initialData ONLY for the target app
-              initialData: isTargetApp ? initialData : newApps[id].initialData,
-            };
-          });
-
-          const newState: AppManagerState = {
-            windowOrder: newWindowOrder,
-            apps: newApps,
-          };
-
-          // Emit event (optional, but good for consistency)
-          const appStateChangeEvent = new CustomEvent("appStateChange", {
-            detail: {
-              appId,
-              isOpen: true,
-              isForeground: true,
-              updatedData: !!initialData, // Indicate if data was updated
+      clearInitialData: (appId) =>
+        set((state) => {
+          if (!state.apps[appId]?.initialData) return state;
+          return {
+            apps: {
+              ...state.apps,
+              [appId]: { ...state.apps[appId], initialData: undefined },
             },
-          });
-          window.dispatchEvent(appStateChangeEvent);
-
-          return newState;
-        });
-      },
-
-      navigateToNextApp: (currentAppId) => {
-        const { windowOrder } = get();
-        if (windowOrder.length <= 1) return;
-        const currentIndex = windowOrder.indexOf(currentAppId);
-        if (currentIndex === -1) return;
-        const nextAppId = windowOrder[
-          (currentIndex + 1) % windowOrder.length
-        ] as AppId;
-        get().bringToForeground(nextAppId);
-      },
-
-      navigateToPreviousApp: (currentAppId) => {
-        const { windowOrder } = get();
-        if (windowOrder.length <= 1) return;
-        const currentIndex = windowOrder.indexOf(currentAppId);
-        if (currentIndex === -1) return;
-        const prevIndex =
-          (currentIndex - 1 + windowOrder.length) % windowOrder.length;
-        const prevAppId = windowOrder[prevIndex] as AppId;
-        get().bringToForeground(prevAppId);
-      },
-
-      clearInitialData: (appId) => {
+          };
+        }),
+      clearInstanceInitialData: (instanceId: string) =>
         set((state) => {
-          if (state.apps[appId]?.initialData) {
-            console.log(`[AppStore] Clearing initialData for ${appId}`);
-            return {
-              apps: {
-                ...state.apps,
-                [appId]: {
-                  ...state.apps[appId],
-                  initialData: undefined,
-                },
+          if (!state.instances[instanceId]?.initialData) return state;
+          return {
+            instances: {
+              ...state.instances,
+              [instanceId]: {
+                ...state.instances[instanceId],
+                initialData: undefined,
               },
-            };
-          }
-          return state; // No change needed
-        });
-      },
-
-      clearInstanceInitialData: (instanceId: string) => {
-        set((state) => {
-          if (state.instances[instanceId]?.initialData) {
-            console.log(
-              `[AppStore] Clearing initialData for instance ${instanceId}`
-            );
-            return {
-              instances: {
-                ...state.instances,
-                [instanceId]: {
-                  ...state.instances[instanceId],
-                  initialData: undefined,
-                },
-              },
-            };
-          }
-          return state; // No change needed
-        });
-      },
+            },
+          };
+        }),
 
       htmlPreviewSplit: true,
-      setHtmlPreviewSplit: (val) => set({ htmlPreviewSplit: val }),
+      setHtmlPreviewSplit: (v) => set({ htmlPreviewSplit: v }),
       uiVolume: 1,
-      setUiVolume: (vol) => set({ uiVolume: vol }),
+      setUiVolume: (v) => set({ uiVolume: v }),
       chatSynthVolume: 2,
-      setChatSynthVolume: (vol) => set({ chatSynthVolume: vol }),
+      setChatSynthVolume: (v) => set({ chatSynthVolume: v }),
       ipodVolume: 1,
-      setIpodVolume: (vol) => set({ ipodVolume: vol }),
+      setIpodVolume: (v) => set({ ipodVolume: v }),
 
-      // Add instance management
+      // Instance store
       instances: {},
-      instanceWindowOrder: [],
-      instanceStackOrder: [], // New: controls strict z-index stacking order (top = last)
-      foregroundInstanceId: null, // Initialize new field
+      instanceOrder: [],
+      foregroundInstanceId: null,
       nextInstanceId: 0,
 
-      // Instance management methods
       createAppInstance: (appId, initialData, title) => {
         let createdId = "";
         set((state) => {
-          const nextIdNum = state.nextInstanceId + 1;
-          createdId = nextIdNum.toString();
-
-          // Calculate position with offset for multiple windows of same app
-          const existingInstances = Object.values(state.instances).filter(
-            (instance) => instance.appId === appId && instance.isOpen
-          );
-          const offsetMultiplier = existingInstances.length;
-          const baseOffset = 16;
-          const offsetStep = 32;
+          const nextNum = state.nextInstanceId + 1;
+          createdId = nextNum.toString();
+          const sameAppOpen = Object.values(state.instances).filter(
+            (i) => i.appId === appId && i.isOpen
+          ).length;
+          const baseOffset = 16,
+            offsetStep = 32;
           const isMobile =
             typeof window !== "undefined" && window.innerWidth < 768;
           const position = {
-            x: isMobile ? 0 : baseOffset + offsetMultiplier * offsetStep,
-            y: isMobile ? 28 : 40 + offsetMultiplier * 20,
+            x: isMobile ? 0 : baseOffset + sameAppOpen * offsetStep,
+            y: isMobile ? 28 : 40 + sameAppOpen * 20,
           };
-          const config = getWindowConfig(appId);
+          const cfg = getWindowConfig(appId);
           const size = isMobile
-            ? { width: window.innerWidth, height: config.defaultSize.height }
-            : config.defaultSize;
-
-          // Build new instances map (derive foreground from foregroundInstanceId later if desired)
+            ? { width: window.innerWidth, height: cfg.defaultSize.height }
+            : cfg.defaultSize;
           const instances = {
             ...state.instances,
             [createdId]: {
@@ -629,154 +471,88 @@ export const useAppStore = create<AppStoreState>()(
               size,
             },
           } as typeof state.instances;
-
-          // Ensure other instances marked background
           Object.keys(instances).forEach((id) => {
-            if (id !== createdId) {
+            if (id !== createdId)
               instances[id] = { ...instances[id], isForeground: false };
-            }
           });
-
-          const instanceWindowOrder = [...state.instanceWindowOrder, createdId];
-          const instanceStackOrder = [
-            ...state.instanceStackOrder.filter((id) => id !== createdId),
+          const instanceOrder = [
+            ...state.instanceOrder.filter((id) => id !== createdId),
             createdId,
           ];
-
           return {
             instances,
-            instanceWindowOrder,
-            instanceStackOrder,
+            instanceOrder,
             foregroundInstanceId: createdId,
-            nextInstanceId: nextIdNum,
+            nextInstanceId: nextNum,
           };
         });
-
-        // Dispatch event (outside set to avoid extra cloning inside set)
         if (createdId) {
-          const instanceStateChangeEvent = new CustomEvent(
-            "instanceStateChange",
-            {
+          window.dispatchEvent(
+            new CustomEvent("instanceStateChange", {
               detail: {
                 instanceId: createdId,
                 isOpen: true,
                 isForeground: true,
               },
-            }
+            })
           );
-          window.dispatchEvent(instanceStateChangeEvent);
         }
         return createdId;
       },
+
       closeAppInstance: (instanceId) => {
         set((state) => {
-          if (!state.instances[instanceId]?.isOpen) {
-            console.log(
-              `Instance ${instanceId} is already closed. No action taken.`
-            );
-            return state; // Instance is already closed, do nothing
+          const inst = state.instances[instanceId];
+          if (!inst?.isOpen) return state;
+          const instances = { ...state.instances };
+          delete instances[instanceId];
+          let order = state.instanceOrder.filter((id) => id !== instanceId);
+          // pick next foreground: last same-app in order, else last overall
+          let nextForeground: string | null = null;
+          for (let i = order.length - 1; i >= 0; i--) {
+            const id = order[i];
+            if (instances[id]?.appId === inst.appId && instances[id].isOpen) {
+              nextForeground = id;
+              break;
+            }
           }
-
-          console.log(`Closing instance: ${instanceId}`);
-
-          const closingInstance = state.instances[instanceId];
-          const newInstanceWindowOrder = state.instanceWindowOrder.filter(
-            (id) => id !== instanceId
-          );
-          // Remove from stack order first
-          let newInstanceStackOrder = state.instanceStackOrder.filter(
-            (id) => id !== instanceId
-          );
-          const newInstances: Record<string, AppInstance> = {
-            ...state.instances,
-          };
-
-          // Candidate next foreground: prefer same-app most recent (top of stack), else last overall
-          let nextForegroundInstanceId: string | null = null;
-          const sameAppInStackDescending = [...newInstanceStackOrder]
-            .filter(
-              (id) =>
-                newInstances[id]?.appId === closingInstance.appId &&
-                newInstances[id]?.isOpen
-            )
-            .reverse(); // end of original was top -> reversed start is top
-          if (sameAppInStackDescending.length > 0) {
-            nextForegroundInstanceId = sameAppInStackDescending[0];
-          } else if (newInstanceStackOrder.length > 0) {
-            nextForegroundInstanceId =
-              newInstanceStackOrder[newInstanceStackOrder.length - 1];
-          }
-
-          // Actually remove the closed instance from the store
-          delete newInstances[instanceId];
-
-          // Update foreground status for remaining instances
-          Object.keys(newInstances).forEach((id) => {
-            newInstances[id] = {
-              ...newInstances[id],
-              // Bring the selected next instance to foreground
-              isForeground: id === nextForegroundInstanceId,
+          if (!nextForeground && order.length)
+            nextForeground = order[order.length - 1];
+          Object.keys(instances).forEach((id) => {
+            instances[id] = {
+              ...instances[id],
+              isForeground: id === nextForeground,
             };
           });
-
-          // If we selected a next foreground, move it to top of stack (end)
-          if (nextForegroundInstanceId) {
-            newInstanceStackOrder = [
-              ...newInstanceStackOrder.filter(
-                (id) => id !== nextForegroundInstanceId
-              ),
-              nextForegroundInstanceId,
+          if (nextForeground) {
+            order = [
+              ...order.filter((id) => id !== nextForeground),
+              nextForeground,
             ];
           }
-
-          const newState = {
-            instances: newInstances,
-            instanceWindowOrder: newInstanceWindowOrder,
-            instanceStackOrder: newInstanceStackOrder,
-            foregroundInstanceId: nextForegroundInstanceId, // Update foreground tracking
+          window.dispatchEvent(
+            new CustomEvent("instanceStateChange", {
+              detail: { instanceId, isOpen: false, isForeground: false },
+            })
+          );
+          return {
+            instances,
+            instanceOrder: order,
+            foregroundInstanceId: nextForeground,
           };
-
-          // Emit DOM event for closing
-          const instanceStateChangeEvent = new CustomEvent(
-            "instanceStateChange",
-            {
-              detail: {
-                instanceId,
-                isOpen: false,
-                isForeground: false,
-              },
-            }
-          );
-          window.dispatchEvent(instanceStateChangeEvent);
-          console.log(
-            `Instance ${instanceId} closed and removed. New instance order:`,
-            newInstanceWindowOrder
-          );
-          console.log(
-            `Instance ${
-              nextForegroundInstanceId || "none"
-            } brought to foreground.`
-          );
-
-          return newState;
         });
       },
+
       bringInstanceToForeground: (instanceId) => {
         set((state) => {
-          // Guard: instance must exist when non-empty
           if (instanceId && !state.instances[instanceId]) {
-            console.warn(
-              `[AppStore] Attempted to focus missing instance ${instanceId}`
-            );
+            console.warn(`[AppStore] focus missing instance ${instanceId}`);
             return state;
           }
-
           const instances = { ...state.instances };
-          let { instanceStackOrder } = state;
-          let foregroundInstanceId: string | null = null;
-
+          let order = [...state.instanceOrder];
+          let foreground: string | null = null;
           if (!instanceId) {
-            // Clear foreground flags
             Object.keys(instances).forEach((id) => {
               instances[id] = { ...instances[id], isForeground: false };
             });
@@ -787,145 +563,96 @@ export const useAppStore = create<AppStoreState>()(
                 isForeground: id === instanceId,
               };
             });
-            instanceStackOrder = [
-              ...instanceStackOrder.filter((id) => id !== instanceId),
-              instanceId,
-            ];
-            foregroundInstanceId = instanceId;
+            order = [...order.filter((id) => id !== instanceId), instanceId];
+            foreground = instanceId;
           }
-
-          const event = new CustomEvent("instanceStateChange", {
-            detail: {
-              instanceId,
-              isOpen: !!instances[instanceId]?.isOpen,
-              isForeground:
-                !!foregroundInstanceId && foregroundInstanceId === instanceId,
-            },
-          });
-          window.dispatchEvent(event);
-
+          window.dispatchEvent(
+            new CustomEvent("instanceStateChange", {
+              detail: {
+                instanceId,
+                isOpen: !!instances[instanceId]?.isOpen,
+                isForeground: !!foreground && foreground === instanceId,
+              },
+            })
+          );
           return {
             instances,
-            instanceWindowOrder: state.instanceWindowOrder, // unchanged
-            instanceStackOrder,
-            foregroundInstanceId,
+            instanceOrder: order,
+            foregroundInstanceId: foreground,
           };
         });
       },
+
       updateInstanceWindowState: (instanceId, position, size) =>
         set((state) => ({
           instances: {
             ...state.instances,
-            [instanceId]: {
-              ...state.instances[instanceId],
-              position,
-              size,
-            },
+            [instanceId]: { ...state.instances[instanceId], position, size },
           },
         })),
-      getInstancesByAppId: (appId) => {
-        return Object.values(get().instances).filter(
-          (instance) => instance.appId === appId
-        );
-      },
+
+      getInstancesByAppId: (appId) =>
+        Object.values(get().instances).filter((i) => i.appId === appId),
       getForegroundInstance: () => {
-        const { foregroundInstanceId } = get();
-        if (foregroundInstanceId) {
-          return get().instances[foregroundInstanceId] || null;
-        }
-        return null;
+        const id = get().foregroundInstanceId;
+        return id ? get().instances[id] || null : null;
       },
-      navigateToNextInstance: (currentInstanceId) => {
-        const { instanceWindowOrder } = get();
-        if (instanceWindowOrder.length <= 1) return;
-        const currentIndex = instanceWindowOrder.indexOf(currentInstanceId);
-        if (currentIndex === -1) return;
-        const nextInstanceId =
-          instanceWindowOrder[(currentIndex + 1) % instanceWindowOrder.length];
-        get().bringInstanceToForeground(nextInstanceId);
+      navigateToNextInstance: (currentId) => {
+        const { instanceOrder } = get();
+        if (instanceOrder.length <= 1) return;
+        const idx = instanceOrder.indexOf(currentId);
+        if (idx === -1) return;
+        const next = instanceOrder[(idx + 1) % instanceOrder.length];
+        get().bringInstanceToForeground(next);
       },
-      // Dev-only integrity check to keep ordering arrays clean
-      _debugCheckInstanceIntegrity: () => {
-        set((state) => {
-          const openIds = Object.values(state.instances)
-            .filter((i) => i.isOpen)
-            .map((i) => i.instanceId);
-          let changed = false;
-          const filteredStack = state.instanceStackOrder.filter((id) =>
-            openIds.includes(id)
-          );
-          if (filteredStack.length !== state.instanceStackOrder.length)
-            changed = true;
-          const filteredTaskbar = state.instanceWindowOrder.filter((id) =>
-            openIds.includes(id)
-          );
-          if (filteredTaskbar.length !== state.instanceWindowOrder.length)
-            changed = true;
-          // Add any missing openIds to taskbar order (preserve existing order first)
-          const missingInTaskbar = openIds.filter(
-            (id) => !filteredTaskbar.includes(id)
-          );
-          if (missingInTaskbar.length) {
-            changed = true;
-          }
-          const instanceWindowOrder = [...filteredTaskbar, ...missingInTaskbar];
-          // Ensure stack order contains all open ids (append missing maintaining current top order semantics)
-          const missingInStack = openIds.filter(
-            (id) => !filteredStack.includes(id)
-          );
-          const instanceStackOrder = [...filteredStack, ...missingInStack];
-          if (!changed && missingInStack.length === 0) return state;
-          return {
-            instanceWindowOrder,
-            instanceStackOrder,
-          };
-        });
-      },
-      navigateToPreviousInstance: (currentInstanceId) => {
-        const { instanceWindowOrder } = get();
-        if (instanceWindowOrder.length <= 1) return;
-        const currentIndex = instanceWindowOrder.indexOf(currentInstanceId);
-        if (currentIndex === -1) return;
-        const prevIndex =
-          (currentIndex - 1 + instanceWindowOrder.length) %
-          instanceWindowOrder.length;
-        const prevInstanceId = instanceWindowOrder[prevIndex];
-        get().bringInstanceToForeground(prevInstanceId);
+      navigateToPreviousInstance: (currentId) => {
+        const { instanceOrder } = get();
+        if (instanceOrder.length <= 1) return;
+        const idx = instanceOrder.indexOf(currentId);
+        if (idx === -1) return;
+        const prev = (idx - 1 + instanceOrder.length) % instanceOrder.length;
+        get().bringInstanceToForeground(instanceOrder[prev]);
       },
       launchApp: (appId, initialData, title, multiWindow = false) => {
         const state = get();
-
-        // Check if multi-window is supported for this app
         const supportsMultiWindow =
-          multiWindow || appId === "textedit" || appId === "finder"; // TextEdit and Finder support multi-window
-
+          multiWindow || appId === "textedit" || appId === "finder";
         if (!supportsMultiWindow) {
-          // Use existing single-window behavior
-          const existingInstance = Object.values(state.instances).find(
-            (instance) => instance.appId === appId && instance.isOpen
+          const existing = Object.values(state.instances).find(
+            (i) => i.appId === appId && i.isOpen
           );
-
-          if (existingInstance) {
-            // Focus existing instance
-            state.bringInstanceToForeground(existingInstance.instanceId);
-            // Update initialData if provided
+          if (existing) {
+            state.bringInstanceToForeground(existing.instanceId);
             if (initialData) {
               set((s) => ({
                 instances: {
                   ...s.instances,
-                  [existingInstance.instanceId]: {
-                    ...s.instances[existingInstance.instanceId],
+                  [existing.instanceId]: {
+                    ...s.instances[existing.instanceId],
                     initialData,
                   },
                 },
               }));
             }
-            return existingInstance.instanceId;
+            return existing.instanceId;
           }
         }
-
-        // Create new instance
         return state.createAppInstance(appId, initialData, title);
+      },
+
+      _debugCheckInstanceIntegrity: () => {
+        set((state) => {
+          const openIds = Object.values(state.instances)
+            .filter((i) => i.isOpen)
+            .map((i) => i.instanceId);
+          const filtered = state.instanceOrder.filter((id) =>
+            openIds.includes(id)
+          );
+          const missing = openIds.filter((id) => !filtered.includes(id));
+          if (!missing.length && filtered.length === state.instanceOrder.length)
+            return state;
+          return { instanceOrder: [...filtered, ...missing] };
+        });
       },
     }),
     {
@@ -956,170 +683,124 @@ export const useAppStore = create<AppStoreState>()(
         ttsVoice: state.ttsVoice,
         ipodVolume: state.ipodVolume,
         masterVolume: state.masterVolume,
-        // Only persist open instances to avoid storing closed instances
         instances: Object.fromEntries(
-          Object.entries(state.instances).filter(
-            ([, instance]) => instance.isOpen
-          )
+          Object.entries(state.instances).filter(([, inst]) => inst.isOpen)
         ),
-        instanceWindowOrder: state.instanceWindowOrder,
-        instanceStackOrder: state.instanceStackOrder.filter(
+        instanceOrder: state.instanceOrder.filter(
           (id) => state.instances[id]?.isOpen
         ),
-        foregroundInstanceId: state.foregroundInstanceId, // Add new field to partialize
+        foregroundInstanceId: state.foregroundInstanceId,
         nextInstanceId: state.nextInstanceId,
       }),
-      migrate: (persistedState: unknown, version: number) => {
-        const migrated = persistedState as AppStoreState;
+      migrate: (persisted: unknown, version: number) => {
+        const prev = persisted as AppStoreState & {
+          instanceStackOrder?: string[];
+          instanceWindowOrder?: string[];
+          instanceOrder?: string[];
+        };
         console.log(
-          "[AppStore] Migrating from version",
+          "[AppStore] Migrating from",
           version,
           "to",
           CURRENT_APP_STORE_VERSION
         );
-
-        let migratedState = migrated;
-
-        // Migrate from version 1 to 2: Reset TTS settings to null
+        // v1->2 handled TTS; keep prior logic if present
         if (version < 2) {
-          console.log(
-            "[AppStore] Migrating TTS settings to new defaults (null). Previous values:",
-            {
-              ttsModel: migratedState.ttsModel,
-              ttsVoice: migratedState.ttsVoice,
-            }
-          );
-          migratedState = {
-            ...migratedState,
-            ttsModel: null,
-            ttsVoice: null,
-          };
+          prev.ttsModel = null;
+          prev.ttsVoice = null;
         }
-
-        // Update version to current
-        migratedState.version = CURRENT_APP_STORE_VERSION;
-
-        return migratedState;
+        // v<3 unify ordering arrays
+        if (version < 3) {
+          const legacyStack: string[] | undefined = prev.instanceStackOrder;
+          const legacyWindow: string[] | undefined = prev.instanceWindowOrder;
+          prev.instanceOrder = (
+            legacyStack && legacyStack.length ? legacyStack : legacyWindow || []
+          ).filter((id: string) => prev.instances?.[id]);
+          delete prev.instanceStackOrder;
+          delete prev.instanceWindowOrder;
+        }
+        prev.version = CURRENT_APP_STORE_VERSION;
+        return prev;
       },
       onRehydrateStorage: () => (state) => {
-        if (state) {
-          // Clean up instanceWindowOrder to remove any non-existent instance IDs
-          if (state.instanceWindowOrder && state.instances) {
-            state.instanceWindowOrder = state.instanceWindowOrder.filter(
-              (instanceId) => state.instances[instanceId]
-            );
-          }
-
-          // Ensure nextInstanceId is set correctly to avoid ID collisions
-          if (state.instances && Object.keys(state.instances).length > 0) {
-            const maxId = Math.max(
-              ...Object.keys(state.instances).map((id) => parseInt(id, 10))
-            );
-            if (!isNaN(maxId) && maxId >= state.nextInstanceId) {
-              state.nextInstanceId = maxId + 1;
-              console.log(
-                `[AppStore] Adjusted nextInstanceId to ${state.nextInstanceId} to avoid collisions`
-              );
-            }
-          }
-
-          // Ensure all rehydrated instances have their persisted positions and sizes
-          if (state.instances) {
-            Object.keys(state.instances).forEach((instanceId) => {
-              const instance = state.instances[instanceId];
-              // Ensure instances have position and size
-              if (!instance.position || !instance.size) {
-                console.log(
-                  `[AppStore] Instance ${instanceId} missing position/size, applying defaults`
-                );
-                const config = getWindowConfig(instance.appId);
-                const isMobile = window.innerWidth < 768;
-
-                // Apply default position if missing
-                if (!instance.position) {
-                  instance.position = {
-                    x: isMobile ? 0 : 16,
-                    y: isMobile ? 28 : 40,
-                  };
-                }
-
-                // Apply default size if missing
-                if (!instance.size) {
-                  instance.size = isMobile
-                    ? {
-                        width: window.innerWidth,
-                        height: config.defaultSize.height,
-                      }
-                    : config.defaultSize;
-                }
-              }
-            });
-          }
-
-          // Migrate old app states to instances
-          const hasOldOpenApps = Object.values(state.apps || {}).some(
-            (app) => app.isOpen
+        if (!state) return;
+        // Clean instanceOrder after rehydrate
+        if (
+          (state as unknown as { instanceOrder?: string[] }).instanceOrder &&
+          state.instances
+        ) {
+          (state as unknown as { instanceOrder?: string[] }).instanceOrder = (
+            state as unknown as { instanceOrder?: string[] }
+          ).instanceOrder!.filter((id: string) => state.instances[id]);
+        }
+        // Fix nextInstanceId
+        if (state.instances && Object.keys(state.instances).length) {
+          const max = Math.max(
+            ...Object.keys(state.instances).map((id) => parseInt(id, 10))
           );
-          const hasInstances = Object.keys(state.instances || {}).length > 0;
-
-          if (hasOldOpenApps && !hasInstances) {
-            console.log("[AppStore] Migrating old app states to instances");
-            let instanceIdCounter = state.nextInstanceId || 0;
-            const newInstances: Record<string, AppInstance> = {};
-            const newInstanceWindowOrder: string[] = [];
-
-            // Convert each open app to an instance
-            state.windowOrder.forEach((appId) => {
-              const appState = state.apps[appId];
-              if (appState?.isOpen) {
-                const instanceId = (++instanceIdCounter).toString();
-                newInstances[instanceId] = {
-                  instanceId,
-                  appId: appId as AppId,
-                  isOpen: true,
-                  isForeground: appState.isForeground,
-                  position: appState.position,
-                  size: appState.size,
-                  initialData: appState.initialData,
-                };
-                newInstanceWindowOrder.push(instanceId);
-              }
-            });
-
-            // Update state with migrated instances
-            state.instances = newInstances;
-            state.instanceWindowOrder = newInstanceWindowOrder;
-            state.nextInstanceId = instanceIdCounter;
-
-            // Clear old app states to prevent confusion
-            Object.keys(state.apps).forEach((appId) => {
-              state.apps[appId] = {
-                isOpen: false,
-                isForeground: false,
-              };
-            });
-            state.windowOrder = [];
+          if (!isNaN(max) && max >= state.nextInstanceId)
+            state.nextInstanceId = max + 1;
+        }
+        // Ensure positions & sizes
+        Object.keys(state.instances || {}).forEach((id) => {
+          const inst = state.instances[id];
+          if (!inst.position || !inst.size) {
+            const cfg = getWindowConfig(inst.appId);
+            const isMobile = window.innerWidth < 768;
+            if (!inst.position)
+              inst.position = { x: isMobile ? 0 : 16, y: isMobile ? 28 : 40 };
+            if (!inst.size)
+              inst.size = isMobile
+                ? { width: window.innerWidth, height: cfg.defaultSize.height }
+                : cfg.defaultSize;
           }
+        });
+        // Migrate old app states (pre-instance system)
+        const hasOldOpen = Object.values(state.apps || {}).some(
+          (a) => a.isOpen
+        );
+        if (hasOldOpen && Object.keys(state.instances || {}).length === 0) {
+          let idCounter = state.nextInstanceId || 0;
+          const instances: Record<string, AppInstance> = {};
+          const order: string[] = [];
+          state.windowOrder.forEach((appId) => {
+            const a = state.apps[appId];
+            if (a?.isOpen) {
+              const instId = (++idCounter).toString();
+              instances[instId] = {
+                instanceId: instId,
+                appId: appId as AppId,
+                isOpen: true,
+                isForeground: a.isForeground,
+                position: a.position,
+                size: a.size,
+                initialData: a.initialData,
+              };
+              order.push(instId);
+            }
+          });
+          state.instances = instances;
+          (state as unknown as { instanceOrder?: string[] }).instanceOrder =
+            order;
+          state.nextInstanceId = idCounter;
+          // Reset legacy app flags
+          Object.keys(state.apps).forEach((appId) => {
+            state.apps[appId] = { isOpen: false, isForeground: false };
+          });
+          state.windowOrder = [];
         }
       },
     }
   )
 );
 
-// Wallpaper / background handling --------------------------------------------------
+// ---------------- IndexedDB wallpaper helpers ----------------------------------
 export const INDEXEDDB_PREFIX = "indexeddb://";
 const CUSTOM_WALLPAPERS_STORE = "custom_wallpapers";
-// Keep cached object URLs so we do not recreate them every time
 const objectURLs: Record<string, string> = {};
 
-// Structure stored in IndexedDB for custom wallpapers
-type StoredWallpaper = {
-  blob?: Blob;
-  content?: string;
-  [key: string]: unknown;
-};
+type StoredWallpaper = { blob?: Blob; content?: string; [k: string]: unknown };
 
-// Helper to convert a data URL to a Blob (for backwards compatibility)
 const dataURLToBlob = (dataURL: string): Blob | null => {
   try {
     if (!dataURL.startsWith("data:")) return null;
@@ -1127,64 +808,55 @@ const dataURLToBlob = (dataURL: string): Blob | null => {
     const mime = arr[0].match(/:(.*?);/)?.[1];
     const bstr = atob(arr[1]);
     let n = bstr.length;
-    const u8arr = new Uint8Array(n);
-    while (n--) {
-      u8arr[n] = bstr.charCodeAt(n);
-    }
-    return new Blob([u8arr], { type: mime });
+    const u8 = new Uint8Array(n);
+    while (n--) u8[n] = bstr.charCodeAt(n);
+    return new Blob([u8], { type: mime });
   } catch (e) {
-    console.error("Error converting data URL to Blob:", e);
+    console.error("dataURLToBlob", e);
     return null;
   }
 };
 
-// Save a custom wallpaper (image file) to IndexedDB and return its reference string
 const saveCustomWallpaper = async (file: File): Promise<string> => {
-  if (!file.type.startsWith("image/")) {
-    throw new Error("Only image files are allowed for custom wallpapers");
-  }
+  if (!file.type.startsWith("image/"))
+    throw new Error("Only image files allowed");
   try {
     const db = await ensureIndexedDBInitialized();
     const tx = db.transaction(CUSTOM_WALLPAPERS_STORE, "readwrite");
     const store = tx.objectStore(CUSTOM_WALLPAPERS_STORE);
-    const wallpaperName = `custom_${Date.now()}_${file.name.replace(
+    const name = `custom_${Date.now()}_${file.name.replace(
       /[^a-zA-Z0-9._-]/g,
       "_"
     )}`;
-    const wallpaper = {
-      name: wallpaperName,
+    const rec = {
+      name,
       blob: file,
-      content: "", // backwards compatibility
+      content: "",
       type: file.type,
       dateAdded: new Date().toISOString(),
     };
-    await new Promise<void>((resolve, reject) => {
-      const req = store.put(wallpaper, wallpaperName);
-      req.onsuccess = () => resolve();
-      req.onerror = () => reject(req.error);
+    await new Promise<void>((res, rej) => {
+      const r = store.put(rec, name);
+      r.onsuccess = () => res();
+      r.onerror = () => rej(r.error);
     });
     db.close();
-    return `${INDEXEDDB_PREFIX}${wallpaperName}`;
-  } catch (err) {
-    console.error("Failed to save custom wallpaper:", err);
-    throw err;
+    return `${INDEXEDDB_PREFIX}${name}`;
+  } catch (e) {
+    console.error("saveCustomWallpaper", e);
+    throw e;
   }
 };
 
-// Global utility: clearAllAppStates – used by Control Panels "Reset All" button.
+// Global helpers ---------------------------------------------------------------
 export const clearAllAppStates = (): void => {
   try {
     localStorage.clear();
-  } catch (err) {
-    console.error("[clearAllAppStates] Failed to clear localStorage", err);
+  } catch (e) {
+    console.error("clearAllAppStates", e);
   }
 };
-
-// HTML Preview split helpers that rely on the store state
 export const loadHtmlPreviewSplit = () =>
   useAppStore.getState().htmlPreviewSplit;
-
-export const saveHtmlPreviewSplit = (val: boolean) =>
-  useAppStore.getState().setHtmlPreviewSplit(val);
-
-// -------------------------------------------------------------------------------
+export const saveHtmlPreviewSplit = (v: boolean) =>
+  useAppStore.getState().setHtmlPreviewSplit(v);

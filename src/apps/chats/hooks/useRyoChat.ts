@@ -23,8 +23,8 @@ const getSystemState = () => {
   );
 
   const foregroundInstanceId =
-    appStore.instanceWindowOrder.length > 0
-      ? appStore.instanceWindowOrder[appStore.instanceWindowOrder.length - 1]
+    appStore.instanceOrder.length > 0
+      ? appStore.instanceOrder[appStore.instanceOrder.length - 1]
       : null;
 
   const foregroundInstance = foregroundInstanceId
@@ -46,7 +46,7 @@ const getSystemState = () => {
     runningApps: {
       foreground: foregroundApp,
       background: backgroundApps,
-      instanceWindowOrder: appStore.instanceWindowOrder,
+      instanceWindowOrder: appStore.instanceOrder,
     },
     internetExplorer: {
       url: ieStore.url,

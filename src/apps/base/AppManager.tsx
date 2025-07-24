@@ -18,8 +18,7 @@ export function AppManager({ apps }: AppManagerProps) {
   // Instance-based state
   const {
     instances,
-    instanceWindowOrder,
-    instanceStackOrder,
+    instanceOrder,
     launchApp,
     closeAppInstance,
     bringInstanceToForeground,
@@ -27,8 +26,7 @@ export function AppManager({ apps }: AppManagerProps) {
     navigateToPreviousInstance,
   } = useAppStoreShallow((state) => ({
     instances: state.instances,
-    instanceWindowOrder: state.instanceWindowOrder,
-    instanceStackOrder: state.instanceStackOrder,
+    instanceOrder: state.instanceOrder,
     launchApp: state.launchApp,
     closeAppInstance: state.closeAppInstance,
     bringInstanceToForeground: state.bringInstanceToForeground,
@@ -70,20 +68,16 @@ export function AppManager({ apps }: AppManagerProps) {
   }, {} as { [appId: string]: AppState });
 
   const getZIndexForInstance = (instanceId: string) => {
-    // Use dedicated visual stack order; foreground instance is always last
-    const index = instanceStackOrder.indexOf(instanceId);
+    const index = instanceOrder.indexOf(instanceId);
     if (index === -1) return BASE_Z_INDEX;
-    return BASE_Z_INDEX + index + 1; // start at 2
+    return BASE_Z_INDEX + index + 1;
   };
 
-  // Wrapper: translate legacy `appId` calls to the appropriate instanceId and
-  // forward to `bringInstanceToForeground`. We pick the top-most open instance
-  // of the requested app (i.e. the one that appears last in the
-  // `instanceWindowOrder` array).
+  // Wrapper: legacy appId -> instance focus using instanceOrder (end = foreground).
   const bringAppToForeground = (appId: AppId) => {
     // Find the most recently focused/open instance for the given appId.
-    for (let i = instanceWindowOrder.length - 1; i >= 0; i--) {
-      const id = instanceWindowOrder[i];
+    for (let i = instanceOrder.length - 1; i >= 0; i--) {
+      const id = instanceOrder[i];
       const instance = instances[id];
       if (instance && instance.appId === appId && instance.isOpen) {
         bringInstanceToForeground(id);
@@ -321,7 +315,7 @@ export function AppManager({ apps }: AppManagerProps) {
         toggleApp={(appId, initialData) => {
           launchApp(appId, initialData);
         }}
-        appStates={{ windowOrder: instanceWindowOrder, apps: legacyAppStates }}
+        appStates={{ windowOrder: instanceOrder, apps: legacyAppStates }}
       />
     </AppContext.Provider>
   );
