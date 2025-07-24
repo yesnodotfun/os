@@ -592,36 +592,34 @@ export const useAppStore = create<AppStoreState>()(
 
       // Instance management methods
       createAppInstance: (appId, initialData, title) => {
-        const instanceId = (++get().nextInstanceId).toString();
+        let createdId = "";
+        set((state) => {
+          const nextIdNum = state.nextInstanceId + 1;
+          createdId = nextIdNum.toString();
 
-        // Calculate position with offset for multiple windows
-        const existingInstances = Object.values(get().instances).filter(
-          (instance) => instance.appId === appId && instance.isOpen
-        );
-        const offsetMultiplier = existingInstances.length;
-        const baseOffset = 16;
-        const offsetStep = 32;
+          // Calculate position with offset for multiple windows of same app
+          const existingInstances = Object.values(state.instances).filter(
+            (instance) => instance.appId === appId && instance.isOpen
+          );
+          const offsetMultiplier = existingInstances.length;
+          const baseOffset = 16;
+          const offsetStep = 32;
+          const isMobile =
+            typeof window !== "undefined" && window.innerWidth < 768;
+          const position = {
+            x: isMobile ? 0 : baseOffset + offsetMultiplier * offsetStep,
+            y: isMobile ? 28 : 40 + offsetMultiplier * 20,
+          };
+          const config = getWindowConfig(appId);
+          const size = isMobile
+            ? { width: window.innerWidth, height: config.defaultSize.height }
+            : config.defaultSize;
 
-        const isMobile = window.innerWidth < 768;
-        const position = {
-          x: isMobile ? 0 : baseOffset + offsetMultiplier * offsetStep,
-          y: isMobile ? 28 : 40 + offsetMultiplier * 20,
-        };
-
-        // Get default size from window config
-        const config = getWindowConfig(appId);
-        const size = isMobile
-          ? {
-              width: window.innerWidth,
-              height: config.defaultSize.height,
-            }
-          : config.defaultSize;
-
-        set((state) => ({
-          instances: {
+          // Build new instances map (derive foreground from foregroundInstanceId later if desired)
+          const instances = {
             ...state.instances,
-            [instanceId]: {
-              instanceId,
+            [createdId]: {
+              instanceId: createdId,
               appId,
               isOpen: true,
               isForeground: true,
@@ -630,30 +628,45 @@ export const useAppStore = create<AppStoreState>()(
               position,
               size,
             },
-          },
-          instanceWindowOrder: [...state.instanceWindowOrder, instanceId],
-          instanceStackOrder: [
-            ...state.instanceStackOrder.filter((id) => id !== instanceId),
-            instanceId,
-          ],
-          foregroundInstanceId: instanceId, // Set as foreground instance
-        }));
+          } as typeof state.instances;
 
-        // Bring all other instances to background
-        set((state) => {
-          const updatedInstances = { ...state.instances };
-          Object.keys(updatedInstances).forEach((id) => {
-            if (id !== instanceId) {
-              updatedInstances[id] = {
-                ...updatedInstances[id],
-                isForeground: false,
-              };
+          // Ensure other instances marked background
+          Object.keys(instances).forEach((id) => {
+            if (id !== createdId) {
+              instances[id] = { ...instances[id], isForeground: false };
             }
           });
-          return { instances: updatedInstances };
+
+          const instanceWindowOrder = [...state.instanceWindowOrder, createdId];
+          const instanceStackOrder = [
+            ...state.instanceStackOrder.filter((id) => id !== createdId),
+            createdId,
+          ];
+
+          return {
+            instances,
+            instanceWindowOrder,
+            instanceStackOrder,
+            foregroundInstanceId: createdId,
+            nextInstanceId: nextIdNum,
+          };
         });
 
-        return instanceId;
+        // Dispatch event (outside set to avoid extra cloning inside set)
+        if (createdId) {
+          const instanceStateChangeEvent = new CustomEvent(
+            "instanceStateChange",
+            {
+              detail: {
+                instanceId: createdId,
+                isOpen: true,
+                isForeground: true,
+              },
+            }
+          );
+          window.dispatchEvent(instanceStateChangeEvent);
+        }
+        return createdId;
       },
       closeAppInstance: (instanceId) => {
         set((state) => {
@@ -670,7 +683,7 @@ export const useAppStore = create<AppStoreState>()(
           const newInstanceWindowOrder = state.instanceWindowOrder.filter(
             (id) => id !== instanceId
           );
-          // Remove from stack order and (if we pick a new foreground later) we'll push it to end
+          // Remove from stack order first
           let newInstanceStackOrder = state.instanceStackOrder.filter(
             (id) => id !== instanceId
           );
@@ -678,40 +691,20 @@ export const useAppStore = create<AppStoreState>()(
             ...state.instances,
           };
 
-          // Find the next instance to bring to foreground
+          // Candidate next foreground: prefer same-app most recent (top of stack), else last overall
           let nextForegroundInstanceId: string | null = null;
-
-          // First, try to find another open instance of the same app
-          const sameAppInstances = Object.values(state.instances)
+          const sameAppInStackDescending = [...newInstanceStackOrder]
             .filter(
-              (instance) =>
-                instance.appId === closingInstance.appId &&
-                instance.instanceId !== instanceId &&
-                instance.isOpen
+              (id) =>
+                newInstances[id]?.appId === closingInstance.appId &&
+                newInstances[id]?.isOpen
             )
-            .map((instance) => instance.instanceId);
-
-          if (sameAppInstances.length > 0) {
-            // Find the most recently used instance of the same app
-            // (the one that appears last in the window order among same-app instances)
-            for (let i = newInstanceWindowOrder.length - 1; i >= 0; i--) {
-              const candidateId = newInstanceWindowOrder[i];
-              if (sameAppInstances.includes(candidateId)) {
-                nextForegroundInstanceId = candidateId;
-                break;
-              }
-            }
-
-            // If no same-app instance found in window order, use the first available
-            if (!nextForegroundInstanceId) {
-              nextForegroundInstanceId = sameAppInstances[0];
-            }
-          } else {
-            // No other instances of the same app, fall back to the last instance in window order
+            .reverse(); // end of original was top -> reversed start is top
+          if (sameAppInStackDescending.length > 0) {
+            nextForegroundInstanceId = sameAppInStackDescending[0];
+          } else if (newInstanceStackOrder.length > 0) {
             nextForegroundInstanceId =
-              newInstanceWindowOrder.length > 0
-                ? newInstanceWindowOrder[newInstanceWindowOrder.length - 1]
-                : null;
+              newInstanceStackOrder[newInstanceStackOrder.length - 1];
           }
 
           // Actually remove the closed instance from the store
@@ -770,53 +763,53 @@ export const useAppStore = create<AppStoreState>()(
       },
       bringInstanceToForeground: (instanceId) => {
         set((state) => {
-          const newState = {
-            instances: { ...state.instances },
-            instanceWindowOrder: [...state.instanceWindowOrder], // Keep taskbar order stable
-            instanceStackOrder: [...state.instanceStackOrder], // Will be reordered for visual stacking
-            foregroundInstanceId: null as string | null, // Initialize as null
-          };
+          // Guard: instance must exist when non-empty
+          if (instanceId && !state.instances[instanceId]) {
+            console.warn(
+              `[AppStore] Attempted to focus missing instance ${instanceId}`
+            );
+            return state;
+          }
 
-          // If empty string provided, just clear foreground flags
+          const instances = { ...state.instances };
+          let { instanceStackOrder } = state;
+          let foregroundInstanceId: string | null = null;
+
           if (!instanceId) {
-            Object.keys(newState.instances).forEach((id) => {
-              newState.instances[id] = {
-                ...newState.instances[id],
-                isForeground: false,
-              };
+            // Clear foreground flags
+            Object.keys(instances).forEach((id) => {
+              instances[id] = { ...instances[id], isForeground: false };
             });
-            // Already null, no need to set again
           } else {
-            // Don't reorder instanceWindowOrder - keep taskbar order stable
-            // Just set foreground flags
-            Object.keys(newState.instances).forEach((id) => {
-              newState.instances[id] = {
-                ...newState.instances[id],
+            Object.keys(instances).forEach((id) => {
+              instances[id] = {
+                ...instances[id],
                 isForeground: id === instanceId,
               };
             });
-            // Reorder stacking: move focused to end (top)
-            newState.instanceStackOrder = [
-              ...newState.instanceStackOrder.filter((id) => id !== instanceId),
+            instanceStackOrder = [
+              ...instanceStackOrder.filter((id) => id !== instanceId),
               instanceId,
             ];
-            newState.foregroundInstanceId = instanceId; // Update new field
+            foregroundInstanceId = instanceId;
           }
 
-          // Emit DOM event (keep behaviour parity)
-          const instanceStateChangeEvent = new CustomEvent(
-            "instanceStateChange",
-            {
-              detail: {
-                instanceId,
-                isOpen: newState.instances[instanceId]?.isOpen || false,
-                isForeground: true,
-              },
-            }
-          );
-          window.dispatchEvent(instanceStateChangeEvent);
+          const event = new CustomEvent("instanceStateChange", {
+            detail: {
+              instanceId,
+              isOpen: !!instances[instanceId]?.isOpen,
+              isForeground:
+                !!foregroundInstanceId && foregroundInstanceId === instanceId,
+            },
+          });
+          window.dispatchEvent(event);
 
-          return newState;
+          return {
+            instances,
+            instanceWindowOrder: state.instanceWindowOrder, // unchanged
+            instanceStackOrder,
+            foregroundInstanceId,
+          };
         });
       },
       updateInstanceWindowState: (instanceId, position, size) =>
@@ -850,6 +843,43 @@ export const useAppStore = create<AppStoreState>()(
         const nextInstanceId =
           instanceWindowOrder[(currentIndex + 1) % instanceWindowOrder.length];
         get().bringInstanceToForeground(nextInstanceId);
+      },
+      // Dev-only integrity check to keep ordering arrays clean
+      _debugCheckInstanceIntegrity: () => {
+        set((state) => {
+          const openIds = Object.values(state.instances)
+            .filter((i) => i.isOpen)
+            .map((i) => i.instanceId);
+          let changed = false;
+          const filteredStack = state.instanceStackOrder.filter((id) =>
+            openIds.includes(id)
+          );
+          if (filteredStack.length !== state.instanceStackOrder.length)
+            changed = true;
+          const filteredTaskbar = state.instanceWindowOrder.filter((id) =>
+            openIds.includes(id)
+          );
+          if (filteredTaskbar.length !== state.instanceWindowOrder.length)
+            changed = true;
+          // Add any missing openIds to taskbar order (preserve existing order first)
+          const missingInTaskbar = openIds.filter(
+            (id) => !filteredTaskbar.includes(id)
+          );
+          if (missingInTaskbar.length) {
+            changed = true;
+          }
+          const instanceWindowOrder = [...filteredTaskbar, ...missingInTaskbar];
+          // Ensure stack order contains all open ids (append missing maintaining current top order semantics)
+          const missingInStack = openIds.filter(
+            (id) => !filteredStack.includes(id)
+          );
+          const instanceStackOrder = [...filteredStack, ...missingInStack];
+          if (!changed && missingInStack.length === 0) return state;
+          return {
+            instanceWindowOrder,
+            instanceStackOrder,
+          };
+        });
       },
       navigateToPreviousInstance: (currentInstanceId) => {
         const { instanceWindowOrder } = get();
@@ -933,7 +963,9 @@ export const useAppStore = create<AppStoreState>()(
           )
         ),
         instanceWindowOrder: state.instanceWindowOrder,
-        instanceStackOrder: state.instanceStackOrder,
+        instanceStackOrder: state.instanceStackOrder.filter(
+          (id) => state.instances[id]?.isOpen
+        ),
         foregroundInstanceId: state.foregroundInstanceId, // Add new field to partialize
         nextInstanceId: state.nextInstanceId,
       }),
