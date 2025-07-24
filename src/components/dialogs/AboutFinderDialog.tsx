@@ -88,7 +88,7 @@ export function AboutFinderDialog({
                   fontSize: isXpTheme ? "16px" : undefined,
                 }}
               >
-                ryOS 8.2
+                ryOS
               </div>
             </div>
 
