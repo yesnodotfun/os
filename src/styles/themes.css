@@ -253,9 +253,9 @@
     rgba(255, 255, 255, 0.9),
     rgba(255, 255, 255, 0.3)
   );
-  width: calc(100% - 6px);
+  width: calc(100% - 8px);
   border-radius: 8px 8px 2px 2px;
-  top: 2px;
+  top: 1px;
   filter: blur(0.5px);
   z-index: 2;
   pointer-events: none;

@@ -65,6 +65,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         <Comp
           className={cn("aqua-button primary", className)}
           ref={ref}
+          style={{ position: "relative", zIndex: 1, ...props.style }}
           {...props}
           onClick={handleClick}
         />
@@ -77,6 +78,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         <Comp
           className={cn("aqua-button secondary", className)}
           ref={ref}
+          style={{ position: "relative", zIndex: 1, ...props.style }}
           {...props}
           onClick={handleClick}
         />
@@ -89,6 +91,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         <Comp
           className={cn("aqua-button secondary", className)}
           ref={ref}
+          style={{ position: "relative", zIndex: 1, ...props.style }}
           {...props}
           onClick={handleClick}
         />
