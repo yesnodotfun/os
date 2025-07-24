@@ -22,8 +22,8 @@ const Switch = React.forwardRef<
     onCheckedChange?.(checked);
   };
 
-  // For legacy Windows themes we keep inline styles to override their CSS.
-  // For macOSX we rely on theme-specific aqua styles in themes.css.
+  // For legacy / non-mac themes we provide minimal inline fallback styles.
+  // macOSX theme supplies its own gradients & metrics in themes.css.
   const switchStyle: React.CSSProperties | undefined = isMacOSX
     ? undefined
     : {
@@ -31,13 +31,14 @@ const Switch = React.forwardRef<
         borderRadius: "9999px",
         border: "none",
         boxShadow: "none",
-        background: isChecked ? "#111827" : "#9ca3af", // Ensure background property is also set
       };
 
   return (
     <SwitchPrimitives.Root
       className={cn(
         "peer os-switch inline-flex h-[16px] w-7 shrink-0 cursor-pointer items-center transition-colors focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+        // Provide consistent horizontal padding for non-mac themes so travel distance is identical
+        !isMacOSX && "px-[2px]",
         className
       )}
       style={switchStyle}
@@ -47,7 +48,9 @@ const Switch = React.forwardRef<
     >
       <SwitchPrimitives.Thumb
         className={cn(
-          "os-switch-thumb pointer-events-none block h-3 w-3 rounded-full bg-white transition-transform data-[state=checked]:translate-x-[11px] data-[state=unchecked]:translate-x-[-2px]"
+          "os-switch-thumb pointer-events-none block h-[14px] w-[14px] rounded-full bg-white transition-transform will-change-transform",
+          // Start at x=0; translate by fixed distance when checked (Tailwind requires static class name)
+          "data-[state=checked]:translate-x-[10px]"
         )}
       />
     </SwitchPrimitives.Root>

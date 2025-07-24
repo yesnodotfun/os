@@ -115,8 +115,9 @@ export function StartMenu({ apps }: StartMenuProps) {
           sideOffset={2}
           className="p-0 overflow-hidden"
           style={{
-            width: "380px",
-            maxHeight: "480px",
+            // Narrower overall width; differentiate slightly for themes if desired
+            width: "280px",
+            maxHeight: "80vh",
             background:
               currentTheme === "xp" || currentTheme === "win98"
                 ? "#ece9d8"
@@ -172,7 +173,7 @@ export function StartMenu({ apps }: StartMenuProps) {
                   currentTheme === "xp" || currentTheme === "win98"
                     ? "#ffffff"
                     : "#c0c0c0",
-                height: "480px", // Fixed height to enable scrolling
+                maxHeight: "80vh", // Responsive height to enable scrolling
               }}
             >
               {/* All Menu Items Section */}
