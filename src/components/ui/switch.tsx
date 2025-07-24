@@ -49,7 +49,9 @@ const Switch = React.forwardRef<
       <SwitchPrimitives.Thumb
         className={cn(
           "os-switch-thumb pointer-events-none block h-[14px] w-[14px] rounded-full bg-white transition-transform will-change-transform",
-          // Start at x=0; translate by fixed distance when checked (Tailwind requires static class name)
+          // macOSX needs a slight negative offset when unchecked to appear visually centered inside bordered track
+          isMacOSX && "data-[state=unchecked]:translate-x-[-2px]",
+          // Translate by fixed distance when checked (Tailwind requires static class name)
           "data-[state=checked]:translate-x-[10px]"
         )}
       />
