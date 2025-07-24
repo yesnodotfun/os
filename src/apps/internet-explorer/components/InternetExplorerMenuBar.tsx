@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { generateAppShareUrl } from "@/utils/sharedUrl";
 import { useThemeStore } from "@/stores/useThemeStore";
+import { ThemedIcon } from "@/components/shared/ThemedIcon";
 
 interface InternetExplorerMenuBarProps extends Omit<AppProps, "onClose"> {
   onRefresh?: () => void;
@@ -65,10 +66,10 @@ const renderFavoriteItem = (
     return (
       <DropdownMenuSub key={favorite.title}>
         <DropdownMenuSubTrigger className="text-md h-6 px-3 active:bg-gray-900 active:text-white flex items-center gap-2">
-          <img
-            src={"/icons/default/directory.png"} // Use folder icon
+          <ThemedIcon
+            name="directory.png"
             alt="Folder"
-            className="w-4 h-4"
+            className="w-4 h-4 [image-rendering:pixelated]"
           />
           {favorite.title}
         </DropdownMenuSubTrigger>

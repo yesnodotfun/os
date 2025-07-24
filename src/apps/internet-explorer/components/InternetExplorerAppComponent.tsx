@@ -57,6 +57,7 @@ import {
 import { ShareItemDialog } from "@/components/dialogs/ShareItemDialog";
 import { toast } from "sonner";
 import { useThemeStore } from "@/stores/useThemeStore";
+import { ThemedIcon } from "@/components/shared/ThemedIcon";
 
 // Analytics event namespace for Internet Explorer events
 export const IE_ANALYTICS = {
@@ -2398,10 +2399,10 @@ export function InternetExplorerAppComponent({
                                 size="sm"
                                 className="whitespace-nowrap hover:bg-gray-200 font-geneva-12 text-[10px] gap-1 px-1 mr-1 w-content min-w-[60px] max-w-[120px] flex-shrink-0"
                               >
-                                <img
-                                  src={"/icons/default/directory.png"} // Folder icon
+                                <ThemedIcon
+                                  name="directory.png"
                                   alt="Folder"
-                                  className="w-4 h-4 mr-1"
+                                  className="w-4 h-4 mr-1 [image-rendering:pixelated]"
                                 />
                                 <span className="truncate">
                                   {favorite.title}
