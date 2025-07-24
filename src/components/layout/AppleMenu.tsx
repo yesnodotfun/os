@@ -13,6 +13,7 @@ import { AppId } from "@/config/appRegistry";
 import { useLaunchApp } from "@/hooks/useLaunchApp";
 import { useThemeStore } from "@/stores/useThemeStore";
 import { cn } from "@/lib/utils";
+import { ThemedIcon } from "@/components/shared/ThemedIcon";
 
 interface AppleMenuProps {
   apps: AnyApp[];
@@ -64,9 +65,9 @@ export function AppleMenu({ apps }: AppleMenuProps) {
                   {app.icon}
                 </div>
               ) : (
-                <img
-                  src={app.icon.src}
-                  alt=""
+                <ThemedIcon
+                  name={app.icon.src}
+                  alt={app.name}
                   className="w-4 h-4 [image-rendering:pixelated]"
                 />
               )}

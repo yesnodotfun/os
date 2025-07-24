@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2025-07-24T05:02:29.841Z",
+  "generatedAt": "2025-07-24T05:39:02.975Z",
   "themes": {
     "default": [
       "apple.png",
@@ -36,6 +36,7 @@
       "file-text.png",
       "file.png",
       "floppy.png",
+      "folder.png",
       "gameboy.png",
       "ie-loader-animated.png",
       "ie-loader.png",
@@ -124,6 +125,27 @@
       "tv.png",
       "video-tape.png",
       "videos.png",
+      "warn.png"
+    ],
+    "macosx": [
+      "applications.png",
+      "cdrom.png",
+      "directory.png",
+      "documents.png",
+      "error.png",
+      "file-text.png",
+      "file.png",
+      "folder.png",
+      "ie-site.png",
+      "image.png",
+      "images.png",
+      "mac.png",
+      "movies.png",
+      "sites.png",
+      "sound.png",
+      "sounds.png",
+      "trash-empty.png",
+      "trash-full.png",
       "warn.png"
     ]
   }
