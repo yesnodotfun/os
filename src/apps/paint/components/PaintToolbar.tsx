@@ -6,6 +6,7 @@ import {
   TooltipTrigger,
   TooltipProvider,
 } from "@/components/ui/tooltip";
+import { useThemeStore } from "@/stores/useThemeStore";
 
 interface PaintToolbarProps {
   selectedTool: string;
@@ -54,6 +55,9 @@ export const PaintToolbar: React.FC<PaintToolbarProps> = ({
   selectedTool,
   onToolSelect,
 }) => {
+  const currentTheme = useThemeStore((state) => state.current);
+  const isMacTheme = currentTheme === "macosx";
+
   return (
     <TooltipProvider>
       <div className="grid grid-cols-2 gap-0">
@@ -61,7 +65,13 @@ export const PaintToolbar: React.FC<PaintToolbarProps> = ({
           <Tooltip key={tool.id}>
             <TooltipTrigger asChild>
               <Button
-                variant={selectedTool === tool.id ? "secondary" : "ghost"}
+                variant={
+                  isMacTheme
+                    ? "outline"
+                    : selectedTool === tool.id
+                    ? "secondary"
+                    : "ghost"
+                }
                 className={`p-1 border-1 transition-none ${
                   selectedTool === tool.id ? "invert border-white" : ""
                 }`}
