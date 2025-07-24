@@ -147,7 +147,7 @@ DropdownMenuSubContent.displayName =
 const DropdownMenuContent = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content>
->(({ className, sideOffset = 4, ...props }, ref) => {
+>(({ className, sideOffset = 4, style, ...props }, ref) => {
   const currentTheme = useThemeStore((state) => state.current);
   const isMacOSTheme = currentTheme === "macosx";
 
@@ -169,8 +169,9 @@ const DropdownMenuContent = React.forwardRef<
             opacity: "0.92",
             boxShadow: "0 4px 16px rgba(0, 0, 0, 0.4)",
             padding: "4px 0px",
-            minWidth: "180px",
+            minWidth: style?.minWidth ?? "180px",
           }),
+          ...style,
         }}
         {...props}
       />

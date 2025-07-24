@@ -488,7 +488,7 @@ function VolumeControl() {
         <Button
           variant="ghost"
           size="icon"
-          className={`h-6 w-6 text-md px-1 py-1 border-none focus-visible:ring-0 ${
+          className={`h-6 w-7 text-md px-1 py-1 border-none focus-visible:ring-0 ${
             isXpTheme
               ? "hover:bg-white/20 active:bg-white/30"
               : "hover:bg-black/10 active:bg-black/20"
@@ -506,6 +506,7 @@ function VolumeControl() {
         side={isXpTheme ? "top" : "bottom"}
         sideOffset={isXpTheme ? 8 : 1}
         className="p-2 pt-4 w-auto min-w-4 h-40 flex flex-col items-center justify-center"
+        style={{ minWidth: "auto" }}
       >
         <Slider
           orientation="vertical"
