@@ -280,7 +280,7 @@ export function FileIcon({
             ? isMacOSXTheme
               ? {
                   textShadow:
-                    "0 1px 0 rgba(0,0,0,0.9), 0 2px 1px rgba(0,0,0,0.75), 0 3px 2px rgba(0,0,0,0.55)",
+                    "0 1px 0 rgba(0,0,0,0.9), 0 1px 2px rgba(0,0,0,0.85), 0 3px 6px rgba(0,0,0,0.65)",
                 }
               : { textShadow: "1px 1px 2px rgba(0, 0, 0, 0.8)" }
             : {}
