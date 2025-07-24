@@ -304,7 +304,11 @@ export function Desktop({
               key={app.id}
               name={app.name}
               isDirectory={false}
-              icon={getAppIconPath(app.id)}
+              icon={
+                isXpTheme && app.id === "pc"
+                  ? `/icons/${currentTheme}/games.png`
+                  : getAppIconPath(app.id)
+              }
               onClick={(e) => handleIconClick(app.id, e)}
               onDoubleClick={(e) => {
                 e.stopPropagation();
