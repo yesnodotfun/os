@@ -539,13 +539,13 @@ export function MenuBar({ children, inWindowFrame = false }: MenuBarProps) {
   const {
     getForegroundInstance,
     instances,
-    instanceOrder,
+
     bringInstanceToForeground,
     foregroundInstanceId, // Add this to get the foreground instance ID
   } = useAppStoreShallow((s) => ({
     getForegroundInstance: s.getForegroundInstance,
     instances: s.instances,
-    instanceOrder: s.instanceOrder,
+
     bringInstanceToForeground: s.bringInstanceToForeground,
     foregroundInstanceId: s.foregroundInstanceId, // Add this
   }));
@@ -597,8 +597,13 @@ export function MenuBar({ children, inWindowFrame = false }: MenuBarProps) {
         {/* Running Apps Area */}
         <div className="flex-1 flex items-center gap-1 px-2 overflow-x-auto h-full">
           {/* Show all active instances as taskbar buttons */}
-          {instanceOrder.length > 0 &&
-            instanceOrder.map((instanceId) => {
+          {(() => {
+            const taskbarIds = Object.values(instances)
+              .filter((i) => i.isOpen)
+              .sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0))
+              .map((i) => i.instanceId);
+            if (taskbarIds.length === 0) return null;
+            return taskbarIds.map((instanceId) => {
               const instance = instances[instanceId];
               if (!instance || !instance.isOpen) return null;
 
@@ -670,7 +675,8 @@ export function MenuBar({ children, inWindowFrame = false }: MenuBarProps) {
                   </span>
                 </button>
               );
-            })}
+            });
+          })()}
         </div>
 
         {/* System Tray */}

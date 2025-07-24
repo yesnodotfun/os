@@ -15,6 +15,7 @@ export interface AppInstance extends AppState {
   instanceId: string;
   appId: AppId;
   title?: string;
+  createdAt: number; // stable ordering for taskbar (creation time)
 }
 
 const getInitialState = (): AppManagerState => {
@@ -469,6 +470,7 @@ export const useAppStore = create<AppStoreState>()(
               title,
               position,
               size,
+              createdAt: Date.now(),
             },
           } as typeof state.instances;
           Object.keys(instances).forEach((id) => {
@@ -744,6 +746,10 @@ export const useAppStore = create<AppStoreState>()(
         // Ensure positions & sizes
         Object.keys(state.instances || {}).forEach((id) => {
           const inst = state.instances[id];
+          if (!inst.createdAt) {
+            const numericId = parseInt(id, 10);
+            inst.createdAt = !isNaN(numericId) ? numericId : Date.now();
+          }
           if (!inst.position || !inst.size) {
             const cfg = getWindowConfig(inst.appId);
             const isMobile = window.innerWidth < 768;
@@ -775,6 +781,7 @@ export const useAppStore = create<AppStoreState>()(
                 position: a.position,
                 size: a.size,
                 initialData: a.initialData,
+                createdAt: Date.now(),
               };
               order.push(instId);
             }
