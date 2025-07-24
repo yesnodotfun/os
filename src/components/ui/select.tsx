@@ -179,7 +179,7 @@ const SelectContent = React.forwardRef<
             borderRadius: "0px",
             background: "var(--os-pinstripe-window)",
             opacity: "0.92",
-            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.25)",
+            boxShadow: "0 4px 16px rgba(0, 0, 0, 0.4)",
             padding: "4px 0px",
           }),
         }}
