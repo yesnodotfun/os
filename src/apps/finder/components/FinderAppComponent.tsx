@@ -944,7 +944,7 @@ export function FinderAppComponent({
                   isXpTheme
                     ? "!text-[11px]"
                     : currentTheme === "macosx"
-                    ? "!text-[12px] h-7"
+                    ? "!text-[12px] h-[26px]"
                     : "!text-[16px]"
                 } `}
                 style={
