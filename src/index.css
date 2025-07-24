@@ -405,6 +405,10 @@ button.piano-key.piano-key[class*="bg-[#ff33ff]"] {
     font-smooth: always;
   }
 
+  .file-icon-label {
+    font-family: var(--os-font-ui);
+  }
+
   .font-apple-garamond {
     font-family: "Apple Garamond", "Georgia", "Palatino", serif;
     -webkit-font-smoothing: antialiased;
