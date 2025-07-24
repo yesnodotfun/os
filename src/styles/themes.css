@@ -1098,7 +1098,7 @@
 /* -------------------------------------------------- */
 :root[data-os-theme="macosx"] .chat-bubble {
   position: relative;
-  border-radius: 12px !important; /* match aqua-button */
+  border-radius: 14px !important; /* match aqua-button */
   /* Enhanced shadow with subtle outer lift and multi-layer inset stroke similar to traffic lights */
   box-shadow:
     /* outer shadows */ 0 2px 4px rgba(0, 0, 0, 0.14),
@@ -1108,8 +1108,10 @@
     /* crisp inner stroke */ inset 0 0 0 0.5px rgba(0, 0, 0, 0.28),
     /* existing light outline */ inset 0 0 0 1px rgba(0, 0, 0, 0.08);
   overflow: hidden;
-  padding-top: 4px !important;
-  padding-bottom: 4px !important;
+  padding-top: 6px !important;
+  padding-bottom: 6px !important;
+  padding-left: 12px !important;
+  padding-right: 12px !important;
   -webkit-font-smoothing: antialiased;
   text-shadow: 0 2px 2px rgba(0, 0, 0, 0.07);
 }
@@ -1121,13 +1123,13 @@
   position: absolute;
   left: 6px;
   right: 6px;
-  top: 2px;
+  top: 3px;
   height: 28%;
   background: linear-gradient(
     rgba(255, 255, 255, 0.9),
     rgba(255, 255, 255, 0.25)
   );
-  border-radius: 8px 8px 4px 4px;
+  border-radius: 10px 10px 4px 4px;
   filter: blur(0.4px);
   pointer-events: none;
   z-index: 1;
