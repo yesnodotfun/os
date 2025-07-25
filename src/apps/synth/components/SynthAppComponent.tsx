@@ -849,7 +849,7 @@ export function SynthAppComponent({
       >
         <div
           ref={appContainerRef}
-          className="flex flex-col h-full w-full bg-[#1a1a1a] text-white overflow-hidden select-none"
+          className="flex flex-col h-full w-full bg-[#1a1a1a] text-white overflow-hidden select-none synth-force-font"
         >
           {/* Main content area */}
           <div className="flex flex-col flex-1 min-h-0 w-full overflow-hidden">
