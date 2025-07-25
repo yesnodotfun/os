@@ -559,7 +559,7 @@ export const PaintAppComponent: React.FC<AppProps<PaintInitialData>> = ({
         isOpen={isHelpDialogOpen}
         onOpenChange={setIsHelpDialogOpen}
         helpItems={helpItems}
-        appName="MacPaint"
+        appName="Paint"
       />
       <AboutDialog
         isOpen={isAboutDialogOpen}
