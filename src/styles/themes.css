@@ -191,10 +191,10 @@
 /* Mac OS X Aqua Button Styles */
 .aqua-button {
   line-height: 1;
-  height: 24px;
+  height: 28px;
   padding: 0 16px;
   min-width: auto;
-  border-radius: 12px;
+  border-radius: 14px;
   position: relative;
   overflow: hidden;
   cursor: default;
@@ -250,13 +250,14 @@
   left: 50%;
   transform: translateX(-50%);
   height: 33%;
+  max-height: 12px;
   background: linear-gradient(
     rgba(255, 255, 255, 0.9),
     rgba(255, 255, 255, 0.3)
   );
-  width: calc(100% - 8px);
-  border-radius: 8px 8px 2px 2px;
-  top: 1px;
+  width: calc(100% - 10px);
+  border-radius: 12px 12px 2px 2px;
+  top: 2px;
   filter: blur(0.5px);
   z-index: 2;
   pointer-events: none;

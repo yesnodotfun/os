@@ -387,6 +387,7 @@ export function ChatsAppComponent({
   const currentTheme = useThemeStore((state) => state.current);
   const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
   const isWindowsLegacyTheme = isXpTheme;
+  const isMacTheme = currentTheme === "macosx";
 
   const menuBar = (
     <ChatsMenuBar
@@ -666,12 +667,22 @@ export function ChatsAppComponent({
                       2. In @ryo chat when rate limit is hit for anonymous users */}
                   {(currentRoomId && !username) ||
                   (!currentRoomId && needsUsername && !username) ? (
-                    <Button
-                      onClick={promptSetUsername}
-                      className="w-full h-9 font-geneva-12 text-[12px] bg-orange-600 text-white hover:bg-orange-700 transition-all duration-200"
-                    >
-                      {"Login to Chat"}
-                    </Button>
+                    isMacTheme ? (
+                      <Button
+                        variant="default"
+                        onClick={promptSetUsername}
+                        className="w-full !h-9 !rounded-full"
+                      >
+                        {"Login to Chat"}
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={promptSetUsername}
+                        className="w-full h-9 font-geneva-12 text-[12px] bg-orange-600 text-white hover:bg-orange-700 transition-all duration-200"
+                      >
+                        {"Login to Chat"}
+                      </Button>
+                    )
                   ) : (
                     // AI Chat or in a room with username set
                     (() => {
