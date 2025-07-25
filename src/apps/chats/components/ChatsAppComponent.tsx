@@ -669,9 +669,9 @@ export function ChatsAppComponent({
                   (!currentRoomId && needsUsername && !username) ? (
                     isMacTheme ? (
                       <Button
-                        variant="default"
+                        variant="secondary"
                         onClick={promptSetUsername}
-                        className="w-full !h-9 !rounded-full"
+                        className="w-full !h-9 !rounded-full orange"
                       >
                         {"Login to Chat"}
                       </Button>
