@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import {
   Select,
   SelectContent,
@@ -13,6 +13,10 @@ import { useSound, Sounds } from "@/hooks/useSound";
 import { DisplayMode } from "@/utils/displayMode";
 import { Plus } from "lucide-react";
 import { useAppStore } from "@/stores/useAppStore";
+import {
+  loadWallpaperManifest,
+  WallpaperManifest as WallpaperManifestType,
+} from "@/utils/wallpapers";
 
 // Remove unused constants
 interface WallpaperItemProps {
@@ -124,179 +128,9 @@ function WallpaperItem({
   );
 }
 
-type PhotoCategory =
-  | "3d_graphics"
-  | "convergency"
-  | "foliage"
-  | "landscapes"
-  | "nostalgia"
-  | "objects"
-  | "structures"
-  | "videos"
-  | "custom";
+type PhotoCategory = string;
 
-const TILE_WALLPAPERS = [
-  "default",
-  "macos",
-  "bondi",
-  "bondi_dark",
-  "bondi_light",
-  "bondi_medium",
-  "bondi_extra_dark",
-  "french_blue_dark",
-  "french_blue_light",
-  "sunny",
-  "sunny_dark",
-  "sunny_light",
-  "poppy",
-  "poppy_dark",
-  "poppy_light",
-  "poppy_medium",
-  "azul_dark",
-  "azul_light",
-  "azul_extra_light",
-  "pistachio_dark",
-  "pistachio_light",
-  "pistachio_medium",
-  "candy_bar",
-  "candy_bar_sunny",
-  "candy_bar_pistachio",
-  "candy_bar_azul",
-  "waves_sunny",
-  "waves_bondi",
-  "waves_azul",
-  "ripple_poppy",
-  "ripple_bondi",
-  "ripple_azul",
-  "rio_pistachio",
-  "rio_azul",
-  "bubbles_poppy",
-  "bubbles_bondi",
-  "bossanova_poppy",
-  "bossanova_poppy_2",
-  "bossanova_bondi",
-  "diagonals_poppy",
-  "diagonals_bondi",
-  "diagonals_bondi_dark",
-  "flat_peanuts",
-  "flat_peanuts_poppy",
-  "peanuts_pistachio",
-  "peanuts_azul",
-].map((name) => `/wallpapers/tiles/${name}.png`);
-
-// Add video wallpapers
-const VIDEO_WALLPAPERS = [
-  "/wallpapers/videos/cancun_sunset_loop.mp4",
-  "/wallpapers/videos/clouds.mp4",
-  "/wallpapers/videos/red_clouds_loop.mp4",
-  "/wallpapers/videos/galway_bay.mp4",
-  "/wallpapers/videos/glacier_national_park.mp4",
-  "/wallpapers/videos/lily_pad.mp4",
-  "/wallpapers/videos/golden_poppy_loop.mp4",
-  "/wallpapers/videos/red_tulips.mp4",
-  "/wallpapers/videos/blue_flowers_loop.mp4",
-  "/wallpapers/videos/golden_gate_dusk.mp4",
-  "/wallpapers/videos/fish_eagle.mp4",
-  "/wallpapers/videos/bliss_og.mp4",
-];
-
-const PHOTO_WALLPAPERS: Record<PhotoCategory, string[]> = {
-  "3d_graphics": [
-    "capsule",
-    "capsule_azul",
-    "capsule_pistachio",
-    "tub",
-    "tub_azul",
-    "tub_bondi",
-    "ufo_1",
-    "ufo_2",
-    "ufo_3",
-  ],
-  convergency: Array.from({ length: 15 }, (_, i) => `convergence_${i + 1}`),
-  foliage: [
-    "blue_flowers",
-    "cactus",
-    "golden_poppy",
-    "red_cyclamens",
-    "red_tulips",
-    "rose",
-    "spider_lily",
-    "waterdrops_on_leaf",
-    "yellow_tulips",
-  ],
-  landscapes: [
-    "beach",
-    "clouds",
-    "french_alps",
-    "ganges_river",
-    "golden_gate_at_dusk",
-    "mono_lake",
-    "palace_on_lake_in_jaipur",
-    "rain_god_mesa",
-    "refuge-col_de_la_grasse-alps",
-    "zabriskie_point",
-  ],
-  nostalgia: [
-    "acropolis",
-    "beach_on_ko_samui",
-    "birds_in_flight",
-    "cancun_sunset",
-    "cliffs_of_moher",
-    "fish_eagle",
-    "galway_bay",
-    "glacier_national_park",
-    "highway_395",
-    "hong_kong_at_night",
-    "islamorada_sunrise",
-    "lily_pad",
-    "long_island_sound",
-    "mac_os_background",
-    "midsummer_night",
-    "moraine_lake",
-    "oasis_in_baja",
-    "red_clouds",
-    "toronto_skyline",
-    "tuolumne_meadows",
-    "yosemite_valley",
-    "yucatan",
-  ],
-  objects: [
-    "alpine_granite",
-    "bicycles",
-    "bottles",
-    "burmese_claypots",
-    "burning_candle",
-    "chairs",
-    "faucet_handle",
-    "neon",
-    "salt_shaker_top",
-    "shamus",
-  ],
-  structures: [
-    "gate",
-    "gate_lock",
-    "glass_door_knob",
-    "padlock",
-    "rusty_lock",
-    "shutters",
-    "stone_wall",
-    "wall_of_stones",
-  ],
-  videos: VIDEO_WALLPAPERS,
-  custom: [], // This will be populated dynamically
-};
-
-// Transform photo paths
-Object.entries(PHOTO_WALLPAPERS).forEach(([category, photos]) => {
-  if (category !== "videos" && category !== "custom") {
-    PHOTO_WALLPAPERS[category as PhotoCategory] = photos.map(
-      (name) => `/wallpapers/photos/${category}/${name}.jpg`
-    );
-  }
-});
-
-const PHOTO_CATEGORIES = Object.keys(PHOTO_WALLPAPERS) as PhotoCategory[];
-
+// Wallpaper data will be loaded from the generated manifest at runtime.
 interface WallpaperPickerProps {
   onSelect?: (path: string) => void;
 }
@@ -318,24 +152,39 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
   >({});
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [manifest, setManifest] = useState<WallpaperManifestType | null>(null);
+  useEffect(() => {
+    loadWallpaperManifest()
+      .then(setManifest)
+      .catch((err) => console.error("Failed to load wallpaper manifest", err));
+  }, []);
+
+  const tileWallpapers = useMemo(
+    () => (manifest ? manifest.tiles.map((p) => `/wallpapers/${p}`) : []),
+    [manifest]
+  );
+  const videoWallpapers = useMemo(
+    () => (manifest ? manifest.videos.map((p) => `/wallpapers/${p}`) : []),
+    [manifest]
+  );
+  const photoWallpapers = useMemo(() => {
+    if (!manifest) return {} as Record<string, string[]>;
+    const r: Record<string, string[]> = {};
+    for (const [cat, arr] of Object.entries(manifest.photos)) {
+      r[cat] = arr.map((p) => `/wallpapers/${p}`);
+    }
+    return r;
+  }, [manifest]);
+  const photoCategories = Object.keys(photoWallpapers);
+
   const [selectedCategory, setSelectedCategory] = useState<
     "tiles" | PhotoCategory
   >(() => {
-    // Set initial category based on current wallpaper
-    if (currentWallpaper.includes("/wallpapers/tiles/")) {
-      return "tiles";
-    }
-    if (currentWallpaper.startsWith(INDEXEDDB_PREFIX)) {
-      return "custom";
-    }
-    if (VIDEO_WALLPAPERS.includes(currentWallpaper)) {
-      return "videos";
-    }
-    for (const category of PHOTO_CATEGORIES) {
-      if (currentWallpaper.includes(`/wallpapers/photos/${category}/`)) {
-        return category;
-      }
-    }
+    if (currentWallpaper.includes("/wallpapers/tiles/")) return "tiles";
+    if (currentWallpaper.startsWith(INDEXEDDB_PREFIX)) return "custom";
+    if (currentWallpaper.includes("/wallpapers/videos/")) return "videos";
+    const match = currentWallpaper.match(/\/wallpapers\/photos\/([^/]+)\//);
+    if (match) return match[1];
     return "tiles";
   });
 
@@ -424,15 +273,11 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
       setSelectedCategory("tiles");
     } else if (currentWallpaper.startsWith(INDEXEDDB_PREFIX)) {
       setSelectedCategory("custom");
-    } else if (VIDEO_WALLPAPERS.includes(currentWallpaper)) {
+    } else if (currentWallpaper.includes("/wallpapers/videos/")) {
       setSelectedCategory("videos");
     } else {
-      for (const category of PHOTO_CATEGORIES) {
-        if (currentWallpaper.includes(`/wallpapers/photos/${category}/`)) {
-          setSelectedCategory(category);
-          break;
-        }
-      }
+      const match = currentWallpaper.match(/\/wallpapers\/photos\/([^/]+)\//);
+      if (match) setSelectedCategory(match[1]);
     }
   }, [currentWallpaper, INDEXEDDB_PREFIX]);
 
@@ -479,13 +324,13 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
                 }}
               />
               <SelectItem value="tiles">Tiled Patterns</SelectItem>
-              {PHOTO_CATEGORIES.filter(
-                (cat) => cat !== "custom" && cat !== "videos"
-              ).map((category) => (
-                <SelectItem key={category} value={category}>
-                  {formatCategoryLabel(category)}
-                </SelectItem>
-              ))}
+              {photoCategories
+                .filter((cat) => cat !== "custom" && cat !== "videos")
+                .map((category) => (
+                  <SelectItem key={category} value={category}>
+                    {formatCategoryLabel(category)}
+                  </SelectItem>
+                ))}
             </SelectContent>
           </Select>
         </div>
@@ -525,7 +370,7 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
           }`}
         >
           {selectedCategory === "tiles" ? (
-            TILE_WALLPAPERS.map((path) => (
+            tileWallpapers.map((path) => (
               <WallpaperItem
                 key={path}
                 path={path}
@@ -535,7 +380,7 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
               />
             ))
           ) : selectedCategory === "videos" ? (
-            VIDEO_WALLPAPERS.map((path) => (
+            videoWallpapers.map((path) => (
               <WallpaperItem
                 key={path}
                 path={path}
@@ -570,8 +415,8 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
                 <></>
               )}
             </>
-          ) : PHOTO_WALLPAPERS[selectedCategory] ? (
-            PHOTO_WALLPAPERS[selectedCategory].map((path) => (
+          ) : photoWallpapers[selectedCategory] ? (
+            photoWallpapers[selectedCategory].map((path) => (
               <WallpaperItem
                 key={path}
                 path={path}
