@@ -40,7 +40,7 @@ export const helpItems = [
 ];
 
 export const appMetadata = {
-  name: "MacPaint",
+  name: "Paint",
   version: "1.0.4",
   creator: {
     name: "Ryo Lu",
@@ -52,7 +52,7 @@ export const appMetadata = {
 
 export const PaintApp: BaseApp<PaintInitialData> = {
   id: "paint",
-  name: "MacPaint",
+  name: "Paint",
   icon: { type: "image", src: "/icons/default/paint.png" },
   description: "Classic MacPaint-style drawing application",
   component: PaintAppComponent,
