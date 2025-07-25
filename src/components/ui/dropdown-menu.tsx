@@ -3,6 +3,7 @@ import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import { Check, ChevronRight, Circle } from "lucide-react";
 import { useSound, Sounds } from "@/hooks/useSound";
 import { useThemeStore } from "@/stores/useThemeStore";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 import { cn } from "@/lib/utils";
 
@@ -113,9 +114,10 @@ DropdownMenuSubTrigger.displayName =
 const DropdownMenuSubContent = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.SubContent>,
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.SubContent>
->(({ className, ...props }, ref) => {
+>(({ className, style, ...props }, ref) => {
   const currentTheme = useThemeStore((state) => state.current);
   const isMacOSTheme = currentTheme === "macosx";
+  const isMobile = useMediaQuery("(max-width: 768px)");
 
   return (
     <DropdownMenuPrimitive.Portal>
@@ -133,8 +135,10 @@ const DropdownMenuSubContent = React.forwardRef<
             opacity: "0.92",
             boxShadow: "0 4px 16px rgba(0, 0, 0, 0.4)",
             padding: "4px 0px",
-            minWidth: "180px",
+            ...(isMobile ? {} : { minWidth: "180px" }),
           }),
+          ...(isMobile && { minWidth: "unset" }),
+          ...style,
         }}
         {...props}
       />
@@ -150,6 +154,7 @@ const DropdownMenuContent = React.forwardRef<
 >(({ className, sideOffset = 4, style, ...props }, ref) => {
   const currentTheme = useThemeStore((state) => state.current);
   const isMacOSTheme = currentTheme === "macosx";
+  const isMobile = useMediaQuery("(max-width: 768px)");
 
   return (
     <DropdownMenuPrimitive.Portal>
@@ -169,8 +174,9 @@ const DropdownMenuContent = React.forwardRef<
             opacity: "0.92",
             boxShadow: "0 4px 16px rgba(0, 0, 0, 0.4)",
             padding: "4px 0px",
-            minWidth: style?.minWidth ?? "180px",
+            ...(isMobile ? {} : { minWidth: style?.minWidth ?? "180px" }),
           }),
+          ...(isMobile && { minWidth: "unset" }),
           ...style,
         }}
         {...props}
@@ -196,7 +202,8 @@ const DropdownMenuItem = React.forwardRef<
       className={cn(
         "relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&>svg]:size-4 [&>svg]:shrink-0",
         inset && "pl-8",
-        className
+        className,
+        "data-[state=checked]:!bg-transparent data-[state=checked]:text-foreground"
       )}
       style={{
         fontFamily: isXpTheme
@@ -236,7 +243,8 @@ const DropdownMenuCheckboxItem = React.forwardRef<
       ref={ref}
       className={cn(
         "relative flex cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
-        className
+        className,
+        "data-[state=checked]:!bg-transparent data-[state=checked]:text-foreground"
       )}
       style={{
         fontFamily: isXpTheme
@@ -283,7 +291,8 @@ const DropdownMenuRadioItem = React.forwardRef<
       ref={ref}
       className={cn(
         "relative flex cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
-        className
+        className,
+        "data-[state=checked]:!bg-transparent data-[state=checked]:text-foreground"
       )}
       style={{
         fontFamily:

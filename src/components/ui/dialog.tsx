@@ -305,7 +305,7 @@ const DialogHeader = ({
 
         {/* Title */}
         <span
-          className="select-none mx-auto px-2 py-0 h-full flex items-center whitespace-nowrap overflow-hidden text-ellipsis max-w-[80%] text-[12px] text-os-titlebar-active-text"
+          className="select-none mx-auto px-2 py-0 h-full flex items-center whitespace-nowrap overflow-hidden text-ellipsis max-w-[80%] text-[13px] text-os-titlebar-active-text"
           style={{
             textShadow: "0 2px 3px rgba(0, 0, 0, 0.25)",
             fontWeight: 500,
