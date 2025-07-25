@@ -59,7 +59,7 @@ export function AboutDialog({
           className={cn(
             "text-2xl font-medium",
             isXpTheme
-              ? "font-['Pixelated_MS_Sans_Serif',Arial]"
+              ? "font-['Trebuchet MS'] text-[17px]"
               : "font-apple-garamond"
           )}
         >

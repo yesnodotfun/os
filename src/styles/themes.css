@@ -432,8 +432,9 @@
 }
 
 /* Preserve LCD display styling in Videos app */
-:root[data-os-theme="macosx"] .videos-player-controls .font-geneva-12 {
+:root[data-os-theme="macosx"] .videos-player-controls button.font-geneva-12 {
   font-family: Geneva-12, monospace !important;
+  font-size: 9px !important;
 }
 :root[data-os-theme="macosx"] .videos-lcd .font-geneva-12.text-\[10px\] {
   font-size: 10px !important;
@@ -915,13 +916,12 @@
 /* AboutDialog title styling for macOS theme */
 :root[data-os-theme="macosx"] .font-apple-garamond {
   font-family: "AppleGaramond", "Apple Garamond", "Times New Roman", serif !important;
-  font-size: 1.25rem !important;
-  font-weight: 500 !important;
+  font-size: 1.5rem !important;
 }
 
 /* Ensure AboutDialog title doesn't get overridden by general div styles */
 :root[data-os-theme="macosx"] .font-apple-garamond.text-2xl {
-  font-size: 1.25rem !important;
+  font-size: 1.5rem !important;
   font-family: "AppleGaramond", "Apple Garamond", "Times New Roman", serif !important;
 }
 

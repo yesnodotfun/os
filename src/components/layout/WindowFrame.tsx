@@ -109,6 +109,9 @@ export function WindowFrame({
   const currentTheme = useThemeStore((state) => state.current);
   const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
   const theme = getTheme(currentTheme);
+  // Treat all macOS windows as using a transparent outer background so titlebar/content can be styled separately
+  const effectiveTransparentBackground =
+    currentTheme === "macosx" ? true : transparentBackground;
 
   // Setup swipe navigation for phones only
   const {
@@ -691,7 +694,7 @@ export function WindowFrame({
             isXpTheme
               ? "window flex flex-col h-full" // Use xp.css window class with flex layout
               : "window w-full h-full flex flex-col border-[length:var(--os-metrics-border-width)] border-os-window rounded-os overflow-hidden",
-            !transparentBackground && !isXpTheme && "bg-os-window-bg",
+            !effectiveTransparentBackground && !isXpTheme && "bg-os-window-bg",
             !isXpTheme && (currentTheme !== "system7" || isForeground)
               ? "shadow-os-window"
               : "",
@@ -699,12 +702,6 @@ export function WindowFrame({
           )}
           style={{
             ...(!isXpTheme ? getSwipeStyle() : undefined),
-            ...(currentTheme === "macosx" && !transparentBackground
-              ? {
-                  backgroundColor: "var(--os-color-window-bg)",
-                  backgroundImage: "var(--os-pinstripe-window)",
-                }
-              : {}),
           }}
         >
           {/* Title bar */}
@@ -808,21 +805,21 @@ export function WindowFrame({
             <div
               className={cn(
                 "title-bar flex items-center shrink-0 h-6 min-h-[1.25rem] mx-0 mb-0 px-[0.1rem] py-[0.1rem] select-none cursor-move user-select-none z-50 draggable-area",
-                transparentBackground && "mt-0",
-                transparentBackground &&
-                  isForeground &&
-                  "bg-white/70 backdrop-blur-sm",
-                transparentBackground &&
-                  !isForeground &&
-                  "bg-white/20 backdrop-blur-sm"
+                effectiveTransparentBackground && "mt-0"
               )}
               style={{
                 borderRadius: "8px 8px 0px 0px",
-                ...(!transparentBackground && isForeground
-                  ? { backgroundImage: "var(--os-pinstripe-titlebar)" }
-                  : !transparentBackground && !isForeground
-                  ? { backgroundColor: "rgba(255, 255, 255, 0.3)" }
-                  : {}),
+                ...(isForeground
+                  ? {
+                      backgroundColor: "var(--os-color-window-bg)",
+                      backgroundImage:
+                        "var(--os-pinstripe-titlebar), var(--os-pinstripe-window)",
+                    }
+                  : {
+                      backgroundColor: "rgba(255, 255, 255, 0.6)",
+                      backgroundImage: "var(--os-pinstripe-window)",
+                      opacity: "0.8",
+                    }),
                 borderBottom: `1px solid ${
                   isForeground
                     ? theme.colors.titleBar.borderBottom ||
@@ -1122,11 +1119,18 @@ export function WindowFrame({
             style={
               isXpTheme
                 ? { margin: currentTheme === "xp" ? "0px 3px" : "0" }
-                : currentTheme === "macosx" && !transparentBackground
-                ? {
-                    backgroundColor: "var(--os-color-window-bg)",
-                    backgroundImage: "var(--os-pinstripe-window)",
-                  }
+                : currentTheme === "macosx"
+                ? transparentBackground
+                  ? undefined
+                  : isForeground
+                  ? {
+                      backgroundColor: "var(--os-color-window-bg)",
+                      backgroundImage: "var(--os-pinstripe-window)",
+                    }
+                  : {
+                      backgroundColor: "rgba(255,255,255,0.6)",
+                      backgroundImage: "var(--os-pinstripe-window)",
+                    }
                 : undefined
             }
           >
