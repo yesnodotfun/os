@@ -546,8 +546,8 @@ export function ChatInput({
                         style={{
                           top: "2px",
                           height: "30%",
-                          width: "calc(100% - 18px)",
-                          borderRadius: "8px 8px 4px 4px",
+                          width: "calc(100% - 16px)",
+                          borderRadius: "12px 12px 4px 4px",
                           background:
                             "linear-gradient(rgba(255,255,255,0.9), rgba(255,255,255,0.25))",
                           filter: "blur(0.2px)",
