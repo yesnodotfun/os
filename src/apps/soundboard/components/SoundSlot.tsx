@@ -61,7 +61,7 @@ export function SoundSlot({
           </>
         )}
         <div
-          className={`mb-[-4px] left-2 flex items-center gap-1 md:gap-2 transition-all duration-300 ease-in-out transform origin-left ${
+          className={`w-full mb-[-4px] left-2 flex items-center gap-1 md:gap-2 transition-all duration-300 ease-in-out transform origin-left ${
             isPlaying ? "opacity-100 scale-100" : "opacity-60 scale-90"
           }`}
         >
