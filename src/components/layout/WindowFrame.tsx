@@ -874,7 +874,7 @@ export function WindowFrame({
                   <div
                     className="absolute left-1/2 transform -translate-x-1/2 pointer-events-none"
                     style={{
-                      height: "33%",
+                      height: "28%",
                       background:
                         "linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.3))",
                       width: "calc(100% - 6px)",
@@ -923,7 +923,7 @@ export function WindowFrame({
                   <div
                     className="absolute left-1/2 transform -translate-x-1/2 pointer-events-none"
                     style={{
-                      height: "33%",
+                      height: "28%",
                       background:
                         "linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.3))",
                       width: "calc(100% - 6px)",
@@ -972,7 +972,7 @@ export function WindowFrame({
                   <div
                     className="absolute left-1/2 transform -translate-x-1/2 pointer-events-none"
                     style={{
-                      height: "33%",
+                      height: "28%",
                       background:
                         "linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.3))",
                       width: "calc(100% - 6px)",
