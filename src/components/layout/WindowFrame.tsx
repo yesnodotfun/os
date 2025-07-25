@@ -818,7 +818,7 @@ export function WindowFrame({
                   : {
                       backgroundColor: "rgba(255, 255, 255, 0.6)",
                       backgroundImage: "var(--os-pinstripe-window)",
-                      opacity: "0.7",
+                      opacity: "0.8",
                     }),
                 borderBottom: `1px solid ${
                   isForeground
