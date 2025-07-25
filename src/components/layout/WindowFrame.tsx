@@ -809,9 +809,7 @@ export function WindowFrame({
               )}
               style={{
                 borderRadius: "8px 8px 0px 0px",
-                ...(transparentBackground
-                  ? {}
-                  : isForeground
+                ...(isForeground
                   ? {
                       backgroundColor: "var(--os-color-window-bg)",
                       backgroundImage:
