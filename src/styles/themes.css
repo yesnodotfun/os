@@ -1138,10 +1138,10 @@
   /* top adjusted from 1px to 2px */
   content: "";
   position: absolute;
-  left: 7px;
+  left: 6px;
   right: 6px;
   top: 1px;
-  height: 6px;
+  height: 8px;
   background: linear-gradient(
     rgba(255, 255, 255, 0.8),
     rgba(255, 255, 255, 0.25)
