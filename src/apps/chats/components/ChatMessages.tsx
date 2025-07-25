@@ -218,6 +218,7 @@ interface ChatMessage extends Omit<VercelMessage, "role"> {
   username?: string; // Add username, make it optional for safety
   role: VercelMessage["role"] | "human"; // Allow original roles plus 'human'
   isPending?: boolean; // Add isPending flag
+  serverId?: string; // Real server ID when id is a clientId
 }
 
 interface ChatMessagesProps {
@@ -474,10 +475,12 @@ function ChatMessagesContent({
   };
 
   const deleteMessage = async (message: ChatMessage) => {
-    if (!roomId || !message.id) return;
+    if (!roomId) return;
+    const serverMessageId = message.serverId || message.id; // prefer serverId when present
+    if (!serverMessageId) return;
 
     // Use DELETE method with proper authentication headers (matching deleteRoom pattern)
-    const url = `/api/chat-rooms?action=deleteMessage&roomId=${roomId}&messageId=${message.id}`;
+    const url = `/api/chat-rooms?action=deleteMessage&roomId=${roomId}&messageId=${serverMessageId}`;
 
     // Build headers with authentication
     const headers: HeadersInit = {

@@ -1,5 +1,6 @@
 export type ChatMessage = {
-  id: string;
+  id: string; // Server message ID
+  clientId?: string; // Stable client-side ID used for optimistic rendering
   roomId: string;
   username: string;
   content: string;

@@ -463,25 +463,41 @@ export const useChatsStore = create<ChatsStoreState>()(
         addMessageToRoom: (roomId, message) => {
           set((state) => {
             const existingMessages = state.roomMessages[roomId] || [];
-            // Avoid duplicates from Pusher echos or optimistic updates
+
+            // If this exact server message already exists, skip
             if (existingMessages.some((m) => m.id === message.id)) {
-              return {}; // No change needed
+              return {};
             }
-            // Handle potential replacement of temp message ID if server ID matches
-            const tempIdPattern = /^temp_/; // Or use the actual temp ID if passed
-            const messagesWithoutTemp = existingMessages.filter(
+
+            // Look for a matching optimistic (temp) message to replace
+            const tempIndex = existingMessages.findIndex(
               (m) =>
-                !(
-                  tempIdPattern.test(m.id) &&
-                  m.content === message.content &&
-                  m.username === message.username
-                )
+                m.id.startsWith("temp_") &&
+                m.content === message.content &&
+                m.username === message.username
             );
 
+            if (tempIndex !== -1) {
+              const tempMsg = existingMessages[tempIndex];
+              const replaced = {
+                ...message,
+                clientId: tempMsg.clientId || tempMsg.id, // preserve stable client key
+              };
+              const updated = [...existingMessages];
+              updated[tempIndex] = replaced; // replace in place to minimise list churn
+              return {
+                roomMessages: {
+                  ...state.roomMessages,
+                  [roomId]: updated.sort((a, b) => a.timestamp - b.timestamp),
+                },
+              };
+            }
+
+            // No optimistic message to replace – append normally
             return {
               roomMessages: {
                 ...state.roomMessages,
-                [roomId]: [...messagesWithoutTemp, message].sort(
+                [roomId]: [...existingMessages, message].sort(
                   (a, b) => a.timestamp - b.timestamp
                 ),
               },
@@ -1155,6 +1171,7 @@ export const useChatsStore = create<ChatsStoreState>()(
           const tempId = `temp_${Math.random().toString(36).substring(2, 9)}`;
           const optimisticMessage: ChatMessage = {
             id: tempId,
+            clientId: tempId,
             roomId,
             username,
             content: content.trim(),

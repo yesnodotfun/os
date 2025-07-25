@@ -36,6 +36,7 @@ interface DisplayMessage extends Omit<UIMessage, "role"> {
   username?: string;
   role: UIMessage["role"] | "human";
   createdAt?: Date; // Ensure createdAt is optional Date
+  serverId?: string; // Real server ID for room messages
 }
 
 export function ChatsAppComponent({
@@ -425,8 +426,9 @@ export function ChatsAppComponent({
   // Explicitly type the array using the local DisplayMessage interface
   const currentMessagesToDisplay: DisplayMessage[] = currentRoomId
     ? currentRoomMessages.map((msg: AppChatMessage) => ({
-        // Use AppChatMessage here
-        id: msg.id,
+        // For room messages, use clientId (if present) for stable rendering key
+        id: msg.clientId || msg.id,
+        serverId: msg.id,
         role: msg.username === username ? "user" : "human",
         content: msg.content,
         createdAt: new Date(msg.timestamp), // Ensure this is a Date object
