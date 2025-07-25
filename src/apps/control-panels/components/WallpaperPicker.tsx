@@ -75,8 +75,8 @@ function WallpaperItem({
   if (isVideo) {
     return (
       <div
-        className={`w-full aspect-video border-2 cursor-pointer hover:opacity-90 ${
-          isSelected ? "ring-2 ring-black border-white" : "border-transparent"
+        className={`w-full aspect-video cursor-pointer hover:opacity-90 ${
+          isSelected ? "border-2 ring-2 ring-black border-white" : "border-0"
         } relative overflow-hidden`}
         onClick={handleClick}
       >
@@ -114,8 +114,8 @@ function WallpaperItem({
     <div
       className={`w-full ${
         isTile ? "aspect-square" : "aspect-video"
-      } border-2 cursor-pointer hover:opacity-90 ${
-        isSelected ? "ring-2 ring-black border-white" : "border-transparent"
+      } cursor-pointer hover:opacity-90 ${
+        isSelected ? "border-2 ring-2 ring-black border-white" : "border-0"
       }`}
       style={{
         backgroundImage: `url(${displayUrl})`,
@@ -176,6 +176,13 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
     return r;
   }, [manifest]);
   const photoCategories = Object.keys(photoWallpapers);
+  const photoCategoriesSorted = useMemo(
+    () =>
+      photoCategories
+        .filter((cat) => cat !== "custom" && cat !== "videos")
+        .sort((a, b) => a.localeCompare(b)),
+    [photoCategories]
+  );
 
   const [selectedCategory, setSelectedCategory] = useState<
     "tiles" | PhotoCategory
@@ -313,6 +320,7 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="videos">Videos</SelectItem>
+              <SelectItem value="tiles">Patterns</SelectItem>
               <SelectItem value="custom">Custom</SelectItem>
               <SelectSeparator
                 className="-mx-1 my-1 h-px"
@@ -323,14 +331,11 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
                   height: "1px",
                 }}
               />
-              <SelectItem value="tiles">Tiled Patterns</SelectItem>
-              {photoCategories
-                .filter((cat) => cat !== "custom" && cat !== "videos")
-                .map((category) => (
-                  <SelectItem key={category} value={category}>
-                    {formatCategoryLabel(category)}
-                  </SelectItem>
-                ))}
+              {photoCategoriesSorted.map((category) => (
+                <SelectItem key={category} value={category}>
+                  {formatCategoryLabel(category)}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
