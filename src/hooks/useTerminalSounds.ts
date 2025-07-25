@@ -62,6 +62,26 @@ const TERMINAL_SOUND_PRESETS = {
   },
 };
 
+// Moo sound preset for cowsay command
+const MOO_PRESET = {
+  oscillator: {
+    type: "sawtooth" as const,
+  },
+  envelope: {
+    attack: 0.1,
+    decay: 0.3,
+    sustain: 0.3,
+    release: 0.8,
+  },
+  filter: {
+    frequency: 200,
+    rolloff: -12 as const,
+  },
+  volume: -5,
+  note: "C2",
+  duration: "4n",
+};
+
 // Completion ding sound preset
 const DING_PRESET = {
   oscillator: {
@@ -729,6 +749,8 @@ export function useTerminalSounds() {
 
   // For completion ding
   const dingSynthRef = useRef<Tone.Synth | null>(null);
+  // For cowsay moo sound
+  const mooSynthRef = useRef<Tone.Synth | null>(null);
 
   const resumeAudioContext = async () => {
     if (Tone.context.state === "suspended") {
@@ -764,6 +786,11 @@ export function useTerminalSounds() {
           dingSynthRef.current = null;
         }
 
+        if (mooSynthRef.current) {
+          mooSynthRef.current.dispose();
+          mooSynthRef.current = null;
+        }
+
         console.debug("Tone context was closed – created a new context and cleared synth cache");
       } catch (err) {
         console.error("Failed to reset Tone context:", err);
@@ -786,6 +813,7 @@ export function useTerminalSounds() {
             synthsRef.current[type as SoundType] = createSynth(preset);
           });
           dingSynthRef.current = createSynth(DING_PRESET);
+          mooSynthRef.current = createSynth(MOO_PRESET);
         }
         return true;
       } catch (error) {
@@ -960,6 +988,23 @@ export function useTerminalSounds() {
     }
   }, [isMuted, isInitialized]);
 
+  // Play moo sound for cowsay command
+  const playMooSound = useCallback(async () => {
+    if (isMuted) return;
+
+    // Use shared initialization function
+    if (!(await initializeToneOnce())) return;
+
+    if (mooSynthRef.current) {
+      const now = Tone.now();
+      try {
+        mooSynthRef.current.triggerAttackRelease(MOO_PRESET.note, MOO_PRESET.duration, now);
+      } catch (error) {
+        console.debug("Error playing moo sound:", error);
+      }
+    }
+  }, [isMuted, isInitialized]);
+
   const toggleMute = useCallback(() => {
     setTerminalSoundsEnabled(!useAppStore.getState().terminalSoundsEnabled);
   }, [setTerminalSoundsEnabled]);
@@ -974,6 +1019,10 @@ export function useTerminalSounds() {
 
       if (dingSynthRef.current) {
         dingSynthRef.current.dispose();
+      }
+
+      if (mooSynthRef.current) {
+        mooSynthRef.current.dispose();
       }
     };
   }, []);
@@ -991,13 +1040,14 @@ export function useTerminalSounds() {
     playElevatorMusic,
     stopElevatorMusic,
     playDingSound,
+    playMooSound,
     toggleMute,
     isMuted,
   };
 }
 
 function createSynth(
-  preset: (typeof TERMINAL_SOUND_PRESETS)[SoundType] | typeof DING_PRESET
+  preset: (typeof TERMINAL_SOUND_PRESETS)[SoundType] | typeof DING_PRESET | typeof MOO_PRESET
 ) {
   // Create effects chain
   const filter = new Tone.Filter({
