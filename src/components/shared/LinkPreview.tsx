@@ -4,6 +4,7 @@ import { AlertCircle, Music, ExternalLink, Videotape } from "lucide-react";
 import { useLaunchApp } from "@/hooks/useLaunchApp";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useThemeStore } from "@/stores/useThemeStore";
 
 interface LinkMetadata {
   title?: string;
@@ -34,6 +35,10 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
     return isYouTubeUrl(url);
   });
   const launchApp = useLaunchApp();
+  const theme = useThemeStore((s) => s.current);
+
+  // Force full width thumbnail in macOS theme
+  const displayFullWidthThumbnail = theme === "macosx" || isFullWidthThumbnail;
 
   // Helper function to extract YouTube video ID
   const extractYouTubeVideoId = (url: string): string | null => {
@@ -356,7 +361,13 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`link-preview-container relative bg-white border border-gray-200 overflow-hidden cursor-pointer font-geneva-12 rounded group max-w-[420px] ${className}`}
+      className={cn(
+        "link-preview-container relative overflow-hidden cursor-pointer font-geneva-12 group max-w-[420px]",
+        theme === "macosx"
+          ? "chat-bubble macosx-link-preview bg-gray-100 border-none shadow-none"
+          : "bg-white border border-gray-200 rounded",
+        className
+      )}
       onClick={handleClick}
       onTouchStart={(e) => {
         // Prevent the parent message from handling this touch
@@ -365,10 +376,15 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
       data-link-preview
     >
       <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-5 transition-opacity z-10 pointer-events-none" />
-      {isFullWidthThumbnail && metadata.image ? (
+      {displayFullWidthThumbnail && metadata.image ? (
         // Full width thumbnail layout with overlay
         <>
-          <div className="relative aspect-video bg-gray-100 overflow-hidden">
+          <div
+            className={cn(
+              "relative aspect-video bg-gray-100 overflow-hidden",
+              theme === "macosx" && "-mx-3 -mt-[6px] rounded-t-[14px]"
+            )}
+          >
             <img
               src={metadata.image}
               alt={metadata.title || "Link preview"}
@@ -412,21 +428,29 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
                   <button
                     onClick={handleOpenInVideos}
                     onTouchStart={(e) => e.stopPropagation()}
-                    className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
+                    className={cn(
+                      theme === "macosx"
+                        ? "aqua-button secondary flex-1"
+                        : "flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
+                    )}
                     title="Open in Videos"
                     data-link-preview
                   >
-                    <Videotape className="h-3 w-3" />
+                    {theme !== "macosx" && <Videotape className="h-3 w-3" />}
                     <span>Open in Videos</span>
                   </button>
                   <button
                     onClick={handleOpenYouTube}
                     onTouchStart={(e) => e.stopPropagation()}
-                    className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
+                    className={cn(
+                      theme === "macosx"
+                        ? "aqua-button secondary flex-1"
+                        : "flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
+                    )}
                     title="Open YouTube"
                     data-link-preview
                   >
-                    <ExternalLink className="h-3 w-3" />
+                    {theme !== "macosx" && <ExternalLink className="h-3 w-3" />}
                     <span>Open YouTube</span>
                   </button>
                 </div>
@@ -435,21 +459,29 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
                   <button
                     onClick={handleAddToIpod}
                     onTouchStart={(e) => e.stopPropagation()}
-                    className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
+                    className={cn(
+                      theme === "macosx"
+                        ? "aqua-button secondary flex-1"
+                        : "flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
+                    )}
                     title="Add to iPod"
                     data-link-preview
                   >
-                    <Music className="h-3 w-3" />
+                    {theme !== "macosx" && <Music className="h-3 w-3" />}
                     <span>Add to iPod</span>
                   </button>
                   <button
                     onClick={handleOpenYouTube}
                     onTouchStart={(e) => e.stopPropagation()}
-                    className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
+                    className={cn(
+                      theme === "macosx"
+                        ? "aqua-button secondary flex-1"
+                        : "flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
+                    )}
                     title="Open YouTube"
                     data-link-preview
                   >
-                    <ExternalLink className="h-3 w-3" />
+                    {theme !== "macosx" && <ExternalLink className="h-3 w-3" />}
                     <span>Open YouTube</span>
                   </button>
                 </div>
@@ -459,11 +491,15 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
                 <button
                   onClick={handleOpenExternally}
                   onTouchStart={(e) => e.stopPropagation()}
-                  className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors w-full"
+                  className={cn(
+                    theme === "macosx"
+                      ? "aqua-button secondary w-full"
+                      : "flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors w-full"
+                  )}
                   title="Open Externally"
                   data-link-preview
                 >
-                  <ExternalLink className="h-3 w-3" />
+                  {theme !== "macosx" && <ExternalLink className="h-3 w-3" />}
                   <span>Open Externally</span>
                 </button>
               </div>
@@ -475,7 +511,12 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
         <>
           <div className="flex">
             {metadata.image && (
-              <div className="w-18 h-18 bg-gray-100 relative overflow-hidden flex-shrink-0">
+              <div
+                className={cn(
+                  "w-18 h-18 bg-gray-100 relative overflow-hidden flex-shrink-0",
+                  theme === "macosx" && "hidden"
+                )}
+              >
                 <img
                   src={metadata.image}
                   alt={metadata.title || "Link preview"}
@@ -566,21 +607,31 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
                     <button
                       onClick={handleOpenInVideos}
                       onTouchStart={(e) => e.stopPropagation()}
-                      className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
+                      className={cn(
+                        theme === "macosx"
+                          ? "aqua-button secondary flex-1"
+                          : "flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
+                      )}
                       title="Open in Videos"
                       data-link-preview
                     >
-                      <Videotape className="h-3 w-3" />
+                      {theme !== "macosx" && <Videotape className="h-3 w-3" />}
                       <span>Open in Videos</span>
                     </button>
                     <button
                       onClick={handleOpenYouTube}
                       onTouchStart={(e) => e.stopPropagation()}
-                      className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
+                      className={cn(
+                        theme === "macosx"
+                          ? "aqua-button secondary flex-1"
+                          : "flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
+                      )}
                       title="Open YouTube"
                       data-link-preview
                     >
-                      <ExternalLink className="h-3 w-3" />
+                      {theme !== "macosx" && (
+                        <ExternalLink className="h-3 w-3" />
+                      )}
                       <span>Open YouTube</span>
                     </button>
                   </div>
@@ -589,21 +640,31 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
                     <button
                       onClick={handleAddToIpod}
                       onTouchStart={(e) => e.stopPropagation()}
-                      className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
+                      className={cn(
+                        theme === "macosx"
+                          ? "aqua-button secondary flex-1"
+                          : "flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
+                      )}
                       title="Add to iPod"
                       data-link-preview
                     >
-                      <Music className="h-3 w-3" />
+                      {theme !== "macosx" && <Music className="h-3 w-3" />}
                       <span>Add to iPod</span>
                     </button>
                     <button
                       onClick={handleOpenYouTube}
                       onTouchStart={(e) => e.stopPropagation()}
-                      className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
+                      className={cn(
+                        theme === "macosx"
+                          ? "aqua-button secondary flex-1"
+                          : "flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex-1"
+                      )}
                       title="Open YouTube"
                       data-link-preview
                     >
-                      <ExternalLink className="h-3 w-3" />
+                      {theme !== "macosx" && (
+                        <ExternalLink className="h-3 w-3" />
+                      )}
                       <span>Open YouTube</span>
                     </button>
                   </div>
@@ -613,11 +674,15 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
                   <button
                     onClick={handleOpenExternally}
                     onTouchStart={(e) => e.stopPropagation()}
-                    className="flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors w-full"
+                    className={cn(
+                      theme === "macosx"
+                        ? "aqua-button secondary w-full"
+                        : "flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] bg-gray-100 hover:bg-gray-200 rounded-md transition-colors w-full"
+                    )}
                     title="Open Externally"
                     data-link-preview
                   >
-                    <ExternalLink className="h-3 w-3" />
+                    {theme !== "macosx" && <ExternalLink className="h-3 w-3" />}
                     <span>Open Externally</span>
                   </button>
                 </div>

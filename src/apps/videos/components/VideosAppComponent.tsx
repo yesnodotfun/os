@@ -1201,7 +1201,7 @@ export function VideosAppComponent({
             </div>
 
             {/* All Controls in One Row */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between videos-player-controls">
               {/* Left Side: Playback Controls */}
               <div className="flex items-center gap-2">
                 <div className="flex gap-0">
