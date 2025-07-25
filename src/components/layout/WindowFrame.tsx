@@ -690,7 +690,7 @@ export function WindowFrame({
           className={cn(
             isXpTheme
               ? "window flex flex-col h-full" // Use xp.css window class with flex layout
-              : "w-full h-full flex flex-col border-[length:var(--os-metrics-border-width)] border-os-window rounded-os overflow-hidden",
+              : "window w-full h-full flex flex-col border-[length:var(--os-metrics-border-width)] border-os-window rounded-os overflow-hidden",
             !transparentBackground && !isXpTheme && "bg-os-window-bg",
             !isXpTheme && (currentTheme !== "system7" || isForeground)
               ? "shadow-os-window"
