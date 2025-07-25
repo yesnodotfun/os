@@ -817,7 +817,7 @@ export function PaintMenuBar({
             onClick={onShowHelp}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            MacPaint Help
+            Paint Help
           </DropdownMenuItem>
           <DropdownMenuItem
             onSelect={async () => {
@@ -845,7 +845,7 @@ export function PaintMenuBar({
             onClick={onShowAbout}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            About MacPaint
+            About Paint
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
