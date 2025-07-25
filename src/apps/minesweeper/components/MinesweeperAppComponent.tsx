@@ -424,6 +424,7 @@ export function MinesweeperAppComponent({
 
   const currentTheme = useThemeStore((state) => state.current);
   const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
+  const isMacTheme = currentTheme === "macosx";
 
   const menuBar = (
     <MinesweeperMenuBar
@@ -461,32 +462,52 @@ export function MinesweeperAppComponent({
             <div className="flex-1 bg-[#8a9a8a] text-[#1a2a1a] text-lg px-2 py-0.5 border border-t-gray-800 border-l-gray-800 border-r-white border-b-white shadow-inner [text-shadow:1px_1px_0px_rgba(0,0,0,0.2)] h-[48px] flex items-center">
               <div className="flex items-center justify-between text-sm relative w-full">
                 <div className="flex flex-col items-start w-[80px]">
-                  <span className="font-[ChicagoKare] text-lg leading-none mt-1">
+                  <span
+                    className={`font-chicago-kare text-lg leading-none ${
+                      isMacTheme ? "mt-0 mb-1" : "mt-1"
+                    }`}
+                  >
                     {remainingMines}
                   </span>
-                  <span className="font-[Geneva-9] text-[16px] mt-[-6px]">
+                  <span
+                    className={`font-[Geneva-9] ${
+                      isMacTheme ? "text-xs" : "text-[16px]"
+                    } mt-[-6px]`}
+                  >
                     Left
                   </span>
                 </div>
                 <div className="flex flex-col items-center absolute left-1/2 -translate-x-1/2">
                   <Button
-                    variant="default"
+                    variant={isMacTheme ? "secondary" : "default"}
                     size="sm"
                     onClick={() =>
                       gameOver || gameWon
                         ? startNewGame()
                         : setIsNewGameDialogOpen(true)
                     }
-                    className="aspect-square h-[34px] flex items-center justify-center text-xl leading-none bg-[#c0c0c0] hover:bg-[#d0d0d0] border-2 border-t-white border-l-white border-r-gray-800 border-b-gray-800 active:border active:border-gray-600 shadow-none p-0"
+                    className={
+                      isMacTheme
+                        ? "!w-[34px] !h-[34px] rounded-full flex items-center justify-center text-xl leading-none p-0"
+                        : "aspect-square h-[34px] flex items-center justify-center text-xl leading-none bg-[#c0c0c0] hover:bg-[#d0d0d0] border-2 border-t-white border-l-white border-r-gray-800 border-b-gray-800 active:border active:border-gray-600 shadow-none p-0"
+                    }
                   >
                     {gameOver ? "💀" : gameWon ? "😎" : "🙂"}
                   </Button>
                 </div>
                 <div className="flex flex-col items-end w-[80px]">
-                  <span className="font-[ChicagoKare] text-lg leading-none mt-1">
+                  <span
+                    className={`font-[ChicagoKare] text-lg leading-none ${
+                      isMacTheme ? "mt-0 mb-1" : "mt-1"
+                    }`}
+                  >
                     {MINES_COUNT}
                   </span>
-                  <span className="font-[Geneva-9] text-[16px] mt-[-6px]">
+                  <span
+                    className={`font-[Geneva-9] ${
+                      isMacTheme ? "text-xs" : "text-[16px]"
+                    } mt-[-6px]`}
+                  >
                     Total
                   </span>
                 </div>

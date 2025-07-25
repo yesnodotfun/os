@@ -570,7 +570,7 @@ button.piano-key.piano-key[class*="bg-[#ff33ff]"] {
   top: 12px;
   left: 12px;
   text-shadow: 0 0 4px #000;
-  font-family: Geneva-12, Geneva, Tahoma, sans-serif;
+  font-family: Geneva-12, Geneva, Tahoma, Wtcsans-serif;
   font-smooth: always;
   -webkit-font-smoothing: antialiased;
   font-size: 12px;
