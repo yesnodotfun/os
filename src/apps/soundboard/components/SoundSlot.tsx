@@ -26,6 +26,15 @@ export function SoundSlot({
   showWaveform,
   showEmoji,
 }: SoundSlotProps) {
+  // Force-enable waveforms on iOS Safari
+  const isMobileSafari =
+    typeof navigator !== "undefined" &&
+    /Safari/.test(navigator.userAgent) &&
+    /Mobile|iP(hone|ad|od)/.test(navigator.userAgent) &&
+    !/CriOS|FxiOS|EdgiOS/.test(navigator.userAgent);
+
+  const shouldShowWaveform =
+    Boolean(slot.audioData) && (showWaveform || isMobileSafari);
   return (
     <div className="flex flex-col gap-2 min-h-0">
       <Button
@@ -39,7 +48,7 @@ export function SoundSlot({
         }`}
         onClick={onSlotClick}
       >
-        {slot.audioData && showWaveform && (
+        {shouldShowWaveform && (
           <>
             <Waveform
               audioData={slot.audioData}

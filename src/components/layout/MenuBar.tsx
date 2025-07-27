@@ -589,8 +589,8 @@ export function MenuBar({ children, inWindowFrame = false }: MenuBarProps) {
           color: currentTheme === "xp" ? "#ffffff" : "#000000",
           userSelect: "none",
           width: "100vw",
-          // Extend the taskbar's background into iOS safe area
-          paddingBottom: "env(safe-area-inset-bottom, 0px)",
+          // Use margin to avoid distorting internal layout height
+          marginBottom: "env(safe-area-inset-bottom, 0px)",
         }}
       >
         {/* Start Button */}
