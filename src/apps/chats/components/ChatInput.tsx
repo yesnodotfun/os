@@ -380,7 +380,11 @@ export function ChatInput({
                           <button
                             type="button"
                             onClick={handleNudgeClick}
-                            className="w-[22px] h-[22px] flex items-center justify-center"
+                            className={`w-[22px] h-[22px] flex items-center justify-center ${
+                              isMacTheme
+                                ? "text-black/40 hover:text-black/80 transition-colors"
+                                : ""
+                            }`}
                             disabled={isLoading}
                             aria-label="Send a Nudge"
                           >
@@ -427,7 +431,11 @@ export function ChatInput({
                           onRecordingStateChange={handleRecordingStateChange}
                           isLoading={isTranscribing}
                           silenceThreshold={1200}
-                          className="w-[22px] h-[22px] flex items-center justify-center"
+                          className={`w-[22px] h-[22px] flex items-center justify-center ${
+                            isMacTheme
+                              ? "text-black/40 hover:text-black/80 transition-colors"
+                              : ""
+                          }`}
                         />
                       </div>
                     </TooltipTrigger>
