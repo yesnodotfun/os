@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { OsThemeId } from "@/themes/types";
+import { invalidateIconCache } from "@/utils/icons";
 
 interface ThemeState {
   current: OsThemeId;
@@ -54,6 +55,8 @@ export const useThemeStore = create<ThemeState>((set) => ({
     localStorage.setItem("os_theme", theme);
     document.documentElement.dataset.osTheme = theme;
     ensureLegacyCss(theme);
+    // Force-refresh icon URLs so newly themed assets fetch fresh, bypassing any stale cache.
+    invalidateIconCache(`theme-${theme}`);
   },
   hydrate: () => {
     const saved = localStorage.getItem("os_theme") as OsThemeId | null;

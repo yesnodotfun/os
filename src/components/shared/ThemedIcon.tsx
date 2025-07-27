@@ -31,11 +31,13 @@ export const ThemedIcon: React.FC<ThemedIconProps> = ({
   }
 
   // Derive logical name for async theming only if inside /icons/ path.
-  const logical = resolved.startsWith("/icons/")
-    ? resolved
+  // Strip any query string to avoid duplicating cache-busting params downstream.
+  const withoutQuery = resolved.split("?")[0];
+  const logical = withoutQuery.startsWith("/icons/")
+    ? withoutQuery
         .replace("/icons/default/", "")
         .replace(/^(?:\/icons\/[^/]+\/)/, "")
-    : resolved;
+    : withoutQuery;
 
   const themedPath = useIconPath(logical, themeOverride ?? currentTheme);
 
