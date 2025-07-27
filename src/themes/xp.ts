@@ -2,7 +2,7 @@ import { OsTheme } from "./types";
 
 export const xp: OsTheme = {
   id: "xp",
-  name: "Windows XP",
+  name: "XP",
   fonts: {
     ui: "Tahoma, Segoe UI, sans-serif",
     mono: "Consolas, Courier New, monospace",

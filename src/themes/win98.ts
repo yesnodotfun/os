@@ -2,7 +2,7 @@ import { OsTheme } from "./types";
 
 export const win98: OsTheme = {
   id: "win98",
-  name: "Windows 98",
+  name: "98",
   fonts: {
     ui: "Tahoma, MS Sans Serif, sans-serif",
     mono: "Consolas, Courier New, monospace",

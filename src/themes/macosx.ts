@@ -2,9 +2,9 @@ import { OsTheme } from "./types";
 
 export const macosx: OsTheme = {
   id: "macosx",
-  name: "Mac OS X",
+  name: "Aqua",
   fonts: {
-    ui: "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', sans-serif",
+    ui: "LucidaGrande, 'Lucida Grande', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
     mono: "Monaco, Menlo, monospace",
   },
   colors: {
