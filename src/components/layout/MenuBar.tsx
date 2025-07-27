@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { AppleMenu } from "./AppleMenu";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ import { useLaunchApp } from "@/hooks/useLaunchApp";
 import { StartMenu } from "./StartMenu";
 import { useAppStoreShallow } from "@/stores/helpers";
 import { Slider } from "@/components/ui/slider";
-import { Volume1, Volume2, VolumeX, Settings } from "lucide-react";
+import { Volume1, Volume2, VolumeX, Settings, ChevronUp } from "lucide-react";
 import { useSound, Sounds } from "@/hooks/useSound";
 import { useThemeStore } from "@/stores/useThemeStore";
 import { getAppIconPath, appRegistry } from "@/config/appRegistry";
@@ -559,6 +559,63 @@ export function MenuBar({ children, inWindowFrame = false }: MenuBarProps) {
   const currentTheme = useThemeStore((state) => state.current);
   const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
 
+  // Taskbar overflow handling (used for XP taskbar rendering)
+  const runningAreaRef = useRef<HTMLDivElement>(null);
+  const [visibleTaskbarIds, setVisibleTaskbarIds] = useState<string[]>([]);
+  const [overflowTaskbarIds, setOverflowTaskbarIds] = useState<string[]>([]);
+
+  const allTaskbarIds = useMemo(() => {
+    return Object.values(instances)
+      .filter((i) => i.isOpen)
+      .sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0))
+      .map((i) => i.instanceId);
+  }, [instances]);
+
+  useEffect(() => {
+    // Only calculate overflow for XP taskbar (not in window frames)
+    if (!(isXpTheme && !inWindowFrame)) {
+      setVisibleTaskbarIds([]);
+      setOverflowTaskbarIds([]);
+      return;
+    }
+
+    const container = runningAreaRef.current;
+    if (!container) return;
+
+    const MIN_WIDTH = 110; // minimum shrink width to preserve readability
+    const GAP = 2; // right margin
+    const BUTTON_TOTAL_MIN = MIN_WIDTH + GAP;
+    const MORE_BTN_WIDTH = 40; // task-like overflow button total width
+
+    const compute = () => {
+      const containerWidth = container.clientWidth;
+      const countWithoutMore = Math.max(
+        0,
+        Math.floor(containerWidth / BUTTON_TOTAL_MIN)
+      );
+      if (allTaskbarIds.length <= countWithoutMore) {
+        setVisibleTaskbarIds(allTaskbarIds);
+        setOverflowTaskbarIds([]);
+        return;
+      }
+      const countWithMore = Math.max(
+        1,
+        Math.floor((containerWidth - MORE_BTN_WIDTH) / BUTTON_TOTAL_MIN)
+      );
+      setVisibleTaskbarIds(allTaskbarIds.slice(0, countWithMore));
+      setOverflowTaskbarIds(allTaskbarIds.slice(countWithMore));
+    };
+
+    compute();
+    const ro = new ResizeObserver(() => compute());
+    ro.observe(container);
+    window.addEventListener("resize", compute);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", compute);
+    };
+  }, [isXpTheme, inWindowFrame, allTaskbarIds]);
+
   // If inside window frame for XP/98, use plain style
   if (inWindowFrame && isXpTheme) {
     return (
@@ -606,15 +663,17 @@ export function MenuBar({ children, inWindowFrame = false }: MenuBarProps) {
           </div>
 
           {/* Running Apps Area */}
-          <div className="flex-1 flex items-center gap-0.5 px-2 overflow-x-auto h-full">
-            {/* Show all active instances as taskbar buttons */}
+          <div
+            ref={runningAreaRef}
+            className="flex-1 flex items-center gap-0.5 px-2 overflow-hidden h-full"
+          >
             {(() => {
-              const taskbarIds = Object.values(instances)
-                .filter((i) => i.isOpen)
-                .sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0))
-                .map((i) => i.instanceId);
-              if (taskbarIds.length === 0) return null;
-              return taskbarIds.map((instanceId) => {
+              const idsToRender =
+                visibleTaskbarIds.length > 0 || overflowTaskbarIds.length > 0
+                  ? visibleTaskbarIds
+                  : allTaskbarIds;
+              if (idsToRender.length === 0) return null;
+              return idsToRender.map((instanceId) => {
                 const instance = instances[instanceId];
                 if (!instance || !instance.isOpen) return null;
 
@@ -628,45 +687,43 @@ export function MenuBar({ children, inWindowFrame = false }: MenuBarProps) {
                     onClick={() => bringInstanceToForeground(instanceId)}
                     style={{
                       height: "85%",
-                      width: "160px",
+                      flex: "0 1 160px",
+                      minWidth: "110px",
                       marginTop: "2px",
                       marginRight: "2px",
                       background: isForeground
                         ? currentTheme === "xp"
-                          ? "#3980f4" // Active should be lighter blue
-                          : "#c0c0c0" // Flat gray for Windows 98
+                          ? "#3980f4"
+                          : "#c0c0c0"
                         : currentTheme === "xp"
-                        ? "#1658dd" // Inactive should be darker blue
+                        ? "#1658dd"
                         : "#c0c0c0",
                       border:
                         currentTheme === "xp"
                           ? isForeground
-                            ? "1px solid #255be1" // Active border
-                            : "1px solid #255be1" // Inactive border - same as active
-                          : "none", // Windows 98 uses box-shadow instead of border
+                            ? "1px solid #255be1"
+                            : "1px solid #255be1"
+                          : "none",
                       color: currentTheme === "xp" ? "#ffffff" : "#000000",
                       fontSize: "11px",
                       boxShadow:
                         currentTheme === "xp"
                           ? "2px 2px 5px rgba(255, 255, 255, 0.267) inset"
                           : isForeground
-                          ? "inset -1px -1px #fff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px grey" // Windows 98 active - inset
-                          : "inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px grey, inset 2px 2px #dfdfdf", // Windows 98 inactive - raised
+                          ? "inset -1px -1px #fff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px grey"
+                          : "inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px grey, inset 2px 2px #dfdfdf",
                       transition: "all 0.1s ease",
                     }}
                     onMouseEnter={(e) => {
                       if (currentTheme === "xp") {
                         if (isForeground) {
-                          // Active button hover - slightly brighter than active base
                           e.currentTarget.style.background = "#4a92f9";
                           e.currentTarget.style.borderColor = "#2c64e3";
                         } else {
-                          // Inactive button hover - lighter than inactive base
                           e.currentTarget.style.background = "#2a6ef1";
                           e.currentTarget.style.borderColor = "#1e56c9";
                         }
                       } else if (currentTheme === "win98" && !isForeground) {
-                        // Windows 98 hover - keep raised style, don't depress
                         e.currentTarget.style.boxShadow =
                           "inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px grey, inset 2px 2px #dfdfdf";
                       }
@@ -681,7 +738,6 @@ export function MenuBar({ children, inWindowFrame = false }: MenuBarProps) {
                           e.currentTarget.style.borderColor = "#255be1";
                         }
                       } else if (currentTheme === "win98" && !isForeground) {
-                        // Windows 98 return to normal raised state
                         e.currentTarget.style.boxShadow =
                           "inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px grey, inset 2px 2px #dfdfdf";
                       }
@@ -699,6 +755,81 @@ export function MenuBar({ children, inWindowFrame = false }: MenuBarProps) {
                 );
               });
             })()}
+
+            {/* Overflow menu button */}
+            {overflowTaskbarIds.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className="px-1 border-t border-y rounded-sm flex items-center justify-center"
+                    style={{
+                      height: "85%",
+                      width: "36px",
+                      marginTop: "2px",
+                      marginRight: "2px",
+                      background: currentTheme === "xp" ? "#1658dd" : "#c0c0c0",
+                      border:
+                        currentTheme === "xp" ? "1px solid #255be1" : "none",
+                      color: currentTheme === "xp" ? "#ffffff" : "#000000",
+                      fontSize: "11px",
+                      boxShadow:
+                        currentTheme === "xp"
+                          ? "2px 2px 5px rgba(255, 255, 255, 0.267) inset"
+                          : "inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px grey, inset 2px 2px #dfdfdf",
+                      transition: "all 0.1s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (currentTheme === "xp") {
+                        e.currentTarget.style.background = "#2a6ef1";
+                        e.currentTarget.style.borderColor = "#1e56c9";
+                      } else if (currentTheme === "win98") {
+                        e.currentTarget.style.boxShadow =
+                          "inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px grey, inset 2px 2px #dfdfdf";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (currentTheme === "xp") {
+                        e.currentTarget.style.background = "#1658dd";
+                        e.currentTarget.style.borderColor = "#255be1";
+                      } else if (currentTheme === "win98") {
+                        e.currentTarget.style.boxShadow =
+                          "inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px grey, inset 2px 2px #dfdfdf";
+                      }
+                    }}
+                  >
+                    <ChevronUp className="h-4 w-4" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  side={isXpTheme ? "top" : "bottom"}
+                  sideOffset={4}
+                  className="px-0"
+                >
+                  {overflowTaskbarIds.map((instanceId) => {
+                    const instance = instances[instanceId];
+                    if (!instance || !instance.isOpen) return null;
+                    const appIconPath = getAppIconPath(instance.appId);
+                    return (
+                      <DropdownMenuItem
+                        key={instanceId}
+                        onClick={() => bringInstanceToForeground(instanceId)}
+                        className="text-md h-6 px-3 active:bg-gray-900 active:text-white flex items-center gap-2"
+                      >
+                        <ThemedIcon
+                          name={appIconPath}
+                          alt=""
+                          className="w-4 h-4 [image-rendering:pixelated]"
+                        />
+                        <span className="truncate text-xs">
+                          {instance.title || getAppName(instance.appId)}
+                        </span>
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
 
           {/* System Tray */}
