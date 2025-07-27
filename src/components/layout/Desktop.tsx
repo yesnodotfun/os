@@ -271,7 +271,7 @@ export function Desktop({
       <div
         className={`flex flex-col relative z-[1] ${
           isXpTheme
-            ? "items-start pt-4 pr-4 pl-2 pb-0" // Reserve space via height, not padding, to avoid clipping
+            ? "items-start pt-2 pr-2 pl-1 pb-0" // Reserve space via height, not padding, to avoid clipping
             : "items-end pt-8 h-[calc(100%-2rem)] p-4" // Account for top menubar - keep right alignment for other themes
         }`}
         style={
