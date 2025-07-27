@@ -1,23 +1,31 @@
 # ryOS — A web-based agentic AI OS, made with Cursor
 
-A modern web-based desktop environment inspired by classic macOS, built with a cutting-edge web stack and AI. 
-Features multiple built-in applications, a familiar desktop interface, and a system context-aware AI agent. 
+A modern web-based desktop environment inspired by classic macOS, built with a cutting-edge web stack and AI.
+Features multiple built-in applications, a familiar desktop interface, and a system context-aware AI agent.
 Works on all devices—including mobile, tablet, and desktop.
 
 ## Features
 
 ### Desktop Environment
 
-- Authentic macOS-style desktop interactions
+- Authentic macOS and Windows-style desktop interactions
 - Multi-instance window manager with support for multiple windows per app
 - Cross-device window resizers
-- Menubar with app-specific menus
+- Menubar with app-specific menus (or taskbar + Start menu on Windows themes)
 - Icon and list views
 - Customizable wallpapers (photos, patterns, or videos)
 - System-wide sampled and synthesizer sound effects
 - System-wide UI, Chats, and Terminal sounds
 - System-wide Ryo AI, with tool calls and context of running applications
 - Virtual file system with local storage persistence and one-click Backup / Restore
+
+### Themes
+
+- **Four switchable themes:** System 7, Aqua (Mac OS X), Windows XP, Windows 98
+  - **Menu & chrome:** mac themes use a top menubar with traffic-light controls; Windows themes use a bottom taskbar with a Start menu and classic window buttons
+  - **Fonts & icons:** theme-specific system fonts and ThemedIcon assets for authentic look
+  - **Wallpapers:** theme-specific default photo/tile/video wallpapers
+  - **Controls:** select, dropdowns, buttons, and resizers are styled per theme, including mobile-safe resizers for XP/98
 
 ### Built-in Applications
 
