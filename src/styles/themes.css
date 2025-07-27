@@ -1156,6 +1156,13 @@
   ) !important; /* allow dynamic sizing */
 }
 
+/* -------------------------------------------------- */
+/* System 7 chat bubble typography tweaks */
+/* -------------------------------------------------- */
+:root[data-os-theme="system7"] .chat-bubble {
+  line-height: 1.2 !important;
+}
+
 /* Top shine: reuse semi-transparent white so underlying role color shows */
 :root[data-os-theme="macosx"] .chat-bubble:before {
   /* top adjusted from 1px to 2px */

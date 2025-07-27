@@ -110,6 +110,7 @@ export function ChatInput({
   );
   const currentTheme = useThemeStore((s) => s.current);
   const isMacTheme = currentTheme === "macosx";
+  const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
 
   // Get the model display name for debug information
   const modelDisplayName = aiModel ? AI_MODELS[aiModel]?.name : null;
@@ -452,9 +453,13 @@ export function ChatInput({
                     track(CHAT_ANALYTICS.STOP_GENERATION);
                     onStop();
                   }}
-                  className={`text-xs w-9 h-9 p-0 flex items-center justify-center rounded-full ${
+                  className={`text-xs w-9 h-9 p-0 flex items-center justify-center ${
+                    isMacTheme ? "rounded-full" : "rounded-none"
+                  } ${
                     isMacTheme
                       ? "relative overflow-hidden transition-transform hover:scale-105"
+                      : isXpTheme
+                      ? "text-black"
                       : "bg-black hover:bg-black/80 text-white border-2 border-gray-800"
                   }`}
                   style={
@@ -503,7 +508,11 @@ export function ChatInput({
                   )}
                   <Square
                     className={`h-4 w-4 ${
-                      isMacTheme ? "text-black/70 relative z-10" : ""
+                      isMacTheme
+                        ? "text-black/70 relative z-10"
+                        : isXpTheme
+                        ? "text-black"
+                        : ""
                     }`}
                     fill="currentColor"
                   />
@@ -520,9 +529,13 @@ export function ChatInput({
               >
                 <Button
                   type="submit"
-                  className={`text-xs w-9 h-9 p-0 flex items-center justify-center rounded-full ${
+                  className={`text-xs w-9 h-9 p-0 flex items-center justify-center ${
+                    isMacTheme ? "rounded-full" : "rounded-none"
+                  } ${
                     isMacTheme
                       ? "relative overflow-hidden transition-transform hover:scale-105"
+                      : isXpTheme
+                      ? "text-black"
                       : "bg-black hover:bg-black/80 text-white border-2 border-gray-800"
                   }`}
                   style={
@@ -572,7 +585,11 @@ export function ChatInput({
                   )}
                   <ArrowUp
                     className={`h-6 w-6 ${
-                      isMacTheme ? "text-black/70 relative z-10" : ""
+                      isMacTheme
+                        ? "text-black/70 relative z-10"
+                        : isXpTheme
+                        ? "text-black"
+                        : ""
                     }`}
                   />
                 </Button>

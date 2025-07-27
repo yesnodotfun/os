@@ -678,7 +678,11 @@ export function ChatsAppComponent({
                     ) : (
                       <Button
                         onClick={promptSetUsername}
-                        className="w-full h-9 font-geneva-12 text-[12px] bg-orange-600 text-white hover:bg-orange-700 transition-all duration-200"
+                        className={`w-full h-9 font-geneva-12 text-[12px] ${
+                          isXpTheme
+                            ? "text-black"
+                            : "bg-orange-600 text-white hover:bg-orange-700 transition-all duration-200"
+                        }`}
                       >
                         {"Login to Chat"}
                       </Button>
