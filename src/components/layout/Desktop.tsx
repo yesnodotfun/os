@@ -278,7 +278,8 @@ export function Desktop({
           isXpTheme
             ? {
                 // Exclude only the top menubar height; reserve bottom space via padding
-                height: "calc(100% - 30px - var(--sat-safe-area-bottom))",
+                height:
+                  "calc(100% - 30px - var(--sat-safe-area-bottom) - 2rem) !important",
               }
             : undefined
         }
