@@ -5,8 +5,8 @@ export const appMetadata = {
   name: "Finder",
   version: "1.0.0",
   creator: {
-    name: "Ryo",
-    url: "https://github.com/ryokun6",
+    name: "Ryo Lu",
+    url: "https://ryo.lu",
   },
   github: "https://github.com/ryokun6/ryos",
   icon: "/icons/mac.png",
@@ -28,8 +28,7 @@ export const helpItems = [
   {
     icon: "👀",
     title: "View & Sort",
-    description:
-      "Switch Icon sizes and sort by name, kind, size, or date",
+    description: "Switch Icon sizes and sort by name, kind, size, or date",
   },
   {
     icon: "📍",
@@ -40,14 +39,12 @@ export const helpItems = [
   {
     icon: "ℹ️",
     title: "Storage Info",
-    description:
-      "See free space & item count in the window footer",
+    description: "See free space & item count in the window footer",
   },
   {
     icon: "🗑️",
     title: "Trash",
-    description:
-      "Drag files to Trash & Empty to permanently delete",
+    description: "Drag files to Trash & Empty to permanently delete",
   },
 ];
 

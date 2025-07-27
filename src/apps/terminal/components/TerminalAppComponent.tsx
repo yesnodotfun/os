@@ -3546,8 +3546,8 @@ assistant
             name: "Terminal",
             version: "1.0",
             creator: {
-              name: "Ryo",
-              url: "https://github.com/ryokun6/ryos",
+              name: "Ryo Lu",
+              url: "https://ryo.lu",
             },
             github: "https://github.com/ryokun6/ryos",
             icon: "/icons/default/terminal.png",

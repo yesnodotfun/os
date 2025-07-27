@@ -40,7 +40,7 @@ export const appMetadata = {
   version: "1.0.0",
   creator: {
     name: "Ryo Lu",
-    url: "https://github.com/ryokun6",
+    url: "https://ryo.lu",
   },
   github: "https://github.com/ryokun6/ryos",
   icon: "/icons/control-panels/appearance-manager/app.png",
