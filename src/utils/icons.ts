@@ -14,7 +14,7 @@ let manifestPromise: Promise<IconManifest> | null = null;
 async function loadManifest(): Promise<IconManifest> {
   if (manifestCache) return manifestCache;
   if (!manifestPromise) {
-    manifestPromise = fetch("/icons/manifest.json")
+    manifestPromise = fetch("/icons/manifest.json", { cache: "no-store" })
       .then((r) => {
         if (!r.ok) throw new Error(`Failed to load icon manifest: ${r.status}`);
         return r.json();

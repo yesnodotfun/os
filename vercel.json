@@ -24,7 +24,25 @@
       ]
     },
     {
-      "source": "/wallpapers/:path*",
+      "source": "/wallpapers/tiles/:path*",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/wallpapers/photos/:path*",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/wallpapers/videos/:path*",
       "headers": [
         {
           "key": "Cache-Control",

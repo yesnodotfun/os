@@ -14,7 +14,10 @@ let manifestPromise: Promise<WallpaperManifest> | null = null;
 export async function loadWallpaperManifest(): Promise<WallpaperManifest> {
   if (manifestCache) return manifestCache;
   if (!manifestPromise) {
-    manifestPromise = fetch("/wallpapers/manifest.json")
+    // Bypass HTTP caches to ensure we always see the newest manifest.
+    // Server headers also set no-cache for this file, but this defends against
+    // any intermediary or conflicting rules.
+    manifestPromise = fetch("/wallpapers/manifest.json", { cache: "no-store" })
       .then((r) => {
         if (!r.ok)
           throw new Error(`Failed to load wallpaper manifest: ${r.status}`);
