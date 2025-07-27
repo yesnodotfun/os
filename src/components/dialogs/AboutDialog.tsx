@@ -57,15 +57,15 @@ export function AboutDialog({
       >
         <div
           className={cn(
-            "text-2xl font-medium",
+            "!text-3xl font-medium",
             isXpTheme
-              ? "font-['Trebuchet MS'] text-[17px]"
+              ? "font-['Trebuchet MS'] !text-[17px]"
               : "font-apple-garamond"
           )}
         >
           {metadata.name}
         </div>
-        <p className="text-gray-500">Version {metadata.version}</p>
+        <p className="text-gray-500 mb-2">Version {metadata.version}</p>
         <p>
           Made by{" "}
           <a
