@@ -576,162 +576,171 @@ export function MenuBar({ children, inWindowFrame = false }: MenuBarProps) {
 
   // For XP/98 themes, render taskbar at bottom instead of top menubar
   if (isXpTheme && !inWindowFrame) {
+    const taskbarBackground =
+      currentTheme === "xp"
+        ? "linear-gradient(0deg, #042b8e 0%, #0551f6 6%, #0453ff 51%, #0551f6 63%, #0551f6 81%, #3a8be8 90%, #0453ff 100%)"
+        : "#c0c0c0";
     return (
       <div
-        className="fixed bottom-0 left-0 right-0 flex items-center h-[30px] px-0 z-50"
+        className="fixed bottom-0 left-0 right-0 px-0 z-50"
         style={{
-          background:
-            currentTheme === "xp"
-              ? "linear-gradient(0deg, #042b8e 0%, #0551f6 6%, #0453ff 51%, #0551f6 63%, #0551f6 81%, #3a8be8 90%, #0453ff 100%)"
-              : "#c0c0c0", // Flat gray for Windows 98
+          background: taskbarBackground,
           fontFamily: "var(--font-ms-sans)",
           fontSize: "11px",
           color: currentTheme === "xp" ? "#ffffff" : "#000000",
           userSelect: "none",
           width: "100vw",
-          // Use margin to avoid distorting internal layout height
-          marginBottom: "env(safe-area-inset-bottom, 0px)",
+          height: "calc(30px + env(safe-area-inset-bottom, 0px))",
+          position: "fixed",
         }}
       >
-        {/* Start Button */}
-        <div className="flex items-center h-full">
-          <StartMenu apps={apps} />
-        </div>
-
-        {/* Running Apps Area */}
-        <div className="flex-1 flex items-center gap-1 px-2 overflow-x-auto h-full">
-          {/* Show all active instances as taskbar buttons */}
-          {(() => {
-            const taskbarIds = Object.values(instances)
-              .filter((i) => i.isOpen)
-              .sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0))
-              .map((i) => i.instanceId);
-            if (taskbarIds.length === 0) return null;
-            return taskbarIds.map((instanceId) => {
-              const instance = instances[instanceId];
-              if (!instance || !instance.isOpen) return null;
-
-              const isForeground = instanceId === foregroundInstanceId;
-              const appIconPath = getAppIconPath(instance.appId);
-
-              return (
-                <button
-                  key={instanceId}
-                  className="px-2 gap-1 border-t border-y rounded-sm flex items-center justify-start"
-                  onClick={() => bringInstanceToForeground(instanceId)}
-                  style={{
-                    height: "85%",
-                    width: "160px",
-                    marginTop: "2px",
-                    marginRight: "4px",
-                    background: isForeground
-                      ? currentTheme === "xp"
-                        ? "#3980f4" // Active should be lighter blue
-                        : "#c0c0c0" // Flat gray for Windows 98
-                      : currentTheme === "xp"
-                      ? "#1658dd" // Inactive should be darker blue
-                      : "#c0c0c0",
-                    border:
-                      currentTheme === "xp"
-                        ? isForeground
-                          ? "1px solid #255be1" // Active border
-                          : "1px solid #255be1" // Inactive border - same as active
-                        : "none", // Windows 98 uses box-shadow instead of border
-                    color: currentTheme === "xp" ? "#ffffff" : "#000000",
-                    fontSize: "11px",
-                    boxShadow:
-                      currentTheme === "xp"
-                        ? "2px 2px 5px rgba(255, 255, 255, 0.267) inset"
-                        : isForeground
-                        ? "inset -1px -1px #fff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px grey" // Windows 98 active - inset
-                        : "inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px grey, inset 2px 2px #dfdfdf", // Windows 98 inactive - raised
-                    transition: "all 0.1s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (currentTheme === "xp" && !isForeground) {
-                      e.currentTarget.style.background = "#1b50b8";
-                      e.currentTarget.style.borderColor = "#082875";
-                    } else if (currentTheme === "win98" && !isForeground) {
-                      // Windows 98 hover - keep raised style, don't depress
-                      e.currentTarget.style.boxShadow =
-                        "inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px grey, inset 2px 2px #dfdfdf";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (currentTheme === "xp" && !isForeground) {
-                      e.currentTarget.style.background = "#1658dd";
-                      e.currentTarget.style.borderColor = "#255be1";
-                    } else if (currentTheme === "win98" && !isForeground) {
-                      // Windows 98 return to normal raised state
-                      e.currentTarget.style.boxShadow =
-                        "inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px grey, inset 2px 2px #dfdfdf";
-                    }
-                  }}
-                >
-                  <ThemedIcon
-                    name={appIconPath}
-                    alt=""
-                    className="w-4 h-4 flex-shrink-0 [image-rendering:pixelated]"
-                  />
-                  <span className="truncate text-xs">
-                    {instance.title || getAppName(instance.appId)}
-                  </span>
-                </button>
-              );
-            });
-          })()}
-        </div>
-
-        {/* System Tray */}
         <div
-          className="flex items-center gap-1 px-2 text-white border box-border flex items-center justify-end text-sm"
+          className="absolute left-0 right-0 flex items-center h-[30px]"
           style={{
-            height: currentTheme === "win98" ? "85%" : "100%",
-            marginTop: currentTheme === "win98" ? "2px" : "0px",
-            marginRight: currentTheme === "win98" ? "4px" : "0px",
-            background:
-              currentTheme === "xp"
-                ? "linear-gradient(0deg, #0a5bc6 0%, #1198e9 6%, #1198e9 51%, #1198e9 63%, #1198e9 77%, #19b9f3 85%, #19b9f3 93%, #075dca 97%)"
-                : "#c0c0c0", // Flat gray for Windows 98
-            boxShadow:
-              currentTheme === "xp"
-                ? "2px -0px 3px #20e2fc inset"
-                : "inset -1px -1px #fff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px grey", // Windows 98 inset
-            borderTop:
-              currentTheme === "xp" ? "1px solid #075dca" : "transparent",
-            borderBottom:
-              currentTheme === "xp" ? "1px solid #0a5bc6" : "transparent",
-            borderRight: currentTheme === "xp" ? "transparent" : "transparent",
-            borderLeft:
-              currentTheme === "xp" ? "1px solid #000000" : "transparent",
-            paddingTop: currentTheme === "xp" ? "1px" : "0px",
+            bottom: "env(safe-area-inset-bottom, 0px)",
           }}
         >
-          <div className="hidden sm:flex">
-            <VolumeControl />
+          {/* Start Button */}
+          <div className="flex items-center h-full">
+            <StartMenu apps={apps} />
           </div>
+
+          {/* Running Apps Area */}
+          <div className="flex-1 flex items-center gap-1 px-2 overflow-x-auto h-full">
+            {/* Show all active instances as taskbar buttons */}
+            {(() => {
+              const taskbarIds = Object.values(instances)
+                .filter((i) => i.isOpen)
+                .sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0))
+                .map((i) => i.instanceId);
+              if (taskbarIds.length === 0) return null;
+              return taskbarIds.map((instanceId) => {
+                const instance = instances[instanceId];
+                if (!instance || !instance.isOpen) return null;
+
+                const isForeground = instanceId === foregroundInstanceId;
+                const appIconPath = getAppIconPath(instance.appId);
+
+                return (
+                  <button
+                    key={instanceId}
+                    className="px-2 gap-1 border-t border-y rounded-sm flex items-center justify-start"
+                    onClick={() => bringInstanceToForeground(instanceId)}
+                    style={{
+                      height: "85%",
+                      width: "160px",
+                      marginTop: "2px",
+                      marginRight: "4px",
+                      background: isForeground
+                        ? currentTheme === "xp"
+                          ? "#3980f4" // Active should be lighter blue
+                          : "#c0c0c0" // Flat gray for Windows 98
+                        : currentTheme === "xp"
+                        ? "#1658dd" // Inactive should be darker blue
+                        : "#c0c0c0",
+                      border:
+                        currentTheme === "xp"
+                          ? isForeground
+                            ? "1px solid #255be1" // Active border
+                            : "1px solid #255be1" // Inactive border - same as active
+                          : "none", // Windows 98 uses box-shadow instead of border
+                      color: currentTheme === "xp" ? "#ffffff" : "#000000",
+                      fontSize: "11px",
+                      boxShadow:
+                        currentTheme === "xp"
+                          ? "2px 2px 5px rgba(255, 255, 255, 0.267) inset"
+                          : isForeground
+                          ? "inset -1px -1px #fff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px grey" // Windows 98 active - inset
+                          : "inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px grey, inset 2px 2px #dfdfdf", // Windows 98 inactive - raised
+                      transition: "all 0.1s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (currentTheme === "xp" && !isForeground) {
+                        e.currentTarget.style.background = "#1b50b8";
+                        e.currentTarget.style.borderColor = "#082875";
+                      } else if (currentTheme === "win98" && !isForeground) {
+                        // Windows 98 hover - keep raised style, don't depress
+                        e.currentTarget.style.boxShadow =
+                          "inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px grey, inset 2px 2px #dfdfdf";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (currentTheme === "xp" && !isForeground) {
+                        e.currentTarget.style.background = "#1658dd";
+                        e.currentTarget.style.borderColor = "#255be1";
+                      } else if (currentTheme === "win98" && !isForeground) {
+                        // Windows 98 return to normal raised state
+                        e.currentTarget.style.boxShadow =
+                          "inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px grey, inset 2px 2px #dfdfdf";
+                      }
+                    }}
+                  >
+                    <ThemedIcon
+                      name={appIconPath}
+                      alt=""
+                      className="w-4 h-4 flex-shrink-0 [image-rendering:pixelated]"
+                    />
+                    <span className="truncate text-xs">
+                      {instance.title || getAppName(instance.appId)}
+                    </span>
+                  </button>
+                );
+              });
+            })()}
+          </div>
+
+          {/* System Tray */}
           <div
-            className={`text-xs ${isXpTheme ? "font-bold" : "font-normal"} ${
-              isXpTheme ? "" : "px-2"
-            }`}
+            className="flex items-center gap-1 px-2 text-white border box-border flex items-center justify-end text-sm"
             style={{
-              color:
-                currentTheme === "win98"
-                  ? "#000000"
-                  : isXpTheme
-                  ? "#ffffff"
-                  : "#000000",
-              textShadow:
+              height: currentTheme === "win98" ? "85%" : "100%",
+              marginTop: currentTheme === "win98" ? "2px" : "0px",
+              marginRight: currentTheme === "win98" ? "4px" : "0px",
+              background:
                 currentTheme === "xp"
-                  ? "1px 1px 1px rgba(0,0,0,0.5)"
-                  : currentTheme === "win98"
-                  ? "none"
-                  : currentTheme === "macosx"
-                  ? "0 2px 3px rgba(0, 0, 0, 0.25)"
-                  : "none",
+                  ? "linear-gradient(0deg, #0a5bc6 0%, #1198e9 6%, #1198e9 51%, #1198e9 63%, #1198e9 77%, #19b9f3 85%, #19b9f3 93%, #075dca 97%)"
+                  : "#c0c0c0", // Flat gray for Windows 98
+              boxShadow:
+                currentTheme === "xp"
+                  ? "2px -0px 3px #20e2fc inset"
+                  : "inset -1px -1px #fff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px grey", // Windows 98 inset
+              borderTop:
+                currentTheme === "xp" ? "1px solid #075dca" : "transparent",
+              borderBottom:
+                currentTheme === "xp" ? "1px solid #0a5bc6" : "transparent",
+              borderRight:
+                currentTheme === "xp" ? "transparent" : "transparent",
+              borderLeft:
+                currentTheme === "xp" ? "1px solid #000000" : "transparent",
+              paddingTop: currentTheme === "xp" ? "1px" : "0px",
             }}
           >
-            <Clock />
+            <div className="hidden sm:flex">
+              <VolumeControl />
+            </div>
+            <div
+              className={`text-xs ${isXpTheme ? "font-bold" : "font-normal"} ${
+                isXpTheme ? "" : "px-2"
+              }`}
+              style={{
+                color:
+                  currentTheme === "win98"
+                    ? "#000000"
+                    : isXpTheme
+                    ? "#ffffff"
+                    : "#000000",
+                textShadow:
+                  currentTheme === "xp"
+                    ? "1px 1px 1px rgba(0,0,0,0.5)"
+                    : currentTheme === "win98"
+                    ? "none"
+                    : currentTheme === "macosx"
+                    ? "0 2px 3px rgba(0, 0, 0, 0.25)"
+                    : "none",
+              }}
+            >
+              <Clock />
+            </div>
           </div>
         </div>
       </div>
