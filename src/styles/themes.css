@@ -766,6 +766,11 @@
   font-size: min(5vw, 5vh) !important;
 }
 
+/* Preserve fullscreen lyrics responsive font size */
+:root[data-os-theme="macosx"] .ipod-force-font .text-\[min\(8vw\,8vh\)\] {
+  font-size: min(8vw, 8vh) !important;
+}
+
 :root[data-os-theme="macosx"] .ipod-force-font .font-geneva-12,
 :root[data-os-theme="macosx"] .synth-force-font .font-geneva-12 {
   font-family: "Geneva-12", "ArkPixel", "SerenityOS-Emoji", system-ui,
@@ -849,6 +854,13 @@
 
 :root[data-os-theme="macosx"] .ipod-force-font .text-\[24px\] {
   font-size: 24px !important;
+}
+
+/* Ensure responsive fullscreen lyrics beat the base Geneva-12 size rule */
+:root[data-os-theme="macosx"]
+  .ipod-force-font
+  .font-geneva-12.text-\[min\(8vw\,8vh\)\] {
+  font-size: min(8vw, 8vh) !important;
 }
 
 /* macOS dropdown menu item hover/focus styles */
