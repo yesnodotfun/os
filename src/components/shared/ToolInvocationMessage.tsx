@@ -85,7 +85,12 @@ export function ToolInvocationMessage({
   }
 
   // Special handling for generateHtml
-  if (state === "result" && toolName === "generateHtml" && typeof result === "string" && result.trim().length > 0) {
+  if (
+    state === "result" &&
+    toolName === "generateHtml" &&
+    typeof result === "string" &&
+    result.trim().length > 0
+  ) {
     return (
       <HtmlPreview
         key={partKey}
@@ -102,7 +107,10 @@ export function ToolInvocationMessage({
   if (toolName === "generateHtml") {
     if (state === "partial-call") {
       return (
-        <div key={partKey} className="mb-0.5 p-1.5 bg-white/50 rounded text-xs italic text-gray-600 flex items-center gap-1">
+        <div
+          key={partKey}
+          className="mb-0 px-1 py-0.5 text-xs italic text-gray-600 flex items-center gap-1"
+        >
           <Loader2 className="h-3 w-3 animate-spin text-gray-500" />
           <span className="shimmer">Generating...</span>
         </div>
@@ -124,7 +132,10 @@ export function ToolInvocationMessage({
         );
       }
       return (
-        <div key={partKey} className="mb-0.5 p-1.5 bg-white/50 rounded text-xs italic text-gray-500">
+        <div
+          key={partKey}
+          className="mb-0 px-1 py-0.5 text-xs italic text-gray-500"
+        >
           Preparing HTML preview...
         </div>
       );
@@ -133,9 +144,9 @@ export function ToolInvocationMessage({
 
   // Default rendering for other tools
   return (
-    <div key={partKey} className="mb-0.5 p-1.5 bg-white/50 rounded text italic text-[12px]">
+    <div key={partKey} className="mb-0 px-1 py-0.5 italic text-[12px]">
       {(state === "call" || state === "partial-call") && (
-          <div className="flex items-center gap-1 text-gray-700">
+        <div className="flex items-center gap-1 text-gray-700">
           <Loader2 className="h-3 w-3 animate-spin text-gray-500" />
           {displayCallMessage ? (
             <span className="shimmer">{displayCallMessage}</span>
@@ -164,4 +175,4 @@ export function ToolInvocationMessage({
       )}
     </div>
   );
-} 
+}
