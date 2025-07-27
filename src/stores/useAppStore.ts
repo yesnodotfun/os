@@ -177,8 +177,8 @@ export const useAppStore = create<AppStoreState>()(
           },
         })),
 
-      currentWallpaper: "/wallpapers/photos/aqua/abstract-7.jpg",
-      wallpaperSource: "/wallpapers/photos/aqua/abstract-7.jpg",
+      currentWallpaper: "/wallpapers/videos/blue_flowers_loop.mp4",
+      wallpaperSource: "/wallpapers/videos/blue_flowers_loop.mp4",
       setCurrentWallpaper: (p) =>
         set({ currentWallpaper: p, wallpaperSource: p }),
 
