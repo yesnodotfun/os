@@ -61,8 +61,9 @@
 
 /* Mac OS X Theme */
 :root[data-os-theme="macosx"] {
-  --os-font-ui: "LucidaGrande", "Lucida Grande", ui-sans-serif, system-ui,
-    -apple-system, BlinkMacSystemFont, sans-serif;
+  --os-font-ui: "LucidaGrande", "Lucida Grande", "Hiragino Sans",
+    "Hiragino Sans GB", "Heiti SC", ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, sans-serif;
   --os-font-mono: Monaco, Menlo, monospace;
   --os-color-window-bg: #ececec;
   --os-color-menubar-bg: linear-gradient(to bottom, #f8f8f8, #d4d4d4);
@@ -510,9 +511,9 @@
 
 /* macOS select styling - similar to aqua buttons */
 :root[data-os-theme="macosx"] select {
-  font-family: "LucidaGrande", "Lucida Grande", ui-sans-serif, system-ui,
-    -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
-    sans-serif !important;
+  font-family: "LucidaGrande", "Lucida Grande", "Hiragino Sans",
+    "Hiragino Sans GB", "Heiti SC", ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif !important;
   font-size: 14px !important;
   line-height: 1;
   height: 22px;
@@ -713,9 +714,9 @@
   ):not(.videos-player-controls .font-geneva-12):not(
     .synth-force-font .font-geneva-12
   ) {
-  font-family: "LucidaGrande", "Lucida Grande", ui-sans-serif, system-ui,
-    -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
-    sans-serif !important;
+  font-family: "LucidaGrande", "Lucida Grande", "Hiragino Sans",
+    "Hiragino Sans GB", "Heiti SC", ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif !important;
   -webkit-font-smoothing: antialiased !important;
   font-smooth: auto !important;
 }
