@@ -76,7 +76,6 @@ const PianoKey: React.FC<{
   onRelease: (note: string) => void;
   labelType: NoteLabelType;
   keyMap: Record<string, string>;
-  octaveOffset: number;
   isSystem7Theme?: boolean;
 }> = ({
   note,
@@ -86,7 +85,6 @@ const PianoKey: React.FC<{
   onRelease,
   labelType,
   keyMap,
-  octaveOffset,
   isSystem7Theme = false,
 }) => {
   const handleMouseDown = () => {
@@ -119,12 +117,7 @@ const PianoKey: React.FC<{
       )?.[0];
       return keyboardKey ? keyboardKey.toUpperCase() : "";
     }
-    // Include the octave number in the note label, adjusted for octaveOffset
-    if (octaveOffset !== 0) {
-      // Apply octave shift to display the actual note being played
-      const shiftedNote = shiftNoteByOctave(note, octaveOffset);
-      return shiftedNote;
-    }
+    // Keep note labels static regardless of octaveOffset
     return note;
   };
 
@@ -188,6 +181,8 @@ export function SynthAppComponent({
   const bitcrusherRef = useRef<Tone.BitCrusher | null>(null);
   // Track the exact shifted note triggered for each base note to ensure proper release
   const activeShiftedNotesRef = useRef<Record<string, string>>({});
+  // Always read the latest octave offset inside keyboard handlers
+  const octaveOffsetRef = useRef(0);
 
   // UI state
   const [isHelpOpen, setIsHelpOpen] = useState(false);
@@ -198,6 +193,9 @@ export function SynthAppComponent({
   const [statusMessage, setStatusMessage] = useState("");
   const [isControlsVisible, setIsControlsVisible] = useState(false);
   const [octaveOffset, setOctaveOffset] = useState(0);
+  useEffect(() => {
+    octaveOffsetRef.current = octaveOffset;
+  }, [octaveOffset]);
 
   // Ref to keep the latest foreground state for global event handlers
   const isForegroundRef = useRef(isForeground);
@@ -511,33 +509,27 @@ export function SynthAppComponent({
   };
 
   // Note press/release handlers
-  const pressNote = useCallback(
-    (note: string) => {
-      if (!synthRef.current) return;
+  const pressNote = useCallback((note: string) => {
+    if (!synthRef.current) return;
 
-      const shiftedNote = shiftNoteByOctave(note, octaveOffset);
-      activeShiftedNotesRef.current[note] = shiftedNote;
-      const now = Tone.context.currentTime; // schedule without extra latency
-      synthRef.current.triggerAttack(shiftedNote, now);
-      setPressedNotes((prev) => ({ ...prev, [note]: true }));
-    },
-    [octaveOffset]
-  );
+    const shiftedNote = shiftNoteByOctave(note, octaveOffsetRef.current);
+    activeShiftedNotesRef.current[note] = shiftedNote;
+    const now = Tone.context.currentTime; // schedule without extra latency
+    synthRef.current.triggerAttack(shiftedNote, now);
+    setPressedNotes((prev) => ({ ...prev, [note]: true }));
+  }, []);
 
-  const releaseNote = useCallback(
-    (note: string) => {
-      if (!synthRef.current) return;
+  const releaseNote = useCallback((note: string) => {
+    if (!synthRef.current) return;
 
-      const shiftedNote =
-        activeShiftedNotesRef.current[note] ??
-        shiftNoteByOctave(note, octaveOffset);
-      const now = Tone.context.currentTime;
-      synthRef.current.triggerRelease(shiftedNote, now);
-      delete activeShiftedNotesRef.current[note];
-      setPressedNotes((prev) => ({ ...prev, [note]: false }));
-    },
-    [octaveOffset]
-  );
+    const shiftedNote =
+      activeShiftedNotesRef.current[note] ??
+      shiftNoteByOctave(note, octaveOffsetRef.current);
+    const now = Tone.context.currentTime;
+    synthRef.current.triggerRelease(shiftedNote, now);
+    delete activeShiftedNotesRef.current[note];
+    setPressedNotes((prev) => ({ ...prev, [note]: false }));
+  }, []);
 
   // Release all currently active notes regardless of current octave or sources
   const releaseAllNotes = useCallback(() => {
@@ -972,7 +964,11 @@ export function SynthAppComponent({
                   <Button
                     variant="player"
                     onClick={() =>
-                      setOctaveOffset((prev) => Math.max(-2, prev - 1))
+                      setOctaveOffset((prev) => {
+                        const next = Math.max(-2, prev - 1);
+                        showStatus(`Octave ${next}`);
+                        return next;
+                      })
                     }
                     className="h-[22px] px-2 select-none"
                   >
@@ -981,7 +977,11 @@ export function SynthAppComponent({
                   <Button
                     variant="player"
                     onClick={() =>
-                      setOctaveOffset((prev) => Math.min(2, prev + 1))
+                      setOctaveOffset((prev) => {
+                        const next = Math.min(2, prev + 1);
+                        showStatus(`Octave ${next}`);
+                        return next;
+                      })
                     }
                     className="h-[22px] px-2 select-none"
                   >
@@ -1571,7 +1571,6 @@ export function SynthAppComponent({
                         onRelease={releaseNote}
                         labelType={labelType}
                         keyMap={keyToNoteMap}
-                        octaveOffset={octaveOffset}
                         isSystem7Theme={isSystem7Theme}
                       />
                     </div>
@@ -1606,7 +1605,6 @@ export function SynthAppComponent({
                               onRelease={releaseNote}
                               labelType={labelType}
                               keyMap={keyToNoteMap}
-                              octaveOffset={octaveOffset}
                               isSystem7Theme={isSystem7Theme}
                             />
                           </div>
