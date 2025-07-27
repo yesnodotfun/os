@@ -3504,7 +3504,7 @@ assistant
         menuBar={isXpTheme ? menuBar : undefined}
       >
         <motion.div
-          className="flex flex-col h-full w-full bg-black/80 backdrop-blur-lg text-white antialiased font-monaco p-2 overflow-hidden select-text"
+          className="flex flex-col h-full w-full bg-black/80 backdrop-blur-lg text-white antialiased font-monaco overflow-hidden select-text"
           style={{
             fontSize: `${fontSize}px`,
             fontFamily:
@@ -3522,7 +3522,7 @@ assistant
         >
           <div
             ref={terminalRef}
-            className="flex-1 overflow-auto whitespace-pre-wrap select-text cursor-text"
+            className="flex-1 overflow-auto whitespace-pre-wrap select-text cursor-text p-2"
             onClick={(e) => {
               // Only focus input if this isn't a text selection
               if (window.getSelection()?.toString() === "") {
