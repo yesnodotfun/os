@@ -411,27 +411,6 @@ function FullScreenPortal({
         )}
       >
         <div className="flex items-center gap-2 md:gap-3">
-          {/* Translate button */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsLangMenuOpen((v) => !v);
-              registerActivity();
-            }}
-            aria-label="Translate lyrics"
-            className={cn(
-              "rounded-full backdrop-blur-sm bg-neutral-800/20 p-2 transition-all duration-200 focus:outline-none w-11 h-11 md:w-16 md:h-16 flex items-center justify-center text-white/40 hover:text-white hover:bg-neutral-900"
-            )}
-          >
-            {translationBadge ? (
-              <span className="inline-flex items-center justify-center w-[28px] h-[28px] md:w-[34px] md:h-[34px] leading-none font-geneva-12 text-[18px] md:text-[24px]">
-                {translationBadge}
-              </span>
-            ) : (
-              <Globe className="w-[22px] h-[22px] md:w-[30px] md:h-[30px]" />
-            )}
-          </button>
-
           {/* Hangul toggle */}
           <button
             onClick={(e) => {
@@ -515,6 +494,27 @@ function FullScreenPortal({
                 {/* Bottom line right aligned */}
                 <line x1="11" y1="16" x2="20" y2="16" />
               </svg>
+            )}
+          </button>
+
+          {/* Translate button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsLangMenuOpen((v) => !v);
+              registerActivity();
+            }}
+            aria-label="Translate lyrics"
+            className={cn(
+              "rounded-full backdrop-blur-sm bg-neutral-800/20 p-2 transition-all duration-200 focus:outline-none w-11 h-11 md:w-16 md:h-16 flex items-center justify-center text-white/40 hover:text-white hover:bg-neutral-900"
+            )}
+          >
+            {translationBadge ? (
+              <span className="inline-flex items-center justify-center w-[28px] h-[28px] md:w-[34px] md:h-[34px] leading-none font-geneva-12 text-[18px] md:text-[24px]">
+                {translationBadge}
+              </span>
+            ) : (
+              <Globe className="w-[22px] h-[22px] md:w-[30px] md:h-[30px]" />
             )}
           </button>
 
