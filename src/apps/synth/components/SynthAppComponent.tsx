@@ -186,6 +186,8 @@ export function SynthAppComponent({
   const chorusRef = useRef<Tone.Chorus | null>(null);
   const phaserRef = useRef<Tone.Phaser | null>(null);
   const bitcrusherRef = useRef<Tone.BitCrusher | null>(null);
+  // Track the exact shifted note triggered for each base note to ensure proper release
+  const activeShiftedNotesRef = useRef<Record<string, string>>({});
 
   // UI state
   const [isHelpOpen, setIsHelpOpen] = useState(false);
@@ -514,6 +516,7 @@ export function SynthAppComponent({
       if (!synthRef.current) return;
 
       const shiftedNote = shiftNoteByOctave(note, octaveOffset);
+      activeShiftedNotesRef.current[note] = shiftedNote;
       const now = Tone.context.currentTime; // schedule without extra latency
       synthRef.current.triggerAttack(shiftedNote, now);
       setPressedNotes((prev) => ({ ...prev, [note]: true }));
@@ -525,13 +528,38 @@ export function SynthAppComponent({
     (note: string) => {
       if (!synthRef.current) return;
 
-      const shiftedNote = shiftNoteByOctave(note, octaveOffset);
+      const shiftedNote =
+        activeShiftedNotesRef.current[note] ??
+        shiftNoteByOctave(note, octaveOffset);
       const now = Tone.context.currentTime;
       synthRef.current.triggerRelease(shiftedNote, now);
+      delete activeShiftedNotesRef.current[note];
       setPressedNotes((prev) => ({ ...prev, [note]: false }));
     },
     [octaveOffset]
   );
+
+  // Release all currently active notes regardless of current octave or sources
+  const releaseAllNotes = useCallback(() => {
+    if (!synthRef.current) {
+      activeShiftedNotesRef.current = {};
+      setPressedNotes({});
+      setActiveTouches({});
+      return;
+    }
+
+    const now = Tone.context.currentTime;
+    const keys = Object.keys(activeShiftedNotesRef.current);
+    for (const baseNote of keys) {
+      const shifted = activeShiftedNotesRef.current[baseNote];
+      if (shifted) {
+        synthRef.current.triggerRelease(shifted, now);
+      }
+    }
+    activeShiftedNotesRef.current = {};
+    setPressedNotes({});
+    setActiveTouches({});
+  }, []);
 
   // Status message display
   const showStatus = (message: string) => {
@@ -736,11 +764,7 @@ export function SynthAppComponent({
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        // Release all active notes when the app goes to background
-        Object.entries(activeTouchesRef.current).forEach(([, note]) => {
-          releaseNote(note);
-        });
-        setActiveTouches({});
+        releaseAllNotes();
       }
     };
 
@@ -748,7 +772,45 @@ export function SynthAppComponent({
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [activeTouchesRef, releaseNote]);
+  }, [releaseAllNotes]);
+
+  // Release all notes when the app loses foreground
+  useEffect(() => {
+    if (!isWindowOpen) return;
+    if (!isForeground) {
+      releaseAllNotes();
+    }
+  }, [isForeground, isWindowOpen, releaseAllNotes]);
+
+  // Release notes when dialogs/controls open to avoid ignored keyup/touchend
+  useEffect(() => {
+    if (!isWindowOpen) return;
+    if (isControlsVisible || isHelpOpen || isAboutOpen || isPresetDialogOpen) {
+      releaseAllNotes();
+    }
+  }, [
+    isControlsVisible,
+    isHelpOpen,
+    isAboutOpen,
+    isPresetDialogOpen,
+    isWindowOpen,
+    releaseAllNotes,
+  ]);
+
+  // Release notes on window blur (e.g., switching apps without hiding the page)
+  useEffect(() => {
+    if (!isWindowOpen) return;
+    const onBlur = () => releaseAllNotes();
+    window.addEventListener("blur", onBlur);
+    return () => window.removeEventListener("blur", onBlur);
+  }, [isWindowOpen, releaseAllNotes]);
+
+  // Ensure we also release when window is closed
+  useEffect(() => {
+    if (!isWindowOpen) {
+      releaseAllNotes();
+    }
+  }, [isWindowOpen, releaseAllNotes]);
 
   // Ensure Tone.js context is in low-latency mode once when the component mounts
   useEffect(() => {
