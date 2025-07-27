@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2025-07-27T14:59:56.194Z",
+  "generatedAt": "2025-07-27T15:15:48.506Z",
   "themes": {
     "default": [
       "apple.png",
@@ -48,8 +48,6 @@
       "info.png",
       "internet.png",
       "ipod.png",
-      "mac-192.png",
-      "mac-512.png",
       "mac-classic.png",
       "mac.png",
       "macpaint/brush.png",
