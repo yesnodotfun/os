@@ -2311,8 +2311,9 @@ export function IpodAppComponent({
                               fullScreenLyricsControls.isTranslating
                             }
                             textSizeClass="text-[min(10vw,10vh)]"
+                            gapClass="gap-4 md:gap-8"
                             interactive={isIOSSafari ? false : isPlaying}
-                            bottomPaddingClass="pb-42"
+                            bottomPaddingClass="pb-48 md:pb-64"
                           />
                         </div>
                       )}

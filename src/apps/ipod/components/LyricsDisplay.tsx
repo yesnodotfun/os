@@ -31,10 +31,14 @@ interface LyricsDisplayProps {
   isTranslating?: boolean;
   /** Optional tailwind class for text size */
   textSizeClass?: string;
+  /** Optional tailwind class for line height */
+  lineHeightClass?: string;
   /** Whether the overlay should capture pointer events */
   interactive?: boolean;
   /** Optional tailwind class to control bottom padding (e.g. "pb-24"). Defaults to "pb-5" */
   bottomPaddingClass?: string;
+  /** Optional tailwind class for spacing between lyric items */
+  gapClass?: string;
 }
 
 const ANIMATION_CONFIG = {
@@ -130,8 +134,10 @@ export function LyricsDisplay({
   onAdjustOffset,
   isTranslating = false,
   textSizeClass = "text-[12px]",
+  lineHeightClass = "leading-[1.1]",
   interactive = true,
   bottomPaddingClass = "pb-5",
+  gapClass = "gap-2",
 }: LyricsDisplayProps) {
   const chineseConverter = useMemo(
     () => Converter({ from: "cn", to: "tw" }),
@@ -301,7 +307,7 @@ export function LyricsDisplay({
     <motion.div
       layout={alignment === LyricsAlignment.Alternating}
       transition={ANIMATION_CONFIG.spring}
-      className={`absolute inset-x-0 mx-auto top-0 left-0 right-0 bottom-0 w-full h-full overflow-hidden flex flex-col items-center justify-end gap-2 z-40 select-none px-0 ${bottomPaddingClass}`}
+      className={`absolute inset-x-0 mx-auto top-0 left-0 right-0 bottom-0 w-full h-full overflow-hidden flex flex-col items-center justify-end ${gapClass} z-40 select-none px-0 ${bottomPaddingClass}`}
       style={{ pointerEvents: interactive ? "auto" : "none" }}
       onWheel={handleWheel}
       onTouchStart={handleTouchStart}
@@ -347,7 +353,7 @@ export function LyricsDisplay({
               exit="exit"
               variants={variants}
               transition={dynamicTransition}
-              className={`px-2 md:px-6 ${textSizeClass} font-geneva-12 leading-[1.1] whitespace-pre-wrap break-words max-w-full text-white`}
+              className={`px-2 md:px-6 ${textSizeClass} font-geneva-12 ${lineHeightClass} whitespace-pre-wrap break-words max-w-full text-white`}
               style={{
                 textAlign: lineTextAlign as CanvasTextAlign,
                 width: "100%",
