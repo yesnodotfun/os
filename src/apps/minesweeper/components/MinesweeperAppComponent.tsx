@@ -28,14 +28,24 @@ function useLongPress(
 ) {
   const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout>();
   const longPressTriggeredRef = useRef(false);
+  const lastButtonRef = useRef<number | null>(null);
+  const lastWasTouchRef = useRef(false);
 
   const start = useCallback(
     (e: React.TouchEvent | React.MouseEvent) => {
       if (shouldPreventDefault && e.target) {
         e.preventDefault();
       }
-      // Reset the flag when starting a new gesture
       longPressTriggeredRef.current = false;
+
+      if ("touches" in e) {
+        lastWasTouchRef.current = true;
+        lastButtonRef.current = null;
+      } else {
+        const me = e as React.MouseEvent;
+        lastWasTouchRef.current = false;
+        lastButtonRef.current = typeof me.button === "number" ? me.button : 0;
+      }
 
       const timer = setTimeout(() => {
         onLongPress(e);
@@ -53,14 +63,22 @@ function useLongPress(
       }
       setTimeoutId(undefined);
 
-      // Use ref to ensure we have the most current value
-      if (shouldTriggerClick && !longPressTriggeredRef.current && onClick) {
+      const isRightClick = lastButtonRef.current === 2;
+      const allowClick =
+        shouldTriggerClick &&
+        !longPressTriggeredRef.current &&
+        // trigger for touch or primary button only
+        (lastWasTouchRef.current || !isRightClick);
+
+      if (allowClick) {
         onClick();
       }
 
       // Reset after a small delay to prevent race conditions
       setTimeout(() => {
         longPressTriggeredRef.current = false;
+        lastButtonRef.current = null;
+        lastWasTouchRef.current = false;
       }, 100);
     },
     [onClick, timeoutId]
@@ -121,12 +139,8 @@ function Cell({
   };
 
   const handleContextMenu = (e: React.MouseEvent) => {
-    // On mobile, prevent context menu since we use long press for flagging
-    if (isMobileDevice()) {
-      e.preventDefault();
-      return;
-    }
-    // On desktop, allow right-click for flagging
+    // Always prevent native context menu; we handle flagging ourselves
+    e.preventDefault();
     onCellRightClick(e, rowIndex, colIndex);
   };
 
@@ -193,19 +207,22 @@ export function MinesweeperAppComponent({
       box-shadow: none !important;
     }
     .minesweeper-hidden {
-      border-top: 2px solid #ffffff !important;
-      border-left: 2px solid #ffffff !important;
-      border-right: 2px solid #808080 !important;
-      border-bottom: 2px solid #808080 !important;
+      border: none !important;
+      /* 98.css raised look */
+      box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #ffffff,
+        inset -2px -2px grey, inset 2px 2px #dfdfdf !important;
     }
     .minesweeper-hidden:hover {
       background-color: #d0d0d0 !important;
     }
     .minesweeper-hidden:active {
-      border-top: 1px solid #808080 !important;
-      border-left: 1px solid #808080 !important;
-      border-right: 1px solid #808080 !important;
-      border-bottom: 1px solid #808080 !important;
+      /* pressed look */
+      box-shadow: inset -1px -1px #ffffff, inset 1px 1px #0a0a0a,
+        inset -2px -2px #dfdfdf, inset 2px 2px grey !important;
+    }
+    .minesweeper-cell:focus {
+      outline: 1px dotted #000 !important;
+      outline-offset: -4px !important;
     }
     .minesweeper-revealed {
       background: #d1d1d1 !important;
