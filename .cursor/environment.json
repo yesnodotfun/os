@@ -1,5 +1,4 @@
 {
   "install": "curl -fsSL https://bun.sh/install | bash && source ~/.bashrc && bun install",
-  "start": "vercel dev",
   "terminals": []
 }
