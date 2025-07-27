@@ -791,8 +791,8 @@ export function TerminalAppComponent({
       playErrorSound();
     } else {
       // Check if the command is cowsay and play moo sound
-      const commandName = currentCommand.trim().split(' ')[0];
-      if (commandName === 'cowsay') {
+      const commandName = currentCommand.trim().split(" ")[0];
+      if (commandName === "cowsay") {
         playMooSound();
       } else {
         playCommandSound();
@@ -3170,7 +3170,7 @@ assistant
               onKeyDown={handleKeyDown}
               onFocus={() => setInputFocused(true)}
               onBlur={() => setInputFocused(false)}
-              className={`flex-1 bg-transparent text-white focus:outline-none terminal-input ${
+              className={`flex-1 bg-transparent text-white font-monaco focus:outline-none terminal-input ${
                 inputFocused ? "input--focused" : ""
               }`}
               style={{ fontSize: `${fontSize}px` }}
@@ -3442,7 +3442,7 @@ assistant
                 onTouchStart={(e) => {
                   e.preventDefault();
                 }}
-                className={`w-full text-white focus:outline-none bg-transparent terminal-input ${
+                className={`w-full text-white font-monaco focus:outline-none bg-transparent terminal-input ${
                   inputFocused ? "input--focused" : ""
                 }`}
                 style={{ fontSize: `${fontSize}px` }}
