@@ -661,6 +661,7 @@ export function TerminalAppComponent({
     playElevatorMusic,
     stopElevatorMusic,
     playDingSound,
+    playMooSound,
   } = useTerminalSounds();
 
   const { username } = useChatsStore();
@@ -789,7 +790,13 @@ export function TerminalAppComponent({
     if (result.isError) {
       playErrorSound();
     } else {
-      playCommandSound();
+      // Check if the command is cowsay and play moo sound
+      const commandName = currentCommand.trim().split(' ')[0];
+      if (commandName === 'cowsay') {
+        playMooSound();
+      } else {
+        playCommandSound();
+      }
     }
 
     // Reset animated lines to ensure only new content gets animated
