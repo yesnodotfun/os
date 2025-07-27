@@ -488,7 +488,7 @@ export function MinesweeperAppComponent({
                     }
                     className={
                       isMacTheme
-                        ? "!w-[34px] !h-[34px] rounded-full flex items-center justify-center text-xl leading-none p-0"
+                        ? "!w-[34px] !h-[34px] aspect-square !rounded-full overflow-hidden flex items-center justify-center text-xl leading-none !p-0"
                         : "aspect-square h-[34px] flex items-center justify-center text-xl leading-none bg-[#c0c0c0] hover:bg-[#d0d0d0] border-2 border-t-white border-l-white border-r-gray-800 border-b-gray-800 active:border active:border-gray-600 shadow-none p-0"
                     }
                   >
