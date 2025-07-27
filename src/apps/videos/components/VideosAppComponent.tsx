@@ -253,7 +253,7 @@ function WhiteNoiseEffect() {
 
 function StatusDisplay({ message }: { message: string }) {
   return (
-    <div className="relative">
+    <div className="relative videos-status">
       <div className="font-geneva-12 text-white text-xl relative z-10">
         {message}
       </div>
