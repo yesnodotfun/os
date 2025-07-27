@@ -1955,7 +1955,7 @@ export function IpodAppComponent({
                             isTranslating={
                               fullScreenLyricsControls.isTranslating
                             }
-                            textSizeClass="text-[min(8vw,8vh)]"
+                            textSizeClass="text-[min(10vw,10vh)]"
                             interactive={isIOSSafari ? false : isPlaying}
                             bottomPaddingClass="pb-42"
                           />

@@ -863,6 +863,17 @@
   font-size: min(8vw, 8vh) !important;
 }
 
+/* Larger option for fullscreen lyrics */
+:root[data-os-theme="macosx"] .ipod-force-font .text-\[min\(10vw\,10vh\)\] {
+  font-size: min(10vw, 10vh) !important;
+}
+
+:root[data-os-theme="macosx"]
+  .ipod-force-font
+  .font-geneva-12.text-\[min\(10vw\,10vh\)\] {
+  font-size: min(10vw, 10vh) !important;
+}
+
 /* macOS dropdown menu item hover/focus styles */
 :root[data-os-theme="macosx"] [role="menuitem"]:focus,
 :root[data-os-theme="macosx"] [role="menuitemcheckbox"]:focus,
