@@ -55,5 +55,6 @@ export const macosx: OsTheme = {
   },
   wallpaperDefaults: {
     photo: "/wallpapers/photos/landscapes/french_alps.jpg",
+    video: "/wallpapers/videos/blue_flowers_loop.mp4",
   },
 };

@@ -43,5 +43,6 @@ export const win98: OsTheme = {
   },
   wallpaperDefaults: {
     photo: "/wallpapers/photos/nostalgia/acropolis.jpg",
+    video: "/wallpapers/videos/blue_flowers_loop.mp4",
   },
 };
