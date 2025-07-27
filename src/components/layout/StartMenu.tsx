@@ -106,7 +106,7 @@ export function StartMenu({ apps }: StartMenuProps) {
         <DropdownMenuContent
           align="start"
           side="top"
-          sideOffset={2}
+          sideOffset={0}
           className="p-0 overflow-hidden"
           style={{
             // Narrower overall width; differentiate slightly for themes if desired
