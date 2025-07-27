@@ -406,7 +406,11 @@ export function ChatInput({
                           <button
                             type="button"
                             onClick={handleMentionClick}
-                            className="w-[22px] h-[22px] flex items-center justify-center"
+                            className={`w-[22px] h-[22px] flex items-center justify-center ${
+                              isMacTheme
+                                ? "text-neutral-400 hover:text-neutral-800 transition-colors"
+                                : ""
+                            }`}
                             disabled={isLoading}
                             aria-label="Mention Ryo"
                           >
