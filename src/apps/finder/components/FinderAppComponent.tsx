@@ -853,7 +853,7 @@ export function FinderAppComponent({
               background: isXpTheme ? "transparent" : undefined,
               borderBottom:
                 currentTheme === "macosx"
-                  ? `var(--os-metrics-titlebar-border-width, 1px) solid var(--os-color-titlebar-border, rgba(0, 0, 0, 0.35))`
+                  ? `var(--os-metrics-titlebar-border-width, 1px) solid var(--os-color-titlebar-border-inactive, rgba(0, 0, 0, 0.2))`
                   : undefined,
             }}
           >

@@ -625,13 +625,26 @@ export function ChatsAppComponent({
             <div className="relative flex flex-col flex-1 h-full bg-white/85">
               {/* Mobile chat title bar */}
               <div
-                className={`sticky top-0 z-10 flex items-center justify-between px-2 py-1 bg-neutral-200/90 backdrop-blur-lg border-b ${
+                className={`sticky top-0 z-10 flex items-center justify-between px-2 py-1 border-b ${
+                  // Layer pinstripes with semi-transparent white via backgroundImage for macOS
+                  isMacTheme ? "" : "bg-neutral-200/90 backdrop-blur-lg"
+                } ${
                   isWindowsLegacyTheme
                     ? "border-[#919b9c]"
-                    : currentTheme === "macosx"
-                    ? "border-black/10"
+                    : isMacTheme
+                    ? ""
                     : "border-black"
                 }`}
+                style={
+                  isMacTheme
+                    ? {
+                        backgroundImage: "var(--os-pinstripe-window)",
+                        opacity: 0.95,
+                        borderBottom:
+                          "var(--os-metrics-titlebar-border-width, 1px) solid var(--os-color-titlebar-border-inactive, rgba(0, 0, 0, 0.2))",
+                      }
+                    : undefined
+                }
               >
                 <div className="flex items-center">
                   <Button
