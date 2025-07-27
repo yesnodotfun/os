@@ -271,15 +271,16 @@ export function Desktop({
       <div
         className={`flex flex-col relative z-[1] ${
           isXpTheme
-            ? "items-start pt-4 pr-4 pb-4 pl-2" // Tighter left padding for XP/98
+            ? "items-start pt-4 pr-4 pl-2 pb-0" // Reserve space via height, not padding, to avoid clipping
             : "items-end pt-8 h-[calc(100%-2rem)] p-4" // Account for top menubar - keep right alignment for other themes
         }`}
         style={
           isXpTheme
             ? {
-                // Exclude only the top menubar height; reserve bottom space via padding
+                // Exclude menubar, safe area, and an extra visual buffer to prevent clipping
                 height:
-                  "calc(100% - 30px - var(--sat-safe-area-bottom) - 2rem) !important",
+                  "calc(100% - (30px + var(--sat-safe-area-bottom) + 32px))",
+                paddingBottom: 0,
               }
             : undefined
         }
