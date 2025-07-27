@@ -39,11 +39,19 @@ export function AppleMenu({ apps }: AppleMenuProps) {
             size="default"
             className={cn(
               "h-6 px-3 py-1 border-none hover:bg-black/10 active:bg-black/20 focus-visible:ring-0",
-              isMacOsxTheme ? "text-xl" : "text-md"
+              isMacOsxTheme ? "text-xl px-1" : "text-md"
             )}
             style={{ color: "inherit" }}
           >
-            
+            {isMacOsxTheme ? (
+              <ThemedIcon
+                name="apple.png"
+                alt="Apple Menu"
+                style={{ width: 30, height: 30 }}
+              />
+            ) : (
+              "\uf8ff" // 
+            )}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" sideOffset={1} className="px-0">

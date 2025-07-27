@@ -75,14 +75,8 @@ export function StartMenu({ apps }: StartMenuProps) {
               }
             }}
           >
-            <img
-              src={
-                currentTheme === "xp"
-                  ? "/icons/windows-xp.png"
-                  : currentTheme === "win98"
-                  ? "/icons/windows-98.png"
-                  : "/icons/apple.png"
-              }
+            <ThemedIcon
+              name="apple.png"
               alt="Start"
               className={`[image-rendering:pixelated] ${
                 currentTheme === "xp" ? "w-5 h-4" : "w-5 h-5"

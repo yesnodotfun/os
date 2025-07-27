@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2025-07-25T04:05:55.028Z",
+  "generatedAt": "2025-07-27T14:59:56.194Z",
   "themes": {
     "default": [
       "apple.png",
@@ -128,6 +128,7 @@
       "warn.png"
     ],
     "macosx": [
+      "apple.png",
       "applications.png",
       "cdrom.png",
       "control-panels/appearance-manager/app.png",
@@ -164,6 +165,7 @@
       "warn.png"
     ],
     "win98": [
+      "apple.png",
       "applications.png",
       "cdrom.png",
       "control-panels/appearance-manager/app.png",
@@ -200,6 +202,7 @@
       "warn.png"
     ],
     "xp": [
+      "apple.png",
       "applications.png",
       "cdrom.png",
       "control-panels/appearance-manager/app.png",
