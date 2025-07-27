@@ -7,7 +7,6 @@ import {
   SelectValue,
   SelectSeparator,
 } from "@/components/ui/select";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useWallpaper } from "@/hooks/useWallpaper";
 import { useSound, Sounds } from "@/hooks/useSound";
 import { DisplayMode } from "@/utils/displayMode";
@@ -368,7 +367,7 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
         />
       )}
 
-      <ScrollArea className="flex-1 h-[200px]">
+      <div className="flex-1">
         <div
           className={`grid gap-2 p-1 ${
             selectedCategory === "tiles" ? "grid-cols-8" : "grid-cols-3"
@@ -435,7 +434,7 @@ export function WallpaperPicker({ onSelect }: WallpaperPickerProps) {
             </div>
           )}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 }
