@@ -243,7 +243,7 @@ export function FileIcon({
   return (
     <div
       className={`flex flex-col items-center justify-start cursor-default ${
-        isMacOSXTheme ? "gap-0.5 pb-3" : "gap-1"
+        isMacOSXTheme ? "gap-0 pb-3" : "gap-1"
       } ${sizes.container} ${className}`}
       onDoubleClick={handleDoubleClick}
       onClick={handleClick}
@@ -263,7 +263,7 @@ export function FileIcon({
       <span
         className={`text-center px-1 file-icon-label break-words truncate ${
           sizes.text
-        } ${isMacOSXTheme && !isFinderContext ? "font-bold" : ""} ${
+        } ${isMacOSXTheme && !isFinderContext ? "font-bold rounded-full" : ""} ${
           isSelected || (isDropTarget && isDirectory)
             ? "bg-black text-white"
             : isWin98Theme
