@@ -382,7 +382,7 @@ export function ChatInput({
                             onClick={handleNudgeClick}
                             className={`w-[22px] h-[22px] flex items-center justify-center ${
                               isMacTheme
-                                ? "text-black/40 hover:text-black/80 transition-colors"
+                                ? "text-neutral-400 hover:text-neutral-800 transition-colors"
                                 : ""
                             }`}
                             disabled={isLoading}
@@ -433,7 +433,7 @@ export function ChatInput({
                           silenceThreshold={1200}
                           className={`w-[22px] h-[22px] flex items-center justify-center ${
                             isMacTheme
-                              ? "text-black/40 hover:text-black/80 transition-colors"
+                              ? "text-neutral-400 hover:text-neutral-800 transition-colors"
                               : ""
                           }`}
                         />
