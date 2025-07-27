@@ -243,7 +243,7 @@ export function FileIcon({
   return (
     <div
       className={`flex flex-col items-center justify-start cursor-default ${
-        isMacOSXTheme ? "gap-0 pb-3" : "gap-1"
+        isMacOSXTheme ? "gap-0 pb-3" : "gap-0"
       } ${sizes.container} ${className}`}
       onDoubleClick={handleDoubleClick}
       onClick={handleClick}
