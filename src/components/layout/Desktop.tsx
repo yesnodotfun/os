@@ -286,8 +286,8 @@ export function Desktop({
         <div
           className={
             isXpTheme
-              ? "flex flex-col flex-wrap justify-start gap-1 content-start h-full"
-              : "flex flex-col flex-wrap-reverse justify-start gap-1 content-start h-full"
+              ? "flex flex-col flex-wrap justify-start content-start h-full gap-y-1 gap-x-px"
+              : "flex flex-col flex-wrap-reverse justify-start content-start h-full gap-y-1 gap-x-px"
           }
         >
           <FileIcon
