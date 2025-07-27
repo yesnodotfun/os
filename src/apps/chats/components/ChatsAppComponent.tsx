@@ -307,6 +307,8 @@ export function ChatsAppComponent({
 
   // Determine if the current WindowFrame width is narrower than the Tailwind `md` breakpoint (768px)
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const chatRootRef = useRef<HTMLDivElement | null>(null);
+  const messagesContainerRef = useRef<HTMLDivElement | null>(null);
   const [isFrameNarrow, setIsFrameNarrow] = useState(false);
 
   useEffect(() => {
@@ -329,6 +331,64 @@ export function ChatsAppComponent({
 
     return () => observer.disconnect();
   }, []);
+
+  // Derive message count for effect dependencies
+  const messageCount = currentRoomId
+    ? Array.isArray(currentRoomMessages)
+      ? currentRoomMessages.length
+      : 0
+    : messages.length;
+
+  // Measure scrollbar width of the chat messages scroller and expose as CSS var --sbw on chat root
+  useEffect(() => {
+    const root = chatRootRef.current;
+    const container = messagesContainerRef.current;
+    if (!root || !container) return;
+
+    let scroller: HTMLElement | null = null;
+
+    const findScroller = (): HTMLElement | null => {
+      const elements = container.querySelectorAll<HTMLElement>("*");
+      for (const el of elements) {
+        const style = window.getComputedStyle(el);
+        if (
+          (style.overflowY === "auto" || style.overflowY === "scroll") &&
+          el.clientHeight > 0 &&
+          el.scrollHeight > el.clientHeight + 1
+        ) {
+          return el;
+        }
+      }
+      return null;
+    };
+
+    const update = () => {
+      if (!root) return;
+      if (!scroller) scroller = findScroller();
+      if (scroller) {
+        const sbw = scroller.offsetWidth - scroller.clientWidth;
+        root.style.setProperty("--sbw", `${Math.max(0, sbw)}px`);
+      } else {
+        root.style.setProperty("--sbw", "0px");
+      }
+    };
+
+    update();
+
+    const resizeObs = new ResizeObserver(() => update());
+    const mutationObs = new MutationObserver(() => update());
+    resizeObs.observe(container);
+    if (scroller) resizeObs.observe(scroller);
+    mutationObs.observe(container, { childList: true, subtree: true });
+    window.addEventListener("resize", update);
+
+    return () => {
+      resizeObs.disconnect();
+      mutationObs.disconnect();
+      window.removeEventListener("resize", update);
+    };
+    // Re-evaluate when room changes or message count changes (structure might swap)
+  }, [currentRoomId, messageCount]);
 
   // Automatically show sidebar when switching from narrow to wide
   const prevFrameNarrowRef = useRef(isFrameNarrow);
@@ -636,9 +696,16 @@ export function ChatsAppComponent({
               </div>
 
               {/* Scrollable messages under header */}
-              <div className="absolute inset-0 flex flex-col z-0">
+              <div
+                ref={chatRootRef}
+                data-chat-root
+                className="absolute inset-0 flex flex-col z-0"
+              >
                 {/* Chat Messages Area - will scroll under header */}
-                <div className="flex-1 overflow-hidden">
+                <div
+                  className="flex-1 overflow-hidden"
+                  ref={messagesContainerRef}
+                >
                   <ChatMessages
                     key={currentRoomId || "ryo"}
                     messages={currentMessagesToDisplay}
@@ -661,7 +728,10 @@ export function ChatsAppComponent({
                   />
                 </div>
                 {/* Input Area or Create Account Prompt */}
-                <div className="absolute bottom-0 z-10 w-full p-2">
+                <div
+                  className="absolute bottom-0 left-0 z-10 p-2"
+                  style={{ width: "calc(100% - var(--sbw, 0px))" }}
+                >
                   {/* Show "Create Account" button in two cases:
                       1. In a chat room without username
                       2. In @ryo chat when rate limit is hit for anonymous users */}

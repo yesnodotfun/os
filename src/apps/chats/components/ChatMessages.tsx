@@ -259,7 +259,7 @@ function ScrollToBottomButton() {
           style={{
             position: "absolute",
             bottom: "56px",
-            right: "12px",
+            right: `calc(12px + var(--sbw, 0px))`,
             width: 28,
             height: 28,
             background: isMacTheme
