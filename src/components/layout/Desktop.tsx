@@ -269,10 +269,10 @@ export function Desktop({
         }}
       />
       <div
-        className={`p-4 flex flex-col relative z-[1] ${
+        className={`flex flex-col relative z-[1] ${
           isXpTheme
-            ? "items-start pt-4" // Height handled via style to respect safe area
-            : "items-end pt-8 h-[calc(100%-2rem)]" // Account for top menubar - keep right alignment for other themes
+            ? "items-start pt-4 pr-4 pb-4 pl-2" // Tighter left padding for XP/98
+            : "items-end pt-8 h-[calc(100%-2rem)] p-4" // Account for top menubar - keep right alignment for other themes
         }`}
         style={
           isXpTheme
