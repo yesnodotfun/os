@@ -277,8 +277,10 @@ export function Desktop({
         style={
           isXpTheme
             ? {
-                height:
-                  "calc(100% - (30px + var(--sat-safe-area-bottom) + 4px))",
+                // Exclude only the top menubar height; reserve bottom space via padding
+                height: "calc(100% - 30px)",
+                // Ensure icons never overlap the iOS home indicator or similar insets
+                paddingBottom: "calc(var(--sat-safe-area-bottom) + 1rem)",
               }
             : undefined
         }
