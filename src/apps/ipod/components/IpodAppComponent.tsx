@@ -25,6 +25,8 @@ import { LyricsDisplay } from "./LyricsDisplay";
 import { useLyrics } from "@/hooks/useLyrics";
 import { useLibraryUpdateChecker } from "../hooks/useLibraryUpdateChecker";
 import { useThemeStore } from "@/stores/useThemeStore";
+import { LyricsAlignment, KoreanDisplay } from "@/types/lyrics";
+import { Globe } from "lucide-react";
 
 // Add this component definition before the IpodAppComponent
 interface FullScreenPortalProps {
@@ -38,6 +40,13 @@ interface FullScreenPortalProps {
   registerActivity: () => void;
   isPlaying: boolean;
   statusMessage: string | null;
+  // Fullscreen lyrics controls
+  currentTranslationCode: string | null;
+  onSelectTranslation: (code: string | null) => void;
+  currentAlignment: import("@/types/lyrics").LyricsAlignment;
+  onCycleAlignment: () => void;
+  currentKoreanDisplay: import("@/types/lyrics").KoreanDisplay;
+  onToggleKoreanDisplay: () => void;
 }
 
 function FullScreenPortal({
@@ -51,11 +60,43 @@ function FullScreenPortal({
   registerActivity,
   isPlaying,
   statusMessage,
+  currentTranslationCode,
+  onSelectTranslation,
+  currentAlignment,
+  onCycleAlignment,
+  currentKoreanDisplay,
+  onToggleKoreanDisplay,
 }: FullScreenPortalProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
+  const [showControls, setShowControls] = useState(true);
+  const hideControlsTimeoutRef = useRef<number | null>(null);
+  const isCoarsePointer = useMemo(() => {
+    try {
+      return (
+        typeof window !== "undefined" &&
+        window.matchMedia &&
+        window.matchMedia("(pointer: coarse)").matches
+      );
+    } catch {
+      return false;
+    }
+  }, []);
 
   // Use refs to store the latest values, avoiding stale closures
-  const handlersRef = useRef({
+  const handlersRef = useRef<{
+    onClose: () => void;
+    togglePlay: () => void;
+    nextTrack: () => void;
+    previousTrack: () => void;
+    seekTime: (delta: number) => void;
+    showStatus: (message: string) => void;
+    registerActivity: () => void;
+    onSelectTranslation: (code: string | null) => void;
+    onCycleAlignment: () => void;
+    onToggleKoreanDisplay: () => void;
+    setIsLangMenuOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  }>({
     onClose,
     togglePlay,
     nextTrack,
@@ -63,6 +104,10 @@ function FullScreenPortal({
     seekTime,
     showStatus,
     registerActivity,
+    onSelectTranslation,
+    onCycleAlignment,
+    onToggleKoreanDisplay,
+    setIsLangMenuOpen,
   });
 
   // Update refs whenever props change
@@ -75,6 +120,11 @@ function FullScreenPortal({
       seekTime,
       showStatus,
       registerActivity,
+      // passthroughs for overlay controls
+      onSelectTranslation,
+      onCycleAlignment,
+      onToggleKoreanDisplay,
+      setIsLangMenuOpen,
     };
   }, [
     onClose,
@@ -84,6 +134,9 @@ function FullScreenPortal({
     seekTime,
     showStatus,
     registerActivity,
+    onSelectTranslation,
+    onCycleAlignment,
+    onToggleKoreanDisplay,
   ]);
 
   // Touch handling for swipe gestures (left/right: navigate tracks, down: close fullscreen)
@@ -185,6 +238,52 @@ function FullScreenPortal({
     return () => clearTimeout(timeoutId);
   }, []);
 
+  // Translation languages (same set as menu bar)
+  const translationLanguages = useMemo(
+    () => [
+      { label: "Original", code: null as string | null },
+      { label: "English", code: "en" },
+      { label: "中文", code: "zh-TW" },
+      { label: "日本語", code: "ja" },
+      { label: "한국어", code: "ko" },
+      { label: "Español", code: "es" },
+      { label: "Français", code: "fr" },
+      { label: "Deutsch", code: "de" },
+      { label: "Português", code: "pt" },
+      { label: "Italiano", code: "it" },
+      { label: "Русский", code: "ru" },
+    ],
+    []
+  );
+
+  const translationBadge = useMemo(() => {
+    if (!currentTranslationCode) return null;
+    switch (currentTranslationCode) {
+      case "zh-TW":
+        return "中";
+      case "en":
+        return "E";
+      case "ja":
+        return "日";
+      case "ko":
+        return "한";
+      case "es":
+        return "E"; // Español
+      case "fr":
+        return "F";
+      case "de":
+        return "D"; // Deutsch
+      case "pt":
+        return "P";
+      case "it":
+        return "I";
+      case "ru":
+        return "R";
+      default:
+        return currentTranslationCode[0]?.toUpperCase() ?? "?";
+    }
+  }, [currentTranslationCode]);
+
   // Effect to set up touch event listeners for swipe gestures
   // Now with stable handlers that don't change
   useEffect(() => {
@@ -200,6 +299,48 @@ function FullScreenPortal({
       container.removeEventListener("touchend", handleTouchEnd);
     };
   }, []); // Empty dependency array - handlers are stable
+
+  // Auto-hide top-right controls on desktop after inactivity
+  useEffect(() => {
+    // Always show on touch devices
+    if (isCoarsePointer) {
+      setShowControls(true);
+      return;
+    }
+
+    const handleActivity = () => {
+      handlersRef.current.registerActivity();
+      setShowControls(true);
+      if (hideControlsTimeoutRef.current) {
+        clearTimeout(hideControlsTimeoutRef.current);
+      }
+      if (!isLangMenuOpen) {
+        hideControlsTimeoutRef.current = window.setTimeout(() => {
+          setShowControls(false);
+        }, 2000);
+      }
+    };
+
+    // Show when menu opens
+    if (isLangMenuOpen) setShowControls(true);
+
+    window.addEventListener("mousemove", handleActivity, { passive: true });
+    window.addEventListener("keydown", handleActivity);
+    window.addEventListener("touchstart", handleActivity, { passive: true });
+
+    // Prime the timer once on mount
+    handleActivity();
+
+    return () => {
+      window.removeEventListener("mousemove", handleActivity as any);
+      window.removeEventListener("keydown", handleActivity as any);
+      window.removeEventListener("touchstart", handleActivity as any);
+      if (hideControlsTimeoutRef.current) {
+        clearTimeout(hideControlsTimeoutRef.current);
+        hideControlsTimeoutRef.current = null;
+      }
+    };
+  }, [isLangMenuOpen, isCoarsePointer]);
 
   // Close full screen with Escape key
   useEffect(() => {
@@ -261,26 +402,184 @@ function FullScreenPortal({
       ref={containerRef}
       className="ipod-force-font fixed inset-0 z-[9999] bg-black select-none"
     >
-      <div className="absolute top-6 right-6 z-[10001] pointer-events-auto">
-        <button
-          onClick={onClose}
-          className="rounded-full backdrop-blur-sm bg-neutral-800/20 p-2 transition-all duration-200 text-white/40 hover:text-white hover:bg-neutral-900 focus:outline-none"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+      <div
+        className={cn(
+          "absolute top-6 right-6 z-[10001] transition-opacity duration-200",
+          showControls || isLangMenuOpen || isCoarsePointer
+            ? "opacity-100 pointer-events-auto"
+            : "opacity-0 pointer-events-none"
+        )}
+      >
+        <div className="flex items-center gap-2">
+          {/* Translate button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsLangMenuOpen((v) => !v);
+              registerActivity();
+            }}
+            aria-label="Translate lyrics"
+            className={cn(
+              "rounded-full backdrop-blur-sm bg-neutral-800/20 p-2 transition-all duration-200 focus:outline-none w-11 h-11 flex items-center justify-center text-white/40 hover:text-white hover:bg-neutral-900"
+            )}
           >
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
+            {translationBadge ? (
+              <span className="inline-flex items-center justify-center w-[28px] h-[28px] leading-none font-geneva-12 text-[18px]">
+                {translationBadge}
+              </span>
+            ) : (
+              <Globe className="w-[22px] h-[22px]" />
+            )}
+          </button>
+
+          {/* Hangul toggle */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              registerActivity();
+              onToggleKoreanDisplay();
+            }}
+            aria-label="Toggle Hangul / Romanization"
+            className={cn(
+              "rounded-full backdrop-blur-sm bg-neutral-800/20 transition-all duration-200 focus:outline-none font-geneva-12 w-11 h-11 flex items-center justify-center text-white/40 hover:text-white hover:bg-neutral-900"
+            )}
+          >
+            <span className="text-[16px]">
+              {currentKoreanDisplay === "romanized" ? "HAN" : "한"}
+            </span>
+          </button>
+
+          {/* Layout button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              registerActivity();
+              onCycleAlignment();
+            }}
+            aria-label="Cycle lyric layout"
+            className={cn(
+              "rounded-full backdrop-blur-sm bg-neutral-800/20 p-2 transition-all duration-200 focus:outline-none w-11 h-11 flex items-center justify-center text-white/40 hover:text-white hover:bg-neutral-900"
+            )}
+            title={currentAlignment}
+          >
+            {/* Icon varies by alignment */}
+            {currentAlignment === "focusThree" ? (
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <line x1="6" y1="6" x2="18" y2="6" />
+                <line x1="4" y1="12" x2="20" y2="12" />
+                <line x1="6" y1="18" x2="18" y2="18" />
+              </svg>
+            ) : currentAlignment === "center" ? (
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                {/* Single centered line */}
+                <line x1="6" y1="12" x2="18" y2="12" />
+              </svg>
+            ) : (
+              // Alternating
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                {/* Top line left aligned */}
+                <line x1="4" y1="8" x2="13" y2="8" />
+                {/* Bottom line right aligned */}
+                <line x1="11" y1="16" x2="20" y2="16" />
+              </svg>
+            )}
+          </button>
+
+          {/* Close */}
+          <button
+            onClick={onClose}
+            className="rounded-full backdrop-blur-sm bg-neutral-800/20 p-2 transition-all duration-200 text-white/40 hover:text-white hover:bg-neutral-900 focus:outline-none w-11 h-11 flex items-center justify-center"
+            aria-label="Close fullscreen"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="26"
+              height="26"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
+        {/* Translation menu */}
+        <AnimatePresence>
+          {isLangMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.15 }}
+              className="absolute right-0 mt-2 w-64 max-h-[50vh] overflow-y-auto rounded-lg border border-white/10 bg-neutral-900/80 backdrop-blur-md shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="py-2">
+                {translationLanguages.map((lang) => {
+                  const selected =
+                    currentTranslationCode === lang.code ||
+                    (!lang.code && !currentTranslationCode);
+                  return (
+                    <button
+                      key={lang.code || "off"}
+                      onClick={() => {
+                        handlersRef.current.onSelectTranslation(lang.code);
+                        handlersRef.current.setIsLangMenuOpen(false);
+                        handlersRef.current.registerActivity();
+                      }}
+                      className={cn(
+                        "w-full text-left px-4 py-2 text-[16px] font-geneva-12 transition-colors",
+                        selected
+                          ? "text-white bg-white/10"
+                          : "text-white/80 hover:text-white hover:bg-white/10"
+                      )}
+                    >
+                      <span className="inline-block w-4">
+                        {selected ? "✓" : ""}
+                      </span>
+                      <span>{lang.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Status Display */}
@@ -1690,6 +1989,52 @@ export function IpodAppComponent({
     [showStatus]
   );
 
+  const currentTranslationCode =
+    lyricsTranslationRequest?.songId === tracks[currentIndex]?.id
+      ? lyricsTranslationRequest?.language ?? null
+      : null;
+
+  const handleSelectTranslation = useCallback(
+    (code: string | null) => {
+      const songId = tracks[currentIndex]?.id;
+      const setReq = useIpodStore.getState().setLyricsTranslationRequest;
+      if (code && songId) setReq(code, songId);
+      else setReq(null, null);
+    },
+    [tracks, currentIndex]
+  );
+
+  const cycleAlignment = useCallback(() => {
+    const store = useIpodStore.getState();
+    const curr = store.lyricsAlignment;
+    let next: LyricsAlignment;
+    if (curr === LyricsAlignment.FocusThree) next = LyricsAlignment.Center;
+    else if (curr === LyricsAlignment.Center)
+      next = LyricsAlignment.Alternating;
+    else next = LyricsAlignment.FocusThree;
+    store.setLyricsAlignment(next);
+    showStatus(
+      next === LyricsAlignment.FocusThree
+        ? "Layout: Focus"
+        : next === LyricsAlignment.Center
+        ? "Layout: Center"
+        : "Layout: Alternating"
+    );
+  }, [showStatus]);
+
+  const toggleKorean = useCallback(() => {
+    const store = useIpodStore.getState();
+    const curr = store.koreanDisplay;
+    const next =
+      curr === KoreanDisplay.Original
+        ? KoreanDisplay.Romanized
+        : KoreanDisplay.Original;
+    store.setKoreanDisplay(next);
+    showStatus(
+      next === KoreanDisplay.Romanized ? "Romanization On" : "Hangul On"
+    );
+  }, [showStatus]);
+
   // Add fullscreen change event handler
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -1860,6 +2205,12 @@ export function IpodAppComponent({
             registerActivity={registerActivity}
             isPlaying={isPlaying}
             statusMessage={statusMessage}
+            currentTranslationCode={currentTranslationCode}
+            onSelectTranslation={handleSelectTranslation}
+            currentAlignment={lyricsAlignment}
+            onCycleAlignment={cycleAlignment}
+            currentKoreanDisplay={koreanDisplay}
+            onToggleKoreanDisplay={toggleKorean}
           >
             <div className="flex flex-col w-full h-full">
               {/* The player and lyrics content */}
