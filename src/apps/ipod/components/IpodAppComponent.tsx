@@ -404,13 +404,13 @@ function FullScreenPortal({
     >
       <div
         className={cn(
-          "absolute top-6 right-6 z-[10001] transition-opacity duration-200",
+          "absolute top-6 right-6 md:top-24 md:right-14 z-[10001] transition-opacity duration-200",
           showControls || isLangMenuOpen || isCoarsePointer
             ? "opacity-100 pointer-events-auto"
             : "opacity-0 pointer-events-none"
         )}
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 md:gap-3">
           {/* Translate button */}
           <button
             onClick={(e) => {
@@ -420,15 +420,15 @@ function FullScreenPortal({
             }}
             aria-label="Translate lyrics"
             className={cn(
-              "rounded-full backdrop-blur-sm bg-neutral-800/20 p-2 transition-all duration-200 focus:outline-none w-11 h-11 flex items-center justify-center text-white/40 hover:text-white hover:bg-neutral-900"
+              "rounded-full backdrop-blur-sm bg-neutral-800/20 p-2 transition-all duration-200 focus:outline-none w-11 h-11 md:w-16 md:h-16 flex items-center justify-center text-white/40 hover:text-white hover:bg-neutral-900"
             )}
           >
             {translationBadge ? (
-              <span className="inline-flex items-center justify-center w-[28px] h-[28px] leading-none font-geneva-12 text-[18px]">
+              <span className="inline-flex items-center justify-center w-[28px] h-[28px] md:w-[34px] md:h-[34px] leading-none font-geneva-12 text-[18px] md:text-[24px]">
                 {translationBadge}
               </span>
             ) : (
-              <Globe className="w-[22px] h-[22px]" />
+              <Globe className="w-[22px] h-[22px] md:w-[30px] md:h-[30px]" />
             )}
           </button>
 
@@ -441,10 +441,10 @@ function FullScreenPortal({
             }}
             aria-label="Toggle Hangul / Romanization"
             className={cn(
-              "rounded-full backdrop-blur-sm bg-neutral-800/20 transition-all duration-200 focus:outline-none font-geneva-12 w-11 h-11 flex items-center justify-center text-white/40 hover:text-white hover:bg-neutral-900"
+              "rounded-full backdrop-blur-sm bg-neutral-800/20 transition-all duration-200 focus:outline-none font-geneva-12 w-11 h-11 md:w-16 md:h-16 flex items-center justify-center text-white/40 hover:text-white hover:bg-neutral-900"
             )}
           >
-            <span className="text-[16px]">
+            <span className="text-[16px] md:text-[20px]">
               {currentKoreanDisplay === "romanized" ? "HAN" : "한"}
             </span>
           </button>
@@ -458,7 +458,7 @@ function FullScreenPortal({
             }}
             aria-label="Cycle lyric layout"
             className={cn(
-              "rounded-full backdrop-blur-sm bg-neutral-800/20 p-2 transition-all duration-200 focus:outline-none w-11 h-11 flex items-center justify-center text-white/40 hover:text-white hover:bg-neutral-900"
+              "rounded-full backdrop-blur-sm bg-neutral-800/20 p-2 transition-all duration-200 focus:outline-none w-11 h-11 md:w-16 md:h-16 flex items-center justify-center text-white/40 hover:text-white hover:bg-neutral-900"
             )}
             title={currentAlignment}
           >
@@ -474,6 +474,7 @@ function FullScreenPortal({
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                className="md:w-[30px] md:h-[30px]"
               >
                 <line x1="6" y1="6" x2="18" y2="6" />
                 <line x1="4" y1="12" x2="20" y2="12" />
@@ -490,6 +491,7 @@ function FullScreenPortal({
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                className="md:w-[30px] md:h-[30px]"
               >
                 {/* Single centered line */}
                 <line x1="6" y1="12" x2="18" y2="12" />
@@ -506,6 +508,7 @@ function FullScreenPortal({
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                className="md:w-[30px] md:h-[30px]"
               >
                 {/* Top line left aligned */}
                 <line x1="4" y1="8" x2="13" y2="8" />
@@ -518,13 +521,14 @@ function FullScreenPortal({
           {/* Close */}
           <button
             onClick={onClose}
-            className="rounded-full backdrop-blur-sm bg-neutral-800/20 p-2 transition-all duration-200 text-white/40 hover:text-white hover:bg-neutral-900 focus:outline-none w-11 h-11 flex items-center justify-center"
+            className="rounded-full backdrop-blur-sm bg-neutral-800/20 p-2 transition-all duration-200 text-white/40 hover:text-white hover:bg-neutral-900 focus:outline-none w-11 h-11 md:w-16 md:h-16 flex items-center justify-center"
             aria-label="Close fullscreen"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="26"
               height="26"
+              className="md:w-[32px] md:h-[32px]"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
