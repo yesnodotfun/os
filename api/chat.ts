@@ -24,7 +24,7 @@ import {
 import { Redis } from "@upstash/redis";
 
 // Central list of supported theme IDs for tool validation
-const themeIds = ["system7", "macosx", "xp", "win98"] as const satisfies readonly OsThemeId[];
+const themeIds = ["system7", "macosx", "xp", "win98"] as const;
 
 // Update SystemState type to match new store structure
 interface SystemState {
