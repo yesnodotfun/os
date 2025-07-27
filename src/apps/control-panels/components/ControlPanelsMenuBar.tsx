@@ -62,7 +62,7 @@ export function ControlPanelsMenuBar({
             onClick={onShowHelp}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            Help Topics
+            Control Panels Help
           </DropdownMenuItem>
           <DropdownMenuItem
             onSelect={async () => {

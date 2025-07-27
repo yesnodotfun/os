@@ -17,16 +17,16 @@ interface HelpCardProps {
 function HelpCard({ icon, title, description }: HelpCardProps) {
   const currentTheme = useThemeStore((state) => state.current);
   const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
+  const isMacTheme = currentTheme === "macosx";
 
   return (
     <div className="p-4 bg-black/5 rounded-os transition-colors">
-      <div className="text-xl">{icon}</div>
+      <div className="!text-[18px]">{icon}</div>
       <h3
         className={cn(
           "font-medium",
-          isXpTheme
-            ? "font-['Pixelated_MS_Sans_Serif',Arial] text-[11px]"
-            : "font-medium"
+          isXpTheme && "font-['Pixelated_MS_Sans_Serif',Arial] text-[11px]",
+          isMacTheme && "font-bold"
         )}
         style={{
           fontFamily: isXpTheme
@@ -74,7 +74,7 @@ export function HelpDialog({
   const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
 
   const dialogContent = (
-    <div className={isXpTheme ? "p-2 px-4" : "p-6 pt-2"}>
+    <div className={isXpTheme ? "p-2 px-4" : "p-6 pt-4"}>
       <p
         className={cn(
           "text-2xl mb-4",
@@ -102,15 +102,8 @@ export function HelpDialog({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent
-        className={cn(
-          "max-w-[600px]",
-          isXpTheme && "p-0 overflow-hidden"
-        )}
-        style={
-          isXpTheme
-            ? { fontSize: "11px" }
-            : undefined
-        }
+        className={cn("max-w-[600px]", isXpTheme && "p-0 overflow-hidden")}
+        style={isXpTheme ? { fontSize: "11px" } : undefined}
       >
         {isXpTheme ? (
           <>
@@ -125,7 +118,9 @@ export function HelpDialog({
         ) : (
           <>
             <DialogHeader>
-              <DialogTitle className="font-normal text-[16px]">Help</DialogTitle>
+              <DialogTitle className="font-normal text-[16px]">
+                Help
+              </DialogTitle>
               <DialogDescription className="sr-only">
                 Help and documentation for {appName}
               </DialogDescription>
