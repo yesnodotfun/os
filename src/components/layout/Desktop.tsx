@@ -278,10 +278,7 @@ export function Desktop({
           isXpTheme
             ? {
                 // Exclude only the top menubar height; reserve bottom space via padding
-                height: "calc(100% - 30px)",
-                // Ensure icons never overlap the iOS home indicator or similar insets
-                // Add extra buffer equal to roughly a label+gap height
-                paddingBottom: "calc(var(--sat-safe-area-bottom) + 2rem)",
+                height: "calc(100% - 30px - var(--sat-safe-area-bottom))",
               }
             : undefined
         }
