@@ -463,7 +463,7 @@ export function MinesweeperAppComponent({
               <div className="flex items-center justify-between text-sm relative w-full">
                 <div className="flex flex-col items-start w-[80px]">
                   <span
-                    className={`font-chicago-kare text-lg leading-none ${
+                    className={`font-[ChicagoKare] text-lg leading-none ${
                       isMacTheme ? "mt-0 mb-1" : "mt-1"
                     }`}
                   >

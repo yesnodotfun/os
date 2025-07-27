@@ -787,6 +787,26 @@ export function MenuBar({ children, inWindowFrame = false }: MenuBarProps) {
                           "inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px grey, inset 2px 2px #dfdfdf";
                       }
                     }}
+                    onMouseDown={(e) => {
+                      if (currentTheme === "xp") {
+                        e.currentTarget.style.background = "#4a92f9";
+                        e.currentTarget.style.borderColor = "#2c64e3";
+                      } else if (currentTheme === "win98") {
+                        e.currentTarget.style.boxShadow =
+                          "inset -1px -1px #fff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px grey";
+                      }
+                    }}
+                    onMouseUp={(e) => {
+                      if (currentTheme === "xp") {
+                        // return to hover shade; mouseleave will handle base
+                        e.currentTarget.style.background = "#2a6ef1";
+                        e.currentTarget.style.borderColor = "#1e56c9";
+                      } else if (currentTheme === "win98") {
+                        // return to raised hover state
+                        e.currentTarget.style.boxShadow =
+                          "inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px grey, inset 2px 2px #dfdfdf";
+                      }
+                    }}
                     onMouseLeave={(e) => {
                       if (currentTheme === "xp") {
                         e.currentTarget.style.background = "#1658dd";
