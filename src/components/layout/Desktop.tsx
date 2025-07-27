@@ -271,9 +271,17 @@ export function Desktop({
       <div
         className={`p-4 flex flex-col relative z-[1] ${
           isXpTheme
-            ? "items-start pt-4 h-[calc(100%-2.5rem)]" // Account for bottom taskbar (40px = 2.5rem) - start from left for XP/98
+            ? "items-start pt-4" // Height handled via style to respect safe area
             : "items-end pt-8 h-[calc(100%-2rem)]" // Account for top menubar - keep right alignment for other themes
         }`}
+        style={
+          isXpTheme
+            ? {
+                height:
+                  "calc(100% - (30px + var(--sat-safe-area-bottom) + 4px))",
+              }
+            : undefined
+        }
       >
         <div
           className={
