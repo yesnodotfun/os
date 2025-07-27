@@ -112,46 +112,46 @@ const escapeHTML = (str = "") =>
 const filterProfanityPreservingUrls = (content) => {
   // URL regex pattern to match HTTP/HTTPS URLs
   const urlRegex = /(https?:\/\/[^\s]+)/g;
-  
+
   // Extract URLs and their positions
   const urls = [];
   let match;
   const urlMatches = [];
-  
+
   while ((match = urlRegex.exec(content)) !== null) {
     urlMatches.push({
       url: match[1],
       start: match.index,
-      end: match.index + match[1].length
+      end: match.index + match[1].length,
     });
   }
-  
+
   // If no URLs found, apply normal profanity filter
   if (urlMatches.length === 0) {
     return filter.clean(content);
   }
-  
+
   // Split content into URL and non-URL parts
-  let result = '';
+  let result = "";
   let lastIndex = 0;
-  
+
   for (const urlMatch of urlMatches) {
     // Add filtered non-URL part before this URL
     const beforeUrl = content.substring(lastIndex, urlMatch.start);
     result += filter.clean(beforeUrl);
-    
+
     // Add the URL unchanged
     result += urlMatch.url;
-    
+
     lastIndex = urlMatch.end;
   }
-  
+
   // Add any remaining non-URL content after the last URL
   if (lastIndex < content.length) {
     const afterLastUrl = content.substring(lastIndex);
     result += filter.clean(afterLastUrl);
   }
-  
+
   return result;
 };
 
@@ -294,13 +294,32 @@ const deleteToken = async (token) => {
   if (!token) return;
 
   // First, find which user owns this token (from old format)
-  const username = await redis.get(getTokenKey(token));
+  const tokenKey = getTokenKey(token);
+  const username = await redis.get(tokenKey);
 
   // Delete from both old and new formats
-  await redis.del(getTokenKey(token));
+  await redis.del(tokenKey);
 
   if (username) {
     await redis.del(getUserTokenKey(username, token));
+    return;
+  }
+
+  // Fallback: if the old mapping expired, scan for any user-scoped token key
+  const pattern = `${AUTH_TOKEN_PREFIX}user:*:${token}`;
+  let cursor = 0;
+  const keysToDelete = [];
+  do {
+    const [newCursor, keys] = await redis.scan(cursor, {
+      match: pattern,
+      count: 100,
+    });
+    cursor = parseInt(newCursor);
+    keysToDelete.push(...keys);
+  } while (cursor !== 0);
+
+  if (keysToDelete.length > 0) {
+    await redis.del(keysToDelete);
   }
 };
 
@@ -520,17 +539,25 @@ const validateAuth = async (
 };
 
 /**
- * Store the last valid token when refreshing
+ * Store a last-token record used for grace-period refreshes.
+ * @param {string} username
+ * @param {string} token
+ * @param {number} expiredAtMs - When this token expires/exPIRED (ms epoch)
+ * @param {number} ttlSeconds - How long to keep this record. Defaults to TOKEN_GRACE_PERIOD
  */
-const storeLastValidToken = async (username, token) => {
+const storeLastValidToken = async (
+  username,
+  token,
+  expiredAtMs = Date.now(),
+  ttlSeconds = TOKEN_GRACE_PERIOD
+) => {
   const lastTokenKey = `${AUTH_TOKEN_PREFIX}last:${username.toLowerCase()}`;
   const tokenData = {
     token,
-    expiredAt: Date.now() + USER_EXPIRATION_TIME * 1000, // When the current token will expire
+    expiredAt: expiredAtMs,
   };
-  // Store with extended TTL to cover grace period
   await redis.set(lastTokenKey, JSON.stringify(tokenData), {
-    ex: USER_EXPIRATION_TIME + TOKEN_GRACE_PERIOD,
+    ex: ttlSeconds,
   });
 };
 
@@ -861,6 +888,7 @@ export async function GET(request) {
       "getMessages",
       "getBulkMessages",
       "getUsers",
+      "verifyToken",
     ];
 
     // Check authentication for protected actions
@@ -1092,7 +1120,6 @@ export async function POST(request) {
       "sendMessage",
       "clearAllMessages",
       "resetUserCounts",
-      "verifyToken",
       "setPassword", // New: set password for existing user
       "generateToken", // Generating/reissuing tokens now requires authentication
       "listTokens", // List all active tokens for a user
@@ -1161,7 +1188,7 @@ export async function POST(request) {
         // Pass authenticated username for admin validation
         return await handleResetUserCounts(username, requestId);
       case "verifyToken":
-        return await handleVerifyToken(username, requestId);
+        return await handleVerifyToken(request, requestId);
       case "authenticateWithPassword":
         return await handleAuthenticateWithPassword(body, requestId);
       case "setPassword":
@@ -1906,6 +1933,14 @@ async function handleCreateUser(data, requestId) {
 
     // NEW: store token->username mapping to allow multiple concurrent tokens
     await storeToken(username, authToken);
+
+    // Record predictive last-token entry for grace refresh after expiry
+    await storeLastValidToken(
+      username,
+      authToken,
+      Date.now() + USER_EXPIRATION_TIME * 1000,
+      USER_EXPIRATION_TIME + TOKEN_GRACE_PERIOD
+    );
 
     logInfo(requestId, `User created with auth token: ${username}`);
 
@@ -2872,6 +2907,15 @@ async function handleGenerateToken(data, requestId) {
     // Persist token->username mapping for multi-token support
     await storeToken(username, authToken);
 
+    // Also record a predictive last-token entry so that once this token expires,
+    // it can still be used within the grace period to refresh.
+    await storeLastValidToken(
+      username,
+      authToken,
+      Date.now() + USER_EXPIRATION_TIME * 1000,
+      USER_EXPIRATION_TIME + TOKEN_GRACE_PERIOD
+    );
+
     logInfo(
       requestId,
       `Token ${
@@ -2928,7 +2972,12 @@ async function handleRefreshToken(data, requestId) {
     }
 
     // Store the old token for future grace period use (whether expired or not)
-    await storeLastValidToken(username, oldToken);
+    await storeLastValidToken(
+      username,
+      oldToken,
+      Date.now(),
+      TOKEN_GRACE_PERIOD
+    );
     logInfo(
       requestId,
       `Stored old token for future grace period use for user: ${username}`
@@ -2964,24 +3013,125 @@ async function handleRefreshToken(data, requestId) {
   }
 }
 
-async function handleVerifyToken(username, requestId) {
-  logInfo(requestId, `Verifying token for user: ${username}`);
-
+async function handleVerifyToken(request, requestId) {
   try {
-    // If we get here, the token has already been validated by the auth middleware
-    // Just return success with user info
-    return new Response(
-      JSON.stringify({
-        valid: true,
-        username: username,
-        message: "Token is valid",
-      }),
-      {
-        headers: { "Content-Type": "application/json" },
+    const { token: authTokenHeader } = extractAuth(request);
+    const authToken = authTokenHeader;
+    if (!authToken) {
+      logInfo(
+        requestId,
+        "Token verification failed: Missing Authorization header"
+      );
+      return createErrorResponse("Authorization token required", 401);
+    }
+
+    // 1) Direct mapping: chat:token:{token} -> username
+    const directKey = getTokenKey(authToken);
+    const mappedUsername = await redis.get(directKey);
+    if (mappedUsername) {
+      const username = String(mappedUsername).toLowerCase();
+      // Refresh TTLs and ensure user-scoped key exists
+      await redis.expire(directKey, USER_TTL_SECONDS);
+      const userKey = getUserTokenKey(username, authToken);
+      const exists = await redis.exists(userKey);
+      if (exists) {
+        await redis.expire(userKey, USER_TTL_SECONDS);
+      } else {
+        await redis.set(userKey, getCurrentTimestamp(), {
+          ex: USER_TTL_SECONDS,
+        });
       }
-    );
+
+      return new Response(
+        JSON.stringify({ valid: true, username, message: "Token is valid" }),
+        { headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    // 2) New scheme key: chat:token:user:{username}:{token}
+    const pattern = `${AUTH_TOKEN_PREFIX}user:*:${authToken}`;
+    let cursor = 0;
+    let foundKey = null;
+    do {
+      const [newCursor, keys] = await redis.scan(cursor, {
+        match: pattern,
+        count: 100,
+      });
+      cursor = parseInt(newCursor);
+      if (keys.length > 0) {
+        foundKey = keys[0];
+        break;
+      }
+    } while (cursor !== 0);
+
+    if (foundKey) {
+      const parts = foundKey.split(":");
+      // chat:token:user:{username}:{token}
+      const username = parts[3];
+      await redis.expire(foundKey, USER_TTL_SECONDS);
+      // Ensure direct mapping exists for faster future lookups
+      await redis.set(getTokenKey(authToken), username, {
+        ex: USER_TTL_SECONDS,
+      });
+      return new Response(
+        JSON.stringify({ valid: true, username, message: "Token is valid" }),
+        { headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    // 3) Grace-period path: scan last token records
+    const lastPattern = `${AUTH_TOKEN_PREFIX}last:*`;
+    cursor = 0;
+    let graceUsername = null;
+    let expiredAt = 0;
+    do {
+      const [newCursor, keys] = await redis.scan(cursor, {
+        match: lastPattern,
+        count: 100,
+      });
+      cursor = parseInt(newCursor);
+      if (keys.length) {
+        // Fetch in parallel
+        const values = await Promise.all(keys.map((k) => redis.get(k)));
+        for (let i = 0; i < keys.length; i++) {
+          const raw = values[i];
+          if (!raw) continue;
+          try {
+            const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+            if (parsed?.token === authToken) {
+              const exp = Number(parsed.expiredAt) || 0;
+              if (Date.now() < exp + TOKEN_GRACE_PERIOD * 1000) {
+                // Extract username from key suffix
+                const keyParts = keys[i].split(":");
+                graceUsername = keyParts[keyParts.length - 1];
+                expiredAt = exp;
+                break;
+              }
+            }
+          } catch (e) {
+            // ignore
+          }
+        }
+        if (graceUsername) break;
+      }
+    } while (cursor !== 0);
+
+    if (graceUsername) {
+      return new Response(
+        JSON.stringify({
+          valid: true,
+          username: graceUsername,
+          expired: true,
+          message: "Token is within grace period",
+          expiredAt,
+        }),
+        { headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    return createErrorResponse("Invalid authentication token", 401);
   } catch (error) {
-    logError(requestId, `Error verifying token for user ${username}:`, error);
+    logError(requestId, `Error verifying token:`, error);
     return createErrorResponse("Failed to verify token", 500);
   }
 }
@@ -3143,7 +3293,12 @@ async function handleAuthenticateWithPassword(data, requestId) {
     // Remove previous token mapping from this device if provided
     if (oldToken) {
       await deleteToken(oldToken);
-      await storeLastValidToken(username, oldToken);
+      await storeLastValidToken(
+        username,
+        oldToken,
+        Date.now(),
+        TOKEN_GRACE_PERIOD
+      );
     }
 
     // Generate new token
@@ -3155,6 +3310,14 @@ async function handleAuthenticateWithPassword(data, requestId) {
 
     // Persist token -> username mapping
     await storeToken(username, authToken);
+
+    // Predictive last-token entry for this new token so it can be refreshed after expiry
+    await storeLastValidToken(
+      username,
+      authToken,
+      Date.now() + USER_EXPIRATION_TIME * 1000,
+      USER_EXPIRATION_TIME + TOKEN_GRACE_PERIOD
+    );
 
     logInfo(
       requestId,

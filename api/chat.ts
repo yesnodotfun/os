@@ -428,9 +428,9 @@ async function validateAuthToken(
           lastTokenKey,
           JSON.stringify({
             token: authToken,
-            expiredAt: Date.now() + USER_TTL_SECONDS * 1000,
+            expiredAt: Date.now(),
           }),
-          { ex: USER_TTL_SECONDS + TOKEN_GRACE_PERIOD }
+          { ex: TOKEN_GRACE_PERIOD }
         );
 
         // Store the new token

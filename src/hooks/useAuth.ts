@@ -171,7 +171,6 @@ export function useAuth() {
               headers: {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${input.trim()}`,
-                "X-Username": username || "test",
               },
               body: JSON.stringify({}),
             }

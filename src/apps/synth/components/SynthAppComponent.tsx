@@ -607,7 +607,9 @@ export function SynthAppComponent({
   const resetSynth = () => {
     // Reset the store to defaults
     useSynthStore.getState().reset();
-    updateSynthParams(currentPreset);
+    const newPreset = useSynthStore.getState().currentPreset;
+    // Apply the freshly reset preset immediately
+    updateSynthParams(newPreset);
 
     // Store updates handled automatically by Zustand
 

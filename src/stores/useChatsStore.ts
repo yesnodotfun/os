@@ -575,6 +575,12 @@ export const useChatsStore = create<ChatsStoreState>()(
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
+                  ...(currentToken
+                    ? {
+                        Authorization: `Bearer ${currentToken}`,
+                        "X-Username": currentUsername,
+                      }
+                    : {}),
                 },
                 body: JSON.stringify({ username: currentUsername }),
               }
@@ -589,6 +595,8 @@ export const useChatsStore = create<ChatsStoreState>()(
               // Save token creation time
               saveTokenRefreshTime(currentUsername);
               return { ok: true };
+            } else if (response.status === 401) {
+              return { ok: false, error: "Authentication required" };
             } else if (response.status === 409) {
               // Token already exists on server, this shouldn't happen but handle it
               console.warn(
