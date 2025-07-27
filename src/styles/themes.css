@@ -99,6 +99,11 @@
   --os-metrics-titlebar-height: 1.375rem;
   --os-metrics-menubar-height: 1.5rem;
   --os-window-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+  /* Shared texture variables */
+  --os-texture-toolbar-image: url("/assets/brushed-metal.jpg");
+  --os-texture-toolbar-size: cover;
+  --os-texture-toolbar-repeat: no-repeat;
+  --os-texture-toolbar-position: center;
   /* Pinstripe patterns */
   --os-pinstripe-titlebar: linear-gradient(
     to bottom,
@@ -114,6 +119,14 @@
       rgba(255, 255, 255, 0.85) 4px
     ),
     linear-gradient(to bottom, #ececec 0%, #ececec 100%);
+}
+
+/* Shared toolbar texture utility. Uses variables defined by the active theme. */
+.os-toolbar-texture {
+  background-image: var(--os-texture-toolbar-image, none);
+  background-size: var(--os-texture-toolbar-size, cover);
+  background-repeat: var(--os-texture-toolbar-repeat, no-repeat);
+  background-position: var(--os-texture-toolbar-position, center);
 }
 
 /* Windows 98 Theme */
@@ -484,7 +497,6 @@
   font-size: 9px !important;
 }
 :root[data-os-theme="macosx"] .videos-lcd .font-geneva-12.text-\[10px\] {
-  font-size: 10px !important;
   font-family: Geneva-12, monospace !important;
 }
 

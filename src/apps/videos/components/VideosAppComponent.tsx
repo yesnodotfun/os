@@ -127,7 +127,7 @@ function AnimatedTitle({
                   }
             }
             className={cn(
-              "shrink-0 font-geneva-12 text-[18px] px-2 transition-colors duration-300 -mt-1",
+              "shrink-0 font-geneva-12 text-xl px-2 transition-colors duration-300 -mt-1",
               isPlaying ? "text-[#ff00ff]" : "text-gray-600",
               !isPlaying && "opacity-50"
             )}
@@ -150,7 +150,7 @@ function AnimatedTitle({
                   }
             }
             className={cn(
-              "shrink-0 font-geneva-12 text-[18px] px-2 transition-colors duration-300 -mt-1",
+              "shrink-0 font-geneva-12 text-xl px-2 transition-colors duration-300 -mt-1",
               isPlaying ? "text-[#ff00ff]" : "text-gray-600",
               !isPlaying && "opacity-50"
             )}
@@ -1139,7 +1139,12 @@ export function VideosAppComponent({
           </div>
 
           {/* Retro CD Player Controls */}
-          <div className="p-4 bg-[#2a2a2a] border-t border-[#3a3a3a] flex flex-col gap-4">
+          <div
+            className={cn(
+              "p-4 bg-[#2a2a2a] border-t border-[#3a3a3a] flex flex-col gap-4",
+              "os-toolbar-texture"
+            )}
+          >
             {/* LCD Display */}
             <div className="videos-lcd bg-black py-2 px-4 flex items-center justify-between w-full">
               <div className="flex items-center gap-8">
