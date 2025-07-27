@@ -16,11 +16,15 @@ import {
 import { z } from "zod";
 import { SUPPORTED_AI_MODELS } from "../src/types/aiModels";
 import { appIds } from "../src/config/appIds";
+import type { OsThemeId } from "../src/themes/types";
 import {
   checkAndIncrementAIMessageCount,
   AI_LIMIT_PER_5_HOURS,
 } from "./utils/rate-limit";
 import { Redis } from "@upstash/redis";
+
+// Central list of supported theme IDs for tool validation
+const themeIds = ["system7", "macosx", "xp", "win98"] as const satisfies readonly OsThemeId[];
 
 // Update SystemState type to match new store structure
 interface SystemState {
@@ -116,6 +120,10 @@ interface SystemState {
     roomId: string;
     recentMessages: string;
     mentionedMessage: string;
+  };
+  /** Current OS theme */
+  theme?: {
+    current: OsThemeId;
   };
 }
 
@@ -769,6 +777,17 @@ export default async function handler(req: Request) {
             "Close an application in the ryOS interface—but only when the user explicitly asks you to close that specific app.",
           parameters: z.object({
             id: z.enum(appIds).describe("The app id to close"),
+          }),
+        },
+        switchTheme: {
+          description:
+            "Switch the ryOS UI theme to a specific OS style when the user explicitly requests it.",
+          parameters: z.object({
+            theme: z
+              .enum(themeIds)
+              .describe(
+                'The theme to switch to. One of "system7", "macosx", "xp", "win98".'
+              ),
           }),
         },
         textEditSearchReplace: {

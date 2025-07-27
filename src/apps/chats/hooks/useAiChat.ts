@@ -5,6 +5,7 @@ import { useAppStore } from "@/stores/useAppStore";
 import { useInternetExplorerStore } from "@/stores/useInternetExplorerStore";
 import { useVideoStore } from "@/stores/useVideoStore";
 import { useIpodStore } from "@/stores/useIpodStore";
+import { useThemeStore } from "@/stores/useThemeStore";
 import { toast } from "@/hooks/useToast";
 import { useLaunchApp, type LaunchAppOptions } from "@/hooks/useLaunchApp";
 import { AppId } from "@/config/appIds";
@@ -20,6 +21,8 @@ import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import { htmlToMarkdown, markdownToHtml } from "@/utils/markdown";
 import { AnyExtension, JSONContent } from "@tiptap/core";
+import { themes } from "@/themes";
+import type { OsThemeId } from "@/themes/types";
 
 // TODO: Move relevant state and logic from ChatsAppComponent here
 // - AI chat state (useChat hook)
@@ -35,6 +38,7 @@ const getSystemState = () => {
   const ipodStore = useIpodStore.getState();
   const textEditStore = useTextEditStore.getState();
   const chatsStore = useChatsStore.getState();
+  const themeStore = useThemeStore.getState();
 
   const currentVideo = videoStore.getCurrentVideo();
   const currentTrack =
@@ -186,6 +190,9 @@ const getSystemState = () => {
     },
     textEdit: {
       instances: textEditInstancesData,
+    },
+    theme: {
+      current: themeStore.current,
     },
   };
 };
@@ -367,6 +374,25 @@ export function useAiChat(onPromptSetUsername?: () => void) {
 
       try {
         switch (toolCall.toolName) {
+          case "switchTheme": {
+            const { theme } = toolCall.args as { theme?: OsThemeId };
+            if (!theme) {
+              console.error(
+                "[ToolCall] switchTheme: Missing required 'theme' parameter"
+              );
+              return "Failed to switch theme: No theme provided.";
+            }
+
+            const { current, setTheme } = useThemeStore.getState();
+            if (current === theme) {
+              const name = themes[theme]?.name || theme;
+              return `${name} theme is already active.`;
+            }
+            setTheme(theme);
+            const name = themes[theme]?.name || theme;
+            console.log("[ToolCall] switchTheme:", theme, name);
+            return `Switched theme to ${name}.`;
+          }
           case "launchApp": {
             const { id, url, year } = toolCall.args as {
               id: string;

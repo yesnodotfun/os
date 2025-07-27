@@ -279,7 +279,7 @@ export function Desktop({
             ? {
                 // Exclude menubar, safe area, and an extra visual buffer to prevent clipping
                 height:
-                  "calc(100% - (30px + var(--sat-safe-area-bottom) + 32px))",
+                  "calc(100% - (30px + var(--sat-safe-area-bottom) + 40px))",
                 paddingBottom: 0,
               }
             : undefined
