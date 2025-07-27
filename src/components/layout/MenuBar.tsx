@@ -606,7 +606,7 @@ export function MenuBar({ children, inWindowFrame = false }: MenuBarProps) {
           </div>
 
           {/* Running Apps Area */}
-          <div className="flex-1 flex items-center gap-1 px-2 overflow-x-auto h-full">
+          <div className="flex-1 flex items-center gap-0.5 px-2 overflow-x-auto h-full">
             {/* Show all active instances as taskbar buttons */}
             {(() => {
               const taskbarIds = Object.values(instances)
@@ -630,7 +630,7 @@ export function MenuBar({ children, inWindowFrame = false }: MenuBarProps) {
                       height: "85%",
                       width: "160px",
                       marginTop: "2px",
-                      marginRight: "4px",
+                      marginRight: "2px",
                       background: isForeground
                         ? currentTheme === "xp"
                           ? "#3980f4" // Active should be lighter blue
@@ -655,9 +655,16 @@ export function MenuBar({ children, inWindowFrame = false }: MenuBarProps) {
                       transition: "all 0.1s ease",
                     }}
                     onMouseEnter={(e) => {
-                      if (currentTheme === "xp" && !isForeground) {
-                        e.currentTarget.style.background = "#1b50b8";
-                        e.currentTarget.style.borderColor = "#082875";
+                      if (currentTheme === "xp") {
+                        if (isForeground) {
+                          // Active button hover - slightly brighter than active base
+                          e.currentTarget.style.background = "#4a92f9";
+                          e.currentTarget.style.borderColor = "#2c64e3";
+                        } else {
+                          // Inactive button hover - lighter than inactive base
+                          e.currentTarget.style.background = "#2a6ef1";
+                          e.currentTarget.style.borderColor = "#1e56c9";
+                        }
                       } else if (currentTheme === "win98" && !isForeground) {
                         // Windows 98 hover - keep raised style, don't depress
                         e.currentTarget.style.boxShadow =
@@ -665,9 +672,14 @@ export function MenuBar({ children, inWindowFrame = false }: MenuBarProps) {
                       }
                     }}
                     onMouseLeave={(e) => {
-                      if (currentTheme === "xp" && !isForeground) {
-                        e.currentTarget.style.background = "#1658dd";
-                        e.currentTarget.style.borderColor = "#255be1";
+                      if (currentTheme === "xp") {
+                        if (isForeground) {
+                          e.currentTarget.style.background = "#3980f4";
+                          e.currentTarget.style.borderColor = "#255be1";
+                        } else {
+                          e.currentTarget.style.background = "#1658dd";
+                          e.currentTarget.style.borderColor = "#255be1";
+                        }
                       } else if (currentTheme === "win98" && !isForeground) {
                         // Windows 98 return to normal raised state
                         e.currentTarget.style.boxShadow =
