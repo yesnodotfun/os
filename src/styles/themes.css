@@ -521,6 +521,56 @@
   font-family: Geneva-12, monospace !important;
 }
 
+/* Videos LCD macOS X color scheme (inspired by Minesweeper LCD) */
+:root[data-os-theme="macosx"] {
+  --videos-lcd-bg: #8a9a8a;
+  --videos-lcd-text: #1a2a1a;
+  --videos-lcd-text-muted: #2d3b2d;
+  --videos-lcd-fade: #8a9a8a;
+  --videos-lcd-border-dark: #2f3f2fad;
+  --videos-lcd-border-light: #f0f0f064;
+}
+
+:root[data-os-theme="macosx"] .videos-lcd {
+  background: var(--videos-lcd-bg) !important;
+  color: var(--videos-lcd-text) !important;
+  border: 1px solid var(--videos-lcd-border-dark) !important;
+  border-radius: 3px;
+  /* Concave/inset look: top/left darker, bottom/right lighter, plus soft inner shadow */
+  box-shadow: inset 0 1px 2px var(--videos-lcd-border-dark),
+    inset 0 -1px 2px var(--videos-lcd-border-light) !important; /* soft inner shadow */
+  text-shadow: 1.5px 1.5px 0 rgba(0, 0, 0, 0.2) !important;
+}
+
+:root[data-os-theme="macosx"] .videos-lcd .font-geneva-12.text-\[10px\] {
+  color: var(--videos-lcd-text-muted) !important;
+}
+
+:root[data-os-theme="macosx"] .videos-lcd .text-xl {
+  color: var(--videos-lcd-text) !important;
+}
+
+/* Override animated title colors */
+:root[data-os-theme="macosx"] .videos-lcd .animated-title-text {
+  color: var(--videos-lcd-text) !important;
+}
+
+/* Fade edges tuned for LCD background instead of black */
+:root[data-os-theme="macosx"] .videos-lcd .videos-lcd-fade-left {
+  background-image: linear-gradient(
+    to right,
+    var(--videos-lcd-bg),
+    rgba(0, 0, 0, 0)
+  ) !important;
+}
+:root[data-os-theme="macosx"] .videos-lcd .videos-lcd-fade-right {
+  background-image: linear-gradient(
+    to left,
+    var(--videos-lcd-bg),
+    rgba(0, 0, 0, 0)
+  ) !important;
+}
+
 /* macOS select styling - similar to aqua buttons */
 :root[data-os-theme="macosx"] select {
   font-family: "LucidaGrande", "Lucida Grande", "Hiragino Sans",

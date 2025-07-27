@@ -127,7 +127,7 @@ function AnimatedTitle({
                   }
             }
             className={cn(
-              "shrink-0 font-geneva-12 text-xl px-2 transition-colors duration-300 -mt-1",
+              "shrink-0 font-geneva-12 text-xl px-2 transition-colors duration-300 -mt-1 animated-title-text",
               isPlaying ? "text-[#ff00ff]" : "text-gray-600",
               !isPlaying && "opacity-50"
             )}
@@ -150,7 +150,7 @@ function AnimatedTitle({
                   }
             }
             className={cn(
-              "shrink-0 font-geneva-12 text-xl px-2 transition-colors duration-300 -mt-1",
+              "shrink-0 font-geneva-12 text-xl px-2 transition-colors duration-300 -mt-1 animated-title-text",
               isPlaying ? "text-[#ff00ff]" : "text-gray-600",
               !isPlaying && "opacity-50"
             )}
@@ -1197,9 +1197,9 @@ export function VideosAppComponent({
                     />
                     {/* Fade effects */}
                     {isPlaying && (
-                      <div className="absolute left-0 top-0 h-full w-4 bg-gradient-to-r from-black to-transparent" />
+                      <div className="absolute left-0 top-0 h-full w-4 bg-gradient-to-r from-black to-transparent videos-lcd-fade-left" />
                     )}
-                    <div className="absolute right-0 top-0 h-full w-4 bg-gradient-to-l from-black to-transparent" />
+                    <div className="absolute right-0 top-0 h-full w-4 bg-gradient-to-l from-black to-transparent videos-lcd-fade-right" />
                   </div>
                 )}
               </div>
