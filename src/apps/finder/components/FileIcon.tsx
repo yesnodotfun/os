@@ -261,9 +261,9 @@ export function FileIcon({
         {renderIcon()}
       </div>
       <span
-        className={`text-center px-1 file-icon-label break-words ${
+        className={`text-center px-1 file-icon-label break-words truncate ${
           sizes.text
-        } ${isMacOSXTheme && !isFinderContext ? "font-bold rounded-full" : ""} ${
+        } ${isMacOSXTheme && !isFinderContext ? "font-bold rounded" : ""} ${
           isSelected || (isDropTarget && isDirectory)
             ? "bg-black text-white"
             : isWin98Theme
