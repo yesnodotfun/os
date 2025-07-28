@@ -465,11 +465,20 @@ function FullScreenPortal({
           setHasUserInteracted(true);
         }
         
+        // Get the actual playing state from the fullscreen player
+        let actuallyPlaying = false;
+        const internalPlayer = fullScreenPlayerRef?.current?.getInternalPlayer?.();
+        if (internalPlayer && typeof internalPlayer.getPlayerState === 'function') {
+          const playerState = internalPlayer.getPlayerState();
+          // YouTube player states: -1 (unstarted), 0 (ended), 1 (playing), 2 (paused), 3 (buffering), 5 (video cued)
+          actuallyPlaying = playerState === 1;
+        }
+        
         // On mobile Safari, when not playing and after first interaction,
         // disable tap-to-play to let YouTube player be interactive
-        const shouldDisableClick = isMobileSafariDevice && !isPlaying && hasUserInteracted;
+        const shouldDisableClick = isMobileSafariDevice && !actuallyPlaying && hasUserInteracted;
         
-        if (!shouldDisableClick && !isPlaying) {
+        if (!shouldDisableClick && !actuallyPlaying) {
           const handlers = handlersRef.current;
           handlers.registerActivity();
           handlers.togglePlay();
@@ -480,7 +489,6 @@ function FullScreenPortal({
         // but the fullscreen player hasn't started yet, allow tap to start playback
         if (isMobileSafariDevice && isPlaying && hasUserInteracted) {
           // Check if the fullscreen player is actually playing
-          const internalPlayer = fullScreenPlayerRef?.current?.getInternalPlayer?.();
           if (internalPlayer && typeof internalPlayer.getPlayerState === 'function') {
             const playerState = internalPlayer.getPlayerState();
             // YouTube player states: -1 (unstarted), 0 (ended), 1 (playing), 2 (paused), 3 (buffering), 5 (video cued)
