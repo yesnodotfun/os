@@ -458,7 +458,7 @@ function FullScreenPortal({
         }}
       >
         <div className="relative">
-          <div className="bg-neutral-800/35 border border-white/10 backdrop-blur-sm rounded-full shadow-lg flex items-center gap-1 md:gap-2 px-2 py-1">
+          <div className="bg-neutral-800/35 border border-white/10 backdrop-blur-sm rounded-full shadow-lg flex items-center gap-1 md:gap-2 px-2 py-1 font-geneva-12">
             {/* Transport controls */}
             <button
               onClick={(e) => {
@@ -596,7 +596,7 @@ function FullScreenPortal({
                 onToggleKoreanDisplay();
               }}
               aria-label="Toggle Hangul / Romanization"
-              className="w-9 h-9 md:w-12 md:h-12 flex items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors focus:outline-none font-geneva-12"
+              className="w-9 h-9 md:w-12 md:h-12 flex items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors focus:outline-none"
             >
               <span className="text-[16px] md:text-[18px]">
                 {currentKoreanDisplay === "romanized" ? "KO" : "한"}
@@ -611,7 +611,7 @@ function FullScreenPortal({
                 registerActivity();
               }}
               aria-label="Translate lyrics"
-              className="w-9 h-9 md:w-12 md:h-12 flex items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors focus:outline-none font-geneva-12"
+              className="w-9 h-9 md:w-12 md:h-12 flex items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors focus:outline-none"
             >
               {translationBadge ? (
                 <span className="inline-flex items-center justify-center w-[24px] h-[24px] md:w-[28px] md:h-[28px] leading-none text-[16px] md:text-[18px]">
