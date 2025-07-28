@@ -499,6 +499,7 @@ function FullScreenPortal({
         // but the fullscreen player hasn't started yet, allow tap to start playback
         if (isMobileSafariDevice && isPlaying && hasUserInteracted) {
           // Check if the fullscreen player is actually playing
+          const internalPlayer = fullScreenPlayerRef?.current?.getInternalPlayer?.();
           if (internalPlayer && typeof internalPlayer.getPlayerState === 'function') {
             const playerState = internalPlayer.getPlayerState();
             // YouTube player states: -1 (unstarted), 0 (ended), 1 (playing), 2 (paused), 3 (buffering), 5 (video cued)
