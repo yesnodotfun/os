@@ -2390,7 +2390,7 @@ export function IpodAppComponent({
                             textSizeClass="text-[min(10vw,10vh)]"
                             gapClass="gap-4 md:gap-8"
                             interactive={isIOSSafari ? false : isPlaying}
-                            bottomPaddingClass="pb-[clamp(2rem,12dvh,8rem)]"
+                            bottomPaddingClass="pb-[calc(max(env(safe-area-inset-bottom),1.5rem)+clamp(3.5rem,14dvh,10rem))]"
                           />
                         </div>
                       )}
