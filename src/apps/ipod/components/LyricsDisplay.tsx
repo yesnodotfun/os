@@ -6,6 +6,7 @@ import {
 } from "@/types/lyrics";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMemo, useRef, useState, useEffect } from "react";
+import type { CSSProperties } from "react";
 import { Converter } from "opencc-js";
 import { convert as romanize } from "hangul-romanization";
 import {
@@ -41,6 +42,8 @@ interface LyricsDisplayProps {
   gapClass?: string;
   /** Optional font class to apply to lyric lines; defaults to Geneva */
   fontClassName?: string;
+  /** Optional inline styles for the outer container (e.g., dynamic gap) */
+  containerStyle?: CSSProperties;
 }
 
 const ANIMATION_CONFIG = {
@@ -169,6 +172,7 @@ export function LyricsDisplay({
   bottomPaddingClass = "pb-5",
   gapClass = "gap-2",
   fontClassName = "font-geneva-12",
+  containerStyle,
 }: LyricsDisplayProps) {
   const chineseConverter = useMemo(
     () => Converter({ from: "cn", to: "tw" }),
@@ -367,7 +371,10 @@ export function LyricsDisplay({
       layout={alignment === LyricsAlignment.Alternating}
       transition={ANIMATION_CONFIG.spring}
       className={`absolute inset-x-0 mx-auto top-0 left-0 right-0 bottom-0 w-full h-full overflow-hidden flex flex-col items-center justify-end ${gapClass} z-40 select-none px-0 ${bottomPaddingClass}`}
-      style={{ pointerEvents: interactive ? "auto" : "none" }}
+      style={{
+        ...(containerStyle || {}),
+        pointerEvents: interactive ? "auto" : "none",
+      }}
       onWheel={handleWheel}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}

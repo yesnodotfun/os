@@ -26,7 +26,7 @@ import { useLyrics } from "@/hooks/useLyrics";
 import { useLibraryUpdateChecker } from "../hooks/useLibraryUpdateChecker";
 import { useThemeStore } from "@/stores/useThemeStore";
 import { LyricsAlignment, KoreanDisplay } from "@/types/lyrics";
-import { Globe } from "lucide-react";
+// Globe icon removed; using text label "Aあ" for translate
 
 // Add this component definition before the IpodAppComponent
 interface FullScreenPortalProps {
@@ -590,7 +590,9 @@ function FullScreenPortal({
                 {translationBadge}
               </span>
             ) : (
-              <Globe className="w-[22px] h-[22px] md:w-[30px] md:h-[30px]" />
+              <span className="inline-flex items-center justify-center w-[28px] h-[28px] md:w-[34px] md:h-[34px] leading-none font-geneva-12 text-[18px] md:text-[24px]">
+                Aあ
+              </span>
             )}
           </button>
 
@@ -2401,7 +2403,10 @@ export function IpodAppComponent({
                               fullScreenLyricsControls.isTranslating
                             }
                             textSizeClass="text-[min(10vw,10vh)]"
-                            gapClass="gap-4 md:gap-8"
+                            gapClass="gap-0"
+                            containerStyle={{
+                              gap: "clamp(0.25rem, calc(min(10vw,10vh) * 0.12), 2.5rem)",
+                            }}
                             interactive={isIOSSafari ? false : isPlaying}
                             bottomPaddingClass="pb-[calc(max(env(safe-area-inset-bottom),1.5rem)+clamp(5rem,16dvh,12rem))]"
                           />
