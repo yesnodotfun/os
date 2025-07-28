@@ -409,6 +409,9 @@ function FullScreenPortal({
             ? "opacity-100 pointer-events-auto"
             : "opacity-0 pointer-events-none"
         )}
+        style={{
+          top: "calc(max(env(safe-area-inset-top),0.75rem) + clamp(1rem, 6dvh, 3.5rem))",
+        }}
       >
         <div className="flex items-center gap-2 md:gap-3">
           {/* Transport controls */}
@@ -667,7 +670,12 @@ function FullScreenPortal({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
           >
-            <div className="absolute md:top-24 md:left-24 top-8 left-8 pointer-events-none">
+            <div
+              className="absolute md:top-24 md:left-24 top-8 left-8 pointer-events-none"
+              style={{
+                top: "calc(max(env(safe-area-inset-top),0.75rem) + clamp(1rem, 6dvh, 3.5rem))",
+              }}
+            >
               <div className="relative">
                 <div className="font-chicago text-white text-[min(5vw,5vh)] relative z-10">
                   {statusMessage}
