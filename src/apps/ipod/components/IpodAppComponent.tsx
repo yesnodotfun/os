@@ -26,6 +26,7 @@ import { useLyrics } from "@/hooks/useLyrics";
 import { useLibraryUpdateChecker } from "../hooks/useLibraryUpdateChecker";
 import { useThemeStore } from "@/stores/useThemeStore";
 import { LyricsAlignment, KoreanDisplay } from "@/types/lyrics";
+import { isMobileSafari } from "@/utils/device";
 // Globe icon removed; using text label "Aあ" for translate
 
 // Add this component definition before the IpodAppComponent
@@ -52,6 +53,8 @@ interface FullScreenPortalProps {
   onCycleAlignment: () => void;
   currentKoreanDisplay: import("@/types/lyrics").KoreanDisplay;
   onToggleKoreanDisplay: () => void;
+  // Player ref for mobile Safari handling
+  fullScreenPlayerRef: React.RefObject<ReactPlayer>;
 }
 
 function FullScreenPortal({
@@ -71,12 +74,19 @@ function FullScreenPortal({
   onCycleAlignment,
   currentKoreanDisplay,
   onToggleKoreanDisplay,
+  fullScreenPlayerRef,
 }: FullScreenPortalProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const hideControlsTimeoutRef = useRef<number | null>(null);
   // Removed pointer coarse check; controls now autohide on all devices
+  
+  // Track if user has interacted to enable gesture handling after first interaction
+  const [hasUserInteracted, setHasUserInteracted] = useState(false);
+  
+  // Detect mobile Safari for gesture control
+  const isMobileSafariDevice = useMemo(() => isMobileSafari(), []);
 
   // Use refs to store the latest values, avoiding stale closures
   const handlersRef = useRef<{
@@ -144,16 +154,43 @@ function FullScreenPortal({
 
   // Stable event handlers using refs (no dependencies to avoid re-rendering)
   const handleTouchStart = useCallback((e: TouchEvent) => {
+    // Don't handle touches on toolbar elements
+    const target = e.target as HTMLElement;
+    if (target.closest('[data-toolbar]')) {
+      return;
+    }
+    
+    // Track user interaction
+    if (!hasUserInteracted) {
+      setHasUserInteracted(true);
+    }
+    
     const touch = e.touches[0];
     touchStartRef.current = {
       x: touch.clientX,
       y: touch.clientY,
       time: Date.now(),
     };
-  }, []);
+  }, [hasUserInteracted]);
 
   const handleTouchEnd = useCallback((e: TouchEvent) => {
     if (!touchStartRef.current) return;
+
+    // Don't handle touches on toolbar elements
+    const target = e.target as HTMLElement;
+    if (target.closest('[data-toolbar]')) {
+      touchStartRef.current = null;
+      return;
+    }
+
+    // On mobile Safari, when not playing and after first interaction, 
+    // disable gesture handling to let YouTube player be interactive
+    const shouldDisableGestures = isMobileSafariDevice && !isPlaying && hasUserInteracted;
+    
+    if (shouldDisableGestures) {
+      touchStartRef.current = null;
+      return;
+    }
 
     const touch = e.changedTouches[0];
     const deltaX = touch.clientX - touchStartRef.current.x;
@@ -217,7 +254,7 @@ function FullScreenPortal({
     }
 
     touchStartRef.current = null;
-  }, []);
+  }, [isMobileSafariDevice, isPlaying, hasUserInteracted]);
 
   // Effect to request fullscreen when component mounts
   useEffect(() => {
@@ -297,8 +334,25 @@ function FullScreenPortal({
 
   // Auto-hide controls after inactivity (desktop and mobile). Always visible when paused.
   useEffect(() => {
-    const handleActivity = () => {
-      handlersRef.current.registerActivity();
+    const handleActivity = (e?: Event) => {
+      // Don't handle activity from toolbar elements
+      if (e && e.target && (e.target as HTMLElement).closest('[data-toolbar]')) {
+        return;
+      }
+      
+      // Track user interaction
+      if (!hasUserInteracted) {
+        setHasUserInteracted(true);
+      }
+      
+      // On mobile Safari, when not playing and after first interaction,
+      // don't register activity to avoid interfering with YouTube player
+      const shouldSkipActivity = isMobileSafariDevice && !isPlaying && hasUserInteracted;
+      
+      if (!shouldSkipActivity) {
+        handlersRef.current.registerActivity();
+      }
+      
       setShowControls(true);
       if (hideControlsTimeoutRef.current) {
         clearTimeout(hideControlsTimeoutRef.current);
@@ -338,7 +392,7 @@ function FullScreenPortal({
         hideControlsTimeoutRef.current = null;
       }
     };
-  }, [isLangMenuOpen, isPlaying]);
+  }, [isLangMenuOpen, isPlaying, hasUserInteracted, isMobileSafariDevice]);
 
   // Close full screen with Escape key
   useEffect(() => {
@@ -399,13 +453,47 @@ function FullScreenPortal({
     <div
       ref={containerRef}
       className="ipod-force-font fixed inset-0 z-[9999] bg-black select-none flex flex-col"
-      onClick={() => {
-        // When paused, tap anywhere to play
-        if (!isPlaying) {
+      onClick={(e) => {
+        // Don't handle clicks that originate from toolbar elements
+        const target = e.target as HTMLElement;
+        if (target.closest('[data-toolbar]')) {
+          return;
+        }
+        
+        // Track user interaction
+        if (!hasUserInteracted) {
+          setHasUserInteracted(true);
+        }
+        
+        // On mobile Safari, when not playing and after first interaction,
+        // disable tap-to-play to let YouTube player be interactive
+        const shouldDisableClick = isMobileSafariDevice && !isPlaying && hasUserInteracted;
+        
+        if (!shouldDisableClick && !isPlaying) {
           const handlers = handlersRef.current;
           handlers.registerActivity();
           handlers.togglePlay();
           handlers.showStatus("▶");
+        }
+        
+        // Special case: On mobile Safari, if we just entered fullscreen and expect to be playing
+        // but the fullscreen player hasn't started yet, allow tap to start playback
+        if (isMobileSafariDevice && isPlaying && hasUserInteracted) {
+          // Check if the fullscreen player is actually playing
+          const internalPlayer = fullScreenPlayerRef?.current?.getInternalPlayer?.();
+          if (internalPlayer && typeof internalPlayer.getPlayerState === 'function') {
+            const playerState = internalPlayer.getPlayerState();
+            // YouTube player states: -1 (unstarted), 0 (ended), 1 (playing), 2 (paused), 3 (buffering), 5 (video cued)
+            if (playerState !== 1) { // Not playing
+              const handlers = handlersRef.current;
+              handlers.registerActivity();
+              // Force start playback
+              if (typeof internalPlayer.playVideo === 'function') {
+                internalPlayer.playVideo();
+                handlers.showStatus("▶");
+              }
+            }
+          }
         }
       }}
     >
@@ -460,6 +548,7 @@ function FullScreenPortal({
 
       {/* Inline toolbar below lyrics, centered */}
       <div
+        data-toolbar
         className={cn(
           "w-full flex justify-center z-[10001] transition-opacity duration-200",
           showControls || isLangMenuOpen || !isPlaying
@@ -469,6 +558,10 @@ function FullScreenPortal({
         style={{
           paddingBottom:
             "calc(max(env(safe-area-inset-bottom), 0.75rem) + clamp(1rem, 6dvh, 4rem))",
+        }}
+        onClick={(e) => {
+          // Ensure toolbar clicks don't bubble up to container
+          e.stopPropagation();
         }}
       >
         <div className="relative">
@@ -2041,9 +2134,26 @@ export function IpodAppComponent({
       if (isFullScreen) {
         // Entering fullscreen - sync from small player to fullscreen player
         const currentTime = playerRef.current?.getCurrentTime() || elapsedTime;
+        const wasPlaying = isPlaying;
+        
         // Small delay to ensure the fullscreen player is mounted
         setTimeout(() => {
-          fullScreenPlayerRef.current?.seekTo(currentTime);
+          if (fullScreenPlayerRef.current) {
+            fullScreenPlayerRef.current.seekTo(currentTime);
+            
+            // On mobile Safari, explicitly start playback if it was playing
+            // This handles the case where autoplay restrictions prevent automatic playback
+            if (wasPlaying && isIOSSafari && userHasInteractedRef.current) {
+              // Additional delay to ensure seeking is complete before starting playback
+              setTimeout(() => {
+                // Force play the fullscreen player
+                const internalPlayer = fullScreenPlayerRef.current?.getInternalPlayer?.();
+                if (internalPlayer && typeof internalPlayer.playVideo === 'function') {
+                  internalPlayer.playVideo();
+                }
+              }, 200);
+            }
+          }
         }, 100);
       } else {
         // Exiting fullscreen - sync from fullscreen player back to small player
@@ -2066,7 +2176,7 @@ export function IpodAppComponent({
       }
       prevFullScreenRef.current = isFullScreen;
     }
-  }, [isFullScreen, elapsedTime, isPlaying, setIsPlaying]);
+  }, [isFullScreen, elapsedTime, isPlaying, setIsPlaying, isIOSSafari]);
 
   // Add a seekTime function for fullscreen seeking
   const seekTime = useCallback(
@@ -2307,6 +2417,7 @@ export function IpodAppComponent({
             onCycleAlignment={cycleAlignment}
             currentKoreanDisplay={koreanDisplay}
             onToggleKoreanDisplay={toggleKorean}
+            fullScreenPlayerRef={fullScreenPlayerRef}
           >
             {({ controlsVisible }) => (
               <div className="flex flex-col w-full h-full">
