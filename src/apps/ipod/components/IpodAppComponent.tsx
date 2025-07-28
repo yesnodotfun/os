@@ -305,23 +305,23 @@ function FullScreenPortal({
       case "zh-TW":
         return "中";
       case "en":
-        return "E";
+        return "En";
       case "ja":
         return "日";
       case "ko":
         return "한";
       case "es":
-        return "E"; // Español
+        return "Es"; // Español
       case "fr":
-        return "F";
+        return "Fr";
       case "de":
-        return "D"; // Deutsch
+        return "De"; // Deutsch
       case "pt":
-        return "P";
+        return "Pt";
       case "it":
-        return "I";
+        return "It";
       case "ru":
-        return "R";
+        return "Ru";
       default:
         return currentTranslationCode[0]?.toUpperCase() ?? "?";
     }
@@ -727,7 +727,7 @@ function FullScreenPortal({
               className="w-9 h-9 md:w-12 md:h-12 flex items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors focus:outline-none"
             >
               <span className="text-[16px] md:text-[18px]">
-                {currentKoreanDisplay === "romanized" ? "KO" : "한"}
+                {currentKoreanDisplay === "romanized" ? "Ko" : "한"}
               </span>
             </button>
 
