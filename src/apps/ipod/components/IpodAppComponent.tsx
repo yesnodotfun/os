@@ -647,9 +647,12 @@ function FullScreenPortal({
             transition={{ duration: 0.2 }}
           >
             <div
-              className="absolute md:top-24 md:left-24 top-8 left-8 pointer-events-none"
+              className="absolute pointer-events-none"
               style={{
-                top: "calc(max(env(safe-area-inset-top),0.5rem) + clamp(0.25rem, 2dvh, 1.25rem))",
+                // Place below the toolbar platter area + safe area
+                top: "calc(max(env(safe-area-inset-top),0.5rem) + clamp(3.5rem, 12dvh, 6rem))",
+                // Respect safe-area left and add responsive padding
+                left: "calc(max(env(safe-area-inset-left), 0.5rem) + clamp(0.75rem, 4dvw, 6rem))",
               }}
             >
               <div className="relative">
