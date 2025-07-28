@@ -353,7 +353,7 @@ function FullScreenPortal({
       } else if (e.key === " ") {
         e.preventDefault(); // Prevent scrolling if space is pressed
         handlers.togglePlay();
-        handlers.showStatus(isPlaying ? "❙ ❙" : "▶");
+        handlers.showStatus(isPlaying ? "⏸" : "▶");
       } else if (e.key === "ArrowLeft") {
         // Seek backward instead of previous track
         handlers.seekTime(-5);
@@ -446,7 +446,7 @@ function FullScreenPortal({
               e.stopPropagation();
               registerActivity();
               togglePlay();
-              showStatus(isPlaying ? "❙ ❙" : "▶");
+              showStatus(isPlaying ? "⏸" : "▶");
             }}
             aria-label="Play/Pause"
             className={cn(
@@ -455,7 +455,7 @@ function FullScreenPortal({
             title="Play/Pause"
           >
             <span className="text-[18px] md:text-[24px]">
-              {isPlaying ? "❙ ❙" : "▶"}
+              {isPlaying ? "⏸" : "▶"}
             </span>
           </button>
 
@@ -569,7 +569,7 @@ function FullScreenPortal({
             )}
           >
             <span className="text-[16px] md:text-[20px]">
-              {currentKoreanDisplay === "romanized" ? "HAN" : "한"}
+              {currentKoreanDisplay === "romanized" ? "KO" : "한"}
             </span>
           </button>
 
