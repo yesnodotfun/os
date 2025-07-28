@@ -318,7 +318,7 @@ function FullScreenPortal({
 
   // Auto-hide controls after inactivity (desktop and mobile). Always visible when paused.
   useEffect(() => {
-    const handleActivity = (e?: Event) => {
+    const handleActivity = () => {
       // Track user interaction
       if (!hasUserInteracted) {
         setHasUserInteracted(true);
