@@ -253,7 +253,7 @@ function ScrollToBottomButton() {
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.8, y: 10 }}
           transition={{ type: "spring", duration: 0.2 }}
-          className={`absolute bottom-14 right-3 rounded-full z-20 flex items-center justify-center cursor-pointer select-none transition-transform hover:scale-105 ${
+          className={`absolute bottom-14 right-3 rounded-full z-20 flex items-center justify-center cursor-pointer select-none ${
             isMacTheme ? "relative overflow-hidden" : ""
           }`}
           style={{
