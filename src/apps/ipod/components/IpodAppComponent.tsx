@@ -295,7 +295,7 @@ function FullScreenPortal({
     };
   }, []); // Empty dependency array - handlers are stable
 
-  // Auto-hide top-right controls after inactivity (desktop and mobile). Tap/click anywhere to reveal.
+  // Auto-hide controls after inactivity (desktop and mobile). Always visible when paused.
   useEffect(() => {
     const handleActivity = () => {
       handlersRef.current.registerActivity();
@@ -303,15 +303,16 @@ function FullScreenPortal({
       if (hideControlsTimeoutRef.current) {
         clearTimeout(hideControlsTimeoutRef.current);
       }
-      if (!isLangMenuOpen) {
+      // Only start hide timer when playing and menu is closed
+      if (isPlaying && !isLangMenuOpen) {
         hideControlsTimeoutRef.current = window.setTimeout(() => {
           setShowControls(false);
         }, 2000);
       }
     };
 
-    // Show when menu opens
-    if (isLangMenuOpen) setShowControls(true);
+    // Show when menu opens or when paused
+    if (isLangMenuOpen || !isPlaying) setShowControls(true);
 
     window.addEventListener("mousemove", handleActivity, { passive: true });
     window.addEventListener("keydown", handleActivity);
@@ -321,7 +322,11 @@ function FullScreenPortal({
     window.addEventListener("click", handleActivity, { passive: true });
 
     // Prime the timer once on mount
-    handleActivity();
+    if (!isPlaying) {
+      setShowControls(true);
+    } else {
+      handleActivity();
+    }
 
     return () => {
       window.removeEventListener("mousemove", handleActivity as any);
@@ -333,7 +338,7 @@ function FullScreenPortal({
         hideControlsTimeoutRef.current = null;
       }
     };
-  }, [isLangMenuOpen]);
+  }, [isLangMenuOpen, isPlaying]);
 
   // Close full screen with Escape key
   useEffect(() => {
@@ -438,7 +443,7 @@ function FullScreenPortal({
                 isLangMenuOpen: boolean;
               }) => React.ReactNode
             )({
-              controlsVisible: showControls || isLangMenuOpen,
+              controlsVisible: showControls || isLangMenuOpen || !isPlaying,
               isLangMenuOpen,
             })
           : children}
@@ -448,7 +453,7 @@ function FullScreenPortal({
       <div
         className={cn(
           "w-full flex justify-center z-[10001] transition-opacity duration-200",
-          showControls || isLangMenuOpen
+          showControls || isLangMenuOpen || !isPlaying
             ? "opacity-100 pointer-events-auto"
             : "opacity-0 pointer-events-none"
         )}
