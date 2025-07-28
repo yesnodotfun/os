@@ -53,6 +53,8 @@ interface FullScreenPortalProps {
   onCycleAlignment: () => void;
   currentKoreanDisplay: import("@/types/lyrics").KoreanDisplay;
   onToggleKoreanDisplay: () => void;
+  // Player ref for mobile Safari handling
+  fullScreenPlayerRef: React.RefObject<ReactPlayer>;
 }
 
 function FullScreenPortal({
@@ -72,6 +74,7 @@ function FullScreenPortal({
   onCycleAlignment,
   currentKoreanDisplay,
   onToggleKoreanDisplay,
+  fullScreenPlayerRef,
 }: FullScreenPortalProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
@@ -447,6 +450,26 @@ function FullScreenPortal({
           handlers.registerActivity();
           handlers.togglePlay();
           handlers.showStatus("▶");
+        }
+        
+        // Special case: On mobile Safari, if we just entered fullscreen and expect to be playing
+        // but the fullscreen player hasn't started yet, allow tap to start playback
+        if (isMobileSafariDevice && isPlaying && hasUserInteracted) {
+          // Check if the fullscreen player is actually playing
+          const internalPlayer = fullScreenPlayerRef?.current?.getInternalPlayer?.();
+          if (internalPlayer && typeof internalPlayer.getPlayerState === 'function') {
+            const playerState = internalPlayer.getPlayerState();
+            // YouTube player states: -1 (unstarted), 0 (ended), 1 (playing), 2 (paused), 3 (buffering), 5 (video cued)
+            if (playerState !== 1) { // Not playing
+              const handlers = handlersRef.current;
+              handlers.registerActivity();
+              // Force start playback
+              if (typeof internalPlayer.playVideo === 'function') {
+                internalPlayer.playVideo();
+                handlers.showStatus("▶");
+              }
+            }
+          }
         }
       }}
     >
@@ -2082,9 +2105,26 @@ export function IpodAppComponent({
       if (isFullScreen) {
         // Entering fullscreen - sync from small player to fullscreen player
         const currentTime = playerRef.current?.getCurrentTime() || elapsedTime;
+        const wasPlaying = isPlaying;
+        
         // Small delay to ensure the fullscreen player is mounted
         setTimeout(() => {
-          fullScreenPlayerRef.current?.seekTo(currentTime);
+          if (fullScreenPlayerRef.current) {
+            fullScreenPlayerRef.current.seekTo(currentTime);
+            
+            // On mobile Safari, explicitly start playback if it was playing
+            // This handles the case where autoplay restrictions prevent automatic playback
+            if (wasPlaying && isIOSSafari && userHasInteractedRef.current) {
+              // Additional delay to ensure seeking is complete before starting playback
+              setTimeout(() => {
+                // Force play the fullscreen player
+                const internalPlayer = fullScreenPlayerRef.current?.getInternalPlayer?.();
+                if (internalPlayer && typeof internalPlayer.playVideo === 'function') {
+                  internalPlayer.playVideo();
+                }
+              }, 200);
+            }
+          }
         }, 100);
       } else {
         // Exiting fullscreen - sync from fullscreen player back to small player
@@ -2107,7 +2147,7 @@ export function IpodAppComponent({
       }
       prevFullScreenRef.current = isFullScreen;
     }
-  }, [isFullScreen, elapsedTime, isPlaying, setIsPlaying]);
+  }, [isFullScreen, elapsedTime, isPlaying, setIsPlaying, isIOSSafari]);
 
   // Add a seekTime function for fullscreen seeking
   const seekTime = useCallback(
@@ -2348,6 +2388,7 @@ export function IpodAppComponent({
             onCycleAlignment={cycleAlignment}
             currentKoreanDisplay={koreanDisplay}
             onToggleKoreanDisplay={toggleKorean}
+            fullScreenPlayerRef={fullScreenPlayerRef}
           >
             {({ controlsVisible }) => (
               <div className="flex flex-col w-full h-full">
