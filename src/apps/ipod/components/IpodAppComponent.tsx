@@ -399,6 +399,15 @@ function FullScreenPortal({
     <div
       ref={containerRef}
       className="ipod-force-font fixed inset-0 z-[9999] bg-black select-none flex flex-col"
+      onClick={() => {
+        // When paused, tap anywhere to play
+        if (!isPlaying) {
+          const handlers = handlersRef.current;
+          handlers.registerActivity();
+          handlers.togglePlay();
+          handlers.showStatus("▶");
+        }
+      }}
     >
       {/* Toolbar moved into normal flow below children */}
 
