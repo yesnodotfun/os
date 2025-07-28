@@ -88,6 +88,17 @@ function FullScreenPortal({
   // Detect mobile Safari for gesture control
   const isMobileSafariDevice = useMemo(() => isMobileSafari(), []);
 
+  // Helper function to get actual player playing state
+  const getActualPlayerState = useCallback(() => {
+    const internalPlayer = fullScreenPlayerRef?.current?.getInternalPlayer?.();
+    if (internalPlayer && typeof internalPlayer.getPlayerState === 'function') {
+      const playerState = internalPlayer.getPlayerState();
+      // YouTube player states: -1 (unstarted), 0 (ended), 1 (playing), 2 (paused), 3 (buffering), 5 (video cued)
+      return playerState === 1;
+    }
+    return false;
+  }, [fullScreenPlayerRef]);
+
   // Use refs to store the latest values, avoiding stale closures
   const handlersRef = useRef<{
     onClose: () => void;
@@ -345,9 +356,12 @@ function FullScreenPortal({
         setHasUserInteracted(true);
       }
       
+      // Get actual player state for activity handling
+      const actuallyPlaying = getActualPlayerState();
+      
       // On mobile Safari, when not playing and after first interaction,
       // don't register activity to avoid interfering with YouTube player
-      const shouldSkipActivity = isMobileSafariDevice && !isPlaying && hasUserInteracted;
+      const shouldSkipActivity = isMobileSafariDevice && !actuallyPlaying && hasUserInteracted;
       
       if (!shouldSkipActivity) {
         handlersRef.current.registerActivity();
@@ -358,7 +372,7 @@ function FullScreenPortal({
         clearTimeout(hideControlsTimeoutRef.current);
       }
       // Only start hide timer when playing and menu is closed
-      if (isPlaying && !isLangMenuOpen) {
+      if (actuallyPlaying && !isLangMenuOpen) {
         hideControlsTimeoutRef.current = window.setTimeout(() => {
           setShowControls(false);
         }, 2000);
@@ -366,7 +380,8 @@ function FullScreenPortal({
     };
 
     // Show when menu opens or when paused
-    if (isLangMenuOpen || !isPlaying) setShowControls(true);
+    const actuallyPlaying = getActualPlayerState();
+    if (isLangMenuOpen || !actuallyPlaying) setShowControls(true);
 
     window.addEventListener("mousemove", handleActivity, { passive: true });
     window.addEventListener("keydown", handleActivity);
@@ -376,7 +391,8 @@ function FullScreenPortal({
     window.addEventListener("click", handleActivity, { passive: true });
 
     // Prime the timer once on mount
-    if (!isPlaying) {
+    const actuallyPlayingOnMount = getActualPlayerState();
+    if (!actuallyPlayingOnMount) {
       setShowControls(true);
     } else {
       handleActivity();
@@ -392,7 +408,7 @@ function FullScreenPortal({
         hideControlsTimeoutRef.current = null;
       }
     };
-  }, [isLangMenuOpen, isPlaying, hasUserInteracted, isMobileSafariDevice]);
+  }, [isLangMenuOpen, isPlaying, hasUserInteracted, isMobileSafariDevice, getActualPlayerState]);
 
   // Close full screen with Escape key
   useEffect(() => {
@@ -465,11 +481,14 @@ function FullScreenPortal({
           setHasUserInteracted(true);
         }
         
+        // Get the actual playing state from the fullscreen player
+        const actuallyPlaying = getActualPlayerState();
+        
         // On mobile Safari, when not playing and after first interaction,
         // disable tap-to-play to let YouTube player be interactive
-        const shouldDisableClick = isMobileSafariDevice && !isPlaying && hasUserInteracted;
+        const shouldDisableClick = isMobileSafariDevice && !actuallyPlaying && hasUserInteracted;
         
-        if (!shouldDisableClick && !isPlaying) {
+        if (!shouldDisableClick && !actuallyPlaying) {
           const handlers = handlersRef.current;
           handlers.registerActivity();
           handlers.togglePlay();
@@ -540,7 +559,7 @@ function FullScreenPortal({
                 isLangMenuOpen: boolean;
               }) => React.ReactNode
             )({
-              controlsVisible: showControls || isLangMenuOpen || !isPlaying,
+              controlsVisible: showControls || isLangMenuOpen || !getActualPlayerState(),
               isLangMenuOpen,
             })
           : children}
@@ -551,7 +570,7 @@ function FullScreenPortal({
         data-toolbar
         className={cn(
           "w-full flex justify-center z-[10001] transition-opacity duration-200",
-          showControls || isLangMenuOpen || !isPlaying
+          showControls || isLangMenuOpen || !getActualPlayerState()
             ? "opacity-100 pointer-events-auto"
             : "opacity-0 pointer-events-none"
         )}
@@ -597,14 +616,16 @@ function FullScreenPortal({
                 e.stopPropagation();
                 registerActivity();
                 togglePlay();
-                showStatus(isPlaying ? "⏸" : "▶");
+                // Use actual player state for status message
+                const actuallyPlaying = getActualPlayerState();
+                showStatus(actuallyPlaying ? "⏸" : "▶");
               }}
               aria-label="Play/Pause"
               className="w-9 h-9 md:w-12 md:h-12 flex items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors focus:outline-none"
               title="Play/Pause"
             >
               <span className="text-[18px] md:text-[22px]">
-                {isPlaying ? "⏸" : "▶"}
+                {getActualPlayerState() ? "⏸" : "▶"}
               </span>
             </button>
 
