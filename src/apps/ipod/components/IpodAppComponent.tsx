@@ -2316,8 +2316,9 @@ export function IpodAppComponent({
                   <div
                     className="w-full relative"
                     style={{
-                      height: "calc(100% + clamp(120px, 25dvh, 240px))",
-                      marginTop: "calc(-1 * clamp(60px, 12dvh, 120px))",
+                      // Overscan the video vertically to crop out YouTube controls
+                      height: "calc(100% + clamp(200px, 30dvh, 360px))",
+                      transform: "translateY(-100px)",
                     }}
                   >
                     {tracks[currentIndex] && (
@@ -2367,8 +2368,8 @@ export function IpodAppComponent({
                             className="absolute bottom-0 inset-0 pointer-events-none z-20"
                             style={{
                               transform: controlsVisible
-                                ? "translateY(0)"
-                                : "translateY(clamp(2rem, 8dvh, 10rem))",
+                                ? "translateY(-3rem)"
+                                : "translateY(clamp(1rem, 4dvh, 5rem))",
                               transition: "transform 200ms ease",
                             }}
                           >
