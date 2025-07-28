@@ -545,7 +545,7 @@
   /* Concave/inset look: top/left darker, bottom/right lighter, plus soft inner shadow */
   box-shadow: inset 0 1px 2px var(--videos-lcd-border-dark),
     inset 0 -1px 2px var(--videos-lcd-border-light) !important; /* soft inner shadow */
-  text-shadow: 1.5px 1.5px 0 rgba(0, 0, 0, 0.2) !important;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.2) !important;
 }
 
 :root[data-os-theme="macosx"] .videos-lcd .font-geneva-12.text-\[10px\] {
