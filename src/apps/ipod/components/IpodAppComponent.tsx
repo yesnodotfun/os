@@ -411,6 +411,77 @@ function FullScreenPortal({
         )}
       >
         <div className="flex items-center gap-2 md:gap-3">
+          {/* Transport controls */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              registerActivity();
+              previousTrack();
+              setTimeout(() => {
+                const currentTrackIndex = useIpodStore.getState().currentIndex;
+                const currentTrack =
+                  useIpodStore.getState().tracks[currentTrackIndex];
+                if (currentTrack) {
+                  const artistInfo = currentTrack.artist
+                    ? ` - ${currentTrack.artist}`
+                    : "";
+                  showStatus(`⏮ ${currentTrack.title}${artistInfo}`);
+                }
+              }, 100);
+            }}
+            aria-label="Previous track"
+            className={cn(
+              "rounded-full backdrop-blur-sm bg-neutral-800/20 transition-all duration-200 focus:outline-none font-geneva-12 w-11 h-11 md:w-16 md:h-16 flex items-center justify-center text-white/40 hover:text-white hover:bg-neutral-900"
+            )}
+            title="Previous"
+          >
+            <span className="text-[18px] md:text-[24px]">⏮</span>
+          </button>
+
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              registerActivity();
+              togglePlay();
+              showStatus(isPlaying ? "❙ ❙" : "▶");
+            }}
+            aria-label="Play/Pause"
+            className={cn(
+              "rounded-full backdrop-blur-sm bg-neutral-800/20 transition-all duration-200 focus:outline-none font-geneva-12 w-11 h-11 md:w-16 md:h-16 flex items-center justify-center text-white/40 hover:text-white hover:bg-neutral-900"
+            )}
+            title="Play/Pause"
+          >
+            <span className="text-[18px] md:text-[24px]">
+              {isPlaying ? "❙ ❙" : "▶"}
+            </span>
+          </button>
+
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              registerActivity();
+              nextTrack();
+              setTimeout(() => {
+                const currentTrackIndex = useIpodStore.getState().currentIndex;
+                const currentTrack =
+                  useIpodStore.getState().tracks[currentTrackIndex];
+                if (currentTrack) {
+                  const artistInfo = currentTrack.artist
+                    ? ` - ${currentTrack.artist}`
+                    : "";
+                  showStatus(`⏭ ${currentTrack.title}${artistInfo}`);
+                }
+              }, 100);
+            }}
+            aria-label="Next track"
+            className={cn(
+              "rounded-full backdrop-blur-sm bg-neutral-800/20 transition-all duration-200 focus:outline-none font-geneva-12 w-11 h-11 md:w-16 md:h-16 flex items-center justify-center text-white/40 hover:text-white hover:bg-neutral-900"
+            )}
+            title="Next"
+          >
+            <span className="text-[18px] md:text-[24px]">⏭</span>
+          </button>
+
           {/* Hangul toggle */}
           <button
             onClick={(e) => {
@@ -2220,7 +2291,13 @@ export function IpodAppComponent({
               {/* The player and lyrics content */}
               <div className="relative w-full h-full overflow-hidden">
                 {/* The player and lyrics content */}
-                <div className="w-full h-[calc(100%+230px)] mt-[-120px] relative">
+                <div
+                  className="w-full relative"
+                  style={{
+                    height: "calc(100% + clamp(120px, 25dvh, 240px))",
+                    marginTop: "calc(-1 * clamp(60px, 12dvh, 120px))",
+                  }}
+                >
                   {tracks[currentIndex] && (
                     <>
                       <div
@@ -2313,7 +2390,7 @@ export function IpodAppComponent({
                             textSizeClass="text-[min(10vw,10vh)]"
                             gapClass="gap-4 md:gap-8"
                             interactive={isIOSSafari ? false : isPlaying}
-                            bottomPaddingClass="pb-48 md:pb-64"
+                            bottomPaddingClass="pb-[clamp(2rem,12dvh,8rem)]"
                           />
                         </div>
                       )}
