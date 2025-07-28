@@ -605,14 +605,30 @@ function FullScreenPortal({
                 e.stopPropagation();
                 registerActivity();
                 togglePlay();
-                showStatus(isPlaying ? "⏸" : "▶");
+                // Use actual player state for status message
+                const internalPlayer = fullScreenPlayerRef?.current?.getInternalPlayer?.();
+                let actuallyPlaying = false;
+                if (internalPlayer && typeof internalPlayer.getPlayerState === 'function') {
+                  const playerState = internalPlayer.getPlayerState();
+                  actuallyPlaying = playerState === 1;
+                }
+                showStatus(actuallyPlaying ? "⏸" : "▶");
               }}
               aria-label="Play/Pause"
               className="w-9 h-9 md:w-12 md:h-12 flex items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors focus:outline-none"
               title="Play/Pause"
             >
               <span className="text-[18px] md:text-[22px]">
-                {isPlaying ? "⏸" : "▶"}
+                {(() => {
+                  // Use actual player state for button display
+                  const internalPlayer = fullScreenPlayerRef?.current?.getInternalPlayer?.();
+                  let actuallyPlaying = false;
+                  if (internalPlayer && typeof internalPlayer.getPlayerState === 'function') {
+                    const playerState = internalPlayer.getPlayerState();
+                    actuallyPlaying = playerState === 1;
+                  }
+                  return actuallyPlaying ? "⏸" : "▶";
+                })()}
               </span>
             </button>
 
