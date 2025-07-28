@@ -591,7 +591,7 @@ function FullScreenPortal({
               </span>
             ) : (
               <span className="inline-flex items-center justify-center w-[28px] h-[28px] md:w-[34px] md:h-[34px] leading-none font-geneva-12 text-[18px] md:text-[24px]">
-                Aあ
+                Aa
               </span>
             )}
           </button>
