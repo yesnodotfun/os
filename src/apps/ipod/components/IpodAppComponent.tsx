@@ -154,6 +154,12 @@ function FullScreenPortal({
 
   // Stable event handlers using refs (no dependencies to avoid re-rendering)
   const handleTouchStart = useCallback((e: TouchEvent) => {
+    // Don't handle touches on toolbar elements
+    const target = e.target as HTMLElement;
+    if (target.closest('[data-toolbar]')) {
+      return;
+    }
+    
     // Track user interaction
     if (!hasUserInteracted) {
       setHasUserInteracted(true);
@@ -169,6 +175,13 @@ function FullScreenPortal({
 
   const handleTouchEnd = useCallback((e: TouchEvent) => {
     if (!touchStartRef.current) return;
+
+    // Don't handle touches on toolbar elements
+    const target = e.target as HTMLElement;
+    if (target.closest('[data-toolbar]')) {
+      touchStartRef.current = null;
+      return;
+    }
 
     // On mobile Safari, when not playing and after first interaction, 
     // disable gesture handling to let YouTube player be interactive
@@ -321,7 +334,12 @@ function FullScreenPortal({
 
   // Auto-hide controls after inactivity (desktop and mobile). Always visible when paused.
   useEffect(() => {
-    const handleActivity = () => {
+    const handleActivity = (e?: Event) => {
+      // Don't handle activity from toolbar elements
+      if (e && e.target && (e.target as HTMLElement).closest('[data-toolbar]')) {
+        return;
+      }
+      
       // Track user interaction
       if (!hasUserInteracted) {
         setHasUserInteracted(true);
@@ -435,7 +453,13 @@ function FullScreenPortal({
     <div
       ref={containerRef}
       className="ipod-force-font fixed inset-0 z-[9999] bg-black select-none flex flex-col"
-      onClick={() => {
+      onClick={(e) => {
+        // Don't handle clicks that originate from toolbar elements
+        const target = e.target as HTMLElement;
+        if (target.closest('[data-toolbar]')) {
+          return;
+        }
+        
         // Track user interaction
         if (!hasUserInteracted) {
           setHasUserInteracted(true);
@@ -524,6 +548,7 @@ function FullScreenPortal({
 
       {/* Inline toolbar below lyrics, centered */}
       <div
+        data-toolbar
         className={cn(
           "w-full flex justify-center z-[10001] transition-opacity duration-200",
           showControls || isLangMenuOpen || !isPlaying
@@ -533,6 +558,10 @@ function FullScreenPortal({
         style={{
           paddingBottom:
             "calc(max(env(safe-area-inset-bottom), 0.75rem) + clamp(1rem, 6dvh, 4rem))",
+        }}
+        onClick={(e) => {
+          // Ensure toolbar clicks don't bubble up to container
+          e.stopPropagation();
         }}
       >
         <div className="relative">
