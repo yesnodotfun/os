@@ -71,17 +71,7 @@ function FullScreenPortal({
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const hideControlsTimeoutRef = useRef<number | null>(null);
-  const isCoarsePointer = useMemo(() => {
-    try {
-      return (
-        typeof window !== "undefined" &&
-        window.matchMedia &&
-        window.matchMedia("(pointer: coarse)").matches
-      );
-    } catch {
-      return false;
-    }
-  }, []);
+  // Removed pointer coarse check; controls now autohide on all devices
 
   // Use refs to store the latest values, avoiding stale closures
   const handlersRef = useRef<{
@@ -300,14 +290,8 @@ function FullScreenPortal({
     };
   }, []); // Empty dependency array - handlers are stable
 
-  // Auto-hide top-right controls on desktop after inactivity
+  // Auto-hide top-right controls after inactivity (desktop and mobile). Tap/click anywhere to reveal.
   useEffect(() => {
-    // Always show on touch devices
-    if (isCoarsePointer) {
-      setShowControls(true);
-      return;
-    }
-
     const handleActivity = () => {
       handlersRef.current.registerActivity();
       setShowControls(true);
@@ -326,7 +310,10 @@ function FullScreenPortal({
 
     window.addEventListener("mousemove", handleActivity, { passive: true });
     window.addEventListener("keydown", handleActivity);
+    // Tap anywhere to reveal on touch devices
     window.addEventListener("touchstart", handleActivity, { passive: true });
+    // Fallback for non-touch clicks
+    window.addEventListener("click", handleActivity, { passive: true });
 
     // Prime the timer once on mount
     handleActivity();
@@ -335,12 +322,13 @@ function FullScreenPortal({
       window.removeEventListener("mousemove", handleActivity as any);
       window.removeEventListener("keydown", handleActivity as any);
       window.removeEventListener("touchstart", handleActivity as any);
+      window.removeEventListener("click", handleActivity as any);
       if (hideControlsTimeoutRef.current) {
         clearTimeout(hideControlsTimeoutRef.current);
         hideControlsTimeoutRef.current = null;
       }
     };
-  }, [isLangMenuOpen, isCoarsePointer]);
+  }, [isLangMenuOpen]);
 
   // Close full screen with Escape key
   useEffect(() => {
@@ -405,7 +393,7 @@ function FullScreenPortal({
       <div
         className={cn(
           "absolute top-6 right-6 md:top-24 md:right-14 z-[10001] transition-opacity duration-200",
-          showControls || isLangMenuOpen || isCoarsePointer
+          showControls || isLangMenuOpen
             ? "opacity-100 pointer-events-auto"
             : "opacity-0 pointer-events-none"
         )}
@@ -413,7 +401,8 @@ function FullScreenPortal({
           top: "calc(max(env(safe-area-inset-top),0.5rem) + clamp(0.25rem, 2dvh, 1.25rem))",
         }}
       >
-        <div className="flex items-center gap-2 md:gap-3">
+        {/* Platter container (merged buttons) */}
+        <div className="bg-neutral-800/35 border border-white/10 backdrop-blur-sm rounded-full shadow-lg flex items-center gap-1 md:gap-2 px-2 py-1">
           {/* Transport controls */}
           <button
             onClick={(e) => {
@@ -433,12 +422,10 @@ function FullScreenPortal({
               }, 100);
             }}
             aria-label="Previous track"
-            className={cn(
-              "rounded-full backdrop-blur-sm bg-neutral-800/20 transition-all duration-200 focus:outline-none font-geneva-12 w-11 h-11 md:w-16 md:h-16 flex items-center justify-center text-white/40 hover:text-white hover:bg-neutral-900"
-            )}
+            className="w-9 h-9 md:w-12 md:h-12 flex items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors focus:outline-none"
             title="Previous"
           >
-            <span className="text-[18px] md:text-[24px]">⏮</span>
+            <span className="text-[18px] md:text-[22px]">⏮</span>
           </button>
 
           <button
@@ -449,12 +436,10 @@ function FullScreenPortal({
               showStatus(isPlaying ? "⏸" : "▶");
             }}
             aria-label="Play/Pause"
-            className={cn(
-              "rounded-full backdrop-blur-sm bg-neutral-800/20 transition-all duration-200 focus:outline-none font-geneva-12 w-11 h-11 md:w-16 md:h-16 flex items-center justify-center text-white/40 hover:text-white hover:bg-neutral-900"
-            )}
+            className="w-9 h-9 md:w-12 md:h-12 flex items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors focus:outline-none"
             title="Play/Pause"
           >
-            <span className="text-[18px] md:text-[24px]">
+            <span className="text-[18px] md:text-[22px]">
               {isPlaying ? "⏸" : "▶"}
             </span>
           </button>
@@ -477,15 +462,11 @@ function FullScreenPortal({
               }, 100);
             }}
             aria-label="Next track"
-            className={cn(
-              "rounded-full backdrop-blur-sm bg-neutral-800/20 transition-all duration-200 focus:outline-none font-geneva-12 w-11 h-11 md:w-16 md:h-16 flex items-center justify-center text-white/40 hover:text-white hover:bg-neutral-900"
-            )}
+            className="w-9 h-9 md:w-12 md:h-12 flex items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors focus:outline-none"
             title="Next"
           >
-            <span className="text-[18px] md:text-[24px]">⏭</span>
+            <span className="text-[18px] md:text-[22px]">⏭</span>
           </button>
-
-          {/* Font toggle removed: always use rounded font in fullscreen */}
 
           {/* Layout button */}
           <button
@@ -495,9 +476,7 @@ function FullScreenPortal({
               onCycleAlignment();
             }}
             aria-label="Cycle lyric layout"
-            className={cn(
-              "rounded-full backdrop-blur-sm bg-neutral-800/20 p-2 transition-all duration-200 focus:outline-none w-11 h-11 md:w-16 md:h-16 flex items-center justify-center text-white/40 hover:text-white hover:bg-neutral-900"
-            )}
+            className="w-9 h-9 md:w-12 md:h-12 flex items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors focus:outline-none"
             title={currentAlignment}
           >
             {/* Icon varies by alignment */}
@@ -512,7 +491,7 @@ function FullScreenPortal({
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="md:w-[30px] md:h-[30px]"
+                className="md:w-[26px] md:h-[26px]"
               >
                 <line x1="6" y1="6" x2="18" y2="6" />
                 <line x1="4" y1="12" x2="20" y2="12" />
@@ -529,13 +508,11 @@ function FullScreenPortal({
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="md:w-[30px] md:h-[30px]"
+                className="md:w-[26px] md:h-[26px]"
               >
-                {/* Single centered line */}
                 <line x1="6" y1="12" x2="18" y2="12" />
               </svg>
             ) : (
-              // Alternating
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="22"
@@ -546,17 +523,15 @@ function FullScreenPortal({
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="md:w-[30px] md:h-[30px]"
+                className="md:w-[26px] md:h-[26px]"
               >
-                {/* Top line left aligned */}
                 <line x1="4" y1="8" x2="13" y2="8" />
-                {/* Bottom line right aligned */}
                 <line x1="11" y1="16" x2="20" y2="16" />
               </svg>
             )}
           </button>
 
-          {/* Hangul toggle (moved to immediately left of Translate) */}
+          {/* Hangul toggle */}
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -564,11 +539,9 @@ function FullScreenPortal({
               onToggleKoreanDisplay();
             }}
             aria-label="Toggle Hangul / Romanization"
-            className={cn(
-              "rounded-full backdrop-blur-sm bg-neutral-800/20 transition-all duration-200 focus:outline-none font-geneva-12 w-11 h-11 md:w-16 md:h-16 flex items-center justify-center text-white/40 hover:text-white hover:bg-neutral-900"
-            )}
+            className="w-9 h-9 md:w-12 md:h-12 flex items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors focus:outline-none font-geneva-12"
           >
-            <span className="text-[16px] md:text-[20px]">
+            <span className="text-[16px] md:text-[18px]">
               {currentKoreanDisplay === "romanized" ? "KO" : "한"}
             </span>
           </button>
@@ -581,16 +554,14 @@ function FullScreenPortal({
               registerActivity();
             }}
             aria-label="Translate lyrics"
-            className={cn(
-              "rounded-full backdrop-blur-sm bg-neutral-800/20 p-2 transition-all duration-200 focus:outline-none w-11 h-11 md:w-16 md:h-16 flex items-center justify-center text-white/40 hover:text-white hover:bg-neutral-900"
-            )}
+            className="w-9 h-9 md:w-12 md:h-12 flex items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors focus:outline-none font-geneva-12"
           >
             {translationBadge ? (
-              <span className="inline-flex items-center justify-center w-[28px] h-[28px] md:w-[34px] md:h-[34px] leading-none font-geneva-12 text-[18px] md:text-[24px]">
+              <span className="inline-flex items-center justify-center w-[24px] h-[24px] md:w-[28px] md:h-[28px] leading-none text-[16px] md:text-[18px]">
                 {translationBadge}
               </span>
             ) : (
-              <span className="inline-flex items-center justify-center w-[28px] h-[28px] md:w-[34px] md:h-[34px] leading-none font-geneva-12 text-[18px] md:text-[24px]">
+              <span className="inline-flex items-center justify-center w-[24px] h-[24px] md:w-[28px] md:h-[28px] leading-none text-[16px] md:text-[18px]">
                 Aa
               </span>
             )}
@@ -599,14 +570,15 @@ function FullScreenPortal({
           {/* Close */}
           <button
             onClick={onClose}
-            className="rounded-full backdrop-blur-sm bg-neutral-800/20 p-2 transition-all duration-200 text-white/40 hover:text-white hover:bg-neutral-900 focus:outline-none w-11 h-11 md:w-16 md:h-16 flex items-center justify-center"
+            className="w-9 h-9 md:w-12 md:h-12 flex items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors focus:outline-none"
             aria-label="Close fullscreen"
+            title="Close"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              width="26"
-              height="26"
-              className="md:w-[32px] md:h-[32px]"
+              width="22"
+              height="22"
+              className="md:w-[26px] md:h-[26px]"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -2314,13 +2286,7 @@ export function IpodAppComponent({
                 >
                   {tracks[currentIndex] && (
                     <>
-                      <div
-                        className={`w-full h-full ${
-                          isPlaying && !isIOSSafari
-                            ? "pointer-events-none"
-                            : "pointer-events-auto"
-                        }`}
-                      >
+                      <div className={`w-full h-full pointer-events-none`}>
                         <ReactPlayer
                           ref={fullScreenPlayerRef}
                           url={tracks[currentIndex].url}
