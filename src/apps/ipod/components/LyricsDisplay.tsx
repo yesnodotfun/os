@@ -115,7 +115,7 @@ const getVariants = (
   initial: {
     opacity: 0,
     scale: 0.8,
-    filter: "blur(3px)",
+    filter: "none",
     y: 10,
     textShadow:
       "0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 0px rgba(255,255,255,0)",
@@ -135,9 +135,7 @@ const getVariants = (
       : isCurrent || position === 1 || position === -1
       ? 1
       : 0.9,
-    filter: isAlternating
-      ? "blur(0px)"
-      : `blur(${isCurrent || position === 1 || position === -1 ? 0 : 3}px)`,
+    filter: "none",
     y: 0,
     textShadow: isCurrent
       ? "0 0 8px rgba(255,255,255,0.9), 0 0 2px black, 0 0 2px black, 0 0 2px black"
@@ -146,7 +144,7 @@ const getVariants = (
   exit: {
     opacity: 0,
     scale: 0.9,
-    filter: "blur(5px)",
+    filter: "none",
     y: -10,
     textShadow:
       "0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 0px rgba(255,255,255,0)",
