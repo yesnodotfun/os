@@ -31,6 +31,20 @@ export function isTouchDevice(): boolean {
 }
 
 /**
+ * Check if the current device is mobile Safari
+ */
+export function isMobileSafari(): boolean {
+  if (typeof navigator === "undefined") return false;
+  
+  const userAgent = navigator.userAgent;
+  return (
+    /Safari/.test(userAgent) &&
+    /Mobile|iP(hone|ad|od)/.test(userAgent) &&
+    !/CriOS|FxiOS|EdgiOS/.test(userAgent)
+  );
+}
+
+/**
  * Check if the device is a tablet (larger mobile device)
  */
 export function isTabletDevice(): boolean {

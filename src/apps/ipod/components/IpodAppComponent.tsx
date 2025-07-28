@@ -26,6 +26,7 @@ import { useLyrics } from "@/hooks/useLyrics";
 import { useLibraryUpdateChecker } from "../hooks/useLibraryUpdateChecker";
 import { useThemeStore } from "@/stores/useThemeStore";
 import { LyricsAlignment, KoreanDisplay } from "@/types/lyrics";
+import { isMobileSafari } from "@/utils/device";
 // Globe icon removed; using text label "Aあ" for translate
 
 // Add this component definition before the IpodAppComponent
@@ -77,6 +78,12 @@ function FullScreenPortal({
   const [showControls, setShowControls] = useState(true);
   const hideControlsTimeoutRef = useRef<number | null>(null);
   // Removed pointer coarse check; controls now autohide on all devices
+  
+  // Track if user has interacted to enable gesture handling after first interaction
+  const [hasUserInteracted, setHasUserInteracted] = useState(false);
+  
+  // Detect mobile Safari for gesture control
+  const isMobileSafariDevice = useMemo(() => isMobileSafari(), []);
 
   // Use refs to store the latest values, avoiding stale closures
   const handlersRef = useRef<{
@@ -144,16 +151,30 @@ function FullScreenPortal({
 
   // Stable event handlers using refs (no dependencies to avoid re-rendering)
   const handleTouchStart = useCallback((e: TouchEvent) => {
+    // Track user interaction
+    if (!hasUserInteracted) {
+      setHasUserInteracted(true);
+    }
+    
     const touch = e.touches[0];
     touchStartRef.current = {
       x: touch.clientX,
       y: touch.clientY,
       time: Date.now(),
     };
-  }, []);
+  }, [hasUserInteracted]);
 
   const handleTouchEnd = useCallback((e: TouchEvent) => {
     if (!touchStartRef.current) return;
+
+    // On mobile Safari, when not playing and after first interaction, 
+    // disable gesture handling to let YouTube player be interactive
+    const shouldDisableGestures = isMobileSafariDevice && !isPlaying && hasUserInteracted;
+    
+    if (shouldDisableGestures) {
+      touchStartRef.current = null;
+      return;
+    }
 
     const touch = e.changedTouches[0];
     const deltaX = touch.clientX - touchStartRef.current.x;
@@ -217,7 +238,7 @@ function FullScreenPortal({
     }
 
     touchStartRef.current = null;
-  }, []);
+  }, [isMobileSafariDevice, isPlaying, hasUserInteracted]);
 
   // Effect to request fullscreen when component mounts
   useEffect(() => {
@@ -297,8 +318,20 @@ function FullScreenPortal({
 
   // Auto-hide controls after inactivity (desktop and mobile). Always visible when paused.
   useEffect(() => {
-    const handleActivity = () => {
-      handlersRef.current.registerActivity();
+    const handleActivity = (e?: Event) => {
+      // Track user interaction
+      if (!hasUserInteracted) {
+        setHasUserInteracted(true);
+      }
+      
+      // On mobile Safari, when not playing and after first interaction,
+      // don't register activity to avoid interfering with YouTube player
+      const shouldSkipActivity = isMobileSafariDevice && !isPlaying && hasUserInteracted;
+      
+      if (!shouldSkipActivity) {
+        handlersRef.current.registerActivity();
+      }
+      
       setShowControls(true);
       if (hideControlsTimeoutRef.current) {
         clearTimeout(hideControlsTimeoutRef.current);
@@ -338,7 +371,7 @@ function FullScreenPortal({
         hideControlsTimeoutRef.current = null;
       }
     };
-  }, [isLangMenuOpen, isPlaying]);
+  }, [isLangMenuOpen, isPlaying, hasUserInteracted, isMobileSafariDevice]);
 
   // Close full screen with Escape key
   useEffect(() => {
@@ -400,8 +433,16 @@ function FullScreenPortal({
       ref={containerRef}
       className="ipod-force-font fixed inset-0 z-[9999] bg-black select-none flex flex-col"
       onClick={() => {
-        // When paused, tap anywhere to play
-        if (!isPlaying) {
+        // Track user interaction
+        if (!hasUserInteracted) {
+          setHasUserInteracted(true);
+        }
+        
+        // On mobile Safari, when not playing and after first interaction,
+        // disable tap-to-play to let YouTube player be interactive
+        const shouldDisableClick = isMobileSafariDevice && !isPlaying && hasUserInteracted;
+        
+        if (!shouldDisableClick && !isPlaying) {
           const handlers = handlersRef.current;
           handlers.registerActivity();
           handlers.togglePlay();
