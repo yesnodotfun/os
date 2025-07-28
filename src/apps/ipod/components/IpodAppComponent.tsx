@@ -47,8 +47,6 @@ interface FullScreenPortalProps {
   onCycleAlignment: () => void;
   currentKoreanDisplay: import("@/types/lyrics").KoreanDisplay;
   onToggleKoreanDisplay: () => void;
-  roundedLyricsFont: boolean;
-  onToggleRoundedLyricsFont: () => void;
 }
 
 function FullScreenPortal({
@@ -68,8 +66,6 @@ function FullScreenPortal({
   onCycleAlignment,
   currentKoreanDisplay,
   onToggleKoreanDisplay,
-  roundedLyricsFont,
-  onToggleRoundedLyricsFont,
 }: FullScreenPortalProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
@@ -414,7 +410,7 @@ function FullScreenPortal({
             : "opacity-0 pointer-events-none"
         )}
         style={{
-          top: "calc(max(env(safe-area-inset-top),0.75rem) + clamp(1rem, 6dvh, 3.5rem))",
+          top: "calc(max(env(safe-area-inset-top),0.5rem) + clamp(0.25rem, 2dvh, 1.25rem))",
         }}
       >
         <div className="flex items-center gap-2 md:gap-3">
@@ -489,22 +485,7 @@ function FullScreenPortal({
             <span className="text-[18px] md:text-[24px]">⏭</span>
           </button>
 
-          {/* Font toggle (rounded/Geneva) - placed to the left of Hangul */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              registerActivity();
-              onToggleRoundedLyricsFont();
-              showStatus(roundedLyricsFont ? "Font: Geneva" : "Font: Rounded");
-            }}
-            aria-label="Toggle lyrics font"
-            className={cn(
-              "rounded-full backdrop-blur-sm bg-neutral-800/20 transition-all duration-200 focus:outline-none font-geneva-12 w-11 h-11 md:w-16 md:h-16 flex items-center justify-center text-white/40 hover:text-white hover:bg-neutral-900"
-            )}
-            title="Toggle lyrics font"
-          >
-            <span className="text-[16px] md:text-[20px]">Aa</span>
-          </button>
+          {/* Font toggle removed: always use rounded font in fullscreen */}
 
           {/* Layout button */}
           <button
@@ -694,7 +675,7 @@ function FullScreenPortal({
             <div
               className="absolute md:top-24 md:left-24 top-8 left-8 pointer-events-none"
               style={{
-                top: "calc(max(env(safe-area-inset-top),0.75rem) + clamp(1rem, 6dvh, 3.5rem))",
+                top: "calc(max(env(safe-area-inset-top),0.5rem) + clamp(0.25rem, 2dvh, 1.25rem))",
               }}
             >
               <div className="relative">
@@ -832,8 +813,7 @@ export function IpodAppComponent({
   const [isAddingTrack, setIsAddingTrack] = useState(false);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
 
-  // Fullscreen lyrics font toggle (Geneva <-> Rounded stack)
-  const [roundedLyricsFont, setRoundedLyricsFont] = useState(false);
+  // Always use rounded lyrics font in fullscreen
 
   const initialMenuMode = useMemo(() => {
     const storeState = useIpodStore.getState();
@@ -2318,8 +2298,6 @@ export function IpodAppComponent({
             onCycleAlignment={cycleAlignment}
             currentKoreanDisplay={koreanDisplay}
             onToggleKoreanDisplay={toggleKorean}
-            roundedLyricsFont={roundedLyricsFont}
-            onToggleRoundedLyricsFont={() => setRoundedLyricsFont((v) => !v)}
           >
             <div className="flex flex-col w-full h-full">
               {/* The player and lyrics content */}
@@ -2393,11 +2371,7 @@ export function IpodAppComponent({
                             alignment={lyricsAlignment}
                             chineseVariant={chineseVariant}
                             koreanDisplay={koreanDisplay}
-                            fontClassName={
-                              roundedLyricsFont
-                                ? "font-lyrics-rounded"
-                                : undefined
-                            }
+                            fontClassName={"font-lyrics-rounded"}
                             onAdjustOffset={(delta) => {
                               // Update store with the adjusted offset
                               useIpodStore
@@ -2429,7 +2403,7 @@ export function IpodAppComponent({
                             textSizeClass="text-[min(10vw,10vh)]"
                             gapClass="gap-4 md:gap-8"
                             interactive={isIOSSafari ? false : isPlaying}
-                            bottomPaddingClass="pb-[calc(max(env(safe-area-inset-bottom),1.5rem)+clamp(3.5rem,14dvh,10rem))]"
+                            bottomPaddingClass="pb-[calc(max(env(safe-area-inset-bottom),1.5rem)+clamp(5rem,16dvh,12rem))]"
                           />
                         </div>
                       )}
@@ -2437,13 +2411,11 @@ export function IpodAppComponent({
                       {/* Show translating state even when lyrics overlay is hidden */}
                       {fullScreenLyricsControls.isTranslating &&
                         !showLyrics && (
-                          <div className="absolute inset-0 pointer-events-none z-20 flex items-end justify-center pb-[calc(max(env(safe-area-inset-bottom),1.5rem)+clamp(3.5rem,14dvh,10rem))]">
+                          <div className="absolute inset-0 pointer-events-none z-20 flex items-end justify-center pb-[calc(max(env(safe-area-inset-bottom),1.5rem)+clamp(5rem,16dvh,12rem))]">
                             <div
                               className={cn(
                                 "shimmer opacity-60 text-[min(10vw,10vh)]",
-                                roundedLyricsFont
-                                  ? "font-lyrics-rounded"
-                                  : "font-geneva-12"
+                                "font-lyrics-rounded"
                               )}
                             >
                               Translating lyrics…
