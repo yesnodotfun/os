@@ -435,6 +435,15 @@ button.piano-key.piano-key[class*="bg-[#ff33ff]"] {
     font-smooth: always;
   }
 
+  /* Rounded lyrics font utility */
+  .font-lyrics-rounded {
+    font-family: "SF Pro Rounded", "Arial Rounded MT Bold",
+      "Hiragino Maru Gothic ProN", "Yuanti SC", "Nanum Gothic", sans-serif;
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    font-smooth: always;
+  }
+
   .font-monaco,
   .font-monaco-9 {
     font-family: "Monaco", "ArkPixel", "SerenityOS-Emoji", monospace;

@@ -39,6 +39,8 @@ interface LyricsDisplayProps {
   bottomPaddingClass?: string;
   /** Optional tailwind class for spacing between lyric items */
   gapClass?: string;
+  /** Optional font class to apply to lyric lines; defaults to Geneva */
+  fontClassName?: string;
 }
 
 const ANIMATION_CONFIG = {
@@ -53,25 +55,55 @@ const ANIMATION_CONFIG = {
   },
 } as const;
 
-const LoadingState = () => (
-  <div className="absolute inset-x-0 pb-5 top-0 left-0 right-0 bottom-0 pointer-events-none flex items-end justify-center z-40">
-    <div className="text-[12px] font-geneva-12 shimmer opacity-60">
+const LoadingState = ({
+  bottomPaddingClass = "pb-5",
+  textSizeClass = "text-[12px]",
+  fontClassName = "font-geneva-12",
+}: {
+  bottomPaddingClass?: string;
+  textSizeClass?: string;
+  fontClassName?: string;
+}) => (
+  <div
+    className={`absolute inset-x-0 top-0 left-0 right-0 bottom-0 pointer-events-none flex items-end justify-center z-40 ${bottomPaddingClass}`}
+  >
+    <div className={`${textSizeClass} ${fontClassName} shimmer opacity-60`}>
       Loading lyrics…
     </div>
   </div>
 );
 
-const TranslatingState = () => (
-  <div className="absolute inset-x-0 pb-5 top-0 left-0 right-0 bottom-0 pointer-events-none flex items-end justify-center z-40">
-    <div className="text-[12px] font-geneva-12 shimmer opacity-60">
+const TranslatingState = ({
+  bottomPaddingClass = "pb-5",
+  textSizeClass = "text-[12px]",
+  fontClassName = "font-geneva-12",
+}: {
+  bottomPaddingClass?: string;
+  textSizeClass?: string;
+  fontClassName?: string;
+}) => (
+  <div
+    className={`absolute inset-x-0 top-0 left-0 right-0 bottom-0 pointer-events-none flex items-end justify-center z-40 ${bottomPaddingClass}`}
+  >
+    <div className={`${textSizeClass} ${fontClassName} shimmer opacity-60`}>
       Translating lyrics…
     </div>
   </div>
 );
 
-const ErrorState = () => (
-  <div className="absolute inset-x-0 pb-5 top-0 left-0 right-0 bottom-0 pointer-events-none flex items-end justify-center z-40">
-    <div className="text-white/70 text-[12px] font-geneva-12"></div>
+const ErrorState = ({
+  bottomPaddingClass = "pb-5",
+  textSizeClass = "text-[12px]",
+  fontClassName = "font-geneva-12",
+}: {
+  bottomPaddingClass?: string;
+  textSizeClass?: string;
+  fontClassName?: string;
+}) => (
+  <div
+    className={`absolute inset-x-0 top-0 left-0 right-0 bottom-0 pointer-events-none flex items-end justify-center z-40 ${bottomPaddingClass}`}
+  >
+    <div className={`text-white/70 ${textSizeClass} ${fontClassName}`}></div>
   </div>
 );
 
@@ -138,6 +170,7 @@ export function LyricsDisplay({
   interactive = true,
   bottomPaddingClass = "pb-5",
   gapClass = "gap-2",
+  fontClassName = "font-geneva-12",
 }: LyricsDisplayProps) {
   const chineseConverter = useMemo(
     () => Converter({ from: "cn", to: "tw" }),
@@ -298,10 +331,38 @@ export function LyricsDisplay({
   };
 
   if (!visible) return null;
-  if (isLoading) return <LoadingState />;
-  if (isTranslating) return <TranslatingState />;
-  if (error) return <ErrorState />;
-  if (!lines.length && !isLoading && !isTranslating) return <ErrorState />;
+  if (isLoading)
+    return (
+      <LoadingState
+        bottomPaddingClass={bottomPaddingClass}
+        textSizeClass={textSizeClass}
+        fontClassName={fontClassName}
+      />
+    );
+  if (isTranslating)
+    return (
+      <TranslatingState
+        bottomPaddingClass={bottomPaddingClass}
+        textSizeClass={textSizeClass}
+        fontClassName={fontClassName}
+      />
+    );
+  if (error)
+    return (
+      <ErrorState
+        bottomPaddingClass={bottomPaddingClass}
+        textSizeClass={textSizeClass}
+        fontClassName={fontClassName}
+      />
+    );
+  if (!lines.length && !isLoading && !isTranslating)
+    return (
+      <ErrorState
+        bottomPaddingClass={bottomPaddingClass}
+        textSizeClass={textSizeClass}
+        fontClassName={fontClassName}
+      />
+    );
 
   return (
     <motion.div
@@ -353,7 +414,7 @@ export function LyricsDisplay({
               exit="exit"
               variants={variants}
               transition={dynamicTransition}
-              className={`px-2 md:px-6 ${textSizeClass} font-geneva-12 ${lineHeightClass} whitespace-pre-wrap break-words max-w-full text-white`}
+              className={`px-2 md:px-6 ${textSizeClass} ${fontClassName} ${lineHeightClass} whitespace-pre-wrap break-words max-w-full text-white`}
               style={{
                 textAlign: lineTextAlign as CanvasTextAlign,
                 width: "100%",
