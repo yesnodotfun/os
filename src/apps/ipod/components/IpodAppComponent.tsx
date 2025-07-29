@@ -99,6 +99,21 @@ function FullScreenPortal({
     return false;
   }, [fullScreenPlayerRef]);
 
+  // Helper function to restart the auto-hide timer
+  const restartAutoHideTimer = useCallback(() => {
+    setShowControls(true);
+    if (hideControlsTimeoutRef.current) {
+      clearTimeout(hideControlsTimeoutRef.current);
+    }
+    // Only start hide timer when playing and menu is closed
+    const actuallyPlaying = getActualPlayerState();
+    if (actuallyPlaying && !isLangMenuOpen) {
+      hideControlsTimeoutRef.current = window.setTimeout(() => {
+        setShowControls(false);
+      }, 2000);
+    }
+  }, [getActualPlayerState, isLangMenuOpen]);
+
   // Use refs to store the latest values, avoiding stale closures
   const handlersRef = useRef<{
     onClose: () => void;
@@ -345,7 +360,7 @@ function FullScreenPortal({
 
   // Auto-hide controls after inactivity (desktop and mobile). Always visible when paused.
   useEffect(() => {
-    const handleActivity = (e?: Event) => {
+    const handleActivity = () => {
       // Track user interaction
       if (!hasUserInteracted) {
         setHasUserInteracted(true);
@@ -1003,21 +1018,6 @@ export function IpodAppComponent({
       toggleBacklight();
     }
   }, [toggleBacklight]);
-
-  // Helper function to restart the auto-hide timer
-  const restartAutoHideTimer = useCallback(() => {
-    setShowControls(true);
-    if (hideControlsTimeoutRef.current) {
-      clearTimeout(hideControlsTimeoutRef.current);
-    }
-    // Only start hide timer when playing and menu is closed
-    const actuallyPlaying = getActualPlayerState();
-    if (actuallyPlaying && !isLangMenuOpen) {
-      hideControlsTimeoutRef.current = window.setTimeout(() => {
-        setShowControls(false);
-      }, 2000);
-    }
-  }, [getActualPlayerState, isLangMenuOpen]);
 
   const memoizedToggleShuffle = useCallback(() => {
     toggleShuffle();
