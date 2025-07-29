@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/tooltip";
 import { LinkPreview } from "@/components/shared/LinkPreview";
 import { useThemeStore } from "@/stores/useThemeStore";
+import EmojiAquarium from "@/components/shared/EmojiAquarium";
 
 // --- Color Hashing for Usernames ---
 const userColors = [
@@ -570,6 +571,17 @@ function ChatMessagesContent({
           : message.content;
         const displayContent = decodeHtmlEntities(rawContent);
 
+        // Detect aquarium tool calls for this assistant message
+        const aquariumParts =
+          message.role === "assistant"
+            ? (message.parts || []).filter(
+                (p) =>
+                  p.type === "tool-invocation" &&
+                  (p as any).toolInvocation?.toolName === "aquarium"
+              )
+            : [];
+        const hasAquarium = aquariumParts.length > 0;
+
         const combinedHighlightSeg = highlightSegment || localHighlightSegment;
         const combinedIsSpeaking = isSpeaking || localTtsSpeaking;
 
@@ -901,7 +913,7 @@ function ChatMessagesContent({
               )}
             </motion.div>
 
-            {/* Only show message bubble if it's not a URL-only message */}
+            {/* Show the standard message bubble if it's not URL-only (even if aquarium exists) */}
             {!isUrlOnly(displayContent) && (
               <motion.div
                 layout="position"
@@ -1102,6 +1114,12 @@ function ChatMessagesContent({
                           );
                         }
                         case "tool-invocation": {
+                          const ti = (part as ToolInvocationPart)
+                            .toolInvocation;
+                          if (ti?.toolName === "aquarium") {
+                            // Render aquarium below the bubble separately; skip here to avoid duplicate text
+                            return null;
+                          }
                           return (
                             <ToolInvocationMessage
                               key={partKey}
@@ -1233,6 +1251,9 @@ function ChatMessagesContent({
                 )}
               </motion.div>
             )}
+
+            {/* Render aquarium tool(s) as their own element; component styles itself as a chat bubble */}
+            {hasAquarium && <EmojiAquarium />}
 
             {/* Link Previews - Only for non-assistant messages */}
             {message.role !== "assistant" &&
