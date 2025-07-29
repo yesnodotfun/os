@@ -913,6 +913,9 @@ function ChatMessagesContent({
               )}
             </motion.div>
 
+            {/* Render aquarium tool(s) as their own element; component styles itself as a chat bubble */}
+            {hasAquarium && <EmojiAquarium />}
+
             {/* Show the standard message bubble if it's not URL-only (even if aquarium exists) */}
             {!isUrlOnly(displayContent) && (
               <motion.div
@@ -1251,9 +1254,6 @@ function ChatMessagesContent({
                 )}
               </motion.div>
             )}
-
-            {/* Render aquarium tool(s) as their own element; component styles itself as a chat bubble */}
-            {hasAquarium && <EmojiAquarium />}
 
             {/* Link Previews - Only for non-assistant messages */}
             {message.role !== "assistant" &&

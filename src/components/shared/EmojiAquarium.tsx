@@ -72,7 +72,7 @@ export function EmojiAquarium({ seed, className }: EmojiAquariumProps) {
 
   const smallFishes = ["🐟", "🐠", "🐡"];
   const largeFishes = ["🦈", "🐬"];
-  const decor = ["🪸", "⚓️", "🏺", "🪨", "🌿", "🗿", "🐚"];
+  const decor = ["🪸", "⚓️", "🦀", "🪨", "🌿", "🗿", "🐚"];
 
   const bubbles = "🫧"; // falls back to monochrome when unsupported
 
@@ -80,7 +80,7 @@ export function EmojiAquarium({ seed, className }: EmojiAquariumProps) {
     <MotionConfig reducedMotion="never">
       <div
         className={cn(
-          "chat-bubble bg-blue-300 text-black !p-0 mt-1 w-full max-w-[420px]",
+          "chat-bubble bg-blue-300 text-black !p-0 mb-2 w-full max-w-[420px]",
           className
         )}
       >
@@ -276,7 +276,7 @@ export function EmojiAquarium({ seed, className }: EmojiAquariumProps) {
             const x = 8 + rand() * (width - 16);
             const delay = 0.2 + i * 0.07 + rand() * 0.2;
             const rot = (rand() - 0.5) * 10;
-            const size = 22 + rand() * 8;
+            const size = 18 + rand() * 8;
             const bottomOffset = 12 + rand() * 4; // place items a few px from bottom edge
             const yPos = Math.max(0, height - size - bottomOffset);
             return (
