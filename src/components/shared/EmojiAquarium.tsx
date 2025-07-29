@@ -144,7 +144,7 @@ export function EmojiAquarium({ seed, className }: EmojiAquariumProps) {
             const emoji = largeFishes[Math.floor(rand() * largeFishes.length)];
             const dirRight = rand() > 0.5;
             const sizePx = 40;
-            const safeZone = height - sandHeight - sizePx - 20;
+            const safeZone = height - sandHeight - 20;
             const y = 20 + rand() * Math.max(40, safeZone);
             const duration = 18 + rand() * 18;
             const delay = rand() * 4;
