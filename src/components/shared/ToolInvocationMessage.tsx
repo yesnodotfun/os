@@ -1,6 +1,5 @@
 import { Loader2, Check } from "lucide-react";
 import HtmlPreview from "@/components/shared/HtmlPreview";
-import { useThemeStore } from "@/stores/useThemeStore";
 
 export interface ToolInvocation {
   state: "partial-call" | "call" | "result";

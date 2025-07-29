@@ -60,6 +60,8 @@ export function EmojiAquarium({ seed, className }: EmojiAquariumProps) {
   const aspect = 236 / 420; // ~16:9
   const width = containerWidth;
   const height = Math.max(120, Math.round(containerWidth * aspect));
+  // Scale sand height with container for a larger, responsive base
+  const sandHeight = Math.max(24, Math.round(height * 0.22));
 
   const { fishCount, jellyCount, bubbleCount, floorCount } = useMemo(() => {
     return { fishCount: 7, jellyCount: 2, bubbleCount: 18, floorCount: 9 };
@@ -87,7 +89,7 @@ export function EmojiAquarium({ seed, className }: EmojiAquariumProps) {
           {Array.from({ length: fishCount }).map((_, i) => {
             const emoji = fishes[Math.floor(rand() * fishes.length)];
             const dirRight = rand() > 0.5;
-            const scale = 0.9 + rand() * 0.6;
+            const scale = 1.1 + rand() * 0.7;
             const y = 20 + rand() * (height - 80);
             const duration = 14 + rand() * 16;
             const delay = rand() * 4;
@@ -118,7 +120,7 @@ export function EmojiAquarium({ seed, className }: EmojiAquariumProps) {
                   },
                 }}
                 style={{ position: "absolute", willChange: "transform" }}
-                className="text-[20px] select-none"
+                className="text-[28px] select-none"
               >
                 {emoji}
               </motion.span>
@@ -131,11 +133,13 @@ export function EmojiAquarium({ seed, className }: EmojiAquariumProps) {
             const startY = 20 + rand() * (height * 0.45);
             const float = 18 + rand() * 10;
             const delay = rand() * 3;
+            const xDrift = 14 + rand() * 24;
             return (
               <motion.span
                 key={`jelly-${i}`}
                 initial={{ x, y: startY }}
                 animate={{
+                  x: [x - xDrift, x + xDrift, x - xDrift],
                   y: [startY, startY + 18, startY],
                   opacity: [0.85, 1, 0.85],
                 }}
@@ -144,12 +148,19 @@ export function EmojiAquarium({ seed, className }: EmojiAquariumProps) {
                   repeat: Infinity,
                   delay,
                   ease: "easeInOut",
+                  x: {
+                    duration: float * 1.4,
+                    repeat: Infinity,
+                    repeatType: "mirror",
+                    ease: "easeInOut",
+                    delay,
+                  },
                 }}
                 style={{
                   position: "absolute",
                   willChange: "transform, opacity",
                 }}
-                className="text-[22px] select-none"
+                className="text-[28px] select-none"
               >
                 {"🪼"}
               </motion.span>
@@ -183,7 +194,7 @@ export function EmojiAquarium({ seed, className }: EmojiAquariumProps) {
                   position: "absolute",
                   willChange: "transform, opacity",
                 }}
-                className="text-[16px] select-none"
+                className="text-[20px] select-none"
               >
                 {bubbles}
               </motion.span>
@@ -191,7 +202,10 @@ export function EmojiAquarium({ seed, className }: EmojiAquariumProps) {
           })}
 
           {/* sand base */}
-          <div className="absolute left-0 right-0 bottom-0 h-8 bg-gradient-to-t from-yellow-200/80 to-transparent" />
+          <div
+            className="absolute left-0 right-0 bottom-0 bg-gradient-to-t from-yellow-200/90 via-yellow-100/50 to-transparent"
+            style={{ height: sandHeight }}
+          />
 
           {/* floor decorations */}
           {Array.from({ length: floorCount }).map((_, i) => {
@@ -199,12 +213,14 @@ export function EmojiAquarium({ seed, className }: EmojiAquariumProps) {
             const x = 8 + rand() * (width - 16);
             const delay = 0.2 + i * 0.07 + rand() * 0.2;
             const rot = (rand() - 0.5) * 10;
-            const size = 18 + rand() * 6;
+            const size = 22 + rand() * 8;
+            const bottomOffset = 12 + rand() * 4; // place items a few px from bottom edge
+            const yPos = Math.max(0, height - size - bottomOffset);
             return (
               <motion.span
                 key={`floor-${i}`}
                 initial={{ x, y: -20, opacity: 0, rotate: rot }}
-                animate={{ x, y: height - 22, opacity: 1, rotate: rot }}
+                animate={{ x, y: yPos, opacity: 1, rotate: rot }}
                 transition={{
                   type: "spring",
                   stiffness: 380,
