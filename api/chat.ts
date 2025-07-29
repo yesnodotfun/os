@@ -918,6 +918,12 @@ export default async function handler(req: Request) {
               ),
           }),
         },
+        // --- Emoji Aquarium ---
+        aquarium: {
+          description:
+            "Render a playful emoji aquarium inside the chat bubble. Use when the user asks for an aquarium / fish tank / fishes / sam's aquarium.",
+          parameters: z.object({}),
+        },
       },
       temperature: 0.7,
       maxTokens: 6000,

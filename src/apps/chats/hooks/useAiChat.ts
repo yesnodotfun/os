@@ -374,6 +374,10 @@ export function useAiChat(onPromptSetUsername?: () => void) {
 
       try {
         switch (toolCall.toolName) {
+          case "aquarium": {
+            // Visual renders in the message bubble; nothing to do here.
+            return "Aquarium ready";
+          }
           case "switchTheme": {
             const { theme } = toolCall.args as { theme?: OsThemeId };
             if (!theme) {

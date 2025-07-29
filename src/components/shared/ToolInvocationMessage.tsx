@@ -1,5 +1,6 @@
 import { Loader2, Check } from "lucide-react";
 import HtmlPreview from "@/components/shared/HtmlPreview";
+import EmojiAquarium from "./EmojiAquarium";
 
 export interface ToolInvocation {
   state: "partial-call" | "call" | "result";
@@ -102,6 +103,28 @@ export function ToolInvocationMessage({
         className="my-1"
       />
     );
+  }
+
+  // Special handling for aquarium – render the animated aquarium inside the bubble
+  if (toolName === "aquarium") {
+    if (state === "partial-call") {
+      return (
+        <div key={partKey} className="mb-0">
+          <div className="mb-0 px-1 py-0.5 text-xs italic text-gray-600 flex items-center gap-1">
+            <Loader2 className="h-3 w-3 animate-spin text-gray-500" />
+            <span className="shimmer">Preparing aquarium…</span>
+          </div>
+        </div>
+      );
+    }
+
+    if (state === "call" || state === "result") {
+      return (
+        <div key={partKey} className="my-1">
+          <EmojiAquarium />
+        </div>
+      );
+    }
   }
 
   if (toolName === "generateHtml") {
