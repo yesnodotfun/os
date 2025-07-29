@@ -251,7 +251,6 @@ export function EmojiAquarium({ seed, className }: EmojiAquariumProps) {
                   duration: dur,
                   ease: "easeOut",
                   repeat: Infinity,
-                  repeatType: "restart",
                   delay,
                 }}
                 style={{
