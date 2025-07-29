@@ -99,6 +99,21 @@ function FullScreenPortal({
     return false;
   }, [fullScreenPlayerRef]);
 
+  // Helper function to restart the auto-hide timer
+  const restartAutoHideTimer = useCallback(() => {
+    setShowControls(true);
+    if (hideControlsTimeoutRef.current) {
+      clearTimeout(hideControlsTimeoutRef.current);
+    }
+    // Only start hide timer when playing and menu is closed
+    const actuallyPlaying = getActualPlayerState();
+    if (actuallyPlaying && !isLangMenuOpen) {
+      hideControlsTimeoutRef.current = window.setTimeout(() => {
+        setShowControls(false);
+      }, 2000);
+    }
+  }, [getActualPlayerState, isLangMenuOpen]);
+
   // Use refs to store the latest values, avoiding stale closures
   const handlersRef = useRef<{
     onClose: () => void;
@@ -345,12 +360,7 @@ function FullScreenPortal({
 
   // Auto-hide controls after inactivity (desktop and mobile). Always visible when paused.
   useEffect(() => {
-    const handleActivity = (e?: Event) => {
-      // Don't handle activity from toolbar elements
-      if (e && e.target && (e.target as HTMLElement).closest('[data-toolbar]')) {
-        return;
-      }
-      
+    const handleActivity = () => {
       // Track user interaction
       if (!hasUserInteracted) {
         setHasUserInteracted(true);
@@ -581,6 +591,8 @@ function FullScreenPortal({
         onClick={(e) => {
           // Ensure toolbar clicks don't bubble up to container
           e.stopPropagation();
+          // Restart auto-hide timer when tapping toolbar in fullscreen
+          restartAutoHideTimer();
         }}
       >
         <div className="relative">
@@ -615,10 +627,15 @@ function FullScreenPortal({
               onClick={(e) => {
                 e.stopPropagation();
                 registerActivity();
+                const wasPlaying = getActualPlayerState();
                 togglePlay();
                 // Use actual player state for status message
                 const actuallyPlaying = getActualPlayerState();
                 showStatus(actuallyPlaying ? "⏸" : "▶");
+                // Restart auto-hide timer when switching from pause to play
+                if (!wasPlaying) {
+                  setTimeout(() => restartAutoHideTimer(), 100);
+                }
               }}
               aria-label="Play/Pause"
               className="w-9 h-9 md:w-12 md:h-12 flex items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors focus:outline-none"
