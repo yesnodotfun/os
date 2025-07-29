@@ -1291,7 +1291,8 @@
   position: absolute;
   left: 6px;
   right: 6px;
-  top: 1px;
+  top: 2px;
+  filter: blur(0.5px);
   height: 12px;
   background: linear-gradient(
     rgba(255, 255, 255, 0.9),
