@@ -733,6 +733,14 @@ export function ChatsAppComponent({
                     roomId={currentRoomId ?? undefined}
                     isAdmin={isAdmin}
                     username={username || undefined}
+                    onMessageDeleted={(deletedId) => {
+                      if (currentRoomId) {
+                        // Optimistically remove locally; realtime event will reconcile
+                        useChatsStore
+                          .getState()
+                          .removeMessageFromRoom(currentRoomId, deletedId);
+                      }
+                    }}
                     fontSize={fontSize}
                     scrollToBottomTrigger={scrollToBottomTrigger}
                     highlightSegment={highlightSegment}

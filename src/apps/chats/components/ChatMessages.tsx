@@ -506,7 +506,8 @@ function ChatMessagesContent({
           .catch(() => ({ error: `HTTP error! status: ${res.status}` }));
         console.error("Failed to delete message", errorData);
       } else {
-        onMessageDeleted?.(message.id);
+        // Use the actual server message ID for local removal to match store expectations
+        onMessageDeleted?.(serverMessageId);
       }
     } catch (err) {
       console.error("Error deleting message", err);
@@ -574,11 +575,11 @@ function ChatMessagesContent({
         // Detect aquarium tool calls for this assistant message
         const aquariumParts =
           message.role === "assistant"
-            ? (message.parts || []).filter(
-                (p) =>
-                  p.type === "tool-invocation" &&
-                  (p as any).toolInvocation?.toolName === "aquarium"
-              )
+            ? (message.parts || []).filter((p) => {
+                if (p.type !== "tool-invocation") return false;
+                const ti = (p as ToolInvocationPart).toolInvocation;
+                return ti?.toolName === "aquarium";
+              })
             : [];
         const hasAquarium = aquariumParts.length > 0;
 
@@ -954,7 +955,7 @@ function ChatMessagesContent({
                     ? "w-full"
                     : "w-fit max-w-[90%]"
                 }`} min-h-[12px] rounded leading-snug font-geneva-12 break-words select-text`}
-                style={{ ["--chat-bubble-font-size" as any]: `${fontSize}px` }}
+                style={{ fontSize: `${fontSize}px` }}
               >
                 {message.role === "assistant" ? (
                   <motion.div className="select-text flex flex-col gap-1">

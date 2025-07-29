@@ -75,6 +75,16 @@ const getAuthTokenFromRecovery = (): string | null => {
   return null;
 };
 
+// Basic HTML entity decoder to normalize server-escaped message content
+const decodeHtmlEntities = (str: string): string =>
+  str
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'");
+
 // Save token refresh time
 const saveTokenRefreshTime = (username: string) => {
   const key = `${TOKEN_LAST_REFRESH_KEY}${username}`;
@@ -464,25 +474,59 @@ export const useChatsStore = create<ChatsStoreState>()(
           set((state) => {
             const existingMessages = state.roomMessages[roomId] || [];
 
+            // Normalize incoming content to match optimistic content
+            const incomingContent = decodeHtmlEntities(
+              String((message as unknown as { content?: string }).content || "")
+            );
+            const incoming: ChatMessage = {
+              ...(message as ChatMessage),
+              content: incomingContent,
+            };
+
             // If this exact server message already exists, skip
-            if (existingMessages.some((m) => m.id === message.id)) {
+            if (existingMessages.some((m) => m.id === incoming.id)) {
               return {};
             }
 
-            // Look for a matching optimistic (temp) message to replace
+            // Prefer replacing by clientId when provided by the server
+            const incomingClientId = (incoming as Partial<ChatMessage>)
+              .clientId as string | undefined;
+            if (incomingClientId) {
+              const idxByClientId = existingMessages.findIndex(
+                (m) =>
+                  m.id === incomingClientId || m.clientId === incomingClientId
+              );
+              if (idxByClientId !== -1) {
+                const tempMsg = existingMessages[idxByClientId];
+                const replaced = {
+                  ...incoming,
+                  clientId: tempMsg.clientId || tempMsg.id,
+                } as ChatMessage;
+                const updated = [...existingMessages];
+                updated[idxByClientId] = replaced;
+                return {
+                  roomMessages: {
+                    ...state.roomMessages,
+                    [roomId]: updated.sort((a, b) => a.timestamp - b.timestamp),
+                  },
+                };
+              }
+            }
+
+            // Fallback: replace a temp message by matching username + content (decoded)
             const tempIndex = existingMessages.findIndex(
               (m) =>
                 m.id.startsWith("temp_") &&
-                m.content === message.content &&
-                m.username === message.username
+                m.username === incoming.username &&
+                m.content === incoming.content
             );
 
             if (tempIndex !== -1) {
               const tempMsg = existingMessages[tempIndex];
               const replaced = {
-                ...message,
+                ...incoming,
                 clientId: tempMsg.clientId || tempMsg.id, // preserve stable client key
-              };
+              } as ChatMessage;
               const updated = [...existingMessages];
               updated[tempIndex] = replaced; // replace in place to minimise list churn
               return {
@@ -497,7 +541,7 @@ export const useChatsStore = create<ChatsStoreState>()(
             return {
               roomMessages: {
                 ...state.roomMessages,
-                [roomId]: [...existingMessages, message].sort(
+                [roomId]: [...existingMessages, incoming].sort(
                   (a, b) => a.timestamp - b.timestamp
                 ),
               },
@@ -886,6 +930,7 @@ export const useChatsStore = create<ChatsStoreState>()(
               const fetchedMessages: ChatMessage[] = (data.messages || [])
                 .map((msg: ApiMessage) => ({
                   ...msg,
+                  content: decodeHtmlEntities(String(msg.content || "")),
                   timestamp:
                     typeof msg.timestamp === "string" ||
                     typeof msg.timestamp === "number"
@@ -896,12 +941,33 @@ export const useChatsStore = create<ChatsStoreState>()(
                   (a: ChatMessage, b: ChatMessage) => a.timestamp - b.timestamp
                 );
 
-              set((state) => ({
-                roomMessages: {
-                  ...state.roomMessages,
-                  [roomId]: fetchedMessages,
-                },
-              }));
+              // Merge with any existing messages to avoid race conditions with realtime pushes
+              set((state) => {
+                const existing = state.roomMessages[roomId] || [];
+                const byId = new Map<string, ChatMessage>();
+                // Seed with existing (preserve temp messages and clientId associations)
+                for (const m of existing) {
+                  byId.set(m.id, m);
+                }
+                // Overlay fetched server messages, preserving clientId when present
+                for (const m of fetchedMessages) {
+                  const prev = byId.get(m.id);
+                  if (prev && prev.clientId) {
+                    byId.set(m.id, { ...m, clientId: prev.clientId });
+                  } else {
+                    byId.set(m.id, m);
+                  }
+                }
+                const merged = Array.from(byId.values()).sort(
+                  (a, b) => a.timestamp - b.timestamp
+                );
+                return {
+                  roomMessages: {
+                    ...state.roomMessages,
+                    [roomId]: merged,
+                  },
+                };
+              });
 
               return { ok: true };
             }
@@ -945,34 +1011,42 @@ export const useChatsStore = create<ChatsStoreState>()(
             const data = await response.json();
             if (data.messagesMap) {
               // Process and sort messages for each room like fetchMessagesForRoom does
-              const processedMessagesMap: Record<string, ChatMessage[]> = {};
+              set((state) => {
+                const nextRoomMessages = { ...state.roomMessages };
 
-              Object.entries(data.messagesMap).forEach(([roomId, messages]) => {
-                const processedMessages: ChatMessage[] = (
-                  messages as ApiMessage[]
-                )
-                  .map((msg: ApiMessage) => ({
-                    ...msg,
-                    timestamp:
-                      typeof msg.timestamp === "string" ||
-                      typeof msg.timestamp === "number"
-                        ? new Date(msg.timestamp).getTime()
-                        : msg.timestamp,
-                  }))
-                  .sort(
-                    (a: ChatMessage, b: ChatMessage) =>
-                      a.timestamp - b.timestamp
-                  );
+                Object.entries(data.messagesMap).forEach(
+                  ([roomId, messages]) => {
+                    const processed: ChatMessage[] = (messages as ApiMessage[])
+                      .map((msg) => ({
+                        ...msg,
+                        content: decodeHtmlEntities(String(msg.content || "")),
+                        timestamp:
+                          typeof msg.timestamp === "string" ||
+                          typeof msg.timestamp === "number"
+                            ? new Date(msg.timestamp).getTime()
+                            : msg.timestamp,
+                      }))
+                      .sort((a, b) => a.timestamp - b.timestamp);
 
-                processedMessagesMap[roomId] = processedMessages;
+                    const existing = nextRoomMessages[roomId] || [];
+                    const byId = new Map<string, ChatMessage>();
+                    for (const m of existing) byId.set(m.id, m);
+                    for (const m of processed) {
+                      const prev = byId.get(m.id);
+                      if (prev && prev.clientId) {
+                        byId.set(m.id, { ...m, clientId: prev.clientId });
+                      } else {
+                        byId.set(m.id, m);
+                      }
+                    }
+                    nextRoomMessages[roomId] = Array.from(byId.values()).sort(
+                      (a, b) => a.timestamp - b.timestamp
+                    );
+                  }
+                );
+
+                return { roomMessages: nextRoomMessages };
               });
-
-              set((state) => ({
-                roomMessages: {
-                  ...state.roomMessages,
-                  ...processedMessagesMap,
-                },
-              }));
 
               return { ok: true };
             }
