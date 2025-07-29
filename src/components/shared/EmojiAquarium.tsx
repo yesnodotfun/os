@@ -72,7 +72,7 @@ export function EmojiAquarium({ seed, className }: EmojiAquariumProps) {
 
   const smallFishes = ["🐟", "🐠", "🐡"];
   const largeFishes = ["🦈", "🐬"];
-  const decor = ["🪸", "⚓️", "🦀", "🪨", "🌿", "🗿", "🐚"];
+  const decor = ["🪸", "⚓️", "🪨", "🌿", "🗿", "🐚"];
 
   const bubbles = "🫧"; // falls back to monochrome when unsupported
 
