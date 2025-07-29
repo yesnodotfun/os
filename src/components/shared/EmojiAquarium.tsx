@@ -80,7 +80,7 @@ export function EmojiAquarium({ seed, className }: EmojiAquariumProps) {
     <MotionConfig reducedMotion="never">
       <div
         className={cn(
-          "chat-bubble bg-blue-300 text-black !p-0 mb-2 w-full max-w-[420px]",
+          "chat-bubble bg-blue-300 text-black !p-0 mb-2 w-full max-w-[420px] rounded",
           className
         )}
       >
