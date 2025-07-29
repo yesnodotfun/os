@@ -277,7 +277,7 @@ export function EmojiAquarium({ seed, className }: EmojiAquariumProps) {
             const delay = 0.2 + i * 0.07 + rand() * 0.2;
             const rot = (rand() - 0.5) * 10;
             const size = 18 + rand() * 8;
-            const bottomOffset = 12 + rand() * 4; // place items a few px from bottom edge
+            const bottomOffset = 4 + rand() * 4; // place items a few px from bottom edge
             const yPos = Math.max(0, height - size - bottomOffset);
             return (
               <motion.span
