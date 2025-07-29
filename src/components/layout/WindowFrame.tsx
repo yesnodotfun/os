@@ -898,7 +898,10 @@ export function WindowFrame({
                   </div>
                   <button
                     aria-label="Close"
-                    className="absolute -inset-2 z-10 rounded-full outline-none cursor-default opacity-0"
+                    className={cn(
+                      "absolute -inset-2 z-10 rounded-none outline-none cursor-default",
+                      debugMode ? "bg-red-500/50" : "opacity-0"
+                    )}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleClose();
@@ -1007,7 +1010,10 @@ export function WindowFrame({
                   </div>
                   <button
                     aria-label="Maximize"
-                    className="absolute -inset-2 z-10 rounded-full outline-none cursor-default opacity-0"
+                    className={cn(
+                      "absolute -inset-2 z-10 rounded-none outline-none cursor-default",
+                      debugMode ? "bg-red-500/50" : "opacity-0"
+                    )}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleFullMaximize(e);
