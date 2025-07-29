@@ -61,14 +61,14 @@ export function EmojiAquarium({ seed, className }: EmojiAquariumProps) {
   const width = containerWidth;
   const height = Math.max(120, Math.round(containerWidth * aspect));
   // Scale sand height with container for a larger, responsive base
-  const sandHeight = Math.max(24, Math.round(height * 0.22));
+  const sandHeight = Math.max(24, Math.round(height * 0.35));
 
   const { fishCount, jellyCount, bubbleCount, floorCount } = useMemo(() => {
-    return { fishCount: 7, jellyCount: 2, bubbleCount: 18, floorCount: 9 };
+    return { fishCount: 7, jellyCount: 2, bubbleCount: 7, floorCount: 7 };
   }, []);
 
   const fishes = ["🐟", "🐠", "🐡", "🦈", "🐬"];
-  const decor = ["🪸", "⚓️", "🏺", "🪨", "🌿", "🗿", "🐚", "🦑", "🍃"];
+  const decor = ["🪸", "⚓️", "🏺", "🪨", "🌿", "🗿", "🐚"];
 
   const bubbles = "🫧"; // falls back to monochrome when unsupported
 
@@ -76,7 +76,7 @@ export function EmojiAquarium({ seed, className }: EmojiAquariumProps) {
     <MotionConfig reducedMotion="never">
       <div
         className={cn(
-          "chat-bubble bg-blue-200 text-black !p-0 mt-1 w-full max-w-[420px]",
+          "chat-bubble bg-blue-300 text-black !p-0 mt-1 w-full max-w-[420px]",
           className
         )}
       >
@@ -89,7 +89,7 @@ export function EmojiAquarium({ seed, className }: EmojiAquariumProps) {
           {Array.from({ length: fishCount }).map((_, i) => {
             const emoji = fishes[Math.floor(rand() * fishes.length)];
             const dirRight = rand() > 0.5;
-            const scale = 1.1 + rand() * 0.7;
+            const scale = 1.1 + rand() * 0.4;
             const y = 20 + rand() * (height - 80);
             const duration = 14 + rand() * 16;
             const delay = rand() * 4;
@@ -99,7 +99,7 @@ export function EmojiAquarium({ seed, className }: EmojiAquariumProps) {
             return (
               <motion.span
                 key={`fish-${i}`}
-                initial={{ x: xFrom, y, scale, rotateY: dirRight ? 0 : 180 }}
+                initial={{ x: xFrom, y, scale }}
                 animate={{
                   x: [xFrom, xTo],
                   y: [y, y - wiggle, y, y + wiggle, y],
@@ -119,8 +119,12 @@ export function EmojiAquarium({ seed, className }: EmojiAquariumProps) {
                     ease: "easeInOut",
                   },
                 }}
-                style={{ position: "absolute", willChange: "transform" }}
-                className="text-[28px] select-none"
+                style={{
+                  position: "absolute",
+                  willChange: "transform",
+                  scaleX: dirRight ? -1 : 1,
+                }}
+                className="text-[28px] select-none z-30"
               >
                 {emoji}
               </motion.span>
@@ -177,11 +181,12 @@ export function EmojiAquarium({ seed, className }: EmojiAquariumProps) {
             return (
               <motion.span
                 key={`bubble-${i}`}
-                initial={{ x, y: height - start, opacity: 0.4 }}
+                initial={{ x, y: height - start, opacity: 0.4, scale: 0.4 }}
                 animate={{
                   x: [x, x + drift],
-                  y: [height - start, -20],
-                  opacity: [0.4, 0.9, 0.4],
+                  y: [height - start, -25],
+                  opacity: [0.7, 1, 0],
+                  scale: [0.4, 1.2, 1],
                 }}
                 transition={{
                   duration: dur,
@@ -194,7 +199,7 @@ export function EmojiAquarium({ seed, className }: EmojiAquariumProps) {
                   position: "absolute",
                   willChange: "transform, opacity",
                 }}
-                className="text-[20px] select-none"
+                className="text-[28px] select-none"
               >
                 {bubbles}
               </motion.span>
@@ -240,7 +245,7 @@ export function EmojiAquarium({ seed, className }: EmojiAquariumProps) {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6, delay: 0.15 }}
-            className="absolute right-1.5 top-1.5 select-none text-[18px]"
+            className="absolute right-4 top-1.5 select-none text-[24px]"
           >
             🛟
           </motion.span>
