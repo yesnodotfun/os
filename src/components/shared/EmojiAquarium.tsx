@@ -144,7 +144,8 @@ export function EmojiAquarium({ seed, className }: EmojiAquariumProps) {
             const emoji = largeFishes[Math.floor(rand() * largeFishes.length)];
             const dirRight = rand() > 0.5;
             const sizePx = 40;
-            const y = 20 + rand() * (height - 80);
+            const safeZone = height - sandHeight - 20;
+            const y = 20 + rand() * Math.max(40, safeZone);
             const duration = 18 + rand() * 18;
             const delay = rand() * 4;
             const xFrom = dirRight ? -80 : width + 80;
@@ -234,23 +235,22 @@ export function EmojiAquarium({ seed, className }: EmojiAquariumProps) {
             const x = 10 + rand() * (width - 20);
             const start = rand() * (height * 0.65);
             const drift = (rand() - 0.5) * 20;
-            const dur = 10 + rand() * 12;
-            const delay = rand() * 4;
+            const dur = 15 + rand() * 18;
+            const delay = rand() * 6;
             return (
               <motion.span
                 key={`bubble-${i}`}
-                initial={{ x, y: height - start, opacity: 0.4, scale: 0.4 }}
+                initial={{ x, y: height - start, opacity: 0, scale: 0.4 }}
                 animate={{
                   x: [x, x + drift],
                   y: [height - start, -25],
-                  opacity: [0.7, 1, 0],
-                  scale: [0.4, 1.2, 1],
+                  opacity: [0, 0.3, 0.7, 0.4, 0],
+                  scale: [0.4, 0.8, 1.2, 1, 0.6],
                 }}
                 transition={{
                   duration: dur,
                   ease: "easeOut",
                   repeat: Infinity,
-                  repeatType: "loop",
                   delay,
                 }}
                 style={{
