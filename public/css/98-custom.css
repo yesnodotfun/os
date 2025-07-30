@@ -539,7 +539,7 @@ legend {
 }
 menu[role="tablist"] {
   position: relative;
-  margin: 0 0 -2px;
+  margin: 0 0 -6px;
   text-indent: 0;
   list-style-type: none;
   display: flex;
