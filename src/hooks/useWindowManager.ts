@@ -239,7 +239,7 @@ export const useWindowManager = ({
         }
       }
 
-      if (resizeType && (resizeType.match(/^[ns]$/) || !isMobile)) {
+      if (resizeType) {
         e.preventDefault();
         const clientX =
           "touches" in e ? e.touches[0].clientX : (e as MouseEvent).clientX;
@@ -290,7 +290,7 @@ export const useWindowManager = ({
             Math.max(resizeStart.height + deltaY, minHeight),
             maxPossibleHeight
           );
-        } else if (resizeType.includes("n") && !isMobile) {
+        } else if (resizeType.includes("n")) {
           const maxPossibleHeight =
             resizeStart.height + (resizeStart.top - menuBarHeight);
           const potentialHeight = Math.min(
