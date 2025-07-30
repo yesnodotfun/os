@@ -84,6 +84,14 @@ const RATE_LIMIT_WINDOW_SECONDS = 60; // 1 minute window
 const RATE_LIMIT_ATTEMPTS = 10; // Max attempts per window
 const RATE_LIMIT_PREFIX = "rl:"; // Rate limit key prefix
 
+// Chat burst limiter (public rooms): limit quick bursts
+const CHAT_BURST_PREFIX = "rl:chat:b:";
+const CHAT_BURST_SHORT_WINDOW_SECONDS = 10; // short window to stop bursts
+const CHAT_BURST_SHORT_LIMIT = 3; // tighter cap on short bursts
+const CHAT_BURST_LONG_WINDOW_SECONDS = 60; // longer window to cap sustained spam
+const CHAT_BURST_LONG_LIMIT = 20; // max messages per minute
+const CHAT_MIN_INTERVAL_SECONDS = 2; // minimum seconds between messages
+
 // ------------------------------
 // Input-validation / sanitization helpers
 // ------------------------------
@@ -2475,6 +2483,91 @@ async function handleSendMessage(data, requestId) {
 
   // Filter profanity preserving URLs then escape HTML to mitigate XSS
   const content = escapeHTML(filterProfanityPreservingUrls(originalContent));
+
+  // Burst rate-limit: prevent quick spamming in public rooms (per user per room)
+  try {
+    const roomKey = `${CHAT_ROOM_PREFIX}${roomId}`;
+    const roomRaw = await redis.get(roomKey);
+    if (!roomRaw) {
+      logInfo(requestId, `Room not found for rate-limit check: ${roomId}`);
+      return createErrorResponse("Room not found", 404);
+    }
+
+    // Determine room type; default to 'public' when missing
+    const roomObj =
+      typeof roomRaw === "string"
+        ? (() => {
+            try {
+              return JSON.parse(roomRaw);
+            } catch {
+              return {};
+            }
+          })()
+        : roomRaw;
+    const isPublicRoom = !roomObj.type || roomObj.type === "public";
+
+    if (isPublicRoom) {
+      const shortKey = `${CHAT_BURST_PREFIX}s:${roomId}:${username}`;
+      const longKey = `${CHAT_BURST_PREFIX}l:${roomId}:${username}`;
+      const lastKey = `${CHAT_BURST_PREFIX}last:${roomId}:${username}`;
+
+      // Short window check (atomic)
+      const shortCount = await redis.incr(shortKey);
+      if (shortCount === 1) {
+        await redis.expire(shortKey, CHAT_BURST_SHORT_WINDOW_SECONDS);
+      }
+      if (shortCount > CHAT_BURST_SHORT_LIMIT) {
+        logInfo(
+          requestId,
+          `Burst limit hit (short) by ${username} in room ${roomId}: ${shortCount}/${CHAT_BURST_SHORT_LIMIT}`
+        );
+        return createErrorResponse(
+          "You're sending messages too quickly. Please slow down.",
+          429
+        );
+      }
+
+      // Long window check (atomic)
+      const longCount = await redis.incr(longKey);
+      if (longCount === 1) {
+        await redis.expire(longKey, CHAT_BURST_LONG_WINDOW_SECONDS);
+      }
+      if (longCount > CHAT_BURST_LONG_LIMIT) {
+        logInfo(
+          requestId,
+          `Burst limit hit (long) by ${username} in room ${roomId}: ${longCount}/${CHAT_BURST_LONG_LIMIT}`
+        );
+        return createErrorResponse(
+          "Too many messages in a short period. Please wait a moment.",
+          429
+        );
+      }
+
+      // Enforce minimum interval between messages (cooldown)
+      const nowSeconds = Math.floor(Date.now() / 1000);
+      const lastSent = await redis.get(lastKey);
+      if (lastSent) {
+        const delta = nowSeconds - parseInt(lastSent);
+        if (delta < CHAT_MIN_INTERVAL_SECONDS) {
+          logInfo(
+            requestId,
+            `Min-interval hit by ${username} in room ${roomId}: ${delta}s < ${CHAT_MIN_INTERVAL_SECONDS}s`
+          );
+          return createErrorResponse(
+            "Please wait a moment before sending another message.",
+            429
+          );
+        }
+      }
+      // Update last-sent timestamp with a TTL to avoid orphaned keys
+      await redis.set(lastKey, nowSeconds, {
+        ex: CHAT_BURST_LONG_WINDOW_SECONDS,
+      });
+    }
+  } catch (rlError) {
+    // Fail open but log
+    logError(requestId, "Chat burst rate-limit check failed", rlError);
+  }
 
   logInfo(requestId, `Sending message in room ${roomId} from user ${username}`);
 
