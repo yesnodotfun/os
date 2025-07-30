@@ -573,13 +573,18 @@ export function WindowFrame({
           {/* Top resize handle */}
           <div
             className={cn(
-              "absolute left-1 right-0 cursor-n-resize pointer-events-auto transition-[top,height] select-none resize-handle",
+              "absolute cursor-n-resize pointer-events-auto transition-[top,height] select-none resize-handle",
+              isMobile && currentTheme === "macosx" 
+                ? "left-0 right-0" // Extend full width for better touch on macOS mobile
+                : "left-1 right-0",
               debugMode && "bg-red-500/50",
               resizeType?.includes("n")
                 ? "top-[-100px] h-[200px]"
                 : isMobile
                 ? isXpTheme
                   ? "top-0 h-4" // Start from top but be shorter for XP/98 themes
+                  : currentTheme === "macosx"
+                  ? "top-[-4px] h-4" // Extend above window for macOS to avoid traffic lights
                   : "top-0 h-8"
                 : "top-1 h-2"
             )}
@@ -600,7 +605,9 @@ export function WindowFrame({
               resizeType?.includes("s")
                 ? "bottom-[-100px] h-[200px]"
                 : isMobile
-                ? "bottom-0 h-6"
+                ? currentTheme === "macosx"
+                  ? "bottom-[-4px] h-4" // Extend below window for macOS
+                  : "bottom-0 h-6"
                 : "bottom-1 h-2"
             )}
             onMouseDown={(e) =>
