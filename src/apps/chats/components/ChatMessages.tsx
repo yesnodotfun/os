@@ -918,7 +918,7 @@ function ChatMessagesContent({
                         backgroundColor: [
                           "#bfdbfe", // blue-200
                           "#fecaca", // red-200 pulse
-                          "#fecaca", // red-200 final (one level darker)
+                          "#fee2e2", // red-100 final (one level lighter)
                         ],
                         color: [
                           "#111827", // black

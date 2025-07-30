@@ -1254,7 +1254,7 @@
 /* -------------------------------------------------- */
 :root[data-os-theme="macosx"] .chat-bubble {
   position: relative;
-  border-radius: 14px !important; /* match aqua-button */
+  border-radius: 16px !important; /* match aqua-button */
   /* Enhanced shadow with subtle outer lift and multi-layer inset stroke similar to traffic lights */
   box-shadow:
     /* outer shadows */ 0 2px 4px rgba(0, 0, 0, 0.14),
