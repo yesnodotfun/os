@@ -397,7 +397,16 @@ const deleteAllUserTokens = async (username) => {
       if (key === `${AUTH_TOKEN_PREFIX}${normalizedUsername}`) continue; // legacy single-token path handled later
 
       const mappedUser = await redis.get(key);
-      if (mappedUser && mappedUser.toLowerCase() === normalizedUsername) {
+      // Support non-string values by extracting username safely before comparing
+      const mappedLower =
+        typeof mappedUser === "string"
+          ? mappedUser.toLowerCase()
+          : mappedUser &&
+            typeof mappedUser === "object" &&
+            typeof mappedUser.username === "string"
+          ? mappedUser.username.toLowerCase()
+          : null;
+      if (mappedLower === normalizedUsername) {
         oldTokenKeysToDelete.push(key);
       }
     }
@@ -494,7 +503,16 @@ const validateAuth = async (
   // 2. Old multi-token path: token -> username mapping
   // ---------------------------
   const mappedUsername = await getUsernameForToken(token);
-  if (mappedUsername && mappedUsername.toLowerCase() === normalizedUsername) {
+  // Support legacy/object values in Redis by extracting a username string safely
+  const mappedLower =
+    typeof mappedUsername === "string"
+      ? mappedUsername.toLowerCase()
+      : mappedUsername &&
+        typeof mappedUsername === "object" &&
+        typeof mappedUsername.username === "string"
+      ? mappedUsername.username.toLowerCase()
+      : null;
+  if (mappedLower === normalizedUsername) {
     // Refresh TTL for this token
     await redis.expire(getTokenKey(token), USER_TTL_SECONDS);
     // Also migrate to new format for future validations
@@ -3122,7 +3140,16 @@ async function handleVerifyToken(request, requestId) {
     const directKey = getTokenKey(authToken);
     const mappedUsername = await redis.get(directKey);
     if (mappedUsername) {
-      const username = String(mappedUsername).toLowerCase();
+      // Support non-string values stored in Redis
+      const username = (
+        typeof mappedUsername === "string"
+          ? mappedUsername
+          : mappedUsername &&
+            typeof mappedUsername === "object" &&
+            typeof mappedUsername.username === "string"
+          ? mappedUsername.username
+          : String(mappedUsername)
+      ).toLowerCase();
       // Refresh TTLs and ensure user-scoped key exists
       await redis.expire(directKey, USER_TTL_SECONDS);
       const userKey = getUserTokenKey(username, authToken);
