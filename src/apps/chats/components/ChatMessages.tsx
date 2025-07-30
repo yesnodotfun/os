@@ -559,15 +559,21 @@ function ChatMessagesContent({
         const isInitialMessage = initialMessageIdsRef.current.has(messageKey);
 
         const variants = { initial: { opacity: 0 }, animate: { opacity: 1 } };
+        const isUrgent = isUrgentMessage(message.content);
         let bgColorClass = "";
-        if (message.role === "user") bgColorClass = "bg-yellow-100 text-black";
+        if (isUrgent) {
+          // Urgent bubbles will be driven by inline animation; avoid bg-* and text-* so theme overrides don't interfere
+          // Provide a truthy class to skip the default fallback color classes
+          bgColorClass = "bg-transparent text-current";
+        } else if (message.role === "user")
+          bgColorClass = "bg-yellow-100 text-black";
         else if (message.role === "assistant")
           bgColorClass = "bg-blue-100 text-black";
         else if (message.role === "human")
           bgColorClass = getUserColorClass(message.username);
 
         // Trim leading "!!!!" for urgent messages and decode HTML entities
-        const rawContent = isUrgentMessage(message.content)
+        const rawContent = isUrgent
           ? message.content.slice(4).trimStart()
           : message.content;
         const displayContent = decodeHtmlEntities(rawContent);
@@ -591,32 +597,7 @@ function ChatMessagesContent({
           combinedHighlightSeg &&
           combinedHighlightSeg.messageId === message.id;
 
-        const baseBgHex = (() => {
-          const base =
-            message.role === "user"
-              ? "#fef9c3"
-              : message.role === "assistant"
-              ? "#dbeafe"
-              : bgColorClass.split(" ")[0].includes("pink")
-              ? "#fce7f3"
-              : bgColorClass.split(" ")[0].includes("purple")
-              ? "#f3e8ff"
-              : bgColorClass.split(" ")[0].includes("indigo")
-              ? "#e0e7ff"
-              : bgColorClass.split(" ")[0].includes("teal")
-              ? "#ccfbf1"
-              : bgColorClass.split(" ")[0].includes("lime")
-              ? "#ecfccb"
-              : bgColorClass.split(" ")[0].includes("amber")
-              ? "#fef3c7"
-              : bgColorClass.split(" ")[0].includes("cyan")
-              ? "#cffafe"
-              : bgColorClass.split(" ")[0].includes("rose")
-              ? "#ffe4e6"
-              : "#f3f4f6"; // gray-100 fallback
-          /* macOS darkening moved to CSS theme overrides (.chat-bubble.*) */
-          return base;
-        })();
+        // base background calculation no longer needed; inline animation drives color for urgent
 
         return (
           <motion.div
@@ -921,24 +902,42 @@ function ChatMessagesContent({
             {!isUrlOnly(displayContent) && (
               <motion.div
                 layout="position"
-                initial={{ opacity: 0 }}
+                initial={
+                  isUrgent
+                    ? {
+                        opacity: 0,
+                        backgroundColor: "#bfdbfe",
+                        color: "#111827",
+                      } // start from blue-200 and black text
+                    : { opacity: 0 }
+                }
                 animate={
-                  isUrgentMessage(message.content)
-                    ? currentTheme === "macosx"
-                      ? { opacity: 1 }
-                      : {
-                          backgroundColor: ["#fee2e2", baseBgHex],
-                          color: ["#C92D2D", "#000000"],
-                          opacity: 1,
-                          transition: {
-                            duration: 1,
-                            repeat: 1,
-                            repeatType: "reverse",
-                            ease: "easeInOut",
-                            delay: 0,
-                          },
-                        }
+                  isUrgent
+                    ? {
+                        opacity: 1,
+                        backgroundColor: [
+                          "#bfdbfe", // blue-200
+                          "#fecaca", // red-200 pulse
+                          "#bfdbfe", // blue-200
+                          "#fee2e2", // red-100 final (lighter red)
+                        ],
+                        color: [
+                          "#111827", // black
+                          "#b91c1c", // red-700 pulse
+                          "#111827", // black
+                          "#b91c1c", // red-700 final
+                        ],
+                      }
                     : { opacity: 1 }
+                }
+                transition={
+                  isUrgent
+                    ? {
+                        duration: 1.2,
+                        ease: "easeInOut",
+                        times: [0, 0.33, 0.66, 1],
+                      }
+                    : undefined
                 }
                 className={`${`p-1.5 px-2 chat-bubble ${
                   bgColorClass ||
@@ -1067,6 +1066,11 @@ function ChatMessagesContent({
                                                   target="_blank"
                                                   rel="noopener noreferrer"
                                                   className="text-blue-600 hover:underline"
+                                                  style={{
+                                                    color: isUrgent
+                                                      ? "inherit"
+                                                      : undefined,
+                                                  }}
                                                   onClick={(e) =>
                                                     e.stopPropagation()
                                                   }
@@ -1084,6 +1088,11 @@ function ChatMessagesContent({
                                               target="_blank"
                                               rel="noopener noreferrer"
                                               className="text-blue-600 hover:underline"
+                                              style={{
+                                                color: isUrgent
+                                                  ? "inherit"
+                                                  : undefined,
+                                              }}
                                               onClick={(e) =>
                                                 e.stopPropagation()
                                               }
@@ -1212,6 +1221,9 @@ function ChatMessagesContent({
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-blue-600 hover:underline"
+                                style={{
+                                  color: isUrgent ? "inherit" : undefined,
+                                }}
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 {segment.content}

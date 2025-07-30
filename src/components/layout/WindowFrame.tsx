@@ -113,6 +113,13 @@ export function WindowFrame({
   const effectiveTransparentBackground =
     currentTheme === "macosx" ? true : transparentBackground;
 
+  // Theme-aware z-index for resizer layer:
+  // - macOSX: above titlebar (no controls in top-right)
+  // - XP/Win98: below titlebar controls (avoid occluding close button)
+  // - Others: default above content
+  const resizerZIndexClass =
+    currentTheme === "macosx" ? "z-[60]" : isXpTheme ? "z-40" : "z-50";
+
   // Setup swipe navigation for phones only
   const {
     handleTouchStart,
@@ -557,7 +564,12 @@ export function WindowFrame({
     >
       <div className="relative w-full h-full">
         {/* Resize handles - positioned outside main content */}
-        <div className="absolute -top-2 -left-2 -right-2 -bottom-2 pointer-events-none z-50 select-none">
+        <div
+          className={cn(
+            "absolute -top-2 -left-2 -right-2 -bottom-2 pointer-events-none select-none",
+            resizerZIndexClass
+          )}
+        >
           {/* Top resize handle */}
           <div
             className={cn(
@@ -709,7 +721,7 @@ export function WindowFrame({
             // XP/98 theme title bar structure
             <div
               className={cn(
-                "title-bar",
+                "title-bar relative z-50",
                 !isForeground && "inactive" // Add inactive class when not in foreground
               )}
               style={{
