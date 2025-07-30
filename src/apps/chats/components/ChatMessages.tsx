@@ -905,26 +905,22 @@ function ChatMessagesContent({
                 initial={
                   isUrgent
                     ? {
-                        opacity: 0,
                         backgroundColor: "#bfdbfe",
                         color: "#111827",
-                      } // start from blue-200 and black text
+                      } // start visible; no opacity fade for urgent
                     : { opacity: 0 }
                 }
                 animate={
                   isUrgent
                     ? {
-                        opacity: 1,
                         backgroundColor: [
                           "#bfdbfe", // blue-200
                           "#fecaca", // red-200 pulse
-                          "#bfdbfe", // blue-200
                           "#fee2e2", // red-100 final (lighter red)
                         ],
                         color: [
                           "#111827", // black
                           "#b91c1c", // red-700 pulse
-                          "#111827", // black
                           "#b91c1c", // red-700 final
                         ],
                       }
@@ -933,9 +929,9 @@ function ChatMessagesContent({
                 transition={
                   isUrgent
                     ? {
-                        duration: 1.2,
+                        duration: 0.9,
                         ease: "easeInOut",
-                        times: [0, 0.33, 0.66, 1],
+                        times: [0, 0.5, 1],
                       }
                     : undefined
                 }
