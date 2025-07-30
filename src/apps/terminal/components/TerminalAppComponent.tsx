@@ -39,6 +39,7 @@ import { useInternetExplorerStore } from "@/stores/useInternetExplorerStore";
 import { useVideoStore } from "@/stores/useVideoStore";
 import { useFilesStore } from "@/stores/useFilesStore";
 import { useThemeStore } from "@/stores/useThemeStore";
+import EmojiAquarium from "@/components/shared/EmojiAquarium";
 
 // Analytics event namespace for terminal AI events
 export const TERMINAL_ANALYTICS = {
@@ -53,6 +54,7 @@ interface CommandHistory {
   output: string;
   path: string;
   messageId?: string; // Optional since not all commands will have a message ID
+  hasAquarium?: boolean;
 }
 
 // Available commands for autocompletion
@@ -413,6 +415,8 @@ interface ToolInvocation {
 const formatToolInvocation = (invocation: ToolInvocation): string | null => {
   const { toolName, state, args, result } = invocation;
   if (state === "call" || state === "partial-call") {
+    // Aquarium renders as a dedicated component; suppress textual output
+    if (toolName === "aquarium") return null;
     let msg = "";
     switch (toolName) {
       case "textEditSearchReplace":
@@ -437,6 +441,8 @@ const formatToolInvocation = (invocation: ToolInvocation): string | null => {
   }
 
   if (state === "result") {
+    // Aquarium renders visually; no textual result
+    if (toolName === "aquarium") return null;
     let msg: string | null = null;
     if (toolName === "launchApp" && args?.id === "internet-explorer") {
       const urlPart = args.url ? ` ${args.url}` : "";
@@ -2608,6 +2614,7 @@ assistant
       | unknown[]
       | undefined;
     const lines: string[] = [];
+    let hasAquarium = false;
 
     if (parts && parts.length > 0) {
       parts.forEach((part) => {
@@ -2617,9 +2624,12 @@ assistant
           );
           if (processed) lines.push(processed);
         } else if ((part as { type: string }).type === "tool-invocation") {
-          const txt = formatToolInvocation(
-            (part as { toolInvocation: ToolInvocation }).toolInvocation
-          );
+          const ti = (part as { toolInvocation: ToolInvocation })
+            .toolInvocation;
+          if (ti.toolName === "aquarium") {
+            hasAquarium = true;
+          }
+          const txt = formatToolInvocation(ti);
           if (txt) lines.push(txt);
         }
       });
@@ -2641,7 +2651,11 @@ assistant
 
       if (existingIndex !== -1) {
         const existing = filteredHistory[existingIndex];
-        if (existing.output === cleanedContent) return prev;
+        if (
+          existing.output === cleanedContent &&
+          existing.hasAquarium === hasAquarium
+        )
+          return prev;
 
         const updated = [...filteredHistory];
         updated[existingIndex] = {
@@ -2649,6 +2663,7 @@ assistant
           output: cleanedContent,
           path: "ai-assistant",
           messageId: lastMessage.id,
+          hasAquarium,
         };
         return updated;
       }
@@ -2662,6 +2677,7 @@ assistant
           output: cleanedContent,
           path: "ai-assistant",
           messageId: lastMessage.id,
+          hasAquarium,
         },
       ];
     });
@@ -3351,6 +3367,13 @@ assistant
                                 stopElevatorMusic={stopElevatorMusic}
                                 playDingSound={playDingSound}
                               />
+                            )}
+
+                            {/* Render aquarium tool visually when present */}
+                            {item.hasAquarium && (
+                              <div className="mt-1">
+                                <EmojiAquarium />
+                              </div>
                             )}
                           </>
                         );
