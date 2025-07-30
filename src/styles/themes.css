@@ -1398,3 +1398,20 @@
   box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.4),
     inset 0 1px 0 rgba(0, 0, 0, 0.3), inset 0 -1px 0 rgba(0, 0, 0, 0.3);
 }
+
+/* -------------------------------------------------- */
+/* Sonner Toaster theme-aware typography               */
+/* Use OS theme font variables instead of per-component overrides */
+/* -------------------------------------------------- */
+.toaster {
+  font-family: var(--os-font-ui) !important;
+  -webkit-font-smoothing: antialiased !important;
+  font-smooth: auto !important;
+}
+
+/* System 7: use Geneva-12 for toasts */
+:root[data-os-theme="system7"] .toaster {
+  font-family: var(--font-geneva-12) !important;
+  -webkit-font-smoothing: antialiased !important;
+  font-smooth: always !important;
+}

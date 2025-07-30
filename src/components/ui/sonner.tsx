@@ -8,13 +8,6 @@ const Toaster = ({ ...props }: ToasterProps) => {
     <Sonner
       theme={theme as ToasterProps["theme"]}
       className="toaster group"
-      style={
-        {
-            fontFamily: "var(--font-geneva-12)",
-            WebkitFontSmoothing: "antialiased",
-            fontSmooth: "always",
-        } as React.CSSProperties
-      }
       {...props}
     />
   )
