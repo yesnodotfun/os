@@ -10,6 +10,12 @@ export interface Video {
 
 export const DEFAULT_VIDEOS: Video[] = [
   {
+    id: "TQhv6Wol6Ns",
+    url: "https://www.youtube.com/watch?v=TQhv6Wol6Ns&t=26s",
+    title: "Our designer built an operating system with Cursor by Cursor",
+    artist: "Cursor",
+  },
+  {
     id: "0pP3ZjMDzF4",
     url: "https://youtu.be/0pP3ZjMDzF4",
     title: "Make Something Wonderful",
@@ -78,7 +84,7 @@ export const DEFAULT_VIDEOS: Video[] = [
   {
     id: "b5P3QDm61go",
     url: "https://youtu.be/b5P3QDm61go",
-    title: "iMac G4 \"Lamp\" Ad (2002)",
+    title: 'iMac G4 "Lamp" Ad (2002)',
     artist: "Apple Computer",
   },
   {
@@ -139,7 +145,7 @@ interface VideoStoreState {
   getCurrentVideo: () => Video | null;
 }
 
-const CURRENT_VIDEO_STORE_VERSION = 7; // Clean ID-based version
+const CURRENT_VIDEO_STORE_VERSION = 8; // Clean ID-based version
 
 const getInitialState = () => ({
   videos: DEFAULT_VIDEOS,
@@ -161,45 +167,58 @@ export const useVideoStore = create<VideoStoreState>()(
             typeof videosOrUpdater === "function"
               ? (videosOrUpdater as (prev: Video[]) => Video[])(state.videos)
               : videosOrUpdater;
-          
+
           // Validate currentVideoId when videos change
           let currentVideoId = state.currentVideoId;
-          if (currentVideoId && !newVideos.find(v => v.id === currentVideoId)) {
+          if (
+            currentVideoId &&
+            !newVideos.find((v) => v.id === currentVideoId)
+          ) {
             currentVideoId = newVideos.length > 0 ? newVideos[0].id : null;
           }
-          
-          return { 
+
+          return {
             videos: newVideos,
-            currentVideoId
+            currentVideoId,
           };
         });
       },
-      setCurrentVideoId: (videoId) => set((state) => {
-        // Ensure videoId exists in videos array
-        const validVideoId = videoId && state.videos.find(v => v.id === videoId) ? videoId : null;
-        return { currentVideoId: validVideoId };
-      }),
+      setCurrentVideoId: (videoId) =>
+        set((state) => {
+          // Ensure videoId exists in videos array
+          const validVideoId =
+            videoId && state.videos.find((v) => v.id === videoId)
+              ? videoId
+              : null;
+          return { currentVideoId: validVideoId };
+        }),
       setLoopAll: (val) => set({ loopAll: val }),
       setLoopCurrent: (val) => set({ loopCurrent: val }),
       setIsShuffled: (val) => set({ isShuffled: val }),
       togglePlay: () => set((state) => ({ isPlaying: !state.isPlaying })),
       setIsPlaying: (val) => set({ isPlaying: val }),
-      
+
       // Derived state helpers
       getCurrentIndex: () => {
         const state = get();
-        return state.currentVideoId ? state.videos.findIndex(v => v.id === state.currentVideoId) : -1;
+        return state.currentVideoId
+          ? state.videos.findIndex((v) => v.id === state.currentVideoId)
+          : -1;
       },
       getCurrentVideo: () => {
         const state = get();
-        return state.currentVideoId ? state.videos.find(v => v.id === state.currentVideoId) || null : null;
+        return state.currentVideoId
+          ? state.videos.find((v) => v.id === state.currentVideoId) || null
+          : null;
       },
     }),
     {
       name: "ryos:videos",
       version: CURRENT_VIDEO_STORE_VERSION,
       migrate: () => {
-        console.log(`Migrating video store to clean ID-based version ${CURRENT_VIDEO_STORE_VERSION}`);
+        console.log(
+          `Migrating video store to clean ID-based version ${CURRENT_VIDEO_STORE_VERSION}`
+        );
         // Always reset to defaults for clean start
         return getInitialState();
       },
@@ -213,4 +232,4 @@ export const useVideoStore = create<VideoStoreState>()(
       }),
     }
   )
-); 
+);
