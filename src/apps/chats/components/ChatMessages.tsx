@@ -16,10 +16,7 @@ import { Button } from "@/components/ui/button";
 import { AnimatePresence, motion } from "framer-motion";
 import { useChatSynth } from "@/hooks/useChatSynth";
 import { useTerminalSounds } from "@/hooks/useTerminalSounds";
-import HtmlPreview, {
-  isHtmlCodeBlock,
-  extractHtmlContent,
-} from "@/components/shared/HtmlPreview";
+
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
 import { useTtsQueue } from "@/hooks/useTtsQueue";
 import { useAppStore } from "@/stores/useAppStore";
@@ -951,11 +948,8 @@ function ChatMessagesContent({
                     ? "bg-yellow-100 text-black"
                     : "bg-blue-100 text-black")
                 } ${
-                  isHtmlCodeBlock(message.content).isHtml ||
                   message.parts?.some(
-                    (part) =>
-                      part.type === "text" &&
-                      extractHtmlContent(part.text).hasHtml
+                    (part) => part.type === "tool-invocation"
                   )
                     ? "w-full"
                     : "w-fit max-w-[90%]"
@@ -1003,8 +997,7 @@ function ChatMessagesContent({
                             : part.text;
                           const displayContent =
                             decodeHtmlEntities(rawPartContent);
-                          const { hasHtml, htmlContent, textContent } =
-                            extractHtmlContent(displayContent);
+                          const textContent = displayContent;
 
                           return (
                             <div key={partKey} className="w-full">
@@ -1113,22 +1106,7 @@ function ChatMessagesContent({
                                     });
                                   })()}
                               </div>
-                              {hasHtml && htmlContent && (
-                                <HtmlPreview
-                                  htmlContent={htmlContent}
-                                  onInteractionChange={
-                                    setIsInteractingWithPreview
-                                  }
-                                  isStreaming={
-                                    isLoading &&
-                                    message === messages[messages.length - 1]
-                                  }
-                                  playElevatorMusic={playElevatorMusic}
-                                  stopElevatorMusic={stopElevatorMusic}
-                                  playDingSound={playDingSound}
-                                  className="my-1"
-                                />
-                              )}
+
                             </div>
                           );
                         }
@@ -1161,40 +1139,7 @@ function ChatMessagesContent({
                       }
                     })}
 
-                    {/* Link Previews for Assistant Messages */}
-                    {(() => {
-                      const allUrls = new Set<string>();
-                      message.parts?.forEach((part) => {
-                        if (part.type === "text") {
-                          const partContent = isUrgentMessage(part.text)
-                            ? part.text.slice(4).trimStart()
-                            : part.text;
-                          const decodedContent =
-                            decodeHtmlEntities(partContent);
-                          const { textContent } =
-                            extractHtmlContent(decodedContent);
-                          if (textContent) {
-                            extractUrls(textContent).forEach((url) =>
-                              allUrls.add(url)
-                            );
-                          }
-                        }
-                      });
 
-                      if (allUrls.size === 0) return null;
-
-                      return (
-                        <div className="flex flex-col gap-2 mt-2 w-full">
-                          {Array.from(allUrls).map((url, index) => (
-                            <LinkPreview
-                              key={`${messageKey}-assistant-link-${index}`}
-                              url={url}
-                              className="w-full"
-                            />
-                          ))}
-                        </div>
-                      );
-                    })()}
                   </motion.div>
                 ) : (
                   <>
@@ -1260,42 +1205,53 @@ function ChatMessagesContent({
                         });
                       })()}
                     </span>
-                    {isHtmlCodeBlock(displayContent).isHtml && (
-                      <HtmlPreview
-                        htmlContent={isHtmlCodeBlock(displayContent).content}
-                        onInteractionChange={setIsInteractingWithPreview}
-                        playElevatorMusic={playElevatorMusic}
-                        stopElevatorMusic={stopElevatorMusic}
-                        playDingSound={playDingSound}
-                      />
-                    )}
+
                   </>
                 )}
               </motion.div>
             )}
 
-            {/* Link Previews - Only for non-assistant messages */}
-            {message.role !== "assistant" &&
-              (() => {
-                const urls = extractUrls(displayContent);
-                if (urls.length === 0) return null;
+            {/* Link Previews - Rendered after the message bubble */}
+            {(() => {
+              const allUrls = new Set<string>();
+              
+              if (message.role === "assistant") {
+                // Extract URLs from assistant message parts
+                message.parts?.forEach((part) => {
+                  if (part.type === "text") {
+                    const partContent = isUrgentMessage(part.text)
+                      ? part.text.slice(4).trimStart()
+                      : part.text;
+                    const decodedContent = decodeHtmlEntities(partContent);
+                    extractUrls(decodedContent).forEach((url) =>
+                      allUrls.add(url)
+                    );
+                  }
+                });
+              } else {
+                // Extract URLs from user/human message content
+                extractUrls(displayContent).forEach((url) => allUrls.add(url));
+              }
 
-                return (
-                  <div
-                    className={`flex flex-col gap-2 max-w-[90%] ${
-                      isUrlOnly(displayContent) ? "mt-0" : "mt-2"
-                    }`}
-                  >
-                    {urls.map((url, index) => (
-                      <LinkPreview
-                        key={`${messageKey}-link-${index}`}
-                        url={url}
-                        className="w-full"
-                      />
-                    ))}
-                  </div>
-                );
-              })()}
+              if (allUrls.size === 0) return null;
+
+              return (
+                <div
+                  className={`flex flex-col gap-2 w-full mt-2 ${
+                    message.role === "user" ? "items-end" : "items-start"
+                  }`}
+                >
+                  {Array.from(allUrls).map((url, index) => (
+                    <LinkPreview
+                      key={`${messageKey}-link-${index}`}
+                      url={url}
+                      className="max-w-[90%]"
+                    />
+                  ))}
+                </div>
+              );
+            })()}
+
           </motion.div>
         );
       })}
