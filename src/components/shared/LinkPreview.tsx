@@ -599,8 +599,13 @@ export function LinkPreview({ url, className = "" }: LinkPreviewProps) {
           </div>
 
           {/* Action buttons */}
-          <div className="px-2 pb-2 border-t border-gray-100">
-            <div className=" pt-2">
+          <div className={cn(
+            "pb-2 border-t",
+            theme === "macosx" 
+              ? "border-gray-300" 
+              : "border-gray-200"
+          )}>
+            <div className="px-2 pt-2">
               {isYouTubeUrl(url) ? (
                 url.includes("os.ryo.lu/ipod/") ? (
                   <div className="flex gap-2">
