@@ -895,47 +895,6 @@ function ChatMessagesContent({
             {/* Render aquarium tool(s) as their own element; component styles itself as a chat bubble */}
             {hasAquarium && <EmojiAquarium />}
 
-            {/* Link Previews - Rendered outside the message bubble */}
-            {(() => {
-              const allUrls = new Set<string>();
-              
-              if (message.role === "assistant") {
-                // Extract URLs from assistant message parts
-                message.parts?.forEach((part) => {
-                  if (part.type === "text") {
-                    const partContent = isUrgentMessage(part.text)
-                      ? part.text.slice(4).trimStart()
-                      : part.text;
-                    const decodedContent = decodeHtmlEntities(partContent);
-                    extractUrls(decodedContent).forEach((url) =>
-                      allUrls.add(url)
-                    );
-                  }
-                });
-              } else {
-                // Extract URLs from user/human message content
-                extractUrls(displayContent).forEach((url) => allUrls.add(url));
-              }
-
-              if (allUrls.size === 0) return null;
-
-              return (
-                <div
-                  className={`flex flex-col gap-2 w-full mt-2 ${
-                    message.role === "user" ? "items-end" : "items-start"
-                  }`}
-                >
-                  {Array.from(allUrls).map((url, index) => (
-                    <LinkPreview
-                      key={`${messageKey}-link-${index}`}
-                      url={url}
-                      className="max-w-[90%]"
-                    />
-                  ))}
-                </div>
-              );
-            })()}
-
             {/* Show the standard message bubble if it's not URL-only (even if aquarium exists) */}
             {!isUrlOnly(displayContent) && (
               <motion.div
@@ -1252,6 +1211,46 @@ function ChatMessagesContent({
               </motion.div>
             )}
 
+            {/* Link Previews - Rendered after the message bubble */}
+            {(() => {
+              const allUrls = new Set<string>();
+              
+              if (message.role === "assistant") {
+                // Extract URLs from assistant message parts
+                message.parts?.forEach((part) => {
+                  if (part.type === "text") {
+                    const partContent = isUrgentMessage(part.text)
+                      ? part.text.slice(4).trimStart()
+                      : part.text;
+                    const decodedContent = decodeHtmlEntities(partContent);
+                    extractUrls(decodedContent).forEach((url) =>
+                      allUrls.add(url)
+                    );
+                  }
+                });
+              } else {
+                // Extract URLs from user/human message content
+                extractUrls(displayContent).forEach((url) => allUrls.add(url));
+              }
+
+              if (allUrls.size === 0) return null;
+
+              return (
+                <div
+                  className={`flex flex-col gap-2 w-full mt-2 ${
+                    message.role === "user" ? "items-end" : "items-start"
+                  }`}
+                >
+                  {Array.from(allUrls).map((url, index) => (
+                    <LinkPreview
+                      key={`${messageKey}-link-${index}`}
+                      url={url}
+                      className="max-w-[90%]"
+                    />
+                  ))}
+                </div>
+              );
+            })()}
 
           </motion.div>
         );
