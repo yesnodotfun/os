@@ -12,7 +12,7 @@ export const DEFAULT_VIDEOS: Video[] = [
   {
     id: "TQhv6Wol6Ns",
     url: "https://www.youtube.com/watch?v=TQhv6Wol6Ns&t=26s",
-    title: "Our designer built an operating system with Cursor by Cursor",
+    title: "Our designer built an OS with Cursor",
     artist: "Cursor",
   },
   {
