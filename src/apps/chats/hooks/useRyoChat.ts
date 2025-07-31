@@ -116,40 +116,14 @@ export function useRyoChat({
   const {
     messages: ryoMessages,
     isLoading: isRyoLoading,
-    append: appendToRyo,
     stop: stopRyo,
   } = useChat({
-    maxSteps: 5,
+    maxSteps: 1,
     body: {
       systemState: getSystemState(),
     },
     headers: authHeaders,
-    onFinish: async (message) => {
-      // When AI finishes responding, send the response to the chat room
-      if (currentRoomId && message.role === "assistant") {
-        // Send as a regular message to the room
-        // We'll need to call the API directly since we want it to appear from 'ryo'
-        const headers: HeadersInit = { "Content-Type": "application/json" };
-
-        if (authToken && username) {
-          headers["Authorization"] = `Bearer ${authToken}`;
-          headers["X-Username"] = username;
-        }
-
-        await fetch(`/api/chat-rooms?action=sendMessage`, {
-          method: "POST",
-          headers,
-          body: JSON.stringify({
-            roomId: currentRoomId,
-            username: "ryo",
-            content: message.content,
-          }),
-        });
-
-        // Trigger scroll after AI response is sent to room
-        onScrollToBottom();
-      }
-    },
+    // We no longer stream client-side AI to avoid spoofing. onFinish unused.
   });
 
   const handleRyoMention = useCallback(
@@ -170,18 +144,26 @@ export function useRyoChat({
         },
       };
 
-      // Send the message content to AI with chat room context
-      await appendToRyo(
-        {
-          role: "user",
-          content: messageContent,
-        },
-        {
-          body: { systemState: systemStateWithChat },
-        }
-      );
+      // Call server to generate and insert a @ryo reply using authenticated request
+      const headers: HeadersInit = { "Content-Type": "application/json" };
+      if (authToken && username) {
+        headers["Authorization"] = `Bearer ${authToken}`;
+        headers["X-Username"] = username;
+      }
+
+      await fetch(`/api/chat-rooms?action=generateRyoReply`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          roomId: currentRoomId,
+          prompt: messageContent,
+          systemState: systemStateWithChat,
+        }),
+      });
+
+      onScrollToBottom();
     },
-    [appendToRyo, roomMessages, currentRoomId]
+    [roomMessages, currentRoomId, authToken, username, onScrollToBottom]
   );
 
   const detectAndProcessMention = useCallback(
