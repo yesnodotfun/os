@@ -10,6 +10,23 @@ const getGlobalChannelName = (username?: string | null): string =>
     ? `chats-${username.toLowerCase().replace(/[^a-zA-Z0-9_\-.]/g, "_")}`
     : "chats-public";
 
+// Decode common HTML entities so toast previews show readable text
+const decodeHtmlEntities = (str: string): string => {
+  if (!str) return str;
+  if (typeof window !== "undefined" && typeof document !== "undefined") {
+    const txt = document.createElement("textarea");
+    txt.innerHTML = str;
+    return txt.value;
+  }
+  return str
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'");
+};
+
 export function useChatRoom(
   isWindowOpen: boolean,
   onPromptSetUsername?: () => void
@@ -157,8 +174,12 @@ export function useChatRoom(
         const { currentRoomId: activeRoomId } = useChatsStore.getState();
         if (activeRoomId !== data.message.roomId) {
           incrementUnread(data.message.roomId);
+          const decoded = decodeHtmlEntities(
+            String(data.message.content || "")
+          );
+          const preview = decoded.replace(/\s+/g, " ").trim().slice(0, 80);
           toast(`@${data.message.username}`, {
-            description: data.message.content.slice(0, 80),
+            description: preview,
             action: {
               label: "Open",
               onClick: () => {
