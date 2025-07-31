@@ -16,10 +16,7 @@ import { Button } from "@/components/ui/button";
 import { AnimatePresence, motion } from "framer-motion";
 import { useChatSynth } from "@/hooks/useChatSynth";
 import { useTerminalSounds } from "@/hooks/useTerminalSounds";
-import HtmlPreview, {
-  isHtmlCodeBlock,
-  extractHtmlContent,
-} from "@/components/shared/HtmlPreview";
+
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
 import { useTtsQueue } from "@/hooks/useTtsQueue";
 import { useAppStore } from "@/stores/useAppStore";
@@ -951,11 +948,8 @@ function ChatMessagesContent({
                     ? "bg-yellow-100 text-black"
                     : "bg-blue-100 text-black")
                 } ${
-                  isHtmlCodeBlock(message.content).isHtml ||
                   message.parts?.some(
-                    (part) =>
-                      part.type === "text" &&
-                      extractHtmlContent(part.text).hasHtml
+                    (part) => part.type === "tool-invocation"
                   )
                     ? "w-full"
                     : "w-fit max-w-[90%]"
@@ -1003,8 +997,7 @@ function ChatMessagesContent({
                             : part.text;
                           const displayContent =
                             decodeHtmlEntities(rawPartContent);
-                          const { hasHtml, htmlContent, textContent } =
-                            extractHtmlContent(displayContent);
+                          const textContent = displayContent;
 
                           return (
                             <div key={partKey} className="w-full">
@@ -1113,23 +1106,7 @@ function ChatMessagesContent({
                                     });
                                   })()}
                               </div>
-                              {hasHtml && htmlContent && (
-                                <HtmlPreview
-                                  htmlContent={htmlContent}
-                                  onInteractionChange={
-                                    setIsInteractingWithPreview
-                                  }
-                                  isStreaming={
-                                    isLoading &&
-                                    message === messages[messages.length - 1]
-                                  }
-                                  playElevatorMusic={playElevatorMusic}
-                                  stopElevatorMusic={stopElevatorMusic}
-                                  playDingSound={playDingSound}
-                                  className="my-1"
-                                  disableCodeView={isRoomView}
-                                />
-                              )}
+
                             </div>
                           );
                         }
@@ -1172,13 +1149,9 @@ function ChatMessagesContent({
                             : part.text;
                           const decodedContent =
                             decodeHtmlEntities(partContent);
-                          const { textContent } =
-                            extractHtmlContent(decodedContent);
-                          if (textContent) {
-                            extractUrls(textContent).forEach((url) =>
-                              allUrls.add(url)
-                            );
-                          }
+                          extractUrls(decodedContent).forEach((url) =>
+                            allUrls.add(url)
+                          );
                         }
                       });
 
@@ -1261,16 +1234,7 @@ function ChatMessagesContent({
                         });
                       })()}
                     </span>
-                    {isHtmlCodeBlock(displayContent).isHtml && (
-                      <HtmlPreview
-                        htmlContent={isHtmlCodeBlock(displayContent).content}
-                        onInteractionChange={setIsInteractingWithPreview}
-                        playElevatorMusic={playElevatorMusic}
-                        stopElevatorMusic={stopElevatorMusic}
-                        playDingSound={playDingSound}
-                        disableCodeView={isRoomView}
-                      />
-                    )}
+
                   </>
                 )}
               </motion.div>
