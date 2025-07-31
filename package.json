@@ -8,8 +8,9 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "clear-chats": "bun scripts/clear-chat-data.js",
-    "generate:icons": "bun run scripts/generate-icon-manifest.ts"
+    "generate:icons": "bun run scripts/generate-icon-manifest.ts",
+    "generate:wallpapers": "bun run scripts/generate-wallpaper-manifest.ts",
+    "launch-kiosk": "bash scripts/launch-kiosk.sh"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^1.2.12",
@@ -100,5 +101,5 @@
     "vite-plugin-pwa": "^0.21.2",
     "vite-plugin-vercel": "^9.0.7"
   },
-  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
+  "packageManager": "bun@1.2.19"
 }
