@@ -1237,7 +1237,7 @@ function ChatMessagesContent({
 
               return (
                 <div
-                  className={`flex flex-col gap-2 w-full mt-2 ${
+                  className={`flex flex-col gap-2 w-full ${!isUrlOnly(displayContent) ? 'mt-2' : ''} ${
                     message.role === "user" ? "items-end" : "items-start"
                   }`}
                 >
