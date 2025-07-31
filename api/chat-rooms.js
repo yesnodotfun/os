@@ -99,8 +99,10 @@ const CHAT_MIN_INTERVAL_SECONDS = 2; // minimum seconds between messages
 // Input-validation / sanitization helpers
 // ------------------------------
 
-// Usernames: 3-30 characters, letters, numbers, underscore or hyphen
-const USERNAME_REGEX = /^[a-z0-9_-]{3,30}$/i;
+// Usernames: 3-30 chars, start with a letter, letters/numbers,
+// optional single hyphen/underscore between alphanumerics (no leading/trailing or consecutive separators)
+// Examples: ok -> "alice", "john_doe", "foo-bar"; not ok -> "_joe", "joe_", "a--b", "a__b", "a b", "a@b"
+const USERNAME_REGEX = /^[a-z](?:[a-z0-9]|[-_](?=[a-z0-9])){2,29}$/i;
 
 // Room IDs generated internally are base-36 alphanumerics; still validate when received from client
 const ROOM_ID_REGEX = /^[a-z0-9]+$/i;
@@ -171,9 +173,11 @@ function assertValidUsername(username, requestId) {
   if (!USERNAME_REGEX.test(username)) {
     logInfo(
       requestId,
-      `Invalid username format: ${username}. Must match ${USERNAME_REGEX}`
+      `Invalid username format: ${username}. Must be 3-30 chars, start with a letter, contain only letters/numbers, and may use single '-' or '_' between characters (no spaces or symbols).`
     );
-    throw new Error("Invalid username format");
+    throw new Error(
+      "Invalid username: use 3-30 letters/numbers; '-' or '_' allowed between characters; no spaces or symbols"
+    );
   }
 }
 
@@ -1854,6 +1858,13 @@ async function handleCreateUser(data, requestId) {
 
   // Normalize username to lowercase
   const username = originalUsername.toLowerCase();
+
+  // Validate username format strictly
+  try {
+    assertValidUsername(username, requestId);
+  } catch (e) {
+    return createErrorResponse(e.message, 400);
+  }
 
   logInfo(
     requestId,

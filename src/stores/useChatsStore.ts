@@ -1324,6 +1324,18 @@ export const useChatsStore = create<ChatsStoreState>()(
             return { ok: false, error: "Username cannot be empty" };
           }
 
+          // Client-side validation mirroring server rules to provide instant feedback
+          const isValid = /^[a-z](?:[a-z0-9]|[-_](?=[a-z0-9])){2,29}$/i.test(
+            trimmedUsername
+          );
+          if (!isValid) {
+            return {
+              ok: false,
+              error:
+                "Invalid username: use 3-30 letters/numbers; '-' or '_' allowed between characters; no spaces or symbols",
+            };
+          }
+
           try {
             const response = await fetch("/api/chat-rooms?action=createUser", {
               method: "POST",
