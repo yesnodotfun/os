@@ -1127,6 +1127,7 @@ function ChatMessagesContent({
                                   stopElevatorMusic={stopElevatorMusic}
                                   playDingSound={playDingSound}
                                   className="my-1"
+                                  disableCodeView={isRoomView}
                                 />
                               )}
                             </div>
@@ -1267,6 +1268,7 @@ function ChatMessagesContent({
                         playElevatorMusic={playElevatorMusic}
                         stopElevatorMusic={stopElevatorMusic}
                         playDingSound={playDingSound}
+                        disableCodeView={isRoomView}
                       />
                     )}
                   </>

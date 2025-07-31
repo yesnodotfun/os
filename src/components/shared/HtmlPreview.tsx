@@ -157,6 +157,7 @@ interface HtmlPreviewProps {
   isInternetExplorer?: boolean;
   baseUrlForAiContent?: string;
   mode?: "past" | "future" | "now";
+  disableCodeView?: boolean;
 }
 
 export default function HtmlPreview({
@@ -175,6 +176,7 @@ export default function HtmlPreview({
   isInternetExplorer = false,
   baseUrlForAiContent,
   mode = "now",
+  disableCodeView = false,
 }: HtmlPreviewProps) {
   const [isFullScreen, setIsFullScreen] = useState(initialFullScreen);
   const [copySuccess, setCopySuccess] = useState(false);
@@ -544,6 +546,14 @@ export default function HtmlPreview({
       isMounted = false;
     };
   }, [showCode, finalProcessedHtmlRef.current]); // Depend on showCode and the final content ref
+
+  // Reset showCode when disableCodeView becomes true
+  useEffect(() => {
+    if (disableCodeView && showCode) {
+      setShowCode(false);
+      setIsSplitView(false);
+    }
+  }, [disableCodeView, showCode]);
 
   // Play music and cancel when unmounting for streaming content
   useEffect(() => {
@@ -1025,7 +1035,7 @@ export default function HtmlPreview({
                 >
                   {/* Code view layer - always 100% width underneath */}
                   <AnimatePresence>
-                    {showCode ? (
+                    {showCode && !disableCodeView ? (
                       <motion.div
                         key="code"
                         className="absolute inset-0 bg-[#24292e] font-geneva-12 overflow-auto p-4 z-10"
@@ -1046,19 +1056,19 @@ export default function HtmlPreview({
                     initial={false}
                     animate={{
                       width:
-                        isSplitView && showCode
+                        isSplitView && showCode && !disableCodeView
                           ? isMobile
                             ? "100%"
                             : "50%"
                           : "100%",
                       height:
-                        isSplitView && showCode
+                        isSplitView && showCode && !disableCodeView
                           ? isMobile
                             ? "50%"
                             : "100%"
                           : "100%",
                       right: 0,
-                      opacity: showCode && !isSplitView ? 0 : 1,
+                      opacity: showCode && !isSplitView && !disableCodeView ? 0 : 1,
                     }}
                     transition={{
                       duration: 0.3,
@@ -1066,7 +1076,7 @@ export default function HtmlPreview({
                     }}
                     style={{
                       position: "absolute",
-                      top: showCode && isSplitView && isMobile ? "50%" : 0,
+                      top: showCode && isSplitView && isMobile && !disableCodeView ? "50%" : 0,
                       right: 0,
                       overflow: "hidden", // Clip content
                     }}
@@ -1232,7 +1242,7 @@ export default function HtmlPreview({
                           />
                         </div>
 
-                        {showCode && (
+                        {showCode && !disableCodeView && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -1251,27 +1261,29 @@ export default function HtmlPreview({
                             </span>
                           </button>
                         )}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (!showCode) {
-                              setShowCode(true);
-                              setIsSplitView(true);
-                              maximizeSound.play();
-                            } else {
-                              setShowCode(false);
-                              setIsSplitView(false);
-                              minimizeSound.play();
-                            }
-                          }}
-                          className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full group"
-                          aria-label="Toggle code"
-                        >
-                          <Code
-                            size={20}
-                            className="text-white/70 group-hover:text-white"
-                          />
-                        </button>
+                        {!disableCodeView && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (!showCode) {
+                                setShowCode(true);
+                                setIsSplitView(true);
+                                maximizeSound.play();
+                              } else {
+                                setShowCode(false);
+                                setIsSplitView(false);
+                                minimizeSound.play();
+                              }
+                            }}
+                            className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full group"
+                            aria-label="Toggle code"
+                          >
+                            <Code
+                              size={20}
+                              className="text-white/70 group-hover:text-white"
+                            />
+                          </button>
+                        )}
                         <button
                           onClick={handleSaveToDisk}
                           className="flex items-center justify-center w-8 h-8 hover:bg-white/10 rounded-full group"
