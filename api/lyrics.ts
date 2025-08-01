@@ -142,6 +142,21 @@ export default async function handler(req: Request) {
   const requestId = generateRequestId();
   logRequest(req.method, req.url, null, requestId);
 
+  if (req.method === "OPTIONS") {
+    const origin = req.headers.get("origin");
+    const ALLOWED_ORIGINS = new Set(["https://os.ryo.lu", "http://localhost:3000"]);
+    if (origin && ALLOWED_ORIGINS.has(origin)) {
+      return new Response(null, {
+        headers: {
+          "Access-Control-Allow-Origin": origin,
+          "Access-Control-Allow-Methods": "POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type",
+        },
+      });
+    }
+    return new Response("Unauthorized", { status: 403 });
+  }
+
   if (req.method !== "POST") {
     logError(requestId, "Method not allowed", null);
     return new Response("Method not allowed", { status: 405 });
@@ -150,6 +165,12 @@ export default async function handler(req: Request) {
   // Parse and validate request body
   let body: LyricsRequest;
   try {
+    const origin = req.headers.get("origin");
+    const ALLOWED_ORIGINS = new Set(["https://os.ryo.lu", "http://localhost:3000"]);
+    if (!origin || !ALLOWED_ORIGINS.has(origin)) {
+      return new Response("Unauthorized", { status: 403 });
+    }
+
     // Rate limits: burst 10/min/IP + daily 200/IP
     try {
       const ip = RateLimit.getClientIp(req);
@@ -165,7 +186,7 @@ export default async function handler(req: Request) {
       if (!burst.allowed) {
         return new Response(
           JSON.stringify({ error: "rate_limit_exceeded", scope: "burst" }),
-          { status: 429, headers: { "Retry-After": String(burst.resetSeconds ?? BURST_WINDOW), "Content-Type": "application/json" } }
+          { status: 429, headers: { "Retry-After": String(burst.resetSeconds ?? BURST_WINDOW), "Content-Type": "application/json", "Access-Control-Allow-Origin": origin } }
         );
       }
 
@@ -173,7 +194,7 @@ export default async function handler(req: Request) {
       if (!daily.allowed) {
         return new Response(
           JSON.stringify({ error: "rate_limit_exceeded", scope: "daily" }),
-          { status: 429, headers: { "Retry-After": String(daily.resetSeconds ?? DAILY_WINDOW), "Content-Type": "application/json" } }
+          { status: 429, headers: { "Retry-After": String(daily.resetSeconds ?? DAILY_WINDOW), "Content-Type": "application/json", "Access-Control-Allow-Origin": origin } }
         );
       }
     } catch (e) {
@@ -221,6 +242,7 @@ export default async function handler(req: Request) {
         headers: {
           "Content-Type": "application/json",
           "X-Lyrics-Cache": "HIT",
+          "Access-Control-Allow-Origin": origin,
         },
       });
     }
@@ -339,22 +361,22 @@ export default async function handler(req: Request) {
         console.error("Redis cache write failed (lyrics)", err);
       }
 
-      return new Response(JSON.stringify(result), {
-        headers: { "Content-Type": "application/json" },
-      });
+    return new Response(JSON.stringify(result), {
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": origin },
+    });
     }
 
     // If loop completes without returning, we failed to fetch lyrics
     return new Response(
       JSON.stringify({ error: "Lyrics not found for given query" }),
-      { status: 404, headers: { "Content-Type": "application/json" } }
+      { status: 404, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": origin } }
     );
   } catch (error: unknown) {
     logError(requestId, "Error fetching lyrics", error);
     console.error("Error fetching lyrics:", error);
     return new Response(JSON.stringify({ error: "Unexpected server error" }), {
       status: 500,
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": origin ?? "*" },
     });
   }
 }

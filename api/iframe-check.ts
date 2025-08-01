@@ -162,6 +162,11 @@ export default async function handler(req: Request) {
   const year = searchParams.get("year");
   const month = searchParams.get("month");
   const requestId = generateRequestId(); // Generate request ID
+  const origin = req.headers.get("origin");
+  const ALLOWED_ORIGINS = new Set(["https://os.ryo.lu", "http://localhost:3000"]);
+  if (!origin || !ALLOWED_ORIGINS.has(origin)) {
+    return new Response("Unauthorized", { status: 403 });
+  }
 
   // Generate a fresh, randomized browser header set for this request
   const BROWSER_HEADERS = generateRandomBrowserHeaders();
@@ -226,7 +231,10 @@ export default async function handler(req: Request) {
             { status: 429, headers: { "Retry-After": String(host.resetSeconds ?? BURST_WINDOW), "Content-Type": "application/json" } }
           );
         }
-      } catch {}
+      } catch (e) {
+        // Ignore invalid URL parse or missing hostname
+        void e;
+      }
     } else if (mode === "ai" || mode === "list-cache") {
       const key = RateLimit.makeKey(burstKeyBase);
       const res = await RateLimit.checkCounterLimit({

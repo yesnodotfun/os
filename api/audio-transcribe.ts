@@ -17,11 +17,33 @@ export const config = {
   runtime: "edge",
 };
 
+// Allowed origins for CORS
+const ALLOWED_ORIGINS = new Set(["https://os.ryo.lu", "http://localhost:3000"]);
+
 const MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024; // 2MB limit imposed by OpenAI
 
 export default async function handler(req: Request) {
+  const origin = req.headers.get("origin");
+
+  if (req.method === "OPTIONS") {
+    if (origin && ALLOWED_ORIGINS.has(origin)) {
+      return new Response(null, {
+        headers: {
+          "Access-Control-Allow-Origin": origin,
+          "Access-Control-Allow-Methods": "POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type",
+        },
+      });
+    }
+    return new Response("Unauthorized", { status: 403 });
+  }
+
   if (req.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
+  }
+
+  if (!origin || !ALLOWED_ORIGINS.has(origin)) {
+    return new Response("Unauthorized", { status: 403 });
   }
 
   try {
@@ -56,6 +78,7 @@ export default async function handler(req: Request) {
             headers: {
               "Retry-After": String(burst.resetSeconds ?? BURST_WINDOW),
               "Content-Type": "application/json",
+              "Access-Control-Allow-Origin": origin,
             },
           }
         );
@@ -81,6 +104,7 @@ export default async function handler(req: Request) {
             headers: {
               "Retry-After": String(daily.resetSeconds ?? DAILY_WINDOW),
               "Content-Type": "application/json",
+              "Access-Control-Allow-Origin": origin,
             },
           }
         );
@@ -133,7 +157,7 @@ export default async function handler(req: Request) {
     });
 
     return new Response(JSON.stringify({ text: transcription.text }), {
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": origin },
     });
   } catch (error: unknown) {
     console.error("Error processing audio:", error);
@@ -145,7 +169,7 @@ export default async function handler(req: Request) {
       }),
       {
         status: openAIError.status || 500,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": origin ?? "*" },
       }
     );
   }

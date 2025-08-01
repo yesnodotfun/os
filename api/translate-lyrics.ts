@@ -95,6 +95,12 @@ export default async function handler(req: Request) {
   }
 
   try {
+    const origin = req.headers.get("origin");
+    const ALLOWED_ORIGINS = new Set(["https://os.ryo.lu", "http://localhost:3000"]);
+    if (!origin || !ALLOWED_ORIGINS.has(origin)) {
+      return new Response("Unauthorized", { status: 403 });
+    }
+
     // Rate limits: burst 5/min/IP + daily 100/IP
     try {
       const ip = RateLimit.getClientIp(req);
@@ -110,7 +116,7 @@ export default async function handler(req: Request) {
       if (!burst.allowed) {
         return new Response(
           JSON.stringify({ error: "rate_limit_exceeded", scope: "burst" }),
-          { status: 429, headers: { "Retry-After": String(burst.resetSeconds ?? BURST_WINDOW), "Content-Type": "text/plain; charset=utf-8" } }
+          { status: 429, headers: { "Retry-After": String(burst.resetSeconds ?? BURST_WINDOW), "Content-Type": "text/plain; charset=utf-8", "Access-Control-Allow-Origin": origin } }
         );
       }
 
@@ -118,7 +124,7 @@ export default async function handler(req: Request) {
       if (!daily.allowed) {
         return new Response(
           JSON.stringify({ error: "rate_limit_exceeded", scope: "daily" }),
-          { status: 429, headers: { "Retry-After": String(daily.resetSeconds ?? DAILY_WINDOW), "Content-Type": "text/plain; charset=utf-8" } }
+          { status: 429, headers: { "Retry-After": String(daily.resetSeconds ?? DAILY_WINDOW), "Content-Type": "text/plain; charset=utf-8", "Access-Control-Allow-Origin": origin } }
         );
       }
     } catch (e) {
@@ -223,7 +229,7 @@ Do not include timestamps or any other formatting in your output strings; just t
     }
 
     return new Response(lrcResult, {
-      headers: { "Content-Type": "text/plain; charset=utf-8" },
+      headers: { "Content-Type": "text/plain; charset=utf-8", "Access-Control-Allow-Origin": origin },
     });
   } catch (error: unknown) {
     logError(requestId, "Error translating lyrics", error);
@@ -238,7 +244,7 @@ Do not include timestamps or any other formatting in your output strings; just t
     // Return error as plain text if API is expected to be text/plain
     return new Response(`Error: ${errorMessage}`, {
       status: 500,
-      headers: { "Content-Type": "text/plain; charset=utf-8" },
+      headers: { "Content-Type": "text/plain; charset=utf-8", "Access-Control-Allow-Origin": origin ?? "*" },
     });
   }
 }

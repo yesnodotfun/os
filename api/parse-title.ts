@@ -25,6 +25,12 @@ export default async function handler(req: Request) {
   }
 
   try {
+    const origin = req.headers.get("origin");
+    const ALLOWED_ORIGINS = new Set(["https://os.ryo.lu", "http://localhost:3000"]);
+    if (!origin || !ALLOWED_ORIGINS.has(origin)) {
+      return new Response("Unauthorized", { status: 403 });
+    }
+
     // Rate limits: burst 15/min/IP + daily 500/IP
     try {
       const ip = RateLimit.getClientIp(req);
@@ -38,18 +44,18 @@ export default async function handler(req: Request) {
 
       const burst = await RateLimit.checkCounterLimit({ key: burstKey, windowSeconds: BURST_WINDOW, limit: BURST_LIMIT });
       if (!burst.allowed) {
-        return new Response(
-          JSON.stringify({ error: "rate_limit_exceeded", scope: "burst" }),
-          { status: 429, headers: { "Retry-After": String(burst.resetSeconds ?? BURST_WINDOW), "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ error: "rate_limit_exceeded", scope: "burst" }), {
+          status: 429,
+          headers: { "Retry-After": String(burst.resetSeconds ?? BURST_WINDOW), "Content-Type": "application/json", "Access-Control-Allow-Origin": origin },
+        });
       }
 
       const daily = await RateLimit.checkCounterLimit({ key: dailyKey, windowSeconds: DAILY_WINDOW, limit: DAILY_LIMIT });
       if (!daily.allowed) {
-        return new Response(
-          JSON.stringify({ error: "rate_limit_exceeded", scope: "daily" }),
-          { status: 429, headers: { "Retry-After": String(daily.resetSeconds ?? DAILY_WINDOW), "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ error: "rate_limit_exceeded", scope: "daily" }), {
+          status: 429,
+          headers: { "Retry-After": String(daily.resetSeconds ?? DAILY_WINDOW), "Content-Type": "application/json", "Access-Control-Allow-Origin": origin },
+        });
       }
     } catch (e) {
       // Fail open but log
@@ -88,7 +94,7 @@ export default async function handler(req: Request) {
     };
 
     return new Response(JSON.stringify(result), {
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": origin },
     });
   } catch (error: unknown) {
     console.error("Error parsing title:", error);
@@ -115,15 +121,9 @@ export default async function handler(req: Request) {
       status = error.status;
     }
 
-    return new Response(
-      JSON.stringify({
-        error: errorMessage,
-        details: errorDetails, // Details might be less structured now
-      }),
-      {
-        status: status,
-        headers: { "Content-Type": "application/json" },
-      }
-    );
+    return new Response(JSON.stringify({ error: errorMessage, details: errorDetails }), {
+      status,
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": origin ?? "*" },
+    });
   }
 }
