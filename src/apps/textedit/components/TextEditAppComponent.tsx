@@ -31,8 +31,27 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { AudioInputButton } from "@/components/ui/audio-input-button";
-import { ChevronDown, Volume2, Loader2 } from "lucide-react";
+import {
+  ChevronDown,
+  Volume2,
+  Loader2,
+  Bold as BoldIcon,
+  Italic as ItalicIcon,
+  Underline as UnderlineIcon,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  List as ListIcon,
+  ListOrdered,
+} from "lucide-react";
 import { PlaybackBars } from "@/components/ui/playback-bars";
 import { useLaunchApp } from "@/hooks/useLaunchApp";
 import { useSound, Sounds } from "@/hooks/useSound";
@@ -45,6 +64,7 @@ import {
 import { useAppStore } from "@/stores/useAppStore";
 import { JSONContent, Editor } from "@tiptap/core";
 import { useThemeStore } from "@/stores/useThemeStore";
+import { Button } from "@/components/ui/button";
 
 // Define the type for TextEdit initial data
 interface TextEditInitialData {
@@ -135,6 +155,7 @@ export function TextEditAppComponent({
   const launchAppInstance = useAppStore((state) => state.launchApp);
   const currentTheme = useThemeStore((state) => state.current);
   const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
+  const isLegacyToolbarTheme = isXpTheme || currentTheme === "system7";
 
   // Use store actions directly to avoid reference changes
   const createTextEditInstance = useTextEditStore(
@@ -1109,7 +1130,7 @@ export function TextEditAppComponent({
       >
         <div className="flex flex-col h-full w-full">
           <div
-            className={`flex-1 flex flex-col bg-white relative min-h-0 ${
+            className={`flex-1 flex flex-col relative min-h-0 ${
               isDraggingOver
                 ? "after:absolute after:inset-0 after:bg-black/20"
                 : ""
@@ -1133,252 +1154,540 @@ export function TextEditAppComponent({
             onMouseLeave={() => setIsDraggingOver(false)}
             onDrop={handleFileDrop}
           >
-            <div className="flex bg-[#c0c0c0] border-b border-black w-full flex-shrink-0">
-              <div className="flex px-1 py-1 gap-x-1">
-                {/* Text style group */}
-                <div className="flex">
-                  <button
-                    onClick={() => {
-                      playButtonClick();
-                      editor?.chain().focus().toggleBold().run();
-                    }}
-                    className="w-[26px] h-[22px] flex items-center justify-center"
-                  >
-                    <img
-                      src={`/icons/default/text-editor/bold-${
-                        editor?.isActive("bold") ? "depressed" : "off"
-                      }.png`}
-                      alt="Bold"
-                      className="w-[26px] h-[22px]"
-                    />
-                  </button>
-                  <button
-                    onClick={() => {
-                      playButtonClick();
-                      editor?.chain().focus().toggleItalic().run();
-                    }}
-                    className="w-[26px] h-[22px] flex items-center justify-center"
-                  >
-                    <img
-                      src={`/icons/default/text-editor/italic-${
-                        editor?.isActive("italic") ? "depressed" : "off"
-                      }.png`}
-                      alt="Italic"
-                      className="w-[26px] h-[22px]"
-                    />
-                  </button>
-                  <button
-                    onClick={() => {
-                      playButtonClick();
-                      editor?.chain().focus().toggleUnderline().run();
-                    }}
-                    className="w-[26px] h-[22px] flex items-center justify-center"
-                  >
-                    <img
-                      src={`/icons/default/text-editor/underline-${
-                        editor?.isActive("underline") ? "depressed" : "off"
-                      }.png`}
-                      alt="Underline"
-                      className="w-[26px] h-[22px]"
-                    />
-                  </button>
-                </div>
+            {isLegacyToolbarTheme ? (
+              <div className="flex bg-[#c0c0c0] border-b border-black w-full flex-shrink-0">
+                <div className="flex px-1 py-1 gap-x-1">
+                  {/* Text style group */}
+                  <div className="flex">
+                    <button
+                      onClick={() => {
+                        playButtonClick();
+                        editor?.chain().focus().toggleBold().run();
+                      }}
+                      className="w-[26px] h-[22px] flex items-center justify-center"
+                    >
+                      <img
+                        src={`/icons/default/text-editor/bold-${
+                          editor?.isActive("bold") ? "depressed" : "off"
+                        }.png`}
+                        alt="Bold"
+                        className="w-[26px] h-[22px]"
+                      />
+                    </button>
+                    <button
+                      onClick={() => {
+                        playButtonClick();
+                        editor?.chain().focus().toggleItalic().run();
+                      }}
+                      className="w-[26px] h-[22px] flex items-center justify-center"
+                    >
+                      <img
+                        src={`/icons/default/text-editor/italic-${
+                          editor?.isActive("italic") ? "depressed" : "off"
+                        }.png`}
+                        alt="Italic"
+                        className="w-[26px] h-[22px]"
+                      />
+                    </button>
+                    <button
+                      onClick={() => {
+                        playButtonClick();
+                        editor?.chain().focus().toggleUnderline().run();
+                      }}
+                      className="w-[26px] h-[22px] flex items-center justify-center"
+                    >
+                      <img
+                        src={`/icons/default/text-editor/underline-${
+                          editor?.isActive("underline") ? "depressed" : "off"
+                        }.png`}
+                        alt="Underline"
+                        className="w-[26px] h-[22px]"
+                      />
+                    </button>
+                  </div>
 
-                {/* Divider */}
-                <div className="w-[1px] h-[22px] bg-[#808080] shadow-[1px_0_0_#ffffff]" />
+                  {/* Divider */}
+                  <div className="w-[1px] h-[22px] bg-[#808080] shadow-[1px_0_0_#ffffff]" />
+
+                  {/* Heading selector */}
+                  <div className="flex">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="w-[80px] h-[22px] flex items-center justify-between px-2 bg-white border border-[#808080] text-sm">
+                          {editor?.isActive("heading", { level: 1 })
+                            ? "H1"
+                            : editor?.isActive("heading", { level: 2 })
+                            ? "H2"
+                            : editor?.isActive("heading", { level: 3 })
+                            ? "H3"
+                            : "Text"}
+                          <ChevronDown className="ml-1 h-3 w-3" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="w-[80px]">
+                        <DropdownMenuItem
+                          onClick={() =>
+                            editor?.chain().focus().setParagraph().run()
+                          }
+                          className={`text-sm h-6 px-2 ${
+                            editor?.isActive("paragraph") ? "bg-gray-200" : ""
+                          }`}
+                        >
+                          Text
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() =>
+                            editor
+                              ?.chain()
+                              .focus()
+                              .toggleHeading({ level: 1 })
+                              .run()
+                          }
+                          className={`text-sm h-6 px-2 ${
+                            editor?.isActive("heading", { level: 1 })
+                              ? "bg-gray-200"
+                              : ""
+                          }`}
+                        >
+                          H1
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() =>
+                            editor
+                              ?.chain()
+                              .focus()
+                              .toggleHeading({ level: 2 })
+                              .run()
+                          }
+                          className={`text-sm h-6 px-2 ${
+                            editor?.isActive("heading", { level: 2 })
+                              ? "bg-gray-200"
+                              : ""
+                          }`}
+                        >
+                          H2
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() =>
+                            editor
+                              ?.chain()
+                              .focus()
+                              .toggleHeading({ level: 3 })
+                              .run()
+                          }
+                          className={`text-sm h-6 px-2 ${
+                            editor?.isActive("heading", { level: 3 })
+                              ? "bg-gray-200"
+                              : ""
+                          }`}
+                        >
+                          H3
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+
+                  {/* Divider */}
+                  <div className="w-[1px] h-[22px] bg-[#808080] shadow-[1px_0_0_#ffffff]" />
+
+                  {/* Alignment group */}
+                  <div className="flex">
+                    <button
+                      onClick={() => {
+                        playButtonClick();
+                        editor?.chain().focus().setTextAlign("left").run();
+                      }}
+                      className="w-[26px] h-[22px] flex items-center justify-center"
+                    >
+                      <img
+                        src={`/icons/default/text-editor/align-left-${
+                          editor?.isActive({ textAlign: "left" })
+                            ? "depressed"
+                            : "off"
+                        }.png`}
+                        alt="Align Left"
+                        className="w-[26px] h-[22px]"
+                      />
+                    </button>
+                    <button
+                      onClick={() => {
+                        playButtonClick();
+                        editor?.chain().focus().setTextAlign("center").run();
+                      }}
+                      className="w-[26px] h-[22px] flex items-center justify-center"
+                    >
+                      <img
+                        src={`/icons/default/text-editor/align-center-${
+                          editor?.isActive({ textAlign: "center" })
+                            ? "depressed"
+                            : "off"
+                        }.png`}
+                        alt="Align Center"
+                        className="w-[26px] h-[22px]"
+                      />
+                    </button>
+                    <button
+                      onClick={() => {
+                        playButtonClick();
+                        editor?.chain().focus().setTextAlign("right").run();
+                      }}
+                      className="w-[26px] h-[22px] flex items-center justify-center"
+                    >
+                      <img
+                        src={`/icons/default/text-editor/align-right-${
+                          editor?.isActive({ textAlign: "right" })
+                            ? "depressed"
+                            : "off"
+                        }.png`}
+                        alt="Align Right"
+                        className="w-[26px] h-[22px]"
+                      />
+                    </button>
+                  </div>
+
+                  {/* Divider */}
+                  <div className="w-[1px] h-[22px] bg-[#808080] shadow-[1px_0_0_#ffffff]" />
+
+                  {/* List group */}
+                  <div className="flex">
+                    <button
+                      onClick={() => {
+                        playButtonClick();
+                        editor?.chain().focus().toggleBulletList().run();
+                      }}
+                      className="w-[26px] h-[22px] flex items-center justify-center"
+                    >
+                      <img
+                        src={`/icons/default/text-editor/unordered-list-${
+                          editor?.isActive("bulletList") ? "depressed" : "off"
+                        }.png`}
+                        alt="Bullet List"
+                        className="w-[26px] h-[22px]"
+                      />
+                    </button>
+                    <button
+                      onClick={() => {
+                        playButtonClick();
+                        editor?.chain().focus().toggleOrderedList().run();
+                      }}
+                      className="w-[26px] h-[22px] flex items-center justify-center"
+                    >
+                      <img
+                        src={`/icons/default/text-editor/ordered-list-${
+                          editor?.isActive("orderedList") ? "depressed" : "off"
+                        }.png`}
+                        alt="Ordered List"
+                        className="w-[26px] h-[22px]"
+                      />
+                    </button>
+                  </div>
+
+                  {/* Divider */}
+                  <div className="w-[1px] h-[22px] bg-[#808080] shadow-[1px_0_0_#ffffff]" />
+
+                  {/* Voice transcription & speech */}
+                  <div className="flex">
+                    <AudioInputButton
+                      onTranscriptionComplete={handleTranscriptionComplete}
+                      onTranscriptionStart={handleTranscriptionStart}
+                      isLoading={isTranscribing}
+                      className="w-[26px] h-[22px] flex items-center justify-center"
+                      silenceThreshold={10000}
+                    />
+                    {speechEnabled && (
+                      <button
+                        onClick={() => {
+                          playButtonClick();
+                          handleSpeak();
+                        }}
+                        className="w-[26px] h-[22px] flex items-center justify-center"
+                        aria-label={isSpeaking ? "Stop speech" : "Speak"}
+                      >
+                        {isTtsLoading ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : isSpeaking ? (
+                          <PlaybackBars color="black" />
+                        ) : (
+                          <Volume2 className="h-4 w-4" />
+                        )}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div
+                className={`flex items-center gap-1 p-1 ${
+                  isXpTheme
+                    ? "border-b border-[#919b9c]"
+                    : currentTheme === "macosx"
+                    ? "bg-transparent"
+                    : currentTheme === "system7"
+                    ? "bg-gray-100 border-b border-black"
+                    : "bg-gray-100 border-b border-gray-300"
+                }`}
+                style={{
+                  borderBottom:
+                    currentTheme === "macosx"
+                      ? "var(--os-metrics-titlebar-border-width, 1px) solid var(--os-color-titlebar-border-inactive, rgba(0, 0, 0, 0.2))"
+                      : undefined,
+                }}
+              >
+                {/* Text style group */}
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => editor?.chain().focus().toggleBold().run()}
+                    aria-label="Bold"
+                  >
+                    <BoldIcon
+                      className={`h-4 w-4 ${
+                        editor?.isActive("bold")
+                          ? "text-black"
+                          : "text-neutral-500"
+                      }`}
+                    />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => editor?.chain().focus().toggleItalic().run()}
+                    aria-label="Italic"
+                  >
+                    <ItalicIcon
+                      className={`h-4 w-4 ${
+                        editor?.isActive("italic")
+                          ? "text-black"
+                          : "text-neutral-500"
+                      }`}
+                    />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() =>
+                      editor?.chain().focus().toggleUnderline().run()
+                    }
+                    aria-label="Underline"
+                  >
+                    <UnderlineIcon
+                      className={`h-4 w-4 ${
+                        editor?.isActive("underline")
+                          ? "text-black"
+                          : "text-neutral-500"
+                      }`}
+                    />
+                  </Button>
+                </div>
 
                 {/* Heading selector */}
-                <div className="flex">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button className="w-[80px] h-[22px] flex items-center justify-between px-2 bg-white border border-[#808080] text-sm">
-                        {editor?.isActive("heading", { level: 1 })
-                          ? "H1"
+                <div className="flex items-center mx-1">
+                  {currentTheme === "macosx" ? (
+                    <Select
+                      value={
+                        editor?.isActive("heading", { level: 1 })
+                          ? "h1"
                           : editor?.isActive("heading", { level: 2 })
-                          ? "H2"
+                          ? "h2"
                           : editor?.isActive("heading", { level: 3 })
-                          ? "H3"
-                          : "Text"}
-                        <ChevronDown className="ml-1 h-3 w-3" />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-[80px]">
-                      <DropdownMenuItem
-                        onClick={() =>
-                          editor?.chain().focus().setParagraph().run()
+                          ? "h3"
+                          : "text"
+                      }
+                      onValueChange={(val) => {
+                        if (!editor) return;
+                        const chain = editor.chain().focus();
+                        if (val === "text") {
+                          chain.setParagraph().run();
+                          return;
                         }
-                        className={`text-sm h-6 px-2 ${
-                          editor?.isActive("paragraph") ? "bg-gray-200" : ""
-                        }`}
-                      >
-                        Text
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() =>
-                          editor
-                            ?.chain()
-                            .focus()
-                            .toggleHeading({ level: 1 })
-                            .run()
+                        const level = val === "h1" ? 1 : val === "h2" ? 2 : 3;
+                        if (!editor.isActive("heading", { level })) {
+                          chain.toggleHeading({ level }).run();
                         }
-                        className={`text-sm h-6 px-2 ${
-                          editor?.isActive("heading", { level: 1 })
-                            ? "bg-gray-200"
-                            : ""
-                        }`}
-                      >
-                        H1
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() =>
-                          editor
-                            ?.chain()
-                            .focus()
-                            .toggleHeading({ level: 2 })
-                            .run()
-                        }
-                        className={`text-sm h-6 px-2 ${
-                          editor?.isActive("heading", { level: 2 })
-                            ? "bg-gray-200"
-                            : ""
-                        }`}
-                      >
-                        H2
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() =>
-                          editor
-                            ?.chain()
-                            .focus()
-                            .toggleHeading({ level: 3 })
-                            .run()
-                        }
-                        className={`text-sm h-6 px-2 ${
-                          editor?.isActive("heading", { level: 3 })
-                            ? "bg-gray-200"
-                            : ""
-                        }`}
-                      >
-                        H3
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                      }}
+                    >
+                      <SelectTrigger className="h-7 px-2 min-w-[100px] !text-[12px]">
+                        <SelectValue placeholder="Text" />
+                      </SelectTrigger>
+                      <SelectContent align="start" className="px-0">
+                        <SelectItem value="text">Text</SelectItem>
+                        <SelectItem value="h1">Heading 1</SelectItem>
+                        <SelectItem value="h2">Heading 2</SelectItem>
+                        <SelectItem value="h3">Heading 3</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" className="h-7 px-2">
+                          {editor?.isActive("heading", { level: 1 })
+                            ? "H1"
+                            : editor?.isActive("heading", { level: 2 })
+                            ? "H2"
+                            : editor?.isActive("heading", { level: 3 })
+                            ? "H3"
+                            : "Text"}
+                          <ChevronDown className="ml-1 h-3 w-3" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="w-[120px]">
+                        <DropdownMenuItem
+                          onClick={() =>
+                            editor?.chain().focus().setParagraph().run()
+                          }
+                        >
+                          Text
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() =>
+                            editor
+                              ?.chain()
+                              .focus()
+                              .toggleHeading({ level: 1 })
+                              .run()
+                          }
+                        >
+                          Heading 1
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() =>
+                            editor
+                              ?.chain()
+                              .focus()
+                              .toggleHeading({ level: 2 })
+                              .run()
+                          }
+                        >
+                          Heading 2
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() =>
+                            editor
+                              ?.chain()
+                              .focus()
+                              .toggleHeading({ level: 3 })
+                              .run()
+                          }
+                        >
+                          Heading 3
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </div>
-
-                {/* Divider */}
-                <div className="w-[1px] h-[22px] bg-[#808080] shadow-[1px_0_0_#ffffff]" />
 
                 {/* Alignment group */}
-                <div className="flex">
-                  <button
-                    onClick={() => {
-                      playButtonClick();
-                      editor?.chain().focus().setTextAlign("left").run();
-                    }}
-                    className="w-[26px] h-[22px] flex items-center justify-center"
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() =>
+                      editor?.chain().focus().setTextAlign("left").run()
+                    }
+                    aria-label="Align Left"
                   >
-                    <img
-                      src={`/icons/default/text-editor/align-left-${
+                    <AlignLeft
+                      className={`h-4 w-4 ${
                         editor?.isActive({ textAlign: "left" })
-                          ? "depressed"
-                          : "off"
-                      }.png`}
-                      alt="Align Left"
-                      className="w-[26px] h-[22px]"
+                          ? "text-black"
+                          : "text-neutral-500"
+                      }`}
                     />
-                  </button>
-                  <button
-                    onClick={() => {
-                      playButtonClick();
-                      editor?.chain().focus().setTextAlign("center").run();
-                    }}
-                    className="w-[26px] h-[22px] flex items-center justify-center"
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() =>
+                      editor?.chain().focus().setTextAlign("center").run()
+                    }
+                    aria-label="Align Center"
                   >
-                    <img
-                      src={`/icons/default/text-editor/align-center-${
+                    <AlignCenter
+                      className={`h-4 w-4 ${
                         editor?.isActive({ textAlign: "center" })
-                          ? "depressed"
-                          : "off"
-                      }.png`}
-                      alt="Align Center"
-                      className="w-[26px] h-[22px]"
+                          ? "text-black"
+                          : "text-neutral-500"
+                      }`}
                     />
-                  </button>
-                  <button
-                    onClick={() => {
-                      playButtonClick();
-                      editor?.chain().focus().setTextAlign("right").run();
-                    }}
-                    className="w-[26px] h-[22px] flex items-center justify-center"
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() =>
+                      editor?.chain().focus().setTextAlign("right").run()
+                    }
+                    aria-label="Align Right"
                   >
-                    <img
-                      src={`/icons/default/text-editor/align-right-${
+                    <AlignRight
+                      className={`h-4 w-4 ${
                         editor?.isActive({ textAlign: "right" })
-                          ? "depressed"
-                          : "off"
-                      }.png`}
-                      alt="Align Right"
-                      className="w-[26px] h-[22px]"
+                          ? "text-black"
+                          : "text-neutral-500"
+                      }`}
                     />
-                  </button>
+                  </Button>
                 </div>
 
-                {/* Divider */}
-                <div className="w-[1px] h-[22px] bg-[#808080] shadow-[1px_0_0_#ffffff]" />
-
-                {/* List group */}
-                <div className="flex">
-                  <button
-                    onClick={() => {
-                      playButtonClick();
-                      editor?.chain().focus().toggleBulletList().run();
-                    }}
-                    className="w-[26px] h-[22px] flex items-center justify-center"
+                {/* Lists */}
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() =>
+                      editor?.chain().focus().toggleBulletList().run()
+                    }
+                    aria-label="Bullet List"
                   >
-                    <img
-                      src={`/icons/default/text-editor/unordered-list-${
-                        editor?.isActive("bulletList") ? "depressed" : "off"
-                      }.png`}
-                      alt="Bullet List"
-                      className="w-[26px] h-[22px]"
+                    <ListIcon
+                      className={`h-4 w-4 ${
+                        editor?.isActive("bulletList")
+                          ? "text-black"
+                          : "text-neutral-500"
+                      }`}
                     />
-                  </button>
-                  <button
-                    onClick={() => {
-                      playButtonClick();
-                      editor?.chain().focus().toggleOrderedList().run();
-                    }}
-                    className="w-[26px] h-[22px] flex items-center justify-center"
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() =>
+                      editor?.chain().focus().toggleOrderedList().run()
+                    }
+                    aria-label="Ordered List"
                   >
-                    <img
-                      src={`/icons/default/text-editor/ordered-list-${
-                        editor?.isActive("orderedList") ? "depressed" : "off"
-                      }.png`}
-                      alt="Ordered List"
-                      className="w-[26px] h-[22px]"
+                    <ListOrdered
+                      className={`h-4 w-4 ${
+                        editor?.isActive("orderedList")
+                          ? "text-black"
+                          : "text-neutral-500"
+                      }`}
                     />
-                  </button>
+                  </Button>
                 </div>
-
-                {/* Divider */}
-                <div className="w-[1px] h-[22px] bg-[#808080] shadow-[1px_0_0_#ffffff]" />
 
                 {/* Voice transcription & speech */}
-                <div className="flex">
+                <div className="flex items-center gap-1 ml-1">
                   <AudioInputButton
                     onTranscriptionComplete={handleTranscriptionComplete}
                     onTranscriptionStart={handleTranscriptionStart}
                     isLoading={isTranscribing}
-                    className="w-[26px] h-[22px] flex items-center justify-center"
+                    className="h-7 w-7 inline-flex items-center justify-center text-neutral-500 hover:text-black"
                     silenceThreshold={10000}
                   />
                   {speechEnabled && (
-                    <button
-                      onClick={() => {
-                        playButtonClick();
-                        handleSpeak();
-                      }}
-                      className="w-[26px] h-[22px] flex items-center justify-center"
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => handleSpeak()}
                       aria-label={isSpeaking ? "Stop speech" : "Speak"}
                     >
                       {isTtsLoading ? (
@@ -1388,14 +1697,14 @@ export function TextEditAppComponent({
                       ) : (
                         <Volume2 className="h-4 w-4" />
                       )}
-                    </button>
+                    </Button>
                   )}
                 </div>
               </div>
-            </div>
+            )}
             <EditorContent
               editor={editor}
-              className="flex-1 overflow-y-auto w-full min-h-0"
+              className="flex-1 overflow-y-auto w-full min-h-0 bg-white"
             />
           </div>
           <InputDialog
