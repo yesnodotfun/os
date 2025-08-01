@@ -1691,11 +1691,11 @@ export function TextEditAppComponent({
                       aria-label={isSpeaking ? "Stop speech" : "Speak"}
                     >
                       {isTtsLoading ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <Loader2 className="h-4 w-4 animate-spin text-black" />
                       ) : isSpeaking ? (
                         <PlaybackBars color="black" />
                       ) : (
-                        <Volume2 className="h-4 w-4" />
+                        <Volume2 className="h-4 w-4 text-neutral-500" />
                       )}
                     </Button>
                   )}
