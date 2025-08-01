@@ -1,5 +1,5 @@
 import React from "react";
-import { Plus, Trash, ChevronRight } from "lucide-react";
+import { Plus, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { type ChatRoom } from "@/types/chat";
@@ -47,8 +47,7 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
   const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
   const isWindowsLegacyTheme = isXpTheme;
 
-  const [showPublic, setShowPublic] = React.useState(true);
-  const [showPrivate, setShowPrivate] = React.useState(true);
+  // Section headings are non-interactive; show all lists by default
 
   if (!isVisible) {
     return null;
@@ -217,36 +216,28 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
                     {hasBoth ? (
                       <>
                         {publicRooms.length > 0 && (
-                          <button
-                            type="button"
-                            aria-expanded={showPublic}
-                            onClick={() => setShowPublic((v) => !v)}
+                          <div
                             className={cn(
-                              "mt-2 pl-4 pr-3 pt-2 pb-1 w-full flex items-center group",
+                              "mt-2 px-4 pt-2 pb-1 w-full flex items-center",
                               "!text-[11px] uppercase tracking-wide text-black/50"
                             )}
                           >
                             <span>Channels</span>
-                            <ChevronRight className="ml-1 h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                          </button>
+                          </div>
                         )}
-                        {showPublic && publicRooms.map(renderRoomItem)}
+                        {publicRooms.map(renderRoomItem)}
 
                         {privateRooms.length > 0 && (
-                          <button
-                            type="button"
-                            aria-expanded={showPrivate}
-                            onClick={() => setShowPrivate((v) => !v)}
+                          <div
                             className={cn(
-                              "mt-2 pl-4 pr-3 pt-2 pb-1 w-full flex items-center group",
+                              "mt-2 px-4 pt-2 pb-1 w-full flex items-center",
                               "!text-[11px] uppercase tracking-wide text-black/50"
                             )}
                           >
                             <span>Private</span>
-                            <ChevronRight className="ml-1 h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                          </button>
+                          </div>
                         )}
-                        {showPrivate && privateRooms.map(renderRoomItem)}
+                        {privateRooms.map(renderRoomItem)}
                       </>
                     ) : (
                       <>
