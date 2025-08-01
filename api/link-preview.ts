@@ -3,6 +3,7 @@ export const config = {
 };
 
 import * as RateLimit from "./utils/rate-limit";
+import { getEffectiveOrigin, isAllowedOrigin, preflightIfNeeded } from "./utils/cors";
 interface LinkMetadata {
   title?: string;
   description?: string;
@@ -52,20 +53,14 @@ async function getYouTubeMetadata(url: string): Promise<LinkMetadata> {
 }
 
 export default async function handler(req: Request) {
-  const origin = req.headers.get("origin");
-  const ALLOWED_ORIGINS = new Set(["https://os.ryo.lu", "http://localhost:3000"]);
-  if (!origin || !ALLOWED_ORIGINS.has(origin)) {
+  const effectiveOrigin = getEffectiveOrigin(req);
+  if (!isAllowedOrigin(effectiveOrigin)) {
     return new Response("Unauthorized", { status: 403 });
   }
 
   if (req.method === "OPTIONS") {
-    return new Response(null, {
-      headers: {
-        "Access-Control-Allow-Origin": origin,
-        "Access-Control-Allow-Methods": "GET, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
-      },
-    });
+    const resp = preflightIfNeeded(req, ["GET", "OPTIONS"], effectiveOrigin);
+    if (resp) return resp;
   }
 
   if (req.method !== "GET") {
@@ -91,7 +86,7 @@ export default async function handler(req: Request) {
       if (!global.allowed) {
         return new Response(
           JSON.stringify({ error: "rate_limit_exceeded", scope: "global" }),
-          { status: 429, headers: { "Retry-After": String(global.resetSeconds ?? BURST_WINDOW), "Content-Type": "application/json", "Access-Control-Allow-Origin": origin } }
+          { status: 429, headers: { "Retry-After": String(global.resetSeconds ?? BURST_WINDOW), "Content-Type": "application/json", "Access-Control-Allow-Origin": effectiveOrigin || "*" } }
         );
       }
 
@@ -107,7 +102,7 @@ export default async function handler(req: Request) {
           if (!host.allowed) {
             return new Response(
               JSON.stringify({ error: "rate_limit_exceeded", scope: "host", host: hostname }),
-              { status: 429, headers: { "Retry-After": String(host.resetSeconds ?? BURST_WINDOW), "Content-Type": "application/json", "Access-Control-Allow-Origin": origin } }
+              { status: 429, headers: { "Retry-After": String(host.resetSeconds ?? BURST_WINDOW), "Content-Type": "application/json", "Access-Control-Allow-Origin": effectiveOrigin || "*" } }
             );
           }
         } catch (e) {
@@ -293,7 +288,7 @@ export default async function handler(req: Request) {
       headers: { 
         "Content-Type": "application/json",
         "Cache-Control": "public, max-age=3600", // Cache for 1 hour
-        "Access-Control-Allow-Origin": origin,
+        "Access-Control-Allow-Origin": effectiveOrigin || "*",
       },
     });
 
@@ -322,7 +317,7 @@ export default async function handler(req: Request) {
       }),
       {
         status: status,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": effectiveOrigin ?? "*" },
       }
     );
   }

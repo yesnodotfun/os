@@ -2,6 +2,7 @@
 
 import { Redis } from "@upstash/redis"; // Use direct import
 import * as RateLimit from "./utils/rate-limit";
+import { getEffectiveOrigin, isAllowedOrigin } from "./utils/cors";
 
 export const config = {
   runtime: "edge",
@@ -162,9 +163,8 @@ export default async function handler(req: Request) {
   const year = searchParams.get("year");
   const month = searchParams.get("month");
   const requestId = generateRequestId(); // Generate request ID
-  const origin = req.headers.get("origin");
-  const ALLOWED_ORIGINS = new Set(["https://os.ryo.lu", "http://localhost:3000"]);
-  if (!origin || !ALLOWED_ORIGINS.has(origin)) {
+  const effectiveOrigin = getEffectiveOrigin(req);
+  if (!isAllowedOrigin(effectiveOrigin)) {
     return new Response("Unauthorized", { status: 403 });
   }
 
@@ -919,9 +919,9 @@ export default async function handler(req: Request) {
           }
         }
 
-        return new Response(html, {
+          return new Response(html, {
           status: upstreamRes.status,
-          headers,
+            headers,
         });
       } else {
         logInfo(requestId, "Proxying non-HTML content directly");
@@ -929,7 +929,7 @@ export default async function handler(req: Request) {
         // No title extraction or header needed for non-HTML
         return new Response(upstreamRes.body, {
           status: upstreamRes.status,
-          headers,
+            headers,
         });
       }
     } catch (fetchError) {
@@ -957,7 +957,7 @@ export default async function handler(req: Request) {
           status: 503,
           headers: {
             "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Origin": effectiveOrigin || "*",
           },
         }
       );
