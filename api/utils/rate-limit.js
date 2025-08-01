@@ -41,18 +41,10 @@ async function checkAndIncrementAIMessageCount(
   // --- Authentication validation section ---
   // If authenticated, validate the token
   if (isAuthenticated && authToken) {
-    const AUTH_TOKEN_PREFIX = "chat:token:";
-
-    // 1) Preferred path: token -> username mapping (multi-token support)
-    const mappedUsername = await redis.get(`${AUTH_TOKEN_PREFIX}${authToken}`);
-    const mappedUsernameMatches =
-      mappedUsername && mappedUsername.toLowerCase() === identifier;
-
-    // 2) Legacy path: single token stored as username -> token
-    const legacyToken = await redis.get(`${AUTH_TOKEN_PREFIX}${identifier}`);
-    const legacyTokenMatches = legacyToken && legacyToken === authToken;
-
-    if (!mappedUsernameMatches && !legacyTokenMatches) {
+    const lower = identifier.toLowerCase();
+    const userScopedKey = `chat:token:user:${lower}:${authToken}`;
+    const exists = await redis.exists(userScopedKey);
+    if (!exists) {
       // Invalid token for this user – treat as unauthenticated (use anon limit)
       return {
         allowed: false,

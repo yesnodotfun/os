@@ -387,14 +387,11 @@ async function validateAuthToken(
   }
 
   const normalizedUsername = username.toLowerCase();
-  // 1) First, try the new token->username mapping
-  const directKey = `${AUTH_TOKEN_PREFIX}${authToken}`;
-  const mappedUsername = await redis.get(directKey);
-  if (
-    mappedUsername &&
-    String(mappedUsername).toLowerCase() === normalizedUsername
-  ) {
-    await redis.expire(directKey, USER_TTL_SECONDS);
+  // 1) New multi-token scheme: chat:token:user:{username}:{token}
+  const userScopedKey = `chat:token:user:${normalizedUsername}:${authToken}`;
+  const exists = await redis.exists(userScopedKey);
+  if (exists) {
+    await redis.expire(userScopedKey, USER_TTL_SECONDS);
     return { valid: true };
   }
 
@@ -441,13 +438,9 @@ async function validateAuthToken(
           { ex: TOKEN_GRACE_PERIOD }
         );
 
-        // Store the new token
-        await redis.set(legacyKey, newToken, { ex: USER_TTL_SECONDS });
-
-        // Also store the mapping for multi-token support
-        await redis.set(`${AUTH_TOKEN_PREFIX}${newToken}`, normalizedUsername, {
-          ex: USER_TTL_SECONDS,
-        });
+        // Issue a new token in the new multi-token scheme
+        const newUserScopedKey = `chat:token:user:${normalizedUsername}:${newToken}`;
+        await redis.set(newUserScopedKey, Date.now(), { ex: USER_TTL_SECONDS });
 
         return { valid: true, newToken };
       }
