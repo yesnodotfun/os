@@ -666,9 +666,10 @@ export function InternetExplorerAppComponent({
     console.log(
       `[IE] Using Wayback Machine URL for ${formattedUrl} in ${year}`
     );
+    const themeParam = typeof currentTheme === "string" ? `&theme=${encodeURIComponent(currentTheme)}` : "";
     return `/api/iframe-check?url=${encodeURIComponent(
       formattedUrl
-    )}&year=${year}&month=${month}`;
+    )}&year=${year}&month=${month}${themeParam}`;
   };
 
   // Ref to keep the most recent navigation token in sync without waiting for a render
@@ -1070,14 +1071,14 @@ export function InternetExplorerAppComponent({
               // Proxy current year sites through iframe-check
               urlToLoad = `/api/iframe-check?url=${encodeURIComponent(
                 normalizedTargetUrl
-              )}`;
+              )}&theme=${encodeURIComponent(currentTheme)}`;
             }
 
             try {
               const checkRes = await fetch(
                 `/api/iframe-check?mode=check&url=${encodeURIComponent(
                   normalizedTargetUrl
-                )}`,
+                )}&theme=${encodeURIComponent(currentTheme)}`,
                 { signal: abortController.signal }
               );
               if (abortController.signal.aborted) return;

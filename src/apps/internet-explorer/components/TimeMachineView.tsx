@@ -389,7 +389,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
           console.log(`[TimeMachine] Source: current -> URL`);
           const proxyUrl = `/api/iframe-check?url=${encodeURIComponent(
             currentUrl
-          )}`;
+          )}&theme=${encodeURIComponent(document.documentElement.dataset.osTheme || "")}`;
           if (
             abortController.signal.aborted ||
             previewRequestIdRef.current !== myRequestId
@@ -415,7 +415,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
               .padStart(2, "0");
             const proxyUrl = `/api/iframe-check?mode=proxy&url=${encodeURIComponent(
               currentUrl
-            )}&year=${yearString}&month=${currentMonth}`;
+            )}&year=${yearString}&month=${currentMonth}&theme=${encodeURIComponent(document.documentElement.dataset.osTheme || "")}`;
             if (
               abortController.signal.aborted ||
               previewRequestIdRef.current !== myRequestId
@@ -433,7 +433,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
             const aiResponse = await fetch(
               `/api/iframe-check?mode=ai&url=${encodeURIComponent(
                 currentUrl
-              )}&year=${previewYear}`,
+              )}&year=${previewYear}&theme=${encodeURIComponent(document.documentElement.dataset.osTheme || "")}`,
               {
                 signal: abortController.signal,
               }
