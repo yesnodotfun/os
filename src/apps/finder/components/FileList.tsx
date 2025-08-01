@@ -308,9 +308,17 @@ export function FileList({
         key={file.path}
         className={`border-none hover:bg-gray-100/50 transition-colors cursor-default ${
           selectedFile?.path === file.path || dropTargetPath === file.path
-            ? "bg-black text-white hover:bg-black"
+            ? ""
             : "odd:bg-gray-200/50"
         }`}
+        style={
+          selectedFile?.path === file.path || dropTargetPath === file.path
+            ? {
+                background: "var(--os-color-selection-bg)",
+                color: "var(--os-color-selection-text)",
+              }
+            : undefined
+        }
         onClick={handleClick}
         onMouseDown={() => {
           // Immediately select the file on mouse down for drag preparation
@@ -349,11 +357,7 @@ export function FileList({
             <ThemedIcon
               name={getIconPath(file)}
               alt={file.isDirectory ? "Directory" : "File"}
-              className={`w-4 h-4 ${
-                selectedFile?.path === file.path || dropTargetPath === file.path
-                  ? "invert"
-                  : ""
-              }`}
+              className="w-4 h-4"
               style={{ imageRendering: "pixelated" }}
               data-legacy-aware="true"
             />

@@ -264,17 +264,22 @@ export function FileIcon({
         className={`text-center px-1 file-icon-label break-words truncate ${
           sizes.text
         } ${isMacOSXTheme && !isFinderContext ? "font-bold rounded" : ""} ${
-          isSelected || (isDropTarget && isDirectory)
-            ? "bg-black text-white"
+          isSelected
+            ? ""
             : isWin98Theme
             ? "bg-white text-black"
             : (isXpTheme || isMacOSXTheme) && !isFinderContext
             ? "bg-transparent text-white"
             : "bg-white text-black"
         }`}
-        style={
-          !isSelected &&
-          !(isDropTarget && isDirectory) &&
+        style={{
+          ...(isSelected
+            ? {
+                background: "var(--os-color-selection-bg)",
+                color: "var(--os-color-selection-text)",
+              }
+            : {}),
+          ...(!isSelected &&
           (isXpTheme || isMacOSXTheme) &&
           !isFinderContext
             ? isMacOSXTheme
@@ -283,8 +288,8 @@ export function FileIcon({
                     "rgba(0, 0, 0, 0.9) 0px 1px 0px, rgba(0, 0, 0, 0.85) 0px 1px 3px, rgba(0, 0, 0, 0.45) 0px 2px 3px",
                 }
               : { textShadow: "1px 1px 2px rgba(0, 0, 0, 0.8)" }
-            : {}
-        }
+            : {}),
+        }}
       >
         {name}
       </span>
