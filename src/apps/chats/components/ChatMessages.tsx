@@ -942,18 +942,12 @@ function ChatMessagesContent({
                       }
                     : undefined
                 }
-                className={`${`p-1.5 px-2 chat-bubble ${
+                className={`p-1.5 px-2 chat-bubble ${
                   bgColorClass ||
                   (message.role === "user"
                     ? "bg-yellow-100 text-black"
                     : "bg-blue-100 text-black")
-                } ${
-                  message.parts?.some(
-                    (part) => part.type === "tool-invocation"
-                  )
-                    ? "w-full"
-                    : "w-fit max-w-[90%]"
-                }`} min-h-[12px] rounded leading-snug font-geneva-12 break-words select-text`}
+                } w-fit max-w-[90%] min-h-[12px] rounded leading-snug font-geneva-12 break-words select-text`}
                 style={{ fontSize: `${fontSize}px` }}
               >
                 {message.role === "assistant" ? (
