@@ -1710,7 +1710,7 @@ terminal
   about            about terminal
   echo <text>      display text
   whoami           display current user
-  su <user> [pass] switch user / create (optional password)
+  su <user> [pass] switch or create user
   logout           log out current user
   date             display current date/time
   cowsay <text>    a talking cow
@@ -2248,9 +2248,10 @@ assistant
                 if (authResp.ok) {
                   const data = await authResp.json();
                   if (data.token) {
-                    store.setUsername(targetUsername);
+                    const uname = data.username || targetUsername;
+                    store.setUsername(uname);
                     store.setAuthToken(data.token);
-                    this.updateOutput(`logged in as ${targetUsername}`);
+                    this.updateOutput(`logged in as ${uname}`);
                     return;
                   }
                 }
