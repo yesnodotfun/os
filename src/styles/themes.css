@@ -59,6 +59,12 @@
   --os-window-shadow: 2px 2px 0px 0px rgba(0, 0, 0, 0.5);
 }
 
+/* Inactive selection palette for background windows (System 7) */
+:root[data-os-theme="system7"] .window:not(.is-foreground) {
+  --os-color-selection-bg: #cfcfcf; /* neutral gray */
+  --os-color-selection-text: #000000;
+}
+
 /* Mac OS X Theme */
 :root[data-os-theme="macosx"] {
   --os-font-ui: "LucidaGrande", "Lucida Grande", "Hiragino Sans",
@@ -163,6 +169,12 @@
   --os-window-shadow: none;
 }
 
+/* Inactive selection palette for background windows (Windows 98) */
+:root[data-os-theme="win98"] .window:not(.is-foreground) {
+  --os-color-selection-bg: #c0c0c0; /* classic 98 gray */
+  --os-color-selection-text: #000000;
+}
+
 /* Windows XP Theme */
 :root[data-os-theme="xp"] {
   --os-font-ui: Tahoma, "Pixelated MS Sans Serif", "MS Sans Serif", "ArkPixel",
@@ -193,6 +205,12 @@
   --os-metrics-titlebar-height: 1.875rem;
   --os-metrics-menubar-height: 1.875rem;
   --os-window-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
+}
+
+/* Inactive selection palette for background windows (Windows XP) */
+:root[data-os-theme="xp"] .window:not(.is-foreground) {
+  --os-color-selection-bg: #ece9da; /* soft gray */
+  --os-color-selection-text: #000000;
 }
 
 /* Backwards compatibility aliases */
@@ -708,6 +726,14 @@
 :root[data-os-theme="macosx"] .window:not(.is-foreground) {
   border: var(--os-metrics-border-width) solid
     var(--os-color-window-border-inactive) !important;
+}
+
+/* Inactive selection palette for background windows (macOS) */
+:root[data-os-theme="macosx"] .window:not(.is-foreground) {
+  /* Use neutral gray selection when the window is not foreground */
+  --os-color-selection-bg: rgba(131, 131, 131, 0.697);
+  --os-color-selection-text: #fff;
+  --os-color-selection-glow: rgba(0, 0, 0, 0.22);
 }
 
 /* Shadow utilities */

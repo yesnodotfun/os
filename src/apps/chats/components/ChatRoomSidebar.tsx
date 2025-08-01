@@ -127,7 +127,7 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
                 room.type === "private" ? "Leave conversation" : "Delete room"
               }
             >
-              <Trash className="w-3 h-3" />
+              <Trash className="w-3 h-3 text-black/30" />
             </button>
           )}
       </div>
@@ -157,7 +157,7 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
     >
       <div
         className={cn(
-          "py-3 flex flex-col",
+          "pt-3 flex flex-col",
           isOverlay ? "" : "flex-1 overflow-hidden"
         )}
       >
