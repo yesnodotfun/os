@@ -275,9 +275,6 @@ const generateAuthToken = () => {
 // signed in from multiple devices simultaneously.
 // ---------------------------------------------------------------------------
 
-/** Build the Redis key used for a specific auth token */
-const getTokenKey = (token) => `${AUTH_TOKEN_PREFIX}${token}`;
-
 /** Build the Redis key for user-specific tokens (new pattern) */
 const getUserTokenKey = (username, token) =>
   `${AUTH_TOKEN_PREFIX}user:${username.toLowerCase()}:${token}`;
@@ -300,29 +297,14 @@ const storeToken = async (username, token) => {
     }
   );
 
-  // Also store in old format for backward compatibility during migration
-  await redis.set(getTokenKey(token), normalizedUsername, {
-    ex: USER_EXPIRATION_TIME,
-  });
+  // No legacy write: new scheme only
 };
 
 /** Delete a single auth token (e.g. on logout or when refreshing) */
 const deleteToken = async (token) => {
   if (!token) return;
 
-  // First, find which user owns this token (from old format)
-  const tokenKey = getTokenKey(token);
-  const username = await redis.get(tokenKey);
-
-  // Delete from both old and new formats
-  await redis.del(tokenKey);
-
-  if (username) {
-    await redis.del(getUserTokenKey(username, token));
-    return;
-  }
-
-  // Fallback: if the old mapping expired, scan for any user-scoped token key
+  // Only new format: find user-scoped token key(s) and delete
   const pattern = `${AUTH_TOKEN_PREFIX}user:*:${token}`;
   let cursor = 0;
   const keysToDelete = [];
@@ -364,77 +346,19 @@ const deleteAllUserTokens = async (username) => {
   } while (cursor !== 0);
 
   if (userTokenKeys.length > 0) {
-    const pipeline = redis.pipeline();
-
-    for (const key of userTokenKeys) {
-      // Extract the raw token value from the key (last segment)
-      const parts = key.split(":");
-      const token = parts[parts.length - 1];
-
-      // Delete new-scheme key
-      pipeline.del(key);
-      // Delete old multi-token mapping for the same token
-      pipeline.del(getTokenKey(token));
-    }
-
-    await pipeline.exec();
-    // Count tokens (not individual Redis key deletions)
-    deletedCount += userTokenKeys.length;
+    const deleted = await redis.del(...userTokenKeys);
+    deletedCount += deleted;
   }
 
   // ------------------------------------------------------------
-  // 2. OLD multi-token mapping: chat:token:{token} -> username
-  //    Some very old tokens might exist only in this format (no new-scheme key).
-  // ------------------------------------------------------------
-  cursor = 0;
-  const oldTokenKeysToDelete = [];
-  const oldTokenPattern = `${AUTH_TOKEN_PREFIX}*`;
-
-  do {
-    const [newCursor, foundKeys] = await redis.scan(cursor, {
-      match: oldTokenPattern,
-      count: 100,
-    });
-
-    cursor = parseInt(newCursor);
-
-    for (const key of foundKeys) {
-      // Skip keys we have already handled: new-scheme (contains "user:") and grace-period / legacy keys handled separately
-      if (key.includes(`:${normalizedUsername}:`) || key.includes(":user:"))
-        continue;
-      if (key.startsWith(`${AUTH_TOKEN_PREFIX}last:`)) continue;
-      if (key === `${AUTH_TOKEN_PREFIX}${normalizedUsername}`) continue; // legacy single-token path handled later
-
-      const mappedUser = await redis.get(key);
-      // Support non-string values by extracting username safely before comparing
-      const mappedLower =
-        typeof mappedUser === "string"
-          ? mappedUser.toLowerCase()
-          : mappedUser &&
-            typeof mappedUser === "object" &&
-            typeof mappedUser.username === "string"
-          ? mappedUser.username.toLowerCase()
-          : null;
-      if (mappedLower === normalizedUsername) {
-        oldTokenKeysToDelete.push(key);
-      }
-    }
-  } while (cursor !== 0);
-
-  if (oldTokenKeysToDelete.length > 0) {
-    const deleted = await redis.del(...oldTokenKeysToDelete);
-    deletedCount += deleted; // redis.del returns number of keys deleted
-  }
-
-  // ------------------------------------------------------------
-  // 3. Legacy single-token mapping: chat:token:{username}
+  // 2. Legacy single-token mapping: chat:token:{username}
   // ------------------------------------------------------------
   const legacyKey = `${AUTH_TOKEN_PREFIX}${normalizedUsername}`;
   const legacyDeleted = await redis.del(legacyKey);
   deletedCount += legacyDeleted;
 
   // ------------------------------------------------------------
-  // 4. Grace-period token store: chat:token:last:{username}
+  // 3. Grace-period token store: chat:token:last:{username}
   //    Removing this prevents refresh using old tokens after a full logout.
   // ------------------------------------------------------------
   const lastTokenKey = `${AUTH_TOKEN_PREFIX}last:${normalizedUsername}`;
@@ -469,12 +393,6 @@ const getUserTokens = async (username) => {
   return tokens;
 };
 
-/** Retrieve the username associated with a token (if any) */
-const getUsernameForToken = async (token) => {
-  if (!token) return null;
-  return await redis.get(getTokenKey(token));
-};
-
 /**
  * Validate authentication for a request
  * @param {string} username - The username to validate
@@ -502,48 +420,11 @@ const validateAuth = async (
   const userTokenKey = getUserTokenKey(normalizedUsername, token);
   const userTokenExists = await redis.exists(userTokenKey);
   if (userTokenExists) {
-    // Refresh TTL for this token in both formats
     await redis.expire(userTokenKey, USER_TTL_SECONDS);
-    await redis.expire(getTokenKey(token), USER_TTL_SECONDS);
     return { valid: true, expired: false };
   }
 
-  // ---------------------------
-  // 2. Old multi-token path: token -> username mapping
-  // ---------------------------
-  const mappedUsername = await getUsernameForToken(token);
-  // Support legacy/object values in Redis by extracting a username string safely
-  const mappedLower =
-    typeof mappedUsername === "string"
-      ? mappedUsername.toLowerCase()
-      : mappedUsername &&
-        typeof mappedUsername === "object" &&
-        typeof mappedUsername.username === "string"
-      ? mappedUsername.username.toLowerCase()
-      : null;
-  if (mappedLower === normalizedUsername) {
-    // Refresh TTL for this token
-    await redis.expire(getTokenKey(token), USER_TTL_SECONDS);
-    // Also migrate to new format for future validations
-    await redis.set(userTokenKey, getCurrentTimestamp(), {
-      ex: USER_TTL_SECONDS,
-    });
-    return { valid: true, expired: false };
-  }
-
-  // ---------------------------
-  // 3. Legacy single-token path (username -> token). Keep for backward compat.
-  // ---------------------------
-  const legacyKey = `${AUTH_TOKEN_PREFIX}${normalizedUsername}`;
-  const storedToken = await redis.get(legacyKey);
-  if (storedToken && storedToken === token) {
-    await redis.expire(legacyKey, USER_TTL_SECONDS);
-    // Migrate to new format
-    await redis.set(userTokenKey, getCurrentTimestamp(), {
-      ex: USER_TTL_SECONDS,
-    });
-    return { valid: true, expired: false };
-  }
+  // No legacy paths: token must exist under user-scoped key
 
   // ---------------------------
   // 4. Grace-period path – allow refresh of recently expired tokens
@@ -1174,7 +1055,10 @@ export async function POST(request) {
         ).toLowerCase();
         const allowed = await checkRateLimit(action, identifier, requestId);
         if (!allowed) {
-          return createErrorResponse("Too many requests, please slow down", 429);
+          return createErrorResponse(
+            "Too many requests, please slow down",
+            429
+          );
         }
       }
     }
@@ -3168,10 +3052,7 @@ async function handleGenerateToken(data, requestId) {
     // Generate new token
     const authToken = generateAuthToken();
 
-    // Store token with expiration
-    await redis.set(tokenKey, authToken, { ex: USER_EXPIRATION_TIME });
-
-    // Persist token->username mapping for multi-token support
+    // Persist token in new scheme only
     await storeToken(username, authToken);
 
     // Also record a predictive last-token entry so that once this token expires,
@@ -3256,11 +3137,7 @@ async function handleRefreshToken(data, requestId) {
     // Generate new token
     const authToken = generateAuthToken();
 
-    // Store new token with expiration
-    const tokenKey = `${AUTH_TOKEN_PREFIX}${username}`;
-    await redis.set(tokenKey, authToken, { ex: USER_EXPIRATION_TIME });
-
-    // Persist token->username mapping for multi-token support
+    // Persist token in new scheme only
     await storeToken(username, authToken);
 
     logInfo(
@@ -3292,39 +3169,7 @@ async function handleVerifyToken(request, requestId) {
       return createErrorResponse("Authorization token required", 401);
     }
 
-    // 1) Direct mapping: chat:token:{token} -> username
-    const directKey = getTokenKey(authToken);
-    const mappedUsername = await redis.get(directKey);
-    if (mappedUsername) {
-      // Support non-string values stored in Redis
-      const username = (
-        typeof mappedUsername === "string"
-          ? mappedUsername
-          : mappedUsername &&
-            typeof mappedUsername === "object" &&
-            typeof mappedUsername.username === "string"
-          ? mappedUsername.username
-          : String(mappedUsername)
-      ).toLowerCase();
-      // Refresh TTLs and ensure user-scoped key exists
-      await redis.expire(directKey, USER_TTL_SECONDS);
-      const userKey = getUserTokenKey(username, authToken);
-      const exists = await redis.exists(userKey);
-      if (exists) {
-        await redis.expire(userKey, USER_TTL_SECONDS);
-      } else {
-        await redis.set(userKey, getCurrentTimestamp(), {
-          ex: USER_TTL_SECONDS,
-        });
-      }
-
-      return new Response(
-        JSON.stringify({ valid: true, username, message: "Token is valid" }),
-        { headers: { "Content-Type": "application/json" } }
-      );
-    }
-
-    // 2) New scheme key: chat:token:user:{username}:{token}
+    // New scheme only: chat:token:user:{username}:{token}
     const pattern = `${AUTH_TOKEN_PREFIX}user:*:${authToken}`;
     let cursor = 0;
     let foundKey = null;
@@ -3345,17 +3190,13 @@ async function handleVerifyToken(request, requestId) {
       // chat:token:user:{username}:{token}
       const username = parts[3];
       await redis.expire(foundKey, USER_TTL_SECONDS);
-      // Ensure direct mapping exists for faster future lookups
-      await redis.set(getTokenKey(authToken), username, {
-        ex: USER_TTL_SECONDS,
-      });
       return new Response(
         JSON.stringify({ valid: true, username, message: "Token is valid" }),
         { headers: { "Content-Type": "application/json" } }
       );
     }
 
-    // 3) Grace-period path: scan last token records
+    // Grace-period path: scan last token records
     const lastPattern = `${AUTH_TOKEN_PREFIX}last:*`;
     cursor = 0;
     let graceUsername = null;
