@@ -6,7 +6,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
-  DropdownMenuCheckboxItem,
   DropdownMenuSub,
   DropdownMenuSubTrigger,
   DropdownMenuSubContent,
@@ -16,6 +15,7 @@ import React from "react";
 import { toast } from "sonner";
 import { generateAppShareUrl } from "@/utils/sharedUrl";
 import { useThemeStore } from "@/stores/useThemeStore";
+import { cn } from "@/lib/utils";
 
 interface TextEditMenuBarProps {
   editor: Editor | null;
@@ -201,120 +201,151 @@ export function TextEditMenuBar({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" sideOffset={1} className="px-0">
-          <DropdownMenuCheckboxItem
-            checked={editor?.isActive("bold")}
-            onCheckedChange={() => editor?.chain().focus().toggleBold().run()}
-            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
+          <DropdownMenuItem
+            onClick={() => editor?.chain().focus().toggleBold().run()}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            <span>Bold</span>
-          </DropdownMenuCheckboxItem>
-          <DropdownMenuCheckboxItem
-            checked={editor?.isActive("italic")}
-            onCheckedChange={() => editor?.chain().focus().toggleItalic().run()}
-            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
+            <span className={cn(!editor?.isActive("bold") && "pl-4")}>
+              {editor?.isActive("bold") ? "✓ Bold" : "Bold"}
+            </span>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => editor?.chain().focus().toggleItalic().run()}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            <span>Italic</span>
-          </DropdownMenuCheckboxItem>
-          <DropdownMenuCheckboxItem
-            checked={editor?.isActive("underline")}
-            onCheckedChange={() =>
-              editor?.chain().focus().toggleUnderline().run()
-            }
-            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
+            <span className={cn(!editor?.isActive("italic") && "pl-4")}>
+              {editor?.isActive("italic") ? "✓ Italic" : "Italic"}
+            </span>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => editor?.chain().focus().toggleUnderline().run()}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            <span>Underline</span>
-          </DropdownMenuCheckboxItem>
+            <span className={cn(!editor?.isActive("underline") && "pl-4")}>
+              {editor?.isActive("underline") ? "✓ Underline" : "Underline"}
+            </span>
+          </DropdownMenuItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
-          <DropdownMenuCheckboxItem
-            checked={editor?.isActive("paragraph")}
-            onCheckedChange={() => editor?.chain().focus().setParagraph().run()}
-            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
+          <DropdownMenuItem
+            onClick={() => editor?.chain().focus().setParagraph().run()}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            <span>Text</span>
-          </DropdownMenuCheckboxItem>
-          <DropdownMenuCheckboxItem
-            checked={editor?.isActive("heading", { level: 1 })}
-            onCheckedChange={() =>
-              editor?.chain().focus().toggleHeading({ level: 1 }).run()
-            }
-            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
+            <span className={cn(!editor?.isActive("paragraph") && "pl-4")}>
+              {editor?.isActive("paragraph") ? "✓ Text" : "Text"}
+            </span>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => editor?.chain().focus().toggleHeading({ level: 1 }).run()}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            <span>Heading 1</span>
-          </DropdownMenuCheckboxItem>
-          <DropdownMenuCheckboxItem
-            checked={editor?.isActive("heading", { level: 2 })}
-            onCheckedChange={() =>
-              editor?.chain().focus().toggleHeading({ level: 2 }).run()
-            }
-            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
+            <span
+              className={cn(
+                !editor?.isActive("heading", { level: 1 }) && "pl-4"
+              )}
+            >
+              {editor?.isActive("heading", { level: 1 })
+                ? "✓ Heading 1"
+                : "Heading 1"}
+            </span>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            <span>Heading 2</span>
-          </DropdownMenuCheckboxItem>
-          <DropdownMenuCheckboxItem
-            checked={editor?.isActive("heading", { level: 3 })}
-            onCheckedChange={() =>
-              editor?.chain().focus().toggleHeading({ level: 3 }).run()
-            }
-            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
+            <span
+              className={cn(
+                !editor?.isActive("heading", { level: 2 }) && "pl-4"
+              )}
+            >
+              {editor?.isActive("heading", { level: 2 })
+                ? "✓ Heading 2"
+                : "Heading 2"}
+            </span>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            <span>Heading 3</span>
-          </DropdownMenuCheckboxItem>
+            <span
+              className={cn(
+                !editor?.isActive("heading", { level: 3 }) && "pl-4"
+              )}
+            >
+              {editor?.isActive("heading", { level: 3 })
+                ? "✓ Heading 3"
+                : "Heading 3"}
+            </span>
+          </DropdownMenuItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
-          <DropdownMenuCheckboxItem
-            checked={editor?.isActive({ textAlign: "left" })}
-            onCheckedChange={() =>
-              editor?.chain().focus().setTextAlign("left").run()
-            }
-            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
+          <DropdownMenuItem
+            onClick={() => editor?.chain().focus().setTextAlign("left").run()}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            <span>Align Left</span>
-          </DropdownMenuCheckboxItem>
-          <DropdownMenuCheckboxItem
-            checked={editor?.isActive({ textAlign: "center" })}
-            onCheckedChange={() =>
-              editor?.chain().focus().setTextAlign("center").run()
-            }
-            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
+            <span
+              className={cn(
+                !editor?.isActive({ textAlign: "left" }) && "pl-4"
+              )}
+            >
+              {editor?.isActive({ textAlign: "left" })
+                ? "✓ Align Left"
+                : "Align Left"}
+            </span>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => editor?.chain().focus().setTextAlign("center").run()}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            <span>Align Center</span>
-          </DropdownMenuCheckboxItem>
-          <DropdownMenuCheckboxItem
-            checked={editor?.isActive({ textAlign: "right" })}
-            onCheckedChange={() =>
-              editor?.chain().focus().setTextAlign("right").run()
-            }
-            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
+            <span
+              className={cn(
+                !editor?.isActive({ textAlign: "center" }) && "pl-4"
+              )}
+            >
+              {editor?.isActive({ textAlign: "center" })
+                ? "✓ Align Center"
+                : "Align Center"}
+            </span>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => editor?.chain().focus().setTextAlign("right").run()}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            <span>Align Right</span>
-          </DropdownMenuCheckboxItem>
+            <span
+              className={cn(
+                !editor?.isActive({ textAlign: "right" }) && "pl-4"
+              )}
+            >
+              {editor?.isActive({ textAlign: "right" })
+                ? "✓ Align Right"
+                : "Align Right"}
+            </span>
+          </DropdownMenuItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
-          <DropdownMenuCheckboxItem
-            checked={editor?.isActive("bulletList")}
-            onCheckedChange={() =>
-              editor?.chain().focus().toggleBulletList().run()
-            }
-            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
+          <DropdownMenuItem
+            onClick={() => editor?.chain().focus().toggleBulletList().run()}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            <span>Bullet List</span>
-          </DropdownMenuCheckboxItem>
-          <DropdownMenuCheckboxItem
-            checked={editor?.isActive("orderedList")}
-            onCheckedChange={() =>
-              editor?.chain().focus().toggleOrderedList().run()
-            }
-            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
+            <span className={cn(!editor?.isActive("bulletList") && "pl-4")}>
+              {editor?.isActive("bulletList") ? "✓ Bullet List" : "Bullet List"}
+            </span>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => editor?.chain().focus().toggleOrderedList().run()}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            <span>Numbered List</span>
-          </DropdownMenuCheckboxItem>
-          <DropdownMenuCheckboxItem
-            checked={editor?.isActive("taskList")}
-            onCheckedChange={() =>
-              editor?.chain().focus().toggleTaskList().run()
-            }
-            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
+            <span className={cn(!editor?.isActive("orderedList") && "pl-4")}>
+              {editor?.isActive("orderedList")
+                ? "✓ Numbered List"
+                : "Numbered List"}
+            </span>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => editor?.chain().focus().toggleTaskList().run()}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            <span>Task List</span>
-          </DropdownMenuCheckboxItem>
+            <span className={cn(!editor?.isActive("taskList") && "pl-4")}>
+              {editor?.isActive("taskList") ? "✓ Task List" : "Task List"}
+            </span>
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 

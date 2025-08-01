@@ -200,10 +200,7 @@ export function ChatsMenuBar({
             {/* Ryo Chat Option */}
             <DropdownMenuItem
               onClick={() => onRoomSelect(null)}
-              className={cn(
-                "text-md h-6 px-3 active:bg-gray-900 active:text-white",
-                currentRoom === null && "bg-gray-200"
-              )}
+              className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
             >
               <span className={cn(currentRoom !== null && "pl-4")}>
                 {currentRoom === null ? "✓ @ryo" : "@ryo"}
@@ -226,10 +223,7 @@ export function ChatsMenuBar({
                   <DropdownMenuItem
                     key={room.id}
                     onClick={() => onRoomSelect(room)}
-                    className={cn(
-                      "text-md h-6 px-3 active:bg-gray-900 active:text-white",
-                      currentRoom?.id === room.id && "bg-gray-200"
-                    )}
+                    className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
                   >
                     <span
                       className={cn(!(currentRoom?.id === room.id) && "pl-4")}
@@ -268,8 +262,7 @@ export function ChatsMenuBar({
                 key={key}
                 onClick={() => setSynthPreset(key)}
                 className={cn(
-                  "text-md h-6 px-3 active:bg-gray-900 active:text-white",
-                  synthPreset === key && "bg-gray-200"
+                  "text-md h-6 px-3 active:bg-gray-900 active:text-white"
                 )}
               >
                 <span className={cn(!(synthPreset === key) && "pl-4")}>

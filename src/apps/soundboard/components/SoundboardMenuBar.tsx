@@ -5,8 +5,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
-  DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 import { AppProps } from "../../base/types";
 import { MenuBar } from "@/components/layout/MenuBar";
 import { useState, useEffect } from "react";
@@ -87,7 +87,7 @@ export function SoundboardMenuBar({
             File
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" sideOffset={1} className="px-0">
+          <DropdownMenuContent align="start" sideOffset={1} className="px-0">
           <DropdownMenuItem
             onClick={onNewBoard}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
@@ -175,20 +175,22 @@ export function SoundboardMenuBar({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" sideOffset={1} className="px-0">
-          <DropdownMenuCheckboxItem
-            checked={showWaveforms}
-            onCheckedChange={onToggleWaveforms}
-            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
+          <DropdownMenuItem
+            onClick={() => onToggleWaveforms?.(!showWaveforms)}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            <span>Waveforms</span>
-          </DropdownMenuCheckboxItem>
-          <DropdownMenuCheckboxItem
-            checked={showEmojis}
-            onCheckedChange={onToggleEmojis}
-            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
+            <span className={cn(!showWaveforms && "pl-4")}>
+              {showWaveforms ? "✓ Waveforms" : "Waveforms"}
+            </span>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => onToggleEmojis?.(!showEmojis)}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            <span>Emojis</span>
-          </DropdownMenuCheckboxItem>
+            <span className={cn(!showEmojis && "pl-4")}>
+              {showEmojis ? "✓ Emojis" : "Emojis"}
+            </span>
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 

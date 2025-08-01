@@ -1229,9 +1229,7 @@ export function TextEditAppComponent({
                           onClick={() =>
                             editor?.chain().focus().setParagraph().run()
                           }
-                          className={`text-sm h-6 px-2 ${
-                            editor?.isActive("paragraph") ? "bg-gray-200" : ""
-                          }`}
+                          className="text-sm h-6 px-2"
                         >
                           Text
                         </DropdownMenuItem>
@@ -1243,11 +1241,7 @@ export function TextEditAppComponent({
                               .toggleHeading({ level: 1 })
                               .run()
                           }
-                          className={`text-sm h-6 px-2 ${
-                            editor?.isActive("heading", { level: 1 })
-                              ? "bg-gray-200"
-                              : ""
-                          }`}
+                          className="text-sm h-6 px-2"
                         >
                           H1
                         </DropdownMenuItem>
@@ -1259,11 +1253,7 @@ export function TextEditAppComponent({
                               .toggleHeading({ level: 2 })
                               .run()
                           }
-                          className={`text-sm h-6 px-2 ${
-                            editor?.isActive("heading", { level: 2 })
-                              ? "bg-gray-200"
-                              : ""
-                          }`}
+                          className="text-sm h-6 px-2"
                         >
                           H2
                         </DropdownMenuItem>
@@ -1275,11 +1265,7 @@ export function TextEditAppComponent({
                               .toggleHeading({ level: 3 })
                               .run()
                           }
-                          className={`text-sm h-6 px-2 ${
-                            editor?.isActive("heading", { level: 3 })
-                              ? "bg-gray-200"
-                              : ""
-                          }`}
+                          className="text-sm h-6 px-2"
                         >
                           H3
                         </DropdownMenuItem>

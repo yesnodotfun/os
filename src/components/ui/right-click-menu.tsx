@@ -7,8 +7,8 @@ import {
   DropdownMenuSub,
   DropdownMenuSubTrigger,
   DropdownMenuSubContent,
-  DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 import { ReactNode } from "react";
 
 // ------------------ Types ------------------
@@ -78,16 +78,20 @@ function renderItems(items: MenuItem[]): ReactNode {
       case "radioGroup":
         return (
           <>
-            {item.items.map((ri) => (
-              <DropdownMenuCheckboxItem
-                key={ri.value}
-                checked={item.value === ri.value}
-                onCheckedChange={() => item.onChange(ri.value)}
-                className={`${menuItemClass} pl-8 flex items-center`}
-              >
-                {ri.label}
-              </DropdownMenuCheckboxItem>
-            ))}
+            {item.items.map((ri) => {
+              const isActive = item.value === ri.value;
+              return (
+                <DropdownMenuItem
+                  key={ri.value}
+                  onSelect={() => item.onChange(ri.value)}
+                  className={menuItemClass}
+                >
+                  <span className={cn(!isActive && "pl-4")}>
+                    {isActive ? `✓ ${ri.label}` : ri.label}
+                  </span>
+                </DropdownMenuItem>
+              );
+            })}
           </>
         );
       default:

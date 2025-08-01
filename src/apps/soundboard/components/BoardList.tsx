@@ -47,9 +47,9 @@ export function BoardList({
           : "border-b border-black md:border-r md:border-b-0"
       }`}
     >
-      <div className="py-3 px-3 flex flex-col flex-1 overflow-hidden">
-        <div className="flex justify-between items-center md:mb-2">
-          <h2 className="text-[14px] pl-1 mb-1">Soundboards</h2>
+      <div className="py-3 flex flex-col flex-1 overflow-hidden">
+        <div className="flex justify-between items-center mb-2 flex-shrink-0 px-3">
+          <h2 className="text-[14px] pl-1">Soundboards</h2>
           <Button
             variant="ghost"
             size="sm"
@@ -59,12 +59,15 @@ export function BoardList({
             <Plus className="w-3 h-3" />
           </Button>
         </div>
-        <div className="flex-1 overflow-y-auto space-y-1 min-h-0">
+        <div
+          className="space-y-1 overscroll-contain w-full flex-1 overflow-y-auto min-h-0"
+          style={{ WebkitOverflowScrolling: "touch" }}
+        >
           {boards.map((board) => (
             <div
               key={board.id}
               className={cn(
-                "px-2 py-1 cursor-pointer",
+                "group relative py-1 px-5 cursor-pointer",
                 board.id === activeBoardId
                   ? "bg-black text-white"
                   : "hover:bg-black/5"
@@ -78,7 +81,7 @@ export function BoardList({
 
         {micPermissionGranted && (
           <div
-            className={`mt-auto pt-2 border-t px-2 pb-2 ${
+            className={`mt-auto pt-2 border-t px-3 pb-3 ${
               isWindowsLegacyTheme ? "border-[#919b9c]" : "border-gray-300"
             }`}
           >

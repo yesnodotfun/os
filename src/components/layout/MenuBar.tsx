@@ -8,7 +8,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
-  DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
 import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
@@ -265,50 +264,29 @@ function DefaultMenuItems() {
             View
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" sideOffset={1} className="px-0">
-          <DropdownMenuCheckboxItem
-            checked={false}
-            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
-          >
-            <span>by Small Icon</span>
-          </DropdownMenuCheckboxItem>
-          <DropdownMenuCheckboxItem
-            checked={true}
-            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
-          >
-            <span>by Icon</span>
-          </DropdownMenuCheckboxItem>
-          <DropdownMenuCheckboxItem
-            checked={false}
-            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
-          >
-            <span>by List</span>
-          </DropdownMenuCheckboxItem>
+          <DropdownMenuContent align="start" sideOffset={1} className="px-0">
+          <DropdownMenuItem className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
+            <span className="pl-4">by Small Icon</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
+            <span>✓ by Icon</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
+            <span className="pl-4">by List</span>
+          </DropdownMenuItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
-          <DropdownMenuCheckboxItem
-            checked={true}
-            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
-          >
-            <span>by Name</span>
-          </DropdownMenuCheckboxItem>
-          <DropdownMenuCheckboxItem
-            checked={false}
-            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
-          >
-            <span>by Date</span>
-          </DropdownMenuCheckboxItem>
-          <DropdownMenuCheckboxItem
-            checked={false}
-            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
-          >
-            <span>by Size</span>
-          </DropdownMenuCheckboxItem>
-          <DropdownMenuCheckboxItem
-            checked={false}
-            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
-          >
-            <span>by Kind</span>
-          </DropdownMenuCheckboxItem>
+          <DropdownMenuItem className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
+            <span>✓ by Name</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
+            <span className="pl-4">by Date</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
+            <span className="pl-4">by Size</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
+            <span className="pl-4">by Kind</span>
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 

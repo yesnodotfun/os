@@ -88,8 +88,10 @@
   --os-color-traffic-light-close: #4a0a07;
   --os-color-traffic-light-minimize: #7a5915;
   --os-color-traffic-light-maximize: #10541a;
-  --os-color-selection-bg: #3067da;
+  --os-color-selection-bg: #4774d0;
   --os-color-selection-text: #ffffff;
+  /* Derived selection glow (used for focus rings). Keep alpha in a separate var */
+  --os-color-selection-glow: rgba(48, 103, 218, 0.5);
   --os-color-text-primary: #000000;
   --os-color-text-secondary: #4b4b4b;
   --os-color-text-disabled: #999999;
@@ -652,7 +654,7 @@
 
 :root[data-os-theme="macosx"] select:focus {
   box-shadow: 0 2px 3px rgba(0, 0, 0, 0.2), 0 1px 1px rgba(0, 0, 0, 0.3),
-    0 0 0 1px rgba(0, 0, 0, 0.3), 0 0 3px rgba(52, 106, 227, 0.5);
+    0 0 0 1px rgba(0, 0, 0, 0.3), 0 0 3px var(--os-color-selection-glow);
   outline: none;
 }
 
@@ -896,10 +898,12 @@
 :root[data-os-theme="macosx"] [role="menuitemradio"]:focus,
 :root[data-os-theme="macosx"] [role="option"]:focus,
 :root[data-os-theme="macosx"] [role="option"][data-highlighted] {
-  background-color: #3067da !important;
-  color: white !important;
+  background-color: var(--os-color-selection-bg) !important;
+  color: var(--os-color-selection-text) !important;
   outline: none !important;
 }
+
+
 
 /* Override the 11px font size for dropdown menu items */
 :root[data-os-theme="macosx"] [role="menuitem"],

@@ -6,8 +6,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
-  DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 import { FileItem } from "./FileList";
 import { toast } from "sonner";
 import { generateAppShareUrl } from "@/utils/sharedUrl";
@@ -101,7 +101,7 @@ export function FinderMenuBar({
             File
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" sideOffset={1} className="px-0">
+          <DropdownMenuContent align="start" sideOffset={1} className="px-0">
           <DropdownMenuItem
             onClick={onNewWindow}
             className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
@@ -217,56 +217,63 @@ export function FinderMenuBar({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" sideOffset={1} className="px-0">
-          <DropdownMenuCheckboxItem
-            checked={viewType === "small"}
-            onCheckedChange={() => onViewTypeChange("small")}
-            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
+          <DropdownMenuItem
+            onClick={() => onViewTypeChange("small")}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            <span>by Small Icon</span>
-          </DropdownMenuCheckboxItem>
-          <DropdownMenuCheckboxItem
-            checked={viewType === "large"}
-            onCheckedChange={() => onViewTypeChange("large")}
-            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
+            <span className={cn(viewType !== "small" && "pl-4")}> 
+              {viewType === "small" ? "✓ by Small Icon" : "by Small Icon"}
+            </span>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => onViewTypeChange("large")}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            <span>by Icon</span>
-          </DropdownMenuCheckboxItem>
-          <DropdownMenuCheckboxItem
-            checked={viewType === "list"}
-            onCheckedChange={() => onViewTypeChange("list")}
-            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
+            <span className={cn(viewType !== "large" && "pl-4")}> 
+              {viewType === "large" ? "✓ by Icon" : "by Icon"}
+            </span>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => onViewTypeChange("list")}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            <span>by List</span>
-          </DropdownMenuCheckboxItem>
+            <span className={cn(viewType !== "list" && "pl-4")}> 
+              {viewType === "list" ? "✓ by List" : "by List"}
+            </span>
+          </DropdownMenuItem>
           <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
-          <DropdownMenuCheckboxItem
-            checked={sortType === "name"}
-            onCheckedChange={() => onSortTypeChange("name")}
-            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
+          <DropdownMenuItem
+            onClick={() => onSortTypeChange("name")}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            <span>by Name</span>
-          </DropdownMenuCheckboxItem>
-          <DropdownMenuCheckboxItem
-            checked={sortType === "date"}
-            onCheckedChange={() => onSortTypeChange("date")}
-            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
+            <span className={cn(sortType !== "name" && "pl-4")}>
+              {sortType === "name" ? "✓ by Name" : "by Name"}
+            </span>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => onSortTypeChange("date")}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            <span>by Date</span>
-          </DropdownMenuCheckboxItem>
-          <DropdownMenuCheckboxItem
-            checked={sortType === "size"}
-            onCheckedChange={() => onSortTypeChange("size")}
-            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
+            <span className={cn(sortType !== "date" && "pl-4")}>
+              {sortType === "date" ? "✓ by Date" : "by Date"}
+            </span>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => onSortTypeChange("size")}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            <span>by Size</span>
-          </DropdownMenuCheckboxItem>
-          <DropdownMenuCheckboxItem
-            checked={sortType === "kind"}
-            onCheckedChange={() => onSortTypeChange("kind")}
-            className="text-md h-6 px-3 pl-8 active:bg-gray-900 active:text-white flex justify-between items-center"
+            <span className={cn(sortType !== "size" && "pl-4")}>
+              {sortType === "size" ? "✓ by Size" : "by Size"}
+            </span>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => onSortTypeChange("kind")}
+            className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
           >
-            <span>by Kind</span>
-          </DropdownMenuCheckboxItem>
+            <span className={cn(sortType !== "kind" && "pl-4")}>
+              {sortType === "kind" ? "✓ by Kind" : "by Kind"}
+            </span>
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 

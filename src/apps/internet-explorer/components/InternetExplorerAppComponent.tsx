@@ -2190,11 +2190,7 @@ export function InternetExplorerAppComponent({
                         {filteredSuggestions.map((suggestion, index) => (
                           <div
                             key={`${suggestion.type}-${index}`}
-                            className={`px-2 py-1.5 hover:bg-gray-100 focus:bg-gray-200 cursor-pointer flex items-center gap-2 text-sm outline-none ${
-                              index === selectedSuggestionIndex
-                                ? "bg-gray-200"
-                                : ""
-                            }`}
+                            className="px-2 py-1.5 hover:bg-gray-100 focus:bg-gray-200 cursor-pointer flex items-center gap-2 text-sm outline-none"
                             onClick={() => {
                               setSelectedSuggestionIndex(index);
                               if (suggestion.type === "search") {

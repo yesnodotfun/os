@@ -80,7 +80,7 @@ const SelectTrigger = React.forwardRef<
           boxShadow: isPressed
             ? "inset 0 1px 2px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.2)"
             : isFocused
-            ? "0 2px 3px rgba(0, 0, 0, 0.2), 0 1px 1px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 0, 0, 0.3), 0 0 3px rgba(52, 106, 227, 0.5)"
+            ? "0 2px 3px rgba(0, 0, 0, 0.2), 0 1px 1px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 0, 0, 0.3), 0 0 3px var(--os-color-selection-glow)"
             : "0 2px 3px rgba(0, 0, 0, 0.2), 0 1px 1px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 0, 0, 0.3)",
           color: "black",
           textShadow: "0 2px 3px rgba(0, 0, 0, 0.25)",
