@@ -1653,7 +1653,7 @@ export function ControlPanelsAppComponent({
                         </div>
                       </div>
                       {debugMode && (
-                        <div className="flex flex-col gap-2">
+                        <div className="flex">
                           <Button
                             variant="retro"
                             onClick={handleLogoutAllDevices}
@@ -1663,17 +1663,6 @@ export function ControlPanelsAppComponent({
                             {isLoggingOutAllDevices
                               ? "Logging out..."
                               : "Log Out of All Devices"}
-                          </Button>
-                          <Button
-                            variant="retro"
-                            onClick={() => {
-                              setPasswordInput("");
-                              setPasswordError(null);
-                              setIsPasswordDialogOpen(true);
-                            }}
-                            className="w-full"
-                          >
-                            Set Password
                           </Button>
                         </div>
                       )}
