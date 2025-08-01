@@ -1,5 +1,5 @@
 import React from "react";
-import { Send, Trash, ChevronRight } from "lucide-react";
+import { Plus, Trash, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { type ChatRoom } from "@/types/chat";
@@ -168,7 +168,7 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
                   onClick={onAddRoom}
                   className="flex items-center text-xs hover:bg-black/5 w-[24px] h-[24px]"
                 >
-                  <Send className="w-3 h-3" />
+                  <Plus className="w-3 h-3" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -209,40 +209,52 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
                 const privateRooms = rooms.filter(
                   (room) => room.type === "private"
                 );
+                const hasBoth =
+                  publicRooms.length > 0 && privateRooms.length > 0;
 
                 return (
                   <>
-                    {publicRooms.length > 0 && (
-                      <button
-                        type="button"
-                        aria-expanded={showPublic}
-                        onClick={() => setShowPublic((v) => !v)}
-                        className={cn(
-                          "mt-2 pl-1 pr-2 pt-2 pb-1 w-full flex items-center group",
-                          "!text-[11px] uppercase tracking-wide text-black/50"
+                    {hasBoth ? (
+                      <>
+                        {publicRooms.length > 0 && (
+                          <button
+                            type="button"
+                            aria-expanded={showPublic}
+                            onClick={() => setShowPublic((v) => !v)}
+                            className={cn(
+                              "mt-2 pl-1 pr-2 pt-2 pb-1 w-full flex items-center group",
+                              "!text-[11px] uppercase tracking-wide text-black/50"
+                            )}
+                          >
+                            <span>Channels</span>
+                            <ChevronRight className="ml-1 h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </button>
                         )}
-                      >
-                        <span>Channels</span>
-                        <ChevronRight className="ml-1 h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </button>
-                    )}
-                    {showPublic && publicRooms.map(renderRoomItem)}
+                        {showPublic && publicRooms.map(renderRoomItem)}
 
-                    {privateRooms.length > 0 && (
-                      <button
-                        type="button"
-                        aria-expanded={showPrivate}
-                        onClick={() => setShowPrivate((v) => !v)}
-                        className={cn(
-                          "mt-2 pl-1 pr-2 pt-2 pb-1 w-full flex items-center group",
-                          "!text-[11px] uppercase tracking-wide text-black/50"
+                        {privateRooms.length > 0 && (
+                          <button
+                            type="button"
+                            aria-expanded={showPrivate}
+                            onClick={() => setShowPrivate((v) => !v)}
+                            className={cn(
+                              "mt-2 pl-1 pr-2 pt-2 pb-1 w-full flex items-center group",
+                              "!text-[11px] uppercase tracking-wide text-black/50"
+                            )}
+                          >
+                            <span>Private</span>
+                            <ChevronRight className="ml-1 h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </button>
                         )}
-                      >
-                        <span>Private</span>
-                        <ChevronRight className="ml-1 h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </button>
+                        {showPrivate && privateRooms.map(renderRoomItem)}
+                      </>
+                    ) : (
+                      <>
+                        {publicRooms.length > 0
+                          ? publicRooms.map(renderRoomItem)
+                          : privateRooms.map(renderRoomItem)}
+                      </>
                     )}
-                    {showPrivate && privateRooms.map(renderRoomItem)}
                   </>
                 );
               })()}
