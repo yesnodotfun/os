@@ -1,9 +1,7 @@
 import { experimental_generateSpeech as generateSpeech } from "ai";
 import { openai } from "@ai-sdk/openai";
+import { getEffectiveOrigin, isAllowedOrigin, preflightIfNeeded } from "./utils/cors.js";
 import * as RateLimit from "./utils/rate-limit";
-
-// Allowed origins for CORS
-const ALLOWED_ORIGINS = new Set(["https://os.ryo.lu", "http://localhost:3000"]);
 
 // --- Default Configuration -----------------------------------------------
 
@@ -131,28 +129,20 @@ export default async function handler(req: Request) {
 
   logRequest(req.method, req.url, "speech", requestId);
 
-  const origin = req.headers.get("origin");
+  const effectiveOrigin = getEffectiveOrigin(req);
 
   // Handle CORS pre-flight request
   if (req.method === "OPTIONS") {
-    if (origin && ALLOWED_ORIGINS.has(origin)) {
-      return new Response(null, {
-        headers: {
-          "Access-Control-Allow-Origin": origin,
-          "Access-Control-Allow-Methods": "POST, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type",
-        },
-      });
-    }
-    return new Response("Unauthorized", { status: 403 });
+    const resp = preflightIfNeeded(req, ["POST", "OPTIONS"], effectiveOrigin);
+    if (resp) return resp;
   }
 
   if (req.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
   }
 
-  if (!origin || !ALLOWED_ORIGINS.has(origin)) {
-    logError(requestId, "Unauthorized origin", origin);
+  if (!isAllowedOrigin(effectiveOrigin)) {
+    logError(requestId, "Unauthorized origin", effectiveOrigin);
     return new Response("Unauthorized", { status: 403 });
   }
 
@@ -190,7 +180,7 @@ export default async function handler(req: Request) {
           headers: {
             "Retry-After": String(burst.resetSeconds ?? BURST_WINDOW),
             "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": origin,
+            "Access-Control-Allow-Origin": effectiveOrigin!,
             "X-RateLimit-Limit": String(burst.limit),
             "X-RateLimit-Remaining": String(Math.max(0, burst.limit - burst.count)),
             "X-RateLimit-Reset": String(burst.resetSeconds ?? BURST_WINDOW),
@@ -220,7 +210,7 @@ export default async function handler(req: Request) {
           headers: {
             "Retry-After": String(daily.resetSeconds ?? DAILY_WINDOW),
             "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": origin,
+            "Access-Control-Allow-Origin": effectiveOrigin!,
             "X-RateLimit-Limit": String(daily.limit),
             "X-RateLimit-Remaining": String(Math.max(0, daily.limit - daily.count)),
             "X-RateLimit-Reset": String(daily.resetSeconds ?? DAILY_WINDOW),
@@ -315,7 +305,7 @@ export default async function handler(req: Request) {
       headers: {
         "Content-Type": mimeType,
         "Content-Length": audioData.byteLength.toString(),
-        "Access-Control-Allow-Origin": origin,
+        "Access-Control-Allow-Origin": effectiveOrigin!,
         "Cache-Control": "no-store",
       },
     });

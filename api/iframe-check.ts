@@ -2,7 +2,7 @@
 
 import { Redis } from "@upstash/redis"; // Use direct import
 import * as RateLimit from "./utils/rate-limit";
-import { getEffectiveOrigin, isAllowedOrigin } from "./utils/cors";
+import { getEffectiveOrigin, isAllowedOrigin } from "./utils/cors.js";
 
 export const config = {
   runtime: "edge",
@@ -212,7 +212,7 @@ export default async function handler(req: Request) {
       if (!global.allowed) {
         return new Response(
           JSON.stringify({ error: "rate_limit_exceeded", scope: "global", mode }),
-          { status: 429, headers: { "Retry-After": String(global.resetSeconds ?? BURST_WINDOW), "Content-Type": "application/json" } }
+          { status: 429, headers: { "Retry-After": String(global.resetSeconds ?? BURST_WINDOW), "Content-Type": "application/json", "Access-Control-Allow-Origin": effectiveOrigin } }
         );
       }
 
@@ -228,7 +228,7 @@ export default async function handler(req: Request) {
         if (!host.allowed) {
           return new Response(
             JSON.stringify({ error: "rate_limit_exceeded", scope: "host", host: hostname, mode }),
-            { status: 429, headers: { "Retry-After": String(host.resetSeconds ?? BURST_WINDOW), "Content-Type": "application/json" } }
+            { status: 429, headers: { "Retry-After": String(host.resetSeconds ?? BURST_WINDOW), "Content-Type": "application/json", "Access-Control-Allow-Origin": effectiveOrigin } }
           );
         }
       } catch (e) {
@@ -245,7 +245,7 @@ export default async function handler(req: Request) {
       if (!res.allowed) {
         return new Response(
           JSON.stringify({ error: "rate_limit_exceeded", scope: mode }),
-          { status: 429, headers: { "Retry-After": String(res.resetSeconds ?? BURST_WINDOW), "Content-Type": "application/json" } }
+          { status: 429, headers: { "Retry-After": String(res.resetSeconds ?? BURST_WINDOW), "Content-Type": "application/json", "Access-Control-Allow-Origin": effectiveOrigin } }
         );
       }
     }
@@ -957,7 +957,7 @@ export default async function handler(req: Request) {
           status: 503,
           headers: {
             "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": effectiveOrigin || "*",
+            "Access-Control-Allow-Origin": effectiveOrigin,
           },
         }
       );

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { Redis } from "@upstash/redis";
 import * as RateLimit from "./utils/rate-limit";
+import { getEffectiveOrigin, isAllowedOrigin, preflightIfNeeded } from "./utils/cors.js";
 
 // Vercel Edge Function configuration
 export const config = {
@@ -143,18 +144,9 @@ export default async function handler(req: Request) {
   logRequest(req.method, req.url, null, requestId);
 
   if (req.method === "OPTIONS") {
-    const origin = req.headers.get("origin");
-    const ALLOWED_ORIGINS = new Set(["https://os.ryo.lu", "http://localhost:3000"]);
-    if (origin && ALLOWED_ORIGINS.has(origin)) {
-      return new Response(null, {
-        headers: {
-          "Access-Control-Allow-Origin": origin,
-          "Access-Control-Allow-Methods": "POST, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type",
-        },
-      });
-    }
-    return new Response("Unauthorized", { status: 403 });
+    const effectiveOrigin = getEffectiveOrigin(req);
+    const resp = preflightIfNeeded(req, ["POST", "OPTIONS"], effectiveOrigin);
+    if (resp) return resp;
   }
 
   if (req.method !== "POST") {
@@ -165,9 +157,8 @@ export default async function handler(req: Request) {
   // Parse and validate request body
   let body: LyricsRequest;
   try {
-    const origin = req.headers.get("origin");
-    const ALLOWED_ORIGINS = new Set(["https://os.ryo.lu", "http://localhost:3000"]);
-    if (!origin || !ALLOWED_ORIGINS.has(origin)) {
+    const effectiveOrigin = getEffectiveOrigin(req);
+    if (!isAllowedOrigin(effectiveOrigin)) {
       return new Response("Unauthorized", { status: 403 });
     }
 
@@ -186,7 +177,7 @@ export default async function handler(req: Request) {
       if (!burst.allowed) {
         return new Response(
           JSON.stringify({ error: "rate_limit_exceeded", scope: "burst" }),
-          { status: 429, headers: { "Retry-After": String(burst.resetSeconds ?? BURST_WINDOW), "Content-Type": "application/json", "Access-Control-Allow-Origin": origin } }
+          { status: 429, headers: { "Retry-After": String(burst.resetSeconds ?? BURST_WINDOW), "Content-Type": "application/json", "Access-Control-Allow-Origin": effectiveOrigin! } }
         );
       }
 
@@ -194,7 +185,7 @@ export default async function handler(req: Request) {
       if (!daily.allowed) {
         return new Response(
           JSON.stringify({ error: "rate_limit_exceeded", scope: "daily" }),
-          { status: 429, headers: { "Retry-After": String(daily.resetSeconds ?? DAILY_WINDOW), "Content-Type": "application/json", "Access-Control-Allow-Origin": origin } }
+          { status: 429, headers: { "Retry-After": String(daily.resetSeconds ?? DAILY_WINDOW), "Content-Type": "application/json", "Access-Control-Allow-Origin": effectiveOrigin! } }
         );
       }
     } catch (e) {
@@ -242,7 +233,7 @@ export default async function handler(req: Request) {
         headers: {
           "Content-Type": "application/json",
           "X-Lyrics-Cache": "HIT",
-          "Access-Control-Allow-Origin": origin,
+          "Access-Control-Allow-Origin": getEffectiveOrigin(req)!,
         },
       });
     }
@@ -362,21 +353,21 @@ export default async function handler(req: Request) {
       }
 
     return new Response(JSON.stringify(result), {
-      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": origin },
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": getEffectiveOrigin(req)! },
     });
     }
 
     // If loop completes without returning, we failed to fetch lyrics
     return new Response(
       JSON.stringify({ error: "Lyrics not found for given query" }),
-      { status: 404, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": origin } }
+      { status: 404, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": getEffectiveOrigin(req)! } }
     );
   } catch (error: unknown) {
     logError(requestId, "Error fetching lyrics", error);
     console.error("Error fetching lyrics:", error);
     return new Response(JSON.stringify({ error: "Unexpected server error" }), {
       status: 500,
-      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": origin ?? "*" },
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": getEffectiveOrigin(req)! },
     });
   }
 }

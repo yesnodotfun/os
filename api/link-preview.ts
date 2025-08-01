@@ -3,7 +3,7 @@ export const config = {
 };
 
 import * as RateLimit from "./utils/rate-limit";
-import { getEffectiveOrigin, isAllowedOrigin, preflightIfNeeded } from "./utils/cors";
+import { getEffectiveOrigin, isAllowedOrigin, preflightIfNeeded } from "./utils/cors.js";
 interface LinkMetadata {
   title?: string;
   description?: string;
@@ -86,7 +86,7 @@ export default async function handler(req: Request) {
       if (!global.allowed) {
         return new Response(
           JSON.stringify({ error: "rate_limit_exceeded", scope: "global" }),
-          { status: 429, headers: { "Retry-After": String(global.resetSeconds ?? BURST_WINDOW), "Content-Type": "application/json", "Access-Control-Allow-Origin": effectiveOrigin || "*" } }
+          { status: 429, headers: { "Retry-After": String(global.resetSeconds ?? BURST_WINDOW), "Content-Type": "application/json", "Access-Control-Allow-Origin": effectiveOrigin } }
         );
       }
 
@@ -102,7 +102,7 @@ export default async function handler(req: Request) {
           if (!host.allowed) {
             return new Response(
               JSON.stringify({ error: "rate_limit_exceeded", scope: "host", host: hostname }),
-              { status: 429, headers: { "Retry-After": String(host.resetSeconds ?? BURST_WINDOW), "Content-Type": "application/json", "Access-Control-Allow-Origin": effectiveOrigin || "*" } }
+              { status: 429, headers: { "Retry-After": String(host.resetSeconds ?? BURST_WINDOW), "Content-Type": "application/json", "Access-Control-Allow-Origin": effectiveOrigin } }
             );
           }
         } catch (e) {
@@ -288,7 +288,7 @@ export default async function handler(req: Request) {
       headers: { 
         "Content-Type": "application/json",
         "Cache-Control": "public, max-age=3600", // Cache for 1 hour
-        "Access-Control-Allow-Origin": effectiveOrigin || "*",
+        "Access-Control-Allow-Origin": effectiveOrigin,
       },
     });
 
@@ -317,7 +317,7 @@ export default async function handler(req: Request) {
       }),
       {
         status: status,
-        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": effectiveOrigin ?? "*" },
+        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": effectiveOrigin ?? "" },
       }
     );
   }

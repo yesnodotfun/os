@@ -3,6 +3,7 @@ import { generateObject } from "ai";
 import { z } from "zod";
 import { Redis } from "@upstash/redis";
 import * as RateLimit from "./utils/rate-limit";
+import { getEffectiveOrigin, isAllowedOrigin, preflightIfNeeded } from "./utils/cors.js";
 
 export const config = {
   runtime: "edge",
@@ -89,15 +90,20 @@ export default async function handler(req: Request) {
   const requestId = generateRequestId();
   logRequest(req.method, req.url, null, requestId);
 
+  if (req.method === "OPTIONS") {
+    const effectiveOrigin = getEffectiveOrigin(req);
+    const resp = preflightIfNeeded(req, ["POST", "OPTIONS"], effectiveOrigin);
+    if (resp) return resp;
+  }
+
   if (req.method !== "POST") {
     logError(requestId, "Method not allowed", null);
     return new Response("Method not allowed", { status: 405 });
   }
 
   try {
-    const origin = req.headers.get("origin");
-    const ALLOWED_ORIGINS = new Set(["https://os.ryo.lu", "http://localhost:3000"]);
-    if (!origin || !ALLOWED_ORIGINS.has(origin)) {
+    const effectiveOrigin = getEffectiveOrigin(req);
+    if (!isAllowedOrigin(effectiveOrigin)) {
       return new Response("Unauthorized", { status: 403 });
     }
 
@@ -116,7 +122,7 @@ export default async function handler(req: Request) {
       if (!burst.allowed) {
         return new Response(
           JSON.stringify({ error: "rate_limit_exceeded", scope: "burst" }),
-          { status: 429, headers: { "Retry-After": String(burst.resetSeconds ?? BURST_WINDOW), "Content-Type": "text/plain; charset=utf-8", "Access-Control-Allow-Origin": origin } }
+          { status: 429, headers: { "Retry-After": String(burst.resetSeconds ?? BURST_WINDOW), "Content-Type": "text/plain; charset=utf-8", "Access-Control-Allow-Origin": effectiveOrigin! } }
         );
       }
 
@@ -124,7 +130,7 @@ export default async function handler(req: Request) {
       if (!daily.allowed) {
         return new Response(
           JSON.stringify({ error: "rate_limit_exceeded", scope: "daily" }),
-          { status: 429, headers: { "Retry-After": String(daily.resetSeconds ?? DAILY_WINDOW), "Content-Type": "text/plain; charset=utf-8", "Access-Control-Allow-Origin": origin } }
+          { status: 429, headers: { "Retry-After": String(daily.resetSeconds ?? DAILY_WINDOW), "Content-Type": "text/plain; charset=utf-8", "Access-Control-Allow-Origin": effectiveOrigin! } }
         );
       }
     } catch (e) {
@@ -229,7 +235,7 @@ Do not include timestamps or any other formatting in your output strings; just t
     }
 
     return new Response(lrcResult, {
-      headers: { "Content-Type": "text/plain; charset=utf-8", "Access-Control-Allow-Origin": origin },
+      headers: { "Content-Type": "text/plain; charset=utf-8", "Access-Control-Allow-Origin": effectiveOrigin! },
     });
   } catch (error: unknown) {
     logError(requestId, "Error translating lyrics", error);
@@ -244,7 +250,7 @@ Do not include timestamps or any other formatting in your output strings; just t
     // Return error as plain text if API is expected to be text/plain
     return new Response(`Error: ${errorMessage}`, {
       status: 500,
-      headers: { "Content-Type": "text/plain; charset=utf-8", "Access-Control-Allow-Origin": origin ?? "*" },
+      headers: { "Content-Type": "text/plain; charset=utf-8", "Access-Control-Allow-Origin": "*" },
     });
   }
 }

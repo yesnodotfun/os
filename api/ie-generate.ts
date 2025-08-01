@@ -1,5 +1,6 @@
 import { streamText, smoothStream, type Message, CoreMessage } from "ai";
 import * as RateLimit from "./utils/rate-limit";
+import { getEffectiveOrigin, isAllowedOrigin, preflightIfNeeded } from "./utils/cors.js";
 import { SupportedModel, DEFAULT_MODEL, getModelInstance } from "./utils/aiModels";
 import { Redis } from "@upstash/redis";
 import { normalizeUrlForCacheKey } from "./utils/url";
@@ -9,11 +10,7 @@ import {
 } from "./utils/aiPrompts";
 import { SUPPORTED_AI_MODELS } from "../src/types/aiModels";
 
-// Allowed origins for API requests (reuse list from chat.ts)
-const ALLOWED_ORIGINS = new Set([
-  "https://os.ryo.lu",
-  "http://localhost:3000",
-]);
+// CORS handled via shared utils
 
 // After ALLOWED_ORIGINS const block, add Redis setup and cache prefix
 
@@ -49,10 +46,7 @@ interface IEGenerateRequestBody {
 
 // --- Utility Functions ----------------------------------------------------
 
-const isValidOrigin = (origin: string | null): boolean => {
-  if (!origin) return false;
-  return ALLOWED_ORIGINS.has(origin);
-};
+const isValidOrigin = (origin: string | null): boolean => isAllowedOrigin(origin);
 
 // --- Edge Runtime Config --------------------------------------------------
 
@@ -135,22 +129,13 @@ ${RYO_PERSONA_INSTRUCTIONS}`;
 
 export default async function handler(req: Request) {
   // CORS / Origin validation
-  const origin = req.headers.get("origin");
-  if (!isValidOrigin(origin)) {
-    return new Response("Unauthorized", { status: 403 });
-  }
-
-  const validOrigin = origin as string;
-
-  // CORS preflight
+  const effectiveOrigin = getEffectiveOrigin(req);
   if (req.method === "OPTIONS") {
-    return new Response(null, {
-      headers: {
-        "Access-Control-Allow-Origin": validOrigin,
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
-      },
-    });
+    const resp = preflightIfNeeded(req, ["POST", "OPTIONS"], effectiveOrigin);
+    if (resp) return resp;
+  }
+  if (!isValidOrigin(effectiveOrigin)) {
+    return new Response("Unauthorized", { status: 403 });
   }
 
   if (req.method !== "POST") {
@@ -180,7 +165,7 @@ export default async function handler(req: Request) {
         const headers = new Headers({
           "Retry-After": String(burst.resetSeconds ?? BURST_WINDOW),
           "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": origin as string,
+          "Access-Control-Allow-Origin": effectiveOrigin,
         });
         return new Response(
           JSON.stringify({
@@ -204,7 +189,7 @@ export default async function handler(req: Request) {
         const headers = new Headers({
           "Retry-After": String(budget.resetSeconds ?? BUDGET_WINDOW),
           "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": origin as string,
+          "Access-Control-Allow-Origin": effectiveOrigin,
         });
         return new Response(
           JSON.stringify({
@@ -327,7 +312,7 @@ export default async function handler(req: Request) {
     const response = result.toDataStreamResponse();
 
     const headers = new Headers(response.headers);
-    headers.set("Access-Control-Allow-Origin", validOrigin);
+    headers.set("Access-Control-Allow-Origin", effectiveOrigin!);
 
     const resp = new Response(response.body, {
       status: response.status,

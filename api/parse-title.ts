@@ -2,6 +2,7 @@ import { openai } from "@ai-sdk/openai";
 import { generateObject } from "ai";
 import { z } from "zod";
 import * as RateLimit from "./utils/rate-limit";
+import { getEffectiveOrigin, isAllowedOrigin, preflightIfNeeded } from "./utils/cors.js";
 
 export const config = {
   runtime: "edge",
@@ -20,14 +21,19 @@ const ParsedTitleSchema = z.object({
 });
 
 export default async function handler(req: Request) {
+  if (req.method === "OPTIONS") {
+    const effectiveOrigin = getEffectiveOrigin(req);
+    const resp = preflightIfNeeded(req, ["POST", "OPTIONS"], effectiveOrigin);
+    if (resp) return resp;
+  }
+
   if (req.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
   }
 
   try {
-    const origin = req.headers.get("origin");
-    const ALLOWED_ORIGINS = new Set(["https://os.ryo.lu", "http://localhost:3000"]);
-    if (!origin || !ALLOWED_ORIGINS.has(origin)) {
+    const effectiveOrigin = getEffectiveOrigin(req);
+    if (!isAllowedOrigin(effectiveOrigin)) {
       return new Response("Unauthorized", { status: 403 });
     }
 
@@ -46,7 +52,7 @@ export default async function handler(req: Request) {
       if (!burst.allowed) {
         return new Response(JSON.stringify({ error: "rate_limit_exceeded", scope: "burst" }), {
           status: 429,
-          headers: { "Retry-After": String(burst.resetSeconds ?? BURST_WINDOW), "Content-Type": "application/json", "Access-Control-Allow-Origin": origin },
+          headers: { "Retry-After": String(burst.resetSeconds ?? BURST_WINDOW), "Content-Type": "application/json", "Access-Control-Allow-Origin": effectiveOrigin! },
         });
       }
 
@@ -54,7 +60,7 @@ export default async function handler(req: Request) {
       if (!daily.allowed) {
         return new Response(JSON.stringify({ error: "rate_limit_exceeded", scope: "daily" }), {
           status: 429,
-          headers: { "Retry-After": String(daily.resetSeconds ?? DAILY_WINDOW), "Content-Type": "application/json", "Access-Control-Allow-Origin": origin },
+          headers: { "Retry-After": String(daily.resetSeconds ?? DAILY_WINDOW), "Content-Type": "application/json", "Access-Control-Allow-Origin": effectiveOrigin! },
         });
       }
     } catch (e) {
@@ -94,7 +100,7 @@ export default async function handler(req: Request) {
     };
 
     return new Response(JSON.stringify(result), {
-      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": origin },
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": effectiveOrigin! },
     });
   } catch (error: unknown) {
     console.error("Error parsing title:", error);
@@ -123,7 +129,7 @@ export default async function handler(req: Request) {
 
     return new Response(JSON.stringify({ error: errorMessage, details: errorDetails }), {
       status,
-      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": origin ?? "*" },
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
     });
   }
 }
