@@ -2,6 +2,7 @@ import { google } from "@ai-sdk/google";
 import { generateObject } from "ai";
 import { z } from "zod";
 import { Redis } from "@upstash/redis";
+import * as RateLimit from "./utils/rate-limit";
 
 export const config = {
   runtime: "edge",
@@ -94,6 +95,36 @@ export default async function handler(req: Request) {
   }
 
   try {
+    // Rate limits: burst 5/min/IP + daily 100/IP
+    try {
+      const ip = RateLimit.getClientIp(req);
+      const BURST_WINDOW = 60;
+      const BURST_LIMIT = 5;
+      const DAILY_WINDOW = 60 * 60 * 24;
+      const DAILY_LIMIT = 100;
+
+      const burstKey = RateLimit.makeKey(["rl", "lyrics", "translate", "burst", "ip", ip]);
+      const dailyKey = RateLimit.makeKey(["rl", "lyrics", "translate", "daily", "ip", ip]);
+
+      const burst = await RateLimit.checkCounterLimit({ key: burstKey, windowSeconds: BURST_WINDOW, limit: BURST_LIMIT });
+      if (!burst.allowed) {
+        return new Response(
+          JSON.stringify({ error: "rate_limit_exceeded", scope: "burst" }),
+          { status: 429, headers: { "Retry-After": String(burst.resetSeconds ?? BURST_WINDOW), "Content-Type": "text/plain; charset=utf-8" } }
+        );
+      }
+
+      const daily = await RateLimit.checkCounterLimit({ key: dailyKey, windowSeconds: DAILY_WINDOW, limit: DAILY_LIMIT });
+      if (!daily.allowed) {
+        return new Response(
+          JSON.stringify({ error: "rate_limit_exceeded", scope: "daily" }),
+          { status: 429, headers: { "Retry-After": String(daily.resetSeconds ?? DAILY_WINDOW), "Content-Type": "text/plain; charset=utf-8" } }
+        );
+      }
+    } catch (e) {
+      logError(requestId, "Rate limit check failed (translate-lyrics)", e);
+    }
+
     const body = (await req.json()) as TranslateLyricsRequest;
     const validation = TranslateLyricsRequestSchema.safeParse(body);
 

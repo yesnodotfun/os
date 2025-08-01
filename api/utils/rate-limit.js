@@ -90,3 +90,99 @@ export {
   AI_LIMIT_PER_5_HOURS,
   AI_LIMIT_ANON_PER_5_HOURS,
 };
+
+// ------------------------------
+// Generic rate-limit utilities
+// ------------------------------
+
+/**
+ * Increment a counter under a key with a TTL window and enforce a limit.
+ * Returns details including remaining and reset seconds.
+ */
+async function checkCounterLimit({ key, windowSeconds, limit }) {
+  const current = await redis.get(key);
+
+  if (!current) {
+    await redis.set(key, 1, { ex: windowSeconds });
+    const ttl = await redis.ttl(key);
+    return {
+      allowed: true,
+      count: 1,
+      limit,
+      remaining: Math.max(0, limit - 1),
+      windowSeconds,
+      resetSeconds: typeof ttl === "number" && ttl > 0 ? ttl : windowSeconds,
+    };
+  }
+
+  const count = parseInt(current);
+  if (count >= limit) {
+    const ttl = await redis.ttl(key);
+    return {
+      allowed: false,
+      count,
+      limit,
+      remaining: 0,
+      windowSeconds,
+      resetSeconds: typeof ttl === "number" && ttl > 0 ? ttl : windowSeconds,
+    };
+  }
+
+  const newCount = await redis.incr(key);
+  const ttl = await redis.ttl(key);
+  return {
+    allowed: true,
+    count: newCount,
+    limit,
+    remaining: Math.max(0, limit - newCount),
+    windowSeconds,
+    resetSeconds: typeof ttl === "number" && ttl > 0 ? ttl : windowSeconds,
+  };
+}
+
+/**
+ * Extract a best-effort client IP from common proxy headers.
+ */
+function getClientIp(req) {
+  try {
+    const h = req.headers;
+    const origin = h.get("origin") || "";
+    const xVercel = h.get("x-vercel-forwarded-for");
+    const xForwarded = h.get("x-forwarded-for");
+    const xRealIp = h.get("x-real-ip");
+    const cfIp = h.get("cf-connecting-ip");
+    const raw = xVercel || xForwarded || xRealIp || cfIp || "";
+    let ip = raw.split(",")[0].trim();
+
+    if (!ip) ip = "unknown-ip";
+
+    // Normalize IPv6-mapped IPv4 and loopback variants
+    ip = ip.replace(/^::ffff:/i, "");
+    const lower = ip.toLowerCase();
+    const isLocalOrigin = /^http:\/\/localhost(?::\d+)?$/.test(origin);
+    if (
+      isLocalOrigin ||
+      lower === "::1" ||
+      lower === "0:0:0:0:0:0:0:1" ||
+      lower === "127.0.0.1"
+    ) {
+      return "localhost-dev";
+    }
+
+    return ip;
+  } catch {
+    return "unknown-ip";
+  }
+}
+
+/**
+ * Build a stable key string from key parts.
+ */
+function makeKey(parts) {
+  return parts
+    .filter((p) => p !== undefined && p !== null && p !== "")
+    .map((p) => encodeURIComponent(String(p)))
+    .join(":");
+}
+
+export { checkCounterLimit, getClientIp, makeKey };

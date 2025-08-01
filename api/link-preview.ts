@@ -2,6 +2,7 @@ export const config = {
   runtime: "edge",
 };
 
+import * as RateLimit from "./utils/rate-limit";
 interface LinkMetadata {
   title?: string;
   description?: string;
@@ -56,6 +57,49 @@ export default async function handler(req: Request) {
   }
 
   try {
+    // Burst limiter: 10/min per IP; optional per-host 5/min per IP
+    try {
+      const ip = RateLimit.getClientIp(req);
+      const BURST_WINDOW = 60;
+      const GLOBAL_LIMIT = 10;
+
+      const { searchParams } = new URL(req.url);
+      const url = searchParams.get("url");
+
+      const globalKey = RateLimit.makeKey(["rl", "preview", "ip", ip]);
+      const global = await RateLimit.checkCounterLimit({
+        key: globalKey,
+        windowSeconds: BURST_WINDOW,
+        limit: GLOBAL_LIMIT,
+      });
+      if (!global.allowed) {
+        return new Response(
+          JSON.stringify({ error: "rate_limit_exceeded", scope: "global" }),
+          { status: 429, headers: { "Retry-After": String(global.resetSeconds ?? BURST_WINDOW), "Content-Type": "application/json" } }
+        );
+      }
+
+      if (url) {
+        try {
+          const hostname = new URL(url).hostname.toLowerCase();
+          const hostKey = RateLimit.makeKey(["rl", "preview", "ip", ip, "host", hostname]);
+          const host = await RateLimit.checkCounterLimit({
+            key: hostKey,
+            windowSeconds: BURST_WINDOW,
+            limit: 5,
+          });
+          if (!host.allowed) {
+            return new Response(
+              JSON.stringify({ error: "rate_limit_exceeded", scope: "host", host: hostname }),
+              { status: 429, headers: { "Retry-After": String(host.resetSeconds ?? BURST_WINDOW), "Content-Type": "application/json" } }
+            );
+          }
+        } catch {}
+      }
+    } catch (e) {
+      console.error("Rate limit check failed (link-preview)", e);
+    }
+
     const { searchParams } = new URL(req.url);
     const url = searchParams.get("url");
 

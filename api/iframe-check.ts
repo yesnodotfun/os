@@ -1,6 +1,7 @@
 // No Next.js types needed – omit unused import to keep file framework‑agnostic.
 
 import { Redis } from "@upstash/redis"; // Use direct import
+import * as RateLimit from "./utils/rate-limit";
 
 export const config = {
   runtime: "edge",
@@ -186,6 +187,63 @@ export default async function handler(req: Request) {
 
   // Log normalized URL
   logInfo(requestId, `Normalized URL: ${normalizedUrl}`);
+
+  // ---------------------------
+  // Rate limiting (mode-specific)
+  // ---------------------------
+  try {
+    const ip = RateLimit.getClientIp(req);
+    const BURST_WINDOW = 60; // 1 minute
+    const burstKeyBase = ["rl", "iframe", mode, "ip", ip];
+
+    if (mode === "proxy" || mode === "check") {
+      // Global per-IP burst
+      const globalKey = RateLimit.makeKey(burstKeyBase);
+      const global = await RateLimit.checkCounterLimit({
+        key: globalKey,
+        windowSeconds: BURST_WINDOW,
+        limit: 30,
+      });
+      if (!global.allowed) {
+        return new Response(
+          JSON.stringify({ error: "rate_limit_exceeded", scope: "global", mode }),
+          { status: 429, headers: { "Retry-After": String(global.resetSeconds ?? BURST_WINDOW), "Content-Type": "application/json" } }
+        );
+      }
+
+      // Per-host anti-scrape if URL present
+      try {
+        const hostname = new URL(urlParam.startsWith("http") ? urlParam : `https://${urlParam}`).hostname.toLowerCase();
+        const hostKey = RateLimit.makeKey(["rl", "iframe", mode, "ip", ip, "host", hostname]);
+        const host = await RateLimit.checkCounterLimit({
+          key: hostKey,
+          windowSeconds: BURST_WINDOW,
+          limit: 10,
+        });
+        if (!host.allowed) {
+          return new Response(
+            JSON.stringify({ error: "rate_limit_exceeded", scope: "host", host: hostname, mode }),
+            { status: 429, headers: { "Retry-After": String(host.resetSeconds ?? BURST_WINDOW), "Content-Type": "application/json" } }
+          );
+        }
+      } catch {}
+    } else if (mode === "ai" || mode === "list-cache") {
+      const key = RateLimit.makeKey(burstKeyBase);
+      const res = await RateLimit.checkCounterLimit({
+        key,
+        windowSeconds: BURST_WINDOW,
+        limit: 10,
+      });
+      if (!res.allowed) {
+        return new Response(
+          JSON.stringify({ error: "rate_limit_exceeded", scope: mode }),
+          { status: 429, headers: { "Retry-After": String(res.resetSeconds ?? BURST_WINDOW), "Content-Type": "application/json" } }
+        );
+      }
+    }
+  } catch (e) {
+    logError(requestId, "Rate limit check failed (iframe-check)", e);
+  }
 
   // --- AI cache retrieval mode (PRIORITIZE THIS) ---
   if (mode === "ai") {

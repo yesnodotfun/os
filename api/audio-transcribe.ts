@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import * as RateLimit from "./utils/rate-limit";
 
 interface OpenAIError {
   status: number;
@@ -24,6 +25,71 @@ export default async function handler(req: Request) {
   }
 
   try {
+    // Rate limiting (burst + daily) before reading form data
+    try {
+      const ip = RateLimit.getClientIp(req);
+      const BURST_WINDOW = 60; // 1 minute
+      const BURST_LIMIT = 10;
+      const DAILY_WINDOW = 60 * 60 * 24; // 1 day
+      const DAILY_LIMIT = 50;
+
+      const burstKey = RateLimit.makeKey(["rl", "transcribe", "burst", "ip", ip]);
+      const dailyKey = RateLimit.makeKey(["rl", "transcribe", "daily", "ip", ip]);
+
+      const burst = await RateLimit.checkCounterLimit({
+        key: burstKey,
+        windowSeconds: BURST_WINDOW,
+        limit: BURST_LIMIT,
+      });
+      if (!burst.allowed) {
+        return new Response(
+          JSON.stringify({
+            error: "rate_limit_exceeded",
+            scope: "burst",
+            limit: burst.limit,
+            windowSeconds: burst.windowSeconds,
+            resetSeconds: burst.resetSeconds,
+            identifier: `ip:${ip}`,
+          }),
+          {
+            status: 429,
+            headers: {
+              "Retry-After": String(burst.resetSeconds ?? BURST_WINDOW),
+              "Content-Type": "application/json",
+            },
+          }
+        );
+      }
+
+      const daily = await RateLimit.checkCounterLimit({
+        key: dailyKey,
+        windowSeconds: DAILY_WINDOW,
+        limit: DAILY_LIMIT,
+      });
+      if (!daily.allowed) {
+        return new Response(
+          JSON.stringify({
+            error: "rate_limit_exceeded",
+            scope: "daily",
+            limit: daily.limit,
+            windowSeconds: daily.windowSeconds,
+            resetSeconds: daily.resetSeconds,
+            identifier: `ip:${ip}`,
+          }),
+          {
+            status: 429,
+            headers: {
+              "Retry-After": String(daily.resetSeconds ?? DAILY_WINDOW),
+              "Content-Type": "application/json",
+            },
+          }
+        );
+      }
+    } catch (rlErr) {
+      console.error("Rate limit check failed (transcribe)", rlErr);
+      // Fail open: let it continue
+    }
+
     const formData = await req.formData();
     const audioFile = formData.get("audio") as File;
 

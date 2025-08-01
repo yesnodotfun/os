@@ -1,6 +1,7 @@
 import { openai } from "@ai-sdk/openai";
 import { generateObject } from "ai";
 import { z } from "zod";
+import * as RateLimit from "./utils/rate-limit";
 
 export const config = {
   runtime: "edge",
@@ -24,6 +25,37 @@ export default async function handler(req: Request) {
   }
 
   try {
+    // Rate limits: burst 15/min/IP + daily 500/IP
+    try {
+      const ip = RateLimit.getClientIp(req);
+      const BURST_WINDOW = 60;
+      const BURST_LIMIT = 15;
+      const DAILY_WINDOW = 60 * 60 * 24;
+      const DAILY_LIMIT = 500;
+
+      const burstKey = RateLimit.makeKey(["rl", "parse-title", "burst", "ip", ip]);
+      const dailyKey = RateLimit.makeKey(["rl", "parse-title", "daily", "ip", ip]);
+
+      const burst = await RateLimit.checkCounterLimit({ key: burstKey, windowSeconds: BURST_WINDOW, limit: BURST_LIMIT });
+      if (!burst.allowed) {
+        return new Response(
+          JSON.stringify({ error: "rate_limit_exceeded", scope: "burst" }),
+          { status: 429, headers: { "Retry-After": String(burst.resetSeconds ?? BURST_WINDOW), "Content-Type": "application/json" } }
+        );
+      }
+
+      const daily = await RateLimit.checkCounterLimit({ key: dailyKey, windowSeconds: DAILY_WINDOW, limit: DAILY_LIMIT });
+      if (!daily.allowed) {
+        return new Response(
+          JSON.stringify({ error: "rate_limit_exceeded", scope: "daily" }),
+          { status: 429, headers: { "Retry-After": String(daily.resetSeconds ?? DAILY_WINDOW), "Content-Type": "application/json" } }
+        );
+      }
+    } catch (e) {
+      // Fail open but log
+      console.error("Rate limit check failed (parse-title)", e);
+    }
+
     const { title: rawTitle, author_name } =
       (await req.json()) as ParseTitleRequest;
 

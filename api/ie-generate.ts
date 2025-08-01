@@ -1,4 +1,5 @@
-import { streamText, smoothStream, type Message } from "ai";
+import { streamText, smoothStream, type Message, CoreMessage } from "ai";
+import * as RateLimit from "./utils/rate-limit";
 import { SupportedModel, DEFAULT_MODEL, getModelInstance } from "./utils/aiModels";
 import { Redis } from "@upstash/redis";
 import { normalizeUrlForCacheKey } from "./utils/url";
@@ -157,6 +158,71 @@ export default async function handler(req: Request) {
   }
 
   try {
+    // ---------------------------
+    // Rate limiting (burst + budget per IP)
+    // ---------------------------
+    try {
+      const ip = RateLimit.getClientIp(req);
+      const BURST_WINDOW = 60; // 1 minute
+      const BURST_LIMIT = 3;
+      const BUDGET_WINDOW = 5 * 60 * 60; // 5 hours
+      const BUDGET_LIMIT = 10;
+
+      const burstKey = RateLimit.makeKey(["rl", "ie", "burst", "ip", ip]);
+      const budgetKey = RateLimit.makeKey(["rl", "ie", "budget", "ip", ip]);
+
+      const burst = await RateLimit.checkCounterLimit({
+        key: burstKey,
+        windowSeconds: BURST_WINDOW,
+        limit: BURST_LIMIT,
+      });
+      if (!burst.allowed) {
+        const headers = new Headers({
+          "Retry-After": String(burst.resetSeconds ?? BURST_WINDOW),
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": origin as string,
+        });
+        return new Response(
+          JSON.stringify({
+            error: "rate_limit_exceeded",
+            scope: "burst",
+            limit: burst.limit,
+            windowSeconds: burst.windowSeconds,
+            resetSeconds: burst.resetSeconds,
+            identifier: `ip:${ip}`,
+          }),
+          { status: 429, headers }
+        );
+      }
+
+      const budget = await RateLimit.checkCounterLimit({
+        key: budgetKey,
+        windowSeconds: BUDGET_WINDOW,
+        limit: BUDGET_LIMIT,
+      });
+      if (!budget.allowed) {
+        const headers = new Headers({
+          "Retry-After": String(budget.resetSeconds ?? BUDGET_WINDOW),
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": origin as string,
+        });
+        return new Response(
+          JSON.stringify({
+            error: "rate_limit_exceeded",
+            scope: "budget",
+            limit: budget.limit,
+            windowSeconds: budget.windowSeconds,
+            resetSeconds: budget.resetSeconds,
+            identifier: `ip:${ip}`,
+          }),
+          { status: 429, headers }
+        );
+      }
+    } catch (e) {
+      // Fail open on limiter error to avoid blocking
+      console.error("IE generate rate-limit error", e);
+    }
+
     const requestId = generateRequestId();
     const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
     const urlObj = new URL(req.url);
@@ -219,7 +285,7 @@ export default async function handler(req: Request) {
     const result = streamText({
       model: selectedModel,
       system: STATIC_SYSTEM_PROMPT,
-      messages: enrichedMessages,
+      messages: enrichedMessages as CoreMessage[],
       // We assume prompt/messages already include necessary system/user details
       temperature: 0.7,
       maxTokens: 4000,

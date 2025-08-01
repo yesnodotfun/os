@@ -1,5 +1,6 @@
 import { experimental_generateSpeech as generateSpeech } from "ai";
 import { openai } from "@ai-sdk/openai";
+import * as RateLimit from "./utils/rate-limit";
 
 // Allowed origins for CORS
 const ALLOWED_ORIGINS = new Set(["https://os.ryo.lu", "http://localhost:3000"]);
@@ -153,6 +154,83 @@ export default async function handler(req: Request) {
   if (!origin || !ALLOWED_ORIGINS.has(origin)) {
     logError(requestId, "Unauthorized origin", origin);
     return new Response("Unauthorized", { status: 403 });
+  }
+
+  // ---------------------------
+  // Rate limiting (burst + daily)
+  // ---------------------------
+  try {
+    const ip = RateLimit.getClientIp(req);
+    const BURST_WINDOW = 60; // 1 minute
+    const BURST_LIMIT = 10;
+    const DAILY_WINDOW = 60 * 60 * 24; // 1 day
+    const DAILY_LIMIT = 50; // treat all as anon for now
+
+    const burstKey = RateLimit.makeKey(["rl", "tts", "burst", "ip", ip]);
+    const dailyKey = RateLimit.makeKey(["rl", "tts", "daily", "ip", ip]);
+
+    const burst = await RateLimit.checkCounterLimit({
+      key: burstKey,
+      windowSeconds: BURST_WINDOW,
+      limit: BURST_LIMIT,
+    });
+
+    if (!burst.allowed) {
+      return new Response(
+        JSON.stringify({
+          error: "rate_limit_exceeded",
+          scope: "burst",
+          limit: burst.limit,
+          windowSeconds: burst.windowSeconds,
+          resetSeconds: burst.resetSeconds,
+          identifier: `ip:${ip}`,
+        }),
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(burst.resetSeconds ?? BURST_WINDOW),
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": origin,
+            "X-RateLimit-Limit": String(burst.limit),
+            "X-RateLimit-Remaining": String(Math.max(0, burst.limit - burst.count)),
+            "X-RateLimit-Reset": String(burst.resetSeconds ?? BURST_WINDOW),
+          },
+        }
+      );
+    }
+
+    const daily = await RateLimit.checkCounterLimit({
+      key: dailyKey,
+      windowSeconds: DAILY_WINDOW,
+      limit: DAILY_LIMIT,
+    });
+
+    if (!daily.allowed) {
+      return new Response(
+        JSON.stringify({
+          error: "rate_limit_exceeded",
+          scope: "daily",
+          limit: daily.limit,
+          windowSeconds: daily.windowSeconds,
+          resetSeconds: daily.resetSeconds,
+          identifier: `ip:${ip}`,
+        }),
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(daily.resetSeconds ?? DAILY_WINDOW),
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": origin,
+            "X-RateLimit-Limit": String(daily.limit),
+            "X-RateLimit-Remaining": String(Math.max(0, daily.limit - daily.count)),
+            "X-RateLimit-Reset": String(daily.resetSeconds ?? DAILY_WINDOW),
+          },
+        }
+      );
+    }
+  } catch (e) {
+    // Fail open but log; do not block TTS if limiter errors
+    logError(requestId, "Rate limit check failed (tts)", e);
   }
 
   try {
