@@ -86,6 +86,8 @@ const PASSWORD_BCRYPT_ROUNDS = 10;
 const RATE_LIMIT_WINDOW_SECONDS = 60; // 1 minute window
 const RATE_LIMIT_ATTEMPTS = 10; // Max attempts per window
 const RATE_LIMIT_PREFIX = "rl:"; // Rate limit key prefix
+const RATE_LIMIT_BLOCK_PREFIX = "rl:block:"; // Blocklist key prefix
+const CREATE_USER_BLOCK_TTL_SECONDS = 24 * 60 * 60; // 24 hours
 
 // Chat burst limiter (public rooms): limit quick bursts
 const CHAT_BURST_PREFIX = "rl:chat:b:";
@@ -1120,17 +1122,60 @@ export async function POST(request) {
       "generateRyoReply",
     ]);
 
+    // Helper to robustly extract client IP
+    const getClientIp = (req) => {
+      const xVercel = req.headers.get("x-vercel-forwarded-for");
+      const xForwarded = req.headers.get("x-forwarded-for");
+      const xRealIp = req.headers.get("x-real-ip");
+      const raw = xVercel || xForwarded || xRealIp || "";
+      // Take first IP if multiple present
+      const ip = raw.split(",")[0].trim();
+      return ip || "unknown-ip";
+    };
+
     if (sensitiveRateLimitActions.has(action)) {
-      // prefer username if available, else client IP
-      const identifier = (
-        body.username ||
-        request.headers.get("x-username") ||
-        request.headers.get("x-forwarded-for") ||
-        "anon"
-      ).toLowerCase();
-      const allowed = await checkRateLimit(action, identifier, requestId);
-      if (!allowed) {
-        return createErrorResponse("Too many requests, please slow down", 429);
+      // For createUser specifically, always rate-limit by IP, not by the username being created
+      let identifier;
+      if (action === "createUser") {
+        const ip = getClientIp(request);
+        identifier = `ip:${ip}`.toLowerCase();
+
+        // First, check if this identifier is currently blocked for createUser
+        const blockKey = `${RATE_LIMIT_BLOCK_PREFIX}${action}:${identifier}`;
+        const isBlocked = await redis.get(blockKey);
+        if (isBlocked) {
+          logInfo(requestId, `User creation blocked for ${identifier}`);
+          return createErrorResponse(
+            "User creation temporarily blocked due to excessive attempts. Try again in 24 hours.",
+            429
+          );
+        }
+
+        // Apply per-minute limiter; if exceeded, set a 24h block
+        const allowed = await checkRateLimit(action, identifier, requestId);
+        if (!allowed) {
+          await redis.set(blockKey, 1, { ex: CREATE_USER_BLOCK_TTL_SECONDS });
+          logInfo(
+            requestId,
+            `Set 24h block for createUser: ${identifier} after exceeding minute limit`
+          );
+          return createErrorResponse(
+            "Too many user creation attempts. You're blocked for 24 hours.",
+            429
+          );
+        }
+      } else {
+        // For other sensitive actions, prefer authenticated username; otherwise fall back to IP
+        const ip = getClientIp(request);
+        identifier = (
+          body.username ||
+          request.headers.get("x-username") ||
+          `anon:${ip}`
+        ).toLowerCase();
+        const allowed = await checkRateLimit(action, identifier, requestId);
+        if (!allowed) {
+          return createErrorResponse("Too many requests, please slow down", 429);
+        }
       }
     }
 
