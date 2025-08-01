@@ -56,16 +56,23 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
   const renderRoomItem = (room: ChatRoom) => {
     const unreadCount = unreadCounts[room.id] || 0;
     const hasUnread = unreadCount > 0;
+    const isSelected = currentRoom?.id === room.id;
 
     return (
       <div
         key={room.id}
         className={cn(
           "group relative py-1 px-5",
-          currentRoom?.id === room.id
-            ? "bg-black text-white"
-            : "hover:bg-black/5"
+          isSelected ? "" : "hover:bg-black/5"
         )}
+        style={
+          isSelected
+            ? {
+                background: "var(--os-color-selection-bg)",
+                color: "var(--os-color-selection-text)",
+              }
+            : undefined
+        }
         onClick={() => {
           playButtonClick();
           onRoomSelect(room);
@@ -187,10 +194,15 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
         >
           {/* Ryo (@ryo) Chat Selection */}
           <div
-            className={cn(
-              "py-1 px-5",
-              currentRoom === null ? "bg-black text-white" : "hover:bg-black/5"
-            )}
+            className={cn("py-1 px-5", currentRoom === null ? "" : "hover:bg-black/5")}
+            style={
+              currentRoom === null
+                ? {
+                    background: "var(--os-color-selection-bg)",
+                    color: "var(--os-color-selection-text)",
+                  }
+                : undefined
+            }
             onClick={() => {
               playButtonClick();
               onRoomSelect(null);

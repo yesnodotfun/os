@@ -88,7 +88,7 @@
   --os-color-traffic-light-close: #4a0a07;
   --os-color-traffic-light-minimize: #7a5915;
   --os-color-traffic-light-maximize: #10541a;
-  --os-color-selection-bg: #4774d0;
+  --os-color-selection-bg: rgba(39, 101, 202, 0.88);
   --os-color-selection-text: #ffffff;
   /* Derived selection glow (used for focus rings). Keep alpha in a separate var */
   --os-color-selection-glow: rgba(48, 103, 218, 0.5);
