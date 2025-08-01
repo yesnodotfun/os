@@ -62,7 +62,7 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
       <div
         key={room.id}
         className={cn(
-          "group relative p-2 py-1",
+          "group relative py-1 px-5",
           currentRoom?.id === room.id
             ? "bg-black text-white"
             : "hover:bg-black/5"
@@ -151,11 +151,11 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
     >
       <div
         className={cn(
-          "py-3 px-3 flex flex-col",
+          "py-3 flex flex-col",
           isOverlay ? "" : "flex-1 overflow-hidden"
         )}
       >
-        <div className="flex justify-between items-center mb-2 flex-shrink-0">
+        <div className="flex justify-between items-center mb-2 flex-shrink-0 px-3">
           <div className="flex items-baseline gap-1.5">
             <h2 className="text-[14px] pl-1">Chats</h2>
           </div>
@@ -179,9 +179,9 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
         </div>
         <div
           className={cn(
-            "space-y-1 overscroll-contain",
+            "space-y-1 overscroll-contain w-full",
             isOverlay
-              ? "flex-1 overflow-y-auto min-h-0" // Only scroll when content overflows
+              ? "flex-1 overflow-y-auto min-h-0"
               : "flex-1 overflow-y-auto min-h-0"
           )}
           style={{ WebkitOverflowScrolling: "touch" }}
@@ -189,7 +189,7 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
           {/* Ryo (@ryo) Chat Selection */}
           <div
             className={cn(
-              "p-2 py-1",
+              "py-1 px-5",
               currentRoom === null ? "bg-black text-white" : "hover:bg-black/5"
             )}
             onClick={() => {
@@ -222,7 +222,7 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
                             aria-expanded={showPublic}
                             onClick={() => setShowPublic((v) => !v)}
                             className={cn(
-                              "mt-2 pl-1 pr-2 pt-2 pb-1 w-full flex items-center group",
+                              "mt-2 pl-4 pr-3 pt-2 pb-1 w-full flex items-center group",
                               "!text-[11px] uppercase tracking-wide text-black/50"
                             )}
                           >
@@ -238,7 +238,7 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
                             aria-expanded={showPrivate}
                             onClick={() => setShowPrivate((v) => !v)}
                             className={cn(
-                              "mt-2 pl-1 pr-2 pt-2 pb-1 w-full flex items-center group",
+                              "mt-2 pl-4 pr-3 pt-2 pb-1 w-full flex items-center group",
                               "!text-[11px] uppercase tracking-wide text-black/50"
                             )}
                           >
