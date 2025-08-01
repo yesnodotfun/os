@@ -119,6 +119,7 @@ export function ChatsAppComponent({
     rooms,
     currentRoomId,
     currentRoomMessages,
+    currentRoomMessagesLimited,
     isSidebarVisible,
     isAdmin,
     handleRoomSelect,
@@ -486,7 +487,7 @@ export function ChatsAppComponent({
 
   // Explicitly type the array using the local DisplayMessage interface
   const currentMessagesToDisplay: DisplayMessage[] = currentRoomId
-    ? currentRoomMessages.map((msg: AppChatMessage) => ({
+    ? currentRoomMessagesLimited.map((msg: AppChatMessage) => ({
         // For room messages, use clientId (if present) for stable rendering key
         id: msg.clientId || msg.id,
         serverId: msg.id,

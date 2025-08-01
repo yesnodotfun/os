@@ -50,6 +50,7 @@ export function useChatRoom(
     addMessageToRoom,
     removeMessageFromRoom,
     incrementUnread,
+    messageRenderLimit,
   } = useChatsStore();
 
   // Derive isAdmin directly from the username
@@ -69,6 +70,11 @@ export function useChatRoom(
   // Get current room messages
   const currentRoomMessages = currentRoomId
     ? roomMessages[currentRoomId] || []
+    : [];
+
+  // Limit messages rendered initially for performance
+  const currentRoomMessagesLimited = currentRoomId
+    ? (roomMessages[currentRoomId] || []).slice(-messageRenderLimit)
     : [];
 
   // --- Pusher Setup ---
@@ -478,6 +484,7 @@ export function useChatRoom(
     rooms,
     currentRoomId,
     currentRoomMessages,
+    currentRoomMessagesLimited,
     isSidebarVisible,
     isAdmin,
 

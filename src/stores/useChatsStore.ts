@@ -171,6 +171,8 @@ export interface ChatsStoreState {
   // UI State
   isSidebarVisible: boolean;
   fontSize: number; // Add font size state
+  // Rendering limits
+  messageRenderLimit: number; // Max messages to render per room initially
 
   // Actions
   setAiMessages: (messages: Message[]) => void;
@@ -187,6 +189,7 @@ export interface ChatsStoreState {
   clearRoomMessages: (roomId: string) => void; // Clears messages for a specific room
   toggleSidebarVisibility: () => void;
   setFontSize: (size: number | ((prevSize: number) => number)) => void; // Add font size action
+  setMessageRenderLimit: (limit: number) => void; // Set render limit
   ensureAuthToken: () => Promise<{ ok: boolean; error?: string }>; // Add auth token generation
   refreshAuthToken: () => Promise<{
     ok: boolean;
@@ -257,6 +260,7 @@ const getInitialState = (): Omit<
   | "clearRoomMessages"
   | "toggleSidebarVisibility"
   | "setFontSize"
+  | "setMessageRenderLimit"
   | "ensureAuthToken"
   | "refreshAuthToken"
   | "checkAndRefreshTokenIfNeeded"
@@ -288,6 +292,7 @@ const getInitialState = (): Omit<
     hasEverUsedChats: false,
     isSidebarVisible: true,
     fontSize: 13, // Default font size
+    messageRenderLimit: 50,
   };
 };
 
@@ -585,6 +590,8 @@ export const useChatsStore = create<ChatsStoreState>()(
                 ? sizeOrFn(state.fontSize)
                 : sizeOrFn,
           })),
+        setMessageRenderLimit: (limit: number) =>
+          set(() => ({ messageRenderLimit: Math.max(20, Math.floor(limit)) })),
         ensureAuthToken: async () => {
           const currentUsername = get().username;
           const currentToken = get().authToken;
