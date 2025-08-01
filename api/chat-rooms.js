@@ -1832,14 +1832,17 @@ async function handleCreateUser(data, requestId) {
                 `Password correct for existing user ${username}, logging in`
               );
 
-              // Generate authentication token
+              // Generate authentication token (new scheme only)
               const authToken = generateAuthToken();
-              const tokenKey = `${AUTH_TOKEN_PREFIX}${username}`;
-
-              // Store token with expiration
-              await redis.set(tokenKey, authToken, {
-                ex: USER_EXPIRATION_TIME,
-              });
+              // Persist token in new multi-token scheme
+              await storeToken(username, authToken);
+              // Predictive last-token entry to enable grace-period refresh after expiry
+              await storeLastValidToken(
+                username,
+                authToken,
+                Date.now() + USER_EXPIRATION_TIME * 1000,
+                USER_EXPIRATION_TIME + TOKEN_GRACE_PERIOD
+              );
 
               // Get existing user data
               const existingUserData = await redis.get(userKey);
@@ -1890,14 +1893,9 @@ async function handleCreateUser(data, requestId) {
       logInfo(requestId, `Password hash stored for user: ${username}`);
     }
 
-    // Generate authentication token
+    // Generate authentication token (new scheme only)
     const authToken = generateAuthToken();
-    const tokenKey = `${AUTH_TOKEN_PREFIX}${username}`;
-
-    // Store token with same expiration as user
-    await redis.set(tokenKey, authToken, { ex: USER_EXPIRATION_TIME });
-
-    // NEW: store token->username mapping to allow multiple concurrent tokens
+    // Store token->username mapping (multi-token scheme)
     await storeToken(username, authToken);
 
     // Record predictive last-token entry for grace refresh after expiry
@@ -3040,14 +3038,7 @@ async function handleGenerateToken(data, requestId) {
       return createErrorResponse("User not found", 404);
     }
 
-    // Check if token already exists
-    const tokenKey = `${AUTH_TOKEN_PREFIX}${username}`;
-    const existingToken = await redis.get(tokenKey);
-    // Multiple tokens per user are now supported; we no longer treat an existing token as an error.
-
-    if (existingToken && !force) {
-      // Legacy logic removed: we now allow generating multiple tokens per user.
-    }
+    // Legacy single-token check removed; we support multiple tokens per user.
 
     // Generate new token
     const authToken = generateAuthToken();
@@ -3418,14 +3409,9 @@ async function handleAuthenticateWithPassword(data, requestId) {
       );
     }
 
-    // Generate new token
+    // Generate new token (new scheme only)
     const authToken = generateAuthToken();
-    const tokenKey = `${AUTH_TOKEN_PREFIX}${username}`;
-
-    // Store token with expiration
-    await redis.set(tokenKey, authToken, { ex: USER_EXPIRATION_TIME });
-
-    // Persist token -> username mapping
+    // Persist token -> username mapping (no legacy write)
     await storeToken(username, authToken);
 
     // Predictive last-token entry for this new token so it can be refreshed after expiry
