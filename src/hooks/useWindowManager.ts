@@ -118,7 +118,7 @@ export const useWindowManager = ({
 
   const maximizeWindowHeight = useCallback(
     (maxHeightConstraint?: number | string) => {
-      const menuBarHeight = 30;
+      const menuBarHeight = 25;
       const safeAreaBottom = getSafeAreaBottomInset();
       const maxPossibleHeight =
         window.innerHeight - menuBarHeight - safeAreaBottom;
