@@ -1108,7 +1108,7 @@ export function TextEditAppComponent({
         accept=".txt,.html,.md,.rtf,.doc,.docx"
         className="hidden"
       />
-      {!isXpTheme && menuBar}
+      {!isXpTheme && isForeground && menuBar}
       <WindowFrame
         title={
           customTitle ||

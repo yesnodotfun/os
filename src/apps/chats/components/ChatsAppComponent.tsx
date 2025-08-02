@@ -505,7 +505,7 @@ export function ChatsAppComponent({
 
   return (
     <>
-      {!isXpTheme && menuBar}
+      {!isXpTheme && isForeground && menuBar}
       <WindowFrame
         title={
           currentRoom

@@ -3514,7 +3514,7 @@ assistant
 
   return (
     <>
-      {!isXpTheme && menuBar}
+      {!isXpTheme && isForeground && menuBar}
       <WindowFrame
         appId="terminal"
         title="Terminal"

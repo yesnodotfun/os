@@ -457,7 +457,7 @@ export function MinesweeperAppComponent({
   return (
     <>
       <style>{minesweeperStyles}</style>
-      {!isXpTheme && menuBar}
+      {!isXpTheme && isForeground && menuBar}
       <WindowFrame
         title="Minesweeper"
         onClose={onClose}

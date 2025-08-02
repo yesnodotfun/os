@@ -127,6 +127,13 @@
       rgba(255, 255, 255, 0.85) 4px
     ),
     linear-gradient(to bottom, #ececec 0%, #ececec 100%);
+  --os-pinstripe-menubar: repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    transparent 1.5px,
+    rgba(255, 255, 255, 0.55) 1.5px,
+    rgba(255, 255, 255, 0.55) 4px
+  );
 }
 
 /* Shared toolbar texture utility. Uses variables defined by the active theme. */
@@ -398,7 +405,7 @@
   position: relative;
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset,
     0 -1px 0 rgba(0, 0, 0, 0.1) inset;
-  background-image: var(--os-pinstripe-window) !important;
+  background-image: var(--os-pinstripe-menubar) !important;
 }
 
 /* Add gloss effect to macOS menubar */
@@ -928,8 +935,6 @@
   color: var(--os-color-selection-text) !important;
   outline: none !important;
 }
-
-
 
 /* Override the 11px font size for dropdown menu items */
 :root[data-os-theme="macosx"] [role="menuitem"],

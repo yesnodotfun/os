@@ -264,7 +264,7 @@ function DefaultMenuItems() {
             View
           </Button>
         </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" sideOffset={1} className="px-0">
+        <DropdownMenuContent align="start" sideOffset={1} className="px-0">
           <DropdownMenuItem className="text-md h-6 px-3 active:bg-gray-900 active:text-white">
             <span className="pl-4">by Small Icon</span>
           </DropdownMenuItem>
@@ -898,7 +898,7 @@ export function MenuBar({ children, inWindowFrame = false }: MenuBarProps) {
             ? "rgba(248, 248, 248, 0.85)"
             : "var(--os-color-menubar-bg)",
         backgroundImage:
-          currentTheme === "macosx" ? "var(--os-pinstripe-window)" : undefined,
+          currentTheme === "macosx" ? "var(--os-pinstripe-menubar)" : undefined,
         backdropFilter: currentTheme === "macosx" ? "blur(20px)" : undefined,
         WebkitBackdropFilter:
           currentTheme === "macosx" ? "blur(20px)" : undefined,

@@ -448,7 +448,7 @@ export const PaintAppComponent: React.FC<AppProps<PaintInitialData>> = ({
 
   return (
     <>
-      {!isXpTheme && menuBar}
+      {!isXpTheme && isForeground && menuBar}
       <WindowFrame
         title={
           currentFilePath

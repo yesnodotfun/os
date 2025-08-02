@@ -772,7 +772,7 @@ export function FinderAppComponent({
 
   return (
     <>
-      {!isXpTheme && menuBar}
+      {!isXpTheme && isForeground && menuBar}
       <input
         type="file"
         ref={fileInputRef}

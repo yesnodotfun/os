@@ -257,7 +257,7 @@ export function PcAppComponent({
 
   return (
     <>
-      {!isXpTheme && menuBar}
+      {!isXpTheme && isForeground && menuBar}
       <WindowFrame
         title="Virtual PC"
         onClose={onClose}
