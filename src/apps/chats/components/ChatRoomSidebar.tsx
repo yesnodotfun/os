@@ -231,6 +231,8 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
                 );
                 const hasBoth =
                   publicRooms.length > 0 && privateRooms.length > 0;
+                const hasPrivate = privateRooms.length > 0;
+                const channelsOpen = hasPrivate ? isChannelsOpen : true;
 
                 return (
                   <>
@@ -243,24 +245,28 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
                               "!text-[11px] uppercase tracking-wide text-black/50"
                             )}
                             onClick={() => {
-                              playButtonClick();
-                              toggleChannelsOpen();
+                              if (hasPrivate) {
+                                playButtonClick();
+                                toggleChannelsOpen();
+                              }
                             }}
                             role="button"
                             aria-expanded={isChannelsOpen}
                           >
                             <span>Channels</span>
-                            <span className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <ChevronRight
-                                className={cn(
-                                  "w-3 h-3 text-black/50 transition-transform",
-                                  isChannelsOpen ? "rotate-90" : "rotate-0"
-                                )}
-                              />
-                            </span>
+                            {hasPrivate && (
+                              <span className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <ChevronRight
+                                  className={cn(
+                                    "w-3 h-3 text-black/50 transition-transform",
+                                    isChannelsOpen ? "rotate-90" : "rotate-0"
+                                  )}
+                                />
+                              </span>
+                            )}
                           </div>
                         )}
-                        {isChannelsOpen && publicRooms.map(renderRoomItem)}
+                        {channelsOpen && publicRooms.map(renderRoomItem)}
 
                         {privateRooms.length > 0 && (
                           <div
