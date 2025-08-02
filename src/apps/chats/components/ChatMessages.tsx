@@ -497,15 +497,25 @@ function ChatMessagesContent({
         method: "DELETE",
         headers,
       });
-      if (!res.ok) {
-        const errorData = await res
-          .json()
-          .catch(() => ({ error: `HTTP error! status: ${res.status}` }));
-        console.error("Failed to delete message", errorData);
-      } else {
+      if (res.ok) {
         // Use the actual server message ID for local removal to match store expectations
         onMessageDeleted?.(serverMessageId);
+        return;
       }
+
+      // If the server says the message doesn't exist anymore, remove it locally anyway
+      if (res.status === 404 || res.status === 410) {
+        console.warn(
+          `Delete message ${serverMessageId} returned ${res.status}; removing locally as orphan.`
+        );
+        onMessageDeleted?.(serverMessageId);
+        return;
+      }
+
+      const errorData = await res
+        .json()
+        .catch(() => ({ error: `HTTP error! status: ${res.status}` }));
+      console.error("Failed to delete message", errorData);
     } catch (err) {
       console.error("Error deleting message", err);
     }
