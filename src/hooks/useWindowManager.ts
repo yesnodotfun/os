@@ -118,10 +118,10 @@ export const useWindowManager = ({
 
   const maximizeWindowHeight = useCallback(
     (maxHeightConstraint?: number | string) => {
-      const menuBarHeight = 25;
       const safeAreaBottom = getSafeAreaBottomInset();
-      const maxPossibleHeight =
-        window.innerHeight - menuBarHeight - safeAreaBottom;
+      const topInset = isXpTheme ? 0 : 25;
+      const bottomInset = (isXpTheme ? 30 : 0) + safeAreaBottom;
+      const maxPossibleHeight = window.innerHeight - topInset - bottomInset;
       const maxHeight = maxHeightConstraint
         ? typeof maxHeightConstraint === "string"
           ? parseInt(maxHeightConstraint)
@@ -135,7 +135,7 @@ export const useWindowManager = ({
       }));
       setWindowPosition((prev) => ({
         ...prev,
-        y: menuBarHeight,
+        y: topInset,
       }));
       if (instanceId) {
         updateInstanceWindowState(instanceId, windowPosition, {
@@ -157,6 +157,7 @@ export const useWindowManager = ({
       instanceId,
       windowPosition,
       windowSize,
+      isXpTheme,
     ]
   );
 

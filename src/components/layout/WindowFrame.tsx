@@ -237,11 +237,13 @@ export function WindowFrame({
 
   // No longer track maximized state based on window dimensions
   useEffect(() => {
-    const menuBarHeight = 25;
-    const maxPossibleHeight = window.innerHeight - menuBarHeight;
+    const safeAreaBottom = getSafeAreaBottomInset();
+    const topInset = isXpTheme ? 0 : 25;
+    const bottomInset = (isXpTheme ? 30 : 0) + safeAreaBottom;
+    const maxPossibleHeight = window.innerHeight - topInset - bottomInset;
     // Consider window at full height if it's within 5px of max height (to account for rounding)
     setIsFullHeight(Math.abs(windowSize.height - maxPossibleHeight) < 5);
-  }, [windowSize.height]);
+  }, [windowSize.height, isXpTheme, getSafeAreaBottomInset]);
 
   const handleMouseDownWithForeground = (
     e: React.MouseEvent<HTMLElement> | React.TouchEvent<HTMLElement>
@@ -302,10 +304,10 @@ export function WindowFrame({
 
       // Set to full height
       setIsFullHeight(true);
-      const menuBarHeight = 25;
       const safeAreaBottom = getSafeAreaBottomInset();
-      const maxPossibleHeight =
-        window.innerHeight - menuBarHeight - safeAreaBottom;
+      const topInset = isXpTheme ? 0 : 25;
+      const bottomInset = (isXpTheme ? 30 : 0) + safeAreaBottom;
+      const maxPossibleHeight = window.innerHeight - topInset - bottomInset;
       const maxHeight = mergedConstraints.maxHeight
         ? typeof mergedConstraints.maxHeight === "string"
           ? parseInt(mergedConstraints.maxHeight)
@@ -318,7 +320,7 @@ export function WindowFrame({
       };
       const newPosition = {
         ...windowPosition,
-        y: menuBarHeight,
+        y: topInset,
       };
       setWindowSize(newSize);
       setWindowPosition(newPosition);
@@ -397,10 +399,10 @@ export function WindowFrame({
         };
 
         // Set to full width and height
-        const menuBarHeight = 25;
         const safeAreaBottom = getSafeAreaBottomInset();
-        const maxPossibleHeight =
-          window.innerHeight - menuBarHeight - safeAreaBottom;
+        const topInset = isXpTheme ? 0 : 25;
+        const bottomInset = (isXpTheme ? 30 : 0) + safeAreaBottom;
+        const maxPossibleHeight = window.innerHeight - topInset - bottomInset;
         const maxHeight = mergedConstraints.maxHeight
           ? typeof mergedConstraints.maxHeight === "string"
             ? parseInt(mergedConstraints.maxHeight)
@@ -426,7 +428,7 @@ export function WindowFrame({
 
         const newPosition = {
           x: window.innerWidth >= 768 ? (window.innerWidth - newWidth) / 2 : 0,
-          y: menuBarHeight,
+          y: topInset,
         };
 
         setWindowSize(newSize);
