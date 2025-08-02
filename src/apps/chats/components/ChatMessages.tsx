@@ -1110,7 +1110,6 @@ function ChatMessagesContent({
                                     });
                                   })()}
                               </div>
-
                             </div>
                           );
                         }
@@ -1142,8 +1141,6 @@ function ChatMessagesContent({
                           return null;
                       }
                     })}
-
-
                   </motion.div>
                 ) : (
                   <>
@@ -1209,7 +1206,6 @@ function ChatMessagesContent({
                         });
                       })()}
                     </span>
-
                   </>
                 )}
               </motion.div>
@@ -1218,7 +1214,7 @@ function ChatMessagesContent({
             {/* Link Previews - Rendered after the message bubble */}
             {(() => {
               const allUrls = new Set<string>();
-              
+
               if (message.role === "assistant") {
                 // Extract URLs from assistant message parts
                 message.parts?.forEach((part) => {
@@ -1241,9 +1237,9 @@ function ChatMessagesContent({
 
               return (
                 <div
-                  className={`flex flex-col gap-2 w-full ${!isUrlOnly(displayContent) ? 'mt-2' : ''} ${
-                    message.role === "user" ? "items-end" : "items-start"
-                  }`}
+                  className={`flex flex-col gap-2 w-full ${
+                    !isUrlOnly(displayContent) ? "mt-2" : ""
+                  } ${message.role === "user" ? "items-end" : "items-start"}`}
                 >
                   {Array.from(allUrls).map((url, index) => (
                     <LinkPreview
@@ -1255,7 +1251,6 @@ function ChatMessagesContent({
                 </div>
               );
             })()}
-
           </motion.div>
         );
       })}
