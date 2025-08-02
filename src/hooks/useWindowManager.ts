@@ -102,6 +102,22 @@ export const useWindowManager = ({
     // On iPadOS, the home indicator height is typically 20px
     return !isNaN(safeAreaInset) ? safeAreaInset : isMobile ? 20 : 0;
   }, [isMobile]);
+  // Centralized insets per theme for this hook
+  const computeInsets = useCallback(() => {
+    const safe = getSafeAreaBottomInset();
+    const menuBarHeight =
+      currentTheme === "system7" ? 30 : currentTheme === "macosx" ? 25 : 0;
+    const taskbarHeight = isXpTheme ? 30 : 0;
+    const topInset = menuBarHeight;
+    const bottomInset = taskbarHeight + safe;
+    return {
+      menuBarHeight,
+      taskbarHeight,
+      safeAreaBottom: safe,
+      topInset,
+      bottomInset,
+    };
+  }, [currentTheme, isXpTheme, getSafeAreaBottomInset]);
 
   const { play: playMoveMoving } = useSound(Sounds.WINDOW_MOVE_MOVING);
   const { play: playMoveStop } = useSound(Sounds.WINDOW_MOVE_STOP);
@@ -118,9 +134,7 @@ export const useWindowManager = ({
 
   const maximizeWindowHeight = useCallback(
     (maxHeightConstraint?: number | string) => {
-      const safeAreaBottom = getSafeAreaBottomInset();
-      const topInset = isXpTheme ? 0 : 25;
-      const bottomInset = (isXpTheme ? 30 : 0) + safeAreaBottom;
+      const { topInset, bottomInset } = computeInsets();
       const maxPossibleHeight = window.innerHeight - topInset - bottomInset;
       const maxHeight = maxHeightConstraint
         ? typeof maxHeightConstraint === "string"
@@ -150,14 +164,13 @@ export const useWindowManager = ({
       }
     },
     [
-      getSafeAreaBottomInset,
+      computeInsets,
       updateWindowState,
       updateInstanceWindowState,
       appId,
       instanceId,
       windowPosition,
       windowSize,
-      isXpTheme,
     ]
   );
 
@@ -217,10 +230,7 @@ export const useWindowManager = ({
         const newX = clientX - dragOffset.x;
         const newY = clientY - dragOffset.y;
 
-        // Top clearance equals menu bar height for Mac theme, 0 for XP/98
-        const menuBarHeight = isXpTheme ? 0 : 25;
-        // Bottom clearance equals taskbar height for XP/98, 0 otherwise
-        const taskbarHeight = isXpTheme ? 30 : 0;
+        const { topInset: menuBarHeight, taskbarHeight } = computeInsets();
 
         // Start playing move sound in a loop when actual movement starts
         if (!moveAudioRef.current && !isMobile) {
@@ -253,9 +263,8 @@ export const useWindowManager = ({
         const minWidth = config.minSize?.width || 260;
         const minHeight = config.minSize?.height || 200;
         const maxWidth = window.innerWidth;
-        const safeAreaBottom = getSafeAreaBottomInset();
+        const { safeAreaBottom, topInset: menuBarHeight } = computeInsets();
         const maxHeight = window.innerHeight - safeAreaBottom;
-        const menuBarHeight = isXpTheme ? 0 : 25;
 
         let newWidth = resizeStart.width;
         let newHeight = resizeStart.height;
