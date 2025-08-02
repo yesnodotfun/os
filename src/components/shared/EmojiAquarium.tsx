@@ -72,9 +72,32 @@ export function EmojiAquarium({ seed, className }: EmojiAquariumProps) {
 
   const smallFishes = ["🐟", "🐠", "🐡"];
   const largeFishes = ["🦈", "🐬"];
-  const decor = ["🪸", "⚓️", "🪨", "🌿", "🗿", "🐚"];
+  const decor = ["🪸", "⚓️", "🪨", "🌿", "🗿", "🐚", "🦑", "🦀"];
 
   const bubbles = "🫧"; // falls back to monochrome when unsupported
+
+  const floorXs = useMemo(() => {
+    const xs: number[] = [];
+    if (floorCount <= 0) return xs;
+    const leftPad = 8;
+    const rightPad = 16;
+    const usable = Math.max(0, width - leftPad - rightPad);
+    const seg = usable / (floorCount + 1);
+    for (let i = 0; i < floorCount; i++) {
+      const base = leftPad + seg * (i + 1);
+      const jitter = (rand() - 0.5) * seg * 0.5;
+      let x = Math.max(leftPad, Math.min(width - rightPad, base + jitter));
+      if (i > 0) {
+        const minGap = Math.min(40, seg * 0.6);
+        if (x - xs[i - 1] < minGap) {
+          x = xs[i - 1] + minGap;
+          if (x > width - rightPad) x = width - rightPad;
+        }
+      }
+      xs.push(x);
+    }
+    return xs;
+  }, [width, floorCount, seedRef.current]);
 
   return (
     <MotionConfig reducedMotion="never">
@@ -314,7 +337,7 @@ export function EmojiAquarium({ seed, className }: EmojiAquariumProps) {
           {/* floor decorations */}
           {Array.from({ length: floorCount }).map((_, i) => {
             const emoji = decor[Math.floor(rand() * decor.length)];
-            const x = 8 + rand() * (width - 16);
+            const x = floorXs[i] ?? 8 + rand() * (width - 16);
             const delay = 0.2 + i * 0.07 + rand() * 0.2;
             const rot = (rand() - 0.5) * 10;
             const size = 18 + rand() * 8;
