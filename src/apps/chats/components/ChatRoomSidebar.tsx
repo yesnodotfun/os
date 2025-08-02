@@ -157,7 +157,7 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
     >
       <div
         className={cn(
-          "pt-3 flex flex-col",
+          "pt-3 pb-3 flex flex-col",
           isOverlay ? "" : "flex-1 overflow-hidden"
         )}
       >
@@ -194,7 +194,10 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
         >
           {/* Ryo (@ryo) Chat Selection */}
           <div
-            className={cn("py-1 px-5", currentRoom === null ? "" : "hover:bg-black/5")}
+            className={cn(
+              "py-1 px-5",
+              currentRoom === null ? "" : "hover:bg-black/5"
+            )}
             style={
               currentRoom === null
                 ? {
