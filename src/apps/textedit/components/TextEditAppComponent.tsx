@@ -1496,7 +1496,7 @@ export function TextEditAppComponent({
                         }
                       }}
                     >
-                      <SelectTrigger className="h-7 px-2 min-w-[100px] !text-[12px]">
+                      <SelectTrigger className="h-7 px-2 !min-w-[92px] !text-[12px]">
                         <SelectValue placeholder="Text" />
                       </SelectTrigger>
                       <SelectContent align="start" className="px-0">
@@ -1509,7 +1509,10 @@ export function TextEditAppComponent({
                   ) : (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="outline" className="h-7 px-2">
+                        <Button
+                          variant="outline"
+                          className="h-7 px-2 min-w-[120px] justify-between"
+                        >
                           {editor?.isActive("heading", { level: 1 })
                             ? "H1"
                             : editor?.isActive("heading", { level: 2 })
