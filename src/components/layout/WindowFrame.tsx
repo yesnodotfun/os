@@ -574,9 +574,7 @@ export function WindowFrame({
           <div
             className={cn(
               "absolute cursor-n-resize pointer-events-auto transition-[top,height] select-none resize-handle",
-              isMobile && currentTheme === "macosx" 
-                ? "left-0 right-0" // Extend full width for better touch on macOS mobile
-                : "left-1 right-0",
+              "left-1 right-0", // Full width for all cases
               debugMode && "bg-red-500/50",
               resizeType?.includes("n")
                 ? "top-[-100px] h-[200px]"
@@ -584,7 +582,7 @@ export function WindowFrame({
                 ? isXpTheme
                   ? "top-0 h-4" // Start from top but be shorter for XP/98 themes
                   : currentTheme === "macosx"
-                  ? "top-[-4px] h-4" // Extend above window for macOS to avoid traffic lights
+                  ? "top-1 h-2" // Extend above window for macOS to avoid traffic lights
                   : "top-0 h-8"
                 : "top-1 h-2"
             )}
@@ -600,14 +598,12 @@ export function WindowFrame({
           {/* Bottom resize handle */}
           <div
             className={cn(
-              "absolute left-0 right-0 cursor-s-resize pointer-events-auto transition-[bottom,height] select-none resize-handle",
+              "absolute left-1 right-1 cursor-s-resize pointer-events-auto transition-[bottom,height] select-none resize-handle",
               debugMode && "bg-red-500/50",
               resizeType?.includes("s")
                 ? "bottom-[-100px] h-[200px]"
                 : isMobile
-                ? currentTheme === "macosx"
-                  ? "bottom-[-4px] h-4" // Extend below window for macOS
-                  : "bottom-0 h-6"
+                ? "bottom-0 h-6"
                 : "bottom-1 h-2"
             )}
             onMouseDown={(e) =>

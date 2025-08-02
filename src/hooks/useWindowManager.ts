@@ -217,7 +217,7 @@ export const useWindowManager = ({
         const newY = clientY - dragOffset.y;
 
         // Top clearance equals menu bar height for Mac theme, 0 for XP/98
-        const menuBarHeight = isXpTheme ? 0 : 30;
+        const menuBarHeight = isXpTheme ? 0 : 25;
         // Bottom clearance equals taskbar height for XP/98, 0 otherwise
         const taskbarHeight = isXpTheme ? 30 : 0;
 
@@ -254,7 +254,7 @@ export const useWindowManager = ({
         const maxWidth = window.innerWidth;
         const safeAreaBottom = getSafeAreaBottomInset();
         const maxHeight = window.innerHeight - safeAreaBottom;
-        const menuBarHeight = 30;
+        const menuBarHeight = isXpTheme ? 0 : 25;
 
         let newWidth = resizeStart.width;
         let newHeight = resizeStart.height;
