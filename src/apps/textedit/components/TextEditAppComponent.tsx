@@ -1663,7 +1663,7 @@ export function TextEditAppComponent({
                 </div>
 
                 {/* Voice transcription & speech */}
-                <div className="flex items-center gap-1 ml-1">
+                <div className="flex items-center gap-1">
                   <AudioInputButton
                     onTranscriptionComplete={handleTranscriptionComplete}
                     onTranscriptionStart={handleTranscriptionStart}
