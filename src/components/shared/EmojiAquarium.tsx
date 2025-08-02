@@ -63,12 +63,12 @@ export function EmojiAquarium({ seed, className }: EmojiAquariumProps) {
   // Scale sand height with container for a larger, responsive base
   const sandHeight = Math.max(24, Math.round(height * 0.35));
 
-  const { fishCount, jellyCount, bubbleCount, floorCount } = useMemo(() => {
-    return { fishCount: 6, jellyCount: 3, bubbleCount: 4, floorCount: 7 };
+  const { jellyCount, bubbleCount, floorCount } = useMemo(() => {
+    return { jellyCount: 3, bubbleCount: 5, floorCount: 7 };
   }, []);
 
-  const largeCount = Math.max(1, Math.floor(fishCount / 3));
-  const smallCount = Math.max(0, fishCount - largeCount);
+  const largeCount = 2;
+  const smallCount = 6;
 
   const smallFishes = ["🐟", "🐠", "🐡"];
   const largeFishes = ["🦈", "🐬"];
@@ -94,12 +94,14 @@ export function EmojiAquarium({ seed, className }: EmojiAquariumProps) {
             const emoji = smallFishes[Math.floor(rand() * smallFishes.length)];
             const dirRight = rand() > 0.5;
             const sizePx = 24;
-            const y = 20 + rand() * (height - 80);
+            const wiggle = 6 + rand() * 8;
+            const yMin = 20;
+            const yMax = Math.max(yMin, height - sizePx - wiggle);
+            const y = yMin + rand() * (yMax - yMin);
             const duration = 14 + rand() * 16;
             const delay = rand() * 4;
             const xFrom = dirRight ? -60 : width + 60;
             const xTo = dirRight ? width + 60 : -60;
-            const wiggle = 6 + rand() * 8;
             return (
               <motion.span
                 key={`fish-small-${i}`}
@@ -144,13 +146,18 @@ export function EmojiAquarium({ seed, className }: EmojiAquariumProps) {
             const emoji = largeFishes[Math.floor(rand() * largeFishes.length)];
             const dirRight = rand() > 0.5;
             const sizePx = 40;
-            const safeZone = height - sandHeight - 20;
-            const y = 20 + rand() * Math.max(40, safeZone);
+            const wiggle = 8 + rand() * 10;
+            const clearance = 40; // 20 existing + 20 more
+            const yMin = 20;
+            const yMax = Math.max(
+              yMin + 40,
+              height - sandHeight - clearance - sizePx - wiggle
+            );
+            const y = yMin + rand() * (yMax - yMin);
             const duration = 18 + rand() * 18;
             const delay = rand() * 4;
             const xFrom = dirRight ? -80 : width + 80;
             const xTo = dirRight ? width + 80 : -80;
-            const wiggle = 8 + rand() * 10;
             return (
               <motion.span
                 key={`fish-large-${i}`}
@@ -230,8 +237,8 @@ export function EmojiAquarium({ seed, className }: EmojiAquariumProps) {
             );
           })}
 
-          {/* bubbles rising */}
-          {Array.from({ length: bubbleCount }).map((_, i) => {
+          {/* bubbles rising - back layer */}
+          {Array.from({ length: Math.floor(bubbleCount / 2) }).map((_, i) => {
             const x = 10 + rand() * (width - 20);
             const start = rand() * (height * 0.65);
             const drift = (rand() - 0.5) * 20;
@@ -239,7 +246,41 @@ export function EmojiAquarium({ seed, className }: EmojiAquariumProps) {
             const delay = rand() * 6;
             return (
               <motion.span
-                key={`bubble-${i}`}
+                key={`bubble-back-${i}`}
+                initial={{ x, y: height - start, opacity: 0, scale: 0.4 }}
+                animate={{
+                  x: [x, x + drift],
+                  y: [height - start, -25],
+                  opacity: [0, 0.25, 0.5, 0.3, 0],
+                  scale: [0.4, 0.7, 1.0, 0.9, 0.5],
+                }}
+                transition={{
+                  duration: dur,
+                  ease: "easeOut",
+                  repeat: Infinity,
+                  delay,
+                }}
+                style={{
+                  position: "absolute",
+                  willChange: "transform, opacity",
+                }}
+                className="text-[24px] select-none z-25"
+              >
+                {bubbles}
+              </motion.span>
+            );
+          })}
+
+          {/* bubbles rising - front layer */}
+          {Array.from({ length: Math.ceil(bubbleCount / 2) }).map((_, i) => {
+            const x = 10 + rand() * (width - 20);
+            const start = rand() * (height * 0.65);
+            const drift = (rand() - 0.5) * 20;
+            const dur = 15 + rand() * 18;
+            const delay = rand() * 6;
+            return (
+              <motion.span
+                key={`bubble-front-${i}`}
                 initial={{ x, y: height - start, opacity: 0, scale: 0.4 }}
                 animate={{
                   x: [x, x + drift],
@@ -257,7 +298,7 @@ export function EmojiAquarium({ seed, className }: EmojiAquariumProps) {
                   position: "absolute",
                   willChange: "transform, opacity",
                 }}
-                className="text-[28px] select-none z-10"
+                className="text-[28px] select-none z-40"
               >
                 {bubbles}
               </motion.span>
@@ -266,7 +307,7 @@ export function EmojiAquarium({ seed, className }: EmojiAquariumProps) {
 
           {/* sand base */}
           <div
-            className="absolute left-0 right-0 bottom-0 z-0 bg-gradient-to-t from-yellow-200/90 via-yellow-100/50 to-transparent"
+            className="absolute left-0 right-0 bottom-0 z-0 bg-gradient-to-t from-yellow-200/80 via-yellow-100/40 to-transparent"
             style={{ height: sandHeight }}
           />
 
