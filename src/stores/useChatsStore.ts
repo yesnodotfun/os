@@ -550,6 +550,54 @@ export const useChatsStore = create<ChatsStoreState>()(
               };
             }
 
+            // Second fallback: replace the most recent temp message from same user within time window
+            // This handles cases where server sanitizes content (e.g., profanity filter) so content differs
+            const WINDOW_MS = 5000; // 5s safety window
+            const incomingTs = Number(
+              (incoming as unknown as { timestamp: number }).timestamp
+            );
+            const candidateIndexes: number[] = [];
+            existingMessages.forEach((m, idx) => {
+              if (
+                m.id.startsWith("temp_") &&
+                m.username === incoming.username
+              ) {
+                const dt = Math.abs(Number(m.timestamp) - incomingTs);
+                if (Number.isFinite(dt) && dt <= WINDOW_MS)
+                  candidateIndexes.push(idx);
+              }
+            });
+            if (candidateIndexes.length > 0) {
+              // Choose the closest in time
+              let bestIdx = candidateIndexes[0];
+              let bestDt = Math.abs(
+                Number(existingMessages[bestIdx].timestamp) - incomingTs
+              );
+              for (let i = 1; i < candidateIndexes.length; i++) {
+                const idx = candidateIndexes[i];
+                const dt = Math.abs(
+                  Number(existingMessages[idx].timestamp) - incomingTs
+                );
+                if (dt < bestDt) {
+                  bestIdx = idx;
+                  bestDt = dt;
+                }
+              }
+              const tempMsg = existingMessages[bestIdx];
+              const replaced = {
+                ...incoming,
+                clientId: tempMsg.clientId || tempMsg.id,
+              } as ChatMessage;
+              const updated = [...existingMessages];
+              updated[bestIdx] = replaced;
+              return {
+                roomMessages: {
+                  ...state.roomMessages,
+                  [roomId]: updated.sort((a, b) => a.timestamp - b.timestamp),
+                },
+              };
+            }
+
             // No optimistic message to replace – append normally
             return {
               roomMessages: {
@@ -1302,6 +1350,7 @@ export const useChatsStore = create<ChatsStoreState>()(
                       roomId,
                       username,
                       content: content.trim(),
+                      clientId: optimisticMessage.clientId, // include for server echo if supported
                     }),
                   },
                   get().refreshAuthToken
@@ -1313,6 +1362,7 @@ export const useChatsStore = create<ChatsStoreState>()(
                     roomId,
                     username,
                     content: content.trim(),
+                    clientId: optimisticMessage.clientId,
                   }),
                 });
 

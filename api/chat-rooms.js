@@ -168,6 +168,20 @@ const escapeHTML = (str = "") =>
       }[ch])
   );
 
+// Helper: clean profanity to fixed '███' blocks (not per-character), preserving input length semantics where possible
+const cleanProfanityToTripleBlocks = (text) => {
+  try {
+    const cleaned =
+      typeof leoProfanity?.clean === "function"
+        ? leoProfanity.clean(text, "█")
+        : text;
+    // Collapse any contiguous run of mask characters into a fixed triple block
+    return cleaned.replace(/█+/g, "███");
+  } catch {
+    return text;
+  }
+};
+
 // Filter profanity while preserving URLs (especially underscores in URLs)
 const filterProfanityPreservingUrls = (content) => {
   // URL regex pattern to match HTTP/HTTPS URLs
@@ -186,11 +200,9 @@ const filterProfanityPreservingUrls = (content) => {
     });
   }
 
-  // If no URLs found, apply normal profanity filter via leo-profanity
+  // If no URLs found, apply profanity filter and collapse masks per word
   if (urlMatches.length === 0) {
-    return typeof leoProfanity?.clean === "function"
-      ? leoProfanity.clean(content, "█")
-      : content;
+    return cleanProfanityToTripleBlocks(content);
   }
 
   // Split content into URL and non-URL parts
@@ -200,10 +212,7 @@ const filterProfanityPreservingUrls = (content) => {
   for (const urlMatch of urlMatches) {
     // Add filtered non-URL part before this URL
     const beforeUrl = content.substring(lastIndex, urlMatch.start);
-    result +=
-      typeof leoProfanity?.clean === "function"
-        ? leoProfanity.clean(beforeUrl, "█")
-        : beforeUrl;
+    result += cleanProfanityToTripleBlocks(beforeUrl);
 
     // Add the URL unchanged
     result += urlMatch.url;
@@ -214,10 +223,7 @@ const filterProfanityPreservingUrls = (content) => {
   // Add any remaining non-URL content after the last URL
   if (lastIndex < content.length) {
     const afterLastUrl = content.substring(lastIndex);
-    result +=
-      typeof leoProfanity?.clean === "function"
-        ? leoProfanity.clean(afterLastUrl, "█")
-        : afterLastUrl;
+    result += cleanProfanityToTripleBlocks(afterLastUrl);
   }
 
   return result;
