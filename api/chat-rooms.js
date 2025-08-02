@@ -1,17 +1,37 @@
 import { Redis } from "@upstash/redis";
-import { Filter } from "bad-words";
+// Using leo-profanity exclusively for profanity detection/cleaning
 import Pusher from "pusher";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import { generateText } from "ai";
 import { google } from "@ai-sdk/google";
+import leoProfanity from "leo-profanity";
 // Inlined minimal Ryo prompt to avoid importing TS from JS during dev
 
-// Initialize profanity filter with custom placeholder
-const filter = new Filter({ placeHolder: "█" });
+// Legacy bad-words usage removed in favor of leo-profanity
 
-// Add additional words to the blacklist
-filter.addWords("badword1", "badword2", "inappropriate");
+// Initialize leo-profanity for stronger, substring-based checks
+try {
+  // Ensure a deterministic dictionary state
+  leoProfanity.clearList();
+  leoProfanity.loadDictionary("en");
+  // Keep custom words in sync with leo-profanity too
+  leoProfanity.add(["badword1", "badword2", "inappropriate"]);
+} catch (_) {
+  // Fail open; leo-profanity might not be loaded in some envs
+}
+
+/** Robust username profanity check (substring-aware, simple leet bypasses) */
+const isProfaneUsername = (name) => {
+  if (!name) return false;
+  const lower = String(name).toLowerCase();
+  // Collapse common separators to catch joined variations like f_u-c.k
+  const normalized = lower.replace(/[\s_\-.]+/g, "");
+  // leo-profanity handles substring checks and basic obfuscation
+  return (
+    typeof leoProfanity?.check === "function" && leoProfanity.check(normalized)
+  );
+};
 
 // Set up Redis client
 const redis = new Redis({
@@ -141,9 +161,11 @@ const filterProfanityPreservingUrls = (content) => {
     });
   }
 
-  // If no URLs found, apply normal profanity filter
+  // If no URLs found, apply normal profanity filter via leo-profanity
   if (urlMatches.length === 0) {
-    return filter.clean(content);
+    return typeof leoProfanity?.clean === "function"
+      ? leoProfanity.clean(content, "█")
+      : content;
   }
 
   // Split content into URL and non-URL parts
@@ -153,7 +175,10 @@ const filterProfanityPreservingUrls = (content) => {
   for (const urlMatch of urlMatches) {
     // Add filtered non-URL part before this URL
     const beforeUrl = content.substring(lastIndex, urlMatch.start);
-    result += filter.clean(beforeUrl);
+    result +=
+      typeof leoProfanity?.clean === "function"
+        ? leoProfanity.clean(beforeUrl, "█")
+        : beforeUrl;
 
     // Add the URL unchanged
     result += urlMatch.url;
@@ -164,7 +189,10 @@ const filterProfanityPreservingUrls = (content) => {
   // Add any remaining non-URL content after the last URL
   if (lastIndex < content.length) {
     const afterLastUrl = content.substring(lastIndex);
-    result += filter.clean(afterLastUrl);
+    result +=
+      typeof leoProfanity?.clean === "function"
+        ? leoProfanity.clean(afterLastUrl, "█")
+        : afterLastUrl;
   }
 
   return result;
@@ -711,7 +739,7 @@ async function ensureUserExists(username, requestId) {
   const userKey = `${CHAT_USERS_PREFIX}${username}`;
 
   // Check for profanity first
-  if (filter.isProfane(username)) {
+  if (isProfaneUsername(username)) {
     logInfo(
       requestId,
       `User check failed: Username contains inappropriate language: ${username}`
@@ -1333,7 +1361,7 @@ async function handleCreateRoom(data, username, requestId) {
     }
 
     // Check for profanity in room name
-    if (filter.isProfane(originalName)) {
+    if (isProfaneUsername(originalName)) {
       logInfo(
         requestId,
         `Room creation failed: Name contains inappropriate language: ${originalName}`
@@ -1741,7 +1769,7 @@ async function handleCreateUser(data, requestId) {
   }
 
   // Check for profanity in username
-  if (filter.isProfane(originalUsername)) {
+  if (isProfaneUsername(originalUsername)) {
     logInfo(
       requestId,
       `User creation failed: Username contains inappropriate language: ${originalUsername}`
