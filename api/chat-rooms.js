@@ -3,8 +3,9 @@ import { Filter } from "bad-words";
 import Pusher from "pusher";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
-import { generateText } from "ai";
+import { generateText, streamText } from "ai";
 import { google } from "@ai-sdk/google";
+import { z } from "zod";
 // Inlined minimal Ryo prompt to avoid importing TS from JS during dev
 
 // Initialize profanity filter with custom placeholder
@@ -2753,21 +2754,46 @@ respond in the user's language. comment on the recent conversation and mentioned
     { role: "user", content: prompt },
   ].filter(Boolean);
 
-  // Use Gemini 2.5 Flash directly
+  // Use Gemini 2.5 Flash with tools support
   let replyText = "";
+  let toolInvocations = [];
+  
   try {
-    const { text } = await generateText({
+    const result = await streamText({
       model: google("gemini-2.5-flash"),
       messages,
       temperature: 0.6,
+      tools: {
+        aquarium: {
+          description:
+            "Render a playful emoji aquarium inside the chat bubble. Use when the user asks for an aquarium / fish tank / fishes / sam's aquarium.",
+          parameters: z.object({}),
+        },
+      },
     });
-    replyText = text;
+
+    // Collect the full response
+    let fullText = "";
+    for await (const textPart of result.textStream) {
+      fullText += textPart;
+    }
+    replyText = fullText;
+
+    // Collect tool calls if any
+    const toolResults = await result.toolCalls;
+    if (toolResults && toolResults.length > 0) {
+      toolInvocations = toolResults.map(tc => ({
+        toolCallId: tc.toolCallId,
+        toolName: tc.toolName,
+        args: tc.args,
+      }));
+    }
   } catch (e) {
     logError(requestId, "AI generation failed for Ryo reply", e);
     return createErrorResponse("Failed to generate reply", 500);
   }
 
-  // Save as a message from 'ryo'
+  // Save as a message from 'ryo' with tool invocations if any
   const messageId = generateId();
   const message = {
     id: messageId,
@@ -2775,6 +2801,10 @@ respond in the user's language. comment on the recent conversation and mentioned
     username: "ryo",
     content: escapeHTML(filterProfanityPreservingUrls(replyText)),
     timestamp: getCurrentTimestamp(),
+    // Include tool invocations if any (for aquarium)
+    ...(toolInvocations.length > 0 && {
+      toolInvocations: toolInvocations,
+    }),
   };
 
   await redis.lpush(

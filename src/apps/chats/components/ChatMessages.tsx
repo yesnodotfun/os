@@ -575,16 +575,24 @@ function ChatMessagesContent({
           : message.content;
         const displayContent = decodeHtmlEntities(rawContent);
 
-        // Detect aquarium tool calls for this assistant message
-        const aquariumParts =
-          message.role === "assistant"
-            ? (message.parts || []).filter((p) => {
-                if (p.type !== "tool-invocation") return false;
-                const ti = (p as ToolInvocationPart).toolInvocation;
-                return ti?.toolName === "aquarium";
-              })
-            : [];
-        const hasAquarium = aquariumParts.length > 0;
+        // Detect aquarium tool calls for this assistant message or chat room message
+        let hasAquarium = false;
+        
+        // Check for aquarium in AI assistant messages (using parts)
+        if (message.role === "assistant" && message.parts) {
+          const aquariumParts = message.parts.filter((p) => {
+            if (p.type !== "tool-invocation") return false;
+            const ti = (p as ToolInvocationPart).toolInvocation;
+            return ti?.toolName === "aquarium";
+          });
+          hasAquarium = aquariumParts.length > 0;
+        }
+        
+        // Check for aquarium in chat room messages (using toolInvocations)
+        if (message.role === "human" && (message as any).toolInvocations) {
+          const toolInvocations = (message as any).toolInvocations;
+          hasAquarium = toolInvocations.some((ti: any) => ti.toolName === "aquarium");
+        }
 
         const combinedHighlightSeg = highlightSegment || localHighlightSegment;
         const combinedIsSpeaking = isSpeaking || localTtsSpeaking;
