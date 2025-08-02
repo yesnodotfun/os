@@ -15,6 +15,7 @@ try {
   // Ensure a deterministic dictionary state
   leoProfanity.clearList();
   leoProfanity.loadDictionary("en");
+  leoProfanity.add(["badword1", "badword2", "chink"]);
 } catch (_) {
   // Fail open; leo-profanity might not be loaded in some envs
 }
