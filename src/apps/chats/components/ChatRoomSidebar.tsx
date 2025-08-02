@@ -49,6 +49,12 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
 
   // Section headings are non-interactive; show all lists by default
 
+  // Read collapse state from store BEFORE any early returns to preserve hook order
+  const isChannelsOpen = useChatsStore((s) => s.isChannelsOpen);
+  const isPrivateOpen = useChatsStore((s) => s.isPrivateOpen);
+  const toggleChannelsOpen = useChatsStore((s) => s.toggleChannelsOpen);
+  const togglePrivateOpen = useChatsStore((s) => s.togglePrivateOpen);
+
   if (!isVisible) {
     return null;
   }
@@ -134,11 +140,6 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
     );
   };
 
-  const isChannelsOpen = useChatsStore((s) => s.isChannelsOpen);
-  const isPrivateOpen = useChatsStore((s) => s.isPrivateOpen);
-  const toggleChannelsOpen = useChatsStore((s) => s.toggleChannelsOpen);
-  const togglePrivateOpen = useChatsStore((s) => s.togglePrivateOpen);
-
   return (
     <div
       className={cn(
@@ -163,7 +164,7 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
       <div
         className={cn(
           "pt-3 flex flex-col",
-          isOverlay ? "" : "flex-1 overflow-hidde pb-3"
+          isOverlay ? "pb-3" : "flex-1 overflow-hidden"
         )}
       >
         <div className="flex justify-between items-center mb-2 flex-shrink-0 px-3">

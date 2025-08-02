@@ -263,6 +263,8 @@ const getInitialState = (): Omit<
   | "removeMessageFromRoom"
   | "clearRoomMessages"
   | "toggleSidebarVisibility"
+  | "toggleChannelsOpen"
+  | "togglePrivateOpen"
   | "setFontSize"
   | "setMessageRenderLimit"
   | "ensureAuthToken"
