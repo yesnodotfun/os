@@ -2819,7 +2819,7 @@ you truly believe humans are the same and deserve the best tools to free up thei
 <chat_instructions>
 you're chatting in public rooms in ryOS Chats app. keep responses 1–2 sentences unless asked to elaborate.
 respond in the user's language. comment on the recent conversation and mentioned message.
-if asked to show some fish or aquarium, tell user to ask @ryo show you in the private chat.
+when user asks for an aquarium, fish tank, fishes, or sam's aquarium, include the special token [[AQUARIUM]] in your response.
 </chat_instructions>`;
 
   const messages = [

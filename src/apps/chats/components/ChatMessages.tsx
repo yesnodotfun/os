@@ -583,18 +583,32 @@ function ChatMessagesContent({
         const rawContent = isUrgent
           ? message.content.slice(4).trimStart()
           : message.content;
-        const displayContent = decodeHtmlEntities(rawContent);
+        const decodedContent = decodeHtmlEntities(rawContent);
+        
+        // Check for [[AQUARIUM]] token in the content
+        const hasAquariumToken = decodedContent.includes("[[AQUARIUM]]");
+        
+        // Remove [[AQUARIUM]] token from display content
+        const displayContent = decodedContent.replace(/\[\[AQUARIUM\]\]/g, "").trim();
 
-        // Detect aquarium tool calls for this assistant message
-        const aquariumParts =
-          message.role === "assistant"
-            ? (message.parts || []).filter((p) => {
-                if (p.type !== "tool-invocation") return false;
-                const ti = (p as ToolInvocationPart).toolInvocation;
-                return ti?.toolName === "aquarium";
-              })
-            : [];
-        const hasAquarium = aquariumParts.length > 0;
+        // Detect aquarium tool calls for this assistant message or chat room message
+        let hasAquarium = false;
+        
+        // Check for aquarium in AI assistant messages (using parts)
+        if (message.role === "assistant" && message.parts) {
+          const aquariumParts = message.parts.filter((p) => {
+            if (p.type !== "tool-invocation") return false;
+            const ti = (p as ToolInvocationPart).toolInvocation;
+            return ti?.toolName === "aquarium";
+          });
+          hasAquarium = aquariumParts.length > 0;
+        }
+        
+        // Check for aquarium token in chat room messages
+        // In chat rooms, messages from ryo don't have a role, just a username
+        if ((message.role === "human" || message.username === "ryo") && hasAquariumToken) {
+          hasAquarium = true;
+        }
 
         const combinedHighlightSeg = highlightSegment || localHighlightSegment;
         const combinedIsSpeaking = isSpeaking || localTtsSpeaking;
