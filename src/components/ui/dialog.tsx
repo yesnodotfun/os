@@ -220,88 +220,6 @@ const DialogHeader = ({
               />
             </button>
           </DialogPrimitive.Close>
-          {/* Minimize Button (Yellow) */}
-          <button
-            className="rounded-full relative overflow-hidden cursor-default outline-none box-border"
-            style={{
-              width: "13px",
-              height: "13px",
-              background:
-                "linear-gradient(rgb(202, 130, 13), rgb(253, 253, 149))",
-              boxShadow:
-                "rgba(0, 0, 0, 0.5) 0px 2px 4px, rgba(0, 0, 0, 0.4) 0px 1px 2px, rgba(223, 161, 35, 0.5) 0px 1px 1px, rgba(0, 0, 0, 0.3) 0px 0px 0px 0.5px inset, rgb(155, 78, 21) 0px 1px 3px inset, rgb(241, 157, 20) 0px 2px 3px 1px inset",
-            }}
-            aria-label="Minimize"
-          >
-            {/* Top shine */}
-            <div
-              className="absolute left-1/2 transform -translate-x-1/2 pointer-events-none"
-              style={{
-                height: "33%",
-                background:
-                  "linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.3))",
-                width: "calc(100% - 6px)",
-                borderRadius: "6px 6px 0 0",
-                top: "1px",
-                filter: "blur(0.2px)",
-                zIndex: 2,
-              }}
-            />
-            {/* Bottom glow */}
-            <div
-              className="absolute left-1/2 transform -translate-x-1/2 pointer-events-none"
-              style={{
-                height: "33%",
-                background:
-                  "linear-gradient(rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.5))",
-                width: "calc(100% - 3px)",
-                borderRadius: "0 0 6px 6px",
-                bottom: "1px",
-                filter: "blur(0.3px)",
-              }}
-            />
-          </button>
-          {/* Maximize Button (Green) */}
-          <button
-            className="rounded-full relative overflow-hidden cursor-default outline-none box-border"
-            style={{
-              width: "13px",
-              height: "13px",
-              background:
-                "linear-gradient(rgb(111, 174, 58), rgb(138, 192, 50))",
-              boxShadow:
-                "rgba(0, 0, 0, 0.5) 0px 2px 4px, rgba(0, 0, 0, 0.4) 0px 1px 2px, rgb(59, 173, 29, 0.5) 0px 1px 1px, rgba(0, 0, 0, 0.3) 0px 0px 0px 0.5px inset, rgb(53, 91, 17) 0px 1px 3px inset, rgb(98, 187, 19) 0px 2px 3px 1px inset",
-            }}
-            aria-label="Maximize"
-          >
-            {/* Top shine */}
-            <div
-              className="absolute left-1/2 transform -translate-x-1/2 pointer-events-none"
-              style={{
-                height: "33%",
-                background:
-                  "linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.3))",
-                width: "calc(100% - 6px)",
-                borderRadius: "6px 6px 0 0",
-                top: "1px",
-                filter: "blur(0.2px)",
-                zIndex: 2,
-              }}
-            />
-            {/* Bottom glow */}
-            <div
-              className="absolute left-1/2 transform -translate-x-1/2 pointer-events-none"
-              style={{
-                height: "33%",
-                background:
-                  "linear-gradient(rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.5))",
-                width: "calc(100% - 3px)",
-                borderRadius: "0 0 6px 6px",
-                bottom: "1px",
-                filter: "blur(0.3px)",
-              }}
-            />
-          </button>
         </div>
 
         {/* Title */}
@@ -316,7 +234,7 @@ const DialogHeader = ({
         </span>
 
         {/* Spacer to balance the traffic lights */}
-        <div className="mr-2 w-12 h-4" />
+        <div className="mr-2 w-4 h-4" />
       </div>
     );
   }
