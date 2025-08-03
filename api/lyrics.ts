@@ -1,6 +1,6 @@
+import PocketBase from "pocketbase";
 import { z } from "zod";
 import { Redis } from "@upstash/redis";
-import * as RateLimit from "./utils/rate-limit";
 import { getEffectiveOrigin, isAllowedOrigin, preflightIfNeeded } from "./utils/cors.js";
 
 // Vercel Edge Function configuration
@@ -162,35 +162,7 @@ export default async function handler(req: Request) {
       return new Response("Unauthorized", { status: 403 });
     }
 
-    // Rate limits: burst 10/min/IP + daily 200/IP
-    try {
-      const ip = RateLimit.getClientIp(req);
-      const BURST_WINDOW = 60;
-      const BURST_LIMIT = 10;
-      const DAILY_WINDOW = 60 * 60 * 24;
-      const DAILY_LIMIT = 200;
-
-      const burstKey = RateLimit.makeKey(["rl", "lyrics", "search", "burst", "ip", ip]);
-      const dailyKey = RateLimit.makeKey(["rl", "lyrics", "search", "daily", "ip", ip]);
-
-      const burst = await RateLimit.checkCounterLimit({ key: burstKey, windowSeconds: BURST_WINDOW, limit: BURST_LIMIT });
-      if (!burst.allowed) {
-        return new Response(
-          JSON.stringify({ error: "rate_limit_exceeded", scope: "burst" }),
-          { status: 429, headers: { "Retry-After": String(burst.resetSeconds ?? BURST_WINDOW), "Content-Type": "application/json", "Access-Control-Allow-Origin": effectiveOrigin! } }
-        );
-      }
-
-      const daily = await RateLimit.checkCounterLimit({ key: dailyKey, windowSeconds: DAILY_WINDOW, limit: DAILY_LIMIT });
-      if (!daily.allowed) {
-        return new Response(
-          JSON.stringify({ error: "rate_limit_exceeded", scope: "daily" }),
-          { status: 429, headers: { "Retry-After": String(daily.resetSeconds ?? DAILY_WINDOW), "Content-Type": "application/json", "Access-Control-Allow-Origin": effectiveOrigin! } }
-        );
-      }
-    } catch (e) {
-      logError(requestId, "Rate limit check failed (lyrics)", e);
-    }
+    // Rate limiting removed - no longer limiting lyrics search requests
 
     body = LyricsRequestSchema.parse(await req.json());
   } catch {
