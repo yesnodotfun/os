@@ -2258,7 +2258,12 @@ assistant
                 // fallthrough if auth failed -> will attempt create
               }
 
-              // Attempt to create user (with or without password)
+              // Attempt to create user; password is required by server
+              if (!passwordArg) {
+                this.updateOutput("su failed: password required for new user creation");
+                return;
+              }
+
               const createResult = await store.createUser(
                 targetUsername,
                 passwordArg

@@ -66,7 +66,19 @@ export function useAuth() {
       await logout();
     }
 
-    const result = await createUser(trimmedUsername, newPassword || undefined);
+    if (!newPassword.trim()) {
+      setUsernameError("Password is required.");
+      setIsSettingUsername(false);
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setUsernameError("Password must be at least 8 characters.");
+      setIsSettingUsername(false);
+      return;
+    }
+
+    const result = await createUser(trimmedUsername, newPassword);
 
     if (result.ok) {
       setIsUsernameDialogOpen(false);

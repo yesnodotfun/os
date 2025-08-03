@@ -1839,8 +1839,11 @@ async function handleCreateUser(data, requestId) {
     );
   }
 
-  // Validate password if provided
-  if (password && password.length < PASSWORD_MIN_LENGTH) {
+  // Require password for new user creation and validate length
+  if (!password) {
+    logInfo(requestId, "User creation failed: Password is required");
+    return createErrorResponse("Password is required", 400);
+  } else if (password.length < PASSWORD_MIN_LENGTH) {
     logInfo(
       requestId,
       `User creation failed: Password too short: ${password.length} chars (min: ${PASSWORD_MIN_LENGTH})`
@@ -1861,10 +1864,7 @@ async function handleCreateUser(data, requestId) {
     return createErrorResponse(e.message, 400);
   }
 
-  logInfo(
-    requestId,
-    `Creating user: ${username}${password ? " with password" : ""}`
-  );
+  logInfo(requestId, `Creating user: ${username} with password`);
   try {
     // Check if username already exists using setnx for atomicity
     const userKey = `${CHAT_USERS_PREFIX}${username}`;

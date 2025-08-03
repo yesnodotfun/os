@@ -227,7 +227,7 @@ export interface ChatsStoreState {
   ) => Promise<{ ok: boolean; error?: string }>;
   createUser: (
     username: string,
-    password?: string
+    password: string
   ) => Promise<{ ok: boolean; error?: string }>;
 
   incrementUnread: (roomId: string) => void;
@@ -1387,7 +1387,7 @@ export const useChatsStore = create<ChatsStoreState>()(
             return { ok: false, error: "Network error. Please try again." };
           }
         },
-        createUser: async (username: string, password?: string) => {
+        createUser: async (username: string, password: string) => {
           const trimmedUsername = username.trim();
           if (!trimmedUsername) {
             return { ok: false, error: "Username cannot be empty" };
@@ -1402,6 +1402,18 @@ export const useChatsStore = create<ChatsStoreState>()(
               ok: false,
               error:
                 "Invalid username: use 3-30 letters/numbers; '-' or '_' allowed between characters; no spaces or symbols",
+            };
+          }
+
+          // Require password client-side and enforce minimum length consistent with server
+          if (!password || password.trim().length === 0) {
+            return { ok: false, error: "Password is required" };
+          }
+          const PASSWORD_MIN_LENGTH = 8; // Keep in sync with server
+          if (password.length < PASSWORD_MIN_LENGTH) {
+            return {
+              ok: false,
+              error: `Password must be at least ${PASSWORD_MIN_LENGTH} characters`,
             };
           }
 
