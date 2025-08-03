@@ -1,4 +1,3 @@
-import PocketBase from "pocketbase";
 import { z } from "zod";
 import { Redis } from "@upstash/redis";
 import { getEffectiveOrigin, isAllowedOrigin, preflightIfNeeded } from "./utils/cors.js";
