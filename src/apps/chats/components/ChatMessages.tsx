@@ -588,10 +588,9 @@ function ChatMessagesContent({
           hasAquarium = aquariumParts.length > 0;
         }
         
-        // Check for aquarium in chat room messages (using toolInvocations)
-        if (message.role === "human" && (message as any).toolInvocations) {
-          const toolInvocations = (message as any).toolInvocations;
-          hasAquarium = toolInvocations.some((ti: any) => ti.toolName === "aquarium");
+        // Check for aquarium in chat room messages (using hasAquarium flag)
+        if (message.role === "human" && (message as any).hasAquarium) {
+          hasAquarium = true;
         }
 
         const combinedHighlightSeg = highlightSegment || localHighlightSegment;

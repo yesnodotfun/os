@@ -3,9 +3,8 @@ import { Filter } from "bad-words";
 import Pusher from "pusher";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
-import { generateText, streamText } from "ai";
+import { generateText } from "ai";
 import { google } from "@ai-sdk/google";
-import { z } from "zod";
 // Inlined minimal Ryo prompt to avoid importing TS from JS during dev
 
 // Initialize profanity filter with custom placeholder
@@ -2736,6 +2735,7 @@ you truly believe humans are the same and deserve the best tools to free up thei
 <chat_instructions>
 you're chatting in ryOS Chats app. keep responses 1–2 sentences unless asked to elaborate.
 respond in the user's language. comment on the recent conversation and mentioned message.
+when user asks for an aquarium, fish tank, fishes, or sam's aquarium, include the special token [[AQUARIUM]] in your response.
 </chat_instructions>`;
 
   const messages = [
@@ -2754,56 +2754,37 @@ respond in the user's language. comment on the recent conversation and mentioned
     { role: "user", content: prompt },
   ].filter(Boolean);
 
-  // Use Gemini 2.5 Flash with tools support
+  // Use Gemini 2.5 Flash directly
   let replyText = "";
-  let toolInvocations = [];
-  
   try {
-    const result = await streamText({
+    const { text } = await generateText({
       model: google("gemini-2.5-flash"),
       messages,
       temperature: 0.6,
-      tools: {
-        aquarium: {
-          description:
-            "Render a playful emoji aquarium inside the chat bubble. Use when the user asks for an aquarium / fish tank / fishes / sam's aquarium.",
-          parameters: z.object({}),
-        },
-      },
     });
-
-    // Collect the full response
-    let fullText = "";
-    for await (const textPart of result.textStream) {
-      fullText += textPart;
-    }
-    replyText = fullText;
-
-    // Collect tool calls if any
-    const toolResults = await result.toolCalls;
-    if (toolResults && toolResults.length > 0) {
-      toolInvocations = toolResults.map(tc => ({
-        toolCallId: tc.toolCallId,
-        toolName: tc.toolName,
-        args: tc.args,
-      }));
-    }
+    replyText = text;
   } catch (e) {
     logError(requestId, "AI generation failed for Ryo reply", e);
     return createErrorResponse("Failed to generate reply", 500);
   }
 
-  // Save as a message from 'ryo' with tool invocations if any
+  // Check if the reply contains the aquarium token
+  const hasAquarium = replyText.includes("[[AQUARIUM]]");
+  
+  // Remove the aquarium token from the display text
+  const cleanedReplyText = replyText.replace(/\[\[AQUARIUM\]\]/g, "").trim();
+  
+  // Save as a message from 'ryo'
   const messageId = generateId();
   const message = {
     id: messageId,
     roomId,
     username: "ryo",
-    content: escapeHTML(filterProfanityPreservingUrls(replyText)),
+    content: escapeHTML(filterProfanityPreservingUrls(cleanedReplyText)),
     timestamp: getCurrentTimestamp(),
-    // Include tool invocations if any (for aquarium)
-    ...(toolInvocations.length > 0 && {
-      toolInvocations: toolInvocations,
+    // Include aquarium flag if present
+    ...(hasAquarium && {
+      hasAquarium: true,
     }),
   };
 
