@@ -1,5 +1,5 @@
 import React from "react";
-import { Plus, Trash } from "lucide-react";
+import { Plus, Trash, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { type ChatRoom } from "@/types/chat";
@@ -48,6 +48,12 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
   const isWindowsLegacyTheme = isXpTheme;
 
   // Section headings are non-interactive; show all lists by default
+
+  // Read collapse state from store BEFORE any early returns to preserve hook order
+  const isChannelsOpen = useChatsStore((s) => s.isChannelsOpen);
+  const isPrivateOpen = useChatsStore((s) => s.isPrivateOpen);
+  const toggleChannelsOpen = useChatsStore((s) => s.toggleChannelsOpen);
+  const togglePrivateOpen = useChatsStore((s) => s.togglePrivateOpen);
 
   if (!isVisible) {
     return null;
@@ -158,7 +164,7 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
       <div
         className={cn(
           "pt-3 flex flex-col",
-          isOverlay ? "" : "flex-1 overflow-hidden"
+          isOverlay ? "pb-3" : "flex-1 overflow-hidden"
         )}
       >
         <div className="flex justify-between items-center mb-2 flex-shrink-0 px-3">
@@ -194,7 +200,10 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
         >
           {/* Ryo (@ryo) Chat Selection */}
           <div
-            className={cn("py-1 px-5", currentRoom === null ? "" : "hover:bg-black/5")}
+            className={cn(
+              "py-1 px-5",
+              currentRoom === null ? "" : "hover:bg-black/5"
+            )}
             style={
               currentRoom === null
                 ? {
@@ -222,6 +231,8 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
                 );
                 const hasBoth =
                   publicRooms.length > 0 && privateRooms.length > 0;
+                const hasPrivate = privateRooms.length > 0;
+                const channelsOpen = hasPrivate ? isChannelsOpen : true;
 
                 return (
                   <>
@@ -230,26 +241,58 @@ export const ChatRoomSidebar: React.FC<ChatRoomSidebarProps> = ({
                         {publicRooms.length > 0 && (
                           <div
                             className={cn(
-                              "mt-2 px-4 pt-2 pb-1 w-full flex items-center",
+                              "mt-2 px-4 pt-2 pb-1 w-full flex items-center group",
                               "!text-[11px] uppercase tracking-wide text-black/50"
                             )}
+                            onClick={() => {
+                              if (hasPrivate) {
+                                playButtonClick();
+                                toggleChannelsOpen();
+                              }
+                            }}
+                            role="button"
+                            aria-expanded={isChannelsOpen}
                           >
                             <span>Channels</span>
+                            {hasPrivate && (
+                              <span className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <ChevronRight
+                                  className={cn(
+                                    "w-3 h-3 text-black/50 transition-transform",
+                                    isChannelsOpen ? "rotate-90" : "rotate-0"
+                                  )}
+                                />
+                              </span>
+                            )}
                           </div>
                         )}
-                        {publicRooms.map(renderRoomItem)}
+                        {channelsOpen && publicRooms.map(renderRoomItem)}
 
                         {privateRooms.length > 0 && (
                           <div
                             className={cn(
-                              "mt-2 px-4 pt-2 pb-1 w-full flex items-center",
+                              "mt-2 px-4 pt-2 pb-1 w-full flex items-center group",
                               "!text-[11px] uppercase tracking-wide text-black/50"
                             )}
+                            onClick={() => {
+                              playButtonClick();
+                              togglePrivateOpen();
+                            }}
+                            role="button"
+                            aria-expanded={isPrivateOpen}
                           >
                             <span>Private</span>
+                            <span className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <ChevronRight
+                                className={cn(
+                                  "w-3 h-3 text-black/50 transition-transform",
+                                  isPrivateOpen ? "rotate-90" : "rotate-0"
+                                )}
+                              />
+                            </span>
                           </div>
                         )}
-                        {privateRooms.map(renderRoomItem)}
+                        {isPrivateOpen && privateRooms.map(renderRoomItem)}
                       </>
                     ) : (
                       <>

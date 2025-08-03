@@ -792,7 +792,7 @@ export function PhotoBoothComponent({
 
   return (
     <>
-      {!isXpTheme && menuBar}
+      {!isXpTheme && isForeground && menuBar}
       <WindowFrame
         title="Photo Booth"
         onClose={onClose}

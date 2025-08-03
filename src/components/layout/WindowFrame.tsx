@@ -235,13 +235,30 @@ export function WindowFrame({
     getSafeAreaBottomInset,
   } = useWindowManager({ appId, instanceId });
 
+  // Centralized insets per theme
+  const computeInsets = useCallback(() => {
+    const safe = getSafeAreaBottomInset();
+    const menuBarHeight =
+      currentTheme === "system7" ? 30 : currentTheme === "macosx" ? 25 : 0;
+    const taskbarHeight = isXpTheme ? 30 : 0;
+    const topInset = menuBarHeight;
+    const bottomInset = taskbarHeight + safe;
+    return {
+      menuBarHeight,
+      taskbarHeight,
+      safeAreaBottom: safe,
+      topInset,
+      bottomInset,
+    };
+  }, [currentTheme, isXpTheme, getSafeAreaBottomInset]);
+
   // No longer track maximized state based on window dimensions
   useEffect(() => {
-    const menuBarHeight = 30;
-    const maxPossibleHeight = window.innerHeight - menuBarHeight;
+    const { topInset, bottomInset } = computeInsets();
+    const maxPossibleHeight = window.innerHeight - topInset - bottomInset;
     // Consider window at full height if it's within 5px of max height (to account for rounding)
     setIsFullHeight(Math.abs(windowSize.height - maxPossibleHeight) < 5);
-  }, [windowSize.height]);
+  }, [windowSize.height, computeInsets]);
 
   const handleMouseDownWithForeground = (
     e: React.MouseEvent<HTMLElement> | React.TouchEvent<HTMLElement>
@@ -268,6 +285,16 @@ export function WindowFrame({
         bringToForeground(appId);
       }
     }
+  };
+
+  // Guard: avoid maximizing when the event originates from titlebar control areas
+  const isFromTitlebarControls = (target: EventTarget | null) => {
+    const el = target as HTMLElement | null;
+    if (!el) return false;
+    if (el.closest("[data-titlebar-controls]")) return true;
+    if (el.closest(".title-bar-controls")) return true; // XP/98
+    if (el.closest('button,[role="button"]')) return true;
+    return false;
   };
 
   // This function only maximizes height (for bottom resize handle)
@@ -302,10 +329,8 @@ export function WindowFrame({
 
       // Set to full height
       setIsFullHeight(true);
-      const menuBarHeight = 30;
-      const safeAreaBottom = getSafeAreaBottomInset();
-      const maxPossibleHeight =
-        window.innerHeight - menuBarHeight - safeAreaBottom;
+      const { topInset, bottomInset } = computeInsets();
+      const maxPossibleHeight = window.innerHeight - topInset - bottomInset;
       const maxHeight = mergedConstraints.maxHeight
         ? typeof mergedConstraints.maxHeight === "string"
           ? parseInt(mergedConstraints.maxHeight)
@@ -318,7 +343,7 @@ export function WindowFrame({
       };
       const newPosition = {
         ...windowPosition,
-        y: menuBarHeight,
+        y: topInset,
       };
       setWindowSize(newSize);
       setWindowPosition(newPosition);
@@ -397,10 +422,8 @@ export function WindowFrame({
         };
 
         // Set to full width and height
-        const menuBarHeight = 30;
-        const safeAreaBottom = getSafeAreaBottomInset();
-        const maxPossibleHeight =
-          window.innerHeight - menuBarHeight - safeAreaBottom;
+        const { topInset, bottomInset } = computeInsets();
+        const maxPossibleHeight = window.innerHeight - topInset - bottomInset;
         const maxHeight = mergedConstraints.maxHeight
           ? typeof mergedConstraints.maxHeight === "string"
             ? parseInt(mergedConstraints.maxHeight)
@@ -426,7 +449,7 @@ export function WindowFrame({
 
         const newPosition = {
           x: window.innerWidth >= 768 ? (window.innerWidth - newWidth) / 2 : 0,
-          y: menuBarHeight,
+          y: topInset,
         };
 
         setWindowSize(newSize);
@@ -574,9 +597,7 @@ export function WindowFrame({
           <div
             className={cn(
               "absolute cursor-n-resize pointer-events-auto transition-[top,height] select-none resize-handle",
-              isMobile && currentTheme === "macosx" 
-                ? "left-0 right-0" // Extend full width for better touch on macOS mobile
-                : "left-1 right-0",
+              "left-1 right-0", // Full width for all cases
               debugMode && "bg-red-500/50",
               resizeType?.includes("n")
                 ? "top-[-100px] h-[200px]"
@@ -584,7 +605,7 @@ export function WindowFrame({
                 ? isXpTheme
                   ? "top-0 h-4" // Start from top but be shorter for XP/98 themes
                   : currentTheme === "macosx"
-                  ? "top-[-4px] h-4" // Extend above window for macOS to avoid traffic lights
+                  ? "top-1 h-2" // Extend above window for macOS to avoid traffic lights
                   : "top-0 h-8"
                 : "top-1 h-2"
             )}
@@ -600,14 +621,12 @@ export function WindowFrame({
           {/* Bottom resize handle */}
           <div
             className={cn(
-              "absolute left-0 right-0 cursor-s-resize pointer-events-auto transition-[bottom,height] select-none resize-handle",
+              "absolute left-1 right-1 cursor-s-resize pointer-events-auto transition-[bottom,height] select-none resize-handle",
               debugMode && "bg-red-500/50",
               resizeType?.includes("s")
                 ? "bottom-[-100px] h-[200px]"
                 : isMobile
-                ? currentTheme === "macosx"
-                  ? "bottom-[-4px] h-4" // Extend below window for macOS
-                  : "bottom-0 h-6"
+                ? "bottom-0 h-6"
                 : "bottom-1 h-2"
             )}
             onMouseDown={(e) =>
@@ -740,7 +759,16 @@ export function WindowFrame({
                   : undefined),
               }}
               onMouseDown={handleMouseDownWithForeground}
+              onDoubleClick={(e) => {
+                if (isFromTitlebarControls(e.target)) return;
+                handleFullMaximize(e);
+              }}
               onTouchStart={(e: React.TouchEvent<HTMLElement>) => {
+                if (isFromTitlebarControls(e.target)) {
+                  e.stopPropagation();
+                  return;
+                }
+                handleTitleBarTap(e);
                 handleMouseDownWithForeground(e);
                 if (isPhone) {
                   handleTouchStart(e);
@@ -771,12 +799,6 @@ export function WindowFrame({
                       }
                     : {}),
                 }}
-                onDoubleClick={handleFullMaximize}
-                onTouchStart={(e) => {
-                  handleTitleBarTap(e);
-                  // Allow the event to bubble up to the titlebar for drag handling
-                  handleMouseDownWithForeground(e);
-                }}
                 onTouchMove={(e) => e.preventDefault()}
               >
                 <ThemedIcon
@@ -789,7 +811,7 @@ export function WindowFrame({
                 />
                 {title}
               </div>
-              <div className="title-bar-controls">
+              <div className="title-bar-controls" data-titlebar-controls>
                 <button
                   aria-label="Minimize"
                   onClick={(e) => {
@@ -849,7 +871,16 @@ export function WindowFrame({
                 }`,
               }}
               onMouseDown={handleMouseDownWithForeground}
+              onDoubleClick={(e) => {
+                if (isFromTitlebarControls(e.target)) return;
+                handleFullMaximize(e);
+              }}
               onTouchStart={(e: React.TouchEvent<HTMLElement>) => {
+                if (isFromTitlebarControls(e.target)) {
+                  e.stopPropagation();
+                  return;
+                }
+                handleTitleBarTap(e);
                 handleMouseDownWithForeground(e);
                 if (isPhone) {
                   handleTouchStart(e);
@@ -867,7 +898,10 @@ export function WindowFrame({
               }}
             >
               {/* Traffic Light Buttons */}
-              <div className="flex items-center gap-2 ml-1.5 relative">
+              <div
+                className="flex items-center gap-2 ml-1.5 relative"
+                data-titlebar-controls
+              >
                 {/* Close Button (Red) */}
                 <div
                   className="relative"
@@ -1057,12 +1091,6 @@ export function WindowFrame({
                     : "none",
                   fontWeight: 500,
                 }}
-                onDoubleClick={handleFullMaximize}
-                onTouchStart={(e) => {
-                  handleTitleBarTap(e);
-                  // Allow the event to bubble up to the titlebar for drag handling
-                  handleMouseDownWithForeground(e);
-                }}
                 onTouchMove={(e) => e.preventDefault()}
               >
                 <span className="truncate">{title}</span>
@@ -1086,7 +1114,16 @@ export function WindowFrame({
                   : "bg-os-titlebar-inactive-bg border-b-gray-400"
               )}
               onMouseDown={handleMouseDownWithForeground}
+              onDoubleClick={(e) => {
+                if (isFromTitlebarControls(e.target)) return;
+                handleFullMaximize(e);
+              }}
               onTouchStart={(e: React.TouchEvent<HTMLElement>) => {
+                if (isFromTitlebarControls(e.target)) {
+                  e.stopPropagation();
+                  return;
+                }
+                handleTitleBarTap(e);
                 handleMouseDownWithForeground(e);
                 if (isPhone) {
                   handleTouchStart(e);
@@ -1108,6 +1145,7 @@ export function WindowFrame({
                 onMouseDown={(e) => e.stopPropagation()}
                 onTouchStart={(e) => e.stopPropagation()}
                 className="relative ml-2 w-4 h-4 cursor-default select-none"
+                data-titlebar-controls
               >
                 <div className="absolute inset-0 -m-2" />{" "}
                 {/* Larger click area */}
@@ -1128,12 +1166,6 @@ export function WindowFrame({
                     ? "text-os-titlebar-active-text"
                     : "text-os-titlebar-inactive-text"
                 )}
-                onDoubleClick={handleFullMaximize}
-                onTouchStart={(e) => {
-                  handleTitleBarTap(e);
-                  // Allow the event to bubble up to the titlebar for drag handling
-                  handleMouseDownWithForeground(e);
-                }}
                 onTouchMove={(e) => e.preventDefault()}
               >
                 <span className="truncate">{title}</span>

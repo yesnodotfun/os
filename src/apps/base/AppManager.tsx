@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { AnyApp, AppState } from "./types";
 import { AppContext } from "@/contexts/AppContext";
 import { MenuBar } from "@/components/layout/MenuBar";
+import { useThemeStore } from "@/stores/useThemeStore";
 import { Desktop } from "@/components/layout/Desktop";
 import { AppId, getAppComponent, appRegistry } from "@/config/appRegistry";
 import { useAppStoreShallow } from "@/stores/helpers";
@@ -24,6 +25,7 @@ export function AppManager({ apps }: AppManagerProps) {
     bringInstanceToForeground,
     navigateToNextInstance,
     navigateToPreviousInstance,
+    getForegroundInstance,
   } = useAppStoreShallow((state) => ({
     instances: state.instances,
     instanceOrder: state.instanceOrder,
@@ -32,6 +34,7 @@ export function AppManager({ apps }: AppManagerProps) {
     bringInstanceToForeground: state.bringInstanceToForeground,
     navigateToNextInstance: state.navigateToNextInstance,
     navigateToPreviousInstance: state.navigateToPreviousInstance,
+    getForegroundInstance: state.getForegroundInstance,
   }));
 
   const [isInitialMount, setIsInitialMount] = useState(true);
@@ -265,7 +268,14 @@ export function AppManager({ apps }: AppManagerProps) {
         navigateToPreviousApp: navigateToPreviousInstance,
       }}
     >
-      <MenuBar />
+      {(() => {
+        const currentTheme = useThemeStore.getState().current;
+        const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
+        const hasForeground = Boolean(getForegroundInstance());
+        // XP/Win98: always render global MenuBar (taskbar)
+        // Mac/System7: render placeholder MenuBar only when no app is foreground
+        return isXpTheme || !hasForeground ? <MenuBar /> : null;
+      })()}
       {/* App Instances */}
       {Object.values(instances).map((instance) => {
         if (!instance.isOpen) return null;

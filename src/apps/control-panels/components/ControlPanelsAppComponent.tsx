@@ -1411,7 +1411,7 @@ export function ControlPanelsAppComponent({
 
   return (
     <>
-      {!isXpTheme && menuBar}
+      {!isXpTheme && isForeground && menuBar}
       <WindowFrame
         title="Control Panels"
         onClose={onClose}

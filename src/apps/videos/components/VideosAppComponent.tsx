@@ -1015,7 +1015,7 @@ export function VideosAppComponent({
 
   return (
     <>
-      {!isXpTheme && menuBar}
+      {!isXpTheme && isForeground && menuBar}
       <WindowFrame
         title="Videos"
         onClose={onClose}

@@ -891,7 +891,7 @@ export function SynthAppComponent({
 
   return (
     <>
-      {!isXpTheme && menuBar}
+      {!isXpTheme && isForeground && menuBar}
       <WindowFrame
         title="Synth"
         onClose={onClose}

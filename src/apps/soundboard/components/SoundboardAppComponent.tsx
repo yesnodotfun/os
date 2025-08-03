@@ -398,7 +398,7 @@ export function SoundboardAppComponent({
 
   return (
     <>
-      {!isXpTheme && menuBar}
+      {!isXpTheme && isForeground && menuBar}
       <WindowFrame
         title={
           isEditingTitle

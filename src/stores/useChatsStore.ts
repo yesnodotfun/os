@@ -170,6 +170,8 @@ export interface ChatsStoreState {
   hasEverUsedChats: boolean; // Track if user has ever used chat before
   // UI State
   isSidebarVisible: boolean;
+  isChannelsOpen: boolean; // Persisted collapse state for Channels section
+  isPrivateOpen: boolean; // Persisted collapse state for Private section
   fontSize: number; // Add font size state
   // Rendering limits
   messageRenderLimit: number; // Max messages to render per room initially
@@ -188,6 +190,8 @@ export interface ChatsStoreState {
   removeMessageFromRoom: (roomId: string, messageId: string) => void;
   clearRoomMessages: (roomId: string) => void; // Clears messages for a specific room
   toggleSidebarVisibility: () => void;
+  toggleChannelsOpen: () => void; // Toggle Channels collapsed state
+  togglePrivateOpen: () => void; // Toggle Private collapsed state
   setFontSize: (size: number | ((prevSize: number) => number)) => void; // Add font size action
   setMessageRenderLimit: (limit: number) => void; // Set render limit
   ensureAuthToken: () => Promise<{ ok: boolean; error?: string }>; // Add auth token generation
@@ -259,6 +263,8 @@ const getInitialState = (): Omit<
   | "removeMessageFromRoom"
   | "clearRoomMessages"
   | "toggleSidebarVisibility"
+  | "toggleChannelsOpen"
+  | "togglePrivateOpen"
   | "setFontSize"
   | "setMessageRenderLimit"
   | "ensureAuthToken"
@@ -291,6 +297,8 @@ const getInitialState = (): Omit<
     unreadCounts: {},
     hasEverUsedChats: false,
     isSidebarVisible: true,
+    isChannelsOpen: true,
+    isPrivateOpen: true,
     fontSize: 13, // Default font size
     messageRenderLimit: 50,
   };
@@ -542,6 +550,54 @@ export const useChatsStore = create<ChatsStoreState>()(
               };
             }
 
+            // Second fallback: replace the most recent temp message from same user within time window
+            // This handles cases where server sanitizes content (e.g., profanity filter) so content differs
+            const WINDOW_MS = 5000; // 5s safety window
+            const incomingTs = Number(
+              (incoming as unknown as { timestamp: number }).timestamp
+            );
+            const candidateIndexes: number[] = [];
+            existingMessages.forEach((m, idx) => {
+              if (
+                m.id.startsWith("temp_") &&
+                m.username === incoming.username
+              ) {
+                const dt = Math.abs(Number(m.timestamp) - incomingTs);
+                if (Number.isFinite(dt) && dt <= WINDOW_MS)
+                  candidateIndexes.push(idx);
+              }
+            });
+            if (candidateIndexes.length > 0) {
+              // Choose the closest in time
+              let bestIdx = candidateIndexes[0];
+              let bestDt = Math.abs(
+                Number(existingMessages[bestIdx].timestamp) - incomingTs
+              );
+              for (let i = 1; i < candidateIndexes.length; i++) {
+                const idx = candidateIndexes[i];
+                const dt = Math.abs(
+                  Number(existingMessages[idx].timestamp) - incomingTs
+                );
+                if (dt < bestDt) {
+                  bestIdx = idx;
+                  bestDt = dt;
+                }
+              }
+              const tempMsg = existingMessages[bestIdx];
+              const replaced = {
+                ...incoming,
+                clientId: tempMsg.clientId || tempMsg.id,
+              } as ChatMessage;
+              const updated = [...existingMessages];
+              updated[bestIdx] = replaced;
+              return {
+                roomMessages: {
+                  ...state.roomMessages,
+                  [roomId]: updated.sort((a, b) => a.timestamp - b.timestamp),
+                },
+              };
+            }
+
             // No optimistic message to replace – append normally
             return {
               roomMessages: {
@@ -583,6 +639,10 @@ export const useChatsStore = create<ChatsStoreState>()(
           set((state) => ({
             isSidebarVisible: !state.isSidebarVisible,
           })),
+        toggleChannelsOpen: () =>
+          set((state) => ({ isChannelsOpen: !state.isChannelsOpen })),
+        togglePrivateOpen: () =>
+          set((state) => ({ isPrivateOpen: !state.isPrivateOpen })),
         setFontSize: (sizeOrFn) =>
           set((state) => ({
             fontSize:
@@ -1290,6 +1350,7 @@ export const useChatsStore = create<ChatsStoreState>()(
                       roomId,
                       username,
                       content: content.trim(),
+                      clientId: optimisticMessage.clientId, // include for server echo if supported
                     }),
                   },
                   get().refreshAuthToken
@@ -1301,6 +1362,7 @@ export const useChatsStore = create<ChatsStoreState>()(
                     roomId,
                     username,
                     content: content.trim(),
+                    clientId: optimisticMessage.clientId,
                   }),
                 });
 
@@ -1419,6 +1481,8 @@ export const useChatsStore = create<ChatsStoreState>()(
         hasPassword: state.hasPassword, // Persist password status
         currentRoomId: state.currentRoomId,
         isSidebarVisible: state.isSidebarVisible,
+        isChannelsOpen: state.isChannelsOpen,
+        isPrivateOpen: state.isPrivateOpen,
         rooms: state.rooms, // Persist rooms list
         roomMessages: state.roomMessages, // Persist room messages cache
         fontSize: state.fontSize, // Persist font size

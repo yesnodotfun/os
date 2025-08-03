@@ -1108,7 +1108,7 @@ export function TextEditAppComponent({
         accept=".txt,.html,.md,.rtf,.doc,.docx"
         className="hidden"
       />
-      {!isXpTheme && menuBar}
+      {!isXpTheme && isForeground && menuBar}
       <WindowFrame
         title={
           customTitle ||
@@ -1663,7 +1663,7 @@ export function TextEditAppComponent({
                 </div>
 
                 {/* Voice transcription & speech */}
-                <div className="flex items-center gap-1 ml-1">
+                <div className="flex items-center gap-1">
                   <AudioInputButton
                     onTranscriptionComplete={handleTranscriptionComplete}
                     onTranscriptionStart={handleTranscriptionStart}

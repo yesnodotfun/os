@@ -2316,7 +2316,7 @@ export function IpodAppComponent({
 
   return (
     <>
-      {!isXpTheme && menuBar}
+      {!isXpTheme && isForeground && menuBar}
       <WindowFrame
         title="iPod"
         onClose={onClose}

@@ -1982,7 +1982,7 @@ export function InternetExplorerAppComponent({
 
   return (
     <>
-      {!isXpTheme && menuBar}
+      {!isXpTheme && isForeground && menuBar}
       <TooltipProvider>
         <WindowFrame
           title={displayTitle}
