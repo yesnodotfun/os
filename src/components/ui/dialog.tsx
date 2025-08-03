@@ -222,15 +222,14 @@ const DialogHeader = ({
           </DialogPrimitive.Close>
           {/* Minimize Button (Yellow) - Inactive */}
           <button
-            className="rounded-full relative overflow-hidden cursor-default outline-none box-border opacity-60"
+            className="rounded-full relative overflow-hidden cursor-default outline-none box-border"
             style={{
               width: "13px",
               height: "13px",
               background:
-                "linear-gradient(rgb(202, 130, 13), rgb(253, 253, 149))",
+                "linear-gradient(rgba(160, 160, 160, 0.625), rgba(255, 255, 255, 0.625))",
               boxShadow:
-                "rgba(0, 0, 0, 0.5) 0px 2px 4px, rgba(0, 0, 0, 0.4) 0px 1px 2px, rgba(223, 161, 35, 0.5) 0px 1px 1px, rgba(0, 0, 0, 0.3) 0px 0px 0px 0.5px inset, rgb(155, 78, 21) 0px 1px 3px inset, rgb(241, 157, 20) 0px 2px 3px 1px inset",
-              filter: "grayscale(0.8)",
+                "0 2px 3px rgba(0, 0, 0, 0.2), 0 1px 1px rgba(0, 0, 0, 0.3), inset 0 0 0 0.5px rgba(0, 0, 0, 0.3), inset 0 1px 2px rgba(0, 0, 0, 0.4), inset 0 2px 3px 1px #bbbbbb",
               pointerEvents: "none",
             }}
             aria-label="Minimize (disabled)"
@@ -266,15 +265,14 @@ const DialogHeader = ({
           </button>
           {/* Maximize Button (Green) - Inactive */}
           <button
-            className="rounded-full relative overflow-hidden cursor-default outline-none box-border opacity-60"
+            className="rounded-full relative overflow-hidden cursor-default outline-none box-border"
             style={{
               width: "13px",
               height: "13px",
               background:
-                "linear-gradient(rgb(111, 174, 58), rgb(138, 192, 50))",
+                "linear-gradient(rgba(160, 160, 160, 0.625), rgba(255, 255, 255, 0.625))",
               boxShadow:
-                "rgba(0, 0, 0, 0.5) 0px 2px 4px, rgba(0, 0, 0, 0.4) 0px 1px 2px, rgb(59, 173, 29, 0.5) 0px 1px 1px, rgba(0, 0, 0, 0.3) 0px 0px 0px 0.5px inset, rgb(53, 91, 17) 0px 1px 3px inset, rgb(98, 187, 19) 0px 2px 3px 1px inset",
-              filter: "grayscale(0.8)",
+                "0 2px 3px rgba(0, 0, 0, 0.2), 0 1px 1px rgba(0, 0, 0, 0.3), inset 0 0 0 0.5px rgba(0, 0, 0, 0.3), inset 0 1px 2px rgba(0, 0, 0, 0.4), inset 0 2px 3px 1px #bbbbbb",
               pointerEvents: "none",
             }}
             aria-label="Maximize (disabled)"
