@@ -2768,24 +2768,14 @@ when user asks for an aquarium, fish tank, fishes, or sam's aquarium, include th
     return createErrorResponse("Failed to generate reply", 500);
   }
 
-  // Check if the reply contains the aquarium token
-  const hasAquarium = replyText.includes("[[AQUARIUM]]");
-  
-  // Remove the aquarium token from the display text
-  const cleanedReplyText = replyText.replace(/\[\[AQUARIUM\]\]/g, "").trim();
-  
   // Save as a message from 'ryo'
   const messageId = generateId();
   const message = {
     id: messageId,
     roomId,
     username: "ryo",
-    content: escapeHTML(filterProfanityPreservingUrls(cleanedReplyText)),
+    content: escapeHTML(filterProfanityPreservingUrls(replyText)),
     timestamp: getCurrentTimestamp(),
-    // Include aquarium flag if present
-    ...(hasAquarium && {
-      hasAquarium: true,
-    }),
   };
 
   await redis.lpush(

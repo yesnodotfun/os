@@ -573,7 +573,13 @@ function ChatMessagesContent({
         const rawContent = isUrgent
           ? message.content.slice(4).trimStart()
           : message.content;
-        const displayContent = decodeHtmlEntities(rawContent);
+        const decodedContent = decodeHtmlEntities(rawContent);
+        
+        // Check for [[AQUARIUM]] token in the content
+        const hasAquariumToken = decodedContent.includes("[[AQUARIUM]]");
+        
+        // Remove [[AQUARIUM]] token from display content
+        const displayContent = decodedContent.replace(/\[\[AQUARIUM\]\]/g, "").trim();
 
         // Detect aquarium tool calls for this assistant message or chat room message
         let hasAquarium = false;
@@ -588,8 +594,8 @@ function ChatMessagesContent({
           hasAquarium = aquariumParts.length > 0;
         }
         
-        // Check for aquarium in chat room messages (using hasAquarium flag)
-        if (message.role === "human" && (message as any).hasAquarium) {
+        // Check for aquarium token in chat room messages
+        if (message.role === "human" && hasAquariumToken) {
           hasAquarium = true;
         }
 
