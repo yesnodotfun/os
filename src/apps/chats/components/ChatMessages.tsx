@@ -595,7 +595,8 @@ function ChatMessagesContent({
         }
         
         // Check for aquarium token in chat room messages
-        if (message.role === "human" && hasAquariumToken) {
+        // In chat rooms, messages from ryo don't have a role, just a username
+        if ((message.role === "human" || message.username === "ryo") && hasAquariumToken) {
           hasAquarium = true;
         }
 
