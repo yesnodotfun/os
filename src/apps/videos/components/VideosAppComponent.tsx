@@ -1217,6 +1217,7 @@ export function VideosAppComponent({
                       variant="aqua_select"
                       disabled={videos.length === 0}
                       className="aqua-compact font-chicago"
+                      style={{ paddingTop: "7px", paddingBottom: "1px" }}
                     >
                       ⏮
                     </Button>
@@ -1225,6 +1226,7 @@ export function VideosAppComponent({
                       variant="aqua_select"
                       disabled={videos.length === 0}
                       className="aqua-compact-wide font-chicago"
+                      style={{ paddingTop: "7px", paddingBottom: "1px" }}
                     >
                       {isPlaying ? "⏸" : "▶"}
                     </Button>
@@ -1233,6 +1235,7 @@ export function VideosAppComponent({
                       variant="aqua_select"
                       disabled={videos.length === 0}
                       className="aqua-compact font-chicago"
+                      style={{ paddingTop: "7px", paddingBottom: "1px" }}
                     >
                       ⏭
                     </Button>
