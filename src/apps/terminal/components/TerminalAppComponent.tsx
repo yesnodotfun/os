@@ -50,13 +50,8 @@ import { TypewriterText, parseSimpleMarkdown } from "./TypewriterText";
 import { AnimatedEllipsis } from "./AnimatedEllipsis";
 import { UrgentMessageAnimation } from "./UrgentMessageAnimation";
 
-// Analytics event namespace for terminal AI events
-export const TERMINAL_ANALYTICS = {
-  AI_COMMAND: "terminal:ai_command",
-  CHAT_START: "terminal:chat_start",
-  CHAT_EXIT: "terminal:chat_exit",
-  CHAT_CLEAR: "terminal:chat_clear",
-};
+// Import analytics constants from AI command
+import { TERMINAL_ANALYTICS } from "../commands/ai";
 
 // Removed interfaces and constants - now imported from separate files
 
@@ -371,19 +366,27 @@ export function TerminalAppComponent({
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [historyCommands, setHistoryCommands] = useState<string[]>([]);
   const [fontSize, setFontSize] = useState(12); // Default font size in pixels
-  const [isInAiMode, setIsInAiMode] = useState(false);
-  const [isInVimMode, setIsInVimMode] = useState(false);
-  const [vimFile, setVimFile] = useState<{
-    name: string;
-    content: string;
-  } | null>(null);
-  const [vimPosition, setVimPosition] = useState(0); // Current position for pagination
-  const [vimCursorLine, setVimCursorLine] = useState(0); // Current cursor line position
-  const [vimCursorColumn, setVimCursorColumn] = useState(0); // Current cursor column position
-  const [vimMode, setVimMode] = useState<"normal" | "command" | "insert">(
-    "normal"
-  ); // Vim mode
-  const [vimClipboard, setVimClipboard] = useState<string>(""); // Add clipboard state for vim copy/paste
+  // Get state from terminal store
+  const {
+    isInAiMode,
+    setIsInAiMode,
+    initialAiPrompt,
+    setInitialAiPrompt,
+    isInVimMode,
+    setIsInVimMode,
+    vimFile,
+    setVimFile,
+    vimPosition,
+    setVimPosition,
+    vimCursorLine,
+    setVimCursorLine,
+    vimCursorColumn,
+    setVimCursorColumn,
+    vimMode,
+    setVimMode,
+    vimClipboard,
+    setVimClipboard,
+  } = useTerminalStore();
   const [spinnerIndex, setSpinnerIndex] = useState(0);
   const [isInteractingWithPreview, setIsInteractingWithPreview] =
     useState(false);
@@ -1913,218 +1916,9 @@ export function TerminalAppComponent({
 
 
 
-      case "vim": {
-        if (args.length === 0) {
-          return {
-            output: "usage: vim <filename>",
-            isError: true,
-          };
-        }
 
-        const fileName = args[0];
-        const file = files.find((f) => f.name === fileName);
 
-        if (!file) {
-          return {
-            output: `file not found: ${fileName}`,
-            isError: true,
-          };
-        }
 
-        if (file.isDirectory) {
-          return {
-            output: `${fileName} is a directory, not a file`,
-            isError: true,
-          };
-        }
-
-        // Use a loading message while we fetch content
-        const tempOutput = `opening ${fileName} in vim...`;
-
-        // Create a class to capture file content during the async process
-        class FileContentCapture {
-          async captureContent() {
-            try {
-              if (this.isRealFile()) {
-                await this.loadRealFileContent();
-              } else {
-                this.handleVirtualFile();
-              }
-            } catch (error) {
-              this.handleError(error);
-            }
-          }
-
-          isRealFile() {
-            // Ensure file exists and check path properties
-            return (
-              file &&
-              (file.path.startsWith("/Documents/") ||
-                file.path.startsWith("/Images/"))
-            );
-          }
-
-          async loadRealFileContent() {
-            // Ensure file exists first (this should always be true, but TypeScript doesn't know that)
-            if (!file) return;
-
-            // Get file metadata from the store to find UUID
-            const fileStore = useFilesStore.getState();
-            const fileMetadata = fileStore.getItem(file.path);
-
-            if (!fileMetadata || !fileMetadata.uuid) {
-              // Show a warning and open empty file
-              this.openInVim("");
-              setCommandHistory((prev) => [
-                ...prev,
-                {
-                  command: `vim ${fileName}`,
-                  output: `Warning: ${fileName} file metadata not found`,
-                  path: currentPath,
-                },
-              ]);
-              return;
-            }
-
-            // Determine if this is a document or image
-            const storeName = file.path.startsWith("/Documents/")
-              ? STORES.DOCUMENTS
-              : STORES.IMAGES;
-
-            const contentData = await dbOperations.get<DocumentContent>(
-              storeName,
-              fileMetadata.uuid
-            );
-
-            if (contentData && contentData.content) {
-              // Convert content to text
-              let textContent = "";
-              if (contentData.content instanceof Blob) {
-                textContent = await contentData.content.text();
-              } else if (typeof contentData.content === "string") {
-                textContent = contentData.content;
-              }
-
-              // Enter vim mode with the fetched content
-              this.openInVim(textContent);
-            } else {
-              // File exists in metadata but has no content - create empty
-              this.openInVim("");
-            }
-          }
-
-          handleVirtualFile() {
-            // For virtual files, just create an empty file in vim
-            this.openInVim("");
-
-            // Show a warning
-            setCommandHistory((prev) => [
-              ...prev,
-              {
-                command: `vim ${fileName}`,
-                output: `Warning: ${fileName} appears to be a virtual file without content`,
-                path: currentPath,
-              },
-            ]);
-          }
-
-          openInVim(content: string) {
-            setIsInVimMode(true);
-            setVimFile({
-              name: fileName,
-              content: content || "",
-            });
-            setVimPosition(0);
-            setVimCursorLine(0);
-            setVimCursorColumn(0);
-            setVimMode("normal");
-          }
-
-          handleError(error: unknown) {
-            const err = error as Error;
-            console.error("Error reading file for vim:", err);
-
-            setCommandHistory((prev) => [
-              ...prev,
-              {
-                command: `vim ${fileName}`,
-                output: `Error reading file: ${err.message || "Unknown error"}`,
-                path: currentPath,
-              },
-            ]);
-          }
-        }
-
-        // Start the content capture process asynchronously
-        setTimeout(() => {
-          const contentCapture = new FileContentCapture();
-          contentCapture.captureContent();
-        }, 100);
-
-        return {
-          output: tempOutput,
-          isError: false,
-        };
-      }
-
-      case "ai":
-      case "chat":
-      case "ryo": {
-        // Enter AI chat mode
-        setIsInAiMode(true);
-
-        // Track chat start
-        track(TERMINAL_ANALYTICS.CHAT_START);
-
-        // Reset AI messages to just the system message
-        setAiChatMessages([
-          {
-            id: "system",
-            role: "system",
-            content:
-              "You are a coding assistant running in the terminal app on ryOS.",
-          },
-        ]);
-
-        // If there's an initial prompt, add it to messages and immediately send it
-        if (args.length > 0) {
-          const initialPrompt = args.join(" ");
-
-          // Track AI command
-          track(TERMINAL_ANALYTICS.AI_COMMAND, { prompt: initialPrompt });
-
-          // Add prompt to command history
-          setCommandHistory((prev) => [
-            ...prev,
-            {
-              command: initialPrompt,
-              output: "",
-              path: "ai-user",
-            },
-            {
-              command: "",
-              output: `${spinnerChars[spinnerIndex]} ryo is thinking...`,
-              path: "ai-thinking",
-            },
-          ]);
-
-          // Send the initial prompt
-          appendAiMessage(
-            { role: "user", content: initialPrompt },
-            { body: { systemState: getSystemState() } }
-          );
-
-          return {
-            output: `ask ryo anything. type 'exit' to return to terminal.\n→ from your command: ${initialPrompt}`,
-            isError: false,
-          };
-        }
-
-        return {
-          output: `ask ryo anything. type 'exit' to return to terminal.`,
-          isError: false,
-        };
-      }
 
       default:
         return {
@@ -2146,6 +1940,20 @@ export function TerminalAppComponent({
       launchedAppsRef.current.clear();
     }
   }, [isInAiMode]);
+
+  // Handle initial AI prompt when entering AI mode
+  useEffect(() => {
+    if (isInAiMode && initialAiPrompt) {
+      // Send the initial prompt
+      appendAiMessage(
+        { role: "user", content: initialAiPrompt },
+        { body: { systemState: getSystemState() } }
+      );
+      
+      // Clear the initial prompt after using it
+      setInitialAiPrompt(undefined);
+    }
+  }, [isInAiMode, initialAiPrompt, appendAiMessage, setInitialAiPrompt]);
 
   // Memoize the AI response sound function to prevent dependency changes
   const playAiResponseSoundMemoized = useCallback(() => {

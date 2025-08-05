@@ -14,6 +14,8 @@ import { whoamiCommand } from "./whoami";
 import { dateCommand } from "./date";
 import { cowsayCommand } from "./cowsay";
 import { aboutCommand } from "./about";
+import { aiCommand, chatCommand, ryoCommand } from "./ai";
+import { vimCommand } from "./vim";
 
 // Create command registry
 export const commands: Record<string, Command> = {
@@ -30,17 +32,17 @@ export const commands: Record<string, Command> = {
   date: dateCommand,
   cowsay: cowsayCommand,
   about: aboutCommand,
+  ai: aiCommand,
+  chat: chatCommand,
+  ryo: ryoCommand,
+  vim: vimCommand,
 };
 
 // Export list of available command names for autocompletion
 export const AVAILABLE_COMMANDS = Object.keys(commands).concat([
   "cat",
   "edit",
-  "vim",
   "history",
   "su",
   "logout",
-  "ryo",
-  "ai",
-  "chat",
 ]);
