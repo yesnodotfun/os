@@ -943,7 +943,7 @@ export function SynthAppComponent({
                     >
                       <SelectTrigger
                         className={cn(
-                          "w-full font-geneva-12 text-[12px] p-2",
+                          "w-full h-[22px] font-geneva-12 text-[12px] p-2",
                           isClassicTheme && "text-black bg-transparent",
                           !isClassicTheme &&
                             "bg-black border-[#3a3a3a] text-white"
