@@ -1216,7 +1216,7 @@ export function VideosAppComponent({
                       onClick={previousVideo}
                       variant="aqua_select"
                       disabled={videos.length === 0}
-                      className="aqua-compact"
+                      className="aqua-compact font-chicago"
                     >
                       ⏮
                     </Button>
@@ -1224,7 +1224,7 @@ export function VideosAppComponent({
                       onClick={togglePlay}
                       variant="aqua_select"
                       disabled={videos.length === 0}
-                      className="aqua-compact-wide"
+                      className="aqua-compact-wide font-chicago"
                     >
                       {isPlaying ? "⏸" : "▶"}
                     </Button>
@@ -1232,7 +1232,7 @@ export function VideosAppComponent({
                       onClick={nextVideo}
                       variant="aqua_select"
                       disabled={videos.length === 0}
-                      className="aqua-compact"
+                      className="aqua-compact font-chicago"
                     >
                       ⏭
                     </Button>
