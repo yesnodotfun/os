@@ -881,6 +881,7 @@ export function SynthAppComponent({
   const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
   const isSystem7Theme = currentTheme === "system7";
   const isClassicTheme = currentTheme === "macosx" || isXpTheme;
+  const isMacOSTheme = currentTheme === "macosx";
 
   const menuBar = (
     <SynthMenuBar
@@ -942,7 +943,7 @@ export function SynthAppComponent({
                     >
                       <SelectTrigger
                         className={cn(
-                          "w-full font-geneva-12 text-[12px] p-2",
+                          "w-full h-[22px] font-geneva-12 text-[12px] p-2",
                           isClassicTheme && "text-black bg-transparent",
                           !isClassicTheme &&
                             "bg-black border-[#3a3a3a] text-white"
@@ -974,17 +975,20 @@ export function SynthAppComponent({
                   </div>
 
                   {/* Desktop preset buttons */}
-                  <div className="hidden md:flex gap-0 aqua-select-group">
+                  <div className={cn("hidden md:flex gap-0", isMacOSTheme && "aqua-select-group")}>
                     {presets.length > 0 ? (
                       presets.map((preset) => (
                         <Button
                           key={preset.id}
-                          variant={isSystem7Theme ? "player" : "aqua_select"}
+                          variant={isMacOSTheme ? "aqua_select" : isSystem7Theme ? "player" : "default"}
                           data-state={
                             currentPreset.id === preset.id ? "on" : "off"
                           }
                           onClick={() => loadPreset(preset)}
-                          className="h-[22px] px-2 whitespace-nowrap uppercase select-none"
+                          className={cn(
+                            "h-[22px] px-2 whitespace-nowrap uppercase select-none",
+                            isXpTheme && "text-black"
+                          )}
                         >
                           {preset.name}
                         </Button>
@@ -996,9 +1000,9 @@ export function SynthAppComponent({
                     )}
                   </div>
                 </div>
-                <div className="flex gap-0 aqua-select-group">
+                <div className={cn("flex gap-0", isMacOSTheme && "aqua-select-group")}>
                   <Button
-                    variant={isSystem7Theme ? "player" : "aqua_select"}
+                    variant={isMacOSTheme ? "aqua_select" : isSystem7Theme ? "player" : "default"}
                     onClick={() =>
                       setOctaveOffset((prev) => {
                         const next = Math.max(-2, prev - 1);
@@ -1007,14 +1011,15 @@ export function SynthAppComponent({
                       })
                     }
                     className={cn(
-                      isSystem7Theme ? "h-[22px] px-2" : "aqua-compact",
+                      isSystem7Theme ? "h-[22px] px-2" : isMacOSTheme ? "aqua-compact" : "h-[22px] px-2",
+                      isXpTheme && "text-black",
                       "select-none"
                     )}
                   >
                     &lt;
                   </Button>
                   <Button
-                    variant={isSystem7Theme ? "player" : "aqua_select"}
+                    variant={isMacOSTheme ? "aqua_select" : isSystem7Theme ? "player" : "default"}
                     onClick={() =>
                       setOctaveOffset((prev) => {
                         const next = Math.min(2, prev + 1);
@@ -1023,19 +1028,23 @@ export function SynthAppComponent({
                       })
                     }
                     className={cn(
-                      isSystem7Theme ? "h-[22px] px-2" : "aqua-compact",
+                      isSystem7Theme ? "h-[22px] px-2" : isMacOSTheme ? "aqua-compact" : "h-[22px] px-2",
+                      isXpTheme && "text-black",
                       "select-none"
                     )}
                   >
                     &gt;
                   </Button>
                   <Button
-                    variant={isSystem7Theme ? "player" : "aqua_select"}
+                    variant={isMacOSTheme ? "aqua_select" : isSystem7Theme ? "player" : "default"}
                     onClick={() => setIsControlsVisible(!isControlsVisible)}
                     className={cn(
                       isSystem7Theme
                         ? "h-[22px] px-2"
-                        : "aqua-compact font-geneva-12 !text-[11px]",
+                        : isMacOSTheme
+                        ? "aqua-compact font-geneva-12 !text-[11px]"
+                        : "h-[22px] px-2",
+                      isXpTheme && "text-black",
                       "select-none"
                     )}
                   >
@@ -1068,9 +1077,12 @@ export function SynthAppComponent({
                             Oscillator
                           </h3>
                           <Button
-                            variant={isSystem7Theme ? "player" : "aqua_select"}
+                            variant={isMacOSTheme ? "aqua_select" : isSystem7Theme ? "player" : "default"}
                             onClick={addPreset}
-                            className="h-[22px] px-2 text-[9px] select-none"
+                            className={cn(
+                              "h-[22px] px-2 text-[9px] select-none",
+                              isXpTheme && "text-black"
+                            )}
                           >
                             ADD PRESET
                           </Button>
