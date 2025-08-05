@@ -13,6 +13,28 @@ interface TerminalStoreState {
   addCommand: (cmd: string) => void;
   setCurrentPath: (path: string) => void;
   reset: () => void;
+  
+  // AI mode state
+  isInAiMode: boolean;
+  setIsInAiMode: (isInAiMode: boolean) => void;
+  initialAiPrompt?: string;
+  setInitialAiPrompt: (prompt?: string) => void;
+  
+  // Vim mode state
+  isInVimMode: boolean;
+  setIsInVimMode: (isInVimMode: boolean) => void;
+  vimFile: { name: string; content: string } | null;
+  setVimFile: (file: { name: string; content: string } | null) => void;
+  vimPosition: number;
+  setVimPosition: (position: number) => void;
+  vimCursorLine: number;
+  setVimCursorLine: (line: number) => void;
+  vimCursorColumn: number;
+  setVimCursorColumn: (column: number) => void;
+  vimMode: "normal" | "command" | "insert";
+  setVimMode: (mode: "normal" | "command" | "insert") => void;
+  vimClipboard: string;
+  setVimClipboard: (content: string) => void;
 }
 
 const STORE_VERSION = 1;
@@ -42,6 +64,28 @@ export const useTerminalStore = create<TerminalStoreState>()(
         })),
       setCurrentPath: (path) => set({ currentPath: path }),
       reset: () => set({ commandHistory: [], currentPath: "/" }),
+      
+      // AI mode state
+      isInAiMode: false,
+      setIsInAiMode: (isInAiMode) => set({ isInAiMode }),
+      initialAiPrompt: undefined,
+      setInitialAiPrompt: (prompt) => set({ initialAiPrompt: prompt }),
+      
+      // Vim mode state
+      isInVimMode: false,
+      setIsInVimMode: (isInVimMode) => set({ isInVimMode }),
+      vimFile: null,
+      setVimFile: (file) => set({ vimFile: file }),
+      vimPosition: 0,
+      setVimPosition: (position) => set({ vimPosition: position }),
+      vimCursorLine: 0,
+      setVimCursorLine: (line) => set({ vimCursorLine: line }),
+      vimCursorColumn: 0,
+      setVimCursorColumn: (column) => set({ vimCursorColumn: column }),
+      vimMode: "normal",
+      setVimMode: (mode) => set({ vimMode: mode }),
+      vimClipboard: "",
+      setVimClipboard: (content) => set({ vimClipboard: content }),
     }),
     {
       name: STORE_NAME,

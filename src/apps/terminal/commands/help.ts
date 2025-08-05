@@ -30,6 +30,8 @@ terminal
 
 assistant
   ryo <prompt>     chat with ryo
+  ai <prompt>      chat with ryo (alias)
+  chat <prompt>    chat with ryo (alias)
 
 `,
     isError: false,
