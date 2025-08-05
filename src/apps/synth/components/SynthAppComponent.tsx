@@ -1006,7 +1006,10 @@ export function SynthAppComponent({
                         return next;
                       })
                     }
-                    className="h-[22px] px-2 select-none"
+                    className={cn(
+                      isSystem7Theme ? "h-[22px] px-2" : "aqua-compact",
+                      "select-none"
+                    )}
                   >
                     &lt;
                   </Button>
@@ -1019,14 +1022,22 @@ export function SynthAppComponent({
                         return next;
                       })
                     }
-                    className="h-[22px] px-2 select-none"
+                    className={cn(
+                      isSystem7Theme ? "h-[22px] px-2" : "aqua-compact",
+                      "select-none"
+                    )}
                   >
                     &gt;
                   </Button>
                   <Button
                     variant={isSystem7Theme ? "player" : "aqua_select"}
                     onClick={() => setIsControlsVisible(!isControlsVisible)}
-                    className="h-[22px] px-2 select-none"
+                    className={cn(
+                      isSystem7Theme
+                        ? "h-[22px] px-2"
+                        : "aqua-compact font-geneva-12 !text-[11px]",
+                      "select-none"
+                    )}
                   >
                     CONTROLS
                   </Button>
@@ -1057,7 +1068,7 @@ export function SynthAppComponent({
                             Oscillator
                           </h3>
                           <Button
-                            variant="player"
+                            variant={isSystem7Theme ? "player" : "aqua_select"}
                             onClick={addPreset}
                             className="h-[22px] px-2 text-[9px] select-none"
                           >

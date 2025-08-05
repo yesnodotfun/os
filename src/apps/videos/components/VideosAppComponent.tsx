@@ -1304,7 +1304,7 @@ export function VideosAppComponent({
                         onClick={toggleShuffle}
                         variant="aqua_select"
                         data-state={isShuffled ? "on" : "off"}
-                        className="px-2 aqua-compact"
+                        className="px-2 aqua-compact font-geneva-12 !text-[11px]"
                       >
                         SHUFFLE
                       </Button>
@@ -1312,7 +1312,7 @@ export function VideosAppComponent({
                         onClick={() => setLoopAll(!loopAll)}
                         variant="aqua_select"
                         data-state={loopAll ? "on" : "off"}
-                        className="px-2 aqua-compact"
+                        className="px-2 aqua-compact font-geneva-12 !text-[11px]"
                       >
                         REPEAT
                       </Button>
@@ -1320,7 +1320,7 @@ export function VideosAppComponent({
                         onClick={() => setLoopCurrent(!loopCurrent)}
                         variant="aqua_select"
                         data-state={loopCurrent ? "on" : "off"}
-                        className="px-2 aqua-compact"
+                        className="px-2 aqua-compact font-geneva-12 !text-[11px]"
                       >
                         {loopCurrent ? "↺" : "→"}
                       </Button>
@@ -1328,7 +1328,7 @@ export function VideosAppComponent({
                     <Button
                       onClick={() => setIsAddDialogOpen(true)}
                       variant="aqua_select"
-                      className="px-2 aqua-compact"
+                      className="px-2 aqua-compact font-geneva-12 !text-[11px]"
                     >
                       ADD
                     </Button>
