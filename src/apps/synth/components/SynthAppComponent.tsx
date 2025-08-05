@@ -975,7 +975,7 @@ export function SynthAppComponent({
                   </div>
 
                   {/* Desktop preset buttons */}
-                  <div className="hidden md:flex gap-0 aqua-select-group">
+                  <div className={cn("hidden md:flex gap-0", isMacOSTheme && "aqua-select-group")}>
                     {presets.length > 0 ? (
                       presets.map((preset) => (
                         <Button
@@ -997,7 +997,7 @@ export function SynthAppComponent({
                     )}
                   </div>
                 </div>
-                <div className="flex gap-0 aqua-select-group">
+                <div className={cn("flex gap-0", isMacOSTheme && "aqua-select-group")}>
                   <Button
                     variant={isMacOSTheme ? "aqua_select" : isSystem7Theme ? "player" : "default"}
                     onClick={() =>
@@ -1008,7 +1008,7 @@ export function SynthAppComponent({
                       })
                     }
                     className={cn(
-                      isSystem7Theme ? "h-[22px] px-2" : "aqua-compact",
+                      isSystem7Theme ? "h-[22px] px-2" : isMacOSTheme ? "aqua-compact" : "h-[22px] px-2",
                       "select-none"
                     )}
                   >
@@ -1024,7 +1024,7 @@ export function SynthAppComponent({
                       })
                     }
                     className={cn(
-                      isSystem7Theme ? "h-[22px] px-2" : "aqua-compact",
+                      isSystem7Theme ? "h-[22px] px-2" : isMacOSTheme ? "aqua-compact" : "h-[22px] px-2",
                       "select-none"
                     )}
                   >
@@ -1036,7 +1036,9 @@ export function SynthAppComponent({
                     className={cn(
                       isSystem7Theme
                         ? "h-[22px] px-2"
-                        : "aqua-compact font-geneva-12 !text-[11px]",
+                        : isMacOSTheme
+                        ? "aqua-compact font-geneva-12 !text-[11px]"
+                        : "h-[22px] px-2",
                       "select-none"
                     )}
                   >
