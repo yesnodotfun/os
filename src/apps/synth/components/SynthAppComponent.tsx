@@ -985,7 +985,10 @@ export function SynthAppComponent({
                             currentPreset.id === preset.id ? "on" : "off"
                           }
                           onClick={() => loadPreset(preset)}
-                          className="h-[22px] px-2 whitespace-nowrap uppercase select-none"
+                          className={cn(
+                            "h-[22px] px-2 whitespace-nowrap uppercase select-none",
+                            isXpTheme && "text-black"
+                          )}
                         >
                           {preset.name}
                         </Button>
@@ -1009,6 +1012,7 @@ export function SynthAppComponent({
                     }
                     className={cn(
                       isSystem7Theme ? "h-[22px] px-2" : isMacOSTheme ? "aqua-compact" : "h-[22px] px-2",
+                      isXpTheme && "text-black",
                       "select-none"
                     )}
                   >
@@ -1025,6 +1029,7 @@ export function SynthAppComponent({
                     }
                     className={cn(
                       isSystem7Theme ? "h-[22px] px-2" : isMacOSTheme ? "aqua-compact" : "h-[22px] px-2",
+                      isXpTheme && "text-black",
                       "select-none"
                     )}
                   >
@@ -1039,6 +1044,7 @@ export function SynthAppComponent({
                         : isMacOSTheme
                         ? "aqua-compact font-geneva-12 !text-[11px]"
                         : "h-[22px] px-2",
+                      isXpTheme && "text-black",
                       "select-none"
                     )}
                   >
@@ -1073,7 +1079,10 @@ export function SynthAppComponent({
                           <Button
                             variant={isMacOSTheme ? "aqua_select" : isSystem7Theme ? "player" : "default"}
                             onClick={addPreset}
-                            className="h-[22px] px-2 text-[9px] select-none"
+                            className={cn(
+                              "h-[22px] px-2 text-[9px] select-none",
+                              isXpTheme && "text-black"
+                            )}
                           >
                             ADD PRESET
                           </Button>
