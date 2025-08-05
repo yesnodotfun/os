@@ -76,6 +76,7 @@ const PianoKey: React.FC<{
   onRelease: (note: string) => void;
   labelType: NoteLabelType;
   keyMap: Record<string, string>;
+  allowDragPlay?: boolean;
   isSystem7Theme?: boolean;
 }> = ({
   note,
@@ -85,6 +86,7 @@ const PianoKey: React.FC<{
   onRelease,
   labelType,
   keyMap,
+  allowDragPlay = true,
   isSystem7Theme = false,
 }) => {
   const handleMouseDown = () => {
@@ -96,13 +98,13 @@ const PianoKey: React.FC<{
   };
 
   const handleMouseEnter = (e: React.MouseEvent) => {
-    if (e.buttons === 1) {
+    if (allowDragPlay && e.buttons === 1) {
       onPress(note);
     }
   };
 
   const handleMouseLeave = (e: React.MouseEvent) => {
-    if (e.buttons === 1) {
+    if (allowDragPlay && e.buttons === 1) {
       onRelease(note);
     }
   };
@@ -211,6 +213,8 @@ export function SynthAppComponent({
   const [activeTouches, setActiveTouches] = useState<Record<string, string>>(
     {}
   );
+  // Track if current mouse drag originated inside the keyboard area
+  const [dragFromKeyboard, setDragFromKeyboard] = useState(false);
   // Keep a ref in sync with `activeTouches` so external event listeners always have current data
   const activeTouchesRef = useRef<Record<string, string>>({});
   useEffect(() => {
@@ -865,9 +869,18 @@ export function SynthAppComponent({
     };
   }, [isWindowOpen, releaseNote]);
 
+  // Ensure drag-origin is cleared when mouse is released anywhere
+  useEffect(() => {
+    if (!isWindowOpen) return;
+    const onMouseUp = () => setDragFromKeyboard(false);
+    window.addEventListener("mouseup", onMouseUp);
+    return () => window.removeEventListener("mouseup", onMouseUp);
+  }, [isWindowOpen]);
+
   const currentTheme = useThemeStore((state) => state.current);
   const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
   const isSystem7Theme = currentTheme === "system7";
+  const isClassicTheme = currentTheme === "macosx" || isXpTheme;
 
   const menuBar = (
     <SynthMenuBar
@@ -917,7 +930,7 @@ export function SynthAppComponent({
               )}
             >
               <div className="flex justify-between items-center">
-                <div className="flex gap-0 overflow-x-auto">
+                <div className="flex gap-0">
                   {/* Mobile preset selector */}
                   <div className="md:hidden w-48">
                     <Select
@@ -927,15 +940,31 @@ export function SynthAppComponent({
                         if (preset) loadPreset(preset);
                       }}
                     >
-                      <SelectTrigger className="w-full bg-black border-[#3a3a3a] text-white font-geneva-12 text-[12px] p-2">
+                      <SelectTrigger
+                        className={cn(
+                          "w-full font-geneva-12 text-[12px] p-2",
+                          isClassicTheme && "text-black bg-transparent",
+                          !isClassicTheme &&
+                            "bg-black border-[#3a3a3a] text-white"
+                        )}
+                      >
                         <SelectValue placeholder="Select Preset" />
                       </SelectTrigger>
-                      <SelectContent className="bg-black border-[#3a3a3a] text-white">
+                      <SelectContent
+                        className={cn(
+                          isClassicTheme && "text-black",
+                          !isClassicTheme &&
+                            "bg-black border-[#3a3a3a] text-white"
+                        )}
+                      >
                         {presets.map((preset) => (
                           <SelectItem
                             key={preset.id}
                             value={preset.id}
-                            className="font-geneva-12 text-[12px] select-none"
+                            className={cn(
+                              "font-geneva-12 text-[12px] select-none",
+                              isClassicTheme && "text-black"
+                            )}
                           >
                             {preset.name}
                           </SelectItem>
@@ -1041,31 +1070,56 @@ export function SynthAppComponent({
                             handleOscillatorChange(value)
                           }
                         >
-                          <SelectTrigger className="w-full bg-black border-[#3a3a3a] text-white font-geneva-12 text-[12px] p-2">
+                          <SelectTrigger
+                            className={cn(
+                              "w-full font-geneva-12 text-[12px] p-2",
+                              isClassicTheme && "text-black",
+                              !isClassicTheme &&
+                                "bg-black border-[#3a3a3a] text-white"
+                            )}
+                          >
                             <SelectValue placeholder="Waveform" />
                           </SelectTrigger>
-                          <SelectContent className="bg-black border-[#3a3a3a] text-white">
+                          <SelectContent
+                            className={cn(
+                              isClassicTheme && "text-black",
+                              !isClassicTheme &&
+                                "bg-black border-[#3a3a3a] text-white"
+                            )}
+                          >
                             <SelectItem
                               value="sine"
-                              className="font-geneva-12 text-[12px]"
+                              className={cn(
+                                "font-geneva-12 text-[12px]",
+                                isClassicTheme && "text-black"
+                              )}
                             >
                               Sine
                             </SelectItem>
                             <SelectItem
                               value="square"
-                              className="font-geneva-12 text-[12px]"
+                              className={cn(
+                                "font-geneva-12 text-[12px]",
+                                isClassicTheme && "text-black"
+                              )}
                             >
                               Square
                             </SelectItem>
                             <SelectItem
                               value="triangle"
-                              className="font-geneva-12 text-[12px]"
+                              className={cn(
+                                "font-geneva-12 text-[12px]",
+                                isClassicTheme && "text-black"
+                              )}
                             >
                               Triangle
                             </SelectItem>
                             <SelectItem
                               value="sawtooth"
-                              className="font-geneva-12 text-[12px]"
+                              className={cn(
+                                "font-geneva-12 text-[12px]",
+                                isClassicTheme && "text-black"
+                              )}
                             >
                               Sawtooth
                             </SelectItem>
@@ -1451,6 +1505,8 @@ export function SynthAppComponent({
             <div className="flex-grow flex flex-col justify-end min-h-[160px] bg-black p-4 w-full">
               <div
                 className="relative h-full w-full"
+                onMouseDown={() => setDragFromKeyboard(true)}
+                onMouseUp={() => setDragFromKeyboard(false)}
                 onTouchStart={(e) => {
                   e.preventDefault(); // Prevent scrolling while playing
                   // Handle all touches
@@ -1578,6 +1634,7 @@ export function SynthAppComponent({
                         onRelease={releaseNote}
                         labelType={labelType}
                         keyMap={keyToNoteMap}
+                        allowDragPlay={dragFromKeyboard}
                         isSystem7Theme={isSystem7Theme}
                       />
                     </div>
@@ -1612,6 +1669,7 @@ export function SynthAppComponent({
                               onRelease={releaseNote}
                               labelType={labelType}
                               keyMap={keyToNoteMap}
+                              allowDragPlay={dragFromKeyboard}
                               isSystem7Theme={isSystem7Theme}
                             />
                           </div>

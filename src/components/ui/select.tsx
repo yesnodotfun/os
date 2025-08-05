@@ -63,6 +63,9 @@ const SelectTrigger = React.forwardRef<
           ? '"LucidaGrande", "Lucida Grande", "Hiragino Sans", "Hiragino Sans GB", "Heiti SC", "Lucida Sans Unicode", sans-serif'
           : undefined,
         fontSize: isXpTheme ? "11px" : isMacOSTheme ? "14px" : undefined,
+        ...(isXpTheme && {
+          color: "black",
+        }),
         ...(isMacOSTheme && {
           height: "24px", // Match Input h-6 height for macOS theme
           lineHeight: 1.5,
