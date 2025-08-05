@@ -20,8 +20,7 @@ export const helpItems = [
   {
     icon: "💾",
     title: "File Management",
-    description:
-      "Create, open, save, and export files (HTML, MD, TXT) with auto-save",
+    description: "Create, open, save, and export files (HTML, MD, TXT)",
   },
   {
     icon: "🎤",

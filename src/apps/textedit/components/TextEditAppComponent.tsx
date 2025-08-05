@@ -10,7 +10,6 @@ import { DialogManager, DialogControls } from "./DialogManager";
 import { useTextEditState } from "../hooks/useTextEditState";
 import { useFileOperations } from "../hooks/useFileOperations";
 import { useDragAndDrop } from "../hooks/useDragAndDrop";
-import { useAutoSave } from "../hooks/useAutoSave";
 import {
   removeFileExtension,
   TextEditInitialData,
@@ -18,7 +17,7 @@ import {
 import { useAppStore } from "@/stores/useAppStore";
 import { useThemeStore } from "@/stores/useThemeStore";
 import { useLaunchApp } from "@/hooks/useLaunchApp";
-import { markdownToHtml, htmlToMarkdown } from "@/utils/markdown";
+import { markdownToHtml } from "@/utils/markdown";
 
 // Inner component that has access to editor context
 function TextEditContent({
@@ -108,15 +107,6 @@ function TextEditContent({
     },
   });
 
-  // Set up autosave and handle editor updates
-  const { editorContentRef } = useAutoSave({
-    hasUnsavedChanges,
-    currentFilePath,
-    editor,
-    instanceId,
-    onSaveSuccess: () => setHasUnsavedChanges(false),
-  });
-
   useEffect(() => {
     if (!editor) return;
 
@@ -124,7 +114,6 @@ function TextEditContent({
       // Only mark changes and store latest content/JSON in onUpdate
       const currentJson = editor.getJSON();
       setContentJson(currentJson); // Update store JSON for recovery
-      editorContentRef.current = htmlToMarkdown(editor.getHTML()); // Store latest markdown
       if (!hasUnsavedChanges) {
         setHasUnsavedChanges(true);
         console.log(
@@ -148,7 +137,6 @@ function TextEditContent({
     setHasUnsavedChanges,
     instanceId,
     currentFilePath,
-    editorContentRef,
   ]);
 
   // Initial load - Restore last session or use initialData
@@ -175,9 +163,25 @@ function TextEditContent({
           clearInitialData("textedit");
         }
         return;
+      } else if (
+        typedInitialData?.path &&
+        typedInitialData?.content === undefined
+      ) {
+        // If a path was provided but no inline content, try loading from DB
+        console.log(
+          "[TextEdit] Loading content from database via initialData path:",
+          typedInitialData.path
+        );
+        await handleLoadFromDatabase(typedInitialData.path);
+        if (instanceId) {
+          clearInstanceInitialData(instanceId);
+        } else {
+          clearInitialData("textedit");
+        }
+        return;
       }
 
-      // For instance mode, we don't restore from legacy store
+      // For instance mode, skip legacy store, but we'll handle instance restore below
       if (instanceId) {
         return;
       }
@@ -229,6 +233,24 @@ function TextEditContent({
     clearInitialData,
     clearInstanceInitialData,
     setHasUnsavedChanges,
+  ]);
+
+  // Instance restore: if we have a file path but no content yet after reload, load from DB
+  useEffect(() => {
+    if (!editor || !instanceId) return;
+    if (!contentJson && currentFilePath) {
+      console.log(
+        "[TextEdit] Restoring instance content from DB for path:",
+        currentFilePath
+      );
+      handleLoadFromDatabase(currentFilePath);
+    }
+  }, [
+    editor,
+    instanceId,
+    contentJson,
+    currentFilePath,
+    handleLoadFromDatabase,
   ]);
 
   // Add listeners for external document updates
@@ -449,7 +471,11 @@ function TextEditContent({
 
   const handleCloseSave = async (fileName: string) => {
     try {
-      await handleSaveAs(fileName);
+      if (currentFilePath) {
+        await handleSave();
+      } else {
+        await handleSaveAs(fileName);
+      }
       dialogControls?.closeCloseSaveDialog();
       window.dispatchEvent(
         new CustomEvent(`closeWindow-${instanceId || "textedit"}`, {
@@ -558,6 +584,7 @@ function TextEditContent({
             onCloseDelete={handleCloseDelete}
             onConfirmNew={createNewFile}
             onControlsReady={setDialogControls}
+            isUntitledForClose={!currentFilePath}
           />
         </div>
       </WindowFrame>

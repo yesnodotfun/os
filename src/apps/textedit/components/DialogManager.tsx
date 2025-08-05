@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { HelpDialog } from "@/components/dialogs/HelpDialog";
 import { AboutDialog } from "@/components/dialogs/AboutDialog";
 import { InputDialog } from "@/components/dialogs/InputDialog";
@@ -29,6 +29,8 @@ interface DialogManagerProps {
   onCloseDelete: () => void;
   onConfirmNew: () => void;
   onControlsReady?: (controls: DialogControls) => void;
+  // When closing: is this for an untitled/new document?
+  isUntitledForClose?: boolean;
 }
 
 export function DialogManager({
@@ -41,6 +43,7 @@ export function DialogManager({
   onCloseDelete,
   onConfirmNew,
   onControlsReady,
+  isUntitledForClose = false,
 }: DialogManagerProps) {
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
@@ -48,27 +51,26 @@ export function DialogManager({
   const [isConfirmNewDialogOpen, setIsConfirmNewDialogOpen] = useState(false);
   const [isCloseSaveDialogOpen, setIsCloseSaveDialogOpen] = useState(false);
 
-  const dialogControls: DialogControls = {
-    // Help dialog
-    openHelpDialog: () => setIsHelpDialogOpen(true),
-    closeHelpDialog: () => setIsHelpDialogOpen(false),
-    
-    // About dialog
-    openAboutDialog: () => setIsAboutDialogOpen(true),
-    closeAboutDialog: () => setIsAboutDialogOpen(false),
-    
-    // Save dialog
-    openSaveDialog: () => setIsSaveDialogOpen(true),
-    closeSaveDialog: () => setIsSaveDialogOpen(false),
-    
-    // Confirm new dialog
-    openConfirmNewDialog: () => setIsConfirmNewDialogOpen(true),
-    closeConfirmNewDialog: () => setIsConfirmNewDialogOpen(false),
-    
-    // Close save dialog
-    openCloseSaveDialog: () => setIsCloseSaveDialogOpen(true),
-    closeCloseSaveDialog: () => setIsCloseSaveDialogOpen(false),
-  };
+  const dialogControls: DialogControls = useMemo(
+    () => ({
+      // Help dialog
+      openHelpDialog: () => setIsHelpDialogOpen(true),
+      closeHelpDialog: () => setIsHelpDialogOpen(false),
+      // About dialog
+      openAboutDialog: () => setIsAboutDialogOpen(true),
+      closeAboutDialog: () => setIsAboutDialogOpen(false),
+      // Save dialog
+      openSaveDialog: () => setIsSaveDialogOpen(true),
+      closeSaveDialog: () => setIsSaveDialogOpen(false),
+      // Confirm new dialog
+      openConfirmNewDialog: () => setIsConfirmNewDialogOpen(true),
+      closeConfirmNewDialog: () => setIsConfirmNewDialogOpen(false),
+      // Close save dialog
+      openCloseSaveDialog: () => setIsCloseSaveDialogOpen(true),
+      closeCloseSaveDialog: () => setIsCloseSaveDialogOpen(false),
+    }),
+    []
+  );
 
   // Notify parent component when controls are ready
   React.useEffect(() => {
@@ -86,7 +88,7 @@ export function DialogManager({
         value={saveFileName}
         onChange={setSaveFileName}
       />
-      
+
       <ConfirmDialog
         isOpen={isConfirmNewDialogOpen}
         onOpenChange={setIsConfirmNewDialogOpen}
@@ -97,39 +99,42 @@ export function DialogManager({
         title="Discard Changes"
         description="Do you want to discard your changes and create a new file?"
       />
-      
+
       <InputDialog
         isOpen={isCloseSaveDialogOpen}
         onOpenChange={setIsCloseSaveDialogOpen}
         onSubmit={onCloseSave}
-        title="Keep New Document"
-        description="Enter a filename to save, or delete it before closing."
+        title={isUntitledForClose ? "Keep New Document" : "Save Changes"}
+        description={
+          isUntitledForClose
+            ? "Enter a filename to save, or delete it before closing."
+            : "Save your changes before closing."
+        }
         value={closeSaveFileName}
         onChange={setCloseSaveFileName}
         submitLabel="Save"
         additionalActions={[
           {
-            label: "Delete",
+            label: isUntitledForClose ? "Delete" : "Discard Changes",
             onClick: onCloseDelete,
             variant: "retro" as const,
             position: "left" as const,
           },
         ]}
       />
-      
+
       <HelpDialog
         isOpen={isHelpDialogOpen}
         onOpenChange={setIsHelpDialogOpen}
         helpItems={helpItems}
         appName="TextEdit"
       />
-      
+
       <AboutDialog
         isOpen={isAboutDialogOpen}
         onOpenChange={setIsAboutDialogOpen}
         metadata={appMetadata}
       />
-
     </>
   );
 }
