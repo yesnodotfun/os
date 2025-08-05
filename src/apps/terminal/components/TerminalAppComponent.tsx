@@ -41,6 +41,15 @@ import { useFilesStore } from "@/stores/useFilesStore";
 import { useThemeStore } from "@/stores/useThemeStore";
 import EmojiAquarium from "@/components/shared/EmojiAquarium";
 
+// Import new components and utilities
+import { CommandHistory, CommandContext } from "../types";
+import { parseCommand } from "../utils/commandParser";
+import { commands, AVAILABLE_COMMANDS } from "../commands";
+import { VimEditor } from "./VimEditor";
+import { TypewriterText, parseSimpleMarkdown } from "./TypewriterText";
+import { AnimatedEllipsis } from "./AnimatedEllipsis";
+import { UrgentMessageAnimation } from "./UrgentMessageAnimation";
+
 // Analytics event namespace for terminal AI events
 export const TERMINAL_ANALYTICS = {
   AI_COMMAND: "terminal:ai_command",
@@ -49,39 +58,7 @@ export const TERMINAL_ANALYTICS = {
   CHAT_CLEAR: "terminal:chat_clear",
 };
 
-interface CommandHistory {
-  command: string;
-  output: string;
-  path: string;
-  messageId?: string; // Optional since not all commands will have a message ID
-  hasAquarium?: boolean;
-}
-
-// Available commands for autocompletion
-const AVAILABLE_COMMANDS = [
-  "help",
-  "clear",
-  "pwd",
-  "ls",
-  "cd",
-  "cat",
-  "mkdir",
-  "touch",
-  "rm",
-  "edit",
-  "history",
-  "about",
-  "ryo",
-  "ai",
-  "chat",
-  "echo",
-  "whoami",
-  "su",
-  "logout",
-  "date",
-  "vim",
-  "cowsay",
-];
+// Removed interfaces and constants - now imported from separate files
 
 // Helper: prettify tool names
 const formatToolName = (name: string): string =>
@@ -89,24 +66,6 @@ const formatToolName = (name: string): string =>
     .replace(/([A-Z])/g, " $1")
     .replace(/^./, (ch) => ch.toUpperCase())
     .trim();
-
-// Helper function for the 'cowsay' command
-const cowsay = (message: string): string => {
-  const messageLength = message.length;
-  const topBorder = ` ${"_".repeat(messageLength + 2)} `;
-  const bottomBorder = ` ${"-".repeat(messageLength + 2)} `;
-
-  const cow = `        \\   ^__^
-         \\  (oo)\\_______
-            (__)\\       )\\/\\
-                ||----w |
-                ||     ||`;
-
-  return `${topBorder}
-< ${message} >
-${bottomBorder}
-${cow}`;
-};
 
 const getAppName = (id?: string): string => {
   if (!id) return "app";
@@ -277,22 +236,6 @@ const cleanUrgentPrefix = (content: string): string => {
   return isUrgentMessage(content) ? content.slice(4).trimStart() : content;
 };
 
-// Animated ASCII for urgent messages
-function UrgentMessageAnimation() {
-  const [frame, setFrame] = useState(0);
-  const frames = ["!   ", "!!  ", "!!! ", "!!  ", "!   "];
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setFrame((prev) => (prev + 1) % frames.length);
-    }, 300);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  return <span className="text-red-400 animate-pulse">{frames[frame]}</span>;
-}
-
 // Component to render HTML previews
 interface HtmlPreviewProps {
   htmlContent: string;
@@ -331,77 +274,7 @@ function TerminalHtmlPreview({
   );
 }
 
-// Helper function to parse simple markdown formatting
-const parseSimpleMarkdown = (text: string): React.ReactNode[] => {
-  if (!text) return [text];
-
-  // Process the bold formatting first, then italic
-  let result: React.ReactNode[] = [];
-  const currentText = text;
-
-  // Process bold patterns first (**text** or __text__)
-  const boldRegex = /(\*\*.*?\*\*|__.*?__)/g;
-  let lastIndex = 0;
-  let boldMatch;
-
-  while ((boldMatch = boldRegex.exec(currentText)) !== null) {
-    // Add text before the match
-    if (boldMatch.index > lastIndex) {
-      result.push(currentText.substring(lastIndex, boldMatch.index));
-    }
-
-    // Add the bold text
-    const boldContent = boldMatch[0].replace(/^\*\*|\*\*$|^__|__$/g, "");
-    result.push(
-      <span key={`bold-${boldMatch.index}`} className="font-bold">
-        {boldContent}
-      </span>
-    );
-
-    lastIndex = boldMatch.index + boldMatch[0].length;
-  }
-
-  // Add any remaining text after the last bold match
-  if (lastIndex < currentText.length) {
-    result.push(currentText.substring(lastIndex));
-  }
-
-  // Now process italic in each text segment
-  result = result.flatMap((segment, i) => {
-    if (typeof segment !== "string") return segment;
-
-    const italicParts: React.ReactNode[] = [];
-    const italicRegex = /(\*[^*]+\*|_[^_]+_)/g;
-    let lastItalicIndex = 0;
-    let italicMatch;
-
-    while ((italicMatch = italicRegex.exec(segment)) !== null) {
-      // Add text before the match
-      if (italicMatch.index > lastItalicIndex) {
-        italicParts.push(segment.substring(lastItalicIndex, italicMatch.index));
-      }
-
-      // Add the italic text
-      const italicContent = italicMatch[0].replace(/^\*|\*$|^_|_$/g, "");
-      italicParts.push(
-        <span key={`italic-${i}-${italicMatch.index}`} className="italic">
-          {italicContent}
-        </span>
-      );
-
-      lastItalicIndex = italicMatch.index + italicMatch[0].length;
-    }
-
-    // Add any remaining text after the last italic match
-    if (lastItalicIndex < segment.length) {
-      italicParts.push(segment.substring(lastItalicIndex));
-    }
-
-    return italicParts.length > 0 ? italicParts : segment;
-  });
-
-  return result;
-};
+// parseSimpleMarkdown is imported from TypewriterText exports
 
 interface ToolInvocation {
   state: "partial-call" | "call" | "result";
@@ -469,110 +342,9 @@ const formatToolInvocation = (invocation: ToolInvocation): string | null => {
   return null;
 };
 
-// TypewriterText component for terminal output
-function TypewriterText({
-  text,
-  className,
-  speed = 15,
-  renderMarkdown = false,
-}: {
-  text: string;
-  className?: string;
-  speed?: number;
-  renderMarkdown?: boolean;
-}) {
-  const [displayedText, setDisplayedText] = useState("");
-  const [isComplete, setIsComplete] = useState(false);
-  const textRef = useRef(text);
+// TypewriterText component has been extracted to separate file
 
-  useEffect(() => {
-    // Reset when text changes
-    setDisplayedText("");
-    setIsComplete(false);
-    textRef.current = text;
-
-    // Skip animation for long text (performance)
-    if (text.length > 200) {
-      setDisplayedText(text);
-      setIsComplete(true);
-      return;
-    }
-
-    // Adjust speed based on text length - faster for longer text
-    const adjustedSpeed =
-      text.length > 100 ? speed * 0.7 : text.length > 50 ? speed * 0.85 : speed;
-
-    // Split into reasonable chunks for better performance
-    // This makes animation smoother by reducing React state updates
-    const chunkSize = text.length > 100 ? 3 : text.length > 50 ? 2 : 1;
-    const chunks: string[] = [];
-
-    for (let i = 0; i < text.length; i += chunkSize) {
-      chunks.push(text.substring(i, Math.min(i + chunkSize, text.length)));
-    }
-
-    // Use a recursive setTimeout for more reliable animation
-    let currentIndex = 0;
-    let timeoutId: NodeJS.Timeout;
-
-    const typeNextChunk = () => {
-      if (currentIndex < chunks.length) {
-        const chunk = chunks[currentIndex];
-        setDisplayedText((prev) => prev + chunk);
-        currentIndex++;
-
-        // Pause longer after punctuation for natural rhythm
-        const endsWithPunctuation = /[.,!?;:]$/.test(chunk);
-        const delay = endsWithPunctuation ? adjustedSpeed * 3 : adjustedSpeed;
-
-        timeoutId = setTimeout(typeNextChunk, delay);
-      } else {
-        setIsComplete(true);
-      }
-    };
-
-    // Start the typing animation
-    timeoutId = setTimeout(typeNextChunk, adjustedSpeed);
-
-    // Clean up on unmount
-    return () => {
-      if (timeoutId) clearTimeout(timeoutId);
-    };
-  }, [text, speed]);
-
-  return (
-    <span className={`select-text cursor-text ${className || ""}`}>
-      {renderMarkdown ? parseSimpleMarkdown(displayedText) : displayedText}
-      {!isComplete && (
-        <motion.span
-          animate={{ opacity: [1, 0, 1] }}
-          transition={{ repeat: Infinity, duration: 0.8 }}
-        >
-          _
-        </motion.span>
-      )}
-    </span>
-  );
-}
-
-// Animated ellipsis component for thinking indicator
-function AnimatedEllipsis() {
-  const [dots, setDots] = useState("");
-
-  useEffect(() => {
-    const patterns = [".", "..", "...", "..", ".", ".", "..", "..."];
-    let index = 0;
-
-    const interval = setInterval(() => {
-      setDots(patterns[index]);
-      index = (index + 1) % patterns.length;
-    }, 200);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  return <span>{dots}</span>;
-}
+// AnimatedEllipsis component has been extracted to separate file
 
 // Helper function to convert Blob content to string
 // Unused function - removing to fix TS6133 error
@@ -789,62 +561,34 @@ export function TerminalAppComponent({
     // Store command in history via Zustand store
     useTerminalStore.getState().addCommand(currentCommand);
 
-    // Process the command
-    const result = processCommand(currentCommand);
-
-    // Play appropriate sound based on command result
-    if (result.isError) {
-      playErrorSound();
-    } else {
-      // Check if the command is cowsay and play moo sound
-      const commandName = currentCommand.trim().split(" ")[0];
-      if (commandName === "cowsay") {
-        playMooSound();
+    // Process the command asynchronously
+    processCommand(currentCommand).then((result) => {
+      // Play appropriate sound based on command result
+      if (result.isError) {
+        playErrorSound();
       } else {
         playCommandSound();
       }
-    }
 
-    // Reset animated lines to ensure only new content gets animated
-    setAnimatedLines(new Set());
+      // Reset animated lines to ensure only new content gets animated
+      setAnimatedLines(new Set());
 
-    // Add to command history
-    setCommandHistory([
-      ...commandHistory,
-      {
-        command: currentCommand,
-        output: result.output,
-        path: currentPath,
-      },
-    ]);
+      // Add to command history
+      setCommandHistory([
+        ...commandHistory,
+        {
+          command: currentCommand,
+          output: result.output,
+          path: currentPath,
+        },
+      ]);
+    });
 
     // Clear current command
     setCurrentCommand("");
   };
 
-  // Parse command respecting quotes for arguments with spaces
-  const parseCommand = (command: string): { cmd: string; args: string[] } => {
-    const trimmedCommand = command.trim();
-    if (!trimmedCommand) return { cmd: "", args: [] };
-
-    // Handle quoted arguments
-    const regex = /[^\s"']+|"([^"]*)"|'([^']*)'/g;
-    const parts: string[] = [];
-    let match;
-
-    // Extract all parts including quoted sections
-    while ((match = regex.exec(trimmedCommand)) !== null) {
-      // If it's a quoted string, use the capture group (without quotes)
-      if (match[1]) parts.push(match[1]);
-      else if (match[2]) parts.push(match[2]);
-      else parts.push(match[0]);
-    }
-
-    return {
-      cmd: parts[0].toLowerCase(),
-      args: parts.slice(1),
-    };
-  };
+  // parseCommand is now imported from utils/commandParser
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (isInVimMode) {
@@ -1683,46 +1427,32 @@ export function TerminalAppComponent({
     return input; // Return original if no completions
   };
 
-  const processCommand = (
+  const processCommand = async (
     command: string
-  ): { output: string; isError: boolean } => {
+  ): Promise<{ output: string; isError: boolean }> => {
     const { cmd, args } = parseCommand(command);
 
-    switch (cmd) {
-      case "help":
-        return {
-          output: `
-navigation & files
-  pwd              show current directory
-  ls               list directory contents  
-  cd <dir>         change directory
-  cat <file>       view file contents
-  touch <file>     create empty file
-  mkdir <dir>      create directory
-  rm <file>        move file to trash
-  edit <file>      open in text editor
-  vim <file>       open in vim editor
+    // Create command context
+    const context: CommandContext = {
+      currentPath,
+      files,
+      navigateToPath,
+      saveFile,
+      moveToTrash,
+      playCommandSound,
+      playErrorSound,
+      playMooSound,
+      launchApp,
+      setIsAboutDialogOpen,
+      username,
+    };
 
-terminal
-  clear            clear screen
-  help             show this help
-  history          show command history
-  about            about terminal
-  echo <text>      display text
-  whoami           display current user
-  su <user> [pass] switch or create user
-  logout           log out current user
-  date             display current date/time
-  cowsay <text>    a talking cow
-
-assistant
-  ryo <prompt>     chat with ryo
-
-`,
-          isError: false,
-        };
-
-      case "clear":
+    // Check if command exists in registry
+    if (commands[cmd]) {
+      const result = await commands[cmd].handler(args, context);
+      
+      // Special handling for clear command
+      if (cmd === "clear") {
         // Trigger clearing animation
         setIsClearingTerminal(true);
         // Stop any ongoing AI responses
@@ -1735,91 +1465,13 @@ assistant
           // Reset tracking refs for AI responses
           lastProcessedMessageIdRef.current = null;
         }, 500); // Animation duration
-        return { output: "", isError: false };
-
-      case "pwd":
-        return { output: currentPath, isError: false };
-
-      case "ls": {
-        if (files.length === 0) {
-          return { output: "no files found", isError: false };
-        }
-        return {
-          output: files
-            .map((file) => (file.isDirectory ? file.name : file.name))
-            .join("\n"),
-          isError: false,
-        };
       }
+      
+      return result;
+    }
 
-      case "cd": {
-        if (args.length === 0) {
-          navigateToPath("/");
-          return { output: "", isError: false };
-        }
-
-        // Handle special case for parent directory
-        if (args[0] === "..") {
-          const pathParts = currentPath.split("/").filter(Boolean);
-          const parentPath =
-            pathParts.length > 0 ? "/" + pathParts.slice(0, -1).join("/") : "/";
-          navigateToPath(parentPath);
-          return { output: "", isError: false };
-        }
-
-        let newPath = args[0];
-
-        // Handle relative paths
-        if (!newPath.startsWith("/")) {
-          newPath = `${currentPath === "/" ? "" : currentPath}/${newPath}`;
-        }
-
-        // Verify the path exists before navigating
-        // First normalize the path to prevent issues with trailing slashes
-        const normalizedPath =
-          newPath.endsWith("/") && newPath !== "/"
-            ? newPath.slice(0, -1)
-            : newPath;
-
-        // Get the parent directory to check if target exists
-        const pathParts = normalizedPath.split("/").filter(Boolean);
-        const targetDir = pathParts.pop(); // Remove the target directory from the path
-        const parentPath =
-          pathParts.length > 0 ? "/" + pathParts.join("/") : "/";
-
-        // Special case for root directory
-        if (normalizedPath === "/") {
-          navigateToPath("/");
-          return { output: "", isError: false };
-        }
-
-        // Get files in the parent directory
-        const filesInParent = files.filter((file) => {
-          const parentPathWithSlash = parentPath.endsWith("/")
-            ? parentPath
-            : parentPath + "/";
-          return (
-            file.path.startsWith(parentPathWithSlash) &&
-            !file.path.replace(parentPathWithSlash, "").includes("/")
-          );
-        });
-
-        // Check if the target directory exists
-        const targetExists = filesInParent.some(
-          (file) => file.name === targetDir && file.isDirectory
-        );
-
-        if (!targetExists) {
-          return {
-            output: `cd: ${args[0]}: no such directory`,
-            isError: true,
-          };
-        }
-
-        // Directory exists, navigate to it
-        navigateToPath(normalizedPath);
-        return { output: "", isError: false };
-      }
+    // Handle commands that are not yet in the registry
+    switch (cmd) {
 
       case "cat": {
         if (args.length === 0) {
@@ -1956,70 +1608,7 @@ assistant
         };
       }
 
-      case "mkdir":
-        return {
-          output:
-            "command not implemented: mkdir requires filesystem write access",
-          isError: true,
-        };
 
-      case "touch": {
-        if (args.length === 0) {
-          return {
-            output: "usage: touch <filename>",
-            isError: true,
-          };
-        }
-
-        const newFileName = args[0];
-
-        // Check if file already exists
-        if (files.find((f) => f.name === newFileName)) {
-          return {
-            output: `file already exists: ${newFileName}`,
-            isError: true,
-          };
-        }
-
-        // Create empty file
-        saveFile({
-          name: newFileName,
-          path: `${currentPath}/${newFileName}`,
-          content: "",
-          type: "text",
-          icon: "/icons/file-text.png",
-        });
-
-        return {
-          output: `created file: ${newFileName}`,
-          isError: false,
-        };
-      }
-
-      case "rm": {
-        if (args.length === 0) {
-          return {
-            output: "usage: rm <filename>",
-            isError: true,
-          };
-        }
-
-        const fileToDelete = args[0];
-        const fileObj = files.find((f) => f.name === fileToDelete);
-
-        if (!fileObj) {
-          return {
-            output: `file not found: ${fileToDelete}`,
-            isError: true,
-          };
-        }
-
-        moveToTrash(fileObj);
-        return {
-          output: `moved to trash: ${fileToDelete}`,
-          isError: false,
-        };
-      }
 
       case "edit": {
         if (args.length === 0) {
@@ -2128,12 +1717,7 @@ assistant
         };
       }
 
-      case "about":
-        setTimeout(() => setIsAboutDialogOpen(true), 100);
-        return {
-          output: "opening about dialog...",
-          isError: false,
-        };
+
 
       case "history": {
         const cmdHistory = useTerminalStore.getState().commandHistory;
@@ -2189,19 +1773,7 @@ assistant
         };
       }
 
-      case "echo": {
-        return {
-          output: args.join(" "),
-          isError: false,
-        };
-      }
 
-      case "whoami": {
-        return {
-          output: username || "you",
-          isError: false,
-        };
-      }
 
       case "su": {
         if (args.length === 0) {
@@ -2339,31 +1911,7 @@ assistant
         return { output: tempOutput, isError: false };
       }
 
-      case "date": {
-        const now = new Date();
-        const options: Intl.DateTimeFormatOptions = {
-          weekday: "short",
-          month: "short",
-          day: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-          year: "numeric",
-          timeZoneName: "short",
-        };
-        return {
-          output: now.toLocaleString("en-US", options),
-          isError: false,
-        };
-      }
 
-      case "cowsay": {
-        const message = args.join(" ") || "Moo!";
-        return {
-          output: cowsay(message),
-          isError: false,
-        };
-      }
 
       case "vim": {
         if (args.length === 0) {
@@ -3088,94 +2636,20 @@ assistant
     return path === "ai-assistant" || path === "ai-user";
   };
 
-  // Add a VimEditor component
-  function VimEditor({
-    file,
-    position,
-  }: {
-    file: { name: string; content: string };
-    position: number;
-  }) {
-    const lines = file.content.split("\n");
-    const maxVisibleLines = 20; // Show up to 20 lines at a time
-
-    // Get the visible lines based on the current position
-    const visibleLines = lines.slice(position, position + maxVisibleLines);
-
-    // Fill with empty lines if there are fewer lines than maxVisibleLines
-    while (visibleLines.length < maxVisibleLines) {
-      visibleLines.push("~");
-    }
-
-    // Calculate percentage through the file
-    const percentage =
-      lines.length > 0
-        ? Math.min(
-            100,
-            Math.floor(((position + maxVisibleLines) / lines.length) * 100)
-          )
-        : 100;
-
-    return (
-      <div className="vim-editor font-monaco text-white">
-        {visibleLines.map((line, i) => {
-          const lineNumber = position + i;
-          const isCursorLine = lineNumber === vimCursorLine;
-
-          return (
-            <div
-              key={i}
-              className={`vim-line flex ${isCursorLine ? "bg-white/10" : ""}`}
-            >
-              <span className="text-gray-500 w-6 text-right mr-2">
-                {lineNumber + 1}
-              </span>
-              {isCursorLine ? (
-                // Render line with cursor
-                <span className="select-text flex-1">
-                  {line.substring(0, vimCursorColumn)}
-                  <span className="bg-orange-300 text-black">
-                    {line.charAt(vimCursorColumn) || " "}
-                  </span>
-                  {line.substring(vimCursorColumn + 1)}
-                </span>
-              ) : (
-                // Render line without cursor
-                <span className="select-text flex-1">{line}</span>
-              )}
-            </div>
-          );
-        })}
-        <div className="vim-status-bar flex text-white text-xs mt-2">
-          <div
-            className={`px-2 py-1 font-bold ${
-              vimMode === "insert" ? "bg-green-600/50" : "bg-blue-600/50"
-            }`}
-          >
-            {vimMode === "normal"
-              ? "NORMAL"
-              : vimMode === "insert"
-              ? "INSERT"
-              : "COMMAND"}
-          </div>
-          <div className="flex-1 bg-white/10 px-2 py-1 flex items-center justify-between">
-            <span className="flex-1 mx-2">[{file.name}]</span>
-            <span>{percentage}%</span>
-            <span className="ml-4 mr-2">
-              {vimCursorLine + 1}:{vimCursorColumn + 1}
-            </span>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // VimEditor component has been extracted to separate file
 
   // Add a helper function to render the main terminal or vim editor
   const renderMainContent = () => {
     if (isInVimMode && vimFile) {
       return (
         <div className="mb-4">
-          <VimEditor file={vimFile} position={vimPosition} />
+          <VimEditor 
+            file={vimFile} 
+            position={vimPosition} 
+            vimCursorLine={vimCursorLine}
+            vimCursorColumn={vimCursorColumn}
+            vimMode={vimMode}
+          />
           <div className="flex mt-1">
             <span className="text-green-400 mr-1">
               {vimMode === "normal" ? "" : vimMode === "insert" ? "" : ":"}
