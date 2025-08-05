@@ -881,6 +881,7 @@ export function SynthAppComponent({
   const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
   const isSystem7Theme = currentTheme === "system7";
   const isClassicTheme = currentTheme === "macosx" || isXpTheme;
+  const isMacOSTheme = currentTheme === "macosx";
 
   const menuBar = (
     <SynthMenuBar
@@ -979,7 +980,7 @@ export function SynthAppComponent({
                       presets.map((preset) => (
                         <Button
                           key={preset.id}
-                          variant={isSystem7Theme ? "player" : "aqua_select"}
+                          variant={isMacOSTheme ? "aqua_select" : isSystem7Theme ? "player" : "default"}
                           data-state={
                             currentPreset.id === preset.id ? "on" : "off"
                           }
@@ -998,7 +999,7 @@ export function SynthAppComponent({
                 </div>
                 <div className="flex gap-0 aqua-select-group">
                   <Button
-                    variant={isSystem7Theme ? "player" : "aqua_select"}
+                    variant={isMacOSTheme ? "aqua_select" : isSystem7Theme ? "player" : "default"}
                     onClick={() =>
                       setOctaveOffset((prev) => {
                         const next = Math.max(-2, prev - 1);
@@ -1014,7 +1015,7 @@ export function SynthAppComponent({
                     &lt;
                   </Button>
                   <Button
-                    variant={isSystem7Theme ? "player" : "aqua_select"}
+                    variant={isMacOSTheme ? "aqua_select" : isSystem7Theme ? "player" : "default"}
                     onClick={() =>
                       setOctaveOffset((prev) => {
                         const next = Math.min(2, prev + 1);
@@ -1030,7 +1031,7 @@ export function SynthAppComponent({
                     &gt;
                   </Button>
                   <Button
-                    variant={isSystem7Theme ? "player" : "aqua_select"}
+                    variant={isMacOSTheme ? "aqua_select" : isSystem7Theme ? "player" : "default"}
                     onClick={() => setIsControlsVisible(!isControlsVisible)}
                     className={cn(
                       isSystem7Theme
@@ -1068,7 +1069,7 @@ export function SynthAppComponent({
                             Oscillator
                           </h3>
                           <Button
-                            variant={isSystem7Theme ? "player" : "aqua_select"}
+                            variant={isMacOSTheme ? "aqua_select" : isSystem7Theme ? "player" : "default"}
                             onClick={addPreset}
                             className="h-[22px] px-2 text-[9px] select-none"
                           >
