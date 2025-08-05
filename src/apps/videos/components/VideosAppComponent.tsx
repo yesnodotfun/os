@@ -972,6 +972,7 @@ export function VideosAppComponent({
 
   const currentTheme = useThemeStore((state) => state.current);
   const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
+  const isMacOSTheme = currentTheme === "macosx";
 
   const menuBar = (
     <VideosMenuBar
@@ -1209,97 +1210,166 @@ export function VideosAppComponent({
             <div className="flex items-center justify-between videos-player-controls">
               {/* Left Side: Playback Controls */}
               <div className="flex items-center gap-2">
-                <div className="flex gap-0">
-                  <button
-                    onClick={previousVideo}
-                    className={cn(
-                      "flex items-center justify-center disabled:opacity-50 focus:outline-none",
-                      "hover:brightness-75 active:brightness-50"
-                    )}
-                    disabled={videos.length === 0}
-                  >
-                    <img
-                      src="/assets/videos/prev.png"
-                      alt="Previous"
-                      width={32}
-                      height={22}
-                      className="pointer-events-none"
-                    />
-                  </button>
-                  <button
-                    onClick={togglePlay}
-                    className={cn(
-                      "flex items-center justify-center disabled:opacity-50 focus:outline-none",
-                      "hover:brightness-75 active:brightness-50"
-                    )}
-                    disabled={videos.length === 0}
-                  >
-                    <img
-                      src={
-                        isPlaying
-                          ? "/assets/videos/pause.png"
-                          : "/assets/videos/play.png"
-                      }
-                      alt={isPlaying ? "Pause" : "Play"}
-                      width={50}
-                      height={22}
-                      className="pointer-events-none"
-                    />
-                  </button>
-                  <button
-                    onClick={nextVideo}
-                    className={cn(
-                      "flex items-center justify-center disabled:opacity-50 focus:outline-none",
-                      "hover:brightness-75 active:brightness-50"
-                    )}
-                    disabled={videos.length === 0}
-                  >
-                    <img
-                      src="/assets/videos/next.png"
-                      alt="Next"
-                      width={32}
-                      height={22}
-                      className="pointer-events-none"
-                    />
-                  </button>
-                </div>
+                {isMacOSTheme ? (
+                  <div className="flex gap-0 aqua-select-group">
+                    <Button
+                      onClick={previousVideo}
+                      variant="aqua_select"
+                      disabled={videos.length === 0}
+                      className="aqua-compact"
+                    >
+                      ⏮
+                    </Button>
+                    <Button
+                      onClick={togglePlay}
+                      variant="aqua_select"
+                      disabled={videos.length === 0}
+                      className="aqua-compact-wide"
+                    >
+                      {isPlaying ? "⏸" : "▶"}
+                    </Button>
+                    <Button
+                      onClick={nextVideo}
+                      variant="aqua_select"
+                      disabled={videos.length === 0}
+                      className="aqua-compact"
+                    >
+                      ⏭
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex gap-0">
+                    <button
+                      onClick={previousVideo}
+                      className={cn(
+                        "flex items-center justify-center disabled:opacity-50 focus:outline-none",
+                        "hover:brightness-75 active:brightness-50"
+                      )}
+                      disabled={videos.length === 0}
+                    >
+                      <img
+                        src="/assets/videos/prev.png"
+                        alt="Previous"
+                        width={32}
+                        height={22}
+                        className="pointer-events-none"
+                      />
+                    </button>
+                    <button
+                      onClick={togglePlay}
+                      className={cn(
+                        "flex items-center justify-center disabled:opacity-50 focus:outline-none",
+                        "hover:brightness-75 active:brightness-50"
+                      )}
+                      disabled={videos.length === 0}
+                    >
+                      <img
+                        src={
+                          isPlaying
+                            ? "/assets/videos/pause.png"
+                            : "/assets/videos/play.png"
+                        }
+                        alt={isPlaying ? "Pause" : "Play"}
+                        width={50}
+                        height={22}
+                        className="pointer-events-none"
+                      />
+                    </button>
+                    <button
+                      onClick={nextVideo}
+                      className={cn(
+                        "flex items-center justify-center disabled:opacity-50 focus:outline-none",
+                        "hover:brightness-75 active:brightness-50"
+                      )}
+                      disabled={videos.length === 0}
+                    >
+                      <img
+                        src="/assets/videos/next.png"
+                        alt="Next"
+                        width={32}
+                        height={22}
+                        className="pointer-events-none"
+                      />
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Right Side: Mode Switches */}
               <div className="flex items-center gap-2">
-                <div className="flex gap-0">
-                  <Button
-                    onClick={toggleShuffle}
-                    variant="player"
-                    data-state={isShuffled ? "on" : "off"}
-                    className="h-[22px] px-2"
-                  >
-                    SHUFFLE
-                  </Button>
-                  <Button
-                    onClick={() => setLoopAll(!loopAll)}
-                    variant="player"
-                    data-state={loopAll ? "on" : "off"}
-                    className="h-[22px] px-2"
-                  >
-                    REPEAT
-                  </Button>
-                  <Button
-                    onClick={() => setLoopCurrent(!loopCurrent)}
-                    variant="player"
-                    data-state={loopCurrent ? "on" : "off"}
-                    className="h-[22px] px-2"
-                  >
-                    {loopCurrent ? "↺" : "→"}
-                  </Button>
-                </div>
-                <Button
-                  onClick={() => setIsAddDialogOpen(true)}
-                  variant="player"
-                  className="h-[22px] px-2"
-                >
-                  ADD
-                </Button>
+                {isMacOSTheme ? (
+                  <>
+                    <div className="flex gap-0 aqua-select-group">
+                      <Button
+                        onClick={toggleShuffle}
+                        variant="aqua_select"
+                        data-state={isShuffled ? "on" : "off"}
+                        className="px-2 aqua-compact"
+                      >
+                        SHUFFLE
+                      </Button>
+                      <Button
+                        onClick={() => setLoopAll(!loopAll)}
+                        variant="aqua_select"
+                        data-state={loopAll ? "on" : "off"}
+                        className="px-2 aqua-compact"
+                      >
+                        REPEAT
+                      </Button>
+                      <Button
+                        onClick={() => setLoopCurrent(!loopCurrent)}
+                        variant="aqua_select"
+                        data-state={loopCurrent ? "on" : "off"}
+                        className="px-2 aqua-compact"
+                      >
+                        {loopCurrent ? "↺" : "→"}
+                      </Button>
+                    </div>
+                    <Button
+                      onClick={() => setIsAddDialogOpen(true)}
+                      variant="aqua_select"
+                      className="px-2 aqua-compact"
+                    >
+                      ADD
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex gap-0">
+                      <Button
+                        onClick={toggleShuffle}
+                        variant="player"
+                        data-state={isShuffled ? "on" : "off"}
+                        className="h-[22px] px-2"
+                      >
+                        SHUFFLE
+                      </Button>
+                      <Button
+                        onClick={() => setLoopAll(!loopAll)}
+                        variant="player"
+                        data-state={loopAll ? "on" : "off"}
+                        className="h-[22px] px-2"
+                      >
+                        REPEAT
+                      </Button>
+                      <Button
+                        onClick={() => setLoopCurrent(!loopCurrent)}
+                        variant="player"
+                        data-state={loopCurrent ? "on" : "off"}
+                        className="h-[22px] px-2"
+                      >
+                        {loopCurrent ? "↺" : "→"}
+                      </Button>
+                    </div>
+                    <Button
+                      onClick={() => setIsAddDialogOpen(true)}
+                      variant="player"
+                      className="h-[22px] px-2"
+                    >
+                      ADD
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </div>

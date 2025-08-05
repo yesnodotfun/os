@@ -984,7 +984,7 @@ export function SynthAppComponent({
                             currentPreset.id === preset.id ? "on" : "off"
                           }
                           onClick={() => loadPreset(preset)}
-                          className="px-2 whitespace-nowrap uppercase select-none"
+                          className="h-[22px] px-2 whitespace-nowrap uppercase select-none"
                         >
                           {preset.name}
                         </Button>

@@ -105,10 +105,14 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
     // macOS Aqua Select-look variant (matches macOS select trigger styling)
     if (isMacTheme && variant === "aqua_select") {
+      const dataState = (props as Record<string, unknown>)["data-state"];
+      const ariaPressed = (props as Record<string, unknown>)["aria-pressed"];
+      const isActiveSelected = dataState === "on" || ariaPressed === true;
       return (
         <Comp
           className={cn(
             "macos-select-trigger no-chevron aqua-select-btn inline-flex w-auto items-center justify-center whitespace-nowrap rounded px-2 py-1 text-sm gap-0",
+            isActiveSelected && "aqua-selected",
             className
           )}
           ref={ref}
@@ -124,18 +128,23 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             boxSizing: "border-box",
             WebkitFontSmoothing: "antialiased",
             background: isPressed
-              ? "linear-gradient(rgba(140, 140, 140, 0.625), rgba(235, 235, 235, 0.625))"
+              ? "linear-gradient(#9e9e9e, #cbcbcb)"
+              : isActiveSelected
+              ? "linear-gradient(rgb(145 153 156 / 91%), rgb(184 188 192 / 80%))"
               : "linear-gradient(rgba(160, 160, 160, 0.625), rgba(255, 255, 255, 0.625))",
             boxShadow: isPressed
-              ? "inset 0 1px 2px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.2)"
+              ? "inset 0 1px 2px rgba(0, 0, 0, 0.35), inset 0 1px 1px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.25)"
               : isFocused
               ? "0 2px 3px rgba(0, 0, 0, 0.2), 0 1px 1px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 0, 0, 0.3), 0 0 3px var(--os-color-selection-glow)"
+              : isActiveSelected
+              ? "0 2px 3px rgba(0,0,0,0.22), 0 1px 1px rgba(0,0,0,0.32), 0 0 0 1px rgba(0,0,0,0.42)"
               : "0 2px 3px rgba(0, 0, 0, 0.2), 0 1px 1px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 0, 0, 0.3)",
             color: "black",
             textShadow: "0 2px 3px rgba(0, 0, 0, 0.25)",
             paddingRight: "8px",
             paddingLeft: "8px",
             fontSize: "13px",
+            ...(props.style as React.CSSProperties),
           }}
           onClick={handleClick}
           onFocus={(e) => {

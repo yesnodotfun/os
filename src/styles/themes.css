@@ -717,6 +717,29 @@
   border-top-right-radius: 5px !important;
 }
 
+/* Compact Aqua select button widths for grouped playback controls */
+:root[data-os-theme="macosx"] .aqua-select-btn.aqua-compact {
+  min-width: 36px !important;
+  padding-left: 6px !important;
+  padding-right: 6px !important;
+}
+
+:root[data-os-theme="macosx"] .aqua-select-btn.aqua-compact-wide {
+  min-width: 42px !important;
+  padding-left: 6px !important;
+  padding-right: 6px !important;
+}
+
+/* Selected state visual for Aqua select buttons (darker gradient + stronger outline) */
+:root[data-os-theme="macosx"] .aqua-select-btn.aqua-selected {
+  background: linear-gradient(
+    rgb(145 153 156 / 91%),
+    rgb(184 188 192 / 80%)
+  ) !important;
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.22), 0 1px 1px rgba(0, 0, 0, 0.32),
+    0 0 0 1px rgba(0, 0, 0, 0.42) !important;
+}
+
 :root[data-os-theme="macosx"] select:focus {
   box-shadow: 0 2px 3px rgba(0, 0, 0, 0.2), 0 1px 1px rgba(0, 0, 0, 0.3),
     0 0 0 1px rgba(0, 0, 0, 0.3), 0 0 3px var(--os-color-selection-glow);
