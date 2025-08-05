@@ -707,14 +707,14 @@
 :root[data-os-theme="macosx"]
   .aqua-select-group
   .aqua-select-btn:first-child::before {
-  border-top-left-radius: 5px !important;
+  border-top-left-radius: 6px !important;
   border-top-right-radius: 0 !important;
 }
 :root[data-os-theme="macosx"]
   .aqua-select-group
   .aqua-select-btn:last-child::before {
   border-top-left-radius: 0 !important;
-  border-top-right-radius: 5px !important;
+  border-top-right-radius: 6px !important;
 }
 
 /* Compact Aqua select button widths for grouped playback controls */
