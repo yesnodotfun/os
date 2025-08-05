@@ -1216,25 +1216,25 @@ export function VideosAppComponent({
                       onClick={previousVideo}
                       variant="aqua_select"
                       disabled={videos.length === 0}
-                      className="aqua-compact"
+                      className="aqua-compact font-chicago"
                     >
-                      ⏮
+                      <span className="translate-y-[2px] inline-block">⏮</span>
                     </Button>
                     <Button
                       onClick={togglePlay}
                       variant="aqua_select"
                       disabled={videos.length === 0}
-                      className="aqua-compact-wide"
+                      className="aqua-compact-wide font-chicago"
                     >
-                      {isPlaying ? "⏸" : "▶"}
+                      <span className="translate-y-[2px] inline-block">{isPlaying ? "⏸" : "▶"}</span>
                     </Button>
                     <Button
                       onClick={nextVideo}
                       variant="aqua_select"
                       disabled={videos.length === 0}
-                      className="aqua-compact"
+                      className="aqua-compact font-chicago"
                     >
-                      ⏭
+                      <span className="translate-y-[2px] inline-block">⏭</span>
                     </Button>
                   </div>
                 ) : (
