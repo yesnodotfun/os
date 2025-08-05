@@ -685,6 +685,16 @@
   height: 0 !important;
 }
 
+/* Default border radius for standalone aqua-select buttons */
+:root[data-os-theme="macosx"] .aqua-select-btn {
+  border-radius: 6px !important;
+}
+
+/* Ensure the gloss effect matches the border radius for standalone buttons */
+:root[data-os-theme="macosx"] .aqua-select-btn:before {
+  border-radius: 5px 5px 2px 2px !important;
+}
+
 /* Button group styling for aqua-select buttons: only first/last rounded */
 :root[data-os-theme="macosx"] .aqua-select-group .aqua-select-btn {
   border-radius: 0 !important;
