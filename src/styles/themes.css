@@ -677,6 +677,46 @@
   z-index: 2;
 }
 
+/* Suppress arrow for aqua-select-styled buttons that opt out */
+:root[data-os-theme="macosx"] .macos-select-trigger.no-chevron::after {
+  content: none !important;
+  background: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Button group styling for aqua-select buttons: only first/last rounded */
+:root[data-os-theme="macosx"] .aqua-select-group .aqua-select-btn {
+  border-radius: 0 !important;
+}
+:root[data-os-theme="macosx"] .aqua-select-group .aqua-select-btn:first-child {
+  border-top-left-radius: 6px !important;
+  border-bottom-left-radius: 6px !important;
+}
+:root[data-os-theme="macosx"] .aqua-select-group .aqua-select-btn:last-child {
+  border-top-right-radius: 6px !important;
+  border-bottom-right-radius: 6px !important;
+}
+
+/* Match aqua select top gloss ::before to grouped corners */
+:root[data-os-theme="macosx"] .aqua-select-group .aqua-select-btn::before {
+  /* middle buttons: no top rounding */
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+}
+:root[data-os-theme="macosx"]
+  .aqua-select-group
+  .aqua-select-btn:first-child::before {
+  border-top-left-radius: 5px !important;
+  border-top-right-radius: 0 !important;
+}
+:root[data-os-theme="macosx"]
+  .aqua-select-group
+  .aqua-select-btn:last-child::before {
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 5px !important;
+}
+
 :root[data-os-theme="macosx"] select:focus {
   box-shadow: 0 2px 3px rgba(0, 0, 0, 0.2), 0 1px 1px rgba(0, 0, 0, 0.3),
     0 0 0 1px rgba(0, 0, 0, 0.3), 0 0 3px var(--os-color-selection-glow);

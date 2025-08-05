@@ -974,17 +974,17 @@ export function SynthAppComponent({
                   </div>
 
                   {/* Desktop preset buttons */}
-                  <div className="hidden md:flex gap-0 overflow-x-auto">
+                  <div className="hidden md:flex gap-0 aqua-select-group">
                     {presets.length > 0 ? (
                       presets.map((preset) => (
                         <Button
                           key={preset.id}
-                          variant="player"
+                          variant={isSystem7Theme ? "player" : "aqua_select"}
                           data-state={
                             currentPreset.id === preset.id ? "on" : "off"
                           }
                           onClick={() => loadPreset(preset)}
-                          className="h-[22px] px-2 whitespace-nowrap uppercase select-none"
+                          className="px-2 whitespace-nowrap uppercase select-none"
                         >
                           {preset.name}
                         </Button>
@@ -996,9 +996,9 @@ export function SynthAppComponent({
                     )}
                   </div>
                 </div>
-                <div className="flex gap-0">
+                <div className="flex gap-0 aqua-select-group">
                   <Button
-                    variant="player"
+                    variant={isSystem7Theme ? "player" : "aqua_select"}
                     onClick={() =>
                       setOctaveOffset((prev) => {
                         const next = Math.max(-2, prev - 1);
@@ -1011,7 +1011,7 @@ export function SynthAppComponent({
                     &lt;
                   </Button>
                   <Button
-                    variant="player"
+                    variant={isSystem7Theme ? "player" : "aqua_select"}
                     onClick={() =>
                       setOctaveOffset((prev) => {
                         const next = Math.min(2, prev + 1);
@@ -1024,7 +1024,7 @@ export function SynthAppComponent({
                     &gt;
                   </Button>
                   <Button
-                    variant="player"
+                    variant={isSystem7Theme ? "player" : "aqua_select"}
                     onClick={() => setIsControlsVisible(!isControlsVisible)}
                     className="h-[22px] px-2 select-none"
                   >

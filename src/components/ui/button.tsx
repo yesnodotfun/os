@@ -25,6 +25,8 @@ const buttonVariants = cva(
         aqua: "aqua-button secondary text-sm h-auto px-4 py-2 min-w-0 transform-none m-0",
         player:
           "text-[9px] flex items-center justify-center focus:outline-none relative min-w-[45px] h-[20px] border border-solid border-transparent [border-image:url('/assets/videos/switch.png')_1_fill] [border-image-slice:1] bg-none font-geneva-12 text-black hover:brightness-90 active:brightness-50 [&[data-state=on]]:brightness-60",
+        aqua_select:
+          "text-sm h-[24px] px-2 py-1 min-w-[60px] inline-flex items-center justify-between",
       },
       size: {
         default: "h-9 px-4 py-2",
@@ -53,6 +55,9 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const currentTheme = useThemeStore((state) => state.current);
     const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
     const isMacTheme = currentTheme === "macosx";
+
+    const [isFocused, setIsFocused] = React.useState(false);
+    const [isPressed, setIsPressed] = React.useState(false);
 
     const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
       playButtonClick();
@@ -98,9 +103,81 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       );
     }
 
+    // macOS Aqua Select-look variant (matches macOS select trigger styling)
+    if (isMacTheme && variant === "aqua_select") {
+      return (
+        <Comp
+          className={cn(
+            "macos-select-trigger no-chevron aqua-select-btn inline-flex w-auto items-center justify-center whitespace-nowrap rounded px-2 py-1 text-sm gap-0",
+            className
+          )}
+          ref={ref}
+          style={{
+            position: "relative",
+            zIndex: 1,
+            height: "22px",
+            lineHeight: 1.5,
+            minWidth: "60px",
+            overflow: "hidden",
+            cursor: "default",
+            border: "none",
+            boxSizing: "border-box",
+            WebkitFontSmoothing: "antialiased",
+            background: isPressed
+              ? "linear-gradient(rgba(140, 140, 140, 0.625), rgba(235, 235, 235, 0.625))"
+              : "linear-gradient(rgba(160, 160, 160, 0.625), rgba(255, 255, 255, 0.625))",
+            boxShadow: isPressed
+              ? "inset 0 1px 2px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.2)"
+              : isFocused
+              ? "0 2px 3px rgba(0, 0, 0, 0.2), 0 1px 1px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 0, 0, 0.3), 0 0 3px var(--os-color-selection-glow)"
+              : "0 2px 3px rgba(0, 0, 0, 0.2), 0 1px 1px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 0, 0, 0.3)",
+            color: "black",
+            textShadow: "0 2px 3px rgba(0, 0, 0, 0.25)",
+            paddingRight: "8px",
+            paddingLeft: "8px",
+            fontSize: "13px",
+          }}
+          onClick={handleClick}
+          onFocus={(e) => {
+            setIsFocused(true);
+            props.onFocus?.(e);
+          }}
+          onBlur={(e) => {
+            setIsFocused(false);
+            props.onBlur?.(e);
+          }}
+          onMouseDown={(e) => {
+            setIsPressed(true);
+            props.onMouseDown?.(e);
+          }}
+          onMouseUp={(e) => {
+            setIsPressed(false);
+            props.onMouseUp?.(e);
+          }}
+          onMouseLeave={(e) => {
+            setIsPressed(false);
+            props.onMouseLeave?.(e);
+          }}
+          {...props}
+        />
+      );
+    }
+
     // For XP/Win98 themes, use xp.css button class only for default variant
     // Ghost variant should maintain its clean appearance for menubars
     if (isXpTheme && variant === "default") {
+      return (
+        <Comp
+          className={cn("button", className)}
+          ref={ref}
+          {...props}
+          onClick={handleClick}
+        />
+      );
+    }
+
+    // XP/Win98 fallback for aqua-select: use classic button
+    if (isXpTheme && variant === "aqua_select") {
       return (
         <Comp
           className={cn("button", className)}
