@@ -1217,27 +1217,24 @@ export function VideosAppComponent({
                       variant="aqua_select"
                       disabled={videos.length === 0}
                       className="aqua-compact font-chicago"
-                      style={{ paddingTop: "7px", paddingBottom: "1px" }}
                     >
-                      ⏮
+                      <span className="translate-y-[2px] inline-block">⏮</span>
                     </Button>
                     <Button
                       onClick={togglePlay}
                       variant="aqua_select"
                       disabled={videos.length === 0}
                       className="aqua-compact-wide font-chicago"
-                      style={{ paddingTop: "7px", paddingBottom: "1px" }}
                     >
-                      {isPlaying ? "⏸" : "▶"}
+                      <span className="translate-y-[2px] inline-block">{isPlaying ? "⏸" : "▶"}</span>
                     </Button>
                     <Button
                       onClick={nextVideo}
                       variant="aqua_select"
                       disabled={videos.length === 0}
                       className="aqua-compact font-chicago"
-                      style={{ paddingTop: "7px", paddingBottom: "1px" }}
                     >
-                      ⏭
+                      <span className="translate-y-[2px] inline-block">⏭</span>
                     </Button>
                   </div>
                 ) : (
