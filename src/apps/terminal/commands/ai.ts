@@ -1,4 +1,4 @@
-import { Command, CommandContext, CommandResult } from "../types";
+import { Command, CommandResult } from "../types";
 import { useTerminalStore } from "@/stores/useTerminalStore";
 import { useChatsStore } from "@/stores/useChatsStore";
 import { track } from "@vercel/analytics";
@@ -15,7 +15,7 @@ export const aiCommand: Command = {
   name: "ai",
   description: "Enter AI chat mode with ryo",
   usage: "ai [initial prompt]",
-  handler: (args: string[], context: CommandContext): CommandResult => {
+  handler: (args: string[]): CommandResult => {
     // Get terminal store instance
     const terminalStore = useTerminalStore.getState();
     
