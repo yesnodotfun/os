@@ -2,6 +2,7 @@ import { experimental_generateSpeech as generateSpeech } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { getEffectiveOrigin, isAllowedOrigin, preflightIfNeeded } from "./utils/cors.js";
 import * as RateLimit from "./utils/rate-limit";
+import { Redis } from "@upstash/redis";
 
 // --- Default Configuration -----------------------------------------------
 
@@ -44,6 +45,47 @@ const logError = (id: string, message: string, error: unknown) => {
 
 const generateRequestId = (): string =>
   Math.random().toString(36).substring(2, 10);
+
+// Redis client setup
+const redis = new Redis({
+  url: process.env.REDIS_KV_REST_API_URL,
+  token: process.env.REDIS_KV_REST_API_TOKEN,
+});
+
+// Authentication constants
+const AUTH_TOKEN_PREFIX = "chat:token:";
+const TOKEN_LAST_PREFIX = "chat:token:last:";
+const USER_TTL_SECONDS = 90 * 24 * 60 * 60; // 90 days (for tokens only)
+
+// Validate authentication token function
+async function validateAuthToken(
+  username: string | undefined | null,
+  authToken: string | undefined | null
+): Promise<{ valid: boolean; newToken?: string }> {
+  if (!username || !authToken) {
+    return { valid: false };
+  }
+
+  const normalizedUsername = username.toLowerCase();
+  // 1) New multi-token scheme: chat:token:user:{username}:{token}
+  const userScopedKey = `chat:token:user:${normalizedUsername}:${authToken}`;
+  const exists = await redis.exists(userScopedKey);
+  if (exists) {
+    await redis.expire(userScopedKey, USER_TTL_SECONDS);
+    return { valid: true };
+  }
+
+  // 2) Fallback to legacy single-token mapping (username -> token)
+  const legacyKey = `${AUTH_TOKEN_PREFIX}${normalizedUsername}`;
+  const storedToken = await redis.get(legacyKey);
+
+  if (storedToken && storedToken === authToken) {
+    await redis.expire(legacyKey, USER_TTL_SECONDS);
+    return { valid: true };
+  }
+
+  return { valid: false };
+}
 
 export const runtime = "edge";
 export const maxDuration = 60;
@@ -147,76 +189,102 @@ export default async function handler(req: Request) {
   }
 
   // ---------------------------
+  // Authentication extraction
+  // ---------------------------
+  const authHeaderInitial = req.headers.get("authorization");
+  const headerAuthToken =
+    authHeaderInitial && authHeaderInitial.startsWith("Bearer ")
+      ? authHeaderInitial.substring(7)
+      : null;
+  const headerUsername = req.headers.get("x-username");
+
+  const username = headerUsername || null;
+  const authToken: string | undefined = headerAuthToken || undefined;
+
+  // Validate authentication
+  const validationResult = await validateAuthToken(username, authToken);
+  const isAuthenticated = validationResult.valid;
+  const identifier = username ? username.toLowerCase() : null;
+
+  // Check if this is ryo with valid authentication
+  const isAuthenticatedRyo = isAuthenticated && identifier === "ryo";
+
+  // ---------------------------
   // Rate limiting (burst + daily)
   // ---------------------------
   try {
-    const ip = RateLimit.getClientIp(req);
-    const BURST_WINDOW = 60; // 1 minute
-    const BURST_LIMIT = 10;
-    const DAILY_WINDOW = 60 * 60 * 24; // 1 day
-    const DAILY_LIMIT = 50; // treat all as anon for now
+    // Skip rate limiting for authenticated ryo user
+    if (!isAuthenticatedRyo) {
+      const ip = RateLimit.getClientIp(req);
+      const BURST_WINDOW = 60; // 1 minute
+      const BURST_LIMIT = 10;
+      const DAILY_WINDOW = 60 * 60 * 24; // 1 day
+      const DAILY_LIMIT = 50; // treat all as anon for now
 
-    const burstKey = RateLimit.makeKey(["rl", "tts", "burst", "ip", ip]);
-    const dailyKey = RateLimit.makeKey(["rl", "tts", "daily", "ip", ip]);
+      const burstKey = RateLimit.makeKey(["rl", "tts", "burst", "ip", ip]);
+      const dailyKey = RateLimit.makeKey(["rl", "tts", "daily", "ip", ip]);
 
-    const burst = await RateLimit.checkCounterLimit({
-      key: burstKey,
-      windowSeconds: BURST_WINDOW,
-      limit: BURST_LIMIT,
-    });
+      const burst = await RateLimit.checkCounterLimit({
+        key: burstKey,
+        windowSeconds: BURST_WINDOW,
+        limit: BURST_LIMIT,
+      });
 
-    if (!burst.allowed) {
-      return new Response(
-        JSON.stringify({
-          error: "rate_limit_exceeded",
-          scope: "burst",
-          limit: burst.limit,
-          windowSeconds: burst.windowSeconds,
-          resetSeconds: burst.resetSeconds,
-          identifier: `ip:${ip}`,
-        }),
-        {
-          status: 429,
-          headers: {
-            "Retry-After": String(burst.resetSeconds ?? BURST_WINDOW),
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": effectiveOrigin!,
-            "X-RateLimit-Limit": String(burst.limit),
-            "X-RateLimit-Remaining": String(Math.max(0, burst.limit - burst.count)),
-            "X-RateLimit-Reset": String(burst.resetSeconds ?? BURST_WINDOW),
-          },
-        }
-      );
-    }
+      if (!burst.allowed) {
+        return new Response(
+          JSON.stringify({
+            error: "rate_limit_exceeded",
+            scope: "burst",
+            limit: burst.limit,
+            windowSeconds: burst.windowSeconds,
+            resetSeconds: burst.resetSeconds,
+            identifier: `ip:${ip}`,
+          }),
+          {
+            status: 429,
+            headers: {
+              "Retry-After": String(burst.resetSeconds ?? BURST_WINDOW),
+              "Content-Type": "application/json",
+              "Access-Control-Allow-Origin": effectiveOrigin!,
+              "X-RateLimit-Limit": String(burst.limit),
+              "X-RateLimit-Remaining": String(Math.max(0, burst.limit - burst.count)),
+              "X-RateLimit-Reset": String(burst.resetSeconds ?? BURST_WINDOW),
+            },
+          }
+        );
+      }
 
-    const daily = await RateLimit.checkCounterLimit({
-      key: dailyKey,
-      windowSeconds: DAILY_WINDOW,
-      limit: DAILY_LIMIT,
-    });
+      const daily = await RateLimit.checkCounterLimit({
+        key: dailyKey,
+        windowSeconds: DAILY_WINDOW,
+        limit: DAILY_LIMIT,
+      });
 
-    if (!daily.allowed) {
-      return new Response(
-        JSON.stringify({
-          error: "rate_limit_exceeded",
-          scope: "daily",
-          limit: daily.limit,
-          windowSeconds: daily.windowSeconds,
-          resetSeconds: daily.resetSeconds,
-          identifier: `ip:${ip}`,
-        }),
-        {
-          status: 429,
-          headers: {
-            "Retry-After": String(daily.resetSeconds ?? DAILY_WINDOW),
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": effectiveOrigin!,
-            "X-RateLimit-Limit": String(daily.limit),
-            "X-RateLimit-Remaining": String(Math.max(0, daily.limit - daily.count)),
-            "X-RateLimit-Reset": String(daily.resetSeconds ?? DAILY_WINDOW),
-          },
-        }
-      );
+      if (!daily.allowed) {
+        return new Response(
+          JSON.stringify({
+            error: "rate_limit_exceeded",
+            scope: "daily",
+            limit: daily.limit,
+            windowSeconds: daily.windowSeconds,
+            resetSeconds: daily.resetSeconds,
+            identifier: `ip:${ip}`,
+          }),
+          {
+            status: 429,
+            headers: {
+              "Retry-After": String(daily.resetSeconds ?? DAILY_WINDOW),
+              "Content-Type": "application/json",
+              "Access-Control-Allow-Origin": effectiveOrigin!,
+              "X-RateLimit-Limit": String(daily.limit),
+              "X-RateLimit-Remaining": String(Math.max(0, daily.limit - daily.count)),
+              "X-RateLimit-Reset": String(daily.resetSeconds ?? DAILY_WINDOW),
+            },
+          }
+        );
+      }
+    } else {
+      logInfo(requestId, "Rate limit bypassed for authenticated ryo user");
     }
   } catch (e) {
     // Fail open but log; do not block TTS if limiter errors
