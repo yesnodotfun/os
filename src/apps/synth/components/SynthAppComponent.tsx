@@ -67,59 +67,37 @@ const StatusDisplay: React.FC<{ message: string | null }> = ({ message }) => {
   );
 };
 
-// Piano key component
+// Piano key component (uses Pointer Events for unified mouse/touch handling)
 const PianoKey: React.FC<{
   note: string;
   isBlack?: boolean;
   isPressed?: boolean;
-  onPress: (note: string) => void;
-  onRelease: (note: string) => void;
+  onPointerDownKey: (note: string, e: React.PointerEvent<HTMLButtonElement>) => void;
+  onPointerEnterKey: (note: string, e: React.PointerEvent<HTMLButtonElement>) => void;
+  onPointerUpKey: (note: string, e: React.PointerEvent<HTMLButtonElement>) => void;
   labelType: NoteLabelType;
   keyMap: Record<string, string>;
-  allowDragPlay?: boolean;
   isSystem7Theme?: boolean;
 }> = ({
   note,
   isBlack = false,
   isPressed = false,
-  onPress,
-  onRelease,
+  onPointerDownKey,
+  onPointerEnterKey,
+  onPointerUpKey,
   labelType,
   keyMap,
-  allowDragPlay = true,
   isSystem7Theme = false,
 }) => {
-  const handleMouseDown = () => {
-    onPress(note);
-  };
-
-  const handleMouseUp = () => {
-    onRelease(note);
-  };
-
-  const handleMouseEnter = (e: React.MouseEvent) => {
-    if (allowDragPlay && e.buttons === 1) {
-      onPress(note);
-    }
-  };
-
-  const handleMouseLeave = (e: React.MouseEvent) => {
-    if (allowDragPlay && e.buttons === 1) {
-      onRelease(note);
-    }
-  };
-
   // Get the appropriate label based on labelType
   const getKeyLabel = () => {
     if (labelType === "off") return "";
     if (labelType === "key") {
-      // Find the keyboard key for this note
       const keyboardKey = Object.entries(keyMap).find(
         ([, noteValue]) => noteValue === note
       )?.[0];
       return keyboardKey ? keyboardKey.toUpperCase() : "";
     }
-    // Keep note labels static regardless of octaveOffset
     return note;
   };
 
@@ -142,10 +120,10 @@ const PianoKey: React.FC<{
               isPressed ? "bg-[#ff33ff]" : "bg-white hover:bg-[#f5f5f5]"
             )
       )}
-      onMouseDown={handleMouseDown}
-      onMouseUp={handleMouseUp}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      onPointerDown={(e) => onPointerDownKey(note, e)}
+      onPointerEnter={(e) => onPointerEnterKey(note, e)}
+      onPointerUp={(e) => onPointerUpKey(note, e)}
+      onContextMenu={(e) => e.preventDefault()}
     >
       {label && (
         <span
@@ -210,16 +188,12 @@ export function SynthAppComponent({
   // Presets and currentPreset are now loaded from persisted Zustand store
 
   const [pressedNotes, setPressedNotes] = useState<Record<string, boolean>>({});
-  const [activeTouches, setActiveTouches] = useState<Record<string, string>>(
-    {}
-  );
-  // Track if current mouse drag originated inside the keyboard area
-  const [dragFromKeyboard, setDragFromKeyboard] = useState(false);
-  // Keep a ref in sync with `activeTouches` so external event listeners always have current data
-  const activeTouchesRef = useRef<Record<string, string>>({});
+  // Active pointerId -> note mapping for unified mouse/touch handling
+  const [activePointers, setActivePointers] = useState<Record<number, string>>({});
+  const activePointersRef = useRef<Record<number, string>>({});
   useEffect(() => {
-    activeTouchesRef.current = activeTouches;
-  }, [activeTouches]);
+    activePointersRef.current = activePointers;
+  }, [activePointers]);
   // Use UI sound for interface feedback
   const { play } = useSound(Sounds.CLICK);
 
@@ -540,7 +514,7 @@ export function SynthAppComponent({
     if (!synthRef.current) {
       activeShiftedNotesRef.current = {};
       setPressedNotes({});
-      setActiveTouches({});
+      setActivePointers({});
       return;
     }
 
@@ -554,7 +528,7 @@ export function SynthAppComponent({
     }
     activeShiftedNotesRef.current = {};
     setPressedNotes({});
-    setActiveTouches({});
+    setActivePointers({});
   }, []);
 
   // Status message display
@@ -827,55 +801,28 @@ export function SynthAppComponent({
     }
   }, []);
 
-  // Ensure all touches are released even if they end outside the keyboard area
+  // Ensure all pointers are released even if they end outside a key
   useEffect(() => {
     if (!isWindowOpen) return;
-
-    const handleGlobalTouchEnd = (e: TouchEvent) => {
-      const endedTouches = Array.from(e.changedTouches);
-
-      setActiveTouches((prev) => {
-        let newTouches = { ...prev };
-
-        endedTouches.forEach((touch) => {
-          const note = newTouches[touch.identifier];
-          if (note) {
-            releaseNote(note);
-            delete newTouches[touch.identifier];
-          }
+    const handlePointerEnd = (e: PointerEvent) => {
+      const pointerId = e.pointerId;
+      const note = activePointersRef.current[pointerId];
+      if (note) {
+        releaseNote(note);
+        setActivePointers((prev) => {
+          const copy = { ...prev };
+          delete copy[pointerId];
+          return copy;
         });
-
-        // If there are no remaining touches on the screen, ensure all notes are released
-        if (e.touches.length === 0) {
-          Object.values(newTouches).forEach((note) => releaseNote(note));
-          newTouches = {};
-        }
-
-        return newTouches;
-      });
+      }
     };
-
-    // Use non-passive listener so we can call preventDefault if desired (matching component handlers)
-    document.addEventListener("touchend", handleGlobalTouchEnd, {
-      passive: false,
-    });
-    document.addEventListener("touchcancel", handleGlobalTouchEnd, {
-      passive: false,
-    });
-
+    window.addEventListener("pointerup", handlePointerEnd);
+    window.addEventListener("pointercancel", handlePointerEnd);
     return () => {
-      document.removeEventListener("touchend", handleGlobalTouchEnd);
-      document.removeEventListener("touchcancel", handleGlobalTouchEnd);
+      window.removeEventListener("pointerup", handlePointerEnd);
+      window.removeEventListener("pointercancel", handlePointerEnd);
     };
   }, [isWindowOpen, releaseNote]);
-
-  // Ensure drag-origin is cleared when mouse is released anywhere
-  useEffect(() => {
-    if (!isWindowOpen) return;
-    const onMouseUp = () => setDragFromKeyboard(false);
-    window.addEventListener("mouseup", onMouseUp);
-    return () => window.removeEventListener("mouseup", onMouseUp);
-  }, [isWindowOpen]);
 
   const currentTheme = useThemeStore((state) => state.current);
   const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
@@ -1526,126 +1473,8 @@ export function SynthAppComponent({
 
             {/* Keyboard - fixed at bottom */}
             <div className="flex-grow flex flex-col justify-end min-h-[160px] bg-black p-4 w-full">
-              <div
-                className="relative h-full w-full"
-                onMouseDown={() => setDragFromKeyboard(true)}
-                onMouseUp={() => setDragFromKeyboard(false)}
-                onTouchStart={(e) => {
-                  e.preventDefault(); // Prevent scrolling while playing
-                  // Handle all touches
-                  Array.from(e.touches).forEach((touch) => {
-                    const elementUnderTouch = document.elementFromPoint(
-                      touch.clientX,
-                      touch.clientY
-                    ) as HTMLElement;
-
-                    const keyElement =
-                      elementUnderTouch?.closest("button[data-note]");
-                    if (!keyElement) return;
-
-                    const noteAttr = keyElement.getAttribute("data-note");
-                    if (noteAttr) {
-                      // Only add to activeTouches if note isn't already playing
-                      if (!activeTouches[touch.identifier]) {
-                        setActiveTouches((prev) => ({
-                          ...prev,
-                          [touch.identifier]: noteAttr,
-                        }));
-                        pressNote(noteAttr);
-                      }
-                    }
-                  });
-                }}
-                onTouchMove={(e) => {
-                  e.preventDefault(); // Prevent scrolling while playing
-                  // Handle all touches
-                  Array.from(e.touches).forEach((touch) => {
-                    const elementUnderTouch = document.elementFromPoint(
-                      touch.clientX,
-                      touch.clientY
-                    ) as HTMLElement;
-
-                    const keyElement =
-                      elementUnderTouch?.closest("button[data-note]");
-                    const currentNote = activeTouches[touch.identifier];
-
-                    if (keyElement) {
-                      const noteAttr = keyElement.getAttribute("data-note");
-                      if (noteAttr && noteAttr !== currentNote) {
-                        // Release the previous note if it's different
-                        if (currentNote) {
-                          releaseNote(currentNote);
-                        }
-                        // Store and play the new note
-                        setActiveTouches((prev) => ({
-                          ...prev,
-                          [touch.identifier]: noteAttr,
-                        }));
-                        pressNote(noteAttr);
-                      }
-                    } else {
-                      // If we're not over a key, release the current note
-                      if (currentNote) {
-                        releaseNote(currentNote);
-                        setActiveTouches((prev) => {
-                          const newTouches = { ...prev };
-                          delete newTouches[touch.identifier];
-                          return newTouches;
-                        });
-                      }
-                    }
-                  });
-                }}
-                onTouchEnd={(e) => {
-                  e.preventDefault(); // Prevent scrolling while playing
-                  // Release notes for ended touches
-                  const endedTouches = Array.from(e.changedTouches);
-                  endedTouches.forEach((touch) => {
-                    const note = activeTouches[touch.identifier];
-                    if (note) {
-                      releaseNote(note);
-                      setActiveTouches((prev) => {
-                        const newTouches = { ...prev };
-                        delete newTouches[touch.identifier];
-                        return newTouches;
-                      });
-                    }
-                  });
-
-                  // Safety check: ensure all touch identifiers in changedTouches are removed
-                  if (e.touches.length === 0) {
-                    // If no touches remain on the screen, release ALL active touches
-                    Object.entries(activeTouches).forEach(([, note]) => {
-                      releaseNote(note);
-                    });
-                    setActiveTouches({});
-                  }
-                }}
-                onTouchCancel={(e) => {
-                  e.preventDefault(); // Prevent scrolling while playing
-                  // Release notes for cancelled touches
-                  const cancelledTouches = Array.from(e.changedTouches);
-                  cancelledTouches.forEach((touch) => {
-                    const note = activeTouches[touch.identifier];
-                    if (note) {
-                      releaseNote(note);
-                      setActiveTouches((prev) => {
-                        const newTouches = { ...prev };
-                        delete newTouches[touch.identifier];
-                        return newTouches;
-                      });
-                    }
-                  });
-
-                  // Safety check: if this was the last touch, clear all active touches
-                  if (e.touches.length === 0) {
-                    Object.entries(activeTouches).forEach(([, note]) => {
-                      releaseNote(note);
-                    });
-                    setActiveTouches({});
-                  }
-                }}
-              >
+              <div className="relative h-full w-full">
+                {/* Keyboard */}
                 {/* White keys container */}
                 <div className="absolute inset-0 h-full flex w-full">
                   {whiteKeys.map((note) => (
@@ -1653,11 +1482,44 @@ export function SynthAppComponent({
                       <PianoKey
                         note={note}
                         isPressed={pressedNotes[note]}
-                        onPress={pressNote}
-                        onRelease={releaseNote}
+                        onPointerDownKey={(n, e) => {
+                          e.preventDefault();
+                          const existing = activePointersRef.current[e.pointerId];
+                          if (existing && existing !== n) {
+                            releaseNote(existing);
+                          }
+                          pressNote(n);
+                          setActivePointers((prev) => ({ ...prev, [e.pointerId]: n }));
+                        }}
+                        onPointerEnterKey={(n, e) => {
+                          const isMousePrimaryDown = (e.pointerType === 'mouse') && ((e.buttons & 1) === 1);
+                          const isTouchActive = e.pointerType === 'touch' && activePointersRef.current[e.pointerId] !== undefined;
+                          if (!isMousePrimaryDown && !isTouchActive) return;
+                          const current = activePointersRef.current[e.pointerId];
+                          if (current !== n) {
+                            if (current) {
+                              releaseNote(current);
+                            }
+                            pressNote(n);
+                            setActivePointers((prev) => ({ ...prev, [e.pointerId]: n }));
+                          }
+                        }}
+                        onPointerUpKey={(n, e) => {
+                          const current = activePointersRef.current[e.pointerId];
+                          if (current) {
+                            releaseNote(current);
+                            setActivePointers((prev) => {
+                              const copy = { ...prev } as Record<number, string>;
+                              delete copy[e.pointerId];
+                              return copy;
+                            });
+                          } else {
+                            // fallback
+                            releaseNote(n);
+                          }
+                        }}
                         labelType={labelType}
                         keyMap={keyToNoteMap}
-                        allowDragPlay={dragFromKeyboard}
                         isSystem7Theme={isSystem7Theme}
                       />
                     </div>
@@ -1688,11 +1550,43 @@ export function SynthAppComponent({
                               note={note}
                               isBlack
                               isPressed={pressedNotes[note]}
-                              onPress={pressNote}
-                              onRelease={releaseNote}
+                              onPointerDownKey={(n, e) => {
+                                e.preventDefault();
+                                const existing = activePointersRef.current[e.pointerId];
+                                if (existing && existing !== n) {
+                                  releaseNote(existing);
+                                }
+                                pressNote(n);
+                                setActivePointers((prev) => ({ ...prev, [e.pointerId]: n }));
+                              }}
+                              onPointerEnterKey={(n, e) => {
+                                const isMousePrimaryDown = (e.pointerType === 'mouse') && ((e.buttons & 1) === 1);
+                                const isTouchActive = e.pointerType === 'touch' && activePointersRef.current[e.pointerId] !== undefined;
+                                if (!isMousePrimaryDown && !isTouchActive) return;
+                                const current = activePointersRef.current[e.pointerId];
+                                if (current !== n) {
+                                  if (current) {
+                                    releaseNote(current);
+                                  }
+                                  pressNote(n);
+                                  setActivePointers((prev) => ({ ...prev, [e.pointerId]: n }));
+                                }
+                              }}
+                              onPointerUpKey={(n, e) => {
+                                const current = activePointersRef.current[e.pointerId];
+                                if (current) {
+                                  releaseNote(current);
+                                  setActivePointers((prev) => {
+                                    const copy = { ...prev } as Record<number, string>;
+                                    delete copy[e.pointerId];
+                                    return copy;
+                                  });
+                                } else {
+                                  releaseNote(n);
+                                }
+                              }}
                               labelType={labelType}
                               keyMap={keyToNoteMap}
-                              allowDragPlay={dragFromKeyboard}
                               isSystem7Theme={isSystem7Theme}
                             />
                           </div>
