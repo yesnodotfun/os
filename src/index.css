@@ -444,6 +444,12 @@ button.piano-key.piano-key[class*="bg-[#ff33ff]"] {
     font-smooth: always;
   }
 
+  /* Karaoke lyric outline for high contrast over video */
+  .lyrics-stroke {
+    -webkit-text-stroke: 0.06em rgba(0, 0, 0, 0.7);
+    paint-order: stroke;
+  }
+
   .font-monaco,
   .font-monaco-9 {
     font-family: "Monaco", "ArkPixel", "SerenityOS-Emoji", monospace;

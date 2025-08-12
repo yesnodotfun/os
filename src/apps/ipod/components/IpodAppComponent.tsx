@@ -2533,8 +2533,8 @@ export function IpodAppComponent({
                               alignment={lyricsAlignment}
                               chineseVariant={chineseVariant}
                               koreanDisplay={koreanDisplay}
-                              fontClassName={"font-lyrics-rounded"}
-                              onAdjustOffset={(delta) => {
+                                                             fontClassName={"font-lyrics-rounded lyrics-stroke"}
+                               onAdjustOffset={(delta) => {
                                 // Update store with the adjusted offset
                                 useIpodStore
                                   .getState()
@@ -2588,7 +2588,7 @@ export function IpodAppComponent({
                               <div
                                 className={cn(
                                   "shimmer opacity-60 text-[min(10vw,10vh)]",
-                                  "font-lyrics-rounded"
+                                                                     "font-lyrics-rounded lyrics-stroke"
                                 )}
                               >
                                 Translating lyrics…
