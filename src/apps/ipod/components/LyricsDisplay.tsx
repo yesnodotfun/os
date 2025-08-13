@@ -117,7 +117,7 @@ const getVariants = (
 ) => ({
   initial: {
     opacity: 0,
-    scale: 0.8,
+    scale: 0.93,
     filter: "none",
     y: 10,
     textShadow:
