@@ -41,6 +41,7 @@ export type LanguageOption =
   | "spanish"
   | "portuguese"
   | "german"
+  | "welsh"
   | "sanskrit"
   | "latin"
   | "alien"

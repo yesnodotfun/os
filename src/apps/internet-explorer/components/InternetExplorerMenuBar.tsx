@@ -386,6 +386,15 @@ export function InternetExplorerMenuBar({
                 </span>
               </DropdownMenuItem>
 
+              <DropdownMenuItem
+                onClick={() => onLanguageChange?.("welsh")}
+                className="text-md h-6 px-3 active:bg-gray-900 active:text-white"
+              >
+                <span className={cn(language !== "welsh" && "pl-4")}>
+                  {language === "welsh" ? "✓ Welsh" : "Welsh"}
+                </span>
+              </DropdownMenuItem>
+
               {/* Ancient Languages */}
               <DropdownMenuSeparator className="h-[2px] bg-black my-1" />
               <DropdownMenuItem
