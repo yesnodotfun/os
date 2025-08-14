@@ -78,6 +78,7 @@ const getLanguageDisplayName = (lang: LanguageOption): string => {
     spanish: "Spanish",
     portuguese: "Portuguese",
     german: "German",
+    welsh: "Welsh",
     sanskrit: "Sanskrit",
     latin: "Latin",
     alien: "Alien Language",
