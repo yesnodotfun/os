@@ -101,6 +101,11 @@ const CHAT_MESSAGES_PREFIX = "chat:messages:";
 const CHAT_USERS_PREFIX = "chat:users:";
 const CHAT_ROOM_USERS_PREFIX = "chat:room:users:";
 const CHAT_ROOM_PRESENCE_PREFIX = "chat:presence:"; // New: for tracking user presence in rooms with TTL
+// Optimized presence: per-room ZSET (score = last heartbeat) to avoid SCANs
+const CHAT_ROOM_PRESENCE_ZSET_PREFIX = "chat:presencez:";
+
+// Registry of all room ids to avoid scanning keys
+const CHAT_ROOMS_SET = "chat:rooms";
 
 // TOKEN TTL (in seconds) – tokens expire after 90 days
 const USER_TTL_SECONDS = 7776000; // 90 days (kept for token expiry)
@@ -569,56 +574,24 @@ const setUser = async (username, data) => {
 };
 
 /**
- * Set user presence in a room with automatic expiration.
- * This tracks that a user is "online" in a specific room.
+ * Optimized presence using ZSET per room. Score = last heartbeat timestamp.
+ * No key-level SCAN needed for presence checks.
  */
 const setRoomPresence = async (roomId, username) => {
-  const presenceKey = `${CHAT_ROOM_PRESENCE_PREFIX}${roomId}:${username}`;
-  await redis.set(presenceKey, getCurrentTimestamp(), {
-    ex: ROOM_PRESENCE_TTL_SECONDS,
-  });
+  const zkey = `${CHAT_ROOM_PRESENCE_ZSET_PREFIX}${roomId}`;
+  await redis.zadd(zkey, { score: Date.now(), member: username });
 };
 
-/**
- * Refresh user presence in a room (extend the TTL).
- */
 const refreshRoomPresence = async (roomId, username) => {
-  const presenceKey = `${CHAT_ROOM_PRESENCE_PREFIX}${roomId}:${username}`;
-  // Only refresh if the key exists (user is currently present)
-  const exists = await redis.exists(presenceKey);
-  if (exists) {
-    await redis.expire(presenceKey, ROOM_PRESENCE_TTL_SECONDS);
-  }
+  const zkey = `${CHAT_ROOM_PRESENCE_ZSET_PREFIX}${roomId}`;
+  await redis.zadd(zkey, { score: Date.now(), member: username });
 };
 
-/**
- * Get all users currently present in a room (based on presence TTL).
- * This replaces the old logic that relied on sets + user existence.
- */
 const getActiveUsersInRoom = async (roomId) => {
-  const pattern = `${CHAT_ROOM_PRESENCE_PREFIX}${roomId}:*`;
-  const users = [];
-  let cursor = 0;
-
-  // Use SCAN to iterate through presence keys
-  do {
-    const [newCursor, keys] = await redis.scan(cursor, {
-      match: pattern,
-      count: 100, // Process 100 keys at a time
-    });
-
-    cursor = parseInt(newCursor);
-
-    // Extract usernames from the keys
-    const userBatch = keys.map((key) => {
-      const parts = key.split(":");
-      return parts[parts.length - 1]; // Last part is the username
-    });
-
-    users.push(...userBatch);
-  } while (cursor !== 0);
-
-  return users;
+  const zkey = `${CHAT_ROOM_PRESENCE_ZSET_PREFIX}${roomId}`;
+  const cutoff = Date.now() - ROOM_PRESENCE_TTL_SECONDS * 1000;
+  await redis.zremrangebyscore(zkey, 0, cutoff);
+  return await redis.zrange(zkey, 0, -1);
 };
 
 /**
@@ -627,20 +600,8 @@ const getActiveUsersInRoom = async (roomId) => {
  * Also cleans up the old room user sets for backward compatibility.
  */
 const getActiveUsersAndPrune = async (roomId) => {
-  // Get users based on presence (new system)
-  const activeUsers = await getActiveUsersInRoom(roomId);
-
-  // For backward compatibility, also clean up the old room user sets
-  // This can be removed after a migration period
-  const roomUsersKey = `${CHAT_ROOM_USERS_PREFIX}${roomId}`;
-  const oldSetMembers = await redis.smembers(roomUsersKey);
-
-  if (oldSetMembers.length > 0) {
-    // Remove all members from the old set since we're now using presence-based tracking
-    await redis.del(roomUsersKey);
-  }
-
-  return activeUsers;
+  // Get users based on presence (ZSET-based)
+  return await getActiveUsersInRoom(roomId);
 };
 
 /**
@@ -649,29 +610,14 @@ const getActiveUsersAndPrune = async (roomId) => {
  */
 const cleanupExpiredPresence = async () => {
   try {
-    // Get all room keys using SCAN
-    const roomKeys = [];
-    let cursor = 0;
-
-    do {
-      const [newCursor, keys] = await redis.scan(cursor, {
-        match: `${CHAT_ROOM_PREFIX}*`,
-        count: 100, // Process 100 keys at a time
-      });
-
-      cursor = parseInt(newCursor);
-      roomKeys.push(...keys);
-    } while (cursor !== 0);
-
-    for (const roomKey of roomKeys) {
-      const roomId = roomKey.substring(CHAT_ROOM_PREFIX.length);
+    const roomIds = await redis.smembers(CHAT_ROOMS_SET);
+    for (const roomId of roomIds) {
       const newCount = await refreshRoomUserCount(roomId);
       console.log(
         `[cleanupExpiredPresence] Updated room ${roomId} count to ${newCount}`
       );
     }
-
-    return { success: true, roomsUpdated: roomKeys.length };
+    return { success: true, roomsUpdated: roomIds.length };
   } catch (error) {
     console.error("[cleanupExpiredPresence] Error:", error);
     return { success: false, error: error.message };
@@ -679,12 +625,14 @@ const cleanupExpiredPresence = async () => {
 };
 
 /**
- * Re-calculates the active user count for a room, updates the stored room
+ * Re-calculates the active user count for a room via ZSET pruning, updates the stored room
  * object and returns the fresh count.
  */
 const refreshRoomUserCount = async (roomId) => {
-  const activeUsers = await getActiveUsersAndPrune(roomId);
-  const userCount = activeUsers.length;
+  const zkey = `${CHAT_ROOM_PRESENCE_ZSET_PREFIX}${roomId}`;
+  const cutoff = Date.now() - ROOM_PRESENCE_TTL_SECONDS * 1000;
+  await redis.zremrangebyscore(zkey, 0, cutoff);
+  const userCount = await redis.zcard(zkey);
 
   const roomKey = `${CHAT_ROOM_PREFIX}${roomId}`;
   const roomDataRaw = await redis.get(roomKey);
@@ -708,36 +656,102 @@ const refreshRoomUserCount = async (roomId) => {
 
 // Add helper to fetch rooms with user list
 async function getDetailedRooms() {
-  const rooms = [];
-  let cursor = 0;
+  // Use registry set to avoid scanning; fall back to one-time SCAN to self-heal
+  let roomIds = await redis.smembers(CHAT_ROOMS_SET);
 
-  // Use SCAN to iterate through room keys
-  do {
-    const [newCursor, keys] = await redis.scan(cursor, {
-      match: `${CHAT_ROOM_PREFIX}*`,
-      count: 100, // Process 100 keys at a time
-    });
-
-    cursor = parseInt(newCursor);
-
-    if (keys.length > 0) {
-      const roomsData = await redis.mget(...keys);
-      const roomBatch = await Promise.all(
-        roomsData.map(async (raw, index) => {
-          if (!raw) return null;
-          const roomObj = typeof raw === "string" ? JSON.parse(raw) : raw;
-          const activeUsers = await getActiveUsersAndPrune(roomObj.id);
-          return {
-            ...roomObj,
-            userCount: activeUsers.length,
-            users: activeUsers,
-          };
-        })
-      );
-      rooms.push(...roomBatch.filter((r) => r !== null));
+  if (!roomIds || roomIds.length === 0) {
+    // Fallback: discover rooms and repopulate registry
+    const discovered = [];
+    let cursor = 0;
+    do {
+      const [newCursor, keys] = await redis.scan(cursor, {
+        match: `${CHAT_ROOM_PREFIX}*`,
+        count: 100,
+      });
+      cursor = parseInt(newCursor);
+      const ids = keys.map((k) => k.substring(CHAT_ROOM_PREFIX.length));
+      discovered.push(...ids);
+    } while (cursor !== 0);
+    if (discovered.length) {
+      await redis.sadd(CHAT_ROOMS_SET, ...discovered);
+      roomIds = discovered;
+    } else {
+      return [];
     }
-  } while (cursor !== 0);
+  }
 
+  const roomKeys = roomIds.map((id) => `${CHAT_ROOM_PREFIX}${id}`);
+  const roomsData = await redis.mget(...roomKeys);
+
+  const rooms = [];
+  for (let i = 0; i < roomsData.length; i++) {
+    const raw = roomsData[i];
+    if (!raw) continue;
+    const roomObj = typeof raw === "string" ? JSON.parse(raw) : raw;
+    const activeUsers = await getActiveUsersInRoom(roomObj.id);
+    rooms.push({
+      ...roomObj,
+      userCount: activeUsers.length,
+      users: activeUsers,
+    });
+  }
+  return rooms;
+}
+
+// Fast path: get rooms with userCount only using a batched pipeline
+async function getRoomsWithCountsFast() {
+  // Use registry set to avoid scanning; fall back to one-time SCAN to self-heal
+  let roomIds = await redis.smembers(CHAT_ROOMS_SET);
+  if (!roomIds || roomIds.length === 0) {
+    const discovered = [];
+    let cursor = 0;
+    do {
+      const [newCursor, keys] = await redis.scan(cursor, {
+        match: `${CHAT_ROOM_PREFIX}*`,
+        count: 100,
+      });
+      cursor = parseInt(newCursor);
+      const ids = keys.map((k) => k.substring(CHAT_ROOM_PREFIX.length));
+      discovered.push(...ids);
+    } while (cursor !== 0);
+    if (discovered.length) {
+      await redis.sadd(CHAT_ROOMS_SET, ...discovered);
+      roomIds = discovered;
+    } else {
+      return [];
+    }
+  }
+
+  const roomKeys = roomIds.map((id) => `${CHAT_ROOM_PREFIX}${id}`);
+  const roomsData = await redis.mget(...roomKeys);
+
+  // Batch prune + count ZSET presence for all rooms
+  const pipeline = redis.pipeline();
+  const zkeys = roomIds.map((id) => `${CHAT_ROOM_PRESENCE_ZSET_PREFIX}${id}`);
+  const cutoff = Date.now() - ROOM_PRESENCE_TTL_SECONDS * 1000;
+  for (const z of zkeys) {
+    pipeline.zremrangebyscore(z, 0, cutoff);
+    pipeline.zcard(z);
+  }
+  const results = await pipeline.exec();
+  // results are [prunedCount, zcard, prunedCount, zcard, ...]
+
+  const rooms = [];
+  let resIdx = 0;
+  for (let i = 0; i < roomsData.length; i++) {
+    const raw = roomsData[i];
+    if (!raw) {
+      // Still advance results indexes
+      resIdx += 2;
+      continue;
+    }
+    const roomObj = typeof raw === "string" ? JSON.parse(raw) : raw;
+    // Skip pruned result
+    resIdx += 1;
+    const userCount = Number(results[resIdx]);
+    resIdx += 1;
+    rooms.push({ ...roomObj, userCount });
+  }
   return rooms;
 }
 
@@ -959,10 +973,8 @@ export async function GET(request) {
         }
 
         const result = await cleanupExpiredPresence();
-        if (result.success) {
-          // Broadcast updated room counts
-          await broadcastRoomsUpdated();
-        }
+        // Optional: targeted updates only
+        // if (result.success) { /* could emit small events here */ }
         return new Response(JSON.stringify(result), {
           headers: { "Content-Type": "application/json" },
         });
@@ -1305,7 +1317,7 @@ async function handleGetRooms(request, requestId) {
     const url = new URL(request.url);
     const username = url.searchParams.get("username")?.toLowerCase() || null;
 
-    const allRooms = await getDetailedRooms();
+    const allRooms = await getRoomsWithCountsFast();
 
     // Filter rooms based on visibility
     const visibleRooms = allRooms.filter((room) => {
@@ -1456,6 +1468,8 @@ async function handleCreateRoom(data, username, requestId) {
     };
 
     await redis.set(`${CHAT_ROOM_PREFIX}${roomId}`, room);
+    // Register room id for fast retrieval
+    await redis.sadd(CHAT_ROOMS_SET, roomId);
 
     // For private rooms, set presence for all members
     if (type === "private") {
@@ -1467,10 +1481,10 @@ async function handleCreateRoom(data, username, requestId) {
 
     logInfo(requestId, `${type} room created: ${roomId}`);
 
-    // Trigger Pusher event for room creation
+    // Trigger Pusher event for room creation (targeted)
     try {
-      await broadcastRoomsUpdated();
-      logInfo(requestId, "Pusher event triggered: rooms-updated");
+      await broadcastRoomCreated(room);
+      logInfo(requestId, "Pusher event triggered: room-created");
     } catch (pusherError) {
       logError(
         requestId,
@@ -1543,26 +1557,9 @@ async function handleDeleteRoom(roomId, username, requestId) {
         pipeline.del(`${CHAT_ROOM_PREFIX}${roomId}`);
         pipeline.del(`${CHAT_MESSAGES_PREFIX}${roomId}`);
         pipeline.del(`${CHAT_ROOM_USERS_PREFIX}${roomId}`);
-
-        // Clean up all presence keys for this room
-        const presencePattern = `${CHAT_ROOM_PRESENCE_PREFIX}${roomId}:*`;
-        const presenceKeys = [];
-        let cursor = 0;
-
-        do {
-          const [newCursor, keys] = await redis.scan(cursor, {
-            match: presencePattern,
-            count: 100,
-          });
-
-          cursor = parseInt(newCursor);
-          presenceKeys.push(...keys);
-        } while (cursor !== 0);
-
-        if (presenceKeys.length > 0) {
-          presenceKeys.forEach((key) => pipeline.del(key));
-        }
-
+        pipeline.srem(CHAT_ROOMS_SET, roomId);
+        // Clean up presence ZSET for this room
+        pipeline.del(`${CHAT_ROOM_PRESENCE_ZSET_PREFIX}${roomId}`);
         await pipeline.exec();
         logInfo(
           requestId,
@@ -1581,9 +1578,11 @@ async function handleDeleteRoom(roomId, username, requestId) {
         };
         await redis.set(`${CHAT_ROOM_PREFIX}${roomId}`, updatedRoom);
 
-        // Remove user presence from room
-        const presenceKey = `${CHAT_ROOM_PRESENCE_PREFIX}${roomId}:${username.toLowerCase()}`;
-        await redis.del(presenceKey);
+        // Remove user presence from room (ZSET)
+        await redis.zrem(
+          `${CHAT_ROOM_PRESENCE_ZSET_PREFIX}${roomId}`,
+          username.toLowerCase()
+        );
 
         logInfo(
           requestId,
@@ -1596,37 +1595,17 @@ async function handleDeleteRoom(roomId, username, requestId) {
       pipeline.del(`${CHAT_ROOM_PREFIX}${roomId}`);
       pipeline.del(`${CHAT_MESSAGES_PREFIX}${roomId}`);
       pipeline.del(`${CHAT_ROOM_USERS_PREFIX}${roomId}`);
-
-      // Clean up all presence keys for this room
-      const presencePattern = `${CHAT_ROOM_PRESENCE_PREFIX}${roomId}:*`;
-      const presenceKeys = [];
-      let cursor = 0;
-
-      do {
-        const [newCursor, keys] = await redis.scan(cursor, {
-          match: presencePattern,
-          count: 100,
-        });
-
-        cursor = parseInt(newCursor);
-        presenceKeys.push(...keys);
-      } while (cursor !== 0);
-
-      if (presenceKeys.length > 0) {
-        presenceKeys.forEach((key) => pipeline.del(key));
-      }
-
+      pipeline.srem(CHAT_ROOMS_SET, roomId);
+      // Clean up ZSET presence for this room
+      pipeline.del(`${CHAT_ROOM_PRESENCE_ZSET_PREFIX}${roomId}`);
       await pipeline.exec();
       logInfo(requestId, `Public room deleted by admin: ${roomId}`);
     }
 
-    // Trigger Pusher event for room changes
+    // Trigger Pusher event for room changes (targeted)
     try {
-      await broadcastRoomsUpdated();
-      logInfo(
-        requestId,
-        "Pusher event triggered: rooms-updated after room deletion/leave"
-      );
+      await broadcastRoomDeleted(roomId, roomData.type, roomData.members || []);
+      logInfo(requestId, "Pusher event triggered: room-deleted");
     } catch (pusherError) {
       logError(
         requestId,
@@ -2045,10 +2024,10 @@ async function handleJoinRoom(data, requestId) {
     await redis.set(`${CHAT_USERS_PREFIX}${username}`, updatedUser);
     logInfo(requestId, `User ${username} last active time updated`);
 
-    // Trigger optimized broadcast to update all clients with new room state
+    // Trigger targeted broadcast to update room state
     try {
-      await broadcastRoomsUpdated();
-      logInfo(requestId, `Pusher event triggered: rooms-updated for user join`);
+      await broadcastRoomUpdated(roomId);
+      logInfo(requestId, `Pusher event triggered: room-updated for user join`);
     } catch (pusherError) {
       logError(
         requestId,
@@ -2108,9 +2087,9 @@ async function handleLeaveRoom(data, requestId) {
     const roomObj =
       typeof roomDataRaw === "string" ? JSON.parse(roomDataRaw) : roomDataRaw;
 
-    // Remove user presence from room
-    const presenceKey = `${CHAT_ROOM_PRESENCE_PREFIX}${roomId}:${username}`;
-    const removed = await redis.del(presenceKey);
+    // Remove user presence from room (ZSET-based)
+    const zkey = `${CHAT_ROOM_PRESENCE_ZSET_PREFIX}${roomId}`;
+    const removed = await redis.zrem(zkey, username);
 
     // If user was actually removed, update the count
     if (removed) {
@@ -2172,11 +2151,10 @@ async function handleLeaveRoom(data, requestId) {
 
           // Trigger efficient Pusher event for room update
           try {
-            // Use the optimized broadcast function instead of manual processing
-            await broadcastRoomsUpdated();
+            await broadcastRoomUpdated(roomId);
             logInfo(
               requestId,
-              `Pusher event triggered: rooms-updated for private room member update`
+              `Pusher event triggered: room-updated for private room member update`
             );
           } catch (pusherError) {
             logError(
@@ -2190,10 +2168,10 @@ async function handleLeaveRoom(data, requestId) {
         // For public rooms, trigger efficient broadcast if user count changed
         if (userCount !== previousUserCount) {
           try {
-            await broadcastRoomsUpdated();
+            await broadcastRoomUpdated(roomId);
             logInfo(
               requestId,
-              `Pusher event triggered: rooms-updated for public room user count change`
+              `Pusher event triggered: room-updated for public room user count change`
             );
           } catch (pusherError) {
             logError(
@@ -2238,19 +2216,9 @@ async function handleClearAllMessages(username, requestId) {
   }
 
   try {
-    // Get all message keys using SCAN
-    const messageKeys = [];
-    let cursor = 0;
-
-    do {
-      const [newCursor, keys] = await redis.scan(cursor, {
-        match: `${CHAT_MESSAGES_PREFIX}*`,
-        count: 100, // Process 100 keys at a time
-      });
-
-      cursor = parseInt(newCursor);
-      messageKeys.push(...keys);
-    } while (cursor !== 0);
+    // Build message keys from room registry
+    const roomIds = await redis.smembers(CHAT_ROOMS_SET);
+    const messageKeys = roomIds.map((id) => `${CHAT_MESSAGES_PREFIX}${id}`);
 
     logInfo(
       requestId,
@@ -2278,10 +2246,9 @@ async function handleClearAllMessages(username, requestId) {
       `Successfully cleared messages from ${messageKeys.length} rooms`
     );
 
-    // Notify clients that messages have been cleared
+    // Optional: notify clients (can be skipped for performance)
     try {
-      await broadcastRoomsUpdated();
-      logInfo(requestId, "Pusher event triggered: messages-cleared");
+      // for (const id of roomIds) await broadcastRoomUpdated(id);
     } catch (pusherError) {
       logError(
         requestId,
@@ -2317,19 +2284,9 @@ async function handleResetUserCounts(username, requestId) {
   }
 
   try {
-    // Get all room keys using SCAN
-    const roomKeys = [];
-    let cursor = 0;
-
-    do {
-      const [newCursor, keys] = await redis.scan(cursor, {
-        match: `${CHAT_ROOM_PREFIX}*`,
-        count: 100,
-      });
-
-      cursor = parseInt(newCursor);
-      roomKeys.push(...keys);
-    } while (cursor !== 0);
+    // Build room keys from registry set
+    const roomIds = await redis.smembers(CHAT_ROOMS_SET);
+    const roomKeys = roomIds.map((id) => `${CHAT_ROOM_PREFIX}${id}`);
 
     logInfo(requestId, `Found ${roomKeys.length} rooms to update`);
 
@@ -2356,19 +2313,10 @@ async function handleResetUserCounts(username, requestId) {
       roomUserKeys.push(...keys);
     } while (cursor !== 0);
 
-    // Get all presence keys (new system) using SCAN
-    const presenceKeys = [];
-    cursor = 0;
-
-    do {
-      const [newCursor, keys] = await redis.scan(cursor, {
-        match: `${CHAT_ROOM_PRESENCE_PREFIX}*`,
-        count: 100,
-      });
-
-      cursor = parseInt(newCursor);
-      presenceKeys.push(...keys);
-    } while (cursor !== 0);
+    // Build presence ZSET keys for all rooms
+    const presenceKeys = roomIds.map(
+      (id) => `${CHAT_ROOM_PRESENCE_ZSET_PREFIX}${id}`
+    );
 
     // Clear all room user sets and presence keys
     const deleteRoomUsersPipeline = redis.pipeline();
@@ -2400,13 +2348,9 @@ async function handleResetUserCounts(username, requestId) {
     await updateRoomsPipeline.exec();
     logInfo(requestId, `Reset user count to 0 for ${roomKeys.length} rooms`);
 
-    // Notify clients that user counts have been reset
+    // Optional: notify clients (targeted updates)
     try {
-      await broadcastRoomsUpdated();
-      logInfo(
-        requestId,
-        "Pusher event triggered: rooms-updated after user count reset"
-      );
+      // for (const id of roomIds) await broadcastRoomUpdated(id);
     } catch (pusherError) {
       logError(
         requestId,
@@ -3029,9 +2973,11 @@ async function handleSwitchRoom(data, requestId) {
         // For public rooms, remove presence immediately when switching away
         // For private rooms, keep presence (they remain "online" until TTL expires)
         if (roomData.type !== "private") {
-          // Remove presence for public rooms
-          const presenceKey = `${CHAT_ROOM_PRESENCE_PREFIX}${previousRoomId}:${username}`;
-          await redis.del(presenceKey);
+          // Remove presence for public rooms (ZSET-based)
+          await redis.zrem(
+            `${CHAT_ROOM_PRESENCE_ZSET_PREFIX}${previousRoomId}`,
+            username
+          );
           logInfo(
             requestId,
             `Removed presence for user ${username} from room ${previousRoomId}`
@@ -3089,10 +3035,8 @@ async function handleSwitchRoom(data, requestId) {
     // Trigger Pusher events in batch
     try {
       for (const room of changedRooms) {
-        // Removed individual user-count-updated event; rooms-updated will carry the new count
+        await broadcastRoomUpdated(room.roomId);
       }
-
-      await broadcastRoomsUpdated();
     } catch (pusherErr) {
       logError(
         requestId,
@@ -3377,48 +3321,57 @@ const filterRoomsForUser = (rooms, username) => {
  * The public channel ("chats-public") only contains public rooms. Each user gets
  * their own channel: "chats-<username>".
  */
-async function broadcastRoomsUpdated() {
+async function broadcastRoomUpdated(roomId) {
   try {
-    const allRooms = await getDetailedRooms();
+    const roomRaw = await redis.get(`${CHAT_ROOM_PREFIX}${roomId}`);
+    if (!roomRaw) return;
+    const roomObj = typeof roomRaw === "string" ? JSON.parse(roomRaw) : roomRaw;
+    const count = await refreshRoomUserCount(roomId);
+    const room = { ...roomObj, userCount: count };
 
-    // 1. Public channel with only public rooms (for anonymous clients)
-    const publicRooms = filterRoomsForUser(allRooms, null);
-    const publicChannelPromise = pusher.trigger(
-      "chats-public",
-      "rooms-updated",
-      {
-        rooms: publicRooms,
-      }
-    );
-
-    // 2. Per-user channels - get all user keys using SCAN
-    const userKeys = [];
-    let cursor = 0;
-
-    do {
-      const [newCursor, keys] = await redis.scan(cursor, {
-        match: `${CHAT_USERS_PREFIX}*`,
-        count: 100, // Process 100 keys at a time
-      });
-
-      cursor = parseInt(newCursor);
-      userKeys.push(...keys);
-    } while (cursor !== 0);
-
-    // Parallelize the user channel broadcasts
-    const userChannelPromises = userKeys.map((key) => {
-      const username = key.substring(CHAT_USERS_PREFIX.length);
-      const safeUsername = sanitizeForChannel(username);
-      const userRooms = filterRoomsForUser(allRooms, username);
-      return pusher.trigger(`chats-${safeUsername}`, "rooms-updated", {
-        rooms: userRooms,
-      });
-    });
-
-    // Wait for all Pusher calls to complete in parallel
-    await Promise.all([publicChannelPromise, ...userChannelPromises]);
+    if (!room.type || room.type === "public") {
+      await pusher.trigger("chats-public", "room-updated", { room });
+    } else if (Array.isArray(room.members)) {
+      await fanOutToPrivateMembers(roomId, "room-updated", { room });
+    }
   } catch (err) {
-    console.error("[broadcastRoomsUpdated] Failed to broadcast rooms:", err);
+    console.error("[broadcastRoomUpdated] Failed:", err);
+  }
+}
+
+async function broadcastRoomCreated(room) {
+  try {
+    if (!room.type || room.type === "public") {
+      await pusher.trigger("chats-public", "room-created", { room });
+    } else if (Array.isArray(room.members)) {
+      await Promise.all(
+        room.members.map((m) =>
+          pusher.trigger(`chats-${sanitizeForChannel(m)}`, "room-created", {
+            room,
+          })
+        )
+      );
+    }
+  } catch (err) {
+    console.error("[broadcastRoomCreated] Failed:", err);
+  }
+}
+
+async function broadcastRoomDeleted(roomId, type, members = []) {
+  try {
+    if (!type || type === "public") {
+      await pusher.trigger("chats-public", "room-deleted", { roomId });
+    } else if (Array.isArray(members)) {
+      await Promise.all(
+        members.map((m) =>
+          pusher.trigger(`chats-${sanitizeForChannel(m)}`, "room-deleted", {
+            roomId,
+          })
+        )
+      );
+    }
+  } catch (err) {
+    console.error("[broadcastRoomDeleted] Failed:", err);
   }
 }
 

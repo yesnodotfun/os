@@ -116,20 +116,27 @@ export function useChatRoom(
       );
       globalChannelRef.current = pusherRef.current.subscribe(channelName);
 
-      // Create event handlers
+      // Create event handlers (apply local diffs to avoid refetch)
       const handleRoomCreated = (data: { room: ChatRoom }) => {
         console.log("[Pusher Hook] Room created:", data.room);
-        fetchRooms(); // Refresh rooms list
+        const { rooms: currentRooms } = useChatsStore.getState();
+        const exists = currentRooms.some((r) => r.id === data.room.id);
+        if (!exists) setRooms([...currentRooms, data.room]);
       };
 
       const handleRoomDeleted = (data: { roomId: string }) => {
         console.log("[Pusher Hook] Room deleted:", data.roomId);
-        fetchRooms(); // Refresh rooms list
+        const { rooms: currentRooms } = useChatsStore.getState();
+        setRooms(currentRooms.filter((r) => r.id !== data.roomId));
       };
 
       const handleRoomUpdated = (data: { room: ChatRoom }) => {
         console.log("[Pusher Hook] Room updated:", data.room);
-        fetchRooms(); // Refresh rooms list
+        const { rooms: currentRooms } = useChatsStore.getState();
+        const next = currentRooms.map((r) =>
+          r.id === data.room.id ? { ...r, ...data.room } : r
+        );
+        setRooms(next);
       };
 
       const handleRoomsUpdated = (data: { rooms: ChatRoom[] }) => {
@@ -401,11 +408,12 @@ export function useChatRoom(
         // Get fresh rooms list to fetch messages for all visible rooms
         const { rooms: freshRooms } = useChatsStore.getState();
         if (freshRooms.length > 0) {
-          const roomIds = freshRooms.map((room) => room.id);
+          // Limit initial fetch to first 5 rooms to reduce load; others lazy-load via channel
+          const limitedIds = freshRooms.slice(0, 5).map((room) => room.id);
           console.log(
-            `[useChatRoom] Initial bulk fetch of messages for ${roomIds.length} rooms`
+            `[useChatRoom] Initial bulk fetch of messages for ${limitedIds.length} rooms`
           );
-          const bulkResult = await fetchBulkMessages(roomIds);
+          const bulkResult = await fetchBulkMessages(limitedIds);
 
           // For experienced users, don't recalculate unreads on reload - only track new messages going forward
           if (bulkResult.ok) {

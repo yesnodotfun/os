@@ -459,7 +459,18 @@ export const useChatsStore = create<ChatsStoreState>()(
 
           // Deep comparison to prevent unnecessary updates
           const currentRooms = get().rooms;
-          if (JSON.stringify(currentRooms) === JSON.stringify(newRooms)) {
+          // Apply stable sort to keep UI order consistent (public first, then name, then id)
+          const sortedNewRooms = [...newRooms].sort((a, b) => {
+            const ao = a.type === "private" ? 1 : 0;
+            const bo = b.type === "private" ? 1 : 0;
+            if (ao !== bo) return ao - bo;
+            const an = (a.name || "").toLowerCase();
+            const bn = (b.name || "").toLowerCase();
+            if (an !== bn) return an.localeCompare(bn);
+            return a.id.localeCompare(b.id);
+          });
+
+          if (JSON.stringify(currentRooms) === JSON.stringify(sortedNewRooms)) {
             console.log(
               "[ChatsStore] setRooms skipped: newRooms are identical to current rooms."
             );
@@ -467,7 +478,7 @@ export const useChatsStore = create<ChatsStoreState>()(
           }
 
           console.log("[ChatsStore] setRooms called. Updating rooms.");
-          set({ rooms: newRooms });
+          set({ rooms: sortedNewRooms });
         },
         setCurrentRoomId: (roomId) => set({ currentRoomId: roomId }),
         setRoomMessagesForCurrentRoom: (messages) => {
@@ -958,7 +969,8 @@ export const useChatsStore = create<ChatsStoreState>()(
 
             const data = await response.json();
             if (data.rooms && Array.isArray(data.rooms)) {
-              set({ rooms: data.rooms });
+              // Normalize ordering via setRooms to enforce alphabetical sections
+              get().setRooms(data.rooms);
               return { ok: true };
             }
 
