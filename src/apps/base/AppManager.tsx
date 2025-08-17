@@ -38,6 +38,8 @@ export function AppManager({ apps }: AppManagerProps) {
   }));
 
   const [isInitialMount, setIsInitialMount] = useState(true);
+  const currentTheme = useThemeStore((state) => state.current);
+  const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
 
   // Create legacy-compatible appStates from instances for AppContext
   // NOTE: There can be multiple open instances for the same appId. We need to
@@ -269,8 +271,6 @@ export function AppManager({ apps }: AppManagerProps) {
       }}
     >
       {(() => {
-        const currentTheme = useThemeStore.getState().current;
-        const isXpTheme = currentTheme === "xp" || currentTheme === "win98";
         const hasForeground = Boolean(getForegroundInstance());
         // XP/Win98: always render global MenuBar (taskbar)
         // Mac/System7: render placeholder MenuBar only when no app is foreground
