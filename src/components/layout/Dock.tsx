@@ -4,9 +4,7 @@ import { useAppStoreShallow } from "@/stores/helpers";
 import { ThemedIcon } from "@/components/shared/ThemedIcon";
 import { AppId, getAppIconPath } from "@/config/appRegistry";
 
-export function Dock() {
-  const currentTheme = useThemeStore((s) => s.current);
-  const isMacTheme = currentTheme === "macosx";
+function MacDock() {
 
   const {
     instances,
@@ -21,9 +19,6 @@ export function Dock() {
     bringInstanceToForeground: s.bringInstanceToForeground,
     launchOrFocusApp: s.launchOrFocusApp,
   }));
-
-  // Only render on macOS theme
-  if (!isMacTheme) return null;
 
   // Pinned apps on the left side
   const pinnedLeft: AppId[] = ["finder"] as AppId[];
@@ -219,5 +214,11 @@ export function Dock() {
       </div>
     </div>
   );
+}
+
+export function Dock() {
+  const currentTheme = useThemeStore((s) => s.current);
+  if (currentTheme !== "macosx") return null;
+  return <MacDock />;
 }
 
