@@ -118,8 +118,8 @@ export function Dock() {
               width: 6,
               height: 6,
               borderRadius: "50%",
-              background: active ? "#0a84ff" : "rgba(255,255,255,0.95)",
-              boxShadow: active ? "0 0 6px rgba(10,132,255,0.7)" : "none",
+              background: active ? "#ffffff" : "rgba(255,255,255,0.5)",
+              boxShadow: "none",
             }}
           />
         ) : null}
@@ -168,7 +168,17 @@ export function Dock() {
                 icon={icon}
                 open={open}
                 active={active}
-                onClick={() => focusMostRecentInstanceOfApp(appId)}
+                onClick={() => {
+                  if (appId === "finder") {
+                    window.dispatchEvent(
+                      new CustomEvent("launchApp", {
+                        detail: { appId: "finder", initialPath: "/" },
+                      })
+                    );
+                  } else {
+                    focusMostRecentInstanceOfApp(appId);
+                  }
+                }}
               />
             );
           })}
