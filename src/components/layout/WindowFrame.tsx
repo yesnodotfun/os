@@ -241,14 +241,16 @@ export function WindowFrame({
     const menuBarHeight =
       currentTheme === "system7" ? 30 : currentTheme === "macosx" ? 25 : 0;
     const taskbarHeight = isXpTheme ? 30 : 0;
+    const dockHeight = currentTheme === "macosx" ? 56 : 0; // Dock visual height
     const topInset = menuBarHeight;
-    const bottomInset = taskbarHeight + safe;
+    const bottomInset = taskbarHeight + dockHeight + safe;
     return {
       menuBarHeight,
       taskbarHeight,
       safeAreaBottom: safe,
       topInset,
       bottomInset,
+      dockHeight,
     };
   }, [currentTheme, isXpTheme, getSafeAreaBottomInset]);
 

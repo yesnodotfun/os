@@ -4,6 +4,7 @@ import { AppContext } from "@/contexts/AppContext";
 import { MenuBar } from "@/components/layout/MenuBar";
 import { useThemeStore } from "@/stores/useThemeStore";
 import { Desktop } from "@/components/layout/Desktop";
+import { Dock } from "@/components/layout/Dock";
 import { AppId, getAppComponent, appRegistry } from "@/config/appRegistry";
 import { useAppStoreShallow } from "@/stores/helpers";
 import { extractCodeFromPath } from "@/utils/sharedUrl";
@@ -276,6 +277,8 @@ export function AppManager({ apps }: AppManagerProps) {
         // Mac/System7: render placeholder MenuBar only when no app is foreground
         return isXpTheme || !hasForeground ? <MenuBar /> : null;
       })()}
+      {/* macOS Dock */}
+      <Dock />
       {/* App Instances */}
       {Object.values(instances).map((instance) => {
         if (!instance.isOpen) return null;

@@ -108,14 +108,16 @@ export const useWindowManager = ({
     const menuBarHeight =
       currentTheme === "system7" ? 30 : currentTheme === "macosx" ? 25 : 0;
     const taskbarHeight = isXpTheme ? 30 : 0;
+    const dockHeight = currentTheme === "macosx" ? 56 : 0; // Dock visual height
     const topInset = menuBarHeight;
-    const bottomInset = taskbarHeight + safe;
+    const bottomInset = taskbarHeight + dockHeight + safe;
     return {
       menuBarHeight,
       taskbarHeight,
       safeAreaBottom: safe,
       topInset,
       bottomInset,
+      dockHeight,
     };
   }, [currentTheme, isXpTheme, getSafeAreaBottomInset]);
 
@@ -230,7 +232,7 @@ export const useWindowManager = ({
         const newX = clientX - dragOffset.x;
         const newY = clientY - dragOffset.y;
 
-        const { topInset: menuBarHeight, taskbarHeight } = computeInsets();
+        const { topInset: menuBarHeight, bottomInset } = computeInsets();
 
         // Start playing move sound in a loop when actual movement starts
         if (!moveAudioRef.current && !isMobile) {
@@ -243,7 +245,7 @@ export const useWindowManager = ({
           setWindowPosition({ x: 0, y: Math.max(menuBarHeight, newY) });
         } else {
           const maxX = window.innerWidth - windowSize.width;
-          const maxY = window.innerHeight - windowSize.height - taskbarHeight;
+          const maxY = window.innerHeight - windowSize.height - bottomInset;
           const x = Math.min(Math.max(0, newX), maxX);
           const y = Math.min(Math.max(menuBarHeight, newY), Math.max(0, maxY));
           setWindowPosition({ x, y });
@@ -263,8 +265,8 @@ export const useWindowManager = ({
         const minWidth = config.minSize?.width || 260;
         const minHeight = config.minSize?.height || 200;
         const maxWidth = window.innerWidth;
-        const { safeAreaBottom, topInset: menuBarHeight } = computeInsets();
-        const maxHeight = window.innerHeight - safeAreaBottom;
+        const { bottomInset, topInset: menuBarHeight } = computeInsets();
+        const maxHeight = window.innerHeight - bottomInset;
 
         let newWidth = resizeStart.width;
         let newHeight = resizeStart.height;
