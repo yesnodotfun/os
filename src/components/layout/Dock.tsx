@@ -87,7 +87,7 @@ export function Dock() {
         aria-label={label}
         title={label}
         onClick={onClick}
-        className="relative flex items-center justify-center w-12 h-12 mx-1 rounded-md"
+        className="relative flex items-center justify-center w-12 h-12 mx-1"
         style={{
           transition: "transform 120ms ease, filter 120ms ease",
           transform: "translateZ(0)",
@@ -115,13 +115,11 @@ export function Dock() {
           <span
             className="absolute bottom-0 left-1/2 -translate-x-1/2"
             style={{
-              width: active ? 12 : 8,
-              height: 4,
-              borderRadius: 9999,
+              width: 6,
+              height: 6,
+              borderRadius: "50%",
               background: active ? "#0a84ff" : "rgba(255,255,255,0.95)",
-              boxShadow: active
-                ? "0 0 6px rgba(10,132,255,0.7)"
-                : "0 0 4px rgba(0,0,0,0.25)",
+              boxShadow: active ? "0 0 6px rgba(10,132,255,0.7)" : "none",
             }}
           />
         ) : null}
@@ -144,7 +142,7 @@ export function Dock() {
         }}
       >
         <div
-          className="flex items-center px-2 py-1 rounded-2xl shadow-xl"
+          className="flex items-center px-2 py-1 shadow-xl"
           style={{
             pointerEvents: "auto",
             backdropFilter: "saturate(120%) blur(12px)",
@@ -174,10 +172,7 @@ export function Dock() {
               />
             );
           })}
-
-          {/* Separator */}
-          <div className="mx-1" style={{ width: 1, height: 36, background: "rgba(0,0,0,0.15)" }} />
-
+          
           {/* Open apps dynamically (excluding pinned) */}
           {openAppIds.map((appId) => {
             const icon = getAppIconPath(appId);
@@ -194,10 +189,7 @@ export function Dock() {
               />
             );
           })}
-
-          {/* Separator */}
-          <div className="mx-1" style={{ width: 1, height: 36, background: "rgba(0,0,0,0.15)" }} />
-
+          
           {/* Trash (right side) */}
           <IconButton
             label="Trash"
