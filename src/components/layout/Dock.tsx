@@ -398,7 +398,7 @@ function MacDock() {
             transformOrigin: "center bottom",
             borderRadius: "0px",
             overflowX: isPhone ? "auto" : "visible",
-            overflowY: "hidden",
+            overflowY: "visible",
             WebkitOverflowScrolling: isPhone ? "touch" : undefined,
             overscrollBehaviorX: isPhone ? "contain" : undefined,
           }}
