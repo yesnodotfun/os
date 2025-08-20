@@ -11,6 +11,7 @@ import {
   useMotionValue,
   useSpring,
   useTransform,
+  useIsPresent,
 } from "framer-motion";
 
 function MacDock() {
@@ -123,6 +124,7 @@ function MacDock() {
     const baseButtonSize = 48; // px (w-12)
     const maxButtonSize = Math.round(baseButtonSize * MAX_SCALE);
     const wrapperRef = useRef<HTMLDivElement | null>(null);
+    const isPresent = useIsPresent();
     const distanceCalc = useTransform(mouseX, (val) => {
       const bounds = wrapperRef.current?.getBoundingClientRect();
       if (!bounds || !Number.isFinite(val)) return Infinity;
@@ -143,7 +145,7 @@ function MacDock() {
         ref={wrapperRef}
         layout
         layoutId={`dock-icon-${idKey}`}
-        initial={isNew ? { scale: 0, opacity: 0 } : false}
+        initial={isNew ? { scale: 0, opacity: 0 } : undefined}
         animate={{ scale: 1, opacity: 1 }}
         exit={{
           scale: 0,
@@ -164,10 +166,13 @@ function MacDock() {
         style={{
           transformOrigin: "bottom center",
           willChange: "width, height, transform",
-          width: sizeSpring,
-          height: sizeSpring,
+          width: isPresent ? sizeSpring : 0,
+          height: isPresent ? sizeSpring : 0,
+          marginLeft: isPresent ? 4 : 0,
+          marginRight: isPresent ? 4 : 0,
+          overflow: "hidden",
         }}
-        className="flex-shrink-0 mx-1"
+        className="flex-shrink-0"
       >
         <button
           aria-label={label}
@@ -236,7 +241,7 @@ function MacDock() {
           onMouseLeave={() => mouseX.set(Infinity)}
         >
           <LayoutGroup>
-            <AnimatePresence initial={false}>
+            <AnimatePresence mode="popLayout" initial={false}>
               {/* Left pinned */}
               {pinnedLeft.map((appId) => {
                 const icon = getAppIconPath(appId);
