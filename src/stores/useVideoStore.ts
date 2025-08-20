@@ -10,28 +10,10 @@ export interface Video {
 
 export const DEFAULT_VIDEOS: Video[] = [
   {
-    id: "TQhv6Wol6Ns",
-    url: "https://www.youtube.com/watch?v=TQhv6Wol6Ns&t=26s",
-    title: "Our designer built an OS with Cursor",
-    artist: "Cursor",
-  },
-  {
     id: "0pP3ZjMDzF4",
     url: "https://youtu.be/0pP3ZjMDzF4",
     title: "Make Something Wonderful",
     artist: "Steve Jobs",
-  },
-  {
-    id: "EKBVLzOZyLw",
-    url: "https://youtu.be/EKBVLzOZyLw",
-    title: "On Focus",
-    artist: "Jony Ive",
-  },
-  {
-    id: "wLb9g_8r-mE",
-    url: "https://youtu.be/wLb9g_8r-mE",
-    title: "A Conversation with Jony Ive",
-    artist: "Jony Ive",
   },
   {
     id: "3vq9p00T08I",
@@ -122,6 +104,24 @@ export const DEFAULT_VIDEOS: Video[] = [
     url: "https://www.youtube.com/watch?v=b6-yFqenAy4",
     title: "iPhone 4 Introduction (2010)",
     artist: "Steve Jobs",
+  },
+  {
+    id: "EKBVLzOZyLw",
+    url: "https://youtu.be/EKBVLzOZyLw",
+    title: "On Focus",
+    artist: "Jony Ive",
+  },
+  {
+    id: "wLb9g_8r-mE",
+    url: "https://youtu.be/wLb9g_8r-mE",
+    title: "A Conversation with Jony Ive",
+    artist: "Jony Ive",
+  },
+  {
+    id: "TQhv6Wol6Ns",
+    url: "https://www.youtube.com/watch?v=TQhv6Wol6Ns&t=26s",
+    title: "Our designer built an OS with Cursor",
+    artist: "Cursor",
   },
 ];
 
