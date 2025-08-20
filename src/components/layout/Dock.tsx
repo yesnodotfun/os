@@ -4,6 +4,7 @@ import { useAppStoreShallow } from "@/stores/helpers";
 import { ThemedIcon } from "@/components/shared/ThemedIcon";
 import { AppId, getAppIconPath } from "@/config/appRegistry";
 import { useLaunchApp } from "@/hooks/useLaunchApp";
+import { useFinderStore } from "@/stores/useFinderStore";
 import {
   AnimatePresence,
   motion,
@@ -23,6 +24,7 @@ function MacDock() {
     }));
 
   const launchApp = useLaunchApp();
+  const finderInstances = useFinderStore((s) => s.instances);
 
   // Pinned apps on the left side (in order)
   const pinnedLeft: AppId[] = useMemo(
@@ -111,6 +113,38 @@ function MacDock() {
       else launchApp("finder", { initialPath: "/" });
     },
     [instances, instanceOrder, bringInstanceToForeground, launchApp]
+  );
+
+  // Focus a Finder window already at targetPath (or its subpath); otherwise launch new Finder at targetPath
+  const focusFinderAtPathOrLaunch = useCallback(
+    (targetPath: string, initialData?: unknown) => {
+      for (let i = instanceOrder.length - 1; i >= 0; i--) {
+        const id = instanceOrder[i];
+        const inst = instances[id];
+        if (inst && inst.appId === "finder" && inst.isOpen) {
+          const fi = finderInstances[id];
+          if (
+            fi &&
+            (fi.currentPath === targetPath ||
+              fi.currentPath.startsWith(targetPath + "/"))
+          ) {
+            bringInstanceToForeground(id);
+            return;
+          }
+        }
+      }
+      launchApp("finder", {
+        initialPath: targetPath,
+        initialData: initialData,
+      });
+    },
+    [
+      instanceOrder,
+      instances,
+      finderInstances,
+      bringInstanceToForeground,
+      launchApp,
+    ]
   );
 
   // Dock magnification state/logic driven by Framer motion value at container level
@@ -352,9 +386,9 @@ function MacDock() {
                 icon="/icons/default/applications.png"
                 idKey="__applications__"
                 onClick={() =>
-                  launchApp("finder", {
-                    initialPath: "/Applications",
-                    initialData: { path: "/Applications", viewType: "large" },
+                  focusFinderAtPathOrLaunch("/Applications", {
+                    path: "/Applications",
+                    viewType: "large",
                   })
                 }
               />
@@ -368,16 +402,7 @@ function MacDock() {
                     icon="trash-empty.png"
                     idKey="__trash__"
                     onClick={() => {
-                      // Bring existing Finder to foreground if any; otherwise launch at Trash
-                      for (let i = instanceOrder.length - 1; i >= 0; i--) {
-                        const id = instanceOrder[i];
-                        const inst = instances[id];
-                        if (inst && inst.appId === "finder" && inst.isOpen) {
-                          bringInstanceToForeground(id);
-                          return;
-                        }
-                      }
-                      launchApp("finder", { initialPath: "/Trash" });
+                      focusFinderAtPathOrLaunch("/Trash");
                     }}
                   />
                 );
