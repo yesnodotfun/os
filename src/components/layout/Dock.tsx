@@ -128,6 +128,9 @@ function MacDock() {
   }) => {
     const scale = getScaleForIndex(index);
     const isNew = hasMounted && !seenIdsRef.current.has(idKey);
+    const baseButtonSize = 48; // px (w-12)
+    const baseIconSize = 40; // px (w-10)
+    const wrapperWidth = Math.max(baseButtonSize, Math.round(baseButtonSize * scale));
     return (
       <motion.div
         layout
@@ -141,7 +144,7 @@ function MacDock() {
           mass: 0.6,
           layout: { type: "spring", stiffness: 500, damping: 34 },
         }}
-        style={{ transformOrigin: "bottom center" }}
+        style={{ transformOrigin: "bottom center", width: `${wrapperWidth}px` }}
       >
         <button
           aria-label={label}
@@ -151,19 +154,18 @@ function MacDock() {
             if (el) iconRefs.current[index] = el;
           }}
           className="relative flex items-center justify-center w-12 h-12 mx-1"
-          style={{
-            transform: `scale(${scale})`,
-            transformOrigin: "bottom center",
-            transition: "transform 150ms cubic-bezier(0.2, 0.8, 0.2, 1)",
-            willChange: "transform",
-          }}
+          style={{ willChange: "width" }}
         >
           <ThemedIcon
             name={icon}
             alt={label}
-            className="w-10 h-10 select-none pointer-events-none"
+            className="select-none pointer-events-none"
             draggable={false}
-            style={{ imageRendering: "-webkit-optimize-contrast" }}
+            style={{
+              imageRendering: "-webkit-optimize-contrast",
+              width: `${Math.max(baseIconSize, Math.round(baseIconSize * scale))}px`,
+              height: `${Math.max(baseIconSize, Math.round(baseIconSize * scale))}px`,
+            }}
           />
         </button>
       </motion.div>
@@ -184,8 +186,7 @@ function MacDock() {
           paddingBottom: "env(safe-area-inset-bottom, 0px)",
         }}
       >
-        <motion.div
-          layout="size"
+        <div
           className="flex items-center px-2 py-1"
           style={{
             pointerEvents: "auto",
@@ -274,7 +275,7 @@ function MacDock() {
             );
           })()}
           </LayoutGroup>
-        </motion.div>
+        </div>
       </div>
     </div>
   );
