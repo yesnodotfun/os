@@ -2,7 +2,7 @@ import { useMemo, useRef, useState, useCallback, useEffect } from "react";
 import { useThemeStore } from "@/stores/useThemeStore";
 import { useAppStoreShallow } from "@/stores/helpers";
 import { ThemedIcon } from "@/components/shared/ThemedIcon";
-import { AppId, getAppIconPath } from "@/config/appRegistry";
+import { AppId, getAppIconPath, appRegistry } from "@/config/appRegistry";
 import { useLaunchApp } from "@/hooks/useLaunchApp";
 import { useFinderStore } from "@/stores/useFinderStore";
 import { useFilesStore } from "@/stores/useFilesStore";
@@ -412,10 +412,11 @@ function MacDock() {
               {pinnedLeft.map((appId) => {
                 const icon = getAppIconPath(appId);
                 const isOpen = openAppsAllSet.has(appId);
+                const label = appRegistry[appId]?.name ?? appId;
                 return (
                   <IconButton
                     key={appId}
-                    label={appId}
+                    label={label}
                     icon={icon}
                     idKey={appId}
                     onClick={() => {
@@ -433,10 +434,11 @@ function MacDock() {
               {/* Open apps dynamically (excluding pinned) */}
               {openAppIds.map((appId) => {
                 const icon = getAppIconPath(appId);
+                const label = appRegistry[appId]?.name ?? appId;
                 return (
                   <IconButton
                     key={appId}
-                    label={appId}
+                    label={label}
                     icon={icon}
                     idKey={appId}
                     onClick={() => focusMostRecentInstanceOfApp(appId)}
