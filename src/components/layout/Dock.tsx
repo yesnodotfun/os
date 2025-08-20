@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, useCallback } from "react";
+import { useMemo, useRef, useState, useCallback, useEffect } from "react";
 import { useThemeStore } from "@/stores/useThemeStore";
 import { useAppStoreShallow } from "@/stores/helpers";
 import { ThemedIcon } from "@/components/shared/ThemedIcon";
@@ -78,6 +78,25 @@ function MacDock() {
   const SIGMA = 40; // spread of magnification effect (px)
   const MAX_SCALE = 1.8; // peak scale at cursor center
 
+  // Track which icons have appeared before to control enter animations
+  const seenIdsRef = useRef<Set<string>>(new Set());
+  const [hasMounted, setHasMounted] = useState(false);
+  // Mark all currently visible ids as seen whenever the set changes
+  const allVisibleIds = useMemo(
+    () => [
+      ...pinnedLeft,
+      ...openAppIds,
+      "__trash__",
+    ],
+    [pinnedLeft, openAppIds]
+  );
+  // After first paint, mark everything present as seen and mark mounted
+  // Also update seen set whenever visible ids change
+  useEffect(() => {
+    allVisibleIds.forEach((id) => seenIdsRef.current.add(id));
+    if (!hasMounted) setHasMounted(true);
+  }, [allVisibleIds, hasMounted]);
+
   const getScaleForIndex = useCallback(
     (index: number) => {
       if (mouseX == null) return 1;
@@ -99,39 +118,48 @@ function MacDock() {
     onClick,
     icon,
     index,
+    idKey,
   }: {
     label: string;
     onClick: () => void;
     icon: string;
     index: number;
+    idKey: string;
   }) => {
     const scale = getScaleForIndex(index);
+    const isNew = hasMounted && !seenIdsRef.current.has(idKey);
     return (
-      <motion.button
-        aria-label={label}
-        title={label}
-        onClick={onClick}
-        ref={(el) => {
-          if (el) iconRefs.current[index] = el;
-        }}
-        className="relative flex items-center justify-center w-12 h-12 mx-1"
-        initial={{ scale: 0.85, opacity: 0 }}
-        animate={{ scale, opacity: 1 }}
+      <motion.div
+        initial={isNew ? { opacity: 0 } : { opacity: 1 }}
+        animate={{ opacity: 1 }}
         exit={{ scale: 0.85, opacity: 0 }}
         transition={{ type: "spring", stiffness: 300, damping: 20, mass: 0.6 }}
-        style={{
-          transformOrigin: "bottom center",
-          willChange: "transform",
-        }}
+        style={{ transformOrigin: "bottom center" }}
       >
-        <ThemedIcon
-          name={icon}
-          alt={label}
-          className="w-10 h-10 select-none pointer-events-none"
-          draggable={false}
-          style={{ imageRendering: "-webkit-optimize-contrast" }}
-        />
-      </motion.button>
+        <button
+          aria-label={label}
+          title={label}
+          onClick={onClick}
+          ref={(el) => {
+            if (el) iconRefs.current[index] = el;
+          }}
+          className="relative flex items-center justify-center w-12 h-12 mx-1"
+          style={{
+            transform: `scale(${scale})`,
+            transformOrigin: "bottom center",
+            transition: "transform 150ms cubic-bezier(0.2, 0.8, 0.2, 1)",
+            willChange: "transform",
+          }}
+        >
+          <ThemedIcon
+            name={icon}
+            alt={label}
+            className="w-10 h-10 select-none pointer-events-none"
+            draggable={false}
+            style={{ imageRendering: "-webkit-optimize-contrast" }}
+          />
+        </button>
+      </motion.div>
     );
   };
 
@@ -182,6 +210,7 @@ function MacDock() {
                 index={idx}
                 label={appId}
                 icon={icon}
+                idKey={appId}
                 onClick={() => {
                   if (appId === "finder") {
                     focusOrLaunchFinder("/");
@@ -204,6 +233,7 @@ function MacDock() {
                   index={idx}
                   label={appId}
                   icon={icon}
+                  idKey={appId}
                   onClick={() => focusMostRecentInstanceOfApp(appId)}
                 />
               );
@@ -218,6 +248,7 @@ function MacDock() {
                 index={idx}
                 label="Trash"
                 icon="trash-empty.png"
+                idKey="__trash__"
                 onClick={() => {
                   // Bring existing Finder to foreground if any; otherwise launch at Trash
                   for (let i = instanceOrder.length - 1; i >= 0; i--) {
