@@ -4,7 +4,7 @@ import { useAppStoreShallow } from "@/stores/helpers";
 import { ThemedIcon } from "@/components/shared/ThemedIcon";
 import { AppId, getAppIconPath } from "@/config/appRegistry";
 import { useLaunchApp } from "@/hooks/useLaunchApp";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, LayoutGroup } from "framer-motion";
 
 function MacDock() {
 
@@ -130,10 +130,17 @@ function MacDock() {
     const isNew = hasMounted && !seenIdsRef.current.has(idKey);
     return (
       <motion.div
+        layout
         initial={isNew ? { opacity: 0 } : { opacity: 1 }}
         animate={{ opacity: 1 }}
         exit={{ scale: 0.85, opacity: 0 }}
-        transition={{ type: "spring", stiffness: 300, damping: 20, mass: 0.6 }}
+        transition={{
+          type: "spring",
+          stiffness: 300,
+          damping: 20,
+          mass: 0.6,
+          layout: { type: "spring", stiffness: 500, damping: 34 },
+        }}
         style={{ transformOrigin: "bottom center" }}
       >
         <button
@@ -177,7 +184,8 @@ function MacDock() {
           paddingBottom: "env(safe-area-inset-bottom, 0px)",
         }}
       >
-        <div
+        <motion.div
+          layout
           className="flex items-center px-2 py-1"
           style={{
             pointerEvents: "auto",
@@ -200,6 +208,7 @@ function MacDock() {
           onTouchStart={() => setMouseX(null)}
           onTouchEnd={() => setMouseX(null)}
         >
+          <LayoutGroup id="dock-layout">
           {/* Left pinned */}
           {pinnedLeft.map((appId) => {
             const icon = getAppIconPath(appId);
@@ -264,7 +273,8 @@ function MacDock() {
               />
             );
           })()}
-        </div>
+          </LayoutGroup>
+        </motion.div>
       </div>
     </div>
   );
