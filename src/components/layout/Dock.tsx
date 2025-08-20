@@ -156,6 +156,66 @@ function MacDock() {
   const MAX_SCALE = 2.3; // peak multiplier at cursor center
   const DISTANCE = 140; // px range where magnification is applied
 
+  // Disable magnification on mobile/touch (coarse pointer or no hover)
+  const [magnifyEnabled, setMagnifyEnabled] = useState(true);
+  useEffect(() => {
+    const compute = () => {
+      if (
+        typeof window === "undefined" ||
+        typeof window.matchMedia !== "function"
+      ) {
+        setMagnifyEnabled(true);
+        return;
+      }
+      const coarse = window.matchMedia("(pointer: coarse)").matches;
+      const noHover = window.matchMedia("(hover: none)").matches;
+      setMagnifyEnabled(!(coarse || noHover));
+    };
+    compute();
+
+    const mqlPointerCoarse = window.matchMedia("(pointer: coarse)");
+    const mqlHoverNone = window.matchMedia("(hover: none)");
+
+    const onChange = () => compute();
+
+    const removeListeners: Array<() => void> = [];
+
+    const addListener = (mql: MediaQueryList) => {
+      if (typeof mql.addEventListener === "function") {
+        const listener = onChange as EventListener;
+        mql.addEventListener("change", listener);
+        removeListeners.push(() => mql.removeEventListener("change", listener));
+      } else if (
+        typeof (
+          mql as {
+            addListener?: (
+              this: MediaQueryList,
+              listener: (ev: MediaQueryListEvent) => void
+            ) => void;
+          }
+        ).addListener === "function"
+      ) {
+        const legacyListener = () => onChange();
+        (mql as MediaQueryList).addListener!(legacyListener);
+        removeListeners.push(() =>
+          (mql as MediaQueryList).removeListener!(legacyListener)
+        );
+      }
+    };
+
+    addListener(mqlPointerCoarse);
+    addListener(mqlHoverNone);
+
+    return () => {
+      removeListeners.forEach((fn) => fn());
+    };
+  }, []);
+
+  // Ensure no magnification state is applied when disabled
+  useEffect(() => {
+    if (!magnifyEnabled) mouseX.set(Infinity);
+  }, [magnifyEnabled, mouseX]);
+
   // Track which icons have appeared before to control enter animations
   const seenIdsRef = useRef<Set<string>>(new Set());
   const [hasMounted, setHasMounted] = useState(false);
@@ -208,6 +268,11 @@ function MacDock() {
       stiffness: 160,
       damping: 18,
     });
+    const widthValue = isPresent
+      ? magnifyEnabled
+        ? (sizeSpring as unknown as number)
+        : baseButtonSize
+      : 0;
     return (
       <motion.div
         ref={wrapperRef}
@@ -234,8 +299,8 @@ function MacDock() {
         style={{
           transformOrigin: "bottom center",
           willChange: "width, height, transform",
-          width: isPresent ? sizeSpring : 0,
-          height: isPresent ? sizeSpring : 0,
+          width: widthValue,
+          height: widthValue,
           marginLeft: isPresent ? 4 : 0,
           marginRight: isPresent ? 4 : 0,
           overflow: "visible",
@@ -338,8 +403,8 @@ function MacDock() {
               damping: 30,
             },
           }}
-          onMouseMove={(e) => mouseX.set(e.pageX)}
-          onMouseLeave={() => mouseX.set(Infinity)}
+          onMouseMove={magnifyEnabled ? (e) => mouseX.set(e.pageX) : undefined}
+          onMouseLeave={magnifyEnabled ? () => mouseX.set(Infinity) : undefined}
         >
           <LayoutGroup>
             <AnimatePresence mode="popLayout" initial={false}>
