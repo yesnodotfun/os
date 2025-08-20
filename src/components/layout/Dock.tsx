@@ -123,7 +123,7 @@ function MacDock() {
   const [hasMounted, setHasMounted] = useState(false);
   // Mark all currently visible ids as seen whenever the set changes
   const allVisibleIds = useMemo(
-    () => [...pinnedLeft, ...openAppIds, "__trash__"],
+    () => [...pinnedLeft, ...openAppIds, "__applications__", "__trash__"],
     [pinnedLeft, openAppIds]
   );
   // After first paint, mark everything present as seen and mark mounted
@@ -328,9 +328,6 @@ function MacDock() {
                 );
               })}
 
-              {/* Divider between pinned and open/trash (always show) */}
-              <Divider key="divider-left" idKey="left" />
-
               {/* Open apps dynamically (excluding pinned) */}
               {openAppIds.map((appId) => {
                 const icon = getAppIconPath(appId);
@@ -346,7 +343,17 @@ function MacDock() {
                 );
               })}
 
-              {/* No divider before Trash; open apps appear directly to its left */}
+              {/* Divider between open apps and Applications/Trash */}
+              <Divider key="divider-between" idKey="between" />
+
+              {/* Applications (left of Trash) */}
+              <IconButton
+                key="__applications__"
+                label="Applications"
+                icon="/icons/default/applications.png"
+                idKey="__applications__"
+                onClick={() => focusOrLaunchFinder("/Applications")}
+              />
 
               {/* Trash (right side) */}
               {(() => {
