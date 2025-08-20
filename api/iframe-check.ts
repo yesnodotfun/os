@@ -207,28 +207,61 @@ export default async function handler(req: Request) {
       const global = await RateLimit.checkCounterLimit({
         key: globalKey,
         windowSeconds: BURST_WINDOW,
-        limit: 30,
+        limit: 300, // Relaxed global limit for proxy/check
       });
       if (!global.allowed) {
         return new Response(
-          JSON.stringify({ error: "rate_limit_exceeded", scope: "global", mode }),
-          { status: 429, headers: { "Retry-After": String(global.resetSeconds ?? BURST_WINDOW), "Content-Type": "application/json", "Access-Control-Allow-Origin": effectiveOrigin } }
+          JSON.stringify({
+            error: "rate_limit_exceeded",
+            scope: "global",
+            mode,
+          }),
+          {
+            status: 429,
+            headers: {
+              "Retry-After": String(global.resetSeconds ?? BURST_WINDOW),
+              "Content-Type": "application/json",
+              "Access-Control-Allow-Origin": effectiveOrigin,
+            },
+          }
         );
       }
 
       // Per-host anti-scrape if URL present
       try {
-        const hostname = new URL(urlParam.startsWith("http") ? urlParam : `https://${urlParam}`).hostname.toLowerCase();
-        const hostKey = RateLimit.makeKey(["rl", "iframe", mode, "ip", ip, "host", hostname]);
+        const hostname = new URL(
+          urlParam.startsWith("http") ? urlParam : `https://${urlParam}`
+        ).hostname.toLowerCase();
+        const hostKey = RateLimit.makeKey([
+          "rl",
+          "iframe",
+          mode,
+          "ip",
+          ip,
+          "host",
+          hostname,
+        ]);
         const host = await RateLimit.checkCounterLimit({
           key: hostKey,
           windowSeconds: BURST_WINDOW,
-          limit: 10,
+          limit: 100, // Relaxed per-host limit for proxy/check
         });
         if (!host.allowed) {
           return new Response(
-            JSON.stringify({ error: "rate_limit_exceeded", scope: "host", host: hostname, mode }),
-            { status: 429, headers: { "Retry-After": String(host.resetSeconds ?? BURST_WINDOW), "Content-Type": "application/json", "Access-Control-Allow-Origin": effectiveOrigin } }
+            JSON.stringify({
+              error: "rate_limit_exceeded",
+              scope: "host",
+              host: hostname,
+              mode,
+            }),
+            {
+              status: 429,
+              headers: {
+                "Retry-After": String(host.resetSeconds ?? BURST_WINDOW),
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": effectiveOrigin,
+              },
+            }
           );
         }
       } catch (e) {
@@ -240,12 +273,19 @@ export default async function handler(req: Request) {
       const res = await RateLimit.checkCounterLimit({
         key,
         windowSeconds: BURST_WINDOW,
-        limit: 10,
+        limit: 120, // Relaxed limits for cached lookups/listing
       });
       if (!res.allowed) {
         return new Response(
           JSON.stringify({ error: "rate_limit_exceeded", scope: mode }),
-          { status: 429, headers: { "Retry-After": String(res.resetSeconds ?? BURST_WINDOW), "Content-Type": "application/json", "Access-Control-Allow-Origin": effectiveOrigin } }
+          {
+            status: 429,
+            headers: {
+              "Retry-After": String(res.resetSeconds ?? BURST_WINDOW),
+              "Content-Type": "application/json",
+              "Access-Control-Allow-Origin": effectiveOrigin,
+            },
+          }
         );
       }
     }
@@ -791,9 +831,11 @@ export default async function handler(req: Request) {
           : "";
 
         // Add font override styles (conditionally injected based on theme)
-        const fontOverrideStyles = shouldInjectFontOverrides ? `
+        const fontOverrideStyles = shouldInjectFontOverrides
+          ? `
 <link rel="stylesheet" href="https://os.ryo.lu/fonts/fonts.css">
-<style>img{image-rendering:pixelated!important}body,div,span,p,h1,h2,h3,h4,h5,h6,button,input,select,textarea,[style*="font-family"],[style*="sans-serif"],[style*="SF Pro Text"],[style*="-apple-system"],[style*="BlinkMacSystemFont"],[style*="Segoe UI"],[style*="Roboto"],[style*="Oxygen"],[style*="Ubuntu"],[style*="Cantarell"],[style*="Fira Sans"],[style*="Droid Sans"],[style*="Helvetica Neue"],[style*="Helvetica"],[style*="Arial"],[style*="Verdana"],[style*="Geneva"],[style*="Inter"],[style*="Hiragino Sans"],[style*="Hiragino Kaku Gothic"],[style*="Yu Gothic"],[style*="Meiryo"],[style*="MS PGothic"],[style*="MS Gothic"],[style*="Microsoft YaHei"],[style*="PingFang"],[style*="Noto Sans"],[style*="Source Han Sans"],[style*="WenQuanYi"]{font-family:"Geneva-12","ArkPixel","SerenityOS-Emoji",sans-serif!important}[style*="serif"],[style*="Georgia"],[style*="Times New Roman"],[style*="Times"],[style*="Palatino"],[style*="Bookman"],[style*="Garamond"],[style*="Cambria"],[style*="Constantia"],[style*="Hiragino Mincho"],[style*="Yu Mincho"],[style*="MS Mincho"],[style*="SimSun"],[style*="NSimSun"],[style*="Source Han Serif"],[style*="Noto Serif CJK"]{font-family:"Mondwest","Yu Mincho","Hiragino Mincho Pro","Songii TC","Georgia","Palatino","SerenityOS-Emoji",serif!important}code,pre,[style*="monospace"],[style*="Courier New"],[style*="Courier"],[style*="Lucida Console"],[style*="Monaco"],[style*="Consolas"],[style*="Inconsolata"],[style*="Source Code Pro"],[style*="Menlo"],[style*="Andale Mono"],[style*="Ubuntu Mono"]{font-family:"Monaco","ArkPixel","SerenityOS-Emoji",monospace!important}*{font-family:"Geneva-12","ArkPixel","SerenityOS-Emoji",sans-serif}</style>` : "";
+<style>img{image-rendering:pixelated!important}body,div,span,p,h1,h2,h3,h4,h5,h6,button,input,select,textarea,[style*="font-family"],[style*="sans-serif"],[style*="SF Pro Text"],[style*="-apple-system"],[style*="BlinkMacSystemFont"],[style*="Segoe UI"],[style*="Roboto"],[style*="Oxygen"],[style*="Ubuntu"],[style*="Cantarell"],[style*="Fira Sans"],[style*="Droid Sans"],[style*="Helvetica Neue"],[style*="Helvetica"],[style*="Arial"],[style*="Verdana"],[style*="Geneva"],[style*="Inter"],[style*="Hiragino Sans"],[style*="Hiragino Kaku Gothic"],[style*="Yu Gothic"],[style*="Meiryo"],[style*="MS PGothic"],[style*="MS Gothic"],[style*="Microsoft YaHei"],[style*="PingFang"],[style*="Noto Sans"],[style*="Source Han Sans"],[style*="WenQuanYi"]{font-family:"Geneva-12","ArkPixel","SerenityOS-Emoji",sans-serif!important}[style*="serif"],[style*="Georgia"],[style*="Times New Roman"],[style*="Times"],[style*="Palatino"],[style*="Bookman"],[style*="Garamond"],[style*="Cambria"],[style*="Constantia"],[style*="Hiragino Mincho"],[style*="Yu Mincho"],[style*="MS Mincho"],[style*="SimSun"],[style*="NSimSun"],[style*="Source Han Serif"],[style*="Noto Serif CJK"]{font-family:"Mondwest","Yu Mincho","Hiragino Mincho Pro","Songii TC","Georgia","Palatino","SerenityOS-Emoji",serif!important}code,pre,[style*="monospace"],[style*="Courier New"],[style*="Courier"],[style*="Lucida Console"],[style*="Monaco"],[style*="Consolas"],[style*="Inconsolata"],[style*="Source Code Pro"],[style*="Menlo"],[style*="Andale Mono"],[style*="Ubuntu Mono"]{font-family:"Monaco","ArkPixel","SerenityOS-Emoji",monospace!important}*{font-family:"Geneva-12","ArkPixel","SerenityOS-Emoji",sans-serif}</style>`
+          : "";
 
         const clickInterceptorScript = `
 <script>
@@ -923,9 +965,9 @@ export default async function handler(req: Request) {
           }
         }
 
-          return new Response(html, {
+        return new Response(html, {
           status: upstreamRes.status,
-            headers,
+          headers,
         });
       } else {
         logInfo(requestId, "Proxying non-HTML content directly");
@@ -933,7 +975,7 @@ export default async function handler(req: Request) {
         // No title extraction or header needed for non-HTML
         return new Response(upstreamRes.body, {
           status: upstreamRes.status,
-            headers,
+          headers,
         });
       }
     } catch (fetchError) {
