@@ -176,5 +176,8 @@
     { "source": "/pc", "destination": "/" },
     { "source": "/terminal", "destination": "/" },
     { "source": "/control-panels", "destination": "/" }
+  ],
+  "redirects": [
+    { "source": "/404", "destination": "/", "permanent": false }
   ]
 }
