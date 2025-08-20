@@ -5,6 +5,7 @@ import { ThemedIcon } from "@/components/shared/ThemedIcon";
 import { AppId, getAppIconPath } from "@/config/appRegistry";
 import { useLaunchApp } from "@/hooks/useLaunchApp";
 import { useFinderStore } from "@/stores/useFinderStore";
+import { useFilesStore } from "@/stores/useFilesStore";
 import {
   AnimatePresence,
   motion,
@@ -24,6 +25,9 @@ function MacDock() {
     }));
 
   const launchApp = useLaunchApp();
+  const trashIcon = useFilesStore(
+    (s) => s.items["/Trash"]?.icon || "/icons/trash-empty.png"
+  );
   const finderInstances = useFinderStore((s) => s.instances);
 
   // Pinned apps on the left side (in order)
@@ -399,7 +403,7 @@ function MacDock() {
                   <IconButton
                     key="__trash__"
                     label="Trash"
-                    icon="trash-empty.png"
+                    icon={trashIcon}
                     idKey="__trash__"
                     onClick={() => {
                       focusFinderAtPathOrLaunch("/Trash");
