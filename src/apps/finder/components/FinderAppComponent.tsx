@@ -29,6 +29,7 @@ import { useThemeStore } from "@/stores/useThemeStore";
 // Type for Finder initial data
 interface FinderInitialData {
   path?: string;
+  viewType?: ViewType;
 }
 
 // Helper function to determine file type from FileItem
@@ -130,6 +131,13 @@ export function FinderAppComponent({
         localStorage.getItem("app_finder_initialPath") ||
         "/";
       createFinderInstance(instanceId, initialPath);
+
+      // Apply initial view preference if provided
+      if (typedInitialData?.viewType) {
+        updateFinderInstance(instanceId, {
+          viewType: typedInitialData.viewType,
+        });
+      }
 
       // Clear the localStorage if we used it
       if (localStorage.getItem("app_finder_initialPath")) {

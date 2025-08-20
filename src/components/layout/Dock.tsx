@@ -222,7 +222,6 @@ function MacDock() {
               imageRendering: "-webkit-optimize-contrast",
               width: "100%",
               height: "100%",
-              transform: "translateY(-1px)",
             }}
           />
           {showIndicator ? (
@@ -352,7 +351,12 @@ function MacDock() {
                 label="Applications"
                 icon="/icons/default/applications.png"
                 idKey="__applications__"
-                onClick={() => focusOrLaunchFinder("/Applications")}
+                onClick={() =>
+                  launchApp("finder", {
+                    initialPath: "/Applications",
+                    initialData: { path: "/Applications", viewType: "large" },
+                  })
+                }
               />
 
               {/* Trash (right side) */}
