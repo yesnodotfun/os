@@ -9,13 +9,11 @@ function MacDock() {
   const {
     instances,
     instanceOrder,
-    foregroundInstanceId,
     bringInstanceToForeground,
     launchOrFocusApp,
   } = useAppStoreShallow((s) => ({
     instances: s.instances,
     instanceOrder: s.instanceOrder,
-    foregroundInstanceId: s.foregroundInstanceId,
     bringInstanceToForeground: s.bringInstanceToForeground,
     launchOrFocusApp: s.launchOrFocusApp,
   }));
@@ -40,16 +38,6 @@ function MacDock() {
     return unique.map((u) => u.appId).filter((id) => !pinnedLeft.includes(id));
   }, [instances]);
 
-  const isAppOpen = (appId: AppId) => {
-    return Object.values(instances).some((i) => i.appId === appId && i.isOpen);
-  };
-
-  const isAppForeground = (appId: AppId) => {
-    if (!foregroundInstanceId) return false;
-    const inst = instances[foregroundInstanceId];
-    return Boolean(inst && inst.appId === appId);
-  };
-
   const focusMostRecentInstanceOfApp = (appId: AppId) => {
     // Walk instanceOrder from end to find most recent open instance for appId
     for (let i = instanceOrder.length - 1; i >= 0; i--) {
@@ -68,14 +56,10 @@ function MacDock() {
     label,
     onClick,
     icon,
-    open,
-    active,
   }: {
     label: string;
     onClick: () => void;
     icon: string;
-    open?: boolean;
-    active?: boolean;
   }) => {
     return (
       <button
@@ -105,19 +89,6 @@ function MacDock() {
           draggable={false}
           style={{ imageRendering: "-webkit-optimize-contrast" }}
         />
-        {/* active indicator */}
-        {open ? (
-          <span
-            className="absolute bottom-0 left-1/2 -translate-x-1/2"
-            style={{
-              width: 6,
-              height: 6,
-              borderRadius: "50%",
-              background: active ? "#ffffff" : "rgba(255,255,255,0.5)",
-              boxShadow: "none",
-            }}
-          />
-        ) : null}
       </button>
     );
   };
@@ -137,16 +108,15 @@ function MacDock() {
         }}
       >
         <div
-          className="flex items-center px-2 py-1 shadow-xl"
+          className="flex items-center px-2 py-1"
           style={{
             pointerEvents: "auto",
-            backdropFilter: "saturate(120%) blur(12px)",
-            WebkitBackdropFilter: "saturate(120%) blur(12px)",
-            background:
-              "linear-gradient(to bottom, rgba(250,250,250,0.75), rgba(210,210,210,0.65))",
-            border: "1px solid rgba(0,0,0,0.2)",
-            boxShadow:
-              "0 6px 18px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.5)",
+            backdropFilter: "blur(20px)",
+            WebkitBackdropFilter: "blur(20px)",
+            background: "rgba(248, 248, 248, 0.85)",
+            backgroundImage: "var(--os-pinstripe-menubar)",
+            border: "none",
+            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
             height: 56,
             maxWidth: "min(92vw, 980px)",
           }}
@@ -154,15 +124,11 @@ function MacDock() {
           {/* Left pinned */}
           {pinnedLeft.map((appId) => {
             const icon = getAppIconPath(appId);
-            const open = isAppOpen(appId);
-            const active = isAppForeground(appId);
             return (
               <IconButton
                 key={appId}
                 label={appId}
                 icon={icon}
-                open={open}
-                active={active}
                 onClick={() => {
                   if (appId === "finder") {
                     window.dispatchEvent(
@@ -181,15 +147,11 @@ function MacDock() {
           {/* Open apps dynamically (excluding pinned) */}
           {openAppIds.map((appId) => {
             const icon = getAppIconPath(appId);
-            const open = true;
-            const active = isAppForeground(appId);
             return (
               <IconButton
                 key={appId}
                 label={appId}
                 icon={icon}
-                open={open}
-                active={active}
                 onClick={() => focusMostRecentInstanceOfApp(appId)}
               />
             );
@@ -199,8 +161,6 @@ function MacDock() {
           <IconButton
             label="Trash"
             icon="trash-empty.png"
-            open={false}
-            active={false}
             onClick={() => {
               // Open Finder at Trash
               window.dispatchEvent(
@@ -221,4 +181,3 @@ export function Dock() {
   if (currentTheme !== "macosx") return null;
   return <MacDock />;
 }
-
