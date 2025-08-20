@@ -24,8 +24,11 @@ function MacDock() {
 
   const launchApp = useLaunchApp();
 
-  // Pinned apps on the left side
-  const pinnedLeft: AppId[] = useMemo(() => ["finder"] as AppId[], []);
+  // Pinned apps on the left side (in order)
+  const pinnedLeft: AppId[] = useMemo(
+    () => ["finder", "chats", "internet-explorer"] as AppId[],
+    []
+  );
 
   // Compute unique open apps (excluding pinned to avoid duplicates)
   const openAppIds = useMemo(() => {
@@ -53,6 +56,14 @@ function MacDock() {
     return unique.map((u) => u.appId).filter((id) => !pinnedLeft.includes(id));
   }, [instances, pinnedLeft]);
 
+  const openAppsAllSet = useMemo(() => {
+    const set = new Set<AppId>();
+    Object.values(instances).forEach((inst) => {
+      if (inst.isOpen) set.add(inst.appId as AppId);
+    });
+    return set;
+  }, [instances]);
+
   const focusMostRecentInstanceOfApp = (appId: AppId) => {
     // Walk instanceOrder from end to find most recent open instance for appId
     for (let i = instanceOrder.length - 1; i >= 0; i--) {
@@ -65,6 +76,23 @@ function MacDock() {
     }
     // No open instance found
   };
+
+  const focusOrLaunchApp = useCallback(
+    (appId: AppId, initialData?: unknown) => {
+      // Try focusing existing instance of this app
+      for (let i = instanceOrder.length - 1; i >= 0; i--) {
+        const id = instanceOrder[i];
+        const inst = instances[id];
+        if (inst && inst.appId === appId && inst.isOpen) {
+          bringInstanceToForeground(id);
+          return;
+        }
+      }
+      // Launch new
+      launchApp(appId, initialData !== undefined ? { initialData } : undefined);
+    },
+    [instanceOrder, instances, bringInstanceToForeground, launchApp]
+  );
 
   // Finder-specific: bring existing to foreground, otherwise launch one
   const focusOrLaunchFinder = useCallback(
@@ -114,11 +142,13 @@ function MacDock() {
     onClick,
     icon,
     idKey,
+    showIndicator = false,
   }: {
     label: string;
     onClick: () => void;
     icon: string;
     idKey: string;
+    showIndicator?: boolean;
   }) => {
     const isNew = hasMounted && !seenIdsRef.current.has(idKey);
     const baseButtonSize = 48; // px (w-12)
@@ -170,7 +200,7 @@ function MacDock() {
           height: isPresent ? sizeSpring : 0,
           marginLeft: isPresent ? 4 : 0,
           marginRight: isPresent ? 4 : 0,
-          overflow: "hidden",
+          overflow: "visible",
         }}
         className="flex-shrink-0"
       >
@@ -192,12 +222,48 @@ function MacDock() {
               imageRendering: "-webkit-optimize-contrast",
               width: "100%",
               height: "100%",
+              transform: "translateY(-1px)",
             }}
           />
+          {showIndicator ? (
+            <span
+              aria-hidden
+              className="absolute"
+              style={{
+                bottom: -3,
+                width: 0,
+                height: 0,
+                borderLeft: "4px solid transparent",
+                borderRight: "4px solid transparent",
+                borderTop: "0",
+                borderBottom: "4px solid #000",
+                filter: "none",
+              }}
+            />
+          ) : null}
         </button>
       </motion.div>
     );
   };
+
+  const Divider = ({ idKey }: { idKey: string }) => (
+    <motion.div
+      layout
+      layoutId={`dock-divider-${idKey}`}
+      initial={{ opacity: 0, scaleY: 0.8 }}
+      animate={{ opacity: 0.9, scaleY: 1 }}
+      exit={{ opacity: 0, scaleY: 0.8 }}
+      transition={{ type: "spring", stiffness: 260, damping: 26 }}
+      className="bg-black/20"
+      style={{
+        width: 1,
+        height: 48,
+        marginLeft: 6,
+        marginRight: 6,
+        alignSelf: "center",
+      }}
+    />
+  );
 
   return (
     <div
@@ -216,12 +282,10 @@ function MacDock() {
         <motion.div
           layout
           layoutRoot
-          className="inline-flex items-end px-2 py-1"
+          className="inline-flex items-end px-1 py-1"
           style={{
             pointerEvents: "auto",
-            backdropFilter: "blur(20px)",
-            WebkitBackdropFilter: "blur(20px)",
-            background: "rgba(248, 248, 248, 0.85)",
+            background: "rgba(248, 248, 248, 0.75)",
             backgroundImage: "var(--os-pinstripe-menubar)",
             border: "none",
             boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
@@ -245,6 +309,7 @@ function MacDock() {
               {/* Left pinned */}
               {pinnedLeft.map((appId) => {
                 const icon = getAppIconPath(appId);
+                const isOpen = openAppsAllSet.has(appId);
                 return (
                   <IconButton
                     key={appId}
@@ -255,12 +320,16 @@ function MacDock() {
                       if (appId === "finder") {
                         focusOrLaunchFinder("/");
                       } else {
-                        focusMostRecentInstanceOfApp(appId);
+                        focusOrLaunchApp(appId);
                       }
                     }}
+                    showIndicator={isOpen}
                   />
                 );
               })}
+
+              {/* Divider between pinned and open/trash (always show) */}
+              <Divider key="divider-left" idKey="left" />
 
               {/* Open apps dynamically (excluding pinned) */}
               {openAppIds.map((appId) => {
@@ -272,9 +341,12 @@ function MacDock() {
                     icon={icon}
                     idKey={appId}
                     onClick={() => focusMostRecentInstanceOfApp(appId)}
+                    showIndicator
                   />
                 );
               })}
+
+              {/* No divider before Trash; open apps appear directly to its left */}
 
               {/* Trash (right side) */}
               {(() => {
