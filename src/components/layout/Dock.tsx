@@ -131,8 +131,8 @@ function MacDock() {
     return (
       <motion.div
         layout
-        initial={isNew ? { opacity: 0 } : { opacity: 1 }}
-        animate={{ opacity: 1 }}
+        initial={isNew ? { scale: 0.85, opacity: 0 } : { opacity: 1 }}
+        animate={isNew ? { scale: 1, opacity: 1 } : { opacity: 1 }}
         exit={{ scale: 0.85, opacity: 0 }}
         transition={{
           type: "spring",
@@ -184,8 +184,7 @@ function MacDock() {
           paddingBottom: "env(safe-area-inset-bottom, 0px)",
         }}
       >
-        <motion.div
-          layout
+        <div
           className="flex items-center px-2 py-1"
           style={{
             pointerEvents: "auto",
@@ -274,7 +273,7 @@ function MacDock() {
             );
           })()}
           </LayoutGroup>
-        </motion.div>
+        </div>
       </div>
     </div>
   );
