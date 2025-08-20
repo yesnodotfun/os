@@ -184,7 +184,8 @@ function MacDock() {
           paddingBottom: "env(safe-area-inset-bottom, 0px)",
         }}
       >
-        <div
+        <motion.div
+          layout="size"
           className="flex items-center px-2 py-1"
           style={{
             pointerEvents: "auto",
@@ -273,7 +274,7 @@ function MacDock() {
             );
           })()}
           </LayoutGroup>
-        </div>
+        </motion.div>
       </div>
     </div>
   );
