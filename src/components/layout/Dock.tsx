@@ -9,13 +9,11 @@ function MacDock() {
   const {
     instances,
     instanceOrder,
-    foregroundInstanceId,
     bringInstanceToForeground,
     launchOrFocusApp,
   } = useAppStoreShallow((s) => ({
     instances: s.instances,
     instanceOrder: s.instanceOrder,
-    foregroundInstanceId: s.foregroundInstanceId,
     bringInstanceToForeground: s.bringInstanceToForeground,
     launchOrFocusApp: s.launchOrFocusApp,
   }));
@@ -40,16 +38,6 @@ function MacDock() {
     return unique.map((u) => u.appId).filter((id) => !pinnedLeft.includes(id));
   }, [instances]);
 
-  const isAppOpen = (appId: AppId) => {
-    return Object.values(instances).some((i) => i.appId === appId && i.isOpen);
-  };
-
-  const isAppForeground = (appId: AppId) => {
-    if (!foregroundInstanceId) return false;
-    const inst = instances[foregroundInstanceId];
-    return Boolean(inst && inst.appId === appId);
-  };
-
   const focusMostRecentInstanceOfApp = (appId: AppId) => {
     // Walk instanceOrder from end to find most recent open instance for appId
     for (let i = instanceOrder.length - 1; i >= 0; i--) {
@@ -68,14 +56,10 @@ function MacDock() {
     label,
     onClick,
     icon,
-    open,
-    active,
   }: {
     label: string;
     onClick: () => void;
     icon: string;
-    open?: boolean;
-    active?: boolean;
   }) => {
     return (
       <button
@@ -140,15 +124,11 @@ function MacDock() {
           {/* Left pinned */}
           {pinnedLeft.map((appId) => {
             const icon = getAppIconPath(appId);
-            const open = isAppOpen(appId);
-            const active = isAppForeground(appId);
             return (
               <IconButton
                 key={appId}
                 label={appId}
                 icon={icon}
-                open={open}
-                active={active}
                 onClick={() => {
                   if (appId === "finder") {
                     window.dispatchEvent(
@@ -167,15 +147,11 @@ function MacDock() {
           {/* Open apps dynamically (excluding pinned) */}
           {openAppIds.map((appId) => {
             const icon = getAppIconPath(appId);
-            const open = true;
-            const active = isAppForeground(appId);
             return (
               <IconButton
                 key={appId}
                 label={appId}
                 icon={icon}
-                open={open}
-                active={active}
                 onClick={() => focusMostRecentInstanceOfApp(appId)}
               />
             );
@@ -185,8 +161,6 @@ function MacDock() {
           <IconButton
             label="Trash"
             icon="trash-empty.png"
-            open={false}
-            active={false}
             onClick={() => {
               // Open Finder at Trash
               window.dispatchEvent(
@@ -207,4 +181,3 @@ export function Dock() {
   if (currentTheme !== "macosx") return null;
   return <MacDock />;
 }
-
