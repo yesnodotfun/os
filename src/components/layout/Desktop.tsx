@@ -204,6 +204,12 @@ export function Desktop({
       }
     });
 
+  // macOS X: Only show iPod app icon on desktop (with Macintosh HD shown above)
+  const displayedApps =
+    currentTheme === "macosx"
+      ? sortedApps.filter((app) => app.id === "ipod")
+      : sortedApps;
+
   const getContextMenuItems = (): MenuItem[] => {
     if (contextMenuAppId) {
       // Icon-specific context menu
@@ -309,7 +315,7 @@ export function Desktop({
             isSelected={selectedAppId === "macintosh-hd"}
             size="large"
           />
-          {sortedApps.map((app) => (
+          {displayedApps.map((app) => (
             <FileIcon
               key={app.id}
               name={app.name}
