@@ -162,8 +162,15 @@ function MacDock() {
             height: 56,
             maxWidth: "min(92vw, 980px)",
           }}
-          onMouseMove={(e) => setMouseX(e.clientX)}
-          onMouseLeave={() => setMouseX(null)}
+          onPointerMove={(e) => {
+            // Only enable magnification for mouse pointers
+            if ((e as React.PointerEvent<HTMLDivElement>).pointerType === "mouse") {
+              setMouseX(e.clientX);
+            }
+          }}
+          onPointerLeave={() => setMouseX(null)}
+          onTouchStart={() => setMouseX(null)}
+          onTouchEnd={() => setMouseX(null)}
         >
           {/* Left pinned */}
           {pinnedLeft.map((appId) => {
