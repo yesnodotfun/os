@@ -1,6 +1,6 @@
 import { useSound, Sounds } from "@/hooks/useSound";
 import { useEffect, useState, useRef } from "react";
-import { isMobileDevice } from "@/utils/device";
+import { isTouchDevice } from "@/utils/device";
 import { useLongPress } from "@/hooks/useLongPress";
 import { useThemeStore } from "@/stores/useThemeStore";
 import { ThemedIcon } from "@/components/shared/ThemedIcon";
@@ -210,8 +210,8 @@ export function FileIcon({
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     playClick();
 
-    // On mobile devices, single tap should open the app (execute onDoubleClick)
-    if (isMobileDevice() && onDoubleClick) {
+    // On touch devices, single tap should open the app (execute onDoubleClick)
+    if (isTouchDevice() && onDoubleClick) {
       onDoubleClick(e);
     } else {
       // On desktop, execute the regular onClick handler (selection)
@@ -220,8 +220,8 @@ export function FileIcon({
   };
 
   const handleDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    // Only handle double-click on desktop (mobile uses single tap)
-    if (!isMobileDevice()) {
+    // Only handle double-click on desktop (touch uses single tap)
+    if (!isTouchDevice()) {
       onDoubleClick?.(e);
     }
   };

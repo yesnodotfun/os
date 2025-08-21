@@ -12,7 +12,7 @@ import {
 import { ThemedIcon } from "@/components/shared/ThemedIcon";
 import { useState, useRef, useEffect } from "react";
 import { useLongPress } from "@/hooks/useLongPress";
-import { isMobileDevice } from "@/utils/device";
+import { isTouchDevice } from "@/utils/device";
 
 export interface FileItem {
   name: string;
@@ -287,8 +287,8 @@ export function FileList({
     });
 
     const handleClick = () => {
-      // On mobile devices, single tap should open the file (execute handleFileOpen)
-      if (isMobileDevice()) {
+      // On touch devices, single tap should open the file (execute handleFileOpen)
+      if (isTouchDevice()) {
         handleFileOpen(file);
       } else {
         // On desktop, execute the regular click handler (selection)
@@ -297,8 +297,8 @@ export function FileList({
     };
 
     const handleDoubleClick = () => {
-      // Only handle double-click on desktop (mobile uses single tap)
-      if (!isMobileDevice()) {
+      // Only handle double-click on desktop (touch uses single tap)
+      if (!isTouchDevice()) {
         handleFileOpen(file);
       }
     };
@@ -339,7 +339,7 @@ export function FileList({
         onDrop={(e) => handleDrop(e, file)}
         onDragEnd={handleDragEnd}
         data-file-item="true"
-        {...(isMobileDevice() ? longPressHandlers : {})}
+        {...(isTouchDevice() ? longPressHandlers : {})}
       >
         <TableCell className="flex items-center gap-2">
           {file.contentUrl && isImageFile(file) ? (
@@ -422,7 +422,7 @@ export function FileList({
           }
         }}
         data-file-item="true"
-        {...(isMobileDevice() ? longPressHandlers : {})}
+        {...(isTouchDevice() ? longPressHandlers : {})}
       >
         <FileIcon
           name={file.name}
