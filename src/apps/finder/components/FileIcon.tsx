@@ -244,7 +244,7 @@ export function FileIcon({
     <div
       className={`flex flex-col items-center justify-start cursor-default ${
         isMacOSXTheme ? "gap-0 pb-3" : "gap-0"
-      } ${sizes.container} ${className}`}
+      } ${sizes.container} ${isFinderContext ? "w-full" : ""} ${className}`}
       onDoubleClick={handleDoubleClick}
       onClick={handleClick}
       onContextMenu={onContextMenu}
@@ -289,6 +289,7 @@ export function FileIcon({
                 }
               : { textShadow: "1px 1px 2px rgba(0, 0, 0, 0.8)" }
             : {}),
+          ...(isFinderContext ? { maxWidth: "100%" } : {}),
         }}
       >
         {name}

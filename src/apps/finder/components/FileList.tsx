@@ -479,12 +479,12 @@ export function FileList({
   }
 
   return (
-    <div
-      className={`grid ${viewType === "large" ? "grid-cols-[repeat(auto-fill,96px)]" : "grid-cols-[repeat(auto-fill,80px)]"} gap-2 p-2 min-h-[150px]`}
-      onDragOver={handleContainerDragOver}
-      onDragLeave={handleContainerDragLeave}
-      onDrop={handleContainerDrop}
-    >
+          <div
+        className={`grid ${viewType === "large" ? "grid-cols-[repeat(auto-fit,minmax(96px,1fr))]" : "grid-cols-[repeat(auto-fit,minmax(80px,1fr))]"} gap-2 p-2 min-h-[150px]`}
+        onDragOver={handleContainerDragOver}
+        onDragLeave={handleContainerDragLeave}
+        onDrop={handleContainerDrop}
+      >
       {files.map((file) => (
         <GridItem key={file.path} file={file} />
       ))}
