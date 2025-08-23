@@ -415,7 +415,7 @@ export function FileList({
         onDragLeave={handleDragLeave}
         onDrop={(e) => handleDrop(e, file)}
         onDragEnd={handleDragEnd}
-        className="p-1 transition-all duration-75"
+        className="transition-all duration-75"
         onContextMenu={(e: React.MouseEvent) => {
           if (onItemContextMenu) {
             onItemContextMenu(file, e);
@@ -480,7 +480,7 @@ export function FileList({
 
   return (
     <div
-      className="grid grid-cols-[repeat(auto-fill,minmax(80px,1fr))] gap-2 p-2 min-h-[150px]"
+      className={`grid ${viewType === "large" ? "grid-cols-[repeat(auto-fill,96px)]" : "grid-cols-[repeat(auto-fill,80px)]"} gap-2 p-2 min-h-[150px]`}
       onDragOver={handleContainerDragOver}
       onDragLeave={handleContainerDragLeave}
       onDrop={handleContainerDrop}

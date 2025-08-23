@@ -967,7 +967,7 @@ export function FinderAppComponent({
               />
             </div>
           </div>
-          <div className="flex-1 overflow-auto bg-white">
+          <div className={`flex-1 bg-white ${viewType === "list" ? "overflow-auto" : "overflow-y-auto overflow-x-hidden"}`}>
             {isLoading ? (
               <div className="flex items-center justify-center h-full">
                 Loading...
