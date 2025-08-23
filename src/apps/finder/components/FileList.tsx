@@ -480,7 +480,7 @@ export function FileList({
 
   return (
           <div
-        className={`grid ${viewType === "large" ? "grid-cols-[repeat(auto-fit,minmax(96px,1fr))]" : "grid-cols-[repeat(auto-fit,minmax(80px,1fr))]"} gap-2 p-2 min-h-[150px]`}
+        className={`grid ${viewType === "large" ? "grid-cols-[repeat(auto-fit,minmax(96px,1fr))]" : "grid-cols-[repeat(auto-fit,minmax(80px,1fr))]"} gap-2 p-2 min-h-[150px] justify-items-start`}
         onDragOver={handleContainerDragOver}
         onDragLeave={handleContainerDragLeave}
         onDrop={handleContainerDrop}

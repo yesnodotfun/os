@@ -244,7 +244,7 @@ export function FileIcon({
     <div
       className={`flex flex-col items-center justify-start cursor-default ${
         isMacOSXTheme ? "gap-0 pb-3" : "gap-0"
-      } ${sizes.container} ${isFinderContext ? "w-full" : ""} ${className}`}
+      } ${sizes.container} ${className}`}
       onDoubleClick={handleDoubleClick}
       onClick={handleClick}
       onContextMenu={onContextMenu}
