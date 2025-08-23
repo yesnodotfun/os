@@ -261,7 +261,7 @@ export function FileIcon({
         {renderIcon()}
       </div>
       <span
-        className={`text-center px-1 file-icon-label block w-full truncate ${
+        className={`text-center px-1 file-icon-label break-words truncate ${
           sizes.text
         } ${isMacOSXTheme && !isFinderContext ? "font-bold rounded" : ""} ${
           isSelected
@@ -289,7 +289,6 @@ export function FileIcon({
                 }
               : { textShadow: "1px 1px 2px rgba(0, 0, 0, 0.8)" }
             : {}),
-          ...(isFinderContext ? { maxWidth: "100%" } : {}),
         }}
       >
         {name}
