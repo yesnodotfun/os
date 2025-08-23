@@ -242,9 +242,10 @@ export function FileIcon({
 
   return (
     <div
-      className={`flex flex-col items-center justify-start cursor-default ${
+      className={`flex flex-col ${isFinderContext ? "items-start" : "items-center"} justify-start cursor-default ${
         isMacOSXTheme ? "gap-0 pb-3" : "gap-0"
       } ${sizes.container} ${className}`}
+      style={isFinderContext ? { width: "100%" } : undefined}
       onDoubleClick={handleDoubleClick}
       onClick={handleClick}
       onContextMenu={onContextMenu}
@@ -261,8 +262,8 @@ export function FileIcon({
         {renderIcon()}
       </div>
       <span
-        className={`text-center px-1 file-icon-label break-words ${
-          isFinderContext ? "finder-two-line" : "truncate"
+        className={`px-1 file-icon-label ${
+          isFinderContext ? "truncate w-full text-left" : "text-center truncate"
         } ${
           sizes.text
         } ${isMacOSXTheme && !isFinderContext ? "font-bold rounded" : ""} ${

@@ -779,14 +779,3 @@ button.piano-key.piano-key[class*="bg-[#ff33ff]"] {
 :root[data-os-theme="macosx"] video {
   image-rendering: auto !important;
 }
-
-/* Finder-specific utilities */
-.finder-two-line {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-clamp: 2;
-  word-break: break-word;
-}
