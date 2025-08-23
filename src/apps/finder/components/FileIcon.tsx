@@ -245,7 +245,6 @@ export function FileIcon({
       className={`flex flex-col items-center justify-start cursor-default ${
         isMacOSXTheme ? "gap-0 pb-3" : "gap-0"
       } ${sizes.container} ${className}`}
-      style={isFinderContext ? { width: "100%" } : undefined}
       onDoubleClick={handleDoubleClick}
       onClick={handleClick}
       onContextMenu={onContextMenu}
