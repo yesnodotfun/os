@@ -313,7 +313,8 @@ export function useFileSystem(
   const setCurrentPath = useCallback(
     (path: string) => {
       if (instanceId && finderInstance) {
-        updateFinderInstance(instanceId, { currentPath: path });
+        const nextViewType = finderStore.getViewTypeForPath(path);
+        updateFinderInstance(instanceId, { currentPath: path, viewType: nextViewType });
       } else {
         setLocalCurrentPath(path);
       }

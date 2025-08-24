@@ -26,6 +26,12 @@ interface FinderStoreState {
   viewType: ViewType;
   sortType: SortType;
 
+  // Per-path view preferences
+  pathViewPreferences: Record<string, ViewType>;
+  setViewTypeForPath: (path: string, type: ViewType) => void;
+  getViewTypeForPath: (path: string) => ViewType;
+  getDefaultViewTypeForPath: (path: string) => ViewType;
+
   // Instance actions
   createInstance: (instanceId: string, initialPath?: string) => void;
   removeInstance: (instanceId: string) => void;
@@ -42,7 +48,7 @@ interface FinderStoreState {
   reset: () => void;
 }
 
-const STORE_VERSION = 2;
+const STORE_VERSION = 3;
 const STORE_NAME = "ryos:finder";
 
 export const useFinderStore = create<FinderStoreState>()(
@@ -54,6 +60,35 @@ export const useFinderStore = create<FinderStoreState>()(
       // Legacy state (deprecated)
       viewType: "list",
       sortType: "name",
+
+      // Per-path view preferences
+      pathViewPreferences: {},
+      setViewTypeForPath: (path, type) =>
+        set((state) => ({
+          pathViewPreferences: {
+            ...state.pathViewPreferences,
+            [path]: type,
+          },
+        })),
+      getViewTypeForPath: (path) => {
+        const state = get();
+        return (
+          state.pathViewPreferences[path] ||
+          state.getDefaultViewTypeForPath(path)
+        );
+      },
+      getDefaultViewTypeForPath: (path) => {
+        // Defaults per user request
+        if (path === "/") return "large";
+        if (path.startsWith("/Images")) return "large";
+        if (path.startsWith("/Videos")) return "large";
+        if (path.startsWith("/Applications")) return "large";
+        if (path.startsWith("/Trash")) return "large";
+        if (path.startsWith("/Documents")) return "list";
+        if (path.startsWith("/Music")) return "list";
+        // Fallback
+        return "list";
+      },
 
       // Instance management
       createInstance: (instanceId, initialPath = "/") =>
@@ -71,7 +106,7 @@ export const useFinderStore = create<FinderStoreState>()(
                 currentPath: initialPath,
                 navigationHistory: [initialPath],
                 navigationIndex: 0,
-                viewType: "list",
+                viewType: state.getViewTypeForPath(initialPath),
                 sortType: "name",
                 selectedFile: null,
               },
@@ -142,6 +177,7 @@ export const useFinderStore = create<FinderStoreState>()(
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         instances: state.instances,
+        pathViewPreferences: state.pathViewPreferences,
         // Don't persist legacy fields anymore
       }),
       migrate: (persistedState: unknown, version: number) => {
@@ -158,9 +194,19 @@ export const useFinderStore = create<FinderStoreState>()(
             // Keep legacy fields for backward compatibility
             viewType: oldState.viewType || "list",
             sortType: oldState.sortType || "name",
+            pathViewPreferences: {},
           };
 
           return migratedState;
+        }
+
+        // Migrate from v2 to v3 (add per-path view preferences)
+        if (version < 3) {
+          const prev = persistedState as Partial<FinderStoreState>;
+          return {
+            ...prev,
+            pathViewPreferences: prev?.pathViewPreferences || {},
+          } as Partial<FinderStoreState>;
         }
 
         return persistedState;
@@ -178,13 +224,20 @@ export const useFinderStore = create<FinderStoreState>()(
                   currentPath: instance.currentPath || "/",
                   navigationHistory: instance.navigationHistory || ["/"],
                   navigationIndex: instance.navigationIndex || 0,
-                  viewType: instance.viewType || "list",
+                  viewType:
+                    instance.viewType ||
+                    state.getViewTypeForPath?.(instance.currentPath || "/") ||
+                    "list",
                   sortType: instance.sortType || "name",
                   selectedFile: instance.selectedFile || null,
                 };
               }
             });
           }
+
+          // Ensure per-path preferences map exists
+          const anyState = state as unknown as { pathViewPreferences?: Record<string, ViewType> };
+          if (!anyState.pathViewPreferences) anyState.pathViewPreferences = {};
         }
       },
     }
