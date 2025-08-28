@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Blend, Share } from "lucide-react";
 import HtmlPreview from "@/components/shared/HtmlPreview";
@@ -651,19 +652,21 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
 
   return (
     <>
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            className={`fixed inset-0 z-[10000] ${
-              shaderEffectEnabled
-                ? "bg-black/90"
-                : "bg-black/70 backdrop-blur-xl"
-            } flex flex-col items-center font-geneva-12 min-h-[100dvh] max-h-[100dvh]`}
-            initial={{ opacity: 0, scale: 1.05 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.05 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-          >
+      {typeof document !== "undefined"
+        ? createPortal(
+            <AnimatePresence>
+              {isOpen && (
+                <motion.div
+                  className={`fixed inset-0 z-[10000] ${
+                    shaderEffectEnabled
+                      ? "bg-black/90"
+                      : "bg-black/70 backdrop-blur-xl"
+                  } flex flex-col items-center font-geneva-12 min-h-[100dvh] max-h-[100dvh]`}
+                  initial={{ opacity: 0, scale: 1.05 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 1.05 }}
+                  transition={{ duration: 0.3, ease: "easeInOut" }}
+                >
             {/* Galaxy Background */}
             <GalaxyBackground shaderType={selectedShaderType} />
 
@@ -1138,9 +1141,12 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                 </DropdownMenu>
               </div>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                </motion.div>
+              )}
+            </AnimatePresence>,
+            document.body
+          )
+        : null}
 
       <ShareItemDialog
         isOpen={isShareDialogOpen}
