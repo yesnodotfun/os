@@ -796,7 +796,7 @@ export default async function handler(req: Request) {
       headers.delete("content-security-policy");
       headers.set(
         "content-security-policy",
-        "frame-ancestors *; sandbox allow-scripts allow-forms allow-same-origin allow-popups"
+        "frame-ancestors *; sandbox allow-scripts allow-forms allow-same-origin allow-popups allow-pointer-lock"
       );
       headers.set("access-control-allow-origin", "*");
 

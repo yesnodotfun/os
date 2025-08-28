@@ -2522,6 +2522,7 @@ export function InternetExplorerAppComponent({
                   ref={iframeRef}
                   src={finalUrl || ""}
                   className="w-full h-full border-0"
+                  sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-pointer-lock"
                   onLoad={handleIframeLoad}
                   onError={handleIframeError}
                 />

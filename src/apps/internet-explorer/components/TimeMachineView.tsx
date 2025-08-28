@@ -835,7 +835,7 @@ const TimeMachineView: React.FC<TimeMachineViewProps> = ({
                                             <iframe
                                               src={previewContent}
                                               className="w-full h-full border-none bg-white"
-                                              sandbox="allow-scripts allow-same-origin"
+                                              sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-pointer-lock"
                                               title={`Preview for ${previewYear}`}
                                               onLoad={() => {
                                                 console.log(
