@@ -1379,7 +1379,7 @@ export function ControlPanelsAppComponent({
 
   const performFormat = async () => {
     // Reset wallpaper to default before formatting
-    setCurrentWallpaper("/wallpapers/videos/blue_flowers_loop.mp4");
+    setCurrentWallpaper("/wallpapers/photos/aqua/water.jpg");
     await formatFileSystem();
     setNextBootMessage("Formatting File System...");
     window.location.reload();
